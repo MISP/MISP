@@ -13,4 +13,6 @@
 	ErrorLog /var/log/apache2/misp.local_error.log
 	CustomLog /var/log/apache2/misp.local_access.log combined
 	ServerSignature Off
+        Header set X-Content-Type-Options nosniff
+        Header set X-Frame-Options DENY
 </VirtualHost>

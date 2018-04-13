@@ -1,4 +1,4 @@
-<div id = "topBar" class="navbar-wrapper header <?php echo $debugMode;?>" style="height:42px;width:100%">
+<div id="topBar" class="navbar-wrapper header <?php echo $debugMode;?>">
 	<div class="navbar navbar-inverse">
 		<div class="navbar-inner">
 		  <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
@@ -52,6 +52,17 @@
 
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
+							Galaxies
+							<b class="caret"></b>
+						</a>
+						<ul class="dropdown-menu">
+							<li><a href="<?php echo $baseurl;?>/galaxies/index">List Galaxies</a></li>
+						</ul>
+					</li>
+
+
+					<li class="dropdown">
+						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Input Filters
 							<b class="caret"></b>
 						</a>
@@ -77,8 +88,16 @@
 							<li><a href="<?php echo $baseurl;?>/news">News</a></li>
 							<li><a href="<?php echo $baseurl;?>/users/view/me">My Profile</a></li>
 							<li><a href="<?php echo $baseurl;?>/users/dashboard">Dashboard</a></li>
-							<li><a href="<?php echo $baseurl;?>/organisations/index">Organisations</a></li>
+						<?php
+							if ($isAclSharingGroup || empty(Configure::read('Security.hide_organisation_index_from_users'))):
+						?>
+								<li><a href="<?php echo $baseurl;?>/organisations/index">Organisations</a></li>
+						<?php
+							endif;
+						?>
 							<li><a href="<?php echo $baseurl;?>/roles/index">Role Permissions</a></li>
+							<li class="divider"></li>
+							<li><a href="<?php echo $baseurl;?>/objectTemplates/index">List Object Templates</a></li>
 							<li class="divider"></li>
 							<li><a href="<?php echo $baseurl;?>/sharing_groups/index">List Sharing Groups</a></li>
 							<?php if ($isAclSharingGroup): ?>
@@ -88,7 +107,9 @@
 							<li><a href="<?php echo $baseurl;?>/pages/display/doc/quickstart">User Guide</a></li>
 							<li><a href="<?php echo $baseurl;?>/users/terms">Terms &amp; Conditions</a></li>
 							<li><a href="<?php echo $baseurl;?>/users/statistics">Statistics</a></li>
-							<li><a href="<?php echo $baseurl;?>/users/attributehistogram">Attribute Histogram</a></li>
+							<li class="divider"></li>
+							<li><a href="<?php echo $baseurl;?>/threads/index">List Discussions</a></li>
+							<li><a href="<?php echo $baseurl;?>/posts/add">Start Discussion</a></li>
 						</ul>
 					</li>
 
@@ -129,19 +150,19 @@
 							<?php endif; ?>
 							<?php if ($isSiteAdmin): ?>
 								<li class="divider"></li>
-								<li><a href="<?php echo $baseurl;?>/servers/serverSettings">Server settings</a></li>
+								<li><a href="<?php echo $baseurl;?>/servers/serverSettings">Server Settings &<br />Maintenance</a></li>
 								<?php if (Configure::read('MISP.background_jobs')): ?>
 									<li class="divider"></li>
 									<li><a href="<?php echo $baseurl;?>/jobs/index">Jobs</a></li>
 									<li class="divider"></li>
 									<li><a href="<?php echo $baseurl;?>/tasks">Scheduled Tasks</a></li>
 								<?php endif; ?>
-								<?php if (Configure::read('MISP.enableEventBlacklisting') && $isSiteAdmin): ?>
+								<?php if (Configure::read('MISP.enableEventBlacklisting') !== false && $isSiteAdmin): ?>
 									<li class="divider"></li>
 									<li><a href="<?php echo $baseurl;?>/eventBlacklists/add">Blacklist Event</a></li>
 									<li><a href="<?php echo $baseurl;?>/eventBlacklists">Manage Event Blacklists</a></li>
 								<?php endif; ?>
-								<?php if (Configure::read('MISP.enableEventBlacklisting') && $isSiteAdmin): ?>
+								<?php if (Configure::read('MISP.enableEventBlacklisting') !== false && $isSiteAdmin): ?>
 									<li class="divider"></li>
 									<li><a href="<?php echo $baseurl;?>/orgBlacklists/add">Blacklist Organisation</a></li>
 									<li><a href="<?php echo $baseurl;?>/orgBlacklists">Manage Org Blacklists</a></li>
@@ -163,16 +184,6 @@
 						</ul>
 					</li>
 					<?php endif;?>
-					<li class="dropdown">
-						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
-							Discussions
-							<b class="caret"></b>
-						</a>
-						<ul class="dropdown-menu">
-							<li><a href="<?php echo $baseurl;?>/threads/index">List Discussions</a></li>
-							<li><a href="<?php echo $baseurl;?>/posts/add">Start Discussion</a></li>
-						</ul>
-					</li>
 				</ul>
 			</div>
 			<div class="nav-collapse collapse pull-right">
@@ -187,10 +198,10 @@
 					</li>
 					<li>
 						<a href="<?php echo $baseurl;?>/users/dashboard" style="padding-left:0px;padding-right:0px;">
-							<span class="notification-<?php echo ($notifications['total'] > 0) ? 'active' : 'passive';?>"><span style="float:left;margin-top:3px;margin-right:3px;margin-left:3px;" class="icon-envelope icon-white"></span></span>
+							<span class="notification-<?php echo ($notifications['total'] > 0) ? 'active' : 'passive';?>"><span style="float:left;margin-top:3px;margin-right:3px;margin-left:3px;" class="icon-envelope icon-white" title="Dashboard" role="button" tabindex="0" aria-label="Dashboard"></span></span>
 						</a>
 					</li>
-					<?php if (!$externalAuthUser || !Configure::read('Plugin.CustomAuth_disable_logout')): ?>
+					<?php if (!$externalAuthUser && !Configure::read('Plugin.CustomAuth_disable_logout')): ?>
 						<li><a href="<?php echo $baseurl;?>/users/logout">Log out</a></li>
 					<?php elseif (Configure::read('Plugin.CustomAuth_custom_logout')): ?>
 						<li><a href="<?php echo h(Configure::read('Plugin.CustomAuth_custom_logout'));?>">Log out</a></li>
@@ -201,3 +212,4 @@
 		</div>
 	</div>
 </div>
+<input type="hidden" class="keyboardShortcutsConfig" value="/shortcuts/global_menu.json" />

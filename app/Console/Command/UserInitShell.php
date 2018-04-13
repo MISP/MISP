@@ -1,11 +1,13 @@
 <?php
 class UserInitShell extends AppShell {
-	public $uses = array('User', 'Role', 'Organisation', 'Server');
+	public $uses = array('User', 'Role', 'Organisation', 'Server', 'ConnectionManager');
 	public function main() {
 		if (!Configure::read('Security.salt')) {
 			$this->loadModel('Server');
 			$this->Server->serverSettingsSaveValue('Security.salt', $this->User->generateRandomPassword(32));
 		}
+		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
+		$dataSource = $dataSourceConfig['datasource'];
 		$this->Role->Behaviors->unload('SysLogLogable.SysLogLogable');
 		$this->User->Behaviors->unload('SysLogLogable.SysLogLogable');
 		// populate the DB with the first role (site admin) if it's empty
@@ -29,19 +31,30 @@ class UserInitShell extends AppShell {
 					'perm_template' => 1
 			));
 			$this->Role->save($siteAdmin);
+			// PostgreSQL: update value of auto incremented serial primary key after setting the column by force
+			if ($dataSource == 'Database/Postgres') {
+				$sql = "SELECT setval('roles_id_seq', (SELECT MAX(id) FROM roles));";
+				$this->Role->query($sql);
+			}
 		}
 
-		$org_id = 0;
 		if ($this->Organisation->find('count', array('conditions' => array('Organisation.local' => true))) == 0) {
+			$date = date('Y-m-d H:i:s');
 			$org = array('Organisation' => array(
 					'id' => 1,
 					'name' => !empty(Configure::read('MISP.org')) ? Configure::read('MISP.org') : 'ADMIN',
 					'description' => 'Automatically generated admin organisation',
 					'type' => 'ADMIN',
+					'date_created' => $date,
 					'uuid' => CakeText::uuid(),
 					'local' => 1
 			));
 			$this->Organisation->save($org);
+			// PostgreSQL: update value of auto incremented serial primary key after setting the column by force
+			if ($dataSource == 'Database/Postgres') {
+				$sql = "SELECT setval('organisations_id_seq', (SELECT MAX(id) FROM organisations));";
+				$this->Organisation->query($sql);
+			}
 			$org_id = $this->Organisation->id;
 		} else {
 			$hostOrg = $this->Organisation->find('first', array('conditions' => array('Organisation.name' => Configure::read('MISP.org')), 'recursive' => -1));
@@ -70,6 +83,11 @@ class UserInitShell extends AppShell {
 			));
 			$this->User->validator()->remove('password'); // password is to simple, remove validation
 			$this->User->save($admin);
+			// PostgreSQL: update value of auto incremented serial primary key after setting the column by force
+			if ($dataSource == 'Database/Postgres') {
+				$sql = "SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));";
+				$this->User->query($sql);
+			}
 			echo $authkey . PHP_EOL;
 		} else {
 			echo 'Script aborted: MISP instance already initialised.' . PHP_EOL;

@@ -2,10 +2,6 @@
 
 App::uses('AppModel', 'Model');
 
-/**
- * Thread Model
- *
-*/
 class Thread extends AppModel {
 	public $actsAs = array(
 			'Containable',
@@ -34,7 +30,7 @@ class Thread extends AppModel {
 		} else {
 			$thread['Thread']['post_count'] = $count;
 			if ($add) {
-				$thread['Thread']['date_modified'] = date('Y/m/d h:i:s');
+				$thread['Thread']['date_modified'] = date('Y/m/d H:i:s');
 			}
 			$this->save($thread);
 			return true;

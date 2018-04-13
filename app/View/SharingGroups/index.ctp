@@ -1,33 +1,33 @@
 <div class="sharing_groups index">
-<h2>Sharing Groups</h2>
+<h2><?php echo __('Sharing Groups');?></h2>
 <div class="pagination">
 <ul>
 <?php
-$this->Paginator->options(array(
-		'update' => '.span12',
-		'evalScripts' => true,
-		'before' => '$(".progress").show()',
-		'complete' => '$(".progress").hide()',
-));
+	$this->Paginator->options(array(
+			'update' => '.span12',
+			'evalScripts' => true,
+			'before' => '$(".progress").show()',
+			'complete' => '$(".progress").hide()',
+	));
 
-echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+	echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+	echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+	echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
 ?>
-        </ul>
-    </div>
+		</ul>
+	</div>
 	<div class="tabMenuFixedContainer">
-		<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($passive !== true) echo 'tabMenuActive';?>" onClick="window.location='/sharing_groups/index'">Active Sharing Groups</span>
-		<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($passive === true) echo 'tabMenuActive';?>" onClick="window.location='/sharing_groups/index/true'">Passive Sharing Groups</span>
+		<span role="button" tabindex="0" aria-label="<?php echo __('View only active sharing groups');?>" title="<?php echo __('View only active sharing groups');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($passive !== true) echo 'tabMenuActive';?>" onClick="window.location='/sharing_groups/index'"><?php echo __('Active Sharing Groups');?></span>
+		<span role="button" tabindex="0" aria-label="<?php echo __('View only passive sharing groups');?>" title="<?php echo __('View only passive sharing groups');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($passive === true) echo 'tabMenuActive';?>" onClick="window.location='/sharing_groups/index/true'"><?php echo __('Passive Sharing Groups');?></span>
 	</div>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
 			<th><?php echo $this->Paginator->sort('Creator');?></th>
-			<th>Description</th>
-			<th>Releasable to</th>
-			<th class="actions">Actions</th>
+			<th><?php echo __('Description');?></th>
+			<th><?php echo __('Releasable to');?></th>
+			<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
 	<?php
 foreach ($sharingGroups as $k => $sharingGroup):
@@ -58,7 +58,7 @@ foreach ($sharingGroups as $k => $sharingGroup):
 			}
 		?>
 		<td>
-			<span data-toggle="popover" data-trigger="hover" title="Distribution List" data-content="<?php echo $combined; ?>">
+			<span data-toggle="popover" data-trigger="hover" title="<?php echo __('Distribution List');?>" data-content="<?php echo $combined; ?>">
 				<?php echo h($sharingGroup['SharingGroup']['releasability']); ?>
 			</span>
 		</td>
@@ -74,21 +74,21 @@ foreach ($sharingGroups as $k => $sharingGroup):
 endforeach; ?>
 	</table>
 	<p>
-    <?php
-    echo $this->Paginator->counter(array(
-    'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
-    ));
-    ?>
-    </p>
-    <div class="pagination">
-        <ul>
-        <?php
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
-        </ul>
-    </div>
+	<?php
+	echo $this->Paginator->counter(array(
+	'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
+	));
+	?>
+	</p>
+	<div class="pagination">
+		<ul>
+		<?php
+			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+			echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+		?>
+		</ul>
+	</div>
 </div>
 <script type="text/javascript">
 	$(document).ready(function(){
@@ -97,4 +97,3 @@ endforeach; ?>
 </script>
 <?php
 	echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'indexSG'));
-?>

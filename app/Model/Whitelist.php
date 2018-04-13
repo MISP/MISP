@@ -2,24 +2,10 @@
 
 App::uses('AppModel', 'Model');
 
-/**
- * Whitelist Model
- *
- */
 class Whitelist extends AppModel {
 
-/**
- * Use table
- *
- * @var mixed False or table name
- */
 	public $useTable = 'whitelist';
 
-/**
- * Display field
- *
- * @var string
- */
 	public $displayField = 'name';
 
 	public $actsAs = array(
@@ -31,11 +17,6 @@ class Whitelist extends AppModel {
 			),
 	);
 
-/**
- * Validation rules
- *
- * @var array
- */
 	public $validate = array(
 		'name' => array(
 			'valueNotEmpty' => array(
@@ -104,17 +85,21 @@ class Whitelist extends AppModel {
 						}
 					}
 				}
+				$data = array_values($data);
 			} else {
 			// if !$isAttributeArray, we know that we have an array of events that we need to parse through
 				foreach ($data as $ke => $event) {
-					// loop through each attribute and unset the ones that are whitelisted
-					foreach ($event['Attribute'] as $k => $attribute) {
-						// loop through each whitelist item and run a preg match against the attribute value. If it matches, unset the attribute
-						foreach ($whitelists as $wlitem) {
-							if (preg_match($wlitem, $attribute['value'])) {
-								unset($data[$ke]['Attribute'][$k]);
+					if (isset($event['Attribute'])) {
+						// loop through each attribute and unset the ones that are whitelisted
+						foreach ($event['Attribute'] as $k => $attribute) {
+							// loop through each whitelist item and run a preg match against the attribute value. If it matches, unset the attribute
+							foreach ($whitelists as $wlitem) {
+								if (preg_match($wlitem, $attribute['value'])) {
+									unset($data[$ke]['Attribute'][$k]);
+								}
 							}
 						}
+						$data[$ke]['Attribute'] = array_values($data[$ke]['Attribute']);
 					}
 				}
 			}
@@ -134,6 +119,7 @@ class Whitelist extends AppModel {
 					}
 				}
 			}
+			$data = array_values($data);
 		}
 		return $data;
 	}

@@ -1,8 +1,8 @@
 <div class="servers index">
-	<h2>Failed pushes</h2>
+	<h2><?php echo __('Failed pushes');?></h2>
 	<?php
 if (0 == count($fails)):?>
-	<p>No failed pushes</p>
+	<p><?php echo __('No failed pushes');?></p>
 	<?php
 else:?>
 	<ul>
@@ -10,10 +10,10 @@ else:?>
 	</ul>
 	<?php
 endif;?>
-	<h2>Succeeded pushes</h2>
+	<h2><?php echo __('Succeeded pushes');?></h2>
 	<?php
 if (0 == count($successes)):?>
-	<p>No succeeded pushes</p>
+	<p><?php echo __('No succeeded pushes');?></p>
 	<?php
 else:?>
 	<ul>

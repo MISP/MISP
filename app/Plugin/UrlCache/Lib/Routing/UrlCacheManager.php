@@ -63,7 +63,7 @@ class UrlCacheManager {
 	public static function init(View $View) {
 		$params = $View->request->params;
 		if (Configure::read('UrlCache.pageFiles')) {
-		  $cachePageKey = '_misc';
+			$cachePageKey = '_misc';
 			if (is_object($View)) {
 				$path = $View->request->here;
 				if ($path == '/') {
@@ -115,10 +115,10 @@ class UrlCacheManager {
 	public static function get($url, $full) {
 		$keyUrl = $url;
 		if (is_array($keyUrl)) {
-		  $keyUrl += self::$extras;
-		  # prevent different hashs on different orders
-		  ksort($keyUrl, SORT_STRING);
-		  # prevent different hashs on different types (int/string/bool)
+			$keyUrl += self::$extras;
+			# prevent different hashs on different orders
+			ksort($keyUrl, SORT_STRING);
+			# prevent different hashs on different types (int/string/bool)
 			foreach ($keyUrl as $key => $val) {
 				$keyUrl[$key] = (String) $val;
 			}

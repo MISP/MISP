@@ -4,28 +4,28 @@
 	$extraTitle = "";
 	if ($type == 'publish') $extraTitle = ' (no email)';
 	?>
-	<legend>Publish Event<?php echo $extraTitle; ?></legend>
+	<legend><?php echo __('Publish Event%s', $extraTitle);?></legend>
 	<div style="padding-left:5px;padding-right:5px;padding-bottom:5px;">
-		<?php 
+		<?php
 			if ($type == 'alert'):
 		?>
-				<p>Are you sure this event is complete and everyone should be informed?</p>
-		<?php 
-			else: 
+				<p><?php echo __('Are you sure this event is complete and everyone should be informed?');?></p>
+		<?php
+			else:
 		?>
-				<p>Publish but do NOT send alert email? Only for minor changes!</p>
-		<?php 
-			endif; 
+				<p><?php echo __('Publish but do NOT send alert email? Only for minor changes!');?></p>
+		<?php
+			endif;
 		?>
 		<table>
 			<tr>
 				<td style="vertical-align:top">
-					<span id="PromptYesButton" class="btn btn-primary" onClick="submitPublish()">Yes</span>
+					<span role="button" tabindex="0" aria-label="<?php echo __('Publish');?>" title="<?php echo __('Publish');?>" id="PromptYesButton" class="btn btn-primary" onClick="submitPublish()"><?php echo __('Yes');?></span>
 				</td>
 				<td style="width:540px;">
 				</td>
 				<td style="vertical-align:top;">
-					<span class="btn btn-inverse" id="PromptNoButton" onClick="cancelPrompt();">No</span>
+					<span role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="btn btn-inverse" id="PromptNoButton" onClick="cancelPrompt();"><?php echo __('No');?></span>
 				</td>
 			</tr>
 		</table>

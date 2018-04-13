@@ -65,6 +65,9 @@ class SysLogLogableBehavior extends LogableBehavior {
 			foreach ( $Model->data[$Model->alias] as $key => $value ) {
 				if (isset($Model->data[$Model->alias][$Model->primaryKey]) && !empty($this->old) && isset($this->old[$Model->alias][$key])) {
 					$old = $this->old[$Model->alias][$key];
+					if (is_array($old)) {
+						$old = json_encode($old, true);
+					}
 				} else {
 					$old = '';
 				}
@@ -183,7 +186,7 @@ class SysLogLogableBehavior extends LogableBehavior {
 					}
 					break;
 				case "Event":
-        			$title = 'Event ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['info'];
+					$title = 'Event ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['info'];
 					$logData['Log']['title'] = $title;
 					break;
 				case "Organisation":
@@ -246,20 +249,10 @@ class SysLogLogableBehavior extends LogableBehavior {
 		}
 		}
 		$this->Log->create($logData);
-		$this->Log->save(null, array(
-				'validate' => false));
-
-		// write to syslogd as well
-		$syslog = new SysLog();
-		if (isset($logData['Log']['change'])) {
-			$syslog->write('notice', $logData['Log']['description'].' -- '.$logData['Log']['change']);
-		} else {
-			$syslog->write('notice', $logData['Log']['description']);
-		}
+		$this->Log->save(null, array('validate' => false));
 	}
 
 	function setup(Model $Model, $config = array()) {
-
 		if (!is_array($config)) {
 			$config = array();
 		}
@@ -273,7 +266,7 @@ class SysLogLogableBehavior extends LogableBehavior {
 			$this->UserModel = $Model;
 		}
 		$this->schema = $this->Log->schema();
-		App::import('Component', 'Auth');
+		App::uses('AuthComponent', 'Controller/Component');
 		$user = AuthComponent::user();
 		if (!empty($user)) $this->user[$this->settings[$Model->alias]['userModel']] = AuthComponent::user();
 		else $this->user['User'] = array('email' => 'SYSTEM', 'Organisation' => array('name' => 'SYSTEM'), 'id' => 0);

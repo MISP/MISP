@@ -1,8 +1,12 @@
 <?php
 App::uses('AppModel', 'Model');
+
 class TaxonomyEntry extends AppModel{
+
 	public $useTable = 'taxonomy_entries';
+
 	public $recursive = -1;
+
 	public $actsAs = array(
 			'Containable',
 	);

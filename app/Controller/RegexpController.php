@@ -2,11 +2,6 @@
 
 App::uses('AppController', 'Controller');
 
-/**
- * Regexps Controller
- *
- * @property Regexp $Regexp
- */
 class RegexpController extends AppController {
 
 	public $components = array('Security', 'RequestHandler', 'AdminCrud');
@@ -18,15 +13,6 @@ class RegexpController extends AppController {
 			)
 	);
 
-	public function beforeFilter() {
-		parent::beforeFilter();
-	}
-
-/**
- * admin_add method
- *
- * @return void
- */
 	public function admin_add() {
 		$this->loadModel('Attribute');
 		$types = array_keys($this->Attribute->typeDefinitions);
@@ -63,23 +49,11 @@ class RegexpController extends AppController {
 		$this->set('types', $types);
 	}
 
-/**
- * admin_index method
- *
- * @return void
- */
 	public function admin_index() {
 		if (!$this->userRole['perm_regexp_access']) $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminIndex();
 	}
 
-/**
- * admin_edit method
- *
- * @param string $id
- * @return void
- * @throws NotFoundException
- */
 	public function admin_edit($id = null) {
 		// unlike other edits, the new regexp edit will actually create copies of an entry and delete the old ones. The reason for this is that each regular expression can now
 		// have several entries for different types. For example, /127.0.0.1/ -> '' can be an entry for ip-src, ip-dst, but not url, meaning that the string 127.0.0.1 would be blocked
@@ -167,32 +141,16 @@ class RegexpController extends AppController {
 		$this->set('types', $types);
 	}
 
-/**
- * admin_delete method
- *
- * @param string $id
- * @return void
- * @throws MethodNotAllowedException
- * @throws NotFoundException
- */
 	public function admin_delete($id = null) {
 		if (!$this->userRole['perm_regexp_access']) $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminDelete($id);
 	}
 
-/**
- * index method
- *
- * @return void
- */
 	public function index() {
 		$this->recursive = 0;
 		$this->set('list', $this->paginate());
 	}
 
-/**
- *
- */
 	public function admin_clean() {
 		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException('This action is only accessible via a POST request.');
 		$allRegexp = $this->Regexp->find('all');

@@ -111,7 +111,7 @@ class LogableBehavior extends ModelBehavior {
 			$this->UserModel = $Model;
 		}
 		$this->schema = $this->Log->schema();
-		App::import('Component', 'Auth');
+		App::uses('AuthComponent', 'Controller/Component');
 		$this->user[$this->settings[$Model->alias]['userModel']] = AuthComponent::user();
 	}
 

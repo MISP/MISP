@@ -15,32 +15,37 @@
 					if (isset($configTypes[$config['type']]['field'])) {
 						$settings['type'] = $configTypes[$config['type']]['field'];
 					}
+					if ($settings['type'] == 'select') {
+						if (isset($config['options'])) {
+							$settings['options'] = $config['options'];
+						}
+					}
 					?>
 					<span class="bold">
 						<?php
 							echo ucfirst(h($configName));
 						?>
 					</span><br />
-					<?php 
+					<?php
 						if ($settings['type'] == 'checkbox'):
 							echo $this->Form->input('Event.config.' . $configName, $settings);
 							if (isset($config['message']) && !empty($config['message'])):
 								echo h($config['message']);
 					?>
 								<br />
-					<?php 
+					<?php
 							endif;
 						else:
-							if (isset($config['message']) && !empty($config['message'])): 
+							if (isset($config['message']) && !empty($config['message'])):
 							?>
 								<p><?php echo h($config['message']); ?></p>
-							<?php 
+							<?php
 							endif;
 							echo $this->Form->input('Event.config.' . $configName, $settings);
 						endif;
 					?>
 					<div class="input clear"></div><br />
-					<?php 
+					<?php
 				}
 			}
 			$source = 'paste';
@@ -49,53 +54,54 @@
 			} else if (in_array('file', $module['mispattributes']['inputSource'])) {
 				$source = 'file';
 			}
-			?>
-
-			<?php 
-			echo $this->Form->input('Event.source', array(
-				'label' => false,
-				'checked' => $source == 'file' ? true : false,
-				'disabled' => $source == 'both' ? false : true,
-				'div' => false,
-				'style' => 'margin-bottom:5px;'
-			));
-			?>
-			<span class="bold">
-				File upload
-			</span>
-				<div class="input clear"></div>
-				<div id="pasteDiv">
-				<p class="bold">
-					Paste Input
-				</p>
-			<?php 
-					if (in_array('paste', $module['mispattributes']['inputSource'])) {
-						echo $this->Form->input('Event.paste', array(
-							'label' => false,
-							'type' => 'textarea',
-							'class' => 'input-xxlarge',
-							'rows' => 12,
-							'div' => false
-						));
-					}
-			?>
-				</div>
-				<div class="input clear"></div>
-				<div id="fileDiv">
-				<p class="bold">
-					Input File
-				</p>
-			<?php 
-					if (in_array('file', $module['mispattributes']['inputSource'])) {
-						echo $this->Form->input('Event.fileupload', array(
+			if (!empty($module['mispattributes']['inputSource'])):
+				echo $this->Form->input('Event.source', array(
+					'label' => false,
+					'checked' => $source == 'file' ? true : false,
+					'disabled' => $source == 'both' ? false : true,
+					'div' => false,
+					'style' => 'margin-bottom:5px;'
+				));
+				?>
+				<span class="bold">
+					File upload
+				</span>
+					<div class="input clear"></div>
+					<div id="pasteDiv">
+					<p class="bold">
+						Paste Input
+					</p>
+				<?php
+						if (in_array('paste', $module['mispattributes']['inputSource'])) {
+							echo $this->Form->input('Event.paste', array(
 								'label' => false,
-								'type' => 'file',
-								'div' => 'clear'
-						));
-					}
-			?>
-				</div>
-				<div class="input clear"></div>
+								'type' => 'textarea',
+								'class' => 'input-xxlarge',
+								'rows' => 12,
+								'div' => false
+							));
+						}
+				?>
+					</div>
+					<div class="input clear"></div>
+					<div id="fileDiv">
+					<p class="bold">
+						<?php echo __('Input File');?>
+					</p>
+				<?php
+						if (in_array('file', $module['mispattributes']['inputSource'])) {
+							echo $this->Form->input('Event.fileupload', array(
+									'label' => false,
+									'type' => 'file',
+									'div' => 'clear'
+							));
+						}
+				?>
+					</div>
+					<div class="input clear"></div>
+		<?php
+			endif;
+		?>
 	</fieldset>
 <?php
 echo $this->Form->button('Import', array('class' => 'btn btn-primary'));

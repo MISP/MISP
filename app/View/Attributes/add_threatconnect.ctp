@@ -1,7 +1,7 @@
 <div class="attributes form">
 <?php echo $this->Form->create('Attribute', array('enctype' => 'multipart/form-data'));?>
 	<fieldset>
-		<legend>Import ThreatConnect CSV file</legend>
+		<legend><?php echo __('Import ThreatConnect CSV file'); ?></legend>
 		<?php
 		echo $this->Form->hidden('event_id');
 		?>
@@ -18,7 +18,6 @@
 echo $this->Form->button('Upload', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
-	<div id="confirmation_box" class="confirmation_box"></div>
 </div>
 <?php
 	$event['Event']['id'] = $this->request->data['Attribute']['event_id'];

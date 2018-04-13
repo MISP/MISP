@@ -1,30 +1,30 @@
 <div class="taxonomies index">
-	<h2>Warninglists</h2>
+	<h2><?php echo __('Warninglists');?></h2>
 	<div class="pagination">
-        <ul>
-        <?php
-        $this->Paginator->options(array(
-            'update' => '.span12',
-            'evalScripts' => true,
-            'before' => '$(".progress").show()',
-            'complete' => '$(".progress").hide()',
-        ));
+		<ul>
+		<?php
+		$this->Paginator->options(array(
+			'update' => '.span12',
+			'evalScripts' => true,
+			'before' => '$(".progress").show()',
+			'complete' => '$(".progress").hide()',
+		));
 
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
-        </ul>
-    </div>
-    <div id="hiddenFormDiv">
-    <?php
+			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+			echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+		?>
+		</ul>
+	</div>
+	<div id="hiddenFormDiv">
+	<?php
 		if ($isSiteAdmin) {
 			echo $this->Form->create('Warninglist', array('url' => '/warninglists/toggleEnable'));
 			echo $this->Form->input('data', array('label' => false, 'style' => 'display:none;'));
 			echo $this->Form->end();
 		}
 	?>
-    </div>
+	</div>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
@@ -52,27 +52,28 @@ foreach ($warninglists as $k => $item): ?>
 		</td>
 		<?php endif;?>
 		<td class="short action-links">
-			<a href='<?php echo $baseurl."/warninglists/view/". h($item['Warninglist']['id']);?>' class = "icon-list-alt" title = "View"></a>
+			<a href='<?php echo $baseurl."/warninglists/view/". h($item['Warninglist']['id']);?>' class = "icon-list-alt" title = "<?php echo __('View');?>"></a>
+			<span class="icon-trash useCursorPointer" title="<?php echo __('Delete Warninglist');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete warninglist');?>" onClick="deleteObject('warninglists', 'delete', '<?php echo h($item['Warninglist']['id']); ?>', '<?php echo h($item['Warninglist']['id']); ?>');"></span>
 		</td>
 	</tr><?php
 endforeach; ?>
 	</table>
 	<p>
-    <?php
-    echo $this->Paginator->counter(array(
-    'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
-    ));
-    ?>
-    </p>
-    <div class="pagination">
-        <ul>
-        <?php
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
-        </ul>
-    </div>
+	<?php
+	echo $this->Paginator->counter(array(
+	'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
+	));
+	?>
+	</p>
+	<div class="pagination">
+		<ul>
+		<?php
+			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+			echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+		?>
+		</ul>
+	</div>
 </div>
 <?php
 	echo $this->element('side_menu', array('menuList' => 'warninglist', 'menuItem' => 'index'));

@@ -1,35 +1,45 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('ConnectionManager', 'Model');
 App::uses('Sanitize', 'Utility');
 
-/**
- * Bruteforce Model
- *
- */
 class Bruteforce extends AppModel {
 
 	public function insert($ip, $username) {
+		$this->Log = ClassRegistry::init('Log');
+		$this->Log->create();
 		$expire = time() + Configure::read('SecureAuth.expire');
-		// sanitize fields
-		$ip = Sanitize::clean($ip);
-		$username = Sanitize::clean($username);
-		$this->query("INSERT INTO bruteforces (ip, username, `expire`) VALUES ('$ip', '$username', '$expire');");
+		$expire = date('Y-m-d H:i:s', $expire);
+		$bruteforceEntry = array(
+			'ip' => $ip,
+			'username' => $username,
+			'expire' => $expire
+		);
+		$this->save($bruteforceEntry);
+		$title = 'Failed login attempt using username ' . $username . ' from IP: ' . $_SERVER['REMOTE_ADDR'] . '.';
 		if ($this->isBlacklisted($ip, $username)) {
-			$this->Log = ClassRegistry::init('Log');
-			$this->Log->create();
-			$this->Log->save(array(
+			$title .= 'This has tripped the bruteforce protection after  ' . Configure::read('SecureAuth.amount') . ' failed attempts. The user is now blacklisted for ' . Configure::read('SecureAuth.expire') . ' seconds.';
+		}
+		$log = array(
 				'org' => 'SYSTEM',
-				'model' => 'Blacklist',
+				'model' => 'User',
 				'model_id' => 0,
 				'email' => $username,
-				'action' => 'blacklist',
-				'title' => 'User from ' . $ip . ' claiming to be ' . $username . ' has been blacklisted after ' . Configure::read('SecureAuth.amount') . ' failed attempts'
-			));
-		}
+				'action' => 'login_fail',
+				'title' => $title
+		);
+		$this->Log->save($log);
 	}
 
 	public function clean() {
-		$this->query("DELETE FROM bruteforces WHERE `expire` <= NOW();");
+		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
+		$dataSource = $dataSourceConfig['datasource'];
+		if ($dataSource == 'Database/Mysql') {
+			$sql = 'DELETE FROM bruteforces WHERE `expire` <= NOW();';
+		} else if ($dataSource == 'Database/Postgres') {
+			$sql = 'DELETE FROM bruteforces WHERE expire <= NOW();';
+		}
+		$this->query($sql);
 	}
 
 	public function isBlacklisted($ip,$username) {

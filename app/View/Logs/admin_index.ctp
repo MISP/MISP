@@ -1,23 +1,24 @@
 <div class="logs index">
-	<h2>Logs</h2>
+	<h2><?php echo __('Logs');?></h2>
 	<?php
 	if ($isSearch == 1) {
-		echo "<h4>Results for all log entries";
+		echo "<h4>" . __("Results for all log entries");
+		// Double check if this needs i18n
 		$replaceArray = array(
-				'email' => array('text' => 'for user', 'default' => null),
-				'org' => array('text' => 'of organisation', 'default' => null),
-				'model' => array('text' => 'for model', 'default' => ''),
-				'model_id' => array('text' => 'for model ID', 'default' => ''),
-				'action' => array('text' => 'of type', 'default' => 'ALL'),
-				'title' => array('text' => 'with the title', 'default' => null),
-				'change' => array('text' => 'including the change', 'default' => null),
-				'ip' => array('text' => 'from IP', 'default' => null)
+				'email' => array('text' => __('for user'), 'default' => null),
+				'org' => array('text' => __('of organisation'), 'default' => null),
+				'model' => array('text' => __('for model'), 'default' => ''),
+				'model_id' => array('text' => __('for model ID'), 'default' => ''),
+				'action' => array('text' => __('of type'), 'default' => 'ALL'),
+				'title' => array('text' => __('with the title'), 'default' => null),
+				'change' => array('text' => __('including the change'), 'default' => null),
+				'ip' => array('text' => __('from IP'), 'default' => null)
 		);
 
 		foreach ($replaceArray as $type => $replace) {
 			if (isset(${$type . 'Search'}) && ${$type . 'Search'} != $replace['default']) {
-				echo ' ' . $replace['text'] . ' "<b>' . h(${$type . 'Search'}) . '</b>"';
-				${$type . 'SearchReplacePairs'} = $this->Highlight->build_replace_pairs(h(${$type . 'Search'}));
+				echo ' ' . $replace['text'] . ' "<b>' . h(${$type . __('Search')}) . '</b>"';
+				${$type . 'SearchReplacePairs'} = $this->Highlight->build_replace_pairs(h(${$type . __('Search')}));
 			}
 		}
 		echo ":</h4>";
@@ -43,7 +44,7 @@
 	<div class="tabMenuFixedContainer" style="display:inline-block;margin-left:50px;">
 		<?php foreach ($validFilters as $filterName => $filterData): ?>
 		<span class="tabMenuFixed tabMenuSides useCursorPointer <?php echo $filterName == $filter ? 'background-lightblue' : ''; ?>">
-			<span id="myOrgButton" title="Modify filters" onClick="window.location.href='<?php echo $baseurl; ?>/admin/logs/index/filter:<?php echo h($filterName); ?>';"><?php echo h($filterData['name']);?></span>
+			<span id="myOrgButton" title="<?php echo __('Modify filters');?>" role="button" tabindex="0" aria-label="<?php echo __('Modify filters');?>" onClick="window.location.href='<?php echo $baseurl; ?>/admin/logs/index/filter:<?php echo h($filterName); ?>';"><?php echo h($filterData['name']);?></span>
 		</span>
 		<?php endforeach; ?>
 	</div>
@@ -55,7 +56,7 @@
 			<th><?php echo $this->Paginator->sort('org');?></th>
 			<th><?php echo $this->Paginator->sort('created');?></th>
 			<th><?php echo $this->Paginator->sort('model');?></th>
-			<th><?php echo $this->Paginator->sort('model_id', 'Model ID');?></th>
+			<th><?php echo $this->Paginator->sort('model_id', __('Model ID'));?></th>
 			<th><?php echo $this->Paginator->sort('action');?></th>
 			<th><?php echo $this->Paginator->sort('title');?></th>
 			<th><?php echo $this->Paginator->sort('change');?></th>

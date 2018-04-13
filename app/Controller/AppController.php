@@ -20,8 +20,9 @@
  * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
  */
 
-// TODO GPG encryption has issues when keys are expired
+// TODO GnuPG encryption has issues when keys are expired
 
+App::uses('ConnectionManager', 'Model');
 App::uses('Controller', 'Controller');
 App::uses('File', 'Utility');
 App::uses('RequestRearrangeTool', 'Tools');
@@ -43,17 +44,18 @@ class AppController extends Controller {
 
 	public $debugMode = false;
 
-	public $helpers = array('Utility');
+	public $helpers = array('Utility', 'OrgImg');
 
-	private $__jsVersion = '2.4.50';
-	public $phpmin = '5.5.9';
-	public $phprec = '5.6.0';
+	private $__queryVersion = '33';
+	public $pyMispVersion = '2.4.89';
+	public $phpmin = '5.6.5';
+	public $phprec = '7.0.16';
 
 	// Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
 	// This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
 	public $automationArray = array(
 		'events' => array('csv', 'nids', 'hids', 'xml', 'restSearch', 'stix', 'updateGraph', 'downloadOpenIOCEvent'),
-		'attributes' => array('text', 'downloadAttachment', 'returnAttributes', 'restSearch', 'rpz'),
+		'attributes' => array('text', 'downloadAttachment', 'returnAttributes', 'restSearch', 'rpz', 'bro'),
 	);
 
 	public function __construct($id = false, $table = null, $ds = null) {
@@ -71,23 +73,54 @@ class AppController extends Controller {
 				'authError' => 'Unauthorised access.',
 				'loginRedirect' => array('controller' => 'users', 'action' => 'routeafterlogin'),
 				'logoutRedirect' => array('controller' => 'users', 'action' => 'login', 'admin' => false),
-				//'authorize' => array('Controller', // Added this line
-				//'Actions' => array('actionPath' => 'controllers')) // TODO ACL, 4: tell actionPath
-				),
+				'authenticate' => array(
+					'Form' => array(
+						'passwordHasher' => 'Blowfish',
+						'fields' => array(
+							'username' => 'email'
+						)
+					)
+				)
+			),
 			'Security',
-			'ACL'
+			'ACL',
+			'RestResponse'
 	);
 
+	private function __isApiFunction($controller, $action) {
+		if (isset($this->automationArray[$controller]) && in_array($action, $this->automationArray[$controller])) {
+			return true;
+		}
+		return false;
+	}
+
 	public function beforeFilter() {
-		$this->set('jsVersion', $this->__jsVersion);
+		// check for a supported datasource configuration
+		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
+		if (!isset($dataSourceConfig['encoding'])) {
+			$db = ConnectionManager::getDataSource('default');
+			$db->setConfig(array('encoding' => 'utf8'));
+			ConnectionManager::create('default', $db->config);
+		}
+		$dataSource = $dataSourceConfig['datasource'];
+		if ($dataSource != 'Database/Mysql' && $dataSource != 'Database/Postgres') {
+			throw new Exception('datasource not supported: ' . $dataSource);
+		}
+
+		$this->set('queryVersion', $this->__queryVersion);
 		$this->loadModel('User');
 		$auth_user_fields = $this->User->describeAuthFields();
 
-        //if fresh installation (salt empty) generate a new salt
-        if (!Configure::read('Security.salt')) {
-            $this->loadModel('Server');
-            $this->Server->serverSettingsSaveValue('Security.salt', $this->User->generateRandomPassword(32));
-        }
+		//if fresh installation (salt empty) generate a new salt
+		if (!Configure::read('Security.salt')) {
+			$this->loadModel('Server');
+			$this->Server->serverSettingsSaveValue('Security.salt', $this->User->generateRandomPassword(32));
+		}
+		// Check if the instance has a UUID, if not assign one.
+		if (!Configure::read('MISP.uuid')) {
+			$this->loadModel('Server');
+			$this->Server->serverSettingsSaveValue('MISP.uuid', CakeText::uuid());
+		}
 		// check if Apache provides kerberos authentication data
 		$envvar = Configure::read('ApacheSecureAuth.apacheEnv');
 		if (isset($_SERVER[$envvar])) {
@@ -100,13 +133,7 @@ class AppController extends Controller {
 				)
 			);
 		} else {
-			$this->Auth->className = 'SecureAuth';
-			$this->Auth->authenticate = array(
-				'Form' => array(
-					'fields' => array('username' => 'email'),
-					'userFields' => $auth_user_fields
-				)
-			);
+			$this->Auth->authenticate['Form']['userFields'] = $auth_user_fields;
 		}
 		$versionArray = $this->{$this->modelClass}->checkMISPVersion();
 		$this->mispVersion = implode('.', array_values($versionArray));
@@ -118,7 +145,11 @@ class AppController extends Controller {
 		if (substr($baseurl, -1) == '/') {
 			// if the baseurl has a trailing slash, remove it. It can lead to issues with the CSRF protection
 			$baseurl = rtrim($baseurl, '/');
-			Configure::write('MISP.baseurl', $baseurl);
+			$this->loadModel('Server');
+			$this->Server->serverSettingsSaveValue('MISP.baseurl', $baseurl);
+		}
+		if (trim($baseurl) == 'http://') {
+			$this->Server->serverSettingsSaveValue('MISP.baseurl', '');
 		}
 		$this->set('baseurl', h($baseurl));
 
@@ -127,10 +158,8 @@ class AppController extends Controller {
 		if (isset($_SERVER['HTTP_USER_AGENT'])) {
 			if (preg_match('/(?i)msie [2-8]/',$_SERVER['HTTP_USER_AGENT']) && !strpos($_SERVER['HTTP_USER_AGENT'], 'Opera')) throw new MethodNotAllowedException('You are using an unsecure and outdated version of IE, please download Google Chrome, Mozilla Firefox or update to a newer version of IE. If you are running IE9 or newer and still receive this error message, please make sure that you are not running your browser in compatibility mode. If you still have issues accessing the site, get in touch with your administration team at ' . Configure::read('MISP.contact'));
 		}
-
 		$userLoggedIn = false;
 		if (Configure::read('Plugin.CustomAuth_enable')) $userLoggedIn = $this->__customAuthentication($_SERVER);
-
 		if (!$userLoggedIn) {
 			// REST authentication
 			if ($this->_isRest() || $this->_isAutomation()) {
@@ -146,15 +175,17 @@ class AppController extends Controller {
 						if (preg_match('/^[a-zA-Z0-9]{40}$/', trim($auth_key))) {
 							$found_misp_auth_key = true;
 							$temp = $this->checkAuthUser(trim($auth_key));
-							if ($temp) $user['User'] = $this->checkAuthUser(trim($auth_key));
+							if ($temp) {
+								$user['User'] = $this->checkAuthUser(trim($auth_key));
+							}
 						}
 					}
 					if ($found_misp_auth_key) {
 						if ($user) {
 							unset($user['User']['gpgkey']);
 							unset($user['User']['certif_public']);
-						    // User found in the db, add the user info to the session
-						    if (Configure::read('MISP.log_auth')) {
+							// User found in the db, add the user info to the session
+							if (Configure::read('MISP.log_auth')) {
 								$this->Log = ClassRegistry::init('Log');
 								$this->Log->create();
 								$log = array(
@@ -167,9 +198,9 @@ class AppController extends Controller {
 										'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here,
 								);
 								$this->Log->save($log);
-						    }
-						    $this->Session->renew();
-						    $this->Session->write(AuthComponent::$sessionKey, $user['User']);
+							}
+							$this->Session->renew();
+							$this->Session->write(AuthComponent::$sessionKey, $user['User']);
 						} else {
 							// User not authenticated correctly
 							// reset the session information
@@ -251,6 +282,18 @@ class AppController extends Controller {
 					$this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
 				}
 			}
+			$this->set('default_memory_limit', ini_get('memory_limit'));
+			if (isset($this->Auth->user('Role')['memory_limit'])) {
+				if ($this->Auth->user('Role')['memory_limit'] !== '') {
+					ini_set('memory_limit', $this->Auth->user('Role')['memory_limit']);
+				}
+			}
+			$this->set('default_max_execution_time', ini_get('max_execution_time'));
+			if (isset($this->Auth->user('Role')['max_execution_time'])) {
+				if ($this->Auth->user('Role')['max_execution_time'] !== '') {
+					ini_set('max_execution_time', $this->Auth->user('Role')['max_execution_time']);
+				}
+			}
 		} else {
 			if (!($this->params['controller'] === 'users' && $this->params['action'] === 'login')) $this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
 		}
@@ -277,7 +320,7 @@ class AppController extends Controller {
 		}
 
 		if ($this->Session->check(AuthComponent::$sessionKey)) {
-			if (!empty(Configure::read('MISP.terms_file')) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
+			if (!empty(Configure::read('MISP.terms_file')) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/logout', $base_dir.'/users/login', $base_dir.'/users/downloadTerms')))) {
 				if ($this->_isRest()) throw new MethodNotAllowedException('You have not accepted the terms of use yet, please log in via the web interface and accept them.');
 				$this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
 			} else if ($this->Auth->user('change_pw') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/change_pw', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
@@ -318,12 +361,15 @@ class AppController extends Controller {
 			$this->set('isAclTagEditor', $role['perm_tag_editor']);
 			$this->set('isAclTemplate', $role['perm_template']);
 			$this->set('isAclSharingGroup', $role['perm_sharing_group']);
+			$this->set('isAclSighting', isset($role['perm_sighting']) ? $role['perm_sighting'] : false);
 			$this->userRole = $role;
 		} else {
 			$this->set('me', false);
 		}
+		$this->set('br', '<br />');
+		$this->set('bold', array('<span class="bold">', '</span>'));
 		if ($this->_isSiteAdmin()) {
-			if (Configure::read('Session.defaults') !== 'database') {
+			if (Configure::read('Session.defaults') == 'database') {
 				$db = ConnectionManager::getDataSource('default');
 				$sqlResult = $db->query('SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';');
 				if (isset($sqlResult[0][0]['session_count']) && $sqlResult[0][0]['session_count'] > 1000) {
@@ -359,7 +405,7 @@ class AppController extends Controller {
 	private function __convertEmailToName($email) {
 		$name = explode('@', $email);
 		$name = explode('.', $name[0]);
-		foreach ($name as &$temp) $temp = ucfirst($temp);
+		foreach ($name as $key => $value) $name[$key] = ucfirst($value);
 		$name = implode(' ', $name);
 		return $name;
 	}
@@ -377,7 +423,8 @@ class AppController extends Controller {
 	}
 
 	protected function _isRest() {
-		return (isset($this->RequestHandler) && ($this->RequestHandler->isXml() || $this->_isJson()));
+		$api = $this->__isApiFunction($this->request->params['controller'], $this->request->params['action']);
+		return (isset($this->RequestHandler) && ($api || $this->RequestHandler->isXml() || $this->_isJson()));
 	}
 
 	protected function _isAutomation() {
@@ -397,9 +444,7 @@ class AppController extends Controller {
 		return $newArray;
 	}
 
-/**
- * checks if the currently logged user is an administrator (an admin that can manage the users and events of his own organisation)
- */
+	// checks if the currently logged user is an administrator (an admin that can manage the users and events of his own organisation)
 	protected function _isAdmin() {
 		if ($this->userRole['perm_site_admin'] || $this->userRole['perm_admin']) {
 			return true;
@@ -407,9 +452,7 @@ class AppController extends Controller {
 		return false;
 	}
 
-/**
- * checks if the currently logged user is a site administrator (an admin that can manage any user or event on the instance and create / edit the roles).
- */
+	// checks if the currently logged user is a site administrator (an admin that can manage any user or event on the instance and create / edit the roles).
 	protected function _isSiteAdmin() {
 		return $this->userRole['perm_site_admin'];
 	}
@@ -417,12 +460,6 @@ class AppController extends Controller {
 	protected function _checkOrg() {
 		return $this->Auth->user('org_id');
 	}
-
-/**
- *
- * @param $action
- * @return boolean
- */
 
 	// pass an action to this method for it to check the active user's access to the action
 	public function checkAction($action = 'perm_sync') {
@@ -441,11 +478,6 @@ class AppController extends Controller {
 		return $role['Role'];
 	}
 
-/**
- *
- * @param string $authkey
- * @return boolean or user array
- */
 	public function checkAuthUser($authkey) {
 		$this->loadModel('User');
 		$user = $this->User->getAuthUserByUuid($authkey);
@@ -499,14 +531,13 @@ class AppController extends Controller {
 			));
 			foreach ($attributes as $k => $attribute) {
 				if ($k > 0) {
-					$attribute['Attribute']['uuid'] = CakeText::uuid();
-					$this->Attribute->save($attribute);
+					$this->Attribute->delete($attribute['Attribute']['id']);
 					$counter++;
 				}
 			}
 		}
 		$this->Server->updateDatabase('makeAttributeUUIDsUnique');
-		$this->Session->setFlash('Done. Assigned new UUIDs to ' . $counter . ' attribute(s).');
+		$this->Session->setFlash('Done. Deleted ' . $counter . ' duplicate attribute(s).');
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
 
@@ -521,7 +552,7 @@ class AppController extends Controller {
 		$counter = 0;
 
 		// load this so we can remove the blacklist item that will be created, this is the one case when we do not want it.
-		if (Configure::read('MISP.enableEventBlacklisting')) $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
+		if (Configure::read('MISP.enableEventBlacklisting') !== false) $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
 
 		foreach ($duplicates as $duplicate) {
 			$events = $this->Event->find('all', array(
@@ -535,7 +566,7 @@ class AppController extends Controller {
 					$counter++;
 					// remove the blacklist entry that we just created with the event deletion, if the feature is enabled
 					// We do not want to block the UUID, since we just deleted a copy
-					if (Configure::read('MISP.enableEventBlacklisting')) {
+					if (Configure::read('MISP.enableEventBlacklisting') !== false) {
 						$this->EventBlacklist->deleteAll(array('EventBlacklist.event_uuid' => $uuid));
 					}
 				}
@@ -593,13 +624,14 @@ class AppController extends Controller {
 		throw new ForbiddenException($message);
 	}
 
-	private function __customAuthentication(&$server) {
+	private function __customAuthentication($server) {
 		$result = false;
 		if (Configure::read('Plugin.CustomAuth_enable')) {
 			$header = Configure::read('Plugin.CustomAuth_header') ? Configure::read('Plugin.CustomAuth_header') : 'Authorization';
 			$header = strtoupper($header);
 			$authName = Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : 'External authentication';
-			if (isset($server['HTTP_' . $header]) && !empty($server['HTTP_' . $header])) {
+			$headerNamespace = Configure::read('Plugin.CustomAuth_use_header_namespace') ? (Configure::read('Plugin.CustomAuth_header_namespace') ? Configure::read('Plugin.CustomAuth_header_namespace') : 'HTTP_') : '';
+			if (isset($server[$headerNamespace . $header]) && !empty($server[$headerNamespace . $header])) {
 				if (Configure::read('Plugin.CustomAuth_only_allow_source') && Configure::read('Plugin.CustomAuth_only_allow_source') !== $server['REMOTE_ADDR']) {
 					$this->Log = ClassRegistry::init('Log');
 					$this->Log->create();
@@ -609,13 +641,13 @@ class AppController extends Controller {
 							'model_id' => 0,
 							'email' => 'SYSTEM',
 							'action' => 'auth_fail',
-							'title' => 'Failed authentication using external key (' . trim($server['HTTP_' . $header]) . ') - the user has not arrived from the expected address. Instead the request came from: ' . $server['REMOTE_ADDR'],
+							'title' => 'Failed authentication using external key (' . trim($server[$headerNamespace . $header]) . ') - the user has not arrived from the expected address. Instead the request came from: ' . $server['REMOTE_ADDR'],
 							'change' => null,
 					);
 					$this->Log->save($log);
 					$this->__preAuthException($authName . ' authentication failed. Contact your MISP support for additional information at: ' . Configure::read('MISP.contact'));
 				}
-				$temp = $this->checkExternalAuthUser($server['HTTP_' . $header]);
+				$temp = $this->checkExternalAuthUser($server[$headerNamespace . $header]);
 				$user['User'] = $temp;
 				if ($user['User']) {
 					unset($user['User']['gpgkey']);
@@ -640,20 +672,22 @@ class AppController extends Controller {
 				} else {
 					// User not authenticated correctly
 					// reset the session information
-					$this->Session->destroy();
 					$this->Log = ClassRegistry::init('Log');
 					$this->Log->create();
 					$log = array(
-						'org' => 'SYSTEM',
-						'model' => 'User',
-						'model_id' => 0,
-						'email' => 'SYSTEM',
-						'action' => 'auth_fail',
-						'title' => 'Failed authentication using external key (' . trim($server['HTTP_' . $header]) . ')',
-						'change' => null,
+							'org' => 'SYSTEM',
+							'model' => 'User',
+							'model_id' => 0,
+							'email' => 'SYSTEM',
+							'action' => 'auth_fail',
+							'title' => 'Failed authentication using external key (' . trim($server[$headerNamespace . $header]) . ')',
+							'change' => null,
 					);
 					$this->Log->save($log);
-					$this->__preAuthException($authName . ' authentication failed. Contact your MISP support for additional information at: ' . Configure::read('MISP.contact'));
+					if (Configure::read('CustomAuth_required')) {
+						$this->Session->destroy();
+						$this->__preAuthException($authName . ' authentication failed. Contact your MISP support for additional information at: ' . Configure::read('MISP.contact'));
+					}
 				}
 			}
 		}

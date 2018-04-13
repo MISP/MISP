@@ -31,12 +31,16 @@ class ACLComponent extends Component {
 					'add' => array('perm_add'),
 					'add_attachment' => array('perm_add'),
 					'add_threatconnect' => array('perm_add'),
+					'addTag' => array('perm_tagger'),
 					'attributeReplace' => array('perm_add'),
 					'attributeStatistics' => array('*'),
+					'bro' => array('*'),
+					'checkAttachments' => array(),
 					'checkComposites' => array('perm_admin'),
+					'checkOrphanedAttributes' => array(),
 					'delete' => array('perm_add'),
 					'deleteSelected' => array('perm_add'),
-					'describeTypes' => array('perm_add'),
+					'describeTypes' => array('*'),
 					'download' => array('*'),
 					'downloadAttachment' => array('*'),
 					'downloadSample' => array('*'),
@@ -49,6 +53,7 @@ class ACLComponent extends Component {
 					'hoverEnrichment' => array('perm_add'),
 					'index' => array('*'),
 					'pruneOrphanedAttributes' => array(),
+					'removeTag' => array('perm_tagger'),
 					'reportValidationIssuesAttributes' => array(),
 					'restore' => array('perm_add'),
 					'restSearch' => array('*'),
@@ -56,6 +61,7 @@ class ACLComponent extends Component {
 					'rpz' => array('*'),
 					'search' => array('*'),
 					'searchAlternate' => array('*'),
+					'toggleCorrelation' => array('perm_add'),
 					'text' => array('*'),
 					'updateAttributeValues' => array('perm_add'),
 					'view' => array('*'),
@@ -79,6 +85,7 @@ class ACLComponent extends Component {
 					'add_misp_export' => array('perm_modify'),
 					'alert' => array('perm_publish'),
 					'automation' => array('perm_auth'),
+					'checkPublishedStatus' => array('*'),
 					'checkuuid' => array('perm_sync'),
 					'contact' => array('*'),
 					'create_dummy_event' => array(),
@@ -86,6 +93,7 @@ class ACLComponent extends Component {
 					'csv' => array('*'),
 					'delegation_index' => array('*'),
 					'delete' => array('perm_add'),
+					'deleteNode' => array('*'),
 					'dot' => array(),
 					'downloadExport' => array('*'),
 					'downloadOpenIOCEvent' => array('*'),
@@ -96,11 +104,15 @@ class ACLComponent extends Component {
 					'filterEventIdsForPush' => array('perm_sync'),
 					'filterEventIndex' => array('*'),
 					'freeTextImport' => array('perm_add'),
+					'getReferences' => array('*'),
+					'getReferenceData' => array('*'),
 					'hids' => array('*'),
 					'index' => array('*'),
+					'massDelete' => array('perm_site_admin'),
 					'nids' => array('*'),
 					'proposalEventIndex' => array('*'),
 					'publish' => array('perm_publish'),
+					'pushEventToZMQ' => array('perm_site_admin'),
 					'pushProposals' => array('perm_sync'),
 					'queryEnrichment' => array('perm_add'),
 					'removePivot' => array('*'),
@@ -109,13 +121,20 @@ class ACLComponent extends Component {
 					'restSearch' => array('*'),
 					'saveFreeText' => array('perm_add'),
 					'stix' => array('*'),
+					'stix2' => array('*'),
 					'strposarray' => array(),
+					'toggleCorrelation' => array('perm_add'),
 					'updateGraph' => array('*'),
-					'upload_sample' => array('perm_auth'),
+					'upload_sample' => array('AND' => array('perm_auth', 'perm_add')),
+					'upload_stix' => array('perm_add'),
 					'view' => array('*'),
 					'viewEventAttributes' => array('*'),
 					'viewGraph' => array('*'),
 					'xml' => array('*'),
+					'merge' => array('perm_modify'),
+					'importChoice' => array('*'),
+					'importModule' => array('*'),
+					'exportModule' => array('*')
 			),
 			'favouriteTags' => array(
 				'index' => array('*'),
@@ -124,22 +143,48 @@ class ACLComponent extends Component {
 			),
 			'feeds' => array(
 					'add' => array(),
+					'cacheFeeds' => array(),
+					'compareFeeds' => array(),
 					'delete' => array(),
 					'disable' => array(),
 					'edit' => array(),
 					'enable' => array(),
+					'fetchFromAllFeeds' => array(),
 					'fetchFromFeed' => array(),
+					'fetchSelectedFromFreetextIndex' => array(),
 					'getEvent' => array(),
+					'importFeeds' => array(),
 					'index' => array(),
 					'previewEvent' => array(),
 					'previewIndex' => array(),
+					'toggleSelected' => array('perm_site_admin'),
 					'view' => array(),
+			),
+			'galaxies' => array(
+				'attachClusterToEvent' => array('perm_tagger'),
+				'index' => array('*'),
+				'selectGalaxy' => array('perm_tagger'),
+				'selectCluster' => array('perm_tagger'),
+				'update' => array(),
+				'view' => array('*'),
+				'viewGraph' => array('*')
+			),
+			'galaxyClusters' => array(
+				'attachToEvent' => array('perm_tagger'),
+				'detachFromEvent' => array('perm_tagger'),
+				'index' => array('*'),
+				'view' => array('*')
+			),
+			'galaxyElements' => array(
+					'index' => array('*')
 			),
 			'jobs' => array(
 					'cache' => array('*'),
+					'getError' => array(),
 					'getGenerateCorrelationProgress' => array('*'),
 					'getProgress' => array('*'),
 					'index' => array(),
+					'clearJobs' => array()
 			),
 			'logs' => array(
 					'admin_index' => array('perm_audit'),
@@ -147,12 +192,48 @@ class ACLComponent extends Component {
 					'event_index' => array('*'),
 					'maxDateActivity' => array('*'),
 					'returnDates' => array('*'),
+					'testForStolenAttributes' => array(),
+					'pruneUpdateLogs' => array()
 			),
+      'modules' => array(
+        'index' => array('perm_auth'),
+        'queryEnrichment' => array('perm_auth'),
+      ),
 			'news' => array(
 					'add' => array(),
 					'edit' => array(),
 					'delete' => array(),
 					'index' => array('*'),
+			),
+			'objects' => array(
+				'add' => array('perm_add'),
+				'addValueField' => array('perm_add'),
+				'delete' => array('perm_add'),
+				'edit' => array('perm_add'),
+				'get_row' => array('perm_add'),
+				'orphanedObjectDiagnostics' => array(),
+				'revise_object' => array('perm_add'),
+				'view' => array('*'),
+			),
+			'objectReferences' => array(
+				'add' => array('perm_add'),
+				'delete' => array('perm_add'),
+				'view' => array('*'),
+			),
+			'objectTemplates' => array(
+				'activate' => array(),
+				'add' => array('perm_object_template'),
+				'edit' => array('perm_object_template'),
+				'delete' => array('perm_object_template'),
+				'getToggleField' => array(),
+				'objectChoice' => array('*'),
+				'view' => array('*'),
+				'viewElements' => array('*'),
+				'index' => array('*'),
+				'update' => array('perm_site_admin')
+			),
+			'objectTemplateElements' => array(
+				'viewElements' => array('*')
 			),
 			'orgBlacklists' => array(
 					'add' => array(),
@@ -180,6 +261,7 @@ class ACLComponent extends Component {
 					'add' => array('*'),
 					'delete' => array('*'),
 					'edit' => array('*'),
+					'pushMessageToZMQ' => array('perm_site_admin')
 			),
 			'regexp' => array(
 					'admin_add' => array('perm_regexp_access'),
@@ -195,23 +277,29 @@ class ACLComponent extends Component {
 					'admin_delete' => array(),
 					'admin_edit' => array(),
 					'admin_index' => array('perm_admin'),
+					'admin_set_default' => array(),
 					'index' => array('*'),
 					'view' => array('*'),
 			),
 			'servers' => array(
 					'add' => array(),
+					'checkout' => array(),
 					'delete' => array(),
 					'deleteFile' => array(),
 					'edit' => array(),
 					'fetchServersForSG' => array('*'),
 					'filterEventIndex' => array(),
+					'getGit' => array(),
+					'getInstanceUUID' => array('perm_sync'),
+					'getPyMISPVersion' => array('*'),
 					'getVersion' => array('*'),
 					'index' => array('OR' => array('perm_sync', 'perm_admin')),
+					'postTest' => array('perm_sync'),
 					'previewEvent' => array(),
 					'previewIndex' => array(),
-					'pull' => array('perm_auth'),
+					'pull' => array(),
 					'purgeSessions' => array(),
-					'push' => array('perm_auth'),
+					'push' => array(),
 					'restartWorkers' => array(),
 					'serverSettings' => array(),
 					'serverSettingsEdit' => array(),
@@ -222,7 +310,9 @@ class ACLComponent extends Component {
 					'stopWorker' => array(),
 					'stopZeroMQServer' => array(),
 					'testConnection' => array('perm_sync'),
+					'update' => array(),
 					'uploadFile' => array(),
+					'clearWorkerQueue' => array()
 			),
 			'shadowAttributes' => array(
 					'accept' => array('perm_add'),
@@ -244,27 +334,40 @@ class ACLComponent extends Component {
 			),
 			'sharingGroups' => array(
 					'add' => array('perm_sharing_group'),
+					'addServer' => array('perm_sharing_group'),
+					'addOrg' => array('perm_sharing_group'),
 					'delete' => array('perm_sharing_group'),
 					'edit' => array('perm_sharing_group'),
 					'index' => array('*'),
+					'removeServer' => array('perm_sharing_group'),
+					'removeOrg' => array('perm_sharing_group'),
 					'view' => array('*'),
 			),
 			'sightings' => array(
-					'add' => array('perm_add'),
-					'delete' => array('perm_add'),
+					'add' => array('perm_sighting'),
+					'advanced' => array('perm_sighting'),
+					'delete' => array('perm_sighting'),
+					'index' => array('*'),
+					'listSightings' => array('perm_sighting'),
+					'quickDelete' => array('perm_sighting'),
+					'viewSightings' => array('perm_sighting')
 			),
 			'tags' => array(
 					'add' => array('perm_tag_editor'),
-					'delete' => array('perm_tag_editor'),
-					'edit' => array('perm_tag_editor'),
+					'attachTagToObject' => array('perm_tagger'),
+					'delete' => array(),
+					'edit' => array(),
 					'index' => array('*'),
 					'quickAdd' => array('perm_tag_editor'),
+					'removeTagFromObject' => array('perm_tagger'),
 					'selectTag' => array('perm_tagger'),
 					'selectTaxonomy' => array('perm_tagger'),
 					'showEventTag' => array('*'),
+					'showAttributeTag' => array('*'),
 					'tagStatistics' => array('*'),
 					'view' => array('*'),
-					'viewTag' => array('*'),
+					'viewGraph' => array('*'),
+					'viewTag' => array('*')
 			),
 			'tasks' => array(
 					'index' => array(),
@@ -274,6 +377,7 @@ class ACLComponent extends Component {
 					'addTag' => array(),
 					'delete' => array(),
 					'disable' => array(),
+					'disableTag' => array(),
 					'enable' => array(),
 					'index' => array('*'),
 					'taxonomyMassConfirmation' => array('perm_tagger'),
@@ -312,24 +416,27 @@ class ACLComponent extends Component {
 					'admin_email' => array('perm_admin'),
 					'admin_filterUserIndex' => array('perm_admin'),
 					'admin_index' => array('perm_admin'),
+					'admin_quickEmail' => array('perm_admin'),
 					'admin_view' => array('perm_admin'),
 					'arrayCopy' => array(),
+					'attributehistogram' => array('*'),
 					'change_pw' => array('*'),
 					'checkAndCorrectPgps' => array(),
 					'dashboard' => array('*'),
 					'delete' => array('perm_admin'),
 					'downloadTerms' => array('*'),
 					'edit' => array('*'),
-					'fetchPGPKey' => array('perm_admin'),
+					'fetchPGPKey' => array('*'),
 					'histogram' => array('*'),
 					'index' => array('*'),
 					'initiatePasswordReset' => array('perm_admin'),
 					'login' => array('*'),
 					'logout' => array('*'),
-					'attributehistogram' => array('*'),
 					'resetauthkey' => array('*'),
+					'request_API' => array('*'),
 					'routeafterlogin' => array('*'),
 					'statistics' => array('*'),
+					'tagStatisticsGraph' => array('*'),
 					'terms' => array('*'),
 					'updateLoginTime' => array('*'),
 					'verifyCertificate' => array(),
@@ -337,6 +444,7 @@ class ACLComponent extends Component {
 					'view' => array('*'),
 			),
 			'warninglists' => array(
+					'delete' => array(),
 					'enableWarninglist' => array(),
 					'getToggleField' => array(),
 					'index' => array('*'),
@@ -398,6 +506,7 @@ class ACLComponent extends Component {
 			if ($controllerName === 'app') $controllerName = '*';
 			$functionArray = array();
 			$fileContents = file_get_contents(APP . 'Controller' . DS . $file);
+			$fileContents = preg_replace('/\/\*[^\*]+?\*\//', '', $fileContents);
 			preg_match_all($functionFinder, $fileContents, $functionArray);
 			foreach ($functionArray[1] as $function) {
 				if (substr($function, 0, 1) !== '_' && $function !== 'beforeFilter') $results[$controllerName][] = $function;
@@ -415,8 +524,8 @@ class ACLComponent extends Component {
 	public function findMissingFunctionNames($content = false) {
 		$results = $this->__findAllFunctions();
 		$missing = array();
-		foreach ($results as $controller => &$functions) {
-			foreach ($functions as &$function) {
+		foreach ($results as $controller => $functions) {
+			foreach ($functions as $function) {
 				if (!isset($this->__aclList[$controller])
 				|| !in_array($function, array_keys($this->__aclList[$controller])))
 					$missing[$controller][] = $function;
@@ -435,7 +544,7 @@ class ACLComponent extends Component {
 			'conditions' => $conditions
 		));
 		if (empty($roles)) throw new NotFoundException('Role not found.');
-		foreach ($roles as &$role) {
+		foreach ($roles as $role) {
 			$urls = $this->__checkRoleAccess($role['Role']);
 			$results[$role['Role']['id']] = array('name' => $role['Role']['name'], 'urls' => $urls);
 		}
@@ -444,7 +553,7 @@ class ACLComponent extends Component {
 
 	private function __checkRoleAccess($role) {
 		$result = array();
-		foreach ($this->__aclList as $controller => &$actions) {
+		foreach ($this->__aclList as $controller => $actions) {
 			$controllerNames = Inflector::variable($controller) == Inflector::underscore($controller) ? array(Inflector::variable($controller)) : array(Inflector::variable($controller), Inflector::underscore($controller));
 			foreach ($controllerNames as $controllerName) {
 				foreach ($actions as $action => $permissions) {

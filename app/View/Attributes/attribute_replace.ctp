@@ -5,43 +5,43 @@ echo $this->Form->create('Attribute', array('id', 'url' => '/attributes/attribut
 	<fieldset>
 		<legend><?php echo __('Attribute Replace Tool'); ?></legend>
 		<div class="add_attribute_fields">
-		<p>Choose a category and a type, then paste a list of IOCs that match the selection into the field below. This will delete all of the attributes not found in the new inserted list, whilst creating the attributes that are in the new list but don't exist as attributes. Found matches will be left untouched.</p>
+		<p><?php echo __("Choose a category and a type, then paste a list of IOCs that match the selection into the field below. This will delete all of the attributes not found in the new inserted list, whilst creating the attributes that are in the new list but don't exist as attributes. Found matches will be left untouched."); ?></p>
 			<?php
 			echo $this->Form->hidden('event_id');
 			echo $this->Form->input('category', array(
-					'empty' => '(choose one)'
+					'empty' => __('(choose one)')
 			));
 			echo $this->Form->input('type', array(
-					'empty' => '(first choose category)'
+					'empty' => __('(first choose category)')
 			));
 			echo $this->Form->input('to_ids', array(
 					'type' => 'checkbox',
-					'label' => 'Mark all new attributes as to IDS',
+					'label' => __('Mark all new attributes as to IDS'),
 			));
 			echo $this->Form->input('value', array(
 					'type' => 'textarea',
 					'error' => array('escape' => false),
 					'div' => 'input clear',
 					'class' => 'input-xxlarge',
-					'label' => 'Values'
+					'label' => __('Values')
 			));
 			$this->Js->get('#AttributeCategory')->event('change', 'formCategoryChanged("#AttributeCategory")');
 			?>
 			<div class="input clear"></div>
 		</div>
 	</fieldset>
-	<p style="color:red;font-weight:bold;display:none;" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
+	<p style="color:red;font-weight:bold;display:none;" id="warning-message"><?php echo __('Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.'); ?></p>
 		<div class="overlay_spacing">
 			<table>
 				<tr>
 				<td style="vertical-align:top">
-					<span id="submitButton" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $event_id;?>', 'replaceAttributes')">Submit</span>
+					<span id="submitButton" class="btn btn-primary" title="<?php echo __('Replace attributes'); ?>" role="button" tabindex="0" aria-label="<?php echo __('Replaceattributes'); ?>" onClick="submitPopoverForm('<?php echo $event_id;?>', 'replaceAttributes')"><?php echo __('Submit'); ?></span>
 				</td>
 				<td style="width:540px;">
-					<p style="color:red;font-weight:bold;display:none;text-align:center" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
+					<p style="color:red;font-weight:bold;display:none;text-align:center" id="warning-message"><?php echo __('Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.'); ?></p>
 				</td>
 				<td style="vertical-align:top;">
-					<span class="btn btn-inverse" id="cancel_attribute_add">Cancel</span>
+					<span class="btn btn-inverse" id="cancel_attribute_add" title="<?php echo __('Cancel'); ?>" role="button" tabindex="0" aria-label="<?php echo __('Cancel'); ?>"><?php echo __('Cancel'); ?></span>
 				</td>
 				</tr>
 			</table>
@@ -97,30 +97,30 @@ foreach ($categoryDefinitions as $category => $def) {
 
 $(document).ready(function() {
 	$("#AttributeType, #AttributeCategory").on('mouseover', function(e) {
-	    var $e = $(e.target);
-	    if ($e.is('option')) {
-	        $('#'+e.currentTarget.id).popover('destroy');
-	        $('#'+e.currentTarget.id).popover({
-	            trigger: 'focus',
-	            placement: 'right',
-	            container: 'body',
-	            content: formInfoValues[$e.val()],
-	        }).popover('show');
-	    }
+		var $e = $(e.target);
+		if ($e.is('option')) {
+			$('#'+e.currentTarget.id).popover('destroy');
+			$('#'+e.currentTarget.id).popover({
+				trigger: 'focus',
+				placement: 'right',
+				container: 'body',
+				content: formInfoValues[$e.val()],
+			}).popover('show');
+		}
 	});
 
 	$("input, label").on('mouseleave', function(e) {
-	    $('#'+e.currentTarget.id).popover('destroy');
+		$('#'+e.currentTarget.id).popover('destroy');
 	});
 
 	$("input, label").on('mouseover', function(e) {
 		var $e = $(e.target);
 		$('#'+e.currentTarget.id).popover('destroy');
-        $('#'+e.currentTarget.id).popover({
-            trigger: 'focus',
-            placement: 'right',
-            container: 'body',
-        }).popover('show');
+		$('#'+e.currentTarget.id).popover({
+			trigger: 'focus',
+			placement: 'right',
+			container: 'body',
+		}).popover('show');
 	});
 
 	// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
@@ -135,14 +135,14 @@ $(document).ready(function() {
 				$("#warning-message").hide();
 			}
 		}
-	    var $e = $(e.target);
-        $('#'+e.currentTarget.id).popover('destroy');
-        $('#'+e.currentTarget.id).popover({
-            trigger: 'focus',
-            placement: 'right',
-            container: 'body',
-            content: formInfoValues[$e.val()],
-        }).popover('show');
+		var $e = $(e.target);
+		$('#'+e.currentTarget.id).popover('destroy');
+		$('#'+e.currentTarget.id).popover({
+			trigger: 'focus',
+			placement: 'right',
+			container: 'body',
+			content: formInfoValues[$e.val()],
+		}).popover('show');
 	});
 
 	$('#cancel_attribute_add').click(function() {

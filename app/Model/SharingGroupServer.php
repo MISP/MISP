@@ -1,10 +1,9 @@
 <?php
 App::uses('AppModel', 'Model');
-class SharingGroupServer extends AppModel {
-	public $actsAs = array('Containable');
-	public $validate = array(
 
-	);
+class SharingGroupServer extends AppModel {
+
+	public $actsAs = array('Containable');
 
 	public $belongsTo = array(
 		'SharingGroup' => array(
@@ -106,7 +105,7 @@ class SharingGroupServer extends AppModel {
 		));
 		if (empty($sgs)) return array();
 		$sgids = array();
-		foreach ($sgs as &$temp) {
+		foreach ($sgs as $temp) {
 			$sgids[] = $temp[$this->alias]['id'];
 		}
 		return $sgids;

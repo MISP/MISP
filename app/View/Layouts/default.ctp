@@ -3,20 +3,29 @@
 <head>
 	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
 	<?php echo $this->Html->charset(); ?>
+	<meta name="viewport" content="width=device-width" />
 	<title>
-		<?php echo $title_for_layout, ' - MISP'; ?>
+		<?php echo $title_for_layout, ' - '. h(Configure::read('MISP.title_text') ? Configure::read('MISP.title_text') : 'MISP'); ?>
 	</title>
 	<?php
 		if (!isset($debugMode)) {
 			$debugMode == 'debugOff';
+		} else {
+			$debugMode == 'debugOn';
 		}
 		echo $this->Html->meta('icon');
-		echo $this->Html->css('roboto');
+		//echo $this->Html->css('roboto');
 		echo $this->Html->css('bootstrap');
 		echo $this->Html->css('bootstrap-datepicker');
 		echo $this->Html->css('bootstrap-timepicker');
 		echo $this->Html->css('bootstrap-colorpicker');
-		echo $this->Html->css('main');
+		echo $this->Html->css('famfamfam-flags');
+		echo $this->Html->css('font-awesome');
+		if ($me) {
+			echo $this->Html->css('main.css?' . $queryVersion);
+		} else {
+			echo $this->Html->css('main');
+		}
 		if (Configure::read('MISP.custom_css')) {
 			$css = preg_replace('/\.css$/i', '', Configure::read('MISP.custom_css'));
 			echo $this->Html->css($css);
@@ -28,12 +37,13 @@
 		echo $this->fetch('script');
 
 		echo $this->Html->script('jquery'); // Include jQuery library
+		echo $this->Html->script('misp-touch'); // touch interface support
 	?>
 
-<!--?php echo $scripts_for_layout; ?-->
 </head>
 <body>
 	<div id="popover_form" class="ajax_popover_form"></div>
+	<div id="screenshot_box" class="screenshot_box"></div>
 	<div id="confirmation_box" class="confirmation_box"></div>
 	<div id="gray_out" class="gray_out"></div>
 		<div id="container">
@@ -41,7 +51,7 @@
 			    $padding_top = 10;
 			    if ($debugMode == 'debugOff') $padding_top = 50;
 			?>
-		<div class="container-fluid <?php echo $debugMode; ?>" style="padding-top:<?php echo $padding_top; ?>px;width:98%;">
+		<div id="main-view-container" class="container-fluid <?php echo $debugMode; ?>-layout">
 			<?php
 				$has_flash = false;
 			    $flash = array();
@@ -78,8 +88,10 @@
 	echo $this->Html->script('bootstrap-timepicker');
 	echo $this->Html->script('bootstrap-datepicker');
 	echo $this->Html->script('bootstrap-colorpicker');
-	echo $this->Html->script('main');
-	echo $this->Html->script('misp' . $jsVersion);
+	if ($me) {
+		echo $this->Html->script('misp.js?' . $queryVersion);
+		echo $this->Html->script('keyboard-shortcuts.js?' . $queryVersion);
+	}
 	?>
 	<div id = "ajax_success_container" class="ajax_container">
 		<div id="ajax_success" class="ajax_result ajax_success"></div>
@@ -89,7 +101,7 @@
 	</div>
 	<div class="loading">
 		<div class="spinner"></div>
-		<div class="loadingText">Loading</div>
+		<div class="loadingText"><?php echo __('Loading');?></div>
 	</div>
 	<?php
 		if ($debugMode == 'debugOff'):

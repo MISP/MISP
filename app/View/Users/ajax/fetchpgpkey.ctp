@@ -3,13 +3,13 @@
 	<div class="popover_choice_main" id ="popover_choice_main">
 		<table style="width:100%;">
 			<tr>
-				<th style="padding-left:10px; text-align:left;">Key ID</th>
-				<th style="text-align:left;">Creation date</th>
-				<th style="padding-right:10px; text-align:left;">Associated E-mail addresses</th>
+				<th style="padding-left:10px; text-align:left;"><?php echo __('Key ID');?></th>
+				<th style="text-align:left;"><?php echo __('Creation date');?></th>
+				<th style="padding-right:10px; text-align:left;"><?php echo __('Associated E-mail addresses');?></th>
 			</tr>
 		<?php foreach ($keys as $k => $key): ?>
 			<tr style="border-bottom:1px solid black;" class="templateChoiceButton">
-				<td style="padding-left:10px; text-align:left;width:20%;" title="<?php echo h($key['fingerprint']); ?>" onClick="pgpChoiceSelect('<?php echo h($key['uri']); ?>')"><?php echo h($key['key_id']); ?></td>
+				<td role="button" tabindex="0" aria-label="<?php echo __('Select GnuPG key');?>" style="padding-left:10px; text-align:left;width:20%;" title="<?php echo h($key['fingerprint']); ?>" onClick="pgpChoiceSelect('<?php echo h($key['uri']); ?>')"><?php echo h($key['key_id']); ?></td>
 				<td style="text-align:left;width:20%;" title="<?php echo h($key['fingerprint']); ?>" onClick="pgpChoiceSelect('<?php echo h($key['uri']); ?>')"><?php echo h($key['date']); ?></td>
 				<td style="padding-right:10px; text-align:left;width:60%;" title="<?php echo h($key['fingerprint']); ?>" onClick="pgpChoiceSelect('<?php echo h($key['uri']); ?>')">
 					<span class="bold">
@@ -21,7 +21,7 @@
 		<?php endforeach; ?>
 		</table>
 	</div>
-	<div class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm();">Cancel</div>
+	<div role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm();"><?php echo __('Cancel');?></div>
 </div>
 <script type="text/javascript">
 	$(document).ready(function() {

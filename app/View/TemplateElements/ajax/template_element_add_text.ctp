@@ -1,6 +1,6 @@
 <div class="template_element_add_text">
 <?php
-	echo $this->Form->create('TemplateElementText', array('id', 'url' => '/templateElements/add/text/' . $id));
+	echo $this->Form->create('TemplateElementText', array('url' => '/templateElements/add/text/' . $id));
 ?>
 	<legend><?php echo __('Add Text Element To Template'); ?></legend>
 	<fieldset>
@@ -26,13 +26,13 @@
 		<table>
 			<tr>
 			<td style="vertical-align:top">
-				<span id="submitButton" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $id;?>', 'addTextElement')">Submit</span>
+				<span id="submitButton" title="<?php echo __('Add text description element');?>" class="btn btn-primary" onClick="return submitPopoverForm('<?php echo $id;?>', 'addTextElement');"><?php echo __('Submit');?></span>
 			</td>
 			<td style="width:540px;">
-				<p style="color:red;font-weight:bold;display:none;text-align:center" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
+				<p style="color:red;font-weight:bold;display:none;text-align:center" id="warning-message"><?php echo __('Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.');?></p>
 			</td>
 			<td style="vertical-align:top;">
-				<span class="btn btn-inverse" id="cancel_attribute_add" onClick="cancelPopoverForm();">Cancel</span>
+				<span class="btn btn-inverse" id="cancel_attribute_add" onClick="return cancelPopoverForm();"><?php echo __('Cancel');?></span>
 			</td>
 			</tr>
 		</table>

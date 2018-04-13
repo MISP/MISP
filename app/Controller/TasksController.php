@@ -2,11 +2,6 @@
 
 App::uses('AppController', 'Controller');
 
-/**
- * Tasks Controller
- *
- * @property Task $Task
-*/
 class TasksController extends AppController {
 	public $components = array('Security' ,'RequestHandler', 'Session');
 
@@ -16,10 +11,6 @@ class TasksController extends AppController {
 					'Task.id' => 'desc'
 			)
 	);
-
-	public function beforeFilter() {
-		parent::beforeFilter();
-	}
 
 	public function index() {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
@@ -40,6 +31,12 @@ class TasksController extends AppController {
 			if (!in_array($taskName, $existingTasks)) {
 				$this->Task->create();
 				$this->Task->save($taskData);
+			} else {
+				$existingTask = $this->Task->find('first', array('recursive' => -1, 'conditions' => array('Task.type' => $taskName)));
+				if ($taskData['description'] != $existingTask['Task']['description']) {
+					$existingTask['Task']['description'] = $taskData['description'];
+					$this->Task->save($existingTask);
+				}
 			}
 		}
 	}
@@ -84,6 +81,8 @@ class TasksController extends AppController {
 		if ($type === 'cache_exports') $this->_cacheScheduler($timestamp, $id);
 		if ($type === 'pull_all') $this->_pullScheduler($timestamp, $id);
 		if ($type === 'push_all') $this->_pushScheduler($timestamp, $id);
+		if ($type === 'cache_feeds') $this->_feedScheduler($timestamp, $id, 1);
+		if ($type === 'fetch_feeds') $this->_feedScheduler($timestamp, $id, 0);
 	}
 
 	private function _cacheScheduler($timestamp, $id) {
@@ -116,6 +115,24 @@ class TasksController extends AppController {
 				'default',
 				'ServerShell',
 				array('enqueuePull', $timestamp, $this->Auth->user('id'),  $id),
+				true
+		);
+		$this->Task->id = $id;
+		$this->Task->saveField('process_id', $process_id);
+	}
+
+	private function _feedScheduler($timestamp, $id, $type) {
+	    if ($type == 1){
+	        $action = 'enqueueFeedCache';
+        }
+        else {
+	        $action = 'enqueueFeedFetch';
+        }
+		$process_id = CakeResque::enqueueAt(
+				$timestamp,
+				'default',
+				'ServerShell',
+				array($action, $timestamp, $this->Auth->user('id'),  $id),
 				true
 		);
 		$this->Task->id = $id;

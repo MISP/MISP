@@ -1,20 +1,20 @@
 <div class="confirmation">
-	<div class="legend">Delete Delegation Request</div>
+	<div class="legend"><?php echo __('Delete Delegation Request');?></div>
 	<div style="padding-left:5px;padding-right:5px;padding-bottom:5px;">
-	<p>Are you sure you would like to discard the request by <?php echo h($delegationRequest['Org']['name']); ?> to take owenership of Event #<?php echo h($delegationRequest['Event']['id']);?>?</p>
+	<p><?php echo __('Are you sure you would like to discard the request by %s to take owenership of Event #%s', h($delegationRequest['RequesterOrg']['name']), h($delegationRequest['Event']['id']));?>?</p>
 		<table>
 			<tr>
 				<td style="vertical-align:top">
 					<?php
 						echo $this->Form->create('EventDelegation', array('style' => 'margin:0px;', 'id' => 'PromptForm'));
-						echo $this->Form->submit('Yes', array('div' => false, 'class' => 'btn btn-primary'));
+						echo $this->Form->submit(__('Yes'), array('div' => false, 'class' => 'btn btn-primary'));
 						echo $this->Form->end();
 					?>
 				</td>
 				<td style="width:540px;">
 				</td>
 				<td style="vertical-align:top;">
-					<span class="btn btn-inverse" id="PromptNoButton" onClick="cancelPrompt();">No</span>
+					<span role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="btn btn-inverse" id="PromptNoButton" onClick="cancelPrompt();"><?php echo __('No');?></span>
 				</td>
 			</tr>
 		</table>

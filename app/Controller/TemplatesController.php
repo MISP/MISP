@@ -4,12 +4,6 @@ App::uses('AppController', 'Controller');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 
-/**
- * Templates Controller
- *
- * @property Template $Templates
- */
-
 class TemplatesController extends AppController {
 	public $components = array('Security' ,'RequestHandler');
 
@@ -24,7 +18,6 @@ class TemplatesController extends AppController {
 		parent::beforeFilter();
 		$this->Security->unlockedActions = array('uploadFile', 'deleteTemporaryFile');
 	}
-
 
 	public function index() {
 		$conditions = array();
@@ -173,8 +166,8 @@ class TemplatesController extends AppController {
 		$this->autoRender = false;
 		$this->request->onlyAllow('ajax');
 		$orderedElements = $this->request->data;
-		foreach ($orderedElements as &$e) {
-			$e = ltrim($e, 'id_');
+		foreach ($orderedElements as $key => $e) {
+			$orderedElements[$key] = ltrim($e, 'id_');
 		}
 		$extractedIds = array();
 		foreach ($orderedElements as $element) $extractedIds[] = $element;
@@ -184,26 +177,26 @@ class TemplatesController extends AppController {
 			'fields' => array('id', 'template_id'),
 		));
 
-		if (!$this->_isSiteAdmin() && !$this->Template->checkAuthorisation($template_id['TemplateElement']['template_id'], $this->Auth->user(), true)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You are not authorised to do that.')), 'status' => 200));
+		if (!$this->_isSiteAdmin() && !$this->Template->checkAuthorisation($template_id['TemplateElement']['template_id'], $this->Auth->user(), true)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You are not authorised to do that.')), 'status' => 200, 'type' => 'json'));
 
 		$elements = $this->Template->TemplateElement->find('all', array(
 				'conditions' => array('template_id' => $template_id['TemplateElement']['template_id']),
 				'recursive' => -1,
 		));
 		if (empty($elements)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Something went wrong, the supplied template elements don\'t exist, or you are not eligible to edit them.')),'status'=>200));
-		if (count($elements) != count($orderedElements)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Incomplete template element list passed as argument. Expecting ' . count($elements) . ' elements, only received positions for ' . count($orderedElements) . '.')),'status'=>200));
+		if (count($elements) != count($orderedElements)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Incomplete template element list passed as argument. Expecting ' . count($elements) . ' elements, only received positions for ' . count($orderedElements) . '.')), 'status'=>200, 'type' => 'json'));
 		$template_id = $elements[0]['TemplateElement']['template_id'];
 
-		foreach ($elements as &$e) {
-			if ($template_id !== $e['TemplateElement']['template_id']) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Cannot sort template elements belonging to separate templates. You should never see this message during legitimate use.')),'status'=>200));
+		foreach ($elements as $key => $e) {
+			if ($template_id !== $e['TemplateElement']['template_id']) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Cannot sort template elements belonging to separate templates. You should never see this message during legitimate use.')), 'status'=>200, 'type' => 'json'));
 			foreach ($orderedElements as $k => $orderedElement) {
 				if ($orderedElement == $e['TemplateElement']['id']) {
-					$e['TemplateElement']['position'] = $k+1;
+					$elements[$key]['TemplateElement']['position'] = $k+1;
 				}
 			}
 		}
 		$this->Template->TemplateElement->saveMany($elements);
-		return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Elements repositioned.')),'status'=>200));
+		return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Elements repositioned.')), 'status'=>200, 'type' => 'json'));
 	}
 
 	public function delete($id) {
@@ -273,7 +266,6 @@ class TemplatesController extends AppController {
 		$this->set('template_id', $template_id);
 		$this->set('event_id', $event_id);
 		if ($this->request->is('post')) {
-			$errors = array();
 			$this->set('template', $this->request->data);
 			$result = $this->Event->Attribute->checkTemplateAttributes($template, $this->request->data, $event_id);
 			if (isset($this->request->data['Template']['modify']) || !empty($result['errors'])) {
@@ -313,12 +305,11 @@ class TemplatesController extends AppController {
 			}
 
 			$template = $this->Template->find('first', array(
-					'id' => $template_id,
+					'conditions' => array('Template.id' => $template_id),
 					'recursive' => -1,
 					'contain' => 'TemplateTag',
 					'fields' => 'id',
 			));
-
 			foreach ($template['TemplateTag'] as $tag) {
 				$exists = false;
 				foreach ($event['EventTag'] as $eventTag) {
@@ -334,17 +325,21 @@ class TemplatesController extends AppController {
 				$attributes = json_decode($this->request->data['Template']['attributes'], true);
 				$this->loadModel('Attribute');
 				$fails = 0;
-				foreach ($attributes as $k => &$attribute) {
-					if (isset($attribute['data']) && preg_match('/^[a-zA-Z0-9]{12}$/', $attribute['data'])) {
+				foreach ($attributes as $k => $attribute) {
+					if (isset($attribute['data']) && $this->Template->checkFilename($attribute['data'])) {
 						$file = new File(APP . 'tmp/files/' . $attribute['data']);
 						$content = $file->read();
-						$attribute['data'] = base64_encode($content);
+						$attributes[$k]['data'] = base64_encode($content);
+						if ($this->Event->Attribute->typeIsMalware($attributes[$k]['type'])) {
+							$hashes = $this->Event->Attribute->handleMaliciousBase64($event_id, explode('|', $attributes[$k]['value'])[0], $attributes[$k]['data'], array('md5'));
+							$attributes[$k]['data'] = $hashes['data'];
+						}
 						$file->delete();
 					}
 					$this->Attribute->create();
-					if (!$this->Attribute->save(array('Attribute' => $attribute))) $fails++;
+					if (!$this->Attribute->save(array('Attribute' => $attributes[$k]))) $fails++;
 				}
-				$count = $k + 1;
+				$count = isset($k) ? $k + 1 : 0;
 				$event = $this->Event->find('first', array(
 					'conditions' => array('Event.id' => $event_id),
 					'recursive' => -1
@@ -373,18 +368,15 @@ class TemplatesController extends AppController {
 		} else if ($this->request->is('post')) {
 			$fileArray = array();
 			$filenames = array();
-			$tmp_names = array();
-			$element_ids = array();
-			$result = array();
 			$added = 0;
 			$failed = 0;
 			// filename checks
 			foreach ($this->request->data['Template']['file'] as $k => $file) {
 				if ($file['size'] > 0 && $file['error'] == 0) {
-					if (preg_match('@^[\w\-. ]+$@', $file['name'])) {
+					if ($this->Template->checkFilename($file['name'])) {
 						$fn = $this->Template->generateRandomFileName();
 						move_uploaded_file($file['tmp_name'], APP . 'tmp/files/' . $fn);
-						$filenames[] =$file['name'];
+						$filenames[] = $file['name'];
 						$fileArray[] = array('filename' => $file['name'], 'tmp_name' => $fn, 'element_id' => $elementId);
 						$added++;
 					} else $failed++;
@@ -397,20 +389,10 @@ class TemplatesController extends AppController {
 			} else {
 				$this->set('upload_error', false);
 			}
-
 			$this->set('result', $result);
 			$this->set('filenames', $filenames);
 			$this->set('fileArray', json_encode($fileArray));
 		}
-	}
-
-	private function __combineArrays($array, $array2) {
-		foreach ($array2 as $element) {
-			if (!in_array($element, $array)) {
-				$array[] = $element;
-			}
-		}
-		return $array;
 	}
 
 	// deletes a temporary file created by the user while populating a template
@@ -420,7 +402,7 @@ class TemplatesController extends AppController {
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('This action is restricted to accepting POST requests only.');
 		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This action is only accessible through AJAX.');
 		$this->autoRender = false;
-		if (preg_match('/^[a-zA-Z0-9]{12}$/', $filename)) {
+		if ($this->Template->checkFilename($filename)) {
 			$file = new File(APP . 'tmp/files/' . $filename);
 			if ($file->exists()) {
 				$file->delete();

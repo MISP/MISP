@@ -24,7 +24,7 @@ sudo postfix reload
 Once the system is installed you can perform the following steps:
 
 # Install the dependencies: (some might already be installed)
-sudo apt-get install curl gcc git gnupg-agent make python openssl redis-server sudo vim zip
+sudo apt-get install curl gcc git gnupg-agent make python python3 openssl redis-server sudo vim zip
 
 # Install MariaDB (a MySQL fork/alternative)
 sudo apt-get install mariadb-client mariadb-server
@@ -37,16 +37,17 @@ sudo apt-get install apache2 apache2-doc apache2-utils
 
 # Enable modules, settings, and default of SSL in Apache
 sudo a2dismod status
-sudo a2enmod ssl rewrite
+sudo a2enmod ssl
+sudo a2enmod rewrite
+sudo a2enmod headers
 sudo a2dissite 000-default
 sudo a2ensite default-ssl
 
 # Install PHP and dependencies
-sudo apt-get install libapache2-mod-php php php-cli php-crypt-gpg php-dev php-json php-mysql php-opcache php-readline php-redis
+sudo apt-get install libapache2-mod-php php php-cli php-crypt-gpg php-dev php-json php-mysql php-opcache php-readline php-redis php-xml
 
 # Apply all changes
 sudo systemctl restart apache2
-
 
 3/ MISP code
 ------------
@@ -65,7 +66,7 @@ sudo -u www-data git checkout tags/$(git describe --tags `git rev-list --tags --
 sudo -u www-data git config core.filemode false
 
 # install Mitre's STIX and its dependencies by running the following commands:
-sudo apt-get install python-dev python-pip libxml2-dev libxslt1-dev zlib1g-dev
+sudo apt-get install python-dev python-pip python3-pip libxml2-dev libxslt1-dev zlib1g-dev python-setuptools
 cd /var/www/MISP/app/files/scripts
 sudo -u www-data git clone https://github.com/CybOXProject/python-cybox.git
 sudo -u www-data git clone https://github.com/STIXProject/python-stix.git
@@ -76,6 +77,15 @@ cd /var/www/MISP/app/files/scripts/python-stix
 sudo -u www-data git checkout v1.1.1.4
 sudo python setup.py install
 
+# install mixbox to accomodate the new STIX dependencies:
+cd /var/www/MISP/app/files/scripts/
+sudo -u www-data git clone https://github.com/CybOXProject/mixbox.git
+cd /var/www/MISP/app/files/scripts/mixbox
+sudo -u www-data git checkout v1.0.2
+sudo python setup.py install
+
+# install support for STIX 2.0 (Python 3 is required)
+pip3 install stix2
 
 4/ CakePHP
 -----------
@@ -83,10 +93,11 @@ sudo python setup.py install
 cd /var/www/MISP
 sudo -u www-data git submodule init
 sudo -u www-data git submodule update
+# Make git ignore filesystem permission differences for submodules
+sudo -u www-data git submodule foreach git config core.filemode false
 
 # Once done, install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd /var/www/MISP/app
-sudo -u www-data wget https://getcomposer.org/download/1.1.2/composer.phar -O composer.phar
 sudo -u www-data php composer.phar require kamisama/cake-resque:4.1.2
 sudo -u www-data php composer.phar config vendor-dir Vendor
 sudo -u www-data php composer.phar install
@@ -97,6 +108,8 @@ sudo phpenmod redis
 # To use the scheduler worker for scheduled tasks, do the following:
 sudo -u www-data cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResque/Config/config.php
 
+# If you have multiple MISP instances on the same system, don't forget to have a different Redis per MISP instance for the CakeResque workers
+# The default Redis port can be updated in Plugin/CakeResque/Config/config.php
 
 5/ Set the permissions
 ----------------------
@@ -122,23 +135,31 @@ MariaDB [(none)]> exit
 
 # Import the empty MISP database from MYSQL.sql
 sudo -u www-data sh -c "mysql -u misp -p misp < /var/www/MISP/INSTALL/MYSQL.sql"
-# enter the password you set previously
+# enter the password you've set in line 129 when prompted
 
 
 7/ Apache configuration
 -----------------------
 # Now configure your Apache webserver with the DocumentRoot /var/www/MISP/app/webroot/
 
-sudo cp /var/www/MISP/INSTALL/apache.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
+# If the apache version is 2.2:
+sudo cp /var/www/MISP/INSTALL/apache.22.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
+
+# If the apache version is 2.4:
+sudo cp /var/www/MISP/INSTALL/apache.24.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
 
 # Be aware that the configuration files for apache 2.4 and up have changed.
 # The configuration file has to have the .conf extension in the sites-available directory
 # For more information, visit http://httpd.apache.org/docs/2.4/upgrading.html
 
 # If a valid SSL certificate is not already created for the server, create a self-signed certificate:
-openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
+sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
 -subj "/C=<Country>/ST=<State>/L=<Locality>/O=<Organization>/OU=<Organizational Unit Name>/CN=<QDN.here>/emailAddress=admin@<your.FQDN.here>" \
 -keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt
+
+# Please find a sample conf file for an SSL enabled conf file in-line below (alternatively use one of the samples provided in /var/www/MISP/INSTALL
+
+# Also remember to verify the SSLCertificateChainFile property in your config file - this is usually commented out for the self-generated certificate in the sample configurations, such as the one pasted below.
 
 # Otherwise, copy the SSLCertificateFile, SSLCertificateKeyFile, and SSLCertificateChainFile to /etc/ssl/private/. (Modify path and config to fit your environment)
 
@@ -184,8 +205,14 @@ sudo a2ensite misp-ssl
 # Restart apache
 sudo systemctl restart apache2
 
+8/ Log rotation
+---------------
+# MISP saves the stdout and stderr of its workers in /var/www/MISP/app/tmp/logs
+# To rotate these logs install the supplied logrotate script:
 
-8/ MISP configuration
+sudo cp /var/www/MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
+
+9/ MISP configuration
 ---------------------
 # There are 4 sample configuration files in /var/www/MISP/app/Config that need to be copied
 sudo -u www-data cp -a /var/www/MISP/app/Config/bootstrap.default.php /var/www/MISP/app/Config/bootstrap.php
@@ -195,7 +222,21 @@ sudo -u www-data cp -a /var/www/MISP/app/Config/config.default.php /var/www/MISP
 
 # Configure the fields in the newly created files:
 sudo -u www-data vim /var/www/MISP/app/Config/database.php
-# login, port, password, database
+# DATABASE_CONFIG has to be filled
+# With the default values provided in section 6, this would look like:
+# class DATABASE_CONFIG {
+#   public $default = array(
+#       'datasource' => 'Database/Mysql',
+#       'persistent' => false,
+#       'host' => 'localhost',
+#       'login' => 'misp', // grant usage on *.* to misp@localhost
+#       'port' => 3306,
+#       'password' => 'XXXXdbpasswordhereXXXXX', // identified by 'XXXXdbpasswordhereXXXXX';
+#       'database' => 'misp', // create database misp;
+#       'prefix' => '',
+#       'encoding' => 'utf8',
+#   );
+#}
 
 # Important! Change the salt key in /var/www/MISP/app/Config/config.php
 # The salt key must be a string at least 32 bytes long.
@@ -218,6 +259,8 @@ sudo -u www-data mkdir /var/www/MISP/.gnupg
 sudo chmod 700 /var/www/MISP/.gnupg
 sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --gen-key
 # The email address should match the one set in the config.php / set in the configuration menu in the administration menu configuration file
+
+# NOTE: if entropy is not high enough, you can install rng-tools and then run rngd -r /dev/urandom do fix it quickly
 
 # And export the public key to the webroot
 sudo -u www-data sh -c "gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR-KEYS-EMAIL-HERE > /var/www/MISP/app/webroot/gpg.asc"
@@ -266,8 +309,32 @@ Recommended actions
 
 
 Optional features
--------------------
+-----------------
 # MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
 sudo pip install pyzmq
 # ZeroMQ depends on the Python client for Redis
 sudo pip install redis
+
+# For the experimental ssdeep correlations, run the following installation:
+# installing ssdeep
+wget http://downloads.sourceforge.net/project/ssdeep/ssdeep-2.13/ssdeep-2.13.tar.gz
+tar zxvf ssdeep-2.13.tar.gz
+cd ssdeep-2.13
+./configure
+make
+sudo make install
+ssdeep -h # test
+
+#installing ssdeep_php
+sudo pecl install ssdeep
+
+# 7.0 if your PHP 7.0 and you know what to do if you have a different version
+sudo echo "extension=ssdeep.so" > /etc/php/7.0/mods-available/ssdeep.ini
+sudo phpenmod ssdeep
+service apache2 restart
+
+Optional features: misp-modules
+-------------------------------
+# If you want to add the misp modules functionality, follow the setup procedure described in misp-modules:
+# https://github.com/MISP/misp-modules#how-to-install-and-start-misp-modules
+# Then the enrichment, export and import modules can be enabled in MISP via the settings.

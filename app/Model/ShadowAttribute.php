@@ -4,11 +4,6 @@ App::uses('AppModel', 'Model');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 
-/**
- * Attribute Model
- *
- * @property Event $Event
- */
 class ShadowAttribute extends AppModel {
 
 	public $combinedKeys = array('event_id', 'category', 'type');
@@ -25,11 +20,6 @@ class ShadowAttribute extends AppModel {
 		'Regexp' => array('fields' => array('value', 'value2')),
 	);
 
-/**
- * belongsTo associations
- *
- * @var array
- */
 	public $belongsTo = array(
 		'Event' => array(
 			'className' => 'Event',
@@ -49,28 +39,13 @@ class ShadowAttribute extends AppModel {
 		),
 	);
 
-/**
- * Display field
- *
- * @var string
- */
 	public $displayField = 'value';
 
-/**
- * Virtual field
- *
- * @var array
- */
 	public $virtualFields = array(
 			'value' => "CASE WHEN ShadowAttribute.value2 = '' THEN ShadowAttribute.value1 ELSE CONCAT(ShadowAttribute.value1, '|', ShadowAttribute.value2) END",
 	); // TODO hardcoded
 
-/**
- * Field Descriptions
- * explanations of certain fields to be used in various views
- *
- * @var array
- */
+	// explanations of certain fields to be used in various views
 	public $fieldDescriptions = array(
 			'signature' => array('desc' => 'Is this attribute eligible to automatically create an IDS signature (network IDS or host IDS) out of it ?'),
 			//'private' => array('desc' => 'Prevents upload of this single Attribute to other CyDefSIG servers', 'formdesc' => 'Prevents upload of <em>this single Attribute</em> to other CyDefSIG servers.<br/>Used only when the Event is NOT set as Private')
@@ -93,21 +68,21 @@ class ShadowAttribute extends AppModel {
 
 	public $order = array("ShadowAttribute.event_id" => "DESC", "ShadowAttribute.type" => "ASC");
 
-/**
- * Validation rules
- *
- * @var array
- */
 	public $validate = array(
 		'event_id' => array(
 			'numeric' => array(
-				'rule' => array('numeric'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
-			),
+				'rule' => array('numeric')
+			)
+		),
+		'org_id' => array(
+			'numeric' => array(
+				'rule' => array('numeric')
+			)
+		),
+		'event_org_id' => array(
+			'numeric' => array(
+				'rule' => array('numeric')
+			)
 		),
 		'type' => array(
 			// currently when adding a new attribute type we need to change it in both places
@@ -127,8 +102,8 @@ class ShadowAttribute extends AppModel {
 			),
 		),
 		'value' => array(
-			'valueNotEmpty' => array(
-				'rule' => array('valueNotEmpty'),
+			'stringNotEmpty' => array(
+				'rule' => array('stringNotEmpty'),
 			),
 			'userdefined' => array(
 				'rule' => array('validateAttributeValue'),
@@ -143,7 +118,8 @@ class ShadowAttribute extends AppModel {
 		),
 		'uuid' => array(
 			'uuid' => array(
-				'rule' => array('uuid'),
+				'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
+				'message' => 'Please provide a valid UUID'
 			),
 		),
 		'proposal_to_delete' => array(
@@ -168,12 +144,6 @@ class ShadowAttribute extends AppModel {
 
 	// The Associations below have been created with all possible keys, those that are not needed can be removed
 
-/**
- * beforeSave
- *
- * @throws InternalErrorException
- * @return bool always true
- */
 	public function beforeSave($options = array()) {
 		// explode value of composite type in value1 and value2
 		// or copy value to value1 if not composite type
@@ -193,27 +163,25 @@ class ShadowAttribute extends AppModel {
 				$this->data['ShadowAttribute']['value2'] = '';
 			}
 		}
-		if (!isset($this->data['ShadowAttribute']['deleted'])) $this->data['ShadowAttribute']['deleted'] = false;
+		if (!isset($this->data['ShadowAttribute']['deleted'])) $this->data['ShadowAttribute']['deleted'] = 0;
 		if ($this->data['ShadowAttribute']['deleted']) $this->__beforeDeleteCorrelation($this->data['ShadowAttribute']);
 		return true;
 	}
 
-	private function __beforeDeleteCorrelation(&$sa) {
-		$temp = $sa;
-		if (isset($temp['ShadowAttribute'])) $temp = $temp['ShadowAttribute'];
+	private function __beforeDeleteCorrelation($sa) {
+		if (isset($sa['ShadowAttribute'])) $sa = $sa['ShadowAttribute'];
 		$this->ShadowAttributeCorrelation = ClassRegistry::init('ShadowAttributeCorrelation');
-		$this->ShadowAttributeCorrelation->deleteAll(array('ShadowAttributeCorrelation.1_shadow_attribute_id' => $temp['id']));
+		$this->ShadowAttributeCorrelation->deleteAll(array('ShadowAttributeCorrelation.1_shadow_attribute_id' => $sa['id']));
 	}
 
-	private function __afterSaveCorrelation(&$sa) {
-		$temp = $sa;
-		if (isset($temp['ShadowAttribute'])) $temp = $temp['ShadowAttribute'];
-		if (in_array($temp['type'], $this->Event->Attribute->nonCorrelatingTypes)) return;
+	private function __afterSaveCorrelation($sa) {
+		if (isset($sa['ShadowAttribute'])) $sa = $sa['ShadowAttribute'];
+		if (in_array($sa['type'], $this->Event->Attribute->nonCorrelatingTypes)) return;
 		$this->ShadowAttributeCorrelation = ClassRegistry::init('ShadowAttributeCorrelation');
 		$shadow_attribute_correlations = array();
 		$fields = array('value1', 'value2');
-		$correlatingValues = array($temp['value1']);
-		if (!empty($temp['value2'])) $correlatingValues[] = $temp['value2'];
+		$correlatingValues = array($sa['value1']);
+		if (!empty($sa['value2'])) $correlatingValues[] = $sa['value2'];
 		foreach ($correlatingValues as $k => $cV) {
 			$correlatingAttributes[$k] = $this->Event->Attribute->find('all', array(
 					'conditions' => array(
@@ -223,7 +191,8 @@ class ShadowAttribute extends AppModel {
 											'Attribute.value2' => $cV
 									),
 									'Attribute.type !=' => $this->Event->Attribute->nonCorrelatingTypes,
-									'Attribute.deleted' => 0
+									'Attribute.deleted' => 0,
+									'Attribute.event_id !=' => $sa['event_id']
 							),
 					),
 					'recursive => -1',
@@ -235,8 +204,8 @@ class ShadowAttribute extends AppModel {
 				foreach ($cA as $corr) {
 					$shadow_attribute_correlations[] = array(
 							'value' => $correlatingValues[$key],
-							'1_event_id' => $temp['event_id'],
-							'1_shadow_attribute_id' => $temp['id'],
+							'1_event_id' => $sa['event_id'],
+							'1_shadow_attribute_id' => $sa['id'],
 							'event_id' => $corr['Attribute']['event_id'],
 							'attribute_id' => $corr['Attribute']['id'],
 							'org_id' => $corr['Event']['org_id'],
@@ -260,7 +229,12 @@ class ShadowAttribute extends AppModel {
 			$sa = $this->find('first', array('conditions' => array('ShadowAttribute.id' => $this->data['ShadowAttribute']['id']), 'recursive' => -1, 'fields' => array('ShadowAttribute.id', 'ShadowAttribute.event_id', 'ShadowAttribute.type')));
 			if ($this->typeIsAttachment($sa['ShadowAttribute']['type'])) {
 				// only delete the file if it exists
-				$filepath = APP . "files" . DS . 'shadow' . DS . $sa['ShadowAttribute']['event_id'] . DS . $sa['ShadowAttribute']['id'];
+				$attachments_dir = Configure::read('MISP.attachments_dir');
+				if (empty($attachments_dir)) {
+					$my_server = ClassRegistry::init('Server');
+					$attachments_dir = $my_server->getDefaultAttachments_dir();
+				}
+				$filepath = $attachments_dir . DS . 'shadow' . DS . $sa['ShadowAttribute']['event_id'] . DS . $sa['ShadowAttribute']['id'];
 				$file = new File($filepath);
 				if ($file->exists()) {
 					if (!$file->delete()) {
@@ -287,7 +261,12 @@ class ShadowAttribute extends AppModel {
 		$this->read(); // first read the attribute from the db
 		if ($this->typeIsAttachment($this->data['ShadowAttribute']['type'])) {
 			// only delete the file if it exists
-			$filepath = APP . "files" . DS . 'shadow' . DS . $this->data['ShadowAttribute']['event_id'] . DS . $this->data['ShadowAttribute']['id'];
+			$attachments_dir = Configure::read('MISP.attachments_dir');
+			if (empty($attachments_dir)) {
+				$my_server = ClassRegistry::init('Server');
+				$attachments_dir = $my_server->getDefaultAttachments_dir();
+			}
+			$filepath = $attachments_dir . DS . 'shadow' . DS . $this->data['ShadowAttribute']['event_id'] . DS . $this->data['ShadowAttribute']['id'];
 			$file = new File($filepath);
 			if ($file->exists()) {
 				if (!$file->delete()) {
@@ -301,7 +280,13 @@ class ShadowAttribute extends AppModel {
 		parent::beforeValidate();
 		// remove leading and trailing blanks
 		//$this->trimStringFields(); // TODO
-		if (isset($this->data['ShadowAttribute']['value'])) $this->data['ShadowAttribute']['value'] = trim($this->data['ShadowAttribute']['value']);
+		if (isset($this->data['ShadowAttribute']['value'])) {
+			$this->data['ShadowAttribute']['value'] = trim($this->data['ShadowAttribute']['value']);
+		}
+
+		if (!isset($this->data['ShadowAttribute']['comment'])) {
+			$this->data['ShadowAttribute']['comment'] = '';
+		}
 
 		if (!isset($this->data['ShadowAttribute']['type'])) {
 			return false;
@@ -311,6 +296,8 @@ class ShadowAttribute extends AppModel {
 			$date = new DateTime();
 			$this->data['ShadowAttribute']['timestamp'] = $date->getTimestamp();
 		}
+
+		if (!isset($this->data['ShadowAttribute']['proposal_to_delete'])) $this->data['ShadowAttribute']['proposal_to_delete'] = 0;
 
 		// make some last changes to the inserted value
 		$this->data['ShadowAttribute']['value'] = $this->Event->Attribute->modifyBeforeValidation($this->data['ShadowAttribute']['type'], $this->data['ShadowAttribute']['value']);
@@ -372,7 +359,12 @@ class ShadowAttribute extends AppModel {
 	}
 
 	public function base64EncodeAttachment($attribute) {
-		$filepath = APP . "files" . DS . 'shadow' . DS . $attribute['event_id'] . DS. $attribute['id'];
+		$attachments_dir = Configure::read('MISP.attachments_dir');
+		if (empty($attachments_dir)) {
+			$my_server = ClassRegistry::init('Server');
+			$attachments_dir = $my_server->getDefaultAttachments_dir();
+		}
+		$filepath = $attachments_dir . DS . 'shadow' . DS . $attribute['event_id'] . DS. $attribute['id'];
 		$file = new File($filepath);
 		if (!$file->exists()) {
 			return '';
@@ -382,7 +374,12 @@ class ShadowAttribute extends AppModel {
 	}
 
 	public function saveBase64EncodedAttachment($attribute) {
-		$rootDir = APP . DS . "files" . DS . 'shadow' . DS . $attribute['event_id'];
+		$attachments_dir = Configure::read('MISP.attachments_dir');
+		if (empty($attachments_dir)) {
+			$my_server = ClassRegistry::init('Server');
+			$attachments_dir = $my_server->getDefaultAttachments_dir();
+		}
+		$rootDir = $attachments_dir . DS . 'shadow' . DS . $attribute['event_id'];
 		$dir = new Folder($rootDir, true);						// create directory structure
 		$destpath = $rootDir . DS . $attribute['id'];
 		$file = new File($destpath, true);						// create the file
@@ -444,13 +441,18 @@ class ShadowAttribute extends AppModel {
 	}
 
 
+	/**
+	 * Sends an email to members of the organization that owns the event
+	 * @param int $id  The event id
+	 * @return boolean False if no email at all was sent, true if at least an email was sent
+	 */
 	public function sendProposalAlertEmail($id) {
 		$this->Event->recursive = -1;
 		$event = $this->Event->read(null, $id);
 
 		// If the event has an e-mail lock, return
 		if ($event['Event']['proposal_email_lock'] == 1) {
-			return;
+			return false;
 		} else {
 			$this->setProposalLock($id);
 		}
@@ -469,9 +471,9 @@ class ShadowAttribute extends AppModel {
 		$body .= "A user of another organisation has proposed a change to an event created by you or your organisation. \n\n";
 		$body .= 'To view the event in question, follow this link: ' . Configure::read('MISP.baseurl') . '/events/view/' . $id . "\n";
 		$subject =  "[" . Configure::read('MISP.org') . " MISP] Proposal to event #" . $id;
-		$result = true;
-		foreach ($orgMembers as &$user) {
-			$result = $this->User->sendEmail($user, $body, $body, $subject) && $result;
+		$result = false;
+		foreach ($orgMembers as $user) {
+			$result = $this->User->sendEmail($user, $body, $body, $subject) or $result;
 		}
 		return $result;
 	}
@@ -486,6 +488,7 @@ class ShadowAttribute extends AppModel {
 			$event['Event']['proposal_email_lock'] = 0;
 		}
 		$fieldList = array('proposal_email_lock', 'id', 'info');
+		$event['Event']['skip_zmq'] = 1;
 		$this->Event->save($event, array('fieldList' => $fieldList));
 	}
 

@@ -2,11 +2,6 @@
 
 App::uses('AppController', 'Controller');
 
-/**
- * Logs Controller
- *
- * @property Log $Log
- */
 class LogsController extends AppController {
 
 	public $components = array(
@@ -33,11 +28,6 @@ class LogsController extends AppController {
 		}
 	}
 
-/**
- * admin_index method
- *
- * @return void
- */
 	public function admin_index() {
 		if (!$this->userRole['perm_audit']) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
 		$this->set('isSearch', 0);
@@ -68,63 +58,123 @@ class LogsController extends AppController {
 		$mayModify = false;
 		$mineOrAdmin = false;
 		$this->loadModel('Event');
-		$this->Event->recursive = -1;
-		$this->Event->read(null, $id);
-		// send unauthorised people away. Only site admins and users of the same org may see events that are "your org only". Everyone else can proceed for all other levels of distribution
-		if (!$this->_isSiteAdmin()) {
-			if (!$this->Event->checkIfAuthorised($this->Auth->user(), $id)) {
-				$this->Session->setFlash(__('You don\'t have access to view this event.'));
-				$this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
-			}
-			if ($this->Event->data['Event']['org_id'] == $this->Auth->user('org_id')) {
-				$mineOrAdmin = true;
-			}
-		} else {
-			$mineOrAdmin = true;
-		}
-		$this->set('published', $this->Event->data['Event']['published']);
-		if ($mineOrAdmin && $this->userRole['perm_modify']) $mayModify = true;
-
-		$conditions['OR'][] = array('AND' => array('Log.model LIKE' => 'Event', 'Log.model_id LIKE' => $id));
-		if ($org) $conditions['AND'][] = array('Log.org LIKE' => $org, 'Log.model LIKE' => 'ShadowAttribute');
-		// if we are not the owners of the event and we aren't site admins, then we should only see the entries for attributes that are not private
-		// This means that we will not be able to see deleted attributes - since those could have been private
-		if (!$mayModify) {
-			$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
-
-			// get a list of the attributes that belong to the event
-			$this->loadModel('Attribute');
-			$this->Attribute->recursive = -1;
-			$attributes = $this->Attribute->find('all', array(
-					'conditions' => array('event_id' => $id),
-					'fields' => array ('id', 'event_id', 'distribution', 'sharing_group_id'),
-					'contain' => 'Event.distribution'
-			));
-			// get a list of all log entries that affect the current event or any of the attributes found above
-			$conditions['OR'][] = array('AND' => array ('Log.model LIKE' => 'Attribute'));
-			// set a condition for the attribute, otherwise an empty event will show all attributes in the log
-			$conditions['OR'][1]['AND']['OR'][0] = array('Log.model_id LIKE' => null);
-			foreach ($attributes as $a) {
-				// Hop over the attributes that are private if the user should is not of the same org and not an admin
-				if ($mineOrAdmin || ($a['Event']['distribution'] != 0 && ($a['Attribute']['distribution'] != 0 && ($a['Attribute']['distribution'] != 4 || in_array($a['Attribute']['sharing_group_id'] , $sgs))))) {
-					$conditions['OR'][1]['AND']['OR'][] = array('Log.model_id LIKE' => $a['Attribute']['id']);
+		if (!is_numeric($id) || $id < 1) $id = -1;
+		$event = $this->Event->fetchEvent($this->Auth->user(), array(
+			'eventid' => $id,
+			'includeAllTags' => 1,
+			'sgReferenceOnly' => 1,
+		));
+		$conditions = array(
+			'OR' => array(
+				array(
+					'AND' => array(
+						'Log.model' => 'Event',
+						'Log.model_id' => $id
+					)
+				)
+			)
+		);
+		if (empty($event)) throw new MethodNotFoundException('Invalid event.');
+		$event = $event[0];
+		$attribute_ids = array();
+		$object_ids = array();
+		$proposal_ids = array();
+		$event_tag_ids = array();
+		$attribute_tag_ids = array();
+		if (!empty($event['Attribute'])) {
+			foreach ($event['Attribute'] as $aa) {
+				$attribute_ids[] = $aa['id'];
+				if (!empty($aa['ShadowAttribute'])) {
+					foreach ($aa['ShadowAttribute'] as $sa) {
+						$proposal_ids[] = $sa['id'];
+					}
 				}
 			}
-		} else {
-			$conditions['OR'][] = array('AND' => array ('Log.model LIKE' => 'Attribute', 'Log.title LIKE' => '%Event (' . $id . ')%'));
+			unset($event['Attribute']);
 		}
-		$conditions['OR'][] = array('AND' => array ('Log.model LIKE' => 'ShadowAttribute', 'Log.title LIKE' => '%Event (' . $id . ')%'));
-		$fieldList = array('title', 'created', 'model', 'model_id', 'action', 'change', 'org');
+		if (!empty($event['Object'])) {
+			foreach ($event['Object'] as $ob) {
+				foreach ($ob['Attribute'] as $aa) {
+					$attribute_ids[] = $aa['id'];
+					if (!empty($aa['ShadowAttribute'])) {
+						foreach ($aa['ShadowAttribute'] as $sa) {
+							$proposal_ids[] = $sa['id'];
+						}
+					}
+				}
+				$object_ids[] = $ob['id'];
+			}
+			unset($event['Object']);
+		}
+		$conditions = array();
+		$conditions['OR'][] = array(
+			'AND' => array(
+				'model' => 'Event',
+				'model_id' => $event['Event']['id']
+			)
+		);
+		if (!empty($attribute_ids)) {
+			$conditions['OR'][] = array(
+				'AND' => array(
+					'model' => 'Attribute',
+					'model_id' => $attribute_ids
+				)
+			);
+		}
+		if (!empty($proposal_ids)) {
+			$conditions['OR'][] = array(
+				'AND' => array(
+					'model' => 'ShadowAttribute',
+					'model_id' => $proposal_ids
+				)
+			);
+		}
+		if (!empty($object_ids)) {
+			$conditions['OR'][] = array(
+				'AND' => array(
+					'model' => 'MispObject',
+					'model_id' => $object_ids
+				)
+			);
+		}
+		// send unauthorised people away. Only site admins and users of the same org may see events that are "your org only". Everyone else can proceed for all other levels of distribution
+		$mineOrAdmin = true;
+		if (!$this->_isSiteAdmin() && $event['Event']['org_id'] != $this->Auth->user('org_id')) {
+			$mineOrAdmin = false;
+		}
+		$this->set('published', $event['Event']['published']);
+		if ($mineOrAdmin && $this->userRole['perm_modify']) $mayModify = true;
+
+		$fieldList = array('title', 'created', 'model', 'model_id', 'action', 'change', 'org', 'email');
 		$this->paginate = array(
 				'limit' => 60,
 				'conditions' => $conditions,
 				'order' => array('Log.id' => 'DESC'),
 				'fields' => $fieldList
 		);
-		$this->set('event', $this->Event->data);
-		$this->set('list', $this->paginate());
-		$this->set('eventId', $id);
-		$this->set('mayModify', $mayModify);
+		$list = $this->paginate();
+		if (!$this->_isSiteAdmin()) {
+			$this->loadModel('User');
+			$emails = $this->User->find('list', array(
+					'conditions' => array('User.org_id' => $this->Auth->user('org_id')),
+					'fields' => array('User.id', 'User.email')
+			));
+			foreach ($list as $k => $item) {
+				if (!in_array($item['Log']['email'], $emails)) $list[$k]['Log']['email'] = '';
+			}
+		}
+		if ($this->_isRest()) {
+			foreach ($list as $k => $item) {
+				$list[$k] = $item['Log'];
+			}
+			$list = array('Log' => $list);
+			return $this->RestResponse->viewData($list, $this->response->type());
+		} else {
+			$this->set('event', $event);
+			$this->set('list', $list);
+			$this->set('eventId', $id);
+			$this->set('mayModify', $mayModify);
+		}
 	}
 
 	public $helpers = array('Js' => array('Jquery'), 'Highlight');
@@ -147,8 +197,7 @@ class LogsController extends AppController {
 
 			// reset the paginate_conditions
 			$this->Session->write('paginate_conditions_log', array());
-			if ($this->request->is('post')) { // FIXME remove this crap check
-
+			if ($this->request->is('post')) {
 				$filters['email'] = $this->request->data['Log']['email'];
 				if (!$orgRestriction) {
 					$filters['org'] = $this->request->data['Log']['org'];
@@ -238,14 +287,7 @@ class LogsController extends AppController {
 			$this->set('actions', $actions);
 
 			// combobox for models
-			$models = array('Attribute', 'Event', 'EventBlacklist', 'EventTag', 'Organisation', 'Post', 'Regexp', 'Role', 'Server', 'ShadowAttribute', 'SharingGroup', 'Tag', 'Task', 'Taxonomy', 'Template', 'Thread', 'User', 'Whitelist');
-			$existing_models = $this->Log->find('list', array(
-					'recursive' => -1,
-					'conditions' => array('Log.model !=' => ''),
-					'fields' => array('Log.model', 'Log.model'),
-					'group' => array('Log.model'),
-			));
-			$models = array_intersect($models, $existing_models);
+			$models = array('Attribute', 'Event', 'EventBlacklist', 'EventTag', 'MispObject', 'Organisation', 'Post', 'Regexp', 'Role', 'Server', 'ShadowAttribute', 'SharingGroup', 'Tag', 'Task', 'Taxonomy', 'Template', 'Thread', 'User', 'Whitelist');
 			$models = array('' => 'ALL') + $this->_arrayToValuesIndexArray($models);
 			$this->set('models', $models);
 			$this->set('actionDefinitions', $this->{$this->defaultModel}->actionDefinitions);
@@ -282,8 +324,53 @@ class LogsController extends AppController {
 	}
 
 	public function returnDates($org = 'all') {
+		if (!$this->Auth->user('Role')['perm_sharing_group'] && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
+			if ($org !== 'all' && $org !== $this->Auth->user('Organisation')['name']) {
+				throw new MethodNotAllowedException('Invalid organisation.');
+			}
+		}
 		$data = $this->Log->returnDates($org);
 		$this->set('data', $data);
 		$this->set('_serialize', 'data');
+	}
+
+	public function pruneUpdateLogs() {
+		if (!$this->request->is('post')) {
+			//throw new MethodNotAllowedException('This functionality is only accessible via POST requests');
+		}
+		$this->Log->pruneUpdateLogsRouter($this->Auth->user());
+		if (Configure::read('MISP.background_jobs')) {
+			$this->Session->setFlash('The pruning job is queued.');
+		} else {
+			$this->Session->setFlash('The pruning is complete.');
+		}
+		$this->redirect($this->referer());
+	}
+
+	public function testForStolenAttributes() {
+		$logs = $this->Log->find('list', array(
+			'recursive' => -1,
+			'conditions' => array(
+				'Log.model' => 'Attribute',
+				'Log.action' => 'edit'
+			),
+			'fields' => array('Log.title')
+		));
+		$ids = array();
+		foreach ($logs as $log) {
+			preg_match('/Attribute \(([0-9]+?)\)/', $log, $attribute_id);
+			preg_match('/Event \(([0-9]+?)\)/', $log, $event_id);
+			if (!isset($attribute_id[1])) continue;
+			if (empty($ids[$attribute_id[1]]) || !in_array($event_id[1], $ids[$attribute_id[1]])) {
+				$ids[$attribute_id[1]][] = $event_id[1];
+			}
+		}
+		$issues = array();
+		foreach ($ids as $aid => $eids) {
+			if (count($eids) > 1) {
+				$issues[$aid] = $eids;
+			}
+		}
+		$this->set('issues', $issues);
 	}
 }

@@ -1,22 +1,22 @@
 <div class="task index">
-	<h2>Scheduled Tasks</h2>
-	<p>Here you can schedule pre-defined tasks that will be executed every x hours. You can alter the date and time of the next scheduled execution and the frequency at which it will be repeated (expressed in hours). If you set the frequency to 0 then the task will not be repeated. To change and of the above mentioned settings just click on the appropriate field and hit update all when you are done editing the scheduled tasks.</p>
+	<h2><?php echo __('Scheduled Tasks');?></h2>
+	<p><?php echo __('Here you can schedule pre-defined tasks that will be executed every x hours. You can alter the date and time of the next scheduled execution and the frequency at which it will be repeated (expressed in hours). If you set the frequency to 0 then the task will not be repeated. To change and of the above mentioned settings just click on the appropriate field and hit update all when you are done editing the scheduled tasks.');?></p>
 	<div class="pagination">
-        <ul>
-        <?php
-        $this->Paginator->options(array(
-            'update' => '.span12',
-            'evalScripts' => true,
-            'before' => '$(".progress").show()',
-            'complete' => '$(".progress").hide()',
-        ));
+		<ul>
+		<?php
+		$this->Paginator->options(array(
+			'update' => '.span12',
+			'evalScripts' => true,
+			'before' => '$(".progress").show()',
+			'complete' => '$(".progress").hide()',
+		));
 
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
-        </ul>
-    </div>
+			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+			echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+		?>
+		</ul>
+	</div>
 	<?php
 		echo $this->Form->create('Task', array(
 		'url' => 'setTask',
@@ -31,7 +31,7 @@
 			<th><?php echo $this->Paginator->sort('type');?></th>
 			<th><?php echo $this->Paginator->sort('timer', 'Frequency (h)');?></th>
 			<th><?php echo $this->Paginator->sort('scheduled_time');?></th>
-			<th><?php echo $this->Paginator->sort('next_execution_time', 'Next Run');?></th>
+			<th><?php echo $this->Paginator->sort('next_execution_time', __('Next Run'));?></th>
 			<th><?php echo $this->Paginator->sort('description');?></th>
 			<th><?php echo $this->Paginator->sort('message');?></th>
 	</tr><?php
@@ -48,7 +48,7 @@ foreach ($list as $item):?>
 					'id' => $item['Task']['id'] . '-timer-active'
 				));
 			?>
-			<div id="<?php echo $item['Task']['id'];?>-timer-passive" onClick="activate1(<?php echo $item['Task']['id'];?>, 'timer')">
+			<div id="<?php echo $item['Task']['id'];?>-timer-passive" role="button" tabindex="0" aria-label="<?php echo h($item['Task']['timer']); ?>" title="<?php echo __('Set frequency timer for scheduled task');?>" onClick="activate1(<?php echo $item['Task']['id'];?>, 'timer')">
 				<?php echo h($item['Task']['timer']); ?>
 			</div>
 		</td>
@@ -63,7 +63,7 @@ foreach ($list as $item):?>
 					));
 				?>
 			</div>
-			<div id="<?php echo $item['Task']['id'];?>-scheduled_time-passive" onClick="activate2(<?php echo $item['Task']['id'];?>, 'scheduled_time', '<?php echo h($item['Task']['scheduled_time']);?>')">
+			<div id="<?php echo $item['Task']['id'];?>-scheduled_time-passive" role="button" tabindex="0" aria-label="<?php echo h($item['Task']['scheduled_time']); ?>" title="set scheduled time for task" onClick="activate2(<?php echo $item['Task']['id'];?>, 'scheduled_time', '<?php echo h($item['Task']['scheduled_time']);?>')">
 				<?php echo h($item['Task']['scheduled_time']); ?>
 			</div>
 		</td>
@@ -78,7 +78,7 @@ foreach ($list as $item):?>
 					));
 				?>
 			</div>
-			<div id="<?php echo $item['Task']['id'];?>-next_execution_time-passive" onClick="activate1(<?php echo $item['Task']['id'];?>, 'next_execution_time')">
+			<div id="<?php echo $item['Task']['id'];?>-next_execution_time-passive" role="button" tabindex="0" aria-label="<?php echo h(date("Y-m-d", $item['Task']['next_execution_time'])); ?>" onClick="activate1(<?php echo $item['Task']['id'];?>, 'next_execution_time')">
 				<?php echo h(date("Y-m-d", $item['Task']['next_execution_time'])); ?>
 			</div>
 		</td>
@@ -88,23 +88,23 @@ foreach ($list as $item):?>
 endforeach; ?>
 	</table>
 	<p>
-    <?php
-    echo $this->Form->button('Update all', array('class' => 'btn btn-primary'));
+	<?php
+	echo $this->Form->button(__('Update all'), array('class' => 'btn btn-primary'));
 	echo $this->Form->end();
-    echo $this->Paginator->counter(array(
-    'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
-    ));
-    ?>
-    </p>
-    <div class="pagination">
-        <ul>
-        <?php
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
-        </ul>
-    </div>
+	echo $this->Paginator->counter(array(
+	'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
+	));
+	?>
+	</p>
+	<div class="pagination">
+		<ul>
+		<?php
+			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+			echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+		?>
+		</ul>
+	</div>
 </div>
 <?php
 	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'tasks'));

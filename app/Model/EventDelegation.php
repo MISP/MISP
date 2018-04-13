@@ -19,18 +19,14 @@ class EventDelegation extends AppModel {
 	);
 
 	public $belongsTo = array(
-		'Event' => array(
-			'className' => 'Event',
-		),
+		'Event',
 		'Org' => array(
 			'className' => 'Organisation',
 		),
 		'RequesterOrg' => array(
 			'className' => 'Organisation'
 		),
-		'SharingGroup' => array(
-			'className' => 'SharingGroup'
-		)
+		'SharingGroup'
 	);
 
 	public function attachTagToEvent($event_id, $tag_id) {

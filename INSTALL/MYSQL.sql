@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS `admin_settings` (
 CREATE TABLE IF NOT EXISTS `attributes` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `event_id` int(11) NOT NULL,
+  `object_id` int(11) NOT NULL DEFAULT 0,
+  `object_relation` varchar(255) COLLATE utf8_bin,
   `category` varchar(255) COLLATE utf8_bin NOT NULL,
   `type` varchar(100) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `value1` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
@@ -29,15 +31,37 @@ CREATE TABLE IF NOT EXISTS `attributes` (
   `timestamp` int(11) NOT NULL DEFAULT 0,
   `distribution` tinyint(4) NOT NULL DEFAULT 0,
   `sharing_group_id` int(11) NOT NULL,
-  `comment` text COLLATE utf8_bin NOT NULL,
+  `comment` text COLLATE utf8_bin,
   `deleted` tinyint(1) NOT NULL DEFAULT 0,
+  `disable_correlation` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   INDEX `event_id` (`event_id`),
+  INDEX `object_id` (`object_id`),
+  INDEX `object_relation` (`object_relation`),
   INDEX `value1` (`value1`(255)),
   INDEX `value2` (`value2`(255)),
+  INDEX `type` (`type`),
+  INDEX `category` (`category`),
   INDEX `sharing_group_id` (`sharing_group_id`),
   UNIQUE INDEX `uuid` (`uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- -------------------------------------------------------
+
+--
+-- Table structure for table `attribute_tags`
+--
+
+CREATE TABLE IF NOT EXISTS `attribute_tags` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `attribute_id` int(11) NOT NULL,
+  `event_id` int(11) NOT NULL,
+  `tag_id` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `attribute_id` (`attribute_id`),
+  INDEX `event_id` (`event_id`),
+  INDEX `tag_id` (`tag_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -86,6 +110,7 @@ CREATE TABLE IF NOT EXISTS `correlations` (
   `date` date NOT NULL,
   `info` text COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`),
+  INDEX `value` (`value`(255)),
   INDEX `event_id` (`event_id`),
   INDEX `1_event_id` (`1_event_id`),
   INDEX `attribute_id` (`attribute_id`),
@@ -110,7 +135,7 @@ CREATE TABLE IF NOT EXISTS `events` (
   `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   `published` tinyint(1) NOT NULL DEFAULT 0,
   `analysis` tinyint(4) NOT NULL,
-  `attribute_count` int(11) unsigned DEFAULT NULL,
+  `attribute_count` int(11) unsigned DEFAULT 0,
   `orgc_id` int(11) NOT NULL,
   `timestamp` int(11) NOT NULL DEFAULT 0,
   `distribution` tinyint(4) NOT NULL DEFAULT 0,
@@ -119,13 +144,42 @@ CREATE TABLE IF NOT EXISTS `events` (
   `locked` tinyint(1) NOT NULL DEFAULT 0,
   `threat_level_id` int(11) NOT NULL,
   `publish_timestamp` int(11) NOT NULL DEFAULT 0,
+  `disable_correlation` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `uuid` (`uuid`),
-  FULLTEXT INDEX `info` (`info`),
+  INDEX `info` (`info`(255)),
   INDEX `sharing_group_id` (`sharing_group_id`),
   INDEX `org_id` (`org_id`),
   INDEX `orgc_id` (`orgc_id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+CREATE TABLE IF NOT EXISTS `event_blacklists` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+  `created` datetime NOT NULL,
+  `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `event_uuid` (`event_uuid`),
+  INDEX `event_orgc` (`event_orgc`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- -------------------------------------------------------
+
+--
+-- Table structure for `event_blacklists`
+--
+
+CREATE TABLE IF NOT EXISTS `event_blacklists` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+  `created` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- -------------------------------------------------------
 
@@ -188,13 +242,111 @@ CREATE TABLE IF NOT EXISTS `feeds` (
   `provider` varchar(255) COLLATE utf8_bin NOT NULL,
   `url` varchar(255) COLLATE utf8_bin NOT NULL,
   `rules` text COLLATE utf8_bin DEFAULT NULL,
-  `enabled` BOOLEAN NOT NULL,
-  `distribution` tinyint(4) NOT NULL,
+  `enabled` tinyint(1) DEFAULT 0,
+  `distribution` tinyint(4) NOT NULL DEFAULT 0,
   `sharing_group_id` int(11) NOT NULL DEFAULT 0,
   `tag_id` int(11) NOT NULL DEFAULT 0,
-  `default` tinyint(1) NOT NULL,
-  PRIMARY KEY (`id`)
+  `default` tinyint(1) DEFAULT 0,
+  `source_format` varchar(255) COLLATE utf8_bin DEFAULT 'misp',
+  `fixed_event` tinyint(1) NOT NULL DEFAULT 0,
+  `delta_merge` tinyint(1) NOT NULL DEFAULT 0,
+  `event_id` int(11) NOT NULL DEFAULT 0,
+  `publish` tinyint(1) NOT NULL DEFAULT 0,
+  `override_ids` tinyint(1) NOT NULL DEFAULT 0,
+  `settings` text,
+  `input_source` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT "network",
+  `delete_local_file` tinyint(1) DEFAULT 0,
+  `lookup_visible` tinyint(1) DEFAULT 0,
+  PRIMARY KEY (`id`),
+  INDEX `input_source` (`input_source`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+
+-- -------------------------------------------------------
+
+--
+-- Table structure for `galaxies`
+--
+
+CREATE TABLE IF NOT EXISTS galaxies (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `uuid` varchar(255) COLLATE utf8_bin NOT NULL,
+  `name` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
+  `type` varchar(255) COLLATE utf8_bin NOT NULL,
+  `description` text COLLATE utf8_bin NOT NULL,
+  `version` varchar(255) COLLATE utf8_bin NOT NULL,
+  `icon` VARCHAR(255) COLLATE utf8_bin NOT NULL DEFAULT '',
+  PRIMARY KEY (id),
+  INDEX `name` (`name`),
+  INDEX `uuid` (`uuid`),
+  INDEX `type` (`type`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- -------------------------------------------------------
+
+--
+-- Table structure for `galaxy_clusters`
+--
+
+
+CREATE TABLE IF NOT EXISTS galaxy_clusters (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `uuid` varchar(255) COLLATE utf8_bin NOT NULL,
+  `type` varchar(255) COLLATE utf8_bin NOT NULL,
+  `value` text COLLATE utf8_bin NOT NULL,
+  `tag_name` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
+  `description` text COLLATE utf8_bin NOT NULL,
+  `galaxy_id` int(11) NOT NULL,
+  `source` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
+  `authors` text COLLATE utf8_bin NOT NULL,
+  `version` int(11) DEFAULT 0,
+  PRIMARY KEY (id),
+  INDEX `value` (`value`(255)),
+  INDEX `uuid` (`uuid`),
+  INDEX `galaxy_id` (`galaxy_id`),
+  INDEX `version` (`version`),
+  INDEX `tag_name` (`tag_name`),
+  INDEX `type` (`type`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- -------------------------------------------------------
+
+--
+-- Table structure for `galaxy_elements`
+--
+
+CREATE TABLE IF NOT EXISTS galaxy_elements (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `galaxy_cluster_id` int(11) NOT NULL,
+  `key` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
+  `value` text COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `key` (`key`),
+  INDEX `value` (`value`(255)),
+  INDEX `galaxy_cluster_id` (`galaxy_cluster_id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- -------------------------------------------------------
+
+--
+-- Table structure for `galaxy_reference`
+--
+
+CREATE TABLE IF NOT EXISTS galaxy_reference (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `galaxy_cluster_id` int(11) NOT NULL,
+  `referenced_galaxy_cluster_id` int(11) NOT NULL,
+  `referenced_galaxy_cluster_uuid` varchar(255) COLLATE utf8_bin NOT NULL,
+  `referenced_galaxy_cluster_type` text COLLATE utf8_bin NOT NULL,
+  `referenced_galaxy_cluster_value` text COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (id),
+  INDEX `galaxy_cluster_id` (`galaxy_cluster_id`),
+  INDEX `referenced_galaxy_cluster_id` (`referenced_galaxy_cluster_id`),
+  INDEX `referenced_galaxy_cluster_value` (`referenced_galaxy_cluster_value`(255)),
+  INDEX `referenced_galaxy_cluster_type` (`referenced_galaxy_cluster_type`(255))
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
 
@@ -228,14 +380,15 @@ CREATE TABLE IF NOT EXISTS `logs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `title` text CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
   `created` datetime NOT NULL,
-  `model` varchar(20) COLLATE utf8_bin NOT NULL,
+  `model` varchar(80) COLLATE utf8_bin NOT NULL,
   `model_id` int(11) NOT NULL,
   `action` varchar(20) COLLATE utf8_bin NOT NULL,
   `user_id` int(11) NOT NULL,
-  `change` text CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
-  `email` varchar(255) COLLATE utf8_bin NOT NULL,
-  `org` varchar(255) COLLATE utf8_bin NOT NULL,
-  `description` text CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
+  `change` text COLLATE utf8_bin,
+  `email` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT "",
+  `org` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT "",
+  `description` text CHARACTER SET utf8 COLLATE utf8_bin,
+  `ip` varchar(45) COLLATE utf8_bin NOT NULL DEFAULT "",
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
@@ -252,6 +405,146 @@ CREATE TABLE IF NOT EXISTS `news` (
   `user_id` int(11) NOT NULL,
   `date_created` int(11) unsigned NOT NULL,
   PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- -------------------------------------------------------
+
+--
+-- Table structure for `org_blacklists`
+--
+
+CREATE TABLE IF NOT EXISTS `org_blacklists` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `org_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+  `created` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  `org_name` varchar(255) COLLATE utf8_bin NOT NULL,
+  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `objects`
+--
+
+CREATE TABLE IF NOT EXISTS objects (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `meta-category` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `description` text CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `template_uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+  `template_version` int(11) NOT NULL,
+  `event_id` int(11) NOT NULL,
+  `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+  `timestamp` int(11) NOT NULL DEFAULT 0,
+  `distribution` tinyint(4) NOT NULL DEFAULT 0,
+  `sharing_group_id` int(11),
+  `comment` text COLLATE utf8_bin NOT NULL,
+  `deleted` tinyint(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  INDEX `name` (`name`),
+  INDEX `template_uuid` (`template_uuid`),
+  INDEX `template_version` (`template_version`),
+  INDEX `meta-category` (`meta-category`),
+  INDEX `event_id` (`event_id`),
+  INDEX `uuid` (`uuid`),
+  INDEX `timestamp` (`timestamp`),
+  INDEX `distribution` (`distribution`),
+  INDEX `sharing_group_id` (`sharing_group_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `object_object_references`
+--
+
+CREATE TABLE IF NOT EXISTS object_references (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+  `timestamp` int(11) NOT NULL DEFAULT 0,
+  `object_id` int(11) NOT NULL,
+  `event_id` int(11) NOT NULL,
+  `source_uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+  `referenced_uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+  `referenced_id` int(11) NOT NULL,
+  `referenced_type` int(11) NOT NULL DEFAULT 0,
+  `relationship_type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `comment` text COLLATE utf8_bin NOT NULL,
+  `deleted` TINYINT NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  INDEX `source_uuid` (`source_uuid`),
+  INDEX `referenced_uuid` (`referenced_uuid`),
+  INDEX `timestamp` (`timestamp`),
+  INDEX `object_id` (`object_id`),
+  INDEX `referenced_id` (`referenced_id`),
+  INDEX `relationship_type` (`relationship_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `object_relationships`
+--
+
+CREATE TABLE IF NOT EXISTS object_relationships (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `version` int(11) NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `description` text COLLATE utf8_bin NOT NULL,
+  `format` text COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (id),
+  INDEX `name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `object_templates`
+--
+
+CREATE TABLE IF NOT EXISTS object_templates (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `org_id` int(11) NOT NULL,
+  `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `meta-category` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `description` text COLLATE utf8_bin,
+  `version` int(11) NOT NULL,
+  `requirements` text COLLATE utf8_bin,
+  `fixed` tinyint(1) NOT NULL DEFAULT 0,
+  `active` tinyint(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  INDEX `user_id` (`user_id`),
+  INDEX `org_id` (`org_id`),
+  INDEX `uuid` (`uuid`),
+  INDEX `name` (`name`),
+  INDEX `meta-category` (`meta-category`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `object_template_elements`
+--
+
+CREATE TABLE IF NOT EXISTS object_template_elements (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `object_template_id` int(11) NOT NULL,
+  `object_relation` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin,
+  `type` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin,
+  `ui-priority` int(11) NOT NULL,
+  `categories` text COLLATE utf8_bin,
+  `sane_default` text COLLATE utf8_bin,
+  `values_list` text COLLATE utf8_bin,
+  `description` text COLLATE utf8_bin,
+  `disable_correlation` tinyint(1) NOT NULL DEFAULT 0,
+  `multiple` tinyint(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  INDEX `object_relation` (`object_relation`),
+  INDEX `type` (`type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -273,12 +566,23 @@ CREATE TABLE `organisations` (
   `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
   `contacts` text CHARACTER SET utf8 COLLATE utf8_unicode_ci,
   `local` tinyint(1) NOT NULL DEFAULT 0,
+  `restricted_to_domain` text COLLATE utf8_bin,
   `landingpage` text CHARACTER SET utf8 COLLATE utf8_unicode_ci,
   PRIMARY KEY (`id`),
   INDEX `uuid` (`uuid`),
-  INDEX `name` (`name`)
+  INDEX `name` (`name`(255))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
+CREATE TABLE IF NOT EXISTS `org_blacklists` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `org_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+  `created` datetime NOT NULL,
+  `org_name` varchar(255) COLLATE utf8_bin NOT NULL,
+  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  PRIMARY KEY (`id`),
+  INDEX `org_uuid` (`org_uuid`),
+  INDEX `org_name` (`org_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 -- --------------------------------------------------------
 
 --
@@ -339,6 +643,9 @@ CREATE TABLE IF NOT EXISTS `roles` (
   `perm_template` tinyint(1) NOT NULL DEFAULT 0,
   `perm_sharing_group` tinyint(1) NOT NULL DEFAULT 0,
   `perm_tag_editor` tinyint(1) NOT NULL DEFAULT 0,
+  `perm_sighting` tinyint(1) NOT NULL DEFAULT 0,
+  `perm_object_template` tinyint(1) NOT NULL DEFAULT 0,
+  `default_role` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
@@ -360,10 +667,14 @@ CREATE TABLE IF NOT EXISTS `servers` (
   `lastpushedid` int(11) DEFAULT NULL,
   `organization` varchar(10) COLLATE utf8_bin DEFAULT NULL,
   `remote_org_id` int(11) NOT NULL,
+  `publish_without_email` tinyint(1) NOT NULL DEFAULT 0,
+  `unpublish_event` tinyint(1) NOT NULL DEFAULT 0,
   `self_signed` tinyint(1) NOT NULL,
   `pull_rules` text COLLATE utf8_bin NOT NULL,
   `push_rules` text COLLATE utf8_bin NOT NULL,
   `cert_file` varchar(255) COLLATE utf8_bin DEFAULT NULL,
+  `client_cert_file` varchar(255) COLLATE utf8_bin DEFAULT NULL,
+  `internal` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   INDEX `org_id` (`org_id`),
   INDEX `remote_org_id` (`remote_org_id`)
@@ -372,12 +683,12 @@ CREATE TABLE IF NOT EXISTS `servers` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `shadow_attributes`
+-- Table structure for table ``)ributes`
 --
 
 CREATE TABLE IF NOT EXISTS `shadow_attributes` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `old_id` int(11) NOT NULL,
+  `old_id` int(11) DEFAULT 0,
   `event_id` int(11) NOT NULL,
   `type` varchar(100) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `category` varchar(255) COLLATE utf8_bin NOT NULL,
@@ -392,7 +703,8 @@ CREATE TABLE IF NOT EXISTS `shadow_attributes` (
   `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   `deleted` tinyint(1) NOT NULL DEFAULT 0,
   `timestamp` int(11) NOT NULL DEFAULT 0,
-  `proposal_to_delete` BOOLEAN NOT NULL,
+  `proposal_to_delete` BOOLEAN NOT NULL DEFAULT 0,
+  `disable_correlation` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   INDEX `event_id` (`event_id`),
   INDEX `event_uuid` (`event_uuid`),
@@ -400,7 +712,9 @@ CREATE TABLE IF NOT EXISTS `shadow_attributes` (
   INDEX `uuid` (`uuid`),
   INDEX `old_id` (`old_id`),
   INDEX `value1` (`value1`(255)),
-  INDEX `value2` (`value2`(255))
+  INDEX `value2` (`value2`(255)),
+  INDEX `type` (`type`),
+  INDEX `category` (`category`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
@@ -427,7 +741,7 @@ CREATE TABLE IF NOT EXISTS `shadow_attribute_correlations` (
   INDEX `attribute_id` (`attribute_id`),
   INDEX `a_sharing_group_id` (`a_sharing_group_id`),
   INDEX `event_id` (`event_id`),
-  INDEX `1_event_id` (`event_id`),
+  INDEX `1_event_id` (`1_event_id`),
   INDEX `sharing_group_id` (`sharing_group_id`),
   INDEX `1_shadow_attribute_id` (`1_shadow_attribute_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -494,6 +808,30 @@ CREATE TABLE `sharing_groups` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table sightings
+--
+
+CREATE TABLE IF NOT EXISTS sightings (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `attribute_id` int(11) NOT NULL,
+  `event_id` int(11) NOT NULL,
+  `org_id` int(11) NOT NULL,
+  `date_sighting` bigint(20) NOT NULL,
+  `uuid` varchar(255) COLLATE utf8_bin DEFAULT "",
+  `source` varchar(255) COLLATE utf8_bin DEFAULT "",
+  `type` int(11) DEFAULT 0,
+  PRIMARY KEY (id),
+  INDEX `attribute_id` (`attribute_id`),
+  INDEX `event_id` (`event_id`),
+  INDEX `org_id` (`org_id`),
+  INDEX `uuid` (`uuid`),
+  INDEX `source` (`source`),
+  INDEX `type` (`type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `tags`
 --
 
@@ -503,7 +841,10 @@ CREATE TABLE IF NOT EXISTS `tags` (
   `colour` varchar(7) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `exportable` tinyint(1) NOT NULL,
   `org_id` tinyint(1) NOT NULL DEFAULT 0,
+  `user_id` tinyint(1) NOT NULL DEFAULT 0,
+  `hide_tag` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
+  INDEX `name` (`name`(255)),
   INDEX `org_id` (`org_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
@@ -552,6 +893,7 @@ CREATE TABLE IF NOT EXISTS `taxonomy_entries` (
   `taxonomy_predicate_id` int(11) NOT NULL,
   `value` text COLLATE utf8_bin NOT NULL,
   `expanded` text COLLATE utf8_bin,
+  `colour` varchar(7) CHARACTER SET utf8 COLLATE utf8_bin,
   PRIMARY KEY (`id`),
   INDEX `taxonomy_predicate_id` (`taxonomy_predicate_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
@@ -567,6 +909,7 @@ CREATE TABLE IF NOT EXISTS `taxonomy_predicates` (
   `taxonomy_id` int(11) NOT NULL,
   `value` text COLLATE utf8_bin NOT NULL,
   `expanded` text COLLATE utf8_bin,
+  `colour` varchar(7) CHARACTER SET utf8 COLLATE utf8_bin,
   PRIMARY KEY (`id`),
   INDEX `taxonomy_id` (`taxonomy_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
@@ -711,7 +1054,7 @@ CREATE TABLE IF NOT EXISTS `threat_levels` (
 
 CREATE TABLE IF NOT EXISTS `users` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `password` varchar(40) COLLATE utf8_bin NOT NULL,
+  `password` varchar(255) COLLATE utf8_bin NOT NULL,
   `org_id` int(11) NOT NULL,
   `server_id` int(11) NOT NULL DEFAULT 0,
   `email` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
@@ -731,6 +1074,8 @@ CREATE TABLE IF NOT EXISTS `users` (
   `current_login` int(11) DEFAULT 0,
   `last_login` int(11) DEFAULT 0,
   `force_logout` tinyint(1) NOT NULL DEFAULT 0,
+  `date_created` bigint(20),
+  `date_modified` bigint(20),
   PRIMARY KEY (`id`),
   INDEX `email` (`email`),
   INDEX `org_id` (`org_id`),
@@ -764,7 +1109,8 @@ CREATE TABLE IF NOT EXISTS `warninglist_entries` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `value` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `warninglist_id` int(11) NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  INDEX `warninglist_id` (`warninglist_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -799,7 +1145,7 @@ CREATE TABLE IF NOT EXISTS `whitelist` (
 --
 
 INSERT INTO `admin_settings` (`id`, `setting`, `value`) VALUES
-(1, 'db_version', '2.4.49');
+(1, 'db_version', '2.4.86');
 
 INSERT INTO `feeds` (`id`, `provider`, `name`, `url`, `distribution`, `default`, `enabled`) VALUES
 (1, 'CIRCL', 'CIRCL OSINT Feed', 'https://www.circl.lu/doc/misp/feed-osint', 3, 1, 0),
@@ -850,26 +1196,23 @@ INSERT INTO `feeds` (`id`, `provider`, `name`, `url`, `distribution`, `default`,
 -- 7. Read Only - read
 --
 
-INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`)
-VALUES (1, 'admin', NOW(), NOW(), 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`, `perm_sighting`, `perm_object_template`, `default_role`)
+VALUES (1, 'admin', NOW(), NOW(), 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0);
 
-INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`)
-VALUES (2, 'Org Admin', NOW(), NOW(), 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1);
+INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`, `perm_sighting`, `perm_object_template`, `default_role`)
+VALUES (2, 'Org Admin', NOW(), NOW(), 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0);
 
-INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`)
-VALUES (3, 'User', NOW(), NOW(), 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`, `perm_sighting`, `perm_object_template`, `default_role`)
+VALUES (3, 'User', NOW(), NOW(), 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1);
 
-INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`)
-VALUES (4, 'Publisher', NOW(), NOW(), 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1);
+INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`, `perm_sighting`, `perm_object_template`, `default_role`)
+VALUES (4, 'Publisher', NOW(), NOW(), 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0);
 
-INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`)
-VALUES (5, 'Sync user', NOW(), NOW(), 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1);
+INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`, `perm_sighting`, `perm_object_template`, `default_role`)
+VALUES (5, 'Sync user', NOW(), NOW(), 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0);
 
-INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`)
-VALUES (6, 'Automation user', NOW(), NOW(), 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1);
-
-INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`)
-VALUES (7, 'Read Only', NOW(), NOW(), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `roles` (`id`, `name`, `created`, `modified`, `perm_add`, `perm_modify`, `perm_modify_org`, `perm_publish`, `perm_sync`, `perm_admin`, `perm_audit`, `perm_full`, `perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`, `perm_delegate`, `perm_sighting`, `perm_object_template`, `default_role`)
+VALUES (6, 'Read Only', NOW(), NOW(), 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -994,3 +1337,6 @@ INSERT INTO `template_element_texts` (`id`, `name`, `template_element_id`, `text
 (11, 'Persistence mechanism', 41, 'The following fields allow you to describe the persistence mechanism used by the malware'),
 (12, 'Indicators', 45, 'Just paste your list of indicators based on type into the appropriate field. All of the fields are optional, so inputting a list of IP addresses into the Network indicator field for example is sufficient to complete this template.');
 
+INSERT INTO `org_blacklists` (`org_uuid`, `created`, `org_name`, `comment`) VALUES
+('58d38339-7b24-4386-b4b4-4c0f950d210f', NOW(), 'Setec Astrononomy', 'default example'),
+('58d38326-eda8-443a-9fa8-4e12950d210f', NOW(), 'Acme Finance', 'default example');

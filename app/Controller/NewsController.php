@@ -4,10 +4,6 @@ App::uses('AppController', 'Controller');
 class NewsController extends AppController {
 	public $components = array('Session', 'RequestHandler');
 
-	public function beforeFilter() {
-		parent::beforeFilter();
-	}
-
 	public $paginate = array(
 			'limit' => 5,
 			'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
@@ -17,7 +13,6 @@ class NewsController extends AppController {
 	);
 
 	public function index() {
-		$this->News->bindModel(array('belongsTo' => array('User' => array('className' => 'User'))));
 		$this->paginate['contain'] = array('User' => array('fields' => array('User.email')));
 		$newsItems = $this->paginate();
 		$this->loadModel('User');
@@ -26,9 +21,9 @@ class NewsController extends AppController {
 				'conditions' => array('User.id' => $this->Auth->user('id')),
 				'fields' => array('User.newsread')
 		));
-		foreach ($newsItems as &$item) {
-			if ($item['News']['date_created'] > $currentUser['User']['newsread']) $item['News']['new'] = true;
-			else $item['News']['new'] = false;
+		foreach ($newsItems as $key => $item) {
+			if ($item['News']['date_created'] > $currentUser['User']['newsread']) $newsItems[$key]['News']['new'] = true;
+			else $newsItems[$key]['News']['new'] = false;
 		}
 		$this->User->id = $this->Auth->user('id');
 		$this->User->saveField('newsread', time());

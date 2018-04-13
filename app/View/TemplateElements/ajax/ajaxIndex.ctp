@@ -1,5 +1,5 @@
 <div id="ajaxTemplateElementsIndex">
-	<h2>Template Elements</h2>
+	<h2><?php echo __('Template Elements');?></h2>
 	<ul <?php if ($mayModify): ?> id="sortable" <?php endif; ?> style="list-style:none; margin:0px;">
 				<?php
 				foreach ($elements as $k => $element):
@@ -8,12 +8,12 @@
 			?>
 	</ul>
 	<?php if ($mayModify): ?>
-	<div id="AddTemplateElementDiv" class="addTemplateElement useCursorPointer" onClick="templateAddElementClicked(<?php echo $id; ?>);">+</div>
+	<div id="AddTemplateElementDiv" role="button" tabindex="0" aria-label="<?php echo __('Add a new template element');?>" title="<?php echo __('Add a new template element');?>" class="addTemplateElement useCursorPointer" onClick="templateAddElementClicked(<?php echo $id; ?>);">+</div>
 	<?php endif; ?>
 </div>
 <script type="text/javascript">
 $(function() {
-  //Return a helper with preserved width of cells
+	//Return a helper with preserved width of cells
 	var fixHelper = function(e, ui) {
 		ui.children().each(function() {
 			$(this).width($(this).width());

@@ -1,5 +1,5 @@
 #@IgnoreInspection BashAddShebang
-#/!bin/sh
+#!/bin/sh
 ## $Id: misp-backup.sh 07.04.2016 $
 ##
 ## script to backup MISP on debian/ubuntu 14.04.1
@@ -54,7 +54,10 @@ fi
 # Fill in any missing values with defaults
 
 # MISP path
-MISPPath=$(locate MISP/app/webroot/index.php|sed 's/\/app\/webroot\/index\.php//')
+MISPPath=${MISPPath:-$(locate MISP/app/webroot/index.php|sed 's/\/app\/webroot\/index\.php//')}
+# Output
+OutputFileName=${OutputFileName:-MISP-Backup}
+OutputDirName=${OutputDirName:-/tmp}
 # database.php
 MySQLUUser=$(grep -o -P "(?<='login' => ').*(?=')" $MISPPath/app/Config/database.php)
 MySQLUPass=$(grep -o -P "(?<='password' => ').*(?=')" $MISPPath/app/Config/database.php)
@@ -71,16 +74,26 @@ GnuPGEmail=$(sed -n -e '/GnuPG/,$p' $MISPPath/app/Config/config.php|grep -o -P "
 GnuPGHomeDir=$(grep -o -P "(?<='homedir' => ').*(?=')" $MISPPath/app/Config/config.php)
 GnuPGPass=$(grep -o -P "(?<='password' => ').*(?=')" $MISPPath/app/Config/config.php)
 # Create backup files
-TmpDir="$(mktemp -d)"
+TmpDir="$(mktemp --tmpdir=$OutputDirName -d)"
 cp $GnuPGHomeDir/* $TmpDir/
 echo "copy of org images and other custom images"
 cp -r $MISPPath/app/webroot/img/orgs $TmpDir/
 cp -r $MISPPath/app/webroot/img/custom $TmpDir/
 cp -r $MISPPath/app/files $TmpDir
+#  MISP Config files
+mkdir -p $TmpDir/Config
+cp $MISPPath/app/Config/bootstrap.php $TmpDir/Config
+cp $MISPPath/app/Config/config.php $TmpDir/Config
+cp $MISPPath/app/Config/core.php $TmpDir/Config
+cp $MISPPath/app/Config/database.php $TmpDir/Config
 
 echo "MySQL Dump"
+MySQLRUser=${MySQLRUser:-$MySQLUUser}
+MySQLRPass=${MySQLRPass:-$MySQLUPass}
 mysqldump --opt -u $MySQLRUser -p$MySQLRPass $MISPDB > $TmpDir/MISPbackupfile.sql
 # Create compressed archive
-tar -zcvf $OutputDirName/$OutputFileName-$(date "+%b_%d_%Y_%H_%M_%S").tar.gz $TmpDir
+cd $TmpDir
+tar -zcf $OutputDirName/$OutputFileName-$(date "+%Y%m%d_%H%M%S").tar.gz *
+cd -
 rm -rf $TmpDir
 echo 'MISP Backup Complete!!!'

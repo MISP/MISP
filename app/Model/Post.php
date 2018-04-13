@@ -3,10 +3,6 @@
 App::uses('AppModel', 'Model');
 App::uses('CakeEmail', 'Network/Email');
 
-/**
- * Post Model
- *
-*/
 class Post extends AppModel {
 	public $actsAs = array(
 			'Containable',
@@ -21,7 +17,7 @@ class Post extends AppModel {
 			'Thread',
 			'User'
 	);
-	
+
 	public $validate = array(
 			'contents' => array(
 					'rule' => array('valueNotEmpty'),
@@ -120,12 +116,12 @@ class Post extends AppModel {
 		$bodyDetail .= $message . "\n";
 		$tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
 		$subject = "[" . Configure::read('MISP.org') . " MISP] New post in discussion " . $post['Post']['thread_id'] . " - ".$tplColorString;
-		foreach ($orgMembers as &$recipient) {
+		foreach ($orgMembers as $recipient) {
 			$this->User->sendEmail($recipient, $bodyDetail, $body, $subject);
 		}
 	}
 
-	public function findPageNr($id, $context = 'thread', &$post_id = false) {
+	public function findPageNr($id, $context = 'thread', $post_id = false) {
 		// find the current post and its position in the thread
 		if ($context == 'event') $conditions = array('Thread.event_id' => $id);
 		else $conditions = array('Thread.id' => $id);

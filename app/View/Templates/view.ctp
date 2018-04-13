@@ -38,8 +38,8 @@
 		<dt><?php echo __('Shareable'); ?></dt>
 		<dd>
 			<?php
-				if ($template['Template']['share']) echo 'Yes';
-				else echo 'No';
+				if ($template['Template']['share']) echo __('Yes');
+				else echo __('No');
 			?>
 		</dd>
 	</dl>

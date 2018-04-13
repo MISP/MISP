@@ -1,8 +1,11 @@
 <?php
 App::uses('AppModel', 'Model');
 class OrgBlacklist extends AppModel{
+
 	public $useTable = 'org_blacklists';
+
 	public $recursive = -1;
+
 	public $actsAs = array(
 			'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
 					'userModel' => 'User',
@@ -19,8 +22,8 @@ class OrgBlacklist extends AppModel{
 							'message' => 'Organisation already blacklisted.'
 					),
 					'uuid' => array(
-							'rule' => array('uuid'),
-							'message' => 'Please provide a valid UUID'
+						'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
+						'message' => 'Please provide a valid UUID'
 					),
 			)
 	);

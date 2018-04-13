@@ -2,12 +2,10 @@
 
 App::uses('AppModel', 'Model');
 
-/**
- * TemplateElement Model
- *
-*/
 class TemplateElement extends AppModel {
+
 	public $actsAs = array('Containable');
+
 	public $hasMany = array(
 		'TemplateElementAttribute' => array(
 			'dependent' => true
@@ -19,6 +17,7 @@ class TemplateElement extends AppModel {
 			'dependent' => true
 		)
 	);
+
 	public $belongsTo = array('Template');
 
 	public function lastPosition($template_id) {
@@ -26,8 +25,11 @@ class TemplateElement extends AppModel {
 			'fields' => array('MAX(position) AS pos', 'id', 'template_id'),
 			'conditions' => array('template_id' => $template_id),
 			'order' => array('id'),
-			'group' => array('id')
+			'group' => array('id', 'template_id')
 		));
+		if (empty($result)) {
+			return 0;
+		}
 		return $result[0]['pos'];
 	}
 }

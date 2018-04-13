@@ -18,8 +18,7 @@ Uncomment the following line to enable SSO authorization
 'auth'=>array('ShibbAuth.ApacheShibb'),
 ```
 
-And configure it. apacheEnv ans ssoAuth are parametert that come by default which values should not be changed unless
-it is explicitly needed. MailTag, OrgTag and GroupTag are the string that represent the key for the values needed by the plugin.
+And configure it. MailTag, OrgTag and GroupTag are the string that represent the key for the values needed by the plugin.
 For example if you are using ADFS OrgTag will be ADFS_FEDERATION, GroupTag will be ADFS_GROUP, etc. meaning the key for the values needed.
 DefaultRoleId and DefaultOrg are values that come by default just in case they are not defined or obtained from the environment variables.
 The GroupRoleMatching is an array that allows the definition and correlation between groups and roles in MISP, being them updated
@@ -30,21 +29,32 @@ in the list given by apache.
 ```php
 'ApacheShibbAuth' =>                      // Configuration for shibboleth authentication
     array(
-   	     'apacheEnv' => 'REMOTE_USER',        // If proxy variable = HTTP_REMOTE_USER
-         'ssoAuth' => 'AUTH_TYPE',
          'MailTag' => 'EMAIL_TAG',
          'OrgTag' => 'FEDERATION_TAG',
-	     'GroupTag' => 'GROUP_TAG',
-	     'GroupSeparator' => ';',
+	 'GroupTag' => 'GROUP_TAG',
+	 'GroupSeparator' => ';',
          'GroupRoleMatching' => array(                // 3:User, 1:admin. May be good to set "1" for the first user
                'group_three' => '3',
-	           'group_two' => 2,
-	           'group_one' => 1,
+	       'group_two' => 2,
+	       'group_one' => 1,
           ),
-         'DefaultRoleId' => 3,
          'DefaultOrg' => 'DEFAULT_ORG',
     ),
 ```
+If used with Apache as webserver it might be useful to make a distinction to filter out API/Syncs from SSO login. It can be added to the vhost as follows:
 
+```Apache
+  <If "-T reqenv('HTTP_AUTHORIZATION')">
+    Require all granted
+    AuthType None
+  </If>
+  <Else>
+    Require valid-user
+    AuthType shibboleth
+    ShibRequestSetting requiresession On
+    ShibRequestSetting shibexportassertion Off
+    ShibUseHeaders On
+  </Else>
+```
 
 

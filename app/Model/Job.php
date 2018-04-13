@@ -1,10 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
-/**
- * Job Model
- *
- * @property Job $Job
-*/
+
 class Job extends AppModel {
 
 	public $belongsTo = array(
@@ -52,6 +48,11 @@ class Job extends AppModel {
 		if ($type === 'suricata' || $type === 'snort') {
 			$extra = $type;
 			$type = 'nids';
+			$extra2 = isset($user['nids_sid']) ? $user['nids_sid'] : 0;
+		}
+		if ($type === 'bro') {
+			$extra = $type;
+			$type = 'bro';
 			$extra2 = isset($user['nids_sid']) ? $user['nids_sid'] : 0;
 		}
 		if ($type === 'rpz') $extra = $type;

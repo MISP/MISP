@@ -4,10 +4,6 @@ App::uses('AppController', 'Controller');
 class FavouriteTagsController extends AppController {
 	public $components = array('Session', 'RequestHandler');
 
-	public function beforeFilter() {
-		parent::beforeFilter();
-	}
-
 	public $paginate = array(
 			'limit' => 60,
 			'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
@@ -33,9 +29,9 @@ class FavouriteTagsController extends AppController {
 			if ($this->FavouriteTag->deleteAll($data, false)) $success = true;
 		}
 		if ($success) {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message . ' was successful.')), 'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message . ' was successful.')), 'status'=>200, 'type' => 'json'));
 		} else {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'fails' => $message . ' has failed.')), 'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'fails' => $message . ' has failed.')), 'status'=>200, 'type' => 'json'));
 		}
 	}
 

@@ -9,7 +9,7 @@
 		?>
 		<dt><?php
 			if ($f != 'active') echo ucfirst($f);
-			else echo 'Selectable';
+			else echo __('Selectable');
 		?></dt>
 		<dd>
 			<?php
@@ -20,14 +20,14 @@
 		<?php
 			endforeach;
 		?>
-		<dt>Created by</dt>
+		<dt><?php echo __('Created by');?></dt>
 		<dd><a href="/organisations/view/<?php echo $sg['Organisation']['id']; ?>"><?php echo h($sg['Organisation']['name']); ?></a></dd>
-		<?php 
+		<?php
 			if ($sg['SharingGroup']['sync_user_id']):
 		?>
-			<dt>Synced by</dt>
+			<dt><?php echo __('Synced by');?></dt>
 			<dd><a href="/organisations/view/<?php echo $sg['Organisation']['id']; ?>"><?php echo h($sg['Organisation']['name']); ?></a></dd>
-		<?php 
+		<?php
 			endif;
 		?>
 	</dl><br />
@@ -36,12 +36,12 @@
 		if (isset($sg['SharingGroupOrg'])):
 	?>
 		<div class="span6">
-		<b>Organisations</b>
+		<b><?php echo __('Organisations');?></b>
 			<table class="table table-striped table-hover table-condensed">
 				<tr>
-					<th>Name</th>
-					<th>Local</th>
-					<th>Extend</th>
+					<th><?php echo __('Name');?></th>
+					<th><?php echo __('Local');?></th>
+					<th><?php echo __('Extend');?></th>
 				</tr>
 				<?php
 					foreach ($sg['SharingGroupOrg'] as $sgo):
@@ -64,9 +64,9 @@
 		<b>Instances</b>
 			<table class="table table-striped table-hover table-condensed">
 				<tr>
-					<th>Name</th>
-					<th>Url</th>
-					<th>All orgs</th>
+					<th><?php echo __('Name');?></th>
+					<th><?php echo __('Url');?></th>
+					<th><?php echo __('All orgs');?></th>
 				</tr>
 				<?php
 						foreach ($sg['SharingGroupServer'] as $sgs): ?>

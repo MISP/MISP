@@ -1,4 +1,5 @@
 import sys, json, uuid, os, time, datetime, re
+from copy import deepcopy
 from misp2cybox import *
 from misp2ciq import *
 from dateutil.tz import tzutc
@@ -19,105 +20,45 @@ from stix.common.confidence import Confidence
 from stix.common.vocabs import IncidentStatus
 from cybox.utils import Namespace
 
+try:
+    from stix.utils import idgen
+except ImportError:
+    from mixbox import idgen
+
 namespace = ['https://github.com/MISP/MISP', 'MISP']
-
-NS_DICT = {
-	"http://cybox.mitre.org/common-2" : 'cyboxCommon',
-	"http://cybox.mitre.org/cybox-2" : 'cybox',
-	"http://cybox.mitre.org/default_vocabularies-2" : 'cyboxVocabs',
-	"http://cybox.mitre.org/objects#ASObject-1" : 'ASObj',
-	"http://cybox.mitre.org/objects#AddressObject-2" : 'AddressObj',
-	"http://cybox.mitre.org/objects#DomainNameObject-1" : 'DomainNameObj',
-	"http://cybox.mitre.org/objects#EmailMessageObject-2" : 'EmailMessageObj',
-	"http://cybox.mitre.org/objects#FileObject-2" : 'FileObj',
-	"http://cybox.mitre.org/objects#HTTPSessionObject-2" : 'HTTPSessionObj',
-	"http://cybox.mitre.org/objects#HostnameObject-1" : 'HostnameObj',
-	"http://cybox.mitre.org/objects#MutexObject-2" : 'MutexObj',
-	"http://cybox.mitre.org/objects#PipeObject-2" : 'PipeObj',
-	"http://cybox.mitre.org/objects#URIObject-2" : 'URIObj',
-	"http://cybox.mitre.org/objects#WinRegistryKeyObject-2" : 'WinRegistryKeyObj',
-	"http://data-marking.mitre.org/Marking-1" : 'marking',
-	"http://data-marking.mitre.org/extensions/MarkingStructure#TLP-1" : 'tlpMarking',
-	"http://stix.mitre.org/ExploitTarget-1" : 'et',
-	"http://stix.mitre.org/Incident-1" : 'incident',
-	"http://stix.mitre.org/Indicator-2" : 'indicator',
-	"http://stix.mitre.org/TTP-1" : 'ttp',
-	"http://stix.mitre.org/ThreatActor-1" : 'ta',
-	"http://stix.mitre.org/common-1" : 'stixCommon',
-	"http://stix.mitre.org/default_vocabularies-1" : 'stixVocabs',
-	"http://stix.mitre.org/extensions/Identity#CIQIdentity3.0-1" : 'stix-ciqidentity',
-	"http://stix.mitre.org/extensions/TestMechanism#Snort-1" : 'snortTM',
-	"http://stix.mitre.org/stix-1" : 'stix',
-	"http://www.w3.org/2001/XMLSchema-instance" : 'xsi',
-	"urn:oasis:names:tc:ciq:xal:3" : 'xal',
-	"urn:oasis:names:tc:ciq:xnl:3" : 'xnl',
-	"urn:oasis:names:tc:ciq:xpil:3" : 'xpil',
-}
-
-SCHEMALOC_DICT = {
-	'http://cybox.mitre.org/common-2': 'http://cybox.mitre.org/XMLSchema/common/2.1/cybox_common.xsd',
-	'http://cybox.mitre.org/cybox-2': 'http://cybox.mitre.org/XMLSchema/core/2.1/cybox_core.xsd',
-	'http://cybox.mitre.org/default_vocabularies-2': 'http://cybox.mitre.org/XMLSchema/default_vocabularies/2.1/cybox_default_vocabularies.xsd',
-	'http://cybox.mitre.org/objects#ASObject-1': 'http://cybox.mitre.org/XMLSchema/objects/AS/1.0/AS_Object.xsd',
-	'http://cybox.mitre.org/objects#AddressObject-2': 'http://cybox.mitre.org/XMLSchema/objects/Address/2.1/Address_Object.xsd',
-	'http://cybox.mitre.org/objects#DomainNameObject-1': 'http://cybox.mitre.org/XMLSchema/objects/Domain_Name/1.0/Domain_Name_Object.xsd',
-	'http://cybox.mitre.org/objects#EmailMessageObject-2': 'http://cybox.mitre.org/XMLSchema/objects/Email_Message/2.1/Email_Message_Object.xsd',
-	'http://cybox.mitre.org/objects#FileObject-2': 'http://cybox.mitre.org/XMLSchema/objects/File/2.1/File_Object.xsd',
-	'http://cybox.mitre.org/objects#HTTPSessionObject-2': 'http://cybox.mitre.org/XMLSchema/objects/HTTP_Session/2.1/HTTP_Session_Object.xsd',
-	'http://cybox.mitre.org/objects#HostnameObject-1': 'http://cybox.mitre.org/XMLSchema/objects/Hostname/1.0/Hostname_Object.xsd',
-	'http://cybox.mitre.org/objects#MutexObject-2': 'http://cybox.mitre.org/XMLSchema/objects/Mutex/2.1/Mutex_Object.xsd',
-	'http://cybox.mitre.org/objects#PipeObject-2': 'http://cybox.mitre.org/XMLSchema/objects/Pipe/2.1/Pipe_Object.xsd',
-	'http://cybox.mitre.org/objects#URIObject-2': 'http://cybox.mitre.org/XMLSchema/objects/URI/2.1/URI_Object.xsd',
-	'http://cybox.mitre.org/objects#WinRegistryKeyObject-2': 'http://cybox.mitre.org/XMLSchema/objects/Win_Registry_Key/2.1/Win_Registry_Key_Object.xsd',
-	'http://data-marking.mitre.org/Marking-1': 'http://stix.mitre.org/XMLSchema/data_marking/1.1.1/data_marking.xsd',
-	'http://data-marking.mitre.org/extensions/MarkingStructure#TLP-1': 'http://stix.mitre.org/XMLSchema/extensions/marking/tlp/1.1.1/tlp_marking.xsd',
-	'http://stix.mitre.org/ExploitTarget-1': 'http://stix.mitre.org/XMLSchema/exploit_target/1.1.1/exploit_target.xsd',
-	'http://stix.mitre.org/Incident-1': 'http://stix.mitre.org/XMLSchema/incident/1.1.1/incident.xsd',
-	'http://stix.mitre.org/Indicator-2': 'http://stix.mitre.org/XMLSchema/indicator/2.1.1/indicator.xsd',
-	'http://stix.mitre.org/TTP-1': 'http://stix.mitre.org/XMLSchema/ttp/1.1.1/ttp.xsd',
-	'http://stix.mitre.org/ThreatActor-1': 'http://stix.mitre.org/XMLSchema/threat_actor/1.1.1/threat_actor.xsd',
-	'http://stix.mitre.org/common-1': 'http://stix.mitre.org/XMLSchema/common/1.1.1/stix_common.xsd',
-	'http://stix.mitre.org/default_vocabularies-1': 'http://stix.mitre.org/XMLSchema/default_vocabularies/1.1.1/stix_default_vocabularies.xsd',
-	'http://stix.mitre.org/extensions/Identity#CIQIdentity3.0-1': 'http://stix.mitre.org/XMLSchema/extensions/identity/ciq_3.0/1.1.1/ciq_3.0_identity.xsd',
-	'http://stix.mitre.org/extensions/TestMechanism#Snort-1': 'http://stix.mitre.org/XMLSchema/extensions/test_mechanism/snort/1.1.1/snort_test_mechanism.xsd',
-	'http://stix.mitre.org/stix-1': 'http://stix.mitre.org/XMLSchema/core/1.1.1/stix_core.xsd',
-	'urn:oasis:names:tc:ciq:xal:3': 'http://stix.mitre.org/XMLSchema/external/oasis_ciq_3.0/xAL.xsd',
-	'urn:oasis:names:tc:ciq:xnl:3': 'http://stix.mitre.org/XMLSchema/external/oasis_ciq_3.0/xNL.xsd',
-	'urn:oasis:names:tc:ciq:xpil:3': 'http://stix.mitre.org/XMLSchema/external/oasis_ciq_3.0/xPIL.xsd',
-}
 
 # mappings
 status_mapping = {'0' : 'New', '1' : 'Open', '2' : 'Closed'}
-TLP_mapping = {'0' : 'AMBER', '1' : 'GREEN', '2' : 'GREEN', '3' : 'GREEN'}
+threat_level_mapping = {'1' : 'High', '2' : 'Medium', '3' : 'Low', '4' : 'Undefined'}
+TLP_mapping = {'0' : 'AMBER', '1' : 'GREEN', '2' : 'GREEN', '3' : 'GREEN', '4' : 'AMBER'}
+TLP_order = {'RED' : 4, 'AMBER' : 3, 'GREEN' : 2, 'WHITE' : 1}
 confidence_mapping = {False : 'None', True : 'High'}
 
 not_implemented_attributes = ['yara', 'pattern-in-traffic', 'pattern-in-memory']
 
-non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', 'target-email', 'target-machine', 'target-org', 'target-location', 'target-external', 'email-target', 'vulnerability', 'attachment']
+non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', 'target-email', 'target-machine', 'target-org', 'target-location', 'target-external', 'vulnerability', 'attachment']
 
 # Load the array from MISP. MISP will call this script with a parameter containing the temporary file it creates for the export (using a generated 12 char alphanumeric name)
 def loadEvent(args, pathname):
     try:
         filename = pathname + "/tmp/" + args[1]
-        #filename = "tmp/" + args[1]
         tempFile = open(filename, 'r')
         events = json.loads(tempFile.read())
         return events
     except:
-        print json.dumps({'success' : 0, 'message' : 'The temporary MISP export file could not be read'})
+        print(json.dumps({'success' : 0, 'message' : 'The temporary MISP export file could not be read'}))
         sys.exit(1)
 
 def saveFile(args, pathname, package):
     try:
         filename = pathname + "/tmp/" + args[1] + ".out"
-        #filename = "test.out"
         with open(filename, 'w') as f:
             if args[2] == 'json':
-                f.write(package.to_json())
+                f.write('{"package": ' + package.to_json() + "}")
             else:
-                f.write(package.to_xml(auto_namespace=False, ns_dict=NS_DICT, schemaloc_dict=SCHEMALOC_DICT))
+                f.write(package.to_xml(include_namespaces=False, include_schemalocs=False))
     except:
-        print json.dumps({'success' : 0, 'message' : 'The STIX file could not be written'})
+        print(json.dumps({'success' : 0, 'message' : 'The STIX file could not be written'}))
         sys.exit(1)
 
 #generate a package that will contain all of the event-packages
@@ -150,17 +91,26 @@ def generateEventPackage(event):
 def generateSTIXObjects(event):
     incident = Incident(id_ = namespace[1] + ":incident-" + event["Event"]["uuid"], title=event["Event"]["info"])
     setDates(incident, event["Event"]["date"], int(event["Event"]["publish_timestamp"]))
-    addJournalEntry(incident, "Event Threat Level: " + event["ThreatLevel"]["name"])
+    threat_level_name = threat_level_mapping.get(event["Event"]["threat_level_id"], None)
+    if threat_level_name:
+        addJournalEntry(incident, "Event Threat Level: " + threat_level_name)
     ttps = []
+    Tags = {}
+    eventTags = event["Event"].get("Tag", [])
+    if eventTags:
+        Tags['event'] = eventTags
     external_id = ExternalID(value=event["Event"]["id"], source="MISP Event")
     incident.add_external_id(external_id)
     incident_status_name = status_mapping.get(event["Event"]["analysis"], None)
     if incident_status_name is not None:
         incident.status = IncidentStatus(incident_status_name)
-    setTLP(incident, event["Event"]["distribution"])
-    setOrg(incident, event["Org"]["name"])
-    setTag(incident, event["Tag"])
-    resolveAttributes(incident, ttps, event["Attribute"])
+    setTLP(incident, event["Event"]["distribution"], eventTags)
+    setSrc(incident, event["Event"]["Org"]["name"])
+    orgc_name = event["Event"]["Orgc"]["name"]
+    setRep(incident, orgc_name)
+    setTag(incident, eventTags)
+    resolveAttributes(incident, ttps, event["Event"]["Attribute"], Tags, orgc_name)
+    resolveObjects(incident, ttps, event["Event"]["Object"], Tags, orgc_name)
     return [incident, ttps]
 
 
@@ -173,17 +123,43 @@ def setDates(incident, date, published):
     incident_time.incident_reported = timestamp
     incident.time = incident_time
 
+# decide what to do with the objects, as not all of them will become indicators
+def resolveObjects(incident, ttps, objects, Tags, org):
+    for obj in objects:
+        tlpTags = None
+        tmp_incident = Incident()
+        tlpTags = deepcopy(Tags)
+        resolveAttributes(tmp_incident, ttps, obj["Attribute"], Tags, org)
+        indicator = Indicator(timestamp=getDateFromTimestamp(int(obj["timestamp"])))
+        indicator.id_= namespace[1] + ":MispObject-" + obj["uuid"]
+        setProd(indicator, org)
+        if obj["comment"] != "":
+            indicator.description = obj["comment"]
+        for attr in obj["Attribute"]:
+            tlpTags = mergeTags(tlpTags, attr)
+        setTLP(indicator, obj["distribution"], tlpTags, True)
+        indicator.title = obj["name"] + " (MISP Object #" + obj["id"] + ")"
+        indicator.description = indicator.title
+        indicator.add_indicator_type("Malware Artifacts")
+        indicator.add_valid_time_position(ValidTime())
+        indicator.observable_composition_operator = "AND"
+        for rindicator in tmp_incident.related_indicators:
+            if rindicator.item.observable:
+                indicator.add_observable(rindicator.item.observable)
+        relatedIndicator = RelatedIndicator(indicator, relationship=obj["meta-category"])
+        incident.related_indicators.append(relatedIndicator)
+
 # decide what to do with the attribute, as not all of them will become indicators
-def resolveAttributes(incident, ttps, attributes):
+def resolveAttributes(incident, ttps, attributes, Tags, org):
     for attribute in attributes:
         if (attribute["type"] in not_implemented_attributes):
             addJournalEntry(incident, "!Not implemented attribute category/type combination caught! attribute[" + attribute["category"] + "][" + attribute["type"] + "]: " + attribute["value"])
         elif (attribute["type"] in non_indicator_attributes):
             #types that will definitely not become indicators
-            handleNonIndicatorAttribute(incident, ttps, attribute)
+            handleNonIndicatorAttribute(incident, ttps, attribute, Tags, org)
         else:
             #types that may become indicators
-            handleIndicatorAttribute(incident, ttps, attribute)
+            handleIndicatorAttribute(incident, ttps, attribute, Tags, org)
     for rindicator in incident.related_indicators:
         for ttp in ttps:
             ittp=TTP(idref=ttp.id_, timestamp=ttp.timestamp)
@@ -191,8 +167,8 @@ def resolveAttributes(incident, ttps, attributes):
     return [incident, ttps]
 
 # Create the indicator and pass the attribute further for observable creation - this can be called from resolveattributes directly or from handleNonindicatorAttribute, for some special cases
-def handleIndicatorAttribute(incident, ttps, attribute):
-    indicator = generateIndicator(attribute)
+def handleIndicatorAttribute(incident, ttps, attribute, Tags, org):
+    indicator = generateIndicator(attribute, Tags, org)
     indicator.add_indicator_type("Malware Artifacts")
     indicator.add_valid_time_position(ValidTime())
     if attribute["type"] == "email-attachment":
@@ -207,10 +183,10 @@ def handleIndicatorAttribute(incident, ttps, attribute):
     incident.related_indicators.append(relatedIndicator)
 
 # Handle the attributes that do not fit into an indicator
-def handleNonIndicatorAttribute(incident, ttps, attribute):
+def handleNonIndicatorAttribute(incident, ttps, attribute, Tags, org):
     if attribute["type"] in ("comment", "text", "other"):
         if attribute["category"] == "Payload type":
-            generateTTP(incident, attribute, ttps)
+            generateTTP(incident, attribute, ttps, Tags)
         elif attribute["category"] == "Attribution":
             ta = generateThreatActor(attribute)
             rta = RelatedThreatActor(ta, relationship="Attribution")
@@ -226,10 +202,10 @@ def handleNonIndicatorAttribute(incident, ttps, attribute):
             aa.description = attribute["value"]
         incident.affected_assets.append(aa)
     elif attribute["type"] == "vulnerability":
-        generateTTP(incident, attribute, ttps)
+        generateTTP(incident, attribute, ttps, Tags)
     elif attribute["type"] == "link":
         if attribute["category"] == "Payload delivery":
-            handleIndicatorAttribute(incident, ttps, attribute)
+            handleIndicatorAttribute(incident, ttps, attribute, Tags, org)
         else:
             addReference(incident, attribute["value"])
     elif attribute["type"].startswith('target-'):
@@ -241,10 +217,10 @@ def handleNonIndicatorAttribute(incident, ttps, attribute):
     return [incident, ttps]
 
 # TTPs are only used to describe malware names currently (attribute with category Payload Type and type text/comment/other)
-def generateTTP(incident, attribute, ttps):
+def generateTTP(incident, attribute, ttps, Tags):
     ttp = TTP(timestamp=getDateFromTimestamp(int(attribute["timestamp"])))
     ttp.id_= namespace[1] + ":ttp-" + attribute["uuid"]
-    setTLP(ttp, attribute["distribution"])
+    setTLP(ttp, attribute["distribution"], mergeTags(Tags, attribute))
     ttp.title = attribute["category"] + ": " + attribute["value"] + " (MISP Attribute #" + attribute["id"] + ")"
     if attribute["type"] == "vulnerability":
         vulnerability = Vulnerability()
@@ -281,12 +257,13 @@ def generateThreatActor(attribute):
     return ta
 
 # generate the indicator and add the relevant information
-def generateIndicator(attribute):
+def generateIndicator(attribute, Tags, org):
     indicator = Indicator(timestamp=getDateFromTimestamp(int(attribute["timestamp"])))
     indicator.id_= namespace[1] + ":indicator-" + attribute["uuid"]
+    setProd(indicator, org)
     if attribute["comment"] != "":
         indicator.description = attribute["comment"]
-    setTLP(indicator, attribute["distribution"])
+    setTLP(indicator, attribute["distribution"], mergeTags(Tags, attribute))
     indicator.title = attribute["category"] + ": " + attribute["value"] + " (MISP Attribute #" + attribute["id"] + ")"
     indicator.description = indicator.title
     confidence_description = "Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none"
@@ -305,10 +282,22 @@ def convertToStixDate(date):
     return getDateFromTimestamp(time.mktime(datetime.datetime.strptime(date, "%Y-%m-%d").timetuple()))
 
 # takes an object and adds the passed organisation as the information_source.identity to it.
-def setOrg(target, org):
+def setSrc(target, org):
     ident = Identity(name=org)
     information_source = InformationSource(identity = ident)
     target.information_source = information_source
+
+# takes an object and adds the passed organisation as the reporter.identity to it.
+def setRep(target, org):
+    ident = Identity(name=org)
+    information_source = InformationSource(identity = ident)
+    target.reporter = information_source
+
+# takes an object and adds the passed organisation as the producer.identity to it.
+def setProd(target, org):
+    ident = Identity(name=org)
+    information_source = InformationSource(identity = ident)
+    target.producer = information_source
 
 # takes an object and adds the passed tags as journal entries to it.
 def setTag(target, tags):
@@ -319,25 +308,71 @@ def addReference(target, reference):
     if hasattr(target.information_source, "references"):
         target.information_source.add_reference(reference)
 
-# takes an object and applies a TLP marking based on the distribution passed along to it
-def setTLP(target, distribution):
+# takes an object and applies a TLP marking based on TLP tag or MISP distribution level
+def setTLP(target, distribution, tags, sort=False):
     marking_specification = MarkingSpecification()
     marking_specification.controlled_structure = "../../../descendant-or-self::node()"
     tlp = TLPMarkingStructure()
-    colour = TLP_mapping.get(distribution, None)
-    if colour is None:
+    attrColors = fetchColors(tags.get('attributes')) if ('attributes' in tags) else []
+    if attrColors:
+        color = setColor(attrColors)
+    else:
+        eventColors = fetchColors(tags.get('event')) if ('event' in tags) else []
+        if eventColors:
+            color = setColor(eventColors)
+        else:
+            color = TLP_mapping.get(distribution, None)
+    #for tag in tags:
+    #    if tag["name"].startswith("tlp:") and tag["name"].count(':') == 1:
+    #        new_colour = tag["name"][4:].upper()
+    #        if colour and sort:
+    #            if TLP_order[colour] < TLP_order[new_colour]:
+    #                colour = new_colour
+    #        else:
+    #            colour = new_colour
+    if color is None:
         return target
-    tlp.color = colour
+    tlp.color = color
     marking_specification.marking_structures.append(tlp)
     handling = Marking()
     handling.add_marking(marking_specification)
     target.handling = handling
 
+def fetchColors(tags):
+    colors = []
+    for tag in tags:
+        if tag["name"].startswith("tlp:") and tag["name"].count(':') == 1:
+            colors.append(tag['name'][4:].upper())
+    return colors
+
+def setColor(colors):
+    tlpColor = 0
+    for color in colors:
+        colorNum = TLP_order[color]
+        if colorNum > tlpColor:
+            tlpColor = colorNum
+            colorStr = color
+    return colorStr
+
 # add a journal entry to an incident
 def addJournalEntry(incident, entry_line):
     hi = HistoryItem()
     hi.journal_entry = entry_line
-    incident.history.append(hi)
+    try:
+        incident.history.append(hi)
+    except AttributeError:
+        incident.history = History(hi)
+
+# merge event tags with attribute tags, when present
+def mergeTags(Tags, attr):
+    result = deepcopy(Tags)
+    if "Tag" in attr:
+        if 'attributes' in Tags:
+            for tag in attr["Tag"]:
+                result['attributes'].append(tag)
+        else:
+            result['attributes'] = attr['Tag']
+    return result
 
 # main
 def main(args):
@@ -347,16 +382,20 @@ def main(args):
     if len(sys.argv) > 4:
         namespace[1] = sys.argv[4].replace(" ", "_")
         namespace[1] = re.sub('[\W]+', '', namespace[1])
-    NS_DICT[namespace[0]]=namespace[1]
-    cybox.utils.idgen.set_id_namespace(Namespace(namespace[0], namespace[1]))
-    stix.utils.idgen.set_id_namespace({namespace[0]: namespace[1]})
-    events = loadEvent(args, pathname)
-    stix_package = generateMainPackage(events)
-    for event in events:
-        sub_package = generateEventPackage(event)
-        stix_package.related_packages.append(sub_package)
+    try:
+        idgen.set_id_namespace({namespace[0]: namespace[1]})
+    except ValueError:
+        try:
+            idgen.set_id_namespace(Namespace(namespace[0], namespace[1]))
+        except TypeError:
+            idgen.set_id_namespace(Namespace(namespace[0], namespace[1], "MISP"))
+
+    event = loadEvent(args, pathname)
+    if 'response' in event:
+        event = event['response'][0]
+    stix_package = generateEventPackage(event)
     saveFile(args, pathname, stix_package)
-    print json.dumps({'success' : 1, 'message' : ''})
+    print(json.dumps({'success' : 1, 'message' : ''}))
 
 if __name__ == "__main__":
     main(sys.argv)

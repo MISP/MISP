@@ -3,7 +3,7 @@ $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event
 $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 ?>
 <div class="logs index">
-<h2>Logs</h2>
+<h2><?php echo __('Logs');?></h2>
 	<div class="pagination">
 		<ul>
 			<?php
@@ -23,6 +23,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 	<table class="table table-striped table-hover table-condensed">
 		<tr>
 			<th><?php echo $this->Paginator->sort('org');?></th>
+			<th><?php echo $this->Paginator->sort('email');?></th>
 			<th><?php echo $this->Paginator->sort('action');?></th>
 			<th><?php echo $this->Paginator->sort('model');?></th>
 			<th><?php echo $this->Paginator->sort('title');?></th>
@@ -32,17 +33,15 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 		<tr>
 			<td class="short">
 			<?php
-				$imgRelativePath = 'orgs' . DS . h($item['Log']['org']) . '.png';
-				$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
-				if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($item['Log']['org']) . '.png', array('alt' => h($item['Log']['org']), 'title' => h($item['Log']['org']), 'style' => 'width:24px; height:24px'));
-				else echo $this->Html->tag('span', h($item['Log']['org']), array('class' => 'welcome', 'style' => 'float:left;'));
+				echo $this->OrgImg->getOrgImg(array('name' => $item['Log']['org'], 'size' => 24));
 			?>
 			&nbsp;
 			</td>
+			<td class="short"><?php echo h($item['Log']['email']); ?>&nbsp;</td>
 			<td class="short"><?php echo h($item['Log']['action']); ?>&nbsp;</td>
 			<td class="short"><?php
 				if ($item['Log']['model'] !== 'ShadowAttribute') echo h($item['Log']['model']);
-				else echo 'Proposal';
+				else echo __('Proposal');
 			?>&nbsp;</td>
 			<td><?php echo h($item['Log']['title']); ?>&nbsp;</td>
 			<td class="short"><?php echo (h($item['Log']['created'])); ?>&nbsp;</td>
@@ -65,7 +64,6 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 		?>
 		</ul>
 	</div>
-	<div id="confirmation_box" class="confirmation_box"></div>
 </div>
 <?php
 	// We mimic the $event from some other views to pass the ID back to the sidemenu
