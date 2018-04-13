@@ -161,7 +161,7 @@ class Module extends AppModel {
 		}
 		$sslSettings = array('ssl_verify_peer', 'ssl_verify_host', 'ssl_allow_self_signed', 'ssl_verify_peer', 'ssl_cafile');
 		foreach ($sslSettings as $sslSetting) {
-			if (!empty(Configure::read('Plugin.' . $moduleFamily . '_' . $sslSetting))) {
+			if (Configure::check('Plugin.' . $moduleFamily . '_' . $sslSetting) && Configure::read('Plugin.' . $moduleFamily . '_' . $sslSetting) !== '') {
 				$settings[$sslSetting] = Configure::read('Plugin.' . $moduleFamily . '_' . $sslSetting);
 			}
 		}
