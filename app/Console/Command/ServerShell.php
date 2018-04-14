@@ -8,12 +8,31 @@ class ServerShell extends AppShell
 
 	public function pull() {
 		$userId = $this->args[0];
-		$serverId = $this->args[1];
-		$technique = $this->args[2];
-		$jobId = $this->args[3];
-		$this->Job->read(null, $jobId);
-		$this->Server->id = $serverId;
 		$user = $this->User->getAuthUser($userId);
+		if (empty($user)) die();
+		$serverId = $this->args[1];
+		if (!empty($this->args[2])) {
+			$technique = $this->args[2];
+		} else {
+			$technique = false;
+		}
+		if (!empty($this->args[3])) {
+			$jobId = $this->args[3];
+		} else {
+			$this->Job->create();
+			$data = array(
+					'worker' => 'default',
+					'job_type' => 'pull',
+					'job_input' => 'Server: ' . $serverId,
+					'status' => 0,
+					'retries' => 0,
+					'org' => $user['Organisation']['name'],
+					'message' => 'Pulling.',
+			);
+			$this->Job->save($data);
+			$jobId = $this->Job->id;
+		}
+		$this->Server->id = $serverId;
 		$server = $this->Server->read(null, $serverId);
 		$result = $this->Server->pull($user, $serverId, $technique, $server, $jobId);
 		$this->Job->id = $jobId;
@@ -26,22 +45,21 @@ class ServerShell extends AppShell
 		if (is_numeric($result[0])) {
 			switch ($result[0]) {
 				case '1' :
-					$this->Job->saveField('message', 'Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server.');
-					return;
+					$message = 'Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server.';
 					break;
 				case '2' :
-					$this->Job->saveField('message', $result[1]);
-					return;
+					$message = $result[1];
 					break;
 				case '3' :
-					$this->Job->saveField('message', 'Sorry, incremental pushes are not yet implemented.');
-					return;
+					$message = 'Sorry, incremental pushes are not yet implemented.';
 					break;
 				case '4' :
-					$this->Job->saveField('message', 'Invalid technique chosen.');
-					return;
+					$message = 'Invalid technique chosen.';
 					break;
-
+			}
+			if (!empty($message)) {
+				echo $message;
+				$this->Job->saveField('message', $message);
 			}
 		}
 	}
