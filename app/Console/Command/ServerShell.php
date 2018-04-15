@@ -66,14 +66,30 @@ class ServerShell extends AppShell
 
 	public function push() {
 		$serverId = $this->args[0];
-		$jobId = $this->args[2];
 		$userId = $this->args[3];
+		$user = $this->User->getAuthUser($userId);
+		if (empty($user)) die();
+		if (!empty($this->args[2])) {
+			$jobId = $this->args[2];
+		} else {
+			$this->Job->create();
+			$data = array(
+					'worker' => 'default',
+					'job_type' => 'push',
+					'job_input' => 'Server: ' . $serverId,
+					'status' => 0,
+					'retries' => 0,
+					'org' => $user['Organisation']['name'],
+					'message' => 'Pulling.',
+			);
+			$this->Job->save($data);
+			$jobId = $this->Job->id;
+		}
 		$this->Job->read(null, $jobId);
 		$server = $this->Server->read(null, $serverId);
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
 		$HttpSocket = $syncTool->setupHttpSocket($server);
-		$user = $this->User->getAuthUser($userId);
 		$result = $this->Server->push($serverId, 'full', $jobId, $HttpSocket, $user);
 		$message = 'Job done.';
 		if ($result === false) $message = 'Job failed. The remote instance is too far outdated to initiate a push.';
@@ -85,17 +101,35 @@ class ServerShell extends AppShell
 		));
 		if (isset($this->args[4])) {
 			$this->Task->id = $this->args[5];
-			$this->Task->saveField('message', 'Job(s) started at ' . date('d/m/Y - H:i:s') . '.');
+			$message = 'Job(s) started at ' . date('d/m/Y - H:i:s') . '.';
+			$this->Task->saveField('message', $message);
+			echo $message;
 		}
 	}
 
 
 	public function fetchFeed() {
 		$userId = $this->args[0];
-		$feedId = $this->args[1];
-		$jobId = $this->args[2];
-		$this->Job->read(null, $jobId);
 		$user = $this->User->getAuthUser($userId);
+		if (empty($user)) die();
+		$feedId = $this->args[1];
+		if (!empty($this->args[2])) {
+			$jobId = $this->args[2];
+		} else {
+			$this->Job->create();
+			$data = array(
+					'worker' => 'default',
+					'job_type' => 'fetch_feeds',
+					'job_input' => 'Feed: ' . $feedId,
+					'status' => 0,
+					'retries' => 0,
+					'org' => $user['Organisation']['name'],
+					'message' => 'Starting fetch from Feed.',
+			);
+			$this->Job->save($data);
+			$jobId = $this->Job->id;
+		}
+		$this->Job->read(null, $jobId);
 		$result = $this->Feed->downloadFromFeedInitiator($feedId, $user, $jobId);
 		$this->Job->id = $jobId;
 		if (!$result) {
@@ -115,14 +149,31 @@ class ServerShell extends AppShell
 					'status' => 4
 			));
 		}
+		echo $message;
 	}
 
 	public function cacheFeeds() {
 		$userId = $this->args[0];
-		$jobId = $this->args[1];
+		$user = $this->User->getAuthUser($userId);
+		if (empty($user)) die();
+		if (!empty($this->args[1])) {
+			$jobId = $this->args[1];
+		} else {
+			$this->Job->create();
+			$data = array(
+					'worker' => 'default',
+					'job_type' => 'fetch_feeds',
+					'job_input' => 'Feed: ' . $feedId,
+					'status' => 0,
+					'retries' => 0,
+					'org' => $user['Organisation']['name'],
+					'message' => 'Starting fetch from Feed.',
+			);
+			$this->Job->save($data);
+			$jobId = $this->Job->id;
+		}
 		$scope = $this->args[2];
 		$this->Job->read(null, $jobId);
-		$user = $this->User->getAuthUser($userId);
 		$result = $this->Feed->cacheFeedInitiator($user, $jobId, $scope);
 		$this->Job->id = $jobId;
 		if ($result !== true) {
@@ -142,6 +193,7 @@ class ServerShell extends AppShell
 					'status' => 4
 			));
 		}
+		echo $message;
 	}
 
 	public function enqueuePull() {
