@@ -162,12 +162,12 @@ class ServerShell extends AppShell
 			$this->Job->create();
 			$data = array(
 					'worker' => 'default',
-					'job_type' => 'fetch_feeds',
+					'job_type' => 'cache_feeds',
 					'job_input' => 'Feed: ' . $feedId,
 					'status' => 0,
 					'retries' => 0,
 					'org' => $user['Organisation']['name'],
-					'message' => 'Starting fetch from Feed.',
+					'message' => 'Starting feed caching.',
 			);
 			$this->Job->save($data);
 			$jobId = $this->Job->id;
