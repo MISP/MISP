@@ -7,14 +7,17 @@ class ServerShell extends AppShell
 	public $uses = array('Server', 'Task', 'Job', 'User', 'Feed');
 
 	public function pull() {
+		if (empty($this->args[0]) || empty($this->args[1])) {
+			die('Usage: ' . $this->Server->command_line_functions['pull'] . PHP_EOL);
+		}
 		$userId = $this->args[0];
 		$user = $this->User->getAuthUser($userId);
-		if (empty($user)) die();
+		if (empty($this->args[1])) die();
 		$serverId = $this->args[1];
 		if (!empty($this->args[2])) {
 			$technique = $this->args[2];
 		} else {
-			$technique = false;
+			$technique = 'full';
 		}
 		if (!empty($this->args[3])) {
 			$jobId = $this->args[3];
@@ -58,17 +61,22 @@ class ServerShell extends AppShell
 					break;
 			}
 			if (!empty($message)) {
-				echo $message;
+				echo $message . PHP_EOL;
 				$this->Job->saveField('message', $message);
 			}
+		} else {
+			echo 'Job done.';
 		}
 	}
 
 	public function push() {
-		$serverId = $this->args[0];
-		$userId = $this->args[3];
+		if (empty($this->args[0]) || empty($this->args[1])) {
+			die('Usage: ' . $this->Server->command_line_functions['push'] . PHP_EOL);
+		}
+		$userId = $this->args[0];
 		$user = $this->User->getAuthUser($userId);
-		if (empty($user)) die();
+		if (empty($user)) die('Invalid user.' . PHP_EOL);
+		$serverId = $this->args[1];
 		if (!empty($this->args[2])) {
 			$jobId = $this->args[2];
 		} else {
@@ -80,7 +88,7 @@ class ServerShell extends AppShell
 					'status' => 0,
 					'retries' => 0,
 					'org' => $user['Organisation']['name'],
-					'message' => 'Pulling.',
+					'message' => 'Pushing.',
 			);
 			$this->Job->save($data);
 			$jobId = $this->Job->id;
@@ -103,15 +111,21 @@ class ServerShell extends AppShell
 			$this->Task->id = $this->args[5];
 			$message = 'Job(s) started at ' . date('d/m/Y - H:i:s') . '.';
 			$this->Task->saveField('message', $message);
-			echo $message;
+			echo $message . PHP_EOL;
 		}
 	}
 
 
 	public function fetchFeed() {
+		if (empty($this->args[0]) || empty($this->args[1])) {
+			die('Usage: ' . $this->Server->command_line_functions['fetchFeed'] . PHP_EOL);
+		}
 		$userId = $this->args[0];
 		$user = $this->User->getAuthUser($userId);
-		if (empty($user)) die();
+		if (empty($user)) {
+			echo 'Invalid user.';
+			die();
+		}
 		$feedId = $this->args[1];
 		if (!empty($this->args[2])) {
 			$jobId = $this->args[2];
@@ -149,21 +163,25 @@ class ServerShell extends AppShell
 					'status' => 4
 			));
 		}
-		echo $message;
+		echo $message . PHP_EOL;
 	}
 
-	public function cacheFeeds() {
+	public function cacheFeed() {
+		if (empty($this->args[0]) || empty($this->args[1])) {
+			die('Usage: ' . $this->Server->command_line_functions['cacheFeed'] . PHP_EOL);
+		}
 		$userId = $this->args[0];
 		$user = $this->User->getAuthUser($userId);
-		if (empty($user)) die();
-		if (!empty($this->args[1])) {
-			$jobId = $this->args[1];
+		if (empty($user)) die('Invalid user.' . PHP_EOL);
+		$scope = $this->args[1];
+		if (!empty($this->args[2])) {
+			$jobId = $this->args[2];
 		} else {
 			$this->Job->create();
 			$data = array(
 					'worker' => 'default',
 					'job_type' => 'cache_feeds',
-					'job_input' => 'Feed: ' . $feedId,
+					'job_input' => 'Feed: ' . $scope,
 					'status' => 0,
 					'retries' => 0,
 					'org' => $user['Organisation']['name'],
@@ -172,7 +190,6 @@ class ServerShell extends AppShell
 			$this->Job->save($data);
 			$jobId = $this->Job->id;
 		}
-		$scope = $this->args[2];
 		$this->Job->read(null, $jobId);
 		$result = $this->Feed->cacheFeedInitiator($user, $jobId, $scope);
 		$this->Job->id = $jobId;
@@ -193,7 +210,7 @@ class ServerShell extends AppShell
 					'status' => 4
 			));
 		}
-		echo $message;
+		echo $message . PHP_EOL;
 	}
 
 	public function enqueuePull() {
