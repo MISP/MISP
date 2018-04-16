@@ -110,7 +110,7 @@ class EventGraph {
 			$("#select_graph_scope").val(value);
 		}
 
-		if (value == "JSON key") {
+		if (value == "Rotation key") {
 			$("#network-scope-badge").text(value + ": " + eventGraph.scope_keyType);
 		} else {
 			$("#network-scope-badge").text(value);
@@ -118,7 +118,7 @@ class EventGraph {
 		this.scope_name = value;
 		dataHandler.scope_name = value;
 	}
-	
+
 	init_scope_menu() {
 		var menu_scope = new ContextualMenu({
 			trigger_container: document.getElementById("network-scope"),
@@ -129,36 +129,31 @@ class EventGraph {
 			label: "Scope",
 			tooltip: "The scope represented by the network",
 			event: function(value) {
-				if (value == "JSON key" && $('#input_graph_scope_jsonkey').val() == "") { // no key selected  for JSON key scope
+				if (value == "Rotation key" && $('#input_graph_scope_jsonkey').val() == "") { // no key selected  for Rotation key scope
 					return;
 				} else {
 					eventGraph.update_scope(value);
 					dataHandler.fetch_data_and_update();
 				}
 			},
-			options: ["Reference", "Tag", "Extended event", "JSON key"],
+			options: ["Reference", "Tag", "Extended event", "Rotation key"],
 			default: "Reference"
 		});
-		menu_scope.add_input({
+		menu_scope.add_select({
 			id: "input_graph_scope_jsonkey",
-			label: "JSON key",
-			tooltip: "The JSON key to be graphed",
-			placeholder: "E.g. distribution",
-			typeahead: {
-				source: function(query, process) {
-					process(dataHandler.available_JSON_key);
-				},
-				updater: function (value) {
-					// change scope to JSON key
-					eventGraph.scope_keyType = value;
-					eventGraph.update_scope("JSON key");
-					dataHandler.fetch_data_and_update();
-				},
-				autoSelect: true
-			},
+			label: "Rotation key",
+			tooltip: "The key around which the network will be constructed",
 			event: function(value) {
-				eventGraph.scope_keyType = value;
-			}
+				if (value == "Rotation key" && $('#input_graph_scope_jsonkey').val() == "") { // no key selected for Rotation key scope
+					return;
+				} else {
+					eventGraph.scope_keyType = value;
+					eventGraph.update_scope("Rotation key");
+					dataHandler.fetch_data_and_update();
+				}
+			},
+			options: dataHandler.available_rotation_key ? dataHandler.available_rotation_key : [],
+			default: ""
 		});
 		return menu_scope;
 	}
@@ -224,8 +219,8 @@ class EventGraph {
 				}
 			},
 			options: [
-				{text: "Default layout", value: "default"}, 
-				{text: "Hierachical directed", value: "hierarchical.directed"}, 
+				{text: "Default layout", value: "default"},
+				{text: "Hierachical directed", value: "hierarchical.directed"},
 				{text: "Hierachical hubsize", value: "hierarchical.hubsize"}
 			],
 			default: "default"
@@ -360,7 +355,7 @@ class EventGraph {
 			label: "View/Edit",
 			type: "primary",
 			event: function() {
-				var selected_id = eventGraph.network.getSelectedNodes()[0]; 
+				var selected_id = eventGraph.network.getSelectedNodes()[0];
 				if (selected_id === undefined) { // A node is selected
 					return;
 				}
@@ -372,7 +367,7 @@ class EventGraph {
 			label: "Hide",
 			type: "info",
 			event: function() {
-				var selected_id = eventGraph.network.getSelectedNodes()[0]; 
+				var selected_id = eventGraph.network.getSelectedNodes()[0];
 				if (selected_id === undefined) { // A node is selected
 					return;
 				}
@@ -383,7 +378,7 @@ class EventGraph {
 			label: "Expand",
 			type: "primary",
 			event: function() {
-				var selected_id = eventGraph.network.getSelectedNodes()[0]; 
+				var selected_id = eventGraph.network.getSelectedNodes()[0];
 				if (selected_id === undefined) { // A node is selected
 					return;
 				}
@@ -394,7 +389,7 @@ class EventGraph {
 			label: "Collapse",
 			type: "primary",
 			event: function() {
-				var selected_id = eventGraph.network.getSelectedNodes()[0]; 
+				var selected_id = eventGraph.network.getSelectedNodes()[0];
 				if (selected_id === undefined) { // A node is selected
 					return;
 				}
@@ -410,8 +405,8 @@ class EventGraph {
 		return rules;
 	}
 	// Graph interaction
-	
-	// Clusterize the specified node with its connected childs 
+
+	// Clusterize the specified node with its connected childs
 	clusterize(rootID) {
 		var that = eventGraph;
 		var type = mapping_root_id_to_type[rootID];
@@ -439,10 +434,10 @@ class EventGraph {
 			this.backup_connection_edges = {};
 		}
 	}
-	
+
 	update_graph(data) {
 		setTimeout(function() { eventGraph.network_loading(true, loadingText_creating); });
-		
+
 		// New nodes will be automatically added
 		// removed references will be deleted
 		var node_conf;
@@ -454,7 +449,7 @@ class EventGraph {
 				var group =  'object';
 				var label = dataHandler.generate_label(node);
 				var striped_value = this.strip_text_value(label);
-				node_conf = { 
+				node_conf = {
 					id: node.id,
 					uuid: node.uuid,
 					Attribute: node.Attribute,
@@ -473,14 +468,14 @@ class EventGraph {
 				var tag_color = node.tagContent.colour;
 				group =  'tag';
 				label = node.label;
-				node_conf = { 
+				node_conf = {
 					id: node.id,
 					uuid: node.uuid,
 					label: label,
 					title: label,
 					group: group,
 					mass: 20,
-					color: { 
+					color: {
 						background: tag_color,
 						border: tag_color
 					},
@@ -509,7 +504,7 @@ class EventGraph {
 				group =  'attribute';
 				label = node.type + ': ' + node.label;
 				var striped_value = this.strip_text_value(label);
-				node_conf = { 
+				node_conf = {
 					id: node.id,
 					uuid: node.uuid,
 					label: striped_value,
@@ -519,7 +514,7 @@ class EventGraph {
 				};
 				dataHandler.mapping_value_to_nodeID.set(striped_value, node.id);
 			}
-	
+
 			newNodes.push(node_conf);
 			newNodeIDs.push(node.id);
 		}
@@ -535,9 +530,9 @@ class EventGraph {
 				this.nodes.remove(old_id);
 			}
 		}
-	
+
 		this.nodes.update(newNodes);
-		
+
 		// New relations will be automatically added
 		// removed references will be deleted
 		var newRelations = [];
@@ -564,9 +559,9 @@ class EventGraph {
 				this.edges.remove(old_id);
 			}
 		}
-	
+
 		this.edges.update(newRelations);
-		
+
 		this.remove_root_nodes();
 		if (this.scope_name == 'Reference') {
 			this.add_unreferenced_root_node();
@@ -599,11 +594,11 @@ class EventGraph {
 		var max_num = $("#slider_display_max_char_num").val();
 		return text.substring(0, max_num) + (text.length < max_num ? "" : "[...]")
 	}
-	
+
 	reset_view() {
 		this.network.fit({animation: true });
 	}
-	
+
 	reset_view_on_stabilized() {
 		var that = eventGraph;
 		this.network.once("stabilized", function(params) {
@@ -672,7 +667,7 @@ class EventGraph {
 
 	collapse_node(parent_id) {
 		if(parent_id === undefined) { return; }
-		
+
 		if (!(parent_id == root_id_attr || parent_id == root_id_object || parent_id == root_id_tag || parent_id == root_id_keyType)) { // Is not a root node
 			var node_group = this.nodes.get(parent_id).group;
 			if (parent_id === undefined || node_group != 'object') { //  No node selected  or collapse not permitted
@@ -694,7 +689,7 @@ class EventGraph {
 			this.clusterize(parent_id);
 		}
 	}
-	
+
 	expand_node(parent_id) {
 		if (!this.network.isCluster(parent_id)) {
 
@@ -707,25 +702,25 @@ class EventGraph {
 			var objAttributes = parent_node.Attribute;
 			var newNodes = [];
 			var newRelations = [];
-	
+
 			var parent_pos = this.network.getPositions([parent_id])[parent_id];
 			for(var attr of objAttributes) {
 				var parent_color = eventGraph.get_node_color(parent_id);
-						
+
 				// Ensure unicity of nodes
 				if (this.nodes.get(attr.uuid) !== null) {
 					continue;
 				}
-						
+
 				var striped_value = this.strip_text_value(attr.value);
-				var node = { 
+				var node = {
 					id: attr.uuid,
 					x: parent_pos.x,
 					y: parent_pos.y,
 					label: attr.object_relation + ': ' + striped_value,
 					title: attr.object_relation + ': ' + attr.value,
 					group: 'obj_relation',
-					color: { 
+					color: {
 						background: parent_color
 					},
 					font: {
@@ -734,7 +729,7 @@ class EventGraph {
 				};
 				newNodes.push(node);
 				dataHandler.mapping_obj_relation_value_to_nodeID.set(striped_value, node.id);
-						
+
 				var rel = {
 					from: parent_id,
 					to: attr.uuid,
@@ -747,7 +742,7 @@ class EventGraph {
 				};
 				newRelations.push(rel);
 			}
-				
+
 			this.nodes.add(newNodes);
 			this.edges.add(newRelations);
 
@@ -807,7 +802,7 @@ class EventGraph {
 					that.nodes.update({id: nodeData.id, unreferenced: that.scope_name});
 				}
 			}
-			
+
 			newEdges.push(new_edge);
 			that.new_edges_for_unreferenced_nodes.push(new_edge.id);
 		});
@@ -967,8 +962,8 @@ class EventGraph {
 
 	destroy_and_redraw() {
 		var that = eventGraph;
-               	that.network.destroy();
-                that.network = null;
+		that.network.destroy();
+		that.network = null;
 		var data = {nodes: that.nodes, edges: that.edges};
 		that.network = new vis.Network(container, data, that.network_options);
 		that.init_clusterize();
@@ -1033,7 +1028,7 @@ class DataHandler {
 		eventGraph.menu_filter.items["table_attr_presence"].add_options("table_control_select_attr_presence", available_object_references);
 		eventGraph.menu_filter.items["table_attr_value"].add_options("table_control_select_attr_value", available_object_references);
 	}
-	
+
 	fetch_data_and_update(stabilize) {
 		eventGraph.network_loading(true, loadingText_fetching);
 		$.when(this.fetch_objects_template()).done(function() {
@@ -1053,9 +1048,11 @@ class DataHandler {
 					eventGraph.reset_graphs(true);
 					eventGraph.is_filtered = (filtering_rules.presence.length > 0 || filtering_rules.value.length > 0);
 					eventGraph.first_draw = true;
+					// update object state
 					var available_object_references = Object.keys(data.existing_object_relation);
 					dataHandler.update_available_object_references(available_object_references);
-					dataHandler.available_JSON_key = data.available_JSON_key;
+					dataHandler.available_rotation_key = data.available_rotation_key;
+					eventGraph.menu_scope.add_options("input_graph_scope_jsonkey", dataHandler.available_rotation_key);
 					eventGraph.update_graph(data);
 					if ( stabilize === undefined || stabilize) {
 						eventGraph.reset_view_on_stabilized();
@@ -1108,7 +1105,7 @@ class MispInteraction {
 		// May be changed in the futur
 		this.callback_to_be_called = null;
 	}
-	
+
 	register_callback(callback) {
 		this.callback_to_be_called = callback;
 	}
@@ -1131,7 +1128,7 @@ class MispInteraction {
 			callback();
 		}
 	}
-	
+
 	add_reference(edgeData, callback) {
 		var that = mispInteraction;
 		//var uuid = dataHandler.mapping_attr_id_to_uuid.get(edgeData.to);
@@ -1152,7 +1149,7 @@ class MispInteraction {
 		var that = mispInteraction;
 		var rel_id = edgeData.id;
 		var rel_uuid = edgeData.uuid;
-		
+
 		that.register_callback(function() {
 			var relation_id = edgeData.id;
 			submitDeletion(scope_id, 'delete', 'object_references', relation_id);
@@ -1169,7 +1166,7 @@ class MispInteraction {
 			});
 		});
 	}
-	
+
 	can_create_reference(id) {
 		return this.nodes.get(id).group == "object";
 	}
@@ -1199,7 +1196,7 @@ class MispInteraction {
 			},
 		]);
 	}
-	
+
 	delete_item(nodeData, callback) {
 		var selected_nodes = nodeData.nodes;
 		for (var nodeID of selected_nodes) {
@@ -1210,9 +1207,8 @@ class MispInteraction {
 				deleteObject('objects', 'delete', nodeID, scope_id);
 			}
 		}
-		
 	}
-	
+
 	edit_item(nodeData, callback) {
 		var that = mispInteraction;
 		var id = nodeData.id
@@ -1271,7 +1267,7 @@ function getTextColour(hex) {
 
 
 function genericPopupCallback(result) {
- 	// sucess and eventgraph is enabled
+	// sucess and eventgraph is enabled
 	if (result == "success" && dataHandler !== undefined) {
 		mispInteraction.apply_callback();
 		dataHandler.fetch_data_and_update(false);
@@ -1323,12 +1319,12 @@ function enable_interactive_graph() {
 			}
 			switch(evt.keyCode) {
 				case 88: // x
-					var selected_id = eventGraph.network.getSelectedNodes()[0]; 
+					var selected_id = eventGraph.network.getSelectedNodes()[0];
 					eventGraph.expand_node(selected_id);
 					break;
 
 				case 67: // c
-					var selected_id = eventGraph.network.getSelectedNodes()[0]; 
+					var selected_id = eventGraph.network.getSelectedNodes()[0];
 					eventGraph.collapse_node(selected_id);
 					break;
 				case 86: // v
@@ -1337,13 +1333,13 @@ function enable_interactive_graph() {
 
 				case 69: // e
 					if (evt.shiftKey) {
-						var selected_id = eventGraph.network.getSelectedNodes()[0]; 
+						var selected_id = eventGraph.network.getSelectedNodes()[0];
 						if (selected_id !== undefined) { // A node is selected
 							var data = { id: selected_id };
 							mispInteraction.edit_item(data);
 							break;
 						}
-						selected_id = eventGraph.network.getSelectedEdges()[0]; 
+						selected_id = eventGraph.network.getSelectedEdges()[0];
 						if (selected_id !== undefined) { // A edge is selected
 							var data = { id: selected_id };
 							mispInteraction.edit_reference(data);
@@ -1374,7 +1370,7 @@ function enable_interactive_graph() {
 						break;
 					}
 					//  References
-					var selected_ids = eventGraph.network.getSelectedEdges(); 
+					var selected_ids = eventGraph.network.getSelectedEdges();
 					for (var selected_id of selected_ids) {
 						var edge = { edges: [selected_id] }; // trick to use the same function
 						mispInteraction.remove_reference(edge);
@@ -1402,8 +1398,6 @@ function enable_interactive_graph() {
 				default:
 					break;
 			}
-
-			
 		});
 
 		eventGraph.update_scope();
@@ -1423,15 +1417,15 @@ var network_options = {
 	layout: {
 		improvedLayout: false,
 		hierarchical: {
-			      enabled: false,
-			      levelSeparation: 150,
-			      nodeSpacing: 5,
-			      treeSpacing: 200,
-			      blockShifting: true,
-			      edgeMinimization: true,
-			      parentCentralization: true,
-			      direction: 'UD',        // UD, DU, LR, RL
-			      sortMethod: 'directed'   // hubsize, directed
+			enabled: false,
+			levelSeparation: 150,
+			nodeSpacing: 5,
+			treeSpacing: 200,
+			blockShifting: true,
+			edgeMinimization: true,
+			parentCentralization: true,
+			direction: 'UD',        // UD, DU, LR, RL
+			sortMethod: 'directed'   // hubsize, directed
 		}
 
 	},
@@ -1501,14 +1495,14 @@ var network_options = {
 		obj_relation: {
 			mass: 3,
 			size: 10,
-			color: { 
+			color: {
 				border:'black'
 			}
 		},
 		attribute: {
 			shape: 'box',
-			color: { 
-				background:'orange', 
+			color: {
+				background:'orange',
 				border:'black'
 			},
 			size: 15

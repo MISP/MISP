@@ -31,7 +31,7 @@
 		}
 
 		private function __get_event($id) {
-			$this->__json['available_JSON_key'] = $this->__authorized_JSON_key;
+			$this->__json['available_rotation_key'] = $this->__authorized_JSON_key;
 
 			$fullevent = $this->__eventModel->fetchEvent($this->__user, array('eventid' => $id, 'flatten' => 0, 'includeTagRelations' => 1));
 			$event = array();
