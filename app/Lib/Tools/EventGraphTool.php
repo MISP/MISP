@@ -40,10 +40,16 @@
 
 			if (!empty($fullevent[0]['Object'])) {
 				$event['Object'] = $fullevent[0]['Object'];
+			} else {
+				$event['Object'] = array();
 			}
+
 			if (!empty($fullevent[0]['Attribute'])) {
 				$event['Attribute'] = $fullevent[0]['Attribute'];
+			} else {
+				$event['Attribute'] = array();
 			}
+
 			return $event;
 		}
 
