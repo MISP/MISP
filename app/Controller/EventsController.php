@@ -1332,11 +1332,6 @@ class EventsController extends AppController {
 					if (!isset($this->request->data['Event']['date'])) {
 						$this->request->data['Event']['date'] = date('Y-m-d');
 					}
-					if (!empty($this->request->data['Event']['extends_uuid']) && !Validation::uuid($this->request->data['Event']['extends_uuid'])) {
-						if (!$this->Event->checkIfAuthorised($this->Auth->user(), $this->request->data['Event']['extends_uuid'])) {
-							throw new MethodNotAllowedException('Invalid ID given for the event that is to be extended. Make sure that you pass the UUID of the correct event or the local ID of an existing event that you have access to.');
-						}
-					}
 					// If the distribution is set to sharing group, check if the id provided is really visible to the user, if not throw an error.
 					if ($this->request->data['Event']['distribution'] == 4) {
 						if ($this->userRole['perm_sync'] && $this->_isRest()) {
@@ -1675,11 +1670,6 @@ class EventsController extends AppController {
 				// Workaround for different structure in XML/array than what CakePHP expects
 				if (isset($this->request->data['response'])) $this->request->data = $this->request->data['response'];
 				if (!isset($this->request->data['Event'])) $this->request->data = array('Event' => $this->request->data);
-				if (!empty($this->request->data['Event']['extends_uuid']) && !Validation::uuid($this->request->data['Event']['extends_uuid'])) {
-					if (!$this->Event->checkIfAuthorised($this->Auth->user(), $this->request->data['Event']['extends_uuid'])) {
-						throw new MethodNotAllowedException('Invalid ID given for the event that is to be extended. Make sure that you pass the UUID of the correct event or the local ID of an existing event that you have access to.');
-					}
-				}
 				$result = $this->Event->_edit($this->request->data, $this->Auth->user(), $id);
 				if ($result === true) {
 					// REST users want to see the newly created event
@@ -1723,11 +1713,6 @@ class EventsController extends AppController {
 			$this->request->data['Event']['published'] = 0;
 			$date = new DateTime();
 			$this->request->data['Event']['timestamp'] = $date->getTimestamp();
-			if (!empty($this->request->data['Event']['extends_uuid']) && !Validation::uuid($this->request->data['Event']['extends_uuid'])) {
-				if (!$this->Event->checkIfAuthorised($this->Auth->user(), $this->request->data['Event']['extends_uuid'])) {
-					throw new MethodNotAllowedException('Invalid ID given for the event that is to be extended. Make sure that you pass the UUID of the correct event or the local ID of an existing event that you have access to.');
-				}
-			}
 			if ($this->Event->save($this->request->data, true, $fieldList)) {
 				$this->Session->setFlash(__('The event has been saved'));
 				$this->redirect(array('action' => 'view', $id));
