@@ -33,7 +33,7 @@ class StixParser():
     def loadEvent(self, args, pathname):
         try:
             filename = os.path.join(pathname, args[1])
-            tempFile = open(filename, 'r')
+            tempFile = open(filename, 'r', encoding='utf-8')
             self.filename = filename
             event = stix2.get_dict(tempFile)
             self.stix_version = 'stix {}'.format(event.get('spec_version'))
