@@ -67,7 +67,9 @@ class StixParser():
             return STIXPackage.from_xml(filename)
         except Exception as ns_error:
             if ns_error.__str__().startswith('Namespace not found:'):
-                ns = mixbox_ns.Namespace(ns_error.ns_uri, 'ciscp', '')
+                ns_value = ns_error.ns_uri
+                prefix = ns_value.split('/')[-1]
+                ns = mixbox_ns.Namespace(ns_value, prefix, '')
                 mixbox_ns.register_namespace(ns)
                 return self.load_event(filename)
             else:
