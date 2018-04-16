@@ -788,6 +788,8 @@ class AttributesController extends AppController {
 				$this->request->data = array('Attribute' => $this->request->data);
 			}
 			$existingAttribute = $this->Attribute->findByUuid($this->Attribute->data['Attribute']['uuid']);
+			// save diff to make life with pubsub easyer ^^
+			$attributDiff = array();
 			// check if the attribute has a timestamp already set (from a previous instance that is trying to edit via synchronisation)
 			// check which attribute is newer
 			if (count($existingAttribute) && !$existingAttribute['Attribute']['deleted']) {
@@ -797,7 +799,13 @@ class AttributesController extends AppController {
 				if ($this->request->data['Attribute']['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
 					$recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment');
 					foreach ($recoverFields as $rF) {
-						if (!isset($this->request->data['Attribute'][$rF])) $this->request->data['Attribute'][$rF] = $existingAttribute['Attribute'][$rF];
+						if (!isset($this->request->data['Attribute'][$rF])) {
+							$this->request->data['Attribute'][$rF] = $existingAttribute['Attribute'][$rF];
+						} else {
+							if ($this->request->data['Attribute'][$rF] != $existingAttribute['Attribute'][$rF]){
+								$attributDiff[$rF] = $existingAttribute['Attribute'][$rF];
+							}
+						}
 					}
 					// carry on with adding this attribute - Don't forget! if orgc!=user org, create shadow attribute, not attribute!
 				} else {
@@ -824,6 +832,7 @@ class AttributesController extends AppController {
 				$result = $this->Attribute->save($this->request->data, array('Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.comment', 'Attribute.distribution', 'Attribute.sharing_group_id'));
 				$this->Attribute->Object->updateTimestamp($existingAttribute['Attribute']['object_id']);
 			} else {
+				$this->request->data['attribute_diff'] = $attributDiff;
 				$result = $this->Attribute->save($this->request->data);
 				if ($this->request->is('ajax')) {
 					$this->autoRender = false;
@@ -976,6 +985,8 @@ class AttributesController extends AppController {
 				throw new MethodNotAllowedException('Invalid input.');
 			}
 		}
+		// Save diff for pubsub
+		$attributDiff = array();
 		foreach ($this->request->data['Attribute'] as $changedKey => $changedField) {
 			if (!in_array($changedKey, $validFields)) {
 				throw new MethodNotAllowedException('Invalid field.');
@@ -985,6 +996,7 @@ class AttributesController extends AppController {
 				return new CakeResponse(array('body'=> json_encode(array('errors'=> array('value' => 'nochange'))), 'status'=>200, 'type' => 'json'));
 			}
 			$attribute['Attribute'][$changedKey] = $changedField;
+			$attributDiff[$changedKey] = $changedField;
 			$changed = true;
 		}
 		if (!$changed) {
@@ -992,6 +1004,7 @@ class AttributesController extends AppController {
 		}
 		$date = new DateTime();
 		$attribute['Attribute']['timestamp'] = $date->getTimestamp();
+		$attribute['attribute_diff'] = $attributDiff;
 		if ($this->Attribute->save($attribute)) {
 			$event = $this->Attribute->Event->find('first', array(
 				'recursive' => -1,
