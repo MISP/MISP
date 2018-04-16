@@ -509,7 +509,10 @@ class StixParser():
                 self.parse_description(observable)
                 continue
             if properties:
-                attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties, title=title)
+                try:
+                    attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties, title=title)
+                except:
+                    continue
                 attr_type = type(attribute_value)
                 if attr_type is str or attr_type is int:
                     # if the returned value is a simple value, we build an attribute
