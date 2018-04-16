@@ -109,6 +109,13 @@ class Server extends AppModel {
 		),
 	);
 
+	public $command_line_functions = array(
+		'pull' => 'MISP/app/Console/cake Server pull [user_id] [server_id] [full|update]',
+		'push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
+		'cacheFeed' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
+		'fetchFeed' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]'
+	);
+
 	public $serverSettings = array(
 			'MISP' => array(
 					'branch' => 1,
@@ -381,6 +388,14 @@ class Server extends AppModel {
 							'errorMessage' => '',
 							'test' => 'testBool',
 							'type' => 'boolean',
+					),
+					'download_attachments_on_load' => array(
+						'level' => 2,
+						'description' => 'Always download attachments when loaded by a user in a browser',
+						'value' => true,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean',
 					),
 					'email' => array(
 							'level' => 0,

@@ -560,6 +560,14 @@ Content-type: application/json
 <b>searchemail</b>: <?php echo __('Filters on the creator user\'s email address (admin only) - negatable');?><br />
 <b>searchDatefrom</b>: <?php echo __('Filters on the date, anything newer than the given date in YYYY-MM-DD format is taken - non-negatable');?><br />
 <b>searchDateuntil</b>: <?php echo __('Filters on the date, anything older than the given date in YYYY-MM-DD format is taken - non-negatable');?><br /></p>
+<a id="console_tasks"></a><h3><?php echo __('Automating certain console tasks');?></h3>
+<p><?php echo __('If you would like to automate tasks such as caching feeds or pulling from server instances, you can do it using the following command line tools. Simply execute the given commands via the command line / create cron jobs easily out of them.');?>:<br />
+<p>
+	<?php
+		foreach ($command_line_functions as $clf => $usage) {
+			echo '<b>' . __($clf) . '</b>: <code>' . $usage . '</code><br />';
+		}
+	?>
 </div>
 <?php
 	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'automation'));
