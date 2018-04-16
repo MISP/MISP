@@ -87,7 +87,7 @@ class EventGraph {
 			eventGraph.physics_state(false);
 		});
 		this.network.on("dragEnd", function (params) {
-			eventGraph.physics_state(true);
+			eventGraph.physics_state($('#checkbox_physics_enable').prop("checked"));
 		});
 	}
 
@@ -188,6 +188,7 @@ class EventGraph {
 		});
 		menu_physic.add_checkbox({
 			label: "Enable physics",
+			id: "checkbox_physics_enable",
 			event: function(checked) {
 				eventGraph.physics_state(checked);
 			},
