@@ -172,7 +172,7 @@
 				<dt><?php echo __('Extends');?></dt>
 				<dd style="word-wrap: break-word;">
 					<?php
-						if (!empty($extendedEvent)) {
+						if (!empty($extendedEvent) && is_array($extendedEvent)) {
 							echo sprintf('<span>%s (<a href="%s">%s</a>): %s</span>', __('Event'), $baseurl . '/events/view/' . h($extendedEvent[0]['Event']['id']), h($extendedEvent[0]['Event']['id']), h($extendedEvent[0]['Event']['info']));
 							echo '&nbsp;<a href="' . $baseurl . '/events/view/' . $extendedEvent[0]['Event']['id'] . '/extended:1"><span class="icon-search"></span></a>';
 						} else {
