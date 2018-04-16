@@ -110,10 +110,10 @@ class Server extends AppModel {
 	);
 
 	public $command_line_functions = array(
-		'pull' => APP . 'Console/cake Server pull [user_id] [server_id] [full|update]',
-		'push' => APP . 'Console/cake Server push [user_id] [server_id]',
-		'cacheFeed' => APP . 'Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
-		'fetchFeed' => APP . 'Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]'
+		'pull' => 'MISP/app/Console/cake Server pull [user_id] [server_id] [full|update]',
+		'push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
+		'cacheFeed' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
+		'fetchFeed' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]'
 	);
 
 	public $serverSettings = array(
