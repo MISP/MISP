@@ -16,6 +16,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys, json, os, time, uuid
+import mixbox.namespaces as mixbox_ns
 from pymisp import MISPEvent, MISPObject, MISPAttribute, __path__
 from stix.core import STIXPackage
 from collections import defaultdict
@@ -42,10 +43,10 @@ class StixParser():
         self.misp_event = MISPEvent()
         self.misp_event['Galaxy'] = []
 
-    def loadEvent(self, args, pathname):
+    def load(self, args, pathname):
         try:
             filename = '{}/tmp/{}'.format(pathname, args[1])
-            event = STIXPackage.from_xml(filename)
+            event = self.load_event(filename)
             if "CIRCL:Package" in event.id_ and "CIRCL MISP" in event.stix_header.title:
                 fromMISP = True
             else:
@@ -60,6 +61,17 @@ class StixParser():
         except:
             print(json.dumps({'success': 0, 'message': 'The temporary STIX export file could not be read'}))
             sys.exit(0)
+
+    def load_event(self, filename):
+        try:
+            return STIXPackage.from_xml(filename)
+        except Exception as ns_error:
+            if ns_error.__str__().startswith('Namespace not found:'):
+                ns = mixbox_ns.Namespace(ns_error.ns_uri, 'ciscp', '')
+                mixbox_ns.register_namespace(ns)
+                return self.load_event(filename)
+            else:
+                return None
 
     def load_mapping(self):
         self.attribute_types_mapping = {
@@ -627,7 +639,7 @@ class StixParser():
 def main(args):
     pathname = os.path.dirname(args[0])
     stix_parser = StixParser()
-    stix_parser.loadEvent(args, pathname)
+    stix_parser.load(args, pathname)
     stix_parser.handler()
     stix_parser.saveFile()
     print(1)
