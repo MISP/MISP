@@ -257,15 +257,16 @@ class StixParser():
                 attributes.append(self.handle_hashes_attribute(h))
         if properties.file_format and properties.file_format.value:
             attributes.append(["mime-type", properties.file_format.value, "mimetype"])
-        if properties.file_name or properties.file_path:
-            try:
-                value = properties.file_name.value
-            except AttributeError:
-                value = properties.file_path.value
+        if properties.file_name:
+            value = properties.file_name.value
             if value:
                 b_file = True
                 event_types = eventTypes[properties._XSI_TYPE]
                 attributes.append([event_types['type'], value, event_types['relation']])
+        if properties.file_path:
+            value = properties.file_path.value
+            if value:
+                attributes.append(['text', value, 'path'])
         if properties.byte_runs:
             attribute_type = "pattern-in-file"
             attributes.append([attribute_type, properties.byte_runs[0].byte_run_data, attribute_type])
@@ -508,7 +509,10 @@ class StixParser():
                 self.parse_description(observable)
                 continue
             if properties:
-                attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties, title=title)
+                try:
+                    attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties, title=title)
+                except:
+                    continue
                 attr_type = type(attribute_value)
                 if attr_type is str or attr_type is int:
                     # if the returned value is a simple value, we build an attribute
@@ -516,7 +520,8 @@ class StixParser():
                     self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
                 else:
                     # otherwise, it is a dictionary of attributes, so we build an object
-                    self.handle_object_case(attribute_type, attribute_value, compl_data)
+                    if attribute_value:
+                        self.handle_object_case(attribute_type, attribute_value, compl_data)
 
     def parse_description(self, stix_object):
         if stix_object.description:
