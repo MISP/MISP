@@ -389,6 +389,14 @@ class Server extends AppModel {
 							'test' => 'testBool',
 							'type' => 'boolean',
 					),
+					'download_attachments_on_load' => array(
+						'level' => 2,
+						'description' => 'Always download attachments when loaded by a user in a browser',
+						'value' => true,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean',
+					),
 					'email' => array(
 							'level' => 0,
 							'description' => 'The e-mail address that MISP should use for all notifications',

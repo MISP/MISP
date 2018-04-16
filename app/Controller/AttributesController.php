@@ -413,7 +413,8 @@ class AttributesController extends AppController {
 		}
 		$this->autoRender = false;
 		$this->response->type($fileExt);
-		$this->response->file($path . $file, array('download' => true, 'name' => $filename . '.' . $fileExt));
+		$download_attachments_on_load = Configure::check('MISP.download_attachments_on_load') ? Configure::read('MISP.download_attachments_on_load') : true;
+		$this->response->file($path . $file, array('download' => $download_attachments_on_load, 'name' => $filename . '.' . $fileExt));
 	}
 
 	public function add_attachment($eventId = null) {
