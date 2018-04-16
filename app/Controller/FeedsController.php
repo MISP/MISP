@@ -659,7 +659,7 @@ class FeedsController extends AppController {
 			$process_id = CakeResque::enqueue(
 					'default',
 					'ServerShell',
-					array('cacheFeeds', $this->Auth->user('id'), $jobId, $scope),
+					array('cacheFeed', $this->Auth->user('id'), $scope, $jobId),
 					true
 			);
 			$this->Job->saveField('process_id', $process_id);
@@ -673,7 +673,7 @@ class FeedsController extends AppController {
 			$message = 'Caching the feeds has successfuly completed.';
 		}
 		if ($this->_isRest()) {
-			return $this->RestResponse->saveSuccessResponse('Feed', 'cacheFeeds', false, $this->response->type(), $message);
+			return $this->RestResponse->saveSuccessResponse('Feed', 'cacheFeed', false, $this->response->type(), $message);
 		} else {
 			$this->Session->setFlash($message);
 			$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
