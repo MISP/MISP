@@ -2038,6 +2038,8 @@ class EventsController extends AppController {
 			}
 			$broTypes[$broType] = implode(', ', $broTypes[$broType]);
 		}
+		$this->loadModel('Server');
+		$this->set('command_line_functions', $this->Server->command_line_functions);
 		$this->set('broTypes', $broTypes);
 		// generate the list of Attribute types
 		$this->loadModel('Attribute');
