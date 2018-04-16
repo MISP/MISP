@@ -618,6 +618,11 @@ class Attribute extends AppModel {
 				if (empty($attribute['Object']['id'])) unset($attribute['Object']);
 				$action = $created ? 'add' : 'edit';
 				if (!empty($this->data['Attribute']['deleted'])) $action = 'soft-delete';
+				if ($action === 'edit'){
+					if(isset($this->data['attribute_diff'])){
+						$attribute['attribute_diff'] = $this->data['attribute_diff'];
+					}
+				}
 				$pubSubTool->attribute_save($attribute, $action);
 			}
 		}
