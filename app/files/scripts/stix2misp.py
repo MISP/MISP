@@ -517,7 +517,8 @@ class StixParser():
                     self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
                 else:
                     # otherwise, it is a dictionary of attributes, so we build an object
-                    self.handle_object_case(attribute_type, attribute_value, compl_data)
+                    if attribute_value:
+                        self.handle_object_case(attribute_type, attribute_value, compl_data)
 
     def parse_description(self, stix_object):
         if stix_object.description:
