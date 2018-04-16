@@ -42,6 +42,7 @@ class EventGraph {
 		this.scope_keyType;
 		this.globalCounter = 0;
 		this.first_draw = true;
+		this.can_be_fitted_again = true;
 		this.root_node_shown = false;
 		this.is_filtered = false;
 		this.menu_scope = this.init_scope_menu();
@@ -599,11 +600,15 @@ class EventGraph {
 		this.network.fit({animation: true });
 	}
 
-	reset_view_on_stabilized() {
+	reset_view_on_stabilized() { // Avoid fitting more than once, (cause a bug if it occurs)
 		var that = eventGraph;
-		this.network.once("stabilized", function(params) {
-			that.network.fit({ animation: true });
-		});
+		if (that.can_be_fitted_again) {
+		    that.can_be_fitted_again = false;
+		    this.network.once("stabilized", function(params) {
+		    	that.network.fit({ animation: true });
+		    	that.can_be_fitted_again = true;
+		    });
+		}
 	}
 
 	focus_on_stabilized(nodeID) {
