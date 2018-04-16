@@ -46,7 +46,7 @@
 	?>
 	<div class="row-fluid">
 		<div class="span8">
-			<h2><?php echo nl2br($title); ?></h2>
+			<h2><?php echo ($extended ? '[' . __('Extended view') . '] ' : '') . nl2br($title); ?></h2>
 			<dl>
 				<dt><?php echo __('Event ID');?></dt>
 				<dd>
@@ -168,6 +168,28 @@
 				<dd>
 					<?php echo date('Y/m/d h:i:s', $event['Event']['timestamp']);; ?>
 					&nbsp;
+				</dd>
+				<dt><?php echo __('Extends');?></dt>
+				<dd style="word-wrap: break-word;">
+					<?php
+						if (!empty($extendedEvent) && is_array($extendedEvent)) {
+							echo sprintf('<span>%s (<a href="%s">%s</a>): %s</span>', __('Event'), $baseurl . '/events/view/' . h($extendedEvent[0]['Event']['id']), h($extendedEvent[0]['Event']['id']), h($extendedEvent[0]['Event']['info']));
+							echo '&nbsp;<a href="' . $baseurl . '/events/view/' . $extendedEvent[0]['Event']['id'] . '/extended:1"><span class="icon-search"></span></a>';
+						} else {
+							echo h($event['Event']['extends_uuid']);
+						}
+					?>&nbsp;
+				</dd>
+				<dt><?php echo __('Extended by');?></dt>
+				<dd style="word-wrap: break-word;">
+					<?php
+						foreach ($extensions as $extension) {
+							echo sprintf('<span>%s (<a href="%s">%s</a>): %s</span>', __('Event'), $baseurl . '/events/view/' . h($extension['Event']['id']), h($extension['Event']['id']), h($extension['Event']['info'])) . '<br />';
+						}
+						if (!empty($extensions)) {
+							echo __('Currently in ' . ($extended ? 'extended' : 'atomic') . ' view.') . ' <a href="' . $baseurl . '/events/view/' . $event['Event']['id'] . ($extended ? '' : '/extended:1') . '"><span class="icon-refresh"></span></a>';
+						}
+					?>&nbsp;
 				</dd>
 				<dt><?php echo __('Sightings');?></dt>
 				<dd style="word-wrap: break-word;">

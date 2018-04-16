@@ -845,10 +845,16 @@ class EventsController extends AppController {
 		if (isset($this->params['named']['focus'])) {
 			$this->set('focus', $this->params['named']['focus']);
 		}
+		$conditions = array('eventid' => $id);
+		if (isset($this->params['named']['extended'])) {
+			$conditions['extended'] = 1;
+			$this->set('extended', 1);
+		} else {
+			$this->set('extended', 0);
+		}
 		if (!empty($this->params['named']['overrideLimit'])) {
 			$conditions['overrideLimit'] = 1;
 		}
-		$conditions = array('eventid' => $id);
 		if (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) {
 			$conditions['deleted'] = 1;
 		}
@@ -1071,6 +1077,18 @@ class EventsController extends AppController {
 				$this->set($variable, $currentModel->{$variable});
 			}
 		}
+		$extensionParams = array(
+			'conditions' => array(
+				'Event.extends_uuid' => $event['Event']['uuid']
+			)
+		);
+		$extensions = $this->Event->fetchSimpleEvents($this->Auth->user(), $extensionParams);
+		$this->set('extensions', $extensions);
+		if (!empty($event['Event']['extends_uuid'])) {
+			$extendedEvent = $this->Event->fetchSimpleEvents($this->Auth->user(), array('conditions' => array('Event.uuid' => $event['Event']['extends_uuid'])));
+			if (empty($extendedEvent)) $extendedEvent = $event['Event']['extends_uuid'];
+			$this->set('extendedEvent', $extendedEvent);
+		}
 		if (Configure::read('MISP.delegation')) {
 			$this->loadModel('EventDelegation');
 			$delegationConditions = array('EventDelegation.event_id' => $event['Event']['id']);
@@ -1148,6 +1166,12 @@ class EventsController extends AppController {
 		}
 		if (!empty($this->params['named']['overrideLimit']) && !$this->_isRest()) {
 			$conditions['overrideLimit'] = 1;
+		}
+		if (!empty($this->params['named']['extended'])) {
+			$conditions['extended'] = 1;
+			$this->set('extended', 1);
+		} else {
+			$this->set('extended', 0);
 		}
 		$conditions['includeFeedCorrelations'] = true;
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
@@ -1677,7 +1701,7 @@ class EventsController extends AppController {
 				}
 			}
 			// say what fields are to be updated
-			$fieldList = array('date', 'threat_level_id', 'analysis', 'info', 'published', 'distribution', 'timestamp', 'sharing_group_id');
+			$fieldList = array('date', 'threat_level_id', 'analysis', 'info', 'published', 'distribution', 'timestamp', 'sharing_group_id', 'extends_uuid');
 
 			$this->Event->read();
 			// always force the org, but do not force it for admins
@@ -1999,6 +2023,8 @@ class EventsController extends AppController {
 			}
 			$broTypes[$broType] = implode(', ', $broTypes[$broType]);
 		}
+		$this->loadModel('Server');
+		$this->set('command_line_functions', $this->Server->command_line_functions);
 		$this->set('broTypes', $broTypes);
 		// generate the list of Attribute types
 		$this->loadModel('Attribute');
@@ -3649,6 +3675,7 @@ class EventsController extends AppController {
 						}
 						$saved++;
 					} else {
+						$lastError = $this->Event->$objectType->validationErrors;
 						$failed++;
 					}
 				}
@@ -3676,7 +3703,7 @@ class EventsController extends AppController {
 		}
 		if ($failed > 0) {
 			if ($failed == 1) {
-				$flashMessage = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. Reason for the failure: ' . json_encode($this->Event->$objectType->validationErrors);
+				$flashMessage = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. Reason for the failure: ' . json_encode($lastError);
 			} else {
 				$flashMessage = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. This may be due to attributes with similar values already existing.';
 			}

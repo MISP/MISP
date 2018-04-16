@@ -35,7 +35,7 @@ class OrganisationsController extends AppController {
 
 		if (isset($searchall) && !empty($searchall)) {
 			$passedArgs['searchall'] = $searchall;
-			$allSearchFields = array('name', 'description', 'nationality', 'sector', 'type', 'contacts');
+			$allSearchFields = array('name', 'description', 'nationality', 'sector', 'type', 'contacts', 'restricted_to_domain', 'uuid');
 			foreach ($allSearchFields as $field) {
 				$conditions['OR'][] = array('LOWER(Organisation.' . $field . ') LIKE' => '%' . strtolower($passedArgs['searchall']) . '%');
 			}

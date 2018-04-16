@@ -102,8 +102,8 @@ class ShadowAttribute extends AppModel {
 			),
 		),
 		'value' => array(
-			'valueNotEmpty' => array(
-				'rule' => array('valueNotEmpty'),
+			'stringNotEmpty' => array(
+				'rule' => array('stringNotEmpty'),
 			),
 			'userdefined' => array(
 				'rule' => array('validateAttributeValue'),

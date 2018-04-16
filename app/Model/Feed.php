@@ -915,7 +915,7 @@ class Feed extends AppModel {
 		$params = array(
 			'conditions' => array('caching_enabled' => 1),
 			'recursive' => -1,
-			'fields' => array('source_format', 'input_source', 'url', 'id', 'settings')
+			'fields' => array('source_format', 'input_source', 'url', 'id', 'settings', 'headers')
 		);
 		$redis = $this->setupRedis();
 		if ($redis === false) {

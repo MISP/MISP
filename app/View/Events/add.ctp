@@ -48,6 +48,12 @@
 					'class' => 'form-control span6',
 					'placeholder' => __('Quick Event Description or Tracking Info')
 				));
+		echo $this->Form->input('extends_uuid', array(
+					'label' => __('Extends event'),
+					'div' => 'clear',
+					'class' => 'form-control span6',
+					'placeholder' => __('Event UUID or ID. Leave blank if not applicable.')
+				));
 		echo $this->Form->input('Event.submittedgfi', array(
 				'label' => '<b>GFI sandbox</b>',
 				'type' => 'file',

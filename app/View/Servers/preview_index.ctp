@@ -63,12 +63,12 @@
 			<?php
 				endif;
 			?>
-			<th><?php echo $this->Paginator->sort('id');?></th>
+			<th><?php echo $this->Paginator->sort('id', null, array('direction' => 'desc'));?></th>
 			<?php if (Configure::read('MISP.tagging')): ?>
 				<th class="filter"><?php echo __('Tags');?></th>
 			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('attribute_count', '#Attr.');?></th>
-			<th class="filter"><?php echo $this->Paginator->sort('date');?></th>
+			<th class="filter"><?php echo $this->Paginator->sort('date', null, array('direction' => 'desc'));?></th>
 			<th class="filter" title="<?php echo $eventDescriptions['threat_level_id']['desc'];?>"><?php echo $this->Paginator->sort('threat_level_id');?></th>
 			<th title="<?php echo $eventDescriptions['analysis']['desc'];?>">
 				<?php echo $this->Paginator->sort('analysis');?>

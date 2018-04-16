@@ -1,6 +1,10 @@
 <div class="task index">
-	<h2><?php echo __('Scheduled Tasks');?></h2>
-	<p><?php echo __('Here you can schedule pre-defined tasks that will be executed every x hours. You can alter the date and time of the next scheduled execution and the frequency at which it will be repeated (expressed in hours). If you set the frequency to 0 then the task will not be repeated. To change and of the above mentioned settings just click on the appropriate field and hit update all when you are done editing the scheduled tasks.');?></p>
+	<?php
+		echo '<h2>' . __('Scheduled Tasks') . '</h2>';
+		echo '<p>' . __('Here you can schedule pre-defined tasks that will be executed every x hours. You can alter the date and time of the next scheduled execution and the frequency at which it will be repeated (expressed in hours). If you set the frequency to 0 then the task will not be repeated. To change and of the above mentioned settings just click on the appropriate field and hit update all when you are done editing the scheduled tasks.') . '</p>';
+		echo '<p class="red bold">' . __('Warning: Scheduled tasks come with a lot of caveats and little in regards of customisations / granularity. You can instead simply create cron jobs out of the console commands as described here: ');
+		echo '<a href="' . $baseurl . '/events/automation/#console_tasks">' . __('Automating certain console tasks') . '</a>' . '</p>';
+	?>
 	<div class="pagination">
 		<ul>
 		<?php

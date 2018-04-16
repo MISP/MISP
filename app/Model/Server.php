@@ -109,6 +109,13 @@ class Server extends AppModel {
 		),
 	);
 
+	public $command_line_functions = array(
+		'pull' => 'MISP/app/Console/cake Server pull [user_id] [server_id] [full|update]',
+		'push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
+		'cacheFeed' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
+		'fetchFeed' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]'
+	);
+
 	public $serverSettings = array(
 			'MISP' => array(
 					'branch' => 1,
@@ -381,6 +388,14 @@ class Server extends AppModel {
 							'errorMessage' => '',
 							'test' => 'testBool',
 							'type' => 'boolean',
+					),
+					'download_attachments_on_load' => array(
+						'level' => 2,
+						'description' => 'Always download attachments when loaded by a user in a browser',
+						'value' => true,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean',
 					),
 					'email' => array(
 							'level' => 0,
@@ -1033,11 +1048,11 @@ class Server extends AppModel {
 			'Session' => array(
 					'branch' => 1,
 					'autoRegenerate' => array(
-							'level' => 1,
-							'description' => 'Set to true to automatically regenerate sessions on activity. (Recommended)',
+							'level' => 0,
+							'description' => 'Set to true to automatically regenerate sessions after x number of requests. This might lead to the user getting de-authenticated and is frustrating in general, so only enable it if you really need to regenerate sessions. (Not recommended)',
 							'value' => false,
 							'errorMessage' => '',
-							'test' => 'testBool',
+							'test' => 'testBoolFalse',
 							'type' => 'boolean',
 					),
 					'defaults' => array(
@@ -1533,6 +1548,42 @@ class Server extends AppModel {
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
 							'type' => 'numeric'
+					),
+					'Cortex_ssl_verify_peer' => array(
+							'level' => 1,
+							'description' => 'Set to false to disable SSL verification. This is not recommended.',
+							'value' => true,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
+					),
+					'Cortex_ssl_verify_host' => array(
+							'level' => 1,
+							'description' => 'Set to false if you wish to ignore hostname match errors when validating certificates.',
+							'value' => true,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
+					),
+					'Cortex_ssl_allow_self_signed' => array(
+							'level' => 1,
+							'description' => 'Set to true to enable self-signed certificates to be accepted. This requires Cortex_ssl_verify_peer to be enabled.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
+					),
+					'Cortex_ssl_cafile' => array(
+							'level' => 1,
+							'description' => 'Set to the absolute path of the Certificate Authority file that you wish to use for verifying SSL certificates.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+							'null' => true
 					),
 					'CustomAuth_custom_password_reset' => array(
 							'level' => 2,
@@ -2638,7 +2689,32 @@ class Server extends AppModel {
 		return true;
 	}
 
+	private function __serverSettingNormaliseValue($data, $value, $setting) {
+		if (!empty($data['type'])) {
+			if ($data['type'] == 'boolean') {
+				$value = $value ? true : false;
+			} else if ($data['type'] == 'numeric') {
+				$value = intval($value);
+			}
+		}
+		return $value;
+	}
+
 	public function serverSettingsSaveValue($setting, $value) {
+		$settingObject = $this->getCurrentServerSettings();
+		foreach ($settingObject as $branchName => $branch) {
+			if (!isset($branch['level'])) {
+				foreach ($branch as $settingName => $settingObject) {
+					if ($setting == $branchName . '.' . $settingName) {
+						$value = $this->__serverSettingNormaliseValue($settingObject, $value, $setting);
+					}
+				}
+			} else {
+				if ($setting == $branchName) {
+					$value = $this->__serverSettingNormaliseValue($branch, $value, $setting);
+				}
+			}
+		}
 		Configure::write($setting, $value);
 		$arrayFix = array(
 			'Security.auth',

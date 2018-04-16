@@ -76,8 +76,8 @@ class AdminShell extends AppShell
 	}
 
 	public function setSetting() {
-		$setting = empty($this->args[0]) ? null : $this->args[0];
-		$value = empty($this->args[1]) ? null : $this->args[1];
+		$setting = !isset($this->args[0]) ? null : $this->args[0];
+		$value = !isset($this->args[1]) ? null : $this->args[1];
 		if (empty($setting) || $value === null) {
 			echo 'Invalid parameters. Usage: ' . APP . 'Console/cake Admin setSetting [setting_name] [setting_value]';
 		} else {

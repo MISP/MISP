@@ -607,7 +607,7 @@ class ServersController extends AppController {
 			$process_id = CakeResque::enqueue(
 					'default',
 					'ServerShell',
-					array('push', $id, $technique, $jobId, $this->Auth->user('id'))
+					array('push', $this->Auth->user('id'), $id, $jobId)
 			);
 			$this->Job->saveField('process_id', $process_id);
 			$this->Session->setFlash('Push queued for background execution.');

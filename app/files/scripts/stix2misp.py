@@ -15,9 +15,10 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import sys, json, os, time
+import sys, json, os, time, uuid
 from pymisp import MISPEvent, MISPObject, MISPAttribute, __path__
 from stix.core import STIXPackage
+from collections import defaultdict
 
 file_object_type = {"type": "filename", "relation": "filename"}
 
@@ -39,6 +40,7 @@ with open(descFilename, 'r') as f:
 class StixParser():
     def __init__(self):
         self.misp_event = MISPEvent()
+        self.misp_event['Galaxy'] = []
 
     def loadEvent(self, args, pathname):
         try:
@@ -100,8 +102,10 @@ class StixParser():
             self.parse_external_indicator(self.event.indicators)
         if self.event.observables:
             self.parse_external_observable(self.event.observables.observables)
-        # if self.event.ttps:
-        #    self.parse_ttps(self.event.ttps.ttps)
+        if self.event.ttps:
+            self.parse_ttps(self.event.ttps.ttps)
+        if self.event.courses_of_action:
+            self.parse_coa(self.event.courses_of_action)
 
     def dictTimestampAndDate(self):
         if self.event.timestamp:
@@ -127,17 +131,17 @@ class StixParser():
         return d
 
     def eventInfo(self):
+        info = "Imported from external STIX event"
         try:
             try:
-                info = self.event.stix_header.title
+                title = self.event.stix_header.title
             except:
-                info = self.event.title
-            if info:
-                self.misp_event.info = info
-            else:
-                raise Exception("Imported from external STIX event")
-        except Exception as noinfo:
-            self.misp_event.info = str(noinfo)
+                title = self.event.title
+            if title:
+                info = title
+        except:
+            pass
+        self.misp_event.info = str(info)
 
     def parse_misp_indicator(self, indicator):
         # define is an indicator will be imported as attribute or object
@@ -210,7 +214,7 @@ class StixParser():
 
     @staticmethod
     def handle_domain_or_url(properties):
-        event_types = eventTypes[proprties._XSI_TYPE]
+        event_types = eventTypes[properties._XSI_TYPE]
         return event_types['type'], properties.value.value, event_types['relation']
 
     def handle_email_attribute(self, properties):
@@ -253,15 +257,16 @@ class StixParser():
                 attributes.append(self.handle_hashes_attribute(h))
         if properties.file_format and properties.file_format.value:
             attributes.append(["mime-type", properties.file_format.value, "mimetype"])
-        if properties.file_name or properties.file_path:
-            try:
-                value = properties.file_name.value
-            except AttributeError:
-                value = properties.file_path.value
+        if properties.file_name:
+            value = properties.file_name.value
             if value:
                 b_file = True
                 event_types = eventTypes[properties._XSI_TYPE]
                 attributes.append([event_types['type'], value, event_types['relation']])
+        if properties.file_path:
+            value = properties.file_path.value
+            if value:
+                attributes.append(['text', value, 'path'])
         if properties.byte_runs:
             attribute_type = "pattern-in-file"
             attributes.append([attribute_type, properties.byte_runs[0].byte_run_data, attribute_type])
@@ -504,7 +509,10 @@ class StixParser():
                 self.parse_description(observable)
                 continue
             if properties:
-                attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties, title=title)
+                try:
+                    attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties, title=title)
+                except:
+                    continue
                 attr_type = type(attribute_value)
                 if attr_type is str or attr_type is int:
                     # if the returned value is a simple value, we build an attribute
@@ -512,7 +520,8 @@ class StixParser():
                     self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
                 else:
                     # otherwise, it is a dictionary of attributes, so we build an object
-                    self.handle_object_case(attribute_type, attribute_value, compl_data)
+                    if attribute_value:
+                        self.handle_object_case(attribute_type, attribute_value, compl_data)
 
     def parse_description(self, stix_object):
         if stix_object.description:
@@ -538,20 +547,70 @@ class StixParser():
         self.misp_event.add_object(**misp_object)
 
     def parse_ttps(self, ttps):
-        galaxies = []
         for ttp in ttps:
             if ttp.behavior and ttp.behavior.malware_instances:
                 mi = ttp.behavior.malware_instances[0]
                 if mi.types:
                     mi_type = mi.types[0].value
-                    galaxy = {'type': mi_type, 'GalaxyCluster': []}
-                    cluster = {'type': mi_type}
+                    galaxy = {'type': mi_type}
+                    cluster = defaultdict(dict)
+                    cluster['type'] = mi_type
                     if mi.description:
                         cluster['description'] = mi.description.value
                     cluster['value'] = ttp.title
-                    galaxy['GalaxyCluster'].append(cluster)
-                    galaxies.append(galaxy)
-        self.misp_event['Galaxy'] = galaxies
+                    if mi.names:
+                        synonyms = []
+                        for name in mi.names:
+                            synonyms.append(name.value)
+                        cluster['meta']['synonyms'] = synonyms
+                    galaxy['GalaxyCluster'] = [cluster]
+                    self.misp_event['Galaxy'].append(galaxy)
+
+    def parse_coa(self, courses_of_action):
+        for coa in courses_of_action:
+            misp_object = MISPObject('course-of-action')
+            if coa.title:
+                attribute = {'type': 'text', 'object_relation': 'name',
+                             'value': coa.title}
+                misp_object.add_attribute(**attribute)
+            if coa.type_:
+                attribute = {'type': 'text', 'object_relation': 'type',
+                             'value': coa.type_.value}
+                misp_object.add_attribute(**attribute)
+            if coa.stage:
+                attribute = {'type': 'text', 'object_relation': 'stage',
+                             'value': coa.stage.value}
+                misp_object.add_attribute(**attribute)
+            if coa.description:
+                attribute = {'type': 'text', 'object_relation': 'description',
+                             'value': coa.description.value} # POSSIBLE ISSUE HERE, need example to test
+                misp_object.add_attribute(**attribute)
+            if coa.objective:
+                attribute = {'type': 'text', 'object_relation': 'objective',
+                             'value': coa.objective.description.value}
+                misp_object.add_attribute(**attribute)
+            if coa.cost:
+                attribute = {'type': 'text', 'object_relation': 'cost',
+                             'value': coa.cost.value.value}
+                misp_object.add_attribute(**attribute)
+            if coa.efficacy:
+                attribute = {'type': 'text', 'object_relation': 'efficacy',
+                             'value': coa.efficacy.value.value}
+                misp_object.add_attribute(**attribute)
+            if coa.impact:
+                attribute = {'type': 'text', 'object_relation': 'impact',
+                             'value': coa.impact.value.value}
+                misp_object.add_attribute(**attribute)
+            if coa.parameter_observables:
+                for observable in coa.parameter_observables.observables:
+                    properties = observable.object_.properties
+                    attribute = MISPAttribute()
+                    attribute.type, attribute.value, _ = self.handle_attribute_type(properties)
+                    referenced_uuid = str(uuid.uuid4())
+                    attribute.uuid = referenced_uuid
+                    self.misp_event.add_attribute(**attribute)
+                    misp_object.add_reference(referenced_uuid, 'observable', None, **attribute)
+            self.misp_event.add_object(**misp_object)
 
     @staticmethod
     def return_attributes(attributes):

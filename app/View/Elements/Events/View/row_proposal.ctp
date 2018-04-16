@@ -2,6 +2,11 @@
   $tr_class = 'darkOrangeRow';
   $linkClass = 'white';
   $currentType = 'denyForm';
+  if ($event['Event']['id'] != $object['event_id']) {
+    if (!$isSiteAdmin && $event['extensionEvents'][$object['event_id']]['Orgc']['id'] != $me['org_id']) {
+      $mayModify = false;
+    }
+  }
   if (!empty($objectContainer)) {
     if (!empty($child)) {
       if ($child === 'last') {
@@ -52,12 +57,21 @@
       ?>
     </div>
   </td>
+  <?php
+    if ($extended):
+  ?>
+    <td class="short">
+      <?php echo '<a href="' . $baseurl . '/events/view/' . h($object['event_id']) . '" class="white">' . h($object['event_id']) . '</a>'; ?>
+    </td>
+  <?php
+    endif;
+  ?>
   <td class="short">
-<?php
+  <?php
     if (isset($object['Org']['name'])) {
       echo $this->OrgImg->getOrgImg(array('name' => $object['Org']['name'], 'id' => $object['Org']['id'], 'size' => 24));
     }
-?>
+  ?>
   </td>
   <td class="short">
     <div id = "<?php echo $currentType . '_' . $object['id'] . '_category_placeholder'; ?>" class = "inline-field-placeholder"></div>
