@@ -137,7 +137,7 @@ class EventGraph {
 					dataHandler.fetch_data_and_update();
 				}
 			},
-			options: ["Reference", "Tag", "Extended event", "Rotation key"],
+			options: ["Reference", "Tag", "Rotation key"],
 			default: "Reference"
 		});
 		menu_scope.add_select({
@@ -985,6 +985,7 @@ class DataHandler {
 		this.mapping_obj_relation_value_to_nodeID = new Map();
 		this.mapping_uuid_to_template = new Map();
 		this.selected_type_to_display = "";
+		this.extended_event = $('#eventgraph_network').data('extended') == 1 ? true : false;
 		this.scope_name;
 	}
 
@@ -1043,8 +1044,9 @@ class DataHandler {
 			var payload = {};
 			payload.filtering = filtering_rules;
 			payload.keyType = keyType;
+			var extended_text = dataHandler.extended_event ? "extended:1" : "";
 			$.ajax({
-				url: "/events/"+dataHandler.get_scope_url()+"/"+scope_id+"/event.json",
+				url: "/events/"+dataHandler.get_scope_url()+"/"+scope_id+"/"+extended_text+"/event.json",
 				dataType: 'json',
 				type: 'post',
 				contentType: 'application/json',

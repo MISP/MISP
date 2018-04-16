@@ -10,11 +10,12 @@
 		private $__related_events = array();
 		private $__related_attributes = array();
 
-		public function construct($eventModel, $user, $filterRules) {
+		public function construct($eventModel, $user, $filterRules, $extended_view=0) {
 			$this->__eventModel = $eventModel;
 			$this->__user = $user;
 			$this->__filterRules = $filterRules;
 			$this->__json = array();
+			$this->__extended_view = $extended_view;
 			$this->__lookupTables = array(
 				'analysisLevels' => $this->__eventModel->analysisLevels,
 				'distributionLevels' => $this->__eventModel->Attribute->distributionLevels
@@ -33,7 +34,7 @@
 		private function __get_event($id) {
 			$this->__json['available_rotation_key'] = $this->__authorized_JSON_key;
 
-			$fullevent = $this->__eventModel->fetchEvent($this->__user, array('eventid' => $id, 'flatten' => 0, 'includeTagRelations' => 1));
+			$fullevent = $this->__eventModel->fetchEvent($this->__user, array('eventid' => $id, 'flatten' => 0, 'includeTagRelations' => 1, 'extended' => $this->__extended_view));
 			$event = array();
 			if (empty($fullevent)) return $event;
 

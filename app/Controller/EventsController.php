@@ -4351,7 +4351,14 @@ class EventsController extends AppController {
 		App::uses('EventGraphTool', 'Tools');
 		$grapher = new EventGraphTool();
 		$data = $this->request->is('post') ? $this->request->data : array();
-		$grapher->construct($this->Event, $this->Auth->user(), $data['filtering']);
+
+		if (isset($this->params['named']['extended'])) {
+			$extended = 1;
+		} else {
+			$extended = 0;
+		}
+
+		$grapher->construct($this->Event, $this->Auth->user(), $data['filtering'], $extended);
 		$json = $grapher->get_references($id);
 
 		array_walk_recursive($json, function(&$item, $key){
@@ -4369,7 +4376,14 @@ class EventsController extends AppController {
 		App::uses('EventGraphTool', 'Tools');
 		$grapher = new EventGraphTool();
 		$data = $this->request->is('post') ? $this->request->data : array();
-		$grapher->construct($this->Event, $this->Auth->user(), $data['filtering']);
+
+		if (isset($this->params['named']['extended'])) {
+			$extended = 1;
+		} else {
+			$extended = 0;
+		}
+
+		$grapher->construct($this->Event, $this->Auth->user(), $data['filtering'], $extended);
 		$json = $grapher->get_tags($id);
 
 		array_walk_recursive($json, function(&$item, $key){
@@ -4387,7 +4401,14 @@ class EventsController extends AppController {
 		App::uses('EventGraphTool', 'Tools');
 		$grapher = new EventGraphTool();
 		$data = $this->request->is('post') ? $this->request->data : array();
-		$grapher->construct($this->Event, $this->Auth->user(), $data['filtering']);
+
+		if (isset($this->params['named']['extended'])) {
+			$extended = 1;
+		} else {
+			$extended = 0;
+		}
+
+		$grapher->construct($this->Event, $this->Auth->user(), $data['filtering'], $extended);
 		if (!array_key_exists('keyType', $data)) {
 			$keyType = ''; // empty key
 		} else {
@@ -4429,7 +4450,7 @@ class EventsController extends AppController {
 		$eventGraphTool = new EventGraphTool();
 
 		$data = $this->request->is('post') ? $this->request->data : array();
-		$eventGraphTool->construct_for_ref($this->Event->Object, $this->Auth->user(), $data);
+		$eventGraphTool->construct_for_ref($this->Event->Object, $this->Auth->user());
 		$json = $eventGraphTool->get_object_templates();
 
 		array_walk_recursive($json, function(&$item, $key){
