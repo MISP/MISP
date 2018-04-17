@@ -1,0 +1,8 @@
+.action-table select {
+    margin-bottom: 0px;
+}
+
+.action-table td {
+    vertical-align: middle;
+    padding: 4px;
+}

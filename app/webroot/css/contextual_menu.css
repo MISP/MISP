@@ -1,0 +1,77 @@
+.contextual-menu {
+    min-width: 200px;
+}
+
+.contextual-menu-styling {
+    padding: 5px;
+    position: absolute;
+    z-index: 1;
+    background: white;
+    border: 1px solid #adadad;
+    border-radius:3px;
+    box-shadow: 5px 5px 10px grey;
+}
+
+.contextual-menu > button {
+    display: block;
+    min-width: 200px;
+    width: 100%;
+    margin-bottom: 3px;
+}
+
+.contextual-menu > div {
+    width: 200px;
+}
+
+.contextual-menu > label {
+    font-weight: bold;
+    margin-right: 3px;
+}
+
+.contextual-menu > div > label {
+    display: inline-block;
+    font-weight: bold;
+    margin-right: 3px;
+}
+
+.contextual-menu > div > button {
+    display: inline-block;
+    padding: 1px;
+    line-height: normal;
+    float: right;
+}
+
+.contextual-menu > div > input[type="range"] {
+    width: 200px;
+}
+
+.contextual-menu > button > span {
+    margin-right: 3px;
+}
+
+.contextual-menu > label > input[type="checkbox"] {
+    margin: 0px;
+    margin-right: 3px;
+}
+
+.contextual-menu-divider {
+    height: 1px;
+    margin: 5px 1px;
+    overflow: hidden;
+    background-color: #e5e5e5;
+    border-bottom: 1px solid #ffffff;
+}
+
+.popover {
+    max-width: 66%;
+}
+
+.fadein {
+    transition: opacity 0.2s;
+    opacity: 1.0 !important;
+}
+
+.fadeout {
+    transition: opacity 0.2s;
+    opacity: 0.0 !important;
+}

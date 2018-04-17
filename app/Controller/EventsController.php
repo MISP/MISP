@@ -4305,6 +4305,17 @@ class EventsController extends AppController {
 		$this->set('id', $id);
 	}
 
+
+	public function viewEventGraph() {
+		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
+		if (empty($event)) throw new MethodNotAllowedException('Invalid Event.');
+		$this->set('event', $event[0]);
+		$this->set('scope', 'event');
+		$this->set('id', $id);
+	}
+
+
+
 /*
 	public function deleteNode($id) {
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('Only POST requests are allowed.');
@@ -4334,14 +4345,76 @@ class EventsController extends AppController {
 		return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
 	}
 
-	public function getReferences($id, $type = 'event') {
+	public function getEventGraphReferences($id, $type = 'event') {
 		$validTools = array('event');
 		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
 		App::uses('EventGraphTool', 'Tools');
 		$grapher = new EventGraphTool();
 		$data = $this->request->is('post') ? $this->request->data : array();
-		$grapher->construct($this->Event, $this->Auth->user(), $data);
-		$json = $grapher->get_all_data($id);
+
+		if (isset($this->params['named']['extended'])) {
+			$extended = 1;
+		} else {
+			$extended = 0;
+		}
+
+		$grapher->construct($this->Event, $this->Auth->user(), $data['filtering'], $extended);
+		$json = $grapher->get_references($id);
+
+		array_walk_recursive($json, function(&$item, $key){
+			if(!mb_detect_encoding($item, 'utf-8', true)){
+				$item = utf8_encode($item);
+			}
+		});
+		$this->response->type('json');
+		return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+	}
+
+	public function getEventGraphTags($id, $type = 'event') {
+		$validTools = array('event');
+		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
+		App::uses('EventGraphTool', 'Tools');
+		$grapher = new EventGraphTool();
+		$data = $this->request->is('post') ? $this->request->data : array();
+
+		if (isset($this->params['named']['extended'])) {
+			$extended = 1;
+		} else {
+			$extended = 0;
+		}
+
+		$grapher->construct($this->Event, $this->Auth->user(), $data['filtering'], $extended);
+		$json = $grapher->get_tags($id);
+
+		array_walk_recursive($json, function(&$item, $key){
+			if(!mb_detect_encoding($item, 'utf-8', true)){
+				$item = utf8_encode($item);
+			}
+		});
+		$this->response->type('json');
+		return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+	}
+
+	public function getEventGraphGeneric($id, $type = 'event') {
+		$validTools = array('event');
+		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
+		App::uses('EventGraphTool', 'Tools');
+		$grapher = new EventGraphTool();
+		$data = $this->request->is('post') ? $this->request->data : array();
+
+		if (isset($this->params['named']['extended'])) {
+			$extended = 1;
+		} else {
+			$extended = 0;
+		}
+
+		$grapher->construct($this->Event, $this->Auth->user(), $data['filtering'], $extended);
+		if (!array_key_exists('keyType', $data)) {
+			$keyType = ''; // empty key
+		} else {
+			$keyType = $data['keyType'];
+		}
+		$json = $grapher->get_generic_from_key($id, $keyType);
 
 		array_walk_recursive($json, function(&$item, $key){
 			if(!mb_detect_encoding($item, 'utf-8', true)){
@@ -4358,8 +4431,27 @@ class EventsController extends AppController {
 		App::uses('EventGraphTool', 'Tools');
 		$grapher = new EventGraphTool();
 		$data = $this->request->is('post') ? $this->request->data : array();
-		$grapher->construct_for_ref($this->Event->Object, $this->Auth->user(), $data);
+		$grapher->construct_for_ref($this->Event->Object, $this->Auth->user());
 		$json = $grapher->get_reference_data($uuid);
+
+		array_walk_recursive($json, function(&$item, $key){
+			if(!mb_detect_encoding($item, 'utf-8', true)){
+				$item = utf8_encode($item);
+			}
+		});
+		$this->response->type('json');
+		return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+	}
+
+	public function getObjectTemplate($type = 'templates') {
+		$validTools = array('templates');
+		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
+		App::uses('EventGraphTool', 'Tools');
+		$eventGraphTool = new EventGraphTool();
+
+		$data = $this->request->is('post') ? $this->request->data : array();
+		$eventGraphTool->construct_for_ref($this->Event->Object, $this->Auth->user());
+		$json = $eventGraphTool->get_object_templates();
 
 		array_walk_recursive($json, function(&$item, $key){
 			if(!mb_detect_encoding($item, 'utf-8', true)){
