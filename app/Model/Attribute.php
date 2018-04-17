@@ -393,48 +393,29 @@ class Attribute extends AppModel {
 	public $validate = array(
 		'event_id' => array(
 			'numeric' => array(
-				'rule' => array('numeric'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
-			),
+				'rule' => array('numeric')
+			)
 		),
 		'type' => array(
-			// currently when adding a new attribute type we need to change it in both places
 			'rule' => array('validateTypeValue'),
 			'message' => 'Options depend on the selected category.',
-			//'allowEmpty' => false,
-			'required' => true,
-			//'last' => false, // Stop validation after this rule
-			//'on' => 'create', // Limit validation to 'create' or 'update' operations
-
+			'required' => true
 		),
-		// this could be initialized from categoryDefinitions but dunno how at the moment
 		'category' => array(
 			'rule' => array('validCategory'),
 			'message' => 'Options : Payload delivery, Antivirus detection, Payload installation, Files dropped ...'
 		),
 		'value' => array(
 			'stringNotEmpty' => array(
-				'rule' => array('stringNotEmpty'),
+				'rule' => array('stringNotEmpty')
 			),
 			'userdefined' => array(
 				'rule' => array('validateAttributeValue'),
-				'message' => 'Value not in the right type/format. Please double check the value or select type "other".',
-				//'allowEmpty' => false,
-				//'required' => true,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+				'message' => 'Value not in the right type/format. Please double check the value or select type "other".'
 			),
 			'uniqueValue' => array(
 					'rule' => array('valueIsUnique'),
-					'message' => 'A similar attribute already exists for this event.',
-					//'allowEmpty' => false,
-					//'required' => true,
-					//'last' => false, // Stop validation after this rule
-					//'on' => 'create', // Limit validation to 'create' or 'update' operations
+					'message' => 'A similar attribute already exists for this event.'
 			),
 			'validComposite' => array(
 				'rule' => array('validComposite'),
@@ -444,12 +425,8 @@ class Attribute extends AppModel {
 		'to_ids' => array(
 			'boolean' => array(
 				'rule' => array('boolean'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
-			),
+				'required' => false
+			)
 		),
 		'uuid' => array(
 			'uuid' => array(
@@ -465,11 +442,8 @@ class Attribute extends AppModel {
 		'distribution' => array(
 				'rule' => array('inList', array('0', '1', '2', '3', '4', '5')),
 				'message' => 'Options: Your organisation only, This community only, Connected communities, All communities, Sharing group, Inherit event',
-				//'allowEmpty' => false,
-				'required' => true,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
-		),
+				'required' => true
+		)
 	);
 
 	// automatic resolution of complex types
@@ -688,6 +662,10 @@ class Attribute extends AppModel {
 			return false;
 		}
 		if (is_array($this->data['Attribute']['value'])) {
+			return false;
+		}
+
+		if (!empty($this->data['Attribute']['object_id']) && empty($this->data['Attribute']['object_relation'])) {
 			return false;
 		}
 		// remove leading and trailing blanks
