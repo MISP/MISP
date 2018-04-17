@@ -35,7 +35,8 @@ class StixBuilder():
         self.object_refs = []
         self.external_refs = []
 
-    def loadEvent(self, pathname, args):
+    def loadEvent(self, args):
+        pathname = os.path.dirname(args[0])
         filename = os.path.join(pathname, args[1])
         self.misp_event.load_file(filename)
         self.filename = filename
@@ -796,9 +797,8 @@ class StixBuilder():
         return pattern[:-5]
 
 def main(args):
-    pathname = os.path.dirname(args[0])
     stix_builder = StixBuilder()
-    stix_builder.loadEvent(pathname, args)
+    stix_builder.loadEvent(args)
     stix_builder.buildEvent()
     stix_builder.saveFile()
     print(1)
