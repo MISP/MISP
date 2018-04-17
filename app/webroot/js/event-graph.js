@@ -1293,6 +1293,7 @@ function orientation(p, q, r) {
     return (val > 0)? 1: 2; // clock or counterclock wise
 }
 // Implementation of Gift wrapping algorithm (jarvis march in 2D)
+// Inspired from https://www.geeksforgeeks.org/convex-hull-set-1-jarviss-algorithm-or-wrapping/:wq
 function getHullFromPoints(points) {
     var n = points.length;
     var l = 0;
