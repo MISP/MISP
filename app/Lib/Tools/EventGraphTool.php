@@ -167,6 +167,7 @@
 					'uuid' => $attr['uuid'],
 					'type' => $attr['type'],
 					'label' => $attr['value'],
+					'event_id' => $attr['event_id'],
 					'node_type' => 'attribute',
 				);
 				array_push($this->__json['items'], $toPush);
@@ -182,6 +183,7 @@
 					'node_type' => 'object',
 					'meta-category' => $obj['meta-category'],
 					'template_uuid' => $obj['template_uuid'],
+					'event_id' => $obj['event_id'],
 				);
 				array_push($this->__json['items'], $toPush);
 
@@ -198,6 +200,7 @@
 						'to' => $rel['referenced_id'],
 						'type' => $rel['relationship_type'],
 						'comment' => $rel['comment'],
+						'event_id' => $rel['event_id'],
 					);
 					array_push($this->__json['relations'], $toPush);
 				}
@@ -236,6 +239,7 @@
 					'uuid' => $attr['uuid'],
 					'type' => $attr['type'],
 					'label' => $attr['value'],
+					'event_id' => $attr['event_id'],
 					'node_type' => 'attribute',
 					//'Tag' => $Tags,
 				);
@@ -264,6 +268,7 @@
 					'node_type' => 'object',
 					'meta-category' => $obj['meta-category'],
 					'template_uuid' => $obj['template_uuid'],
+					'event_id' => $obj['event_id'],
 				);
 				array_push($this->__json['items'], $toPush);
 
@@ -342,6 +347,7 @@
 					'uuid' => $attr['uuid'],
 					'type' => $attr['type'],
 					'label' => $attr['value'],
+					'event_id' => $attr['event_id'],
 					'node_type' => 'attribute',
 				);
 				array_push($this->__json['items'], $toPush);
@@ -369,6 +375,7 @@
 					'node_type' => 'object',
 					'meta-category' => $obj['meta-category'],
 					'template_uuid' => $obj['template_uuid'],
+					'event_id' => $obj['event_id'],
 				);
 				array_push($this->__json['items'], $toPush);
 

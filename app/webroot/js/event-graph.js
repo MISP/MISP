@@ -65,6 +65,9 @@ class EventGraph {
 		this.cluster_index = 0; // use to get uniq cluster ID
 		this.clusters = [];
 
+		this.extended_event_color_mapping = {};
+		this.extended_event_points = {};
+
 		this.network = new vis.Network(container, data, this.network_options);
 		this.add_unreferenced_root_node();
 
@@ -88,6 +91,21 @@ class EventGraph {
 		});
 		this.network.on("dragEnd", function (params) {
 			eventGraph.physics_state($('#checkbox_physics_enable').prop("checked"));
+		});
+
+		this.network.on("beforeDrawing", function (ctx) {
+			for (var event_id in that.extended_event_points) {
+				if (that.extended_event_color_mapping[event_id] === undefined) {
+					eventGraph.extended_event_color_mapping[event_id] = getRandomColor(event_id);   
+				}
+				var chosen_color = eventGraph.extended_event_color_mapping[event_id];
+
+				var nodes = that.network.getPositions(that.extended_event_points[event_id]);
+				nodes = $.map(nodes, function(value, index) { // object to array
+				        return [value];
+				});
+				drawExtendedEventHull(ctx, nodes, chosen_color, "Event "+event_id);
+			}
 		});
 	}
 
@@ -447,6 +465,13 @@ class EventGraph {
 		var newNodeIDs = [];
 		for(var node of data.items) {
 			var group, label;
+			if (node.event_id != scope_id) { // add node ids of extended event
+				if (this.extended_event_points[node.event_id] === undefined) {
+					this.extended_event_points[node.event_id] = [];
+				}
+				this.extended_event_points[node.event_id].push(node.id);
+			}
+
 			if ( node.node_type == 'object' ) {
 				var group =  'object';
 				var label = dataHandler.generate_label(node);
@@ -1233,6 +1258,82 @@ class MispInteraction {
 /*=========
  * UTILS
  * ========*/
+function drawExtendedEventHull(ctx, nodes, color, text) {
+	ctx.fillStyle = color+'88';
+	var hull = getHullFromPoints(nodes);
+	
+	var start = hull[0];
+	var end = hull[hull.length-1];
+	var prev = start;
+	ctx.beginPath();
+	ctx.moveTo(start.x, start.y);
+	for (var i=1; i<hull.length; i++) {
+		var cur = hull[i];
+		ctx.lineTo(cur.x,cur.y);
+		prev = cur;
+	}
+	ctx.moveTo(end.x, end.y);
+	var centerX = (end.x+start.x)/2;
+	var centerY = (end.y+start.y)/2;
+	ctx.quadraticCurveTo(centerX,centerY,start.x,start.y);
+	ctx.fill();
+	
+	var centroid = getCentroid(hull);
+	ctx.beginPath();
+	ctx.font="30px Verdana";
+	ctx.fillStyle = getTextColour(color);
+	ctx.fillText(text, centroid.x, centroid.y);
+	//ctx.fill();
+	//ctx.stroke();
+}
+function orientation(p, q, r) {
+    var val = (q.y - p.y) * (r.x - q.x) -
+	      (q.x - p.x) * (r.y - q.y);
+    if (val == 0) return 0;  // collinear
+    return (val > 0)? 1: 2; // clock or counterclock wise
+}
+// Implementation of Gift wrapping algorithm (jarvis march in 2D)
+function getHullFromPoints(points) {
+    var n = points.length;
+    var l = 0;
+    var hull = [];
+    // get leftmost point
+    for (var i=0; i<n; i++) {
+	l = points[l].x > points[i].x ? l : i;
+    }
+
+    var p = l;
+    var q;
+    do {
+	hull.push(points[p]);
+
+	q = (p+1) % n;
+    	for (var i=0; i<n; i++) {
+		if (orientation(points[p], points[i], points[q]) == 2) {
+			q = i;
+		}
+    	}
+	p = q;
+    } while (p != l);
+    return hull;
+}
+function getCentroid(coordList) {
+    var cx = 0;
+    var cy = 0;
+    var a = 0;
+    for (var i=0; i<coordList.length; i++) {
+	var ci = coordList[i];
+	var cj = i+1 == coordList.length ? coordList[0] : coordList[i+1]; // j = i+1 AND loop around
+	var mul = (ci.x*cj.y - cj.x*ci.y);
+	cx += (ci.x + cj.x)*mul;
+	cy += (ci.y + cj.y)*mul;
+	a += mul;
+    }
+    a = a / 2;
+    cx = cx / (6*a);
+    cy = cy / (6*a);
+    return {x: cx, y: cy};
+}
 function getRandomColor() {
 	var letters = '0123456789ABCDEF';
 	var color = '#';
