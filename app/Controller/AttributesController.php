@@ -1969,7 +1969,20 @@ class AttributesController extends AppController {
 		if ($published) $conditions['AND'][] = array('Event.published' => $published);
 		if ($timestamp) $conditions['AND'][] = array('Attribute.timestamp >=' => $timestamp);
 		if ($event_timestamp) $conditions['AND'][] = array('Event.timestamp >=' => $event_timestamp);
-		if ($threat_level_id) $conditions['AND'][] = array('Event.threat_level_id' => $threat_level_id);
+		if ($threat_level_id) {
+			if (!is_array($threat_level_id)) {
+				$threat_level_id = array($threat_level_id);
+			}
+			$threat_level_lookup = array('high' => 1, 'medium' => 2, 'low' => 3, 'undefined' => 4);
+			foreach ($threat_level_id as $tldk => $tld) {
+				if (!is_numeric($tld)) {
+					if (isset($threat_level_lookup[strtolower($tld)])) {
+						$threat_level_id[$tldk] = $threat_level_lookup[strtolower($tld)];
+					}
+				}
+			}
+			$conditions['AND'][] = array('Event.threat_level_id' => $threat_level_id);
+		}
 		if ($to_ids) $conditions = $this->Attribute->setToIDSConditions($to_ids, $conditions);
 		// change the fields here for the attribute export!!!! Don't forget to check for the permissions, since you are not going through fetchevent. Maybe create fetchattribute?
 		$params = array(
