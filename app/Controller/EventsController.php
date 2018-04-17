@@ -4738,4 +4738,29 @@ class EventsController extends AppController {
 			$this->redirect($this->referer());
 		}
 	}
+
+	public function getEventInfoById($id) {
+		$conditions = array('Event.id' => $id);
+		if (Validation::uuid($id)) {
+			$conditions = array('Event.uuid' => $id);
+		}
+		$event = $this->Event->find('first', array(
+			'conditions' => $conditions,
+			'fields' => array('Event.id', 'Event.distribution', 'Event.sharing_group_id', 'Event.info', 'Event.org_id'),
+			'recursive' => -1
+		));
+		if (!empty($event) && !$this->_isSiteAdmin() && $event['Event']['org_id'] != $this->Auth->user('org_id')) {
+			if (!in_array($event['Event']['distribution'], array(1, 2, 3))) {
+				if ($event['Event']['distribution'] == 4) {
+					$sharingGroups = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
+					if (!in_array($event['Event']['sharing_group_id'], $sharingGroups)) {
+						$event = array();
+					}
+				} else {
+					$event = array();
+				}
+			}
+		}
+		return $this->RestResponse->viewData($event, $this->response->type());
+	}
 }
