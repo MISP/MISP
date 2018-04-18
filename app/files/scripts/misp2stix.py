@@ -1,8 +1,6 @@
 import sys, json, uuid, os, time, datetime, re, ntpath, socket
 import pymisp
 from copy import deepcopy
-# from misp2cybox import *
-from misp2ciq import *
 from dateutil.tz import tzutc
 from stix.indicator import Indicator
 from stix.indicator.valid_time import ValidTime
