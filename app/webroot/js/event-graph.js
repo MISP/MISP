@@ -94,6 +94,10 @@ class EventGraph {
 		});
 
 		this.network.on("beforeDrawing", function (ctx) {
+			if (that.scope_name != "Reference" || !that.canDrawHull) {
+				return;
+			}
+
 			for (var event_id in that.extended_event_points) {
 				if (that.extended_event_color_mapping[event_id] === undefined) {
 					eventGraph.extended_event_color_mapping[event_id] = getRandomColor(event_id);   
@@ -452,6 +456,8 @@ class EventGraph {
 		this.edges.clear();
 		if (hard) {
 			this.backup_connection_edges = {};
+			this.extended_event_points = {};
+			this.extended_event_color_mapping = {};
 		}
 	}
 
@@ -590,30 +596,34 @@ class EventGraph {
 		this.edges.update(newRelations);
 
 		this.remove_root_nodes();
-		if (this.scope_name == 'Reference') {
-			this.add_unreferenced_root_node();
-			// links unreferenced attributes and object to root nodes
-			if (this.first_draw) {
-				this.link_not_referenced_nodes();
-				this.first_draw = !this.first_draw
-			}
-		} else if (this.scope_name == 'Tag') {
-			this.add_tag_root_node();
-			// links untagged attributes and object to root nodes
-			if (this.first_draw) {
-				this.link_not_referenced_nodes();
-				this.first_draw = !this.first_draw
-			}
-		} else if (this.scope_name == 'Distribution') {
-		} else if (this.scope_name == 'Correlation') {
-		} else {
-			this.add_keyType_root_node();
-			if (this.first_draw) {
-				this.link_not_referenced_nodes();
-				this.first_draw = !this.first_draw
-			}
+		// do not clusterize if the network is filtered
+		if (!this.is_filtered) {
+		        if (this.scope_name == 'Reference') {
+		        	this.add_unreferenced_root_node();
+		        	// links unreferenced attributes and object to root nodes
+		        	if (this.first_draw) {
+		        		this.link_not_referenced_nodes();
+		        		this.first_draw = !this.first_draw
+		        	}
+		        } else if (this.scope_name == 'Tag') {
+		        	this.add_tag_root_node();
+		        	// links untagged attributes and object to root nodes
+		        	if (this.first_draw) {
+		        		this.link_not_referenced_nodes();
+		        		this.first_draw = !this.first_draw
+		        	}
+		        } else if (this.scope_name == 'Distribution') {
+		        } else if (this.scope_name == 'Correlation') {
+		        } else {
+		        	this.add_keyType_root_node();
+		        	if (this.first_draw) {
+		        		this.link_not_referenced_nodes();
+		        		this.first_draw = !this.first_draw
+		        	}
+		        }
 		}
 
+		eventGraph.canDrawHull = true;
 		this.network_loading(false, "");
 	}
 
@@ -1070,6 +1080,7 @@ class DataHandler {
 			payload.filtering = filtering_rules;
 			payload.keyType = keyType;
 			var extended_text = dataHandler.extended_event ? "extended:1" : "";
+			eventGraph.canDrawHull = false;
 			$.ajax({
 				url: "/events/"+dataHandler.get_scope_url()+"/"+scope_id+"/"+extended_text+"/event.json",
 				dataType: 'json',
@@ -1293,7 +1304,7 @@ function orientation(p, q, r) {
     return (val > 0)? 1: 2; // clock or counterclock wise
 }
 // Implementation of Gift wrapping algorithm (jarvis march in 2D)
-// Inspired from https://www.geeksforgeeks.org/convex-hull-set-1-jarviss-algorithm-or-wrapping/:wq
+// Inspired from https://www.geeksforgeeks.org/convex-hull-set-1-jarviss-algorithm-or-wrapping/
 function getHullFromPoints(points) {
     var n = points.length;
     var l = 0;
