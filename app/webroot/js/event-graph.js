@@ -146,6 +146,7 @@ class EventGraph {
 		var menu_scope = new ContextualMenu({
 			trigger_container: document.getElementById("network-scope"),
 			bootstrap_popover: true,
+			style: "z-index: 1"
 		});
 		menu_scope.add_select({
 			id: "select_graph_scope",
@@ -184,7 +185,8 @@ class EventGraph {
 	init_physic_menu() {
 		var menu_physic = new ContextualMenu({
 			trigger_container: document.getElementById("network-physic"),
-			bootstrap_popover: true
+			bootstrap_popover: true,
+			style: "z-index: 1"
 		});
 		menu_physic.add_select({
 			id: "select_physic_solver",
@@ -222,7 +224,8 @@ class EventGraph {
 	init_display_menu() {
 		var menu_display = new ContextualMenu({
 			trigger_container: document.getElementById("network-display"),
-			bootstrap_popover: true
+			bootstrap_popover: true,
+			style: "z-index: 1"
 		});
 		menu_display.add_select({
 			id: "select_display_layout",
@@ -305,7 +308,8 @@ class EventGraph {
 	init_filter_menu() {
 		var menu_filter = new ContextualMenu({
 			trigger_container: document.getElementById("network-filter"),
-			bootstrap_popover: true
+			bootstrap_popover: true,
+			style: "z-index: 1"
 		});
 		menu_filter.add_action_table({
 			id: "table_attr_presence",
@@ -373,7 +377,8 @@ class EventGraph {
 	init_canvas_menu() {
 		var menu_canvas = new ContextualMenu({
 			trigger_container: document.getElementById("eventgraph_network"),
-			right_click: true
+			right_click: true,
+			style: "z-index: 1"
 		});
 		menu_canvas.add_button({
 			label: "View/Edit",
