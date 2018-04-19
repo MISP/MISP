@@ -93,6 +93,7 @@ class EventGraph {
 			eventGraph.physics_state($('#checkbox_physics_enable').prop("checked"));
 		});
 
+		// create Hull for extending events
 		this.network.on("beforeDrawing", function (ctx) {
 			if (that.scope_name != "Reference" || !that.canDrawHull) {
 				return;
@@ -1180,7 +1181,6 @@ class MispInteraction {
 
 	add_reference(edgeData, callback) {
 		var that = mispInteraction;
-		//var uuid = dataHandler.mapping_attr_id_to_uuid.get(edgeData.to);
 		var uuid = that.nodes.get(edgeData.to).uuid;
 		if (!that.can_create_reference(edgeData.from) || !that.can_be_referenced(edgeData.to)) {
 			return;
