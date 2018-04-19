@@ -137,7 +137,6 @@ class StixBuilder(object):
             self.stix_package.add_ttp(ttp)
 
     def saveFile(self):
-        print(self.stix_package.version)
         try:
             outputfile = "{}.out".format(self.filename)
             with open(outputfile, 'w') as f:
@@ -742,6 +741,7 @@ def main(args):
     stix_builder.loadEvent()
     stix_builder.generateEventPackage()
     stix_builder.saveFile()
+    print(json.dumps({'success': 1, 'message': ''}))
 
 if __name__ == "__main__":
     main(sys.argv)
