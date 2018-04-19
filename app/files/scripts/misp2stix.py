@@ -624,7 +624,7 @@ class StixBuilder(object):
             if event_colors:
                 color = self.set_color(event_colors)
             else:
-                color = TLP_mapping.get(distribution, None)
+                color = TLP_mapping.get(str(distribution), None)
         if color is None:
             return target
         tlp.color = color
