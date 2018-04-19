@@ -3284,6 +3284,25 @@ function changeObjectReferenceSelectOption() {
 	}
 }
 
+function previewEventBasedOnUuids() {
+	var currentValue = $("#EventExtendsUuid").val();
+	if (currentValue == '') {
+		$('#extended_event_preview').hide();
+	} else {
+		$.ajax({
+			url: "/events/getEventInfoById/" + currentValue,
+			type: "get",
+			error: function() {
+				$('#extended_event_preview').hide();
+			},
+			success: function(data) {
+				$('#extended_event_preview').show();
+				$('#extended_event_preview').html(data);
+			}
+		});
+	}
+}
+
 $('.add_object_attribute_row').click(function() {
 	var template_id = $(this).data('template-id');
 	var object_relation = $(this).data('object-relation');

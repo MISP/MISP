@@ -4832,13 +4832,17 @@ class EventsController extends AppController {
 	}
 
 	public function getEventInfoById($id) {
+		if (empty($id)) throw new MethodNotAllowedException('Invalid ID.');
 		$conditions = array('Event.id' => $id);
 		if (Validation::uuid($id)) {
 			$conditions = array('Event.uuid' => $id);
+		} else if (!is_numeric($id)) {
+			$conditions = array('Event.uuid' => -1);
 		}
 		$event = $this->Event->find('first', array(
 			'conditions' => $conditions,
-			'fields' => array('Event.id', 'Event.distribution', 'Event.sharing_group_id', 'Event.info', 'Event.org_id'),
+			'fields' => array('Event.id', 'Event.distribution', 'Event.sharing_group_id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.analysis'),
+			'contain' => array('Orgc.id', 'Orgc.name', 'EventTag' => array('Tag.id', 'Tag.name', 'Tag.colour'), 'ThreatLevel.name'),
 			'recursive' => -1
 		));
 		if (!empty($event) && !$this->_isSiteAdmin() && $event['Event']['org_id'] != $this->Auth->user('org_id')) {
@@ -4853,6 +4857,16 @@ class EventsController extends AppController {
 				}
 			}
 		}
-		return $this->RestResponse->viewData($event, $this->response->type());
+		if ($this->_isRest()) {
+			return $this->RestResponse->viewData($event, $this->response->type());
+		} else {
+			if ($this->request->is('ajax')) {
+				$this->layout = 'ajax';
+			}
+			$this->set('analysisLevels', $this->Event->analysisLevels);
+			$this->set('validUuid', Validation::uuid($id));
+			$this->set('id', $id);
+			$this->set('event', $event);
+		}
 	}
 }
