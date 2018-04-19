@@ -125,16 +125,16 @@ class StixBuilder(object):
         package_name = "{}:STIXPackage-{}".format(namespace[1], self.misp_event.uuid)
         # timestamp = self.get_date_from_timestamp(int(str(self.misp_event.timestamp)))
         timestamp = self.misp_event.timestamp
-        self.stix_package = STIXPackage(id_=package_name, timestamp=timestamp)
-        self.stix_package.version = "1.1.1"
+        stix_package = STIXPackage(id_=package_name, timestamp=timestamp)
+        stix_package.version = "1.1.1"
         stix_header = STIXHeader()
         stix_header.title = "{} (MISP Event #{})".format(self.misp_event.info, self.misp_event.id)
         stix_header.package_intents = "Threat Report"
-        self.stix_package.stix_header = stix_header
-        incident, ttps = self.generate_stix_objects()
-        self.stix_package.add_incident(incident)
-        for ttp in ttps:
-            self.stix_package.add_ttp(ttp)
+        stix_package.stix_header = stix_header
+        stix_package.add_incident(incident)
+        for ttp in self.ttps:
+            stix_package.add_ttp(ttp)
+        self.stix_package = stix_package
 
     def saveFile(self):
         try:
