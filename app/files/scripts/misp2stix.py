@@ -131,6 +131,7 @@ class StixBuilder(object):
         stix_header.title = "{} (MISP Event #{})".format(self.misp_event.info, self.misp_event.id)
         stix_header.package_intents = "Threat Report"
         stix_package.stix_header = stix_header
+        incident = self.generate_stix_objects()
         stix_package.add_incident(incident)
         for ttp in self.ttps:
             stix_package.add_ttp(ttp)
@@ -171,14 +172,11 @@ class StixBuilder(object):
         self.set_src(incident, self.misp_event.Org.get('name'))
         self.orgc_name = self.misp_event.Orgc.get('name')
         self.set_rep(incident)
-        ttps = []
-        self.resolve_attributes(incident, ttps, self.misp_event.attributes, Tags)
-        self.resolve_objects(incident, ttps, Tags)
-        for rindicator in incident.related_indicators:
-            for ttp in ttps:
-                ittp = TTP(idref=ttp.id_, timestamp=ttp.timestamp)
-                rindicator.item.add_indicated_ttp(ittp)
-        return incident, ttps
+        self.ttps = []
+        self.resolve_attributes(incident, self.misp_event.attributes, Tags)
+        self.resolve_objects(incident, Tags)
+        self.add_related_indicators(incident)
+        return incident
 
     def convert_to_stix_date(self, date):
         # converts a date (YYYY-mm-dd) to the format used by stix
@@ -192,7 +190,7 @@ class StixBuilder(object):
         incident_time.incident_reported = timestamp
         incident.time = incident_time
 
-    def resolve_attributes(self, incident, ttps, attributes, tags):
+    def resolve_attributes(self, incident, attributes, tags):
         for attribute in attributes:
             attribute_type = attribute.type
             if attribute_type in not_implemented_attributes:
@@ -200,16 +198,16 @@ class StixBuilder(object):
                 attribute_type, attribute.value)
                 self.add_journal_entry(incident, journal_entry)
             elif attribute_type in non_indicator_attributes:
-                self.handle_non_indicator_attribute(incident, ttps, tags, attribute)
+                self.handle_non_indicator_attribute(incident, tags, attribute)
             else:
                 self.handle_indicator_attribute(incident, tags, attribute)
 
-    def resolve_objects(self, incident, ttps, tags):
+    def resolve_objects(self, incident, tags):
         for misp_object in self.misp_event.objects:
             tlp_tags = None
             tmp_incident = Incident()
             tlp_tags = deepcopy(tags)
-            self.resolve_attributes(tmp_incident, ttps, misp_object.attributes, tags)
+            self.resolve_attributes(tmp_incident, misp_object.attributes, tags)
             indicator = Indicator(timestamp=self.get_date_from_timestamp(int(misp_object.timestamp)))
             indicator.id_ = "{}:MispObject-{}".format(namespace[1], misp_object.uuid)
             self.set_prod(indicator, self.orgc_name)
@@ -228,6 +226,12 @@ class StixBuilder(object):
             relatedIndicator = RelatedIndicator(indicator, relationship=misp_object['meta-category'])
             incident.related_indicators.append(relatedIndicator)
 
+    def add_related_indicators(self, incident):
+        for rindicator in incident.related_indicators:
+            for ttp in self.ttps:
+                ittp = TTP(idref=ttp.id_, timestamp=ttp.timestamp)
+                rindicator.item.add_indicated_ttp(ittp)
+
     def handle_indicator_attribute(self, incident, tags, attribute):
         indicator = self.generate_indicator(attribute, tags, self.orgc_name)
         indicator.add_indicator_type("Malware Artifacts")
@@ -243,19 +247,19 @@ class StixBuilder(object):
         related_indicator = RelatedIndicator(indicator, relationship=attribute.category)
         incident.related_indicators.append(related_indicator)
 
-    def handle_non_indicator_attribute(self, incident, ttps, tags, attribute):
+    def handle_non_indicator_attribute(self, incident, tags, attribute):
         attribute_type = attribute.type
         attribute_category = attribute.category
         if attribute_type == "vulnerability":
-            self.generate_vulnerability(incident, ttps, tags, attribute)
+            self.generate_vulnerability(incident, tags, attribute)
         elif attribute_type == "link":
             if attribute_category == "Payload delivery":
-                self.handle_indicator_attribute(incident, ttps, tags, attribute)
+                self.handle_indicator_attribute(incident, tags, attribute)
             else:
                 self.add_reference(incident, attribute.value)
         elif attribute_type in ('comment', 'text', 'other'):
             if attribute_category == "Payload type":
-                self.generate_ttp(incident, ttps, tags, attribute)
+                self.generate_ttp(incident, tags, attribute)
             elif attribute_category == "Attribution":
                 ta = self.generate_threat_actor(attribute)
                 rta = RelatedThreatActor(ta, relationship="Attribution")
@@ -467,15 +471,15 @@ class StixBuilder(object):
             tm.rules = [value]
             indicator.test_mechanisms = [tm]
 
-    def generate_ttp(self, incident, ttps, tags, attribute):
+    def generate_ttp(self, incident, tags, attribute):
         ttp = self.create_ttp(tags, attribute)
         mmalware = MalwareInstance()
         malware.add_name(attribute.value)
         ttp.behavior = Behavior()
         ttp.behavior.add_malware_instance(malware)
-        self.append_ttp(incident, ttps, attribute, ttp)
+        self.append_ttp(incident, attribute, ttp)
 
-    def generate_vulnerability(self, incident, ttps, tags, attribute):
+    def generate_vulnerability(self, incident, tags, attribute):
         ttp = self.create_ttp(tags, attribute)
         vulnerability = Vulnerability()
         vulnerability.cve_id = attribute.value
@@ -487,7 +491,7 @@ class StixBuilder(object):
             ET.title = "Vulnerability {}".format(attribute.value)
         ET.add_vulnerability(vulnerability)
         ttp.exploit_targets.append(ET)
-        self.append_ttp(incident, ttps, attribute, ttp)
+        self.append_ttp(incident, attribute, ttp)
 
     @staticmethod
     def resolve_email_observable(indicator, attribute):
@@ -643,9 +647,10 @@ class StixBuilder(object):
         if hasattr(target.information_source, 'references'):
             target.information_source.add_reference(reference)
 
-    @staticmethod
-    def append_ttp(incident, ttps, attribute, ttp):
-        ttps.append(ttp)
+    def append_ttp(self, incident, attribute, ttp):
+        if attribute.comment:
+            ttp.description = attribute.comment
+        self.ttps.append(ttp)
         rttp = TTP(idref=ttp.id_, timestamp=ttp.timestamp)
         related_ttp = RelatedTTP(rttp, relationship=attribute.category)
         incident.leveraged_ttps.append(related_ttp)
