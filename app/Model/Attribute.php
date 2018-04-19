@@ -2571,6 +2571,7 @@ class Attribute extends AppModel {
 				}
 			}
 		}
+		$results = array_values($results);
 		return $results;
 	}
 
