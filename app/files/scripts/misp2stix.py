@@ -105,7 +105,7 @@ class StixBuilder(object):
                 idgen.set_id_namespace(Namespace(namespace[0], namespace[1]))
             except TypeError:
                 idgen.set_id_namespace(Namespace(namespace[0], namespace[1], "MISP"))
-        self.namespace_prefix = idgen.get_id_namespace_prefix()
+        self.namespace_prefix = idgen.get_id_namespace_alias()
         self.simple_type_to_method = {"port": self.generate_port_observable, "domain|ip": self.generate_domain_ip_observable}
         self.simple_type_to_method.update(dict.fromkeys(hash_type_attributes["single"] + hash_type_attributes["composite"] + ["filename"] + ["attachment"], self.resolve_file_observable))
         self.simple_type_to_method.update(dict.fromkeys(["ip-src", "ip-dst", "ip-src|port", "ip-dst|port"], self.generate_ip_observable))
@@ -278,7 +278,10 @@ class StixBuilder(object):
             incident.related_observables.append(related_observable)
 
     def create_artifact_object(self, attribute, artifact=None):
-        artifact = Artifact(data=bytes(attribute.data, 'utf-8'))
+        try:
+            artifact = Artifact(data=bytes(attribute.data, encoding='utf-8'))
+        except TypeError:
+            artifact = Artifact(data=bytes(attribute.data))
         artifact.parent.id_ = "{}:ArtifactObject-{}".format(self.namespace_prefix, attribute.uuid)
         observable = Observable(artifact)
         id_type = "observable"
