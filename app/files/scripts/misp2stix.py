@@ -632,6 +632,7 @@ class StixBuilder(object):
         handling = Marking()
         handling.add_marking(marking_specification)
         target.handling = handling
+        return target
 
     @staticmethod
     def add_journal_entry(incident, entry_line):
