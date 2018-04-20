@@ -1678,7 +1678,7 @@ a.discrete {
 }
 
 .info_container_form {
-	border: 1px solid red;
+	border: 1px solid black; /*like Alexandre's heart*/
 	border-radius: 7px;
 	padding-left:10px;
 	padding-right:10px;
