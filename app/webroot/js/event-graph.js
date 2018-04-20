@@ -336,6 +336,29 @@ class EventGraph {
 		});
 		menu_filter.create_divider(3);
 		menu_filter.add_action_table({
+			id: "table_tag_presence",
+			container: menu_filter.menu,
+			title: "Filter on Tag presence",
+			header: ["Relation", "Tag"],
+			control_items: [
+				{
+					DOMType: "select",
+					item_options: {
+						options: ["Contains", "Do not contain"]
+					}
+				},
+				{
+					DOMType: "select",
+					item_options: {
+						id: "table_control_select_tag_presence",
+						options: []
+					}
+				},
+			],
+			data: [],
+		});
+		menu_filter.create_divider(3);
+		menu_filter.add_action_table({
 			id: "table_attr_value",
 			container: menu_filter.menu,
 			title: "Filter on Attribute value",
@@ -430,8 +453,9 @@ class EventGraph {
 
 	get_filtering_rules() {
 		var rules_presence = eventGraph.menu_filter.items["table_attr_presence"].get_data();
+		var rules_tag_presence = eventGraph.menu_filter.items["table_tag_presence"].get_data();
 		var rules_value = eventGraph.menu_filter.items["table_attr_value"].get_data();
-		var rules = { presence: rules_presence, value: rules_value };
+		var rules = { presence: rules_presence, tag_presence: rules_tag_presence, value: rules_value };
 		return rules;
 	}
 	// Graph interaction
@@ -1071,9 +1095,10 @@ class DataHandler {
 		return label;
 	}
 
-	update_available_object_references(available_object_references) {
+	update_filtering_selectors(available_object_references, available_tags) {
 		eventGraph.menu_display.add_options("select_display_object_field", available_object_references);
 		eventGraph.menu_filter.items["table_attr_presence"].add_options("table_control_select_attr_presence", available_object_references);
+		eventGraph.menu_filter.items["table_tag_presence"].add_options("table_control_select_tag_presence", available_tags);
 		eventGraph.menu_filter.items["table_attr_value"].add_options("table_control_select_attr_value", available_object_references);
 	}
 
@@ -1100,7 +1125,11 @@ class DataHandler {
 					eventGraph.first_draw = true;
 					// update object state
 					var available_object_references = Object.keys(data.existing_object_relation);
-					dataHandler.update_available_object_references(available_object_references);
+					var available_tags = Object.keys(data.existing_tags);
+					var available_tags = $.map(data.existing_tags, function(value, index) { // object to array
+						return [[index, value]];
+					});
+					dataHandler.update_filtering_selectors(available_object_references, available_tags);
 					dataHandler.available_rotation_key = data.available_rotation_key;
 					eventGraph.menu_scope.add_options("input_graph_scope_jsonkey", dataHandler.available_rotation_key);
 					eventGraph.update_graph(data);

@@ -203,8 +203,13 @@ class ActionTable {
 	__add_options_to_select(select, options) {
 		for(var value of options) {
 			var option = document.createElement('option');
-			option.value = value;
-			option.innerHTML = value;
+			if (Array.isArray(value)) { // array of type [value, text]
+				option.value = value[1];
+				option.innerHTML = value[1];
+			} else { // only value, text=value
+				option.value = value;
+				option.innerHTML = value;
+			}
 			select.appendChild(option);
 		}
 	}
