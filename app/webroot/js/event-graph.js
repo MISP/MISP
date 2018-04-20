@@ -1328,58 +1328,59 @@ function drawExtendedEventHull(ctx, nodes, color, text) {
 	ctx.font="30px Verdana";
 	ctx.fillStyle = getTextColour(color);
 	ctx.fillText(text, centroid.x, centroid.y);
-	//ctx.fill();
-	//ctx.stroke();
 }
 function orientation(p, q, r) {
-    var val = (q.y - p.y) * (r.x - q.x) -
-	      (q.x - p.x) * (r.y - q.y);
-    if (val == 0) return 0;  // collinear
-    return (val > 0)? 1: 2; // clock or counterclock wise
+	var val = (q.y - p.y) * (r.x - q.x) -
+		  (q.x - p.x) * (r.y - q.y);
+    	if (val == 0) {
+		return 0;  // collinear
+    	}
+    	return val > 0 ? 1 : 2; // clock or counterclock wise
 }
 // Implementation of Gift wrapping algorithm (jarvis march in 2D)
 // Inspired from https://www.geeksforgeeks.org/convex-hull-set-1-jarviss-algorithm-or-wrapping/
 function getHullFromPoints(points) {
-    var n = points.length;
-    var l = 0;
-    var hull = [];
-    // get leftmost point
-    for (var i=0; i<n; i++) {
-	l = points[l].x > points[i].x ? l : i;
-    }
-
-    var p = l;
-    var q;
-    do {
-	hull.push(points[p]);
-
-	q = (p+1) % n;
+	var n = points.length;
+    	var l = 0;
+    	var hull = [];
+    	// get leftmost point
     	for (var i=0; i<n; i++) {
-		if (orientation(points[p], points[i], points[q]) == 2) {
-			q = i;
-		}
+    	    l = points[l].x > points[i].x ? l : i;
     	}
-	p = q;
-    } while (p != l);
-    return hull;
+
+    	var p = l;
+    	var q;
+    	do {
+		hull.push(points[p]);
+		
+		q = (p+1) % n;
+		for (var i=0; i<n; i++) {
+			if (orientation(points[p], points[i], points[q]) == 2) {
+				q = i;
+			}
+		}
+		p = q;
+    	} while (p != l);
+    	return hull;
 }
 function getCentroid(coordList) {
-    var cx = 0;
-    var cy = 0;
-    var a = 0;
-    for (var i=0; i<coordList.length; i++) {
-	var ci = coordList[i];
-	var cj = i+1 == coordList.length ? coordList[0] : coordList[i+1]; // j = i+1 AND loop around
-	var mul = (ci.x*cj.y - cj.x*ci.y);
-	cx += (ci.x + cj.x)*mul;
-	cy += (ci.y + cj.y)*mul;
-	a += mul;
-    }
-    a = a / 2;
-    cx = cx / (6*a);
-    cy = cy / (6*a);
-    return {x: cx, y: cy};
+	var cx = 0;
+	var cy = 0;
+	var a = 0;
+	for (var i=0; i<coordList.length; i++) {
+		var ci = coordList[i];
+		var cj = i+1 == coordList.length ? coordList[0] : coordList[i+1]; // j = i+1 AND loop around
+		var mul = (ci.x*cj.y - cj.x*ci.y);
+		cx += (ci.x + cj.x)*mul;
+		cy += (ci.y + cj.y)*mul;
+		a += mul;
+	}
+	a = a / 2;
+	cx = cx / (6*a);
+	cy = cy / (6*a);
+	return {x: cx, y: cy};
 }
+
 function getRandomColor() {
 	var letters = '0123456789ABCDEF';
 	var color = '#';

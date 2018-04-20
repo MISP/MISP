@@ -309,7 +309,6 @@
 					'label' => $attr['value'],
 					'event_id' => $attr['event_id'],
 					'node_type' => 'attribute',
-					//'Tag' => $Tags,
 				);
 				array_push($this->__json['items'], $toPush);
 
