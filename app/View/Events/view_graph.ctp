@@ -9,10 +9,10 @@
 	echo $this->Html->script('correlation-graph');
 ?>
 <?php
-	if (!$ajax) {
+	if (!$ajax):
 ?>
 	<div class="view">
-<?php } ?>
+<?php endif; ?>
 	<span id="fullscreen-btn-correlation" class="fullscreen-btn-correlation btn btn-xs btn-primary" data-toggle="tooltip" data-placement="top" data-title="<?php echo __('Toggle fullscreen');?>"><span class="fa fa-desktop"></span></span>
 	<div id="chart" style="width:100%;height:100%"></div>
 		<div id="hover-menu-container" class="menu-container">
@@ -30,10 +30,10 @@
 			<li id="context-delete"><?php echo __('Delete');?></li>
 		</ul>
 <?php
-	if (!$ajax) {
+	if (!$ajax):
 ?>
 	</div>
-<?php } ?>
+<?php endif; ?>
 <div id="graph_init" class="hidden" data-id="<?php echo h($id);?>" data-scope="<?php echo h($scope);?>" data-ajax="<?php echo $ajax ? 'true' : 'false'; ?>">
 </div>
 <?php

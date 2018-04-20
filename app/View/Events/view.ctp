@@ -404,13 +404,13 @@ $(document).ready(function () {
 		delay: { show: 500, hide: 100 }
 	});
 
-	$.get("/threads/view/<?php echo $event['Event']['id']; ?>/true", function(data) {
+	$.get("/threads/view/<?php echo h($event['Event']['id']); ?>/true", function(data) {
 		$("#discussions_div").html(data);
 	});
 });
 
 function enable_correlation_graph() {
-	$.get("/events/viewGraph/10/<?php echo $event['Event']['id']; ?>", function(data) {
+	$.get("/events/viewGraph/10/<?php echo h($event['Event']['id']); ?>", function(data) {
 		$("#correlationgraph_div").html(data);
 	});
 }
