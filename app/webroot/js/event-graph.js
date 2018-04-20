@@ -22,6 +22,7 @@ mapping_root_id_to_type[root_id_tag] = 'tag';
 mapping_root_id_to_type[root_id_keyType] = 'keyType';
 var root_node_x_pos = 800;
 var cluster_expand_threshold = 100;
+var nodes_ask_threshold = 300;
 
 /*=========
  * CLASSES
@@ -65,6 +66,9 @@ class EventGraph {
 		this.cluster_index = 0; // use to get uniq cluster ID
 		this.clusters = [];
 
+		this.extended_event_color_mapping = {};
+		this.extended_event_points = {};
+
 		this.network = new vis.Network(container, data, this.network_options);
 		this.add_unreferenced_root_node();
 
@@ -88,6 +92,26 @@ class EventGraph {
 		});
 		this.network.on("dragEnd", function (params) {
 			eventGraph.physics_state($('#checkbox_physics_enable').prop("checked"));
+		});
+
+		// create Hull for extending events
+		this.network.on("beforeDrawing", function (ctx) {
+			if (that.scope_name != "Reference" || !that.canDrawHull) {
+				return;
+			}
+
+			for (var event_id in that.extended_event_points) {
+				if (that.extended_event_color_mapping[event_id] === undefined) {
+					eventGraph.extended_event_color_mapping[event_id] = getRandomColor(event_id);   
+				}
+				var chosen_color = eventGraph.extended_event_color_mapping[event_id];
+
+				var nodes = that.network.getPositions(that.extended_event_points[event_id]);
+				nodes = $.map(nodes, function(value, index) { // object to array
+				        return [value];
+				});
+				drawExtendedEventHull(ctx, nodes, chosen_color, "Event "+event_id);
+			}
 		});
 	}
 
@@ -124,6 +148,7 @@ class EventGraph {
 		var menu_scope = new ContextualMenu({
 			trigger_container: document.getElementById("network-scope"),
 			bootstrap_popover: true,
+			style: "z-index: 1"
 		});
 		menu_scope.add_select({
 			id: "select_graph_scope",
@@ -162,7 +187,8 @@ class EventGraph {
 	init_physic_menu() {
 		var menu_physic = new ContextualMenu({
 			trigger_container: document.getElementById("network-physic"),
-			bootstrap_popover: true
+			bootstrap_popover: true,
+			style: "z-index: 1"
 		});
 		menu_physic.add_select({
 			id: "select_physic_solver",
@@ -200,7 +226,8 @@ class EventGraph {
 	init_display_menu() {
 		var menu_display = new ContextualMenu({
 			trigger_container: document.getElementById("network-display"),
-			bootstrap_popover: true
+			bootstrap_popover: true,
+			style: "z-index: 1"
 		});
 		menu_display.add_select({
 			id: "select_display_layout",
@@ -283,7 +310,8 @@ class EventGraph {
 	init_filter_menu() {
 		var menu_filter = new ContextualMenu({
 			trigger_container: document.getElementById("network-filter"),
-			bootstrap_popover: true
+			bootstrap_popover: true,
+			style: "z-index: 1"
 		});
 		menu_filter.add_action_table({
 			id: "table_attr_presence",
@@ -301,6 +329,29 @@ class EventGraph {
 					DOMType: "select",
 					item_options: {
 						id: "table_control_select_attr_presence",
+						options: []
+					}
+				},
+			],
+			data: [],
+		});
+		menu_filter.create_divider(3);
+		menu_filter.add_action_table({
+			id: "table_tag_presence",
+			container: menu_filter.menu,
+			title: "Filter on Tag presence",
+			header: ["Relation", "Tag"],
+			control_items: [
+				{
+					DOMType: "select",
+					item_options: {
+						options: ["Contains", "Do not contain"]
+					}
+				},
+				{
+					DOMType: "select",
+					item_options: {
+						id: "table_control_select_tag_presence",
 						options: []
 					}
 				},
@@ -351,7 +402,8 @@ class EventGraph {
 	init_canvas_menu() {
 		var menu_canvas = new ContextualMenu({
 			trigger_container: document.getElementById("eventgraph_network"),
-			right_click: true
+			right_click: true,
+			style: "z-index: 1"
 		});
 		menu_canvas.add_button({
 			label: "View/Edit",
@@ -402,8 +454,9 @@ class EventGraph {
 
 	get_filtering_rules() {
 		var rules_presence = eventGraph.menu_filter.items["table_attr_presence"].get_data();
+		var rules_tag_presence = eventGraph.menu_filter.items["table_tag_presence"].get_data();
 		var rules_value = eventGraph.menu_filter.items["table_attr_value"].get_data();
-		var rules = { presence: rules_presence, value: rules_value };
+		var rules = { presence: rules_presence, tag_presence: rules_tag_presence, value: rules_value };
 		return rules;
 	}
 	// Graph interaction
@@ -434,11 +487,14 @@ class EventGraph {
 		this.edges.clear();
 		if (hard) {
 			this.backup_connection_edges = {};
+			this.extended_event_points = {};
+			this.extended_event_color_mapping = {};
 		}
 	}
 
 	update_graph(data) {
-		setTimeout(function() { eventGraph.network_loading(true, loadingText_creating); });
+		var that = this;
+		that.network_loading(true, loadingText_creating);
 
 		// New nodes will be automatically added
 		// removed references will be deleted
@@ -447,10 +503,17 @@ class EventGraph {
 		var newNodeIDs = [];
 		for(var node of data.items) {
 			var group, label;
+			if (node.event_id != scope_id) { // add node ids of extended event
+				if (that.extended_event_points[node.event_id] === undefined) {
+					that.extended_event_points[node.event_id] = [];
+				}
+				that.extended_event_points[node.event_id].push(node.id);
+			}
+
 			if ( node.node_type == 'object' ) {
 				var group =  'object';
 				var label = dataHandler.generate_label(node);
-				var striped_value = this.strip_text_value(label);
+				var striped_value = that.strip_text_value(label);
 				node_conf = {
 					id: node.id,
 					uuid: node.uuid,
@@ -462,7 +525,7 @@ class EventGraph {
 					icon: {
 						color: getRandomColor(),
 						face: 'FontAwesome',
-						code: this.get_FA_icon(node['meta-category']),
+						code: that.get_FA_icon(node['meta-category']),
 					}
 				};
 				dataHandler.mapping_value_to_nodeID.set(striped_value, node.id);
@@ -493,8 +556,8 @@ class EventGraph {
 				dataHandler.mapping_value_to_nodeID.set(striped_value, node.id);
 			} else if (node.node_type == 'keyType') {
 				group = 'keyType';
-				label = this.scope_keyType + ": " + node.label;
-				var striped_value = this.strip_text_value(label);
+				label = that.scope_keyType + ": " + node.label;
+				var striped_value = that.strip_text_value(label);
 				node_conf = {
 					id: node.id,
 					label: striped_value,
@@ -505,7 +568,7 @@ class EventGraph {
 			} else {
 				group =  'attribute';
 				label = node.type + ': ' + node.label;
-				var striped_value = this.strip_text_value(label);
+				var striped_value = that.strip_text_value(label);
 				node_conf = {
 					id: node.id,
 					uuid: node.uuid,
@@ -521,7 +584,7 @@ class EventGraph {
 			newNodeIDs.push(node.id);
 		}
 		// check if nodes got deleted
-		var old_node_ids = this.nodes.getIds();
+		var old_node_ids = that.nodes.getIds();
 		for (var old_id of old_node_ids) {
 			// Ignore root node
 			if (old_id == "rootNode:attribute" || old_id == "rootNode:object" || old_id == "rootNode:tag" || old_id == "rootNode:keyType") {
@@ -529,11 +592,11 @@ class EventGraph {
 			}
 			// This old node got removed
 			if (newNodeIDs.indexOf(old_id) == -1) {
-				this.nodes.remove(old_id);
+				that.nodes.remove(old_id);
 			}
 		}
 
-		this.nodes.update(newNodes);
+		that.nodes.update(newNodes);
 
 		// New relations will be automatically added
 		// removed references will be deleted
@@ -554,42 +617,46 @@ class EventGraph {
 			newRelationIDs.push(rel.id);
 		}
 		// check if nodes got deleted
-		var old_rel_ids = this.edges.getIds();
+		var old_rel_ids = that.edges.getIds();
 		for (var old_id of old_rel_ids) {
 			// This old node got removed
 			if (newRelationIDs.indexOf(old_id) == -1) {
-				this.edges.remove(old_id);
+				that.edges.remove(old_id);
 			}
 		}
 
-		this.edges.update(newRelations);
+		that.edges.update(newRelations);
 
-		this.remove_root_nodes();
-		if (this.scope_name == 'Reference') {
-			this.add_unreferenced_root_node();
-			// links unreferenced attributes and object to root nodes
-			if (this.first_draw) {
-				this.link_not_referenced_nodes();
-				this.first_draw = !this.first_draw
-			}
-		} else if (this.scope_name == 'Tag') {
-			this.add_tag_root_node();
-			// links untagged attributes and object to root nodes
-			if (this.first_draw) {
-				this.link_not_referenced_nodes();
-				this.first_draw = !this.first_draw
-			}
-		} else if (this.scope_name == 'Distribution') {
-		} else if (this.scope_name == 'Correlation') {
-		} else {
-			this.add_keyType_root_node();
-			if (this.first_draw) {
-				this.link_not_referenced_nodes();
-				this.first_draw = !this.first_draw
+		that.remove_root_nodes();
+		// do not clusterize if the network is filtered
+		if (!that.is_filtered) {
+			if (that.scope_name == 'Reference') {
+				that.add_unreferenced_root_node();
+				// links unreferenced attributes and object to root nodes
+				if (that.first_draw) {
+					that.link_not_referenced_nodes();
+					that.first_draw = !that.first_draw
+				}
+			} else if (that.scope_name == 'Tag') {
+				that.add_tag_root_node();
+				// links untagged attributes and object to root nodes
+				if (that.first_draw) {
+					that.link_not_referenced_nodes();
+					that.first_draw = !that.first_draw
+				}
+			} else if (that.scope_name == 'Distribution') {
+			} else if (that.scope_name == 'Correlation') {
+			} else {
+				that.add_keyType_root_node();
+				if (that.first_draw) {
+					that.link_not_referenced_nodes();
+					that.first_draw = !that.first_draw
+				}
 			}
 		}
 
-		this.network_loading(false, "");
+		eventGraph.canDrawHull = true;
+		that.network_loading(false, "");
 	}
 
 	strip_text_value(text) {
@@ -1030,9 +1097,10 @@ class DataHandler {
 		return label;
 	}
 
-	update_available_object_references(available_object_references) {
+	update_filtering_selectors(available_object_references, available_tags) {
 		eventGraph.menu_display.add_options("select_display_object_field", available_object_references);
 		eventGraph.menu_filter.items["table_attr_presence"].add_options("table_control_select_attr_presence", available_object_references);
+		eventGraph.menu_filter.items["table_tag_presence"].add_options("table_control_select_tag_presence", available_tags);
 		eventGraph.menu_filter.items["table_attr_value"].add_options("table_control_select_attr_value", available_object_references);
 	}
 
@@ -1045,6 +1113,7 @@ class DataHandler {
 			payload.filtering = filtering_rules;
 			payload.keyType = keyType;
 			var extended_text = dataHandler.extended_event ? "extended:1" : "";
+			eventGraph.canDrawHull = false;
 			$.ajax({
 				url: "/events/"+dataHandler.get_scope_url()+"/"+scope_id+"/"+extended_text+"/event.json",
 				dataType: 'json',
@@ -1058,10 +1127,22 @@ class DataHandler {
 					eventGraph.first_draw = true;
 					// update object state
 					var available_object_references = Object.keys(data.existing_object_relation);
-					dataHandler.update_available_object_references(available_object_references);
+					var available_tags = Object.keys(data.existing_tags);
+					var available_tags = $.map(data.existing_tags, function(value, index) { // object to array
+						return [[index, value]];
+					});
+					dataHandler.update_filtering_selectors(available_object_references, available_tags);
 					dataHandler.available_rotation_key = data.available_rotation_key;
 					eventGraph.menu_scope.add_options("input_graph_scope_jsonkey", dataHandler.available_rotation_key);
-					eventGraph.update_graph(data);
+					if (data.items.length < nodes_ask_threshold) {
+						eventGraph.update_graph(data);
+					} else if (data.items.length > nodes_ask_threshold && confirm("The network contains a lot of nodes, displaying it may slow down your browser. Continue?")) {
+						eventGraph.update_graph(data);
+					} else {
+						eventGraph.network_loading(false, "");
+						$("#eventgraph_toggle").click();
+					}
+
 					if ( stabilize === undefined || stabilize) {
 						eventGraph.reset_view_on_stabilized();
 					}
@@ -1139,7 +1220,6 @@ class MispInteraction {
 
 	add_reference(edgeData, callback) {
 		var that = mispInteraction;
-		//var uuid = dataHandler.mapping_attr_id_to_uuid.get(edgeData.to);
 		var uuid = that.nodes.get(edgeData.to).uuid;
 		if (!that.can_create_reference(edgeData.from) || !that.can_be_referenced(edgeData.to)) {
 			return;
@@ -1233,6 +1313,84 @@ class MispInteraction {
 /*=========
  * UTILS
  * ========*/
+function drawExtendedEventHull(ctx, nodes, color, text) {
+	ctx.fillStyle = color+'88';
+	var hull = getHullFromPoints(nodes);
+	
+	var start = hull[0];
+	var end = hull[hull.length-1];
+	var prev = start;
+	ctx.beginPath();
+	ctx.moveTo(start.x, start.y);
+	for (var i=1; i<hull.length; i++) {
+		var cur = hull[i];
+		ctx.lineTo(cur.x,cur.y);
+		prev = cur;
+	}
+	ctx.moveTo(end.x, end.y);
+	var centerX = (end.x+start.x)/2;
+	var centerY = (end.y+start.y)/2;
+	ctx.quadraticCurveTo(centerX,centerY,start.x,start.y);
+	ctx.fill();
+	
+	var centroid = getCentroid(hull);
+	ctx.beginPath();
+	ctx.font="30px Verdana";
+	ctx.fillStyle = getTextColour(color);
+	ctx.fillText(text, centroid.x, centroid.y);
+}
+function orientation(p, q, r) {
+	var val = (q.y - p.y) * (r.x - q.x) -
+		  (q.x - p.x) * (r.y - q.y);
+    	if (val == 0) {
+		return 0;  // collinear
+    	}
+    	return val > 0 ? 1 : 2; // clock or counterclock wise
+}
+// Implementation of Gift wrapping algorithm (jarvis march in 2D)
+// Inspired from https://www.geeksforgeeks.org/convex-hull-set-1-jarviss-algorithm-or-wrapping/
+function getHullFromPoints(points) {
+	var n = points.length;
+    	var l = 0;
+    	var hull = [];
+    	// get leftmost point
+    	for (var i=0; i<n; i++) {
+    	    l = points[l].x > points[i].x ? l : i;
+    	}
+
+    	var p = l;
+    	var q;
+    	do {
+		hull.push(points[p]);
+		
+		q = (p+1) % n;
+		for (var i=0; i<n; i++) {
+			if (orientation(points[p], points[i], points[q]) == 2) {
+				q = i;
+			}
+		}
+		p = q;
+    	} while (p != l);
+    	return hull;
+}
+function getCentroid(coordList) {
+	var cx = 0;
+	var cy = 0;
+	var a = 0;
+	for (var i=0; i<coordList.length; i++) {
+		var ci = coordList[i];
+		var cj = i+1 == coordList.length ? coordList[0] : coordList[i+1]; // j = i+1 AND loop around
+		var mul = (ci.x*cj.y - cj.x*ci.y);
+		cx += (ci.x + cj.x)*mul;
+		cy += (ci.y + cj.y)*mul;
+		a += mul;
+	}
+	a = a / 2;
+	cx = cx / (6*a);
+	cy = cy / (6*a);
+	return {x: cx, y: cy};
+}
+
 function getRandomColor() {
 	var letters = '0123456789ABCDEF';
 	var color = '#';

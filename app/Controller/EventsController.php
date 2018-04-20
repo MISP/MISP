@@ -4348,6 +4348,7 @@ class EventsController extends AppController {
 	public function getEventGraphReferences($id, $type = 'event') {
 		$validTools = array('event');
 		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
+		$this->loadModel('Tag');
 		App::uses('EventGraphTool', 'Tools');
 		$grapher = new EventGraphTool();
 		$data = $this->request->is('post') ? $this->request->data : array();
@@ -4358,7 +4359,7 @@ class EventsController extends AppController {
 			$extended = 0;
 		}
 
-		$grapher->construct($this->Event, $this->Auth->user(), $data['filtering'], $extended);
+		$grapher->construct($this->Event, $this->Tag, $this->Auth->user(), $data['filtering'], $extended);
 		$json = $grapher->get_references($id);
 
 		array_walk_recursive($json, function(&$item, $key){
@@ -4373,6 +4374,7 @@ class EventsController extends AppController {
 	public function getEventGraphTags($id, $type = 'event') {
 		$validTools = array('event');
 		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
+		$this->loadModel('Tag');
 		App::uses('EventGraphTool', 'Tools');
 		$grapher = new EventGraphTool();
 		$data = $this->request->is('post') ? $this->request->data : array();
@@ -4383,7 +4385,7 @@ class EventsController extends AppController {
 			$extended = 0;
 		}
 
-		$grapher->construct($this->Event, $this->Auth->user(), $data['filtering'], $extended);
+		$grapher->construct($this->Event, $this->Tag, $this->Auth->user(), $data['filtering'], $extended);
 		$json = $grapher->get_tags($id);
 
 		array_walk_recursive($json, function(&$item, $key){
@@ -4398,6 +4400,7 @@ class EventsController extends AppController {
 	public function getEventGraphGeneric($id, $type = 'event') {
 		$validTools = array('event');
 		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
+		$this->loadModel('Tag');
 		App::uses('EventGraphTool', 'Tools');
 		$grapher = new EventGraphTool();
 		$data = $this->request->is('post') ? $this->request->data : array();
@@ -4408,7 +4411,7 @@ class EventsController extends AppController {
 			$extended = 0;
 		}
 
-		$grapher->construct($this->Event, $this->Auth->user(), $data['filtering'], $extended);
+		$grapher->construct($this->Event, $this->Tag, $this->Auth->user(), $data['filtering'], $extended);
 		if (!array_key_exists('keyType', $data)) {
 			$keyType = ''; // empty key
 		} else {

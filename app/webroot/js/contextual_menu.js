@@ -133,13 +133,14 @@ class ContextualMenu {
         document.body.appendChild(div);
         var that = this;
         this.trigger_container.tabIndex = 0; // required for the popover focus feature
+	var additional_styling = this.options.style === undefined ? "" : this.options.style;
         $(this.trigger_container).popover({
             container: 'body',
             html: true,
             placement: "bottom",
             content: function () {return $(that.menu); }, // return contextual menu htlm
             trigger: "manual",
-            template: '<div class="popover" id="popover-contextual-menu-'+this.trigger_container.id+'" role="tooltip"><div class="arrow"></div></h3><div class="popover-content"></div></div>'
+            template: '<div class="popover" id="popover-contextual-menu-'+this.trigger_container.id+'" role="tooltip" style="'+additional_styling+'"><div class="arrow"></div></h3><div class="popover-content"></div></div>'
         })
 
         // Overwrite the default popover behavior: hidding cause the popover to be detached from the DOM, making impossible to fetch input values in the form
