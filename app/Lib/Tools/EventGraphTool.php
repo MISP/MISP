@@ -61,25 +61,24 @@
 		private function __get_filtered_event($id) {
 			$event = $this->__get_event($id);
 			if (empty($this->__filterRules)) return $event;
-			$filtered = array('Object' => array(), 'Attribute' => array());
 
 			// perform filtering
-			foreach($event['Object'] as $obj) {
+			foreach($event['Object'] as $i => $obj) {
 				$check1 = $this->__satisfy_obj_filtering($obj);
 				$check2 = $this->__satisfy_obj_tag($obj);
-				if ($check1 && $check2) {
-					array_push($filtered['Object'], $obj);
+				if (!($check1 && $check2)) {
+					unset($event['Object'][$i]);
 				}
 			}
-			foreach($event['Attribute'] as $attr) {
+			foreach($event['Attribute'] as $i => $attr) {
 				$check1 = $this->__satisfy_val_filtering($attr, false);
 				$check2 = $this->__satisfy_attr_tag($attr);
-				if ($check1 && $check2) {
-					array_push($filtered['Attribute'], $attr);
+				if (!($check1 && $check2)) {
+					unset($event['Attribute'][$i]);
 				}
 			}
 
-			return $filtered;
+			return $event;
 		}
 
 		// NOT OPTIMIZED: But allow clearer code
