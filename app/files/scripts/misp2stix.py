@@ -35,7 +35,8 @@ from cybox.common import Hash, ByteRun, ByteRuns
 from cybox.objects.http_session_object import *
 from cybox.objects.as_object import AutonomousSystem
 from stix.extensions.test_mechanism.snort_test_mechanism import *
-from stix.extensions.identity.ciq_identity_3_0 import CIQIdentity3_0Instance, STIXCIQIdentity3_0, PartyName, Address, ElectronicAddressIdentifier, FreeTextAddress
+from stix.extensions.identity.ciq_identity_3_0 import CIQIdentity3_0Instance, STIXCIQIdentity3_0, PartyName, ElectronicAddressIdentifier, FreeTextAddress
+from stix.extensions.identity.ciq_identity_3_0 import Address as ciq_Address
 
 try:
     from stix.utils import idgen
@@ -308,9 +309,9 @@ class StixBuilder(object):
         domain_observable = Observable(domain_object)
         domain_observable.id_ = "{}:DomainName-{}".format(self.namespace_prefix, attribute.uuid)
         composite_object = ObservableComposition(observables=[address_observable, domain_observable])
-        compositeObject.operator = "AND"
+        composite_object.operator = "AND"
         observable = Observable(id_="{}:ObservableComposition-{}".format(self.namespace_prefix, attribute.uuid))
-        observable.observable_composition = compositeObject
+        observable.observable_composition = composite_object
         return observable
 
     def generate_email_attachment_object(self, indicator, attribute):
@@ -448,8 +449,8 @@ class StixBuilder(object):
         if indicator_type:
             indicator.add_indicator_type(indicator_type)
         new_object = constructor()
-        setattr(new_object, cybox_name_attribute[cyboxName], attribute.value)
-        setattr(getattr(new_object, cybox_name_attribute[cyboxName]), "condition", "Equals")
+        setattr(new_object, cybox_name_attribute[cybox_name], attribute.value)
+        setattr(getattr(new_object, cybox_name_attribute[cybox_name]), "condition", "Equals")
         return new_object
 
     @staticmethod
@@ -513,7 +514,7 @@ class StixBuilder(object):
 
     def resolve_file_observable(self, indicator, attribute):
         fuzzy = False
-        f, h = ""
+        f, h = [""] * 2
         attribute_type = attribute.type
         if attribute_type in hash_type_attributes['composite']:
             f, h = attribute.value.split('|')
@@ -565,7 +566,7 @@ class StixBuilder(object):
         elif attribute_type == 'target-org':
             identity_spec.party_name = PartyName(organisation_names=[attribute.value])
         elif attribute_type == 'target-location':
-            identity_spec.add_address(Address(FreeTextAddress(address_lines=[attribute.value])))
+            identity_spec.add_address(ciq_Address(FreeTextAddress(address_lines=[attribute.value])))
         elif attribute_type == 'target-email':
             identity_spec.add_electronic_address_identifier(ElectronicAddressIdentifier(value=attribute.value))
         ciq_identity.specification = identity_spec
