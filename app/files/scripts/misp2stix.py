@@ -154,7 +154,7 @@ class StixBuilder(object):
         incident_id = "{}:incident-{}".format(namespace[1], self.misp_event.uuid)
         incident = Incident(id_=incident_id, title=self.misp_event.info)
         self.set_dates(incident, self.misp_event.date, self.misp_event.publish_timestamp)
-        threat_level_name = threat_level_mapping.get(self.misp_event.threat_level_id, None)
+        threat_level_name = threat_level_mapping.get(str(self.misp_event.threat_level_id), None)
         if threat_level_name:
             threat_level_s = "Event Threat Level: {}".format(threat_level_name)
             self.add_journal_entry(incident, threat_level_s)
@@ -165,7 +165,7 @@ class StixBuilder(object):
         self.set_tag(incident, event_tags)
         external_id = ExternalID(value=self.misp_event.id, source="MISP Event")
         incident.add_external_id(external_id)
-        incident_status_name = status_mapping.get(self.misp_event.analysis, None)
+        incident_status_name = status_mapping.get(str(self.misp_event.analysis), None)
         if incident_status_name is not None:
             incident.status = IncidentStatus(incident_status_name)
         self.set_tlp(incident, self.misp_event.distribution, event_tags)
