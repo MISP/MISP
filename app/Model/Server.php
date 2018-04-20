@@ -1066,7 +1066,7 @@ class Server extends AppModel {
 					),
 					'timeout' => array(
 							'level' => 0,
-							'description' => 'The timeout duration of sessions (in MINUTES). Keep in mind that autoregenerate can be used to extend the session on user activity.',
+							'description' => 'The timeout duration of sessions (in MINUTES).',
 							'value' => '',
 							'errorMessage' => '',
 							'test' => 'testForNumeric',
@@ -1074,12 +1074,12 @@ class Server extends AppModel {
 					),
 					'cookie_timeout' => array(
 							'level' => 0,
-							'description' => 'The timeout duration of sessions (in MINUTES). Keep in mind that autoregenerate can be used to extend the session on user activity.',
+							'description' => 'The expiration of the cookie (in MINUTES). The session timeout gets refreshed frequently, however the cookies do not. Generally it is recommended to have a much higher cookie_timeout than timeout.',
 							'value' => '',
 							'errorMessage' => '',
 							'test' => 'testForNumeric',
 							'type' => 'string',
-					),
+					)
 			),
 			'Plugin' => array(
 					'branch' => 1,
