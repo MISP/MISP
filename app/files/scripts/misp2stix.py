@@ -329,8 +329,7 @@ class StixBuilder(object):
         observable.id_ = "{}:observable-{}".format(self.namespace_prefix, attribute_uuid)
         indicator.observable = observable
 
-    @staticmethod
-    def generate_file_observable(filename, h_value, fuzzy):
+    def generate_file_observable(self, filename, h_value, fuzzy):
         file_object = File()
         if filename:
             if '/' in filename or '\\' in filename:
@@ -344,12 +343,25 @@ class StixBuilder(object):
         if h_value:
             file_object.add_hash(Hash(hash_value=h_value, exact=True))
             if fuzzy:
-                file_object._fields["Hashes"]._inner[0].simple_hash_value = None
-                file_object._fields["Hashes"]._inner[0].fuzzy_hash_value = h_value
-                file_object._fields["Hashes"]._inner[0].fuzzy_hash_value.condition = "Equals"
-                file_object._fields["Hashes"]._inner[0].type_ = Hash.TYPE_SSDEEP
-                file_object._fields["Hashes"]._inner[0].type_.condition = "Equals"
+                try:
+                    self.resolve_fuzzy(file_object, h_value, "Hashes")
+                except KeyError:
+                    field_type = ""
+                    for f in file_object._fields:
+                        if f.name == "Hashes":
+                            field_type = f
+                            break
+                    if field_type:
+                        self.resolve_fuzzy(file_object, h_value, field_type)
         return file_object
+
+    @staticmethod
+    def resolve_fuzzy(file_object, h_value, field_type):
+        file_object._fields[field_type]._inner[0].simple_hash_value = None
+        file_object._fields[field_type]._inner[0].fuzzy_hash_value = h_value
+        file_object._fields[field_type]._inner[0].fuzzy_hash_value.condition = "Equals"
+        file_object._fields[field_type]._inner[0].type_ = Hash.TYPE_SSDEEP
+        file_object._fields[field_type]._inner[0].type_.condition = "Equals"
 
     def generate_indicator(self, attribute, tags, org):
         indicator = Indicator(timestamp=attribute.timestamp)
@@ -398,7 +410,7 @@ class StixBuilder(object):
             # if attribute_type in self.simple_type_to_method:
             try:
                 observable_property = self.simple_type_to_method[attribute_type](indicator, attribute)
-            except:
+            except KeyError:
                 return False
             if isinstance(observable_property, Observable):
                 return indicator.add_observable(observable_property)
