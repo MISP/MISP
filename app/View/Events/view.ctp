@@ -361,6 +361,9 @@
 		<button class="btn btn-inverse toggle qet galaxy-toggle-button" id="eventgraph_toggle" data-toggle-type="eventgraph" onclick="enable_interactive_graph();">
 			<span class="icon-plus icon-white" title="<?php echo __('Toggle Event graph');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Event graph');?>" style="vertical-align:top;"></span><?php echo __('Event graph');?>
 		</button>
+		<button class="btn btn-inverse toggle qet galaxy-toggle-button" id="correlationgraph_toggle" data-toggle-type="correlationgraph" onclick="enable_correlation_graph();">
+			<span class="icon-plus icon-white" title="<?php echo __('Toggle Correlation graph');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Correlation graph');?>" style="vertical-align:top;"></span><?php echo __('Correlation graph');?>
+		</button>
 		<button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attributes_toggle" data-toggle-type="attributes">
 			<span class="icon-minus icon-white" title="<?php echo __('Toggle attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle attributes');?>" style="vertical-align:top;"></span><?php echo __('Attributes');?>
 		</button>
@@ -379,6 +382,8 @@
 	</div>
 	<div id="eventgraph_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
 		<?php echo $this->element('view_event_graph'); ?>
+	</div>
+	<div id="correlationgraph_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
 	</div>
 	<div id="attributes_div">
 		<?php echo $this->element('eventattribute'); ?>
@@ -399,9 +404,15 @@ $(document).ready(function () {
 		delay: { show: 500, hide: 100 }
 	});
 
-	$.get("/threads/view/<?php echo $event['Event']['id']; ?>/true", function(data) {
+	$.get("/threads/view/<?php echo h($event['Event']['id']); ?>/true", function(data) {
 		$("#discussions_div").html(data);
 	});
 });
+
+function enable_correlation_graph() {
+	$.get("/events/viewGraph/10/<?php echo h($event['Event']['id']); ?>", function(data) {
+		$("#correlationgraph_div").html(data);
+	});
+}
 </script>
 <input type="hidden" value="/shortcuts/event_view.json" class="keyboardShortcutsConfig" />

@@ -79,3 +79,13 @@ line.link {
   top:-5px;
   margin-left:100px;
 }
+.fullscreen-btn-correlation {
+  position: absolute;
+  right: 5px;
+  bottom: 2px;
+  font-weight: bold;
+  z-index: 1;
+  cursor: nesw-resize;
+}
+
+
