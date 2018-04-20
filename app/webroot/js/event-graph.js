@@ -22,6 +22,7 @@ mapping_root_id_to_type[root_id_tag] = 'tag';
 mapping_root_id_to_type[root_id_keyType] = 'keyType';
 var root_node_x_pos = 800;
 var cluster_expand_threshold = 100;
+var nodes_ask_threshold = 300;
 
 /*=========
  * CLASSES
@@ -492,7 +493,8 @@ class EventGraph {
 	}
 
 	update_graph(data) {
-		setTimeout(function() { eventGraph.network_loading(true, loadingText_creating); });
+		var that = this;
+		that.network_loading(true, loadingText_creating);
 
 		// New nodes will be automatically added
 		// removed references will be deleted
@@ -502,16 +504,16 @@ class EventGraph {
 		for(var node of data.items) {
 			var group, label;
 			if (node.event_id != scope_id) { // add node ids of extended event
-				if (this.extended_event_points[node.event_id] === undefined) {
-					this.extended_event_points[node.event_id] = [];
+				if (that.extended_event_points[node.event_id] === undefined) {
+					that.extended_event_points[node.event_id] = [];
 				}
-				this.extended_event_points[node.event_id].push(node.id);
+				that.extended_event_points[node.event_id].push(node.id);
 			}
 
 			if ( node.node_type == 'object' ) {
 				var group =  'object';
 				var label = dataHandler.generate_label(node);
-				var striped_value = this.strip_text_value(label);
+				var striped_value = that.strip_text_value(label);
 				node_conf = {
 					id: node.id,
 					uuid: node.uuid,
@@ -523,7 +525,7 @@ class EventGraph {
 					icon: {
 						color: getRandomColor(),
 						face: 'FontAwesome',
-						code: this.get_FA_icon(node['meta-category']),
+						code: that.get_FA_icon(node['meta-category']),
 					}
 				};
 				dataHandler.mapping_value_to_nodeID.set(striped_value, node.id);
@@ -554,8 +556,8 @@ class EventGraph {
 				dataHandler.mapping_value_to_nodeID.set(striped_value, node.id);
 			} else if (node.node_type == 'keyType') {
 				group = 'keyType';
-				label = this.scope_keyType + ": " + node.label;
-				var striped_value = this.strip_text_value(label);
+				label = that.scope_keyType + ": " + node.label;
+				var striped_value = that.strip_text_value(label);
 				node_conf = {
 					id: node.id,
 					label: striped_value,
@@ -566,7 +568,7 @@ class EventGraph {
 			} else {
 				group =  'attribute';
 				label = node.type + ': ' + node.label;
-				var striped_value = this.strip_text_value(label);
+				var striped_value = that.strip_text_value(label);
 				node_conf = {
 					id: node.id,
 					uuid: node.uuid,
@@ -582,7 +584,7 @@ class EventGraph {
 			newNodeIDs.push(node.id);
 		}
 		// check if nodes got deleted
-		var old_node_ids = this.nodes.getIds();
+		var old_node_ids = that.nodes.getIds();
 		for (var old_id of old_node_ids) {
 			// Ignore root node
 			if (old_id == "rootNode:attribute" || old_id == "rootNode:object" || old_id == "rootNode:tag" || old_id == "rootNode:keyType") {
@@ -590,11 +592,11 @@ class EventGraph {
 			}
 			// This old node got removed
 			if (newNodeIDs.indexOf(old_id) == -1) {
-				this.nodes.remove(old_id);
+				that.nodes.remove(old_id);
 			}
 		}
 
-		this.nodes.update(newNodes);
+		that.nodes.update(newNodes);
 
 		// New relations will be automatically added
 		// removed references will be deleted
@@ -615,46 +617,46 @@ class EventGraph {
 			newRelationIDs.push(rel.id);
 		}
 		// check if nodes got deleted
-		var old_rel_ids = this.edges.getIds();
+		var old_rel_ids = that.edges.getIds();
 		for (var old_id of old_rel_ids) {
 			// This old node got removed
 			if (newRelationIDs.indexOf(old_id) == -1) {
-				this.edges.remove(old_id);
+				that.edges.remove(old_id);
 			}
 		}
 
-		this.edges.update(newRelations);
+		that.edges.update(newRelations);
 
-		this.remove_root_nodes();
+		that.remove_root_nodes();
 		// do not clusterize if the network is filtered
-		if (!this.is_filtered) {
-		        if (this.scope_name == 'Reference') {
-		        	this.add_unreferenced_root_node();
-		        	// links unreferenced attributes and object to root nodes
-		        	if (this.first_draw) {
-		        		this.link_not_referenced_nodes();
-		        		this.first_draw = !this.first_draw
-		        	}
-		        } else if (this.scope_name == 'Tag') {
-		        	this.add_tag_root_node();
-		        	// links untagged attributes and object to root nodes
-		        	if (this.first_draw) {
-		        		this.link_not_referenced_nodes();
-		        		this.first_draw = !this.first_draw
-		        	}
-		        } else if (this.scope_name == 'Distribution') {
-		        } else if (this.scope_name == 'Correlation') {
-		        } else {
-		        	this.add_keyType_root_node();
-		        	if (this.first_draw) {
-		        		this.link_not_referenced_nodes();
-		        		this.first_draw = !this.first_draw
-		        	}
-		        }
+		if (!that.is_filtered) {
+			if (that.scope_name == 'Reference') {
+				that.add_unreferenced_root_node();
+				// links unreferenced attributes and object to root nodes
+				if (that.first_draw) {
+					that.link_not_referenced_nodes();
+					that.first_draw = !that.first_draw
+				}
+			} else if (that.scope_name == 'Tag') {
+				that.add_tag_root_node();
+				// links untagged attributes and object to root nodes
+				if (that.first_draw) {
+					that.link_not_referenced_nodes();
+					that.first_draw = !that.first_draw
+				}
+			} else if (that.scope_name == 'Distribution') {
+			} else if (that.scope_name == 'Correlation') {
+			} else {
+				that.add_keyType_root_node();
+				if (that.first_draw) {
+					that.link_not_referenced_nodes();
+					that.first_draw = !that.first_draw
+				}
+			}
 		}
 
 		eventGraph.canDrawHull = true;
-		this.network_loading(false, "");
+		that.network_loading(false, "");
 	}
 
 	strip_text_value(text) {
@@ -1132,7 +1134,15 @@ class DataHandler {
 					dataHandler.update_filtering_selectors(available_object_references, available_tags);
 					dataHandler.available_rotation_key = data.available_rotation_key;
 					eventGraph.menu_scope.add_options("input_graph_scope_jsonkey", dataHandler.available_rotation_key);
-					eventGraph.update_graph(data);
+					if (data.items.length < nodes_ask_threshold) {
+						eventGraph.update_graph(data);
+					} else if (data.items.length > nodes_ask_threshold && confirm("The network contains a lot of nodes, displaying it may slow down your browser. Continue?")) {
+						eventGraph.update_graph(data);
+					} else {
+						eventGraph.network_loading(false, "");
+						$("#eventgraph_toggle").click();
+					}
+
 					if ( stabilize === undefined || stabilize) {
 						eventGraph.reset_view_on_stabilized();
 					}

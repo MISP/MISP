@@ -82,6 +82,7 @@
 		}
 
 		// NOT OPTIMIZED: But allow clearer code
+		// perform filtering on obj_rel presence and then perform filtering on obj_rel value
 		private function __satisfy_obj_filtering($obj) {
 			// presence rule - search in the object's attribute
 			$presenceMatch = true;
