@@ -15,7 +15,7 @@ $(document).ready( function() {
   if ($('#graph_init').data('ajax')) {
     $('.menu-container').css('left', '20px');
     $('#hover-menu-container').css('top', '20px');
-    $('#selected-menu-container').css('top', '250px');
+    $('#selected-menu-container').css('top', '270px');
   } else {
     $('.menu-container').css('left', '200px');
     $('#hover-menu-container').css('top', '50px');
