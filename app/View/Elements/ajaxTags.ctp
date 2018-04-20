@@ -15,7 +15,7 @@
 				$spanRole = "button";
 				$spanTabIndex = "0";
 				$spanAriaLabel = __('Remove tag %s', h($tag['Tag']['name']));
-				$spanOnClick = 'removeObjectTagPopup("event", "' . h($event['Event']['id']) . '", "' . h($tag['Tag']['id']) . '")';
+				$spanOnClick = "removeObjectTagPopup('event', '" . h($event['Event']['id']) . "', '" . h($tag['Tag']['id']) . "')";
 				$span2 = sprintf('<span class="%s" title="%s" role="%s" tabindex="%s" aria-label="%s" onClick="%s">x</span>', $spanClass, $spanTitle, $spanRole, $spanTabIndex, $spanAriaLabel, $spanOnClick);
 			}
 			$tagData .= '<span style="white-space:nowrap;">' . $span1 . $span2 . '</span>  ';
