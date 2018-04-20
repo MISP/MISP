@@ -11,10 +11,17 @@ $(document).ready( function() {
   height = $(window).height() - 160 - margin.top - margin.bottom;
   var menu_x_buffer_ = width - 150;
   var menu_y_buffer = height - 100;
-  $('.menu-container').css('left', '200px');
-  $('#hover-menu-container').css('top', '50px');
+
+  if ($('#graph_init').data('ajax')) {
+    $('.menu-container').css('left', '20px');
+    $('#hover-menu-container').css('top', '20px');
+    $('#selected-menu-container').css('top', '250px');
+  } else {
+    $('.menu-container').css('left', '200px');
+    $('#hover-menu-container').css('top', '50px');
+    $('#selected-menu-container').css('top', '400px');
+  }
   $('#hover-menu-container').css('z-index', 0);
-  $('#selected-menu-container').css('top', '400px');
   $('#selected-menu-container').css('z-index', 1);
 
   var root;
