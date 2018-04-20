@@ -13,6 +13,7 @@
 ?>
 	<div class="view">
 <?php } ?>
+	<span id="fullscreen-btn-correlation" class="fullscreen-btn-correlation btn btn-xs btn-primary" data-toggle="tooltip" data-placement="top" data-title="<?php echo __('Toggle fullscreen');?>"><span class="fa fa-desktop"></span></span>
 	<div id="chart" style="width:100%;height:100%"></div>
 		<div id="hover-menu-container" class="menu-container">
 			<span class="bold hidden" id="hover-header"><?php echo __('Hover target');?></span><br />

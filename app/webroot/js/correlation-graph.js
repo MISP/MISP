@@ -24,6 +24,19 @@ $(document).ready( function() {
   $('#hover-menu-container').css('z-index', 0);
   $('#selected-menu-container').css('z-index', 1);
 
+
+  $('#fullscreen-btn-correlation').click(function() {
+    var network_div = $('#correlationgraph_div');
+    var fullscreen_enabled = !network_div.data('fullscreen');
+    network_div.data('fullscreen', fullscreen_enabled);
+    var height_val = fullscreen_enabled == true ? "calc(100vh - 42px - 42px - 10px)" : "500px";
+
+    network_div.css("height", height_val);
+    network_div[0].scrollIntoView({
+	behavior: "smooth",
+    });
+  });
+
   var root;
 
   var highlighted;
