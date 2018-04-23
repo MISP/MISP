@@ -42,6 +42,7 @@ class StixParser():
     def __init__(self):
         self.misp_event = MISPEvent()
         self.misp_event['Galaxy'] = []
+        self.references = defaultdict(list)
 
     # Load data from STIX document, and other usefull data
     def load(self, args, pathname):
@@ -99,7 +100,8 @@ class StixParser():
         }
 
     # Define if the STIX document is from MISP or is an external one
-    # Call then the appropriate function to parse it
+    # and call the appropriate function to parse it.
+    # Then, make references between objects
     def handler(self):
         self.outputname = '{}.json'.format(self.filename)
         if self.fromMISP:
@@ -108,6 +110,7 @@ class StixParser():
         else:
             # external STIX format file
             self.buildExternalDict()
+        self.build_references()
 
     # Build a MISP event, parsing STIX data following the structure used in our own exporter
     def buildMispDict(self):
@@ -128,6 +131,15 @@ class StixParser():
             self.parse_ttps(self.event.ttps.ttps)
         if self.event.courses_of_action:
             self.parse_coa(self.event.courses_of_action)
+
+    # Make references between objects
+    def build_references(self):
+        print(self.references)
+        for misp_object in self.misp_event.objects:
+            object_uuid = misp_object.uuid
+            if object_uuid in self.references:
+                for reference in self.references[object_uuid]:
+                    misp_object.add_reference(reference['idref'], reference['relationship'])
 
     # Set timestamp & date values in the new MISP event
     def dictTimestampAndDate(self):
@@ -564,8 +576,9 @@ class StixParser():
     def parse_external_observable(self, observables):
         for observable in observables:
             title = observable.title
+            observable_object = observable.object_
             try:
-                properties = observable.object_.properties
+                properties = observable_object.properties
             except:
                 self.parse_description(observable)
                 continue
@@ -573,16 +586,24 @@ class StixParser():
                 try:
                     attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties, title=title)
                 except:
+                    # print("Error with an object of type: {}\n{}".format(properties._XSI_TYPE, observable.to_json()))
                     continue
+                object_uuid = self.fetch_uuid(observable_object.id_)
                 attr_type = type(attribute_value)
                 if attr_type is str or attr_type is int:
                     # if the returned value is a simple value, we build an attribute
-                    attribute = {'to_ids': False}
+                    attribute = {'to_ids': False, 'uuid': object_uuid}
+                    # if observable_object.related_objects:
+                    #     attribute
                     self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
                 else:
                     # otherwise, it is a dictionary of attributes, so we build an object
                     if attribute_value:
-                        self.handle_object_case(attribute_type, attribute_value, compl_data)
+                        self.handle_object_case(attribute_type, attribute_value, compl_data, object_uuid=object_uuid)
+                    if observable_object.related_objects:
+                        for related_object in observable_object.related_objects:
+                            self.references[object_uuid].append({"idref": self.fetch_uuid(related_object.idref),
+                                                                 "relationship": related_object.relationship.value})
 
     # Parse description of an external indicator or observable and add it in the MISP event as an attribute
     def parse_description(self, stix_object):
@@ -601,8 +622,10 @@ class StixParser():
 
     # The value returned by the indicators or observables parser is a list of dictionaries
     # These dictionaries are the attributes we add in an object, itself added in the MISP event
-    def handle_object_case(self, attribute_type, attribute_value, compl_data):
+    def handle_object_case(self, attribute_type, attribute_value, compl_data, object_uuid=None):
         misp_object = MISPObject(attribute_type)
+        if object_uuid:
+            misp_object.uuid = object_uuid
         for attribute in attribute_value:
             misp_object.add_attribute(**attribute)
         if type(compl_data) is dict and "pe_uuid" in compl_data:
@@ -611,6 +634,14 @@ class StixParser():
             # in a file object
             misp_object.add_reference(compl_data['pe_uuid'], 'pe')
         self.misp_event.add_object(**misp_object)
+
+    @staticmethod
+    def fetch_uuid(object_id):
+        identifier = object_id.split(':')[1]
+        return_id = ""
+        for part in identifier.split('-')[1:]:
+            return_id += "{}-".format(part)
+        return return_id[:-1]
 
     # Parse the ttps field of an external STIX document
     def parse_ttps(self, ttps):
