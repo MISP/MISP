@@ -2700,6 +2700,7 @@ class Event extends AppModel {
 						}
 					}
 				}
+				throw new Exception();
 			}
 			if ($fromXml) $created_id = $this->id;
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
