@@ -86,6 +86,8 @@
 			</dd>
 		<?php endif; ?>
 	</dl>
+	<br />
+	<a href="<?php echo $baseurl . '/users/view/me.json'; ?>" class="btn btn-inverse" download>Download user profile for data portability</a>
 </div>
 <?php
 	echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'view'));

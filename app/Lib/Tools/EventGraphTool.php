@@ -10,11 +10,16 @@
 		private $__related_events = array();
 		private $__related_attributes = array();
 
-		public function construct($eventModel, $user, $filterRules, $extended_view=0) {
+		public function construct($eventModel, $tagModel, $user, $filterRules, $extended_view=0) {
 			$this->__eventModel = $eventModel;
+			$this->__Tag = $tagModel;
 			$this->__user = $user;
 			$this->__filterRules = $filterRules;
 			$this->__json = array();
+			$this->__json['existing_tags'] = $this->__Tag->find('list', array(
+				'fields' => array('Tag.id', 'Tag.name'),
+				'sort' => array('lower(Tag.name) asc'),
+			));
 			$this->__extended_view = $extended_view;
 			$this->__lookupTables = array(
 				'analysisLevels' => $this->__eventModel->analysisLevels,
@@ -56,24 +61,28 @@
 		private function __get_filtered_event($id) {
 			$event = $this->__get_event($id);
 			if (empty($this->__filterRules)) return $event;
-			$filtered = array('Object' => array(), 'Attribute' => array());
 
 			// perform filtering
-			foreach($event['Object'] as $obj) {
-				if ($this->__satisfy_obj_filtering($obj)) {
-					array_push($filtered['Object'], $obj);
+			foreach($event['Object'] as $i => $obj) {
+				$check1 = $this->__satisfy_obj_filtering($obj);
+				$check2 = $this->__satisfy_obj_tag($obj);
+				if (!($check1 && $check2)) {
+					unset($event['Object'][$i]);
 				}
 			}
-			foreach($event['Attribute'] as $attr) {
-				if ($this->__satisfy_val_filtering($attr, false)) {
-					array_push($filtered['Attribute'], $attr);
+			foreach($event['Attribute'] as $i => $attr) {
+				$check1 = $this->__satisfy_val_filtering($attr, false);
+				$check2 = $this->__satisfy_attr_tag($attr);
+				if (!($check1 && $check2)) {
+					unset($event['Attribute'][$i]);
 				}
 			}
 
-			return $filtered;
+			return $event;
 		}
 
 		// NOT OPTIMIZED: But allow clearer code
+		// perform filtering on obj_rel presence and then perform filtering on obj_rel value
 		private function __satisfy_obj_filtering($obj) {
 			// presence rule - search in the object's attribute
 			$presenceMatch = true;
@@ -132,6 +141,64 @@
 			}
 		}
 
+		// iterate over all filter rules for obj
+		private function __satisfy_obj_tag($obj) {
+			foreach ($this->__filterRules['tag_presence'] as $rule) {
+				$relation = $rule[0];
+				$tagName = $rule[1];
+				if ($relation === "Contains") {
+					$presenceMatch = $this->__contain_tag($obj['Attribute'], $tagName);
+				} else if ($relation === "Do not contain") {
+					$presenceMatch = !$this->__contain_tag($obj['Attribute'], $tagName);
+				}
+				if (!$presenceMatch) { // Does not match, can stop filtering
+					return false;
+				}
+			}
+			return true;
+		}
+
+		// iterate over all filter rules for attr
+		private function __satisfy_attr_tag($attr) {
+			foreach ($this->__filterRules['tag_presence'] as $rule) {
+				$relation = $rule[0];
+				$tagName = $rule[1];
+				if ($relation === "Contains") {
+					$presenceMatch = $this->__contain_tag(array($attr), $tagName);
+				} else if ($relation === "Do not contain") {
+					$presenceMatch = !$this->__contain_tag(array($attr), $tagName);
+				}
+				if (!$presenceMatch) { // Does not match, can stop filtering
+					return false;
+				}
+			}
+			return true;
+		}
+
+		// iterate over all attributes
+		private function __contain_tag($attrList, $tagName) {
+			foreach ($attrList as $attr) {
+				if (empty($attr['AttributeTag'])) {
+					continue;
+				}
+				$presenceMatch = $this->__tag_in_AttributeTag($attr['AttributeTag'], $tagName);
+				if ($presenceMatch) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		// iterate over all tags
+		private function __tag_in_AttributeTag($attrTag, $tagName) {
+			foreach($attrTag as $tag) {
+				if($tag['Tag']['name'] === $tagName) {
+					return true;
+				}
+			}
+			return false;
+		}
+
 		private function __contain_object_relation($attrList, $obj_rel) {
 			foreach ($attrList as $attr) {
 				if ($attr['object_relation'] === $obj_rel) {
@@ -145,6 +212,7 @@
 			$event = $this->__get_filtered_event($id);
 			$this->__json['items'] = array();
 			$this->__json['relations'] = array();
+			
 			$this->__json['existing_object_relation'] = array();
 			if (empty($event)) return $this->__json;
 			
@@ -167,6 +235,7 @@
 					'uuid' => $attr['uuid'],
 					'type' => $attr['type'],
 					'label' => $attr['value'],
+					'event_id' => $attr['event_id'],
 					'node_type' => 'attribute',
 				);
 				array_push($this->__json['items'], $toPush);
@@ -182,6 +251,7 @@
 					'node_type' => 'object',
 					'meta-category' => $obj['meta-category'],
 					'template_uuid' => $obj['template_uuid'],
+					'event_id' => $obj['event_id'],
 				);
 				array_push($this->__json['items'], $toPush);
 
@@ -198,6 +268,7 @@
 						'to' => $rel['referenced_id'],
 						'type' => $rel['relationship_type'],
 						'comment' => $rel['comment'],
+						'event_id' => $rel['event_id'],
 					);
 					array_push($this->__json['relations'], $toPush);
 				}
@@ -236,8 +307,8 @@
 					'uuid' => $attr['uuid'],
 					'type' => $attr['type'],
 					'label' => $attr['value'],
+					'event_id' => $attr['event_id'],
 					'node_type' => 'attribute',
-					//'Tag' => $Tags,
 				);
 				array_push($this->__json['items'], $toPush);
 
@@ -264,6 +335,7 @@
 					'node_type' => 'object',
 					'meta-category' => $obj['meta-category'],
 					'template_uuid' => $obj['template_uuid'],
+					'event_id' => $obj['event_id'],
 				);
 				array_push($this->__json['items'], $toPush);
 
@@ -342,6 +414,7 @@
 					'uuid' => $attr['uuid'],
 					'type' => $attr['type'],
 					'label' => $attr['value'],
+					'event_id' => $attr['event_id'],
 					'node_type' => 'attribute',
 				);
 				array_push($this->__json['items'], $toPush);
@@ -369,6 +442,7 @@
 					'node_type' => 'object',
 					'meta-category' => $obj['meta-category'],
 					'template_uuid' => $obj['template_uuid'],
+					'event_id' => $obj['event_id'],
 				);
 				array_push($this->__json['items'], $toPush);
 

@@ -1677,6 +1677,16 @@ a.discrete {
 	height: 100%;
 }
 
+.info_container_form {
+	border: 1px solid black; /*like Alexandre's heart*/
+	border-radius: 7px;
+	padding-left:10px;
+	padding-right:10px;
+	width: 438px;
+	height: 100%;
+	margin-bottom:10px;
+}
+
 .info_container_key {
 	vertical-align:text-top;
 	width:100px;

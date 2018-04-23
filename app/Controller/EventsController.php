@@ -4348,6 +4348,7 @@ class EventsController extends AppController {
 	public function getEventGraphReferences($id, $type = 'event') {
 		$validTools = array('event');
 		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
+		$this->loadModel('Tag');
 		App::uses('EventGraphTool', 'Tools');
 		$grapher = new EventGraphTool();
 		$data = $this->request->is('post') ? $this->request->data : array();
@@ -4358,7 +4359,7 @@ class EventsController extends AppController {
 			$extended = 0;
 		}
 
-		$grapher->construct($this->Event, $this->Auth->user(), $data['filtering'], $extended);
+		$grapher->construct($this->Event, $this->Tag, $this->Auth->user(), $data['filtering'], $extended);
 		$json = $grapher->get_references($id);
 
 		array_walk_recursive($json, function(&$item, $key){
@@ -4373,6 +4374,7 @@ class EventsController extends AppController {
 	public function getEventGraphTags($id, $type = 'event') {
 		$validTools = array('event');
 		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
+		$this->loadModel('Tag');
 		App::uses('EventGraphTool', 'Tools');
 		$grapher = new EventGraphTool();
 		$data = $this->request->is('post') ? $this->request->data : array();
@@ -4383,7 +4385,7 @@ class EventsController extends AppController {
 			$extended = 0;
 		}
 
-		$grapher->construct($this->Event, $this->Auth->user(), $data['filtering'], $extended);
+		$grapher->construct($this->Event, $this->Tag, $this->Auth->user(), $data['filtering'], $extended);
 		$json = $grapher->get_tags($id);
 
 		array_walk_recursive($json, function(&$item, $key){
@@ -4398,6 +4400,7 @@ class EventsController extends AppController {
 	public function getEventGraphGeneric($id, $type = 'event') {
 		$validTools = array('event');
 		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
+		$this->loadModel('Tag');
 		App::uses('EventGraphTool', 'Tools');
 		$grapher = new EventGraphTool();
 		$data = $this->request->is('post') ? $this->request->data : array();
@@ -4408,7 +4411,7 @@ class EventsController extends AppController {
 			$extended = 0;
 		}
 
-		$grapher->construct($this->Event, $this->Auth->user(), $data['filtering'], $extended);
+		$grapher->construct($this->Event, $this->Tag, $this->Auth->user(), $data['filtering'], $extended);
 		if (!array_key_exists('keyType', $data)) {
 			$keyType = ''; // empty key
 		} else {
@@ -4832,13 +4835,17 @@ class EventsController extends AppController {
 	}
 
 	public function getEventInfoById($id) {
+		if (empty($id)) throw new MethodNotAllowedException('Invalid ID.');
 		$conditions = array('Event.id' => $id);
 		if (Validation::uuid($id)) {
 			$conditions = array('Event.uuid' => $id);
+		} else if (!is_numeric($id)) {
+			$conditions = array('Event.uuid' => -1);
 		}
 		$event = $this->Event->find('first', array(
 			'conditions' => $conditions,
-			'fields' => array('Event.id', 'Event.distribution', 'Event.sharing_group_id', 'Event.info', 'Event.org_id'),
+			'fields' => array('Event.id', 'Event.distribution', 'Event.sharing_group_id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.analysis'),
+			'contain' => array('Orgc.id', 'Orgc.name', 'EventTag' => array('Tag.id', 'Tag.name', 'Tag.colour'), 'ThreatLevel.name'),
 			'recursive' => -1
 		));
 		if (!empty($event) && !$this->_isSiteAdmin() && $event['Event']['org_id'] != $this->Auth->user('org_id')) {
@@ -4853,6 +4860,16 @@ class EventsController extends AppController {
 				}
 			}
 		}
-		return $this->RestResponse->viewData($event, $this->response->type());
+		if ($this->_isRest()) {
+			return $this->RestResponse->viewData($event, $this->response->type());
+		} else {
+			if ($this->request->is('ajax')) {
+				$this->layout = 'ajax';
+			}
+			$this->set('analysisLevels', $this->Event->analysisLevels);
+			$this->set('validUuid', Validation::uuid($id));
+			$this->set('id', $id);
+			$this->set('event', $event);
+		}
 	}
 }
