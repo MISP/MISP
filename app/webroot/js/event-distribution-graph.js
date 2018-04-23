@@ -11,11 +11,17 @@ function clickHandler(evt) {
 	var firstPoint = distribution_chart.getElementAtEvent(evt)[0];
 	var distribution_id;
 	if (firstPoint) {
-		distribution_id = distribution_chart.data.labels[firstPoint._index][1];
-		var value_to_set = distribution_id;
-		value_to_set += distribution_id == event_distribution ? '|' + '5' : '';
-		document.getElementById('attributesFilterField').value = value_to_set;
-		filterAttributes('distribution', '17');
+		var value = distribution_chart.data.datasets[firstPoint._datasetIndex].data[firstPoint._index];
+		if (value == 0) {
+			document.getElementById('attributesFilterField').value = "";
+			filterAttributes('all', '17');
+		} else {
+			distribution_id = distribution_chart.data.labels[firstPoint._index][1];
+			var value_to_set = String(distribution_id);
+			value_to_set += distribution_id == event_distribution ? '|' + '5' : '';
+			document.getElementById('attributesFilterField').value = value_to_set;
+			filterAttributes('distribution', '17');
+		}
 	}
 }
 $.ajax({
@@ -41,6 +47,13 @@ $.ajax({
 					//	borderColor: "rgba(255, 0, 0, 0.6)",
 					//	pointBackgroundColor: "rgba(255, 0, 0, 0.8)",
 					//},
+					//{
+					//	label: "Objects",
+					//	data: data.object,
+					//	backgroundColor: "rgba(0, 0, 255, 0.1)",
+					//	borderColor: "rgba(0, 0, 255, 0.6)",
+					//	pointBackgroundColor: "rgba(0, 0, 255, 1)",
+					//},
 					{
 						label: "Attributes",
 						data: data.attribute,
@@ -49,18 +62,11 @@ $.ajax({
 						pointBackgroundColor: "rgba(255, 0, 0, 1)",
 					},
 					{
-						label: "Objects",
-						data: data.object,
+						label: "Object attributes",
+						data: data.obj_attr,
 						backgroundColor: "rgba(0, 0, 255, 0.1)",
 						borderColor: "rgba(0, 0, 255, 0.6)",
 						pointBackgroundColor: "rgba(0, 0, 255, 1)",
-					},
-					{
-						label: "Object attributes",
-						data: data.obj_attr,
-						backgroundColor: "rgba(0, 255, 0, 0.1)",
-						borderColor: "rgba(0, 255, 0, 0.6)",
-						pointBackgroundColor: "rgba(0, 255, 0, 1)",
 					},
 				
 				],
