@@ -805,7 +805,7 @@ class EventsController extends AppController {
 	 * Search for a value on an attribute level for a specific field.
 	 * $attribute : (array) an attribute
 	 * $fields : (array) list of keys in attribute to search in
-	 * $searchValue : Value to search
+	 * $searchValue : Values to search ( '|' is the separator)
 	 * returns true on match
 	 */
 	 private function __valueInFieldAttribute($attribute, $fields, $searchValue) {
@@ -817,8 +817,11 @@ class EventsController extends AppController {
 						if (isset($attribute[$field])) {
 							$temp_value = strtolower($attribute[$field]);
 							$temp_search = strtolower($searchValue);
-							if(strpos($temp_value, $temp_search) !==false) {
-								return true;
+							$temp_searches = explode('|', $temp_search);
+							foreach ($temp_searches as $s) {
+								if(strpos($temp_value, $s) !==false) {
+									return true;
+								}
 							}
 						}
 					}

@@ -1,5 +1,6 @@
 var url = "getDistributionGraph";
 var scope_id = $('#eventdistri_graph').data('event-id');
+var event_distribution = $('#eventdistri_graph').data('event-distribution');
 var extended_text = $('#eventdistri_graph').data('extended') == 1 ? true : false;
 var payload = {};
 var chartColors = window.chartColors;
@@ -11,7 +12,9 @@ function clickHandler(evt) {
 	var distribution_id;
 	if (firstPoint) {
 		distribution_id = distribution_chart.data.labels[firstPoint._index][1];
-		document.getElementById('attributesFilterField').value = distribution_id;
+		var value_to_set = distribution_id;
+		value_to_set += distribution_id == event_distribution ? '|' + '5' : '';
+		document.getElementById('attributesFilterField').value = value_to_set;
 		filterAttributes('distribution', '17');
 	}
 }
