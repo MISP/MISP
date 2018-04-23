@@ -870,12 +870,18 @@ class EventsController extends AppController {
 		$event = $results[0];
 
 		if (!empty($this->params['named']['searchFor'])) {
-			$filterColumns = empty(Configure::read('MISP.event_view_filter_fields')) ? 'id, uuid, value, comment, type, category, Tag.name' : Configure::read('MISP.event_view_filter_fields');
-			$filterValue = array_map('trim', explode(",", $filterColumns));
-			$validFilters = array('id', 'uuid', 'value', 'comment', 'type', 'category', 'Tag.name');
-			foreach ($filterValue as $k => $v) {
-				if (!in_array($v, $validFilters)) {
-					unset($filterValue[$k]);
+			// filtering on specific columns is specified
+			if (!empty($this->params['named']['filterColumnsOverwrite'])) {
+				$filterColumns = $this->params['named']['filterColumnsOverwrite'];
+				$filterValue = array_map('trim', explode(",", $filterColumns));
+			} else {
+				$filterColumns = empty(Configure::read('MISP.event_view_filter_fields')) ? 'id, uuid, value, comment, type, category, Tag.name' : Configure::read('MISP.event_view_filter_fields');
+				$filterValue = array_map('trim', explode(",", $filterColumns));
+				$validFilters = array('id', 'uuid', 'value', 'comment', 'type', 'category', 'Tag.name');
+				foreach ($filterValue as $k => $v) {
+					if (!in_array($v, $validFilters)) {
+						unset($filterValue[$k]);
+					}
 				}
 			}
 
