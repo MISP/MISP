@@ -410,7 +410,7 @@ $(document).ready(function () {
 });
 
 function enable_correlation_graph() {
-	$.get("/events/viewGraph/10/<?php echo h($event['Event']['id']); ?>", function(data) {
+	$.get("/events/viewGraph/<?php echo h($event['Event']['id']); ?>", function(data) {
 		$("#correlationgraph_div").html(data);
 	});
 }

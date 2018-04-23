@@ -1,5 +1,4 @@
 $(document).ready( function() {
-
   var currentMousePos = { x: -1, y: -1 };
   $(document).mousemove(function(event) {
   	currentMousePos.x = event.pageX;
@@ -182,7 +181,7 @@ $(document).ready( function() {
   			}
   		}
   	)
-  	.append("xhtml:body")
+  	.append("xhtml:div")
   	.html(function (d) {
   		var result = 'fa-' + d.imgClass;
   		if (d.type == 'galaxy' || d.type == 'tag') result = 'fa-2x ' + result;
