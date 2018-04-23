@@ -51,6 +51,20 @@ class RestResponseComponent extends Component {
 				'params' => array('event_id')
 			)
 		),
+		'Feed' => array(
+			'add' => array(
+				'description' => "POST a MISP Feed descriptor JSON to this API to add a Feed.",
+				'mandatory' => array('source_format', 'url', 'name', 'input_source', 'provider'),
+				'optional' => array('enabled', 'caching_enabled', 'lookup_visible', 'delete_local_file', 'headers', 'fixed_event', 'target_event', 'settings', 'publish', 'override_ids', 'delta_merge', 'distribution', 'sharing_group_id', 'tag_id', 'pull_rules', 'rules', 'event_id'),
+				'params' => array()
+			),
+			'edit' => array(
+				'description' => "POST a MISP Feed descriptor JSON to this API to edit a Feed.",
+				'mandatory' => array(),
+				'optional' => array('source_format', 'url', 'name', 'enabled', 'caching_enabled', 'lookup_visible', 'provider', 'input_source', 'delete_local_file', 'headers', 'fixed_event', 'target_event', 'settings', 'publish', 'override_ids', 'delta_merge', 'distribution', 'sharing_group_id', 'tag_id', 'pull_rules', 'rules', 'event_id'),
+				'params' => array('feed_id')
+			),
+		),
 		'Organisation' => array(
 			'admin_add' => array(
 				'description' => "POST an Organisation object in JSON format to this API to create a new organsiation.",
