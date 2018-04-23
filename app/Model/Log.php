@@ -33,7 +33,7 @@ class Log extends AppModel {
 							'error',
 							'export',
 							'file_upload',
-							'galaxy'
+							'galaxy',
 							'login',
 							'login_fail',
 							'logout',
@@ -54,7 +54,7 @@ class Log extends AppModel {
 							'upgrade_24',
 							'upload_sample',
 							'version_warning',
-							'warning',
+							'warning'
 						)),
 			'message' => 'Options : ...'
 		)
