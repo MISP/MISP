@@ -628,15 +628,20 @@ class EventsController extends AppController {
 							)
 						)
 					));
-					foreach ($eventTags as $et) {
-						$et['EventTag']['Tag'] = $et['Tag'];
-						unset($et['Tag']);
-						if (empty($event_tag_objects[$et['EventTag']['event_id']])) {
-							$event_tag_objects[$et['EventTag']['event_id']] = array($et['EventTag']);
+					foreach ($eventTags as $ket => $et) {
+						if (empty($et['Tag']['id'])) {
+							unset($eventTags[$ket]);
 						} else {
-							$event_tag_objects[$et['EventTag']['event_id']][] = $et['EventTag'];
+							$et['EventTag']['Tag'] = $et['Tag'];
+							unset($et['Tag']);
+							if (empty($event_tag_objects[$et['EventTag']['event_id']])) {
+								$event_tag_objects[$et['EventTag']['event_id']] = array($et['EventTag']);
+							} else {
+								$event_tag_objects[$et['EventTag']['event_id']][] = $et['EventTag'];
+							}
 						}
 					}
+					$eventTags = array_values($eventTags);
 					for ($j = 0; $j < $elements; $j++) {
 						if (!empty($event_tag_objects[$events[($i*1000) + $j]['Event']['id']])) {
 							$events[($i*1000) + $j]['EventTag'] = $event_tag_objects[$events[($i*1000) + $j]['Event']['id']];

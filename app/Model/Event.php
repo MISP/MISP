@@ -2700,6 +2700,7 @@ class Event extends AppModel {
 						}
 					}
 				}
+				throw new Exception();
 			}
 			if ($fromXml) $created_id = $this->id;
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
@@ -3608,7 +3609,8 @@ class Event extends AppModel {
 				$this->__fTool = new FinancialTool();
 		}
 		if ($object['type'] == 'attachment' && preg_match('/.*\.(jpg|png|jpeg|gif)$/i', $object['value'])) {
-			$object['image'] = $this->Attribute->base64EncodeAttachment($object);
+			if (!empty($object['data'])) $object['image'] = $object['data'];
+			else $object['image'] = $this->Attribute->base64EncodeAttachment($object);
 		}
 		if (isset($object['distribution']) && $object['distribution'] != 4) unset($object['SharingGroup']);
 		if ($object['objectType'] !== 'object') {

@@ -10,7 +10,7 @@
 		if ($attribute['Attribute']['disable_correlation']) {
 			echo __('Re-enable the correlation for this attribute.');
 		} else {
-			echo __('This will remove all correlations that already exist for this attribute and prevents any attributes to be related as long as this setting is disabled. Make sure you understand the downasides of disabling correlations.');
+			echo __('This will remove all correlations that already exist for this attribute and prevents any attributes to be related as long as this setting is disabled. Make sure you understand the downsides of disabling correlations.');
 		}
 	?>
 	</p>
