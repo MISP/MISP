@@ -94,7 +94,8 @@ class StixParser():
             'URIObjectType': self.handle_domain_or_url,
             "WhoisObjectType": self.handle_whois,
             'WindowsRegistryKeyObjectType': self.handle_regkey,
-            "WindowsExecutableFileObjectType": self.handle_pe
+            "WindowsExecutableFileObjectType": self.handle_pe,
+            "WindowsServiceObjectType": self.handle_windows_service
         }
 
     # Define if the STIX document is from MISP or is an external one
@@ -441,6 +442,11 @@ class StixParser():
                 misp_attributes = {"comment": "Whois {}".format(attribute_relation)}
                 self.misp_event.add_attribute(attribute_type, attribute_value, **misp_attributes)
             return last_attribute
+
+    @staticmethod
+    def handle_windows_service(properties):
+        if properties.name:
+            return "windows-service-name", properties.name.value, ""
 
     # Return type & attributes of the file defining a portable executable object
     def handle_pe(self, properties):
