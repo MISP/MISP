@@ -1070,7 +1070,7 @@ class Server extends AppModel {
 							'value' => '',
 							'errorMessage' => '',
 							'test' => 'testForNumeric',
-							'type' => 'string',
+							'type' => 'string'
 					),
 					'cookie_timeout' => array(
 							'level' => 0,
@@ -1078,7 +1078,7 @@ class Server extends AppModel {
 							'value' => '',
 							'errorMessage' => '',
 							'test' => 'testForNumeric',
-							'type' => 'string',
+							'type' => 'numeric'
 					)
 			),
 			'Plugin' => array(
@@ -2737,7 +2737,7 @@ class Server extends AppModel {
 				Configure::write($settingFix, $arrayElements);
 			}
 		}
-		$settingsToSave = array('debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth', 'Security', 'Session.defaults', 'Session.timeout', 'Session.autoRegenerate', 'site_admin_debug', 'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth');
+		$settingsToSave = array('debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth', 'Security', 'Session.defaults', 'Session.timeout', 'Session.cookie_timeout', 'Session.autoRegenerate', 'site_admin_debug', 'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth');
 		$settingsArray = array();
 		foreach ($settingsToSave as $setting) {
 			$settingsArray[$setting] = Configure::read($setting);
