@@ -80,47 +80,18 @@
 
 			// extract distribution
 			foreach ($attribute as $attr) {
-				$toPush = array(
-					'id' => $attr['id'],
-					'uuid' => $attr['uuid'],
-					'type' => $attr['type'],
-					'label' => $attr['value'],
-					'event_id' => $attr['event_id'],
-					'distribution' => $attr['distribution'],
-				);
-				//array_push($this->__json['items'], $toPush);
 				$distri = $attr['distribution'];
 				$this->__json['event'][$distri] += 1;
 				$this->__json['attribute'][$distri] += 1;
 			}
 
 			foreach ($object as $obj) {
-				$toPush = array(
-					'id' => $obj['id'],
-					'uuid' => $obj['uuid'],
-					'type' => $obj['name'],
-					'label' => 'Ojbect' . $obj['id'],
-					'meta-category' => $obj['meta-category'],
-					'event_id' => $obj['event_id'],
-					'distribution' => $obj['distribution'],
-				);
-				//array_push($this->__json['items'], $toPush);
 				$distri = $obj['distribution'];
 				$this->__json['event'][$distri] += 1;
 				$this->__json['object'][$distri] += 1;
 
 				$added_value = array();
 				foreach($obj['Attribute'] as $objAttr) {
-					$toPush = array(
-						'id' => $objAttr['id'],
-						'uuid' => $objAttr['uuid'],
-						'type' => $objAttr['type'],
-						'label' => $objAttr['value'],
-						'belongTo' => $obj['id'],
-						'event_id' => $objAttr['event_id'],
-						'distribution' => $objAttr['distribution'],
-					);
-					//array_push($this->__json['items'], $toPush);
 					$distri = $objAttr['distribution'];
 					$this->__json['event'][$distri] += 1;
 					$this->__json['obj_attr'][$distri] += 1;
