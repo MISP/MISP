@@ -40,6 +40,26 @@ function clickHandlerPb(evt) {
 }
 
 
+function get_maximum_distribution(array) {
+	var org = array[0];
+	var community = array[1];
+	var connected = array[2];
+	var all = array[3];
+	var sharing = array[4];
+	if (all != 0) {
+		return 4;
+	} else if (connected != 0) {
+		return 3;
+	} else if (sharing != 0) {
+		return 2;
+	} else if (community != 0) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+
 function add_level_to_pb(distribution, maxLevel) {
 	var pb_container = document.getElementById('eventdistri_pb_container');
 	var pb = document.getElementById('eventdistri_pb_background');
@@ -67,7 +87,7 @@ function add_level_to_pb(distribution, maxLevel) {
 		span.style.lineHeight = '12px';
 		span.classList.add('useCursorPointer');
 		span.onclick = clickHandlerPb;
-		span.style.bottom = d % 2 == 0 ? '57px' : '7px';
+		span.style.bottom = d % 2 == 0 ? '59px' : '7px';
 		span.innerHTML = distribution[d].key;
 		span.setAttribute('data-distribution', distribution[d].num);
 		if (maxLevel == d+1) {
@@ -80,10 +100,12 @@ function add_level_to_pb(distribution, maxLevel) {
 		// tick
 		var span = document.createElement('span');
 		span.style.position = 'absolute';
+		spanOffset += (pbStep*(d+1))+spanOffset > pb_container.clientWidth ? -3 : 0; // avoid the tick width to go further than the pb
 		span.style.left = (pbStep*(d+1))+spanOffset + 'px';
-		span.style.bottom = d % 2 == 0 ? '30px' : '27px';
+		span.style.bottom = d % 2 == 0 ? '32px' : '25px';
 		span.style.width = '3px';
 		span.style.height = '23px';
+		span.style.zIndex = '-1';
 		span.style.background = 'black';
 		span.style.borderRadius = '4px';
 		if (maxLevel == d+1) {
@@ -112,19 +134,23 @@ $(document).ready(function() {
 			data: JSON.stringify( payload ),
 			processData: false,
 			success: function( data, textStatus, jQxhr ){
+				$('#eventdistri_pb_invalid').tooltip();
+				$('#eventdistri_pb').tooltip();
+
 				// pb
-				var max_distri;
-				for (var i=data.event.length-1; i>0; i--) {
-					if (data.event[i] != 0) {
-						max_distri = i+1;
-						break;
-					}
-				}
-				add_level_to_pb(data.distributionInfo, max_distri);
-				$('#eventdistri_pb').width(max_distri*20+'%');
-				$('#eventdistri_pb').attr('aria-valuenow', max_distri*20);
-				$('#eventdistri_pb').css("transition", "width 1s");
-				$('#eventdistri_pb').css("background", pb_colors_mapping[max_distri-1]);
+				var max_distri = get_maximum_distribution(data.event)+1;
+				var event_dist = event_distribution+1;
+				add_level_to_pb(data.distributionInfo, event_dist);
+				$('#eventdistri_pb').width(event_dist*20+'%');
+				$('#eventdistri_pb').attr('aria-valuenow', event_dist*20);
+				$('#eventdistri_pb').css("transition", "width 0.5s");
+				//$('#eventdistri_pb').css("background", pb_colors_mapping[max_distri-1]);
+				$('#eventdistri_pb').css("background", "#28a745");
+
+				$('#eventdistri_pb_invalid').width((max_distri-event_dist)*20+'%');
+				$('#eventdistri_pb_invalid').attr('aria-valuenow', (max_distri-event_dist)*20);
+				$('#eventdistri_pb_invalid').css("transition", "width 0.5s");
+				$('#eventdistri_pb_invalid').css("background", "#dc3545");
 				// radar
 				var ctx = document.getElementById("distribution_graph_canvas");
 				ctx.onclick = function(evt) { clickHandlerGraph(evt); };
