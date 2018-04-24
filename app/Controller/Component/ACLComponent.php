@@ -99,6 +99,7 @@ class ACLComponent extends Component {
 					'downloadOpenIOCEvent' => array('*'),
 					'downloadSearchResult' => array('*'),
 					'edit' => array('perm_add'),
+					'enrichEvent' => array('perm_add'),
 					'export' => array('*'),
 					'exportChoice' => array('*'),
 					'filterEventIdsForPush' => array('perm_sync'),
