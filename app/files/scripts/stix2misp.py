@@ -585,7 +585,7 @@ class StixParser():
             if properties:
                 try:
                     attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties, title=title)
-                except:
+                except KeyError:
                     # print("Error with an object of type: {}\n{}".format(properties._XSI_TYPE, observable.to_json()))
                     continue
                 object_uuid = self.fetch_uuid(observable_object.id_)
