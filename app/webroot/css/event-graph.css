@@ -133,6 +133,7 @@ label.center-in-network-header {
 	z-index: 1;
 	cursor: nesw-resize;
 }
+
 .popover-content {
 	white-space: pre-wrap;
 }

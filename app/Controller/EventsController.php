@@ -4305,6 +4305,8 @@ class EventsController extends AppController {
 	public function viewGraph($id) {
 		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
 		if (empty($event)) throw new MethodNotAllowedException('Invalid Event.');
+
+		$this->set('ajax', $this->request->is('ajax'));
 		$this->set('event', $event[0]);
 		$this->set('scope', 'event');
 		$this->set('id', $id);

@@ -90,7 +90,7 @@ class ContextualMenu {
     __toggleMenu(x, y, hide) {
         var that = this;
         if(this.__is_shown || hide) {
-            that.menu.style.visibility = 'hidden';
+            this.menu.style.visibility = 'hidden';
         } else {
             this.menu.style.left = x+'px';
             this.menu.style.top = y+'px';
@@ -138,7 +138,7 @@ class ContextualMenu {
             container: 'body',
             html: true,
             placement: "bottom",
-            content: function () {return $(that.menu); }, // return contextual menu htlm
+            content: function () {return $(that.menu); }, // return contextual menu html
             trigger: "manual",
             template: '<div class="popover" id="popover-contextual-menu-'+this.trigger_container.id+'" role="tooltip" style="'+additional_styling+'"><div class="arrow"></div></h3><div class="popover-content"></div></div>'
         })

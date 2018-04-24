@@ -1458,7 +1458,7 @@ function enable_interactive_graph() {
 			html: true,
 		});
 		generate_background_shortcuts(shortcut_text);
-		$('.fullscreen-btn').click(function() {
+		$('#fullscreen-btn-eventgraph').click(function() {
 			var network_div = $('#eventgraph_div');
 			var fullscreen_enabled = !network_div.data('fullscreen');
 			network_div.data('fullscreen', fullscreen_enabled);
