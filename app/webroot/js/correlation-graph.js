@@ -1,5 +1,4 @@
 $(document).ready( function() {
-
   var currentMousePos = { x: -1, y: -1 };
   $(document).mousemove(function(event) {
   	currentMousePos.x = event.pageX;
@@ -11,11 +10,31 @@ $(document).ready( function() {
   height = $(window).height() - 160 - margin.top - margin.bottom;
   var menu_x_buffer_ = width - 150;
   var menu_y_buffer = height - 100;
-  $('.menu-container').css('left', '200px');
-  $('#hover-menu-container').css('top', '50px');
+
+  if ($('#graph_init').data('ajax')) {
+    $('.menu-container').css('left', '20px');
+    $('#hover-menu-container').css('top', '20px');
+    $('#selected-menu-container').css('top', '270px');
+  } else {
+    $('.menu-container').css('left', '200px');
+    $('#hover-menu-container').css('top', '50px');
+    $('#selected-menu-container').css('top', '400px');
+  }
   $('#hover-menu-container').css('z-index', 0);
-  $('#selected-menu-container').css('top', '400px');
   $('#selected-menu-container').css('z-index', 1);
+
+
+  $('#fullscreen-btn-correlation').click(function() {
+    var network_div = $('#correlationgraph_div');
+    var fullscreen_enabled = !network_div.data('fullscreen');
+    network_div.data('fullscreen', fullscreen_enabled);
+    var height_val = fullscreen_enabled == true ? "calc(100vh - 42px - 42px - 10px)" : "500px";
+
+    network_div.css("height", height_val);
+    network_div[0].scrollIntoView({
+	behavior: "smooth",
+    });
+  });
 
   var root;
 
@@ -162,7 +181,7 @@ $(document).ready( function() {
   			}
   		}
   	)
-  	.append("xhtml:body")
+  	.append("xhtml:div")
   	.html(function (d) {
   		var result = 'fa-' + d.imgClass;
   		if (d.type == 'galaxy' || d.type == 'tag') result = 'fa-2x ' + result;

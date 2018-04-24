@@ -31,12 +31,16 @@
 			?>
 				<div class="input clear"></div>
 			<?php
-
-			echo $this->Form->input('distribution', array(
+			$distArray = array(
 				'options' => array($distributionLevels),
 				'label' => __('Distribution ') . $this->element('formInfo', array('type' => 'distribution')),
-				'selected' => $initialDistribution,
-			));
+			);
+
+			if ($action == 'add') {
+				$distArray['selected'] = $initialDistribution;
+			}
+
+			echo $this->Form->input('distribution', $distArray);
 			?>
 				<div id="SGContainer" style="display:none;">
 			<?php

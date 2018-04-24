@@ -477,6 +477,7 @@ class User extends AppModel {
 			} catch (Exception $e) {
 				$result[2] ='GnuPG is not configured on this system.';
 				$result[0] = true;
+				return $result;
 			}
 		}
 		$result = array();
