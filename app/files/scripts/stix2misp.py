@@ -489,11 +489,11 @@ class StixParser():
                 header_object.add_attribute(**{"type": "size-in-bytes", "object_relation": "size-in-bytes",
                                                "value": file_header.size_of_optional_header.value})
             self.misp_event.add_object(**header_object)
-            misp_object.add_reference(header_object.uuid, 'pe-section')
+            misp_object.add_reference(header_object.uuid, 'included-in')
         if properties.sections:
             for section in properties.sections:
                 section_uuid = self.parse_pe_section(section)
-                misp_object.add_reference(section_uuid, 'pe-section')
+                misp_object.add_reference(section_uuid, 'included-in')
         self.misp_event.add_object(**misp_object)
         return {"pe_uuid": misp_object.uuid}
 
@@ -602,8 +602,9 @@ class StixParser():
                         self.handle_object_case(attribute_type, attribute_value, compl_data, object_uuid=object_uuid)
                     if observable_object.related_objects:
                         for related_object in observable_object.related_objects:
+                            relationship = related_object.relationship.value.inner().replace('_', '-')
                             self.references[object_uuid].append({"idref": self.fetch_uuid(related_object.idref),
-                                                                 "relationship": related_object.relationship.value})
+                                                                 "relationship": relationship})
 
     # Parse description of an external indicator or observable and add it in the MISP event as an attribute
     def parse_description(self, stix_object):
@@ -630,9 +631,8 @@ class StixParser():
             misp_object.add_attribute(**attribute)
         if type(compl_data) is dict and "pe_uuid" in compl_data:
             # if some complementary data is a dictionary containing an uuid,
-            # it means we are using it to add an object reference of a pe object
-            # in a file object
-            misp_object.add_reference(compl_data['pe_uuid'], 'pe')
+            # it means we are using it to add an object reference
+            misp_object.add_reference(compl_data['pe_uuid'], 'included-in')
         self.misp_event.add_object(**misp_object)
 
     @staticmethod
