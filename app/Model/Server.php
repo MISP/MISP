@@ -43,11 +43,7 @@ class Server extends AppModel {
 		'url' => array( // TODO add extra validation to refuse multiple time the same url from the same org
 			'url' => array(
 				'rule' => array('url'),
-				'message' => 'Please enter a valid base-url.',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+				'message' => 'Please enter a valid base-url.'
 			)
 		),
 		'authkey' => array(
@@ -113,7 +109,8 @@ class Server extends AppModel {
 		'pull' => 'MISP/app/Console/cake Server pull [user_id] [server_id] [full|update]',
 		'push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
 		'cacheFeed' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
-		'fetchFeed' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]'
+		'fetchFeed' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]',
+		'enrichment' => 'MISP/app/Console/cake Event enrichEvent [user_id] [event_id] [json_encoded_module_list]'
 	);
 
 	public $serverSettings = array(
