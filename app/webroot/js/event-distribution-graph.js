@@ -20,13 +20,13 @@ function clickHandlerGraph(evt) {
 		var value = distribution_chart.data.datasets[firstPoint._datasetIndex].data[firstPoint._index];
 		if (value == 0) {
 			document.getElementById('attributesFilterField').value = "";
-			filterAttributes('all', '17');
+			filterAttributes('all', scope_id);
 		} else {
 			distribution_id = distribution_chart.data.labels[firstPoint._index][1];
 			var value_to_set = String(distribution_id);
 			value_to_set += distribution_id == event_distribution ? '|' + '5' : '';
 			document.getElementById('attributesFilterField').value = value_to_set;
-			filterAttributes('distribution', '17');
+			filterAttributes('distribution', scope_id);
 		}
 	}
 }
@@ -36,7 +36,7 @@ function clickHandlerPb(evt) {
 	var value_to_set = String(distribution_id);
 	value_to_set += distribution_id == event_distribution ? '|' + '5' : '';
 	document.getElementById('attributesFilterField').value = value_to_set;
-	filterAttributes('distribution', '17');
+	filterAttributes('distribution', scope_id);
 }
 
 
