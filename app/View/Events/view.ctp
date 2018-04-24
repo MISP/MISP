@@ -151,6 +151,10 @@
 							echo h($distributionLevels[$event['Event']['distribution']]);
 						endif;
 					?>
+					    <span class="useCursorPointer fa fa-info-circle distribution_graph" data-object-id="<?php echo h($event['Event']['id']); ?>" data-object-context="event"></span>
+					    <div style="display: none">
+						    <?php echo $this->element('view_event_distribution_graph'); ?>
+					    </div>
 				</dd>
 				<dt><?php echo __('Info');?></dt>
 				<dd style="word-wrap: break-word;">
@@ -380,9 +384,6 @@
 		<h4 class="blue"><?php echo __('Galaxies');?></h4>
 		<?php echo $this->element('galaxyQuickView', array('mayModify' => $mayModify, 'isAclTagger' => $isAclTagger)); ?>
 	</div>
-<div id="distributiongraph_div" onload="enable_distribution_graph();" class="info_container_eventgraph_network">
-<?php echo $this->element('view_event_distribution_graph'); ?>
-</div>
 	<div id="eventgraph_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
 		<?php echo $this->element('view_event_graph'); ?>
 	</div>
@@ -415,12 +416,6 @@ $(document).ready(function () {
 function enable_correlation_graph() {
 	$.get("/events/viewGraph/<?php echo h($event['Event']['id']); ?>", function(data) {
 		$("#correlationgraph_div").html(data);
-	});
-}
-
-function enable_distribution_graph() {
-	$.get("/events/viewEventDistributionGraph/<?php echo h($event['Event']['id']); ?>", function(data) {
-		$("#distributiongraph_div").html(data);
 	});
 }
 </script>

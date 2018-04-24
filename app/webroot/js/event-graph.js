@@ -1455,6 +1455,7 @@ function enable_interactive_graph() {
 			content: shortcut_text,
 			placement: 'left',
 			trigger: 'hover',
+			template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content preWarp"></div></div>',
 			html: true,
 		});
 		generate_background_shortcuts(shortcut_text);
