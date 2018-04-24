@@ -273,7 +273,9 @@ class FeedsController extends AppController {
 				$this->Session->setFlash($message);
 			}
 		} else {
-			return $this->RestResponse->describe('Feeds', 'edit', false, $this->response->type());
+			if ($this->_isRest()) {
+				return $this->RestResponse->describe('Feeds', 'edit', false, $this->response->type());
+			}
 			if (!isset($this->request->data['Feed'])) {
 				$this->request->data = $this->Feed->data;
 				if ($this->Feed->data['Feed']['event_id']) {
