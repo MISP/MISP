@@ -2,6 +2,7 @@ class ContextualMenu {
     constructor(options) {
         this.options = options;
         this.trigger_container = options.trigger_container;
+        this.container = options.container;
         this.bootstrap_popover = options.bootstrap_popover;
         this.right_click = options.right_click;
         this.has_been_shown_once = false;
@@ -90,7 +91,7 @@ class ContextualMenu {
     __toggleMenu(x, y, hide) {
         var that = this;
         if(this.__is_shown || hide) {
-            that.menu.style.visibility = 'hidden';
+            this.menu.style.visibility = 'hidden';
         } else {
             this.menu.style.left = x+'px';
             this.menu.style.top = y+'px';
@@ -103,7 +104,7 @@ class ContextualMenu {
         var div = document.createElement('div');
         div.classList.add("contextual-menu");
         div.classList.add("contextual-menu-styling");
-        document.body.appendChild(div);
+        this.container.appendChild(div);
         // register on click for the trigger_container
         var that = this;
         if (this.right_click) {
@@ -130,7 +131,7 @@ class ContextualMenu {
     __create_menu_div_bootstrap_popover() {
         var div = document.createElement('div');
         div.classList.add("contextual-menu");
-        document.body.appendChild(div);
+        this.container.appendChild(div);
         var that = this;
         this.trigger_container.tabIndex = 0; // required for the popover focus feature
 	var additional_styling = this.options.style === undefined ? "" : this.options.style;
@@ -138,7 +139,7 @@ class ContextualMenu {
             container: 'body',
             html: true,
             placement: "bottom",
-            content: function () {return $(that.menu); }, // return contextual menu htlm
+            content: function () {return $(that.menu); }, // return contextual menu html
             trigger: "manual",
             template: '<div class="popover" id="popover-contextual-menu-'+this.trigger_container.id+'" role="tooltip" style="'+additional_styling+'"><div class="arrow"></div></h3><div class="popover-content"></div></div>'
         })
