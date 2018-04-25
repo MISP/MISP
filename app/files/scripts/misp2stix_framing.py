@@ -1,5 +1,4 @@
 import sys, json, uuid, os, time, datetime, re
-from misp2cybox import *
 from dateutil.tz import tzutc
 from stix.indicator import Indicator
 from stix.indicator.valid_time import ValidTime
