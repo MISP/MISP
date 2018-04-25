@@ -3,107 +3,250 @@
 		<?php
 			switch ($menuList) {
 				case 'event':
-		?>
-					<div id="hiddenSideMenuData" class="hidden" data-event-id="<?php echo isset($event['Event']['id']) ? h($event['Event']['id']) : 0; ?>"></div>
-		<?php
-					if (
-						$menuItem === 'addAttribute' ||
-						$menuItem === 'addObject' ||
-						$menuItem === 'addAttachment' ||
-						$menuItem === 'addIOC' ||
-						$menuItem === 'addThreatConnect' ||
-						$menuItem === 'populateFromtemplate'
-					) {
+					echo '<div id="hiddenSideMenuData" class="hidden" data-event-id="' . isset($event['Event']['id']) ? h($event['Event']['id']) : 0 . '"></div>';
+					if (in_array($menuItem, array('addAttribute', 'addObject', 'addAttachment', 'addIOC', 'addThreatConnect', 'populateFromTemplate'))) {
 						// we can safely assume that mayModify is true if coming from these actions, as they require it in the controller and the user has already passed that check
 						$mayModify = true;
 						if ($isAclPublish) $mayPublish = true;
 					}
-					if (($menuItem === 'template_populate_results')):
-					?>
-						<li id='litemplate_populate_results'><a href="<?php echo $baseurl;?>/templates/index"><?php echo __('Populate From Template');?></a></li>
-					<?php
-						endif;
-					?>
-					<?php if ($menuItem === 'freetextResults'): ?>
-					<li id='lifreetextResults'><a href="#"><?php echo __('Freetext Import Results');?></a></li>
-					<li class="divider"></li>
-					<?php endif;?>
-					<li id='liviewEvent'><a href="<?php echo $baseurl;?>/events/view/<?php echo h($event['Event']['id']);?>"><?php echo __('View Event');?></a></li>
-					<li id='liviewGraph'><a href="<?php echo $baseurl;?>/events/viewGraph/<?php echo h($event['Event']['id']);?>"><?php echo __('View Correlation Graph');?></a></li>
-					<li id='lieventLog'><a href="<?php echo $baseurl;?>/logs/event_index/<?php echo h($event['Event']['id']);?>"><?php echo __('View Event History');?></a></li>
-					<li class="divider"></li>
-					<?php if ($isSiteAdmin || (isset($mayModify) && $mayModify)): ?>
-					<li id='lieditEvent'><a href="<?php echo $baseurl;?>/events/edit/<?php echo h($event['Event']['id']);?>"><?php echo __('Edit Event');?></a></li>
-					<li><?php echo $this->Form->postLink(__('Delete Event'), array('controller' => 'events', 'action' => 'delete', h($event['Event']['id'])), null, __('Are you sure you want to delete # %s?', h($event['Event']['id']))); ?></li>
-					<li id='liaddAttribute'><a href="<?php echo $baseurl;?>/attributes/add/<?php echo h($event['Event']['id']);?>"><?php echo __('Add Attribute');?></a></li>
-					<li><a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'objectTemplates', 'objectChoice');" style="cursor:pointer;"><?php echo __('Add Object');?></a></li>
-					<li id='liaddAttachment'><a href="<?php echo $baseurl;?>/attributes/add_attachment/<?php echo h($event['Event']['id']);?>"><?php echo __('Add Attachment');?></a></li>
-					<li id='import'><a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'importChoice');" style="cursor:pointer;"><?php echo __('Populate from…');?></a></li>
-					<?php if ($menuItem === 'populateFromtemplate'): ?>
-							<li class="active"><a href="<?php echo $baseurl;?>/templates/populateEventFromTemplate/<?php echo $template_id . '/' . h($event['Event']['id']); ?>"><?php echo __('Populate From Template');?></a></li>
-						<?php endif; ?>
-					<li id='lienrichEvent'><a href="#" onClick="genericPopup('<?php echo $baseurl?>/events/enrichEvent/<?php echo h($event['Event']['id']); ?>', '#confirmation_box');" style="cursor:pointer;"><?php echo __('Enrich event');?></a></li>
-					<li id='merge'><a href="<?php echo $baseurl;?>/events/merge/<?php echo h($event['Event']['id']);?>"><?php echo __('Merge attributes from…');?></a></li>
-					<?php endif; ?>
-					<?php if (($isSiteAdmin && (!isset($mayModify) || !$mayModify)) || (!isset($mayModify) || !$mayModify)): ?>
-					<li id='liproposeAttribute'><a href="<?php echo $baseurl;?>/shadow_attributes/add/<?php echo h($event['Event']['id']);?>"><?php echo __('Propose Attribute');?></a></li>
-					<li id='liproposeAttachment'><a href="<?php echo $baseurl;?>/shadow_attributes/add_attachment/<?php echo h($event['Event']['id']);?>"><?php echo __('Propose Attachment');?></a></li>
-					<?php endif; ?>
-					<li class="divider"></li>
-					<?php
-						$publishButtons = ' hidden';
-						if (isset($event['Event']['published']) && 0 == $event['Event']['published'] && ($isSiteAdmin || (isset($mayPublish) && $mayPublish))) $publishButtons = "";
-					?>
-					<li class="publishButtons not-published<?php echo h($publishButtons); ?>"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'alert')"><?php echo __('Publish Event');?></a></li>
-					<li class="publishButtons not-published<?php echo h($publishButtons); ?>"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'publish')"><?php echo __('Publish (no email)');?></a></li>
-					<?php if (Configure::read('MISP.delegation')):?>
-						<?php if ((Configure::read('MISP.unpublishedprivate') || (isset($event['Event']['distribution']) && $event['Event']['distribution'] == 0)) && (!isset($delegationRequest) || !$delegationRequest) && ($isSiteAdmin || (isset($isAclDelegate) && $isAclDelegate))): ?>
-								<li id='lidelegateEvent'><a href="#" onClick="delegatePopup('<?php echo h($event['Event']['id']); ?>');"><?php echo __('Delegate Publishing');?></a></li>
-						<?php endif;?>
-						<?php if (isset($delegationRequest) && $delegationRequest && ($isSiteAdmin || ($isAclPublish && ($me['org_id'] == $delegationRequest['EventDelegation']['org_id'] || $me['org_id'] == $delegationRequest['EventDelegation']['requester_org_id'])))): ?>
-							<li class="divider"></li>
-							<?php if ($isSiteAdmin || ($isAclPublish && ($me['org_id'] == $delegationRequest['EventDelegation']['org_id']))): ?>
-								<li id='liacceptDelegation'><a href="#" onClick="genericPopup('<?php echo $baseurl?>/event_delegations/acceptDelegation/<?php echo h($delegationRequest['EventDelegation']['id']); ?>', '#confirmation_box');"><?php echo __('Accept Delegation Request');?></a></li>
-							<?php endif;?>
-							<li id='lideleteDelegation'><a href="#" onClick="genericPopup('<?php echo $baseurl?>/event_delegations/deleteDelegation/<?php echo h($delegationRequest['EventDelegation']['id']); ?>', '#confirmation_box');"><?php echo __('Discard Delegation Request');?></a></li>
-							<li class="divider"></li>
-						<?php endif;?>
-					<?php endif;?>
-					<?php if (Configure::read('Plugin.ZeroMQ_enable') && $isSiteAdmin): ?>
-						<li><?php echo $this->Form->postLink(__('Publish event to ZMQ'), array('action' => 'pushEventToZMQ', $event['Event']['id']));?></li>
-					<?php endif; ?>
-					<li id='licontact'><a href="<?php echo $baseurl;?>/events/contact/<?php echo h($event['Event']['id']);?>"><?php echo __('Contact Reporter');?></a></li>
-					<li><a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'exportChoice');" style="cursor:pointer;"><?php echo __('Download as…');?></a></li>
-					<li class="divider"></li>
-					<li><a href="<?php echo $baseurl;?>/events/index"><?php echo __('List Events');?></a></li>
-					<?php if ($isAclAdd): ?>
-					<li><a href="<?php echo $baseurl;?>/events/add"><?php echo __('Add Event');?></a></li>
-					<?php endif;
+					if (($menuItem === 'template_populate_results')) {
+						echo $this->element('/side_menu_link', array(
+							'element_id' => 'template_populate_results',
+							'url' => '/templates/index',
+							'text' => 'Populate From Template'
+						));
+					}
+					if ($menuItem === 'freetextResults') {
+						echo $this->element('/side_menu_link', array(
+							'element_id' => 'freetextResults',
+							'url' => '#',
+							'text' => 'Freetext Import Result'
+						));
+						echo $this->element('/side_menu_divider');
+					}
+					echo $this->element('/side_menu_link', array(
+						'element_id' => 'viewEvent',
+						'url' => '/events/view/' .  $event['Event']['id'],
+						'text' => 'View Event'
+					));
+					echo $this->element('/side_menu_link', array(
+						'element_id' => 'viewGraph',
+						'url' => '/events/viewGraph/' .  $event['Event']['id'],
+						'text' => 'View Correlation Graph'
+					));
+					echo $this->element('/side_menu_link', array(
+						'element_id' => 'eventLog',
+						'url' => '/logs/event_index/' .  $event['Event']['id'],
+						'text' => 'View Event History'
+					));
+					echo $this->element('/side_menu_divider');
+					if ($isSiteAdmin || (isset($mayModify) && $mayModify)) {
+						echo $this->element('/side_menu_link', array(
+							'element_id' => 'editEvent',
+							'url' => '/events/edit/' .  $event['Event']['id'],
+							'text' => 'Edit Event'
+						));
+						echo '<li>' . $this->Form->postLink(__('Delete Event'), array('controller' => 'events', 'action' => 'delete', h($event['Event']['id'])), null, __('Are you sure you want to delete # %s?', h($event['Event']['id']))) . '</li>';
+						echo $this->element('/side_menu_link', array(
+							'element_id' => 'addAttribute',
+							'url' => '/attributes/add/' .  $event['Event']['id'],
+							'text' => 'Add Attribute'
+						));
+						echo $this->element('/side_menu_link', array(
+							'onClick' => array(
+								'function' => 'getPopup',
+								'params' => array($event['Event']['id'], 'objectTemplates', 'objectChoice')
+							),
+							'text' => 'Add Object'
+						));
+						echo $this->element('/side_menu_link', array(
+							'element_id' => 'addAttachment',
+							'url' => '/attributes/add_attachment/' .  $event['Event']['id'],
+							'text' => 'Add Attachment'
+						));
+						echo $this->element('/side_menu_link', array(
+							'onClick' => array(
+								'function' => 'getPopup',
+								'params' => array($event['Event']['id'], 'events', 'importchoice')
+							),
+							'text' => 'Populate from...'
+						));
+						if ($menuItem === 'populateFromtemplate') {
+							echo $this->element('/side_menu_link', array(
+								'url' => '/templates/populateEventFromTemplate/' . $template_id . '/' .  $event['Event']['id'],
+								'text' => 'Populate From Template'
+							));
+						}
+						echo $this->element('/side_menu_link', array(
+							'onClick' => array(
+								'function' => 'genericPopup',
+								'params' => array($baseurl . '/events/enrichEvent/' . $event['Event']['id'], '#confirmation_box')
+							),
+							'text' => 'Enrich Event'
+						));
+						echo $this->element('/side_menu_link', array(
+							'element_id' => 'merge',
+							'url' => '/events/merge/' . $event['Event']['id'],
+							'text' => 'Merge attributes from...'
+						));
+					}
+					if (($isSiteAdmin && (!isset($mayModify) || !$mayModify)) || (!isset($mayModify) || !$mayModify)) {
+						echo $this->element('/side_menu_link', array(
+							'element_id' => 'proposeAttribute',
+							'url' => '/shadow_attributes/add/' . $event['Event']['id'],
+							'text' => 'Propose Attribute'
+						));
+						echo $this->element('/side_menu_link', array(
+							'element_id' => 'proposeAttachment',
+							'url' => '/shadow_attributes/add_attachment/' . $event['Event']['id'],
+							'text' => 'Propose Attachment'
+						));
+					}
+					echo $this->element('/side_menu_divider');
+					$publishButtons = ' hidden';
+					if (isset($event['Event']['published']) && 0 == $event['Event']['published'] && ($isSiteAdmin || (isset($mayPublish) && $mayPublish))) $publishButtons = "";
+					echo $this->element('/side_menu_link', array(
+						'onClick' => array(
+							'function' => 'publishPopup',
+							'params' => array($event['Event']['id'], 'alert')
+						),
+						'class' => 'publishButtons not-published ' . $publishButtons,
+						'text' => 'Publish Event'
+					));
+					echo $this->element('/side_menu_link', array(
+						'onClick' => array(
+							'function' => 'publishPopup',
+							'params' => array($event['Event']['id'], 'publish')
+						),
+						'class' => 'publishButtons not-published ' . $publishButtons,
+						'text' => 'Publish (no email)'
+					));
+					if (Configure::read('MISP.delegation')) {
+						if ((Configure::read('MISP.unpublishedprivate') || (isset($event['Event']['distribution']) && $event['Event']['distribution'] == 0)) && (!isset($delegationRequest) || !$delegationRequest) && ($isSiteAdmin || (isset($isAclDelegate) && $isAclDelegate))) {
+							echo $this->element('/side_menu_link', array(
+								'onClick' => array(
+									'function' => 'delegatePopup',
+									'params' => array($event['Event']['id'])
+								),
+								'text' => 'Delegate Publishing'
+							));
+						}
+						if (isset($delegationRequest) && $delegationRequest && ($isSiteAdmin || ($isAclPublish && ($me['org_id'] == $delegationRequest['EventDelegation']['org_id'] || $me['org_id'] == $delegationRequest['EventDelegation']['requester_org_id'])))) {
+							echo $this->element('/side_menu_divider');
+							if ($isSiteAdmin || ($isAclPublish && ($me['org_id'] == $delegationRequest['EventDelegation']['org_id']))) {
+								echo $this->element('/side_menu_link', array(
+									'onClick' => array(
+										'function' => 'genericPopup',
+										'params' => array($baseurl . '/event_delegations/acceptDelegation/' . $delegationRequest['EventDelegation']['id'], '#confirmation_box')
+									),
+									'text' => 'Accept Delegation Request'
+								));
+							}
+							echo $this->element('/side_menu_link', array(
+								'onClick' => array(
+									'function' => 'genericPopup',
+									'params' => array($baseurl . '/event_delegations/deleteDelegation/' . $delegationRequest['EventDelegation']['id'], '#confirmation_box')
+								),
+								'text' => 'Discard Delegation Request'
+							));
+							echo $this->element('/side_menu_divider');
+						}
+					}
+					if (Configure::read('Plugin.ZeroMQ_enable') && $isSiteAdmin) {
+						echo '<li>' . $this->Form->postLink(__('Publish event to ZMQ'), array('action' => 'pushEventToZMQ', $event['Event']['id'])) . '</li>';
+					}
+					echo $this->element('/side_menu_link', array(
+						'element_id' => 'contact',
+						'url' => '/events/contact/' . $event['Event']['id'],
+						'text' => 'Contact Reporter'
+					));
+					echo $this->element('/side_menu_link', array(
+						'onClick' => array(
+							'function' => 'getPopup',
+							'params' => array($event['Event']['id'], 'events', 'exportChoice')
+						),
+						'text' => 'Download as...'
+					));
+					echo $this->element('/side_menu_divider');
+					echo $this->element('/side_menu_link', array(
+						'url' => '/events/index',
+						'text' => 'List Events'
+					));
+					if ($isAclAdd) {
+						echo $this->element('/side_menu_link', array(
+							'url' => '/events/add',
+							'text' => 'Add Event'
+						));
+					}
 				break;
 
-				case 'event-collection': ?>
-					<li id='liindex'><a href="<?php echo $baseurl;?>/events/index"><?php echo __('List Events');?></a></li>
-					<?php if ($isAclAdd): ?>
-					<li id='liadd'><a href="<?php echo $baseurl;?>/events/add"><?php echo __('Add Event');?></a></li>
-					<li id='liaddMISPExport'><a onClick="getPopup('0', 'events', 'importChoice/event-collection');" style="cursor:pointer;"><?php echo __('Import from…');?></a></li>
-					<?php endif; ?>
-					<li class="divider"></li>
-					<li id='lilistAttributes'><a href="<?php echo $baseurl;?>/attributes/index"><?php echo __('List Attributes');?></a></li>
-					<li id='lisearchAttributes'><a href="<?php echo $baseurl;?>/attributes/search"><?php echo __('Search Attributes');?></a></li>
-					<?php if ($menuItem == 'searchAttributes2'): ?>
-					<li class="divider"></li>
-					<li><a href="<?php echo $baseurl;?>/events/downloadSearchResult.json"><?php echo __('Download results as JSON');?></a></li>
-					<li><a href="<?php echo $baseurl;?>/events/downloadSearchResult.xml"><?php echo __('Download results as XML');?></a></li>
-					<li><a href="<?php echo $baseurl;?>/events/csv/download/search"><?php echo __('Download results as CSV');?></a></li>
-					<?php endif; ?>
-					<li class="divider"></li>
-					<li id='liviewProposals'><a href="<?php echo $baseurl;?>/shadow_attributes/index"><?php echo __('View Proposals');?></a></li>
-					<li id='liviewProposalIndex'><a href="<?php echo $baseurl;?>/events/proposalEventIndex"><?php echo __('Events with proposals');?></a></li>
-					<li class="divider"></li>
-					<li id='liexport'><a href="<?php echo $baseurl;?>/events/export"><?php echo __('Export');?></a></li>
-					<?php if ($isAclAuth): ?>
-					<li id='liautomation'><a href="<?php echo $baseurl;?>/events/automation"><?php echo __('Automation');?></a></li>
-					<?php endif;
+				case 'event-collection':
+					echo $this->element('/side_menu_link', array(
+						'element_id' => 'index',
+						'url' => '/events/index',
+						'text' => 'List Events'
+					));
+					if ($isAclAdd) {
+						echo $this->element('/side_menu_link', array(
+							'element_id' => 'add',
+							'url' => '/events/add',
+							'text' => 'Add Events'
+						));
+						echo $this->element('/side_menu_link', array(
+							'onClick' => array(
+								'function' => 'getPopup',
+								'params' => array('0', 'events', 'importChoice/event-collection')
+							),
+							'text' => 'Import from…'
+						));
+					}
+					echo $this->element('/side_menu_divider');
+					echo $this->element('/side_menu_link', array(
+						'element_id' => 'index',
+						'url' => '/attributes/index',
+						'text' => 'List Attributes'
+					));
+					echo $this->element('/side_menu_link', array(
+						'element_id' => 'search',
+						'url' => '/attributes/search',
+						'text' => 'Search Attributes'
+					));
+					if ($menuItem == 'searchAttributes2') {
+						echo $this->element('/side_menu_divider');
+						echo $this->element('/side_menu_link', array(
+							'url' => '/events/downloadSearchResult.json',
+							'text' => 'Download results as JSON'
+						));
+						echo $this->element('/side_menu_link', array(
+							'url' => '/events/downloadSearchResult.xml',
+							'text' => 'Download results as XML'
+						));
+						echo $this->element('/side_menu_link', array(
+							'url' => '/events/csv/download/search',
+							'text' => 'Download results as CSV'
+						));
+					}
+					echo $this->element('/side_menu_divider');
+					echo $this->element('/side_menu_link', array(
+						'url' => '/shadow_attributes/index',
+						'text' => 'View Proposals'
+					));
+					echo $this->element('/side_menu_link', array(
+						'url' => '/events/proposalEventIndex',
+						'text' => 'Events with proposals'
+					));
+					echo $this->element('/side_menu_divider');
+					echo $this->element('/side_menu_link', array(
+						'url' => '/events/export',
+						'text' => 'Export'
+					));
+					if ($isAclAuth) {
+						echo $this->element('/side_menu_link', array(
+							'element_id' => 'automation',
+							'url' => '/events/automation',
+							'text' => 'Automation'
+						));
+					}
 				break;
 
 				case 'regexp': ?>
@@ -119,6 +262,7 @@
 					<?php
 					endif;
 				break;
+
 				case 'warninglist':?>
 					<?php if ($menuItem == 'view'): ?><li class="active"><a href="#"><?php echo __('View Warninglist');?></a></li><?php endif;?>
 					<li id='liindex'><?php echo $this->Html->link(__('List Warninglists'), array('action' => 'index'));?></li>
@@ -127,6 +271,7 @@
 					<?php
 						endif;
 				break;
+
 				case 'whitelist':?>
 					<li id='liindex'><?php echo $this->Html->link(__('List Whitelist'), array('admin' => $isSiteAdmin, 'action' => 'index'));?></li>
 					<?php if ($isSiteAdmin): ?>
