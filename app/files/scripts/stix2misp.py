@@ -42,7 +42,9 @@ class StixParser():
     def __init__(self):
         self.misp_event = MISPEvent()
         self.misp_event['Galaxy'] = []
+        self.references = defaultdict(list)
 
+    # Load data from STIX document, and other usefull data
     def load(self, args, pathname):
         try:
             filename = '{}/tmp/{}'.format(pathname, args[1])
@@ -62,6 +64,7 @@ class StixParser():
             print(json.dumps({'success': 0, 'message': 'The temporary STIX export file could not be read'}))
             sys.exit(0)
 
+    # Event loading function, recursively itterating as long as namespace errors appear
     def load_event(self, filename):
         try:
             return STIXPackage.from_xml(filename)
@@ -75,6 +78,7 @@ class StixParser():
             else:
                 return None
 
+    # Load the mapping dictionary for STIX object types
     def load_mapping(self):
         self.attribute_types_mapping = {
             'AddressObjectType': self.handle_address,
@@ -91,9 +95,13 @@ class StixParser():
             'URIObjectType': self.handle_domain_or_url,
             "WhoisObjectType": self.handle_whois,
             'WindowsRegistryKeyObjectType': self.handle_regkey,
-            "WindowsExecutableFileObjectType": self.handle_pe
+            "WindowsExecutableFileObjectType": self.handle_pe,
+            "WindowsServiceObjectType": self.handle_windows_service
         }
 
+    # Define if the STIX document is from MISP or is an external one
+    # and call the appropriate function to parse it.
+    # Then, make references between objects
     def handler(self):
         self.outputname = '{}.json'.format(self.filename)
         if self.fromMISP:
@@ -102,13 +110,16 @@ class StixParser():
         else:
             # external STIX format file
             self.buildExternalDict()
+        self.build_references()
 
+    # Build a MISP event, parsing STIX data following the structure used in our own exporter
     def buildMispDict(self):
         self.dictTimestampAndDate()
         self.eventInfo()
         for indicator in self.event.related_indicators.indicator:
             self.parse_misp_indicator(indicator)
 
+    # Try to parse data from external STIX documents
     def buildExternalDict(self):
         self.dictTimestampAndDate()
         self.eventInfo()
@@ -121,6 +132,15 @@ class StixParser():
         if self.event.courses_of_action:
             self.parse_coa(self.event.courses_of_action)
 
+    # Make references between objects
+    def build_references(self):
+        for misp_object in self.misp_event.objects:
+            object_uuid = misp_object.uuid
+            if object_uuid in self.references:
+                for reference in self.references[object_uuid]:
+                    misp_object.add_reference(reference['idref'], reference['relationship'])
+
+    # Set timestamp & date values in the new MISP event
     def dictTimestampAndDate(self):
         if self.event.timestamp:
             stixTimestamp = self.event.timestamp
@@ -131,6 +151,7 @@ class StixParser():
             self.misp_event.date = date
             self.misp_event.timestamp = self.getTimestampfromDate(stixTimestamp)
 
+    # Translate date into timestamp
     @staticmethod
     def getTimestampfromDate(date):
         try:
@@ -144,6 +165,7 @@ class StixParser():
             d = int(time.mktime(date.timetuple()))
         return d
 
+    # Set info & title values in the new MISP event
     def eventInfo(self):
         info = "Imported from external STIX event"
         try:
@@ -157,6 +179,7 @@ class StixParser():
             pass
         self.misp_event.info = str(info)
 
+    # Parse indicators of a STIX document coming from our exporter
     def parse_misp_indicator(self, indicator):
         # define is an indicator will be imported as attribute or object
         if indicator.relationship in categories:
@@ -164,6 +187,7 @@ class StixParser():
         else:
             self.parse_misp_object(indicator)
 
+    # Parse STIX objects that we know will give MISP attributes
     def parse_misp_attribute(self, indicator):
         misp_attribute = {'category': str(indicator.relationship)}
         item = indicator.item
@@ -184,6 +208,7 @@ class StixParser():
                 attribute_type, attribute_value = self.composite_type(attribute_dict)
                 self.misp_event.add_attribute(attribute_type, attribute_value, **misp_attribute)
 
+    # Return type & value of a composite attribute in MISP
     @staticmethod
     def composite_type(attributes):
         if "port" in attributes:
@@ -200,6 +225,7 @@ class StixParser():
                 ip_value = attributes["ip-dst"]
             return "domain|ip", "{}|{}".format(attributes["domain"], ip_value)
 
+    # Define type & value of an attribute or object in MISP
     def handle_attribute_type(self, properties, is_object=False, title=None):
         xsi_type = properties._XSI_TYPE
         try:
@@ -214,6 +240,7 @@ class StixParser():
             print("Unparsed type: {}".format(xsi_type))
             sys.exit(1)
 
+    # Return type & value of an ip address attribute
     @staticmethod
     def handle_address(properties):
         if properties.is_source:
@@ -222,15 +249,18 @@ class StixParser():
             ip_type = "ip-dst"
         return ip_type, properties.address_value.value, "ip"
 
+    # Return type & value of an attachment attribute
     @staticmethod
     def handle_attachment(properties, title):
         return eventTypes[properties._XSI_TYPE]['type'], title, properties.raw_artifact.value
 
+    # Return type & value of a domain or url attribute
     @staticmethod
     def handle_domain_or_url(properties):
         event_types = eventTypes[properties._XSI_TYPE]
         return event_types['type'], properties.value.value, event_types['relation']
 
+    # Return type & value of an email attribute
     def handle_email_attribute(self, properties):
         try:
             if properties.from_:
@@ -257,11 +287,13 @@ class StixParser():
             print("Unsupported Email property")
             sys.exit(1)
 
+    # Return type & value of an email attachment
     @staticmethod
     def handle_email_attachment(indicator_object):
         properties = indicator_object.related_objects[0].properties
         return "email-attachment", properties.file_name.value, "attachment"
 
+    # Return type & attributes of a file object
     def handle_file(self, properties, is_object):
         b_hash, b_file = False, False
         attributes = []
@@ -296,6 +328,7 @@ class StixParser():
                 return self.handle_filename_object(attributes, is_object)
         return "file", self.return_attributes(attributes), ""
 
+    # Return the appropriate type & value when we have 1 filename & 1 hash value
     @staticmethod
     def handle_filename_object(attributes, is_object):
         for attribute in attributes:
@@ -313,6 +346,7 @@ class StixParser():
             # it could be malware-sample as well, but STIX is losing this information
             return "filename|{}".format(hash_type), value, ""
 
+    # Return type & value of a hash attribute
     @staticmethod
     def handle_hashes_attribute(properties):
         hash_type = properties.type_.value.lower()
@@ -322,11 +356,13 @@ class StixParser():
             hash_value = properties.fuzzy_hash_value.value
         return hash_type, hash_value, hash_type
 
+    # Return type & value of a hostname attribute
     @staticmethod
     def handle_hostname(properties):
         event_types = eventTypes[properties._XSI_TYPE]
         return event_types['type'], properties.hostname_value.value, event_types['relation']
 
+    # Return type & value of a http request attribute
     @staticmethod
     def handle_http(properties):
         client_request = properties.http_request_response[0].http_client_request
@@ -342,21 +378,25 @@ class StixParser():
             value = client_request.http_request_line.http_method.value
             return "http-method", value, "method"
 
+    # Return type & value of a mutex attribute
     @staticmethod
     def handle_mutex(properties):
         event_types = eventTypes[properties._XSI_TYPE]
         return event_types['type'], properties.name.value, event_types['relation']
 
+    # Return type & value of a port attribute
     @staticmethod
     def handle_port(properties):
         event_types = eventTypes[properties._XSI_TYPE]
         return event_types['type'], properties.port_value.value, event_types['relation']
 
+    # Return type & value of a regkey attribute
     @staticmethod
     def handle_regkey(properties):
         event_types = eventTypes[properties._XSI_TYPE]
         return event_types['type'], properties.key.value, event_types['relation']
 
+    # Return type & value of a composite attribute ip|port or hostname|port
     def handle_socket_address(self, properties):
         if properties.ip_address:
             type1, value1, _ = self.handle_address(properties.ip_address)
@@ -365,6 +405,9 @@ class StixParser():
             value1 = properties.hostname.hostname_value.value
         return "{}|port".format(type1), "{}|{}".format(value1, properties.port.port_value.value), ""
 
+    # Parse a whois object:
+    # Return type & attributes of a whois object if we have the required fields
+    # Otherwise create attributes and return type & value of the last attribute to avoid crashing the parent function
     def handle_whois(self, properties):
         required_one_of = False
         attributes = []
@@ -411,11 +454,19 @@ class StixParser():
                 self.misp_event.add_attribute(attribute_type, attribute_value, **misp_attributes)
             return last_attribute
 
+    @staticmethod
+    def handle_windows_service(properties):
+        if properties.name:
+            return "windows-service-name", properties.name.value, ""
+
+    # Return type & attributes of the file defining a portable executable object
     def handle_pe(self, properties):
         pe_uuid = self.parse_pe(properties)
         file_type, file_value, _ = self.handle_file(properties, False)
         return file_type, file_value, pe_uuid
 
+    # Parse attributes of a portable executable, create the corresponding object,
+    # and return its uuid to build the reference for the file object generated at the same time
     def parse_pe(self, properties):
         misp_object = MISPObject('pe')
         filename = properties.file_name.value
@@ -437,14 +488,16 @@ class StixParser():
                 header_object.add_attribute(**{"type": "size-in-bytes", "object_relation": "size-in-bytes",
                                                "value": file_header.size_of_optional_header.value})
             self.misp_event.add_object(**header_object)
-            misp_object.add_reference(header_object.uuid, 'pe-section')
+            misp_object.add_reference(header_object.uuid, 'included-in')
         if properties.sections:
             for section in properties.sections:
                 section_uuid = self.parse_pe_section(section)
-                misp_object.add_reference(section_uuid, 'pe-section')
+                misp_object.add_reference(section_uuid, 'included-in')
         self.misp_event.add_object(**misp_object)
         return {"pe_uuid": misp_object.uuid}
 
+    # Parse attributes of a portable executable section, create the corresponding object,
+    # and return its uuid to build the reference for the pe object generated at the same time
     def parse_pe_section(self, section):
         section_object = MISPObject('pe-section')
         header_hashes = section.header_hashes
@@ -463,6 +516,7 @@ class StixParser():
         self.misp_event.add_object(**section_object)
         return section_object.uuid
 
+    # Parse STIX object that we know will give MISP objects
     def parse_misp_object(self, indicator):
         object_type = str(indicator.relationship)
         if object_type == 'file':
@@ -477,6 +531,7 @@ class StixParser():
             if object_type != "misc":
                 print("Unparsed Object type: {}".format(name))
 
+    # Create a MISP object, its attributes, and add it in the MISP event
     def fill_misp_object(self, item, name):
         misp_object = MISPObject(name)
         misp_object.timestamp = self.getTimestampfromDate(item.timestamp)
@@ -490,11 +545,13 @@ class StixParser():
             self.parse_observable(properties, misp_object)
         self.misp_event.add_object(**misp_object)
 
+    # Create a MISP attribute and add it in its MISP object
     def parse_observable(self, properties, misp_object):
         misp_attribute = MISPAttribute()
         misp_attribute.type, misp_attribute.value, misp_attribute.object_relation = self.handle_attribute_type(properties, is_object=True)
         misp_object.add_attribute(**misp_attribute)
 
+    # Parse indicators of an external STIX document
     def parse_external_indicator(self, indicators):
         for indicator in indicators:
             try:
@@ -514,29 +571,41 @@ class StixParser():
                     # otherwise, it is a dictionary of attributes, so we build an object
                     self.handle_object_case(attribute_type, attribute_value, compl_data)
 
+    # Parse observables of an external STIX document
     def parse_external_observable(self, observables):
         for observable in observables:
             title = observable.title
+            observable_object = observable.object_
             try:
-                properties = observable.object_.properties
+                properties = observable_object.properties
             except:
                 self.parse_description(observable)
                 continue
             if properties:
                 try:
                     attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties, title=title)
-                except:
+                except KeyError:
+                    # print("Error with an object of type: {}\n{}".format(properties._XSI_TYPE, observable.to_json()))
                     continue
+                object_uuid = self.fetch_uuid(observable_object.id_)
                 attr_type = type(attribute_value)
                 if attr_type is str or attr_type is int:
                     # if the returned value is a simple value, we build an attribute
-                    attribute = {'to_ids': False}
+                    attribute = {'to_ids': False, 'uuid': object_uuid}
+                    # if observable_object.related_objects:
+                    #     attribute
                     self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
                 else:
                     # otherwise, it is a dictionary of attributes, so we build an object
                     if attribute_value:
-                        self.handle_object_case(attribute_type, attribute_value, compl_data)
+                        self.handle_object_case(attribute_type, attribute_value, compl_data, object_uuid=object_uuid)
+                    if observable_object.related_objects:
+                        for related_object in observable_object.related_objects:
+                            relationship = related_object.relationship.value.inner().replace('_', '-')
+                            self.references[object_uuid].append({"idref": self.fetch_uuid(related_object.idref),
+                                                                 "relationship": relationship})
 
+    # Parse description of an external indicator or observable and add it in the MISP event as an attribute
     def parse_description(self, stix_object):
         if stix_object.description:
             misp_attribute = {}
@@ -544,22 +613,36 @@ class StixParser():
                 misp_attribute['timestamp'] = self.getTimestampfromDate(stix_object.timestamp)
             self.misp_event.add_attribute("text", stix_object.description.value, **misp_attribute)
 
+    # The value returned by the indicators or observables parser is of type str or int
+    # Thus we can add an attribute in the MISP event with the type & value
     def handle_attribute_case(self, attribute_type, attribute_value, data, attribute):
         if attribute_type == 'attachment':
             attribute['data'] = data
         self.misp_event.add_attribute(attribute_type, attribute_value, **attribute)
 
-    def handle_object_case(self, attribute_type, attribute_value, compl_data):
+    # The value returned by the indicators or observables parser is a list of dictionaries
+    # These dictionaries are the attributes we add in an object, itself added in the MISP event
+    def handle_object_case(self, attribute_type, attribute_value, compl_data, object_uuid=None):
         misp_object = MISPObject(attribute_type)
+        if object_uuid:
+            misp_object.uuid = object_uuid
         for attribute in attribute_value:
             misp_object.add_attribute(**attribute)
         if type(compl_data) is dict and "pe_uuid" in compl_data:
             # if some complementary data is a dictionary containing an uuid,
-            # it means we are using it to add an object reference of a pe object
-            # in a file object
-            misp_object.add_reference(compl_data['pe_uuid'], 'pe')
+            # it means we are using it to add an object reference
+            misp_object.add_reference(compl_data['pe_uuid'], 'included-in')
         self.misp_event.add_object(**misp_object)
 
+    @staticmethod
+    def fetch_uuid(object_id):
+        identifier = object_id.split(':')[1]
+        return_id = ""
+        for part in identifier.split('-')[1:]:
+            return_id += "{}-".format(part)
+        return return_id[:-1]
+
+    # Parse the ttps field of an external STIX document
     def parse_ttps(self, ttps):
         for ttp in ttps:
             if ttp.behavior and ttp.behavior.malware_instances:
@@ -580,6 +663,7 @@ class StixParser():
                     galaxy['GalaxyCluster'] = [cluster]
                     self.misp_event['Galaxy'].append(galaxy)
 
+    # Parse the courses of action field of an external STIX document
     def parse_coa(self, courses_of_action):
         for coa in courses_of_action:
             misp_object = MISPObject('course-of-action')
@@ -626,6 +710,7 @@ class StixParser():
                     misp_object.add_reference(referenced_uuid, 'observable', None, **attribute)
             self.misp_event.add_object(**misp_object)
 
+    # Return the attributes that will be added in a MISP object as a list of dictionaries
     @staticmethod
     def return_attributes(attributes):
         return_attributes = []
@@ -633,6 +718,8 @@ class StixParser():
             return_attributes.append(dict(zip(('type', 'value', 'object_relation'), attribute)))
         return return_attributes
 
+    # Convert the MISP event we create from the STIX document into json format
+    # and write it in the output file
     def saveFile(self):
         eventDict = self.misp_event.to_json()
         with open(self.outputname, 'w') as f:

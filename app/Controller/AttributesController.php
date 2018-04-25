@@ -1768,10 +1768,7 @@ class AttributesController extends AppController {
 					$this->Attribute->contain(array('AttributeTag' => array('Tag')));
 					if (!$this->_isSiteAdmin()) {
 						// merge in private conditions
-						$conditions = $this->Attribute->buildConditions($this->Auth->user());
-						$this->paginate = Set::merge($this->paginate, array(
-							'conditions' => $conditions
-						));
+						$this->paginate['conditions'] = array('AND' => array($conditions, $this->Attribute->buildConditions($this->Auth->user())));
 					}
 					$idList = array();
 					$attributeIdList = array();

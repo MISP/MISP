@@ -283,7 +283,7 @@
       <?php
           endif;
         else:
-          if ($isSiteAdmin || !$mayModify):
+          if ($isAclAdd && ($isSiteAdmin || !$mayModify)):
             if (isset($modules) && isset($modules['types'][$object['type']])):
       ?>
         <span class="icon-asterisk useCursorPointer" title="<?php echo __('Query enrichment');?>" role="button" tabindex="0" aria-label="<?php echo __('Query enrichment');?>" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?php echo h($object['id']);?>/ShadowAttribute');" title="<?php echo __('Propose enrichment');?>">&nbsp;</span>

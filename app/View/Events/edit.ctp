@@ -53,6 +53,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 			'placeholder' => __('Event UUID or ID. Leave blank if not applicable.')
 	));
 ?>
+		<div id="extended_event_preview" style="width:446px;"></div>
 	</fieldset>
 <?php
 echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
@@ -88,10 +89,15 @@ echo $this->Form->end();
 			initPopoverContent('Event');
 		});
 
+		$("#EventExtendsUuid").keyup(function() {
+			previewEventBasedOnUuids();
+		});
+
 		$(document).ready(function() {
 			if ($('#EventDistribution').val() == 4) $('#SGContainer').show();
 			else $('#SGContainer').hide();
 			initPopoverContent('Event');
+			previewEventBasedOnUuids();
 		});
 	});
 </script>

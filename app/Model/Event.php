@@ -2700,6 +2700,7 @@ class Event extends AppModel {
 						}
 					}
 				}
+				throw new Exception();
 			}
 			if ($fromXml) $created_id = $this->id;
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
@@ -3608,7 +3609,8 @@ class Event extends AppModel {
 				$this->__fTool = new FinancialTool();
 		}
 		if ($object['type'] == 'attachment' && preg_match('/.*\.(jpg|png|jpeg|gif)$/i', $object['value'])) {
-			$object['image'] = $this->Attribute->base64EncodeAttachment($object);
+			if (!empty($object['data'])) $object['image'] = $object['data'];
+			else $object['image'] = $this->Attribute->base64EncodeAttachment($object);
 		}
 		if (isset($object['distribution']) && $object['distribution'] != 4) unset($object['SharingGroup']);
 		if ($object['objectType'] !== 'object') {
@@ -4161,5 +4163,99 @@ class Event extends AppModel {
 			if ($user['Role']['perm_site_admin']) $response .= ' ' . __('Check whether the dependencies for STIX are met via the diagnostic tool.');
 			return $response;
 		}
+	}
+
+	public function enrichmentRouter($options) {
+		if (Configure::read('MISP.background_jobs')) {
+			$job = ClassRegistry::init('Job');
+			$job->create();
+			$this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
+			$workers = $this->ResqueStatus->getWorkers();
+			$workerType = 'default';
+			foreach ($workers as $worker) {
+				if ($worker['queue'] === 'prio') {
+					$workerType = 'prio';
+				}
+			}
+			$data = array(
+					'worker' => $workerType,
+					'job_type' => 'enrichment',
+					'job_input' => 'Event ID: ' . $options['event_id'] . ' modules: ' . json_encode($options['modules']),
+					'status' => 0,
+					'retries' => 0,
+					'org_id' => $options['user']['org_id'],
+					'org' => $options['user']['Organisation']['name'],
+					'message' => 'Enriching event.',
+			);
+			$job->save($data);
+			$jobId = $job->id;
+			$process_id = CakeResque::enqueue(
+					'prio',
+					'EventShell',
+					array('enrichment', $options['user']['id'], $options['event_id'], json_encode($options['modules']), $jobId),
+					true
+			);
+			$job->saveField('process_id', $process_id);
+			return true;
+		} else {
+			$result = $this->enrichment($options);
+			return __('#' . $result . ' attributes have been created during the enrichment process.');
+		}
+	}
+
+	public function enrichment($params) {
+		$option_fields = array('user', 'event_id', 'modules');
+		foreach ($option_fields as $option_field) {
+			if (empty($params[$option_field])) {
+				throw new MethodNotAllowedException(__('%s not set', $params[$option_field]));
+			}
+		}
+		$event = $this->fetchEvent($params['user'], array('eventid' => $params['event_id'], 'includeAttachments' => 1, 'flatten' => 1));
+		$this->Module = ClassRegistry::init('Module');
+		$enabledModules = $this->Module->getEnabledModules($params['user']);
+		if (empty($enabledModules)) return true;
+		$options = array();
+		foreach ($enabledModules['modules'] as $k => $temp) {
+			if (isset($temp['meta']['config'])) {
+				$settings = array();
+				foreach ($temp['meta']['config'] as $conf) {
+					$settings[$conf] = Configure::read('Plugin.Enrichment_' . $temp['name'] . '_' . $conf);
+				}
+				$enabledModules['modules'][$k]['config'] = $settings;
+			}
+		}
+		if (empty($event)) throw new MethodNotAllowedException('Invalid event.');
+		$attributes_added = 0;
+		foreach ($event[0]['Attribute'] as $attribute) {
+			foreach ($enabledModules['modules'] as $module) {
+				if (in_array($module['name'], $params['modules'])) {
+					if (in_array($attribute['type'], $module['mispattributes']['input'])) {
+						$data = array('module' => $module['name'], $attribute['type'] => $attribute['value'], 'event_id' => $attribute['event_id'], 'attribute_uuid' => $attribute['uuid']);
+						if (!empty($module['config'])) $data['config'] = $module['config'];
+						$data = json_encode($data);
+						$result = $this->Module->queryModuleServer('/query', $data, false, 'Enrichment');
+						if (!$result) throw new MethodNotAllowedException($type . ' service not reachable.');
+						if (isset($result['error'])) $this->Session->setFlash($result['error']);
+						if (!is_array($result)) throw new Exception($result);
+						$attributes = $this->handleModuleResult($result, $attribute['event_id']);
+						foreach ($attributes as $a) {
+							$this->Attribute->create();
+							$a['distribution'] = $attribute['distribution'];
+							$a['sharing_group_id'] = $attribute['sharing_group_id'];
+							$comment = 'Attribute #' . $attribute['id'] . ' enriched by ' . $module['name'] . '.';
+							if (!empty($a['comment'])) {
+								$a['comment'] .= PHP_EOL . $comment;
+							} else {
+								$a['comment'] = $comment;
+							}
+							$a['type'] = empty($a['default_type']) ? $a['types'][0] : $a['default_type'];
+							$result = $this->Attribute->save($a);
+							if ($result) $attributes_added++;
+						}
+					}
+				}
+			}
+		}
+		return $attributes_added;
 	}
 }

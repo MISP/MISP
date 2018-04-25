@@ -1268,7 +1268,7 @@ function simplePopup(url) {
 		error:function() {
 			$(".loading").hide();
 			$("#gray_out").fadeOut();
-			showMessage('fail', 'Could not fetch the given GnuPG key.');
+			showMessage('fail', 'Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).');
 		},
 		url: url,
 	});
@@ -3281,6 +3281,25 @@ function changeObjectReferenceSelectOption() {
 				}
 			}
 		}
+	}
+}
+
+function previewEventBasedOnUuids() {
+	var currentValue = $("#EventExtendsUuid").val();
+	if (currentValue == '') {
+		$('#extended_event_preview').hide();
+	} else {
+		$.ajax({
+			url: "/events/getEventInfoById/" + currentValue,
+			type: "get",
+			error: function() {
+				$('#extended_event_preview').hide();
+			},
+			success: function(data) {
+				$('#extended_event_preview').show();
+				$('#extended_event_preview').html(data);
+			}
+		});
 	}
 }
 

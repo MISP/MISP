@@ -57,7 +57,11 @@
 											if ($cluster_field['key'] == 'refs') {
 												$value = array();
 												foreach ($cluster_field['value'] as $k => $v) {
-													$value[$k] = '<a href="' . h($v) . '">' . h($v) . '</a>';
+													$v_name = $v;
+													if (strlen($v_name) > 30) {
+														$v_name = substr($v, 0, 30) . '...';
+													}
+													$value[$k] = '<a href="' . h($v) . '" title="' . h($v) . '">' . h($v_name) . '</a>';
 												}
 												echo nl2br(implode("\n", $value));
 											} else if($cluster_field['key'] == 'country') {

@@ -93,13 +93,13 @@ SCHEMALOC_DICT = {
 
 
 def main(args):
-    if len(sys.argv) < 4:
+    if len(args) < 4:
         sys.exit("Invalid parameters")
 
-    baseURL = sys.argv[1]
+    baseURL = args[1]
     if not baseURL:
         baseURL = 'https://www.misp-project.org'
-    orgname = sys.argv[2]
+    orgname = args[2]
 
     namespace = [baseURL, orgname.replace(" ", "_")]
     namespace[1] = re.sub('[\W]+', '', namespace[1])
@@ -123,11 +123,11 @@ def main(args):
     stix_package = STIXPackage()
     stix_header = STIXHeader()
 
-    stix_header.title="Export from " + orgname + " MISP"
+    stix_header.title="Export from {} MISP".format(orgname)
     stix_header.package_intents="Threat Report"
     stix_package.stix_header = stix_header
 
-    if sys.argv[3] == 'json':
+    if args[3] == 'json':
         stix_string = stix_package.to_json()[:-1]
         stix_string += ', "related_packages": ['
     else:

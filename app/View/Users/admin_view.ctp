@@ -129,6 +129,8 @@ if (h($user['User']['change_pw']) == 1) {
 		</dd>
 	</dl>
 	<br />
+	<a href="<?php echo $baseurl . '/admin/users/view/' . h($user['User']['id']) . '.json'; ?>" class="btn btn-inverse" download>Download user profile for data portability</a>
+	<br />
 	<div id="userEvents"></div>
 </div>
 <?php

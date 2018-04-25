@@ -43,11 +43,7 @@ class Server extends AppModel {
 		'url' => array( // TODO add extra validation to refuse multiple time the same url from the same org
 			'url' => array(
 				'rule' => array('url'),
-				'message' => 'Please enter a valid base-url.',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+				'message' => 'Please enter a valid base-url.'
 			)
 		),
 		'authkey' => array(
@@ -113,7 +109,8 @@ class Server extends AppModel {
 		'pull' => 'MISP/app/Console/cake Server pull [user_id] [server_id] [full|update]',
 		'push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
 		'cacheFeed' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
-		'fetchFeed' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]'
+		'fetchFeed' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]',
+		'enrichment' => 'MISP/app/Console/cake Event enrichEvent [user_id] [event_id] [json_encoded_module_list]'
 	);
 
 	public $serverSettings = array(
@@ -1066,11 +1063,19 @@ class Server extends AppModel {
 					),
 					'timeout' => array(
 							'level' => 0,
-							'description' => 'The timeout duration of sessions (in MINUTES). Keep in mind that autoregenerate can be used to extend the session on user activity.',
+							'description' => 'The timeout duration of sessions (in MINUTES).',
 							'value' => '',
 							'errorMessage' => '',
 							'test' => 'testForNumeric',
-							'type' => 'string',
+							'type' => 'string'
+					),
+					'cookie_timeout' => array(
+							'level' => 0,
+							'description' => 'The expiration of the cookie (in MINUTES). The session timeout gets refreshed frequently, however the cookies do not. Generally it is recommended to have a much higher cookie_timeout than timeout.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForNumeric',
+							'type' => 'numeric'
 					)
 			),
 			'Plugin' => array(
@@ -2729,7 +2734,7 @@ class Server extends AppModel {
 				Configure::write($settingFix, $arrayElements);
 			}
 		}
-		$settingsToSave = array('debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth', 'Security', 'Session.defaults', 'Session.timeout', 'Session.autoRegenerate', 'site_admin_debug', 'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth');
+		$settingsToSave = array('debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth', 'Security', 'Session.defaults', 'Session.timeout', 'Session.cookie_timeout', 'Session.autoRegenerate', 'site_admin_debug', 'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth');
 		$settingsArray = array();
 		foreach ($settingsToSave as $setting) {
 			$settingsArray[$setting] = Configure::read($setting);
