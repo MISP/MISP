@@ -44,6 +44,21 @@ function clickHandlerPb(evt) {
 	filterAttributes('distribution', scope_id);
 }
 
+function get_adjusted_distribution_level(event_distribution) {
+	if (event_distribution == 0) {
+		return 0;
+	} else if (event_distribution == 1) {
+		return 1;
+	} else if (event_distribution == 2) {
+		return 3;
+	} else if (event_distribution == 3) {
+		return 4;
+	} else if (event_distribution == 4) {
+		return 2;
+	} else {
+		return;
+	}
+}
 
 function get_maximum_distribution(array) {
 	var org = array[0];
@@ -93,9 +108,7 @@ function add_level_to_pb(distribution, additionalInfo, maxLevel) {
 		d = parseInt(d);
 		// text
 		var span = document.createElement('span');
-		span.style.position = 'absolute';
-		span.style.lineHeight = '12px';
-		span.classList.add('useCursorPointer');
+		span.classList.add('useCursorPointer', 'pbDistributionText');
 		span.onclick = clickHandlerPb;
 		span.style.bottom = d % 2 == 0 ? '59px' : '7px';
 		span.innerHTML = distribution[d].key;
@@ -114,15 +127,10 @@ function add_level_to_pb(distribution, additionalInfo, maxLevel) {
 		});
 		// tick
 		var span = document.createElement('span');
-		span.style.position = 'absolute';
+		span.classList.add('pbDistributionTick');
 		spanOffset += (pbStep*(d+1))+spanOffset > pb_container.clientWidth ? -3 : 0; // avoid the tick width to go further than the pb
 		span.style.left = (pbStep*(d+1))+spanOffset + 'px';
 		span.style.bottom = d % 2 == 0 ? '32px' : '25px';
-		span.style.width = '3px';
-		span.style.height = '23px';
-		span.style.zIndex = '-1';
-		span.style.background = 'black';
-		span.style.borderRadius = '4px';
 		if (maxLevel == d+1) {
 			span.style.opacity = '0.6';
 		} else {
@@ -154,13 +162,18 @@ $(document).ready(function() {
 			contentType: 'application/json',
 			data: JSON.stringify( payload ),
 			processData: false,
+			beforeSend: function (XMLHttpRequest) {
+				$(".loadingPopover").show();
+			},
 			success: function( data, textStatus, jQxhr ){
+				$(".loadingPopover").hide();
 				$('#eventdistri_pb_invalid').tooltip();
 				$('#eventdistri_pb').tooltip();
 
 				// pb
 				var max_distri = get_maximum_distribution(data.event)+1;
-				var event_dist = event_distribution+1;
+				var event_dist = get_adjusted_distribution_level(event_distribution)+1; // +1 to reach the first level
+				console.log(event_dist, max_distri);
 				add_level_to_pb(data.distributionInfo, data.additionalDistributionInfo, event_dist);
 				$('#eventdistri_pb').width(event_dist*20+'%');
 				$('#eventdistri_pb').attr('aria-valuenow', event_dist*20);

@@ -1,0 +1,49 @@
+.privateRedText div {
+	color: #333333;
+}
+
+.loadingPopover {
+	position: absolute;
+	left: 50%;
+	top: 40%;
+	margin-left: -36px;
+}
+
+.loadingPopover.loadingText {
+	margin: 0 0;
+}
+
+#eventdistri_graph {
+	position: relative;
+}
+
+#eventdistri_pb_container {
+	margin-top: 40px;
+}
+
+#eventdistri_pb_background {
+	width: 400px;
+    	display: flex;
+}
+
+#eventdistri_pb {
+	width: 0%;
+}
+
+#eventdistri_pb_invalid {
+	width: 0%;
+}
+
+.pbDistributionText {
+	position: absolute;
+	line-height: 12px;
+}
+
+.pbDistributionTick {
+	position: absolute;
+	width: 3px;
+	height: 23px;
+	z-index: -1;
+	background: black;
+	border-radius: 4px;
+}
