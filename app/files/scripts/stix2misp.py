@@ -134,7 +134,6 @@ class StixParser():
 
     # Make references between objects
     def build_references(self):
-        print(self.references)
         for misp_object in self.misp_event.objects:
             object_uuid = misp_object.uuid
             if object_uuid in self.references:
