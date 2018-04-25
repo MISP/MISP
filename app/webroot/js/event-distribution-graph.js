@@ -5,15 +5,6 @@ var spanOffset = 15; // due to padding
 var payload = {};
 var distribution_chart;
 
-var pb_colors_mapping = {
-	0: "#00FF00", //Lime
-	1: "#FFFF00", //yellow
-	2: "#FFCC00", //gold
-	3: "#FF6600", //red-orange
-	4: "#FF0000", //red
-};
-
-
 function clickHandlerGraph(evt) {
 	var firstPoint = distribution_chart.getElementAtEvent(evt)[0];
 	var distribution_id;
@@ -23,12 +14,25 @@ function clickHandlerGraph(evt) {
 			document.getElementById('attributesFilterField').value = "";
 			filterAttributes('all', scope_id);
 		} else {
-			distribution_id = distribution_chart.data.labels[firstPoint._index][1];
+		    console.log(distribution_chart.data);
+			distribution_id = distribution_chart.data.distribution[firstPoint._index].num;
 			var value_to_set = String(distribution_id);
 			value_to_set += distribution_id == event_distribution ? '|' + '5' : '';
 			document.getElementById('attributesFilterField').value = value_to_set;
 			filterAttributes('distribution', scope_id);
 		}
+	}
+}
+
+function generate_additional_info(info) {
+	if (info.length == 0) {
+		return "";
+	} else {
+		var to_ret = "\n---------------------------------\n";
+		for (var i of info) {
+			to_ret += i + "\n";
+		}
+		return to_ret;
 	}
 }
 
@@ -60,16 +64,8 @@ function get_maximum_distribution(array) {
 	}
 }
 
-
-function add_level_to_pb(distribution, maxLevel) {
-	var pb_container = document.getElementById('eventdistri_pb_container');
-	var pb = document.getElementById('eventdistri_pb_background');
-	document.getElementById('eventdistri_graph').style.left = spanOffset + 'px'; // center graph inside the popover
-	var pbStep = pb.clientWidth / 5.0;
-
-	// we get 2:connected_comm, 3:all_comm, 4:sharing_group
-	// we want 2:sharing_group, 3:connected_comm, 4:all_comm
-	distribution = jQuery.extend({}, distribution); // deep clone distribution object
+function swap_distribution(dist) {
+	var distribution = jQuery.extend({}, dist); // deep clone distribution object
 	distribution[0].num = 0;
 	distribution[1].num = 1;
 	var temp = distribution[2];
@@ -79,6 +75,19 @@ function add_level_to_pb(distribution, maxLevel) {
 	distribution[4].num = 3;
 	distribution[3] = temp;
 	distribution[3].num = 2;
+	return distribution;
+}
+
+function add_level_to_pb(distribution, additionalInfo, maxLevel) {
+	var pb_container = document.getElementById('eventdistri_pb_container');
+	var pb = document.getElementById('eventdistri_pb_background');
+	document.getElementById('eventdistri_graph').style.left = spanOffset + 'px'; // center graph inside the popover
+	var pbStep = pb.clientWidth / 5.0;
+
+	// we get 2:connected_comm, 3:all_comm, 4:sharing_group
+	// we want 2:sharing_group, 3:connected_comm, 4:all_comm
+	distribution = swap_distribution(distribution);
+	
 
 	for (var d in distribution) {
 		d = parseInt(d);
@@ -98,6 +107,11 @@ function add_level_to_pb(distribution, maxLevel) {
 		}
 		pb_container.appendChild(span);
 		span.style.left = (pbStep*(d+1))+spanOffset-span.clientWidth/2 + 'px';
+		$(span).tooltip({
+			placement: d % 2 == 0 ? 'top' : 'bottom',
+			title: distribution[d].desc + generate_additional_info(additionalInfo[distribution[d].num]),
+			template: '<div class="tooltip" role="tooltip"><div class="arrow"></div><div class="tooltip-inner" style="white-space: pre-wrap;"></div></div>'
+		});
 		// tick
 		var span = document.createElement('span');
 		span.style.position = 'absolute';
@@ -141,11 +155,10 @@ $(document).ready(function() {
 				// pb
 				var max_distri = get_maximum_distribution(data.event)+1;
 				var event_dist = event_distribution+1;
-				add_level_to_pb(data.distributionInfo, event_dist);
+				add_level_to_pb(data.distributionInfo, data.additionalDistributionInfo, event_dist);
 				$('#eventdistri_pb').width(event_dist*20+'%');
 				$('#eventdistri_pb').attr('aria-valuenow', event_dist*20);
 				$('#eventdistri_pb').css("transition", "width 0.5s");
-				//$('#eventdistri_pb').css("background", pb_colors_mapping[max_distri-1]);
 				$('#eventdistri_pb').css("background", "#28a745");
 
 				$('#eventdistri_pb_invalid').width((max_distri-event_dist)*20+'%');
@@ -159,6 +172,7 @@ $(document).ready(function() {
 					type: 'radar',
 					data: {
 						labels: data.distributionInfo.map(function(elem, index) { return [elem.key]; }),
+						distribution: data.distributionInfo,
 						datasets: [
 							{
 								label: "Attributes",

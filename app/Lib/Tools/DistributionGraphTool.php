@@ -10,8 +10,9 @@
 		private $__related_events = array();
 		private $__related_attributes = array();
 
-		public function construct($eventModel, $user, $extended_view=0) {
+		public function construct($eventModel, $serverModel, $user, $extended_view=0) {
 			$this->__eventModel = $eventModel;
+			$this->__serverModel = $serverModel;
 			$this->__user = $user;
 			$this->__json = array();
 			$this->__extended_view = $extended_view;
@@ -26,12 +27,46 @@
 			}
 			$this->__json['distributionInfo'][5] = ""; // inherit event. Will be deleted afterward
 
-
 			$this->__lookupTables = array(
 				'analysisLevels' => $this->__eventModel->analysisLevels,
 				'distributionLevels' => $this->__eventModel->Attribute->distributionLevels
 			);
 			return true;
+		}
+
+		private function __extract_sharing_groups_names($sharingArray) {
+			return $sharingArray['name'];
+		}
+
+		private function __fetchAndAddDistributionInfo($elem) {
+			$distributionLevel = $elem['distribution'];
+
+			if ($distributionLevel == 4) { // sharing group
+				$sg_name = $this->__extract_sharing_groups_names($elem['SharingGroup']);
+				$this->__addAdditionalDistributionInfo($distributionLevel, $sg_name);
+			} else if ($distributionLevel == 3) { // all
+				// fetch connected communities
+				if (empty($this->__json['additionalDistributionInfo'][$distributionLevel])) {
+					$servers = $this->__serverModel->find('list', array(
+						'fields' => array('name'),
+					));
+					foreach ($servers as $server) {
+						$this->__addAdditionalDistributionInfo($distributionLevel, $server);
+					}
+				} else {
+					return false;
+				}
+			} else {
+				return false;
+			}
+			return true;
+		}
+
+		private function __addAdditionalDistributionInfo($distributionLevel, $data) {
+			if (empty($this->__json['additionalDistributionInfo'][$distributionLevel])) {
+				$this->__json['additionalDistributionInfo'][$distributionLevel] = array();
+			}
+			array_push($this->__json['additionalDistributionInfo'][$distributionLevel], $data);
 		}
 
 		private function __get_event($id) {
@@ -63,6 +98,8 @@
 			$this->__json['attribute'] = $this->init_array_distri();
 			$this->__json['object'] = $this->init_array_distri();
 			$this->__json['obj_attr'] = $this->init_array_distri();
+			$this->__json['additionalDistributionInfo'] = $this->init_array_distri(array());
+
 			
 			if (empty($event)) return $this->__json;
 			
@@ -83,18 +120,21 @@
 				$distri = $attr['distribution'];
 				$this->__json['event'][$distri] += 1;
 				$this->__json['attribute'][$distri] += 1;
+				$this->__fetchAndAddDistributionInfo($attr);
 			}
 
 			foreach ($object as $obj) {
 				$distri = $obj['distribution'];
 				$this->__json['event'][$distri] += 1;
 				$this->__json['object'][$distri] += 1;
+				$this->__fetchAndAddDistributionInfo($obj);
 
 				$added_value = array();
 				foreach($obj['Attribute'] as $objAttr) {
 					$distri = $objAttr['distribution'];
 					$this->__json['event'][$distri] += 1;
 					$this->__json['obj_attr'][$distri] += 1;
+					$this->__fetchAndAddDistributionInfo($objAttr);
 				}
 			}
 			// distribution 5 is inherit event, apply this fact on values
@@ -108,13 +148,16 @@
 			unset($this->__json['obj_attr'][5]);
 
 			unset($this->__json['distributionInfo'][5]); // inherit event.
+
+
+			$this->__json['additionalDistributionInfo'] = $this->__json['additionalDistributionInfo'];
 			return $this->__json;
 		}
 
-		public function init_array_distri() {
+		public function init_array_distri($default=0) {
 			$ret = array();
 			foreach ($this->__json['distributionInfo'] as $d => $v) {
-				$ret[$d] = 0;
+				$ret[$d] = $default;
 			}
 			return $ret;
 		}

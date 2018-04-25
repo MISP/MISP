@@ -4365,6 +4365,7 @@ class EventsController extends AppController {
 	public function getDistributionGraph($id, $type = 'event') {
 		$validTools = array('event');
 		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
+		$this->loadModel('Server');
 		App::uses('DistributionGraphTool', 'Tools');
 		$grapher = new DistributionGraphTool();
 		$data = $this->request->is('post') ? $this->request->data : array();
@@ -4375,7 +4376,7 @@ class EventsController extends AppController {
 			$extended = 0;
 		}
 
-		$grapher->construct($this->Event, $this->Auth->user(), $extended);
+		$grapher->construct($this->Event, $this->Server, $this->Auth->user(), $extended);
 		$json = $grapher->get_distributions_graph($id);
 
 		array_walk_recursive($json, function(&$item, $key){
