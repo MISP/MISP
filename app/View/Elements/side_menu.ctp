@@ -3,7 +3,8 @@
 		<?php
 			switch ($menuList) {
 				case 'event':
-					echo '<div id="hiddenSideMenuData" class="hidden" data-event-id="' . isset($event['Event']['id']) ? h($event['Event']['id']) : 0 . '"></div>';
+					$dataEventId = isset($event['Event']['id']) ? h($event['Event']['id']) : 0;
+					echo '<div id="hiddenSideMenuData" class="hidden" data-event-id="' . $dataEventId . '"></div>';
 					if (in_array($menuItem, array('addAttribute', 'addObject', 'addAttachment', 'addIOC', 'addThreatConnect', 'populateFromTemplate'))) {
 						// we can safely assume that mayModify is true if coming from these actions, as they require it in the controller and the user has already passed that check
 						$mayModify = true;
