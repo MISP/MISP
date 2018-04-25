@@ -89,7 +89,7 @@ class Module extends AppModel {
 		$modules = $this->getModules($type, $moduleFamily);
 		if (is_array($modules)) {
 			foreach ($modules['modules'] as $k => $module) {
-				if (!Configure::read('Plugin.' . $moduleFamily . '_' . $module['name'] . '_enabled') || ($type && in_array(strtolower($type), $module['meta']['module-type']))) {
+				if (!Configure::read('Plugin.' . $moduleFamily . '_' . $module['name'] . '_enabled') || ($type && !in_array(strtolower($type), $module['meta']['module-type']))) {
 					unset($modules['modules'][$k]);
 					continue;
 				}

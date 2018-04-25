@@ -961,10 +961,10 @@ class Attribute extends AppModel {
 				break;
 			case 'hostname':
 			case 'domain':
-				if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z0-9\-]{2,}$#i", $value)) {
+				if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z0-9\-]{2,}[\.]?$#i", $value)) {
 					$returnValue = true;
 				} else {
-					$returnValue = 'Domain name has an invalid format. Please double check the value or select type "other".';
+					$returnValue = ucfirst($type) . ' name has an invalid format. Please double check the value or select type "other".';
 				}
 				break;
 			case 'hostname|port':

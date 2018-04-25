@@ -42,6 +42,7 @@
 					<?php if ($menuItem === 'populateFromtemplate'): ?>
 							<li class="active"><a href="<?php echo $baseurl;?>/templates/populateEventFromTemplate/<?php echo $template_id . '/' . h($event['Event']['id']); ?>"><?php echo __('Populate From Template');?></a></li>
 						<?php endif; ?>
+					<li id='lienrichEvent'><a href="#" onClick="genericPopup('<?php echo $baseurl?>/events/enrichEvent/<?php echo h($event['Event']['id']); ?>', '#confirmation_box');" style="cursor:pointer;"><?php echo __('Enrich event');?></a></li>
 					<li id='merge'><a href="<?php echo $baseurl;?>/events/merge/<?php echo h($event['Event']['id']);?>"><?php echo __('Merge attributes from…');?></a></li>
 					<?php endif; ?>
 					<?php if (($isSiteAdmin && (!isset($mayModify) || !$mayModify)) || (!isset($mayModify) || !$mayModify)): ?>
