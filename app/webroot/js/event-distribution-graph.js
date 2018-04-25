@@ -14,7 +14,6 @@ function clickHandlerGraph(evt) {
 			document.getElementById('attributesFilterField').value = "";
 			filterAttributes('all', scope_id);
 		} else {
-		    console.log(distribution_chart.data);
 			distribution_id = distribution_chart.data.distribution[firstPoint._index].num;
 			var value_to_set = String(distribution_id);
 			value_to_set += distribution_id == event_distribution ? '|' + '5' : '';
@@ -173,7 +172,6 @@ $(document).ready(function() {
 				// pb
 				var max_distri = get_maximum_distribution(data.event)+1;
 				var event_dist = get_adjusted_distribution_level(event_distribution)+1; // +1 to reach the first level
-				console.log(event_dist, max_distri);
 				add_level_to_pb(data.distributionInfo, data.additionalDistributionInfo, event_dist);
 				$('#eventdistri_pb').width(event_dist*20+'%');
 				$('#eventdistri_pb').attr('aria-valuenow', event_dist*20);
@@ -220,9 +218,6 @@ $(document).ready(function() {
 								beginAtZero: true,
 								maxTicksLimit: 4
 							}
-						},
-						label: {
-							onclick: function() {console.log('wddw');}
 						}
 					}
 				});
