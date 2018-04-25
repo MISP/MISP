@@ -158,7 +158,7 @@ $(document).ready(function() {
 				distribution_chart = new Chart(ctx, {
 					type: 'radar',
 					data: {
-						labels: data.distributionInfo.map(function(elem, index) { return [elem.key, index]; }),
+						labels: data.distributionInfo.map(function(elem, index) { return [elem.key]; }),
 						datasets: [
 							{
 								label: "Attributes",
