@@ -325,6 +325,7 @@ class Feed extends AppModel {
 			$hitIds = array();
 			$this->Event = ClassRegistry::init('Event');
 			foreach ($objects as $k => $object) {
+				if ($object['disable_correlation']) continue;
 				if (in_array($object['type'], $this->Event->Attribute->getCompositeTypes())) {
 					$value = explode('|', $object['value']);
 					$hashTable[$k] = md5($value[0]);
