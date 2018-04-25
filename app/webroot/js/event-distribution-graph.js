@@ -141,7 +141,7 @@ function add_level_to_pb(distribution, additionalInfo, maxLevel) {
 }
 $(document).ready(function() {
 	$('.distribution_graph').popover({
-		"title": "Atomic event distribution graph",
+		"title": "<b>Distribution graph</b> [atomic event]",
 		"html": true,
 		"content": function() { return $('#distribution_graph_container').html(); },
 		"template" : '<div class="popover" role="tooltip" style="z-index: 1;"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content" style="padding-left: '+spanOffset_orig+'px; padding-right: '+spanOffset_orig*2+'px;"></div></div>'
