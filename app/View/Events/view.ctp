@@ -151,7 +151,7 @@
 							echo h($distributionLevels[$event['Event']['distribution']]);
 						endif;
 					?>
-					    <span class="useCursorPointer fa fa-info-circle distribution_graph" data-object-id="<?php echo h($event['Event']['id']); ?>" data-object-context="event"></span>
+					    <span class="useCursorPointer fa fa-info-circle distribution_graph" data-object-id="<?php echo h($event['Event']['id']); ?>" data-object-context="event" data-shown="false"></span>
 					    <div style="display: none">
 						    <?php echo $this->element('view_event_distribution_graph'); ?>
 					    </div>

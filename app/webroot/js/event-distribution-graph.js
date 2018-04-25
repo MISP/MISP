@@ -1,7 +1,7 @@
 var scope_id = $('#eventdistri_graph').data('event-id');
 var event_distribution = $('#eventdistri_graph').data('event-distribution');
 var extended_text = $('#eventdistri_graph').data('extended') == 1 ? true : false;
-var spanOffset = 15; // due to padding
+var spanOffset_orig = 15; // due to padding
 var payload = {};
 var distribution_chart;
 
@@ -81,13 +81,13 @@ function swap_distribution(dist) {
 function add_level_to_pb(distribution, additionalInfo, maxLevel) {
 	var pb_container = document.getElementById('eventdistri_pb_container');
 	var pb = document.getElementById('eventdistri_pb_background');
-	document.getElementById('eventdistri_graph').style.left = spanOffset + 'px'; // center graph inside the popover
+	document.getElementById('eventdistri_graph').style.left = spanOffset_orig + 'px'; // center graph inside the popover
 	var pbStep = pb.clientWidth / 5.0;
 
 	// we get 2:connected_comm, 3:all_comm, 4:sharing_group
 	// we want 2:sharing_group, 3:connected_comm, 4:all_comm
 	distribution = swap_distribution(distribution);
-	
+	var spanOffset = spanOffset_orig;
 
 	for (var d in distribution) {
 		d = parseInt(d);
@@ -137,10 +137,16 @@ $(document).ready(function() {
 		"title": "Atomic event distribution graph",
 		"html": true,
 		"content": function() { return $('#distribution_graph_container').html(); },
-		"template" : '<div class="popover" role="tooltip" style="z-index: 1;"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content" style="padding-left: '+spanOffset+'px; padding-right: '+spanOffset*2+'px;"></div></div>'
+		"template" : '<div class="popover" role="tooltip" style="z-index: 1;"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content" style="padding-left: '+spanOffset_orig+'px; padding-right: '+spanOffset_orig*2+'px;"></div></div>'
 	});
 
 	$('.distribution_graph').click(function() {
+		if ($(this).data('shown') == 'true') {
+			$(this).data('shown', 'false');
+			return;
+		} else {
+		    $(this).data('shown', 'true');
+		}
 		$.ajax({
 			url: "/events/"+"getDistributionGraph"+"/"+scope_id+"/event.json",
 			dataType: 'json',
