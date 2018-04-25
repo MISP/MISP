@@ -164,7 +164,7 @@ class StixBuilder(object):
         if event_tags:
             Tags['event'] = event_tags
         self.set_tag(incident, event_tags)
-        external_id = ExternalID(value=self.misp_event.id, source="MISP Event")
+        external_id = ExternalID(value=str(self.misp_event.id), source="MISP Event")
         incident.add_external_id(external_id)
         incident_status_name = status_mapping.get(str(self.misp_event.analysis), None)
         if incident_status_name is not None:
