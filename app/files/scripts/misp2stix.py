@@ -99,6 +99,8 @@ class StixBuilder(object):
         if len(args) > 4:
             ns = args[4].replace(" ", "_")
             namespace[1] = re.sub('[\W]+', '', ns)
+        if not namespace[0]:
+            namespace[0] = 'https://www.misp-project.org'
         try:
             idgen.set_id_namespace({namespace[0]: namespace[1]})
         except ValueError:
