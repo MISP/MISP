@@ -1,0 +1,61 @@
+.info_container_eventtimeline {
+	margin-top:10px;
+	border: 1px solid #0088cc;
+	border-radius: 7px;
+	box-shadow: 0px 0px 6px #B2B2B2;
+	width: 100%;
+	min-height: 100px;
+	padding: 3px;
+}
+
+.vis-timeline {
+	position: relative;
+	border: none;
+	overflow: hidden;
+	padding: 0;
+	margin: 0;
+	box-sizing: border-box;
+}
+
+.loadingTimeline {
+	display: none;
+	position: absolute;
+	margin-top: 10px;
+	width: 100%;
+	text-align: center;
+}
+
+.loadingTimeline > div.loadingText {
+    left: 0px;
+}
+
+.vis-item.attribute {
+	background-color: orange;
+	border-color: black;
+}
+
+.vis-item.object {
+	background-color: gold;
+	border-color: orange;
+}
+
+.vis-item.object_attribute {
+	background-color: greenyellow;
+	border-color: green;
+}
+
+.timeline-objectName {
+	text-align:left;
+	border-bottom: orange solid 1px;
+}
+.timeline-objectAttrType {
+	text-align:left;
+	line-height: 14px;
+	font-style: italic;
+}
+.timeline-objectAttrVal {
+	text-align:left;
+	line-height: 14px;
+	font-style: bold;
+}
+
