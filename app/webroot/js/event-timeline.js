@@ -20,6 +20,13 @@ var options = {
 	verticalScroll: true,
 	zoomKey: 'altKey',
 	maxHeight: 400,
+	multiselect: true,
+	editable: true,
+	editable: {
+		add: true,         // add new items by double tapping
+		updateTime: true,  // drag items horizontally
+	},
+
 };
 
 function build_object_template(obj) {
@@ -76,7 +83,7 @@ $('#fullscreen-btn-timeline').click(function() {
 			timeline_div.data('fullscreen', fullscreen_enabled);
 			var height_val = fullscreen_enabled == true ? "calc(100vh - 42px - 42px - 10px)" : "400px";
 
-			timeline_div.css("height", height_val);
+			timeline_div.css("max-height", height_val);
 			setTimeout(function() { // timeline takes time to be drawn
 				timeline_div[0].scrollIntoView({
 					behavior: "smooth",

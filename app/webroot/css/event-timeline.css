@@ -37,17 +37,24 @@
 }
 
 .loadingTimeline > div.loadingText {
-    left: 0px;
+	left: 0px;
 }
 
 .vis-item.attribute {
 	background-color: orange;
 	border-color: black;
 }
+.vis-item.attribute.vis-selected {
+	box-shadow: 0 0 20px rgba(82, 168, 236, 1);`
+}
 
 .vis-item.object {
-	background-color: gold;
-	border-color: orange;
+	background-color: #3465a4;
+	border-color: black;
+	color: white;
+}
+.vis-item.object.vis-selected {
+	box-shadow: 0 0 20px rgba(82, 168, 236, 1);`
 }
 
 .vis-item.object_attribute {
@@ -57,7 +64,7 @@
 
 .timeline-objectName {
 	text-align:left;
-	border-bottom: orange solid 1px;
+	border-bottom: white solid 1px;
 }
 .timeline-objectAttrType {
 	text-align:left;
@@ -67,6 +74,6 @@
 .timeline-objectAttrVal {
 	text-align:left;
 	line-height: 14px;
-	font-style: bold;
+	padding-left: 5px;
 }
 
