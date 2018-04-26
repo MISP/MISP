@@ -601,7 +601,7 @@ class StixBuilder(object):
 
     def return_attachment_composition(self, attribute):
         file_object = File()
-        file_object.filen_name = attribute.value
+        file_object.file_name = attribute.value
         file_object.parent.id_ = "{}:FileObject-{}".format(self.namespace_prefix, attribute.uuid)
         if 'data' in attribute:
             observable_artifact = self.create_artifact_object(attribute, artifact="a")
