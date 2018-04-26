@@ -665,7 +665,6 @@ class StixBuilder(object):
                 target.information_source.add_reference(reference)
             except AttributeError:
                 target.information_source.references = [reference]
-            print(target.information_source.to_json())
 
     def append_ttp(self, incident, attribute, ttp):
         if attribute.comment:
