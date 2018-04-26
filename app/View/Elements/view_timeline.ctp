@@ -10,6 +10,7 @@
 			<div class="loadingText"><?php echo __('Loading');?></div>
 		</div>
 	</div>
+	<span id="fullscreen-btn-timeline" class="fullscreen-btn-timeline btn btn-xs btn-primary" data-toggle="tooltip" data-placement="top" data-title="<?php echo __('Toggle fullscreen');?>"><span class="fa fa-desktop"></span></span>
 </div>
 
 <?php 

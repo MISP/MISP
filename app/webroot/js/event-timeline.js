@@ -1,4 +1,4 @@
-var timeline;
+var eventTimeline;
 var container_timeline = document.getElementById('event_timeline');
 var options = {
 	template: function (item, element, data) {
@@ -18,7 +18,7 @@ var options = {
 		}
 	},
 	verticalScroll: true,
-	zoomKey: 'ctrlKey',
+	zoomKey: 'altKey',
 	maxHeight: 400,
 };
 
@@ -39,7 +39,7 @@ function build_object_template(obj) {
 }
 
 function enable_timeline() {
-	if (timeline !== undefined) {
+	if (eventTimeline !== undefined) {
 		return;
 	}
 
@@ -61,7 +61,7 @@ function enable_timeline() {
 				item.className = item.group;
 			}
 			var items_timeline = new vis.DataSet(data.items);
-			timeline = new vis.Timeline(container_timeline, items_timeline, options);
+			eventTimeline = new vis.Timeline(container_timeline, items_timeline, options);
 			$(".loadingTimeline").hide();
 		},
 		error: function( jqXhr, textStatus, errorThrown ){
@@ -69,3 +69,19 @@ function enable_timeline() {
 		}
 	});
 }
+
+$('#fullscreen-btn-timeline').click(function() {
+			var timeline_div = $('#eventtimeline_div');
+			var fullscreen_enabled = !timeline_div.data('fullscreen');
+			timeline_div.data('fullscreen', fullscreen_enabled);
+			var height_val = fullscreen_enabled == true ? "calc(100vh - 42px - 42px - 10px)" : "400px";
+
+			timeline_div.css("height", height_val);
+			setTimeout(function() { // timeline takes time to be drawn
+				timeline_div[0].scrollIntoView({
+					behavior: "smooth",
+
+				});
+			}, 1);
+			eventTimeline.setOptions({maxHeight: height_val});
+		});
