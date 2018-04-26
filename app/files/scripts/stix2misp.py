@@ -326,7 +326,24 @@ class StixParser():
         if len(attributes) == 2:
             if b_hash and b_file:
                 return self.handle_filename_object(attributes, is_object)
+            path, filename = self.handle_filename_path_case(attributes)
+            if path and filename:
+                attribute_value = "{}\\{}".format(path, filename)
+                if '\\' in filename and path == filename:
+                    attribute_value = filename
+                return "filename", attribute_value, ""
         return "file", self.return_attributes(attributes), ""
+
+    @staticmethod
+    def handle_filename_path_case(attributes):
+        path, filename = [""] * 2
+        if attributes[0][2] == 'filename' and attributes[1][2] == 'path':
+            path = attributes[1][1]
+            filename = attributes[0][1]
+        elif attributes[0][2] == 'path' and attributes[1][2] == 'filename':
+            path = attributes[0][1]
+            filename = attributes[1][1]
+        return path, filename
 
     # Return the appropriate type & value when we have 1 filename & 1 hash value
     @staticmethod
