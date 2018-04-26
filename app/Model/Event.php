@@ -2814,9 +2814,9 @@ class Event extends AppModel {
 					}
 				}
 			}
-			if (isset($event['Event']['EventTag'])) {
-				$event['Event']['Tag'] = $event['Event']['EventTag']['Tag'];
-				unset($event['Event']['EventTag']);
+			if (isset($data['Event']['EventTag'])) {
+				$data['Event']['Tag'] = $data['Event']['EventTag']['Tag'];
+				unset($data['Event']['EventTag']);
 			}
 			if (isset($data['Event']['Tag']) && $user['Role']['perm_tagger']) {
 				foreach ($data['Event']['Tag'] as $tag) {
