@@ -49,7 +49,8 @@ class StixParser():
         try:
             filename = '{}/tmp/{}'.format(pathname, args[1])
             event = self.load_event(filename)
-            if "CIRCL:Package" in event.id_ and "CIRCL MISP" in event.stix_header.title:
+            title = event.stix_header.title
+            if "Export from " in title and "MISP" in title:
                 fromMISP = True
             else:
                 fromMISP = False
