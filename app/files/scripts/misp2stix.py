@@ -131,7 +131,7 @@ class StixBuilder(object):
         stix_package = STIXPackage(id_=package_name, timestamp=timestamp)
         stix_package.version = "1.1.1"
         stix_header = STIXHeader()
-        stix_header.title = "{} (MISP Event #{})".format(self.misp_event.info, self.misp_event.id)
+        stix_header.title = "Export from {} MISP".format(self.namespace_prefix)
         stix_header.package_intents = "Threat Report"
         stix_package.stix_header = stix_header
         incident = self.generate_stix_objects()
