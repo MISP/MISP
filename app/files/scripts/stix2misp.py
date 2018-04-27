@@ -84,6 +84,7 @@ class StixParser():
         self.attribute_types_mapping = {
             'AddressObjectType': self.handle_address,
             "ArtifactObjectType": self.handle_attachment,
+            "DNSRecordObjectType": self.handle_dns,
             'DomainNameObjectType': self.handle_domain_or_url,
             'EmailMessageObjectType': self.handle_email_attribute,
             'FileObjectType': self.handle_file,
@@ -254,6 +255,20 @@ class StixParser():
     @staticmethod
     def handle_attachment(properties, title):
         return eventTypes[properties._XSI_TYPE]['type'], title, properties.raw_artifact.value
+
+    # Return type & attributes of a dns object
+    @staticmethod
+    def handle_dns(properties):
+        relation = []
+        if properties.domain_name:
+            relation.append(["domain", str(properties.domain_name.value), ""])
+        if properties.ip_address:
+            relation.append(["ip-dst", str(properties.ip_address.value), ""])
+        if relation:
+            if len(relation) == '2':
+                ip = relation.pop(1)
+                self.misp_event.add_attribute(**{"type": ip[0], "value": ip[1]})
+            return relation[0]
 
     # Return type & value of a domain or url attribute
     @staticmethod
