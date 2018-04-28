@@ -189,21 +189,55 @@ class ServersController extends AppController {
 			}
 
 			if (!$fail) {
+				if ($this->_isRest()) {
+					$defaults = array(
+						'push' => 0,
+						'pull' => 0,
+						'json' => '[]',
+						'push_rules' => '[]',
+						'pull_rules' => '[]',
+						'self_signed' => 0
+					);
+					foreach ($defaults as $default => $dvalue) {
+						if (!isset($this->request->data['Server'][$default])) {
+							$this->request->data['Server'][$default] = $dvalue;
+						}
+					}
+				}
 				// force check userid and orgname to be from yourself
 				$this->request->data['Server']['org_id'] = $this->Auth->user('org_id');
-				if ($this->request->data['Server']['organisation_type'] < 2) $this->request->data['Server']['remote_org_id'] = $json['id'];
-				else {
+				if ($this->_isRest()) {
+					if (empty($this->request->data['Server']['remote_org_id'])) {
+						return $this->RestResponse->saveFailResponse('Servers', 'add', false, array('Organisation' => 'Remote Organisation\'s id/uuid not given (remote_org_id)'), $this->response->type());
+					}
+					if (Validation::uuid($this->request->data['Server']['remote_org_id'])) {
+						$orgCondition = array('uuid' => $this->request->data['Server']['remote_org_id']);
+					} else {
+						$orgCondition = array('id' => $this->request->data['Server']['remote_org_id']);
+					}
 					$existingOrgs = $this->Server->Organisation->find('first', array(
-							'conditions' => array('uuid' => $json['uuid']),
+							'conditions' => $orgCondition,
 							'recursive' => -1,
 							'fields' => array('id', 'uuid')
 					));
-					if (!empty($existingOrgs)) {
-						$fail = true;
-						if($this->_isRest()) {
-							return $this->RestResponse->saveFailResponse('Servers', 'add', false, array('Organisation' => 'Remote Organisation\'s uuid already used'), $this->response->type());
-						} else {
-							$this->Session->setFlash(__('That organisation could not be created as the uuid is in use already.'));
+					if (empty($existingOrgs)) {
+						return $this->RestResponse->saveFailResponse('Servers', 'add', false, array('Organisation' => 'Invalid Remote Organisation'), $this->response->type());
+					}
+				} else {
+					if ($this->request->data['Server']['organisation_type'] < 2) $this->request->data['Server']['remote_org_id'] = $json['id'];
+					else {
+						$existingOrgs = $this->Server->Organisation->find('first', array(
+								'conditions' => array('uuid' => $json['uuid']),
+								'recursive' => -1,
+								'fields' => array('id', 'uuid')
+						));
+						if (!empty($existingOrgs)) {
+							$fail = true;
+							if($this->_isRest()) {
+								return $this->RestResponse->saveFailResponse('Servers', 'add', false, array('Organisation' => 'Remote Organisation\'s uuid already used'), $this->response->type());
+							} else {
+								$this->Session->setFlash(__('That organisation could not be created as the uuid is in use already.'));
+							}
 						}
 					}
 
@@ -236,10 +270,10 @@ class ServersController extends AppController {
 				if (!$fail) {
 					$this->request->data['Server']['org_id'] = $this->Auth->user('org_id');
 					if ($this->Server->save($this->request->data)) {
-						if (isset($this->request->data['Server']['submitted_cert']) && $this->request->data['Server']['submitted_cert']['size'] != 0) {
+						if (isset($this->request->data['Server']['submitted_cert'])) {
 							$this->__saveCert($this->request->data, $this->Server->id, false);
 						}
-						if (isset($this->request->data['Server']['submitted_client_cert']) && $this->request->data['Server']['submitted_client_cert']['size'] != 0) {
+						if (isset($this->request->data['Server']['submitted_client_cert'])) {
 							$this->__saveCert($this->request->data, $this->Server->id, true);
 						}
 						if($this->_isRest()) {
@@ -399,12 +433,12 @@ class ServersController extends AppController {
 			if (!$fail) {
 				// Save the data
 				if ($this->Server->save($this->request->data, true, $fieldList)) {
-					if (isset($this->request->data['Server']['submitted_cert']) && $this->request->data['Server']['submitted_cert']['size'] != 0 && (!isset($this->request->data['Server']['delete_cert']) || !$this->request->data['Server']['delete_cert'])) {
+					if (isset($this->request->data['Server']['submitted_cert']) && (!isset($this->request->data['Server']['delete_cert']) || !$this->request->data['Server']['delete_cert'])) {
 						$this->__saveCert($this->request->data, $this->Server->id, false);
 					} else {
 						if (isset($this->request->data['Server']['delete_cert']) && $this->request->data['Server']['delete_cert']) $this->__saveCert($this->request->data, $this->Server->id, false, true);
 					}
-					if (isset($this->request->data['Server']['submitted_client_cert']) && $this->request->data['Server']['submitted_client_cert']['size'] != 0 && (!isset($this->request->data['Server']['delete_client_cert']) || !$this->request->data['Server']['delete_client_cert'])) {
+					if (isset($this->request->data['Server']['submitted_client_cert']) && (!isset($this->request->data['Server']['delete_client_cert']) || !$this->request->data['Server']['delete_client_cert'])) {
 						$this->__saveCert($this->request->data, $this->Server->id, true);
 					} else {
 						if (isset($this->request->data['Server']['delete_client_cert']) && $this->request->data['Server']['delete_client_cert']) $this->__saveCert($this->request->data, $this->Server->id, true, true);
@@ -630,19 +664,26 @@ class ServersController extends AppController {
 			App::uses('File', 'Utility');
 			App::uses('Folder', 'Utility');
 			App::uses('FileAccessTool', 'Tools');
-			if (!$this->Server->checkFilename($server['Server'][$subm]['name'])) {
-				throw new Exception ('Filename not allowed');
-			}
-			$file = new File($server['Server'][$subm]['name']);
-			$ext = $file->ext();
-			if (($ext != 'pem') || !$server['Server'][$subm]['size'] > 0) {
-				$this->Session->setFlash('Incorrect extension or empty file.');
-				$this->redirect(array('action' => 'index'));
-			}
+			if (isset($server['Server'][$subm]['name'])) {
+				if ($this->request->data['Server']['submitted_client_cert']['size'] != 0) {
+					if (!$this->Server->checkFilename($server['Server'][$subm]['name'])) {
+						throw new Exception ('Filename not allowed');
+					}
+					$file = new File($server['Server'][$subm]['name']);
+					$ext = $file->ext();
+					if (($ext != 'pem') || !$server['Server'][$subm]['size'] > 0) {
+						$this->Session->setFlash('Incorrect extension or empty file.');
+						$this->redirect(array('action' => 'index'));
+					}
 
-			// read pem file data
-			$pemData = (new FileAccessTool())->readFromFile($server['Server'][$subm]['tmp_name'], $server['Server'][$subm]['size']);
-
+					// read pem file data
+					$pemData = (new FileAccessTool())->readFromFile($server['Server'][$subm]['tmp_name'], $server['Server'][$subm]['size']);
+				} else {
+					return true;
+				}
+			} else {
+				$pemData = base64_decode($server['Server'][$subm]);
+			}
 			$destpath = APP . "files" . DS . "certs" . DS;
 			$dir = new Folder(APP . "files" . DS . "certs", true);
 			$pemfile = new File($destpath . $id . $ins . '.' . $ext);
@@ -655,6 +696,7 @@ class ServersController extends AppController {
 			$s['Server'][$attr] = '';
 			$this->Server->save($s);
 		}
+		return true;
 	}
 
 	public function serverSettingsReloadSetting($setting, $id) {
