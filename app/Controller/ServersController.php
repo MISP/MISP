@@ -163,7 +163,9 @@ class ServersController extends AppController {
 					$this->request->data = array('Server' => $this->request->data);
 				}
 			}
-			$json = json_decode($this->request->data['Server']['json'], true);
+			if (!empty($json)) {
+				$json = json_decode($this->request->data['Server']['json'], true);
+			}
 
 			$fail = false;
 			if (empty(Configure::read('MISP.host_org_id'))) $this->request->data['Server']['internal'] = 0;
