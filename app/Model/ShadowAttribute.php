@@ -307,6 +307,20 @@ class ShadowAttribute extends AppModel {
 			$this->data['ShadowAttribute']['uuid'] = CakeText::uuid();
 		}
 
+		$existingsa = $this->find('first', array(
+			'conditions' => array(
+				'event_uuid' => $this->data['ShadowAttribute']['event_uuid'],
+				'value' => $this->data['ShadowAttribute']['value'],
+				'type' => $this->data['ShadowAttribute']['type'],
+				'category' => $this->data['ShadowAttribute']['category'],
+				'to_ids' => $this->data['ShadowAttribute']['to_ids']
+			),
+		));
+		if (!empty($existingsa)) {
+			$this->validationErrors = array('duplicate' => array('This proposal already exists.'));
+			return false;
+		}
+
 		// always return true, otherwise the object cannot be saved
 		return true;
 	}
