@@ -266,8 +266,12 @@ class StixParser():
             relation.append(["ip-dst", str(properties.ip_address.value), ""])
         if relation:
             if len(relation) == '2':
-                ip = relation.pop(1)
-                self.misp_event.add_attribute(**{"type": ip[0], "value": ip[1]})
+                domain = relation[0][1]
+                ip = relattion[1][1]
+                attributes = [["text", domain, "rrname"], ["text", ip, "rdata"]]
+                rrtype = "A" if ":" in ip else "AAAA"
+                attributes.append(["text", rrtype, "rrtype"])
+                return "passive-dns", attributes, ""
             return relation[0]
 
     # Return type & value of a domain or url attribute
