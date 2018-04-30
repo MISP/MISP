@@ -12,8 +12,9 @@
 		<canvas id="distribution_graph_canvas" 	height="360px"width="400px"></canvas>
 	</div>
 	<div id="eventdistri_pb_container">
-		<div id="eventdistri_pb_background" class="progress">
-		<div id="eventdistri_pb" class="progress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" data-toggle="tooltip" data-placement="left" data-container="body" title="<?php echo __('Event distribution'); ?>"></div>
+		<div id="eventdistri_pb_background" class="progress useCursorPointer">
+		<div id="eventdistri_pb_min" class="progress useCursorPointer" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" data-toggle="tooltip" data-placement="left" data-container="body" title="<?php echo __('Elements having lower distribution level than the event distribution'); ?>"></div>
+		<div id="eventdistri_pb" class="progress useCursorPointer" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" data-toggle="tooltip" data-placement="top" data-container="body" title="<?php echo __('Event distribution'); ?>"></div>
 			<div id="eventdistri_pb_invalid" class="progress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" data-toggle="tooltip" data-placement="right" data-container="body" title="<?php echo __('Maximum level of non distributed elements'); ?>"></div>
 		</div>
 	</div>

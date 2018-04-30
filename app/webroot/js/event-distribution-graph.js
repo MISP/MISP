@@ -35,25 +35,64 @@ function generate_additional_info(info) {
 	}
 }
 
-function clickHandlerPb(evt) {
+function clickHandlerPbText(evt) {
 	var distribution_id = evt.target.dataset.distribution;
 	var value_to_set = String(distribution_id);
 	value_to_set += distribution_id == event_distribution ? '|' + '5' : '';
 	document.getElementById('attributesFilterField').value = value_to_set;
 	filterAttributes('distribution', scope_id);
 }
+function clickHandlerPb(evt) {
+	var distribution_id = evt.target.dataset.distribution;
+	var distribution_id = $(evt.target).data('distribution');
+	var value_to_set = String(distribution_id);
+	document.getElementById('attributesFilterField').value = value_to_set;
+	filterAttributes('distribution', scope_id);
+}
 
-function get_adjusted_distribution_level(event_distribution) {
-	if (event_distribution == 0) {
+function fill_distri_for_search(start_distri, end_distri) {
+	console.log(start_distri, end_distri);
+	var to_ret = "";
+	for (var i=start_distri; i<end_distri; i++) {
+		to_ret += String(get_adjusted_from_pb(i)) + "|";
+		to_ret += i==event_distribution ? "5|" : "";
+	}
+	to_ret += String(get_adjusted_from_pb(end_distri));
+	to_ret += end_distri==event_distribution ? "|5" : "";
+	return to_ret;
+}
+
+// true distri -> pb distri
+function get_adjusted_from_true_distri(distribution) {
+	if (distribution == 0) {
 		return 0;
-	} else if (event_distribution == 1) {
+	} else if (distribution == 1) {
 		return 1;
-	} else if (event_distribution == 2) {
+	} else if (distribution == 2) {
 		return 3;
-	} else if (event_distribution == 3) {
+	} else if (distribution == 3) {
 		return 4;
-	} else if (event_distribution == 4) {
+	} else if (distribution == 4) {
 		return 2;
+	} else if (distribution == 5) {
+		return event_distribution;
+	} else {
+		return;
+	}
+}
+
+// pb distri -> true distri
+function get_adjusted_from_pb(distribution) {
+	if (distribution == 0) {
+		return 0;
+	} else if (distribution == 1) {
+		return 1;
+	} else if (distribution == 2) {
+		return 4;
+	} else if (distribution == 3) {
+		return 2;
+	} else if (distribution == 4) {
+		return 3;
 	} else {
 		return;
 	}
@@ -75,6 +114,25 @@ function get_maximum_distribution(array) {
 		return 1;
 	} else {
 		return 0;
+	}
+}
+
+function get_minimum_distribution(array, event_dist) {
+	var org = array[0];
+	var community = array[1];
+	var connected = array[2];
+	var all = array[3];
+	var sharing = array[4];
+	if (connected != 0 && 3 < event_distribution) {
+		return 3;
+	} else if (sharing != 0 && 2 < event_distribution) {
+		return 2;
+	} else if (community != 0 && 1 < event_distribution) {
+		return 1;
+	} else if (org != 0 && 0 < event_distribution) {
+		return 0;
+	} else {
+		return -1;
 	}
 }
 
@@ -108,7 +166,7 @@ function add_level_to_pb(distribution, additionalInfo, maxLevel) {
 		// text
 		var span = document.createElement('span');
 		span.classList.add('useCursorPointer', 'pbDistributionText');
-		span.onclick = clickHandlerPb;
+		span.onclick = clickHandlerPbText;
 		span.style.bottom = d % 2 == 0 ? '59px' : '7px';
 		span.innerHTML = distribution[d].key;
 		span.setAttribute('data-distribution', distribution[d].num);
@@ -168,17 +226,33 @@ $(document).ready(function() {
 				$(".loadingPopover").hide();
 				$('#eventdistri_pb_invalid').tooltip();
 				$('#eventdistri_pb').tooltip();
+				$('#eventdistri_pb_min').tooltip();
+
+				$('#eventdistri_pb_invalid').click(function(evt) { clickHandlerPb(evt); });
+				$('#eventdistri_pb').click(function(evt) { clickHandlerPb(evt); });
+				$('#eventdistri_pb_min').click(function(evt) { clickHandlerPb(evt); });
 
 				// pb
-				var max_distri = get_maximum_distribution(data.event)+1;
-				var event_dist = get_adjusted_distribution_level(event_distribution)+1; // +1 to reach the first level
+				var event_dist = get_adjusted_from_true_distri(event_distribution)+1; // +1 to reach the first level
+				var min_distri = get_minimum_distribution(data.event, event_dist)+1; // +1 to reach the first level
+				var max_distri = get_maximum_distribution(data.event)+1; // +1 to reach the first level
+				console.log(min_distri, event_dist, max_distri);
 				add_level_to_pb(data.distributionInfo, data.additionalDistributionInfo, event_dist);
-				$('#eventdistri_pb').width(event_dist*20+'%');
-				$('#eventdistri_pb').attr('aria-valuenow', event_dist*20);
+
+				$('#eventdistri_pb_min').width(min_distri*20+'%');
+				$('#eventdistri_pb_min').data("distribution", fill_distri_for_search(0, min_distri-1));
+				$('#eventdistri_pb_min').attr('aria-valuenow', min_distri*20);
+				$('#eventdistri_pb_min').css("transition", "width 0.5s");
+				$('#eventdistri_pb_min').css("background", "#ffc107");
+
+				$('#eventdistri_pb').width((event_dist-Math.max(0, min_distri))*20+'%');
+				$('#eventdistri_pb').data("distribution", fill_distri_for_search(0, event_dist-1));
+				$('#eventdistri_pb').attr('aria-valuenow', (event_dist-min_distri)*20);
 				$('#eventdistri_pb').css("transition", "width 0.5s");
 				$('#eventdistri_pb').css("background", "#28a745");
 
 				$('#eventdistri_pb_invalid').width((max_distri-event_dist)*20+'%');
+				$('#eventdistri_pb_invalid').data("distribution", fill_distri_for_search(event_dist, max_distri-1));
 				$('#eventdistri_pb_invalid').attr('aria-valuenow', (max_distri-event_dist)*20);
 				$('#eventdistri_pb_invalid').css("transition", "width 0.5s");
 				$('#eventdistri_pb_invalid').css("background", "#dc3545");
