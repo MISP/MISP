@@ -4,6 +4,18 @@
 ?>
 
 <div>
+	<div class="eventgraph_header">
+		<label id="timeline-scope" class="btn center-in-network-header network-control-btn">
+			<span class="useCursorPointer fa fa-object-group" style="margin-right: 3px;">
+			</span><?php echo __('Time scope')?>
+			<span id="timeline-scope-badge" class="badge"></span>
+		</label>
+		<label id="timeline-display" class="btn center-in-network-header network-control-btn"><span class="useCursorPointer fa fa-list-alt" style="margin-right: 3px;"></span><?php echo __('Display')?></label>
+				
+		<input type="text" id="network-typeahead" class="center-in-network-header network-typeahead flushright" data-provide="typeahead" size="20" placeholder="Search for an item">
+	</div>
+
+
 	<div id="event_timeline">
 		<div class="loadingTimeline">
 			<div class="spinner"></div>

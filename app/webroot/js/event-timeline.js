@@ -29,6 +29,8 @@ var options = {
 
 };
 
+/* UTIL */
+
 function build_object_template(obj) {
 	var table = $('<table>');
 	table.append($('<tr class="timeline-objectName"><th>'+obj.content+'</th><th></th></tr>'));
@@ -50,6 +52,7 @@ function enable_timeline() {
 		return;
 	}
 
+	init_popover();
 	var payload = {};
 	$.ajax({
 		url: "/events/"+"getEventTimeline"+"/"+scope_id+"/event.json",
@@ -78,17 +81,107 @@ function enable_timeline() {
 }
 
 $('#fullscreen-btn-timeline').click(function() {
-			var timeline_div = $('#eventtimeline_div');
-			var fullscreen_enabled = !timeline_div.data('fullscreen');
-			timeline_div.data('fullscreen', fullscreen_enabled);
-			var height_val = fullscreen_enabled == true ? "calc(100vh - 42px - 42px - 10px)" : "400px";
+	var timeline_div = $('#eventtimeline_div');
+	var fullscreen_enabled = !timeline_div.data('fullscreen');
+	timeline_div.data('fullscreen', fullscreen_enabled);
+	var height_val = fullscreen_enabled == true ? "calc(100vh - 42px - 42px - 10px)" : "400px";
 
-			timeline_div.css("max-height", height_val);
-			setTimeout(function() { // timeline takes time to be drawn
-				timeline_div[0].scrollIntoView({
-					behavior: "smooth",
-
-				});
-			}, 1);
-			eventTimeline.setOptions({maxHeight: height_val});
+	timeline_div.css("max-height", height_val);
+	setTimeout(function() { // timeline takes time to be drawn
+		timeline_div[0].scrollIntoView({
+			behavior: "smooth",
 		});
+	}, 1);
+	eventTimeline.setOptions({maxHeight: height_val});
+});
+
+// init_scope_menu
+var menu_scope_timeline;
+function init_popover() {
+	menu_scope_timeline = new ContextualMenu({
+		trigger_container: document.getElementById("timeline-scope"),
+		bootstrap_popover: true,
+		style: "z-index: 1",
+		container: document.getElementById("eventtimeline_div")
+	});
+	menu_scope_timeline.add_select({
+		id: "select_timeline_scope",
+		label: "Scope",
+		tooltip: "The time scope represented by the timeline",
+		event: function(value) {
+			console.log(value);
+			//if (value == "Rotation key" && $('#input_graph_scope_jsonkey').val() == "") { // no key selected  for Rotation key scope
+			//	return;
+			//} else {
+			//	eventGraph.update_scope(value);
+			//	dataHandler.fetch_data_and_update();
+			//}
+		},
+		options: ["Item's last update", "Time attached to the object"],
+		default: "Item's last update"
+	});
+	menu_scope_timeline.add_select({
+		id: "select_timeline_scope_jsonkey",
+		label: "Object relation",
+		tooltip: "The object relation to be consider as time reference",
+		event: function(value) {
+			console.log(value);
+			//if (value == "Rotation key" && $('#input_graph_scope_jsonkey').val() == "") { // no key selected for Rotation key scope
+			//	return;
+			//} else {
+			//	eventGraph.scope_keyType = value;
+			//	eventGraph.update_scope("Rotation key");
+			//	dataHandler.fetch_data_and_update();
+			//}
+		},
+		options: undefined ? dataHandler.available_rotation_key : [],
+		default: ""
+	});
+
+	var menu_display_timeline = new ContextualMenu({
+		trigger_container: document.getElementById("timeline-display"),
+		bootstrap_popover: true,
+		style: "z-index: 1",
+		container: document.getElementById("eventtimeline_div")
+	});
+	menu_display_timeline.add_action_table({
+		id: "table_timeline_display_object_field",
+		container: menu_display_timeline.menu,
+		title: "Object's Attributes to be shown",
+		header: ["Object attribute type"],
+		control_items: [
+			{
+				DOMType: "select",
+				item_options: {
+					id: "table_timeline_control_select_obj_attr",
+					options: ['All']
+				}
+			},
+		],
+		data: [['All']],
+	});
+	menu_display_timeline.add_slider({
+		id: 'slider_timeline_display_max_char_num',
+		label: "Charater to show",
+		title: "Maximum number of charater to display",
+		min: 8,
+		max: 1024,
+		value: max_displayed_char,
+		step: 8,
+		applyButton: true,
+		event: function(value) {
+
+		},
+		eventApply: function(value) {
+
+		}
+	});
+	menu_display_timeline.add_checkbox({
+		id: 'checkbox_timeline_allow_edit',
+		label: "Edit Object's time",
+		title: "Allow to edit the time attached to the object",
+		event: function(value) {
+			console.log(value);
+		}
+	});
+}
