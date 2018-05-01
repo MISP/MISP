@@ -269,7 +269,7 @@ class StixParser():
                 domain = relation[0][1]
                 ip = relattion[1][1]
                 attributes = [["text", domain, "rrname"], ["text", ip, "rdata"]]
-                rrtype = "A" if ":" in ip else "AAAA"
+                rrtype = "AAAA" if ":" in ip else "A"
                 attributes.append(["text", rrtype, "rrtype"])
                 return "passive-dns", self.return_attributes(attributes), ""
             return relation[0]
