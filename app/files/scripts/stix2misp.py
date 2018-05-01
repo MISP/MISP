@@ -43,6 +43,8 @@ class StixParser():
         self.misp_event = MISPEvent()
         self.misp_event['Galaxy'] = []
         self.references = defaultdict(list)
+        self.dns_objects = defaultdict(dict)
+        self.dns_ips = []
 
     # Load data from STIX document, and other usefull data
     def load(self, args, pathname):
@@ -112,6 +114,8 @@ class StixParser():
         else:
             # external STIX format file
             self.buildExternalDict()
+        if self.dns_objects:
+            self.resolve_dns_objects()
         if self.references:
             self.build_references()
 
@@ -134,6 +138,28 @@ class StixParser():
             self.parse_ttps(self.event.ttps.ttps)
         if self.event.courses_of_action:
             self.parse_coa(self.event.courses_of_action)
+
+    def resolve_dns_objects(self):
+        for domain in self.dns_objects['domain']:
+            domain_object = self.dns_objects['domain'][domain]
+            ip_reference = domain_object['related']
+            domain_attribute = domain_object['data']
+            if ip_reference in self.dns_objects['ip']:
+                misp_object = MISPObject('passive-dns')
+                domain_attribute['object_relation'] = "rrname"
+                misp_object.add_attribute(**domain_attribute)
+                ip = self.dns_objects['ip'][ip_reference]['value']
+                ip_attribute = {"type": "text", "value": ip, "object_relation": "rdata"}
+                misp_object.add_attribute(**ip_attribute)
+                rrtype = "AAAA" if ":" in ip else "A"
+                rrtype_attribute = {"type": "text", "value": rrtype, "object_relation": "rrtype"}
+                misp_object.add_attribute(**rrtype_attribute)
+                self.misp_event.add_object(**misp_object)
+            else:
+                self.misp_event.add_attribute(**domain_attribute)
+        for ip in self.dns_objects['ip']:
+            if ip not in self.dns_ips:
+                self.misp_event.add_attribute(**self.dns_objects['ip'][ip])
 
     # Make references between objects
     def build_references(self):
@@ -630,8 +656,18 @@ class StixParser():
                 if attr_type is str or attr_type is int:
                     # if the returned value is a simple value, we build an attribute
                     attribute = {'to_ids': False, 'uuid': object_uuid}
-                    # if observable_object.related_objects:
-                    #     attribute
+                    if observable_object.related_objects:
+                        related_objects = observable_object.related_objects
+                        if attribute_type == "url" and len(related_objects) == 1 and related_objects[0].relationship.value == "Resolved_To":
+                            related_ip = self.fetch_uuid(related_objects[0].idref)
+                            self.dns_objects['domain'][object_uuid] = {"related": related_ip,
+                                                                       "data": {"type": "text", "value": attribute_value}}
+                            if related_ip not in self.dns_ips:
+                                self.dns_ips.append(related_ip)
+                            continue
+                    if attribute_type in ('ip-src', 'ip-dst'):
+                        self.dns_objects['ip'][object_uuid] = {"type": attribute_type, "value": attribute_value}
+                        continue
                     self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
                 else:
                     # otherwise, it is a dictionary of attributes, so we build an object
