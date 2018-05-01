@@ -112,7 +112,8 @@ class StixParser():
         else:
             # external STIX format file
             self.buildExternalDict()
-        self.build_references()
+        if self.references:
+            self.build_references()
 
     # Build a MISP event, parsing STIX data following the structure used in our own exporter
     def buildMispDict(self):
