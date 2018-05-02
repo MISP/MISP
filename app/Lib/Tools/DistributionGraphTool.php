@@ -10,9 +10,10 @@
 		private $__related_events = array();
 		private $__related_attributes = array();
 
-		public function construct($eventModel, $serverModel, $user, $extended_view=0) {
+		public function construct($eventModel, $serverModel, $orgModel, $user, $extended_view=0) {
 			$this->__eventModel = $eventModel;
 			$this->__serverModel = $serverModel;
+			$this->__organisationModel = $orgModel;
 			$this->__user = $user;
 			$this->__json = array();
 			$this->__extended_view = $extended_view;
@@ -20,10 +21,11 @@
 			// construct distribution info
 			$this->__json['distributionInfo'] = array();
 			$sgs = $this->__eventModel->SharingGroup->fetchAllAuthorised($this->__user, 'name',  1);
+			$this->__json['allSharingGroup'] = array_values($sgs);
 			$distributionLevels = $this->__eventModel->distributionLevels;
 			if (empty($sgs)) unset($distributionLevels[4]);
 			foreach ($distributionLevels as $key => $value) {
-				$this->__json['distributionInfo'][$key] = array('key' => $value, 'desc' => $this->__eventModel->distributionDescriptions[$key]['formdesc']);
+				$this->__json['distributionInfo'][$key] = array('key' => $value, 'desc' => $this->__eventModel->distributionDescriptions[$key]['formdesc'], 'value' => $key);
 			}
 			$this->__json['distributionInfo'][5] = ""; // inherit event. Will be deleted afterward
 
@@ -44,18 +46,56 @@
 			if ($distributionLevel == 4) { // sharing group
 				$sg_name = $this->__extract_sharing_groups_names($elem['SharingGroup']);
 				$this->__addAdditionalDistributionInfo($distributionLevel, $sg_name);
+
 			} else if ($distributionLevel == 3) { // all
+				if (empty($this->__json['additionalDistributionInfo'][$distributionLevel])) {
+					$servers = $this->__serverModel->find('list', array(
+						'fields' => array('name'),
+					));
+					$this->__addAdditionalDistributionInfo($distributionLevel, "This community"); // add current community
+					$this->__addAdditionalDistributionInfo($distributionLevel, "All other communities"); // add current community
+				} else {
+					return false;
+				}
+
+			} else if ($distributionLevel == 2) { // connected
 				// fetch connected communities
 				if (empty($this->__json['additionalDistributionInfo'][$distributionLevel])) {
 					$servers = $this->__serverModel->find('list', array(
 						'fields' => array('name'),
 					));
+					$this->__addAdditionalDistributionInfo($distributionLevel, "This community"); // add current community
 					foreach ($servers as $server) {
 						$this->__addAdditionalDistributionInfo($distributionLevel, $server);
 					}
 				} else {
 					return false;
 				}
+
+			} else if ($distributionLevel == 1) { // community
+				if (empty($this->__json['additionalDistributionInfo'][$distributionLevel])) {
+					$orgs = $this->__organisationModel->find('list', array(
+						'fields' => array('name'),
+					));
+					$thisOrg = $this->__user['Organisation']['name'];
+					$this->__addAdditionalDistributionInfo($distributionLevel, $thisOrg); // add current community
+					foreach ($orgs as $org) {
+						if ($thisOrg != $org) {
+							$this->__addAdditionalDistributionInfo($distributionLevel, $org);
+						}
+					}
+				} else {
+					return false;
+				}
+				
+			} else if ($distributionLevel == 0) { // org only
+				if (empty($this->__json['additionalDistributionInfo'][$distributionLevel])) {
+					$thisOrg = $this->__user['Organisation']['name'];
+					$this->__addAdditionalDistributionInfo($distributionLevel, $thisOrg); // add current community
+				} else {
+					return false;
+				}
+				
 			} else {
 				return false;
 			}
