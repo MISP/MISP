@@ -213,6 +213,7 @@ function add_level_to_pb(distribution, additionalInfo, maxLevel) {
 $(document).ready(function() {
 	var pop = $('.distribution_graph').popover({
 		title: "<b>Distribution graph</b> [atomic event]",
+		placement: 'bottom',
 		html: true,
 		content: function() { return $('#distribution_graph_container').html(); },
 		template : '<div class="popover" role="tooltip" style="z-index: 1;"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content" style="padding-left: '+spanOffset_orig+'px; padding-right: '+spanOffset_orig*2+'px;"></div></div>'
@@ -230,7 +231,7 @@ $(document).ready(function() {
 			$(this).data('shown', 'false');
 			return;
 		} else {
-		    $(this).data('shown', 'true');
+			$(this).data('shown', 'true');
 		}
 		$.ajax({
 			url: "/events/"+"getDistributionGraph"+"/"+scope_id+"/event.json",
@@ -302,52 +303,11 @@ $(document).ready(function() {
 
 
 				// RADAR
+				var doughnutColors = ['red', 'orange', 'lime', 'green', 'blue'];
 				var ctx = document.getElementById("distribution_graph_canvas");
 				ctx.onclick = function(evt) { clickHandlerGraph(evt); };
-				//distribution_chart = new Chart(ctx, {
-				//	type: 'bar',
-				//	data: {
-				//		labels: data.distributionInfo.map(function(elem, index) { return [elem.key]; }),
-				//		distribution: data.distributionInfo,
-				//		datasets: [
-				//			{
-				//				label: "Attributes",
-				//				data: data.attribute,
-				//				backgroundColor: "rgba(255, 0, 0, 0.1)",
-				//				borderColor: "rgba(255, 0, 0, 0.6)",
-				//				pointBackgroundColor: "rgba(255, 0, 0, 1)",
-				//				pointRadius: 4,
-				//				//fill: false
-				//			},
-				//			{
-				//				label: "Object attributes",
-				//				data: data.obj_attr,
-				//				backgroundColor: "rgba(0, 0, 255, 0.1)",
-				//				borderColor: "rgba(0, 0, 255, 0.6)",
-				//				pointBackgroundColor: "rgba(0, 0, 255, 1)",
-				//				pointRadius: 4,
-				//				//fill: false
-				//			},
-				//		
-				//		],
-				//	},
-				//	options: {
-				//		title: {
-				//			display: false,
-				//			text: 'Distribution'
-				//		},
-				//		scales: {
-				//			xAxes: [{
-				//				stacked: true
-				//			}],
-				//			yAxes: [{
-				//				stacked: true
-				//			}]
-				//		}
-				//	}
-				//});
 				distribution_chart = new Chart(ctx, {
-					type: 'radar',
+					type: 'doughnut',
 					data: {
 						labels: data.distributionInfo.map(function(elem, index) { return [elem.key]; }),
 						distribution: data.distributionInfo,
@@ -355,36 +315,34 @@ $(document).ready(function() {
 							{
 								label: "Attributes",
 								data: data.attribute,
-								backgroundColor: "rgba(255, 0, 0, 0.1)",
-								borderColor: "rgba(255, 0, 0, 0.6)",
-								pointBackgroundColor: "rgba(255, 0, 0, 1)",
-								pointRadius: 4,
-								//fill: false
+								backgroundColor: doughnutColors
 							},
 							{
 								label: "Object attributes",
 								data: data.obj_attr,
-								backgroundColor: "rgba(0, 0, 255, 0.1)",
-								borderColor: "rgba(0, 0, 255, 0.6)",
-								pointBackgroundColor: "rgba(0, 0, 255, 1)",
-								pointRadius: 4,
-								//fill: false
+								backgroundColor: doughnutColors
 							},
 						
 						],
 					},
 					options: {
 						title: {
-							display: false,
-							text: 'Distribution'
+							display: false
 						},
-						scale: {
-							ticks: {
-								beginAtZero: true,
-								maxTicksLimit: 5
+						animation: {
+							duration: 500
+						},
+						tooltips: {
+							callbacks: {
+								label: function(item, data) {
+									return data.datasets[item.datasetIndex].label
+										+ " - " + data.labels[item.datasetIndex]
+										+ ": " + data.datasets[item.datasetIndex].data[item.index];
+								}
 							}
 						}
-					}
+					},
+					
 				});
 			},
 			error: function( jqXhr, textStatus, errorThrown ){
