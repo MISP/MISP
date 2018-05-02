@@ -675,7 +675,7 @@ class StixParser():
                         self.handle_object_case(attribute_type, attribute_value, compl_data, object_uuid=object_uuid)
                     if observable_object.related_objects:
                         for related_object in observable_object.related_objects:
-                            relationship = related_object.relationship.value.inner().replace('_', '-')
+                            relationship = related_object.relationship.value.lower().replace('_', '-')
                             self.references[object_uuid].append({"idref": self.fetch_uuid(related_object.idref),
                                                                  "relationship": relationship})
 
