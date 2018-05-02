@@ -165,6 +165,10 @@ class Module extends AppModel {
 				$settings[$sslSetting] = Configure::read('Plugin.' . $moduleFamily . '_' . $sslSetting);
 			}
 		}
+		// let's set a low timeout for the introspection so that we don't block the loading of pages due to a misconfigured modules
+		if ($uri == '/modules') {
+			$settings['timeout'] = 1;
+		}
 		$httpSocket = new HttpSocket($settings);
 		$request = array(
 				'header' => array(

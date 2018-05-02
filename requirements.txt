@@ -1,0 +1,8 @@
+pyzmq
+coveralls
+codecov
+stix == 1.2.0.0
+git+https://github.com/MISP/PyMISP.git#egg=Package
+requests-mock
+pip
+nose

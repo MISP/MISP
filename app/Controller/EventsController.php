@@ -3556,6 +3556,18 @@ class EventsController extends AppController {
 			$this->set('resultArray', $resultArray);
 			$this->set('importComment', '');
 			$this->set('title', 'Freetext Import Results');
+			$this->loadModel('Warninglist');
+			$tldLists = $this->Warninglist->getTldLists();
+			$missingTldLists = array();
+			foreach ($tldLists as $tldList) {
+				$temp = $this->Warninglist->find('first', array(
+					'recursive' => -1,
+					'conditions' => array('Warninglist.name' => $tldList),
+					'fields' => array('Warninglist.id')
+				));
+				if (empty($temp)) $missingTldLists[] = $tldList;
+			}
+			$this->set('missingTldLists', $missingTldLists);
 			$this->render('resolved_attributes');
 		}
 	}
