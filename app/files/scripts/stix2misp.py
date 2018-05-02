@@ -94,7 +94,7 @@ class StixParser():
             'HTTPSessionObjectType': self.handle_http,
             'MutexObjectType': self.handle_mutex,
             'NetworkConnectionObjectType': self.handle_network_connection,
-            #'NetworkSocketObjectType': self.handle_network_socket
+            'NetworkSocketObjectType': self.handle_network_socket
             'PDFFileObjectType': self.handle_file,
             'PortObjectType': self.handle_port,
             'SocketAddressObjectType': self.handle_socket_address,
@@ -464,6 +464,19 @@ class StixParser():
             attributes.append(["text", properties.layer7_protocol.value, "layer7_protocol"])
         if attributes:
             return "network-connection", self.return_attributes(attributes), ""
+
+    def handle_network_socket(self, properties):
+        attributes = []
+        if properties.local_address:
+            self.handle_socket(attributes, properties.local_address, "src")
+        if properties.remote_address:
+            self.handle_socket(attributes, properties.remote_address, "dst")
+        if properties.protocol:
+            attributes.append(["text", properties.protocol.value, "protocol"])
+        if attributes:
+            ## atm returning a netflow object
+            ## need to define what to do with the domain field
+            return "netflow", self.return_attributes(attributes), ""
 
     # Return type & value of a port attribute
     @staticmethod
