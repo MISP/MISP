@@ -138,7 +138,7 @@ function add_level_to_pb(distribution, additionalInfo, maxLevel) {
 		var pop = $(span).popover({
 			placement: d % 2 == 0 ? 'top' : 'bottom',
 			trigger: 'click',
-			content: distribution[d].desc + generate_additional_info(additionalInfo[d]),
+			content: '<b>Distribution description:</b> ' + distribution[d].desc + generate_additional_info(additionalInfo[d]),
 			title: distribution[d].key,
 			container: 'body',
 			html: true,
@@ -251,7 +251,7 @@ $(document).ready(function() {
 					placement: 'bottom',
 					trigger: 'click',
 					title: 'Sharing group',
-					content: data.distributionInfo[4].desc + generate_additional_info(data.additionalDistributionInfo[4]),
+					content: '<b>Distribution description:</b> ' + data.distributionInfo[4].desc + generate_additional_info(data.additionalDistributionInfo[4]),
 					container: 'body',
 					html: true,
 					template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title distributionInfo"></h3><div class="popover-content distributionInfo" style="white-space: pre-wrap"></div></div>'
