@@ -94,7 +94,7 @@ class StixParser():
             'HTTPSessionObjectType': self.handle_http,
             'MutexObjectType': self.handle_mutex,
             'NetworkConnectionObjectType': self.handle_network_connection,
-            'NetworkSocketObjectType': self.handle_network_socket
+            'NetworkSocketObjectType': self.handle_network_socket,
             'PDFFileObjectType': self.handle_file,
             'PortObjectType': self.handle_port,
             'SocketAddressObjectType': self.handle_socket_address,
