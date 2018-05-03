@@ -3,6 +3,14 @@
 	<?php $scope = !empty($proposals) ? 'proposals' : 'attributes'; ?>
 	<p><?php echo __('Below you can see the %s that are to be created. Make sure that the categories and the types are correct, often several options will be offered based on an inconclusive automatic resolution.', $scope);?></p>
 	<?php
+		if (!empty($missingTldLists)) {
+			$missingTldLists = implode(', ', $missingTldLists);
+			$missingTldLists = __('Warning: You are missing warninglist(s) that are used to recognise TLDs. Make sure your MISP has the warninglist submodule enabled and updated or else this tool might end up missing valid domains/hostnames/urls. The missing lists are: %s', $missingTldLists);
+			echo sprintf('<p class="bold red">%s</p>', $missingTldLists);
+		}
+	?>
+	<p></p>
+	<?php
 		$instanceDefault = 5;
 		if (!empty(Configure::read('MISP.default_attribute_distribution'))) {
 			if (Configure::read('MISP.default_attribute_distribution') == 'event') {

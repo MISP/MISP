@@ -43,13 +43,16 @@ class StixParser():
         self.misp_event = MISPEvent()
         self.misp_event['Galaxy'] = []
         self.references = defaultdict(list)
+        self.dns_objects = defaultdict(dict)
+        self.dns_ips = []
 
     # Load data from STIX document, and other usefull data
     def load(self, args, pathname):
         try:
             filename = '{}/tmp/{}'.format(pathname, args[1])
             event = self.load_event(filename)
-            if "CIRCL:Package" in event.id_ and "CIRCL MISP" in event.stix_header.title:
+            title = event.stix_header.title
+            if "Export from " in title and "MISP" in title:
                 fromMISP = True
             else:
                 fromMISP = False
@@ -83,6 +86,7 @@ class StixParser():
         self.attribute_types_mapping = {
             'AddressObjectType': self.handle_address,
             "ArtifactObjectType": self.handle_attachment,
+            "DNSRecordObjectType": self.handle_dns,
             'DomainNameObjectType': self.handle_domain_or_url,
             'EmailMessageObjectType': self.handle_email_attribute,
             'FileObjectType': self.handle_file,
@@ -110,7 +114,10 @@ class StixParser():
         else:
             # external STIX format file
             self.buildExternalDict()
-        self.build_references()
+        if self.dns_objects:
+            self.resolve_dns_objects()
+        if self.references:
+            self.build_references()
 
     # Build a MISP event, parsing STIX data following the structure used in our own exporter
     def buildMispDict(self):
@@ -132,9 +139,30 @@ class StixParser():
         if self.event.courses_of_action:
             self.parse_coa(self.event.courses_of_action)
 
+    def resolve_dns_objects(self):
+        for domain in self.dns_objects['domain']:
+            domain_object = self.dns_objects['domain'][domain]
+            ip_reference = domain_object['related']
+            domain_attribute = domain_object['data']
+            if ip_reference in self.dns_objects['ip']:
+                misp_object = MISPObject('passive-dns')
+                domain_attribute['object_relation'] = "rrname"
+                misp_object.add_attribute(**domain_attribute)
+                ip = self.dns_objects['ip'][ip_reference]['value']
+                ip_attribute = {"type": "text", "value": ip, "object_relation": "rdata"}
+                misp_object.add_attribute(**ip_attribute)
+                rrtype = "AAAA" if ":" in ip else "A"
+                rrtype_attribute = {"type": "text", "value": rrtype, "object_relation": "rrtype"}
+                misp_object.add_attribute(**rrtype_attribute)
+                self.misp_event.add_object(**misp_object)
+            else:
+                self.misp_event.add_attribute(**domain_attribute)
+        for ip in self.dns_objects['ip']:
+            if ip not in self.dns_ips:
+                self.misp_event.add_attribute(**self.dns_objects['ip'][ip])
+
     # Make references between objects
     def build_references(self):
-        print(self.references)
         for misp_object in self.misp_event.objects:
             object_uuid = misp_object.uuid
             if object_uuid in self.references:
@@ -255,6 +283,24 @@ class StixParser():
     def handle_attachment(properties, title):
         return eventTypes[properties._XSI_TYPE]['type'], title, properties.raw_artifact.value
 
+    # Return type & attributes of a dns object
+    @staticmethod
+    def handle_dns(properties):
+        relation = []
+        if properties.domain_name:
+            relation.append(["domain", str(properties.domain_name.value), ""])
+        if properties.ip_address:
+            relation.append(["ip-dst", str(properties.ip_address.value), ""])
+        if relation:
+            if len(relation) == '2':
+                domain = relation[0][1]
+                ip = relattion[1][1]
+                attributes = [["text", domain, "rrname"], ["text", ip, "rdata"]]
+                rrtype = "AAAA" if ":" in ip else "A"
+                attributes.append(["text", rrtype, "rrtype"])
+                return "passive-dns", self.return_attributes(attributes), ""
+            return relation[0]
+
     # Return type & value of a domain or url attribute
     @staticmethod
     def handle_domain_or_url(properties):
@@ -327,7 +373,24 @@ class StixParser():
         if len(attributes) == 2:
             if b_hash and b_file:
                 return self.handle_filename_object(attributes, is_object)
+            path, filename = self.handle_filename_path_case(attributes)
+            if path and filename:
+                attribute_value = "{}\\{}".format(path, filename)
+                if '\\' in filename and path == filename:
+                    attribute_value = filename
+                return "filename", attribute_value, ""
         return "file", self.return_attributes(attributes), ""
+
+    @staticmethod
+    def handle_filename_path_case(attributes):
+        path, filename = [""] * 2
+        if attributes[0][2] == 'filename' and attributes[1][2] == 'path':
+            path = attributes[1][1]
+            filename = attributes[0][1]
+        elif attributes[0][2] == 'path' and attributes[1][2] == 'filename':
+            path = attributes[0][1]
+            filename = attributes[1][1]
+        return path, filename
 
     # Return the appropriate type & value when we have 1 filename & 1 hash value
     @staticmethod
@@ -593,8 +656,18 @@ class StixParser():
                 if attr_type is str or attr_type is int:
                     # if the returned value is a simple value, we build an attribute
                     attribute = {'to_ids': False, 'uuid': object_uuid}
-                    # if observable_object.related_objects:
-                    #     attribute
+                    if observable_object.related_objects:
+                        related_objects = observable_object.related_objects
+                        if attribute_type == "url" and len(related_objects) == 1 and related_objects[0].relationship.value == "Resolved_To":
+                            related_ip = self.fetch_uuid(related_objects[0].idref)
+                            self.dns_objects['domain'][object_uuid] = {"related": related_ip,
+                                                                       "data": {"type": "text", "value": attribute_value}}
+                            if related_ip not in self.dns_ips:
+                                self.dns_ips.append(related_ip)
+                            continue
+                    if attribute_type in ('ip-src', 'ip-dst'):
+                        self.dns_objects['ip'][object_uuid] = {"type": attribute_type, "value": attribute_value}
+                        continue
                     self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
                 else:
                     # otherwise, it is a dictionary of attributes, so we build an object
@@ -602,7 +675,7 @@ class StixParser():
                         self.handle_object_case(attribute_type, attribute_value, compl_data, object_uuid=object_uuid)
                     if observable_object.related_objects:
                         for related_object in observable_object.related_objects:
-                            relationship = related_object.relationship.value.inner().replace('_', '-')
+                            relationship = related_object.relationship.value.lower().replace('_', '-')
                             self.references[object_uuid].append({"idref": self.fetch_uuid(related_object.idref),
                                                                  "relationship": relationship})
 

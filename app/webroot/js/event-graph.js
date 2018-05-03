@@ -148,7 +148,8 @@ class EventGraph {
 		var menu_scope = new ContextualMenu({
 			trigger_container: document.getElementById("network-scope"),
 			bootstrap_popover: true,
-			style: "z-index: 1"
+			style: "z-index: 1",
+			container: document.getElementById("eventgraph_div")
 		});
 		menu_scope.add_select({
 			id: "select_graph_scope",
@@ -188,7 +189,8 @@ class EventGraph {
 		var menu_physic = new ContextualMenu({
 			trigger_container: document.getElementById("network-physic"),
 			bootstrap_popover: true,
-			style: "z-index: 1"
+			style: "z-index: 1",
+			container: document.getElementById("eventgraph_div")
 		});
 		menu_physic.add_select({
 			id: "select_physic_solver",
@@ -227,7 +229,8 @@ class EventGraph {
 		var menu_display = new ContextualMenu({
 			trigger_container: document.getElementById("network-display"),
 			bootstrap_popover: true,
-			style: "z-index: 1"
+			style: "z-index: 1",
+			container: document.getElementById("eventgraph_div")
 		});
 		menu_display.add_select({
 			id: "select_display_layout",
@@ -311,7 +314,8 @@ class EventGraph {
 		var menu_filter = new ContextualMenu({
 			trigger_container: document.getElementById("network-filter"),
 			bootstrap_popover: true,
-			style: "z-index: 1"
+			style: "z-index: 1",
+			container: document.getElementById("eventgraph_div")
 		});
 		menu_filter.add_action_table({
 			id: "table_attr_presence",
@@ -403,7 +407,8 @@ class EventGraph {
 		var menu_canvas = new ContextualMenu({
 			trigger_container: document.getElementById("eventgraph_network"),
 			right_click: true,
-			style: "z-index: 1"
+			style: "z-index: 1",
+			container: document.getElementById("eventgraph_div")
 		});
 		menu_canvas.add_button({
 			label: "View/Edit",
@@ -1812,7 +1817,7 @@ var loadingText_creating = 'Constructing network';
 var loadingText_redrawing = 'Redrawing network';
 
 var shortcut_text = "<b>V</b> Center camera"
-		+ "\n<b>X</b> Expaned node"
+		+ "\n<b>X</b> Expand node"
 		+ "\n<b>C</b> Collapse node"
 		+ "\n<b>SHIFT+E</b> Edit node"
 		+ "\n<b>SHIFT+F</b> Search for value"

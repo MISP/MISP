@@ -17,11 +17,6 @@
 <?php
 	$tab = "Center";
 	$filtered = false;
-	if (count($list) > 0){
-		$galaxy_id = $list[0]['GalaxyCluster']['galaxy_id'];
-	}else{
-		$galaxy_id = "";
-	}
 	if(isset($passedArgsArray)){
 		if (count($passedArgsArray) > 0) {
 			$tab = "Left";

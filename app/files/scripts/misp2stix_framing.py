@@ -1,5 +1,4 @@
 import sys, json, uuid, os, time, datetime, re
-from misp2cybox import *
 from dateutil.tz import tzutc
 from stix.indicator import Indicator
 from stix.indicator.valid_time import ValidTime
@@ -126,6 +125,7 @@ def main(args):
     stix_header.title="Export from {} MISP".format(orgname)
     stix_header.package_intents="Threat Report"
     stix_package.stix_header = stix_header
+    stix_package.version = "1.1.1"
 
     if args[3] == 'json':
         stix_string = stix_package.to_json()[:-1]

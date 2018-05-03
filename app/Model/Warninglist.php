@@ -40,6 +40,10 @@ class Warninglist extends AppModel{
 		return true;
 	}
 
+	public function getTldLists() {
+		return $this->__tlds;
+	}
+
 	public function update() {
 		$directories = glob(APP . 'files' . DS . 'warninglists' . DS . 'lists' . DS . '*', GLOB_ONLYDIR);
 		$updated = array();

@@ -310,9 +310,9 @@ class ComplexTypeTool {
 			}
 			if ($domainDetection) {
 				if (count($temp) > 2) {
-					return array('types' => array('hostname', 'domain', 'url'), 'to_ids' => true, 'default_type' => 'hostname', 'comment' => $input['comment'], 'value' => $input['refanged_no_port']);
+					return array('types' => array('hostname', 'domain', 'url', 'filename'), 'to_ids' => true, 'default_type' => 'hostname', 'comment' => $input['comment'], 'value' => $input['refanged_no_port']);
 				} else {
-					return array('types' => array('domain'), 'to_ids' => true, 'default_type' => 'domain', 'comment' => $input['comment'], 'value' => $input['refanged_no_port']);
+					return array('types' => array('domain', 'filename'), 'to_ids' => true, 'default_type' => 'domain', 'comment' => $input['comment'], 'value' => $input['refanged_no_port']);
 				}
 			} else {
 				// check if it is a URL

@@ -420,6 +420,9 @@ class Attribute extends AppModel {
 			'validComposite' => array(
 				'rule' => array('validComposite'),
 				'message' => 'Composite type found but the value not in the composite (value1|value2) format.'
+			),
+			'maxTextLength' => array(
+				'rule' => array('maxTextLength')
 			)
 		),
 		'to_ids' => array(
@@ -730,6 +733,13 @@ class Attribute extends AppModel {
 			if (2 != count($pieces)) {
 				return false;
 			}
+		}
+		return true;
+	}
+
+	public function maxTextLength($fields) {
+		if (strlen($fields['value']) > 65535) {
+			return 'The entered string is too long and would get truncated. Please consider adding the data as an attachment instead';
 		}
 		return true;
 	}

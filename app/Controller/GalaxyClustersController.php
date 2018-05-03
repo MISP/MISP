@@ -35,14 +35,14 @@ class GalaxyClustersController extends AppController {
 		if ( isset($this->params['named']['searchall']) && strlen($this->params['named']['searchall']) > 0) {
 			$synonym_hits = $this->GalaxyCluster->GalaxyElement->find(
 				'list', array(
-					'recursive' => -1, 
-					'conditions' => array( 
-						'LOWER(GalaxyElement.value) LIKE' => '%' . strtolower($this->params['named']['searchall']) . '%', 
-						'GalaxyElement.key' => 'synonyms' ), 
+					'recursive' => -1,
+					'conditions' => array(
+						'LOWER(GalaxyElement.value) LIKE' => '%' . strtolower($this->params['named']['searchall']) . '%',
+						'GalaxyElement.key' => 'synonyms' ),
 						'fields' => array(
-							'GalaxyElement.galaxy_cluster_id') 
+							'GalaxyElement.galaxy_cluster_id')
 						));
-			$this->paginate['conditions'] = 
+			$this->paginate['conditions'] =
 				array("AND" => array(
 					'OR' => array(
 						"LOWER(GalaxyCluster.value) LIKE" => '%'. strtolower($this->params['named']['searchall']) .'%',
@@ -84,6 +84,7 @@ class GalaxyClustersController extends AppController {
 				$clusters[$k]['sightings'] = $temp;
 			}
 		}
+		$csv = array();
 		foreach ($clusters as $k => $cluster) {
 			$startDate = !empty($cluster['sightings']) ? min(array_keys($cluster['sightings'])) : date('Y-m-d');
 			$startDate = date('Y-m-d', strtotime("-3 days", strtotime($startDate)));
@@ -101,6 +102,7 @@ class GalaxyClustersController extends AppController {
 		}
 		$this->set('csv', $csv);
 		$this->set('list', $clusters);
+		$this->set('galaxy_id', $id);
 		if ($this->request->is('ajax')) {
 			$this->layout = 'ajax';
 			$this->render('ajax/index');
