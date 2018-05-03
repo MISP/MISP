@@ -1816,7 +1816,7 @@ var loadingText_creating = 'Constructing network';
 var loadingText_redrawing = 'Redrawing network';
 
 var shortcut_text = "<b>V</b> Center camera"
-		+ "\n<b>X</b> Expaned node"
+		+ "\n<b>X</b> Expand node"
 		+ "\n<b>C</b> Collapse node"
 		+ "\n<b>SHIFT+E</b> Edit node"
 		+ "\n<b>SHIFT+F</b> Search for value"
