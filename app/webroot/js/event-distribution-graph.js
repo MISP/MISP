@@ -305,7 +305,7 @@ $(document).ready(function() {
 				var doughnutColors = ['#ff0000', '#ff9e00', '#957200', '#008000', 'rgb(122, 134, 224)'];
 				var doughnut_dataset = [
 					{
-						label: "Event",
+						label: "All",
 						data: data.event,
 						hidden: false,
 						backgroundColor: doughnutColors
@@ -313,13 +313,13 @@ $(document).ready(function() {
 					{
 						label: "Attributes",
 						data: data.attribute,
-						hidden: true,
+						hidden: false,
 						backgroundColor: doughnutColors
 					},
 					{
 						label: "Object attributes",
 						data: data.obj_attr,
-						hidden: true,
+						hidden: false,
 						backgroundColor: doughnutColors
 					},
 				
@@ -367,7 +367,7 @@ $(document).ready(function() {
 					label.css({'user-select': 'none'});
 					var checkbox = $('<input type="checkbox">');
 					checkbox.data('dataset-index', i);
-					checkbox.prop('checked', item.label === 'Event');
+					checkbox.prop('checked', true);
 					checkbox.change(function(evt) {
 						var clickedIndex = $(this).data('dataset-index');
 						var isChecked = $(this).prop('checked');
