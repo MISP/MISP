@@ -21,11 +21,11 @@
 			// construct distribution info
 			$this->__json['distributionInfo'] = array();
 			$sgs = $this->__eventModel->SharingGroup->fetchAllAuthorised($this->__user, 'name',  1);
-			$this->__json['allSharingGroup'] = array_values($sgs);
+			$this->__json['allSharingGroup'] = h(array_values($sgs));
 			$distributionLevels = $this->__eventModel->distributionLevels;
 			if (empty($sgs)) unset($distributionLevels[4]);
 			foreach ($distributionLevels as $key => $value) {
-				$this->__json['distributionInfo'][$key] = array('key' => $value, 'desc' => $this->__eventModel->distributionDescriptions[$key]['formdesc'], 'value' => $key);
+				$this->__json['distributionInfo'][$key] = array('key' => h($value), 'desc' => h($this->__eventModel->distributionDescriptions[$key]['formdesc']), 'value' => h($key));
 			}
 			$this->__json['distributionInfo'][5] = ""; // inherit event. Will be deleted afterward
 
@@ -61,7 +61,7 @@
 			if (empty($this->__json['additionalDistributionInfo'][$distributionLevel])) {
 				$this->__json['additionalDistributionInfo'][$distributionLevel] = array();
 			}
-			array_push($this->__json['additionalDistributionInfo'][$distributionLevel], $data);
+			array_push($this->__json['additionalDistributionInfo'][$distributionLevel], h($data));
 		}
 
 		private function __addOtherDistributionInfo() {
@@ -184,7 +184,7 @@
 		public function init_array_distri($default=0) {
 			$ret = array();
 			foreach ($this->__json['distributionInfo'] as $d => $v) {
-				$ret[$d] = $default;
+				$ret[h($d)] = $default;
 			}
 			return $ret;
 		}
