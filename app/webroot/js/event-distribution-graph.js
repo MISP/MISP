@@ -66,42 +66,6 @@ function fill_distri_for_search(start_distri, end_distri) {
 	return to_ret;
 }
 
-// true distri -> pb distri
-function get_adjusted_from_true_distri(distribution) {
-	if (distribution == 0) {
-		return 0;
-	} else if (distribution == 1) {
-		return 1;
-	} else if (distribution == 2) {
-		return 3;
-	} else if (distribution == 3) {
-		return 4;
-	} else if (distribution == 4) {
-		return 2;
-	} else if (distribution == 5) {
-		return event_distribution;
-	} else {
-		return;
-	}
-}
-
-// pb distri -> true distri
-function get_adjusted_from_pb(distribution) {
-	if (distribution == 0) {
-		return 0;
-	} else if (distribution == 1) {
-		return 1;
-	} else if (distribution == 2) {
-		return 4;
-	} else if (distribution == 3) {
-		return 2;
-	} else if (distribution == 4) {
-		return 3;
-	} else {
-		return;
-	}
-}
-
 function get_maximum_distribution(array) {
 	var org = array[0];
 	var community = array[1];
@@ -136,20 +100,6 @@ function get_minimum_distribution(array, event_dist) {
 	}
 }
 
-function swap_distribution(dist) {
-	var distribution = jQuery.extend({}, dist); // deep clone distribution object
-	distribution[0].num = 0;
-	distribution[1].num = 1;
-	var temp = distribution[2];
-	distribution[2] = distribution[4];
-	distribution[2].num = 4;
-	distribution[4] = distribution[3];
-	distribution[4].num = 3;
-	distribution[3] = temp;
-	distribution[3].num = 2;
-	return distribution;
-}
-
 function add_level_to_pb(distribution, additionalInfo, maxLevel) {
 	var pb_container = document.getElementById('eventdistri_pb_container');
 	var pb = document.getElementById('eventdistri_pb_background');
@@ -174,6 +124,7 @@ function add_level_to_pb(distribution, additionalInfo, maxLevel) {
 		if (maxLevel == d+1) { // current event distribution
 			span.style.fontSize = 'larger';
 			span.style.top = d % 2 == 0 ? pb_top-37+'px' : pb_top+30+'px';
+			span.style.boxShadow = '3px 3px 5px 1px rgba(0,0,0,0.6)';
 		} else {
 			span.style.opacity = '0.5';
 			span.style.top = d % 2 == 0 ? pb_top-37+'px' : pb_top+30+'px';
@@ -199,7 +150,6 @@ function add_level_to_pb(distribution, additionalInfo, maxLevel) {
 		span.classList.add('pbDistributionTick');
 		spanOffset += (pbStep*(d+1))+spanOffset > pb_container.clientWidth ? -3 : 0; // avoid the tick width to go further than the pb
 		span.style.left = (pbStep*(d+1))+spanOffset + 'px';
-		//span.style.bottom = d % 2 == 0 ? '32px' : '25px';
 		span.style.top = d % 2 == 0 ? pb_top-15+'px' : pb_top+0+'px';
 		if (maxLevel == d+1) {
 			span.style.opacity = '0.6';
@@ -256,9 +206,16 @@ $(document).ready(function() {
 				$('#eventdistri_sg_pb').click(function(evt) { clickHandlerPb(evt); });
 
 				// pb
-				var event_dist = event_distribution+1; // +1 to reach the first level
-				var min_distri = get_minimum_distribution(data.event, event_dist)+1; // +1 to reach the first level
-				var max_distri = get_maximum_distribution(data.event)+1; // +1 to reach the first level
+				var event_dist, min_distri, max_distri;
+				if (event_distribution == 4) { // if distribution is sharing group, overwrite default behavior
+					var event_dist = 1;
+					var min_distri = 0; 
+					var max_distri = 0;
+				} else {
+					var event_dist = event_distribution+1; // +1 to reach the first level
+					var min_distri = get_minimum_distribution(data.event, event_dist)+1; // +1 to reach the first level
+					var max_distri = get_maximum_distribution(data.event)+1; // +1 to reach the first level
+				}
 				add_level_to_pb(data.distributionInfo, data.additionalDistributionInfo, event_dist);
 
 				var bg_width_step = $('#eventdistri_pb_background').width()/4.0;
@@ -299,7 +256,6 @@ $(document).ready(function() {
 					html: true,
 					template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title distributionInfo"></h3><div class="popover-content distributionInfo" style="white-space: pre-wrap"></div></div>'
 				});
-
 
 				// doughtnut
 				var doughnutColors = ['#ff0000', '#ff9e00', '#957200', '#008000', 'rgb(122, 134, 224)'];
@@ -350,7 +306,6 @@ $(document).ready(function() {
 							}
 						}
 					},
-					
 				});
 
 				// create checkboxes

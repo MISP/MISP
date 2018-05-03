@@ -49,8 +49,6 @@
 			} else if ($distributionLevel == 4) { // sharing group
 				$sg_name = $this->__extract_sharing_groups_names($elem['SharingGroup']);
 				$this->__addAdditionalDistributionInfo($distributionLevel, $sg_name);
-
-			
 			} else {
 				return false;
 			}
