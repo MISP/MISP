@@ -14,9 +14,9 @@
 	<div class="popupDistriSeparator"></div>
 	<div id="eventdistri_pb_container">
 		<div id="eventdistri_pb_background" class="customProgress useCursorPointer">
-			<div id="eventdistri_pb_min" class="customProgress useCursorPointer animatedPB" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" data-toggle="tooltip" data-placement="left" data-container="body" title="<?php echo __('Elements having lower distribution level than the event distribution'); ?>"></div>
-			<div id="eventdistri_pb" class="customProgress useCursorPointer animatedPB" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" data-toggle="tooltip" data-placement="top" data-container="body" title="<?php echo __('Event distribution'); ?>"></div>
-			<div id="eventdistri_pb_invalid" class="customProgress useCursorPointer animatedPB" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" data-toggle="tooltip" data-placement="right" data-container="body" title="<?php echo __('Maximum level of non distributed elements'); ?>"></div>
+			<div id="eventdistri_pb_min" class="customProgress useCursorPointer animatedPB" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" data-toggle="tooltip" data-placement="left" data-container="body" title="<?php echo __('Elements having lower distribution level than the event'); ?>"></div>
+			<div id="eventdistri_pb" class="customProgress useCursorPointer animatedPB" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" data-toggle="tooltip" data-placement="top" data-container="body" title="<?php echo __('Distribution of the event'); ?>"></div>
+			<div id="eventdistri_pb_invalid" class="customProgress useCursorPointer animatedPB" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" data-toggle="tooltip" data-placement="right" data-container="body" title="<?php echo __('Inconsistent distribution level, fallback on the event distribution'); ?>"></div>
 		</div>
 	</div>
 	<div id="eventdistri_sg_pb_container">
