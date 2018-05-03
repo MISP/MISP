@@ -43,59 +43,14 @@
 		private function __fetchAndAddDistributionInfo($elem) {
 			$distributionLevel = $elem['distribution'];
 
-			if ($distributionLevel == 4) { // sharing group
+			if ($distributionLevel == 5) { // inherit -> convert it to the event distribution level
+				$elem['distribution'] = $this->__eventDistribution;
+				$this->__fetchAndAddDistributionInfo($elem);
+			} else if ($distributionLevel == 4) { // sharing group
 				$sg_name = $this->__extract_sharing_groups_names($elem['SharingGroup']);
 				$this->__addAdditionalDistributionInfo($distributionLevel, $sg_name);
 
-			} else if ($distributionLevel == 3) { // all
-				if (empty($this->__json['additionalDistributionInfo'][$distributionLevel])) {
-					$servers = $this->__serverModel->find('list', array(
-						'fields' => array('name'),
-					));
-					$this->__addAdditionalDistributionInfo($distributionLevel, "This community"); // add current community
-					$this->__addAdditionalDistributionInfo($distributionLevel, "All other communities"); // add current community
-				} else {
-					return false;
-				}
-
-			} else if ($distributionLevel == 2) { // connected
-				// fetch connected communities
-				if (empty($this->__json['additionalDistributionInfo'][$distributionLevel])) {
-					$servers = $this->__serverModel->find('list', array(
-						'fields' => array('name'),
-					));
-					$this->__addAdditionalDistributionInfo($distributionLevel, "This community"); // add current community
-					foreach ($servers as $server) {
-						$this->__addAdditionalDistributionInfo($distributionLevel, $server);
-					}
-				} else {
-					return false;
-				}
-
-			} else if ($distributionLevel == 1) { // community
-				if (empty($this->__json['additionalDistributionInfo'][$distributionLevel])) {
-					$orgs = $this->__organisationModel->find('list', array(
-						'fields' => array('name'),
-					));
-					$thisOrg = $this->__user['Organisation']['name'];
-					$this->__addAdditionalDistributionInfo($distributionLevel, $thisOrg); // add current community
-					foreach ($orgs as $org) {
-						if ($thisOrg != $org) {
-							$this->__addAdditionalDistributionInfo($distributionLevel, $org);
-						}
-					}
-				} else {
-					return false;
-				}
-				
-			} else if ($distributionLevel == 0) { // org only
-				if (empty($this->__json['additionalDistributionInfo'][$distributionLevel])) {
-					$thisOrg = $this->__user['Organisation']['name'];
-					$this->__addAdditionalDistributionInfo($distributionLevel, $thisOrg); // add current community
-				} else {
-					return false;
-				}
-				
+			
 			} else {
 				return false;
 			}
@@ -107,6 +62,37 @@
 				$this->__json['additionalDistributionInfo'][$distributionLevel] = array();
 			}
 			array_push($this->__json['additionalDistributionInfo'][$distributionLevel], $data);
+		}
+
+		private function __addOtherDistributionInfo() {
+			// all comm
+			$this->__addAdditionalDistributionInfo(3, "This community"); // add current community
+			$this->__addAdditionalDistributionInfo(3, "All other communities"); // add current community
+
+			// connected
+			$servers = $this->__serverModel->find('list', array(
+				'fields' => array('name'),
+			));
+			$this->__addAdditionalDistributionInfo(2, "This community"); // add current community
+			foreach ($servers as $server) {
+				$this->__addAdditionalDistributionInfo(2, $server);
+			}
+
+			// community
+			$orgs = $this->__organisationModel->find('list', array(
+				'fields' => array('name'),
+			));
+			$thisOrg = $this->__user['Organisation']['name'];
+			$this->__addAdditionalDistributionInfo(1, $thisOrg); // add current community
+			foreach ($orgs as $org) {
+				if ($thisOrg != $org) {
+					$this->__addAdditionalDistributionInfo(1, $org);
+				}
+			}
+			
+			// org only
+			$thisOrg = $this->__user['Organisation']['name'];
+			$this->__addAdditionalDistributionInfo(0, $thisOrg); // add current community
 		}
 
 		private function __get_event($id) {
@@ -134,6 +120,7 @@
 		public function get_distributions_graph($id) {
 			$event = $this->__get_event($id);
 			$eventDist = $event['distribution'];
+			$this->__eventDistribution = $eventDist;
 			$this->__json['event'] = $this->init_array_distri();
 			$this->__json['attribute'] = $this->init_array_distri();
 			$this->__json['object'] = $this->init_array_distri();
@@ -190,7 +177,7 @@
 			unset($this->__json['distributionInfo'][5]); // inherit event.
 
 
-			$this->__json['additionalDistributionInfo'] = $this->__json['additionalDistributionInfo'];
+			$this->__addOtherDistributionInfo();
 			return $this->__json;
 		}
 
