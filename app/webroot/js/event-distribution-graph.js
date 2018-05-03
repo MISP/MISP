@@ -213,7 +213,6 @@ function add_level_to_pb(distribution, additionalInfo, maxLevel) {
 $(document).ready(function() {
 	var pop = $('.distribution_graph').popover({
 		title: "<b>Distribution graph</b> [atomic event]",
-		placement: 'bottom',
 		html: true,
 		content: function() { return $('#distribution_graph_container').html(); },
 		template : '<div class="popover" role="tooltip" style="z-index: 1;"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content" style="padding-left: '+spanOffset_orig+'px; padding-right: '+spanOffset_orig*2+'px;"></div></div>'
@@ -303,7 +302,28 @@ $(document).ready(function() {
 
 
 				// RADAR
-				var doughnutColors = ['red', 'orange', 'lime', 'green', 'blue'];
+				var doughnutColors = ['red', 'orange', 'lime', 'green', 'rgb(122, 134, 224)'];
+				var doughnut_dataset = [
+					{
+						label: "Event",
+						data: data.event,
+						hidden: false,
+						backgroundColor: doughnutColors
+					},
+					{
+						label: "Attributes",
+						data: data.attribute,
+						hidden: true,
+						backgroundColor: doughnutColors
+					},
+					{
+						label: "Object attributes",
+						data: data.obj_attr,
+						hidden: true,
+						backgroundColor: doughnutColors
+					},
+				
+				];
 				var ctx = document.getElementById("distribution_graph_canvas");
 				ctx.onclick = function(evt) { clickHandlerGraph(evt); };
 				distribution_chart = new Chart(ctx, {
@@ -311,19 +331,7 @@ $(document).ready(function() {
 					data: {
 						labels: data.distributionInfo.map(function(elem, index) { return [elem.key]; }),
 						distribution: data.distributionInfo,
-						datasets: [
-							{
-								label: "Attributes",
-								data: data.attribute,
-								backgroundColor: doughnutColors
-							},
-							{
-								label: "Object attributes",
-								data: data.obj_attr,
-								backgroundColor: doughnutColors
-							},
-						
-						],
+						datasets: doughnut_dataset,
 					},
 					options: {
 						title: {
@@ -336,7 +344,7 @@ $(document).ready(function() {
 							callbacks: {
 								label: function(item, data) {
 									return data.datasets[item.datasetIndex].label
-										+ " - " + data.labels[item.datasetIndex]
+										+ " - " + data.labels[item.index]
 										+ ": " + data.datasets[item.datasetIndex].data[item.index];
 								}
 							}
@@ -344,6 +352,33 @@ $(document).ready(function() {
 					},
 					
 				});
+
+				// create checkboxes
+				var div = $('<div></div>');
+				div.addClass('distribution_checkboxes_dataset');
+				var distri_graph = $('#eventdistri_graph');
+				var distriOffset = distri_graph.offset();
+				var distriHeight = distri_graph.height()/2;
+				div.css({top: distriOffset.top+distriHeight+50+'px', left: 50+'px'});
+				for (var i in doughnut_dataset) {
+					var item = doughnut_dataset[i];
+					var label = $('<label></label>');
+					label.addClass('useCursorPointer');
+					label.css({'user-select': 'none'});
+					var checkbox = $('<input type="checkbox">');
+					checkbox.data('dataset-index', i);
+					checkbox.prop('checked', item.label === 'Event');
+					checkbox.change(function(evt) {
+						var clickedIndex = $(this).data('dataset-index');
+						var isChecked = $(this).prop('checked');
+						distribution_chart.config.data.datasets[clickedIndex].hidden = !isChecked;
+						distribution_chart.update();
+					});
+					label.append(checkbox);
+					label.append(item.label);
+					div.append(label);
+				}
+				distri_graph.append(div);
 			},
 			error: function( jqXhr, textStatus, errorThrown ){
 				console.log( errorThrown );

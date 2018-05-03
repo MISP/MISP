@@ -13,18 +13,42 @@
 	margin: 0 0;
 }
 
+.popupDistriSeparator {
+	height: 2px;
+	background: #c8c8c8;
+	margin-top: 35px;
+	position: absolute;
+	left: 5px;
+	right: 5px;
+}
+
 #eventdistri_graph {
 	position: relative;
 }
 
 #eventdistri_pb_container {
-	margin-top: 50px;
+	margin-top: 80px;
 	margin-bottom: 50px;
 }
 
 #eventdistri_pb_background {
 	width: 400px;
     	display: flex;
+}
+
+.distribution_checkboxes_dataset {
+	position: absolute;
+	width: 100%;
+	display: inline-block;
+}
+.distribution_checkboxes_dataset label {
+	margin-bottom: 0px;
+	display: inline-block;
+	margin-left: 20px;
+}
+.distribution_checkboxes_dataset input {
+	margin: 0px;
+	margin-right: 3px;
 }
 
 .animatedPB {
