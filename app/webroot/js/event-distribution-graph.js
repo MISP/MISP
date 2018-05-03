@@ -301,8 +301,8 @@ $(document).ready(function() {
 				});
 
 
-				// RADAR
-				var doughnutColors = ['red', 'orange', 'lime', 'green', 'rgb(122, 134, 224)'];
+				// doughtnut
+				var doughnutColors = ['#ff0000', '#ff9e00', '#957200', '#008000', 'rgb(122, 134, 224)'];
 				var doughnut_dataset = [
 					{
 						label: "Event",
