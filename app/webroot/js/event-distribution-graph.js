@@ -314,7 +314,7 @@ $(document).ready(function() {
 				var distri_graph = $('#eventdistri_graph');
 				var distriOffset = distri_graph.offset();
 				var distriHeight = distri_graph.height()/2;
-				div.css({top: distriOffset.top+distriHeight+50+'px', left: 50+'px'});
+				div.css({left: '50px'});
 				for (var i in doughnut_dataset) {
 					var item = doughnut_dataset[i];
 					var label = $('<label></label>');

@@ -105,11 +105,11 @@
 				$event['Attribute'] = array();
 			}
 			$event['distribution'] = $fullevent['Event']['distribution'];
-			if (isset($fullevent['Event']['sharing_group_id'])) {
-				$sgID = $fullevent['Event']['sharing_group_id'];
-				$event['SharingGroupName'] = array_values($this->__eventModel->SharingGroup->fetchAllAuthorised($this->__user, "name", 1, $id = $sgID))[0];
+
+			if (isset($fullevent['SharingGroup'])) {
+				$event['SharingGroupName'] = $fullevent['SharingGroup']['name'];
 			} else {
-				$event['SharingGroupName'] = "";
+				$event['SharingGroupName'] = "?";
 			}
 
 			return $event;
