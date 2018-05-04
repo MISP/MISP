@@ -55,7 +55,6 @@
 			if (empty($this->__json['additionalDistributionInfo'][$distributionLevel])) {
 				$this->__json['additionalDistributionInfo'][$distributionLevel] = array();
 			}
-			//array_push($this->__json['additionalDistributionInfo'][$distributionLevel], h($data));
 			$this->__json['additionalDistributionInfo'][$distributionLevel][h($data)] = 0; // set-alike
 		}
 

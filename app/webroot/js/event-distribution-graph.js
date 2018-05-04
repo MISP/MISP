@@ -233,7 +233,7 @@ $(document).ready(function() {
 				$('#eventdistri_pb_invalid').css("background", "#dc3545");
 
 				// SHARING GROUPS
-				var sgNum = data.event[4];
+				var sgNum = data.additionalDistributionInfo[4].length;
 				var sgPerc = (sgNum/data.allSharingGroup.length)*100;
 				if (sgPerc > 0) {
 					$('#eventdistri_sg_pb').width(sgPerc+'%');
