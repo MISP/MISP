@@ -423,7 +423,7 @@ class Event extends AppModel {
 	}
 
 	public function afterSave($created, $options = array()) {
-		if (!$created) {
+		if (!Configure::read('MISP.completely_disable_correlation') && !$created) {
 			$this->Correlation = ClassRegistry::init('Correlation');
 			$db = $this->getDataSource();
 			if (isset($this->data['Event']['date'])) {
@@ -1206,16 +1206,6 @@ class Event extends AppModel {
 				'value' => $id
 			),
 			array(
-				'table' => 'correlations',
-				'foreign_key' => 'event_id',
-				'value' => $id
-			),
-			array(
-				'table' => 'correlations',
-				'foreign_key' => '1_event_id',
-				'value' => $id
-			),
-			array(
 				'table' => 'sightings',
 				'foreign_key' => 'event_id',
 				'value' => $id
@@ -1241,6 +1231,21 @@ class Event extends AppModel {
 				'table' => 'posts',
 				'foreign_key' => 'thread_id',
 				'value' => $thread_id
+			);
+		}
+		if (!Configure::read('MISP.completely_disable_correlation')) {
+			array_push(
+				$relations,
+				array(
+					'table' => 'correlations',
+					'foreign_key' => 'event_id',
+					'value' => $id
+				),
+				array(
+					'table' => 'correlations',
+					'foreign_key' => '1_event_id',
+					'value' => $id
+				)
 			);
 		}
 		App::uses('QueryTool', 'Tools');

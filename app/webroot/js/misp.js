@@ -2609,6 +2609,10 @@ function filterAttributes(filter, id) {
 	if(filter === 'value'){
 		filter = $('#attributesFilterField').val().trim();
 		url += "/searchFor:" + filter;
+	} else if(filter !== 'all') {
+		url += "/filterColumnsOverwrite:" + filter;
+		filter = $('#attributesFilterField').val().trim();
+		url += "/searchFor:" + filter;
 	}
 	if (deleted) url += '/deleted:true';
 	$.ajax({

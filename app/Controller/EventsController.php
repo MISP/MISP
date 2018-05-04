@@ -805,7 +805,7 @@ class EventsController extends AppController {
 	 * Search for a value on an attribute level for a specific field.
 	 * $attribute : (array) an attribute
 	 * $fields : (array) list of keys in attribute to search in
-	 * $searchValue : Value to search
+	 * $searchValue : Values to search ( '|' is the separator)
 	 * returns true on match
 	 */
 	 private function __valueInFieldAttribute($attribute, $fields, $searchValue) {
@@ -817,8 +817,11 @@ class EventsController extends AppController {
 						if (isset($attribute[$field])) {
 							$temp_value = strtolower($attribute[$field]);
 							$temp_search = strtolower($searchValue);
-							if(strpos($temp_value, $temp_search) !==false) {
-								return true;
+							$temp_searches = explode('|', $temp_search);
+							foreach ($temp_searches as $s) {
+								if(strpos($temp_value, $s) !==false) {
+									return true;
+								}
 							}
 						}
 					}
@@ -869,13 +872,20 @@ class EventsController extends AppController {
 		if (empty($results)) throw new NotFoundException('Invalid event');
 		$event = $results[0];
 
-		if (!empty($this->params['named']['searchFor'])) {
-			$filterColumns = empty(Configure::read('MISP.event_view_filter_fields')) ? 'id, uuid, value, comment, type, category, Tag.name' : Configure::read('MISP.event_view_filter_fields');
-			$filterValue = array_map('trim', explode(",", $filterColumns));
-			$validFilters = array('id', 'uuid', 'value', 'comment', 'type', 'category', 'Tag.name');
-			foreach ($filterValue as $k => $v) {
-				if (!in_array($v, $validFilters)) {
-					unset($filterValue[$k]);
+		// Be sure that '0' is not interpreted as false
+		if (isset($this->params['named']['searchFor'])) {
+			// filtering on specific columns is specified
+			if (!empty($this->params['named']['filterColumnsOverwrite'])) {
+				$filterColumns = $this->params['named']['filterColumnsOverwrite'];
+				$filterValue = array_map('trim', explode(",", $filterColumns));
+			} else {
+				$filterColumns = empty(Configure::read('MISP.event_view_filter_fields')) ? 'id, uuid, value, comment, type, category, Tag.name' : Configure::read('MISP.event_view_filter_fields');
+				$filterValue = array_map('trim', explode(",", $filterColumns));
+				$validFilters = array('id', 'uuid', 'value', 'comment', 'type', 'category', 'Tag.name');
+				foreach ($filterValue as $k => $v) {
+					if (!in_array($v, $validFilters)) {
+						unset($filterValue[$k]);
+					}
 				}
 			}
 
@@ -4364,6 +4374,32 @@ class EventsController extends AppController {
 		return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
 	}
 
+	public function getDistributionGraph($id, $type = 'event') {
+		$validTools = array('event');
+		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
+		$this->loadModel('Server');
+		$this->loadModel('Organisation');
+		App::uses('DistributionGraphTool', 'Tools');
+		$grapher = new DistributionGraphTool();
+		$data = $this->request->is('post') ? $this->request->data : array();
+
+		$extended = isset($this->params['named']['extended']) ? 1 : 0;
+
+		$servers = $this->Server->find('list', array(
+			'fields' => array('name'),
+		));
+		$grapher->construct($this->Event, $servers, $this->Auth->user(), $extended);
+		$json = $grapher->get_distributions_graph($id);
+
+		array_walk_recursive($json, function(&$item, $key){
+			if(!mb_detect_encoding($item, 'utf-8', true)){
+				$item = utf8_encode($item);
+			}
+		});
+		$this->response->type('json');
+		return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+	}
+
 	public function getEventGraphReferences($id, $type = 'event') {
 		$validTools = array('event');
 		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
@@ -4372,11 +4408,7 @@ class EventsController extends AppController {
 		$grapher = new EventGraphTool();
 		$data = $this->request->is('post') ? $this->request->data : array();
 
-		if (isset($this->params['named']['extended'])) {
-			$extended = 1;
-		} else {
-			$extended = 0;
-		}
+		$extended = isset($this->params['named']['extended']) ? 1 : 0;
 
 		$grapher->construct($this->Event, $this->Tag, $this->Auth->user(), $data['filtering'], $extended);
 		$json = $grapher->get_references($id);
@@ -4398,11 +4430,7 @@ class EventsController extends AppController {
 		$grapher = new EventGraphTool();
 		$data = $this->request->is('post') ? $this->request->data : array();
 
-		if (isset($this->params['named']['extended'])) {
-			$extended = 1;
-		} else {
-			$extended = 0;
-		}
+		$extended = isset($this->params['named']['extended']) ? 1 : 0;
 
 		$grapher->construct($this->Event, $this->Tag, $this->Auth->user(), $data['filtering'], $extended);
 		$json = $grapher->get_tags($id);
@@ -4424,11 +4452,7 @@ class EventsController extends AppController {
 		$grapher = new EventGraphTool();
 		$data = $this->request->is('post') ? $this->request->data : array();
 
-		if (isset($this->params['named']['extended'])) {
-			$extended = 1;
-		} else {
-			$extended = 0;
-		}
+		$extended = isset($this->params['named']['extended']) ? 1 : 0;
 
 		$grapher->construct($this->Event, $this->Tag, $this->Auth->user(), $data['filtering'], $extended);
 		if (!array_key_exists('keyType', $data)) {
