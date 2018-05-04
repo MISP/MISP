@@ -43,7 +43,6 @@ function generate_additional_info(info) {
 function clickHandlerPbText(evt) {
 	var distribution_id = evt.target.dataset.distribution;
 	var value_to_set = String(distribution_id);
-	value_to_set += distribution_id == event_distribution ? '|' + '5' : '';
 	document.getElementById('attributesFilterField').value = value_to_set;
 	filterAttributes('distribution', scope_id);
 }
@@ -238,8 +237,10 @@ $(document).ready(function() {
 				var sgPerc = (sgNum/data.allSharingGroup.length)*100;
 				if (sgPerc > 0) {
 					$('#eventdistri_sg_pb').width(sgPerc+'%');
-					$('#eventdistri_sg_pb').text(sgNum +' / '+ data.allSharingGroup.length);
-					$('#eventdistri_sg_pb').data("distribution", '4' + event_distribution==4 ? '|5' : '');
+					$('#eventdistri_sg_pb').tooltip({
+						title: "Distribution among sharing group: "+(sgNum +' / '+ data.allSharingGroup.length)
+					});
+					$('#eventdistri_sg_pb').data("distribution", '4' + (event_distribution==4 ? '|5' : ''));
 					$('#eventdistri_sg_pb').attr('aria-valuenow', sgPerc);
 					$('#eventdistri_sg_pb').css("background", "#7a86e0");
 				} else { // no sg, hide it and display
