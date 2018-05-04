@@ -97,6 +97,7 @@ class StixParser():
             'NetworkSocketObjectType': self.handle_network_socket,
             'PDFFileObjectType': self.handle_file,
             'PortObjectType': self.handle_port,
+            'ProcessObjectType': self.handle_process,
             'SocketAddressObjectType': self.handle_socket_address,
             'URIObjectType': self.handle_domain_or_url,
             "WhoisObjectType": self.handle_whois,
@@ -483,6 +484,27 @@ class StixParser():
     def handle_port(properties):
         event_types = eventTypes[properties._XSI_TYPE]
         return event_types['type'], properties.port_value.value, event_types['relation']
+
+    def handle_process(self, properties):
+        attributes = []
+        if properties.creation_time:
+            attributes.append(["datetime", properties.creation_time.value, "creation-time"])
+        if properties.start_time:
+            attributes.append(["datetime", properties.creation_time.value, "start-time"])
+        attribute_type = "text"
+        if properties.name:
+            attributes.append([attribute_type, properties.name.value, "name"])
+        if properties.pid:
+            attributes.append([attribute_type, properties.pid.value, "pid"])
+        if properties.parent_pid:
+            attributes.append([attribute_type, properties.parent_pid.value, "parent-pid"])
+        if properties.child_pid_list:
+            for child in properties.child_pid_list:
+                attributes.append([attribute_type, child.value, "child-pid"])
+        if properties.port_list:
+            for port in properties.port_list:
+                attributes.append(["src-port", port.port_value.value, "port"])
+        return "process", self.return_attributes(attributes), ""
 
     # Return type & value of a regkey attribute
     @staticmethod
