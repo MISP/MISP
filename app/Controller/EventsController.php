@@ -4383,11 +4383,7 @@ class EventsController extends AppController {
 		$grapher = new DistributionGraphTool();
 		$data = $this->request->is('post') ? $this->request->data : array();
 
-		if (isset($this->params['named']['extended'])) {
-			$extended = 1;
-		} else {
-			$extended = 0;
-		}
+		$extended = isset($this->params['named']['extended']) ? 1 : 0;
 
 		$servers = $this->Server->find('list', array(
 			'fields' => array('name'),
@@ -4412,11 +4408,7 @@ class EventsController extends AppController {
 		$grapher = new EventGraphTool();
 		$data = $this->request->is('post') ? $this->request->data : array();
 
-		if (isset($this->params['named']['extended'])) {
-			$extended = 1;
-		} else {
-			$extended = 0;
-		}
+		$extended = isset($this->params['named']['extended']) ? 1 : 0;
 
 		$grapher->construct($this->Event, $this->Tag, $this->Auth->user(), $data['filtering'], $extended);
 		$json = $grapher->get_references($id);
@@ -4438,11 +4430,7 @@ class EventsController extends AppController {
 		$grapher = new EventGraphTool();
 		$data = $this->request->is('post') ? $this->request->data : array();
 
-		if (isset($this->params['named']['extended'])) {
-			$extended = 1;
-		} else {
-			$extended = 0;
-		}
+		$extended = isset($this->params['named']['extended']) ? 1 : 0;
 
 		$grapher->construct($this->Event, $this->Tag, $this->Auth->user(), $data['filtering'], $extended);
 		$json = $grapher->get_tags($id);
@@ -4464,11 +4452,7 @@ class EventsController extends AppController {
 		$grapher = new EventGraphTool();
 		$data = $this->request->is('post') ? $this->request->data : array();
 
-		if (isset($this->params['named']['extended'])) {
-			$extended = 1;
-		} else {
-			$extended = 0;
-		}
+		$extended = isset($this->params['named']['extended']) ? 1 : 0;
 
 		$grapher->construct($this->Event, $this->Tag, $this->Auth->user(), $data['filtering'], $extended);
 		if (!array_key_exists('keyType', $data)) {
