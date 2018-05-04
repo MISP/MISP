@@ -93,6 +93,8 @@ class StixParser():
             'HostnameObjectType': self.handle_hostname,
             'HTTPSessionObjectType': self.handle_http,
             'MutexObjectType': self.handle_mutex,
+            'NetworkConnectionObjectType': self.handle_network_connection,
+            'NetworkSocketObjectType': self.handle_network_socket,
             'PDFFileObjectType': self.handle_file,
             'PortObjectType': self.handle_port,
             'SocketAddressObjectType': self.handle_socket_address,
@@ -448,6 +450,34 @@ class StixParser():
         event_types = eventTypes[properties._XSI_TYPE]
         return event_types['type'], properties.name.value, event_types['relation']
 
+    def handle_network_connection(self, properties):
+        attributes = []
+        if properties.source_socket_address:
+            self.handle_socket(attributes, properties.source_socket_address, "src")
+        if properties.destination_socket_address:
+            self.handle_socket(attributes, properties.destination_socket_address, "dst")
+        if properties.layer3_protocol:
+            attributes.append(["text", properties.layer3_protocol.value, "layer3_protocol"])
+        if properties.layer4_protocol:
+            attributes.append(["text", properties.layer4_protocol.value, "layer4_protocol"])
+        if properties.layer7_protocol:
+            attributes.append(["text", properties.layer7_protocol.value, "layer7_protocol"])
+        if attributes:
+            return "network-connection", self.return_attributes(attributes), ""
+
+    def handle_network_socket(self, properties):
+        attributes = []
+        if properties.local_address:
+            self.handle_socket(attributes, properties.local_address, "src")
+        if properties.remote_address:
+            self.handle_socket(attributes, properties.remote_address, "dst")
+        if properties.protocol:
+            attributes.append(["text", properties.protocol.value, "protocol"])
+        if attributes:
+            ## atm returning a netflow object
+            ## need to define what to do with the domain field
+            return "netflow", self.return_attributes(attributes), ""
+
     # Return type & value of a port attribute
     @staticmethod
     def handle_port(properties):
@@ -459,6 +489,14 @@ class StixParser():
     def handle_regkey(properties):
         event_types = eventTypes[properties._XSI_TYPE]
         return event_types['type'], properties.key.value, event_types['relation']
+
+    @staticmethod
+    def handle_socket(attributes, socket, s_type):
+        if socket.ip_address:
+            ip_type = "ip-{}".format(s_type)
+            attributes.append([ip_type, socket.ip_address.address_value.value, ip_type])
+        if socket.port:
+            attributes.append(["port", socket.port.port_value.value, "{}-port".format(s_type)])
 
     # Return type & value of a composite attribute ip|port or hostname|port
     def handle_socket_address(self, properties):
