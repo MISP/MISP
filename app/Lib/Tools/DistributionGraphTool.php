@@ -1,19 +1,14 @@
 <?php
 	class DistributionGraphTool {
 
-		private $__lookupTables = array();
 		private $__user = false;
 		private $__json = array();
 		private $__eventModel = false;
-		private $__refModel = false;
-		# Will be use latter on
-		private $__related_events = array();
-		private $__related_attributes = array();
 
-		public function construct($eventModel, $serverModel, $orgModel, $user, $extended_view=0) {
+		public function construct($eventModel, $servers, $user, $extended_view=0) {
 			$this->__eventModel = $eventModel;
-			$this->__serverModel = $serverModel;
-			$this->__organisationModel = $orgModel;
+			$this->__serverList = $servers;
+			$this->__organisationModel = $eventModel->Orgc;
 			$this->__user = $user;
 			$this->__json = array();
 			$this->__extended_view = $extended_view;
@@ -29,10 +24,6 @@
 			}
 			$this->__json['distributionInfo'][5] = ""; // inherit event. Will be deleted afterward
 
-			$this->__lookupTables = array(
-				'analysisLevels' => $this->__eventModel->analysisLevels,
-				'distributionLevels' => $this->__eventModel->Attribute->distributionLevels
-			);
 			return true;
 		}
 
@@ -68,9 +59,7 @@
 			$this->__addAdditionalDistributionInfo(3, "All other communities"); // add current community
 
 			// connected
-			$servers = $this->__serverModel->find('list', array(
-				'fields' => array('name'),
-			));
+			$servers = $this->__serverList;
 			$this->__addAdditionalDistributionInfo(2, "This community"); // add current community
 			foreach ($servers as $server) {
 				$this->__addAdditionalDistributionInfo(2, $server);

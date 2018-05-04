@@ -4389,7 +4389,10 @@ class EventsController extends AppController {
 			$extended = 0;
 		}
 
-		$grapher->construct($this->Event, $this->Server, $this->Organisation, $this->Auth->user(), $extended);
+		$servers = $this->Server->find('list', array(
+			'fields' => array('name'),
+		));
+		$grapher->construct($this->Event, $servers, $this->Auth->user(), $extended);
 		$json = $grapher->get_distributions_graph($id);
 
 		array_walk_recursive($json, function(&$item, $key){
