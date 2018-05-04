@@ -780,7 +780,7 @@ class StixParser():
                 misp_object.add_reference(compl_data['pe_uuid'], 'included-in')
             if "process_uuid" in compl_data:
                 for uuid in compl_data["process_uuid"]:
-                    misp_object.add_reference(uuid, 'connection-of')
+                    misp_object.add_reference(uuid, 'connected-to')
         self.misp_event.add_object(**misp_object)
 
     @staticmethod
