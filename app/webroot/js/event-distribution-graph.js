@@ -48,7 +48,6 @@ function clickHandlerPbText(evt) {
 	filterAttributes('distribution', scope_id);
 }
 function clickHandlerPb(evt) {
-	var distribution_id = evt.target.dataset.distribution;
 	var distribution_id = $(evt.target).data('distribution');
 	var value_to_set = String(distribution_id);
 	document.getElementById('attributesFilterField').value = value_to_set;
@@ -240,7 +239,7 @@ $(document).ready(function() {
 				if (sgPerc > 0) {
 					$('#eventdistri_sg_pb').width(sgPerc+'%');
 					$('#eventdistri_sg_pb').text(sgNum +' / '+ data.allSharingGroup.length);
-					$('#eventdistri_sg_pb').data("distribution", '4');
+					$('#eventdistri_sg_pb').data("distribution", '4' + event_distribution==4 ? '|5' : '');
 					$('#eventdistri_sg_pb').attr('aria-valuenow', sgPerc);
 					$('#eventdistri_sg_pb').css("background", "#7a86e0");
 				} else { // no sg, hide it and display

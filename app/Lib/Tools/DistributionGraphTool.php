@@ -38,8 +38,13 @@
 				$elem['distribution'] = $this->__eventDistribution;
 				$this->__fetchAndAddDistributionInfo($elem);
 			} else if ($distributionLevel == 4) { // sharing group
-				$sg_name = $this->__extract_sharing_groups_names($elem['SharingGroup']);
-				$this->__addAdditionalDistributionInfo($distributionLevel, $sg_name);
+				if (isset($elem['SharingGroup'])) {
+					$sg_name = $this->__extract_sharing_groups_names($elem['SharingGroup']);
+					$this->__addAdditionalDistributionInfo($distributionLevel, $sg_name);
+				} else if ($this->__eventDistribution == 4) { // event is distributed for sg
+					$sg_name = $this->__eventSharingGroupName;
+					$this->__addAdditionalDistributionInfo($distributionLevel, $sg_name);
+				}
 			} else {
 				return false;
 			}
@@ -50,7 +55,8 @@
 			if (empty($this->__json['additionalDistributionInfo'][$distributionLevel])) {
 				$this->__json['additionalDistributionInfo'][$distributionLevel] = array();
 			}
-			array_push($this->__json['additionalDistributionInfo'][$distributionLevel], h($data));
+			//array_push($this->__json['additionalDistributionInfo'][$distributionLevel], h($data));
+			$this->__json['additionalDistributionInfo'][$distributionLevel][h($data)] = 0; // set-alike
 		}
 
 		private function __addOtherDistributionInfo() {
@@ -100,6 +106,12 @@
 				$event['Attribute'] = array();
 			}
 			$event['distribution'] = $fullevent['Event']['distribution'];
+			if (isset($fullevent['Event']['sharing_group_id'])) {
+				$sgID = $fullevent['Event']['sharing_group_id'];
+				$event['SharingGroupName'] = array_values($this->__eventModel->SharingGroup->fetchAllAuthorised($this->__user, "name", 1, $id = $sgID))[0];
+			} else {
+				$event['SharingGroupName'] = "";
+			}
 
 			return $event;
 		}
@@ -107,7 +119,9 @@
 		public function get_distributions_graph($id) {
 			$event = $this->__get_event($id);
 			$eventDist = $event['distribution'];
+			$eventSGName = $event['SharingGroupName'];
 			$this->__eventDistribution = $eventDist;
+			$this->__eventSharingGroupName = $eventSGName;
 			$this->__json['event'] = $this->init_array_distri();
 			$this->__json['attribute'] = $this->init_array_distri();
 			$this->__json['object'] = $this->init_array_distri();
@@ -165,6 +179,12 @@
 
 
 			$this->__addOtherDistributionInfo();
+
+			// transform set into array
+			foreach(array_keys($this->__json['additionalDistributionInfo']) as $d) {
+				$this->__json['additionalDistributionInfo'][$d] = array_keys($this->__json['additionalDistributionInfo'][$d]);
+			}
+
 			return $this->__json;
 		}
 
