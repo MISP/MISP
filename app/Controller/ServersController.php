@@ -163,8 +163,12 @@ class ServersController extends AppController {
 					$this->request->data = array('Server' => $this->request->data);
 				}
 			}
-			if (!empty($json)) {
+			if (!empty($this->request->data['Server']['json'])) {
 				$json = json_decode($this->request->data['Server']['json'], true);
+			} else if ($this->_isRest()) {
+				if (empty($this->request->data['Server']['remote_org_id'])) {
+					throw new MethodNotAllowedException('No remote org ID set. Please pass it as remote_org_id');
+				}
 			}
 
 			$fail = false;
@@ -226,8 +230,9 @@ class ServersController extends AppController {
 						return $this->RestResponse->saveFailResponse('Servers', 'add', false, array('Organisation' => 'Invalid Remote Organisation'), $this->response->type());
 					}
 				} else {
-					if ($this->request->data['Server']['organisation_type'] < 2) $this->request->data['Server']['remote_org_id'] = $json['id'];
-					else {
+					if ($this->request->data['Server']['organisation_type'] < 2) {
+						$this->request->data['Server']['remote_org_id'] = $json['id'];
+					} else {
 						$existingOrgs = $this->Server->Organisation->find('first', array(
 								'conditions' => array('uuid' => $json['uuid']),
 								'recursive' => -1,
@@ -235,41 +240,32 @@ class ServersController extends AppController {
 						));
 						if (!empty($existingOrgs)) {
 							$fail = true;
-							if($this->_isRest()) {
-								return $this->RestResponse->saveFailResponse('Servers', 'add', false, array('Organisation' => 'Remote Organisation\'s uuid already used'), $this->response->type());
+							$this->Session->setFlash(__('That organisation could not be created as the uuid is in use already.'));
+						}
+						if (!$fail) {
+							$this->Server->Organisation->create();
+							$orgSave = $this->Server->Organisation->save(array(
+									'name' => $json['name'],
+									'uuid' => $json['uuid'],
+									'local' => 0,
+									'created_by' => $this->Auth->user('id')
+							));
+
+							if (!$orgSave) {
+								$this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format? Also, make sure the organisation\'s name doesn\'t clash with an existing one.'));
+								$fail = true;
+								$this->request->data['Server']['external_name'] = $json['name'];
+								$this->request->data['Server']['external_uuid'] = $json['uuid'];
 							} else {
-								$this->Session->setFlash(__('That organisation could not be created as the uuid is in use already.'));
+								$this->request->data['Server']['remote_org_id'] = $this->Server->Organisation->id;
 							}
 						}
 					}
-
-					if (!$fail) {
-						$this->Server->Organisation->create();
-						$orgSave = $this->Server->Organisation->save(array(
-								'name' => $json['name'],
-								'uuid' => $json['uuid'],
-								'local' => 0,
-								'created_by' => $this->Auth->user('id')
-						));
-
-						if (!$orgSave) {
-							if($this->_isRest()) {
-								return $this->RestResponse->saveFailResponse('Servers', 'add', false, $this->Server->Organisation->validationError, $this->response->type());
-							} else {
-								$this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
-							}
-							$fail = true;
-							$this->request->data['Server']['external_name'] = $json['name'];
-							$this->request->data['Server']['external_uuid'] = $json['uuid'];
-						} else {
-							$this->request->data['Server']['remote_org_id'] = $this->Server->Organisation->id;
-						}
-					}
-				}
-				if (Configure::read('MISP.host_org_id') == 0 || $this->request->data['Server']['remote_org_id'] != Configure::read('MISP.host_org_id')) {
-					$this->request->data['Server']['internal'] = 0;
 				}
 				if (!$fail) {
+					if (Configure::read('MISP.host_org_id') == 0 || $this->request->data['Server']['remote_org_id'] != Configure::read('MISP.host_org_id')) {
+						$this->request->data['Server']['internal'] = 0;
+					}
 					$this->request->data['Server']['org_id'] = $this->Auth->user('org_id');
 					if ($this->Server->save($this->request->data)) {
 						if (isset($this->request->data['Server']['submitted_cert'])) {

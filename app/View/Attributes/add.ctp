@@ -81,26 +81,15 @@
 		?>
 		</div>
 	</fieldset>
+	<p style="color:white;background-color:red;font-weight:bold;display:none;padding:5px;" id="warning-message"><?php echo __('Warning: You are about to share data that is of a classified nature. Make sure that you are authorised to share this.'); ?></p>
 	<?php if ($ajax): ?>
 		<div class="overlay_spacing">
-			<table>
-				<tr>
-				<td style="vertical-align:bottom">
-					<span id="submitButton" class="btn btn-primary" title="<?php echo __('Submit'); ?>" role="button" tabindex="0" aria-label="<?php echo __('Submit'); ?>" onClick="submitPopoverForm('<?php echo $action == 'add' ? $event_id : $attribute['Attribute']['id'];?>', '<?php echo $action; ?>')"><?php echo __('Submit'); ?></span>
-				</td>
-				<td style="width:540px;margin-bottom:0px;">
-					<p style="color:red;font-weight:bold;display:none;text-align:center;margin-bottom:0px;" id="warning-message"><?php echo __('Warning: You are about to share data that is of a classified nature. Make sure that you are authorised to share this.'); ?></p>
-				</td>
-				<td style="vertical-align:bottom;">
-					<span class="btn btn-inverse" title="<?php echo __('Cancel'); ?>" role="button" tabindex="0" aria-label="<?php echo __('Cancel'); ?>" id="cancel_attribute_add"><?php echo __('Cancel'); ?></span>
-				</td>
-				</tr>
-			</table>
+			<span id="submitButton" class="btn btn-primary" style="margin-bottom:5px;float:left;" title="<?php echo __('Submit'); ?>" role="button" tabindex="0" aria-label="<?php echo __('Submit'); ?>" onClick="submitPopoverForm('<?php echo $action == 'add' ? $event_id : $attribute['Attribute']['id'];?>', '<?php echo $action; ?>')"><?php echo __('Submit'); ?></span>
+			<span class="btn btn-inverse" style="float:right;" title="<?php echo __('Cancel'); ?>" role="button" tabindex="0" aria-label="<?php echo __('Cancel'); ?>" id="cancel_attribute_add"><?php echo __('Cancel'); ?></span>
 		</div>
 	<?php
 		else:
 	?>
-		<p style="color:red;font-weight:bold;display:none;" id="warning-message"><?php echo __('Warning: You are about to share data that is of a classified nature. Make sure that you are authorised to share this.'); ?></p>
 	<?php
 			echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
 		endif;
