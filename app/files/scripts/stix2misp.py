@@ -504,6 +504,17 @@ class StixParser():
         if properties.port_list:
             for port in properties.port_list:
                 attributes.append(["src-port", port.port_value.value, "port"])
+        if properties.network_connection_list:
+            references = []
+            for connection in properties.network_connection_list:
+                object_name, object_attributes, _ = self.handle_network_connection(connection)
+                object_uuid = str(uuid.uuid4())
+                misp_object = MISPObject(object_name)
+                misp_object.uuid = object_uuid
+                for attribute in object_attributes:
+                    misp_object.add_attribute(**attribute)
+                references.append(object_uuid)
+            return "process", self.return_attributes(attributes), {"process_uuid": references}
         return "process", self.return_attributes(attributes), ""
 
     # Return type & value of a regkey attribute
@@ -762,10 +773,14 @@ class StixParser():
             misp_object.uuid = object_uuid
         for attribute in attribute_value:
             misp_object.add_attribute(**attribute)
-        if type(compl_data) is dict and "pe_uuid" in compl_data:
+        if type(compl_data) is dict:
             # if some complementary data is a dictionary containing an uuid,
             # it means we are using it to add an object reference
-            misp_object.add_reference(compl_data['pe_uuid'], 'included-in')
+            if "pe_uuid" in compl_data:
+                misp_object.add_reference(compl_data['pe_uuid'], 'included-in')
+            if "process_uuid" in compl_data:
+                for uuid in compl_data["process_uuid"]:
+                    misp_object.add_reference(uuid, 'connection-of')
         self.misp_event.add_object(**misp_object)
 
     @staticmethod
