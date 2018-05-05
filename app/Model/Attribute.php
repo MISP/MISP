@@ -532,6 +532,15 @@ class Attribute extends AppModel {
 	}
 
 	public function beforeSave($options = array()) {
+		// add the difference between the old and the new
+		if (isset($this->data['Attribute']['id'])){
+			$oldAttr = $this->fetchAttribute($this->data['Attribute']['id']);
+			foreach($oldAttr['Attribute'] as $k => $v) {
+				if ($oldAttr['Attribute'][$k] != $this->data['Attribute'][$k]){
+					$this->data['attribute_diff'][$k] = $v;
+				}
+			}
+		}
 		// explode value of composite type in value1 and value2
 		// or copy value to value1 if not composite type
 		if (!empty($this->data['Attribute']['type'])) {
@@ -595,6 +604,11 @@ class Attribute extends AppModel {
 				if (empty($attribute['Object']['id'])) unset($attribute['Object']);
 				$action = $created ? 'add' : 'edit';
 				if (!empty($this->data['Attribute']['deleted'])) $action = 'soft-delete';
+				if ($action === 'edit'){
+					if(isset($this->data['attribute_diff'])){
+						$attribute['attribute_diff'] = $this->data['attribute_diff'];
+					}
+				}
 				$pubSubTool->attribute_save($attribute, $action);
 			}
 		}
