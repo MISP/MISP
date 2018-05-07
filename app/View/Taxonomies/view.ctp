@@ -1,5 +1,5 @@
 <div class="taxonomy view">
-<h2><?php echo h(strtoupper($taxonomy['namespace']));?><?php echo __('Taxonomy Library');?></h2>
+<h2><?php echo h(strtoupper($taxonomy['namespace'])) . ' ' . __('Taxonomy Library');?></h2>
 	<dl>
 		<dt><?php echo __('Id');?></dt>
 		<dd>
