@@ -81,7 +81,7 @@
 		?>
 		</div>
 	</fieldset>
-	<p id="notice_message"><?php echo __('Warning: You are about to share data that is of a classified nature. Make sure that you are authorised to share this.'); ?></p>
+	<p id="notice_message" style="display:none;"></p>
 	<?php if ($ajax): ?>
 		<div class="overlay_spacing">
 			<span id="submitButton" class="btn btn-primary" style="margin-bottom:5px;float:left;" title="<?php echo __('Submit'); ?>" role="button" tabindex="0" aria-label="<?php echo __('Submit'); ?>" onClick="submitPopoverForm('<?php echo $action == 'add' ? $event_id : $attribute['Attribute']['id'];?>', '<?php echo $action; ?>')"><?php echo __('Submit'); ?></span>
@@ -153,11 +153,6 @@ $(document).ready(function() {
 
 	$("#AttributeCategory").on('change', function(e) {
 		formCategoryChanged('Attribute');
-		if ($(this).val() === 'Attribution' || $(this).val() === 'Targeting data') {
-			$("#warning-message").show();
-		} else {
-			$("#warning-message").hide();
-		}
 		if ($(this).val() === 'Internal reference') {
 			$("#AttributeDistribution").val('0');
 			$('#SGContainer').hide();
