@@ -751,7 +751,7 @@ class StixBuilder(object):
         upper_reg = reg.upper()
         for hive in misp_reghive:
             if upper_reg.startswith(hive):
-                return misp_reghive[hive], reg[len(hive):]
+                return misp_reghive[hive], reg[len(hive):].lstrip('\\').replace('\\\\', '\\')
         return None, reg
 
     @staticmethod
