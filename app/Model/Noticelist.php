@@ -90,4 +90,37 @@ class Noticelist extends AppModel{
 			return $this->validationErrors;
 		}
 	}
+
+	public function getTriggerData($scope = 'attribute') {
+		$noticelists = $this->find('all', array(
+			'conditions' => array('enabled' => 1),
+			'recursive' => -1,
+			'contain' => 'NoticelistEntry'
+		));
+		$noticelist_triggers = array();
+		$validTriggers = array(
+			'attribute' => array(
+				'category',
+				'type'
+			)
+		);
+		foreach ($noticelists as $noticelist) {
+			foreach ($noticelist['NoticelistEntry'] as $entry) {
+				if (in_array('attribute', $entry['data']['scope'])) {
+					foreach ($entry['data']['field'] as $data_field) {
+						if (in_array($data_field, $validTriggers[$scope])) {
+							foreach ($entry['data']['value'] as $value) {
+								$noticelist_triggers[$data_field][$value][] = array(
+									'message' => $entry['data']['message'],
+									'list_id' => $noticelist['Noticelist']['id'],
+									'list_name' => $noticelist['Noticelist']['name']
+								);
+							}
+						}
+					}
+				}
+			}
+		}
+		return $noticelist_triggers;
+	}
 }

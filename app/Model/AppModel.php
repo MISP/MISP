@@ -955,7 +955,7 @@ class AppModel extends Model {
 						'email' => 'SYSTEM',
 						'action' => 'update_database',
 						'user_id' => 0,
-						'title' => 'Successfuly executed the 	SQL query for ' . $command,
+						'title' => 'Successfuly executed the SQL query for ' . $command,
 						'change' => 'The executed SQL query was: ' . $sql
 				));
 			} catch (Exception $e) {
