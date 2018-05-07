@@ -518,7 +518,7 @@ class StixBuilder(object):
         if attribute_type == 'email-src':
             email_header.from_ = attribute.value
             email_header.from_.condition = "Equals"
-        if attribute_type == 'email-dst':
+        elif attribute_type == 'email-dst':
             email_header.to = attribute.value
             email_header.to.condition = "Equals"
         else:
