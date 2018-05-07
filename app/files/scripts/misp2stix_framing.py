@@ -40,6 +40,7 @@ NS_DICT = {
         "http://cybox.mitre.org/objects#PipeObject-2" : 'PipeObj',
         "http://cybox.mitre.org/objects#URIObject-2" : 'URIObj',
         "http://cybox.mitre.org/objects#WinRegistryKeyObject-2" : 'WinRegistryKeyObj',
+        "http://cybox.mitre.org/objects#SystemObject-1" : 'SystemObj',
         "http://data-marking.mitre.org/Marking-1" : 'marking',
         "http://data-marking.mitre.org/extensions/MarkingStructure#TLP-1" : 'tlpMarking',
         "http://stix.mitre.org/ExploitTarget-1" : 'et',
