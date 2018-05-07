@@ -30,3 +30,6 @@
 [submodule "cti-python-stix2"]
 	path = cti-python-stix2
 	url = https://github.com/oasis-open/cti-python-stix2
+[submodule "app/files/noticelists"]
+	path = app/files/noticelists
+	url = https://github.com/MISP/misp-noticelist
