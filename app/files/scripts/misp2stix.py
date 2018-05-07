@@ -115,7 +115,7 @@ class StixBuilder(object):
         self.simple_type_to_method.update(dict.fromkeys(["ip-src", "ip-dst", "ip-src|port", "ip-dst|port"], self.generate_ip_observable))
         self.simple_type_to_method.update(dict.fromkeys(["regkey", "regkey|value"], self.generate_regkey_observable))
         self.simple_type_to_method.update(dict.fromkeys(["hostname", "domain", "url", "AS", "mutex", "named pipe", "link"], self.generate_simple_observable))
-        self.simple_type_to_method.update(dict.fromkeys(["email-src", "email-dst", "email-subject"], self.resolve_email_observable))
+        self.simple_type_to_method.update(dict.fromkeys(["email-src", "email-dst", "email-subject", "email-reply-to"], self.resolve_email_observable))
         self.simple_type_to_method.update(dict.fromkeys(["http-method", "user-agent"], self.resolve_http_observable))
         self.simple_type_to_method.update(dict.fromkeys(["pattern-in-file", "pattern-in-traffic", "pattern-in-memory"], self.resolve_pattern_observable))
         self.simple_type_to_method.update(dict.fromkeys(["mac-address"], self.resolve_system_observable))
@@ -521,6 +521,9 @@ class StixBuilder(object):
         elif attribute_type == 'email-dst':
             email_header.to = attribute.value
             email_header.to.condition = "Equals"
+        elif attribute_type == 'email-reply-to':
+            email_header.reply_to = attribute.value
+            email_header.reply_to.condition = "Equals"
         else:
             email_header.subject = attribute.value
             email_header.subject.condition = "Equals"
