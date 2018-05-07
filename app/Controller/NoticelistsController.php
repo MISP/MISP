@@ -138,13 +138,11 @@ class NoticelistsController extends AppController {
 
 	public function view($id) {
 		if (!is_numeric($id)) throw new NotFoundException('Invalid ID.');
-		$noticelist = $this->Noticelist->find('first', array('contain' => array('NoticelistEntry', 'NoticelistType'), 'conditions' => array('id' => $id)));
+		$noticelist = $this->Noticelist->find('first', array('contain' => array('NoticelistEntry'), 'conditions' => array('id' => $id)));
 		if (empty($noticelist)) throw new NotFoundException('Noticelist not found.');
 		if ($this->_isRest()) {
 			$noticelist['Noticelist']['NoticelistEntry'] = $noticelist['NoticelistEntry'];
-			$noticelist['Noticelist']['NoticelistType'] = $noticelist['NoticelistType'];
-			$this->set('Noticelist', $noticelist['Noticelist']);
-			$this->set('_serialize', array('Noticelist'));
+			return $this->RestResponse->viewData($noticelist, $this->response->type());
 		} else {
 			$this->set('noticelist', $noticelist);
 		}

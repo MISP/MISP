@@ -273,6 +273,15 @@
 						endif;
 				break;
 
+				case 'noticelist':?>
+					<?php if ($menuItem == 'view'): ?><li class="active"><a href="#"><?php echo __('View Noticelist');?></a></li><?php endif;?>
+					<li id='liindex'><?php echo $this->Html->link(__('List Noticelists'), array('action' => 'index'));?></li>
+					<?php if ($isSiteAdmin): ?>
+					<li><?php echo $this->Form->postLink(__('Update Noticelists'), '/noticelists/update'); ?></li>
+					<?php
+						endif;
+				break;
+
 				case 'whitelist':?>
 					<li id='liindex'><?php echo $this->Html->link(__('List Whitelist'), array('admin' => $isSiteAdmin, 'action' => 'index'));?></li>
 					<?php if ($isSiteAdmin): ?>

@@ -152,6 +152,12 @@ function toggleSetting(e, setting, id) {
 		replacementForm = '/ObjectTemplates/getToggleField/';
 		searchString = 'activated';
 		break;
+	case 'noticelist_enable':
+		formID = '#NoticelistIndexForm';
+		dataDiv = '#NoticelistData';
+		replacementForm = '/noticelists/getToggleField/';
+		searchString = 'enabled';
+		break;
 	}
 	$(dataDiv).val(id);
 	var formData = $(formID).serialize();

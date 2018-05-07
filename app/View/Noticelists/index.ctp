@@ -57,7 +57,7 @@
 				echo sprintf('<td class="short" ondblclick="document.location.href =%s">%s&nbsp;</td>', $baseurl . "/noticeists/view/" . h($item['Noticelist']['id']), h($item['Noticelist']['version']));
 				if ($isSiteAdmin) {
 					$onClick = 'toggleSetting(event, \'noticelist_enable\', \'' . h($item['Noticelist']['id']) . '\');	';
-					$input = '<input id="checkbox_' . h($item['Noticelist']['id']) . '" type="checkbox" onClick="' . $onClick . '" ' . ($item['Noticelist']['enabled'] ? 'checked' : '') . ' />';
+					$input = '<input id="checkBox_' . h($item['Noticelist']['id']) . '" type="checkbox" onClick="' . $onClick . '" ' . ($item['Noticelist']['enabled'] ? 'checked' : '') . ' />';
 					echo '<td class="short" id="checkbox_row_' . h($item['Noticelist']['id']) . '">' . $input . '</td>';
 				}
 				$actions = '';
