@@ -31,9 +31,10 @@ from cybox.objects.memory_object import Memory
 from cybox.objects.email_message_object import EmailMessage, EmailHeader, Attachments
 from cybox.objects.domain_name_object import DomainName
 from cybox.objects.win_registry_key_object import *
-from cybox.common import Hash, ByteRun, ByteRuns
+from cybox.objects.system_object import System, NetworkInterface, NetworkInterfaceList
 from cybox.objects.http_session_object import *
 from cybox.objects.as_object import AutonomousSystem
+from cybox.common import Hash, ByteRun, ByteRuns
 from stix.extensions.test_mechanism.snort_test_mechanism import *
 from stix.extensions.identity.ciq_identity_3_0 import CIQIdentity3_0Instance, STIXCIQIdentity3_0, PartyName, ElectronicAddressIdentifier, FreeTextAddress
 from stix.extensions.identity.ciq_identity_3_0 import Address as ciq_Address
@@ -117,6 +118,7 @@ class StixBuilder(object):
         self.simple_type_to_method.update(dict.fromkeys(["email-src", "email-dst", "email-subject"], self.resolve_email_observable))
         self.simple_type_to_method.update(dict.fromkeys(["http-method", "user-agent"], self.resolve_http_observable))
         self.simple_type_to_method.update(dict.fromkeys(["pattern-in-file", "pattern-in-traffic", "pattern-in-memory"], self.resolve_pattern_observable))
+        self.simple_type_to_method.update(dict.fromkeys(["mac-address"], self.resolve_system_observable))
 
     def loadEvent(self):
         pathname = os.path.dirname(self.args[0])
@@ -409,7 +411,6 @@ class StixBuilder(object):
             self.generate_TM(indicator, attribute)
         else:
             observable = None
-            # if attribute_type in self.simple_type_to_method:
             try:
                 observable_property = self.simple_type_to_method[attribute_type](indicator, attribute)
             except KeyError:
@@ -598,6 +599,16 @@ class StixBuilder(object):
             new_object.byte_runs = ByteRuns(byte_run)
             return new_object
         return None
+
+    @staticmethod
+    def resolve_system_observable(incident, attribute):
+        system_object = System()
+        network_interface = NetworkInterface()
+        network_interface.mac = attribute.value
+        network_interface_list = NetworkInterfaceList()
+        network_interface_list.append(network_interface)
+        system_object.network_interface_list = network_interface_list
+        return system_object
 
     def return_attachment_composition(self, attribute):
         file_object = File()
