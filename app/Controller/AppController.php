@@ -107,6 +107,7 @@ class AppController extends Controller {
 			throw new Exception('datasource not supported: ' . $dataSource);
 		}
 
+		$this->set('ajax', $this->request->is('ajax'));
 		$this->set('queryVersion', $this->__queryVersion);
 		$this->loadModel('User');
 		$auth_user_fields = $this->User->describeAuthFields();

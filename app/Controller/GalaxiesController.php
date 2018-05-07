@@ -162,7 +162,6 @@ class GalaxiesController extends AppController {
 		));
 		if (empty($cluster)) throw new MethodNotAllowedException('Invalid Galaxy.');
 		$this->set('cluster', $cluster);
-		$this->set('ajax', $this->request->is('ajax'));
 		$this->set('scope', 'galaxy');
 		$this->set('id', $id);
 		$this->set('galaxy_id' , $cluster['Galaxy']['id']);
