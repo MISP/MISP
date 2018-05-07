@@ -81,7 +81,7 @@
 		?>
 		</div>
 	</fieldset>
-	<p style="color:white;background-color:red;font-weight:bold;display:none;padding:5px;" id="warning-message"><?php echo __('Warning: You are about to share data that is of a classified nature. Make sure that you are authorised to share this.'); ?></p>
+	<p id="notice_message"><?php echo __('Warning: You are about to share data that is of a classified nature. Make sure that you are authorised to share this.'); ?></p>
 	<?php if ($ajax): ?>
 		<div class="overlay_spacing">
 			<span id="submitButton" class="btn btn-primary" style="margin-bottom:5px;float:left;" title="<?php echo __('Submit'); ?>" role="button" tabindex="0" aria-label="<?php echo __('Submit'); ?>" onClick="submitPopoverForm('<?php echo $action == 'add' ? $event_id : $attribute['Attribute']['id'];?>', '<?php echo $action; ?>')"><?php echo __('Submit'); ?></span>
@@ -104,6 +104,7 @@
 	}
 ?>
 <script type="text/javascript">
+var notice_list_triggers = <?php echo $notice_list_triggers; ?>;
 var fieldsArray = new Array('AttributeCategory', 'AttributeType', 'AttributeValue', 'AttributeDistribution', 'AttributeComment', 'AttributeToIds', 'AttributeBatchImport', 'AttributeSharingGroupId');
 <?php
 	$formInfoTypes = array('distribution' => 'Distribution', 'category' => 'Category', 'type' => 'Type');
@@ -137,6 +138,13 @@ var category_type_mapping = new Array();
 var composite_types = <?php echo json_encode($compositeTypes); ?>;
 
 $(document).ready(function() {
+	<?php
+		if ($action == 'edit'):
+	?>
+		checkNoticeList('attribute');
+	<?php
+		endif;
+	?>
 	initPopoverContent('Attribute');
 	$('#AttributeDistribution').change(function() {
 		if ($('#AttributeDistribution').val() == 4) $('#SGContainer').show();
@@ -154,6 +162,10 @@ $(document).ready(function() {
 			$("#AttributeDistribution").val('0');
 			$('#SGContainer').hide();
 		}
+	});
+
+	$("#AttributeCategory, #AttributeType").change(function() {
+		checkNoticeList('attribute');
 	});
 
 	$("#AttributeCategory, #AttributeType, #AttributeDistribution").change(function() {

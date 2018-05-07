@@ -368,6 +368,9 @@ class AttributesController extends AppController {
 		foreach ($distributionLevels as $key => $value) {
 			$info['distribution'][$key] = array('key' => $value, 'desc' => $this->Attribute->distributionDescriptions[$key]['formdesc']);
 		}
+		$this->loadModel('Noticelist');
+		$notice_list_triggers = $this->Noticelist->getTriggerData();
+		$this->set('notice_list_triggers', json_encode($notice_list_triggers, true));
 		$this->set('info', $info);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
@@ -937,6 +940,9 @@ class AttributesController extends AppController {
 		$this->set('categoryDefinitions', $categoryDefinitions);
 		$this->set('compositeTypes', $this->Attribute->getCompositeTypes());
 		$this->set('action', $this->action);
+		$this->loadModel('Noticelist');
+		$notice_list_triggers = $this->Noticelist->getTriggerData();
+		$this->set('notice_list_triggers', json_encode($notice_list_triggers, true));
 		$this->render('add');
 	}
 

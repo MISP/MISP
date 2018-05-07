@@ -213,6 +213,15 @@ class ACLComponent extends Component {
 					'delete' => array(),
 					'index' => array('*'),
 			),
+			'noticelists' => array(
+					'delete' => array(),
+					'enableNoticelist' => array(),
+					'getToggleField' => array(),
+					'index' => array('*'),
+					'toggleEnable' => array(),
+					'update' => array(),
+					'view' => array('*')
+			),
 			'objects' => array(
 				'add' => array('perm_add'),
 				'addValueField' => array('perm_add'),
