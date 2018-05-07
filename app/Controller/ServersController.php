@@ -97,7 +97,6 @@ class ServersController extends AppController {
 
 		$shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group');
 		$this->set('shortDist', $shortDist);
-		$this->set('ajax', $this->request->is('ajax'));
 		$this->set('id', $id);
 		$this->set('urlparams', $urlparams);
 		$this->set('passedArgs', json_encode($passedArgs));

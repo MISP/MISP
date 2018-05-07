@@ -703,7 +703,6 @@ class EventsController extends AppController {
 			$this->layout = false;
 			$this->render('ajax/index');
 		}
-		$this->set('ajax', $this->request->is('ajax'));
 	}
 
 	public function filterEventIndex() {
@@ -4328,7 +4327,6 @@ class EventsController extends AppController {
 		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
 		if (empty($event)) throw new MethodNotAllowedException('Invalid Event.');
 
-		$this->set('ajax', $this->request->is('ajax'));
 		$this->set('event', $event[0]);
 		$this->set('scope', 'event');
 		$this->set('id', $id);
