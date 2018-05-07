@@ -22,7 +22,7 @@
 	<div id="eventdistri_sg_pb_container">
 		<span class="sharingGroup_pb_text useCursorPointer badge"><?php echo __("Sharing group"); ?></span>
 		<div id="eventdistri_sg_pb_background" class="customProgress useCursorPointer">
-			<div id="eventdistri_sg_pb" class="customProgress useCursorPointer animatedPB" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" data-toggle="tooltip" data-placement="top" data-container="body" title="<?php echo __('Sharing group'); ?>"></div>
+			<div id="eventdistri_sg_pb" class="customProgress useCursorPointer animatedPB" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" data-toggle="tooltip" data-placement="bottom" data-container="body"></div>
 		</div>
 	</div>
 </div>
