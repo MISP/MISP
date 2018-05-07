@@ -797,7 +797,6 @@ class TagsController extends AppController {
 		if (!empty($taxonomy)) {
 			$this->set('taxonomy', $taxonomy);
 		}
-		$this->set('ajax', $this->request->is('ajax'));
 		$this->set('scope', 'tag');
 		$this->set('id', $id);
 		$this->render('/Events/view_graph');
