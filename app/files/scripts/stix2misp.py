@@ -143,6 +143,7 @@ class StixParser():
         if self.event.courses_of_action:
             self.parse_coa(self.event.courses_of_action)
 
+    # Parse a DNS object
     def resolve_dns_objects(self):
         for domain in self.dns_objects['domain']:
             domain_object = self.dns_objects['domain'][domain]
@@ -385,6 +386,7 @@ class StixParser():
                 return "filename", attribute_value, ""
         return "file", self.return_attributes(attributes), ""
 
+    # Determine path & filename from a complete path or filename attribute
     @staticmethod
     def handle_filename_path_case(attributes):
         path, filename = [""] * 2
@@ -452,6 +454,7 @@ class StixParser():
         event_types = eventTypes[properties._XSI_TYPE]
         return event_types['type'], properties.name.value, event_types['relation']
 
+    # Return type & attributes of a network connection object
     def handle_network_connection(self, properties):
         attributes = []
         if properties.source_socket_address:
@@ -467,6 +470,7 @@ class StixParser():
         if attributes:
             return "network-connection", self.return_attributes(attributes), ""
 
+    # Return type & attributes of a network socket objet
     def handle_network_socket(self, properties):
         attributes = []
         if properties.local_address:
@@ -475,10 +479,16 @@ class StixParser():
             self.handle_socket(attributes, properties.remote_address, "dst")
         if properties.protocol:
             attributes.append(["text", properties.protocol.value, "protocol"])
+        if properties.is_listening:
+            attributes.append(["text", "listening", "state"])
+        if properties.is_blocking:
+            attributes.append(["text", "blocking", "state"])
+        if properties.address_family:
+            attributes.append(["text", properties.address_family.value, "address-family"])
+        if properties.domain:
+            attributes.append(["text", properties.domain.value, "domain-family"])
         if attributes:
-            ## atm returning a netflow object
-            ## need to define what to do with the domain field
-            return "netflow", self.return_attributes(attributes), ""
+            return "network-socket", self.return_attributes(attributes), ""
 
     # Return type & value of a port attribute
     @staticmethod
@@ -486,6 +496,7 @@ class StixParser():
         event_types = eventTypes[properties._XSI_TYPE]
         return event_types['type'], properties.port_value.value, event_types['relation']
 
+    # Return type & attributes of a process object
     def handle_process(self, properties):
         attributes = []
         if properties.creation_time:
@@ -524,6 +535,8 @@ class StixParser():
         event_types = eventTypes[properties._XSI_TYPE]
         return event_types['type'], properties.key.value, event_types['relation']
 
+    # Parse a socket address object into a network connection or socket object,
+    # in order to add its attributes
     @staticmethod
     def handle_socket(attributes, socket, s_type):
         if socket.ip_address:
@@ -531,8 +544,11 @@ class StixParser():
             attributes.append([ip_type, socket.ip_address.address_value.value, ip_type])
         if socket.port:
             attributes.append(["port", socket.port.port_value.value, "{}-port".format(s_type)])
+        if socket.hostname:
+            attributes.append(["hostname", socket.hostname.hostname_value.value, "hostname-{}".format(s_type)])
 
-    # Return type & value of a composite attribute ip|port or hostname|port
+    # Parse a socket address object in order to return type & value
+    # of a composite attribute ip|port or hostname|port
     def handle_socket_address(self, properties):
         if properties.ip_address:
             type1, value1, _ = self.handle_address(properties.ip_address)
@@ -541,6 +557,7 @@ class StixParser():
             value1 = properties.hostname.hostname_value.value
         return "{}|port".format(type1), "{}|{}".format(value1, properties.port.port_value.value), ""
 
+    # Parse a system object to extract a mac-address attribute
     @staticmethod
     def handle_system(properties):
         if properties.network_interface_list:
@@ -595,6 +612,7 @@ class StixParser():
                 self.misp_event.add_attribute(attribute_type, attribute_value, **misp_attributes)
             return last_attribute
 
+    # Return type & value of a windows service object
     @staticmethod
     def handle_windows_service(properties):
         if properties.name:
@@ -789,6 +807,7 @@ class StixParser():
                     misp_object.add_reference(uuid, 'connected-to')
         self.misp_event.add_object(**misp_object)
 
+    # Extract the uuid from a stix id
     @staticmethod
     def fetch_uuid(object_id):
         identifier = object_id.split(':')[1]
