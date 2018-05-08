@@ -208,7 +208,6 @@ class ObjectsController extends AppController {
 			$distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());
 			$this->set('distributionData', $distributionData);
 			$this->set('event', $event);
-			$this->set('ajax', $this->request->is('ajax'));
 			$this->set('action', 'add');
 			$this->set('template', $template);
 		}

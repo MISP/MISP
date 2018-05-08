@@ -99,6 +99,7 @@ class StixParser():
             'PortObjectType': self.handle_port,
             'ProcessObjectType': self.handle_process,
             'SocketAddressObjectType': self.handle_socket_address,
+            'SystemObjectType': self.handle_system,
             'URIObjectType': self.handle_domain_or_url,
             "WhoisObjectType": self.handle_whois,
             'WindowsRegistryKeyObjectType': self.handle_regkey,
@@ -539,6 +540,11 @@ class StixParser():
             type1 = "hostname"
             value1 = properties.hostname.hostname_value.value
         return "{}|port".format(type1), "{}|{}".format(value1, properties.port.port_value.value), ""
+
+    @staticmethod
+    def handle_system(properties):
+        if properties.network_interface_list:
+            return "mac-address", str(properties.network_interface_list[0].mac), ""
 
     # Parse a whois object:
     # Return type & attributes of a whois object if we have the required fields

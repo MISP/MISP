@@ -315,7 +315,6 @@ class UsersController extends AppController {
 				$this->paginate['conditions']['AND'][] = $conditions;
 				$this->set('users', $this->paginate());
 			}
-			$this->set('ajax', $this->request->is('ajax'));
 			if ($this->request->is('ajax')) {
 				$this->autoRender = false;
 				$this->layout = false;

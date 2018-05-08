@@ -899,7 +899,6 @@ class AttributesController extends AppController {
 		$this->set('types', $types);
 		// combobox for categories
 		$this->set('currentDist', $this->Event->data['Event']['distribution']);
-		$this->set('ajax', $this->request->is('ajax'));
 
 		$this->loadModel('SharingGroup');
 		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
