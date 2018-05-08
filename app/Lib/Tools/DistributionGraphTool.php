@@ -80,7 +80,7 @@
 					$this->__addAdditionalDistributionInfo(1, $org);
 				}
 			}
-			
+
 			// org only
 			$thisOrg = $this->__user['Organisation']['name'];
 			$this->__addAdditionalDistributionInfo(0, $thisOrg); // add current community
@@ -126,9 +126,9 @@
 			$this->__json['obj_attr'] = $this->init_array_distri();
 			$this->__json['additionalDistributionInfo'] = $this->init_array_distri(array());
 
-			
+
 			if (empty($event)) return $this->__json;
-			
+
 			if (!empty($event['Object'])) {
 				$object = $event['Object'];
 			} else {
@@ -156,11 +156,13 @@
 				$this->__fetchAndAddDistributionInfo($obj);
 
 				$added_value = array();
-				foreach($obj['Attribute'] as $objAttr) {
-					$distri = $objAttr['distribution'];
-					$this->__json['event'][$distri] += 1;
-					$this->__json['obj_attr'][$distri] += 1;
-					$this->__fetchAndAddDistributionInfo($objAttr);
+				if (!empty($obj['Attribute'])) {
+					foreach($obj['Attribute'] as $objAttr) {
+						$distri = $objAttr['distribution'];
+						$this->__json['event'][$distri] += 1;
+						$this->__json['obj_attr'][$distri] += 1;
+						$this->__fetchAndAddDistributionInfo($objAttr);
+					}
 				}
 			}
 			// distribution 5 is inherit event, apply this fact on values
