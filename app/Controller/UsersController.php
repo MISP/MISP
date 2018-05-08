@@ -1000,10 +1000,6 @@ class UsersController extends AppController {
 	}
 
 	public function routeafterlogin() {
-		// Terms and Conditions Page
-		if (!$this->Auth->user('termsaccepted')) {
-			$this->redirect(array('action' => 'terms'));
-		}
 		// Events list
 		$this->redirect(array('controller' => 'events', 'action' => 'index'));
 	}
