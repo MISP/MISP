@@ -475,10 +475,16 @@ class StixParser():
             self.handle_socket(attributes, properties.remote_address, "dst")
         if properties.protocol:
             attributes.append(["text", properties.protocol.value, "protocol"])
+        if properties.is_listening:
+            attributes.append(["text", "listening", "state"])
+        if properties.is_blocking:
+            attributes.append(["text", "blocking", "state"])
+        if properties.address_family:
+            attributes.append(["text", properties.address_family.value, "address-family"])
+        if properties.domain:
+            attributes.append(["text", properties.domain.value, "domain-family"])
         if attributes:
-            ## atm returning a netflow object
-            ## need to define what to do with the domain field
-            return "netflow", self.return_attributes(attributes), ""
+            return "network-socket", self.return_attributes(attributes), ""
 
     # Return type & value of a port attribute
     @staticmethod
