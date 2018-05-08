@@ -111,22 +111,24 @@ class ObjectsController extends AppController {
 			throw new NotFoundException('Invalid event.');
 		}
 		$eventId = $event['Event']['id'];
-		$templates = $this->MispObject->ObjectTemplate->find('all', array(
-			'conditions' => array('ObjectTemplate.id' => $templateId),
-			'recursive' => -1,
-			'contain' => array(
-				'ObjectTemplateElement'
-			)
-		));
-		$template_version = false;
-		$template = false;
-		foreach ($templates as $temp) {
-			if (!empty($template_version)) {
-				if (intval($template['ObjectTemplate']['version']) > intval($template_version)) {
+		if (!empty($tempalteId) || !$this->_isRest()) {
+			$templates = $this->MispObject->ObjectTemplate->find('all', array(
+				'conditions' => array('ObjectTemplate.id' => $templateId),
+				'recursive' => -1,
+				'contain' => array(
+					'ObjectTemplateElement'
+				)
+			));
+			$template_version = false;
+			$template = false;
+			foreach ($templates as $temp) {
+				if (!empty($template_version)) {
+					if (intval($template['ObjectTemplate']['version']) > intval($template_version)) {
+						$template = $temp;
+					}
+				} else {
 					$template = $temp;
 				}
-			} else {
-				$template = $temp;
 			}
 		}
 		$error = false;
@@ -164,10 +166,26 @@ class ObjectsController extends AppController {
 				}
 			}
 			if (empty($error)) {
-				$error = $this->MispObject->ObjectTemplate->checkTemplateConformity($template, $object);
+				if (empty($template)) {
+					if (!empty($object['Object']['template_uuid']) && !empty($object['Object']['template_version'])) {
+						$template = $this->MispObject->ObjectTemplate->find('first', array(
+							'conditions' => array(
+								'ObjectTemplate.uuid' => $object['Object']['template_uuid'],
+								'ObjectTemplate.version' => $object['Object']['template_version']
+							),
+							'recursive' => -1,
+							'contain' => array(
+								'ObjectTemplateElement'
+							)
+						));
+					}
+				}
+				if (!empty($template)) {
+					$error = $this->MispObject->ObjectTemplate->checkTemplateConformity($template, $object);
+				}
 				if ($error === true) {
 					$result = $this->MispObject->saveObject($object, $eventId, $template, $this->Auth->user(), $errorBehaviour = 'halt');
-					if ($result) $this->MispObject->Event->unpublishEvent($eventId);
+					if ($result === true) $this->MispObject->Event->unpublishEvent($eventId);
 				} else {
 					$result = false;
 				}
