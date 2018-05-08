@@ -138,7 +138,7 @@ class MispObject extends AppModel {
 		if ($this->save($object)) {
 			$result = $this->id;
 			foreach ($object['Attribute'] as $k => $attribute) {
-				$object['Attribute'][$k]['object_id'] = $id;
+				$object['Attribute'][$k]['object_id'] = $this->id;
 			}
 			$this->Attribute->saveAttributes($object['Attribute']);
 		} else {
