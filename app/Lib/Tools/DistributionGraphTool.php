@@ -18,7 +18,6 @@
 			$sgs = $this->__eventModel->SharingGroup->fetchAllAuthorised($this->__user, 'name',  1);
 			$this->__json['allSharingGroup'] = h(array_values($sgs));
 			$distributionLevels = $this->__eventModel->distributionLevels;
-			if (empty($sgs)) unset($distributionLevels[4]);
 			foreach ($distributionLevels as $key => $value) {
 				$this->__json['distributionInfo'][$key] = array('key' => h($value), 'desc' => h($this->__eventModel->distributionDescriptions[$key]['formdesc']), 'value' => h($key));
 			}
