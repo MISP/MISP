@@ -35,7 +35,7 @@ class Noticelist extends AppModel{
 	}
 
 	public function update() {
-		$directories = glob(APP . 'files' . DS . 'noticelist' . DS . 'lists' . DS . '*', GLOB_ONLYDIR);
+		$directories = glob(APP . 'files' . DS . 'noticelists' . DS . 'lists' . DS . '*', GLOB_ONLYDIR);
 		$updated = array();
 		foreach ($directories as $dir) {
 			$file = new File($dir . DS . 'list.json');
