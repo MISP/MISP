@@ -276,7 +276,7 @@ class ObjectsController extends AppController {
 		if (empty($object)) {
 			throw new NotFoundException('Invalid object.');
 		}
-		$id = $object['MispObject']['id'];
+		$id = $object['Object']['id'];
 		$eventFindParams = array(
 			'recursive' => -1,
 			'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id'),
@@ -324,13 +324,13 @@ class ObjectsController extends AppController {
 					if (is_numeric($objectToSave)) {
 						$objectToSave = $this->MispObject->find('first', array(
 							'recursive' => -1,
-							'conditions' => array('Object.id' => $result),
+							'conditions' => array('Object.id' => $id),
 							'contain' => array('Attribute')
 						));
 						$this->MispObject->Event->unpublishEvent($object['Object']['event_id']);
 						return $this->RestResponse->viewData($objectToSave, $this->response->type());
 					} else {
-						return $this->RestResponse->saveFailResponse('Objects', 'add', false, $result, $this->response->type());
+						return $this->RestResponse->saveFailResponse('Objects', 'add', false, $id, $this->response->type());
 					}
 				} else {
 					$this->MispObject->Event->unpublishEvent($object['Object']['event_id']);

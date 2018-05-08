@@ -412,6 +412,7 @@ class MispObject extends AppModel {
 	}
 
 	public function deltaMerge($object, $objectToSave) {
+		if (!isset($objectToSave['Object'])) $objectToSave = array('Object' => $objectToSave);
 		$object['Object']['comment'] = $objectToSave['Object']['comment'];
 		$object['Object']['distribution'] = $objectToSave['Object']['distribution'];
 		if ($object['Object']['distribution'] == 4) {
