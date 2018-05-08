@@ -161,6 +161,9 @@ class AppController extends Controller {
 		}
 		$userLoggedIn = false;
 		if (Configure::read('Plugin.CustomAuth_enable')) $userLoggedIn = $this->__customAuthentication($_SERVER);
+		if ($this->_isRest()) {
+			$this->Security->validatePost = false;
+		}
 		if (!$userLoggedIn) {
 			// REST authentication
 			if ($this->_isRest() || $this->_isAutomation()) {
