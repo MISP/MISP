@@ -111,7 +111,7 @@ class ObjectsController extends AppController {
 			throw new NotFoundException('Invalid event.');
 		}
 		$eventId = $event['Event']['id'];
-		if (!empty($tempalteId) || !$this->_isRest()) {
+		if (!empty($templateId) || !$this->_isRest()) {
 			$templates = $this->MispObject->ObjectTemplate->find('all', array(
 				'conditions' => array('ObjectTemplate.id' => $templateId),
 				'recursive' => -1,
