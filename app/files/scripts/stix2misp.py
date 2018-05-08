@@ -531,6 +531,8 @@ class StixParser():
             attributes.append([ip_type, socket.ip_address.address_value.value, ip_type])
         if socket.port:
             attributes.append(["port", socket.port.port_value.value, "{}-port".format(s_type)])
+        if socket.hostname:
+            attributes.append(["hostname", socket.hostname.hostname_value.value, "hostname-{}".format(s_type)])
 
     # Return type & value of a composite attribute ip|port or hostname|port
     def handle_socket_address(self, properties):
