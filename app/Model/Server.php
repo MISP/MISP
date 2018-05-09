@@ -3792,9 +3792,11 @@ class Server extends AppModel {
 	}
 
 	public function restartWorkers($user=false) {
-		$this->workerRemoveDead($user);
-		$prepend = '';
-		shell_exec($prepend . APP . 'Console' . DS . 'worker' . DS . 'start.sh > /dev/null 2>&1 &');
+		if (Configure::read('MISP.background_jobs')) {
+			$this->workerRemoveDead($user);
+			$prepend = '';
+			shell_exec($prepend . APP . 'Console' . DS . 'worker' . DS . 'start.sh > /dev/null 2>&1 &');
+		}
 		return true;
 	}
 }
