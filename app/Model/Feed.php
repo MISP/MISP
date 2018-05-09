@@ -326,7 +326,6 @@ class Feed extends AppModel {
 			$this->Event = ClassRegistry::init('Event');
 			$objectKeys = array();
 			foreach ($objects as $k => $object) {
-				if ($object['disable_correlation']) continue;
 				if (in_array($object['type'], $this->Event->Attribute->getCompositeTypes())) {
 					$value = explode('|', $object['value']);
 					$hashTable[$k] = md5($value[0]);
@@ -338,10 +337,7 @@ class Feed extends AppModel {
 				$objectKeys[] = $k;
 			}
 			$results = array();
-			$temp = $pipe->exec();
-			foreach ($temp as $k => $v) {
-				$results[$objectKeys[$k]] = $v;
-			}
+			$results = $pipe->exec();
 			if (!$overrideLimit && count($objects) > 10000) {
 				foreach ($results as $k => $result) {
 					if ($result) {
