@@ -334,10 +334,17 @@ class StixParser():
                 return self.handle_email_attachment(properties.parent)
         except:
             pass
-        else:
-            # ATM USED TO TEST EMAIL PROPERTIES
-            print("Unsupported Email property")
-            sys.exit(1)
+        try:
+            if properties.header:
+                header = properties.header
+                if header.reply_to:
+                    return "email-reply-to", header.reply_to.address_value.value, "reply-to"
+        except:
+            pass
+        # ATM USED TO TEST EMAIL PROPERTIES
+        print("Unsupported Email property")
+        print(properties.to_json())
+        sys.exit(1)
 
     # Return type & value of an email attachment
     @staticmethod
