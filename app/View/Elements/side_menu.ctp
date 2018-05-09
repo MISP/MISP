@@ -68,7 +68,7 @@
 						echo $this->element('/side_menu_link', array(
 							'onClick' => array(
 								'function' => 'getPopup',
-								'params' => array($event['Event']['id'], 'events', 'importchoice')
+								'params' => array($event['Event']['id'], 'events', 'importChoice')
 							),
 							'text' => 'Populate from...'
 						));

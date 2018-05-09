@@ -61,7 +61,7 @@ class AppModel extends Model {
 
 	public $db_changes = array(
 		1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
-		7 => false
+		7 => false, 8 => false
 	);
 
 	function afterSave($created, $options = array()) {
@@ -139,6 +139,10 @@ class AppModel extends Model {
 				$this->updateDatabase($command);
 				$this->Feed = Classregistry::init('Feed');
 				$this->Feed->setEnableFeedCachingDefaults();
+				break;
+			case 8:
+				$this->Server = Classregistry::init('Server');
+				$this->Server->restartWorkers();
 				break;
 			default:
 				$this->updateDatabase($command);

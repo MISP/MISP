@@ -138,7 +138,7 @@ class MispObject extends AppModel {
 		if ($this->save($object)) {
 			$result = $this->id;
 			foreach ($object['Attribute'] as $k => $attribute) {
-				$object['Attribute'][$k]['object_id'] = $id;
+				$object['Attribute'][$k]['object_id'] = $this->id;
 			}
 			$this->Attribute->saveAttributes($object['Attribute']);
 		} else {
@@ -412,6 +412,23 @@ class MispObject extends AppModel {
 	}
 
 	public function deltaMerge($object, $objectToSave) {
+		if (!isset($objectToSave['Object'])) {
+			$dataToBackup = array('ObjectReferences', 'Attribute', 'ShadowAttribute');
+			$backup = array();
+			foreach ($dataToBackup as $dtb) {
+				if (isset($objectToSave[$dtb])) {
+					$backup[$dtb] = $objectToSave[$dtb];
+					unset($objectToSave[$dtb]);
+				}
+			}
+			$objectToSave = array('Object' => $objectToSave);
+			foreach ($dataToBackup as $dtb) {
+				if (isset($backup[$dtb])) {
+					$objectToSave[$dtb] = $backup[$dtb];
+				}
+			}
+			unset($dataToBackup);
+		}
 		$object['Object']['comment'] = $objectToSave['Object']['comment'];
 		$object['Object']['distribution'] = $objectToSave['Object']['distribution'];
 		if ($object['Object']['distribution'] == 4) {

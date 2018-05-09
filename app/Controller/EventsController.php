@@ -2465,6 +2465,9 @@ class EventsController extends AppController {
 		$requested_attributes = array('uuid', 'event_id', 'category', 'type',
 								'value', 'comment', 'to_ids', 'timestamp');
 		$requested_obj_attributes = array('uuid', 'name', 'meta-category');
+		if ($includeContext) {
+			$requested_attributes[] = 'attribute_tag';
+		}
 		if (isset($this->params['url']['attributes'])) {
 			if (!isset($this->params['url']['obj_attributes'])) $requested_obj_attributes = array();
 			$requested_attributes = explode(',', $this->params['url']['attributes']);
@@ -3977,6 +3980,14 @@ class EventsController extends AppController {
 					'checkbox' => true,
 					'checkbox_text' => 'Include non-IDS marked attributes',
 					'checkbox_set' => '/events/csv/download/' . $id . '/1'
+			),
+			'csv_with_context' => array(
+					'url' => '/events/csv/download/' . $id . '/0/0/0/0/1',
+					'text' => 'CSV with additional context',
+					'requiresPublished' => true,
+					'checkbox' => true,
+					'checkbox_text' => 'Include non-IDS marked attributes',
+					'checkbox_set' => '/events/csv/download/' . $id . '/1/0/0/0/1'
 			),
 			'stix_xml' => array(
 					'url' => '/events/stix/download/' . $id . '.xml',

@@ -2009,9 +2009,9 @@ class Event extends AppModel {
 							$tags[] = $attributeTag['Tag']['name'];
 						}
 					}
-					$attribute['attribute_tag'] = implode(',', $tags);
+					$attribute['Attribute']['attribute_tag'] = implode(',', $tags);
 				}
-				$this->__escapeCSVField($attribute['attribute_tag']);
+				$this->__escapeCSVField($attribute['Attribute']['attribute_tag']);
 				if (!empty($attribute['Event']['EventTag'])) {
 					$tags = array();
 					foreach ($attribute['Event']['EventTag'] as $eventTag) {

@@ -1161,9 +1161,7 @@ class ServersController extends AppController {
 
 	public function restartWorkers() {
 		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
-		$this->Server->workerRemoveDead($this->Auth->user());
-		$prepend = '';
-		shell_exec($prepend . APP . 'Console' . DS . 'worker' . DS . 'start.sh > /dev/null 2>&1 &');
+		$this->Server->restartWorkers($this->Auth->user());
 		$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
 	}
 
