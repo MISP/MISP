@@ -777,7 +777,8 @@ class Attribute extends AppModel {
 			'Attribute.event_id' => $eventId,
 			'Attribute.type' => $type,
 			'Attribute.category' => $category,
-			'Attribute.deleted' => 0
+			'Attribute.deleted' => 0,
+			'Attribute.object_id' => 0
 		);
 		$conditions = array_merge ($conditions, $value);
 		if (isset($this->data['Attribute']['id'])) {
