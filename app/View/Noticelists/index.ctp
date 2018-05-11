@@ -56,10 +56,12 @@
 				echo sprintf('<td class="short" ondblclick="document.location.href =%s">%s&nbsp;</td>', $baseurl . "/noticeists/view/" . h($item['Noticelist']['id']), $geo);
 				echo sprintf('<td class="short" ondblclick="document.location.href =%s">%s&nbsp;</td>', $baseurl . "/noticeists/view/" . h($item['Noticelist']['id']), h($item['Noticelist']['version']));
 				if ($isSiteAdmin) {
-					$onClick = 'toggleSetting(event, \'noticelist_enable\', \'' . h($item['Noticelist']['id']) . '\');	';
-					$input = '<input id="checkBox_' . h($item['Noticelist']['id']) . '" type="checkbox" onClick="' . $onClick . '" ' . ($item['Noticelist']['enabled'] ? 'checked' : '') . ' />';
-					echo '<td class="short" id="checkbox_row_' . h($item['Noticelist']['id']) . '">' . $input . '</td>';
+					$onClick = 'onClick="toggleSetting(event, \'noticelist_enable\', \'' . h($item['Noticelist']['id']) . '\');	' . '"';
+				} else {
+					$onClick = 'disabled';
 				}
+				$input = '<input id="checkBox_' . h($item['Noticelist']['id']) . '" type="checkbox" ' . $onClick . ' ' . ($item['Noticelist']['enabled'] ? 'checked' : '') . ' />';
+				echo '<td class="short" id="checkbox_row_' . h($item['Noticelist']['id']) . '">' . $input . '</td>';
 				$actions = '';
 				$actions .= '<a href="' . $baseurl . "/noticelists/view/" . h($item['Noticelist']['id']) . '" class="icon-list-alt" title="' . __('View') . '"></a>';
 				echo '<td class="short action-links">' . $actions . '</td>';
