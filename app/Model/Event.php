@@ -3055,7 +3055,11 @@ class Event extends AppModel {
 			$hostOrg = $this->Org->find('first', array('conditions' => array('name' => Configure::read('MISP.org')), 'fields' => array('id')));
 			if (!empty($hostOrg)) {
 				$user = array('org_id' => $hostOrg['Org']['id'], 'Role' => array('perm_sync' => 0, 'perm_audit' => 0, 'perm_site_admin' => 0), 'Organisation' => $hostOrg['Org']);
-				$fullEvent = $this->fetchEvent($user, array('eventid' => $id));
+				$params = array('eventid' => $id);
+				if (Configure::read('Plugin.ZeroMQ_include_attachments')) {
+					$params['includeAttachments'] = 1;
+				}
+				$fullEvent = $this->fetchEvent($user, $params);
 				if (!empty($fullEvent)) $pubSubTool->publishEvent($fullEvent[0], 'publish');
 			}
 		}
