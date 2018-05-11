@@ -115,7 +115,7 @@ class MispObject extends AppModel {
 		}
 	}
 
-	public function saveObject($object, $eventId, $template, $user, $errorBehaviour = 'drop') {
+	public function saveObject($object, $eventId, $template = false, $user, $errorBehaviour = 'drop') {
 		$this->create();
 		$templateFields = array(
 			'name' => 'name',
@@ -124,21 +124,27 @@ class MispObject extends AppModel {
 			'template_version' => 'version',
 			'template_uuid' => 'uuid'
 		);
-		foreach ($templateFields as $k => $v) {
-				$object['Object'][$k] = $template['ObjectTemplate'][$v];
+		if ($template) {
+			foreach ($templateFields as $k => $v) {
+					$object['Object'][$k] = $template['ObjectTemplate'][$v];
+			}
+		} else {
+			foreach ($templateFields as $k => $v) {
+				if (!isset($object['Object'][$k])) return 'No valid template found and object lacking template information. (' . $k . ')';
+			}
 		}
 		$object['Object']['event_id'] = $eventId;
 		$result = false;
 		if ($this->save($object)) {
-			$id = $this->id;
+			$result = $this->id;
 			foreach ($object['Attribute'] as $k => $attribute) {
-				$object['Attribute'][$k]['object_id'] = $id;
+				$object['Attribute'][$k]['object_id'] = $this->id;
 			}
-			$result = $this->Attribute->saveAttributes($object['Attribute']);
+			$this->Attribute->saveAttributes($object['Attribute']);
 		} else {
 			$result = $this->validationErrors;
 		}
-		return $id;
+		return $result;
 	}
 
 	public function buildEventConditions($user, $sgids = false) {
@@ -406,6 +412,23 @@ class MispObject extends AppModel {
 	}
 
 	public function deltaMerge($object, $objectToSave) {
+		if (!isset($objectToSave['Object'])) {
+			$dataToBackup = array('ObjectReferences', 'Attribute', 'ShadowAttribute');
+			$backup = array();
+			foreach ($dataToBackup as $dtb) {
+				if (isset($objectToSave[$dtb])) {
+					$backup[$dtb] = $objectToSave[$dtb];
+					unset($objectToSave[$dtb]);
+				}
+			}
+			$objectToSave = array('Object' => $objectToSave);
+			foreach ($dataToBackup as $dtb) {
+				if (isset($backup[$dtb])) {
+					$objectToSave[$dtb] = $backup[$dtb];
+				}
+			}
+			unset($dataToBackup);
+		}
 		$object['Object']['comment'] = $objectToSave['Object']['comment'];
 		$object['Object']['distribution'] = $objectToSave['Object']['distribution'];
 		if ($object['Object']['distribution'] == 4) {

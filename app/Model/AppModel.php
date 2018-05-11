@@ -60,7 +60,8 @@ class AppModel extends Model {
 	);
 
 	public $db_changes = array(
-		1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false
+		1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
+		7 => false, 8 => false
 	);
 
 	function afterSave($created, $options = array()) {
@@ -138,6 +139,10 @@ class AppModel extends Model {
 				$this->updateDatabase($command);
 				$this->Feed = Classregistry::init('Feed');
 				$this->Feed->setEnableFeedCachingDefaults();
+				break;
+			case 8:
+				$this->Server = Classregistry::init('Server');
+				$this->Server->restartWorkers();
 				break;
 			default:
 				$this->updateDatabase($command);
@@ -902,6 +907,27 @@ class AppModel extends Model {
 				$sqlArray[] = "ALTER TABLE `events` ADD `extends_uuid` varchar(40) COLLATE utf8_bin DEFAULT '';";
 				$indexArray[] = array('events', 'extends_uuid');
 				break;
+			case 7:
+				$sqlArray[] = 'CREATE TABLE IF NOT EXISTS `noticelists` (
+						`id` int(11) NOT NULL AUTO_INCREMENT,
+						`name` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+						`expanded_name` text COLLATE utf8_unicode_ci NOT NULL,
+						`ref` text COLLATE utf8_unicode_ci,
+						`geographical_area` varchar(255) COLLATE utf8_unicode_ci,
+						`version` int(11) NOT NULL DEFAULT 1,
+						`enabled` tinyint(1) NOT NULL DEFAULT 0,
+						PRIMARY KEY (`id`),
+						INDEX `name` (`name`),
+						INDEX `geographical_area` (`geographical_area`)
+					) ENGINE=InnoDB DEFAULT CHARSET=utf8;';
+				$sqlArray[] = 'CREATE TABLE IF NOT EXISTS `noticelist_entries` (
+						`id` int(11) NOT NULL AUTO_INCREMENT,
+						`noticelist_id` int(11) NOT NULL,
+						`data` text COLLATE utf8_unicode_ci NOT NULL,
+						PRIMARY KEY (`id`),
+						INDEX `noticelist_id` (`noticelist_id`)
+					) ENGINE=InnoDB DEFAULT CHARSET=utf8;';
+			break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
 				$sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

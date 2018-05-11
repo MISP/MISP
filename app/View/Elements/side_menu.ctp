@@ -68,7 +68,7 @@
 						echo $this->element('/side_menu_link', array(
 							'onClick' => array(
 								'function' => 'getPopup',
-								'params' => array($event['Event']['id'], 'events', 'importchoice')
+								'params' => array($event['Event']['id'], 'events', 'importChoice')
 							),
 							'text' => 'Populate from...'
 						));
@@ -269,6 +269,15 @@
 					<li id='liindex'><?php echo $this->Html->link(__('List Warninglists'), array('action' => 'index'));?></li>
 					<?php if ($isSiteAdmin): ?>
 					<li><?php echo $this->Form->postLink(__('Update Warninglists'), '/warninglists/update'); ?></li>
+					<?php
+						endif;
+				break;
+
+				case 'noticelist':?>
+					<?php if ($menuItem == 'view'): ?><li class="active"><a href="#"><?php echo __('View Noticelist');?></a></li><?php endif;?>
+					<li id='liindex'><?php echo $this->Html->link(__('List Noticelists'), array('action' => 'index'));?></li>
+					<?php if ($isSiteAdmin): ?>
+					<li><?php echo $this->Form->postLink(__('Update Noticelists'), '/noticelists/update'); ?></li>
 					<?php
 						endif;
 				break;

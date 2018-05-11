@@ -45,6 +45,7 @@ class ObjectReference extends AppModel {
 		}
 		$date = new DateTime();
 		$this->data['ObjectReference']['timestamp'] = $date->getTimestamp();
+		if (!isset($this->data['ObjectReference']['comment'])) $this->data['ObjectReference']['comment'] = '';
 		return true;
 	}
 
@@ -203,8 +204,8 @@ class ObjectReference extends AppModel {
 				'conditions' => $conditions[1]
 			));
 		}
-		if (!isset($referencedObject)) {
-			$referencedObject = $this->Attribute->find('first', array(
+		if (empty($referencedObject)) {
+			$referencedObject = $this->Object->Attribute->find('first', array(
 				'recursive' => -1,
 				'conditions' => $conditions[0]
 			));

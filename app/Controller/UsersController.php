@@ -315,7 +315,6 @@ class UsersController extends AppController {
 				$this->paginate['conditions']['AND'][] = $conditions;
 				$this->set('users', $this->paginate());
 			}
-			$this->set('ajax', $this->request->is('ajax'));
 			if ($this->request->is('ajax')) {
 				$this->autoRender = false;
 				$this->layout = false;
@@ -1000,10 +999,6 @@ class UsersController extends AppController {
 	}
 
 	public function routeafterlogin() {
-		// Terms and Conditions Page
-		if (!$this->Auth->user('termsaccepted')) {
-			$this->redirect(array('action' => 'terms'));
-		}
 		// Events list
 		$this->redirect(array('controller' => 'events', 'action' => 'index'));
 	}

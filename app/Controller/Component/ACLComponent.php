@@ -109,6 +109,7 @@ class ACLComponent extends Component {
 					'getEventGraphReferences' => array('*'),
 					'getEventGraphTags' => array('*'),
 					'getEventGraphGeneric' => array('*'),
+					'getDistributionGraph' => array('*'),
 					'getReferenceData' => array('*'),
 					'getReferences' => array('*'),
 					'getObjectTemplate' => array('*'),
@@ -211,6 +212,15 @@ class ACLComponent extends Component {
 					'edit' => array(),
 					'delete' => array(),
 					'index' => array('*'),
+			),
+			'noticelists' => array(
+					'delete' => array(),
+					'enableNoticelist' => array(),
+					'getToggleField' => array(),
+					'index' => array('*'),
+					'toggleEnable' => array(),
+					'update' => array(),
+					'view' => array('*')
 			),
 			'objects' => array(
 				'add' => array('perm_add'),
@@ -475,18 +485,23 @@ class ACLComponent extends Component {
 	// If the requested action has a permission, check if the user's role has it flagged. If yes, return true
 	// If we fall through all of the checks, return an exception.
 	public function checkAccess($user, $controller, $action) {
+		$action = strtolower($action);
+		$aclList = $this->__aclList;
+		foreach ($aclList as $k => $v) {
+			$aclList[$k] = array_change_key_case($v);
+		}
 		if ($user['Role']['perm_site_admin']) return true;
-		if (!isset($this->__aclList[$controller])) $this->__error(404, 'Invalid controller.');
+		if (!isset($aclList[$controller])) $this->__error(404, 'Invalid controller.');
 		if ($user['Role']['perm_site_admin']) return true;
-		if (isset($this->__aclList[$controller][$action]) && !empty($this->__aclList[$controller][$action])) {
-			if (in_array('*', $this->__aclList[$controller][$action])) return true;
-			if (isset($this->__aclList[$controller][$action]['OR'])) {
-				foreach ($this->__aclList[$controller][$action]['OR'] as $permission) if ($user['Role'][$permission]) return true;
-			} else if (isset($this->__aclList[$controller][$action]['AND'])) {
+		if (isset($aclList[$controller][$action]) && !empty($aclList[$controller][$action])) {
+			if (in_array('*', $aclList[$controller][$action])) return true;
+			if (isset($aclList[$controller][$action]['OR'])) {
+				foreach ($aclList[$controller][$action]['OR'] as $permission) if ($user['Role'][$permission]) return true;
+			} else if (isset($aclList[$controller][$action]['AND'])) {
 				$allConditionsMet = true;
-				foreach ($this->__aclList[$controller][$action]['AND'] as $permission) if (!$user['Role'][$permission]) $allConditionsMet = false;
+				foreach ($aclList[$controller][$action]['AND'] as $permission) if (!$user['Role'][$permission]) $allConditionsMet = false;
 				if ($allConditionsMet) return true;
-			} else if ($user['Role'][$this->__aclList[$controller][$action][0]]) return true;
+			} else if ($user['Role'][$aclList[$controller][$action][0]]) return true;
 		}
 		$this->__error(403, 'You do not have permission to use this functionality.');
 	}

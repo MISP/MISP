@@ -368,6 +368,9 @@ class AttributesController extends AppController {
 		foreach ($distributionLevels as $key => $value) {
 			$info['distribution'][$key] = array('key' => $value, 'desc' => $this->Attribute->distributionDescriptions[$key]['formdesc']);
 		}
+		$this->loadModel('Noticelist');
+		$notice_list_triggers = $this->Noticelist->getTriggerData();
+		$this->set('notice_list_triggers', json_encode($notice_list_triggers, true));
 		$this->set('info', $info);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
@@ -896,7 +899,6 @@ class AttributesController extends AppController {
 		$this->set('types', $types);
 		// combobox for categories
 		$this->set('currentDist', $this->Event->data['Event']['distribution']);
-		$this->set('ajax', $this->request->is('ajax'));
 
 		$this->loadModel('SharingGroup');
 		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
@@ -937,6 +939,9 @@ class AttributesController extends AppController {
 		$this->set('categoryDefinitions', $categoryDefinitions);
 		$this->set('compositeTypes', $this->Attribute->getCompositeTypes());
 		$this->set('action', $this->action);
+		$this->loadModel('Noticelist');
+		$notice_list_triggers = $this->Noticelist->getTriggerData();
+		$this->set('notice_list_triggers', json_encode($notice_list_triggers, true));
 		$this->render('add');
 	}
 
@@ -1349,7 +1354,7 @@ class AttributesController extends AppController {
 				return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
 			} else {
 				$this->autoRender = false;
-				return new CakeResponse(array('body'=> json_encode(array('saved' => false)), 'status' => 200, 'type' => 'json'));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'validationErrors' => $this->Attribute->validationErrors)), 'status' => 200, 'type' => 'json'));
 			}
 		} else {
 			if (!isset($id)) throw new MethodNotAllowedException('No event ID provided.');

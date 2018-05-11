@@ -1,5 +1,4 @@
 import sys, json, uuid, os, time, datetime, re
-from misp2cybox import *
 from dateutil.tz import tzutc
 from stix.indicator import Indicator
 from stix.indicator.valid_time import ValidTime
@@ -41,6 +40,7 @@ NS_DICT = {
         "http://cybox.mitre.org/objects#PipeObject-2" : 'PipeObj',
         "http://cybox.mitre.org/objects#URIObject-2" : 'URIObj',
         "http://cybox.mitre.org/objects#WinRegistryKeyObject-2" : 'WinRegistryKeyObj',
+        "http://cybox.mitre.org/objects#SystemObject-2" : 'SystemObj',
         "http://data-marking.mitre.org/Marking-1" : 'marking',
         "http://data-marking.mitre.org/extensions/MarkingStructure#TLP-1" : 'tlpMarking',
         "http://stix.mitre.org/ExploitTarget-1" : 'et',
@@ -74,6 +74,7 @@ SCHEMALOC_DICT = {
 	'http://cybox.mitre.org/objects#PipeObject-2': 'http://cybox.mitre.org/XMLSchema/objects/Pipe/2.1/Pipe_Object.xsd',
 	'http://cybox.mitre.org/objects#URIObject-2': 'http://cybox.mitre.org/XMLSchema/objects/URI/2.1/URI_Object.xsd',
 	'http://cybox.mitre.org/objects#WinRegistryKeyObject-2': 'http://cybox.mitre.org/XMLSchema/objects/Win_Registry_Key/2.1/Win_Registry_Key_Object.xsd',
+	'http://cybox.mitre.org/objects#SystemObject-2': 'http://cybox.mitre.org/XMLSchema/objects/System/2.1/System_Object.xsd'
 	'http://data-marking.mitre.org/Marking-1': 'http://stix.mitre.org/XMLSchema/data_marking/1.1.1/data_marking.xsd',
 	'http://data-marking.mitre.org/extensions/MarkingStructure#TLP-1': 'http://stix.mitre.org/XMLSchema/extensions/marking/tlp/1.1.1/tlp_marking.xsd',
 	'http://stix.mitre.org/ExploitTarget-1': 'http://stix.mitre.org/XMLSchema/exploit_target/1.1.1/exploit_target.xsd',
@@ -126,6 +127,7 @@ def main(args):
     stix_header.title="Export from {} MISP".format(orgname)
     stix_header.package_intents="Threat Report"
     stix_package.stix_header = stix_header
+    stix_package.version = "1.1.1"
 
     if args[3] == 'json':
         stix_string = stix_package.to_json()[:-1]

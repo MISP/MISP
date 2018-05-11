@@ -423,7 +423,7 @@ class Event extends AppModel {
 	}
 
 	public function afterSave($created, $options = array()) {
-		if (!$created) {
+		if (!Configure::read('MISP.completely_disable_correlation') && !$created) {
 			$this->Correlation = ClassRegistry::init('Correlation');
 			$db = $this->getDataSource();
 			if (isset($this->data['Event']['date'])) {
@@ -1206,16 +1206,6 @@ class Event extends AppModel {
 				'value' => $id
 			),
 			array(
-				'table' => 'correlations',
-				'foreign_key' => 'event_id',
-				'value' => $id
-			),
-			array(
-				'table' => 'correlations',
-				'foreign_key' => '1_event_id',
-				'value' => $id
-			),
-			array(
 				'table' => 'sightings',
 				'foreign_key' => 'event_id',
 				'value' => $id
@@ -1241,6 +1231,21 @@ class Event extends AppModel {
 				'table' => 'posts',
 				'foreign_key' => 'thread_id',
 				'value' => $thread_id
+			);
+		}
+		if (!Configure::read('MISP.completely_disable_correlation')) {
+			array_push(
+				$relations,
+				array(
+					'table' => 'correlations',
+					'foreign_key' => 'event_id',
+					'value' => $id
+				),
+				array(
+					'table' => 'correlations',
+					'foreign_key' => '1_event_id',
+					'value' => $id
+				)
 			);
 		}
 		App::uses('QueryTool', 'Tools');
@@ -2004,9 +2009,9 @@ class Event extends AppModel {
 							$tags[] = $attributeTag['Tag']['name'];
 						}
 					}
-					$attribute['attribute_tag'] = implode(',', $tags);
+					$attribute['Attribute']['attribute_tag'] = implode(',', $tags);
 				}
-				$this->__escapeCSVField($attribute['attribute_tag']);
+				$this->__escapeCSVField($attribute['Attribute']['attribute_tag']);
 				if (!empty($attribute['Event']['EventTag'])) {
 					$tags = array();
 					foreach ($attribute['Event']['EventTag'] as $eventTag) {
@@ -2700,7 +2705,6 @@ class Event extends AppModel {
 						}
 					}
 				}
-				throw new Exception();
 			}
 			if ($fromXml) $created_id = $this->id;
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
@@ -2814,9 +2818,9 @@ class Event extends AppModel {
 					}
 				}
 			}
-			if (isset($event['Event']['EventTag'])) {
-				$event['Event']['Tag'] = $event['Event']['EventTag']['Tag'];
-				unset($event['Event']['EventTag']);
+			if (isset($data['Event']['EventTag'])) {
+				$data['Event']['Tag'] = $data['Event']['EventTag']['Tag'];
+				unset($data['Event']['EventTag']);
 			}
 			if (isset($data['Event']['Tag']) && $user['Role']['perm_tagger']) {
 				foreach ($data['Event']['Tag'] as $tag) {
@@ -3051,7 +3055,11 @@ class Event extends AppModel {
 			$hostOrg = $this->Org->find('first', array('conditions' => array('name' => Configure::read('MISP.org')), 'fields' => array('id')));
 			if (!empty($hostOrg)) {
 				$user = array('org_id' => $hostOrg['Org']['id'], 'Role' => array('perm_sync' => 0, 'perm_audit' => 0, 'perm_site_admin' => 0), 'Organisation' => $hostOrg['Org']);
-				$fullEvent = $this->fetchEvent($user, array('eventid' => $id));
+				$params = array('eventid' => $id);
+				if (Configure::read('Plugin.ZeroMQ_include_attachments')) {
+					$params['includeAttachments'] = 1;
+				}
+				$fullEvent = $this->fetchEvent($user, $params);
 				if (!empty($fullEvent)) $pubSubTool->publishEvent($fullEvent[0], 'publish');
 			}
 		}

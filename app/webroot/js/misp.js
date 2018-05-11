@@ -152,6 +152,12 @@ function toggleSetting(e, setting, id) {
 		replacementForm = '/ObjectTemplates/getToggleField/';
 		searchString = 'activated';
 		break;
+	case 'noticelist_enable':
+		formID = '#NoticelistIndexForm';
+		dataDiv = '#NoticelistData';
+		replacementForm = '/noticelists/getToggleField/';
+		searchString = 'enabled';
+		break;
 	}
 	$(dataDiv).val(id);
 	var formData = $(formID).serialize();
@@ -2609,6 +2615,10 @@ function filterAttributes(filter, id) {
 	if(filter === 'value'){
 		filter = $('#attributesFilterField').val().trim();
 		url += "/searchFor:" + filter;
+	} else if(filter !== 'all') {
+		url += "/filterColumnsOverwrite:" + filter;
+		filter = $('#attributesFilterField').val().trim();
+		url += "/searchFor:" + filter;
 	}
 	if (deleted) url += '/deleted:true';
 	$.ajax({
@@ -3318,6 +3328,33 @@ $('.add_object_attribute_row').click(function() {
 $('.quickToggleCheckbox').toggle(function() {
 	var url = $(this).data('checkbox-url');
 });
+
+function checkNoticeList(type) {
+	var fields_to_check = {
+		"attribute": ["category", "type"]
+	}
+	var warnings = [];
+	$('#notice_message').html('<h4>Notices:</h4>');
+	$('#notice_message').hide();
+	fields_to_check[type].forEach(function(field_name) {
+		if (field_name in notice_list_triggers) {
+			var field_value = $('#' + type.ucfirst() + field_name.ucfirst()).val();
+			if (field_value in notice_list_triggers[field_name]) {
+				notice_list_triggers[field_name][field_value].forEach(function(notice) {
+					$('#notice_message').show();
+					$('#notice_message').append(
+						$('<div/>')
+							.append($('<span/>').text('['))
+							.append($('<a/>', {href: '/noticelists/view/' + notice['list_id'], class:'bold'}).text(notice['list_name']))
+							.append($('<span/>').text(']: '))
+							.append($('<span/>').text(notice['message']['en']))
+					);
+				});
+			}
+		}
+	});
+
+}
 
 $(document).ready(function() {
 	$(".correlation-expand-button").on("click", function() {

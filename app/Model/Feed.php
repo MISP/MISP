@@ -324,16 +324,19 @@ class Feed extends AppModel {
 			$hashTable = array();
 			$hitIds = array();
 			$this->Event = ClassRegistry::init('Event');
+			$objectKeys = array();
 			foreach ($objects as $k => $object) {
-				if ($object['disable_correlation']) continue;
 				if (in_array($object['type'], $this->Event->Attribute->getCompositeTypes())) {
 					$value = explode('|', $object['value']);
 					$hashTable[$k] = md5($value[0]);
+					$objectKeys[] = $k;
 				} else {
 					$hashTable[$k] = md5($object['value']);
 				}
 				$redis->sismember('misp:feed_cache:combined', $hashTable[$k]);
+				$objectKeys[] = $k;
 			}
+			$results = array();
 			$results = $pipe->exec();
 			if (!$overrideLimit && count($objects) > 10000) {
 				foreach ($results as $k => $result) {

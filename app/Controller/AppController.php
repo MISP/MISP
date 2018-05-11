@@ -46,7 +46,7 @@ class AppController extends Controller {
 
 	public $helpers = array('Utility', 'OrgImg');
 
-	private $__queryVersion = '35';
+	private $__queryVersion = '36';
 	public $pyMispVersion = '2.4.90';
 	public $phpmin = '5.6.5';
 	public $phprec = '7.0.16';
@@ -107,6 +107,7 @@ class AppController extends Controller {
 			throw new Exception('datasource not supported: ' . $dataSource);
 		}
 
+		$this->set('ajax', $this->request->is('ajax'));
 		$this->set('queryVersion', $this->__queryVersion);
 		$this->loadModel('User');
 		$auth_user_fields = $this->User->describeAuthFields();
@@ -160,6 +161,9 @@ class AppController extends Controller {
 		}
 		$userLoggedIn = false;
 		if (Configure::read('Plugin.CustomAuth_enable')) $userLoggedIn = $this->__customAuthentication($_SERVER);
+		if ($this->_isRest()) {
+			$this->Security->unlockedActions = array($this->action);
+		}
 		if (!$userLoggedIn) {
 			// REST authentication
 			if ($this->_isRest() || $this->_isAutomation()) {
@@ -176,7 +180,7 @@ class AppController extends Controller {
 							$found_misp_auth_key = true;
 							$temp = $this->checkAuthUser(trim($auth_key));
 							if ($temp) {
-								$user['User'] = $this->checkAuthUser(trim($auth_key));
+								$user['User'] = $temp;
 							}
 						}
 					}
@@ -480,7 +484,7 @@ class AppController extends Controller {
 
 	public function checkAuthUser($authkey) {
 		$this->loadModel('User');
-		$user = $this->User->getAuthUserByUuid($authkey);
+		$user = $this->User->getAuthUserByAuthkey($authkey);
 		if (empty($user)) return false;
 		if (!$user['Role']['perm_auth']) return false;
 		if ($user['Role']['perm_site_admin']) $user['siteadmin'] = true;

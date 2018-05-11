@@ -111,22 +111,24 @@ class ObjectsController extends AppController {
 			throw new NotFoundException('Invalid event.');
 		}
 		$eventId = $event['Event']['id'];
-		$templates = $this->MispObject->ObjectTemplate->find('all', array(
-			'conditions' => array('ObjectTemplate.id' => $templateId),
-			'recursive' => -1,
-			'contain' => array(
-				'ObjectTemplateElement'
-			)
-		));
-		$template_version = false;
-		$template = false;
-		foreach ($templates as $temp) {
-			if (!empty($template_version)) {
-				if (intval($template['ObjectTemplate']['version']) > intval($template_version)) {
+		if (!empty($templateId) || !$this->_isRest()) {
+			$templates = $this->MispObject->ObjectTemplate->find('all', array(
+				'conditions' => array('ObjectTemplate.id' => $templateId),
+				'recursive' => -1,
+				'contain' => array(
+					'ObjectTemplateElement'
+				)
+			));
+			$template_version = false;
+			$template = false;
+			foreach ($templates as $temp) {
+				if (!empty($template_version)) {
+					if (intval($template['ObjectTemplate']['version']) > intval($template_version)) {
+						$template = $temp;
+					}
+				} else {
 					$template = $temp;
 				}
-			} else {
-				$template = $temp;
 			}
 		}
 		$error = false;
@@ -164,10 +166,26 @@ class ObjectsController extends AppController {
 				}
 			}
 			if (empty($error)) {
-				$error = $this->MispObject->ObjectTemplate->checkTemplateConformity($template, $object);
+				if (empty($template)) {
+					if (!empty($object['Object']['template_uuid']) && !empty($object['Object']['template_version'])) {
+						$template = $this->MispObject->ObjectTemplate->find('first', array(
+							'conditions' => array(
+								'ObjectTemplate.uuid' => $object['Object']['template_uuid'],
+								'ObjectTemplate.version' => $object['Object']['template_version']
+							),
+							'recursive' => -1,
+							'contain' => array(
+								'ObjectTemplateElement'
+							)
+						));
+					}
+				}
+				if (!empty($template)) {
+					$error = $this->MispObject->ObjectTemplate->checkTemplateConformity($template, $object);
+				}
 				if ($error === true) {
 					$result = $this->MispObject->saveObject($object, $eventId, $template, $this->Auth->user(), $errorBehaviour = 'halt');
-					if ($result) $this->MispObject->Event->unpublishEvent($eventId);
+					if ($result === true) $this->MispObject->Event->unpublishEvent($eventId);
 				} else {
 					$result = false;
 				}
@@ -208,7 +226,6 @@ class ObjectsController extends AppController {
 			$distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());
 			$this->set('distributionData', $distributionData);
 			$this->set('event', $event);
-			$this->set('ajax', $this->request->is('ajax'));
 			$this->set('action', 'add');
 			$this->set('template', $template);
 		}
@@ -237,11 +254,16 @@ class ObjectsController extends AppController {
 	}
 
   public function edit($id) {
+		if (Validation::uuid($id)) {
+			$conditions = array('Object.uuid' => $id);
+		} else {
+			$conditions = array('Object.id' => $id);
+		}
 		if (!$this->userRole['perm_modify']) {
 			throw new MethodNotAllowedException('You don\'t have permissions to edit objects.');
 		}
 		$object = $this->MispObject->find('first', array(
-			'conditions' => array('Object.id' => $id),
+			'conditions' => $conditions,
 			'recursive' => -1,
 			'contain' => array(
 				'Attribute' => array(
@@ -254,6 +276,7 @@ class ObjectsController extends AppController {
 		if (empty($object)) {
 			throw new NotFoundException('Invalid object.');
 		}
+		$id = $object['Object']['id'];
 		$eventFindParams = array(
 			'recursive' => -1,
 			'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id'),
@@ -301,13 +324,13 @@ class ObjectsController extends AppController {
 					if (is_numeric($objectToSave)) {
 						$objectToSave = $this->MispObject->find('first', array(
 							'recursive' => -1,
-							'conditions' => array('Object.id' => $result),
+							'conditions' => array('Object.id' => $id),
 							'contain' => array('Attribute')
 						));
 						$this->MispObject->Event->unpublishEvent($object['Object']['event_id']);
 						return $this->RestResponse->viewData($objectToSave, $this->response->type());
 					} else {
-						return $this->RestResponse->saveFailResponse('Objects', 'add', false, $result, $this->response->type());
+						return $this->RestResponse->saveFailResponse('Objects', 'add', false, $id, $this->response->type());
 					}
 				} else {
 					$this->MispObject->Event->unpublishEvent($object['Object']['event_id']);

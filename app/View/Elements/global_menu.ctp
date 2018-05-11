@@ -76,6 +76,7 @@
 							<li><a href="<?php echo $baseurl;?>/whitelists/index">Signature Whitelist</a></li>
 							<?php endif;?>
 							<li><a href="<?php echo $baseurl;?>/warninglists/index">List Warninglists</a></li>
+							<li><a href="<?php echo $baseurl;?>/noticelists/index">List Noticelists</a></li>
 						</ul>
 					</li>
 

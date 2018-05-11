@@ -110,7 +110,9 @@ class Server extends AppModel {
 		'push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
 		'cacheFeed' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
 		'fetchFeed' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]',
-		'enrichment' => 'MISP/app/Console/cake Event enrichEvent [user_id] [event_id] [json_encoded_module_list]'
+		'enrichment' => 'MISP/app/Console/cake Event enrichEvent [user_id] [event_id] [json_encoded_module_list]',
+		'getSettings' => 'MISP/app/Console/cake Admin getSetting [setting]',
+		'setSettings' => 'MISP/app/Console/cake Admin getSetting [setting] [value]'
 	);
 
 	public $serverSettings = array(
@@ -1231,6 +1233,14 @@ class Server extends AppModel {
 						'test' => 'testForEmpty',
 						'type' => 'string',
 						'afterHook' => 'zmqAfterHook',
+					),
+					'ZeroMQ_include_attachments' => array(
+						'level' => 2,
+						'description' => 'Enable this setting to include the base64 encoded payloads of malware-samples/attachments in the output.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean'
 					),
 					'ZeroMQ_event_notifications_enable' => array(
 						'level' => 2,
@@ -3379,7 +3389,7 @@ class Server extends AppModel {
 		}
 	}
 
-	public function workerRemoveDead($user) {
+	public function workerRemoveDead($user = false) {
 		$this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
 		$workers = $this->ResqueStatus->getWorkers();
 		$this->Log = ClassRegistry::init('Log');
@@ -3393,16 +3403,29 @@ class Server extends AppModel {
 			if ($worker['user'] == $currentUser && !$pidTest) {
 				$this->ResqueStatus->removeWorker($pid);
 				$this->Log->create();
-				$this->Log->save(array(
-						'org' => $user['Organisation']['name'],
-						'model' => 'User',
-						'model_id' => $user['id'],
-						'email' => $user['email'],
-						'action' => 'remove_dead_workers',
-						'user_id' => $user['id'],
-						'title' => 'Removing a dead worker.',
-						'change' => 'Removing dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
-				));
+				if (!empty($user)) {
+					$this->Log->save(array(
+							'org' => $user['Organisation']['name'],
+							'model' => 'User',
+							'model_id' => $user['id'],
+							'email' => $user['email'],
+							'action' => 'remove_dead_workers',
+							'user_id' => $user['id'],
+							'title' => 'Removing a dead worker.',
+							'change' => 'Removing dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
+					));
+				} else {
+					$this->Log->save(array(
+							'org' => 'SYSTEM',
+							'model' => 'User',
+							'model_id' => 0,
+							'email' => 'SYSTEM',
+							'action' => 'remove_dead_workers',
+							'user_id' => 0,
+							'title' => 'Removing a dead worker.',
+							'change' => 'Removing dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
+					));
+				}
 			}
 		}
 	}
@@ -3763,18 +3786,27 @@ class Server extends AppModel {
 	}
 
 	public function fetchServer($id) {
-			if (empty($id)) return false;
-			$conditions = array('Server.id' => $id);
-			if (!is_numeric($id)) {
-				$conditions = array('OR' => array(
-					'LOWER(Server.name)' => strtolower($id),
-					'LOWER(Server.url)' => strtolower($id)
-				));
-			}
-			$server = $this->find('first', array(
-				'conditions' => $conditions,
-				'recursive' => -1
+		if (empty($id)) return false;
+		$conditions = array('Server.id' => $id);
+		if (!is_numeric($id)) {
+			$conditions = array('OR' => array(
+				'LOWER(Server.name)' => strtolower($id),
+				'LOWER(Server.url)' => strtolower($id)
 			));
-			return (empty($server)) ? false : $server;
 		}
+		$server = $this->find('first', array(
+			'conditions' => $conditions,
+			'recursive' => -1
+		));
+		return (empty($server)) ? false : $server;
+	}
+
+	public function restartWorkers($user=false) {
+		if (Configure::read('MISP.background_jobs')) {
+			$this->workerRemoveDead($user);
+			$prepend = '';
+			shell_exec($prepend . APP . 'Console' . DS . 'worker' . DS . 'start.sh > /dev/null 2>&1 &');
+		}
+		return true;
+	}
 }

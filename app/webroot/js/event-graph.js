@@ -1460,6 +1460,7 @@ function enable_interactive_graph() {
 			content: shortcut_text,
 			placement: 'left',
 			trigger: 'hover',
+			template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content preWarp"></div></div>',
 			html: true,
 		});
 		generate_background_shortcuts(shortcut_text);
@@ -1816,7 +1817,7 @@ var loadingText_creating = 'Constructing network';
 var loadingText_redrawing = 'Redrawing network';
 
 var shortcut_text = "<b>V</b> Center camera"
-		+ "\n<b>X</b> Expaned node"
+		+ "\n<b>X</b> Expand node"
 		+ "\n<b>C</b> Collapse node"
 		+ "\n<b>SHIFT+E</b> Edit node"
 		+ "\n<b>SHIFT+F</b> Search for value"

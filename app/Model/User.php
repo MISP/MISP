@@ -619,7 +619,7 @@ class User extends AppModel {
 	}
 
 	// get the current user and rearrange it to be in the same format as in the auth component
-	public function getAuthUserByUuid($id) {
+	public function getAuthUserByAuthkey($id) {
 		$conditions = array('User.authkey' => $id);
 		$user = $this->find('first', array('conditions' => $conditions, 'recursive' => -1,'contain' => array('Organisation', 'Role', 'Server')));
 		if (empty($user)) return $user;
@@ -627,13 +627,23 @@ class User extends AppModel {
 		$user['User']['Role'] = $user['Role'];
 		$user['User']['Organisation'] = $user['Organisation'];
 		$user['User']['Server'] = $user['Server'];
-		unset($user['Organisation'], $user['Role'], $user['Server']);
 		return $user['User'];
 	}
 
-	public function getAuthUserByExternalAuth($id) {
-		$conditions = array('User.external_auth_key' => $id, 'User.external_auth_required' => true);
-		$user = $this->find('first', array('conditions' => $conditions, 'recursive' => -1,'contain' => array('Organisation', 'Role', 'Server')));
+	public function getAuthUserByExternalAuth($auth_key) {
+		$conditions = array(
+			'User.external_auth_key' => $auth_key,
+			'User.external_auth_required' => true
+		);
+		$user = $this->find('first', array(
+			'conditions' => $conditions,
+			'recursive' => -1,
+			'contain' => array(
+				'Organisation',
+				'Role',
+				'Server'
+			)
+		));
 		if (empty($user)) return $user;
 		// Rearrange it a bit to match the Auth object created during the login
 		$user['User']['Role'] = $user['Role'];
