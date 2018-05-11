@@ -129,6 +129,8 @@ class StixParser():
         self.eventInfo()
         for indicator in self.event.related_indicators.indicator:
             self.parse_misp_indicator(indicator)
+        for observable in self.event.related_observables.observable:
+            self.parse_misp_observable(observable)
 
     # Try to parse data from external STIX documents
     def buildExternalDict(self):
@@ -221,6 +223,10 @@ class StixParser():
         else:
             self.parse_misp_object(indicator)
 
+    def parse_misp_observable(self, observable):
+        if observable.relationship in categories:
+            self.parse_misp_attribute_observable(observable)
+
     # Parse STIX objects that we know will give MISP attributes
     def parse_misp_attribute(self, indicator):
         misp_attribute = {'category': str(indicator.relationship)}
@@ -228,19 +234,22 @@ class StixParser():
         misp_attribute['timestamp'] = self.getTimestampfromDate(item.timestamp)
         if item.observable:
             observable = item.observable
-            try:
-                properties = observable.object_.properties
-                if properties:
-                    attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
-                    self.misp_event.add_attribute(attribute_type, attribute_value, **misp_attribute)
-            except AttributeError:
-                attribute_dict = {}
-                for observables in observable.observable_composition.observables:
-                    properties = observables.object_.properties
-                    attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
-                    attribute_dict[attribute_type] = attribute_value
-                attribute_type, attribute_value = self.composite_type(attribute_dict)
+            self.parse_misp_attribute_observable(obsevrable)
+
+    def parse_misp_attribute_observable(self, observable):
+        try:
+            properties = observable.object_.properties
+            if properties:
+                attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
                 self.misp_event.add_attribute(attribute_type, attribute_value, **misp_attribute)
+        except AttributeError:
+            attribute_dict = {}
+            for observables in observable.observable_composition.observables:
+                properties = observables.object_.properties
+                attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
+                attribute_dict[attribute_type] = attribute_value
+            attribute_type, attribute_value = self.composite_type(attribute_dict)
+            self.misp_event.add_attribute(attribute_type, attribute_value, **misp_attribute)
 
     # Return type & value of a composite attribute in MISP
     @staticmethod
@@ -685,11 +694,10 @@ class StixParser():
     # Parse STIX object that we know will give MISP objects
     def parse_misp_object(self, indicator):
         object_type = str(indicator.relationship)
+        item = indicator.item
         if object_type == 'file':
-            item = indicator.item
             self.fill_misp_object(item, object_type)
         elif object_type == 'network':
-            item = indicator.item
             name = item.title.split(' ')[0]
             if name not in ('passive-dns'):
                 self.fill_misp_object(item, name)
