@@ -273,7 +273,7 @@ class StixBuilder(object):
             observable = self.handle_attribute(attribute)
             related_observable = RelatedObservable(observable, relationship=attribute.category)
             incident.related_observables.append(related_observable)
-            if attribute.data and attribute.type == "malware-sample":
+            if 'data' in  attribute and attribute.type == "malware-sample":
                 artifact = self.create_artifact_object(attribute)
                 related_artifact = RelatedObservable(artifact)
                 incident.related_observables.append(related_artifact)
