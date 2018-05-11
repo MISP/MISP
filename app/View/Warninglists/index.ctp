@@ -46,11 +46,16 @@ foreach ($warninglists as $k => $item): ?>
 		<td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/warninglists/view/".h($item['Warninglist']['id']);?>'"><?php echo h($item['Warninglist']['type']); ?>&nbsp;</td>
 		<td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/warninglists/view/".h($item['Warninglist']['id']);?>'"><?php echo h($item['Warninglist']['valid_attributes']); ?>&nbsp;</td>
 		<td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/warninglists/view/".h($item['Warninglist']['id']);?>'"><?php echo h($item['Warninglist']['warninglist_entry_count']); ?>&nbsp;</td>
-		<?php if ($isSiteAdmin): ?>
 		<td class="short" id ="checkbox_row_<?php echo h($item['Warninglist']['id']);?>">
-			<input id="checkBox_<?php echo h($item['Warninglist']['id']); ?>" type="checkbox" onClick="toggleSetting(event, 'warninglist_enable', '<?php echo h($item['Warninglist']['id']); ?>')" <?php echo $item['Warninglist']['enabled'] ? 'checked' : ''; ?>/>
+			<?php
+				if ($isSiteAdmin) {
+					$onClick = 'onClick="toggleSetting(event, \'warninglist_enable\', \'' . h($item['Warninglist']['id']) . '\')"';
+				} else {
+					$onClick = 'disabled';
+				}
+			?>
+			<input id="checkBox_<?php echo h($item['Warninglist']['id']); ?>" type="checkbox" <?php echo $onClick; ?> <?php echo $item['Warninglist']['enabled'] ? 'checked' : ''; ?>/>
 		</td>
-		<?php endif;?>
 		<td class="short action-links">
 			<a href='<?php echo $baseurl."/warninglists/view/". h($item['Warninglist']['id']);?>' class = "icon-list-alt" title = "<?php echo __('View');?>"></a>
 			<span class="icon-trash useCursorPointer" title="<?php echo __('Delete Warninglist');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete warninglist');?>" onClick="deleteObject('warninglists', 'delete', '<?php echo h($item['Warninglist']['id']); ?>', '<?php echo h($item['Warninglist']['id']); ?>');"></span>

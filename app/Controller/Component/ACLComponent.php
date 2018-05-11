@@ -486,7 +486,6 @@ class ACLComponent extends Component {
 	// If we fall through all of the checks, return an exception.
 	public function checkAccess($user, $controller, $action) {
 		$action = strtolower($action);
-		$controller = strtolower($controller);
 		$aclList = $this->__aclList;
 		foreach ($aclList as $k => $v) {
 			$aclList[$k] = array_change_key_case($v);

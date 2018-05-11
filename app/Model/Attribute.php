@@ -581,6 +581,11 @@ class Attribute extends AppModel {
 		} else {
 			$this->__afterSaveCorrelation($this->data['Attribute']);
 		}
+		$result = true;
+		// if the 'data' field is set on the $this->data then save the data to the correct file
+		if (isset($this->data['Attribute']['type']) && $this->typeIsAttachment($this->data['Attribute']['type']) && !empty($this->data['Attribute']['data'])) {
+			$result = $result && $this->saveBase64EncodedAttachment($this->data['Attribute']); // TODO : is this correct?
+		}
 		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable')) {
 			$pubSubTool = $this->getPubSubTool();
 			$attribute = $this->fetchAttribute($this->id);
@@ -595,16 +600,14 @@ class Attribute extends AppModel {
 				if (empty($attribute['Object']['id'])) unset($attribute['Object']);
 				$action = $created ? 'add' : 'edit';
 				if (!empty($this->data['Attribute']['deleted'])) $action = 'soft-delete';
+				if (Configure::read('Plugin.ZeroMQ_include_attachments') && $this->typeIsAttachment($attribute['Attribute']['type'])) {
+					$attribute['Attribute']['data'] = $this->base64EncodeAttachment($attribute['Attribute']);
+				}
 				$pubSubTool->attribute_save($attribute, $action);
 			}
 		}
 		if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], array('ip-src', 'ip-dst', 'domain-ip')) && strpos($this->data['Attribute']['value'], '/')) {
 			$this->setCIDRList();
-		}
-		$result = true;
-		// if the 'data' field is set on the $this->data then save the data to the correct file
-		if (isset($this->data['Attribute']['type']) && $this->typeIsAttachment($this->data['Attribute']['type']) && !empty($this->data['Attribute']['data'])) {
-			$result = $result && $this->saveBase64EncodedAttachment($this->data['Attribute']); // TODO : is this correct?
 		}
 		if ($created && isset($this->data['Attribute']['event_id']) && empty($this->data['Attribute']['skip_auto_increment'])) {
 			$this->__alterAttributeCount($this->data['Attribute']['event_id']);
@@ -753,7 +756,7 @@ class Attribute extends AppModel {
 		public function valueIsUnique ($fields) {
 		if (isset($this->data['Attribute']['deleted']) && $this->data['Attribute']['deleted']) return true;
 		// We escape this rule for objects as we can have the same category/type/value combination in different objects
-		if (!empty($this->data['Attribute']['object_relation'])) {
+		if (!empty($this->data['Attribute']['object_id'])) {
 			return true;
 		}
 		$value = $fields['value'];
@@ -777,7 +780,8 @@ class Attribute extends AppModel {
 			'Attribute.event_id' => $eventId,
 			'Attribute.type' => $type,
 			'Attribute.category' => $category,
-			'Attribute.deleted' => 0
+			'Attribute.deleted' => 0,
+			'Attribute.object_id' => 0
 		);
 		$conditions = array_merge ($conditions, $value);
 		if (isset($this->data['Attribute']['id'])) {

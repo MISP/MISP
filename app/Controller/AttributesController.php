@@ -1354,7 +1354,7 @@ class AttributesController extends AppController {
 				return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
 			} else {
 				$this->autoRender = false;
-				return new CakeResponse(array('body'=> json_encode(array('saved' => false)), 'status' => 200, 'type' => 'json'));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'validationErrors' => $this->Attribute->validationErrors)), 'status' => 200, 'type' => 'json'));
 			}
 		} else {
 			if (!isset($id)) throw new MethodNotAllowedException('No event ID provided.');
