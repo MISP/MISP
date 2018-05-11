@@ -710,7 +710,7 @@ class TagsController extends AppController {
 			)
 		));
 		if (!empty($existingAssociation)) {
-			throw new MethodNotAllowedException('Cannot attach tag, ' . $objectType . ' already has the tag attached.');
+			return $this->RestResponse->saveSuccessResponse('Tags', 'attachTagToObject', false, $this->response->type(), $objectType . ' already has the requested tag attached, no changes had to be made.');
 		}
 		$this->$objectType->$connectorObject->create();
 		$data = array(
