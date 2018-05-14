@@ -123,7 +123,8 @@ class StixBuilder(object):
         ## MAPPING FOR ATTRIBUTES
         self.simple_type_to_method = {"port": self.generate_port_observable, "domain|ip": self.generate_domain_ip_observable}
         self.simple_type_to_method.update(dict.fromkeys(hash_type_attributes["single"] + hash_type_attributes["composite"] + ["filename"] + ["attachment"], self.resolve_file_observable))
-        self.simple_type_to_method.update(dict.fromkeys(["ip-src", "ip-dst", "ip-src|port", "ip-dst|port"], self.generate_ip_observable))
+        self.simple_type_to_method.update(dict.fromkeys(["ip-src", "ip-dst"], self.generate_ip_observable))
+        self.simple_type_to_method.update(dict.fromkeys(["ip-src|port", "ip-dst|port", "hostname|port"], self.generate_socket_address_observable))
         self.simple_type_to_method.update(dict.fromkeys(["regkey", "regkey|value"], self.generate_regkey_observable))
         self.simple_type_to_method.update(dict.fromkeys(["hostname", "domain", "url", "AS", "mutex", "named pipe", "link"], self.generate_simple_observable))
         self.simple_type_to_method.update(dict.fromkeys(["email-src", "email-dst", "email-subject", "email-reply-to"], self.resolve_email_observable))
@@ -496,6 +497,23 @@ class StixBuilder(object):
         new_object.parent.id_ = "{}:{}Object-{}".format(self.namespace_prefix, cybox_name, attribute.uuid)
         observable = Observable(new_object)
         observable.id_ = "{}:{}-{}".format(self.namespace_prefix, cybox_name, attribute.uuid)
+        return observable
+
+    def generate_socket_address_observable(self, attribute):
+        value1, port = attribute.value.split('|')
+        type1, _ = attribute.type.split('|')
+        socket_address_object = SocketAddress()
+        if 'ip-' in type1:
+            ip_object = self.create_ip_object(type1, value1)
+            socket_address_object.ip_address = ip_object
+        else:
+            hostname_object = self.create_hostname_object(value1)
+            socket_address_object.hostname = hostname_object
+        port_object = self.create_port_object(port)
+        socket_address_object.port = port_object
+        socket_address_object.parent.id_ = "{}:SocketAddressObject-{}".format(self.namespace_prefix, attribute.uuid)
+        observable = Observable(socket_address_object)
+        observable.id_ = "{}:SocketAddress-{}".format(self.namespace_prefix, attribute.uuid)
         return observable
 
     @staticmethod
