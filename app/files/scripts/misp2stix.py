@@ -710,6 +710,7 @@ class StixBuilder(object):
             property.name = "x509 {}: {}".format(attribute.type, attribute.object_relation)
             property.value = attribute.value
             custom_object.custom_properties.append(property)
+            if attribute.to_ids: to_ids = True
         custom_object.parent.id_ = "{}:x509CustomObject-{}".format(self.namespace_prefix, uuid)
         custom_observable = Observable(custom_object)
         custom_observable.id_ = "{}:x509Custom-{}".format(self.namespace_prefix, uuid)
