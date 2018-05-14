@@ -110,7 +110,9 @@ class Server extends AppModel {
 		'push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
 		'cacheFeed' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
 		'fetchFeed' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]',
-		'enrichment' => 'MISP/app/Console/cake Event enrichEvent [user_id] [event_id] [json_encoded_module_list]'
+		'enrichment' => 'MISP/app/Console/cake Event enrichEvent [user_id] [event_id] [json_encoded_module_list]',
+		'getSettings' => 'MISP/app/Console/cake Admin getSetting [setting]',
+		'setSettings' => 'MISP/app/Console/cake Admin getSetting [setting] [value]'
 	);
 
 	public $serverSettings = array(
@@ -1231,6 +1233,14 @@ class Server extends AppModel {
 						'test' => 'testForEmpty',
 						'type' => 'string',
 						'afterHook' => 'zmqAfterHook',
+					),
+					'ZeroMQ_include_attachments' => array(
+						'level' => 2,
+						'description' => 'Enable this setting to include the base64 encoded payloads of malware-samples/attachments in the output.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean'
 					),
 					'ZeroMQ_event_notifications_enable' => array(
 						'level' => 2,

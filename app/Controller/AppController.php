@@ -180,7 +180,7 @@ class AppController extends Controller {
 							$found_misp_auth_key = true;
 							$temp = $this->checkAuthUser(trim($auth_key));
 							if ($temp) {
-								$user['User'] = $this->checkAuthUser(trim($auth_key));
+								$user['User'] = $temp;
 							}
 						}
 					}
@@ -484,7 +484,7 @@ class AppController extends Controller {
 
 	public function checkAuthUser($authkey) {
 		$this->loadModel('User');
-		$user = $this->User->getAuthUserByUuid($authkey);
+		$user = $this->User->getAuthUserByAuthkey($authkey);
 		if (empty($user)) return false;
 		if (!$user['Role']['perm_auth']) return false;
 		if ($user['Role']['perm_site_admin']) $user['siteadmin'] = true;
