@@ -428,17 +428,6 @@ class StixBuilder(object):
         address_object.parent.id_ = "{}:AddressObject-{}".format(self.namespace_prefix, attribute.uuid)
         address_observable = Observable(address_object)
         address_observable.id_ = "{}:Address-{}".format(self.namespace_prefix, attribute.uuid)
-        if '|' in attribute.value:
-            port = attribute.value.split('|')[1]
-            port_object = self.create_port_object(port)
-            port_object.parent.id_ = "{}:PortObject-{}".format(self.namespace_prefix, attribute.uuid)
-            port_observable = Observable(port_object)
-            port_observable.id_ = "{}:Port-{}".format(self.namespace_prefix, attribute.uuid)
-            compositeObject = ObservableComposition(observables=[address_observable, port_observable])
-            compositeObject.operator = "AND"
-            observable = Observable(id_ = "{}:ObservableComposition-{}".format(self.namespace_prefix, attribute.uuid))
-            observable.observable_composition = compositeObject
-            return observable
         return address_observable
 
     def generate_observable(self, attribute):
