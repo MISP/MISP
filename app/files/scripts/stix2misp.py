@@ -302,8 +302,7 @@ class StixParser():
         return eventTypes[properties._XSI_TYPE]['type'], title, properties.raw_artifact.value
 
     # Return type & attributes of a dns object
-    @staticmethod
-    def handle_dns(properties):
+    def handle_dns(self, properties):
         relation = []
         if properties.domain_name:
             relation.append(["domain", str(properties.domain_name.value), ""])
