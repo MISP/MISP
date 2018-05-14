@@ -767,7 +767,7 @@ class StixParser():
     # Create a MISP attribute and add it in its MISP object
     def parse_observable(self, properties, to_ids):
         attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
-        if type(attribute_value) is str:
+        if type(attribute_value) in (str, int):
             attribute = {'to_ids': to_ids}
             self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
         else:
@@ -783,7 +783,7 @@ class StixParser():
                 continue
             if properties:
                 attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
-                if type(attribute_value) is str:
+                if type(attribute_value) in (str, int):
                     # if the returned value is a simple value, we build an attribute
                     attribute = {'to_ids': True}
                     if indicator.timestamp:
@@ -811,7 +811,7 @@ class StixParser():
                     continue
                 object_uuid = self.fetch_uuid(observable_object.id_)
                 attr_type = type(attribute_value)
-                if attr_type is str or attr_type is int:
+                if attr_type in (str, int):
                     # if the returned value is a simple value, we build an attribute
                     attribute = {'to_ids': False, 'uuid': object_uuid}
                     if observable_object.related_objects:
