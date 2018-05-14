@@ -1,6 +1,6 @@
 <?php
 	$fixed_fields = array('synonyms', 'description', 'meta', 'authors', 'source');
-	foreach ($event['Galaxy'] as $galaxy):
+	foreach ($data as $galaxy):
 ?>
 		<div style="margin-left:10px;">
 			<span title="<?php echo isset($galaxy['description']) ? h($galaxy['description']) : h($galaxy['name']);?>" class="bold blue" style="font-size:14px;">
@@ -17,7 +17,7 @@
 				<?php
 					if ($isSiteAdmin || ($mayModify && $isAclTagger)) {
 						echo $this->Form->postLink('',
-							$baseurl . '/galaxy_clusters/detachFromEvent/' . $event['Event']['id'] . '/' . $cluster['tag_id'],
+							$baseurl . '/galaxy_clusters/detach/' . ucfirst(h($target_id)) . '/' . h($target_type) . '/' . $cluster['tag_id'],
 							array('class' => 'icon-trash', 'title' => 'Delete'),
 							__('Are you sure you want to detach %s from this event?', h($cluster['value']))
 						);
@@ -98,7 +98,7 @@
 <?php
 	if ($isSiteAdmin || ($mayModify && $isAclTagger)):
 ?>
-		<span class="useCursorPointer btn btn-inverse" id="addGalaxy" data-event-id="<?php echo h($event['Event']['id']); ?>" role="button" tabindex="0" aria-label="Add new cluster" style="margin-top:20px;padding: 1px 5px !important;font-size: 12px !important;">Add new cluster</span>
+		<span class="useCursorPointer btn btn-inverse addGalaxy" data-target-type="<?php echo h($target_type);?>" data-target-id="<?php echo h($target_id); ?>" role="button" tabindex="0" aria-label="Add new cluster" style="padding: 1px 5px !important;font-size: 12px !important;">Add</span>
 <?php
 	endif;
 ?>

@@ -1074,6 +1074,24 @@ class EventsController extends AppController {
 				unset($event['EventTag'][$k]);
 			}
 		}
+		foreach ($event['Attribute'] as $k => $attribute) {
+			foreach ($attribute['AttributeTag'] as $k2 => $attributeTag) {
+				if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
+					unset($event['Attribute'][$k]['AttributeTag'][$k2]);
+				}
+			}
+		}
+		foreach ($event['Object'] as $k => $object) {
+			if (!empty($object['Attribute'])) {
+				foreach ($object['Attribute'] as $k2 => $attribute) {
+					foreach ($attribute['AttributeTag'] as $k3 => $attributeTag) {
+						if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
+							unset($event['Object'][$k]['Attribute'][$k2]['AttributeTag'][$k3]);
+						}
+					}
+				}
+			}
+		}
 		$params = $this->Event->rearrangeEventForView($event);
 		$this->params->params['paging'] = array($this->modelClass => $params);
 		$this->set('event', $event);

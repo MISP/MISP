@@ -64,14 +64,15 @@ class GalaxiesController extends AppController {
 		}
 	}
 
-	public function selectGalaxy($event_id) {
+	public function selectGalaxy($target_id, $target_type='event') {
 		$galaxies = $this->Galaxy->find('all', array('recursive' => -1));
 		$this->set('galaxies', $galaxies);
-		$this->set('event_id', $event_id);
+		$this->set('target_id', $target_id);
+		$this->set('target_type', $target_type);
 		$this->render('ajax/galaxy_choice');
 	}
 
-	public function selectCluster($event_id, $selectGalaxy = false) {
+	public function selectCluster($target_id, $target_type = 'event', $selectGalaxy = false) {
 		$conditions = array();
 		if ($selectGalaxy) {
 			$conditions = array('GalaxyCluster.galaxy_id' => $selectGalaxy);
@@ -105,53 +106,17 @@ class GalaxiesController extends AppController {
 		}
 		ksort($clusters);
 		$this->set('clusters', $clusters);
-		$this->set('event_id', $event_id);
+		$this->set('target_id', $target_id);
+		$this->set('target_type', $target_type);
 		$this->set('lookup_table', $lookup_table);
 		$this->render('ajax/cluster_choice');
 	}
 
-	public function attachClusterToEvent($event_id) {
+	public function attachCluster($target_id, $target_type = 'event') {
 		$cluster_id = $this->request->data['Galaxy']['target_id'];
-		$cluster = $this->Galaxy->GalaxyCluster->find('first', array('recursive' => -1, 'conditions' => array('id' => $cluster_id), 'fields' => array('tag_name', 'id', 'value')));
-		$this->loadModel('Tag');
-		$event = $this->Tag->EventTag->Event->fetchEvent($this->Auth->user(), array('eventid' => $event_id, 'metadata' => 1));
-		if (empty($event)) {
-			throw new NotFoundException('Invalid event.');
-		}
-		$event = $event[0];
-		$tag_id = $this->Tag->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1), $this->Auth->user());
-		if ($tag_id === false) {
-			throw new MethodNotAllowedException('Could not attach cluster.');
-		}
-		$this->Tag->EventTag->create();
-		$existingTag = $this->Tag->EventTag->find('first', array('conditions' => array('event_id' => $event_id, 'tag_id' => $tag_id)));
-		if (!empty($existingTag)) {
-			$this->Session->setFlash('Cluster already attached.');
-			$this->redirect($this->referer());
-		}
-		$result = $this->Tag->EventTag->save(array('event_id' => $event_id, 'tag_id' => $tag_id));
-		if ($result) {
-			$event['Event']['published'] = 0;
-			$date = new DateTime();
-			$event['Event']['timestamp'] = $date->getTimestamp();
-			$this->Tag->EventTag->Event->save($event);
-			$this->Log = ClassRegistry::init('Log');
-			$this->Log->create();
-			$this->Log->save(array(
-				'org' => $this->Auth->user('Organisation')['name'],
-				'model' => 'Event',
-				'model_id' => $event_id,
-				'email' => $this->Auth->user('email'),
-				'action' => 'galaxy',
-				'title' => 'Attached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') to event (' . $event_id . ')',
-				'change' => ''
-			));
-			$this->Session->setFlash('Cluster attached');
-			$this->redirect($this->referer());
-		} else {
-			$this->Session->setFlash('Cluster could not be attached');
-			$this->redirect($this->referer());
-		}
+		$result = $this->Galaxy->attachCluster($this->Auth->user(), $target_type, $target_id, $cluster_id);
+		$this->Session->setFlash($result);
+		$this->redirect($this->referer());
 	}
 
 	public function viewGraph($id) {

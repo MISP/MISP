@@ -1670,40 +1670,8 @@ class Event extends AppModel {
 				}
 				$event['Event']['event_creator_email'] = $userEmails[$event['Event']['user_id']];
 			}
-			$event['Galaxy'] = array();
-			// unset empty event tags that got added because the tag wasn't exportable
-			if (!empty($event['EventTag'])) {
-				foreach ($event['EventTag'] as $k => &$eventTag) {
-					if (empty($eventTag['Tag'])) {
-						unset($event['EventTag'][$k]);
-						continue;
-					}
-					if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
-						if (substr($eventTag['Tag']['name'], 0, strlen('misp-galaxy:')) === 'misp-galaxy:') {
-							$cluster = $this->GalaxyCluster->getCluster($eventTag['Tag']['name']);
-							if ($cluster) {
-								$found = false;
-								foreach ($event['Galaxy'] as $k => $galaxy) {
-									if ($galaxy['id'] == $cluster['GalaxyCluster']['Galaxy']['id']) {
-										$found = true;
-										$temp = $cluster;
-										unset($temp['GalaxyCluster']['Galaxy']);
-										$event['Galaxy'][$k]['GalaxyCluster'][] = $temp['GalaxyCluster'];
-										continue;
-									}
-								}
-								if (!$found) {
-									$event['Galaxy'][] = $cluster['GalaxyCluster']['Galaxy'];
-									$temp = $cluster;
-									unset($temp['GalaxyCluster']['Galaxy']);
-									$event['Galaxy'][count($event['Galaxy']) - 1]['GalaxyCluster'][] = $temp['GalaxyCluster'];
-								}
-							}
-						}
-					}
-				}
-				$event['EventTag'] = array_values($event['EventTag']);
-			}
+			$event = $this->massageTags($event, 'Event');
+
 			// Let's find all the related events and attach it to the event itself
 			$results[$eventKey]['RelatedEvent'] = $this->getRelatedEvents($user, $event['Event']['id'], $sgids);
 			// Let's also find all the relations for the attributes - this won't be in the xml export though
@@ -1735,6 +1703,7 @@ class Event extends AppModel {
 						unset($event['Attribute'][$key]);
 						continue;
 					}
+					$event['Attribute'][$key] = $this->massageTags($attribute, 'Attribute');
 					if ($event['Attribute'][$key]['category'] === 'Financial fraud') {
 						$event['Attribute'][$key] = $this->Attribute->attachValidationWarnings($event['Attribute'][$key]);
 					}
@@ -4265,5 +4234,43 @@ class Event extends AppModel {
 			}
 		}
 		return $attributes_added;
+	}
+
+	public function massageTags($data, $dataType = 'Event') {
+		$data['Galaxy'] = array();
+		// unset empty event tags that got added because the tag wasn't exportable
+		if (!empty($data[$dataType . 'Tag'])) {
+			foreach ($data[$dataType . 'Tag'] as $k => &$dataTag) {
+				if (empty($dataTag['Tag'])) {
+					unset($data[$dataType . 'Tag'][$k]);
+					continue;
+				}
+				if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
+					if (substr($dataTag['Tag']['name'], 0, strlen('misp-galaxy:')) === 'misp-galaxy:') {
+						$cluster = $this->GalaxyCluster->getCluster($dataTag['Tag']['name']);
+						if ($cluster) {
+							$found = false;
+							foreach ($data['Galaxy'] as $k => $galaxy) {
+								if ($galaxy['id'] == $cluster['GalaxyCluster']['Galaxy']['id']) {
+									$found = true;
+									$temp = $cluster;
+									unset($temp['GalaxyCluster']['Galaxy']);
+									$data['Galaxy'][$k]['GalaxyCluster'][] = $temp['GalaxyCluster'];
+									continue;
+								}
+							}
+							if (!$found) {
+								$data['Galaxy'][] = $cluster['GalaxyCluster']['Galaxy'];
+								$temp = $cluster;
+								unset($temp['GalaxyCluster']['Galaxy']);
+								$data['Galaxy'][count($data['Galaxy']) - 1]['GalaxyCluster'][] = $temp['GalaxyCluster'];
+							}
+						}
+					}
+				}
+			}
+			$data[$dataType . 'Tag'] = array_values($data[$dataType . 'Tag']);
+		}
+		return $data;
 	}
 }

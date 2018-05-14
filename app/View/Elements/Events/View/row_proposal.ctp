@@ -112,21 +112,8 @@
       ?>
     </div>
   </td>
-  <td class="shortish">
-    <?php
-      if ($object['objectType'] == 0):
-    ?>
-      <div class="attributeTagContainer">
-        &nbsp;
-      </div>
-    <?php
-      else:
-    ?>
-      &nbsp;
-    <?php
-      endif;
-    ?>
-  </td>
+  <td class="shortish">&nbsp;</td>
+  <td class="shortish">&nbsp;</td>
   <td class="showspaces bitwider">
     <div id = "<?php echo $currentType . '_' . $object['id'] . '_comment_placeholder'; ?>" class = "inline-field-placeholder"></div>
     <div id = "<?php echo $currentType . '_' . $object['id'] . '_comment_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">
