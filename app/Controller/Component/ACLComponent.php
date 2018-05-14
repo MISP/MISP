@@ -169,7 +169,7 @@ class ACLComponent extends Component {
 					'view' => array(),
 			),
 			'galaxies' => array(
-				'attachClusterToEvent' => array('perm_tagger'),
+				'attachCluster' => array('perm_tagger'),
 				'index' => array('*'),
 				'selectGalaxy' => array('perm_tagger'),
 				'selectCluster' => array('perm_tagger'),
@@ -179,7 +179,7 @@ class ACLComponent extends Component {
 			),
 			'galaxyClusters' => array(
 				'attachToEvent' => array('perm_tagger'),
-				'detachFromEvent' => array('perm_tagger'),
+				'detach' => array('perm_tagger'),
 				'index' => array('*'),
 				'view' => array('*')
 			),
