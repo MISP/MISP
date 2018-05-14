@@ -222,11 +222,13 @@ class StixParser():
         if indicator.relationship in categories:
             self.parse_misp_attribute_indicator(indicator)
         else:
-            self.parse_misp_object(indicator)
+            self.parse_misp_object_indicator(indicator)
 
     def parse_misp_observable(self, observable):
         if observable.relationship in categories:
             self.parse_misp_attribute_observable(observable)
+        else:
+            self.parse_misp_object_observable(observable)
 
     # Parse STIX objects that we know will give MISP attributes
     def parse_misp_attribute_indicator(self, indicator):
@@ -239,14 +241,18 @@ class StixParser():
 
     def parse_misp_attribute_observable(self, observable):
         misp_attribute = {'category': str(observable.relationship)}
-        self.parse_misp_attribute(observable, misp_attribute)
+        if observable.item:
+            self.parse_misp_attribute(observable.item, misp_attribute)
 
     def parse_misp_attribute(self, observable, misp_attribute):
         try:
             properties = observable.object_.properties
             if properties:
-                attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
-                self.misp_event.add_attribute(attribute_type, attribute_value, **misp_attribute)
+                attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
+                if type(attribute_value) in (str, int):
+                    self.handle_attribute_case(attribute_type, attribute_value, compl_data, misp_attribute)
+                else:
+                    self.handle_object_case(attribute_type, attribute_value, compl_data)
         except AttributeError:
             attribute_dict = {}
             for observables in observable.observable_composition.observables:
@@ -729,38 +735,43 @@ class StixParser():
         return section_object.uuid
 
     # Parse STIX object that we know will give MISP objects
-    def parse_misp_object(self, indicator):
+    def parse_misp_object_indicator(self, indicator):
         object_type = str(indicator.relationship)
         item = indicator.item
-        if object_type == 'file':
-            self.fill_misp_object(item, object_type)
-        elif object_type == 'network':
-            name = item.title.split(' ')[0]
-            if name not in ('passive-dns'):
-                self.fill_misp_object(item, name)
+        name = item.title.split(' ')[0]
+        if name not in ('passive-dns'):
+            self.fill_misp_object(item, name, to_ids=True)
         else:
             if object_type != "misc":
                 print("Unparsed Object type: {}".format(name))
 
+    def parse_misp_object_observable(self, observable):
+        object_type = str(indicator.relationship)
+
     # Create a MISP object, its attributes, and add it in the MISP event
-    def fill_misp_object(self, item, name):
-        misp_object = MISPObject(name)
-        misp_object.timestamp = self.getTimestampfromDate(item.timestamp)
+    def fill_misp_object(self, item, name, to_ids=False):
         try:
             observables = item.observable.observable_composition.observables
+            misp_object = MISPObject(name)
+            misp_object.timestamp = self.getTimestampfromDate(item.timestamp)
             for observable in observables:
                 properties = observable.object_.properties
-                self.parse_observable(properties, misp_object)
+                misp_attribute = MISPAttribute()
+                misp_attribute.type, misp_attribute.value, misp_attribute.object_relation = self.handle_attribute_type(properties, is_object=True)
+                misp_object.add_attribute(**misp_attribute)
+                self.misp_event.add_object(**misp_object)
         except AttributeError:
             properties = item.observable.object_.properties
-            self.parse_observable(properties, misp_object)
-        self.misp_event.add_object(**misp_object)
+            self.parse_observable(properties, to_ids)
 
     # Create a MISP attribute and add it in its MISP object
-    def parse_observable(self, properties, misp_object):
-        misp_attribute = MISPAttribute()
-        misp_attribute.type, misp_attribute.value, misp_attribute.object_relation = self.handle_attribute_type(properties, is_object=True)
-        misp_object.add_attribute(**misp_attribute)
+    def parse_observable(self, properties, to_ids):
+        attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
+        if type(attribute_value) is str:
+            attribute = {'to_ids': to_ids}
+            self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
+        else:
+            self.handle_object_case(attribute_type, attribute_value, compl_data)
 
     # Parse indicators of an external STIX document
     def parse_external_indicator(self, indicators):
