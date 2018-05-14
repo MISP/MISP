@@ -549,10 +549,22 @@ class StixParser():
         return "process", self.return_attributes(attributes), ""
 
     # Return type & value of a regkey attribute
-    @staticmethod
-    def handle_regkey(properties):
-        event_types = eventTypes[properties._XSI_TYPE]
-        return event_types['type'], properties.key.value, event_types['relation']
+    def handle_regkey(self, properties):
+        attributes = []
+        if properties.hive:
+            attributes.append(["text", properties.hive.value, "hive"])
+        if properties.key:
+            attributes.append(["regkey", properties.key.value, "key"])
+        if properties.values:
+            values = properties.values
+            value = values[0]
+            if value.data:
+                attributes.append(["text", value.data.value, "data"])
+            if value.datatype:
+                attributes.append(["text", value.datatype.value, "data-type"])
+            if value.name:
+                attributes.append(["text", value.name.value, "name"])
+        return "registry-key", self.return_attributes(attributes), ""
 
     # Parse a socket address object into a network connection or socket object,
     # in order to add its attributes
