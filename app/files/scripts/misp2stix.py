@@ -348,7 +348,7 @@ class StixBuilder(object):
 
     def generate_domain_ip_observable(self, attribute):
         domain, ip = attribute.value.split('|')
-        address_object = self.resolve_ip_type(attribute.type, ip)
+        address_object = self.create_ip_object(attribute.type, ip)
         address_object.parent.id_ = "{}:AddressObject-{}".format(self.namespace_prefix, attribute.uuid)
         address_observable = Observable(address_object)
         address_observable.id_ = "{}:Address-{}".format(self.namespace_prefix, attribute.uuid)
@@ -423,15 +423,13 @@ class StixBuilder(object):
         return indicator
 
     def generate_ip_observable(self, attribute):
-        address_object = self.resolve_ip_type(attribute.type, attribute.value)
+        address_object = self.create_ip_object(attribute.type, attribute.value)
         address_object.parent.id_ = "{}:AddressObject-{}".format(self.namespace_prefix, attribute.uuid)
         address_observable = Observable(address_object)
         address_observable.id_ = "{}:Address-{}".format(self.namespace_prefix, attribute.uuid)
         if '|' in attribute.value:
             port = attribute.value.split('|')[1]
-            port_object = Port()
-            port_object.port_value = port
-            port_object.port_value.condition = "Equals"
+            port_object = self.create_port_object(port)
             port_object.parent.id_ = "{}:PortObject-{}".format(self.namespace_prefix, attribute.uuid)
             port_observable = Observable(port_object)
             port_observable.id_ = "{}:Port-{}".format(self.namespace_prefix, attribute.uuid)
@@ -458,9 +456,7 @@ class StixBuilder(object):
         return observable
 
     def generate_port_observable(self, attribute):
-        port_object = Port()
-        port_object.port_value = attribute.value
-        port_object.port_value.condition = "Equals"
+        port_object = self.create_port_object(attribute.value)
         port_object.parent.id_ = "{}:PortObject-{}".format(self.namespace_prefix, attribute.uuid)
         observable = Observable(port_object)
         observable.id_ = "{}:Port-{}".format(self.namespace_prefix, attribute.uuid)
@@ -944,15 +940,14 @@ class StixBuilder(object):
         return file_object
 
     def create_hostname_observable(self, value, uuid):
-        hostname_object = Hostname(hostname_value=value)
-        hostname_object.hostname_value.condition = "Equals"
+        hostname_object = self.create_hostname_object(value)
         hostname_object.parent.id_ = "{}:HostnameObject-{}".format(self.namespace_prefix, uuid)
         hostname_observable = Observable(hostname_object)
         hostname_observable.id_ = "{}:Hostname-{}".format(self.namespace_prefix, uuid)
         return hostname_observable
 
     def create_ip_observable(self, value, uuid):
-        address_object = self.resolve_ip_type("ip-dst", value)
+        address_object = self.create_ip_object("ip-dst", value)
         address_object.parent.id_ = "{}:AddressObject-{}".format(self.namespace_prefix, uuid)
         address_observable = Observable(address_object)
         address_observable.id_ = "{}:Address-{}".format(self.namespace_prefix, uuid)
@@ -966,9 +961,7 @@ class StixBuilder(object):
         return observable
 
     def create_port_observable(self, value, uuid, port_type):
-        port_object = Port()
-        port_object.port_value = value
-        port_object.port_value.condition = "Equals"
+        port_object = self.create_port_object(value)
         port_object.parent.id_ = "{}:PortObject-{}".format(self.namespace_prefix, uuid)
         port_observable = Observable(port_object)
         port_observable.id_ = "{}:{}Port-{}".format(self.namespace_prefix, port_type, uuid)
@@ -981,6 +974,46 @@ class StixBuilder(object):
         url_observable = Observable(url_object)
         url_observable.id_ = "{}:URI-{}".format(self.namespace_prefix, uuid)
         return url_observable
+
+    @staticmethod
+    def create_hostname_object(hostname):
+        hostname_object = Hostname()
+        hostname_objecct.hostname_value = value
+        hostname_object.hostname_value.condition = "Equals"
+        return hostname_object
+
+    @staticmethod
+    def create_ip_object(attribute_type, attribute_value):
+        address_object = Address()
+        if '|' in attribute_value:
+            attribute_value = attribute_value.split('|')[0]
+        if '/' in attribute_value:
+            attribute_value = attribute_value.split('/')[0]
+            address_object.category = "cidr"
+            condition = "Contains"
+        else:
+            try:
+                socket.inet_aton(attribute_value)
+                address_object.category = "ipv4-addr"
+            except socket.error:
+                address_object.category = "ipv6-addr"
+            condition = "Equals"
+        if attribute_type.startswith("ip-src"):
+            address_object.is_source = True
+            address_object.is_destination = False
+        else:
+            address_object.is_source = False
+            address_object.is_destination = True
+        address_object.address_value = attribute_value
+        address_object.condition = condition
+        return address_object
+
+    @staticmethod
+    def create_port_object(port):
+        port_object = Port()
+        port_object.port_value = port
+        port_object.port_value.condition = "Equals"
+        return port_object
 
     @staticmethod
     def get_date_from_timestamp(timestamp):
@@ -1016,32 +1049,6 @@ class StixBuilder(object):
         else:
             file_object.file_name = filename
             file_object.file_name.condition = "Equals"
-
-    @staticmethod
-    def resolve_ip_type(attribute_type, attribute_value):
-        address_object = Address()
-        if '|' in attribute_value:
-            attribute_value = attribute_value.split('|')[0]
-        if '/' in attribute_value:
-            attribute_value = attribute_value.split('/')[0]
-            address_object.category = "cidr"
-            condition = "Contains"
-        else:
-            try:
-                socket.inet_aton(attribute_value)
-                address_object.category = "ipv4-addr"
-            except socket.error:
-                address_object.category = "ipv6-addr"
-            condition = "Equals"
-        if attribute_type.startswith("ip-src"):
-            address_object.is_source = True
-            address_object.is_destination = False
-        else:
-            address_object.is_source = False
-            address_object.is_destination = True
-        address_object.address_value = attribute_value
-        address_object.condition = condition
-        return address_object
 
     @staticmethod
     def resolve_reg_hive(reg):
