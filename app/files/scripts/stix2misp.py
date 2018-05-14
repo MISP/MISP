@@ -86,6 +86,7 @@ class StixParser():
         self.attribute_types_mapping = {
             'AddressObjectType': self.handle_address,
             "ArtifactObjectType": self.handle_attachment,
+            "CustomObjectType": self.handle_custom,
             "DNSRecordObjectType": self.handle_dns,
             'DomainNameObjectType': self.handle_domain_or_url,
             'EmailMessageObjectType': self.handle_email_attribute,
@@ -300,6 +301,27 @@ class StixParser():
     @staticmethod
     def handle_attachment(properties, title):
         return eventTypes[properties._XSI_TYPE]['type'], title, properties.raw_artifact.value
+
+    # Return type & attributes (or value) of a Custom Object
+    def handle_custom(self, properties):
+        custom_properties = properties.custom_properties
+        # if the stix file is coming from MISP, we import a MISP object from it
+        if self.fromMISP:
+            attributes = []
+            for property in custom_properties:
+                attribute_type, relation = property.name.split(': ')
+                attribute_type = attribute_type.split(' ')[1]
+                attributes.append([attribute_type, property.value, relation])
+            if len(attributes) > 1:
+                name = custom_properties[0].name.split(' ')[0]
+                return name, self.return_attributes(attributes), ""
+            return attributes[0]
+        # otherwise, each property is imported as text
+        if len(custom_properties) > 1:
+            for property in custom_properties[:-1]:
+                misp_attribute = {'type': 'text', 'value': property.value, 'comment': property.name}
+                self.misp_event.add_attribute(MISPAttribute(**misp_attribute))
+
 
     # Return type & attributes of a dns object
     def handle_dns(self, properties):
