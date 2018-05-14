@@ -219,7 +219,7 @@ class StixParser():
     def parse_misp_indicator(self, indicator):
         # define is an indicator will be imported as attribute or object
         if indicator.relationship in categories:
-            self.parse_misp_attribute(indicator)
+            self.parse_misp_attribute_indicator(indicator)
         else:
             self.parse_misp_object(indicator)
 
@@ -228,15 +228,19 @@ class StixParser():
             self.parse_misp_attribute_observable(observable)
 
     # Parse STIX objects that we know will give MISP attributes
-    def parse_misp_attribute(self, indicator):
+    def parse_misp_attribute_indicator(self, indicator):
         misp_attribute = {'category': str(indicator.relationship)}
         item = indicator.item
         misp_attribute['timestamp'] = self.getTimestampfromDate(item.timestamp)
         if item.observable:
             observable = item.observable
-            self.parse_misp_attribute_observable(obsevrable)
+            self.parse_misp_attribute(observable, misp_attribute)
 
     def parse_misp_attribute_observable(self, observable):
+        misp_attribute = {'category': str(observable.relationship)}
+        self.parse_misp_attribute(observable, misp_attribute)
+
+    def parse_misp_attribute(self, observable, misp_attribute):
         try:
             properties = observable.object_.properties
             if properties:
