@@ -425,10 +425,10 @@ class StixBuilder(object):
     def generate_ip_observable(self, attribute):
         address_object = self.resolve_ip_type(attribute.type, attribute.value)
         address_object.parent.id_ = "{}:AddressObject-{}".format(self.namespace_prefix, attribute.uuid)
+        address_observable = Observable(address_object)
+        address_observable.id_ = "{}:Address-{}".format(self.namespace_prefix, attribute.uuid)
         if '|' in attribute.value:
             port = attribute.value.split('|')[1]
-            address_observable = Observable(address_object)
-            address_observable.id_ = "{}:Address-{}".format(self.namespace_prefix, attribute.uuid)
             port_object = Port()
             port_object.port_value = port
             port_object.port_value.condition = "Equals"
@@ -440,8 +440,7 @@ class StixBuilder(object):
             observable = Observable(id_ = "{}:ObservableComposition-{}".format(self.namespace_prefix, attribute.uuid))
             observable.observable_composition = compositeObject
             return observable
-        else:
-            return address_object
+        return address_observable
 
     def generate_observable(self, attribute):
         attribute_type = attribute.type
@@ -463,7 +462,9 @@ class StixBuilder(object):
         port_object.port_value = attribute.value
         port_object.port_value.condition = "Equals"
         port_object.parent.id_ = "{}:PortObject-{}".format(self.namespace_prefix, attribute.uuid)
-        return port_object
+        observable = Observable(port_object)
+        observable.id_ = "{}:Port-{}".format(self.namespace_prefix, attribute.uuid)
+        return observable
 
     def generate_regkey_observable(self, attribute, value=None):
         if attribute.type == "regkey|value":
@@ -482,10 +483,12 @@ class StixBuilder(object):
             reg_value_object.data = value
             reg_value_object.data.condition = "Equals"
             reg_object.values = RegistryValues(reg_value_object)
-        return reg_object
+        reg_object.parent.id_ = "{}:WinRegistryKeyObject-{}".format(self.namespace_prefix, attribute.uuid)
+        observable = Observable(reg_object)
+        observable.id_ = "{}:WinRegistryKey-{}".format(self.namespace_prefix, attribute.uuid)
+        return observable
 
-    @staticmethod
-    def generate_simple_observable(attribute):
+    def generate_simple_observable(self, attribute):
         cybox_name = misp_cybox_name[attribute.type]
         if cybox_name == "AutonomousSystem":
             if not attribute.value.isdigit():
@@ -494,7 +497,10 @@ class StixBuilder(object):
         new_object = constructor()
         setattr(new_object, cybox_name_attribute[cybox_name], attribute.value)
         setattr(getattr(new_object, cybox_name_attribute[cybox_name]), "condition", "Equals")
-        return new_object
+        new_object.parent.id_ = "{}:{}Object-{}".format(self.namespace_prefix, cybox_name, attribute.uuid)
+        observable = Observable(new_object)
+        observable.id_ = "{}:{}-{}".format(self.namespace_prefix, cybox_name, attribute.uuid)
+        return observable
 
     @staticmethod
     def generate_threat_actor(attribute):
@@ -598,7 +604,7 @@ class StixBuilder(object):
         email_object.parent.id_ = "{}:EmailMessageObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(email_object)
         observable.id_ = "{}:EmailMessage-{}".format(self.namespace_prefix, uuid)
-        return to_ids, email_object
+        return to_ids, observable
 
     def parse_file_object(self, attributes, uuid):
         to_ids, attributes_dict = self.create_attributes_dict(attributes)
@@ -716,10 +722,9 @@ class StixBuilder(object):
         custom_observable.id_ = "{}:x509Custom-{}".format(self.namespace_prefix, uuid)
         return to_ids, custom_observable
 
-    @staticmethod
-    def resolve_email_observable(attribute):
+    def resolve_email_observable(self, attribute):
         attribute_type = attribute.type
-        new_object = EmailMessage()
+        email_object = EmailMessage()
         email_header = EmailHeader()
         if attribute_type == 'email-src':
             email_header.from_ = attribute.value
@@ -733,8 +738,11 @@ class StixBuilder(object):
         else:
             email_header.subject = attribute.value
             email_header.subject.condition = "Equals"
-        new_object.header = email_header
-        return new_object
+        email_object.header = email_header
+        email_object.parent.id_ = "{}:EmailMessageObject-{}".format(self.namespace_prefix, attribute.uuid)
+        observable = Observable(email_object)
+        observable.id_ = "{}:EmailMessage-{}".format(self.namespace_prefix, attribute.uuid)
+        return observable
 
     def resolve_file_observable(self, attribute):
         fuzzy = False
@@ -752,10 +760,13 @@ class StixBuilder(object):
                 h = attribute.value
             if attribute_type == "ssdeep":
                   fuzzy = True
-        return self.generate_file_observable(f, h, fuzzy)
+        file_object = self.generate_file_observable(f, h, fuzzy)
+        file_object.parent.id_ = "{}:FileObject-{}".format(self.namespace_prefix, attribute.uuid)
+        observable = Observable(file_object)
+        observable.id_ = "{}:File-{}".format(self.namespace_prefix, attribute.uuid)
+        return observable
 
-    @staticmethod
-    def resolve_http_observable(attribute):
+    def resolve_http_observable(self, attribute):
         request_response = HTTPRequestResponse()
         client_request = HTTPClientRequest()
         if attribute.type == 'user-agent':
@@ -770,10 +781,13 @@ class StixBuilder(object):
             line.http_method.condition = "Equals"
             client_request.http_request_line = line
         request_response.http_client_request = client_request
-        new_object = HTTPSession()
+        http_object = HTTPSession()
         request_response.to_xml()
-        new_object.http_request_response = [request_response]
-        return new_object
+        http_object.http_request_response = [request_response]
+        http_object.parent.id_ = "{}:HTTPSessionObject-{}".format(self.namespace_prefix, attribute.uuid)
+        observable = Observable(http_object)
+        observable.id_ = "{}:HTTPSession-{}".format(self.namespace_prefix, attribute.uuid)
+        return observable
 
     @staticmethod
     def resolve_identity_attribute(attribute):
@@ -797,25 +811,29 @@ class StixBuilder(object):
         ciq_identity.name = "{}: {} (MISP Attribute #{})".format(attribute_type, attribute.value, attribute.id)
         return ciq_identity
 
-    @staticmethod
-    def resolve_pattern_observable(attribute):
+    def resolve_pattern_observable(self, attribute):
         if attribute.type == "pattern-in-file":
             byte_run = ByteRun()
             byte_run.byte_run_data = attribute.value
-            new_object = File()
-            new_object.byte_runs = ByteRuns(byte_run)
-            return new_object
+            file_object = File()
+            file_object.byte_runs = ByteRuns(byte_run)
+            file_object.parent.id_ = "{}:FileObject-{}".format(self.namespace_prefix, attribute.uuid)
+            observable = Observable(file_object)
+            observable.id_ = "{}:File-{}".format(self.namespace_prefix, attribute.uuid)
+            return observable
         return None
 
-    @staticmethod
-    def resolve_system_observable(attribute):
+    def resolve_system_observable(self, attribute):
         system_object = System()
         network_interface = NetworkInterface()
         network_interface.mac = attribute.value
         network_interface_list = NetworkInterfaceList()
         network_interface_list.append(network_interface)
         system_object.network_interface_list = network_interface_list
-        return system_object
+        system_object.parent.id_ = "{}:SystemObject-{}".format(self.namespace_prefix, attribute.uuid)
+        observable = Observable(system_object)
+        observable.id_ = "{}:System-{}".format(self.namespace_prefix, attribute.uuid)
+        return observable
 
     def return_attachment_composition(self, attribute):
         file_object = File()
@@ -830,7 +848,7 @@ class StixBuilder(object):
             observable.observable_composition = composition
         else:
             observable = Observable(file_object)
-        observable.id_ = "{}:observable-{}".format(self.namespace_prefix, attribute.uuid)
+        observable.id_ = "{}:File-{}".format(self.namespace_prefix, attribute.uuid)
         if attribute.comment:
             observable.description = attribute.comment
         return observable
