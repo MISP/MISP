@@ -71,7 +71,7 @@
 				<?php
 					if ($isSiteAdmin || ($mayModify && $isAclTagger)) {
 						echo $this->Form->postLink('',
-							$baseurl . '/galaxy_clusters/detachFrom' . ucfirst(h($target_type)). '/' . ucfirst(h($target_id)) . '/' . $cluster['tag_id'],
+							$baseurl . '/galaxy_clusters/detach/' . ucfirst(h($target_id)) . '/' . h($target_type) . '/' . $cluster['tag_id'],
 							array('class' => 'icon-trash', 'title' => 'Delete'),
 							__('Are you sure you want to detach %s from this %s?', h($cluster['value']), h($target_type))
 						);
