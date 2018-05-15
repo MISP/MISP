@@ -129,6 +129,17 @@
         <?php echo $this->element('ajaxAttributeTags', array('attributeId' => $object['id'], 'attributeTags' => $object['AttributeTag'], 'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id']) )); ?>
       </div>
     </td>
+    <td class="short">
+      <?php
+        echo $this->element('galaxyQuickViewMini', array(
+          'mayModify' => $mayModify,
+          'isAclTagger' => $isAclTagger,
+          'data' => (!empty($object['Galaxy']) ? $object['Galaxy'] : array()),
+          'target_id' => $object['id'],
+          'target_type' => 'attribute'
+        ));
+      ?>
+    </td>
     <td class="showspaces bitwider">
       <div id = "Attribute_<?php echo $object['id']; ?>_comment_placeholder" class = "inline-field-placeholder"></div>
       <div id = "Attribute_<?php echo $object['id']; ?>_comment_solid" class="inline-field-solid" ondblclick="activateField('<?php echo $editScope; ?>', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">

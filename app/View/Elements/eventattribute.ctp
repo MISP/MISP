@@ -175,6 +175,7 @@
 			<th><?php echo $this->Paginator->sort('type');?></th>
 			<th><?php echo $this->Paginator->sort('value');?></th>
 			<th>Tags</th>
+			<th>Galaxies</th>
 			<th><?php echo $this->Paginator->sort('comment');?></th>
 			<th>Correlate</th>
 			<th>Related Events</th>

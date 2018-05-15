@@ -187,8 +187,23 @@ class GalaxyClustersController extends AppController {
 		$this->redirect($this->referer());
 	}
 
-	public function detachFromEvent($event_id, $tag_id) {
+	public function detach($target_id, $target_type, $tag_id) {
 		$this->loadModel('Event');
+		if ($target_type == 'attribute') {
+			$attribute = $this->Event->Attribute->find('first', array(
+				'recursive' => -1,
+				'fields' => array('id', 'event_id'),
+				'conditions' => array('Attribute.id' => $target_id)
+			));
+			if (empty($attribute)) {
+				throw new MethodNotAllowedException('Invalid Attribute.');
+			}
+			$event_id = $attribute['Attribute']['event_id'];
+		} else if ($target_type == 'event'){
+			$event_id = $target_id;
+		} else {
+			throw new MethodNotAllowedException('Invalid options');
+		}
 		$this->Event->id = $event_id;
 		$this->Event->recursive = -1;
 		$event = $this->Event->read(array(), $event_id);
@@ -200,19 +215,32 @@ class GalaxyClustersController extends AppController {
 				throw new MethodNotAllowedException('Invalid Event.');
 			}
 		}
-		$existingEventTag = $this->Event->EventTag->find('first', array(
-			'conditions' => array('EventTag.tag_id' => $tag_id, 'EventTag.event_id' => $event_id),
-			'recursive' => -1,
-			'contain' => array('Tag')
-		));
-		if (empty($existingEventTag)) {
+		if ($target_type == 'attribute') {
+			$existingTargetTag = $this->Event->Attribute->AttributeTag->find('first', array(
+				'conditions' => array('AttributeTag.tag_id' => $tag_id, 'AttributeTag.attribute_id' => $target_id),
+				'recursive' => -1,
+				'contain' => array('Tag')
+			));
+		} else if ($target_type == 'event') {
+			$existingTargetTag = $this->Event->EventTag->find('first', array(
+				'conditions' => array('EventTag.tag_id' => $tag_id, 'EventTag.event_id' => $target_id),
+				'recursive' => -1,
+				'contain' => array('Tag')
+			));
+		}
+
+		if (empty($existingTargetTag)) {
 			$this->Session->setFlash('Galaxy not attached.');
 		} else {
 			$cluster = $this->GalaxyCluster->find('first', array(
 				'recursive' => -1,
-				'conditions' => array('GalaxyCluster.tag_name' => $existingEventTag['Tag']['name'])
+				'conditions' => array('GalaxyCluster.tag_name' => $existingTargetTag['Tag']['name'])
 			));
-			$result = $this->Event->EventTag->delete($existingEventTag['EventTag']['id']);
+			if ($target_type == 'event') {
+				$result = $this->Event->EventTag->delete($existingTargetTag['EventTag']['id']);
+			} else if ($target_type == 'attribute') {
+				$result = $this->Event->Attribute->AttributeTag->delete($existingTargetTag['AttributeTag']['id']);
+			}
 			if ($result) {
 				$event['Event']['published'] = 0;
 				$date = new DateTime();
@@ -223,11 +251,11 @@ class GalaxyClustersController extends AppController {
 				$this->Log->create();
 				$this->Log->save(array(
 					'org' => $this->Auth->user('Organisation')['name'],
-					'model' => 'Event',
-					'model_id' => $event_id,
+					'model' => ucfirst($target_type),
+					'model_id' => $target_id,
 					'email' => $this->Auth->user('email'),
 					'action' => 'galaxy',
-					'title' => 'Detached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') from event (' . $event_id . ')',
+					'title' => 'Detached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') from ' . $target_type . ' (' . $target_id . ')',
 					'change' => ''
 				));
 			} else {

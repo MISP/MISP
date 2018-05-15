@@ -1253,6 +1253,11 @@ function getPopup(id, context, target, admin, popupType) {
 			$(popupType).html(data);
 			openPopup(popupType);
 		},
+		error:function() {
+			$(".loading").hide();
+			$("#gray_out").fadeOut();
+			showMessage('fail', 'Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).');
+		},
 		url: url
 	});
 }
@@ -1270,11 +1275,6 @@ function simplePopup(url) {
 			$(".loading").hide();
 			$("#popover_form").html(data);
 			openPopup("#popover_form");
-		},
-		error:function() {
-			$(".loading").hide();
-			$("#gray_out").fadeOut();
-			showMessage('fail', 'Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).');
 		},
 		url: url,
 	});
@@ -3059,8 +3059,10 @@ $('.galaxy-toggle-button').click(function() {
 	}
 });
 
-$('#addGalaxy').click(function() {
-	getPopup($(this).data('event-id'), 'galaxies', 'selectGalaxy');
+$('.addGalaxy').click(function() {
+	var target_type = $(this).data('target-type');
+	var target_id = $(this).data('target-id');
+	getPopup(target_type + '/' + target_id, 'galaxies', 'selectGalaxy');
 });
 
 function quickSubmitGalaxyForm(event_id, cluster_id) {
