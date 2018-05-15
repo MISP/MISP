@@ -259,7 +259,7 @@ class StixParser():
             attribute_dict = {}
             for observables in observable.observable_composition.observables:
                 properties = observables.object_.properties
-                attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
+                attribute_type, attribute_value, _ = self.handle_attribute_type(properties, observable_id=observable.id_)
                 attribute_dict[attribute_type] = attribute_value
             attribute_type, attribute_value = self.composite_type(attribute_dict)
             self.misp_event.add_attribute(attribute_type, attribute_value, **misp_attribute)
@@ -282,7 +282,7 @@ class StixParser():
             return "domain|ip", "{}|{}".format(attributes["domain"], ip_value)
 
     # Define type & value of an attribute or object in MISP
-    def handle_attribute_type(self, properties, is_object=False, title=None):
+    def handle_attribute_type(self, properties, is_object=False, title=None, observable_id=None):
         xsi_type = properties._XSI_TYPE
         try:
             args = [properties]
@@ -541,9 +541,17 @@ class StixParser():
 
     # Return type & value of a port attribute
     @staticmethod
-    def handle_port(properties):
+    def handle_port(*kwargs):
+        properties = kwargs[0]
         event_types = eventTypes[properties._XSI_TYPE]
-        return event_types['type'], properties.port_value.value, event_types['relation']
+        relation = event_types['relation']
+        if len(kwargs) > 1:
+            observable_id = kwargs[1]
+            if "srcPort" in observable_id:
+                relation = "src-{}".format(relation)
+            elif "dstPort" in observable_id:
+                relation = "dst-{}".format(relation)
+        return event_types['type'], properties.port_value.value, relation
 
     # Return type & attributes of a process object
     def handle_process(self, properties):
@@ -759,7 +767,7 @@ class StixParser():
             for observable in observables:
                 properties = observable.object_.properties
                 misp_attribute = MISPAttribute()
-                misp_attribute.type, misp_attribute.value, misp_attribute.object_relation = self.handle_attribute_type(properties, is_object=True)
+                misp_attribute.type, misp_attribute.value, misp_attribute.object_relation = self.handle_attribute_type(properties, is_object=True, observable_id=observable.id_)
                 misp_object.add_attribute(**misp_attribute)
                 self.misp_event.add_object(**misp_object)
         except AttributeError:
