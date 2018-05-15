@@ -128,10 +128,12 @@ class StixParser():
     def buildMispDict(self):
         self.dictTimestampAndDate()
         self.eventInfo()
-        for indicator in self.event.related_indicators.indicator:
-            self.parse_misp_indicator(indicator)
-        for observable in self.event.related_observables.observable:
-            self.parse_misp_observable(observable)
+        if self.event.related_indicators:
+            for indicator in self.event.related_indicators.indicator:
+                self.parse_misp_indicator(indicator)
+        if self.event.related_observables:
+            for observable in self.event.related_observables.observable:
+                self.parse_misp_observable(observable)
 
     # Try to parse data from external STIX documents
     def buildExternalDict(self):
