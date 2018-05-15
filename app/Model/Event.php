@@ -1162,7 +1162,7 @@ class Event extends AppModel {
 				)
 		);
 		$request = $this->addHeaders($request);
-		$uri = $url . '/events/view/' . $eventId . '/deleted:true';
+		$uri = $url . '/events/view/' . $eventId . '/deleted:1/excludeGalaxy:1';
 		$response = $HttpSocket->get($uri, $data = '', $request);
 		if ($response->isOk()) {
 			return json_decode($response->body, true);
@@ -1413,7 +1413,30 @@ class Event extends AppModel {
 	// includeAttachments: true will attach the attachments to the attributes in the data field
 	public function fetchEvent($user, $options = array(), $useCache = false) {
 		if (isset($options['Event.id'])) $options['eventid'] = $options['Event.id'];
-		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments', 'event_uuid', 'distribution', 'sharing_group_id', 'disableSiteAdmin', 'metadata', 'includeGalaxy', 'enforceWarninglist', 'sgReferenceOnly', 'flatten', 'blockedAttributeTags', 'eventsExtendingUuid', 'extended');
+		$possibleOptions = array(
+			'eventid',
+			'idList',
+			'tags',
+			'from',
+			'to',
+			'last',
+			'to_ids',
+			'includeAllTags',
+			'includeAttachments',
+			'event_uuid',
+			'distribution',
+			'sharing_group_id',
+			'disableSiteAdmin',
+			'metadata',
+			'includeGalaxy',
+			'enforceWarninglist',
+			'sgReferenceOnly',
+			'flatten',
+			'blockedAttributeTags',
+			'eventsExtendingUuid',
+			'extended',
+			'excludeGalaxy'
+		);
 		if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
 			$this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
 		}
@@ -1670,7 +1693,7 @@ class Event extends AppModel {
 				}
 				$event['Event']['event_creator_email'] = $userEmails[$event['Event']['user_id']];
 			}
-			$event = $this->massageTags($event, 'Event');
+			$event = $this->massageTags($event, 'Event', $options['excludeGalaxy']);
 
 			// Let's find all the related events and attach it to the event itself
 			$results[$eventKey]['RelatedEvent'] = $this->getRelatedEvents($user, $event['Event']['id'], $sgids);
@@ -1703,7 +1726,7 @@ class Event extends AppModel {
 						unset($event['Attribute'][$key]);
 						continue;
 					}
-					$event['Attribute'][$key] = $this->massageTags($attribute, 'Attribute');
+					$event['Attribute'][$key] = $this->massageTags($attribute, 'Attribute', $options['excludeGalaxy']);
 					if ($event['Attribute'][$key]['category'] === 'Financial fraud') {
 						$event['Attribute'][$key] = $this->Attribute->attachValidationWarnings($event['Attribute'][$key]);
 					}
@@ -2941,7 +2964,13 @@ class Event extends AppModel {
 						$params['blockedAttributeTags'] = $push_rules['tags']['NOT'];
 					}
 				}
-				$params = array_merge($params, array('eventid' => $id, 'includeAttachments' => true, 'includeAllTags' => true, 'deleted' => true));
+				$params = array_merge($params, array(
+					'eventid' => $id,
+					'includeAttachments' => true,
+					'includeAllTags' => true,
+					'deleted' => true,
+					'excludeGalaxy' => 1
+				));
 				$event = $this->fetchEvent($elevatedUser, $params);
 				$event = $event[0];
 				$event['Event']['locked'] = 1;
@@ -4236,7 +4265,7 @@ class Event extends AppModel {
 		return $attributes_added;
 	}
 
-	public function massageTags($data, $dataType = 'Event') {
+	public function massageTags($data, $dataType = 'Event', $excludeGalaxy = false) {
 		$data['Galaxy'] = array();
 		// unset empty event tags that got added because the tag wasn't exportable
 		if (!empty($data[$dataType . 'Tag'])) {
@@ -4245,7 +4274,7 @@ class Event extends AppModel {
 					unset($data[$dataType . 'Tag'][$k]);
 					continue;
 				}
-				if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
+				if (!isset($excludeGalaxy) || !$excludeGalaxy) {
 					if (substr($dataTag['Tag']['name'], 0, strlen('misp-galaxy:')) === 'misp-galaxy:') {
 						$cluster = $this->GalaxyCluster->getCluster($dataTag['Tag']['name']);
 						if ($cluster) {

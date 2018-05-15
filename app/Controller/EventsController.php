@@ -1199,6 +1199,9 @@ class EventsController extends AppController {
 		if (!empty($this->params['named']['overrideLimit']) && !$this->_isRest()) {
 			$conditions['overrideLimit'] = 1;
 		}
+		if (!empty($this->params['named']['excludeGalaxy'])) {
+			$conditions['excludeGalaxy'] = 1;
+		}
 		if (!empty($this->params['named']['extended'])) {
 			$conditions['extended'] = 1;
 			$this->set('extended', 1);
