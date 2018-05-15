@@ -563,7 +563,7 @@ class StixBuilder(object):
                 composition.append(self.create_ip_observable(ip['value'], ip['uuid']))
         if len(composition) == 1:
             return to_ids, composition[0]
-        return to_ids, self.create_observable_composition(composition, uuid)
+        return to_ids, self.create_observable_composition(composition, uuid, "domain-ip")
 
     def parse_email_object(self, attributes, uuid):
         to_ids, attributes_dict = self.create_attributes_dict(attributes, multiple=True)
@@ -658,7 +658,7 @@ class StixBuilder(object):
                 composition.append(self.create_ip_observable(ip['value'], ip['uuid']))
         if len(composition) == 1:
             return to_ids, composition[0]
-        return to_ids, self.create_observable_composition(composition, uuid)
+        return to_ids, self.create_observable_composition(composition, uuid, "ip-port")
 
     def parse_regkey_object(self, attributes, uuid):
         to_ids, attributes_dict = self.create_attributes_dict(attributes)
@@ -708,7 +708,7 @@ class StixBuilder(object):
             observables.append(self.create_hostname_observable(hostname['value'], hostname['uuid']))
         if len(observables) == 1:
             return observables[0]
-        return to_ids, self.create_observable_composition(observables, uuid)
+        return to_ids, self.create_observable_composition(observables, uuid, "url")
 
     def parse_x509_object(self, attributes, uuid):
         to_ids = False
@@ -960,10 +960,10 @@ class StixBuilder(object):
         address_observable.id_ = "{}:Address-{}".format(self.namespace_prefix, uuid)
         return address_observable
 
-    def create_observable_composition(self, composition, uuid):
+    def create_observable_composition(self, composition, uuid, name):
         observable_composition = ObservableComposition(observables=composition)
         observable_composition.operator = "AND"
-        observable = Observable(id_="{}:ObservableComposition-{}".format(self.namespace_prefix, uuid))
+        observable = Observable(id_="{}:{}_ObservableComposition-{}".format(self.namespace_prefix, name, uuid))
         observable.observable_composition = observable_composition
         return observable
 
