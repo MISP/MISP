@@ -167,7 +167,7 @@ class Galaxy extends AppModel{
 			}
 			$result = $this->Tag->EventTag->save(array('event_id' => $target_id, 'tag_id' => $tag_id));
 		} else if ($target_type == 'attribute') {
-			$attribute = $this->Tag->AttributeTag->Attribute->fetchAttributes($user, array('conditions' => array('Attribute.id' => $target_id)));
+			$attribute = $this->Tag->AttributeTag->Attribute->fetchAttributes($user, array('conditions' => array('Attribute.id' => $target_id), 'flatten' => 1));
 			if (empty($attribute)) {
 				throw new NotFoundException('Invalid attribute.');
 			}
