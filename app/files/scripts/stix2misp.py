@@ -756,14 +756,32 @@ class StixParser():
                 print("Unparsed Object type: {}".format(name))
 
     def parse_misp_object_observable(self, observable):
-        object_type = str(indicator.relationship)
+        object_type = str(observable.relationship)
+        observable = observable.item
+        observable_id = observable.id_
+        if object_type == "file":
+            name = "registry-key" if "WinRegistryKey" in observable_id else "file"
+        elif object_type == "network":
+            if "EmailMessage" in observable_id:
+                name = "email"
+            elif "Custom" in observable_id:
+                name = observable_id.split("Custom")[0].split(":")[1]
+            elif "ObservableComposition" in observable_id:
+                name = observable_id.split("_")[0].split(":")[1]
+        try:
+            self.fill_misp_object(observable, name)
+        except:
+            print("Unparsed Object type")
 
     # Create a MISP object, its attributes, and add it in the MISP event
     def fill_misp_object(self, item, name, to_ids=False):
         try:
-            observables = item.observable.observable_composition.observables
             misp_object = MISPObject(name)
-            misp_object.timestamp = self.getTimestampfromDate(item.timestamp)
+            if to_ids:
+                observables = item.observable.observable_composition.observables
+                misp_object.timestamp = self.getTimestampfromDate(item.timestamp)
+            else:
+                observables = item.observable_composition.observables
             for observable in observables:
                 properties = observable.object_.properties
                 misp_attribute = MISPAttribute()
@@ -771,7 +789,7 @@ class StixParser():
                 misp_object.add_attribute(**misp_attribute)
                 self.misp_event.add_object(**misp_object)
         except AttributeError:
-            properties = item.observable.object_.properties
+            properties = item.observable.object_.properties if to_ids else item.object_.properties
             self.parse_observable(properties, to_ids)
 
     # Create a MISP attribute and add it in its MISP object
