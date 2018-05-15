@@ -446,6 +446,20 @@ class Attribute extends AppModel {
 				'rule' => array('inList', array('0', '1', '2', '3', '4', '5')),
 				'message' => 'Options: Your organisation only, This community only, Connected communities, All communities, Sharing group, Inherit event',
 				'required' => true
+		),
+		'first_seen' => array(
+			'numeric' => array(
+				'rule' => array('numeric')
+			),
+			'message' => 'The time in nano-seconds where the attribute was first seen',
+			'required' => false
+		),
+		'last_seen' => array(
+			'numeric' => array(
+				'rule' => array('numeric')
+			),
+			'message' => 'The time in nano-seconds where the attribute was last seen',
+			'required' => false
 		)
 	);
 
@@ -696,6 +710,13 @@ class Attribute extends AppModel {
 		if (empty($this->data['Attribute']['timestamp'])) {
 			$date = new DateTime();
 			$this->data['Attribute']['timestamp'] = $date->getTimestamp();
+		}
+		// set first_seen, last_seen to null if it doesn't exist
+		if (empty($this->data['Attribute']['first_seen'])) {
+			$this->data['Attribute']['first_seen'] = "";
+		}
+		if (empty($this->data['Attribute']['last_seen'])) {
+			$this->data['Attribute']['last_seen'] = "";
 		}
 		// TODO: add explanatory comment
 		$result = $this->runRegexp($this->data['Attribute']['type'], $this->data['Attribute']['value']);
@@ -3212,7 +3233,9 @@ class Attribute extends AppModel {
 			'comment',
 			'sharing_group_id',
 			'deleted',
-			'disable_correlation'
+			'disable_correlation',
+			'first_seen',
+			'last_seen'
 		);
 		if ($objectId) {
 			$fieldList[] = 'object_id';
@@ -3271,5 +3294,22 @@ class Attribute extends AppModel {
 			$adata['validationIssue'] = true;
 		}
 		return $adata;
+	}
+
+	public function setFirstSeen($attribute, $firstSeen) {
+		$attribute['first_seen'] = $firstSeen;
+		if (!$this->save(array('Attribute' => $attribute), array('fieldList' => array('first_seen')))) {
+			debug('Error');
+		} else {
+
+		}
+	}
+	public function setLastSeen($attribute, $lastSeen) {
+		$attribute['last_seen'] = $lastSeen;
+		if (!$this->save(array('Attribute' => $attribute), array('fieldList' => array('last_seen')))) {
+			debug('Error');
+		} else {
+
+		}
 	}
 }

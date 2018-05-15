@@ -61,7 +61,7 @@ class AppModel extends Model {
 
 	public $db_changes = array(
 		1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
-		7 => false, 8 => false
+		7 => false, 8 => false, 9 => false
 	);
 
 	function afterSave($created, $options = array()) {
@@ -927,7 +927,13 @@ class AppModel extends Model {
 						PRIMARY KEY (`id`),
 						INDEX `noticelist_id` (`noticelist_id`)
 					) ENGINE=InnoDB DEFAULT CHARSET=utf8;';
-			break;
+				break;
+			case 9:
+				$sqlArray[] = "ALTER TABLE `attributes` ADD `first_seen` BIGINT(64) UNSIGNED NULL DEFAULT NULL;";
+				$sqlArray[] = "ALTER TABLE `attributes` ADD `last_seen` BIGINT(64) UNSIGNED NULL DEFAULT NULL;";
+				$indexArray[] = array('attributes', 'first_seen');
+				$indexArray[] = array('attributes', 'last_seen');
+				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
 				$sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
