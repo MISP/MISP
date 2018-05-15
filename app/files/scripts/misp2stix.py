@@ -35,6 +35,7 @@ from cybox.objects.system_object import System, NetworkInterface, NetworkInterfa
 from cybox.objects.http_session_object import *
 from cybox.objects.as_object import AutonomousSystem
 from cybox.objects.socket_address_object import SocketAddress
+from cybox.objects.network_connection_object import NetworkConnection
 from cybox.objects.custom_object import Custom
 from cybox.common import Hash, ByteRun, ByteRuns
 from cybox.common.object_properties import CustomProperties,  Property
@@ -136,6 +137,7 @@ class StixBuilder(object):
                                  "email": self.parse_email_object,
                                  "file": self.parse_file_object,
                                  "ip-port": self.parse_ip_port_object,
+                                 "network-connection": self.parse_network_connection_object,
                                  "registry-key": self.parse_regkey_object,
                                  "url": self.parse_url_object,
                                  "x509": self.parse_x509_object
@@ -660,6 +662,23 @@ class StixBuilder(object):
             return to_ids, composition[0]
         return to_ids, self.create_observable_composition(composition, uuid, "ip-port")
 
+    def parse_network_connection_object(self, attributes, uuid):
+        to_ids, attributes_dict = self.create_attributes_dict(attributes)
+        network_connection_object = NetworkConnection()
+        src_args, dst_args = self.parse_src_dst_args(attributes_dict)
+        if src_args: network_connection_object.source_socket_address = self.create_socket_address_object('src', **src_args)
+        if dst_args: network_connection_object.destination_socket_address = self.create_socket_address_object('dst', **dst_args)
+        if 'layer3-protocol' in attributes_dict:
+            network_connection_object.layer3_protocol = attributes_dict['layer3-protocol']['value']
+        if 'layer4-protocol' in attributes_dict:
+            network_connection_object.layer4_protocol = attributes_dict['layer4-protocol']['value']
+        if 'layer7-protocol' in attributes_dict:
+            network_connection_object.layer7_protocol = attributes_dict['layer7-protocol']['value']
+        network_connection_object.parent.id_ = "{}:NetworkConnectionObject-{}".format(self.namespace_prefix, uuid)
+        observable = Observable(network_connection_object)
+        observable.id_ = "{}:NetworkConnection-{}".format(self.namespace_prefix, uuid)
+        return to_ids, observable
+
     def parse_regkey_object(self, attributes, uuid):
         to_ids, attributes_dict = self.create_attributes_dict(attributes)
         reg_object = WinRegistryKey()
@@ -974,6 +993,17 @@ class StixBuilder(object):
         port_observable.id_ = "{}:{}Port-{}".format(self.namespace_prefix, port_type, uuid)
         return port_observable
 
+    def create_socket_address_object(self, sao_type, **kwargs):
+        socket_address_object = SocketAddress()
+        ip_type, port_type, hostname_type = [arg.format(sao_type) for arg in ('ip-{}', '{}-port', 'hostname-{}')]
+        if ip_type in kwargs:
+            socket_address_object.ip_address = self.create_ip_object(ip_type, kwargs[ip_type])
+        if port_type in kwargs:
+            socket_address_object.port = self.create_port_object(kwargs[port_type])
+        if hostname_type in kwargs:
+            socket_address_object.hostname = self.create_hostname_object(kwargs[hostname_type])
+        return socket_address_object
+
     def create_url_observable(self, value, uuid):
         url_object = URI(value=value)
         url_object.value.condition = "Equals"
@@ -1045,6 +1075,18 @@ class StixBuilder(object):
             else:
                 result['attributes'] = attribute.Tag
         return result
+
+    @staticmethod
+    def parse_src_dst_args(attributes_dict):
+        src_args = {}
+        for relation in ('ip-src', 'src-port', 'hostname-src'):
+            if relation in attributes_dict:
+                src_args[relation] = attributes_dict[relation]['value']
+        dst_args = {}
+        for relation in ('ip-dst', 'dst-port', 'hostname-dst'):
+            if relation in attributes_dict:
+                dst_args[relation] = attributes_dict[relation]['value']
+        return src_args, dst_args
 
     @staticmethod
     def resolve_filename(file_object, filename):
