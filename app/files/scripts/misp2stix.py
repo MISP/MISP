@@ -495,13 +495,10 @@ class StixBuilder(object):
         type1, _ = attribute.type.split('|')
         socket_address_object = SocketAddress()
         if 'ip-' in type1:
-            ip_object = self.create_ip_object(type1, value1)
-            socket_address_object.ip_address = ip_object
+            socket_address_object.ip_address = self.create_ip_object(type1, value1)
         else:
-            hostname_object = self.create_hostname_object(value1)
-            socket_address_object.hostname = hostname_object
-        port_object = self.create_port_object(port)
-        socket_address_object.port = port_object
+            socket_address_object.hostname = self.create_hostname_object(value1)
+        socket_address_object.port = self.create_port_object(port)
         socket_address_object.parent.id_ = "{}:SocketAddressObject-{}".format(self.namespace_prefix, attribute.uuid)
         observable = Observable(socket_address_object)
         observable.id_ = "{}:SocketAddress-{}".format(self.namespace_prefix, attribute.uuid)
@@ -1015,7 +1012,7 @@ class StixBuilder(object):
     @staticmethod
     def create_hostname_object(hostname):
         hostname_object = Hostname()
-        hostname_objecct.hostname_value = value
+        hostname_object.hostname_value = hostname
         hostname_object.hostname_value.condition = "Equals"
         return hostname_object
 
