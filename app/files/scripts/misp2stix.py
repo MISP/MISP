@@ -36,6 +36,7 @@ from cybox.objects.http_session_object import *
 from cybox.objects.as_object import AutonomousSystem
 from cybox.objects.socket_address_object import SocketAddress
 from cybox.objects.network_connection_object import NetworkConnection
+from cybox.objects.network_socket_object import NetworkSocket
 from cybox.objects.custom_object import Custom
 from cybox.common import Hash, ByteRun, ByteRuns
 from cybox.common.object_properties import CustomProperties,  Property
@@ -138,6 +139,7 @@ class StixBuilder(object):
                                  "file": self.parse_file_object,
                                  "ip-port": self.parse_ip_port_object,
                                  "network-connection": self.parse_network_connection_object,
+                                 "network-socket": self.parse_network_socket_object,
                                  "registry-key": self.parse_regkey_object,
                                  "url": self.parse_url_object,
                                  "x509": self.parse_x509_object
@@ -674,6 +676,32 @@ class StixBuilder(object):
         network_connection_object.parent.id_ = "{}:NetworkConnectionObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(network_connection_object)
         observable.id_ = "{}:NetworkConnection-{}".format(self.namespace_prefix, uuid)
+        return to_ids, observable
+
+    def parse_network_socket_object(self, attributes, uuid):
+        listening, blocking = [False] * 2
+        for attribute in attributes:
+            if attribute.object_relation == "state":
+                if attribute.value == "listening":
+                    listening = True
+                if attribute.value == "blocking":
+                    blocking = True
+        to_ids, attributes_dict = self.create_attributes_dict(attributes)
+        network_socket_object = NetworkSocket()
+        src_args, dst_args = self.parse_src_dst_args(attributes_dict)
+        if src_args: network_socket_object.local_address = self.create_socket_address_object('src', **src_args)
+        if dst_args: network_socket_object.remote_address = self.create_socket_address_object('dst', **dst_args)
+        if 'protocol' in attributes_dict:
+            network_socket_object.protocol = attributes_dict['protocol']['value']
+        network_socket_object.is_listening = True if listening else False
+        network_socket_object.is_blocking = True if blocking else False
+        if 'address-family' in  attributes_dict:
+            network_socket_object.address_family = attributes_dict['address-family']['value']
+        if 'domain-family' in attributes_dict:
+            network_socket_object.domain = attributes_dict['domain-family']['value']
+        network_socket_object.parent.id_ = "{}:NetworkSocketObject-{}".format(self.namespace_prefix, uuid)
+        observable = Observable(network_socket_object)
+        observable.id_ = "{}:NetworkSocket-{}".format(self.namespace_prefix, uuid)
         return to_ids, observable
 
     def parse_regkey_object(self, attributes, uuid):
