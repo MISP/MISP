@@ -933,6 +933,10 @@ class AppModel extends Model {
 				$sqlArray[] = "ALTER TABLE `attributes` ADD `last_seen` BIGINT(64) UNSIGNED NULL DEFAULT NULL;";
 				$indexArray[] = array('attributes', 'first_seen');
 				$indexArray[] = array('attributes', 'last_seen');
+				$sqlArray[] = "ALTER TABLE `objects` ADD `first_seen` BIGINT(64) UNSIGNED NULL DEFAULT NULL;";
+				$sqlArray[] = "ALTER TABLE `objects` ADD `last_seen` BIGINT(64) UNSIGNED NULL DEFAULT NULL;";
+				$indexArray[] = array('objects', 'first_seen');
+				$indexArray[] = array('objects', 'last_seen');
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
