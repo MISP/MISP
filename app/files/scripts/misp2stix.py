@@ -255,8 +255,11 @@ class StixBuilder(object):
                 for reference in misp_object.references:
                     if reference.relationship_type == "connected-to":
                         related_object = RelatedObject()
-                        related_object.idref = "{}:{}-{}".format(self.namespace_prefix, misp_cybox_name[reference.Object['name']],
-                                                                 reference.referenced_uuid)
+                        try:
+                            referenced_attribute_type = reference.Object['name']
+                        except AttributeError:
+                            references_attribute_type = reference.Attribute['type']
+                        related_object.idref = "{}:{}-{}".format(self.namespace_prefix, referenced_attribute_type, reference.referenced_uuid)
                         related_object.relationship = "Connected_To"
                         observable.object_.related_objects.append(related_object)
             if to_ids:
