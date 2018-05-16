@@ -904,11 +904,14 @@ class StixParser():
     # Extract the uuid from a stix id
     @staticmethod
     def fetch_uuid(object_id):
-        identifier = object_id.split(':')[1]
-        return_id = ""
-        for part in identifier.split('-')[1:]:
-            return_id += "{}-".format(part)
-        return return_id[:-1]
+        try:
+            identifier = object_id.split(':')[1]
+            return_id = ""
+            for part in identifier.split('-')[1:]:
+                return_id += "{}-".format(part)
+            return return_id[:-1]
+        except:
+            return str(uuid.uuid4())
 
     # Parse the ttps field of an external STIX document
     def parse_ttps(self, ttps):
