@@ -18,7 +18,7 @@ from stix.common.related import *
 from stix.common.confidence import Confidence
 from stix.common.vocabs import IncidentStatus
 from cybox.utils import Namespace
-from cybox.core import Object, Observable, ObservableComposition
+from cybox.core import Object, Observable, ObservableComposition, RelatedObject
 from cybox.objects.file_object import File
 from cybox.objects.address_object import Address
 from cybox.objects.port_object import Port
@@ -37,6 +37,8 @@ from cybox.objects.as_object import AutonomousSystem
 from cybox.objects.socket_address_object import SocketAddress
 from cybox.objects.network_connection_object import NetworkConnection
 from cybox.objects.network_socket_object import NetworkSocket
+from cybox.objects.process_object import Process
+from cybox.objects.win_service_object import WinService
 from cybox.objects.custom_object import Custom
 from cybox.common import Hash, ByteRun, ByteRuns
 from cybox.common.object_properties import CustomProperties,  Property
@@ -68,8 +70,10 @@ non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', '
 hash_type_attributes = {"single":["md5", "sha1", "sha224", "sha256", "sha384", "sha512", "sha512/224", "sha512/256", "ssdeep", "imphash", "authentihash", "pehash", "tlsh", "x509-fingerprint-sha1"], "composite": ["filename|md5", "filename|sha1", "filename|sha224", "filename|sha256", "filename|sha384", "filename|sha512", "filename|sha512/224", "filename|sha512/256", "filename|authentihash", "filename|ssdeep", "filename|tlsh", "filename|imphash", "filename|pehash", "malware-sample"]}
 
 # mapping for the attributes that can go through the simpleobservable script
-misp_cybox_name = {"domain" : "DomainName", "hostname" : "Hostname", "url" : "URI", "AS" : "AutonomousSystem", "mutex" : "Mutex", "named pipe" : "Pipe", "link" : "URI"}
-cybox_name_attribute = {"DomainName" : "value", "Hostname" : "hostname_value", "URI" : "value", "AutonomousSystem" : "number", "Pipe" : "name", "Mutex" : "name"}
+misp_cybox_name = {"domain" : "DomainName", "hostname" : "Hostname", "url" : "URI", "AS" : "AutonomousSystem", "mutex" : "Mutex",
+                   "named pipe" : "Pipe", "link" : "URI", "network-connection": "NetworkConnection", "windows-service-name": "WinService"}
+cybox_name_attribute = {"DomainName" : "value", "Hostname" : "hostname_value", "URI" : "value", "AutonomousSystem" : "number",
+                        "Pipe" : "name", "Mutex" : "name", "WinService": "name"}
 misp_indicator_type = {"AS" : "", "mutex" : "Host Characteristics", "named pipe" : "Host Characteristics",
                        "email-attachment": "Malicious E-mail", "url" : "URL Watchlist"}
 misp_indicator_type.update(dict.fromkeys(hash_type_attributes["single"] + hash_type_attributes["composite"] + ["filename"] + ["attachment"], "File Hash Watchlist"))
@@ -128,7 +132,7 @@ class StixBuilder(object):
         self.simple_type_to_method.update(dict.fromkeys(["ip-src", "ip-dst"], self.generate_ip_observable))
         self.simple_type_to_method.update(dict.fromkeys(["ip-src|port", "ip-dst|port", "hostname|port"], self.generate_socket_address_observable))
         self.simple_type_to_method.update(dict.fromkeys(["regkey", "regkey|value"], self.generate_regkey_observable))
-        self.simple_type_to_method.update(dict.fromkeys(["hostname", "domain", "url", "AS", "mutex", "named pipe", "link"], self.generate_simple_observable))
+        self.simple_type_to_method.update(dict.fromkeys(["hostname", "domain", "url", "AS", "mutex", "named pipe", "link", "windows-service-name"], self.generate_simple_observable))
         self.simple_type_to_method.update(dict.fromkeys(["email-src", "email-dst", "email-subject", "email-reply-to"], self.resolve_email_observable))
         self.simple_type_to_method.update(dict.fromkeys(["http-method", "user-agent"], self.resolve_http_observable))
         self.simple_type_to_method.update(dict.fromkeys(["pattern-in-file", "pattern-in-traffic", "pattern-in-memory"], self.resolve_pattern_observable))
@@ -140,6 +144,7 @@ class StixBuilder(object):
                                  "ip-port": self.parse_ip_port_object,
                                  "network-connection": self.parse_network_connection_object,
                                  "network-socket": self.parse_network_socket_object,
+                                 "process": self.parse_process_object,
                                  "registry-key": self.parse_regkey_object,
                                  "url": self.parse_url_object,
                                  "x509": self.parse_x509_object
@@ -244,10 +249,25 @@ class StixBuilder(object):
         for misp_object in self.misp_event.objects:
             category = misp_object.get('meta-category')
             tlp_tags = deepcopy(tags)
-            to_ids, observable = self.objects_mapping[misp_object.name](misp_object.attributes, misp_object.uuid)
+            name = misp_object.name
+            try:
+                to_ids, observable = self.objects_mapping[name](misp_object.attributes, misp_object.uuid)
+            except KeyError:
+                continue
+            if name == "process" and misp_object.references:
+                for reference in misp_object.references:
+                    if reference.relationship_type == "connected-to":
+                        related_object = RelatedObject()
+                        try:
+                            referenced_attribute_type = reference.Object['name']
+                        except AttributeError:
+                            references_attribute_type = reference.Attribute['type']
+                        related_object.idref = "{}:{}-{}".format(self.namespace_prefix, referenced_attribute_type, reference.referenced_uuid)
+                        related_object.relationship = "Connected_To"
+                        observable.object_.related_objects.append(related_object)
             if to_ids:
                 indicator = Indicator(timestamp=self.get_date_from_timestamp(int(misp_object.timestamp)))
-                indicator.id_ = "{}:MispObject-{}".format(namespace[1], misp_object.uuid)
+                indicator.id_ = "{}:MISPObject-{}".format(namespace[1], misp_object.uuid)
                 indicator.producer = self.set_prod(self.orgc_name)
                 for attribute in misp_object.attributes:
                     tlp_tags = self.merge_tags(tlp_tags, attribute)
@@ -596,7 +616,7 @@ class StixBuilder(object):
             email_header.boundary = attributes_dict['mime-boundary'][0]['value']
             email_header.boundary.condition = "Equals"
         if 'user-agent' in attributes_dict:
-            email_header.user_agent = attributes_dict['userr-agent'][0]['value']
+            email_header.user_agent = attributes_dict['user-agent'][0]['value']
             email_header.user_agent.condition = "Equals"
         if 'email-attachment' in attributes_dict:
             email.attachments = Attachments()
@@ -702,6 +722,31 @@ class StixBuilder(object):
         network_socket_object.parent.id_ = "{}:NetworkSocketObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(network_socket_object)
         observable.id_ = "{}:NetworkSocket-{}".format(self.namespace_prefix, uuid)
+        return to_ids, observable
+
+    def parse_process_object(self, attributes, uuid):
+        to_ids, attributes_dict = self.create_attributes_dict(attributes, multiple=True)
+        process_object = Process()
+        if 'creation-time' in attributes_dict:
+            process_object.creation_time = attributes_dict['creation-time'][0]['value']
+        if 'start-time' in attributes_dict:
+            process_object.start_time = attributes_dict['start-time'][0]['value']
+        if 'name' in attributes_dict:
+            process_object.name = attributes_dict['name'][0]['value']
+        if 'pid' in attributes_dict:
+            process_object.pid = attributes_dict['pid'][0]['value']
+        if 'parent-pid' in attributes_dict:
+            process_object.parent_pid = attributes_dict['parent-pid'][0]['value']
+        if 'child-pid' in attributes_dict:
+            # child-pid = attributes['child-pid']
+            for child in attributes['child-pid']:
+                process_object.child_pid_list.append(child['value'])
+        # if 'port' in attributes_dict:
+        #     for port in attributes['port']:
+        #         process_object.port_list.append(self.create_port_object(port['value']))
+        process_object.parent.id_ = "{}:ProcessObject-{}".format(self.namespace_prefix, uuid)
+        observable = Observable(process_object)
+        observable.id_ = "{}:Process-{}".format(self.namespace_prefix, uuid)
         return to_ids, observable
 
     def parse_regkey_object(self, attributes, uuid):

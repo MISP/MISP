@@ -306,7 +306,7 @@ class User extends AppModel {
 		// key is entered
 		try {
 			require_once 'Crypt/GPG.php';
-			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
+			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'gpgconf' => Configure::read('GnuPG.gpgconf'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
 			try {
 				$keyImportOutput = $gpg->importKey($check['gpgkey']);
 				if (!empty($keyImportOutput['fingerprint'])) {
@@ -473,7 +473,7 @@ class User extends AppModel {
 		if (!$gpg) {
 			try {
 				require_once 'Crypt/GPG.php';
-				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
+				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'gpgconf' => Configure::read('GnuPG.gpgconf'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
 			} catch (Exception $e) {
 				$result[2] ='GnuPG is not configured on this system.';
 				$result[0] = true;
@@ -525,7 +525,7 @@ class User extends AppModel {
 			'recursive' => -1,
 		));
 		if (empty($users)) return $results;
-		$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
+		$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'gpgconf' => Configure::read('GnuPG.gpgconf'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
 		foreach ($users as $k => $user) {
 			$results[$user['User']['id']] = $this->verifySingleGPG($user, $gpg);
 
@@ -739,7 +739,7 @@ class User extends AppModel {
 			// Sign the body
 			require_once 'Crypt/GPG.php';
 			try {
-				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg'), 'debug'));	// , 'debug' => true
+				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'gpgconf' => Configure::read('GnuPG.gpgconf'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg'), 'debug'));	// , 'debug' => true
                 if (Configure::read('GnuPG.sign')) {
                     $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
                     $body = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);

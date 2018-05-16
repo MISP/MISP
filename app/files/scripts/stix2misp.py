@@ -35,7 +35,7 @@ eventTypes = {"ArtifactObjectType": {"type": "attachment", "relation": "attachme
               "WindowsRegistryKeyObjectType": {"type": "regkey", "relation": ""}}
 
 cybox_to_misp_object = {"EmailMessage": "email", "NetworkConnection": "network-connection",
-                        "NetworkSocket": "network-socket"}
+                        "NetworkSocket": "network-socket", "Process": "process"}
 
 descFilename = os.path.join(__path__[0], 'data/describeTypes.json')
 with open(descFilename, 'r') as f:
@@ -55,7 +55,7 @@ class StixParser():
             filename = '{}/tmp/{}'.format(pathname, args[1])
             event = self.load_event(filename)
             title = event.stix_header.title
-            if "Export from " in title and "MISP" in title:
+            if title is not None and "Export from " in title and "MISP" in title:
                 fromMISP = True
             else:
                 fromMISP = False
@@ -573,9 +573,9 @@ class StixParser():
         if properties.child_pid_list:
             for child in properties.child_pid_list:
                 attributes.append([attribute_type, child.value, "child-pid"])
-        if properties.port_list:
-            for port in properties.port_list:
-                attributes.append(["src-port", port.port_value.value, "port"])
+        # if properties.port_list:
+        #     for port in properties.port_list:
+        #         attributes.append(["src-port", port.port_value.value, "port"])
         if properties.network_connection_list:
             references = []
             for connection in properties.network_connection_list:
@@ -904,11 +904,14 @@ class StixParser():
     # Extract the uuid from a stix id
     @staticmethod
     def fetch_uuid(object_id):
-        identifier = object_id.split(':')[1]
-        return_id = ""
-        for part in identifier.split('-')[1:]:
-            return_id += "{}-".format(part)
-        return return_id[:-1]
+        try:
+            identifier = object_id.split(':')[1]
+            return_id = ""
+            for part in identifier.split('-')[1:]:
+                return_id += "{}-".format(part)
+            return return_id[:-1]
+        except:
+            return str(uuid.uuid4())
 
     # Parse the ttps field of an external STIX document
     def parse_ttps(self, ttps):
