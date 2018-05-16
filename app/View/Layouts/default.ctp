@@ -47,24 +47,18 @@
 	<div id="confirmation_box" class="confirmation_box"></div>
 	<div id="gray_out" class="gray_out"></div>
 		<div id="container">
-			<?php echo $this->element('global_menu');
-			    $padding_top = 10;
-			    if ($debugMode == 'debugOff') $padding_top = 50;
-					$flashMessages = $this->Session->read('Message.flash');
-
-					$contents = '';
-					$texts = array();
-					echo sprintf('<div id="main-view-container" class="container-fluid %s-layout">', $debugMode);
-					echo $this->Flash->render();
-					echo '</div>';
+			<?php
+				echo $this->element('global_menu');
+				echo sprintf('<div id="main-view-container" class="container-fluid %s-layout">', $debugMode);
+				$flash = $this->Flash->render();
+				echo $flash;
+				echo '</div>';
 			?>
 		</div>
 		<?php
 			$topGap = 50;
-			if (Configure::read('debug') > 1) {
-				$topGap = 10;
-			} else {
-				if ($flash) $topGap += 50;
+			if (Configure::read('debug') < 2) {
+				if (!empty($flash)) $topGap = 95;
 			}
 		?>
 		<div style="padding-top:<?php echo $topGap; ?>px !important;">

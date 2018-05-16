@@ -306,6 +306,7 @@ class AttributesController extends AppController {
 					} else {
 						if (!empty($fails["attribute_0"])) {
 							foreach ($fails["attribute_0"] as $k => $v) {
+								$failed = 1;
 								$message = 'Attribute validation failed [' . $k . ']: ' . $v[0];
 								break;
 							}
