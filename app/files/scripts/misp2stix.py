@@ -616,7 +616,7 @@ class StixBuilder(object):
             email_header.boundary = attributes_dict['mime-boundary'][0]['value']
             email_header.boundary.condition = "Equals"
         if 'user-agent' in attributes_dict:
-            email_header.user_agent = attributes_dict['userr-agent'][0]['value']
+            email_header.user_agent = attributes_dict['user-agent'][0]['value']
             email_header.user_agent.condition = "Equals"
         if 'email-attachment' in attributes_dict:
             email.attachments = Attachments()
