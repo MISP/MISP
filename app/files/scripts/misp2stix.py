@@ -250,7 +250,10 @@ class StixBuilder(object):
             category = misp_object.get('meta-category')
             tlp_tags = deepcopy(tags)
             name = misp_object.name
-            to_ids, observable = self.objects_mapping[name](misp_object.attributes, misp_object.uuid)
+            try:
+                to_ids, observable = self.objects_mapping[name](misp_object.attributes, misp_object.uuid)
+            except KeyError:
+                continue
             if name == "process" and misp_object.references:
                 for reference in misp_object.references:
                     if reference.relationship_type == "connected-to":
