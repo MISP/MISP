@@ -18,7 +18,7 @@ from stix.common.related import *
 from stix.common.confidence import Confidence
 from stix.common.vocabs import IncidentStatus
 from cybox.utils import Namespace
-from cybox.core import Object, Observable, ObservableComposition
+from cybox.core import Object, Observable, ObservableComposition, RelatedObject
 from cybox.objects.file_object import File
 from cybox.objects.address_object import Address
 from cybox.objects.port_object import Port
@@ -69,7 +69,8 @@ non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', '
 hash_type_attributes = {"single":["md5", "sha1", "sha224", "sha256", "sha384", "sha512", "sha512/224", "sha512/256", "ssdeep", "imphash", "authentihash", "pehash", "tlsh", "x509-fingerprint-sha1"], "composite": ["filename|md5", "filename|sha1", "filename|sha224", "filename|sha256", "filename|sha384", "filename|sha512", "filename|sha512/224", "filename|sha512/256", "filename|authentihash", "filename|ssdeep", "filename|tlsh", "filename|imphash", "filename|pehash", "malware-sample"]}
 
 # mapping for the attributes that can go through the simpleobservable script
-misp_cybox_name = {"domain" : "DomainName", "hostname" : "Hostname", "url" : "URI", "AS" : "AutonomousSystem", "mutex" : "Mutex", "named pipe" : "Pipe", "link" : "URI"}
+misp_cybox_name = {"domain" : "DomainName", "hostname" : "Hostname", "url" : "URI", "AS" : "AutonomousSystem", "mutex" : "Mutex",
+                   "named pipe" : "Pipe", "link" : "URI", "network-connection": "NetworkConnection"}
 cybox_name_attribute = {"DomainName" : "value", "Hostname" : "hostname_value", "URI" : "value", "AutonomousSystem" : "number", "Pipe" : "name", "Mutex" : "name"}
 misp_indicator_type = {"AS" : "", "mutex" : "Host Characteristics", "named pipe" : "Host Characteristics",
                        "email-attachment": "Malicious E-mail", "url" : "URL Watchlist"}
@@ -246,7 +247,16 @@ class StixBuilder(object):
         for misp_object in self.misp_event.objects:
             category = misp_object.get('meta-category')
             tlp_tags = deepcopy(tags)
-            to_ids, observable = self.objects_mapping[misp_object.name](misp_object.attributes, misp_object.uuid)
+            name = misp_object.name
+            to_ids, observable = self.objects_mapping[name](misp_object.attributes, misp_object.uuid)
+            if name == "process" and misp_object.references:
+                for reference in misp_object.references:
+                    if reference.relationship_type == "connected-to":
+                        related_object = RelatedObject()
+                        related_object.idref = "{}:{}-{}".format(self.namespace_prefix, misp_cybox_name[reference.Object['name']],
+                                                                 reference.referenced_uuid)
+                        related_object.relationship = "Connected_To"
+                        observable.object_.related_objects.append(related_object)
             if to_ids:
                 indicator = Indicator(timestamp=self.get_date_from_timestamp(int(misp_object.timestamp)))
                 indicator.id_ = "{}:MispObject-{}".format(namespace[1], misp_object.uuid)
