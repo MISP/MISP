@@ -38,6 +38,7 @@ from cybox.objects.socket_address_object import SocketAddress
 from cybox.objects.network_connection_object import NetworkConnection
 from cybox.objects.network_socket_object import NetworkSocket
 from cybox.objects.process_object import Process
+from cybox.objects.win_service_object import WinService
 from cybox.objects.custom_object import Custom
 from cybox.common import Hash, ByteRun, ByteRuns
 from cybox.common.object_properties import CustomProperties,  Property
@@ -70,8 +71,9 @@ hash_type_attributes = {"single":["md5", "sha1", "sha224", "sha256", "sha384", "
 
 # mapping for the attributes that can go through the simpleobservable script
 misp_cybox_name = {"domain" : "DomainName", "hostname" : "Hostname", "url" : "URI", "AS" : "AutonomousSystem", "mutex" : "Mutex",
-                   "named pipe" : "Pipe", "link" : "URI", "network-connection": "NetworkConnection"}
-cybox_name_attribute = {"DomainName" : "value", "Hostname" : "hostname_value", "URI" : "value", "AutonomousSystem" : "number", "Pipe" : "name", "Mutex" : "name"}
+                   "named pipe" : "Pipe", "link" : "URI", "network-connection": "NetworkConnection", "windows-service-name": "WinService"}
+cybox_name_attribute = {"DomainName" : "value", "Hostname" : "hostname_value", "URI" : "value", "AutonomousSystem" : "number",
+                        "Pipe" : "name", "Mutex" : "name", "WinService": "name"}
 misp_indicator_type = {"AS" : "", "mutex" : "Host Characteristics", "named pipe" : "Host Characteristics",
                        "email-attachment": "Malicious E-mail", "url" : "URL Watchlist"}
 misp_indicator_type.update(dict.fromkeys(hash_type_attributes["single"] + hash_type_attributes["composite"] + ["filename"] + ["attachment"], "File Hash Watchlist"))
@@ -130,7 +132,7 @@ class StixBuilder(object):
         self.simple_type_to_method.update(dict.fromkeys(["ip-src", "ip-dst"], self.generate_ip_observable))
         self.simple_type_to_method.update(dict.fromkeys(["ip-src|port", "ip-dst|port", "hostname|port"], self.generate_socket_address_observable))
         self.simple_type_to_method.update(dict.fromkeys(["regkey", "regkey|value"], self.generate_regkey_observable))
-        self.simple_type_to_method.update(dict.fromkeys(["hostname", "domain", "url", "AS", "mutex", "named pipe", "link"], self.generate_simple_observable))
+        self.simple_type_to_method.update(dict.fromkeys(["hostname", "domain", "url", "AS", "mutex", "named pipe", "link", "windows-service-name"], self.generate_simple_observable))
         self.simple_type_to_method.update(dict.fromkeys(["email-src", "email-dst", "email-subject", "email-reply-to"], self.resolve_email_observable))
         self.simple_type_to_method.update(dict.fromkeys(["http-method", "user-agent"], self.resolve_http_observable))
         self.simple_type_to_method.update(dict.fromkeys(["pattern-in-file", "pattern-in-traffic", "pattern-in-memory"], self.resolve_pattern_observable))
