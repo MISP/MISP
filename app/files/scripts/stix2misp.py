@@ -573,9 +573,9 @@ class StixParser():
         if properties.child_pid_list:
             for child in properties.child_pid_list:
                 attributes.append([attribute_type, child.value, "child-pid"])
-        if properties.port_list:
-            for port in properties.port_list:
-                attributes.append(["src-port", port.port_value.value, "port"])
+        # if properties.port_list:
+        #     for port in properties.port_list:
+        #         attributes.append(["src-port", port.port_value.value, "port"])
         if properties.network_connection_list:
             references = []
             for connection in properties.network_connection_list:
