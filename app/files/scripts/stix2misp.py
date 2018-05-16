@@ -55,7 +55,7 @@ class StixParser():
             filename = '{}/tmp/{}'.format(pathname, args[1])
             event = self.load_event(filename)
             title = event.stix_header.title
-            if "Export from " in title and "MISP" in title:
+            if title is not None and "Export from " in title and "MISP" in title:
                 fromMISP = True
             else:
                 fromMISP = False
