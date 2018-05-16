@@ -34,6 +34,9 @@ eventTypes = {"ArtifactObjectType": {"type": "attachment", "relation": "attachme
               "WindowsExecutableFileObjectType": file_object_type,
               "WindowsRegistryKeyObjectType": {"type": "regkey", "relation": ""}}
 
+cybox_to_misp_object = {"EmailMessage": "email", "NetworkConnection": "network-connection",
+                        "NetworkSocket": "network-socket"}
+
 descFilename = os.path.join(__path__[0], 'data/describeTypes.json')
 with open(descFilename, 'r') as f:
     categories = json.loads(f.read())['result'].get('categories')
@@ -762,16 +765,16 @@ class StixParser():
         if object_type == "file":
             name = "registry-key" if "WinRegistryKey" in observable_id else "file"
         elif object_type == "network":
-            if "EmailMessage" in observable_id:
-                name = "email"
-            elif "Custom" in observable_id:
+            if "Custom" in observable_id:
                 name = observable_id.split("Custom")[0].split(":")[1]
             elif "ObservableComposition" in observable_id:
                 name = observable_id.split("_")[0].split(":")[1]
+            else:
+                name = cybox_to_misp_object[observable_id.split('-')[0].split(':')[1]]
         try:
             self.fill_misp_object(observable, name)
         except:
-            print("Unparsed Object type")
+            print("Unparsed Object type: {}".format(observable.to_json()))
 
     # Create a MISP object, its attributes, and add it in the MISP event
     def fill_misp_object(self, item, name, to_ids=False):
