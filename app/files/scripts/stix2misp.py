@@ -35,7 +35,7 @@ eventTypes = {"ArtifactObjectType": {"type": "attachment", "relation": "attachme
               "WindowsRegistryKeyObjectType": {"type": "regkey", "relation": ""}}
 
 cybox_to_misp_object = {"EmailMessage": "email", "NetworkConnection": "network-connection",
-                        "NetworkSocket": "network-socket"}
+                        "NetworkSocket": "network-socket", "Process": "process"}
 
 descFilename = os.path.join(__path__[0], 'data/describeTypes.json')
 with open(descFilename, 'r') as f:
