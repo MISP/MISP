@@ -973,7 +973,7 @@ class AttributesController extends AppController {
 				return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'Invalid attribute')), 'status'=>200, 'type' => 'json'));
 			}
 		}
-		$validFields = array('value', 'category', 'type', 'comment', 'to_ids', 'distribution');
+		$validFields = array('value', 'category', 'type', 'comment', 'to_ids', 'distribution', 'first_seen', 'last_seen');
 		$changed = false;
 		if (empty($this->request->data['Attribute'])) {
 			$this->request->data = array('Attribute' => $this->request->data);
@@ -2400,7 +2400,7 @@ class AttributesController extends AppController {
 	}
 
 	public function fetchEditForm($id, $field = null) {
-		$validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution');
+		$validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution', 'first_seen', 'last_seen');
 		if (!isset($field) || !in_array($field, $validFields)) throw new MethodNotAllowedException('Invalid field requested.');
 		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
 		$this->Attribute->id = $id;

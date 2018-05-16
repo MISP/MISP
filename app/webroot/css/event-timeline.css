@@ -40,6 +40,16 @@
 	left: 0px;
 }
 
+.timestamp-obj {
+	box-shadow: #ff0000 0px 0px 0px 5px;
+}
+
+.timestamp-attr {
+	box-shadow: #ff0000 0px 0px 0px 5px;
+	padding-top: 4px;
+	padding-bottom: 4px;
+}
+
 .vis-item.attribute {
 	background-color: orange;
 	border-color: black;

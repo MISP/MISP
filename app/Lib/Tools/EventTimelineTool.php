@@ -77,6 +77,8 @@
 					'event_id' => $attr['event_id'],
 					'group' => 'attribute',
 					'timestamp' => $attr['timestamp'],
+					'first_seen' => $attr['first_seen'],
+					'last_seen' => $attr['last_seen'],
 				);
 				array_push($this->__json['items'], $toPush);
 			}
@@ -91,6 +93,8 @@
 					'template_uuid' => $obj['template_uuid'],
 					'event_id' => $obj['event_id'],
 					'timestamp' => $attr['timestamp'],
+					'first_seen' => $obj['first_seen'],
+					'last_seen' => $obj['last_seen'],
 					'Attribute' => array(),
 				);
 

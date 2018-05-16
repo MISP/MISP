@@ -4,7 +4,7 @@ var options = {
 	template: function (item, element, data) {
 		switch(item.group) {
 			case "attribute":
-				return item.content;
+				return build_attr_template(item);
 
 			case "object":
 				return build_object_template(item);
@@ -23,16 +23,45 @@ var options = {
 	multiselect: true,
 	editable: true,
 	editable: {
-		add: true,         // add new items by double tapping
+		add: false,         // add new items by double tapping
 		updateTime: true,  // drag items horizontally
+		remove: true
 	},
-
+	onRemove: function(item, callback) { // clear timestamps
+		update_seen('first', item.id, null, callback);
+		update_seen('last', item.id, null, callback);
+		return false;
+    	},
+	onMove: function(item, callback) {
+		var newStart = datetimeTonanoTimestamp(item.start);
+		var newEnd = datetimeTonanoTimestamp(item.end);
+		if (item.first_seen != newStart) {
+			update_seen('first', item.id, newStart, callback);
+		}
+		if (item.last_seen != newEnd) {
+			update_seen('last', item.id, newEnd, callback);
+		}
+	}
 };
 
 /* UTIL */
+function build_attr_template(attr) {
+	var span = $('<span>');
+	if (!attr.seen_enabled) {
+		span.addClass('timestamp-attr');
+	}
+	span.text(attr.content);
+	span.data('seen_enabled', attr.seen_enabled);
+	var html = span[0].outerHTML;
+	return html;
+}
 
 function build_object_template(obj) {
 	var table = $('<table>');
+	table.data('seen_enabled', obj.seen_enabled);
+	if (!obj.seen_enabled) {
+		table.addClass('timestamp-obj');
+	}
 	table.append($('<tr class="timeline-objectName"><th>'+obj.content+'</th><th></th></tr>'));
 	for (var attr of obj.Attribute) {
 		table.append(
@@ -45,6 +74,91 @@ function build_object_template(obj) {
 	}
 	var html = table[0].outerHTML;
 	return html;
+}
+
+function update_seen(seenType, item_id, nanoTimestamp, callback) {
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		dataType:"html",
+		cache: false,
+		success: function (data, textStatus) {
+			var form = $(data);
+			$(container_timeline).append(form);
+			form.css({display: 'none'});
+			var attr_id = item_id;
+			var field = form.find("#Attribute_"+attr_id+"_"+seenType+"_seen_field");
+			var the_time = nanoTimestamp;
+			field.val(the_time);
+			// submit the form
+			$.ajax({
+				data: form.serialize(),
+				cache: false,
+				success:function (data, textStatus) {
+					console.log(data);
+				},
+				error:function() {
+					console.log('fail', 'Request failed for an unknown reason.');
+				},
+				type:"post",
+				url:"/" + "attributes" + "/" + "editField" + "/" + attr_id
+			});
+		},
+		complete: function () {
+			$(".loading").hide();
+		},
+		url:"/" + "Attributes" + "/fetchEditForm/" + item_id + "/" + seenType + "_seen",
+	});
+
+}
+
+function nanoTimestampToDatetime(timestamp) {
+	var factor = 0.000001; // 10^-6, fs and ls are expressed in 10^-9
+	return new Date(timestamp*factor);
+}
+function timestampToDatetime(timestamp) {
+	var factor = 1000;
+	return new Date(timestamp*factor);
+}
+function datetimeTonanoTimestamp(d) {
+	if (d === null || d === undefined) {
+		return null;
+	}
+	var factor = 1000000;
+	return d.getTime()*factor;
+}
+function datetimeToTimestamp(d) {
+	if (d === null || d === undefined) {
+		return null;
+	}
+	var factor = 0.001;
+	return d.getTime()*factor;
+}
+
+function set_spanned_time(item) {
+	var timestamp = item.timestamp;
+    	var fs = item.first_seen;
+    	var ls = item.last_seen;
+
+	item.seen_enabled = true;
+    	if (fs==null && ls==null) {
+		item.start = timestampToDatetime(timestamp);
+		item.seen_enabled = false;
+
+    	} else if (fs==null && ls!=null) {
+		item.start = timestampToDatetime(timestamp);
+		item.end = nanoTimestampToDatetime(ls);
+		item.seen_enabled = false;
+
+    	} else if (ls==null && fs!=null) {
+		item.start = nanoTimestampToDatetime(fs);
+		item.end = new Date(); // now
+
+    	} else { // fs and ls are defined
+		item.start = nanoTimestampToDatetime(fs);
+		item.end = nanoTimestampToDatetime(ls);
+	}
 }
 
 function enable_timeline() {
@@ -67,15 +181,17 @@ function enable_timeline() {
 		success: function( data, textStatus, jQxhr ){
 			console.log(data);
 			for (var item of data.items) {
-				item.start = new Date(item.timestamp*1000);
 				item.className = item.group;
+				set_spanned_time(item);
 			}
 			var items_timeline = new vis.DataSet(data.items);
 			eventTimeline = new vis.Timeline(container_timeline, items_timeline, options);
-			$(".loadingTimeline").hide();
 		},
 		error: function( jqXhr, textStatus, errorThrown ){
 			console.log( errorThrown );
+		},
+		complete: function() {
+			$(".loadingTimeline").hide();
 		}
 	});
 }
@@ -117,8 +233,8 @@ function init_popover() {
 			//	dataHandler.fetch_data_and_update();
 			//}
 		},
-		options: ["Item's last update", "Time attached to the object"],
-		default: "Item's last update"
+		options: ["First seen/Last seen", "MISP Timestamp"],
+		default: "First seen/Last seen"
 	});
 	menu_scope_timeline.add_select({
 		id: "select_timeline_scope_jsonkey",
@@ -180,6 +296,14 @@ function init_popover() {
 		id: 'checkbox_timeline_allow_edit',
 		label: "Edit Object's time",
 		title: "Allow to edit the time attached to the object",
+		event: function(value) {
+			console.log(value);
+		}
+	});
+	menu_display_timeline.add_checkbox({
+		id: 'checkbox_timeline_display_hide_not_seen_enabled',
+		label: "Hide first seen not set",
+		title: "Hide items that does not have first seen sets",
 		event: function(value) {
 			console.log(value);
 		}

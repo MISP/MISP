@@ -446,20 +446,6 @@ class Attribute extends AppModel {
 				'rule' => array('inList', array('0', '1', '2', '3', '4', '5')),
 				'message' => 'Options: Your organisation only, This community only, Connected communities, All communities, Sharing group, Inherit event',
 				'required' => true
-		),
-		'first_seen' => array(
-			'numeric' => array(
-				'rule' => array('numeric')
-			),
-			'message' => 'The time in nano-seconds where the attribute was first seen',
-			'required' => false
-		),
-		'last_seen' => array(
-			'numeric' => array(
-				'rule' => array('numeric')
-			),
-			'message' => 'The time in nano-seconds where the attribute was last seen',
-			'required' => false
 		)
 	);
 
@@ -3294,22 +3280,5 @@ class Attribute extends AppModel {
 			$adata['validationIssue'] = true;
 		}
 		return $adata;
-	}
-
-	public function setFirstSeen($attribute, $firstSeen) {
-		$attribute['first_seen'] = $firstSeen;
-		if (!$this->save(array('Attribute' => $attribute), array('fieldList' => array('first_seen')))) {
-			debug('Error');
-		} else {
-
-		}
-	}
-	public function setLastSeen($attribute, $lastSeen) {
-		$attribute['last_seen'] = $lastSeen;
-		if (!$this->save(array('Attribute' => $attribute), array('fieldList' => array('last_seen')))) {
-			debug('Error');
-		} else {
-
-		}
 	}
 }
