@@ -259,7 +259,7 @@ class StixBuilder(object):
                         observable.object_.related_objects.append(related_object)
             if to_ids:
                 indicator = Indicator(timestamp=self.get_date_from_timestamp(int(misp_object.timestamp)))
-                indicator.id_ = "{}:MispObject-{}".format(namespace[1], misp_object.uuid)
+                indicator.id_ = "{}:MISPObject-{}".format(namespace[1], misp_object.uuid)
                 indicator.producer = self.set_prod(self.orgc_name)
                 for attribute in misp_object.attributes:
                     tlp_tags = self.merge_tags(tlp_tags, attribute)
