@@ -86,7 +86,6 @@ class AttributesController extends AppController {
 			}
 			if (!in_array($attribute['Event']['orgc_id'], $org_ids)) $org_ids[] = $attribute['Event']['orgc_id'];
 			if (!in_array($attribute['Event']['org_id'], $org_ids)) $org_ids[] = $attribute['Event']['org_id'];
-			$org_ids[$attribute['Event']['orgc_id']] = false;
 			if (!empty($attribute['AttributeTag'])) {
 				foreach ($attribute['AttributeTag'] as $k => $v) {
 					if (!in_array($v['tag_id'], $tag_ids)) $tag_ids[] = $v['tag_id'];
