@@ -117,14 +117,14 @@ class OrganisationsController extends AppController {
 					));
 					return $this->RestResponse->viewData($org, $this->response->type());
 				} else {
-					$this->Session->setFlash('The organisation has been successfully added.');
+					$this->Flash->success('The organisation has been successfully added.');
 					$this->redirect(array('admin' => false, 'action' => 'index'));
 				}
 			} else {
 				if ($this->_isRest()) {
 					return $this->RestResponse->saveFailResponse('Organisations', 'admin_add', false, $this->Organisation->validationErrors, $this->response->type());
 				} else {
-					$this->Session->setFlash('The organisation could not be added.');
+					$this->Flash->error('The organisation could not be added.');
 				}
 			}
 		} else {
@@ -175,7 +175,7 @@ class OrganisationsController extends AppController {
 					));
 					return $this->RestResponse->viewData($org, $this->response->type());
 				} else {
-					$this->Session->setFlash('Organisation updated.');
+					$this->Flash->success('Organisation updated.');
 					$this->redirect(array('admin' => false, 'action' => 'view', $this->Organisation->id));
 				}
 			} else {
@@ -190,7 +190,7 @@ class OrganisationsController extends AppController {
 						));
 						$this->set('duplicate_org', $duplicate_org['Organisation']['id']);
 					}
-					$this->Session->setFlash('The organisation could not be updated.');
+					$this->Flash->error('The organisation could not be updated.');
 				}
 			}
 		} else {
@@ -224,14 +224,14 @@ class OrganisationsController extends AppController {
 			if ($this->_isRest()) {
 				return $this->RestResponse->saveSuccessResponse('Organisations', 'admin_delete', $id, $this->response->type());
 			} else {
-				$this->Session->setFlash(__('Organisation deleted'));
+				$this->Flash->success(__('Organisation deleted'));
 				$this->redirect($url);
 			}
 		} else {
 			if ($this->_isRest()) {
 				return $this->RestResponse->saveFailResponse('Organisations', 'admin_delete', $id, $this->Organisation->validationErrors, $this->response->type());
 			} else {
-				$this->Session->setFlash(__('Organisation could not be deleted. Generally organisations should never be deleted, instead consider moving them to the known remote organisations list. Alternatively, if you are certain that you would like to remove an organisation and are aware of the impact, make sure that there are no users or events still tied to this organisation before deleting it.'));
+				$this->Flash->error(__('Organisation could not be deleted. Generally organisations should never be deleted, instead consider moving them to the known remote organisations list. Alternatively, if you are certain that you would like to remove an organisation and are aware of the impact, make sure that there are no users or events still tied to this organisation before deleting it.'));
 				$this->redirect($url);
 			}
 		}
@@ -370,10 +370,10 @@ class OrganisationsController extends AppController {
 		if ($this->request->is('Post')) {
 			$result = $this->Organisation->orgMerge($id, $this->request->data, $this->Auth->user());
 			if ($result) {
-				$this->Session->setFlash('The organisation has been successfully merged.');
+				$this->Flash->success('The organisation has been successfully merged.');
 				$this->redirect(array('admin' => false, 'action' => 'view', $result));
 			}
-			else $this->Session->setFlash('There was an error while merging the organisations. To find out more about what went wrong, refer to the audit logs. If you would like to revert the changes, you can find a .sql file ');
+			else $this->Flash->error('There was an error while merging the organisations. To find out more about what went wrong, refer to the audit logs. If you would like to revert the changes, you can find a .sql file ');
 			$this->redirect(array('admin' => false, 'action' => 'index'));
 		} else {
 			$currentOrg = $this->Organisation->find('first', array('fields' => array('id', 'name', 'uuid', 'local'), 'recursive' => -1, 'conditions' => array('Organisation.id' => $id)));

@@ -180,9 +180,9 @@ class GalaxyClustersController extends AppController {
 			$date = new DateTime();
 			$event['Event']['timestamp'] = $date->getTimestamp();
 			$this->Event->save($event);
-			$this->Session->setFlash('Galaxy attached.');
+			$this->Flash->success('Galaxy attached.');
 		} else {
-			$this->Session->setFlash('Galaxy already attached.');
+			$this->Flash->error('Galaxy already attached.');
 		}
 		$this->redirect($this->referer());
 	}
@@ -230,7 +230,7 @@ class GalaxyClustersController extends AppController {
 		}
 
 		if (empty($existingTargetTag)) {
-			$this->Session->setFlash('Galaxy not attached.');
+			$this->Flash->error('Galaxy not attached.');
 		} else {
 			$cluster = $this->GalaxyCluster->find('first', array(
 				'recursive' => -1,
@@ -246,7 +246,7 @@ class GalaxyClustersController extends AppController {
 				$date = new DateTime();
 				$event['Event']['timestamp'] = $date->getTimestamp();
 				$this->Event->save($event);
-				$this->Session->setFlash('Galaxy successfully detached.');
+				$this->Flash->success('Galaxy successfully detached.');
 				$this->Log = ClassRegistry::init('Log');
 				$this->Log->create();
 				$this->Log->save(array(
@@ -259,7 +259,7 @@ class GalaxyClustersController extends AppController {
 					'change' => ''
 				));
 			} else {
-				$this->Session->setFlash('Could not detach galaxy from event.');
+				$this->Flash->error('Could not detach galaxy from event.');
 			}
 		}
 		$this->redirect($this->referer());

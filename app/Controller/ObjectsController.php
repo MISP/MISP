@@ -202,7 +202,7 @@ class ObjectsController extends AppController {
 					}
 				} else {
 					if (is_numeric($result)) {
-						$this->Session->setFlash('Object saved.');
+						$this->Flash->success('Object saved.');
 						$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
 					}
 				}
@@ -218,7 +218,7 @@ class ObjectsController extends AppController {
 			}
 		} else {
 			if (!empty($error)) {
-				$this->Session->setFlash($error);
+				$this->Flash->error($error);
 			}
 			$template = $this->MispObject->prepareTemplate($template, $this->request->data);
 			$enabledRows = array_keys($template['ObjectTemplateElement']);
@@ -298,7 +298,7 @@ class ObjectsController extends AppController {
 			)
 		));
 		if (empty($template)) {
-			$this->Session->setFlash('Object cannot be edited, no valid template found.');
+			$this->Flash->error('Object cannot be edited, no valid template found.');
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
 		}
 		$template = $this->MispObject->prepareTemplate($template, $object);
@@ -334,7 +334,7 @@ class ObjectsController extends AppController {
 					}
 				} else {
 					$this->MispObject->Event->unpublishEvent($object['Object']['event_id']);
-					$this->Session->setFlash('Object saved.');
+					$this->Flash->success('Object saved.');
 					$this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
 				}
 			}
@@ -426,7 +426,7 @@ class ObjectsController extends AppController {
 						$this->response->type()
 					);
 				} else {
-					$this->Session->setFlash($message);
+					$this->Flash->success($message);
 					$this->redirect(array('controller' => 'events', 'action' => 'view', $object['Event']['id']));
 				}
 			} else {
@@ -453,7 +453,7 @@ class ObjectsController extends AppController {
 						$this->response->type()
 					);
 				} else {
-					$this->Session->setFlash($message);
+					$this->Flash->error($message);
 					$this->redirect(array('controller' => 'events', 'action' => 'view', $object['Event']['id']));
 				}
 			}
@@ -740,7 +740,7 @@ class ObjectsController extends AppController {
 			file_put_contents(APP . 'files/scripts/tmp/object_recovery_' . time() . '.sql', implode("\n", $counterQueries));
 			$this->MispObject->query(implode("\n", $queries));
 			$message = '';
-			$this->Session->setFlash(__('%s objects successfully reconstructed.', $success));
+			$this->Flash->success(__('%s objects successfully reconstructed.', $success));
 			$this->redirect('/objects/orphanedObjectDiagnostics');
 		}
 		$this->set('captured', $capturedObjects);

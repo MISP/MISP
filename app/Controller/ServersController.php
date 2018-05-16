@@ -179,7 +179,7 @@ class ServersController extends AppController {
 				if($this->_isRest()) {
 					return $this->RestResponse->saveFailResponse('Servers', 'add', false, array('pull_rules' => $error_msg), $this->response->type());
 				} else {
-					$this->Session->setFlash($error_msg);
+					$this->Flash->error($error_msg);
 				}
 			}
 
@@ -189,7 +189,7 @@ class ServersController extends AppController {
 				if($this->_isRest()) {
 					return $this->RestResponse->saveFailResponse('Servers', 'add', false, array('push_rules' => $error_msg), $this->response->type());
 				} else {
-					$this->Session->setFlash($error_msg);
+					$this->Flash->error($error_msg);
 				}
 			}
 
@@ -239,7 +239,7 @@ class ServersController extends AppController {
 						));
 						if (!empty($existingOrgs)) {
 							$fail = true;
-							$this->Session->setFlash(__('That organisation could not be created as the uuid is in use already.'));
+							$this->Flash->error(__('That organisation could not be created as the uuid is in use already.'));
 						}
 						if (!$fail) {
 							$this->Server->Organisation->create();
@@ -251,7 +251,7 @@ class ServersController extends AppController {
 							));
 
 							if (!$orgSave) {
-								$this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format? Also, make sure the organisation\'s name doesn\'t clash with an existing one.'));
+								$this->Flash->error(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format? Also, make sure the organisation\'s name doesn\'t clash with an existing one.'));
 								$fail = true;
 								$this->request->data['Server']['external_name'] = $json['name'];
 								$this->request->data['Server']['external_uuid'] = $json['uuid'];
@@ -280,14 +280,14 @@ class ServersController extends AppController {
 							));
 							return $this->RestResponse->viewData($server, $this->response->type());
 						} else {
-							$this->Session->setFlash(__('The server has been saved'));
+							$this->Flash->success(__('The server has been saved'));
 							$this->redirect(array('action' => 'index'));
 						}
 					} else {
 						if($this->_isRest()) {
 							return $this->RestResponse->saveFailResponse('Servers', 'add', false, $this->Server->validationError, $this->response->type());
 						} else {
-							$this->Session->setFlash(__('The server could not be saved. Please, try again.'));
+							$this->Flash->error(__('The server could not be saved. Please, try again.'));
 						}
 					}
 				}
@@ -362,7 +362,7 @@ class ServersController extends AppController {
 				if($this->_isRest()) {
 					return $this->RestResponse->saveFailResponse('Servers', 'edit', false, array('pull_rules' => $error_msg), $this->response->type());
 				} else {
-					$this->Session->setFlash($error_msg);
+					$this->Flash->error($error_msg);
 				}
 			}
 
@@ -372,7 +372,7 @@ class ServersController extends AppController {
 				if($this->_isRest()) {
 					return $this->RestResponse->saveFailResponse('Servers', 'edit', false, array('push_rules' => $error_msg), $this->response->type());
 				} else {
-					$this->Session->setFlash($error_msg);
+					$this->Flash->error($error_msg);
 				}
 			}
 			if (!$fail) {
@@ -395,7 +395,7 @@ class ServersController extends AppController {
 							if($this->_isRest()) {
 								return $this->RestResponse->saveFailResponse('Servers', 'edit', false, array('Organisation' => 'Remote Organisation\'s uuid already used'), $this->response->type());
 							} else {
-								$this->Session->setFlash(__('That organisation could not be created as the uuid is in use already.'));
+								$this->Flash->error(__('That organisation could not be created as the uuid is in use already.'));
 							}
 						}
 
@@ -412,7 +412,7 @@ class ServersController extends AppController {
 								if($this->_isRest()) {
 									return $this->RestResponse->saveFailResponse('Servers', 'edit', false, $this->Server->Organisation->validationError, $this->response->type());
 								} else {
-									$this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
+									$this->Flash->error(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
 								}
 								$fail = true;
 								$this->request->data['Server']['external_name'] = $json['name'];
@@ -447,14 +447,14 @@ class ServersController extends AppController {
 						));
 						return $this->RestResponse->viewData($server, $this->response->type());
 					} else {
-						$this->Session->setFlash(__('The server has been saved'));
+						$this->Flash->success(__('The server has been saved'));
 						$this->redirect(array('action' => 'index'));
 					}
 				} else {
 					if($this->_isRest()) {
 						return $this->RestResponse->saveFailResponse('Servers', 'edit', false, $this->Server->validationError, $this->response->type());
 					} else {
-						$this->Session->setFlash(__('The server could not be saved. Please, try again.'));
+						$this->Flash->error(__('The server could not be saved. Please, try again.'));
 					}
 				}
 			}
@@ -522,10 +522,10 @@ class ServersController extends AppController {
 		$s = $this->Server->read(null, $id);
 		if (!$this->_isSiteAdmin()) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if ($this->Server->delete()) {
-			$this->Session->setFlash(__('Server deleted'));
+			$this->Flash->success(__('Server deleted'));
 			$this->redirect(array('action' => 'index'));
 		}
-		$this->Session->setFlash(__('Server was not deleted'));
+		$this->Flash->error(__('Server was not deleted'));
 		$this->redirect(array('action' => 'index'));
 	}
 
@@ -549,7 +549,7 @@ class ServersController extends AppController {
 		}
 
 		if (false == $this->Server->data['Server']['pull'] && ($technique == 'full' || $technique == 'incremental')) {
-			$this->Session->setFlash(__('Pull setting not enabled for this server.'));
+			$this->Flash->info(__('Pull setting not enabled for this server.'));
 			$this->redirect(array('action' => 'index'));
 		}
 		if (!Configure::read('MISP.background_jobs')) {
@@ -558,10 +558,10 @@ class ServersController extends AppController {
 			if (isset($result[0]) && is_numeric($result[0])) {
 				switch ($result[0]) {
 					case '1' :
-						$this->Session->setFlash(__('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting.'));
+						$this->Flash->error(__('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting.'));
 						break;
 					case '2' :
-						$this->Session->setFlash($result[1]);
+						$this->Flash->error($result[1]);
 						break;
 					case '3' :
 						throw new NotFoundException('Sorry, this is not yet implemented');
@@ -597,7 +597,7 @@ class ServersController extends AppController {
 					array('pull', $this->Auth->user('id'), $id, $technique, $jobId)
 			);
 			$this->Job->saveField('process_id', $process_id);
-			$this->Session->setFlash('Pull queued for background execution.');
+			$this->Flash->success('Pull queued for background execution.');
 			$this->redirect($this->referer());
 		}
 	}
@@ -616,7 +616,7 @@ class ServersController extends AppController {
 			$HttpSocket = $syncTool->setupHttpSocket($server);
 			$result = $this->Server->push($id, $technique, false, $HttpSocket, $this->Auth->user());
 			if ($result === false) {
-				$this->Session->setFlash('The remote server is too outdated to initiate a push towards it. Please notify the hosting organisation of the remote instance.');
+				$this->Flash->info('The remote server is too outdated to initiate a push towards it. Please notify the hosting organisation of the remote instance.');
 				$this->redirect(array('action' => 'index'));
 			}
 			$this->set('successes', $result[0]);
@@ -641,7 +641,7 @@ class ServersController extends AppController {
 					array('push', $this->Auth->user('id'), $id, $jobId)
 			);
 			$this->Job->saveField('process_id', $process_id);
-			$this->Session->setFlash('Push queued for background execution.');
+			$this->Flash->success('Push queued for background execution.');
 			$this->redirect(array('action' => 'index'));
 		}
 	}
@@ -669,7 +669,7 @@ class ServersController extends AppController {
 					$file = new File($server['Server'][$subm]['name']);
 					$ext = $file->ext();
 					if (($ext != 'pem') || !$server['Server'][$subm]['size'] > 0) {
-						$this->Session->setFlash('Incorrect extension or empty file.');
+						$this->Flash->error('Incorrect extension or empty file.');
 						$this->redirect(array('action' => 'index'));
 					}
 
@@ -1178,13 +1178,13 @@ class ServersController extends AppController {
 			App::uses('File', 'Utility');
 			$existingFile = new File($validItems[$type]['path'] . DS . $filename);
 			if (!$existingFile->exists()) {
-				$this->Session->setFlash(__('File not found.', true), 'default', array(), 'error');
+				$this->Flash->error(__('File not found.', true), 'default', array(), 'error');
 				$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'files'));
 			}
 			if ($existingFile->delete()) {
-				$this->Session->setFlash('File deleted.');
+				$this->Flash->success('File deleted.');
 			} else {
-				$this->Session->setFlash(__('File could not be deleted.', true), 'default', array(), 'error');
+				$this->Flash->error(__('File could not be deleted.', true), 'default', array(), 'error');
 			}
 			$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'files'));
 		} else {
@@ -1200,11 +1200,11 @@ class ServersController extends AppController {
 		// only keep the last part of the filename, this should prevent directory attacks
 		$filename = basename($this->request->data['Server']['file']['name']);
 		if (!preg_match("/" . $validItems[$type]['regex'] . "/", $filename)) {
-			$this->Session->setFlash(__($validItems[$type]['regex_error'], true), 'default', array(), 'error');
+			$this->Flash->error(__($validItems[$type]['regex_error'], true), 'default', array(), 'error');
 			$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'files'));
 		}
 		if (empty($this->request->data['Server']['file']['tmp_name']) || !is_uploaded_file($this->request->data['Server']['file']['tmp_name'])) {
-			$this->Session->setFlash(__('Upload failed.', true), 'default', array(), 'error');
+			$this->Flash->error(__('Upload failed.', true), 'default', array(), 'error');
 			$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'files'));
 		}
 
@@ -1212,15 +1212,15 @@ class ServersController extends AppController {
 		App::uses('File', 'Utility');
 		$existingFile = new File($validItems[$type]['path'] . DS . $filename);
 		if ($existingFile->exists()) {
-			$this->Session->setFlash(__('File already exists. If you would like to replace it, remove the old one first.', true), 'default', array(), 'error');
+			$this->Flash->info(__('File already exists. If you would like to replace it, remove the old one first.', true), 'default', array(), 'error');
 			$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'files'));
 		}
 
 		$result = move_uploaded_file($this->request->data['Server']['file']['tmp_name'], $validItems[$type]['path'] . DS . $filename);
 		if ($result) {
-			$this->Session->setFlash('File uploaded.');
+			$this->Flash->success('File uploaded.');
 		} else {
-			$this->Session->setFlash(__('Upload failed.', true), 'default', array(), 'error');
+			$this->Flash->error(__('Upload failed.', true), 'default', array(), 'error');
 		}
 		$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'files'));
 	}
@@ -1366,7 +1366,7 @@ class ServersController extends AppController {
 	public function purgeSessions() {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		if ($this->Server->updateDatabase('cleanSessionTable') == false) {
-			$this->Session->setFlash('Could not purge the session table.');
+			$this->Flash->error('Could not purge the session table.');
 		}
 		$this->redirect('/servers/serverSettings/diagnostics');
 	}
@@ -1377,7 +1377,7 @@ class ServersController extends AppController {
 		if (!in_array($worker, $worker_array)) throw new MethodNotAllowedException('Invalid worker');
 		$redis = Resque::redis();
 		$redis->del('queue:' . $worker);
-		$this->Session->setFlash('Queue cleared.');
+		$this->Flash->success('Queue cleared.');
 		$this->redirect($this->referer());
 	}
 

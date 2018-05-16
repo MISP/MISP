@@ -93,7 +93,7 @@ class UsersController extends AppController {
 			$abortPost = false;
 			if (!$this->_isSiteAdmin() && !empty($this->request->data['User']['email'])) {
 				$organisation = $this->User->Organisation->find('first', array(
-					'conditions' => array('Organisation.id' => $userToEdit['User']['org_id']),
+					'conditions' => array('Organisation.id' => $this->Auth->user('org_id')),
 					'recursive' => -1
 				));
 				if (!empty($organisation['Organisation']['restricted_to_domain'])) {
@@ -107,7 +107,7 @@ class UsersController extends AppController {
 							$abortPost = false;
 						}
 					}
-					if ($abortPost) $this->Session->setFlash(__('Invalid e-mail domain. Your user is restricted to creating users for the following domain(s): ') . implode(', ', $organisation['Organisation']['restricted_to_domain']));
+					if ($abortPost) $this->Flash->error(__('Invalid e-mail domain. Your user is restricted to creating users for the following domain(s): ') . implode(', ', $organisation['Organisation']['restricted_to_domain']));
 				}
 			}
 			if (!$abortPost && !$this->_isRest()) {
@@ -116,12 +116,12 @@ class UsersController extends AppController {
 						$hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['current_password']);
 						if (!$hashed) {
 							$abortPost = true;
-							$this->Session->setFlash('Invalid password. Please enter your current password to continue.');
+							$this->Flash->error('Invalid password. Please enter your current password to continue.');
 						}
 						unset($this->request->data['User']['current_password']);
 					} else {
 						$abortPost = true;
-						$this->Session->setFlash('Please enter your current password to continue.');
+						$this->Flash->info('Please enter your current password to continue.');
 					}
 				}
 			}
@@ -132,11 +132,11 @@ class UsersController extends AppController {
 					$fieldList[] = 'password';
 				// Save the data
 				if ($this->User->save($this->request->data, true ,$fieldList)) {
-					$this->Session->setFlash(__('The profile has been updated'));
+					$this->Flash->success(__('The profile has been updated'));
 					$this->_refreshAuth();
 					$this->redirect(array('action' => 'view', $id));
 				} else {
-					$this->Session->setFlash(__('The profile could not be updated. Please, try again.'));
+					$this->Flash->error(__('The profile could not be updated. Please, try again.'));
 				}
 			}
 		} else {
@@ -164,12 +164,12 @@ class UsersController extends AppController {
 					$hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['current_password']);
 					if (!$hashed) {
 						$abortPost = true;
-						$this->Session->setFlash('Invalid password. Please enter your current password to continue.');
+						$this->Flash->error('Invalid password. Please enter your current password to continue.');
 					}
 					unset($this->request->data['User']['current_password']);
 				} else {
 					$abortPost = true;
-					$this->Session->setFlash('Please enter your current password to continue.');
+					$this->Flash->info('Please enter your current password to continue.');
 				}
 			}
 			if (!$abortPost) {
@@ -180,12 +180,12 @@ class UsersController extends AppController {
 				$temp = $user['User']['password'];
 				// Save the data
 				if ($this->User->save($user)) {
-					$this->Session->setFlash(__('Password Changed.'));
+					$this->Flash->success(__('Password Changed.'));
 					$this->_refreshAuth();
 					$this->__extralog("change_pw");
 					$this->redirect(array('action' => 'view', $id));
 				} else {
-					$this->Session->setFlash(__('The password could not be updated. Make sure you meet the minimum password length / complexity requirements.'));
+					$this->Flash->error(__('The password could not be updated. Make sure you meet the minimum password length / complexity requirements.'));
 				}
 			}
 		}
@@ -515,7 +515,7 @@ class UsersController extends AppController {
 							$fail = false;
 						}
 					}
-					if ($abortPost) $this->Session->setFlash(__('Invalid e-mail domain. Your user is restricted to creating users for the following domain(s): ') . implode(', ', $organisation['Organisation']['restricted_to_domain']));
+					if ($abortPost) $this->Flash->error(__('Invalid e-mail domain. Your user is restricted to creating users for the following domain(s): ') . implode(', ', $organisation['Organisation']['restricted_to_domain']));
 				}
 			}
 			if (!$fail) {
@@ -525,7 +525,7 @@ class UsersController extends AppController {
 					} else {
 						// reset auth key for a new user
 						$this->set('authkey', $this->newkey);
-						$this->Session->setFlash(__('The user could not be saved. Invalid organisation.'));
+						$this->Flash->error(__('The user could not be saved. Invalid organisation.'));
 					}
 				} else {
 					$fieldList = array('password', 'email', 'external_auth_required', 'external_auth_key', 'enable_password', 'confirm_password', 'org_id', 'role_id', 'authkey', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'invited_by', 'change_pw', 'termsaccepted', 'newsread', 'date_created', 'date_modified');
@@ -547,7 +547,7 @@ class UsersController extends AppController {
 							$user['User']['password'] = '******';
 							return $this->RestResponse->viewData($user, $this->response->type());
 						} else {
-							$this->Session->setFlash(__('The user has been saved.' . $notification_message));
+							$this->Flash->success(__('The user has been saved.' . $notification_message));
 							$this->redirect(array('action' => 'index'));
 						}
 					} else {
@@ -556,7 +556,7 @@ class UsersController extends AppController {
 						} else {
 							// reset auth key for a new user
 							$this->set('authkey', $this->newkey);
-							$this->Session->setFlash(__('The user could not be saved. Please, try again.'));
+							$this->Flash->error(__('The user could not be saved. Please, try again.'));
 						}
 					}
 				}
@@ -641,12 +641,12 @@ class UsersController extends AppController {
 						$hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['current_password']);
 						if (!$hashed) {
 							$abortPost = true;
-							$this->Session->setFlash('Invalid password. Please enter your current password to continue.');
+							$this->Flash->error('Invalid password. Please enter your current password to continue.');
 						}
 						unset($this->request->data['User']['current_password']);
 					} else {
 						$abortPost = true;
-						$this->Session->setFlash('Please enter your current password to continue.');
+						$this->Flash->info('Please enter your current password to continue.');
 					}
 				}
 			}
@@ -667,7 +667,7 @@ class UsersController extends AppController {
 							$abortPost = false;
 						}
 					}
-					if ($abortPost) $this->Session->setFlash(__('Invalid e-mail domain. Your user is restricted to creating users for the following domain(s): ') . implode(', ', $organisation['Organisation']['restricted_to_domain']));
+					if ($abortPost) $this->Flash->error(__('Invalid e-mail domain. Your user is restricted to creating users for the following domain(s): ') . implode(', ', $organisation['Organisation']['restricted_to_domain']));
 				}
 			}
 			if (!$abortPost) {
@@ -761,7 +761,7 @@ class UsersController extends AppController {
 						$user['User']['password'] = '******';
 						return $this->RestResponse->viewData($user, $this->response->type());
 					} else {
-						$this->Session->setFlash(__('The user has been saved'));
+						$this->Flash->success(__('The user has been saved'));
 						$this->_refreshAuth(); // in case we modify ourselves
 						$this->redirect(array('action' => 'index'));
 					}
@@ -769,7 +769,7 @@ class UsersController extends AppController {
 					if ($this->_isRest()) {
 						return $this->RestResponse->saveFailResponse('Users', 'admin_edit', $id, $this->User->validationErrors, $this->response->type());
 					} else {
-						$this->Session->setFlash(__('The user could not be saved. Please, try again.'));
+						$this->Flash->error(__('The user could not be saved. Please, try again.'));
 					}
 				}
 			}
@@ -833,11 +833,11 @@ class UsersController extends AppController {
 			if ($this->_isRest()) {
 				return $this->RestResponse->saveSuccessResponse('User', 'admin_delete', $id, $this->response->type(), 'User deleted.');
 			} else {
-				$this->Session->setFlash(__('User deleted'));
+				$this->Flash->success(__('User deleted'));
 				$this->redirect(array('action' => 'index'));
 			}
 		}
-		$this->Session->setFlash(__('User was not deleted'));
+		$this->Flash->error(__('User was not deleted'));
 		$this->redirect(array('action' => 'index'));
 	}
 
@@ -909,7 +909,7 @@ class UsersController extends AppController {
 			}
 			// don't display "invalid user" before first login attempt
 			if ($this->request->is('post')) {
-				$this->Session->setFlash(__('Invalid username or password, try again'));
+				$this->Flash->error(__('Invalid username or password, try again'));
 				if (isset($this->request->data['User']['email'])) {
 					$this->Bruteforce->insert($_SERVER['REMOTE_ADDR'], $this->request->data['User']['email']);
 				}
@@ -1007,7 +1007,7 @@ class UsersController extends AppController {
 		if ($this->Session->check('Auth.User')) { // TODO session, user is logged in, so ..
 			$this->__extralog("logout");	// TODO Audit, __extralog, check: customLog i.s.o. __extralog, $this->User->customLog('logout', $this->Auth->user('id'), array());
 		}
-		$this->Session->setFlash(__('Good-Bye'));
+		$this->Flash->info(__('Good-Bye'));
 		$user = $this->User->find('first', array(
 			'conditions' => array(
 				'User.id' => $this->Auth->user('id')
@@ -1047,7 +1047,7 @@ class UsersController extends AppController {
 				$fieldsResult = 'authkey(' . $oldKey . ') => (' . $newkey . ')'
 		);
 		if (!$this->_isRest()) {
-			$this->Session->setFlash(__('New authkey generated.', true));
+			$this->Flash->success(__('New authkey generated.', true));
 			$this->_refreshAuth();
 			$this->redirect($this->referer());
 		} else {
@@ -1142,7 +1142,7 @@ class UsersController extends AppController {
 			$this->User->id = $this->Auth->user('id');
 			$this->User->saveField('termsaccepted', true);
 			$this->_refreshAuth(); // refresh auth info
-			$this->Session->setFlash(__('You accepted the Terms and Conditions.'));
+			$this->Flash->success(__('You accepted the Terms and Conditions.'));
 			$this->redirect(array('action' => 'routeafterlogin'));
 		}
 		$this->set('termsaccepted', $this->Auth->user('termsaccepted'));
@@ -1246,7 +1246,7 @@ class UsersController extends AppController {
 			if ($this->_isRest()) {
 				return $this->RestResponse->saveFailResponse('Users', 'admin_quickEmail', false, $error, $this->response->type());
 			} else {
-				$this->Session->setFlash('Cannot send an e-mail to this user as the account is disabled.');
+				$this->Flash->error('Cannot send an e-mail to this user as the account is disabled.');
 				$this->redirect('/admin/users/view/' . $user_id);
 			}
 		}
@@ -1259,7 +1259,7 @@ class UsersController extends AppController {
 				if ($this->_isRest()) {
 					throw new MethodNotAllowedException($message);
 				} else {
-					$this->Session->setFlash($message);
+					$this->Flash->error($message);
 					$this->redirect('/admin/users/quickEmail/' . $user_id);
 				}
 			}
@@ -1272,9 +1272,9 @@ class UsersController extends AppController {
 				}
 			} else {
 				if ($result) {
-					$this->Session->setFlash('Email sent.');
+					$this->Flash->success('Email sent.');
 				} else {
-					$this->Session->setFlash('Could not send e-mail.');
+					$this->Flash->error('Could not send e-mail.');
 				}
 				$this->redirect('/admin/users/view/' . $user_id);
 			}
@@ -1312,8 +1312,8 @@ class UsersController extends AppController {
 					$failures .= $user['User']['email'];
 				}
 			}
-			if ($failures != '') $this->Session->setFlash(__('E-mails sent, but failed to deliver the messages to the following recipients: ' . $failures));
-			else $this->Session->setFlash(__('E-mails sent.'));
+			if ($failures != '') $this->Flash->success(__('E-mails sent, but failed to deliver the messages to the following recipients: ' . $failures));
+			else $this->Flash->success(__('E-mails sent.'));
 		}
 		$conditions = array();
 		if (!$this->_isSiteAdmin()) $conditions = array('org_id' => $this->Auth->user('org_id'));

@@ -50,23 +50,13 @@
 			<?php echo $this->element('global_menu');
 			    $padding_top = 10;
 			    if ($debugMode == 'debugOff') $padding_top = 50;
-			?>
-		<div id="main-view-container" class="container-fluid <?php echo $debugMode; ?>-layout">
-			<?php
-				$has_flash = false;
-			    $flash = array();
-			    $flash[] = $this->Session->flash('email');
-			    $flash[] = $this->Session->flash();
-			    $flash[] = $this->Session->flash('gpg');
-			    $flash[] = $this->Session->flash('error');
-			    $flash[] = $this->Session->flash('auth');
-			    foreach ($flash as $f) {
-					if ($f) {
-						echo $f;
-						$has_flash = true;
-						continue;
-					}
-	            }
+					$flashMessages = $this->Session->read('Message.flash');
+
+					$contents = '';
+					$texts = array();
+					echo sprintf('<div id="main-view-container" class="container-fluid %s-layout">', $debugMode);
+					echo $this->Flash->render();
+					echo '</div>';
 			?>
 		</div>
 		<?php
@@ -74,7 +64,7 @@
 			if (Configure::read('debug') > 1) {
 				$topGap = 10;
 			} else {
-				if ($has_flash) $topGap += 50;
+				if ($flash) $topGap += 50;
 			}
 		?>
 		<div style="padding-top:<?php echo $topGap; ?>px !important;">

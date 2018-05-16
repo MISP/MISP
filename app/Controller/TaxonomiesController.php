@@ -95,7 +95,7 @@ class TaxonomiesController extends AppController {
 		if ($this->_isRest()) {
 			return $this->RestResponse->saveSuccessResponse('Taxonomy', 'enable', $id, $this->response->type());
 		} else {
-			$this->Session->setFlash('Taxonomy enabled.');
+			$this->Flash->success('Taxonomy enabled.');
 			$this->redirect($this->referer());
 		}
 	}
@@ -123,7 +123,7 @@ class TaxonomiesController extends AppController {
 		if ($this->_isRest()) {
 			return $this->RestResponse->saveSuccessResponse('Taxonomy', 'disable', $id, $this->response->type());
 		} else {
-			$this->Session->setFlash('Taxonomy disabled.');
+			$this->Flash->success('Taxonomy disabled.');
 			$this->redirect($this->referer());
 		}
 	}
@@ -183,16 +183,21 @@ class TaxonomiesController extends AppController {
 			));
 		}
 		$message = '';
-		if ($successes == 0 && $fails == 0) $message = 'All taxonomy libraries are up to date already.';
-		else if ($successes == 0) $message = 'Could not update any of the taxonomy libraries';
-		else {
+		if ($successes == 0 && $fails == 0) {
+			$flashType = 'info';
+			$message = 'All taxonomy libraries are up to date already.';
+		}	else if ($successes == 0) {
+			$flashType = 'error';
+			$message = 'Could not update any of the taxonomy libraries';
+		}	else {
+			$flashType = 'success';
 			$message = 'Successfully updated ' . $successes . ' taxonomy libraries.';
 			if ($fails != 0) $message .= ' However, could not update ' . $fails . ' taxonomy libraries.';
 		}
 		if ($this->_isRest()) {
 			return $this->RestResponse->saveSuccessResponse('Taxonomy', 'update', false, $this->response->type(), $message);
 		} else {
-			$this->Session->setFlash($message);
+			$this->Flash->{$flashType}($message);
 			$this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
 		}
 	}
@@ -212,9 +217,9 @@ class TaxonomiesController extends AppController {
 			$result = $this->Taxonomy->addTags($this->request->data['Tag']['taxonomy_id'], $this->request->data['Tag']['nameList']);
 		}
 		if ($result) {
-			$this->Session->setFlash('The tag(s) has been saved.');
+			$this->Flash->success('The tag(s) has been saved.');
 		} else {
-			$this->Session->setFlash('The tag(s) could not be saved. Please, try again.');
+			$this->Flash->error('The tag(s) could not be saved. Please, try again.');
 		}
 		$this->redirect($this->referer());
 	}
@@ -233,7 +238,11 @@ class TaxonomiesController extends AppController {
 			else $this->request->data['Tag']['nameList'] = json_decode($this->request->data['Tag']['nameList'], true);
 			$result = $this->Taxonomy->disableTags($this->request->data['Tag']['taxonomy_id'], $this->request->data['Tag']['nameList']);
 		}
-		$this->Session->setFlash($result ? 'The tag(s) has been hidden.' : 'The tag(s) could not be hidden. Please, try again.');
+		if ($result) {
+			$this->Flash->success('The tag(s) has been hidden.');
+		} else {
+			$this->Flash->error('The tag(s) could not be hidden. Please, try again.');
+		}
 		$this->redirect($this->referer());
 	}
 
@@ -247,10 +256,10 @@ class TaxonomiesController extends AppController {
 		if ($this->request->is('post')) {
 			$result = $this->Taxonomy->delete($id, true);
 			if ($result) {
-				$this->Session->setFlash('Taxonomy successfuly deleted.');
+				$this->Flash->success('Taxonomy successfuly deleted.');
 				$this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
 			} else {
-				$this->Session->setFlash('Taxonomy could not be deleted.');
+				$this->Flash->error('Taxonomy could not be deleted.');
 				$this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
 			}
 		} else {

@@ -86,16 +86,21 @@ class WarninglistsController extends AppController {
 					'change' => 'Executed an update of the warning lists, but there was nothing to update.',
 			));
 		}
-		if ($successes == 0 && $fails == 0) $message = 'All warninglists are up to date already.';
-		else if ($successes == 0) $message = 'Could not update any of the warning lists';
-		else {
+		if ($successes == 0 && $fails == 0) {
+			$flashType = 'info';
+			$message = 'All warninglists are up to date already.';
+		}	else if ($successes == 0) {
+			$flashType = 'error';
+			$message = 'Could not update any of the warning lists';
+		} else {
+			$flashType = 'success';
 			$message = 'Successfully updated ' . $successes . ' warninglists.';
 			if ($fails != 0) $message . ' However, could not update ' . $fails . ' warning list.';
 		}
 		if ($this->_isRest()) {
 			return $this->RestResponse->saveSuccessResponse('Warninglist', 'update', false, $this->response->type(), $message);
 		} else {
-			$this->Session->setFlash($message);
+			$this->Flash->{$flashType}($message);
 			$this->redirect(array('controller' => 'warninglists', 'action' => 'index'));
 		}
 	}
@@ -127,7 +132,7 @@ class WarninglistsController extends AppController {
 		if ($enable === false) $enable = 0;
 		$this->Warninglist->saveField('enabled', $enable);
 		$this->Warninglist->regenerateWarninglistCaches($id);
-		$this->Session->setFlash('Warninglist enabled');
+		$this->Flash->success('Warninglist enabled');
 		$this->redirect(array('controller' => 'warninglists', 'action' => 'view', $id));
 	}
 
@@ -156,10 +161,10 @@ class WarninglistsController extends AppController {
 			$id = intval($id);
 			$result = $this->Warninglist->quickDelete($id);
 			if ($result) {
-				$this->Session->setFlash('Warninglist successfuly deleted.');
+				$this->Flash->success('Warninglist successfuly deleted.');
 				$this->redirect(array('controller' => 'warninglists', 'action' => 'index'));
 			} else {
-				$this->Session->setFlash('Warninglists could not be deleted.');
+				$this->Flash->error('Warninglists could not be deleted.');
 				$this->redirect(array('controller' => 'warninglists', 'action' => 'index'));
 			}
 		} else {

@@ -178,7 +178,7 @@ class TagsController extends AppController {
 					));
 					return $this->RestResponse->viewData($tag, $this->response->type());
 				}
-				$this->Session->setFlash('The tag has been saved.');
+				$this->Flash->success('The tag has been saved.');
 				$this->redirect(array('action' => 'index'));
 			} else {
 				if ($this->_isRest()) {
@@ -186,7 +186,7 @@ class TagsController extends AppController {
 					foreach ($this->Tag->validationErrors as $k => $v) $error_message .= '[' . $k . ']: ' . $v[0];
 					throw new MethodNotAllowedException('Could not add the Tag. ' . $error_message);
 				} else {
-					$this->Session->setFlash('The tag could not be saved. Please, try again.');
+					$this->Flash->error('The tag could not be saved. Please, try again.');
 				}
 			}
 		} elseif ($this->_isRest()) {
@@ -225,9 +225,9 @@ class TagsController extends AppController {
 		if ((!$this->_isSiteAdmin() && !$this->userRole['perm_tag_editor']) || !$this->request->is('post')) throw new NotFoundException('You don\'t have permission to do that.');
 		if (isset($this->request->data['Tag']['request'])) $this->request->data['Tag'] = $this->request->data['Tag']['request'];
 		if ($this->Tag->quickAdd($this->request->data['Tag']['name'])) {
-			$this->Session->setFlash('The tag has been saved.');
+			$this->Flash->success('The tag has been saved.');
 		} else {
-			$this->Session->setFlash('The tag could not be saved. Please, try again.');
+			$this->Flash->error('The tag could not be saved. Please, try again.');
 		}
 		$this->redirect($this->referer());
 	}
@@ -258,7 +258,7 @@ class TagsController extends AppController {
 					));
 					return $this->RestResponse->viewData($tag, $this->response->type());
 				}
-				$this->Session->setFlash('The Tag has been edited');
+				$this->Flash->success('The Tag has been edited');
 				$this->redirect(array('action' => 'index'));
 			} else {
 				if ($this->_isRest()) {
@@ -266,7 +266,7 @@ class TagsController extends AppController {
 					foreach ($this->Tag->validationErrors as $k => $v) $error_message .= '[' . $k . ']: ' . $v[0];
 					throw new MethodNotAllowedException('Could not add the Tag. ' . $error_message);
 				}
-				$this->Session->setFlash('The Tag could not be saved. Please, try again.');
+				$this->Flash->error('The Tag could not be saved. Please, try again.');
 			}
 		} elseif ($this->_isRest()) {
 			return $this->RestResponse->describe('Tag', 'edit', false, $this->response->type());
@@ -319,10 +319,10 @@ class TagsController extends AppController {
 				$this->set('url', '/tags/delete/' . $id);
 				$this->set('_serialize', array('name', 'message', 'url'));
 			}
-			$this->Session->setFlash(__('Tag deleted'));
+			$this->Flash->success(__('Tag deleted'));
 		} else {
 			if ($this->_isRest()) throw new MethodNotAllowedException('Could not delete the tag, or tag doesn\'t exist.');
-			$this->Session->setFlash(__('Tag was not deleted'));
+			$this->Flash->error(__('Tag was not deleted'));
 		}
 		if (!$this->_isRest()) $this->redirect(array('action' => 'index'));
 	}

@@ -340,9 +340,9 @@ class LogsController extends AppController {
 		}
 		$this->Log->pruneUpdateLogsRouter($this->Auth->user());
 		if (Configure::read('MISP.background_jobs')) {
-			$this->Session->setFlash('The pruning job is queued.');
+			$this->Flash->success('The pruning job is queued.');
 		} else {
-			$this->Session->setFlash('The pruning is complete.');
+			$this->Flash->success('The pruning is complete.');
 		}
 		$this->redirect($this->referer());
 	}
