@@ -37,6 +37,7 @@ from cybox.objects.as_object import AutonomousSystem
 from cybox.objects.socket_address_object import SocketAddress
 from cybox.objects.network_connection_object import NetworkConnection
 from cybox.objects.network_socket_object import NetworkSocket
+from cybox.objects.process_object import Process
 from cybox.objects.custom_object import Custom
 from cybox.common import Hash, ByteRun, ByteRuns
 from cybox.common.object_properties import CustomProperties,  Property
@@ -140,6 +141,7 @@ class StixBuilder(object):
                                  "ip-port": self.parse_ip_port_object,
                                  "network-connection": self.parse_network_connection_object,
                                  "network-socket": self.parse_network_socket_object,
+                                 "process": self.parse_process_object,
                                  "registry-key": self.parse_regkey_object,
                                  "url": self.parse_url_object,
                                  "x509": self.parse_x509_object
@@ -702,6 +704,31 @@ class StixBuilder(object):
         network_socket_object.parent.id_ = "{}:NetworkSocketObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(network_socket_object)
         observable.id_ = "{}:NetworkSocket-{}".format(self.namespace_prefix, uuid)
+        return to_ids, observable
+
+    def parse_process_object(self, attributes, uuid):
+        to_ids, attributes_dict = self.create_attributes_dict(attributes, multiple=True)
+        process_object = Process()
+        if 'creation-time' in attributes_dict:
+            process_object.creation_time = attributes_dict['creation-time'][0]['value']
+        if 'start-time' in attributes_dict:
+            process_object.start_time = attributes_dict['start-time'][0]['value']
+        if 'name' in attributes_dict:
+            process_object.name = attributes_dict['name'][0]['value']
+        if 'pid' in attributes_dict:
+            process_object.pid = attributes_dict['pid'][0]['value']
+        if 'parent-pid' in attributes_dict:
+            process_object.parent_pid = attributes_dict['parent-pid'][0]['value']
+        if 'child-pid' in attributes_dict:
+            # child-pid = attributes['child-pid']
+            for child in attributes['child-pid']:
+                process_object.child_pid_list.append(child['value'])
+        # if 'port' in attributes_dict:
+        #     for port in attributes['port']:
+        #         process_object.port_list.append(self.create_port_object(port['value']))
+        process_object.parent.id_ = "{}:ProcessObject-{}".format(self.namespace_prefix, uuid)
+        observable = Observable(process_object)
+        observable.id_ = "{}:Process-{}".format(self.namespace_prefix, uuid)
         return to_ids, observable
 
     def parse_regkey_object(self, attributes, uuid):
