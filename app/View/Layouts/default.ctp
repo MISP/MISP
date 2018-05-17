@@ -44,7 +44,7 @@
 		<?php
 			echo $this->element('global_menu');
 			$topPadding = '50';
-			if (!empty($debugMode)) {
+			if (!empty($debugMode) && $debugMode != 'debugOff') {
 				$topPadding = '0';
 			}
 		?>
