@@ -161,7 +161,10 @@ class FeedsController extends AppController {
 			}
 			if (empty($this->request->data['Feed']['input_source'])) {
 				$this->request->data['Feed']['input_source'] = 'network';
-			} else if (!in_array($this->request->data['Feed']['input_source'], array('network', 'file'))) {
+			} else {
+				$this->request->data['Feed']['input_source'] = strtolower($this->request->data['Feed']['input_source']);
+			}
+			if (!in_array($this->request->data['Feed']['input_source'], array('network', 'local'))) {
 				$this->request->data['Feed']['input_source'] = 'network';
 			}
 			if (!isset($this->request->data['Feed']['delete_local_file'])) {
@@ -179,13 +182,13 @@ class FeedsController extends AppController {
 					}
 					$this->Flash->success($message);
 					$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
-				}
-				else {
-					$messsage = __('Feed could not be added. Invalid field: %s', array_keys($this->Feed->validationErrors)[0]);
+				}	else {
+					$message = __('Feed could not be added. Invalid field: %s', array_keys($this->Feed->validationErrors)[0]);
 					if ($this->_isRest()) {
 						return $this->RestResponse->saveFailResponse('Feeds', 'add', false, $message, $this->response->type());
 					}
 					$this->Flash->error($message);
+					$this->request->data['Feed']['settings'] = json_decode($this->request->data['Feed']['settings'], true);
 				}
 			}
 		} else if ($this->_isRest()) {
