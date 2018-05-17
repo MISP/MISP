@@ -1,4 +1,4 @@
-<div class="actions <?php echo $debugMode;?> sideMenu">
+<div class="actions sideMenu">
 	<ul class="nav nav-list">
 		<?php
 			switch ($menuList) {
