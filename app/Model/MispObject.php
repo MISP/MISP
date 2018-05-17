@@ -310,6 +310,27 @@ class MispObject extends AppModel {
 		return $results;
 	}
 
+	public function fetchObjectSimple($user, $options = array()) {
+		$params = array(
+			'conditions' => $this->buildConditions($user),
+			'fields' => array(),
+			'recursive' => -1
+		);
+		if (isset($options['conditions'])) {
+			$params['conditions']['AND'][] = $options['conditions'];
+		}
+		if (isset($options['fields'])) {
+			$params['fields'] = $options['fields'];
+		}
+		$results = $this->find('all', array(
+			'conditions' => $params['conditions'],
+			'recursive' => -1,
+			'fields' => $params['fields'],
+			'sort' => false
+		));
+		return $results;
+	}
+
 	/*
 	 * Prepare the template form view's data, setting defaults, sorting elements
 	 */

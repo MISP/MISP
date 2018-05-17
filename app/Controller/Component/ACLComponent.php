@@ -232,6 +232,8 @@ class ACLComponent extends Component {
 				'orphanedObjectDiagnostics' => array(),
 				'revise_object' => array('perm_add'),
 				'view' => array('*'),
+				"editField" => array('perm_add'),
+				"fetchEditForm" => array('perm_add'),
 			),
 			'objectReferences' => array(
 				'add' => array('perm_add'),

@@ -373,9 +373,124 @@ class ObjectsController extends AppController {
 		$this->render('add');
   }
 
+
+	// ajax edit - post a single edited field and this method will attempt to save it and return a json with the validation errors if they occur.
+	public function editField($id) {
+		if (Validation::uuid($id)) {
+			$this->MispObject->recursive = -1;
+			$temp = $this->MispObject->findByUuid($id);
+			if ($temp == null) throw new NotFoundException('Invalid object');
+			$id = $temp['Object']['id'];
+		} else if (!is_numeric($id)) {
+			throw new NotFoundException(__('Invalid event id.'));
+		}
+		if ((!$this->request->is('post') && !$this->request->is('put'))) throw new MethodNotAllowedException();
+		$this->MispObject->id = $id;
+		if (!$this->MispObject->exists()) {
+			return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'Invalid object')), 'status'=>200, 'type' => 'json'));
+		}
+		$this->MispObject->recursive = -1;
+		$this->MispObject->contain('Event');
+		$object = $this->MispObject->read();
+
+		if (!$this->_isSiteAdmin()) {
+			if ($this->MispObject->data['Event']['orgc_id'] == $this->Auth->user('org_id')
+			&& (($this->userRole['perm_modify'] && $this->MispObject->data['Event']['user_id'] != $this->Auth->user('id'))
+			|| $this->userRole['perm_modify_org'])) {
+				// Allow the edit
+			} else {
+				return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'Invalid attribute')), 'status'=>200, 'type' => 'json'));
+			}
+		}
+		$validFields = array('distribution', 'first_seen', 'last_seen');
+		$changed = false;
+		if (empty($this->request->data['Object'])) {
+			$this->request->data = array('Object' => $this->request->data);
+			if (empty($this->request->data['Object'])) {
+				throw new MethodNotAllowedException('Invalid input.');
+			}
+		}
+		foreach ($this->request->data['Object'] as $changedKey => $changedField) {
+			if (!in_array($changedKey, $validFields)) {
+				throw new MethodNotAllowedException('Invalid field.');
+			}
+			if ($object['Object'][$changedKey] == $changedField) {
+				$this->autoRender = false;
+				return new CakeResponse(array('body'=> json_encode(array('errors'=> array('value' => 'nochange'))), 'status'=>200, 'type' => 'json'));
+			}
+			$object['Object'][$changedKey] = $changedField;
+			$changed = true;
+		}
+		if (!$changed) {
+			return new CakeResponse(array('body'=> json_encode(array('errors'=> array('value' => 'nochange'))), 'status'=>200, 'type' => 'json'));
+		}
+		$date = new DateTime();
+		$object['Object']['timestamp'] = $date->getTimestamp();
+		if ($this->MispObject->save($object)) {
+			$event = $this->MispObject->Event->find('first', array(
+				'recursive' => -1,
+				'fields' => array('id', 'published', 'timestamp', 'info', 'uuid'),
+				'conditions' => array(
+					'id' => $object['Object']['event_id'],
+			)));
+			$event['Event']['timestamp'] = $date->getTimestamp();
+			$event['Event']['published'] = 0;
+			$this->MispObject->Event->save($event, array('fieldList' => array('published', 'timestamp', 'info')));
+			$this->autoRender = false;
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.', 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+		} else {
+			$this->autoRender = false;
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $this->MispObject->validationErrors)), 'status'=>200, 'type' => 'json'));
+		}
+	}
+
 	public function addValueField() {
 
 	}
+
+    public function fetchEditForm($id, $field = null) {
+		$validFields = array('distribution', 'first_seen', 'last_seen');
+		if (!isset($field) || !in_array($field, $validFields)) throw new MethodNotAllowedException('Invalid field requested.');
+		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
+		$this->MispObject->id = $id;
+		if (!$this->MispObject->exists()) {
+			throw new NotFoundException(__('Invalid object'));
+		}
+
+		$fields = array('id', 'distribution', 'event_id');
+		$fields[] = $field;
+		$params = array(
+			'conditions' => array('Object.id' => $id),
+			'fields' => $fields,
+			'flatten' => 1,
+			'contain' => array(
+				'Event' => array(
+					'fields' => array('distribution', 'id', 'user_id', 'orgc_id', 'org_id'),
+				)
+			)
+		);
+		$object = $this->MispObject->fetchObjectSimple($this->Auth->user(), $params);
+		if (empty($object)) throw new NotFoundException(__('Invalid attribute'));
+		$object = $object[0];
+		if (!$this->_isSiteAdmin()) {
+			if ($object['Event']['orgc_id'] == $this->Auth->user('org_id')
+			&& (($this->userRole['perm_modify'] && $object['Event']['user_id'] != $this->Auth->user('id'))
+					|| $this->userRole['perm_modify_org'])) {
+				// Allow the edit
+			} else {
+				throw new NotFoundException(__('Invalid object'));
+			}
+		}
+		$this->layout = 'ajax';
+		if ($field == 'distribution') {
+			$distributionLevels = $this->MispObject->shortDist;
+			unset($distributionLevels[4]);
+			$this->set('distributionLevels', $distributionLevels);
+		}
+		$this->set('object', $object['Object']);
+		$fieldURL = ucfirst($field);
+		$this->render('ajax/objectEdit' . $fieldURL . 'Form');
+    }
 
   public function delete($id, $hard = false) {
 		if (!$this->userRole['perm_modify']) {

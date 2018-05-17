@@ -28,18 +28,18 @@ var options = {
 		remove: true
 	},
 	onRemove: function(item, callback) { // clear timestamps
-		update_seen('first', item.id, null, callback);
-		update_seen('last', item.id, null, callback);
+		update_seen_attr(item.group+'s', 'first', item.id, null, callback);
+		update_seen_attr(item.group+'s', 'last', item.id, null, callback);
 		return false;
     	},
 	onMove: function(item, callback) {
 		var newStart = datetimeTonanoTimestamp(item.start);
 		var newEnd = datetimeTonanoTimestamp(item.end);
 		if (item.first_seen != newStart) {
-			update_seen('first', item.id, newStart, callback);
+			update_seen_attr(item.group+'s', 'first', item.id, newStart, callback);
 		}
 		if (item.last_seen != newEnd) {
-			update_seen('last', item.id, newEnd, callback);
+			update_seen_attr(item.group+'s', 'last', item.id, newEnd, callback);
 		}
 	}
 };
@@ -76,7 +76,8 @@ function build_object_template(obj) {
 	return html;
 }
 
-function update_seen(seenType, item_id, nanoTimestamp, callback) {
+function update_seen_attr(itemType, seenType, item_id, nanoTimestamp, callback) {
+	var fieldIdItemType = itemType.charAt(0).toUpperCase() + itemType.slice(1, -1); //  strip 's' and uppercase first char
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
@@ -86,9 +87,9 @@ function update_seen(seenType, item_id, nanoTimestamp, callback) {
 		success: function (data, textStatus) {
 			var form = $(data);
 			$(container_timeline).append(form);
-			form.css({display: 'none'});
+			//form.css({display: 'none'});
 			var attr_id = item_id;
-			var field = form.find("#Attribute_"+attr_id+"_"+seenType+"_seen_field");
+			var field = form.find("#"+fieldIdItemType+"_"+attr_id+"_"+seenType+"_seen_field");
 			var the_time = nanoTimestamp;
 			field.val(the_time);
 			// submit the form
@@ -97,18 +98,19 @@ function update_seen(seenType, item_id, nanoTimestamp, callback) {
 				cache: false,
 				success:function (data, textStatus) {
 					console.log(data);
+					form.remove()
 				},
 				error:function() {
 					console.log('fail', 'Request failed for an unknown reason.');
 				},
 				type:"post",
-				url:"/" + "attributes" + "/" + "editField" + "/" + attr_id
+				url:"/" + itemType + "/" + "editField" + "/" + attr_id
 			});
 		},
 		complete: function () {
 			$(".loading").hide();
 		},
-		url:"/" + "Attributes" + "/fetchEditForm/" + item_id + "/" + seenType + "_seen",
+		url:"/" + itemType + "/fetchEditForm/" + item_id + "/" + seenType + "_seen",
 	});
 
 }
