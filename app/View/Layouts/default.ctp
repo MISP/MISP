@@ -8,13 +8,7 @@
 		<?php echo $title_for_layout, ' - '. h(Configure::read('MISP.title_text') ? Configure::read('MISP.title_text') : 'MISP'); ?>
 	</title>
 	<?php
-		if (!isset($debugMode)) {
-			$debugMode == 'debugOff';
-		} else {
-			$debugMode == 'debugOn';
-		}
 		echo $this->Html->meta('icon');
-		//echo $this->Html->css('roboto');
 		echo $this->Html->css('bootstrap');
 		echo $this->Html->css('bootstrap-datepicker');
 		echo $this->Html->css('bootstrap-timepicker');
@@ -46,24 +40,25 @@
 	<div id="screenshot_box" class="screenshot_box"></div>
 	<div id="confirmation_box" class="confirmation_box"></div>
 	<div id="gray_out" class="gray_out"></div>
-		<div id="container">
-			<?php
-				echo $this->element('global_menu');
-				echo sprintf('<div id="main-view-container" class="container-fluid %s-layout">', $debugMode);
-				$flash = $this->Flash->render();
-				echo $flash;
-				echo '</div>';
-			?>
-		</div>
+	<div id="container">
 		<?php
-			$topGap = 50;
-			if (Configure::read('debug') < 2) {
-				if (!empty($flash)) $topGap = 95;
+			echo $this->element('global_menu');
+			$topPadding = '50';
+			if (!empty($debugMode)) {
+				$topPadding = '0';
 			}
 		?>
-		<div style="padding-top:<?php echo $topGap; ?>px !important;">
-			<?php echo $this->fetch('content'); ?>
-		</div>
+	</div>
+	<div id="flashContainer" style="padding-top:<?php echo $topPadding; ?>px; !important;">
+		<?php
+			echo sprintf('<div id="main-view-container" class="container-fluid ">');
+			$flash = $this->Flash->render();
+			echo $flash;
+			echo '</div>';
+		?>
+	</div>
+	<div>
+		<?php echo $this->fetch('content'); ?>
 	</div>
 	<?php
 	echo $this->element('footer');
@@ -88,7 +83,7 @@
 		<div class="loadingText"><?php echo __('Loading');?></div>
 	</div>
 	<?php
-		if ($debugMode == 'debugOff'):
+		if (!isset($debugMode)):
 	?>
 	<script type="text/javascript">
 		$(window).scroll(function(e) {
