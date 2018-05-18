@@ -3160,7 +3160,7 @@ function submitMISPUpdate() {
 
 $(".cortex-json").click(function() {
 	var cortex_data = $(this).data('cortex-json');
-	cortex_data = JSON.stringify(cortex_data, null, 2);
+	cortex_data = htmlEncode(JSON.stringify(cortex_data, null, 2));
 	var popupHtml = '<pre class="simplepre">' + cortex_data + '</pre>';
 	popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
 	$('#screenshot_box').html(popupHtml);
