@@ -234,6 +234,7 @@ class ACLComponent extends Component {
 				'view' => array('*'),
 				"editField" => array('perm_add'),
 				"fetchEditForm" => array('perm_add'),
+				"fetchViewValue" => array('*')
 			),
 			'objectReferences' => array(
 				'add' => array('perm_add'),

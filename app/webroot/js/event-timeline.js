@@ -1,4 +1,5 @@
 var eventTimeline;
+var items_timeline;
 var container_timeline = document.getElementById('event_timeline');
 var options = {
 	template: function (item, element, data) {
@@ -20,6 +21,7 @@ var options = {
 	verticalScroll: true,
 	zoomKey: 'altKey',
 	maxHeight: 400,
+	minHeight: 400,
 	multiselect: true,
 	editable: true,
 	editable: {
@@ -28,25 +30,95 @@ var options = {
 		remove: true
 	},
 	onRemove: function(item, callback) { // clear timestamps
-		update_seen_attr(item.group+'s', 'first', item.id, null, callback);
-		update_seen_attr(item.group+'s', 'last', item.id, null, callback);
+		update_seen(item.group+'s', 'first', item.id, null, callback);
+		update_seen(item.group+'s', 'last', item.id, null, callback);
+		eventTimeline.setSelection([]);
+		$('.timelineSelectionTooltip').remove()
 		return false;
     	},
 	onMove: function(item, callback) {
 		var newStart = datetimeTonanoTimestamp(item.start);
 		var newEnd = datetimeTonanoTimestamp(item.end);
 		if (item.first_seen != newStart) {
-			update_seen_attr(item.group+'s', 'first', item.id, newStart, callback);
+			update_seen(item.group+'s', 'first', item.id, newStart, callback);
 		}
-		if (item.last_seen != newEnd) {
-			update_seen_attr(item.group+'s', 'last', item.id, newEnd, callback);
+		if (item.last_seen != newEnd && item.seen_enabled) {
+			update_seen(item.group+'s', 'last', item.id, newEnd, callback);
 		}
 	}
 };
 
+function generate_timeline_tooltip(itemID, target) {
+	var item = items_timeline.get(itemID);
+	var closest = $(target.closest(".vis-selected.vis-editable"));
+	var btn_type = item.last_seen !== null ? 'collapse-btn' : 'expand-btn';
+	var fct_type = item.last_seen !== null ? 'collapseItem' : 'expandItem';
+	var btn = $('<div class="timelineSelectionTooltip vis-expand-action '+btn_type+'" data-itemid="'+item.id+'"></div>')
+	if (item.last_seen !== null) {
+		btn.click(collapseItem);
+	} else {
+		btn.click(expandItem);
+	}
+	closest.append(btn);
+}
+
 /* UTIL */
+function collapseItem() {
+	var itemID = $(this).data('itemid');
+	var item = items_timeline.get(itemID);
+	update_seen(item.group+'s', 'last', item.id, null, undefined);
+}
+function expandItem() {
+	var itemID = $(this).data('itemid');
+	var item = items_timeline.get(itemID);
+	var next_step = get_next_step_nano(item.first_seen);
+	var fs = parseInt(item.first_seen);
+	var newEnd = fs+next_step;
+	update_seen(item.group+'s', 'last', item.id, newEnd, undefined);
+}
+
+function get_next_step_nano() {
+	var factor = 1000000; // to multiplie on milli to get nano;
+	var hourmilli = 1000*3600;
+	var scale = eventTimeline.timeAxis.step.scale;
+	var step;
+	switch(scale) {
+		case 'millisecond':
+			step = factor*1;
+			break;
+		case 'second':
+			step = factor*1000;
+			break;
+		case 'minute':
+			step = factor*1000*60;
+			break;
+		case 'hour':
+			step = factor*hourmilli;
+			break;
+		case 'weekday':
+			step = factor*hourmilli*24;
+			break;
+		case 'day':
+			step = factor*hourmilli*24;
+			break;
+		case 'week':
+			step = factor*hourmilli*24*7;
+			break;
+		case 'month':
+			step = factor*hourmilli*24*7*30;
+			break;
+		case 'year':
+			step = factor*hourmilli*24*7*30*365;
+			break;
+		default:
+			step = factor*hourmilli*24;
+			break;
+	}
+	return step;
+}
+
 function build_attr_template(attr) {
-	var span = $('<span>');
+	var span = $('<span data-itemID="'+attr.id+'">');
 	if (!attr.seen_enabled) {
 		span.addClass('timestamp-attr');
 	}
@@ -76,7 +148,39 @@ function build_object_template(obj) {
 	return html;
 }
 
-function update_seen_attr(itemType, seenType, item_id, nanoTimestamp, callback) {
+function reflect_change(itemType, seenType, item_id) {
+	quick_fetch_seen(itemType, seenType, item_id, function(data) {
+		updated_item = items_timeline.get(item_id);
+		if (seenType == 'first') {
+			updated_item.first_seen = data;
+		} else if (seenType == 'last') {
+			updated_item.last_seen = data;
+		}
+		var redraw = set_spanned_time(updated_item);
+		items_timeline.update(updated_item);
+	});
+}
+
+function quick_fetch_seen(itemType, seenType, item_id, callback) {
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		dataType:"html",
+		cache: false,
+		success:function (data, textStatus) {
+			seenTime = data.replace('&nbsp;', '');
+			seenTime = seenTime == '' ? null : parseInt(seenTime);
+			callback(seenTime);
+		},
+		complete: function () {
+			$(".loading").hide();
+		},
+		url:"/" + itemType + "/fetchViewValue/" + item_id + "/" + seenType + "_seen",
+	});
+}
+
+function update_seen(itemType, seenType, item_id, nanoTimestamp, callback) {
 	var fieldIdItemType = itemType.charAt(0).toUpperCase() + itemType.slice(1, -1); //  strip 's' and uppercase first char
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
@@ -87,7 +191,7 @@ function update_seen_attr(itemType, seenType, item_id, nanoTimestamp, callback) 
 		success: function (data, textStatus) {
 			var form = $(data);
 			$(container_timeline).append(form);
-			//form.css({display: 'none'});
+			form.css({display: 'none'});
 			var attr_id = item_id;
 			var field = form.find("#"+fieldIdItemType+"_"+attr_id+"_"+seenType+"_seen_field");
 			var the_time = nanoTimestamp;
@@ -97,7 +201,7 @@ function update_seen_attr(itemType, seenType, item_id, nanoTimestamp, callback) 
 				data: form.serialize(),
 				cache: false,
 				success:function (data, textStatus) {
-					console.log(data);
+					reflect_change(itemType, seenType, item_id);
 					form.remove()
 				},
 				error:function() {
@@ -143,23 +247,22 @@ function set_spanned_time(item) {
     	var fs = item.first_seen;
     	var ls = item.last_seen;
 
-	item.seen_enabled = true;
-    	if (fs==null && ls==null) {
+	item.seen_enabled = false;
+    	if (fs===null && ls===null) {
 		item.start = timestampToDatetime(timestamp);
-		item.seen_enabled = false;
 
-    	} else if (fs==null && ls!=null) {
+    	} else if (fs===null && ls!==null) {
 		item.start = timestampToDatetime(timestamp);
 		item.end = nanoTimestampToDatetime(ls);
-		item.seen_enabled = false;
 
-    	} else if (ls==null && fs!=null) {
+    	} else if (ls===null && fs!==null) {
 		item.start = nanoTimestampToDatetime(fs);
-		item.end = new Date(); // now
+		item.end = null;
 
     	} else { // fs and ls are defined
 		item.start = nanoTimestampToDatetime(fs);
 		item.end = nanoTimestampToDatetime(ls);
+		item.seen_enabled = true;
 	}
 }
 
@@ -186,8 +289,16 @@ function enable_timeline() {
 				item.className = item.group;
 				set_spanned_time(item);
 			}
-			var items_timeline = new vis.DataSet(data.items);
+			items_timeline = new vis.DataSet(data.items);
 			eventTimeline = new vis.Timeline(container_timeline, items_timeline, options);
+			
+			eventTimeline.on('select', handle_selection);
+			items_timeline.on('update', function(eventname, data) {
+				handle_selection({
+					event: { target: $('span[data-itemID="'+data.items[0]+'"]')},
+					items: data.items
+				});
+			});
 		},
 		error: function( jqXhr, textStatus, errorThrown ){
 			console.log( errorThrown );
@@ -196,6 +307,22 @@ function enable_timeline() {
 			$(".loadingTimeline").hide();
 		}
 	});
+}
+
+function handle_selection(data) {
+	var event = data.event;
+	console.log(event);
+	var target = event.target;
+	var items = data.items;
+
+	if (items.length == 0) {
+			$('.timelineSelectionTooltip').remove()
+	} else {
+		console.log('selected');
+		for (var itemID of items) {
+			generate_timeline_tooltip(itemID, target);
+		}
+	}
 }
 
 $('#fullscreen-btn-timeline').click(function() {

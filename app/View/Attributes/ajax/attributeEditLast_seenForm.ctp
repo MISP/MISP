@@ -2,8 +2,6 @@
 	echo $this->Form->create('Attribute', array('id' => 'Attribute' . '_' . $object['id'] . '_last_seen_form', 'url' => '/attributes/editField/' . $object['id']));
 ?>
 <?php
-	$current = 0;
-	if ($object['to_ids']) $current = 1;
 	echo $this->Form->input('last_seen', array(
 			'label' => false,
 			'value' => 0,

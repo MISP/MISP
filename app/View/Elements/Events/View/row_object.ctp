@@ -1,7 +1,7 @@
 <?php
   $tr_class = '';
   $linkClass = 'white';
-  $currentType = 'denyForm';
+  $currentType = 'Object';
   $tr_class = 'tableHighlightBorderTop borderBlue';
   if ($event['Event']['id'] != $object['event_id']) {
     if (!$isSiteAdmin && $event['extensionEvents'][$object['event_id']]['Orgc']['id'] != $me['org_id']) {
@@ -84,8 +84,11 @@
       }
     ?>
   </td>
-  <td class="shortish">
-    <?php echo h($object['comment']); ?>
+  <td class="showspaces bitwider">
+      <div id = "Object_<?php echo $object['id']; ?>_comment_placeholder" class = "inline-field-placeholder"></div>
+      <div id = "Object_<?php echo $object['id']; ?>_comment_solid" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">
+    <?php echo nl2br(h($object['comment'])); ?>&nbsp;
+      </div>
   </td>
   <td colspan="4">&nbsp;
   </td>

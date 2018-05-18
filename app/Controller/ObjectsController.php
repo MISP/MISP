@@ -402,7 +402,7 @@ class ObjectsController extends AppController {
 				return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'Invalid attribute')), 'status'=>200, 'type' => 'json'));
 			}
 		}
-		$validFields = array('distribution', 'first_seen', 'last_seen');
+		$validFields = array('comment', 'distribution', 'first_seen', 'last_seen');
 		$changed = false;
 		if (empty($this->request->data['Object'])) {
 			$this->request->data = array('Object' => $this->request->data);
@@ -448,8 +448,36 @@ class ObjectsController extends AppController {
 
 	}
 
+	public function fetchViewValue($id, $field = null) {
+		$validFields = array('timestamp', 'comment', 'distribution', 'first_seen', 'last_seen');
+		if (!isset($field) || !in_array($field, $validFields)) throw new MethodNotAllowedException('Invalid field requested.');
+		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
+		$this->MispObject->id = $id;
+		if (!$this->MispObject->exists()) {
+			throw new NotFoundException(__('Invalid object'));
+		}
+		$params = array(
+				'conditions' => array('Object.id' => $id),
+				'fields' => array('id', 'distribution', 'event_id', $field),
+				'contain' => array(
+						'Event' => array(
+								'fields' => array('distribution', 'id', 'org_id'),
+						)
+				),
+				'flatten' => 1
+		);
+		$object = $this->MispObject->fetchObjectSimple($this->Auth->user(), $params);
+		if (empty($object)) throw new NotFoundException(__('Invalid object'));
+		$object = $object[0];
+		$result = $object['Object'][$field];
+		if ($field == 'distribution') $result=$this->MispObject->shortDist[$result];
+		$this->set('value', $result);
+		$this->layout = 'ajax';
+		$this->render('ajax/objectViewFieldForm');
+	}
+
     public function fetchEditForm($id, $field = null) {
-		$validFields = array('distribution', 'first_seen', 'last_seen');
+		$validFields = array('distribution', 'comment', 'first_seen', 'last_seen');
 		if (!isset($field) || !in_array($field, $validFields)) throw new MethodNotAllowedException('Invalid field requested.');
 		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
 		$this->MispObject->id = $id;

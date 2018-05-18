@@ -2367,7 +2367,7 @@ class AttributesController extends AppController {
 	}
 
 	public function fetchViewValue($id, $field = null) {
-		$validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution', 'timestamp');
+		$validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution', 'timestamp', 'first_seen', 'last_seen');
 		if (!isset($field) || !in_array($field, $validFields)) throw new MethodNotAllowedException('Invalid field requested.');
 		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
 		$this->Attribute->id = $id;
