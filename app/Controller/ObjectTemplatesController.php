@@ -81,13 +81,13 @@ class ObjectTemplatesController extends AppController {
 			if ($this->_isRest()) {
 				return $this->RestResponse->saveSuccessResponse('ObjectTemplates', 'admin_delete', $id, $this->response->type());
 			} else {
-				$this->Session->setFlash(__('ObjectTemplate deleted'));
+				$this->Flash->success(__('ObjectTemplate deleted'));
 			}
 		}
 		if ($this->_isRest()) {
 			return $this->RestResponse->saveFailResponse('ObjectTemplates', 'admin_delete', $id, $this->ObjectTemplate->validationErrors, $this->response->type());
 		} else {
-			$this->Session->setFlash('ObjectTemplate could not be deleted');
+			$this->Flash->error('ObjectTemplate could not be deleted');
 		}
 		$this->redirect($this->referer());
 	}
@@ -182,12 +182,12 @@ class ObjectTemplatesController extends AppController {
 					'change' => 'Executed an update of the Object Template library, but there was nothing to update.',
 			));
 		}
-		if ($successes == 0 && $fails == 0) $this->Session->setFlash('All object templates are up to date already.');
-		else if ($successes == 0) $this->Session->setFlash('Could not update any of the object templates');
+		if ($successes == 0 && $fails == 0) $this->Flash->info('All object templates are up to date already.');
+		else if ($successes == 0) $this->Flash->error('Could not update any of the object templates');
 		else {
 			$message = 'Successfully updated ' . $successes . ' object templates.';
 			if ($fails != 0) $message .= ' However, could not update ' . $fails . ' object templates.';
-			$this->Session->setFlash($message);
+			$this->Flash->success($message);
 		}
 		$this->redirect(array('controller' => 'ObjectTemplates', 'action' => 'index'));
 	}

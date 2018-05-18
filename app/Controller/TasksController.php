@@ -68,7 +68,7 @@ class TasksController extends AppController {
 					$this->Task->save($this->request->data['Task'][$task['Task']['id']]);
 				}
 			}
-			$this->Session->setFlash('Task edited');
+			$this->Flash->success('Task edited');
 			$this->redirect(array('action' => 'index'));
 		}
 	}

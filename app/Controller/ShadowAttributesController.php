@@ -81,7 +81,7 @@ class ShadowAttributesController extends AppController {
 					if ($this->_isRest()) {
 						return array('false' => true, 'errors' => 'Proposal not found or you are not authorised to accept it.');
 					} else {
-						$this->Session->setFlash('You don\'t have permission to do that');
+						$this->Flash->error('You don\'t have permission to do that');
 						$this->redirect(array('controller' => 'events', 'action' => 'view', $shadow['event_id']));
 					}
 				}
@@ -125,7 +125,7 @@ class ShadowAttributesController extends AppController {
 
 			if (!$this->_isSiteAdmin()) {
 				if (($event['Event']['orgc_id'] != $this->Auth->user('org_id')) || (!$this->userRole['perm_modify'])) {
-					$this->Session->setFlash('You don\'t have permission to do that');
+					$this->Flash->error('You don\'t have permission to do that');
 					$this->redirect(array('controller' => 'events', 'action' => 'index'));
 				}
 			}
@@ -190,7 +190,7 @@ class ShadowAttributesController extends AppController {
 		if (rename($pathOld, $pathNew)) {
 			return true;
 		} else {
-			$this->Session->setFlash(__('Moving of the file that this attachment references failed.', true), 'default', array());
+			$this->Flash->error(__('Moving of the file that this attachment references failed.', true), 'default', array());
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
 		}
 	}
@@ -306,7 +306,7 @@ class ShadowAttributesController extends AppController {
 			// Give error if someone tried to submit an attribute with type 'attachment' or 'malware-sample'.
 			// TODO change behavior attachment options - this is bad ... it should rather by a messagebox or should be filtered out on the view level
 			if (isset($this->request->data['ShadowAttribute']['type']) && $this->ShadowAttribute->typeIsAttachment($this->request->data['ShadowAttribute']['type']) && !$this->_isRest()) {
-				$this->Session->setFlash(__('Attribute has not been added: attachments are added by "Add attachment" button', true), 'default', array(), 'error');
+				$this->Flash->error(__('Attribute has not been added: attachments are added by "Add attachment" button', true), 'default', array(), 'error');
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
 			}
 			$this->request->data['ShadowAttribute']['event_id'] = $eventId;
@@ -353,10 +353,10 @@ class ShadowAttributesController extends AppController {
 					if ($fails) {
 						// list the ones that failed
 						if (!CakeSession::read('Message.flash')) {
-							$this->Session->setFlash(__('The lines' . $fails . ' could not be saved. Please, try again.', true), 'default', array(), 'error');
+							$this->Flash->error(__('The lines' . $fails . ' could not be saved. Please, try again.', true));
 						} else {
 							$existingFlash = CakeSession::read('Message.flash');
-							$this->Session->setFlash(__('The lines' . $fails . ' could not be saved. ' . $existingFlash['message'], true), 'default', array(), 'error');
+							$this->Flash->error(__('The lines' . $fails . ' could not be saved. ' . $existingFlash['message'], true));
 						}
 					}
 					if ($successes) {
@@ -365,7 +365,7 @@ class ShadowAttributesController extends AppController {
 						if (!$this->ShadowAttribute->sendProposalAlertEmail($eventId) === false) {
 							$emailResult = " but nobody from the owner organisation could be notified by e-mail.";
 						}
-						$this->Session->setFlash(__('The lines' . $successes . ' have been saved' . $emailResult, true));
+						$this->Flash->success(__('The lines' . $successes . ' have been saved' . $emailResult, true));
 					}
 				}
 
@@ -406,7 +406,7 @@ class ShadowAttributesController extends AppController {
 						$this->set('ShadowAttribute', $sa['ShadowAttribute']);
 						$this->set('_serialize', array('ShadowAttribute'));
 					} else {
-						$this->Session->setFlash(__('The proposal has been saved'));
+						$this->Flash->success(__('The proposal has been saved'));
 						$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
 					}
 				} else {
@@ -420,9 +420,7 @@ class ShadowAttributesController extends AppController {
 						}
 						throw new NotFoundException('Could not save the proposal. Errors: ' . $message);
 					} else {
-						if (!CakeSession::read('Message.flash')) {
-							$this->Session->setFlash(__('The attribute could not be saved. Please, try again.'));
-						}
+						$this->Flash->error(__('The proposal could not be saved. Please, try again.'));
 					}
 				}
 			}
@@ -505,7 +503,7 @@ class ShadowAttributesController extends AppController {
 				if (!is_uploaded_file($tmpfile->path))
 					throw new InternalErrorException('PHP says file was not uploaded. Are you attacking me?');
 			} else {
-				$this->Session->setFlash(__('There was a problem to upload the file.', true), 'default', array(), 'error');
+				$this->Flash->error(__('There was a problem to upload the file.', true));
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
 			}
 
@@ -515,7 +513,7 @@ class ShadowAttributesController extends AppController {
 			if ($this->request->data['ShadowAttribute']['malware']) {
 				$result = $this->ShadowAttribute->Event->Attribute->handleMaliciousBase64($this->request->data['ShadowAttribute']['event_id'], $filename, base64_encode($tmpfile->read()), array_keys($hashes));
 				if (!$result['success']) {
-					$this->Session->setFlash(__('There was a problem to upload the file.', true), 'default', array(), 'error');
+					$this->Flash->error(__('There was a problem to upload the file.', true), 'default', array(), 'error');
 					$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
 				}
 				foreach ($hashes as $hash => $typeName) {
@@ -565,12 +563,12 @@ class ShadowAttributesController extends AppController {
 			}
 			if (!$completeFail) {
 				if (empty($fails)) {
-					$this->Session->setFlash(__('The attachment has been uploaded'));
+					$this->Flash->success(__('The attachment has been uploaded'));
 				} else {
-					$this->Session->setFlash(__('The attachment has been uploaded, but some of the proposals could not be created. The failed proposals are: ' . implode(', ', $fails)));
+					$this->Flash->success(__('The attachment has been uploaded, but some of the proposals could not be created. The failed proposals are: ' . implode(', ', $fails)));
 				}
 			} else {
-				$this->Session->setFlash(__('The attachment could not be saved, please contact your administrator.'));
+				$this->Flash->error(__('The attachment could not be saved, please contact your administrator.'));
 			}
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
 
@@ -688,7 +686,7 @@ class ShadowAttributesController extends AppController {
 					$this->set('ShadowAttribute', $sa['ShadowAttribute']);
 					$this->set('_serialize', array('ShadowAttribute'));
 				} else {
-					$this->Session->setFlash(__('The proposed Attribute has been saved' . $emailResult));
+					$this->Flash->success(__('The proposed Attribute has been saved' . $emailResult));
 					$this->redirect(array('controller' => 'events', 'action' => 'view', $existingAttribute['Attribute']['event_id']));
 				}
 			} else {
@@ -699,7 +697,7 @@ class ShadowAttributesController extends AppController {
 					}
 					throw new NotFoundException('Could not save the proposal. Errors: ' . $message);
 				} else {
-					$this->Session->setFlash(__('The ShadowAttribute could not be saved. Please, try again.'));
+					$this->Flash->error(__('The ShadowAttribute could not be saved. Please, try again.'));
 				}
 			}
 		} else {
@@ -1147,7 +1145,7 @@ class ShadowAttributesController extends AppController {
 		if (!self::_isSiteAdmin() || !$this->request->is('post')) throw new NotFoundException();
 		if (!Configure::read('MISP.background_jobs')) {
 			$k = $this->ShadowAttribute->generateCorrelation();
-			$this->Session->setFlash(__('All done. ' . $k . ' proposals processed.'));
+			$this->Flash->success(__('All done. ' . $k . ' proposals processed.'));
 			$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 		} else {
 			$job = ClassRegistry::init('Job');
@@ -1169,7 +1167,7 @@ class ShadowAttributesController extends AppController {
 					array('jobGenerateShadowAttributeCorrelation', $jobId)
 			);
 			$job->saveField('process_id', $process_id);
-			$this->Session->setFlash(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
+			$this->Flash->success(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
 			$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 		}
 	}

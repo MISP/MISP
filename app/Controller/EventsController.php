@@ -410,7 +410,11 @@ class EventsController extends AppController {
 					case 'tag':
 					case 'tags':
 						if (!$v || !Configure::read('MISP.tagging') || $v === 0) continue 2;
-						$pieces = explode('|', $v);
+						if (!is_array($v)) {
+							$pieces = explode('|', $v);
+						} else {
+							$pieces = $v;
+						}
 						$filterString = "";
 						$expectOR = false;
 						$setOR = false;
@@ -681,17 +685,17 @@ class EventsController extends AppController {
 			// No GnuPG
 			if (Configure::read('SMIME.enabled') && !$this->Event->User->getCertificate($this->Auth->user('id'))) {
 				// No GnuPG and No SMIME
-				$this->Session->setFlash(__('No x509 certificate or GnuPG key set in your profile. To receive emails, submit your public certificate or GnuPG key in your profile.'));
+				$this->Flash->info(__('No x509 certificate or GnuPG key set in your profile. To receive emails, submit your public certificate or GnuPG key in your profile.'));
 			} else if (!Configure::read('SMIME.enabled')) {
-				$this->Session->setFlash(__('No GnuPG key set in your profile. To receive emails, submit your public key in your profile.'));
+				$this->Flash->info(__('No GnuPG key set in your profile. To receive emails, submit your public key in your profile.'));
 			}
 		} else if ($this->Auth->user('autoalert') && !$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.bodyonlyencrypted')) {
 			// No GnuPG & autoalert
 			if ($this->Auth->user('autoalert') && Configure::read('SMIME.enabled') && !$this->Event->User->getCertificate($this->Auth->user('id'))) {
 				// No GnuPG and No SMIME & autoalert
-				$this->Session->setFlash(__('No x509 certificate or GnuPG key set in your profile. To receive attributes in emails, submit your public certificate or GnuPG key in your profile.'));
+				$this->Flash->info(__('No x509 certificate or GnuPG key set in your profile. To receive attributes in emails, submit your public certificate or GnuPG key in your profile.'));
 			} else if (!Configure::read('SMIME.enabled')) {
-				$this->Session->setFlash(__('No GnuPG key set in your profile. To receive attributes in emails, submit your public key in your profile.'));
+				$this->Flash->info(__('No GnuPG key set in your profile. To receive attributes in emails, submit your public key in your profile.'));
 			}
 		}
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
@@ -1022,7 +1026,7 @@ class EventsController extends AppController {
 				}
 			}
 			$mess = $this->Session->read('Message');
-			if ($proposalStatus && empty($mess)) $this->Session->setFlash('This event has active proposals for you to accept or discard.');
+			if ($proposalStatus && empty($mess)) $this->Flash->info('This event has active proposals for you to accept or discard.');
 		}
 		// set the pivot data
 		$this->helpers[] = 'Pivot';
@@ -1353,7 +1357,7 @@ class EventsController extends AppController {
 				}
 				if (isset($this->data['Event']['submittedgfi']) && ($ext != 'zip') && $this->data['Event']['submittedgfi']['size'] > 0 &&
 						is_uploaded_file($this->data['Event']['submittedgfi']['tmp_name'])) {
-					$this->Session->setFlash(__('You may only upload GFI Sandbox zip files.'));
+					$this->Flash->error(__('You may only upload GFI Sandbox zip files.'));
 				} else {
 					if (!isset($this->request->data['Event']['distribution'])) {
 						$this->request->data['Event']['distribution'] = Configure::read('MISP.default_event_distribution') ? Configure::read('MISP.default_event_distribution') : 0;
@@ -1420,12 +1424,7 @@ class EventsController extends AppController {
 							if (isset($this->data['Event']['submittedgfi'])) $this->_addGfiZip($this->Event->getID());
 
 							// redirect to the view of the newly created event
-							if (!CakeSession::read('Message.flash')) {
-								$this->Session->setFlash(__('The event has been saved'));
-							} else {
-								$existingFlash = CakeSession::read('Message.flash');
-								$this->Session->setFlash(__('The event has been saved. ' . $existingFlash['message']));
-							}
+							$this->Flash->success(__('The event has been saved'));
 							$this->redirect(array('action' => 'view', $this->Event->getID()));
 						}
 					} else {
@@ -1443,9 +1442,9 @@ class EventsController extends AppController {
 							return false;
 						} else {
 							if ($add === 'blocked') {
-								$this->Session->setFlash('A blacklist entry is blocking you from creating any events. Please contact the administration team of this instance' . (Configure::read('MISP.contact') ? ' at ' . Configure::read('MISP.contact') : '') . '.');
+								$this->Flash->error('A blacklist entry is blocking you from creating any events. Please contact the administration team of this instance' . (Configure::read('MISP.contact') ? ' at ' . Configure::read('MISP.contact') : '') . '.');
 							} else {
-								$this->Session->setFlash(__('The event could not be saved. Please, try again.'), 'default', array(), 'error');
+								$this->Flash->error(__('The event could not be saved. Please, try again.'), 'default', array(), 'error');
 							}
 						}
 					}
@@ -1499,12 +1498,7 @@ class EventsController extends AppController {
 				if (isset($this->data['Event']['submittedioc'])) $this->_addIOCFile($id);
 
 				// redirect to the view of the newly created event
-				if (!CakeSession::read('Message.flash')) {
-					$this->Session->setFlash(__('The event has been saved'));
-				} else {
-					$existingFlash = CakeSession::read('Message.flash');
-					$this->Session->setFlash(__('The event has been saved. ' . $existingFlash['message']));
-				}
+				$this->Flash->success(__('The event has been saved'));
 			}
 		}
 		// set the id
@@ -1528,7 +1522,7 @@ class EventsController extends AppController {
 				is_uploaded_file($this->data['Event']['submittedfile']['tmp_name'])) {
 					$log = ClassRegistry::init('Log');
 					$log->createLogEntry($this->Auth->user(), 'file_upload', 'Event', 0, 'MISP export file upload failed', 'File details: ' . json_encode($this->data['Event']['submittedfile']));
-					$this->Session->setFlash(__('You may only upload MISP XML or MISP JSON files.'));
+					$this->Flash->error(__('You may only upload MISP XML or MISP JSON files.'));
 					throw new MethodNotAllowedException('File upload failed or file does not have the expected extension (.xml / .json).');
 				}
 				if (isset($this->data['Event']['submittedfile'])) {
@@ -1576,18 +1570,18 @@ class EventsController extends AppController {
 					move_uploaded_file($this->data['Event']['stix']['tmp_name'], $tmpDir . DS . $randomFileName);
 					$result = $this->Event->upload_stix($this->Auth->user(), $randomFileName, $stix_version);
 					if (is_array($result)) {
-						$this->Session->setFlash(__('STIX document imported, event\'s created: ' . implode(', ', $result) . '.'));
+						$this->Flash->success(__('STIX document imported, event\'s created: ' . implode(', ', $result) . '.'));
 						$this->redirect(array('action' => 'index'));
 					} else if (is_numeric($result)) {
-						$this->Session->setFlash(__('STIX document imported.'));
+						$this->Flash->success(__('STIX document imported.'));
 						$this->redirect(array('action' => 'view', $result));
 					} else {
-						$this->Session->setFlash(__('Could not import STIX document: ' . $result));
+						$this->Flash->error(__('Could not import STIX document: ' . $result));
 					}
 				} else {
 					$max_size = intval(ini_get('post_max_size'));
 					if (intval(ini_get('upload_max_filesize')) < $max_size) $max_size = intval(ini_get('upload_max_filesize'));
-					$this->Session->setFlash(__('File upload failed. Make sure that you select a stix file to be uploaded and that the file doesn\'t exceed the maximum file size of ' . $max_size . '.'));
+					$this->Flash->error(__('File upload failed. Make sure that you select a stix file to be uploaded and that the file doesn\'t exceed the maximum file size of ' . $max_size . '.'));
 				}
 			}
 		}
@@ -1610,19 +1604,19 @@ class EventsController extends AppController {
 		$this->Event->read(null, $target_id);
 		// check if private and user not authorised to edit
 		if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !($this->userRole['perm_modify']))) {
-			$this->Session->setFlash(__('You are not authorised to do that. Please consider using the \'propose attribute\' feature.'));
+			$this->Flash->error(__('You are not authorised to do that. Please consider using the \'propose attribute\' feature.'));
 			$this->redirect(array('action' => 'view', $target_id));
 		}
 		if ($this->request->is('post')) {
 			$source_id = $this->request->data['Event']['source_id'];
 			$to_ids = $this->request->data['Event']['to_ids'];
 			if (!is_numeric($source_id)) {
-				$this->Session->setFlash(__('Invalid event ID entered.'));
+				$this->Flash->error(__('Invalid event ID entered.'));
 				return;
 			}
 			$this->Event->read(null, $source_id);
 			if (!$this->_isSiteAdmin() && !in_array($source_id, $eIds)) {
-				$this->Session->setFlash(__('You are not authorised to read the selected event.'));
+				$this->Flash->error(__('You are not authorised to read the selected event.'));
 				return;
 			}
 			$r = array('results' => []);
@@ -1691,7 +1685,7 @@ class EventsController extends AppController {
 		// check if private and user not authorised to edit
 		if (!$this->_isSiteAdmin() && !($this->userRole['perm_sync'] && $this->_isRest())) {
 			if (($this->Event->data['Event']['orgc_id'] != $this->_checkOrg()) || !($this->userRole['perm_modify'])) {
-				$this->Session->setFlash(__('You are not authorised to do that. Please consider using the \'propose attribute\' feature.'));
+				$this->Flash->error(__('You are not authorised to do that. Please consider using the \'propose attribute\' feature.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}
 		}
@@ -1749,10 +1743,10 @@ class EventsController extends AppController {
 			$date = new DateTime();
 			$this->request->data['Event']['timestamp'] = $date->getTimestamp();
 			if ($this->Event->save($this->request->data, true, $fieldList)) {
-				$this->Session->setFlash(__('The event has been saved'));
+				$this->Flash->success(__('The event has been saved'));
 				$this->redirect(array('action' => 'view', $id));
 			} else {
-				$this->Session->setFlash(__('The event could not be saved. Please, try again.'));
+				$this->Flash->error(__('The event could not be saved. Please, try again.'));
 			}
 		} else {
 			if (!$this->userRole['perm_modify']) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
@@ -1864,7 +1858,8 @@ class EventsController extends AppController {
 					return $this->RestResponse->saveFailResponse('Events', 'delete', false, $message, $this->response->type());
 				}
 			} else {
-				$this->Session->setFlash($message);
+				if (!empty($successes)) $this->Flash->success($message);
+				else $this->Flash->error($message);
 				$this->redirect(array('action' => 'index'));
 			}
 		} else {
@@ -1929,7 +1924,7 @@ class EventsController extends AppController {
 				$this->set('id', $id);
 				$this->set('_serialize', array('name', 'message', 'url', 'id', 'errors'));
 			} else {
-				$this->Session->setFlash($message);
+				$this->Flash->success($message);
 				$this->redirect(array('action' => 'view', $id));
 			}
 		} else {
@@ -1975,6 +1970,7 @@ class EventsController extends AppController {
 					$lastResult = array_pop($result);
 					$resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
 					$errors['failed_servers'] = $result;
+					$failed = 1;
 					$message = sprintf('Not published given no connection to %s but email sent to all participants.', $resultString);
 				}
 			} else if (!is_bool($emailResult)) {
@@ -1989,6 +1985,7 @@ class EventsController extends AppController {
 					$resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
 					$errors['failed_servers'] = $result;
 					$errors['GnuPG'] = 'GnuPG not set up.';
+					$failed = 1;
 					$message = sprintf('Not published given no connection to %s but no email sent given GnuPG is not configured.', $resultString);
 				}
 			} else {
@@ -2005,7 +2002,8 @@ class EventsController extends AppController {
 				$this->set('id', $id);
 				$this->set('_serialize', array('name', 'message', 'url', 'id', 'errors'));
 			} else {
-				$this->Session->setFlash($message);
+				if (!empty($failed)) $this->Flash->error($message);
+				else $this->Flash->success($message);
 				$this->redirect(array('action' => 'view', $id));
 			}
 		} else {
@@ -2031,9 +2029,9 @@ class EventsController extends AppController {
 			$user['certif_public'] = $this->Event->User->getCertificate($user['id']);
 			if ($this->Event->sendContactEmailRouter($id, $message, $creator_only, $user, $this->_isSiteAdmin())) {
 				// redirect to the view event page
-				$this->Session->setFlash(__('Email sent to the reporter.', true));
+				$this->Flash->success(__('Email sent to the reporter.', true));
 			} else {
-				$this->Session->setFlash(__('Sending of email failed', true), 'default', array(), 'error');
+				$this->Flash->error(__('Sending of email failed', true), 'default', array(), 'error');
 			}
 			$this->redirect(array('action' => 'view', $id));
 		}
@@ -2072,7 +2070,7 @@ class EventsController extends AppController {
 
 	public function export() {
 		$filesize_units = array('B', 'KB', 'MB', 'GB', 'TB');
-		if ($this->_isSiteAdmin()) $this->Session->setFlash('Warning, you are logged in as a site admin, any export that you generate will contain the FULL UNRESTRICTED data-set. If you would like to generate an export for your own organisation, please log in with a different user.');
+		if ($this->_isSiteAdmin()) $this->Flash->info('Warning, you are logged in as a site admin, any export that you generate will contain the FULL UNRESTRICTED data-set. If you would like to generate an export for your own organisation, please log in with a different user.');
 		// Check if the background jobs are enabled - if not, fall back to old export page.
 		if (Configure::read('MISP.background_jobs') && !Configure::read('MISP.disable_cached_exports')) {
 			$now = time();
@@ -2575,7 +2573,7 @@ class EventsController extends AppController {
 			}
 			$zipFile = new File($rootDir . $this->data['Event']['submittedgfi']['name']);
 			$result = $zipFile->write($zipData);
-			if (!$result) $this->Session->setFlash(__('Problem with writing the zip file. Please report to administrator.'));
+			if (!$result) $this->Flash->error(__('Problem with writing the zip file. Please report to administrator.'));
 
 			// extract zip
 			$execRetval = '';
@@ -2619,7 +2617,7 @@ class EventsController extends AppController {
 			App::uses('File', 'Utility');
 			$iocFile = new File($destPath . DS . $this->data['Event']['submittedioc']['name']);
 			$result = $iocFile->write($iocData);
-			if (!$result) $this->Session->setFlash(__('Problem with writing the ioc file. Please report to administrator.'));
+			if (!$result) $this->Flash->error(__('Problem with writing the ioc file. Please report to administrator.'));
 
 			// open the xml
 			$xmlFilePath = $destPath . DS . $this->data['Event']['submittedioc']['name'];
@@ -2758,7 +2756,7 @@ class EventsController extends AppController {
 		try {
 			$parsedXml = Xml::build($data, array('return' => 'simplexml'));
 		} catch (Exception $e) {
-			$this->Session->setFlash('Invalid GFI archive.');
+			$this->Flash->error('Invalid GFI archive.');
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $id));
 		}
 
@@ -3777,7 +3775,7 @@ class EventsController extends AppController {
 
 			$flashMessage = $this->__processFreeTextData($attributes, $id, $default_comment, $force);
 
-			$this->Session->setFlash($flashMessage);
+			$this->Flash->info($flashMessage);
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $id));
 		} else {
 			throw new MethodNotAllowedException();
@@ -4628,7 +4626,7 @@ class EventsController extends AppController {
 			$data = json_encode($data);
 			$result = $this->Module->queryModuleServer('/query', $data, false, $type);
 			if (!$result) throw new MethodNotAllowedException($type . ' service not reachable.');
-			if (isset($result['error'])) $this->Session->setFlash($result['error']);
+			if (isset($result['error'])) $this->Flash->error($result['error']);
 			if (!is_array($result)) throw new Exception($result);
 			$resultArray = $this->Event->handleModuleResult($result, $attribute[0]['Attribute']['event_id']);
 			if (isset($result['comment']) && $result['comment'] != "") {
@@ -4757,7 +4755,7 @@ class EventsController extends AppController {
 					}
 					$result = $this->Module->queryModuleServer('/query', json_encode($modulePayload, true), false, $moduleFamily = 'Import');
 					if (!$result) throw new Exception('Import service not reachable.');
-					if (isset($result['error'])) $this->Session->setFlash($result['error']);
+					if (isset($result['error'])) $this->Flash->error($result['error']);
 					if (!is_array($result)) throw new Exception($result);
 					$resultArray = $this->Event->handleModuleResult($result, $eventId);
 					if ($this->_isRest()) {
@@ -4806,7 +4804,7 @@ class EventsController extends AppController {
 					$this->render('resolved_attributes');
 				}
 			}
-			$this->Session->setFlash($fail);
+			$this->Flash->error($fail);
 		}
 		$this->set('configTypes', $this->Module->configTypes);
 		$this->set('module', $module);
@@ -4865,7 +4863,7 @@ class EventsController extends AppController {
 			if ($this->_isRest()) {
 				return $this->RestResponse->saveSuccessResponse('events', 'toggleCorrelation', $id, false, 'Correlation ' . ($event['Event']['disable_correlation'] ? 'disabled' : 'enabled') . '.');
 			} else {
-				$this->Session->setFlash('Correlation ' . ($event['Event']['disable_correlation'] ? 'disabled' : 'enabled') . '.');
+				$this->Flash->success('Correlation ' . ($event['Event']['disable_correlation'] ? 'disabled' : 'enabled') . '.');
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $id));
 			}
 		} else {
@@ -4889,6 +4887,7 @@ class EventsController extends AppController {
 				$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
 				if (!empty($event)) {
 					$pubSubTool->publishEvent($event[0]);
+					$success = 1;
 					$message = 'Event published to ZMQ';
 				} else {
 					$message = 'Invalid event.';
@@ -4902,7 +4901,8 @@ class EventsController extends AppController {
 		if ($this->_isRest()) {
 			return $this->RestResponse->saveSuccessResponse('Events', 'pushEventToZMQ', $id, $this->response->type(), $message);
 		} else {
-			$this->Session->setFlash($message);
+			if (!empty($success)) $this->Flash->success($message);
+			else $this->Flash->error($message);
 			$this->redirect($this->referer());
 		}
 	}
@@ -4972,7 +4972,7 @@ class EventsController extends AppController {
 				if ($result === true) {
 					$result = __('Enrichment task queued for background processing. Check back later to see the results.');
 				}
-				$this->Session->setFlash($result);
+				$this->Flash->success($result);
 				$this->redirect('/events/view/' . $id);
 			}
 		} else {

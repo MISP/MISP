@@ -306,10 +306,12 @@ class AttributesController extends AppController {
 					} else {
 						if (!empty($fails["attribute_0"])) {
 							foreach ($fails["attribute_0"] as $k => $v) {
+								$failed = 1;
 								$message = 'Attribute validation failed [' . $k . ']: ' . $v[0];
 								break;
 							}
 						} else {
+							$failed = 1;
 							$message = 'Attribute could not be saved.';
 						}
 					}
@@ -323,7 +325,8 @@ class AttributesController extends AppController {
 						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $errors)),'status' => 200, 'type' => 'json'));
 					}
 				} else {
-					$this->Session->setFlash($message);
+					if (empty($failed)) $this->Flash->success($message);
+					else $this->Flash->error($message);
 					if (count($successes) > 0) {
 						$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
 					}
@@ -513,7 +516,8 @@ class AttributesController extends AppController {
 				$this->Event->id = $this->request->data['Attribute']['event_id'];
 				$this->Event->saveField('published', 0);
 			}
-			$this->Session->setFlash($message);
+			if (empty($success) && !empty($fails)) $this->Flash->error($message);
+			else $this->Flash->success($message);
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
 		} else {
 			// set the event_id in the form
@@ -590,13 +594,13 @@ class AttributesController extends AppController {
 				if (!is_uploaded_file($tmpfile->path))
 					throw new InternalErrorException('PHP says file was not uploaded. Are you attacking me?');
 			} else {
-				$this->Session->setFlash(__('There was a problem to upload the file.', true), 'default', array(), 'error');
+				$this->Flash->error(__('There was a problem to upload the file.', true), 'default', array(), 'error');
 				$this->redirect(array('controller' => 'attributes', 'action' => 'add_threatconnect', $this->request->data['Attribute']['event_id']));
 			}
 			// verify mime type
 			$file_info = $tmpfile->info();
 			if ($file_info['mime'] != 'text/plain') {
-				$this->Session->setFlash('File not in CSV format.', 'default', array(), 'error');
+				$this->Flash->error('File not in CSV format.', 'default', array(), 'error');
 				$this->redirect(array('controller' => 'attributes', 'action' => 'add_threatconnect', $this->request->data['Attribute']['event_id']));
 			}
 
@@ -617,7 +621,7 @@ class AttributesController extends AppController {
 			$required_headers = array('Type', 'Value', 'Confidence', 'Description', 'Source');
 
 			if (count(array_intersect($header, $required_headers)) != count($required_headers)) {
-				$this->Session->setFlash('Incorrect ThreatConnect headers. The minimum required headers are: '.implode(',', $required_headers), 'default', array(), 'error');
+				$this->Flash->error('Incorrect ThreatConnect headers. The minimum required headers are: '.implode(',', $required_headers), 'default', array(), 'error');
 				$this->redirect(array('controller' => 'attributes', 'action' => 'add_threatconnect', $this->request->data['Attribute']['event_id']));
 			}
 
@@ -728,12 +732,13 @@ class AttributesController extends AppController {
 			// everything is done, now redirect to event view
 			$message = 'The ThreatConnect data has been imported.';
 			if ($results['successes'] != 0) {
+				$flashType = 'success';
 				$message .= ' ' . $results['successes'] . ' entries imported.';
 			}
 			if ($results['fails'] != 0) {
 				$message .= ' ' . $results['fails'] . ' entries could not be imported.';
 			}
-			$this->Session->setFlash(__($message));
+			$this->Flash->{empty($flashType) ? 'error' : $flashType}(__($message));
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
 
 		} else {
@@ -773,7 +778,7 @@ class AttributesController extends AppController {
 					|| $this->userRole['perm_modify_org'])) {
 				// Allow the edit
 			} else {
-				$this->Session->setFlash(__('Invalid attribute.'));
+				$this->Flash->error(__('Invalid attribute.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}
 		}
@@ -810,7 +815,7 @@ class AttributesController extends AppController {
 				if ($this->_isRest() || $this->response->type() === 'application/json') {
 					throw new NotFoundException('Invalid attribute.');
 				} else {
-					$this->Session->setFlash(__('Invalid attribute.'));
+					$this->Flash->error(__('Invalid attribute.'));
 					$this->redirect(array('controller' => 'events', 'action' => 'index'));
 				}
 			}
@@ -837,7 +842,7 @@ class AttributesController extends AppController {
 				}
 			}
 			if ($result) {
-				$this->Session->setFlash(__('The attribute has been saved'));
+				$this->Flash->error(__('The attribute has been saved'));
 				// remove the published flag from the event
 				$this->Event->unpublishEvent($eventId);
 				if (!empty($this->Attribute->data['Attribute']['object_id'])) {
@@ -866,7 +871,7 @@ class AttributesController extends AppController {
 				}
 			} else {
 				if (!CakeSession::read('Message.flash')) {
-					$this->Session->setFlash(__('The attribute could not be saved. Please, try again.'));
+					$this->Flash->error(__('The attribute could not be saved. Please, try again.'));
 				} else {
 					$this->request->data = $this->Attribute->read(null, $id);
 				}
@@ -1090,17 +1095,17 @@ class AttributesController extends AppController {
 					$this->set('message', 'Attribute deleted.');
 					$this->set('_serialize', array('message'));
 				} else {
-					$this->Session->setFlash(__('Attribute deleted'));
+					$this->Flash->success(__('Attribute deleted'));
 					$this->redirect($this->referer());
 				}
 			} else {
 				if ($this->_isRest() || $this->response->type() === 'application/json') {
 					throw new Exception('Attribute was not deleted');
 				} else {
-					$this->Session->setFlash(__('Attribute was not deleted'));
+					$this->Flash->error(__('Attribute was not deleted'));
 					$this->redirect(array('action' => 'index'));
 				}
-				$this->Session->setFlash(__('Attribute deleted'));
+				$this->Flash->success(__('Attribute deleted'));
 			}
 		}
 	}
@@ -2337,7 +2342,7 @@ class AttributesController extends AppController {
 		if (!self::_isSiteAdmin() || !$this->request->is('post')) throw new NotFoundException();
 		if (!Configure::read('MISP.background_jobs')) {
 			$k = $this->Attribute->generateCorrelation();
-			$this->Session->setFlash(__('All done. ' . $k . ' attributes processed.'));
+			$this->Flash->success(__('All done. ' . $k . ' attributes processed.'));
 			$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 		} else {
 			$job = ClassRegistry::init('Job');
@@ -2360,7 +2365,7 @@ class AttributesController extends AppController {
 					true
 			);
 			$job->saveField('process_id', $process_id);
-			$this->Session->setFlash(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
+			$this->Flash->success(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
 			$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 		}
 	}
@@ -2705,7 +2710,7 @@ class AttributesController extends AppController {
 		$events = array_keys($this->Attribute->Event->find('list'));
 		$orphans = $this->Attribute->find('list', array('conditions' => array('Attribute.event_id !=' => $events)));
 		if (count($orphans) > 0) $this->Attribute->deleteAll(array('Attribute.event_id !=' => $events), false, true);
-		$this->Session->setFlash('Removed ' . count($orphans) . ' attribute(s).');
+		$this->Flash->success('Removed ' . count($orphans) . ' attribute(s).');
 		$this->redirect(Router::url($this->referer(), true));
 	}
 
@@ -2748,7 +2753,7 @@ class AttributesController extends AppController {
 				$counter++;
 			}
 		}
-		$this->Session->setFlash('Updated ' . $counter . ' attribute(s).');
+		$this->Flash->success('Updated ' . $counter . ' attribute(s).');
 		$this->redirect('/pages/display/administration');
 	}
 

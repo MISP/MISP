@@ -99,7 +99,7 @@ class SharingGroupsController extends AppController {
 				$failedField = array_keys($validationErrors)[0];
 				$reason = reset($this->SharingGroup->validationErrors)[0];
 				foreach ($validationReplacements as $k => $vR) if ($reason == $k) $reason = $vR;
-				$this->Session->setFlash('The sharing group could not be added. ' . ucfirst($failedField) . ': ' . $reason);
+				$this->Flash->error('The sharing group could not be added. ' . ucfirst($failedField) . ': ' . $reason);
 			}
 		} else if ($this->_isRest()) {
 			return $this->RestResponse->describe('SharingGroup', 'add', false, $this->response->type());
@@ -169,7 +169,7 @@ class SharingGroupsController extends AppController {
 					$failedField = array_keys($validationErrors)[0];
 					$reason = reset($this->SharingGroup->validationErrors)[0];
 					foreach ($validationReplacements as $k => $vR) if ($reason == $k) $reason = $vR;
-					$this->Session->setFlash('The sharing group could not be edited. ' . ucfirst($failedField) . ': ' . $reason);
+					$this->Flash->error('The sharing group could not be edited. ' . ucfirst($failedField) . ': ' . $reason);
 				}
 			}
 		} else if ($this->_isRest()) {
@@ -201,12 +201,12 @@ class SharingGroupsController extends AppController {
 			if ($this->_isRest()) {
 				return $this->RestResponse->saveSuccessResponse('SharingGroups', 'delete', $id, $this->response->type());
 			}
-			$this->Session->setFlash(__('Sharing Group deleted'));
+			$this->Flash->success(__('Sharing Group deleted'));
 		} else {
 			if ($this->_isRest()) {
 				return $this->RestResponse->saveFailResponse('SharingGroups', 'delete', $id, 'The sharing group could not be deleted.', $this->response->type());
 			}
-			$this->Session->setFlash(__('Sharing Group could not be deleted. Make sure that there are no events, attributes or threads belonging to this sharing group.'));
+			$this->Flash->error(__('Sharing Group could not be deleted. Make sure that there are no events, attributes or threads belonging to this sharing group.'));
 		}
 
 		if ($deletedSg['SharingGroup']['active']) $this->redirect('/SharingGroups/index');

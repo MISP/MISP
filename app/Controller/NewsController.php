@@ -37,9 +37,9 @@ class NewsController extends AppController {
 			if (!isset($this->request->data['News']['anonymise']) || !$this->request->data['News']['anonymise']) $this->request->data['News']['user_id'] = $this->Auth->user('id');
 			else $this->request->data['News']['user_id'] = 0;
 			if ($this->News->save($this->request->data)) {
-				$this->Session->setFlash('News item added.');
+				$this->Flash->success('News item added.');
 				$this->redirect(array('action' => 'index'));
-			} else $this->Session->setFlash('The news item could not be added.');
+			} else $this->Flash->error('The news item could not be added.');
 		}
 	}
 
@@ -49,9 +49,9 @@ class NewsController extends AppController {
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$this->request->data['News']['id'] = $id;
 			if ($this->News->save($this->request->data)) {
-				$this->Session->setFlash('News item updated.');
+				$this->Flash->success('News item updated.');
 				$this->redirect(array('action' => 'index'));
-			} else $this->Session->setFlash('Could not update news item.');
+			} else $this->Flash->error('Could not update news item.');
 		} else {
 			$this->request->data = $this->News->read(null, $id);
 			$this->set('newsItem', $this->request->data);
@@ -63,10 +63,10 @@ class NewsController extends AppController {
 		$this->News->id = $id;
 		if (!$this->News->exists()) throw new NotFoundException('Invalid news item');
 		if ($this->News->delete()) {
-			$this->Session->setFlash('News item deleted.');
+			$this->Flash->success('News item deleted.');
 			$this->redirect(array('action' => 'index'));
 		}
-		$this->Session->setFlash('News item could not be deleted.');
+		$this->Flash->error('News item could not be deleted.');
 		$this->redirect(array('action' => 'index'));
 	}
 }

@@ -84,7 +84,8 @@ class AppController extends Controller {
 			),
 			'Security',
 			'ACL',
-			'RestResponse'
+			'RestResponse',
+			'Flash'
 	);
 
 	private function __isApiFunction($controller, $action) {
@@ -282,7 +283,7 @@ class AppController extends Controller {
 				if ($this->_isRest()) {
 					throw new ForbiddenException('Authentication failed. Your user account has been disabled.');
 				} else {
-					$this->Session->setFlash('Your user account has been disabled.');
+					$this->Flash->error('Your user account has been disabled.', array('key' => 'error'));
 					$this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
 				}
 			}
@@ -315,11 +316,11 @@ class AppController extends Controller {
 					$email = Configure::read('MISP.email');
 					$message = str_replace('$email', $email, $message);
 				}
-				$this->Session->setFlash($message);
+				$this->Flash->info($message);
 				$this->Auth->logout();
 				throw new MethodNotAllowedException($message);//todo this should pb be removed?
 			} else {
-				$this->Session->setFlash('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live)');
+				$this->Flash->error('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live)', array('clear' => 1));
 			}
 		}
 
@@ -515,7 +516,7 @@ class AppController extends Controller {
 			$this->Event->set('attribute_count', $event[0]['attribute_count']);
 			$this->Event->save();
 		}
-		$this->Session->setFlash(__('All done. attribute_count generated from scratch for ' . (isset($k) ? $k : 'no') . ' events.'));
+		$this->Flash->success(__('All done. attribute_count generated from scratch for ' . (isset($k) ? $k : 'no') . ' events.'));
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
 
@@ -541,7 +542,7 @@ class AppController extends Controller {
 			}
 		}
 		$this->Server->updateDatabase('makeAttributeUUIDsUnique');
-		$this->Session->setFlash('Done. Deleted ' . $counter . ' duplicate attribute(s).');
+		$this->Flash->success('Done. Deleted ' . $counter . ' duplicate attribute(s).');
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
 
@@ -577,7 +578,7 @@ class AppController extends Controller {
 			}
 		}
 		$this->Server->updateDatabase('makeEventUUIDsUnique');
-		$this->Session->setFlash('Done. Removed ' . $counter . ' duplicate events.');
+		$this->Flash->success('Done. Removed ' . $counter . ' duplicate events.');
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
 
@@ -585,7 +586,7 @@ class AppController extends Controller {
 		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
 		$this->loadModel('Server');
 		$this->Server->updateDatabase($command);
-		$this->Session->setFlash('Done.');
+		$this->Flash->success('Done.');
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
 
@@ -594,7 +595,7 @@ class AppController extends Controller {
 		$this->loadModel('Server');
 		if (!Configure::read('MISP.background_jobs')) {
 			$this->Server->upgrade2324($this->Auth->user('id'));
-			$this->Session->setFlash('Done. For more details check the audit logs.');
+			$this->Flash->success('Done. For more details check the audit logs.');
 			$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 		} else {
 			$job = ClassRegistry::init('Job');
@@ -617,7 +618,7 @@ class AppController extends Controller {
 					true
 			);
 			$job->saveField('process_id', $process_id);
-			$this->Session->setFlash(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
+			$this->Flash->success(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
 			$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 		}
 	}
@@ -702,7 +703,7 @@ class AppController extends Controller {
 		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
 		$this->loadModel('Server');
 		$this->Server->cleanCacheFiles();
-		$this->Session->setFlash('Caches cleared.');
+		$this->Flash->success('Caches cleared.');
 		$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'diagnostics'));
 	}
 }

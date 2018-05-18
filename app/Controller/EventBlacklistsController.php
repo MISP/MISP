@@ -8,7 +8,7 @@ class EventBlacklistsController extends AppController {
 		parent::beforeFilter();
 		if (!$this->_isSiteAdmin()) $this->redirect('/');
 		if (false === Configure::read('MISP.enableEventBlacklisting')) {
-			$this->Session->setFlash(__('Event Blacklisting is not currently enabled on this instance.'));
+			$this->Flash->info(__('Event Blacklisting is not currently enabled on this instance.'));
 			$this->redirect('/');
 		}
 	}

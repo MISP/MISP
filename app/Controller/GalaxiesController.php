@@ -32,7 +32,7 @@ class GalaxiesController extends AppController {
 		if ($this->_isRest()) {
 			return $this->RestResponse->saveSuccessResponse('Galaxy', 'update', false, $this->response->type(), $message);
 		} else {
-			$this->Session->setFlash($message);
+			$this->Flash->success($message);
 			$this->redirect(array('controller' => 'galaxies', 'action' => 'index'));
 		}
 	}
@@ -115,7 +115,7 @@ class GalaxiesController extends AppController {
 	public function attachCluster($target_id, $target_type = 'event') {
 		$cluster_id = $this->request->data['Galaxy']['target_id'];
 		$result = $this->Galaxy->attachCluster($this->Auth->user(), $target_type, $target_id, $cluster_id);
-		$this->Session->setFlash($result);
+		$this->Flash->info($result);
 		$this->redirect($this->referer());
 	}
 

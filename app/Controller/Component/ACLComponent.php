@@ -485,6 +485,7 @@ class ACLComponent extends Component {
 	// If the requested action has a permission, check if the user's role has it flagged. If yes, return true
 	// If we fall through all of the checks, return an exception.
 	public function checkAccess($user, $controller, $action) {
+		$controller = lcfirst(Inflector::camelize($controller));
 		$action = strtolower($action);
 		$aclList = $this->__aclList;
 		foreach ($aclList as $k => $v) {

@@ -115,7 +115,7 @@
 						'div' => 'input clear',
 						'placeholder' => ',',
 						'class' => 'form-control span6',
-						'value' => ','
+						'value' => isset($this->request->data['Feed']['settings']['csv']['delimiter']) ? $this->request->data['Feed']['settings']['csv']['delimiter'] : ','
 				));
 			?>
 		</div>
@@ -165,7 +165,7 @@
 				'options' => array($distributionLevels),
 				'div' => 'input clear',
 				'label' => __('Distribution'),
-				'selected' => 3,
+				'selected' => isset($this->request->data['Feed']['distribution']) ? $this->request->data['Feed']['distribution'] : 3,
 		));
 	?>
 		<div id="SGContainer" style="display:none;">
@@ -183,7 +183,7 @@
 		echo $this->Form->input('tag_id', array(
 				'options' => $tags,
 				'label' => __('Default Tag'),
-				'selected' => 0,
+				'selected' => isset($this->request->data['Feed']['tag_id']) ? $this->request->data['Feed']['tag_id'] : 0,
 		));
 		echo $this->Form->input('pull_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
 	?>

@@ -89,8 +89,10 @@ class FeedsController extends AppController {
 		if ($this->request->is('post')) {
 			$results = $this->Feed->importFeeds($this->request->data['Feed']['json'], $this->Auth->user());
 			if ($results['successes'] > 0) {
+				$flashType = 'success';
 				$message = $results['successes'] . ' new feeds added.';
 			} else {
+				$flashType = 'info';
 				$message = 'No new feeds to add.';
 			}
 			if ($results['fails']) {
@@ -99,7 +101,7 @@ class FeedsController extends AppController {
 			if ($this->_isRest()) {
 				return $this->RestResponse->saveSuccessResponse('Feed', 'importFeeds', false, $this->response->type(), $message);
 			} else {
-				$this->Session->setFlash($message);
+				$this->Flash->{$flashType}($message);
 				$this->redirect(array('controller' => 'Feeds', 'action' => 'index', 'all'));
 			}
 		}
@@ -144,7 +146,7 @@ class FeedsController extends AppController {
 				$this->request->data['Feed']['settings'] = array();
 			} else {
 				if (!empty($this->request->data['Feed']['settings']['common']['excluderegex']) && !$this->__checkRegex($this->request->data['Feed']['settings']['common']['excluderegex'])) {
-					$this->Session->setFlash('Invalid exclude regex. Make sure it\'s a delimited PCRE regex pattern.');
+					$this->Flash->error('Invalid exclude regex. Make sure it\'s a delimited PCRE regex pattern.');
 					return true;
 				}
 			}
@@ -159,7 +161,10 @@ class FeedsController extends AppController {
 			}
 			if (empty($this->request->data['Feed']['input_source'])) {
 				$this->request->data['Feed']['input_source'] = 'network';
-			} else if (!in_array($this->request->data['Feed']['input_source'], array('network', 'file'))) {
+			} else {
+				$this->request->data['Feed']['input_source'] = strtolower($this->request->data['Feed']['input_source']);
+			}
+			if (!in_array($this->request->data['Feed']['input_source'], array('network', 'local'))) {
 				$this->request->data['Feed']['input_source'] = 'network';
 			}
 			if (!isset($this->request->data['Feed']['delete_local_file'])) {
@@ -175,15 +180,15 @@ class FeedsController extends AppController {
 						$feed = $this->Feed->find('first', array('conditions' => array('Feed.id' => $this->Feed->id), 'recursive' => -1));
 						return $this->RestResponse->viewData($feed, $this->response->type());
 					}
-					$this->Session->setFlash($message);
+					$this->Flash->success($message);
 					$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
-				}
-				else {
-					$messsage = __('Feed could not be added. Invalid field: %s', array_keys($this->Feed->validationErrors)[0]);
+				}	else {
+					$message = __('Feed could not be added. Invalid field: %s', array_keys($this->Feed->validationErrors)[0]);
 					if ($this->_isRest()) {
 						return $this->RestResponse->saveFailResponse('Feeds', 'add', false, $message, $this->response->type());
 					}
-					$this->Session->setFlash($message);
+					$this->Flash->error($message);
+					$this->request->data['Feed']['settings'] = json_decode($this->request->data['Feed']['settings'], true);
 				}
 			}
 		} else if ($this->_isRest()) {
@@ -237,7 +242,7 @@ class FeedsController extends AppController {
 				$this->request->data['Feed']['settings'] = array();
 			} else {
 				if (!empty($this->request->data['Feed']['settings']['common']['excluderegex']) && !$this->__checkRegex($this->request->data['Feed']['settings']['common']['excluderegex'])) {
-					$this->Session->setFlash('Invalid exclude regex. Make sure it\'s a delimited PCRE regex pattern.');
+					$this->Flash->error('Invalid exclude regex. Make sure it\'s a delimited PCRE regex pattern.');
 					return true;
 				}
 			}
@@ -263,14 +268,14 @@ class FeedsController extends AppController {
 					$feed = $this->Feed->find('first', array('conditions' => array('Feed.id' => $this->Feed->id), 'recursive' => -1));
 					return $this->RestResponse->viewData($feed, $this->response->type());
 				}
-				$this->Session->setFlash($message);
+				$this->Flash->success($message);
 				$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
 			} else {
 				$message = __('Feed could not be updated. Invalid fields: %s', implode(', ', array_keys($this->Feed->validationErrors)));
 				if ($this->_isRest()) {
 					return $this->RestResponse->saveFailResponse('Feeds', 'add', false, $message, $this->response->type());
 				}
-				$this->Session->setFlash($message);
+				$this->Flash->error($message);
 			}
 		} else {
 			if ($this->_isRest()) {
@@ -295,13 +300,14 @@ class FeedsController extends AppController {
 			if ($this->_isRest()) {
 				return $this->RestResponse->saveSuccessResponse('Feeds', 'delete', $feedId, false, $message);
 			}
+			$this->Flash->success($message);
 		} else {
 			$message = 'Feed could not be deleted.';
 			if ($this->_isRest()) {
 				return $this->RestResponse->saveFailResponse('Feeds', 'delete', false, $message, $this->response->type());
 			}
+			$this->Flash->error($message);
 		}
-		$this->Session->setFlash($message);
 		$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
 	}
 
@@ -313,7 +319,7 @@ class FeedsController extends AppController {
 			$this->Feed->data['Feed']['settings'] = json_decode($this->Feed->data['Feed']['settings'], true);
 		}
 		if (!$this->Feed->data['Feed']['enabled']) {
-			$this->Session->setFlash('Feed is currently not enabled. Make sure you enable it.');
+			$this->Flash->info('Feed is currently not enabled. Make sure you enable it.');
 			$this->redirect(array('action' => 'index'));
 		}
 		if (Configure::read('MISP.background_jobs')) {
@@ -344,7 +350,7 @@ class FeedsController extends AppController {
 				if ($this->_isRest()) {
 					return $this->RestResponse->viewData(array('result' => 'Fetching the feed has failed.'), $this->response->type());
 				} else {
-					$this->Session->setFlash('Fetching the feed has failed.');
+					$this->Flash->error('Fetching the feed has failed.');
 					$this->redirect(array('action' => 'index'));
 				}
 			}
@@ -357,7 +363,7 @@ class FeedsController extends AppController {
 		if ($this->_isRest()) {
 			return $this->RestResponse->viewData(array('result' => $message), $this->response->type());
 		} else {
-			$this->Session->setFlash($message);
+			$this->Flash->success($message);
 			$this->redirect(array('action' => 'index'));
 		}
 	}
@@ -411,7 +417,7 @@ class FeedsController extends AppController {
                 }
             }
         }
-        $this->Session->setFlash($message);
+        $this->Flash->success($message);
         $this->redirect(array('action' => 'index'));
 	}
 
@@ -420,22 +426,21 @@ class FeedsController extends AppController {
 		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
 		$this->Feed->read();
 		if (!$this->Feed->data['Feed']['enabled']) {
-			$this->Session->setFlash('Feed is currently not enabled. Make sure you enable it.');
+			$this->Flash->info('Feed is currently not enabled. Make sure you enable it.');
 			$this->redirect(array('action' => 'previewIndex', $feedId));
 		}
 		$result = $this->Feed->downloadAndSaveEventFromFeed($this->Feed->data, $eventUuid, $this->Auth->user());
 		if (isset($result['action'])) {
 			if ($result['result']) {
-				if ($result['action'] == 'add') $message = 'Event added.';
+				if ($result['action'] == 'add') $this->Flash->success('Event added.');
 				else {
-					if ($result['result'] === 'No change') $message = 'Event already up to date.';
-					else $message = 'Event updated.';
+					if ($result['result'] === 'No change') $this->Flash->info('Event already up to date.');
+					else $this->Flash->success('Event updated.');
 				}
 			} else {
-				$message = 'Could not ' . $result['action'] . ' event.';
+				$this->Flash->error('Could not ' . $result['action'] . ' event.');
 			}
-		} else $message = 'Download failed.';
-		$this->Session->setFlash($message);
+		} else $this->Flash->error('Download failed.');
 		$this->redirect(array('action' => 'previewIndex', $feedId));
 	}
 
@@ -469,7 +474,7 @@ class FeedsController extends AppController {
 		$HttpSocket = $syncTool->setupHttpSocketFeed($feed);
 		$events = $this->Feed->getManifest($feed, $HttpSocket);
 		if (!is_array($events)) {
-			$this->Session->setFlash($events);
+			$this->Flash->info($events);
 			$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
 		}
 		foreach ($filterParams as $k => $filter) {
@@ -531,7 +536,7 @@ class FeedsController extends AppController {
 		$resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], $currentPage, 60, $params);
 		// we want false as a valid option for the split fetch, but we don't want it for the preview
 		if (!is_array($resultArray)) {
-			$this->Session->setFlash($resultArray);
+			$this->Flash->info($resultArray);
 			$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
 		}
 		$this->params->params['paging'] = array($this->modelClass => $params);
@@ -688,9 +693,9 @@ class FeedsController extends AppController {
 		$data = json_decode($this->request->data['Feed']['data'], true);
 		$result = $this->Feed->saveFreetextFeedData($feed, $data, $this->Auth->user());
 		if ($result === true) {
-			$this->Session->setFlash('Data pulled.');
+			$this->Flash->success('Data pulled.');
 		} else {
-			$this->Session->setFlash('Could not pull the selected data. Reason: ' . $result);
+			$this->Flash->error('Could not pull the selected data. Reason: ' . $result);
 		}
 		$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
 	}
@@ -721,7 +726,7 @@ class FeedsController extends AppController {
 		} else {
 			$result = $this->Feed->cacheFeedInitiator($this->Auth->user(), false, $scope);
 			if (!$result) {
-				$this->Session->setFlash('Caching the feeds has failed.');
+				$this->Flash->error('Caching the feeds has failed.');
 				$this->redirect(array('action' => 'index'));
 			}
 			$message = 'Caching the feeds has successfuly completed.';
@@ -729,7 +734,7 @@ class FeedsController extends AppController {
 		if ($this->_isRest()) {
 			return $this->RestResponse->saveSuccessResponse('Feed', 'cacheFeed', false, $this->response->type(), $message);
 		} else {
-			$this->Session->setFlash($message);
+			$this->Flash->error($message);
 			$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
 		}
 	}
@@ -750,7 +755,7 @@ class FeedsController extends AppController {
 		try {
 			$feedIds = json_decode($feedList, true);
 		} catch (Exception $e) {
-			$this->Session->setFlash('Invalid feed list received.');
+			$this->Flash->error('Invalid feed list received.');
 			$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
 		}
 		if ($this->request->is('post')) {
@@ -767,10 +772,10 @@ class FeedsController extends AppController {
 				}
 			}
 			if ($count > 0) {
-				$this->Session->setFlash($count . ' feeds ' . array('disabled', 'enabled')[$enable] . '.');
+				$this->Flash->success($count . ' feeds ' . array('disabled', 'enabled')[$enable] . '.');
 				$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
 			} else {
-				$this->Session->setFlash('All selected feeds are already ' . array('disabled', 'enabled')[$enable] . ', nothing to update.');
+				$this->Flash->info('All selected feeds are already ' . array('disabled', 'enabled')[$enable] . ', nothing to update.');
 				$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
 			}
 		} else {

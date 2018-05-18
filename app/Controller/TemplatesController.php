@@ -204,10 +204,10 @@ class TemplatesController extends AppController {
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('This action can only be invoked via a post request.');
 		if (!$this->_isSiteAdmin() && !$template) throw new MethodNotAllowedException('No template with the provided ID exists, or you are not authorised to edit it.');
 		if ($this->Template->delete($id, true)) {
-			$this->Session->setFlash('Template deleted.');
+			$this->Flash->success('Template deleted.');
 			$this->redirect(array('action' => 'index'));
 		} else {
-			$this->Session->setFlash('The template could not be deleted.');
+			$this->Flash->error('The template could not be deleted.');
 			$this->redirect(array('action' => 'index'));
 		}
 	}
@@ -348,8 +348,8 @@ class TemplatesController extends AppController {
 				$date = new DateTime();
 				$event['Event']['timestamp'] = $date->getTimestamp();
 				$this->Event->save($event);
-				if ($fails == 0) $this->Session->setFlash(__('Event populated, ' . $count . ' attributes successfully created.'));
-				else $this->Session->setFlash(__('Event populated, but ' . $fails . ' attributes could not be saved.'));
+				if ($fails == 0) $this->Flash->success(__('Event populated, ' . $count . ' attributes successfully created.'));
+				else $this->Flash->success(__('Event populated, but ' . $fails . ' attributes could not be saved.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $event_id));
 			} else {
 				throw new MethodNotAllowedException('No attributes submitted for creation.');
