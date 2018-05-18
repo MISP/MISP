@@ -29,6 +29,7 @@ var options = {
 		updateTime: true,  // drag items horizontally
 		remove: true
 	},
+	tooltipOnItemUpdateTime: true,
 	onRemove: function(item, callback) { // clear timestamps
 		update_seen(item.group+'s', 'first', item.id, null, callback);
 		update_seen(item.group+'s', 'last', item.id, null, callback);

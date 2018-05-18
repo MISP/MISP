@@ -137,3 +137,10 @@
 .vis-item .vis-expand-action:hover:after {
     color: white;
 }
+
+.vis-onUpdateTime-tooltip {
+    background: #7b7b7b !important;
+    padding: 0px !important;
+    border-radius: 5px !important;
+    border: solid 1px #000 !important;
+}
