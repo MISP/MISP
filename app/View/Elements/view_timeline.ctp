@@ -16,7 +16,7 @@
 	</div>
 
 
-	<div id="event_timeline">
+	<div id="event_timeline" data-user-manipulation="<?php echo $mayModify || $isSiteAdmin ? 'true' : 'false'; ?>">
 		<div class="loadingTimeline">
 			<div class="spinner"></div>
 			<div class="loadingText"><?php echo __('Loading');?></div>

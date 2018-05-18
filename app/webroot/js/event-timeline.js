@@ -1,6 +1,13 @@
 var eventTimeline;
 var items_timeline;
+var items_backup;
+var user_manipulation = $('#event_timeline').data('user-manipulation');
 var container_timeline = document.getElementById('event_timeline');
+var default_editable = {
+	add: false,         // add new items by double tapping
+	updateTime: true,   // drag items horizontally
+	remove: true
+};
 var options = {
 	template: function (item, element, data) {
 		switch(item.group) {
@@ -23,12 +30,7 @@ var options = {
 	maxHeight: 400,
 	minHeight: 400,
 	multiselect: true,
-	editable: true,
-	editable: {
-		add: false,         // add new items by double tapping
-		updateTime: true,  // drag items horizontally
-		remove: true
-	},
+	editable: user_manipulation ? default_editable : false,
 	tooltipOnItemUpdateTime: true,
 	onRemove: function(item, callback) { // clear timestamps
 		update_seen(item.group+'s', 'first', item.id, null, callback);
@@ -165,7 +167,7 @@ function reflect_change(itemType, seenType, item_id) {
 function quick_fetch_seen(itemType, seenType, item_id, callback) {
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
-			$(".loading").show();
+			$(".loadingTimeline").show();
 		},
 		dataType:"html",
 		cache: false,
@@ -175,7 +177,7 @@ function quick_fetch_seen(itemType, seenType, item_id, callback) {
 			callback(seenTime);
 		},
 		complete: function () {
-			$(".loading").hide();
+			$(".loadingTimeline").hide();
 		},
 		url:"/" + itemType + "/fetchViewValue/" + item_id + "/" + seenType + "_seen",
 	});
@@ -185,7 +187,7 @@ function update_seen(itemType, seenType, item_id, nanoTimestamp, callback) {
 	var fieldIdItemType = itemType.charAt(0).toUpperCase() + itemType.slice(1, -1); //  strip 's' and uppercase first char
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
-			$(".loading").show();
+			$(".loadingTimeline").show();
 		},
 		dataType:"html",
 		cache: false,
@@ -213,7 +215,7 @@ function update_seen(itemType, seenType, item_id, nanoTimestamp, callback) {
 			});
 		},
 		complete: function () {
-			$(".loading").hide();
+			$(".loadingTimeline").hide();
 		},
 		url:"/" + itemType + "/fetchEditForm/" + item_id + "/" + seenType + "_seen",
 	});
@@ -258,6 +260,7 @@ function set_spanned_time(item) {
 
     	} else if (ls===null && fs!==null) {
 		item.start = nanoTimestampToDatetime(fs);
+		item.seen_enabled = true;
 		item.end = null;
 
     	} else { // fs and ls are defined
@@ -285,7 +288,6 @@ function enable_timeline() {
 			$(".loadingTimeline").show();
 		},
 		success: function( data, textStatus, jQxhr ){
-			console.log(data);
 			for (var item of data.items) {
 				item.className = item.group;
 				set_spanned_time(item);
@@ -312,17 +314,33 @@ function enable_timeline() {
 
 function handle_selection(data) {
 	var event = data.event;
-	console.log(event);
 	var target = event.target;
 	var items = data.items;
 
 	if (items.length == 0) {
 			$('.timelineSelectionTooltip').remove()
 	} else {
-		console.log('selected');
 		for (var itemID of items) {
 			generate_timeline_tooltip(itemID, target);
 		}
+	}
+}
+
+function handle_not_seen_enabled(hide) {
+	if (hide) {
+		var hidden = items_timeline.get({
+			filter: function(item) {
+				return !item.seen_enabled;
+			}
+		});
+		var hidden_ids = [];
+		items_timeline.forEach(function(item) {
+			hidden_ids.push(item.id);
+		});
+		items_timeline.remove(hidden)
+		items_backup = hidden;
+	} else {
+		items_timeline.add(items_backup);
 	}
 }
 
@@ -406,36 +424,12 @@ function init_popover() {
 		],
 		data: [['All']],
 	});
-	menu_display_timeline.add_slider({
-		id: 'slider_timeline_display_max_char_num',
-		label: "Charater to show",
-		title: "Maximum number of charater to display",
-		min: 8,
-		max: 1024,
-		value: max_displayed_char,
-		step: 8,
-		applyButton: true,
-		event: function(value) {
-
-		},
-		eventApply: function(value) {
-
-		}
-	});
-	menu_display_timeline.add_checkbox({
-		id: 'checkbox_timeline_allow_edit',
-		label: "Edit Object's time",
-		title: "Allow to edit the time attached to the object",
-		event: function(value) {
-			console.log(value);
-		}
-	});
 	menu_display_timeline.add_checkbox({
 		id: 'checkbox_timeline_display_hide_not_seen_enabled',
 		label: "Hide first seen not set",
 		title: "Hide items that does not have first seen sets",
 		event: function(value) {
-			console.log(value);
+			handle_not_seen_enabled(value)
 		}
 	});
 }
