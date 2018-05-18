@@ -345,15 +345,42 @@ function updateAttributeFieldOnSuccess(name, type, id, field, event) {
 	});
 }
 
+function updateObjectFieldOnSuccess(name, type, id, field, event) {
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			if (field != 'timestamp') {
+				$(".loading").show();
+			}
+		},
+		dataType:"html",
+		cache: false,
+		success:function (data, textStatus) {
+			if (field != 'timestamp') {
+				$(".loading").hide();
+				$(name + '_solid').html(data);
+				$(name + '_placeholder').empty();
+				$(name + '_solid').show();
+			} else {
+				$('#' + type + '_' + id + '_' + 'timestamp_solid').html(data);
+			}
+		},
+		url:"/objects/fetchViewValue/" + id + "/" + field,
+	});
+}
+
 function activateField(type, id, field, event) {
 	resetForms();
 	if (type == 'denyForm') return;
 	var objectType = 'attributes';
+	var containerName = 'Attribute';
 	if (type == 'ShadowAttribute') {
 		objectType = 'shadow_attributes';
+	} else if (type == 'Object') {
+		objectType = 'objects';
+		containerName = 'Object';
 	}
 	var name = '#' + type + '_' + id + '_' + field;
-	var container_name = '#Attribute_' + id + '_' + field;
+	var container_name = '#'+containerName+'_' + id + '_' + field;
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
@@ -466,6 +493,8 @@ function submitForm(type, id, field, context) {
 	var name = '#' + type + '_' + id + '_' + field;
 	if (type == 'ShadowAttribute') {
 		object_type = 'shadow_attributes';
+	} else if (type == 'Object') {
+		object_type = 'objects';
 	}
 	$.ajax({
 		data: $(name + '_field').closest("form").serialize(),
@@ -559,6 +588,17 @@ function handleAjaxEditResponse(data, name, type, id, field, event) {
 	}
 	if (type == 'ShadowAttribute') {
 		updateIndex(event, 'event');
+	}
+	if (type == 'Object') {
+		if (responseArray.saved) {
+			showMessage('success', responseArray.success);
+			updateObjectFieldOnSuccess(name, type, id, field, event);
+			updateObjectFieldOnSuccess(name, type, id, 'timestamp', event);
+			eventUnpublish();
+		} else {
+			showMessage('fail', 'Validation failed: ' + responseArray.errors.value);
+			updateObjectFieldOnSuccess(name, type, id, field, event);
+		}
 	}
 	if (responseArray.hasOwnProperty('check_publish')) {
 		checkAndSetPublishedInfo();
