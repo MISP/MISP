@@ -480,7 +480,6 @@ class EventShell extends AppShell
 	}
 
 	public function enrichment() {
-		file_put_contents('/var/www/MISP4/app/tmp/test', "0");
 		if (empty($this->args[0]) || empty($this->args[1]) || empty($this->args[2])) {
 			die('Usage: ' . $this->Server->command_line_functions['enrichment'] . PHP_EOL);
 		}
