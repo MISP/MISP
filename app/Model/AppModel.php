@@ -61,7 +61,7 @@ class AppModel extends Model {
 
 	public $db_changes = array(
 		1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
-		7 => false, 8 => false
+		7 => false, 8 => false, 9 => false
 	);
 
 	function afterSave($created, $options = array()) {
@@ -928,6 +928,10 @@ class AppModel extends Model {
 						INDEX `noticelist_id` (`noticelist_id`)
 					) ENGINE=InnoDB DEFAULT CHARSET=utf8;';
 			break;
+			case 9:
+				$sqlArray[] = 'ALTER TABLE galaxies ADD namespace varchar(255) COLLATE utf8_unicode_ci NOT NULL DEFAULT "misp";';
+				$indexArray[] = array('galaxies', 'namespace');
+				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
 				$sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
