@@ -253,7 +253,10 @@ class StixBuilder(object):
             try:
                 to_ids, observable = self.objects_mapping[name](misp_object.attributes, misp_object.uuid)
             except KeyError:
-                continue
+                try:
+                    to_ids, observable = self.create_custom_observable(misp_object.name, misp_object.attributes, misp_object.uuid)
+                except:
+                    continue
             if name == "process" and misp_object.references:
                 for reference in misp_object.references:
                     if reference.relationship_type == "connected-to":
@@ -800,15 +803,7 @@ class StixBuilder(object):
         return to_ids, self.create_observable_composition(observables, uuid, "url")
 
     def parse_x509_object(self, attributes, uuid):
-        to_ids = False
-        custom_object = Custom()
-        custom_object.custom_properties = CustomProperties()
-        for attribute in attributes:
-            property = Property()
-            property.name = "x509 {}: {}".format(attribute.type, attribute.object_relation)
-            property.value = attribute.value
-            custom_object.custom_properties.append(property)
-            if attribute.to_ids: to_ids = True
+        to_ids, custom_object = self.create_custom_object(attributes, 'x509')
         custom_object.parent.id_ = "{}:x509CustomObject-{}".format(self.namespace_prefix, uuid)
         custom_observable = Observable(custom_object)
         custom_observable.id_ = "{}:x509Custom-{}".format(self.namespace_prefix, uuid)
@@ -1020,6 +1015,13 @@ class StixBuilder(object):
                 if attribute.to_ids: to_ids = True
         return to_ids, attributes_dict
 
+    def create_custom_observable(self, name, attributes, uuid):
+        to_ids, custom_object = self.create_custom_object(attributes, name)
+        custom_object.parent.id_ = "{}:{}CustomObject-{}".format(self.namespace_prefix, name, uuid)
+        observable = Observable(custom_object)
+        observable.id_ = "{}:{}Custom-{}".format(self.namespace_prefix, name, uuid)
+        return to_ids, observable
+
     def create_domain_observable(self, value, uuid):
         domain_object = DomainName()
         domain_object.value = value
@@ -1081,6 +1083,19 @@ class StixBuilder(object):
         url_observable = Observable(url_object)
         url_observable.id_ = "{}:URI-{}".format(self.namespace_prefix, uuid)
         return url_observable
+
+    @staticmethod
+    def create_custom_object(attributes, name):
+        to_ids = False
+        custom_object = Custom()
+        custom_object.custom_properties = CustomProperties()
+        for attribute in attributes:
+            property = Property()
+            property.name = "{} {}: {}".format(name, attribute.type, attribute.object_relation)
+            property.value = attribute.value
+            custom_object.custom_properties.append(property)
+            if attribute.to_ids: to_ids = True
+        return to_ids, custom_object
 
     @staticmethod
     def create_hostname_object(hostname):
