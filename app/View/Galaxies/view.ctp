@@ -13,6 +13,8 @@
 				<dd><?php echo h($galaxy['Galaxy']['id']); ?></dd>
 				<dt><?php echo __('Name');?></dt>
 				<dd><?php echo $galaxy['Galaxy']['name'] ? h($galaxy['Galaxy']['name']) : h($galaxy['Galaxy']['type']); ?></dd>
+				<dt><?php echo __('Namespace');?></dt>
+				<dd><?php echo $galaxy['Galaxy']['namespace'] ? h($galaxy['Galaxy']['namespace']) : 'misp'; ?></dd>
 				<dt><?php echo __('Uuid');?></dt>
 				<dd><?php echo h($galaxy['Galaxy']['uuid']); ?></dd>
 				<dt><?php echo __('Description');?></dt>
