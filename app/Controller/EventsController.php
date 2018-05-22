@@ -875,13 +875,7 @@ class EventsController extends AppController {
 		if (empty($results)) throw new NotFoundException('Invalid event');
 		$event = $results[0];
 
-		// Be sure that '0' is not interpreted as empty
-		$forceTrue = false;
-		if (isset($this->params['named']['searchFor'])) {
-			$forceTrue = $this->params['named']['searchFor'] == '0' ? true : false;
-		}
-
-		if (!empty($this->params['named']['searchFor']) || $forceTrue) {
+		if(isset($this->params['named']['searchFor'])) {
 			// filtering on specific columns is specified
 			if (!empty($this->params['named']['filterColumnsOverwrite'])) {
 				$filterColumns = $this->params['named']['filterColumnsOverwrite'];
