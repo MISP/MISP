@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import sys, json, uuid, os, time, datetime, re, ntpath, socket
 import pymisp
 from copy import deepcopy
