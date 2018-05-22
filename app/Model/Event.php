@@ -3291,7 +3291,7 @@ class Event extends AppModel {
 		$randomFileName = $this->generateRandomFileName();
 		$tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
 		$stixFile = new File($tmpDir . DS . $randomFileName . ".stix");
-		$stix_framing = shell_exec('python ' . APP . "files" . DS . "scripts" . DS . 'misp2stix_framing.py ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' ' . escapeshellarg($returnType) . ' 2>' . APP . 'tmp/logs/exec-errors.log');
+		$stix_framing = shell_exec('python3 ' . APP . "files" . DS . "scripts" . DS . 'misp2stix_framing.py ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' ' . escapeshellarg($returnType) . ' 2>' . APP . 'tmp/logs/exec-errors.log');
 		if (empty($stix_framing)) {
 			$stixFile->delete();
 			return array('success' => 0, 'message' => 'There was an issue generating the STIX export.');
@@ -3330,7 +3330,7 @@ class Event extends AppModel {
 			$tempFile->write($event);
 			unset($event);
 			$scriptFile = APP . "files" . DS . "scripts" . DS . "misp2stix.py";
-			$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName . ' ' . escapeshellarg($returnType) . ' ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' 2>' . APP . 'tmp/logs/exec-errors.log');
+			$result = shell_exec('python3 ' . $scriptFile . ' ' . $randomFileName . ' ' . escapeshellarg($returnType) . ' ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' 2>' . APP . 'tmp/logs/exec-errors.log');
 			// The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
 			// If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along
 			$decoded = json_decode($result, true);
