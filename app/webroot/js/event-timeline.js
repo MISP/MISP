@@ -50,6 +50,28 @@ var options = {
 		}
 	}
 };
+var mapping_text_to_id = new Map();
+mapping_text_to_id.set('8.8.8.8', '15');
+var timeline_typeaheadDataSearch;
+var timeline_typeaheadOption = {
+	source: function (query, process) {
+		if (timeline_typeaheadDataSearch === undefined) { // caching
+			timeline_typeaheadDataSearch = fetch_timeline_typeaheadData();
+		}
+		process(timeline_typeaheadDataSearch);
+	},
+	updater: function(value) {
+		var id = mapping_text_to_id.get(value);
+		console.log(id);
+		eventTimeline.focus(id);
+		$("#timeline-typeahead").blur();
+	},
+	autoSelect: true
+}
+
+function fetch_timeline_typeaheadData() {
+	return ['8.8.8.8'];
+}
 
 function generate_timeline_tooltip(itemID, target) {
 	var item = items_timeline.get(itemID);
@@ -159,7 +181,8 @@ function reflect_change(itemType, seenType, item_id) {
 		} else if (seenType == 'last') {
 			updated_item.last_seen = data;
 		}
-		var redraw = set_spanned_time(updated_item);
+		set_spanned_time(updated_item);
+		console.log(updated_item.end);
 		items_timeline.update(updated_item);
 	});
 }
@@ -210,12 +233,15 @@ function update_seen(itemType, seenType, item_id, nanoTimestamp, callback) {
 				error:function() {
 					console.log('fail', 'Request failed for an unknown reason.');
 				},
+				complete: function () {
+					$(".loadingTimeline").hide();
+				},
 				type:"post",
 				url:"/" + itemType + "/" + "editField" + "/" + attr_id
 			});
 		},
 		complete: function () {
-			$(".loadingTimeline").hide();
+			//$(".loadingTimeline").hide();
 		},
 		url:"/" + itemType + "/fetchEditForm/" + item_id + "/" + seenType + "_seen",
 	});
@@ -276,6 +302,9 @@ function enable_timeline() {
 	}
 
 	init_popover();
+    
+	$('#timeline-typeahead').typeahead(timeline_typeaheadOption);
+
 	var payload = {};
 	$.ajax({
 		url: "/events/"+"getEventTimeline"+"/"+scope_id+"/event.json",
@@ -291,6 +320,7 @@ function enable_timeline() {
 			for (var item of data.items) {
 				item.className = item.group;
 				set_spanned_time(item);
+				console.log(item.end);
 			}
 			items_timeline = new vis.DataSet(data.items);
 			eventTimeline = new vis.Timeline(container_timeline, items_timeline, options);
