@@ -57,9 +57,9 @@ sudo a2dissite 000-default
 sudo a2ensite default-ssl
 
 # Install PHP and dependencies
-sudo apt-get install -y libapache2-mod-php7.0 php7.0 php7.0-cli php7.0-dev php7.0-json php7.0-xml php7.0-mysql php7.0-readline php-redis php7.0-mbstring php-pear
+sudo apt-get install -y libapache2-mod-php7.2 php7.2 php7.2-cli php7.2-gnupg php7.2-dev php7.2-json php7.2-xml php7.2-mysql php7.2-opcache php7.2-readline php7.2-redis php7.2-mbstring php-pear
 sudo pear install Crypt_GPG
-sudo a2enmod php7.0
+sudo a2enmod php7.2
 
 # Apply all changes
 sudo systemctl restart apache2
@@ -153,9 +153,6 @@ sudo -u www-data sh -c "mysql -u misp -p misp < /var/www/MISP/INSTALL/MYSQL.sql"
 -----------------------
 # Now configure your Apache webserver with the DocumentRoot /var/www/MISP/app/webroot/
 
-# If the apache version is 2.2:
-sudo cp /var/www/MISP/INSTALL/apache.22.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
-
 # If the apache version is 2.4:
 sudo cp /var/www/MISP/INSTALL/apache.24.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
 
@@ -209,7 +206,7 @@ sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
 sudo a2dissite default-ssl
 sudo a2ensite misp-ssl
 
-# Recommended: Change some PHP settings in /etc/php/7.0/apache2/php.ini
+# Recommended: Change some PHP settings in /etc/php/7.2/apache2/php.ini
 # max_execution_time = 300
 # memory_limit = 512M
 # upload_max_filesize = 50M
@@ -278,9 +275,13 @@ sudo -u www-data sh -c "gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR
 
 # To make the background workers start on boot
 sudo chmod +x /var/www/MISP/app/Console/worker/start.sh
-sudo vim /etc/rc.local
-# Add the following line before the last line (exit 0). Make sure that you replace www-data with your apache user:
-sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh
+if [ ! -e /etc/rc.local ]
+then
+    echo '#!/bin/sh -e' | sudo tee -a /etc/rc.local
+    echo 'exit 0' | sudo tee -a /etc/rc.local
+    sudo chmod u+x /etc/rc.local
+fi
+
 
 # Now log in using the webinterface:
 # The default user/pass = admin@admin.test/admin
@@ -291,9 +292,45 @@ sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh
 
 # Don't forget to change the email, password and authentication key after installation.
 
-# Start the workers
+# Set MISP Live
+sudo /var/www/MISP/app/Console/cake Live 1
 
-/var/www/MISP/app/Console/worker/start.sh
+# Enable ZeroMQ for misp-dashboard
+sudo /var/www/MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" true
+sudo /var/www/MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" true
+sudo /var/www/MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_object_notifications_enable" true
+sudo /var/www/MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_object_reference_notifications_enable" true
+sudo /var/www/MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_attribute_notifications_enable" true
+sudo /var/www/MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_sighting_notifications_enable" true
+sudo /var/www/MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_user_notifications_enable" true
+sudo /var/www/MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_organisation_notifications_enable" true
+
+# Add the following lines before the last line (exit 0). Make sure that you replace www-data with your apache user:
+sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh
+sudo sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
+sudo sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
+sudo sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
+sudo sed -i -e '$i \sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh\n' /etc/rc.local
+sudo sed -i -e '$i \sudo -u www-data misp-modules -l 0.0.0.0 -s &\n' /etc/rc.local
+sudo sed -i -e '$i \sudo -u www-data bash /var/www/misp-dashboard/start_all.sh\n' /etc/rc.local
+
+# Installing MISP modules…
+sudo apt-get install -y python3-dev python3-pip libpq5 libjpeg-dev libfuzzy-dev > /dev/null 2>&1
+cd /usr/local/src/
+sudo git clone https://github.com/MISP/misp-modules.git
+cd misp-modules
+# pip3 install
+sudo pip3 install -I -r REQUIREMENTS > /dev/null 2>&1
+sudo pip3 install -I . > /dev/null 2>&1
+sudo pip3 install lief 2>&1
+sudo pip3 install pymisp python-magic > /dev/null 2>&1
+sudo pip3 install git+https://github.com/kbandla/pydeep.git > /dev/null 2>&1
+# pip2 install
+sudo pip install pymisp python-magic > /dev/null 2>&1
+sudo pip install git+https://github.com/kbandla/pydeep.git > /dev/null 2>&1
+sudo pip install lief 2>&1
+# install STIX2.0 library to support STIX 2.0 export:
+sudo pip3 install stix2 > /dev/null 2>&1
 
 # Once done, have a look at the diagnostics
 
