@@ -315,22 +315,22 @@ sudo sed -i -e '$i \sudo -u www-data misp-modules -l 0.0.0.0 -s &\n' /etc/rc.loc
 sudo sed -i -e '$i \sudo -u www-data bash /var/www/misp-dashboard/start_all.sh\n' /etc/rc.local
 
 # Installing MISP modules…
-sudo apt-get install -y python3-dev python3-pip libpq5 libjpeg-dev libfuzzy-dev > /dev/null 2>&1
+sudo apt-get install -y python3-dev python3-pip libpq5 libjpeg-dev libfuzzy-dev
 cd /usr/local/src/
 sudo git clone https://github.com/MISP/misp-modules.git
 cd misp-modules
 # pip3 install
-sudo pip3 install -I -r REQUIREMENTS > /dev/null 2>&1
-sudo pip3 install -I . > /dev/null 2>&1
-sudo pip3 install lief 2>&1
-sudo pip3 install pymisp python-magic > /dev/null 2>&1
-sudo pip3 install git+https://github.com/kbandla/pydeep.git > /dev/null 2>&1
+sudo pip3 install -I -r REQUIREMENTS
+sudo pip3 install -I .
+sudo pip3 install lief
+sudo pip3 install pymisp python-magic
+sudo pip3 install git+https://github.com/kbandla/pydeep.git
 # pip2 install
-sudo pip install pymisp python-magic > /dev/null 2>&1
-sudo pip install git+https://github.com/kbandla/pydeep.git > /dev/null 2>&1
-sudo pip install lief 2>&1
+sudo pip install pymisp python-magic
+sudo pip install git+https://github.com/kbandla/pydeep.git
+sudo pip install lief
 # install STIX2.0 library to support STIX 2.0 export:
-sudo pip3 install stix2 > /dev/null 2>&1
+sudo pip3 install stix2
 
 # Once done, have a look at the diagnostics
 
