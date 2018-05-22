@@ -1709,8 +1709,23 @@ class Attribute extends AppModel {
 				}
 			}
 			$correlations = array();
+			$testCorrelations = array();
 			foreach ($correlatingAttributes as $k => $cA) {
 				foreach ($cA as $corr) {
+					$testCorrelations[] = array(
+						'value' => $correlatingValues[$k],
+						'1_event_id' => $event['Event']['id'],
+						'1_attribute_id' => $a['id'],
+						'event_id' => $corr['Attribute']['event_id'],
+						'attribute_id' => $corr['Attribute']['id'],
+						'org_id' => $corr['Event']['org_id'],
+						'distribution' => $corr['Event']['distribution'],
+						'a_distribution' => $corr['Attribute']['distribution'],
+						'sharing_group_id' => $corr['Event']['sharing_group_id'],
+						'a_sharing_group_id' => $corr['Attribute']['sharing_group_id'],
+						'date' => $corr['Event']['date'],
+						'info' => $corr['Event']['info']
+					);
 					$correlations[] = array(
 							$correlatingValues[$k],
 							$event['Event']['id'],
@@ -1724,6 +1739,20 @@ class Attribute extends AppModel {
 							$corr['Attribute']['sharing_group_id'],
 							$corr['Event']['date'],
 							$corr['Event']['info']
+					);
+					$testCorrelations[] = array(
+						'value' => $correlatingValues[$k],
+						'1_event_id' => $corr['Event']['id'],
+						'1_attribute_id' => $corr['Attribute']['id'],
+						'event_id' => $a['event_id'],
+						'attribute_id' => $a['id'],
+						'org_id' => $event['Event']['org_id'],
+						'distribution' => $event['Event']['distribution'],
+						'a_distribution' => $a['distribution'],
+						'sharing_group_id' => $event['Event']['sharing_group_id'],
+						'a_sharing_group_id' => $a['sharing_group_id'],
+						'date' => $event['Event']['date'],
+						'info' => $event['Event']['info']
 					);
 					$correlations[] = array(
 							$correlatingValues[$k],
@@ -1755,9 +1784,10 @@ class Attribute extends AppModel {
 					'date',
 					'info'
 			);
-			if (!empty($correlations)) {
-				$db = $this->getDataSource();
-				$db->insertMulti('correlations', $fields, $correlations);
+			if (!empty($testCorrelations)) {
+				$this->Correlation->saveMany($testCorrelations, array('atomic' => false, 'callbacks' => false, 'deep' => false, 'validate' => false, 'fieldList' => $fields));
+				//$db = $this->getDataSource();
+				//$db->insertMulti('correlations', $fields, $correlations);
 			}
 		}
 	}

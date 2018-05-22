@@ -272,7 +272,7 @@ class AttributesController extends AppController {
 			if (!empty($successes)) {
 				$this->Event->unpublishEvent($eventId);
 			}
-			$result = $this->Attribute->saveMany($attributes);
+			$result = $this->Attribute->saveMany($attributes, array('atomic' => false));
 			if ($this->_isRest()) {
 				if (!empty($successes)) {
 					$attributes = $this->Attribute->find('all', array(
@@ -307,7 +307,7 @@ class AttributesController extends AppController {
 						if (!empty($fails["attribute_0"])) {
 							foreach ($fails["attribute_0"] as $k => $v) {
 								$failed = 1;
-								$message = 'Attribute validation failed [' . $k . ']: ' . $v[0];
+								$message = '$this->Flash->info [' . $k . ']: ' . $v[0];
 								break;
 							}
 						} else {
