@@ -72,7 +72,7 @@ sudo mkdir /var/www/MISP
 sudo chown www-data:www-data /var/www/MISP
 cd /var/www/MISP
 sudo -u www-data git clone https://github.com/MISP/MISP.git /var/www/MISP
-sudo -u www-data git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
+##sudo -u www-data git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
 # if the last shortcut doesn't work, specify the latest version manually
 # example: git checkout tags/v2.4.XY
 # the message regarding a "detached HEAD state" is expected behaviour
