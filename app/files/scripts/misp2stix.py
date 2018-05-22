@@ -578,7 +578,7 @@ class StixBuilder(object):
         return ttp
 
     def parse_domain_ip_object(self, attributes, uuid):
-        to_ids, attributes_dict = self.create_attributes_dict(attributes, multiple=True)
+        to_ids, attributes_dict = self.create_attributes_dict_multiple(attributes, with_uuid=True)
         composition = []
         if 'domain' in attributes_dict:
             domain = attributes_dict['domain'][0]
@@ -591,7 +591,7 @@ class StixBuilder(object):
         return to_ids, self.create_observable_composition(composition, uuid, "domain-ip")
 
     def parse_email_object(self, attributes, uuid):
-        to_ids, attributes_dict = self.create_attributes_dict(attributes, multiple=True)
+        to_ids, attributes_dict = self.create_attributes_dict_multiple(attributes, with_uuid=True)
         email_object = EmailMessage()
         email_header = EmailHeader()
         if 'from' in attributes_dict:
@@ -638,33 +638,29 @@ class StixBuilder(object):
         to_ids, attributes_dict = self.create_attributes_dict(attributes)
         file_object = File()
         if 'filename' in attributes_dict:
-            filename = attributes_dict.pop('filename')
             # for filename in attributes_dict['filename'][1:]:
             #     custom_property = CustomProp
             #     filename.custom_properties.append()
-            self.resolve_filename(file_object, filename['value'])
+            self.resolve_filename(file_object, attributes_dict.pop('filename'))
         if 'path' in attributes_dict:
-            path = attributes_dict.pop('path')
-            file_object.full_path = path['value']
+            file_object.full_path = attributes_dict.pop('path')
             file_object.full_path.condition = "Equals"
         if 'size-in-bytes' in attributes_dict:
-            size = attributes_dict.pop('size-in-bytes')
-            file_object.size_in_bytes = size['value']
+            file_object.size_in_bytes = attributes_dict.pop('size-in-bytes')
             file_object.size_in_bytes.condition = "Equals"
         if 'entropy' in attributes_dict:
-            entropy = attributes_dict.pop('entropy')
-            file_object.peak_entropy = entropy['value']
+            file_object.peak_entropy = attributes_dict.pop('entropy')
             file_object.peak_entropy.condition = "Equals"
         for attribute in attributes_dict:
             if attribute in hash_type_attributes['single']:
-                file_object.add_hash(Hash(hash_value=attributes_dict[attribute]['value'], exact=True))
+                file_object.add_hash(Hash(hash_value=attributes_dict[attribute], exact=True))
         file_object.parent.id_ = "{}:FileObject-{}".format(self.namespace_prefix, uuid)
         file_observable = Observable(file_object)
         file_observable.id_ = "{}:File-{}".format(self.namespace_prefix, uuid)
         return to_ids, file_observable
 
     def parse_ip_port_object(self, attributes, uuid):
-        to_ids, attributes_dict = self.create_attributes_dict(attributes, multiple=True)
+        to_ids, attributes_dict = self.create_attributes_dict_multiple(attributes, with_uuid=True)
         composition = []
         if 'domain' in attributes_dict:
             for domain in attributes_dict['domain']:
@@ -692,11 +688,11 @@ class StixBuilder(object):
         if src_args: network_connection_object.source_socket_address = self.create_socket_address_object('src', **src_args)
         if dst_args: network_connection_object.destination_socket_address = self.create_socket_address_object('dst', **dst_args)
         if 'layer3-protocol' in attributes_dict:
-            network_connection_object.layer3_protocol = attributes_dict['layer3-protocol']['value']
+            network_connection_object.layer3_protocol = attributes_dict['layer3-protocol']
         if 'layer4-protocol' in attributes_dict:
-            network_connection_object.layer4_protocol = attributes_dict['layer4-protocol']['value']
+            network_connection_object.layer4_protocol = attributes_dict['layer4-protocol']
         if 'layer7-protocol' in attributes_dict:
-            network_connection_object.layer7_protocol = attributes_dict['layer7-protocol']['value']
+            network_connection_object.layer7_protocol = attributes_dict['layer7-protocol']
         network_connection_object.parent.id_ = "{}:NetworkConnectionObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(network_connection_object)
         observable.id_ = "{}:NetworkConnection-{}".format(self.namespace_prefix, uuid)
@@ -716,35 +712,35 @@ class StixBuilder(object):
         if src_args: network_socket_object.local_address = self.create_socket_address_object('src', **src_args)
         if dst_args: network_socket_object.remote_address = self.create_socket_address_object('dst', **dst_args)
         if 'protocol' in attributes_dict:
-            network_socket_object.protocol = attributes_dict['protocol']['value']
+            network_socket_object.protocol = attributes_dict['protocol']
         network_socket_object.is_listening = True if listening else False
         network_socket_object.is_blocking = True if blocking else False
         if 'address-family' in  attributes_dict:
-            network_socket_object.address_family = attributes_dict['address-family']['value']
+            network_socket_object.address_family = attributes_dict['address-family']
         if 'domain-family' in attributes_dict:
-            network_socket_object.domain = attributes_dict['domain-family']['value']
+            network_socket_object.domain = attributes_dict['domain-family']
         network_socket_object.parent.id_ = "{}:NetworkSocketObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(network_socket_object)
         observable.id_ = "{}:NetworkSocket-{}".format(self.namespace_prefix, uuid)
         return to_ids, observable
 
     def parse_process_object(self, attributes, uuid):
-        to_ids, attributes_dict = self.create_attributes_dict(attributes, multiple=True)
+        to_ids, attributes_dict = self.create_attributes_dict_multiple(attributes)
         process_object = Process()
         if 'creation-time' in attributes_dict:
-            process_object.creation_time = attributes_dict['creation-time'][0]['value']
+            process_object.creation_time = attributes_dict['creation-time'][0]
         if 'start-time' in attributes_dict:
-            process_object.start_time = attributes_dict['start-time'][0]['value']
+            process_object.start_time = attributes_dict['start-time'][0]
         if 'name' in attributes_dict:
-            process_object.name = attributes_dict['name'][0]['value']
+            process_object.name = attributes_dict['name'][0]
         if 'pid' in attributes_dict:
-            process_object.pid = attributes_dict['pid'][0]['value']
+            process_object.pid = attributes_dict['pid'][0]
         if 'parent-pid' in attributes_dict:
-            process_object.parent_pid = attributes_dict['parent-pid'][0]['value']
+            process_object.parent_pid = attributes_dict['parent-pid'][0]
         if 'child-pid' in attributes_dict:
             # child-pid = attributes['child-pid']
             for child in attributes['child-pid']:
-                process_object.child_pid_list.append(child['value'])
+                process_object.child_pid_list.append(child)
         # if 'port' in attributes_dict:
         #     for port in attributes['port']:
         #         process_object.port_list.append(self.create_port_object(port['value']))
@@ -759,25 +755,25 @@ class StixBuilder(object):
         registry_values = False
         reg_value_object = RegistryValue()
         if 'key' in attributes_dict:
-            reghive, regkey = self.resolve_reg_hive(attributes_dict['key']['value'])
+            reghive, regkey = self.resolve_reg_hive(attributes_dict['key'])
             reg_object.key = regkey
             reg_object.key.condition = "Equals"
             if reghive:
                 reg_object.hive = reghive
                 reg_object.hive.condition = "Equals"
         if 'last-modified' in attributes_dict:
-            reg_object.modified_time = attributes_dict['last-modified']['value']
+            reg_object.modified_time = attributes_dict['last-modified']
             reg_object.modified_time.condition = "Equals"
         if 'name' in attributes_dict:
-            reg_value_object.name = attributes_dict['name']['value']
+            reg_value_object.name = attributes_dict['name']
             reg_value_object.name.condition = "Equals"
             registry_values = True
         if 'data' in attributes_dict:
-            reg_value_object.data = attributes_dict['data']['value']
+            reg_value_object.data = attributes_dict['data']
             reg_value_object.data.condition = "Equals"
             registry_values = True
         if 'data-type' in attributes_dict:
-            reg_value_object.datatype = attributes_dict['data-type']['value']
+            reg_value_object.datatype = attributes_dict['data-type']
             reg_value_object.datatype.condition = "Equals"
             registry_values = True
         if registry_values:
@@ -789,7 +785,7 @@ class StixBuilder(object):
 
     def parse_url_object(self, attributes, uuid):
         observables = []
-        to_ids, attributes_dict = self.create_attributes_dict(attributes)
+        to_ids, attributes_dict = self.create_attributes_dict(attributes, with_uuid=True)
         if 'url' in attributes_dict:
             url = attributes_dict['url']
             observables.append(self.create_url_observable(url['value'], url['uuid']))
@@ -1000,20 +996,27 @@ class StixBuilder(object):
         ttp.title = "{}: {} (MISP Attribute #{})".format(attribute.category, attribute.value, attribute.id)
         return ttp
 
-    @staticmethod
-    def create_attributes_dict(attributes, multiple=False):
-        to_ids = False
-        if multiple:
-            attributes_dict = defaultdict(list)
+    def create_attributes_dict(self, attributes, with_uuid=False):
+        to_ids = self.fetch_ids_flags(attributes)
+        attributes_dict = {}
+        if with_uuid:
+            for attribute in attributes:
+                attributes_dict[attribute.object_relation] = {'value': attribute.value, 'uuid': attribute.uuid}
+        else:
+            for attribute in attributes:
+                attributes_dict[attribute.object_relation] = attribute.value
+        return to_ids, attributes_dict
+
+    def create_attributes_dict_multiple(self, attributes, with_uuid=False):
+        to_ids = self.fetch_ids_flags(attributes)
+        attributes_dict = defaultdict(list)
+        if with_uuid:
             for attribute in attributes:
                 attribute_dict = {'value': attribute.value, 'uuid': attribute.uuid}
                 attributes_dict[attribute.object_relation].append(attribute_dict)
-                if attribute.to_ids: to_ids = True
         else:
-            attributes_dict = {}
             for attribute in attributes:
-                attributes_dict[attribute.object_relation] = {'value': attribute.value, 'uuid': attribute.uuid}
-                if attribute.to_ids: to_ids = True
+                attributes_dict[attribute.object_relation].append(attribute.value)
         return to_ids, attributes_dict
 
     def create_custom_observable(self, name, attributes, uuid):
@@ -1152,6 +1155,13 @@ class StixBuilder(object):
         return colors
 
     @staticmethod
+    def fetch_ids_flags(attributes):
+        for attribute in attributes:
+            if attribute.to_ids:
+                return True
+        return False
+
+    @staticmethod
     def merge_tags(tags, attribute):
         result = deepcopy(tags)
         if attribute.Tag:
@@ -1167,11 +1177,11 @@ class StixBuilder(object):
         src_args = {}
         for relation in ('ip-src', 'src-port', 'hostname-src'):
             if relation in attributes_dict:
-                src_args[relation] = attributes_dict[relation]['value']
+                src_args[relation] = attributes_dict[relation]
         dst_args = {}
         for relation in ('ip-dst', 'dst-port', 'hostname-dst'):
             if relation in attributes_dict:
-                dst_args[relation] = attributes_dict[relation]['value']
+                dst_args[relation] = attributes_dict[relation]
         return src_args, dst_args
 
     @staticmethod
