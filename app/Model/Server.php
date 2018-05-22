@@ -106,13 +106,27 @@ class Server extends AppModel {
 	);
 
 	public $command_line_functions = array(
-		'pull' => 'MISP/app/Console/cake Server pull [user_id] [server_id] [full|update]',
-		'push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
-		'cacheFeed' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
-		'fetchFeed' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]',
-		'enrichment' => 'MISP/app/Console/cake Event enrichEvent [user_id] [event_id] [json_encoded_module_list]',
-		'getSettings' => 'MISP/app/Console/cake Admin getSetting [setting]',
-		'setSettings' => 'MISP/app/Console/cake Admin getSetting [setting] [value]'
+		'console_admin_tasks' => array(
+			'data' => array(
+				'getSettings' => 'MISP/app/Console/cake Admin getSetting [setting]',
+				'setSettings' => 'MISP/app/Console/cake Admin getSetting [setting] [value]',
+				'setBaseurl' => 'MISP/app/Console/cake Baseurl [baseurl]',
+				'changePassword' => 'MISP/app/Console/cake Password [email] [new_password]'
+			),
+			'description' => 'Certain administrative tasks are exposed to the API, these help with maintaining and configuring MISP in an automated way / via external tools.',
+			'header' => 'Administering MISP via the CLI'
+		),
+		'console_automation_tasks' => array(
+			'data' => array(
+				'pull' => 'MISP/app/Console/cake Server pull [user_id] [server_id] [full|update]',
+				'push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
+				'cacheFeed' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
+				'fetchFeed' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]',
+				'enrichment' => 'MISP/app/Console/cake Event enrichEvent [user_id] [event_id] [json_encoded_module_list]'
+			),
+			'description' => 'If you would like to automate tasks such as caching feeds or pulling from server instances, you can do it using the following command line tools. Simply execute the given commands via the command line / create cron jobs easily out of them.',
+			'header' => 'Automating certain console tasks'
+		)
 	);
 
 	public $serverSettings = array(
