@@ -40,6 +40,7 @@ from cybox.objects.network_connection_object import NetworkConnection
 from cybox.objects.network_socket_object import NetworkSocket
 from cybox.objects.process_object import Process
 from cybox.objects.win_service_object import WinService
+from cybox.objects.x509_certificate_object import X509Certificate, X509CertificateSignature, X509Cert, SubjectPublicKey, RSAPublicKey, Validity
 from cybox.objects.custom_object import Custom
 from cybox.common import Hash, ByteRun, ByteRuns
 from cybox.common.object_properties import CustomProperties,  Property
@@ -800,11 +801,82 @@ class StixBuilder(object):
         return to_ids, self.create_observable_composition(observables, uuid, "url")
 
     def parse_x509_object(self, attributes, uuid):
-        to_ids, custom_object = self.create_custom_object(attributes, 'x509')
-        custom_object.parent.id_ = "{}:x509CustomObject-{}".format(self.namespace_prefix, uuid)
-        custom_observable = Observable(custom_object)
-        custom_observable.id_ = "{}:x509Custom-{}".format(self.namespace_prefix, uuid)
-        return to_ids, custom_observable
+        to_ids, attributes_dict = self.create_x509_attributes_dict(attributes)
+        x509_object = X509Certificate()
+        if 'raw_certificate' in attributes_dict:
+            raw_certificate = attributes_dict.pop('raw_certificate')
+            x509_object.raw_certificate = raw_certificate['pem'] if 'pem' in raw_certificate else raw_certificate['raw-base64']
+        if 'signature' in attributes_dict:
+            signature = attributes_dict.pop('signature')
+            x509_object.certificate_signature = self.fill_x509_signature(signature)
+        if 'contents' in attributes_dict or 'validity' in attributes_dict or 'rsa_pubkey' in attributes_dict or 'subject_pubkey' in attributes_dict:
+            x509_cert = X509Cert()
+            try:
+                contents = attributes_dict.pop('contents')
+                self.fill_x509_contents(x509_cert, contents)
+            except:
+                pass
+            try:
+                validity = attributes_dict.pop('validity')
+                x509_cert.validity = self.fill_x509_validity(validity)
+            except:
+                pass
+            if attributes_dict:
+                x509_cert.subject_public_key = self.fill_x509_pubkey(**attributes_dict)
+            x509_object.certificate = x509_cert
+        x509_object.parent.id_ = "{}:x509CertificateObject-{}".format(self.namespace_prefix, uuid)
+        observable = Observable(x509_object)
+        observable.id_ = "{}:x509Certificate-{}".format(self.namespace_prefix, uuid)
+        return to_ids, observable
+
+    @staticmethod
+    def fill_x509_contents(x509_cert, contents):
+        if 'version' in contents:
+            x509_cert.version = contents['version']
+        if 'serial-number' in contents:
+            x509_cert.serial_number = contents['serial-number']
+        if 'issuer' in contents:
+            x509_cert.issuer = contents['issuer']
+        if 'subject' in contents:
+            x509_cert.subject = contents['subject']
+
+    @staticmethod
+    def fill_x509_pubkey(**attributes):
+        pubkey = SubjectPublicKey()
+        if 'subject_pubkey' in attributes:
+            pubkey.public_key_algorithm = attributes['subject_pubkey']['pubkey-info-algorithm']
+        if 'rsa_pubkey' in attributes:
+            rsa_pubkey = attributes['rsa_pubkey']
+            rsa_public_key = RSAPublicKey()
+            if 'pubkey-info-exponent' in rsa_pubkey:
+                rsa_public_key.exponent = rsa_pubkey['pubkey-info-exponent']
+            if 'pubkey-info-modulus' in rsa_pubkey:
+                rsa_public_key.modulus = rsa_pubkey['pubkey-info-modulus']
+            pubkey.rsa_public_key = rsa_public_key
+        return pubkey
+
+    @staticmethod
+    def fill_x509_signature(signature):
+        x509_signature = X509CertificateSignature()
+        if 'x509-fingerprint-sha256' in signature:
+            x509_signature.signature_algorithm = "SHA256"
+            x509_signature.signature = signature['x509-fingerprint-sha256']
+        elif 'x509-fingerprint-sha1' in signature:
+            x509_signature.signature_algorithm = "SHA1"
+            x509_signature.signature = signature['x509-fingerprint-sha1']
+        elif 'x509-fingerprint-md5' in signature:
+            x509_signature.signature_algorithm = "MD5"
+            x509_signature.signature = signature['x509-fingerprint-md5']
+        return x509_signature
+
+    @staticmethod
+    def fill_x509_validity(validity):
+        x509_validity = Validity()
+        if 'validity-not-before' in validity:
+            x509_validity.not_before = validity['validity-not-before']
+        if 'validity-not-after' in validity:
+            x509_validity.not_after = validity['validity-not-after']
+        return x509_validity
 
     def resolve_email_observable(self, attribute):
         attribute_type = attribute.type
@@ -1017,6 +1089,25 @@ class StixBuilder(object):
         else:
             for attribute in attributes:
                 attributes_dict[attribute.object_relation].append(attribute.value)
+        return to_ids, attributes_dict
+
+    def create_x509_attributes_dict(self, attributes):
+        to_ids = self.fetch_ids_flags(attributes)
+        attributes_dict = defaultdict(dict)
+        for attribute in attributes:
+            relation = attribute.object_relation
+            if relation in ('version', 'serial-number', 'issuer', 'subject'):
+                attributes_dict['contents'][relation] = attribute.value
+            elif relation in ('validity-not-before', 'validity-not-after'):
+                attributes_dict['validity'][relation] = attribute.value
+            elif relation in ('pubkey-info-exponent', 'pubkey-info-modulus'):
+                attributes_dict['rsa_pubkey'][relation] = attribute.value
+            elif relation in ('x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256'):
+                attributes_dict['signature'][relation] = attribute.value
+            elif relation in ('raw-base64', 'pem'):
+                attributes_dict['raw_certificate'][relation] = attribute.value
+            elif relation == 'pubkey-info-algorithm':
+                attributes_dict['subject_pubkey'][relation] = attribute.value
         return to_ids, attributes_dict
 
     def create_custom_observable(self, name, attributes, uuid):
