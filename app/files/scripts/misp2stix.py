@@ -175,12 +175,12 @@ class StixBuilder(object):
     def saveFile(self):
         try:
             outputfile = "{}.out".format(self.filename)
-            with open(outputfile, 'w') as f:
+            with open(outputfile, 'wb') as f:
                 if self.args[2] == 'json':
                     f.write('{"package": %s}' % self.stix_package.to_json())
                 else:
                     f.write(self.stix_package.to_xml(include_namespaces=False, include_schemalocs=False,
-                                                     encoding=None))
+                                                     encoding='utf8'))
         except:
             print(json.dumps({'success' : 0, 'message' : 'The STIX file could not be written'}))
             sys.exit(1)
