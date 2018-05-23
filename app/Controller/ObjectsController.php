@@ -16,7 +16,9 @@ class ObjectsController extends AppController {
 
 	public function beforeFilter() {
 		parent::beforeFilter();
-		$this->Security->unlockedActions = array('revise_object', 'get_row');
+		if (!$this->_isRest()) {
+			$this->Security->unlockedActions = array('revise_object', 'get_row');
+		}
 	}
 
 	public function revise_object($action, $event_id, $template_id, $object_id = false) {
