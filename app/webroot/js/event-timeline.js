@@ -1,6 +1,7 @@
 var eventTimeline;
 var items_timeline;
 var items_backup;
+var mapping_text_to_id = new Map();
 var user_manipulation = $('#event_timeline').data('user-manipulation');
 var container_timeline = document.getElementById('event_timeline');
 var default_editable = {
@@ -50,27 +51,20 @@ var options = {
 		}
 	}
 };
-var mapping_text_to_id = new Map();
-mapping_text_to_id.set('8.8.8.8', '15');
 var timeline_typeaheadDataSearch;
 var timeline_typeaheadOption = {
 	source: function (query, process) {
 		if (timeline_typeaheadDataSearch === undefined) { // caching
-			timeline_typeaheadDataSearch = fetch_timeline_typeaheadData();
+			timeline_typeaheadDataSearch = Array.from(mapping_text_to_id.keys());
 		}
 		process(timeline_typeaheadDataSearch);
 	},
 	updater: function(value) {
 		var id = mapping_text_to_id.get(value);
-		console.log(id);
 		eventTimeline.focus(id);
 		$("#timeline-typeahead").blur();
 	},
 	autoSelect: true
-}
-
-function fetch_timeline_typeaheadData() {
-	return ['8.8.8.8'];
 }
 
 function generate_timeline_tooltip(itemID, target) {
@@ -182,7 +176,6 @@ function reflect_change(itemType, seenType, item_id) {
 			updated_item.last_seen = data;
 		}
 		set_spanned_time(updated_item);
-		console.log(updated_item.end);
 		items_timeline.update(updated_item);
 	});
 }
@@ -320,7 +313,13 @@ function enable_timeline() {
 			for (var item of data.items) {
 				item.className = item.group;
 				set_spanned_time(item);
-				console.log(item.end);
+				if (item.group == 'object') {
+					for (var attr of item.Attribute) {
+						mapping_text_to_id.set(attr.content, item.id);
+					}
+				} else {
+					mapping_text_to_id.set(item.content, item.id);
+				}
 			}
 			items_timeline = new vis.DataSet(data.items);
 			eventTimeline = new vis.Timeline(container_timeline, items_timeline, options);
