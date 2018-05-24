@@ -547,8 +547,8 @@ class StixBuilder(object):
             indicator = self.generate_indicator(attribute, tags)
             indicator.add_indicator_type("Malware Artifacts")
             indicator.add_valid_time_position(ValidTime())
-            indicator.test_mechanisms = [tm]
-            related_indicator = RelatedIndicator(indicator, relationship=category)
+            indicator.add_test_mechanism(tm)
+            related_indicator = RelatedIndicator(indicator, relationship=attribute.category)
             incident.related_indicators.append(related_indicator)
 
     def generate_ttp(self, attribute, tags):
