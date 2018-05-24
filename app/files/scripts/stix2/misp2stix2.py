@@ -440,11 +440,8 @@ class StixBuilder():
         if attribute_type == 'malware-sample':
             return mispTypesMapping[attribute_type]['observable']('filename|md5', attribute_value)
         observable = mispTypesMapping[attribute_type]['observable'](attribute_type, attribute_value)
-        if 'port' in attribute_type:
-            try:
-                observable['0']['protocols'].append(defineProtocols[attribute_value] if attribute_value in defineProtocols else "tcp")
-            except AttributeError:
-                observable['1']['protocols'].append(defineProtocols[attribute_value] if attribute_value in defineProtocols else "tcp")
+        if attribute_type == 'port':
+            observable['0']['protocols'].append(defineProtocols[attribute_value] if attribute_value in defineProtocols else "tcp")
         return observable
 
     def define_object_observable(self, name, attributes):

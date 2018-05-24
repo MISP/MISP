@@ -90,7 +90,8 @@ def observable_ip(attribute_type, attribute_value):
     ip_type = attribute_type.split('-')[1]
     address_type = define_address_type(attribute_value)
     return {'0': {'type': address_type, 'value': attribute_value},
-            '1': {'type': 'network-traffic', '{}_ref'.format(ip_type): '0', 'protocols': ['tcp']}}
+            '1': {'type': 'network-traffic', '{}_ref'.format(ip_type): '0',
+                  'protocols': [address_type.split('-')[0]]}}
 
 def pattern_ip(attribute_type, attribute_value):
     ip_type = attribute_type.split('-')[1]
