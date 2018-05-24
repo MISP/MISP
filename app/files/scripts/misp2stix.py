@@ -303,7 +303,7 @@ class StixBuilder(object):
                 pass
             indicator.add_valid_time_position(ValidTime())
             observable = self.handle_attribute(attribute)
-	    if(observable):
+            if observable:
               indicator.add_observable(observable)
             if 'data' in attribute and attribute.type == "malware-sample":
                 artifact = self.create_artifact_object(attribute)
@@ -312,7 +312,7 @@ class StixBuilder(object):
             incident.related_indicators.append(related_indicator)
         else:
             observable = self.handle_attribute(attribute)
-	    if(observable):
+        if observable:
               related_observable = RelatedObservable(observable, relationship=attribute.category)
               incident.related_observables.append(related_observable)
             if 'data' in  attribute and attribute.type == "malware-sample":
