@@ -23,7 +23,7 @@
 						);
 					}
 				?>
-				<div style="margin-left:15px;display:none;" class="blue">
+				<div style="margin-left:15px;display:none;" class="blue galaxy_data">
 					<?php
 						$cluster_fields = array();
 						if (isset($cluster['description'])) {
@@ -106,7 +106,7 @@
 <script type="text/javascript">
 $(document).ready(function () {
 	$('.expandable').click(function() {
-		$(this).children('div').toggle();
+		$(this).children('.galaxy_data').toggle();
 		if ($(this).children('span').html() == '+') {
 			$(this).children('span').val('-');
 		} else {
