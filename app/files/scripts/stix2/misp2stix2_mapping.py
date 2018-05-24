@@ -4,6 +4,12 @@ def define_address_type(address):
     else:
         return 'ipv4-addr'
 
+def observable_as(_, attribute_value):
+    return {'0': {'type': 'autonomous-system', 'number': attribute_value}}
+
+def pattern_as(_, attribute_value):
+    return "autonomous-system:number = '{}'".format(attribute_value)
+
 def observable_attachment(_, attribute_value):
     return {'0': {'type': 'artifact', 'payload_bin': attribute_value}}
 
@@ -216,7 +222,8 @@ mispTypesMapping = {
     'hostname|port': {'observable': observable_hostname_port, 'pattern': pattern_hostname_port},
     'email-reply-to': {'observable': observable_reply_to, 'pattern': pattern_reply_to},
     'attachment': {'observable': observable_attachment, 'pattern': pattern_attachment},
-    'mac-address': {'observable': observable_mac_address, 'pattern': pattern_mac_address}
+    'mac-address': {'observable': observable_mac_address, 'pattern': pattern_mac_address},
+    'AS': {'observable': observable_as, 'pattern': pattern_as}
     #'email-dst-display-name': {'observable': {'0': {'type': 'email-addr', 'display_name': ''}},
     #                           'pattern': 'email-addr:display_name = \'{0}\''},
     #'email-src-display-name': {'observable': {'0': {'type': 'email-addr', 'display_name': ''}},
