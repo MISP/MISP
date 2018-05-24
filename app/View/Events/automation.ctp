@@ -74,8 +74,10 @@
 	<h3><?php echo __('NIDS rules export');?></h3>
 	<p><?php echo __('Automatic export of all network related attributes is available under the Snort rule format. Only <em>published</em> events and attributes marked as <em>IDS Signature</em> are exported.');?></p>
 	<p><?php echo __('You can configure your tools to automatically download the following file');?>:</p>
-	<pre><?php echo $baseurl;?>/events/nids/suricata/download
-	<?php echo $baseurl;?>/events/nids/snort/download</pre>
+	<pre><?php
+		echo $baseurl . '/events/nids/suricata/download' . PHP_EOL;
+		echo $baseurl . '/events/nids/snort/download';
+	?></pre>
 	<p><?php echo __('The full API syntax is as follows');?>:</p>
 	<pre><?php echo $baseurl;?>/events/nids/[format]/download/[eventid]/[frame]/[tags]/[from]/[to]/[last]/[type]/[enforceWarninglist]/[includeAllTags]</pre>
 	<p>
@@ -184,26 +186,16 @@
 	<h3><?php echo __('Text export');?></h3>
 	<p<?php echo __('>An export of all attributes of a specific type to a plain text file. By default only published and IDS flagged attributes are exported.');?></p>
 	<p><?php echo __('You can configure your tools to automatically download the following files');?>:</p>
-	<pre>
-	<?php
+	<pre><?php
 	foreach ($sigTypes as $sigType) {
 		echo $baseurl.'/attributes/text/download/'.$sigType . "\n";
 	}
-	?>
-	</pre>
+	?></pre>
 	<p><?php echo __('To restrict the results by tags, use the usual syntax. Please be aware the colons (:) cannot be used in the tag search. Use semicolons instead (the search will automatically search for colons instead). To get ip-src values from events tagged tag1 but not tag2 use');?>:</p>
-	<pre>
-	<?php
-		echo $baseurl.'/attributes/text/download/ip-src/tag1&&!tag2';
-	?>
-	</pre>
+	<pre><?php echo $baseurl.'/attributes/text/download/ip-src/tag1&&!tag2'; ?></pre>
 
 	<p><?php echo __('As of version 2.3.38, it is possible to restrict the text exports on two additional flags. The first allows the user to restrict based on event ID, whilst the second is a boolean switch allowing non IDS flagged attributes to be exported. Additionally, choosing "all" in the type field will return all eligible attributes.');?></p>
-	<pre>
-	<?php
-		echo $baseurl.'/attributes/text/download/[type]/[tags]/[event_id]/[allowNonIDS]/[from]/[to]/[last]/[enforceWarninglist]/[allowNotPublished]';
-	?>
-	</pre>
+	<pre><?php echo $baseurl.'/attributes/text/download/[type]/[tags]/[event_id]/[allowNonIDS]/[from]/[to]/[last]/[enforceWarninglist]/[allowNotPublished]'; ?></pre>
 	<b>type</b>: <?php echo __('The attribute type, any valid MISP attribute type is accepted.');?><br />
 	<b>tags</b>: <?php echo __('To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a \'!\'.');?>
 	<b>eventId</b>: <?php echo __('Only export the attributes of the given event ID');?><br />
@@ -215,62 +207,44 @@
 	<b>allowNotPublished</b>: <?php echo __('Include not published Events.');?></b>
 	<?php echo __('You can also chain several tag commands together with the \'&amp;&amp;\' operator. Please be aware the colons (:) cannot be used in the tag search.
 	Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use');?>:<br />
-	<pre>
-	<?php
-		echo $baseurl.'/attributes/text/download/all/tag1&amp;&amp;tag2&amp;&amp;!tag3';
-	?>
-	</pre>
+	<pre><?php echo $baseurl.'/attributes/text/download/all/tag1&amp;&amp;tag2&amp;&amp;!tag3'; ?></pre>
 	<h3><?php echo __('Bro IDS export');?></h3>
 	<p><?php echo __('An export of all attributes of a specific bro type to a formatted plain text file. By default only published and IDS flagged attributes are exported.');?></p>
 	<p><?php echo __('You can configure your tools to automatically download a file one of the Bro types.');?></p>
-	<pre>
-	<?php
-	foreach (array_keys($broTypes) as $broType) {
-		echo $baseurl.'/attributes/bro/download/'.$broType . "\n";
-	}
-	?>
-	</pre>
+	<pre><?php
+		foreach (array_keys($broTypes) as $broType) {
+			echo $baseurl.'/attributes/bro/download/'.$broType . "\n";
+		}
+	?></pre>
 	<p><?php echo __('To restrict the results by tags, use the usual syntax. Please be aware the colons (:) cannot be used in the tag search. Use semicolons instead (the search will automatically search for colons instead). To get ip values from events tagged tag1 but not tag2 use');?>:</p>
-	<pre>
-	<?php
-		echo $baseurl.'/attributes/bro/download/ip/tag1&&!tag2';
-	?>
-	</pre>
+	<pre><?php echo $baseurl.'/attributes/bro/download/ip/tag1&&!tag2'; ?></pre>
 
 	<p><?php echo __('It is possible to restrict the bro exports on based on a set of filters. POST a JSON object or an XML at the Bro API to filter the results.');?></p>
-	<pre>
-	<?php
-		echo $baseurl.'/attributes/bro/download';
-	?>
-	</pre>
+	<pre><?php echo $baseurl.'/attributes/bro/download'; ?></pre>
 	<p>JSON:</p>
-	<pre>Headers
-	Authorization: [your API key]
-	Accept: application/json
-	Content-type: application/json
-	</pre>
+	<pre><?php
+		echo 'Headers' . PHP_EOL;
+		echo 'Authorization: ' . h($me['authkey']) . PHP_EOL;
+		echo 'Accept: application/json' . PHP_EOL;
+		echo 'Content-type: application/json';
+	?></pre>
 	<code>{"request": {"type":"ip", "eventid":["!51","!62"],"withAttachment":false,"tags":["APT1","!OSINT"],"from":false,"to":"2015-02-15"}}</code><br /><br />
 	<p>XML:</p>
-	<pre>Headers
-	Authorization: [your API key]
-	Accept: application/json
-	Content-type: application/json
-	</pre>
+	<pre><?php
+		echo 'Headers' . PHP_EOL;
+		echo 'Authorization: ' . h($me['authkey']) . PHP_EOL;
+		echo 'Accept: application/json' . PHP_EOL;
+		echo 'Content-type: application/json';
+	?></pre>
 	<code>&lt;request&gt;&lt;type&gt;ip&lt;/type&gt;&lt;eventid&gt;!51&lt;/eventid&gt;&lt;eventid&gt;!62&lt;/eventid&gt;&lt;withAttachment&gt;false&lt;/withAttachment&gt;&lt;tags&gt;APT1&lt;/tags&gt;&lt;tags&gt;!OSINT&lt;/tags&gt;&lt;from&gt;false&lt;/from&gt;&lt;to&gt;2015-02-15&lt;/to&gt;&lt;/request&gt;</code><br /><br />
 	<p><?php echo __('Alternatively, it is also possible to pass the filters via the parameters in the URL, though it is highly advised to use POST requests with JSON objects instead. The format is as described below');?>:</p>
-	<pre>
-	<?php
-		echo $baseurl.'/attributes/bro/download/[type]/[tags]/[event_id]/[allowNonIDS]/[from]/[to]/[last]';
-	?>
-	</pre>
+	<pre><?php echo $baseurl.'/attributes/bro/download/[type]/[tags]/[event_id]/[allowNonIDS]/[from]/[to]/[last]'; ?></pre>
 	<b>type</b>: <?php echo __('The Bro type, any valid Bro type is accepted. The mapping between Bro and MISP types is as follows');?>:<br />
-	<pre>
-	<?php
+	<pre><?php
 		foreach ($broTypes as $key => $value) {
 			echo '<b>' . h($key) . '</b>: ' . h($value) . PHP_EOL;
 		}
-	?>
-	</pre>
+	?></pre>
 	<p>
 	<b>tags</b>: <?php echo __('To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a \'!\'.
 	You can also chain several tag commands together with the \'&amp;&amp;\' operator. Please be aware the colons (:) cannot be used in the tag search.
@@ -284,20 +258,12 @@
 	</p>
 	<p><?php echo __('The keywords false or null should be used for optional empty parameters in the URL.');?></p>
 	<p><?php echo __('For example, to retrieve all attributes for event #5, including non IDS marked attributes too, use the following line');?>:</p>
-	<pre>
-	<?php
-		echo $baseurl.'/attributes/text/download/all/null/5/true';
-	?>
-	</pre>
+	<pre><?php echo $baseurl.'/attributes/text/download/all/null/5/true'; ?></pre>
 
 	<h3><?php echo __('Searches with JSON/XML/OpenIOC results');?></h3>
 	<p><?php echo __('It is possible to search the database for attributes based on a list of criteria.');?></p>
 	<p><?php echo __('To return an event or a list of events in a desired format, use the following syntax');?>:</p>
-	<pre>
-	<?php
-		echo $baseurl.'/events/restSearch/[format]/[value]/[type]/[category]/[org]/[tag]/[quickfilter]/[from]/[to]/[last]/[event_id]/[withAttachments]/[metadata]/[uuid]/[publish_timestamp]/[timestamp]/[published]/[enforceWarninglist]';
-	?>
-	</pre>
+	<pre><?php echo $baseurl.'/events/restSearch/[format]/[value]/[type]/[category]/[org]/[tag]/[quickfilter]/[from]/[to]/[last]/[event_id]/[withAttachments]/[metadata]/[uuid]/[publish_timestamp]/[timestamp]/[published]/[enforceWarninglist]'; ?></pre>
 	<b>format</b>: <?php echo __('Set the return format of the search (Currently supported: json, xml, openioc - more formats coming soon).');?><br />
 	<b>value</b>: <?php echo __('Search for the given value in the attributes\' value field.');?><br />
 	<b>type</b>: <?php echo __('The attribute type, any valid MISP attribute type is accepted.');?><br />
@@ -308,11 +274,7 @@
 	<code>{"value":["tag1", "tag2", "!tag3"]}</code><br />
 	<?php echo __('You can also chain several tag commands together with the \'&amp;&amp;\' operator. Please be aware the colons (:) cannot be used in the tag search.
 	Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use');?>:<br />
-	<pre>
-	<?php
-		echo $baseurl.'/events/restSearch/json/null/null/null/null/tag1&amp;&amp;tag2&amp;&amp;!tag3';
-	?>
-	</pre>
+	<pre><?php echo $baseurl.'/events/restSearch/json/null/null/null/null/tag1&amp;&amp;tag2&amp;&amp;!tag3'; ?></pre>
 	<b>quickfilter</b>: <?php echo __('Enabling this (by passing "1" as the argument) will make the search ignore all of the other arguments, except for the auth key and value. MISP will return an xml / json (depending on the header sent) of all events that have a sub-string match on value in the event info, event orgc, or any of the attribute value1 / value2 fields, or in the attribute comment.');?> <br />
 	<b>from</b>: <?php echo __('Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.');?><br />
 	<b>to</b>: <?php echo __('Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.');?><br />
@@ -328,11 +290,7 @@
 	<p><?php echo __('The keywords false or null should be used for optional empty parameters in the URL.');?></p>
 	<p><?php echo __('For example, to find any event with the term "red october" mentioned, use the following syntax (the example is shown as a POST request instead of a GET, which is highly recommended. GET requests are problematic and deprecated.)');?>:</p>
 	<p>POST to:</p>
-	<pre>
-	<?php
-		echo $baseurl.'/events/restSearch/json';
-	?>
-	</pre>
+	<pre><?php echo $baseurl.'/events/restSearch/json'; ?></pre>
 	<p><?php echo __('POST message payload (json)');?>:</p>
 	<p><code>{"value":"red october","searchall":1,"eventid":"!15"}</code></p>
 	<p><?php echo __('To just return a list of attributes, use the following syntax');?>:</p>
@@ -358,60 +316,32 @@
 	<b>includeEventUuid</b>: <?php echo __('Instead of just including the event ID, also include the event UUID in each of the attributes.'); ?> <br />
 	<b>event_timestamp</b>: <?php echo __('Only return attributes from events that have received a modification after the given timestamp.'); ?> <br /><br />
 	<p>For example, to get all attributes of events modified after a given timestamp, simply POST to:</p>
-	<pre>
-	<?php
-		echo $baseurl.'/attributes/restSearch/json';
-	?>
-	</pre>
+	<pre><?php	echo $baseurl.'/attributes/restSearch/json'; ?></pre>
 	<p><?php echo __('POST message payload (json)');?>:</p>
 	<p><code>{"event_timestamp":1523521850}</code></p>
 	<p><?php echo __('The keywords false or null should be used for optional empty parameters in the URL. Keep in mind, this is only needed if you use the deprecated URL parameters.');?></p>
-	<pre>
-	<?php
-		echo $baseurl.'/attributes/restSearch/json/[value]/[type]/[category]/[org]/[tag]/[from]/[to]/[last]/[eventid]/[withAttachments]';
-	?>
-	</pre>
+	<pre><?php echo $baseurl.'/attributes/restSearch/json/[value]/[type]/[category]/[org]/[tag]/[from]/[to]/[last]/[eventid]/[withAttachments]'; ?></pre>
 	<p><?php echo __('value, type, category and org are optional. It is possible to search for several terms in each category by joining them with the \'&amp;&amp;\' operator. It is also possible to negate a term with the \'!\' operator. Please be aware the colons (:) cannot be used in the tag search. Use semicolons instead (the search will automatically search for colons instead).
 	For example, in order to search for all attributes created by your organisation that contain 192.168 or 127.0 but not 0.1 and are of the type ip-src, excluding the events that were tagged tag1 use the following syntax');?>:</p>
 	<pre><?php echo $baseurl.'/attributes/restSearch/download/192.168&&127.0&&!0.1/ip-src/false/' . $me['Organisation']['name'] . '/!tag1';?></pre>
 	<p><?php echo __('You can also use search for IP addresses using CIDR. Make sure that you use \'|\' (pipe) instead of \'/\' (slashes). Please be aware the colons (:) cannot be used in the tag search. Use semicolons instead (the search will automatically search for colons instead). See below for an example');?>: </p>
-	<pre>
-	<?php
-		echo $baseurl.'/attributes/restSearch/openioc/192.168.1.1|16/ip-src/null/' . $me['Organisation']['name'];
-	?>
-	</pre>
+	<pre><?php	echo $baseurl.'/attributes/restSearch/openioc/192.168.1.1|16/ip-src/null/' . $me['Organisation']['name']; ?></pre>
 	<h3><?php echo __('Export attributes of event with specified type as XML');?></h3>
 	<p><?php echo __('If you want to export all attributes of a pre-defined type that belong to an event, use the following syntax');?>:</p>
-	<pre>
-	<?php
-		echo $baseurl.'/attributes/returnAttributes/json/[id]/[type]/[sigOnly]';
-	?>
-	</pre>
+	<pre><?php echo $baseurl.'/attributes/returnAttributes/json/[id]/[type]/[sigOnly]'; ?></pre>
 	<p><?php echo __('sigOnly is an optional flag that will block all attributes from being exported that don\'t have the IDS flag turned on.
 	It is possible to search for several types with the \'&amp;&amp;\' operator and to exclude values with the \'!\' operator.
 	For example, to get all IDS signature attributes of type md5 and sha256, but not filename|md5 and filename|sha256 from event 25, use the following');?>: </p>
-	<pre>
-	<?php
-		echo $baseurl.'/attributes/returnAttributes/download/25/md5&&sha256&&!filename/true';
-	?>
-	</pre>
+	<pre><?php echo $baseurl.'/attributes/returnAttributes/download/25/md5&&sha256&&!filename/true';?></pre>
 
 	<h3><?php echo __('Download attachment or malware sample');?></h3>
 	<p><?php echo __('If you know the attribute ID of a malware-sample or an attachment, you can download it with the following syntax');?>:</p>
-	<pre>
-	<?php
-		echo $baseurl.'/attributes/downloadAttachment/download/[Attribute_id]';
-	?>
-	</pre>
+	<pre><?php	echo $baseurl.'/attributes/downloadAttachment/download/[Attribute_id]';?></pre>
 	<h3><?php echo __('Download malware sample by hash');?></h3>
 	<p><?php echo __('You can also download samples by knowing its MD5 hash. Simply pass the hash along as a JSON/XML object or in the URL (with the URL having overruling the passed objects) to receive a JSON/XML object back with the zipped sample base64 encoded along with some contextual information.');?></p>
 	<p><?php echo __('You can also use this API to get all samples from events that contain the passed hash. For this functionality, just pass the "allSamples" flag along. Note that if you are getting all samples from matching events, you can use all supported hash types (%s) for the lookup.</p>', h(implode(', ', $hashTypes)));?>
 	<p><?php echo __('You can also get all the samples from an event with a given event ID, by passing along the eventID parameter. Make sure that either an event ID or a hash is passed along, otherwise an error message will be returned. Also, if no hash is set, the allSamples flag will get set automatically.');?></p>
-	<pre>
-	<?php
-		echo $baseurl.'/attributes/downloadSample/[hash]/[allSamples]/[eventID]';
-	?>
-	</pre>
+	<pre><?php echo $baseurl.'/attributes/downloadSample/[hash]/[allSamples]/[eventID]';?></pre>
 	<p><?php echo __('POST message payload (XML)');?>:</p>
 	<p><code>
 	<?php echo h("<request><hash>7c12772809c1c0c3deda6103b10fdfa0</hash><allSamples>1</allSamples><eventID>13</eventID</request>"); ?>
@@ -425,11 +355,7 @@
 	<b>allSamples</b>: <?php echo __('If set, it will return all samples from events that have a match for the hash provided above.');?><br />
 	<b>eventID</b>: <?php echo __('If set, it will only fetch data from the given event ID.');?><br />
 	<h3><?php echo __('Upload malware samples using the "Upload Sample" API');?></h3>
-	<pre>
-	<?php
-		echo $baseurl.'/events/upload_sample/[Event_id]';
-	?>
-	</pre>
+	<pre><?php echo $baseurl.'/events/upload_sample/[Event_id]';?></pre>
 	<p><?php echo __('This API will allow you to populate an event that you have modify rights to with malware samples (and all related hashes). Alternatively, if you do not supply an event ID, it will create a new event for you.');?><br />
 	<?php echo __('The files have to be base64 encoded and POSTed as explained below. All samples will be zipped and password protected (with the password being "infected"). The hashes of the original file will be captured as additional attributes.');?><br />
 	<?php echo __('The event ID is optional. MISP will accept either a JSON or an XML object posted to the above URL.');?></p>
@@ -453,12 +379,8 @@
 	<b>comment</b>: <?php echo __('This will populate the comment field of any attribute created using this API.');?><br />
 	<h3><?php echo __('Add or remove tags from events');?></h3>
 	<p><?php echo __('You can add or remove an existing tag from an event in the following way');?>:</p>
-	<pre>
-	<?php echo $baseurl.'/events/addTag'; ?>
-	</pre>
-	<pre>
-	<?php  echo $baseurl.'/events/removeTag'; ?>
-	</pre>
+	<pre><?php echo $baseurl.'/events/addTag'; ?></pre>
+	<pre><?php  echo $baseurl.'/events/removeTag'; ?></pre>
 	<p><?php echo __('Just POST a json object in the following format (to the appropriate API depending on whether you want to add or delete a tag from an event)');?>:</p>
 	<code>{"event":228, "tag":8}</code><br /><br />
 	<p><?php echo __('Where "tag" is the ID of the tag. You can also use the name of the tag the following way');?>:</p>
@@ -540,10 +462,11 @@
 	An example for a valid lookup');?>:</p>
 	<b>URL</b>: <?php echo $baseurl.'/events/index'; ?><br />
 	<b>Headers</b>:<br />
-	<pre>Authorization: [your API key]
-	Accept: application/json
-	Content-type: application/json
-	</pre>
+	<pre><?php
+		echo 'Authorization: ' . $me['authkey'] . PHP_EOL;
+		echo 'Accept: application/json' . PHP_EOL;
+		echo 'Content-type: application/json';
+	?></pre>
 	<b>Body</b>:
 	<code>{"searcheventinfo":"Locky", "searchpublished":1, "searchdistribution":!0}</code><br /><br />
 	<p><?php echo __('The above would return any event that is published, not restricted to your organisation only that has the term "Locky" in its event description. You can use exclamation marks to negate a value wherever appropriate.');?></p>
