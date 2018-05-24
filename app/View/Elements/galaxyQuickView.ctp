@@ -23,7 +23,7 @@
 						);
 					}
 				?>
-				<div style="margin-left:15px;" class="hidden blue">
+				<div style="margin-left:15px;display:none;" class="blue">
 					<?php
 						$cluster_fields = array();
 						if (isset($cluster['description'])) {
@@ -106,11 +106,11 @@
 <script type="text/javascript">
 $(document).ready(function () {
 	$('.expandable').click(function() {
-		$(this).parent().children('div').toggle();
+		$(this).children('div').toggle();
 		if ($(this).children('span').html() == '+') {
-			$(this).children('span').html('-');
+			$(this).children('span').val('-');
 		} else {
-			$(this).children('span').html('+');
+			$(this).children('span').val('+');
 		}
 	});
 	$('.delete-cluster').click(function() {
