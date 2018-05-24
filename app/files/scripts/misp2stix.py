@@ -462,7 +462,7 @@ class StixBuilder(object):
             observable_property = self.simple_type_to_method[attribute_type](attribute)
         except KeyError:
             return False
-        if isinstance(observable_property, Observable):
+        if not observable_property or isinstance(observable_property, Observable):
             return observable_property
         observable_property.condition = "Equals"
         observable_object = Object(observable_property)
