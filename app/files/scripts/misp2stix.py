@@ -6,7 +6,7 @@ from stix.indicator import Indicator
 from stix.indicator.valid_time import ValidTime
 from stix.ttp import TTP, Behavior
 from stix.ttp.malware_instance import MalwareInstance
-from stix.incident import Incident, Time, ImpactAssessment, ExternalID, AffectedAsset
+from stix.incident import Incident, Time, ImpactAssessment, ExternalID, AffectedAsset, AttributedThreatActors
 from stix.exploit_target import ExploitTarget, Vulnerability
 from stix.incident.history import JournalEntry, History, HistoryItem
 from stix.threat_actor import ThreatActor
@@ -341,8 +341,12 @@ class StixBuilder(object):
                 incident.leveraged_ttps.append(self.append_ttp(attribute_category, ttp))
             elif attribute_category == "Attribution":
                 ta = self.generate_threat_actor(attribute)
-                rta = RelatedThreatActor(ta, relationship="Attribution")
-                incident.attributed_threat_actors.append(rta)
+                ata = AttributedThreatActors()
+                ata.append(ta)
+                if incident.attributed_threat_actors:
+                    incident.attributed_threat_actors.append(ata)
+                else:
+                    incident.attributed_threat_actors = ata
             else:
                 entry_line = "attribute[{}][{}]: {}".format(attribute_category, attribute_type, attribute.value)
                 self.add_journal_entry(incident, entry_line)
