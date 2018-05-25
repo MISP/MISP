@@ -149,6 +149,8 @@ class StixBuilder():
                      'pattern': self.resolve_file_pattern},
             'ip-port': {'observable': self.resolve_ip_port_observable,
                         'pattern': self.resolve_ip_port_pattern},
+            'process': {'observable': self.resolve_process_observable,
+                        'pattern': self.resolve_process_pattern},
             'registry-key': {'observable': self.resolve_regkey_observable,
                              'pattern': self.resolve_regkey_pattern},
             'url': {'observable': self.resolve_url_observable,
@@ -156,6 +158,38 @@ class StixBuilder():
             'x509': {'observable': self.resolve_x509_observable,
                      'pattern': self.resolve_x509_pattern}
         }
+
+    def fetch_object_references(self, misp_objects):
+        object_references, processes = {}, {}
+        for misp_object in misp_objects:
+            attributes = misp_object.attributes
+            if misp_object.name == "process":
+                self.get_process_attributes(processes, misp_object.attributes)
+            if misp_object.references and not self.fetch_ids_flag(attributes):
+                for reference in misp_object.references:
+                    try:
+                        referenced_object = reference.Attribute
+                    except:
+                        referenced_object = self.misp_event.get_object_by_uuid(reference.referenced_uuid)
+                    object_references[reference.referenced_uuid] = referenced_object
+        return object_references, processes
+
+    @staticmethod
+    def get_process_attributes(processes, attributes):
+        pid, process = None, {}
+        for attribute in attributes:
+            relation = attribute.object_relation
+            attribute_value = attribute.value
+            if relation == 'pid':
+                if attribute_value in processes:
+                    return
+                pid = attribute_value
+                process[relation] = attribute_value
+            elif relation in ('name', 'creation-time'):
+                process[relation] = attribute_value
+        if pid is not None:
+            process['type'] = 'process'
+            processes[pid] = process
 
     def handle_non_indicator(self, attribute, attribute_type):
         if attribute_type == "link":
@@ -682,6 +716,56 @@ class StixBuilder():
                 except:
                     continue
                 pattern += objectsMapping['ip-port']['pattern'].format(stix_type, attribute_value)
+        return pattern[:-5]
+
+    def resolve_process_observable(self, attributes):
+        observable = {}
+        current_process = defaultdict(list)
+        current_process['type'] = 'process'
+        n = 0
+        for attribute in attributes:
+            relation = attribute.object_relation
+            if relation == 'parent-pid':
+                str_n = str(n)
+                try:
+                    observable[str_n] = self.processes[attribute.value]
+                except:
+                    continue
+                current_process['parent_ref'] = str_n
+                n += 1
+            elif relation == 'child-pid':
+                str_n = str(n)
+                try:
+                    observable[str_n] = self.processes[attribute.value]
+                except:
+                    continue
+                current_process['child_refs'].append(str_n)
+                n += 1
+            else:
+                try:
+                    current_process[processMapping[relation]] = attribute.value
+                except:
+                    pass
+        observable[str(n)] = current_process
+        return observable
+
+    @staticmethod
+    def resolve_process_pattern(attributes):
+        mapping = objectsMapping['process']['pattern']
+        pattern = ""
+        child_refs = []
+        for attribute in attributes:
+            relation = attribute.object_relation
+            if relation == 'parent-pid':
+                pattern += mapping.format('parent_ref', attribute.value)
+            elif relation == 'child-pid':
+                child_refs.append(attribute.value)
+            else:
+                try:
+                    pattern += mapping.format(processMapping[relation], attribute.value)
+                except:
+                    continue
+        if child_refs: pattern += mapping.format('child_refs', child_refs)
         return pattern[:-5]
 
     @staticmethod

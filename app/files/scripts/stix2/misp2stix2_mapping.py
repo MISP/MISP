@@ -237,6 +237,7 @@ objectsMapping = {'domain-ip': {'pattern': "domain-name:{0} = '{1}' AND "},
                  'file': {'observable': {'0': {'type': 'file', 'hashes': {}}},
                           'pattern': "file:{0} = '{1}' AND "},
                  'ip-port': {'pattern': "network-traffic:{0} = '{1}' AND "},
+                 'process': {'pattern': "process:{0} = '{1}' AND "},
                  'registry-key': {'observable': {'0': {'type': 'windows-registry-key'}},
                                   'pattern': "windows-registry-key:{0} = '{1}' AND "},
                  'url': {'observable': {'0': {'type': 'url'}},
@@ -267,6 +268,8 @@ ipPortObjectMapping = {'ip-dst': "dst_ref.type = '{0}' AND network-traffic:dst_r
 
 regkeyMapping = {'text': {'data-type': 'data_type', 'data': 'data', 'name': 'name'},
                  'datetime': 'modified', 'regkey': 'key'}
+
+processMapping = {'name': 'name', 'pid': 'pid', 'creation-time': 'created'}
 
 urlMapping = {'url': 'value', 'domain': 'value', 'port': 'dst_port'}
 
