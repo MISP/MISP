@@ -35,7 +35,7 @@ class StixParser():
             filename = os.path.join(pathname, args[1])
             tempFile = open(filename, 'r', encoding='utf-8')
             self.filename = filename
-            event = stix2.get_dict(tempFile)
+            event = json.loads(tempFile.read())
             self.stix_version = 'stix {}'.format(event.get('spec_version'))
             for o in event.get('objects'):
                 try:
