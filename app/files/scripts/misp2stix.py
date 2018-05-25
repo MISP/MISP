@@ -341,11 +341,12 @@ class StixBuilder(object):
                 incident.leveraged_ttps.append(self.append_ttp(attribute_category, ttp))
             elif attribute_category == "Attribution":
                 ta = self.generate_threat_actor(attribute)
-                ata = AttributedThreatActors()
-                ata.append(ta)
+                rta = RelatedThreatActor(ta, relationship="Attribution")
                 if incident.attributed_threat_actors:
-                    incident.attributed_threat_actors.append(ata)
+                    incident.attributed_threat_actors.append(rta)
                 else:
+                    ata = AttributedThreatActors()
+                    ata.append(rta)
                     incident.attributed_threat_actors = ata
             else:
                 entry_line = "attribute[{}][{}]: {}".format(attribute_category, attribute_type, attribute.value)
