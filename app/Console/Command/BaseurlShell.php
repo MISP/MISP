@@ -10,7 +10,12 @@ class BaseurlShell extends AppShell {
 
 	public function main() {
 		$baseurl = $this->args[0];
-		$this->Server->serverSettingsSaveValue('MISP.baseurl', $baseurl);
-		echo 'Baseurl updated. Have a very safe and productive day.', PHP_EOL;
+		$result = $this->Server->testBaseURL($baseurl);
+		if (true !== $result) {
+			echo $result . PHP_EOL;
+		} else {
+			$this->Server->serverSettingsSaveValue('MISP.baseurl', $baseurl);
+			echo 'Baseurl updated. Have a very safe and productive day.', PHP_EOL;
+		}
 	}
 }

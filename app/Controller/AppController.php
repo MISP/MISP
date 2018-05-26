@@ -51,6 +51,8 @@ class AppController extends Controller {
 	public $phpmin = '5.6.5';
 	public $phprec = '7.0.16';
 
+	public $baseurl = '';
+
 	// Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
 	// This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
 	public $automationArray = array(
@@ -152,6 +154,7 @@ class AppController extends Controller {
 		if (trim($baseurl) == 'http://') {
 			$this->Server->serverSettingsSaveValue('MISP.baseurl', '');
 		}
+		$this->baseurl = $baseurl;
 		$this->set('baseurl', h($baseurl));
 
 		// send users away that are using ancient versions of IE

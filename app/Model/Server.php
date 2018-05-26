@@ -2480,9 +2480,14 @@ class Server extends AppModel {
 
 	public function testBaseURL($value) {
 		// only run this check via the GUI, via the CLI it won't work
-		if (php_sapi_name() == 'cli') return true;
+		if (php_sapi_name() == 'cli') {
+			if (!preg_match('/^http(s)?:\/\//i', $value)) {
+				return 'Invalid baseurl, please make sure that the protocol is set.';
+			}
+			return true;
+		}
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
-		if ($value != strtolower($this->getProto()) . '://' . $this->getHost()) return false;
+		if ($value != strtolower($this->getProto()) . '://' . $this->getHost()) return 'critical_error##COMMA##block';
 		return true;
 	}
 
