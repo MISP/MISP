@@ -514,11 +514,11 @@ class StixParser():
         if properties.destination_socket_address:
             self.handle_socket(attributes, properties.destination_socket_address, "dst")
         if properties.layer3_protocol:
-            attributes.append(["text", properties.layer3_protocol.value, "layer3_protocol"])
+            attributes.append(["text", properties.layer3_protocol.value, "layer3-protocol"])
         if properties.layer4_protocol:
-            attributes.append(["text", properties.layer4_protocol.value, "layer4_protocol"])
+            attributes.append(["text", properties.layer4_protocol.value, "layer4-protocol"])
         if properties.layer7_protocol:
-            attributes.append(["text", properties.layer7_protocol.value, "layer7_protocol"])
+            attributes.append(["text", properties.layer7_protocol.value, "layer7-protocol"])
         if attributes:
             return "network-connection", self.return_attributes(attributes), ""
 
