@@ -286,7 +286,7 @@ class StixBuilder():
 
     def add_custom(self, attribute):
         custom_object_id = "x-misp-object--{}".format(attribute.uuid)
-        custom_object_type = "x-misp-object-{}".format(attribute.type)
+        custom_object_type = "x-misp-object-{}".format(attribute.type.replace('|', '-'))
         labels = self.create_labels(attribute)
         custom_object_args = {'id': custom_object_id, 'x_misp_timestamp': attribute.timestamp, 'labels': labels,
                                'x_misp_value': attribute.value, 'created_by_ref': self.identity_id,
@@ -380,7 +380,7 @@ class StixBuilder():
     def add_object_custom(self, misp_object, to_ids):
         custom_object_id = 'x-misp-object--{}'.format(misp_object.uuid)
         name = misp_object.name
-        custom_object_type = 'x-misp-object--{}'.format(name)
+        custom_object_type = 'x-misp-object-{}'.format(name)
         category = misp_object.get('meta-category')
         labels = self.create_object_labels(name, category, to_ids)
         values = self.fetch_custom_values(misp_object.attributes)
