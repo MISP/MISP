@@ -105,7 +105,9 @@ class StixBuilder():
                         self.add_custom(attribute)
         if hasattr(self.misp_event, 'objects') and self.misp_event.objects:
             self.load_objects_mapping()
-            for misp_object in self.misp_event.objects:
+            misp_objects = self.misp_event.objects
+            self.object_references, self.processes = self.fetch_object_references(misp_objects)
+            for misp_object in misp_objects:
                 object_attributes = misp_object.attributes
                 to_ids = self.fetch_ids_flag(object_attributes)
                 object_name = misp_object.name
