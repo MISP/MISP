@@ -119,6 +119,9 @@ issuer_attribute_mapping = {'type': 'text', 'relation': 'issuer'}
 key_attribute_mapping = {'type': 'regkey', 'relation': 'key'}
 mime_type_attribute_mapping = {'type': 'mime-type', 'relation': 'mimetype'}
 modified_attribute_mapping = {'type': 'datetime', 'relation': 'last-modified'}
+pid_attribute_mapping = {'type': 'text', 'relation': 'pid'}
+process_creation_time_mapping = {'type': 'datetime', 'relation': 'creation-time'}
+process_name_mapping = {'type': 'text', 'relation': 'name'}
 regkey_name_attribute_mapping = {'type': 'text', 'relation': 'name'}
 reply_to_attribute_mapping = {'type': 'email-reply-to', 'relation': 'reply-to'}
 serial_number_attribute_mapping = {'type': 'text', 'relation': 'serial-number'}
@@ -181,6 +184,15 @@ ip_port_mapping = {'src_port': src_port_attribute_mapping,
                    'value': domain_attribute_mapping,
                    'domain-name:value': domain_attribute_mapping,
                    'network-traffic:dst_ref.value': ip_attribute_mapping}
+
+process_mapping = {'name': process_name_mapping,
+                   'process:name': process_name_mapping,
+                   'pid': pid_attribute_mapping,
+                   'process:pid': pid_attribute_mapping,
+                   'created': process_creation_time_mapping,
+                   'process:created': process_creation_time_mapping,
+                   'process:parent_ref': {'type': 'text', 'relation': 'parent-pid'},
+                   'process:child_refs': {'type': 'text', 'relation': 'child-pid'}}
 
 regkey_mapping = {'data': data_attribute_mapping,
                   'windows-registry-key:data': data_attribute_mapping,
@@ -358,6 +370,47 @@ def observable_ip_port(observable):
 def pattern_ip_port(pattern):
     return fill_pattern_attributes(pattern, ip_port_mapping)
 
+def observable_process(observable):
+    attributes = []
+    key = '0' if len(observable) == 1 else parse_process_observable(observable)
+    observable_object = observable[key]
+    try:
+        parent_key = observable_object.pop('parent_ref')
+        attributes.append({'type': 'text', 'value': observable[parent_key]['pid'], 'object_relation': 'parent-pid'})
+    except:
+        pass
+    try:
+        children_keys = observable_object.pop('child_refs')
+        for key in children_keys:
+            attributes.append({'type': 'text', 'value': observable[key]['pid'], 'object_relation': 'child-pid'})
+    except:
+        pass
+    fill_observable_attributes(attributes, observable_object, process_mapping)
+    return attributes
+
+def parse_process_observable(observable):
+    for key in observable:
+        observable_object = observable[key]
+        if observable_object['type'] == 'process' and ('parent_ref' in observable_object or 'child_refs' in observable_object):
+            return key
+
+def pattern_process(pattern):
+    attributes = []
+    for p in pattern:
+        p_type, p_value = p.split(' = ')
+        try:
+            mapping = process_mapping[p_type]
+        except:
+            continue
+        if p_type == 'process:child_refs':
+            for value in p_value[1:-1].split(','):
+                attribute.append({'type': mapping['type'], 'value': value.strip(),
+                                 'object_relation': mapping['relation']})
+        else:
+            attributes.append({'type': mapping['type'], 'value': p_value,
+                               'object_relation': mapping['relation']})
+    return attributes
+
 def observable_regkey(observable):
     attributes = []
     observable = dict(observable['0'])
@@ -423,6 +476,7 @@ objects_mapping = {'domain-ip':{'observable': observable_domain_ip, 'pattern': p
                    'email': {'observable': observable_email, 'pattern': pattern_email},
                    'file': {'observable': observable_file, 'pattern': pattern_file},
                    'ip-port': {'observable': observable_ip_port, 'pattern': pattern_ip_port},
+                   'process': {'observable': observable_process, 'pattern': pattern_process},
                    'registry-key': {'observable': observable_regkey, 'pattern': pattern_regkey},
                    'url': {'observable': observable_url, 'pattern': pattern_url},
                    'x509': {'observable': observable_x509, 'pattern': pattern_x509}}
