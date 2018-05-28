@@ -108,7 +108,8 @@ class StixParser():
             "WhoisObjectType": self.handle_whois,
             'WindowsRegistryKeyObjectType': self.handle_regkey,
             "WindowsExecutableFileObjectType": self.handle_pe,
-            "WindowsServiceObjectType": self.handle_windows_service
+            "WindowsServiceObjectType": self.handle_windows_service,
+            "X509CertificateObjectType": self.handle_x509
         }
 
     # Define if the STIX document is from MISP or is an external one
@@ -689,6 +690,43 @@ class StixParser():
     def handle_windows_service(properties):
         if properties.name:
             return "windows-service-name", properties.name.value, ""
+
+    def handle_x509(self, properties):
+        attributes = []
+        if properties.certificate:
+            certificate = properties.certificate
+            if certificate.validity:
+                validity = certificate.validity
+                if validity.not_before:
+                    attributes.append(["datetime", validity.not_before.value, "validity-not-before"])
+                if validity.not_after:
+                    attributes.append(["datetime", validity.not_after.value, "validity-not-after"])
+            if certificate.subject_public_key:
+                subject_pubkey = certificate.subject_public_key
+                if subject_pubkey.rsa_public_key:
+                    rsa_pubkey = subject_pubkey.rsa_public_key
+                    if rsa_pubkey.exponent:
+                        attributes.append(["text", rsa_pubkey.exponent.value, "pubkey-info-exponent"])
+                    if rsa_pubkey.modulus:
+                        attributes.append(["text", rsa_pubkey.modulus.value, "pubkey-info-modulus"])
+                if subject_pubkey.public_key_algorithm:
+                    attributes.append(["text", subject_pubkey.public_key_algorithm.value, "pubkey-info-algorithm"])
+            if certificate.version:
+                attributes.append(["text", certificate.version.value, "version"])
+            if certificate.serial_number:
+                attributes.append(["text", certificate.serial_number.value, "serial-number"])
+            if certificate.issuer:
+                attributes.append(["text", certificate.issuer.value, "issuer"])
+            if certificate.subject:
+                attributes.append(["text", certificate.subject.value, "subject"])
+        if properties.raw_certificate:
+            raw = properties.raw_certificate
+            print(raw.to_json())
+        if properties.certificate_signature:
+            signature = properties.certificate_signature
+            attribute_type = "x509-fingerprint-{}".format(signature.signature_algorithm.value.lower())
+            attributes.append([attribute_type, signature.signature.value, attribute_type])
+        return "x509", self.return_attributes(attributes), ""
 
     # Return type & attributes of the file defining a portable executable object
     def handle_pe(self, properties):
