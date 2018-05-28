@@ -810,6 +810,8 @@ class StixParser():
                 name = observable_id.split("_")[0].split(":")[1]
             else:
                 name = cybox_to_misp_object[observable_id.split('-')[0].split(':')[1]]
+        else:
+            name = cybox_to_misp_object[observable_id.split('-')[0].split(':')[1]]
         try:
             self.fill_misp_object(observable, name)
         except:
