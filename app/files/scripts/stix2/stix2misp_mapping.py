@@ -41,6 +41,9 @@ def parse_filename_hash(observable, attribute_type):
 def parse_malware_sample(observable, _):
     return parse_filename_hash(observable, 'filename|md5')
 
+def parse_number(observable, _):
+    return observable['0'].get('number')
+
 def parse_port(observable, _):
     return observable
 
@@ -102,7 +105,8 @@ misp_types_mapping = {
     'hostname|port': parse_hostname_port,
     'email-reply-to': parse_value,
     'attachment': parse_attachment,
-    'mac-address': parse_value
+    'mac-address': parse_value,
+    'AS': parse_number
 }
 
 cc_attribute_mapping = {'type': 'email-dst', 'relation': 'cc'}
