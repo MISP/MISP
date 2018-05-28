@@ -328,6 +328,9 @@ function enable_timeline() {
 			eventTimeline = new vis.Timeline(container_timeline, items_timeline, options);
 			
 			eventTimeline.on('select', handle_selection);
+
+			eventTimeline.on('doubleClick', handle_doubleClick);
+
 			items_timeline.on('update', function(eventname, data) {
 				handle_selection({
 					event: { target: $('span[data-itemID="'+data.items[0]+'"]')},
@@ -356,6 +359,19 @@ function handle_selection(data) {
 			generate_timeline_tooltip(itemID, target);
 		}
 	}
+}
+
+function edit_item(id, callback) {
+	var group = items_timeline.get(id).group;
+	if (group == 'attribute') {
+		simplePopup('/attributes/edit/'+id);
+	} else if (group == 'object') {
+		window.location = '/objects/edit/'+id;
+	}
+}
+
+function handle_doubleClick(data) {
+	edit_item(data.item);
 }
 
 function handle_not_seen_enabled(hide) {
