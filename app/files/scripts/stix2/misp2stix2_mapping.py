@@ -231,12 +231,17 @@ mispTypesMapping = {
     #                           'pattern': 'email-addr:display_name = \'{0}\''}
 }
 
+network_traffic_pattern = "network-traffic:{0} = '{1}' AND "
+network_traffic_src_ref = "src_ref.type = '{0}' AND network-traffic:src_ref.value"
+network_traffic_dst_ref = "dst_ref.type = '{0}' AND network-traffic:dst_ref.value"
+
 objectsMapping = {'domain-ip': {'pattern': "domain-name:{0} = '{1}' AND "},
                  'email': {'observable': {'0': {'type': 'email-message'}},
                            'pattern': "email-{0}:{1} = '{2}' AND "},
                  'file': {'observable': {'0': {'type': 'file', 'hashes': {}}},
                           'pattern': "file:{0} = '{1}' AND "},
-                 'ip-port': {'pattern': "network-traffic:{0} = '{1}' AND "},
+                 'ip-port': {'pattern': network_traffic_pattern},
+                 'network-socket': {'pattern': network_traffic_pattern},
                  'process': {'pattern': "process:{0} = '{1}' AND "},
                  'registry-key': {'observable': {'0': {'type': 'windows-registry-key'}},
                                   'pattern': "windows-registry-key:{0} = '{1}' AND "},
@@ -261,15 +266,20 @@ emailObjectMapping = {'email-body': {'email_type': 'message', 'stix_type': 'body
 
 fileMapping = {'hashes': "hashes.'{0}'", 'size-in-bytes': 'size', 'filename': 'name', 'mime-type': 'mime_type'}
 
-ipPortObjectMapping = {'ip-dst': "dst_ref.type = '{0}' AND network-traffic:dst_ref.value",
+ipPortObjectMapping = {'ip-dst': network_traffic_dst_ref,
                        'port': {'src-port': 'src_port', 'dst-port': 'dst_port'},
                        'datetime': {'first-seen': 'start', 'last-seen': 'end'},
                        'domain': 'value'}
 
-regkeyMapping = {'data-type': 'data_type', 'data': 'data', 'name': 'name',
-                 'last-modified': 'modified', 'key': 'key'}
+networkSocketMapping = {'address-family': 'address_family', 'domain-family': 'protocol_family',
+                        'protocol': 'protocols', 'src-port': 'src_port', 'dst-port': 'dst_port',
+                        'ip-src': network_traffic_src_ref, 'ip-dst': network_traffic_dst_ref,
+                        'hostname-src': network_traffic_src_ref, 'hostname-dst': network_traffic_dst_ref}
 
 processMapping = {'name': 'name', 'pid': 'pid', 'creation-time': 'created'}
+
+regkeyMapping = {'data-type': 'data_type', 'data': 'data', 'name': 'name',
+                 'last-modified': 'modified', 'key': 'key'}
 
 urlMapping = {'url': 'value', 'domain': 'value', 'port': 'dst_port'}
 

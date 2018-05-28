@@ -151,6 +151,8 @@ class StixBuilder():
                      'pattern': self.resolve_file_pattern},
             'ip-port': {'observable': self.resolve_ip_port_observable,
                         'pattern': self.resolve_ip_port_pattern},
+            'network-socket': {'observable': self.resolve_network_socket_observable,
+                               'pattern': self.resolve_network_socket_pattern},
             'process': {'observable': self.resolve_process_observable,
                         'pattern': self.resolve_process_pattern},
             'registry-key': {'observable': self.resolve_regkey_observable,
@@ -718,6 +720,87 @@ class StixBuilder():
                 except:
                     continue
                 pattern += objectsMapping['ip-port']['pattern'].format(stix_type, attribute_value)
+        return pattern[:-5]
+
+    def resolve_network_socket_observable(attributes):
+        observable, socket_extension = {}, {}
+        network_object = defaultdict(list)
+        n = 0
+        ip_src, ip_dst, domain_src, domain_dst = [None] * 4
+        for attribute in attributes:
+            relation = attribute.object_relation
+            if relation in ('address-family', 'domain-family'):
+                socket_extension[networkSocketMapping[relation]] = attribute.value
+            elif relation == 'state':
+                state_type = "is_{}".format(attribute.value)
+                socket_extension[state_type] = True
+            elif relation == 'protocol':
+                network_object['protocols'].append(attribute.value)
+            elif relation == 'ip-src': ip_src = attribute.value
+            elif relation == 'ip-dst': ip_dst = attribute.value
+            elif relation == 'hostname-src': domain_src = attribute.value
+            elif relation == 'hostname-dst': domain_dst = attribute.value
+            else:
+                try:
+                    network_object[networkSocketMapping[relation]] = attribute.value
+                except:
+                    continue
+        if ip_src is not None:
+            str_n = str(n)
+            observable[str_n] = {'type': define_address_type(ip_src), 'value': ip_src}
+            network_object['_ref'] = str_n
+            n += 1
+        elif domain_src is not None:
+            str_n = str(n)
+            observable[str_n] = {'type': 'domain-name', 'value': domain_src}
+            network_object['_ref'] = str_n
+            n += 1
+        if ip_dst is not None:
+            str_n = str(n)
+            observable[str_n] = {'type': define_address_type(ip_dst), 'value': ip_dst}
+            network_object['_ref'] = str_n
+            n += 1
+        elif domain_dst is not None:
+            str_n = str(n)
+            observable[str_n] = {'type': 'domain-name', 'value': domain_dst}
+            network_object['_ref'] = str_n
+            n += 1
+        if socket_extension: network_object['extensions'] = {'socket-ext': socket_extension}
+        observable[str(n)] = network_object
+        return
+
+    def resolve_network_socket_pattern(self, attributes):
+        mapping = objectsMapping['network-socket']['pattern']
+        pattern = ""
+        stix_type = "extensions.'socket-ext'.{}"
+        ip_src, ip_dst, domain_src, domain_dst = [None] * 4
+        for attribute in attributes:
+            relation = attribute.object_relation
+            attribute_value = attribute.value
+            if relation in ('address-family', 'domain-family'):
+                pattern += mapping.format(stix_type.format(networkSocketMapping[relation]), attribute_value)
+            elif relation == 'state':
+                state_type = "is_{}".format(attribute_value)
+                pattern += mapping.format(stix_type.format(state_type), True)
+            elif relation == 'protocol':
+                pattern += mapping.format(networkSocketMapping[relation], [attribute_value])
+            elif relation == 'ip-src':
+                ip_src = mapping.format(networkSocketMapping[relation].format(define_address_type(attribute_value)), attribute_value)
+            elif relation == 'ip-dst':
+                ip_dst = mapping.format(networkSocketMapping[relation].format(define_address_type(attribute_value)), attribute_value)
+            elif relation == 'hostname-src':
+                domain_src = mapping.format(networkSocketMapping[relation].format('domain-name'), attribute_value)
+            elif relation == 'hostname-dst':
+                domain_dst = mapping.format(networkSocketMapping[relation].format('domain-name'), attribute_value)
+            else:
+                try:
+                    pattern += mapping.format(networkSocketMapping[relation], attribute_value)
+                except:
+                    continue
+        if ip_src is not None: pattern += ip_src
+        elif domain_src is not None: pattern += domain_src
+        if ip_dst is not None: pattern += ip_dst
+        elif domain_dst is not None: pattern += domain_dst
         return pattern[:-5]
 
     def resolve_process_observable(self, attributes):
