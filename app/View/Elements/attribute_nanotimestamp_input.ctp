@@ -1,8 +1,3 @@
-<?php
-	echo $this->Html->css('jquery-ui');
-	echo $this->Html->script('jquery-ui');
-?>
-
 <div class="input-group input-daterange">
 <?php
 	echo $this->Form->input('first_seen', array(
@@ -65,7 +60,8 @@ function get_slider_and_input(type, scale, factor, max) {
 	var td3 = $('<td></td>');
 	var label = $('<span>'+scale+'</span>').css({fontWeight: 'bold'});
 	var input = $('<input id="input-time-'+type+'-'+scale+'" type="number" min=0 max='+max+' step=1 value=0 factor='+factor+'></input>').css({width: '50px', margin: '5px'});
-	var slider = $('<input id="slider-time-'+type+'-'+scale+'" type="range" min=0 max='+max+' step=1 value=0 factor='+factor+'></input>').css({width: '300px', margin: '5px'});
+	var slider_width = "<?php if ($ajax) { echo '200px'; } else { echo '300px'; } ?>";
+	var slider = $('<input id="slider-time-'+type+'-'+scale+'" type="range" min=0 max='+max+' step=1 value=0 factor='+factor+'></input>').css({width: slider_width, margin: '5px'});
 	
 	row.append(td1.append(label))
 	   .append(td2.append(input))

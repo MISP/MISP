@@ -16,7 +16,7 @@ class RestResponseComponent extends Component {
 			'add' => array(
 				'description' => "POST a MISP Attribute JSON to this API to create an Attribute.",
 				'mandatory' => array('value', 'type'),
-				'optional' => array('category', 'to_ids', 'uuid', 'distribution', 'sharing_group_id', 'timestamp', 'comment'),
+				'optional' => array('category', 'to_ids', 'uuid', 'distribution', 'sharing_group_id', 'timestamp', 'comment', 'first_seen', 'last_seen'),
 				'params' => array('event_id')
 			),
 			'edit' => array(
