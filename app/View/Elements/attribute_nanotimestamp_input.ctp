@@ -75,7 +75,7 @@ function get_slider_and_input(type, scale, factor, max) {
 
 function reflect_change_on_sliders() {
 		var f_nanosec = $('#AttributeFirstSeen').val();
-		if (l_nanosec === '') {
+		if (f_nanosec === '') {
 			f_nanosec = null;
 			var f_nano = 0;
 			var f_micro = 0;
@@ -95,7 +95,6 @@ function reflect_change_on_sliders() {
 			var f_min = parseInt(f_d.getUTCMinutes());
 			var f_hour = parseInt(f_d.getUTCHours());
 		}
-
 
 		var l_nanosec = $('#AttributeLastSeen').val();
 		if (l_nanosec === '') {
