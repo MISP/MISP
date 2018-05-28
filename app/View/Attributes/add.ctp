@@ -79,6 +79,8 @@
 					'type' => 'checkbox'
 			));
 		?>
+
+		<?php echo $this->element('attribute_nanotimestamp_input'); ?>
 		</div>
 	</fieldset>
 	<p id="notice_message" style="display:none;"></p>

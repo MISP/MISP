@@ -176,7 +176,9 @@ function reflect_change(itemType, seenType, item_id) {
 			updated_item.last_seen = data;
 		}
 		set_spanned_time(updated_item);
-		items_timeline.update(updated_item);
+		//items_timeline.update(updated_item);
+		items_timeline.remove(updated_item.id);
+		items_timeline.add(updated_item);
 	});
 }
 
@@ -280,7 +282,8 @@ function set_spanned_time(item) {
     	} else if (ls===null && fs!==null) {
 		item.start = nanoTimestampToDatetime(fs);
 		item.seen_enabled = true;
-		item.end = null;
+		//item.end = null;
+		delete item.end;
 
     	} else { // fs and ls are defined
 		item.start = nanoTimestampToDatetime(fs);

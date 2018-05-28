@@ -798,8 +798,8 @@ class AttributesController extends AppController {
 				$dateObj = new DateTime();
 				if (!isset($this->request->data['Attribute']['timestamp'])) $this->request->data['Attribute']['timestamp'] = $dateObj->getTimestamp();
 				if ($this->request->data['Attribute']['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
-					$recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment');
-					foreach ($recoverFields as $rF) {
+				    $recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment', 'first_seen', 'last_seen');
+				    foreach ($recoverFields as $rF) {
 						if (!isset($this->request->data['Attribute'][$rF])) $this->request->data['Attribute'][$rF] = $existingAttribute['Attribute'][$rF];
 					}
 					// carry on with adding this attribute - Don't forget! if orgc!=user org, create shadow attribute, not attribute!
@@ -855,7 +855,7 @@ class AttributesController extends AppController {
 					$saved_attribute = $this->Attribute->find('first', array(
 							'conditions' => array('id' => $this->Attribute->id),
 							'recursive' => -1,
-							'fields' => array('id', 'type', 'to_ids', 'category', 'uuid', 'event_id', 'distribution', 'timestamp', 'comment', 'value', 'disable_correlation'),
+							'fields' => array('id', 'type', 'to_ids', 'category', 'uuid', 'event_id', 'distribution', 'timestamp', 'comment', 'value', 'disable_correlation', 'first_seen', 'last_seen'),
 					));
 					$response = array('response' => array('Attribute' => $saved_attribute['Attribute']));
 					$this->set('response', $response);

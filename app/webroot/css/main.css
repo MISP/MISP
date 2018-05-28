@@ -2055,3 +2055,20 @@ table tr:hover .down-expand-button {
 		transform: rotate(359deg);
 	}
 }
+
+.label-icon {
+    left: 5px;
+    position: relative;
+}
+
+.nanosec-div {
+    font-weight:bold;
+    position: relative;
+    width: 100%;
+    text-align: center;
+    top: -5px;
+}
+
+.larger-input-field {
+    width: 270px !important;
+}

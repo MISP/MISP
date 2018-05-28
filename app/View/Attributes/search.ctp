@@ -1,3 +1,7 @@
+<?php
+	echo $this->Html->css('jquery-ui');
+	echo $this->Html->script('jquery-ui');
+?>
 <div class="attributes form">
 <?php echo $this->Form->create('Attribute');?>
 	<fieldset>
@@ -40,7 +44,11 @@
 					'label' => __('Alternate Search Result (Events)'),
 			));
 		?>
+
+		<?php echo $this->element('attribute_nanotimestamp_input'); ?>
+
 	</fieldset>
+
 <?php
 echo $this->Form->button('Search', array('class' => 'btn btn-primary'));
 echo $this->Form->end();

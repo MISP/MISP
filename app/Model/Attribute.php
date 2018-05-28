@@ -446,6 +446,20 @@ class Attribute extends AppModel {
 				'rule' => array('inList', array('0', '1', '2', '3', '4', '5')),
 				'message' => 'Options: Your organisation only, This community only, Connected communities, All communities, Sharing group, Inherit event',
 				'required' => true
+		),
+		'first_seen' => array(
+				'first_seen' => array(
+					'rule' => array('numericOrNull'),
+					'required' => false,
+					'message' => array('Invalid first_seen format, valid format: (nanotimestamp | MM/DD/YYYY | MM/DD/YYYY@HH:MM:SS[.mmm[uuu[nnn]]])')
+				)
+		),
+		'last_seen' => array(
+				'last_seen' => array(
+					'rule' => array('numericOrNull'),
+					'required' => false,
+					'message' => array('Invalid last_seen format, valid format: (nanotimestamp | MM/DD/YYYY | MM/DD/YYYY@HH:MM:SS[.mmm[uuu[nnn]]])')
+				)
 		)
 	);
 
@@ -697,13 +711,15 @@ class Attribute extends AppModel {
 			$date = new DateTime();
 			$this->data['Attribute']['timestamp'] = $date->getTimestamp();
 		}
-		// set first_seen, last_seen to null if it doesn't exist
-		if (empty($this->data['Attribute']['first_seen'])) {
-			$this->data['Attribute']['first_seen'] = "";
+		// parse first_seen different formats
+		if (isset($this->data['Attribute']['first_seen'])) {
+			$this->data['Attribute']['first_seen'] = $this->toNanoTimestamp($this->data['Attribute']['first_seen']);
 		}
-		if (empty($this->data['Attribute']['last_seen'])) {
-			$this->data['Attribute']['last_seen'] = "";
+		// parse last_seen different formats
+		if (isset($this->data['Attribute']['last_seen'])) {
+			$this->data['Attribute']['last_seen'] = $this->toNanoTimestamp($this->data['Attribute']['last_seen']);
 		}
+
 		// TODO: add explanatory comment
 		$result = $this->runRegexp($this->data['Attribute']['type'], $this->data['Attribute']['value']);
 		if ($result === false) {
@@ -819,6 +835,13 @@ class Attribute extends AppModel {
 	public function validateAttributeValue($fields) {
 		$value = $fields['value'];
 		return $this->runValidation($value, $this->data['Attribute']['type']);
+	}
+
+	// check whether the variable is null or numeric
+	public function numericOrNull($fields) {
+		$k = array_keys($fields)[0];
+		$seen = $fields[$k];
+		return is_numeric($seen) || is_null($seen);
 	}
 
 	private $__hexHashLengths = array(
@@ -3280,5 +3303,60 @@ class Attribute extends AppModel {
 			$adata['validationIssue'] = true;
 		}
 		return $adata;
+	}
+
+	// transform the provided value into a nanotimestamp (UNIX timestamp up to nanoseconds)
+	// valid format: nanotimestamp | MM/DD/YYYY | MM/DD/YYYY@HH:MM:SS[.sss[uuu[nnn]]]
+	public function toNanoTimestamp($value) {
+		if ($value === '') {
+			return null;
+		}
+
+		$seen_time = ltrim(strstr($value, "@"), '@'); // split datetime into date@time
+		$seen_milli = preg_match("/(?<hour>\d{2}):(?<min>\d{2}):(?<sec>\d{2}).(?<milli>\d{0,3})(?<micro>\d{0,3})(?<nano>\d{0,3})/", $seen_time, $matchesTime); // get time values
+		$seen_date = preg_match("^(?<month>\\d{2})/(?<day>\\d{2})/(?<year>\\d{4})^", $value, $matchesDate);
+		if ($seen_date) { // a date is there
+			if($seen_milli) {
+				$seen_sec = 1; // if millisec are there, so are seconds
+				$nano = $this->padMissingZero($matchesTime['nano']);
+				$micro = $this->padMissingZero($matchesTime['micro']);
+				$milli = $this->padMissingZero($matchesTime['milli']);
+			} else {
+				$seen_sec = preg_match("/(?<hour>\d{2}):(?<min>\d{2}):(?<sec>\d{2})/", $seen_time, $matchesTime);
+				$nano = '000';
+				$micro = '000';
+				$milli = '000';
+			}
+
+			if ($seen_sec) {
+				$sec = $matchesTime['sec'];
+				$min = $matchesTime['min'];
+				$hour = $matchesTime['hour'];
+			} else { // date without time, set it to 00:00:00
+				$sec = '00';
+				$min = '00';
+				$hour = '00';
+			}
+			$day = $matchesDate['day'];
+			$month = $matchesDate['month'];
+			$year = $matchesDate['year'];
+
+			// convert date to nanotimestamp
+			//$timestamp = DateTime::createFromFormat('m-d-Y H:i:s', $month . '-' . $day . '-' . $year . ' ' . $hour . ':' . $min . ':' . $sec, new DateTimeZone('+0200'))->format('U');
+			//$timestamp = DateTime::createFromFormat('m-d-Y H:i:s', $month . '-' . $day . '-' . $year . ' ' . $hour . ':' . $min . ':' . $sec, new DateTimeZone(date_default_timezone_get()))->format('U');
+			$d = DateTime::createFromFormat('m-d-Y H:i:s', $month . '-' . $day . '-' . $year . ' ' . $hour . ':' . $min . ':' . $sec);
+			//$timestamp = DateTime::createFromFormat('m-d-Y H:i:s', $month . '-' . $day . '-' . $year . ' ' . $hour . ':' . $min . ':' . $sec)->getTimestamp();
+			$timestamp = DateTime::createFromFormat('m-d-Y H:i:s', $month . '-' . $day . '-' . $year . ' ' . $hour . ':' . $min . ':' . $sec)->format('U');
+			//$timestamp = gmmktime($hour, $min, $sec, $month, $day, $year);
+			// add milli, micro and nano sec (already in string)
+			$timestamp = strval($timestamp) . $milli . $micro . $nano;
+			return $timestamp;
+		} else { // only a timestamp
+			return $value;
+		}
+	}
+
+	public function padMissingZero($num) {
+		return str_pad(strval($num), 3, '0');
 	}
 }
