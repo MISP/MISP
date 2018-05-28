@@ -791,12 +791,8 @@ class StixBuilder():
     def resolve_regkey_pattern(attributes):
         pattern = ""
         for attribute in attributes:
-            attribute_type = attribute.type
             try:
-                try:
-                    stix_type = regkeyMapping[attribute_type][attribute.object_relation]
-                except:
-                    stix_type = regkeyMapping[attribute_type]
+                stix_type = regkeyMapping[attribute.object_relation]
             except:
                 continue
             pattern += objectsMapping['registry-key']['pattern'].format(stix_type, attribute.value)

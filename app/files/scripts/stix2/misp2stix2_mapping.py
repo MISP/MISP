@@ -266,8 +266,8 @@ ipPortObjectMapping = {'ip-dst': "dst_ref.type = '{0}' AND network-traffic:dst_r
                        'datetime': {'first-seen': 'start', 'last-seen': 'end'},
                        'domain': 'value'}
 
-regkeyMapping = {'text': {'data-type': 'data_type', 'data': 'data', 'name': 'name'},
-                 'datetime': 'modified', 'regkey': 'key'}
+regkeyMapping = {'data-type': 'data_type', 'data': 'data', 'name': 'name',
+                 'last-modified': 'modified', 'key': 'key'}
 
 processMapping = {'name': 'name', 'pid': 'pid', 'creation-time': 'created'}
 
