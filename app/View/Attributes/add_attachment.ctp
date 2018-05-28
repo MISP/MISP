@@ -1,7 +1,7 @@
 <div class="attributes form">
 <?php echo $this->Form->create('Attribute', array('enctype' => 'multipart/form-data','onSubmit' => 'document.getElementById("AttributeMalware").removeAttribute("disabled");'));?>
 	<fieldset>
-		<legend><?php echo __('Add Attachment'); ?></legend>
+		<legend><?php echo __('Add Attachment(s)'); ?></legend>
 		<?php
 			echo $this->Form->hidden('event_id');
 			echo $this->Form->input('category', array(
