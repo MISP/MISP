@@ -842,7 +842,7 @@ class AttributesController extends AppController {
 				}
 			}
 			if ($result) {
-				$this->Flash->error(__('The attribute has been saved'));
+				$this->Flash->success(__('The attribute has been saved'));
 				// remove the published flag from the event
 				$this->Event->unpublishEvent($eventId);
 				if (!empty($this->Attribute->data['Attribute']['object_id'])) {

@@ -106,13 +106,27 @@ class Server extends AppModel {
 	);
 
 	public $command_line_functions = array(
-		'pull' => 'MISP/app/Console/cake Server pull [user_id] [server_id] [full|update]',
-		'push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
-		'cacheFeed' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
-		'fetchFeed' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]',
-		'enrichment' => 'MISP/app/Console/cake Event enrichEvent [user_id] [event_id] [json_encoded_module_list]',
-		'getSettings' => 'MISP/app/Console/cake Admin getSetting [setting]',
-		'setSettings' => 'MISP/app/Console/cake Admin getSetting [setting] [value]'
+		'console_admin_tasks' => array(
+			'data' => array(
+				'getSettings' => 'MISP/app/Console/cake Admin getSetting [setting]',
+				'setSettings' => 'MISP/app/Console/cake Admin getSetting [setting] [value]',
+				'setBaseurl' => 'MISP/app/Console/cake Baseurl [baseurl]',
+				'changePassword' => 'MISP/app/Console/cake Password [email] [new_password]'
+			),
+			'description' => 'Certain administrative tasks are exposed to the API, these help with maintaining and configuring MISP in an automated way / via external tools.',
+			'header' => 'Administering MISP via the CLI'
+		),
+		'console_automation_tasks' => array(
+			'data' => array(
+				'pull' => 'MISP/app/Console/cake Server pull [user_id] [server_id] [full|update]',
+				'push' => 'MISP/app/Console/cake Server push [user_id] [server_id]',
+				'cacheFeed' => 'MISP/app/Console/cake Server cacheFeed [user_id] [feed_id|all|csv|text|misp]',
+				'fetchFeed' => 'MISP/app/Console/cake Server fetchFeed [user_id] [feed_id|all|csv|text|misp]',
+				'enrichment' => 'MISP/app/Console/cake Event enrichEvent [user_id] [event_id] [json_encoded_module_list]'
+			),
+			'description' => 'If you would like to automate tasks such as caching feeds or pulling from server instances, you can do it using the following command line tools. Simply execute the given commands via the command line / create cron jobs easily out of them.',
+			'header' => 'Automating certain console tasks'
+		)
 	);
 
 	public $serverSettings = array(
@@ -2466,9 +2480,14 @@ class Server extends AppModel {
 
 	public function testBaseURL($value) {
 		// only run this check via the GUI, via the CLI it won't work
-		if (php_sapi_name() == 'cli') return true;
+		if (php_sapi_name() == 'cli') {
+			if (!preg_match('/^http(s)?:\/\//i', $value)) {
+				return 'Invalid baseurl, please make sure that the protocol is set.';
+			}
+			return true;
+		}
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
-		if ($value != strtolower($this->getProto()) . '://' . $this->getHost()) return false;
+		if ($value != strtolower($this->getProto()) . '://' . $this->getHost()) return 'critical_error##COMMA##block';
 		return true;
 	}
 
@@ -3156,9 +3175,9 @@ class Server extends AppModel {
 
 	public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion) {
 		$result = array();
-		$expected = array('stix' => '1.1.1.4', 'cybox' => '2.1.0.12', 'mixbox' => '1.0.2');
+		$expected = array('stix' => '1.2.0.6', 'cybox' => '2.1.0.18.dev0', 'mixbox' => '1.0.3');
 		// check if the STIX and Cybox libraries are working using the test script stixtest.py
-		$scriptResult = shell_exec('python ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
+		$scriptResult = shell_exec('python3 ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
 		$scriptResult = json_decode($scriptResult, true);
 		if ($scriptResult !== null) {
 			$scriptResult['operational'] = $scriptResult['success'];

@@ -140,6 +140,7 @@ def main(args):
     stix_header.package_intents="Threat Report"
     stix_package.stix_header = stix_header
     stix_package.version = "1.1.1"
+    stix_package.timestamp = datetime.datetime.now()
 
     if args[3] == 'json':
         stix_string = stix_package.to_json()[:-1]

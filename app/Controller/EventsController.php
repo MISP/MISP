@@ -875,8 +875,7 @@ class EventsController extends AppController {
 		if (empty($results)) throw new NotFoundException('Invalid event');
 		$event = $results[0];
 
-		// Be sure that '0' is not interpreted as false
-		if (isset($this->params['named']['searchFor'])) {
+		if(isset($this->params['named']['searchFor'])) {
 			// filtering on specific columns is specified
 			if (!empty($this->params['named']['filterColumnsOverwrite'])) {
 				$filterColumns = $this->params['named']['filterColumnsOverwrite'];
@@ -1001,6 +1000,10 @@ class EventsController extends AppController {
 	}
 
 	private function __viewUI($event, $continue, $fromEvent) {
+		$this->loadModel('GalaxyCluster');
+		if (!$this->_isRest()) {
+			//$attack = $this->GalaxyCluster->Galaxy->constructAttackReport($event);
+		}
 		$emptyEvent = (empty($event['Object']) && empty($event['Attribute']));
 		$this->set('emptyEvent', $emptyEvent);
 		$attributeCount = isset($event['Attribute']) ? count($event['Attribute']) : 0;
@@ -1071,7 +1074,6 @@ class EventsController extends AppController {
 				$this->set($alias, $currentModel->{$variable});
 			}
 		}
-		$this->loadModel('GalaxyCluster');
 		$cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
 		foreach ($event['EventTag'] as $k => $eventTag) {
 			if (in_array($eventTag['Tag']['name'], $cluster_names)) {

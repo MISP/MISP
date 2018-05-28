@@ -51,6 +51,8 @@ class AppController extends Controller {
 	public $phpmin = '5.6.5';
 	public $phprec = '7.0.16';
 
+	public $baseurl = '';
+
 	// Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
 	// This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
 	public $automationArray = array(
@@ -112,7 +114,6 @@ class AppController extends Controller {
 		$this->set('queryVersion', $this->__queryVersion);
 		$this->loadModel('User');
 		$auth_user_fields = $this->User->describeAuthFields();
-
 		//if fresh installation (salt empty) generate a new salt
 		if (!Configure::read('Security.salt')) {
 			$this->loadModel('Server');
@@ -153,6 +154,7 @@ class AppController extends Controller {
 		if (trim($baseurl) == 'http://') {
 			$this->Server->serverSettingsSaveValue('MISP.baseurl', '');
 		}
+		$this->baseurl = $baseurl;
 		$this->set('baseurl', h($baseurl));
 
 		// send users away that are using ancient versions of IE
@@ -339,7 +341,6 @@ class AppController extends Controller {
 			}
 		}
 		unset($base_dir);
-
 		// We don't want to run these role checks before the user is logged in, but we want them available for every view once the user is logged on
 		// instead of using checkAction(), like we normally do from controllers when trying to find out about a permission flag, we can use getActions()
 		// getActions returns all the flags in a single SQL query

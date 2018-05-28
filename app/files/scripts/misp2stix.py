@@ -7,7 +7,7 @@ from stix.indicator import Indicator
 from stix.indicator.valid_time import ValidTime
 from stix.ttp import TTP, Behavior
 from stix.ttp.malware_instance import MalwareInstance
-from stix.incident import Incident, Time, ImpactAssessment, ExternalID, AffectedAsset
+from stix.incident import Incident, Time, ImpactAssessment, ExternalID, AffectedAsset, AttributedThreatActors
 from stix.exploit_target import ExploitTarget, Vulnerability
 from stix.incident.history import JournalEntry, History, HistoryItem
 from stix.threat_actor import ThreatActor
@@ -175,17 +175,14 @@ class StixBuilder(object):
         self.stix_package = stix_package
 
     def saveFile(self):
-        try:
-            outputfile = "{}.out".format(self.filename)
-            with open(outputfile, 'w') as f:
-                if self.args[2] == 'json':
-                    f.write('{"package": %s}' % self.stix_package.to_json())
-                else:
-                    f.write(self.stix_package.to_xml(include_namespaces=False, include_schemalocs=False,
-                                                     encoding=None))
-        except:
-            print(json.dumps({'success' : 0, 'message' : 'The STIX file could not be written'}))
-            sys.exit(1)
+        outputfile = "{}.out".format(self.filename)
+        if self.args[2] == 'json':
+          with open(outputfile, 'w') as f:
+            f.write('{"package": %s}' % self.stix_package.to_json())
+        else:
+          with open(outputfile, 'wb') as f:
+            f.write(self.stix_package.to_xml(include_namespaces=False, include_schemalocs=False,
+                                             encoding='utf8'))
 
     def generate_stix_objects(self):
         incident_id = "{}:incident-{}".format(namespace[1], self.misp_event.uuid)
@@ -308,7 +305,8 @@ class StixBuilder(object):
                 pass
             indicator.add_valid_time_position(ValidTime())
             observable = self.handle_attribute(attribute)
-            indicator.add_observable(observable)
+            if observable:
+              indicator.add_observable(observable)
             if 'data' in attribute and attribute.type == "malware-sample":
                 artifact = self.create_artifact_object(attribute)
                 indicator.add_observable(artifact)
@@ -316,9 +314,10 @@ class StixBuilder(object):
             incident.related_indicators.append(related_indicator)
         else:
             observable = self.handle_attribute(attribute)
-            related_observable = RelatedObservable(observable, relationship=attribute.category)
-            incident.related_observables.append(related_observable)
-            if 'data' in  attribute and attribute.type == "malware-sample":
+        if observable:
+              related_observable = RelatedObservable(observable, relationship=attribute.category)
+              incident.related_observables.append(related_observable)
+              if 'data' in attribute and attribute.type == "malware-sample":
                 artifact = self.create_artifact_object(attribute)
                 related_artifact = RelatedObservable(artifact)
                 incident.related_observables.append(related_artifact)
@@ -345,7 +344,12 @@ class StixBuilder(object):
             elif attribute_category == "Attribution":
                 ta = self.generate_threat_actor(attribute)
                 rta = RelatedThreatActor(ta, relationship="Attribution")
-                incident.attributed_threat_actors.append(rta)
+                if incident.attributed_threat_actors:
+                    incident.attributed_threat_actors.append(rta)
+                else:
+                    ata = AttributedThreatActors()
+                    ata.append(rta)
+                    incident.attributed_threat_actors = ata
             else:
                 entry_line = "attribute[{}][{}]: {}".format(attribute_category, attribute_type, attribute.value)
                 self.add_journal_entry(incident, entry_line)
@@ -465,7 +469,7 @@ class StixBuilder(object):
             observable_property = self.simple_type_to_method[attribute_type](attribute)
         except KeyError:
             return False
-        if isinstance(observable_property, Observable):
+        if not observable_property or isinstance(observable_property, Observable):
             return observable_property
         observable_property.condition = "Equals"
         observable_object = Object(observable_property)
@@ -550,8 +554,8 @@ class StixBuilder(object):
             indicator = self.generate_indicator(attribute, tags)
             indicator.add_indicator_type("Malware Artifacts")
             indicator.add_valid_time_position(ValidTime())
-            indicator.test_mechanisms = [tm]
-            related_indicator = RelatedIndicator(indicator, relationship=category)
+            indicator.add_test_mechanism(tm)
+            related_indicator = RelatedIndicator(indicator, relationship=attribute.category)
             incident.related_indicators.append(related_indicator)
 
     def generate_ttp(self, attribute, tags):

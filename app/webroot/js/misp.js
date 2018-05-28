@@ -1276,6 +1276,17 @@ function simplePopup(url) {
 			$("#popover_form").html(data);
 			openPopup("#popover_form");
 		},
+		error:function(xhr) {
+			$(".loading").hide();
+			$("#gray_out").fadeOut();
+			if (xhr.status == 403) {
+				showMessage('fail', 'Not allowed.');
+			} else if (xhr.status == 404) {
+				showMessage('fail', 'Resource not found.');
+			} else {
+				showMessage('fail', 'Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).');
+			}
+		},
 		url: url,
 	});
 }
@@ -2426,6 +2437,8 @@ function pgpChoiceSelect(uri) {
 		},
 		error: function (data, textStatus, errorThrown) {
 			showMessage('fail', textStatus + ": " + errorThrown);
+			$(".loading").hide();
+			$("#gray_out").fadeOut();
 		}
 	});
 }
@@ -2614,11 +2627,11 @@ function filterAttributes(filter, id) {
 	url = "/events/viewEventAttributes/" + id + "/attributeFilter:" + filter;
 	if(filter === 'value'){
 		filter = $('#attributesFilterField').val().trim();
-		url += "/searchFor:" + filter;
+		url += filter.length > 0 ? "/searchFor:" + filter : "";
 	} else if(filter !== 'all') {
 		url += "/filterColumnsOverwrite:" + filter;
 		filter = $('#attributesFilterField').val().trim();
-		url += "/searchFor:" + filter;
+		url += filter.length > 0 ? "/searchFor:" + filter : "";
 	}
 	if (deleted) url += '/deleted:true';
 	$.ajax({

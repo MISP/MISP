@@ -11,82 +11,77 @@
 		foreach ($galaxy['GalaxyCluster'] as $cluster):
 	?>
 			<div style="margin-left:8px;">
-				<span class="bold blue expandable useCursorPointer"><span class="collapse-status" style="font-size: 16px;">+</span>&nbsp;<?php echo h($cluster['value']); ?></span>&nbsp;
-				<a href="<?php echo $baseurl; ?>/galaxy_clusters/view/<?php echo h($cluster['id']); ?>" class="icon-search" title="View details about this cluster"></a>&nbsp;
-				<a href="<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($cluster['tag_id']); ?>" class="icon-th-list" title="View all events containing this cluster."></a>
-				<?php
-					if ($isSiteAdmin || ($mayModify && $isAclTagger)) {
-						echo $this->Form->postLink('',
-							$baseurl . '/galaxy_clusters/detach/' . ucfirst(h($target_id)) . '/' . h($target_type) . '/' . $cluster['tag_id'],
-							array('class' => 'icon-trash', 'title' => 'Delete'),
-							__('Are you sure you want to detach %s from this event?', h($cluster['value']))
-						);
-					}
-				?>
-				<div style="margin-left:15px;" class="hidden blue">
+				<span class="bold blue expandContainer useCursorPointer">
+					<span class="collapse-status" style="font-size: 16px;">+</span>
+					<span><?php echo h($cluster['value']); ?></span>
+					<a href="<?php echo $baseurl; ?>/galaxy_clusters/view/<?php echo h($cluster['id']); ?>" class="icon-search" title="View details about this cluster"></a>&nbsp;
+					<a href="<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($cluster['tag_id']); ?>" class="icon-th-list" title="View all events containing this cluster."></a>
 					<?php
-						$cluster_fields = array();
-						if (isset($cluster['description'])) {
-							$cluster_fields[] = array('key' => 'description', 'value' => $cluster['description']);
+						if ($isSiteAdmin || ($mayModify && $isAclTagger)) {
+							echo $this->Form->postLink('',
+								$baseurl . '/galaxy_clusters/detach/' . ucfirst(h($target_id)) . '/' . h($target_type) . '/' . $cluster['tag_id'],
+								array('class' => 'icon-trash', 'title' => 'Delete', 'div' => false),
+								__('Are you sure you want to detach %s from this event?', h($cluster['value']))
+							);
 						}
-						if (isset($cluster['meta']['synonyms'])) {
-							$cluster_fields[] = array('key' => 'synonyms', 'value' => $cluster['meta']['synonyms']);
-						}
-						if (isset($cluster['source'])) {
-							$cluster_fields[] = array('key' => 'source', 'value' => $cluster['source']);
-						}
-						if (isset($cluster['authors'])) {
-							$cluster_fields[] = array('key' => 'authors', 'value' => $cluster['authors']);
-						}
-						if (!empty($cluster['meta'])) {
-							foreach ($cluster['meta'] as $metaKey => $metaField) {
-								if ($metaKey != 'synonyms') {
-									$cluster_fields[] = array('key' => $metaKey, 'value' => $metaField);
+					?>
+					<div style="margin-left:15px;display:none;" class="blue galaxy_data">
+						<?php
+							$cluster_fields = array();
+							if (isset($cluster['description'])) {
+								$cluster_fields[] = array('key' => 'description', 'value' => $cluster['description']);
+							}
+							if (isset($cluster['meta']['synonyms'])) {
+								$cluster_fields[] = array('key' => 'synonyms', 'value' => $cluster['meta']['synonyms']);
+							}
+							if (isset($cluster['source'])) {
+								$cluster_fields[] = array('key' => 'source', 'value' => $cluster['source']);
+							}
+							if (isset($cluster['authors'])) {
+								$cluster_fields[] = array('key' => 'authors', 'value' => $cluster['authors']);
+							}
+							if (!empty($cluster['meta'])) {
+								foreach ($cluster['meta'] as $metaKey => $metaField) {
+									if ($metaKey != 'synonyms') {
+										$cluster_fields[] = array('key' => $metaKey, 'value' => $metaField);
+									}
 								}
 							}
-						}
-						foreach ($cluster_fields as $cluster_field):
-					?>
-							<div class="row-fluid cluster_<?php echo h($cluster_field['key']); ?>">
-								<div class="span3 info_container_key">
-									<?php echo h(ucfirst($cluster_field['key'])); ?>
-								</div>
-								<div class="span9 info_container_value">
-									<?php
-										if (is_array($cluster_field['value'])) {
-											if ($cluster_field['key'] == 'refs') {
-												$value = array();
-												foreach ($cluster_field['value'] as $k => $v) {
-													$v_name = $v;
-													if (strlen($v_name) > 30) {
-														$v_name = substr($v, 0, 30) . '...';
-													}
-													$value[$k] = '<a href="' . h($v) . '" title="' . h($v) . '">' . h($v_name) . '</a>';
-												}
-												echo nl2br(implode("\n", $value));
-											} else if($cluster_field['key'] == 'country') {
-												$value = array();
-												foreach ($cluster_field['value'] as $k => $v) {
-													$value[] = '<div class="famfamfam-flag-' . strtolower(h($v)) . '" ></div>&nbsp;' . h($v);
-												}
-												echo nl2br(implode("\n", $value));
-											} else {
-												echo nl2br(h(implode("\n", $cluster_field['value'])));
-											}
-										} else {
-											 if ($cluster_field['key'] == 'source' && filter_var($cluster_field['value'], FILTER_VALIDATE_URL)) {
-												 echo '<a href="' . h($cluster_field['value']) . '">' . h($cluster_field['value']) . '</a>';;
-											 } else {
-												echo h($cluster_field['value']);
-											 }
+							$data = array();
+							foreach ($cluster_fields as $cluster_field) {
+								$dataKey = h(ucfirst($cluster_field['key']));
+								$dataValue = '';
+								if (is_array($cluster_field['value'])) {
+									if ($cluster_field['key'] == 'refs') {
+										$value = array();
+										foreach ($cluster_field['value'] as $k => $v) {
+											$v_name = strlen($v) > 30 ? substr($v, 0, 30) . '...' : $v;
+											$value[$k] = sprintf('<a href="%s" title="%s">%s</a>', h($v), h($v), h($v_name));
 										}
-									?>
-								</div>
-							</div>
-					<?php
-						endforeach;
-					?>
-				</div>
+										$dataValue .= nl2br(implode("\n", $value));
+									} else if($cluster_field['key'] == 'country') {
+										$value = array();
+										foreach ($cluster_field['value'] as $k => $v) {
+											$value[] = '<div class="famfamfam-flag-' . strtolower(h($v)) . '" ></div>&nbsp;' . h($v);
+										}
+										$dataValue .= nl2br(implode("\n", $value));
+									} else {
+										$dataValue .= nl2br(h(implode("\n", $cluster_field['value'])));
+									}
+								} else {
+									 if ($cluster_field['key'] == 'source' && filter_var($cluster_field['value'], FILTER_VALIDATE_URL)) {
+										 $dataValue .= '<a href="' . h($cluster_field['value']) . '">' . h($cluster_field['value']) . '</a>';;
+									 } else {
+										$dataValue .= h($cluster_field['value']);
+									 }
+								}
+								$dataKey = sprintf('<div class="span3 info_container_key">%s</div>', $dataKey);
+								$dataValue = sprintf('<div class="span9 info_container_value">%s</div>', $dataValue);
+								echo sprintf('<div class="row-fluid cluster_%s">%s%s</div>', h($cluster_field['key']), $dataKey, $dataValue);
+							}
+						?>
+					</div>
+				</span>
 			</div>
 <?php
 		endforeach;
@@ -105,12 +100,12 @@
 
 <script type="text/javascript">
 $(document).ready(function () {
-	$('.expandable').click(function() {
-		$(this).parent().children('div').toggle();
-		if ($(this).children('span').html() == '+') {
-			$(this).children('span').html('-');
+	$('.expandContainer').click(function() {
+		$(this).children('.galaxy_data').toggle();
+		if ($(this).children('.collapse-status').html() == '+') {
+			$(this).children('.collapse-status').val('-');
 		} else {
-			$(this).children('span').html('+');
+			$(this).children('.collapse-status').val('+');
 		}
 	});
 	$('.delete-cluster').click(function() {
