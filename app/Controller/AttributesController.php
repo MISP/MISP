@@ -1475,6 +1475,8 @@ class AttributesController extends AppController {
 					$tags = null;
 					$category = 'ALL';
 					$ioc = false;
+					$first_seen = null;
+					$last_seen = null;
 
 					$this->set('keywordSearch', $keyword);
 					$this->set('keywordSearch2', $keyword2);
@@ -1488,6 +1490,8 @@ class AttributesController extends AppController {
 					$org = $this->request->data['Attribute']['org'];
 					$type = $this->request->data['Attribute']['type'];
 					$ioc = $this->request->data['Attribute']['ioc'];
+					$first_seen = $this->request->data['Attribute']['first_seen'];
+					$last_seen = $this->request->data['Attribute']['last_seen'];
 					$this->set('ioc', $ioc);
 					$category = $this->request->data['Attribute']['category'];
 
@@ -1733,6 +1737,19 @@ class AttributesController extends AppController {
 						}
 					}
 
+					if (isset($first_seen)) {
+						$first_seen_nanoTimestamp = $this->Attribute->toNanoTimestamp($first_seen);
+						if (is_numeric($first_seen_nanoTimestamp)) {
+							$conditions['Attribute.first_seen >='] = $first_seen_nanoTimestamp;
+						}
+					}
+					if (isset($last_seen)) {
+						$last_seen_nanoTimestamp = $this->Attribute->toNanoTimestamp($last_seen);
+						if (is_numeric($last_seen_nanoTimestamp)) {
+							$conditions['Attribute.last_seen <='] = $last_seen_nanoTimestamp;
+						}
+					}
+
 					if ($this->request->data['Attribute']['alternate']) {
 						$alternateSearch = true;
 					}
@@ -1900,9 +1917,9 @@ class AttributesController extends AppController {
 	// the last 4 fields accept the following operators:
 	// && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
 	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-	public function restSearch($key = 'download', $value = false, $type = false, $category = false, $org = false, $tags = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $uuid = false, $publish_timestamp = false, $published = false, $timestamp = false, $enforceWarninglist = false, $to_ids = false, $deleted = false, $includeEventUuid = false, $event_timestamp = false, $threat_level_id = false) {
+	public function restSearch($key = 'download', $value = false, $type = false, $category = false, $org = false, $tags = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $uuid = false, $publish_timestamp = false, $published = false, $timestamp = false, $enforceWarninglist = false, $to_ids = false, $deleted = false, $includeEventUuid = false, $event_timestamp = false, $threat_level_id = false, $first_seen = false, $last_seen = false) {
 		if ($tags) $tags = str_replace(';', ':', $tags);
-		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id');
+		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'first_seen', 'last_seen');
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
@@ -1937,19 +1954,27 @@ class AttributesController extends AppController {
 			if (!isset($data['request'])) {
 				$data['request'] = $data;
 			}
-			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id');
+			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'first_seen', 'last_seen');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
 				else ${$p} = null;
 			}
 		}
-		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'event_timestamp', 'threat_level_id');
+		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'event_timestamp', 'threat_level_id', 'first_seen', 'last_seen');
 		foreach ($simpleFalse as $sF) {
 			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) ${$sF} = false;
 		}
 
 		if ($from) $from = $this->Attribute->Event->dateFieldCheck($from);
 		if ($to) $to = $this->Attribute->Event->dateFieldCheck($to);
+		if ($first_seen) {
+			$first_seen_nanoTimestamp = $this->Attribute->toNanoTimestamp($first_seen);
+			$first_seen = is_numeric($first_seen_nanoTimestamp);
+		}
+		if ($last_seen) {
+			$last_seen_nanoTimestamp = $this->Attribute->toNanoTimestamp($last_seen);
+			$last_seen = is_numeric($last_seen_nanoTimestamp);
+		}
 		if ($last) $last = $this->Attribute->Event->resolveTimeDelta($last);
 		$conditions['AND'] = array();
 		$subcondition = array();
@@ -1966,6 +1991,10 @@ class AttributesController extends AppController {
 		if ($tags) $conditions = $this->Attribute->setTagConditions($tags, $conditions, 'attribute');
 		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
+		// seen conditions
+		if ($first_seen) $conditions['AND'][] = array('Attribute.first_seen >=' => $first_seen_nanoTimestamp);
+		if ($last_seen) $conditions['AND'][] = array('Attribute.last_seen <=' => $last_seen_nanoTimestamp);
+
 		if ($publish_timestamp) $conditions = $this->Attribute->setPublishTimestampConditions($publish_timestamp, $conditions);
 		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
 		if ($published) $conditions['AND'][] = array('Event.published' => $published);
