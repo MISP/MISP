@@ -63,7 +63,7 @@ class StixBuilder():
             report_args['labels'] = ['Threat-Report']
         report_args['labels'].append('misp:tool="misp2stix2"')
         if self.external_refs:
-            report_args['external_references'] = external_refs
+            report_args['external_references'] = self.external_refs
         return Report(**report_args)
 
     def generate_package(self):
