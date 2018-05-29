@@ -1867,7 +1867,7 @@ class Server extends AppModel {
 					}
 					if ($jobId) {
 						if ($k % 50 == 0) {
-							$job->id = $jobId;
+							$job->id =  $jobId;
 							$job->saveField('progress', 50 * (($k + 1) / count($proposals)));
 						}
 					}
@@ -2481,7 +2481,7 @@ class Server extends AppModel {
 	public function testBaseURL($value) {
 		// only run this check via the GUI, via the CLI it won't work
 		if (php_sapi_name() == 'cli') {
-			if (!preg_match('/^http(s)?:\/\//i', $value)) {
+			if (!empty($value) && !preg_match('/^http(s)?:\/\//i', $value)) {
 				return 'Invalid baseurl, please make sure that the protocol is set.';
 			}
 			return true;
