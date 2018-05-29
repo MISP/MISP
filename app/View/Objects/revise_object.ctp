@@ -38,6 +38,14 @@
             <td><?php echo h($data['Object']['comment']); ?></td>
           </tr>
           <tr>
+          <tr>
+            <td class="bold"><?php echo __('First seen');?></td>
+            <td><?php echo h($data['Object']['first_seen']); ?></td>
+          </tr>
+          <tr>
+            <td class="bold"><?php echo __('Last seen');?></td>
+            <td><?php echo h($data['Object']['last_seen']); ?></td>
+          </tr>
             <table class="table table-condensed table-striped">
               <thead>
                 <th><?php echo __('Attribute');?></th>
