@@ -186,7 +186,7 @@ class StixParser():
         self.misp_event.add_object(**misp_object)
 
     def parse_custom_attribute(self, o, labels):
-        attribute_type = o.get('type').split('x-misp-object-')[1]
+        attribute_type = o.get('type').split('x-misp-object-')[1].replace('-', '|')
         timestamp = self.getTimestampfromDate(o.get('x_misp_timestamp'))
         to_ids = bool(labels[1].split('=')[1])
         value = o.get('x_misp_value')
