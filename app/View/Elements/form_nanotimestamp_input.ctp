@@ -191,7 +191,6 @@ function reflect_change_on_input(seen) {
 $(document).ready(function() {
 	$('.input-daterange').datepicker({
 		preventMultipleSet: true,
-		skipSettingDateOnPaste: true,
 		format: 'mm/dd/yyyy',
 		todayHighlight: true
 	});
