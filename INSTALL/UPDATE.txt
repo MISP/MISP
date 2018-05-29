@@ -41,9 +41,9 @@ rm -rf python-stix
 sudo -u www-data git clone https://github.com/CybOXProject/python-cybox.git
 sudo -u www-data git clone https://github.com/STIXProject/python-stix.git
 cd /var/www/MISP/app/files/scripts/python-cybox 
-python setup.py install 
+python3 setup.py install 
 cd /var/www/MISP/app/files/scripts/python-stix 
-python setup.py install
+python3 setup.py install
 
 
 # 4. Update mixbox to accomodate the new STIX dependencies:
@@ -51,7 +51,7 @@ cd /var/www/MISP/app/files/scripts/
 rm -rf mixbox
 sudo -u www-data git clone https://github.com/CybOXProject/mixbox.git
 cd /var/www/MISP/app/files/scripts/mixbox
-python setup.py install
+python3 setup.py install
 
 
 # 5. Update CakeResque and its dependencies

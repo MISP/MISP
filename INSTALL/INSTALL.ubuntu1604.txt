@@ -71,15 +71,15 @@ cd /var/www/MISP/app/files/scripts
 sudo -u www-data git clone https://github.com/CybOXProject/python-cybox.git
 sudo -u www-data git clone https://github.com/STIXProject/python-stix.git
 cd /var/www/MISP/app/files/scripts/python-cybox
-sudo python setup.py install
+sudo python3 setup.py install
 cd /var/www/MISP/app/files/scripts/python-stix
-sudo python setup.py install
+sudo python3 setup.py install
 
 # install mixbox to accomodate the new STIX dependencies:
 cd /var/www/MISP/app/files/scripts/
 sudo -u www-data git clone https://github.com/CybOXProject/mixbox.git
 cd /var/www/MISP/app/files/scripts/mixbox
-sudo python setup.py install
+sudo python3 setup.py install
 
 # install support for STIX 2.0 (Python 3 is required)
 pip3 install stix2

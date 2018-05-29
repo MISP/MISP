@@ -63,15 +63,15 @@ cd /home/misp/public_html/MISP/app/files/scripts
 git clone https://github.com/CybOXProject/python-cybox.git
 git clone https://github.com/STIXProject/python-stix.git
 cd /home/misp/public_html/MISP/app/files/scripts/python-cybox
-sudo python setup.py install
+sudo python3 setup.py install
 cd /home/misp/public_html/MISP/app/files/scripts/python-stix
-sudo python setup.py install
+sudo python3 setup.py install
 
 # install mixbox to accomodate the new STIX dependencies:
 cd /home/misp/public_html/MISP/app/files/scripts/
 git clone https://github.com/CybOXProject/mixbox.git
 cd /home/misp/public_html/MISP/app/files/scripts/mixbox
-sudo python setup.py install
+sudo python3 setup.py install
 
 4/ CakePHP
 -----------
