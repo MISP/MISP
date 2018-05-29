@@ -42,7 +42,7 @@ sudo a2dissite 000-default
 sudo a2ensite default-ssl
 
 # Install PHP and dependencies
-sudo apt-get install -y libapache2-mod-php7.0 php7.0 php7.0-cli php7.0-dev php7.0-json php7.0-xml php7.0-mysql php7.0-readline php-redis php7.0-mbstring php-pear
+sudo apt-get install -y libapache2-mod-php7.0 php7.0 php7.0-cli php7.0-dev php7.0-json php7.0-xml php7.0-mysql php7.0-readline php-redis php7.0-mbstring php-pear python3
 sudo pear install Crypt_GPG
 sudo a2enmod php7.0
 
@@ -67,20 +67,24 @@ sudo -u www-data git checkout tags/$(git describe --tags `git rev-list --tags --
 sudo -u www-data git config core.filemode false
 
 # install Mitre's STIX and its dependencies by running the following commands:
-sudo apt-get install python-dev python-pip libxml2-dev libxslt1-dev zlib1g-dev python-setuptools
+sudo apt-get install python3-dev python3-pip libxml2-dev libxslt1-dev zlib1g-dev python-setuptools
 cd /var/www/MISP/app/files/scripts
 sudo -u www-data git clone https://github.com/CybOXProject/python-cybox.git
 sudo -u www-data git clone https://github.com/STIXProject/python-stix.git
 cd /var/www/MISP/app/files/scripts/python-cybox
-sudo python setup.py install
+sudo python3 setup.py install
 cd /var/www/MISP/app/files/scripts/python-stix
-sudo python setup.py install
+sudo python3 setup.py install
 
 # install mixbox to accomodate the new STIX dependencies:
 cd /var/www/MISP/app/files/scripts/
 sudo -u www-data git clone https://github.com/CybOXProject/mixbox.git
 cd /var/www/MISP/app/files/scripts/mixbox
-sudo python setup.py install
+sudo python3 setup.py install
+
+# install PyMISP
+cd /var/www/MISP/PyMISP
+sudo python3 setup.py install
 
 4/ CakePHP
 -----------
