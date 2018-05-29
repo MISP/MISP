@@ -69,6 +69,9 @@ var timeline_typeaheadOption = {
 
 function generate_timeline_tooltip(itemID, target) {
 	var item = items_timeline.get(itemID);
+	if (item.first_seen === undefined || item.first_seen === null) { // do not generate if first_seen not set
+		return;
+	}
 	var closest = $(target.closest(".vis-selected.vis-editable"));
 	var btn_type = item.last_seen !== null ? 'collapse-btn' : 'expand-btn';
 	var fct_type = item.last_seen !== null ? 'collapseItem' : 'expandItem';
@@ -176,7 +179,6 @@ function reflect_change(itemType, seenType, item_id) {
 			updated_item.last_seen = data;
 		}
 		set_spanned_time(updated_item);
-		//items_timeline.update(updated_item);
 		items_timeline.remove(updated_item.id);
 		items_timeline.add(updated_item);
 	});
@@ -274,21 +276,24 @@ function set_spanned_time(item) {
 	item.seen_enabled = false;
     	if (fs===null && ls===null) {
 		item.start = timestampToDatetime(timestamp);
+		item.type = 'box';
 
     	} else if (fs===null && ls!==null) {
 		item.start = timestampToDatetime(timestamp);
-		item.end = nanoTimestampToDatetime(ls);
+		// item.end = nanoTimestampToDatetime(ls);
+		item.type = 'box';
 
     	} else if (ls===null && fs!==null) {
 		item.start = nanoTimestampToDatetime(fs);
 		item.seen_enabled = true;
-		//item.end = null;
 		delete item.end;
+		item.type = 'box';
 
     	} else { // fs and ls are defined
 		item.start = nanoTimestampToDatetime(fs);
 		item.end = nanoTimestampToDatetime(ls);
 		item.seen_enabled = true;
+		item.type = 'range';
 	}
 }
 
