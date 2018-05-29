@@ -35,7 +35,7 @@ class StixParser():
             filename = os.path.join(pathname, args[1])
             tempFile = open(filename, 'r', encoding='utf-8')
             self.filename = filename
-            event = stix2.get_dict(tempFile)
+            event = json.loads(tempFile.read())
             self.stix_version = 'stix {}'.format(event.get('spec_version'))
             for o in event.get('objects'):
                 try:
@@ -205,10 +205,10 @@ class StixParser():
             pattern = o.get('pattern').replace('\\\\', '\\').split(' AND ')
             pattern[0] = pattern[0][2:]
             pattern[-1] = pattern[-1][:-2]
-            attributes = self.parse_pattern_from_object(pattern, object_type)
+            attributes = objects_mapping[object_type]['pattern'](pattern)
         if stix_type == 'observed-data':
             observable = o.get('objects')
-            attributes = self.parse_observable_from_object(observable, object_type)
+            attributes = objects_mapping[object_type]['observable'](observable)
         for attribute in attributes:
             misp_object.add_attribute(**attribute)
         misp_object.to_ids = bool(labels[1].split('=')[1])
@@ -356,14 +356,6 @@ class StixParser():
                 return '{}|{}'.format(value1[1:-1], value2[1:-3])
         else:
             return pattern.split(' = ')[1][1:-3]
-
-    @staticmethod
-    def parse_observable_from_object(observable, object_type):
-        return objects_mapping[object_type]['observable'](observable)
-
-    @staticmethod
-    def parse_pattern_from_object(pattern, object_type):
-        return objects_mapping[object_type]['pattern'](pattern)
 
 def main(args):
     pathname = os.path.dirname(args[0])
