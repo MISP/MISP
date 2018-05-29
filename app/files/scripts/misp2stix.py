@@ -39,6 +39,7 @@ from cybox.objects.socket_address_object import SocketAddress
 from cybox.objects.network_connection_object import NetworkConnection
 from cybox.objects.network_socket_object import NetworkSocket
 from cybox.objects.process_object import Process
+from cybox.objects.whois_object import WhoisEntry, WhoisRegistrants, WhoisRegistrant, WhoisRegistrar, WhoisNameservers
 from cybox.objects.win_service_object import WinService
 from cybox.objects.x509_certificate_object import X509Certificate, X509CertificateSignature, X509Cert, SubjectPublicKey, RSAPublicKey, Validity
 from cybox.objects.custom_object import Custom
@@ -149,6 +150,7 @@ class StixBuilder(object):
                                  "process": self.parse_process_object,
                                  "registry-key": self.parse_regkey_object,
                                  "url": self.parse_url_object,
+                                 "whois": self.parse_whois,
                                  "x509": self.parse_x509_object
                                  }
 
@@ -803,6 +805,57 @@ class StixBuilder(object):
         if len(observables) == 1:
             return observables[0]
         return to_ids, self.create_observable_composition(observables, uuid, "url")
+
+    def parse_whois(self, attributes, uuid):
+        to_ids, attributes_dict = self.create_attributes_dict_multiple(attributes)
+        n_attribute = len(attributes_dict)
+        whois_object = WhoisEntry()
+        for attribute in attributes_dict:
+            if "registrant-" in attribute:
+                whois_object.registrants = self.fill_whois_registrants(attributes_dict)
+                break
+        if  'registrar' in attributes_dict:
+            whois_registrar = WhoisRegistrar()
+            whois_registrar.name = attributes_dict['registrar'][0]
+            whois_object.registrar_info = whois_registrar
+        if 'creation-date' in attributes_dict:
+            whois_object.creation_date = attributes_dict['creation-date'][0]
+        if 'modification-date' in attributes_dict:
+            whois_object.updated_date = attributes_dict['modification-date'][0]
+        if 'expiration-date' in attributes_dict:
+            whois_object.expiration_date = attributes_dict['expiration-date'][0]
+        if 'nameserver' in attributes_dict:
+            whois_nameservers = WhoisNameservers()
+            for nameserver in attributes_dict['nameserver']:
+                whois_nameservers.append(URI(value=nameserver))
+            whois_object.nameservers = whois_nameservers
+        if 'domain' in attributes_dict:
+            whois_object.domain_name = URI(value=attributes_dict['domain'][0])
+        if 'ip-address' in attributes_dict:
+            whois_object.ip_address = Address(address_value=attributes_dict['ip-address'][0])
+        if 'comment' in attributes_dict:
+            whois_object.remarks = attributes_dict['comment']
+        elif 'text' in attributes_dict:
+            whois_object.remarks = attributes_dict['text']
+        whois_object.parent.id_ = "{}:WhoisObject-{}".format(self.namespace_prefix, uuid)
+        observable = Observable(whois_object)
+        observable.id_ = "{}:Whois-{}".format(self.namespace_prefix, uuid)
+        return to_ids, observable
+
+    @staticmethod
+    def fill_whois_registrants(attributes):
+        registrants = WhoisRegistrants()
+        registrant = WhoisRegistrant()
+        if 'registrant-name' in attributes:
+            registrant.name = attributes['registrant-name'][0]
+        if 'registrant-phone' in attributes:
+            registrant.phone_number = attributes['registrant-phone'][0]
+        if 'registrant-email' in attributes:
+            registrant.email_address = attributes['registrant-email'][0]
+        if 'registrant-org' in attributes:
+            registrant.organization = attributes['registrant-org'][0]
+        registrants.append(registrant)
+        return registrants
 
     def parse_x509_object(self, attributes, uuid):
         to_ids, attributes_dict = self.create_x509_attributes_dict(attributes)
