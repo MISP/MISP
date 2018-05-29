@@ -4391,11 +4391,7 @@ class EventsController extends AppController {
 		$data = $this->request->is('post') ? $this->request->data : array();
 		$dataFiltering = array_key_exists ( 'filtering' , $data ) ? $data['filtering'] : array();
 
-		if (isset($this->params['named']['extended'])) {
-			$extended = 1;
-		} else {
-			$extended = 0;
-		}
+		$extended = isset($this->params['named']['extended']) ? 1 : 0;
 
 		$grapher->construct($this->Event, $this->Auth->user(), $dataFiltering, $extended);
 		$json = $grapher->get_timeline($id);

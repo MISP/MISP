@@ -3,12 +3,17 @@ var items_timeline;
 var items_backup;
 var mapping_text_to_id = new Map();
 var user_manipulation = $('#event_timeline').data('user-manipulation');
+var extended_text = $('#event_timeline').data('extended') == 1 ? "extended:1/" : "";
 var container_timeline = document.getElementById('event_timeline');
 var default_editable = {
 	add: false,         // add new items by double tapping
 	updateTime: true,   // drag items horizontally
 	remove: true
 };
+var relationship_type_mapping = {
+	'followed-by': 'after',
+	'preceding-by': 'before',
+}
 var options = {
 	template: function (item, element, data) {
 		switch(item.group) {
@@ -297,6 +302,30 @@ function set_spanned_time(item) {
 	}
 }
 
+function reload_timeline() {
+	var payload = {scope: $('#select_timeline_scope').val()};
+	$.ajax({
+		url: "/events/"+"getEventTimeline"+"/"+scope_id+"/"+extended_text+"event.json",
+		dataType: 'json',
+		type: 'post',
+		contentType: 'application/json',
+		data: JSON.stringify( payload ),
+		processData: false,
+		beforeSend: function (XMLHttpRequest) {
+			$(".loadingTimeline").show();
+		},
+		success: function( data, textStatus, jQxhr ){
+			console.log(data);
+		},
+		error: function( jqXhr, textStatus, errorThrown ){
+			console.log( errorThrown );
+		},
+		complete: function() {
+			$(".loadingTimeline").hide();
+		}
+	});
+}
+
 function enable_timeline() {
 	if (eventTimeline !== undefined) {
 		return;
@@ -306,9 +335,9 @@ function enable_timeline() {
     
 	$('#timeline-typeahead').typeahead(timeline_typeaheadOption);
 
-	var payload = {};
+	var payload = {scope: $('#select_timeline_scope').val()};
 	$.ajax({
-		url: "/events/"+"getEventTimeline"+"/"+scope_id+"/event.json",
+		url: "/events/"+"getEventTimeline"+"/"+scope_id+"/"+extended_text+"event.json",
 		dataType: 'json',
 		type: 'post',
 		contentType: 'application/json',
@@ -427,14 +456,9 @@ function init_popover() {
 		tooltip: "The time scope represented by the timeline",
 		event: function(value) {
 			console.log(value);
-			//if (value == "Rotation key" && $('#input_graph_scope_jsonkey').val() == "") { // no key selected  for Rotation key scope
-			//	return;
-			//} else {
-			//	eventGraph.update_scope(value);
-			//	dataHandler.fetch_data_and_update();
-			//}
+			reload_timeline();
 		},
-		options: ["First seen/Last seen", "MISP Timestamp"],
+		options: ["First seen/Last seen", "Object relationship"],
 		default: "First seen/Last seen"
 	});
 	menu_scope_timeline.add_select({
