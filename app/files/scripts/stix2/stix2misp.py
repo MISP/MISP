@@ -17,7 +17,7 @@
 
 import sys, json, os, time
 import stix2
-import pymisp
+from pymisp import MISPEvent, MISPObject, __path__
 from stix2misp_mapping import *
 from collections import defaultdict
 
@@ -26,7 +26,7 @@ galaxy_types = {'attack-pattern': 'Attack Pattern', 'intrusion-set': 'Intrusion 
 
 class StixParser():
     def __init__(self):
-        self.misp_event = pymisp.MISPEvent()
+        self.misp_event = MISPEvent()
         self.event = []
         self.misp_event['Galaxy'] = []
 
@@ -159,7 +159,7 @@ class StixParser():
         self.misp_event['Galaxy'].append(galaxy)
 
     def parse_course_of_action(self, o):
-        misp_object = pymisp.MISPObject('course-of-action')
+        misp_object = MISPObject('course-of-action')
         if 'name' in o:
             attribute = {'type': 'text', 'object_relation': 'name', 'value': o.get('name')}
             misp_object.add_attribute(**attribute)
@@ -199,7 +199,7 @@ class StixParser():
         object_type = self.get_misp_type(labels)
         object_category = self.get_misp_category(labels)
         stix_type = o._type
-        misp_object = pymisp.MISPObject(object_type)
+        misp_object = MISPObject(object_type)
         misp_object['meta-category'] = object_category
         if stix_type == 'indicator':
             pattern = o.get('pattern').replace('\\\\', '\\').split(' AND ')
