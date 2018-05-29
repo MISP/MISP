@@ -23,6 +23,8 @@ from collections import defaultdict
 
 galaxy_types = {'attack-pattern': 'Attack Pattern', 'intrusion-set': 'Intrusion Set',
                 'malware': 'Malware', 'threat-actor': 'Threat Actor', 'tool': 'Tool'}
+with open(os.path.join(__path__[0], 'data/describeTypes.json'), 'r') as f:
+    misp_types = json.loads(f.read())['result'].get('types')
 
 class StixParser():
     def __init__(self):
@@ -186,7 +188,9 @@ class StixParser():
         self.misp_event.add_object(**misp_object)
 
     def parse_custom_attribute(self, o, labels):
-        attribute_type = o.get('type').split('x-misp-object-')[1].replace('-', '|')
+        attribute_type = o.get('type').split('x-misp-object-')[1]
+        if attribute_type not in misp_types:
+            attribute_type = attribute_type.replace('-', '|')
         timestamp = self.getTimestampfromDate(o.get('x_misp_timestamp'))
         to_ids = bool(labels[1].split('=')[1])
         value = o.get('x_misp_value')
