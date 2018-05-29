@@ -65,6 +65,15 @@ class MispObject extends AppModel {
 			$date = new DateTime();
 			$this->data[$this->alias]['timestamp'] = $date->getTimestamp();
 		}
+		// parse first_seen different formats
+		if (isset($this->data[$this->alias]['first_seen'])) {
+			$this->data[$this->alias]['first_seen'] = $this->Attribute->toNanoTimestamp($this->data[$this->alias]['first_seen']);
+		}
+		// parse last_seen different formats
+		if (isset($this->data[$this->alias]['last_seen'])) {
+			$this->data[$this->alias]['last_seen'] = $this->Attribute->toNanoTimestamp($this->data[$this->alias]['last_seen']);
+		}
+
 		if (empty($this->data[$this->alias]['template_version'])) {
 			$this->data[$this->alias]['template_version'] = 1;
 		}
@@ -459,6 +468,8 @@ class MispObject extends AppModel {
 		}
 		$date = new DateTime();
 		$object['Object']['timestamp'] = $date->getTimestamp();
+		$object['Object']['first_seen'] = $objectToSave['Object']['first_seen'];
+		$object['Object']['last_seen'] = $objectToSave['Object']['last_seen'];
 		$this->save($object);
 		$checkFields = array('category', 'value', 'to_ids', 'distribution', 'sharing_group_id', 'comment');
 		foreach ($objectToSave['Attribute'] as $newKey => $newAttribute) {
@@ -486,7 +497,7 @@ class MispObject extends AppModel {
 								'comment',
 								'timestamp',
 								'object_id',
-								'event_id'
+								'event_id',
 							));
 						}
 						unset($object['Attribute'][$origKey]);

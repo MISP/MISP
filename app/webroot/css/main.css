@@ -2072,3 +2072,8 @@ table tr:hover .down-expand-button {
 .larger-input-field {
     width: 270px !important;
 }
+
+.precision-tool {
+    margin-left: 10px;
+    display: inline-block;
+}

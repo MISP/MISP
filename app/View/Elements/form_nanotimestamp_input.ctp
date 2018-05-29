@@ -70,7 +70,8 @@ function get_slider_and_input(type, scale, factor, max) {
 	return row;
 }
 
-function reflect_change_on_sliders() {
+function reflect_change_on_sliders(seen, skip_input_update) {
+	if (seen == 'both' || seen == 'first') {
 		var f_nanosec = $('#'+controller+'FirstSeen').val();
 		if (f_nanosec === '') {
 			f_nanosec = null;
@@ -92,7 +93,29 @@ function reflect_change_on_sliders() {
 			var f_min = parseInt(f_d.getUTCMinutes());
 			var f_hour = parseInt(f_d.getUTCHours());
 		}
+		// mirror slider and input field
+		$('#input-time-first-'+time_vals[0]).val(f_hour);
+		$('#slider-time-first-'+time_vals[0]).val(f_hour);
 
+		$('#input-time-first-'+time_vals[1]).val(f_min);
+		$('#slider-time-first-'+time_vals[1]).val(f_min);
+
+		$('#input-time-first-'+time_vals[2]).val(f_sec);
+		$('#slider-time-first-'+time_vals[2]).val(f_sec);
+
+		$('#input-time-first-'+time_vals[3]).val(f_milli);
+		$('#slider-time-first-'+time_vals[3]).val(f_milli);
+
+		$('#input-time-first-'+time_vals[4]).val(f_micro);
+		$('#slider-time-first-'+time_vals[4]).val(f_micro);
+
+		$('#input-time-first-'+time_vals[5]).val(f_nano);
+		$('#slider-time-first-'+time_vals[5]).val(f_nano);
+
+		$('#'+controller+'FirstSeen').datepicker('setDate', f_d);
+	}
+
+	else if (seen == 'both' || seen == 'last') {
 		var l_nanosec = $('#'+controller+'LastSeen').val();
 		if (l_nanosec === '') {
 			l_nanosec = null;
@@ -114,40 +137,30 @@ function reflect_change_on_sliders() {
 			var l_min = parseInt(l_d.getUTCMinutes());
 			var l_hour = parseInt(l_d.getUTCHours());
 		}
-
-		$('#input-time-first-'+time_vals[0]).val(f_hour);
-		$('#slider-time-first-'+time_vals[0]).val(f_hour);
+		// mirror slider and input field
 		$('#input-time-last-'+time_vals[0]).val(l_hour);
 		$('#slider-time-last-'+time_vals[0]).val(l_hour);
 
-		$('#input-time-first-'+time_vals[1]).val(f_min);
-		$('#slider-time-first-'+time_vals[1]).val(f_min);
 		$('#input-time-last-'+time_vals[1]).val(l_min);
 		$('#slider-time-last-'+time_vals[1]).val(l_min);
 
-		$('#input-time-first-'+time_vals[2]).val(f_sec);
-		$('#slider-time-first-'+time_vals[2]).val(f_sec);
 		$('#input-time-last-'+time_vals[2]).val(l_sec);
 		$('#slider-time-last-'+time_vals[2]).val(l_sec);
 
-		$('#input-time-first-'+time_vals[3]).val(f_milli);
-		$('#slider-time-first-'+time_vals[3]).val(f_milli);
 		$('#input-time-last-'+time_vals[3]).val(l_milli);
 		$('#slider-time-last-'+time_vals[3]).val(l_milli);
 
-		$('#input-time-first-'+time_vals[4]).val(f_micro);
-		$('#slider-time-first-'+time_vals[4]).val(f_micro);
 		$('#input-time-last-'+time_vals[4]).val(l_micro);
 		$('#slider-time-last-'+time_vals[4]).val(l_micro);
 
-		$('#input-time-first-'+time_vals[5]).val(f_nano);
-		$('#slider-time-first-'+time_vals[5]).val(f_nano);
 		$('#input-time-last-'+time_vals[5]).val(l_nano);
 		$('#slider-time-last-'+time_vals[5]).val(l_nano);
 
-		$('#'+controller+'FirstSeen').datepicker('setDate', f_d);
 		$('#'+controller+'LastSeen').datepicker('setDate', l_d);
-		reflect_change_on_input();
+	}
+	if (!skip_input_update) {
+		reflect_change_on_input(seen);
+	}
 }
 
 function reflect_change_on_input(seen) {
@@ -178,12 +191,13 @@ function reflect_change_on_input(seen) {
 $(document).ready(function() {
 	$('.input-daterange').datepicker({
 		preventMultipleSet: true,
+		skipSettingDateOnPaste: true,
 		format: 'mm/dd/yyyy',
 		todayHighlight: true
 	});
 	
 	// create sliders
-	var div = $('<div id="precision_tool" style="display: none"></div>');
+	var div = $('<div id="precision_tool" class="precision-tool" style="display: none"></div>');
 	var content = $('<table id="precision_tool_first" style="float: left;"></table>');
 	for (var i=0; i<time_vals.length; i++) {
 		var type = time_vals[i][0];
@@ -253,11 +267,41 @@ $(document).ready(function() {
 		}
 	});
 
+	$('#'+controller+'LastSeen').on("paste", function(event) {
+		// prefetch clipboard text and apply change
+		var datetimeString;
+		if (event.originalEvent.clipboardData && event.originalEvent.clipboardData.types
+		    && $.inArray('text/plain', event.originalEvent.clipboardData.types) !== -1) {
+			datetimeString = event.originalEvent.clipboardData.getData('text/plain');
+		}
+		else if (window.clipboardData) {
+			datetimeString = window.clipboardData.getData('Text');
+		}
+		$(this).val(datetimeString);
+		reflect_change_on_sliders('last', true);
+		event.preventDefault();
+	});
+
+	$('#'+controller+'FirstSeen').on("paste", function(event) {
+		// prefetch clipboard text and apply change
+		var datetimeString;
+		if (event.originalEvent.clipboardData && event.originalEvent.clipboardData.types
+		    && $.inArray('text/plain', event.originalEvent.clipboardData.types) !== -1) {
+			datetimeString = event.originalEvent.clipboardData.getData('text/plain');
+		}
+		else if (window.clipboardData) {
+			datetimeString = window.clipboardData.getData('Text');
+		}
+		$(this).val(datetimeString);
+		reflect_change_on_sliders('last', true);
+		event.preventDefault();
+	});
+
 	$('form').submit(function( event ) {
 		reflect_change_on_input('both');
 	});
 
-	reflect_change_on_sliders();
+	reflect_change_on_sliders('both');
 
 });
 </script>
