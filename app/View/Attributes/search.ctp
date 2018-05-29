@@ -45,7 +45,7 @@
 			));
 		?>
 
-		<?php echo $this->element('attribute_nanotimestamp_input'); ?>
+		<?php echo $this->element('form_nanotimestamp_input'); ?>
 
 	</fieldset>
 

@@ -4,7 +4,7 @@
 	echo $this->Form->create('Object', array('id', 'url' => $url, 'enctype' => 'multipart/form-data'));
 ?>
 <h3><?php echo ucfirst($action) . ' ' . Inflector::humanize(h($template['ObjectTemplate']['name'])) . __(' Object'); ?></h3>
-<div class="row-fluid" style="margin-bottom:10px;">
+<div id="meta-div" class="row-fluid" style="margin-bottom:10px;">
   <dl class="span8">
     <dt><?php echo __('Object Template');?></dt>
     <dd>
@@ -71,6 +71,9 @@
         ));
       ?>
     </dd>
+
+	<?php echo $this->element('form_nanotimestamp_input'); ?>
+
   </dl>
 </div>
 <?php

@@ -27,6 +27,7 @@
 
 
 <script>
+var controller = "<?php echo(substr(ucfirst($this->params->controller), 0, -1)); ?>"; // get current controller name fo that we can access all form fields
 var time_vals = [
 	['Hour', 23, 1000*1000*1000*60*60],
 	['Minute', 59, 1000*1000*1000*60],
@@ -70,7 +71,7 @@ function get_slider_and_input(type, scale, factor, max) {
 }
 
 function reflect_change_on_sliders() {
-		var f_nanosec = $('#AttributeFirstSeen').val();
+		var f_nanosec = $('#'+controller+'FirstSeen').val();
 		if (f_nanosec === '') {
 			f_nanosec = null;
 			var f_nano = 0;
@@ -92,7 +93,7 @@ function reflect_change_on_sliders() {
 			var f_hour = parseInt(f_d.getUTCHours());
 		}
 
-		var l_nanosec = $('#AttributeLastSeen').val();
+		var l_nanosec = $('#'+controller+'LastSeen').val();
 		if (l_nanosec === '') {
 			l_nanosec = null;
 			var l_nano = 0;
@@ -144,8 +145,8 @@ function reflect_change_on_sliders() {
 		$('#input-time-last-'+time_vals[5]).val(l_nano);
 		$('#slider-time-last-'+time_vals[5]).val(l_nano);
 
-		$('#AttributeFirstSeen').datepicker('setDate', f_d);
-		$('#AttributeLastSeen').datepicker('setDate', l_d);
+		$('#'+controller+'FirstSeen').datepicker('setDate', f_d);
+		$('#'+controller+'LastSeen').datepicker('setDate', l_d);
 		reflect_change_on_input();
 }
 
@@ -156,9 +157,9 @@ function reflect_change_on_input(seen) {
 			$('#precision_tool_first').find('input[type="number"]').each(function() {
 				first_val += $(this).val()*$(this).attr('factor');
 			});
-			if($("#AttributeFirstSeen").val() !== '') {
-				var the_date = $("#AttributeFirstSeen").val().slice(0, 10);
-				$("#AttributeFirstSeen").val(the_date + '@' + format_nano_to_time(first_val));
+			if($("#"+controller+"FirstSeen").val() !== '') {
+				var the_date = $("#"+controller+"FirstSeen").val().slice(0, 10);
+				$("#"+controller+"FirstSeen").val(the_date + '@' + format_nano_to_time(first_val));
 			}
 		}
 
@@ -167,9 +168,9 @@ function reflect_change_on_input(seen) {
 			$('#precision_tool_last').find('input[type="number"]').each(function() {
 				last_val += $(this).val()*$(this).attr('factor');
 			});
-			if($("#AttributeLastSeen").val() !== '') {
-				var the_date = $("#AttributeLastSeen").val().slice(0, 10);
-				$("#AttributeLastSeen").val(the_date + '@' + format_nano_to_time(last_val));
+			if($("#"+controller+"LastSeen").val() !== '') {
+				var the_date = $("#"+controller+"LastSeen").val().slice(0, 10);
+				$("#"+controller+"LastSeen").val(the_date + '@' + format_nano_to_time(last_val));
 			}
 		}
 	}
@@ -201,7 +202,8 @@ $(document).ready(function() {
 		content.append(row);
 	}
 	div.append(content);
-	$('fieldset').append(div);
+	var sliders_container = "<?php if ($this->params->controller === 'attributes') { echo 'fieldset'; } else { echo '#meta-div'; } ?>";
+	$(sliders_container).append(div);
 
 	time_vals.forEach(function(elem) {
 		$('#input-time-first-'+elem[0]).on('input', function(e) {
@@ -231,21 +233,21 @@ $(document).ready(function() {
 		}
 	});
 
-	$('#AttributeFirstSeen').on("focus", function(event) {
+	$('#'+controller+'FirstSeen').on("focus", function(event) {
 		$('#seen_precision_tool').prop('checked', true);
 		$('#precision_tool').show();
 	});
-	$('#AttributeLastSeen').on("focus", function(event) {
+	$('#'+controller+'LastSeen').on("focus", function(event) {
 		$('#seen_precision_tool').prop('checked', true);
 		$('#precision_tool').show();
 	});
 	
-	$('#AttributeFirstSeen').on("focusout", function(event) {
+	$('#'+controller+'FirstSeen').on("focusout", function(event) {
 		if ($('#seen_precision_tool').prop('checked')) {
 			reflect_change_on_input('first');
 		}
 	});
-	$('#AttributeLastSeen').on("focusout", function(event) {
+	$('#'+controller+'LastSeen').on("focusout", function(event) {
 		if ($('#seen_precision_tool').prop('checked')) {
 			reflect_change_on_input('last');
 		}
