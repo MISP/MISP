@@ -643,33 +643,41 @@ class StixParser():
     def handle_whois(self, properties):
         required_one_of = False
         attributes = []
-        if properties.remarks:
-            attribute_type = "text"
-            attributes.append([attribute_type, properties.remarks.value, attribute_type])
-            required_one_of = True
         if properties.registrar_info:
             attribute_type = "whois-registrar"
             attributes.append([attribute_type, properties.registrar_info.value, attribute_type])
             required_one_of = True
         if properties.registrants:
-            # ATM: need to see how it looks like in a real example
-            print(dir(properties.registrants))
+            registrant = properties.registrants[0]
+            if registrant.email_address:
+                attributes.append(["whois-registrant-email", registrant.email_address.address_value.value, "registrant-email"])
+            if registrant.name:
+                attributes.append(["whois-registrant-name", registrant.name.value, "registrant-name"])
+            if registrant.phone_number:
+                attributes.append(["whois-registrant-phone", registrant.phone_number.value, "registrant-phone"])
+            if registrant.organization:
+                attributes.append(["whois-registrant-org", registrant.organization.value, "registrant-org"])
         if properties.creation_date:
-            attributes.append(["datetime", properties.creation_date.value, "creation-date"])
+            attributes.append(["datetime", properties.creation_date.value.strftime('%Y-%m-%d'), "creation-date"])
             required_one_of = True
         if properties.updated_date:
-            attributes.append(["datetime", properties.updated_date.value, "modification-date"])
+            attributes.append(["datetime", properties.updated_date.value.strftime('%Y-%m-%d'), "modification-date"])
         if properties.expiration_date:
-            attributes.append(["datetime", properties.expiration_date.value, "expiration-date"])
+            attributes.append(["datetime", properties.expiration_date.value.strftime('%Y-%m-%d'), "expiration-date"])
         if properties.nameservers:
             for nameserver in properties.nameservers:
                 attributes.append(["hostname", nameserver.value.value, "nameserver"])
         if properties.ip_address:
-            attributes.append(["ip-dst", properties.ip_address.value, "ip-address"])
+            attributes.append(["ip-src", properties.ip_address.address_value.value, "ip-address"])
             required_one_of = True
         if properties.domain_name:
             attribute_type = "domain"
-            attributes.append([attribute_type, properties.domain_name.value, attribute_type])
+            attributes.append([attribute_type, properties.domain_name.value.value, attribute_type])
+            required_one_of = True
+        if properties.remarks:
+            attribute_type = "text"
+            relation = "comment" if attributes else attribute_type
+            attributes.append([attribute_type, properties.remarks.value, relation])
             required_one_of = True
         # Testing if we have the required attribute types for Object whois
         if required_one_of:
