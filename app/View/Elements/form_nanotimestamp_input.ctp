@@ -156,10 +156,10 @@ function reflect_change_on_sliders(seen, skip_input_update) {
 		$('#'+controller+'FirstSeen').datepicker('setDate', f_nanodatetime.datetime);
 	}
 
-	else if (seen == 'both' || seen == 'last') {
+	if (seen == 'both' || seen == 'last') {
 		var l_nanosec = $('#'+controller+'LastSeen').val();
 		var l_nanodatetime = new NanoDatetime(l_nanosec);
-		//
+
 		// mirror slider and input field
 		$('#input-time-last-'+time_vals[0]).val(l_nanodatetime.hour);
 		$('#slider-time-last-'+time_vals[0]).val(l_nanodatetime.hour);
@@ -188,8 +188,8 @@ function reflect_change_on_sliders(seen, skip_input_update) {
 
 function reflect_change_on_input(seen) {
 	if ($('#seen_precision_tool').prop('checked')) {
-		var first_val = 0;
 		if (seen == 'both' || seen == 'first') {
+			var first_val = 0;
 			// get data stored in sliders
 			$('#precision_tool_first').find('input[type="number"]').each(function() {
 				if ($(this).attr('scale') == "nano" || $(this).attr('scale') == "micro") {
@@ -208,7 +208,12 @@ function reflect_change_on_input(seen) {
 		if (seen == 'both' || seen == 'last') {
 			var last_val = 0;
 			$('#precision_tool_last').find('input[type="number"]').each(function() {
-				last_val += $(this).val()*$(this).attr('factor');
+				if ($(this).attr('scale') == "nano" || $(this).attr('scale') == "micro") {
+					last_val *= $(this).attr('factor');
+				} else {
+					last_val += $(this).val()*$(this).attr('factor');
+				}
+				//last_val += $(this).val()*$(this).attr('factor');
 			});
 			if($("#"+controller+"LastSeen").val() !== '') {
 				var the_date = $("#"+controller+"LastSeen").val().slice(0, 10);
@@ -321,7 +326,7 @@ $(document).ready(function() {
 			datetimeString = window.clipboardData.getData('Text');
 		}
 		$(this).val(datetimeString);
-		reflect_change_on_sliders('last', true);
+		reflect_change_on_sliders('first', true);
 		event.preventDefault();
 	});
 
