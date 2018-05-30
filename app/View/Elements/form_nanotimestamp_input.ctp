@@ -38,30 +38,44 @@ var time_vals = [
 ];
 
 class NanoDatetime {
-	constructor(nanotimestamp) {
-		var nanotimestamp = parseInt(nanotimestamp);
-		var nanotimestamp_str = String(nanotimestamp);
-		if (nanotimestamp === '' || nanotimestamp === undefined || nanotimestamp === null) {
-			this.nano = 0;
-			this.micro = 0;
-			this.milli = 0;
-			this.datetime = undefined;
-			this.milli = 0;
-			this.sec = 0;
-			this.min = 0;
-			this.hour = 0;
-		} else {
-			this.nano = parseInt(nanotimestamp_str.slice(-3));
-			this.nano = isNaN(this.nano) || this.nano === undefined ? 0 : this.nano;
-			this.micro = parseInt(nanotimestamp_str.slice(-6, -3));
-			this.micro = isNaN(this.micro) || this.micro === undefined ? 0 : this.micro;
-			this.milli = parseInt(nanotimestamp/1000000);
-			this.milli = isNaN(this.milli) || this.milli === undefined ? 0 : this.milli;
-			this.datetime = new Date(this.milli);
+	constructor(value) {
+		// check if timestamp or our datetime format (@ in string)
+		if (String(value).includes('@')) {
+			value = String(value);
+			var t = value.match(/\w*@(?<hour>\d{2}):(?<min>\d{2}):(?<sec>\d{2}).(?<milli>\d{0,3})(?<micro>\d{0,3})(?<nano>\d{0,3})/).groups; // get time values
+			var d = value.match(/(?<month>\d{2})\/(?<day>\d{2})\/(?<year>\d{4})\/*/).groups;
+			this.datetime = new Date(d.year+'-'+d.month+'-'+d.day+'T'+t.hour+':'+t.min+':'+t.sec+'.'+t.milli);
 			this.milli = parseInt(this.datetime.getUTCMilliseconds());
 			this.sec = parseInt(this.datetime.getUTCSeconds());
 			this.min = parseInt(this.datetime.getUTCMinutes());
 			this.hour = parseInt(this.datetime.getUTCHours());
+			this.nano = t.nano != "" ? parseInt(remove_leading(t.nano, '0')) : 0;
+			this.micro = t.micro != "" ? parseInt(remove_leading(t.micro, '0')) : 0;
+		} else { // only numbers
+			var nanotimestamp = parseInt(value);
+			var nanotimestamp_str = String(nanotimestamp);
+			if (nanotimestamp === '' || nanotimestamp === undefined || nanotimestamp === null) {
+				this.nano = 0;
+				this.micro = 0;
+				this.milli = 0;
+				this.datetime = undefined;
+				this.milli = 0;
+				this.sec = 0;
+				this.min = 0;
+				this.hour = 0;
+			} else {
+				this.nano = parseInt(nanotimestamp_str.slice(-3));
+				this.nano = isNaN(this.nano) || this.nano === undefined ? 0 : this.nano;
+				this.micro = parseInt(nanotimestamp_str.slice(-6, -3));
+				this.micro = isNaN(this.micro) || this.micro === undefined ? 0 : this.micro;
+				this.milli = parseInt(nanotimestamp/1000000);
+				this.milli = isNaN(this.milli) || this.milli === undefined ? 0 : this.milli;
+				this.datetime = new Date(this.milli);
+				this.milli = parseInt(this.datetime.getUTCMilliseconds());
+				this.sec = parseInt(this.datetime.getUTCSeconds());
+				this.min = parseInt(this.datetime.getUTCMinutes());
+				this.hour = parseInt(this.datetime.getUTCHours());
+			}
 		}
 	}
 
@@ -88,6 +102,15 @@ function pad_zero(val, pad) {
 	}
 	ret += String(val);
 	return ret;
+}
+
+function remove_leading(str, c) {
+	for (var i=0; i<str.length; i++) {
+		if (str[i] != c) {
+			return str.slice(i);
+		}
+	}
+	return "0"; // everything got removed
 }
 
 function get_slider_and_input(type, scale, factor, max) {
