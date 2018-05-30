@@ -329,7 +329,16 @@ function map_scope(val) {
 	}
 }
 
+function update_badge() {
+	if ($('#checkbox_timeline_display_gmt').prop('checked')) {
+		$("#timeline-display-badge").text("Timezone: " + ": " + new Date().toString().split(' ')[5]);
+	} else {
+		$("#timeline-display-badge").text("Timezone: " + ": GMT+0000");
+	}
+}
+
 function reload_timeline() {
+	update_badge();
 	var payload = {scope: map_scope($('#select_timeline_scope').val())};
 	$.ajax({
 		url: "/events/"+"getEventTimeline"+"/"+scope_id+"/"+extended_text+"event.json",
@@ -399,6 +408,7 @@ function enable_timeline() {
 			}
 			items_timeline = new vis.DataSet(data.items);
 			eventTimeline = new vis.Timeline(container_timeline, items_timeline, options);
+			update_badge();
 			
 			eventTimeline.on('select', handle_selection);
 

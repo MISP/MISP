@@ -6,17 +6,18 @@
 <div>
 	<div class="eventgraph_header">
 		<label id="timeline-scope" class="btn center-in-network-header network-control-btn">
-			<span class="useCursorPointer fa fa-object-group" style="margin-right: 3px;">
-			</span><?php echo __('Time scope')?>
-			<span id="timeline-scope-badge" class="badge"></span>
+			<span class="useCursorPointer fa fa-object-group" style="margin-right: 3px;"></span><?php echo __('Time scope')?>
 		</label>
-		<label id="timeline-display" class="btn center-in-network-header network-control-btn"><span class="useCursorPointer fa fa-list-alt" style="margin-right: 3px;"></span><?php echo __('Display')?></label>
+		<label id="timeline-display" class="btn center-in-network-header network-control-btn">
+			<span class="useCursorPointer fa fa-list-alt" style="margin-right: 3px;"></span><?php echo __('Display')?>
+			<span id="timeline-display-badge" class="badge"></span>
+		</label>
 				
 		<input type="text" id="timeline-typeahead" class="center-in-network-header network-typeahead flushright" data-provide="typeahead" size="20" placeholder="Search for an item">
 	</div>
 
 
-	<div id="event_timeline" data-user-manipulation="<?php echo $mayModify || $isSiteAdmin ? 'true' : 'false'; ?>">
+	<div id="event_timeline" data-user-manipulation="<?php echo $mayModify || $isSiteAdmin ? 'true' : 'false'; ?>" data-extended="<?php echo $extended; ?>">
 		<div class="loadingTimeline">
 			<div class="spinner"></div>
 			<div class="loadingText"><?php echo __('Loading');?></div>
