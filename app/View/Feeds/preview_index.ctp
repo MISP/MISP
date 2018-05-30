@@ -30,11 +30,11 @@
 		<tr>
 			<th class="filter"><?php echo $this->Paginator->sort('Org', 'org'); ?></th>
 			<th class="filter">Tags</th>
-			<th class="filter"><?php echo $this->Paginator->sort('date');?></th>
+			<th class="filter"><?php echo $this->Paginator->sort('date', null, array('direction' => 'desc'));?></th>
 			<th class="filter" title="<?php echo $eventDescriptions['threat_level_id']['desc'];?>"><?php echo $this->Paginator->sort('threat_level_id');?></th>
 			<th class="filter" title="<?php echo $eventDescriptions['analysis']['desc']; ?>"><?php echo $this->Paginator->sort('analysis');?></th>
 			<th class="filter"><?php echo $this->Paginator->sort('info');?></th>
-			<th class="filter"><?php echo $this->Paginator->sort('timestamp');?></th>
+			<th class="filter"><?php echo $this->Paginator->sort('timestamp', null, array('direction' => 'desc'));?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
 
 		</tr>
