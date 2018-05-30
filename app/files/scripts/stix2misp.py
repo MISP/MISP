@@ -141,6 +141,9 @@ class StixParser():
                 self.parse_misp_observable(observable)
         if self.event.history:
             self.parse_journal_entries()
+        if self.event.information_source and self.event.information_source.references:
+            for reference in self.event.information_source.references:
+                self.misp_event.add_attribute(**{'type': 'link', 'value': reference})
 
     def parse_journal_entries(self):
         for entry in self.event.history.history_items:
