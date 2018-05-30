@@ -451,14 +451,14 @@ class Attribute extends AppModel {
 				'first_seen' => array(
 					'rule' => array('numericOrNull'),
 					'required' => false,
-					'message' => array('Invalid first_seen format, valid format: (nanotimestamp | MM/DD/YYYY | MM/DD/YYYY@HH:MM:SS[.mmm[uuu[nnn]]])')
+					'message' => array('Invalid first_seen format, valid format: (nanotimestamp | MM/DD/YYYY | MM/DD/YYYY@HH:MM:SS[.mmm[uuu[nnn]]] | ISO 8601 (YYYY-MM-DDTHH:MM:SSZ))')
 				)
 		),
 		'last_seen' => array(
 				'last_seen' => array(
 					'rule' => array('numericOrNull'),
 					'required' => false,
-					'message' => array('Invalid last_seen format, valid format: (nanotimestamp | MM/DD/YYYY | MM/DD/YYYY@HH:MM:SS[.mmm[uuu[nnn]]])')
+					'message' => array('Invalid last_seen format, valid format: (nanotimestamp | MM/DD/YYYY | MM/DD/YYYY@HH:MM:SS[.mmm[uuu[nnn]]] | ISO 8601 (YYYY-MM-DDTHH:MM:SSZ))')
 				)
 		)
 	);
@@ -3306,10 +3306,20 @@ class Attribute extends AppModel {
 	}
 
 	// transform the provided value into a nanotimestamp (UNIX timestamp up to nanoseconds)
-	// valid format: nanotimestamp | MM/DD/YYYY | MM/DD/YYYY@HH:MM:SS[.sss[uuu[nnn]]]
+	// valid format: nanotimestamp | MM/DD/YYYY | MM/DD/YYYY@HH:MM:SS[.sss[uuu[nnn]]] | ISO 8601 (YYYY-MM-DDTHH:MM:SSZ)
 	public function toNanoTimestamp($value) {
 		if ($value === '') {
 			return null;
+		}
+
+		// try to parse ISO 8601
+		try {
+			$d = new DateTime($value);
+			$timestamp = $d->format('U');
+			$timestamp = strval($timestamp) . '000' . '000' . '000';
+			return $timestamp;
+		} catch (Exception $e) {
+			// Not a ISO 8601 date, trying other formats
 		}
 
 		$seen_time = ltrim(strstr($value, "@"), '@'); // split datetime into date@time
@@ -3342,12 +3352,8 @@ class Attribute extends AppModel {
 			$year = $matchesDate['year'];
 
 			// convert date to nanotimestamp
-			//$timestamp = DateTime::createFromFormat('m-d-Y H:i:s', $month . '-' . $day . '-' . $year . ' ' . $hour . ':' . $min . ':' . $sec, new DateTimeZone('+0200'))->format('U');
-			//$timestamp = DateTime::createFromFormat('m-d-Y H:i:s', $month . '-' . $day . '-' . $year . ' ' . $hour . ':' . $min . ':' . $sec, new DateTimeZone(date_default_timezone_get()))->format('U');
 			$d = DateTime::createFromFormat('m-d-Y H:i:s', $month . '-' . $day . '-' . $year . ' ' . $hour . ':' . $min . ':' . $sec);
-			//$timestamp = DateTime::createFromFormat('m-d-Y H:i:s', $month . '-' . $day . '-' . $year . ' ' . $hour . ':' . $min . ':' . $sec)->getTimestamp();
 			$timestamp = DateTime::createFromFormat('m-d-Y H:i:s', $month . '-' . $day . '-' . $year . ' ' . $hour . ':' . $min . ':' . $sec)->format('U');
-			//$timestamp = gmmktime($hour, $min, $sec, $month, $day, $year);
 			// add milli, micro and nano sec (already in string)
 			$timestamp = strval($timestamp) . $milli . $micro . $nano;
 			return $timestamp;

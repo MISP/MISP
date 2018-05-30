@@ -77,6 +77,9 @@ function generate_timeline_tooltip(itemID, target) {
 	if (item.first_seen === undefined || item.first_seen === null) { // do not generate if first_seen not set
 		return;
 	}
+	if (item.first_seen_overwritten !== undefined || item.last_seen_overwritten !== undefined) { // do not generate if start and end comes from object attribute
+		return;
+	}
 	var closest = $(target.closest(".vis-selected.vis-editable"));
 	var btn_type = item.last_seen !== null ? 'collapse-btn' : 'expand-btn';
 	var fct_type = item.last_seen !== null ? 'collapseItem' : 'expandItem';
@@ -161,12 +164,14 @@ function build_object_template(obj) {
 	if (!obj.seen_enabled) {
 		table.addClass('timestamp-obj');
 	}
-	table.append($('<tr class="timeline-objectName"><th>'+obj.content+'</th><th></th></tr>'));
+	var bolt_html = obj.overwrite_enabled ? " <i class=\"fa fa-bolt\" style=\"color: yellow; font-size: large;\" title=\"Object is overwritten by its attributes\">" : "";
+	table.append($('<tr class="timeline-objectName"><th>'+obj.content+bolt_html+'</th><th></th></tr>'));
 	for (var attr of obj.Attribute) {
+		var overwritten = attr.contentType == "first-seen" || attr.contentType == "last-seen" ? " <i class=\"fa fa-bolt\" style=\"color: yellow;\" title=\"Overwrite object "+attr.contentType+"\"></i>" : "";
 		table.append(
 			$('<tr>').append(
 				$('<td class="timeline-objectAttrType">' + attr.contentType + '</td>'
-				    +'<td class="timeline-objectAttrVal">' + attr.content+ '</td>'
+				    +'<td class="timeline-objectAttrVal">' + attr.content+overwritten + '</td>'
 				)
 			)
 		)
@@ -209,6 +214,20 @@ function quick_fetch_seen(itemType, seenType, item_id, callback) {
 }
 
 function update_seen(itemType, seenType, item_id, nanoTimestamp, callback) {
+	// determine whether the object's attribute should be updated instead of the first/last_seen value
+	var item = items_timeline.get(item_id);
+	var reflect = true;
+	if (item[seenType+'_seen_overwritten'] !== undefined) {
+		item_id = item[seenType+'_seen_overwritten']
+		itemType = 'attributes'
+		var compiled_url_form = "/" + itemType + "/fetchEditForm/" + item_id + "/" + "value";
+		var compiled_field_form_id = "value_field";
+		nanoTimestamp = nanoTimestampToDatetime(nanoTimestamp).toISOString();
+		reflect = false;
+	} else {
+		var compiled_url_form = "/" + itemType + "/fetchEditForm/" + item_id + "/" + seenType + "_seen";
+		var compiled_field_form_id = seenType+"_seen_field";
+	}
 	var fieldIdItemType = itemType.charAt(0).toUpperCase() + itemType.slice(1, -1); //  strip 's' and uppercase first char
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
@@ -221,7 +240,9 @@ function update_seen(itemType, seenType, item_id, nanoTimestamp, callback) {
 			$(container_timeline).append(form);
 			form.css({display: 'none'});
 			var attr_id = item_id;
-			var field = form.find("#"+fieldIdItemType+"_"+attr_id+"_"+seenType+"_seen_field");
+			console.log(form);
+			var field = form.find("#"+fieldIdItemType+"_"+attr_id+"_"+compiled_field_form_id);
+			console.log(field);
 			var the_time = nanoTimestamp;
 			field.val(the_time);
 			// submit the form
@@ -229,7 +250,9 @@ function update_seen(itemType, seenType, item_id, nanoTimestamp, callback) {
 				data: form.serialize(),
 				cache: false,
 				success:function (data, textStatus) {
-					reflect_change(itemType, seenType, item_id);
+					if (reflect) {
+						reflect_change(itemType, seenType, item_id);
+					}
 					form.remove()
 				},
 				error:function() {
@@ -245,7 +268,7 @@ function update_seen(itemType, seenType, item_id, nanoTimestamp, callback) {
 		complete: function () {
 			//$(".loadingTimeline").hide();
 		},
-		url:"/" + itemType + "/fetchEditForm/" + item_id + "/" + seenType + "_seen",
+		url: compiled_url_form,
 	});
 
 }
@@ -295,6 +318,7 @@ function set_spanned_time(item) {
     	var ls = item.last_seen;
 
 	item.seen_enabled = false;
+	item.overwrite_enabled = false;
     	if (fs===null && ls===null) {
 		item.start = timestampToDatetime(timestamp);
 		item.type = 'box';
@@ -319,6 +343,13 @@ function set_spanned_time(item) {
 		} else {
 			item.type = 'range';
 		}
+	}
+
+	if (item.first_seen_overwritten !== undefined || item.last_seen_overwritten !== undefined) {
+		var e = $.extend({}, default_editable);
+		e.remove = false;
+		item.editable = e;
+		item.overwrite_enabled = true;
 	}
 }
 
