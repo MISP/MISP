@@ -139,6 +139,16 @@ class StixParser():
         if self.event.related_observables:
             for observable in self.event.related_observables.observable:
                 self.parse_misp_observable(observable)
+        if self.event.history:
+            self.parse_journal_entries()
+
+    def parse_journal_entries(self):
+        for entry in self.event.history.history_items:
+            journal_entry = entry.journal_entry.value
+            entry_type, entry_value = journal_entry.split(': ')
+            if entry_type.startswith('attribute['):
+                _, category, attribute_type = entry_type.split('[')
+                self.misp_event.add_attribute(**{'type': attribute_type[:-1], 'category': category[:-1], 'value': entry_value})
 
     # Try to parse data from external STIX documents
     def buildExternalDict(self):
