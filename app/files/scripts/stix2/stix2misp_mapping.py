@@ -168,7 +168,7 @@ email_mapping = {'date': email_date_attribute_mapping,
                  'email-message:additional_header_fields.x_mailer': x_mailer_attribute_mapping,
                  'Reply-To': reply_to_attribute_mapping,
                  'email-message:additional_header_fields.reply_to': reply_to_attribute_mapping,
-                 'email-message:from_ref': {'type': 'email-dst', 'relation': 'from'},
+                 'email-message:from_ref': {'type': 'email-src', 'relation': 'from'},
                  'email-message:body_multipart[*].body_raw_ref.name': {'type': 'email-attachment',
                                                                        'relation': 'attachment'}
                  }
