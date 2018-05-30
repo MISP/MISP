@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import sys, json, uuid, os, time, datetime, re, ntpath, socket
-import pymisp
+from pymisp import MISPEvent
 from copy import deepcopy
 from dateutil.tz import tzutc
 from stix.indicator import Indicator
@@ -111,7 +111,7 @@ misp_reghive = {
 
 class StixBuilder(object):
     def __init__(self, args):
-        self.misp_event = pymisp.MISPEvent()
+        self.misp_event = MISPEvent()
         self.args = args
         if len(args) > 3:
             namespace[0] = args[3]

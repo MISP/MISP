@@ -17,16 +17,18 @@
 
 import sys, json, os, time
 import stix2
-import pymisp
+from pymisp import MISPEvent, MISPObject, __path__
 from stix2misp_mapping import *
 from collections import defaultdict
 
 galaxy_types = {'attack-pattern': 'Attack Pattern', 'intrusion-set': 'Intrusion Set',
                 'malware': 'Malware', 'threat-actor': 'Threat Actor', 'tool': 'Tool'}
+with open(os.path.join(__path__[0], 'data/describeTypes.json'), 'r') as f:
+    misp_types = json.loads(f.read())['result'].get('types')
 
 class StixParser():
     def __init__(self):
-        self.misp_event = pymisp.MISPEvent()
+        self.misp_event = MISPEvent()
         self.event = []
         self.misp_event['Galaxy'] = []
 
@@ -159,7 +161,7 @@ class StixParser():
         self.misp_event['Galaxy'].append(galaxy)
 
     def parse_course_of_action(self, o):
-        misp_object = pymisp.MISPObject('course-of-action')
+        misp_object = MISPObject('course-of-action')
         if 'name' in o:
             attribute = {'type': 'text', 'object_relation': 'name', 'value': o.get('name')}
             misp_object.add_attribute(**attribute)
@@ -187,6 +189,8 @@ class StixParser():
 
     def parse_custom_attribute(self, o, labels):
         attribute_type = o.get('type').split('x-misp-object-')[1]
+        if attribute_type not in misp_types:
+            attribute_type = attribute_type.replace('-', '|')
         timestamp = self.getTimestampfromDate(o.get('x_misp_timestamp'))
         to_ids = bool(labels[1].split('=')[1])
         value = o.get('x_misp_value')
@@ -199,7 +203,7 @@ class StixParser():
         object_type = self.get_misp_type(labels)
         object_category = self.get_misp_category(labels)
         stix_type = o._type
-        misp_object = pymisp.MISPObject(object_type)
+        misp_object = MISPObject(object_type)
         misp_object['meta-category'] = object_category
         if stix_type == 'indicator':
             pattern = o.get('pattern').replace('\\\\', '\\').split(' AND ')
