@@ -252,17 +252,30 @@ function update_seen(itemType, seenType, item_id, nanoTimestamp, callback) {
 
 function nanoTimestampToDatetime(timestamp) {
 	var factor = 0.000001; // 10^-6, fs and ls are expressed in 10^-9
-	return new Date(timestamp*factor);
+	var d = new Date(timestamp*factor);
+	if ($('#checkbox_timeline_display_gmt').prop('checked')) {
+		return d;
+	} else {
+		return new Date(d.getTime() + (d.getTimezoneOffset() * 60 * 1000)); // adjust to GMT
+	}
 }
 function timestampToDatetime(timestamp) {
 	var factor = 1000;
-	return new Date(timestamp*factor);
+	var d = new Date(timestamp*factor);
+	if ($('#checkbox_timeline_display_gmt').prop('checked')) {
+		return d;
+	} else {
+		return new Date(d.getTime() + (d.getTimezoneOffset() * 60 * 1000)); // adjust to GMT
+	}
 }
 function datetimeTonanoTimestamp(d) {
 	if (d === null || d === undefined) {
 		return null;
 	}
 	var factor = 1000000;
+	if (!$('#checkbox_timeline_display_gmt').prop('checked')) {
+		d = new Date(d.getTime() + (d.getTimezoneOffset() * 60 * 1000)); // adjust to GMT
+	}
 	return d.getTime()*factor;
 }
 function datetimeToTimestamp(d) {
@@ -270,6 +283,9 @@ function datetimeToTimestamp(d) {
 		return null;
 	}
 	var factor = 0.001;
+	if (!$('#checkbox_timeline_display_gmt').prop('checked')) {
+		d = new Date(d.getTime() + (d.getTimezoneOffset() * 60 * 1000)); // adjust to GMT
+	}
 	return d.getTime()*factor;
 }
 
@@ -302,8 +318,19 @@ function set_spanned_time(item) {
 	}
 }
 
+function map_scope(val) {
+	switch(val) {
+		case 'First seen/Last seen':
+			return 'seen';
+		case 'Object relationship':
+			return 'relationship';
+		default:
+			return 'seen';
+	}
+}
+
 function reload_timeline() {
-	var payload = {scope: $('#select_timeline_scope').val()};
+	var payload = {scope: map_scope($('#select_timeline_scope').val())};
 	$.ajax({
 		url: "/events/"+"getEventTimeline"+"/"+scope_id+"/"+extended_text+"event.json",
 		dataType: 'json',
@@ -315,7 +342,19 @@ function reload_timeline() {
 			$(".loadingTimeline").show();
 		},
 		success: function( data, textStatus, jQxhr ){
-			console.log(data);
+			items_timeline.clear();
+			for (var item of data.items) {
+				item.className = item.group;
+				set_spanned_time(item);
+				if (item.group == 'object') {
+					for (var attr of item.Attribute) {
+						mapping_text_to_id.set(attr.content, item.id);
+					}
+				} else {
+					mapping_text_to_id.set(item.content, item.id);
+				}
+			}
+			items_timeline.add(data.items);
 		},
 		error: function( jqXhr, textStatus, errorThrown ){
 			console.log( errorThrown );
@@ -335,7 +374,7 @@ function enable_timeline() {
     
 	$('#timeline-typeahead').typeahead(timeline_typeaheadOption);
 
-	var payload = {scope: $('#select_timeline_scope').val()};
+	var payload = {scope: map_scope($('#select_timeline_scope').val())};
 	$.ajax({
 		url: "/events/"+"getEventTimeline"+"/"+scope_id+"/"+extended_text+"event.json",
 		dataType: 'json',
@@ -455,7 +494,6 @@ function init_popover() {
 		label: "Scope",
 		tooltip: "The time scope represented by the timeline",
 		event: function(value) {
-			console.log(value);
 			reload_timeline();
 		},
 		options: ["First seen/Last seen", "Object relationship"],
@@ -508,5 +546,15 @@ function init_popover() {
 		event: function(value) {
 			handle_not_seen_enabled(value)
 		}
+	});
+	menu_display_timeline.add_checkbox({
+		id: 'checkbox_timeline_display_gmt',
+		label: "Display with current timezone",
+		title: "Set the dates relative to the browser timezone. Otherwise, keep dates in GMT",
+		event: function(value) {
+			//handle_timezone(value)
+			reload_timeline()
+		},
+		checked: true
 	});
 }
