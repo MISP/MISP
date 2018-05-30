@@ -37,21 +37,57 @@ var time_vals = [
 	['ns', 999, 1],
 ];
 
-
-function format_nano_to_time(nanosec) {
-	var nanoStr = String(nanosec);
-	var milli = parseInt(nanosec/1000000);
-	var micro = nanoStr.slice(-6, -3);
-	var nano = nanoStr.slice(-3);
-	var d = new Date(milli);
-	var s = (d.toISOString().split('T')[1]).slice(0, -1);
-	if (micro != 0) {
-		s += String(micro);
-	} else if (micro == 0 && nano != 0) {
-		s += "000";
+class NanoDatetime {
+	constructor(nanotimestamp) {
+		var nanotimestamp = parseInt(nanotimestamp);
+		var nanotimestamp_str = String(nanotimestamp);
+		if (nanotimestamp === '' || nanotimestamp === undefined || nanotimestamp === null) {
+			this.nano = 0;
+			this.micro = 0;
+			this.milli = 0;
+			this.datetime = undefined;
+			this.milli = 0;
+			this.sec = 0;
+			this.min = 0;
+			this.hour = 0;
+		} else {
+			this.nano = parseInt(nanotimestamp_str.slice(-3));
+			this.nano = isNaN(this.nano) || this.nano === undefined ? 0 : this.nano;
+			this.micro = parseInt(nanotimestamp_str.slice(-6, -3));
+			this.micro = isNaN(this.micro) || this.micro === undefined ? 0 : this.micro;
+			this.milli = parseInt(nanotimestamp/1000000);
+			this.milli = isNaN(this.milli) || this.milli === undefined ? 0 : this.milli;
+			this.datetime = new Date(this.milli);
+			this.milli = parseInt(this.datetime.getUTCMilliseconds());
+			this.sec = parseInt(this.datetime.getUTCSeconds());
+			this.min = parseInt(this.datetime.getUTCMinutes());
+			this.hour = parseInt(this.datetime.getUTCHours());
+		}
 	}
-	s += nano != 0 ? String(nano) : "";
-	return s;
+
+	get_time_str() {
+		if (this.datetime === undefined) {
+			return "";
+		}
+
+		var str = (this.datetime.toISOString().split('T')[1]).slice(0, -1);
+		if (this.micro != 0) {
+			str += String(this.micro);
+		} else if (this.micro == 0 && this.nano != 0) {
+			str += "000";
+		}
+		str += this.nano != 0 ? pad_zero(this.nano, 3) : "";
+		return str;
+	}
+}
+
+function pad_zero(val, pad) {
+	var ret = '';
+	for (var i=0; i<(pad-String(val).length); i++) {
+		ret += '0';
+	}
+	ret += String(val);
+	return ret;
 }
 
 function get_slider_and_input(type, scale, factor, max) {
@@ -60,9 +96,9 @@ function get_slider_and_input(type, scale, factor, max) {
 	var td2 = $('<td></td>');
 	var td3 = $('<td></td>');
 	var label = $('<span>'+scale+'</span>').css({fontWeight: 'bold'});
-	var input = $('<input id="input-time-'+type+'-'+scale+'" type="number" min=0 max='+max+' step=1 value=0 factor='+factor+'></input>').css({width: '50px', margin: '5px'});
+	var input = $('<input id="input-time-'+type+'-'+scale+'" type="number" min=0 max='+max+' step=1 value=0 factor='+factor+' scale='+scale+'></input>').css({width: '50px', margin: '5px'});
 	var slider_width = "<?php if ($ajax) { echo '200px'; } else { echo '300px'; } ?>";
-	var slider = $('<input id="slider-time-'+type+'-'+scale+'" type="range" min=0 max='+max+' step=1 value=0 factor='+factor+'></input>').css({width: slider_width, margin: '5px'});
+	var slider = $('<input id="slider-time-'+type+'-'+scale+'" type="range" min=0 max='+max+' step=1 value=0 factor='+factor+' scale='+scale+'></input>').css({width: slider_width, margin: '5px'});
 	
 	row.append(td1.append(label))
 	   .append(td2.append(input))
@@ -73,90 +109,54 @@ function get_slider_and_input(type, scale, factor, max) {
 function reflect_change_on_sliders(seen, skip_input_update) {
 	if (seen == 'both' || seen == 'first') {
 		var f_nanosec = $('#'+controller+'FirstSeen').val();
-		if (f_nanosec === '') {
-			f_nanosec = null;
-			var f_nano = 0;
-			var f_micro = 0;
-			var f_milli = 0;
-			var f_milli = 0;
-			var f_sec = 0;
-			var f_min = 0;
-			var f_hour = 0;
-			var f_d = null;
-		} else {
-			var f_nano = parseInt(f_nanosec.slice(-3));
-			var f_micro = parseInt(f_nanosec.slice(-6, -3));
-			var f_milli = parseInt(f_nanosec/1000000);
-			var f_d = new Date(f_milli);
-			var f_milli = parseInt(f_d.getUTCMilliseconds());
-			var f_sec = parseInt(f_d.getUTCSeconds());
-			var f_min = parseInt(f_d.getUTCMinutes());
-			var f_hour = parseInt(f_d.getUTCHours());
-		}
+		var f_nanodatetime = new NanoDatetime(f_nanosec);
+
 		// mirror slider and input field
-		$('#input-time-first-'+time_vals[0]).val(f_hour);
-		$('#slider-time-first-'+time_vals[0]).val(f_hour);
+		$('#input-time-first-'+time_vals[0]).val(f_nanodatetime.hour);
+		$('#slider-time-first-'+time_vals[0]).val(f_nanodatetime.hour);
 
-		$('#input-time-first-'+time_vals[1]).val(f_min);
-		$('#slider-time-first-'+time_vals[1]).val(f_min);
+		$('#input-time-first-'+time_vals[1]).val(f_nanodatetime.min);
+		$('#slider-time-first-'+time_vals[1]).val(f_nanodatetime.min);
 
-		$('#input-time-first-'+time_vals[2]).val(f_sec);
-		$('#slider-time-first-'+time_vals[2]).val(f_sec);
+		$('#input-time-first-'+time_vals[2]).val(f_nanodatetime.sec);
+		$('#slider-time-first-'+time_vals[2]).val(f_nanodatetime.sec);
 
-		$('#input-time-first-'+time_vals[3]).val(f_milli);
-		$('#slider-time-first-'+time_vals[3]).val(f_milli);
+		$('#input-time-first-'+time_vals[3]).val(f_nanodatetime.milli);
+		$('#slider-time-first-'+time_vals[3]).val(f_nanodatetime.milli);
 
-		$('#input-time-first-'+time_vals[4]).val(f_micro);
-		$('#slider-time-first-'+time_vals[4]).val(f_micro);
+		$('#input-time-first-'+time_vals[4]).val(f_nanodatetime.micro);
+		$('#slider-time-first-'+time_vals[4]).val(f_nanodatetime.micro);
 
-		$('#input-time-first-'+time_vals[5]).val(f_nano);
-		$('#slider-time-first-'+time_vals[5]).val(f_nano);
+		$('#input-time-first-'+time_vals[5]).val(f_nanodatetime.nano);
+		$('#slider-time-first-'+time_vals[5]).val(f_nanodatetime.nano);
 
-		$('#'+controller+'FirstSeen').datepicker('setDate', f_d);
+		$('#'+controller+'FirstSeen').datepicker('setDate', f_nanodatetime.datetime);
 	}
 
 	else if (seen == 'both' || seen == 'last') {
 		var l_nanosec = $('#'+controller+'LastSeen').val();
-		if (l_nanosec === '') {
-			l_nanosec = null;
-			var l_nano = 0;
-			var l_micro = 0;
-			var l_milli = 0;
-			var l_milli = 0;
-			var l_sec = 0;
-			var l_min = 0;
-			var l_hour = 0;
-			var l_d = null;
-		} else {
-			var l_nano = parseInt(l_nanosec.slice(-3));
-			var l_micro = parseInt(l_nanosec.slice(-6, -3));
-			var l_milli = parseInt(l_nanosec/1000000);
-			var l_d = new Date(l_milli);
-			var l_milli = parseInt(l_d.getUTCMilliseconds());
-			var l_sec = parseInt(l_d.getUTCSeconds());
-			var l_min = parseInt(l_d.getUTCMinutes());
-			var l_hour = parseInt(l_d.getUTCHours());
-		}
+		var l_nanodatetime = new NanoDatetime(l_nanosec);
+		//
 		// mirror slider and input field
-		$('#input-time-last-'+time_vals[0]).val(l_hour);
-		$('#slider-time-last-'+time_vals[0]).val(l_hour);
+		$('#input-time-last-'+time_vals[0]).val(l_nanodatetime.hour);
+		$('#slider-time-last-'+time_vals[0]).val(l_nanodatetime.hour);
 
-		$('#input-time-last-'+time_vals[1]).val(l_min);
-		$('#slider-time-last-'+time_vals[1]).val(l_min);
+		$('#input-time-last-'+time_vals[1]).val(l_nanodatetime.min);
+		$('#slider-time-last-'+time_vals[1]).val(l_nanodatetime.min);
 
-		$('#input-time-last-'+time_vals[2]).val(l_sec);
-		$('#slider-time-last-'+time_vals[2]).val(l_sec);
+		$('#input-time-last-'+time_vals[2]).val(l_nanodatetime.sec);
+		$('#slider-time-last-'+time_vals[2]).val(l_nanodatetime.sec);
 
-		$('#input-time-last-'+time_vals[3]).val(l_milli);
-		$('#slider-time-last-'+time_vals[3]).val(l_milli);
+		$('#input-time-last-'+time_vals[3]).val(l_nanodatetime.milli);
+		$('#slider-time-last-'+time_vals[3]).val(l_nanodatetime.milli);
 
-		$('#input-time-last-'+time_vals[4]).val(l_micro);
-		$('#slider-time-last-'+time_vals[4]).val(l_micro);
+		$('#input-time-last-'+time_vals[4]).val(l_nanodatetime.micro);
+		$('#slider-time-last-'+time_vals[4]).val(l_nanodatetime.micro);
 
-		$('#input-time-last-'+time_vals[5]).val(l_nano);
-		$('#slider-time-last-'+time_vals[5]).val(l_nano);
+		$('#input-time-last-'+time_vals[5]).val(l_nanodatetime.nano);
+		$('#slider-time-last-'+time_vals[5]).val(l_nanodatetime.nano);
 
-		$('#'+controller+'LastSeen').datepicker('setDate', l_d);
+		$('#'+controller+'LastSeen').datepicker('setDate', l_nanodatetime.datetime);
 	}
 	if (!skip_input_update) {
 		reflect_change_on_input(seen);
@@ -167,12 +167,18 @@ function reflect_change_on_input(seen) {
 	if ($('#seen_precision_tool').prop('checked')) {
 		var first_val = 0;
 		if (seen == 'both' || seen == 'first') {
+			// get data stored in sliders
 			$('#precision_tool_first').find('input[type="number"]').each(function() {
-				first_val += $(this).val()*$(this).attr('factor');
+				if ($(this).attr('scale') == "nano" || $(this).attr('scale') == "micro") {
+					first_val *= $(this).attr('factor');
+				} else {
+					first_val += $(this).val()*$(this).attr('factor');
+				}
+
 			});
 			if($("#"+controller+"FirstSeen").val() !== '') {
 				var the_date = $("#"+controller+"FirstSeen").val().slice(0, 10);
-				$("#"+controller+"FirstSeen").val(the_date + '@' + format_nano_to_time(first_val));
+				$("#"+controller+"FirstSeen").val(the_date + '@' + new NanoDatetime(first_val).get_time_str());
 			}
 		}
 
@@ -183,7 +189,7 @@ function reflect_change_on_input(seen) {
 			});
 			if($("#"+controller+"LastSeen").val() !== '') {
 				var the_date = $("#"+controller+"LastSeen").val().slice(0, 10);
-				$("#"+controller+"LastSeen").val(the_date + '@' + format_nano_to_time(last_val));
+				$("#"+controller+"LastSeen").val(the_date + '@' + new NanoDatetime(last_val).get_time_str());
 			}
 		}
 	}
