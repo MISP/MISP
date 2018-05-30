@@ -144,3 +144,7 @@
     border-radius: 5px !important;
     border: solid 1px #000 !important;
 }
+
+#timeline-typeahead {
+    width: 400px;
+}

@@ -315,7 +315,12 @@ function updateIndex(id, context, newPage) {
 			if (typeof genericPopupCallback !== "undefined") {
 				genericPopupCallback("success");
 			} else {
-				console.log("genericPopupCallback function not defined");
+				console.log("genericpopupcallback function not defined");
+			}
+			if (typeof timelinePopupCallback !== "undefined") {
+				timelinePopupCallback("success");
+			} else {
+				console.log("timelinepopupcallback function not defined");
 			}
 		},
 		url: url,

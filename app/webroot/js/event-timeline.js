@@ -329,6 +329,10 @@ function map_scope(val) {
 	}
 }
 
+function timelinePopupCallback(state) {
+	reload_timeline();
+}
+
 function update_badge() {
 	if ($('#checkbox_timeline_display_gmt').prop('checked')) {
 		$("#timeline-display-badge").text("Timezone: " + ": " + new Date().toString().split(' ')[5]);
@@ -357,10 +361,10 @@ function reload_timeline() {
 				set_spanned_time(item);
 				if (item.group == 'object') {
 					for (var attr of item.Attribute) {
-						mapping_text_to_id.set(attr.content, item.id);
+						mapping_text_to_id.set(attr.contentType+': '+attr.content+' ('+item.id+')', item.id);
 					}
 				} else {
-					mapping_text_to_id.set(item.content, item.id);
+					mapping_text_to_id.set(item.content+' ('+item.id+')', item.id);
 				}
 			}
 			items_timeline.add(data.items);
@@ -400,10 +404,10 @@ function enable_timeline() {
 				set_spanned_time(item);
 				if (item.group == 'object') {
 					for (var attr of item.Attribute) {
-						mapping_text_to_id.set(attr.content, item.id);
+						mapping_text_to_id.set(attr.contentType+': '+attr.content+' ('+item.id+')', item.id);
 					}
 				} else {
-					mapping_text_to_id.set(item.content, item.id);
+					mapping_text_to_id.set(item.content+' ('+item.id+')', item.id);
 				}
 			}
 			items_timeline = new vis.DataSet(data.items);
@@ -509,23 +513,6 @@ function init_popover() {
 		options: ["First seen/Last seen", "Object relationship"],
 		default: "First seen/Last seen"
 	});
-	menu_scope_timeline.add_select({
-		id: "select_timeline_scope_jsonkey",
-		label: "Object relation",
-		tooltip: "The object relation to be consider as time reference",
-		event: function(value) {
-			console.log(value);
-			//if (value == "Rotation key" && $('#input_graph_scope_jsonkey').val() == "") { // no key selected for Rotation key scope
-			//	return;
-			//} else {
-			//	eventGraph.scope_keyType = value;
-			//	eventGraph.update_scope("Rotation key");
-			//	dataHandler.fetch_data_and_update();
-			//}
-		},
-		options: undefined ? dataHandler.available_rotation_key : [],
-		default: ""
-	});
 
 	var menu_display_timeline = new ContextualMenu({
 		trigger_container: document.getElementById("timeline-display"),
@@ -562,7 +549,6 @@ function init_popover() {
 		label: "Display with current timezone",
 		title: "Set the dates relative to the browser timezone. Otherwise, keep dates in GMT",
 		event: function(value) {
-			//handle_timezone(value)
 			reload_timeline()
 		},
 		checked: true
