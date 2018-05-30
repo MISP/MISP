@@ -314,7 +314,11 @@ function set_spanned_time(item) {
 		item.start = nanoTimestampToDatetime(fs);
 		item.end = nanoTimestampToDatetime(ls);
 		item.seen_enabled = true;
-		item.type = 'range';
+		if (fs == ls) {
+			item.type = 'box';
+		} else {
+			item.type = 'range';
+		}
 	}
 }
 
