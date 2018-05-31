@@ -53,15 +53,16 @@ class StixBuilder():
                        'created_by_ref': self.identity_id, 'name': self.misp_event.info,
                        'published': self.misp_event.publish_timestamp,
                        'object_refs': self.object_refs}
-        labels = []
         if self.misp_event.Tag:
+            labels = []
             for tag in self.misp_event.Tag:
                 labels.append(tag.name)
-        if labels:
             report_args['labels'] = labels
+            if 'misp:tool="misp2stix2"' not in labels:
+                report_args['labels'].append('misp:tool="misp2stix2"')
         else:
             report_args['labels'] = ['Threat-Report']
-        report_args['labels'].append('misp:tool="misp2stix2"')
+            report_args['labels'].append('misp:tool="misp2stix2"')
         if self.external_refs:
             report_args['external_references'] = self.external_refs
         return Report(**report_args)
