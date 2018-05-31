@@ -3173,9 +3173,9 @@ class Server extends AppModel {
 		return $readableFiles;
 	}
 
-	public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion) {
+	public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion, &$pymispVersion) {
 		$result = array();
-		$expected = array('stix' => '1.2.0.6', 'cybox' => '2.1.0.18.dev0', 'mixbox' => '1.0.3');
+		$expected = array('stix' => '1.2.0.6', 'cybox' => '2.1.0.18.dev0', 'mixbox' => '1.0.3', 'pymisp' => '>2.4.90.1');
 		// check if the STIX and Cybox libraries are working using the test script stixtest.py
 		$scriptResult = shell_exec('python3 ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
 		$scriptResult = json_decode($scriptResult, true);
@@ -3192,7 +3192,12 @@ class Server extends AppModel {
 		foreach ($expected as $package => $version) {
 			$result[$package]['version'] = $scriptResult[$package];
 			$result[$package]['expected'] = $expected[$package];
-			$result[$package]['status'] = $result[$package]['version'] == $result[$package]['expected'] ? 1 : 0;
+			if ($expected[$package][0] === '>') {
+				$expected[$package] = trim($expected[$package], '>');
+				$result[$package]['status'] = (version_compare($result[$package]['version'], $expected[$package]) >= 0) ? 1 : 0;
+			} else {
+				$result[$package]['status'] = $result[$package]['version'] == $result[$package]['expected'] ? 1 : 0;
+			}
 			if ($result[$package]['status'] == 0) $diagnostic_errors++;
 			${$package . 'Version'}[0] = str_replace('$current', $result[$package]['version'], ${$package . 'Version'}[0]);
 			${$package . 'Version'}[0] = str_replace('$expected', $result[$package]['expected'], ${$package . 'Version'}[0]);
