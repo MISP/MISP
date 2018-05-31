@@ -159,11 +159,21 @@ class StixParser():
         for entry in self.event.history.history_items:
             journal_entry = entry.journal_entry.value
             entry_type, entry_value = journal_entry.split(': ')
-            if entry_type.startswith('attribute['):
+            if entry_type == "MISP Tag":
+                self.parse_tag(entry_value)
+            elif entry_type.startswith('attribute['):
                 _, category, attribute_type = entry_type.split('[')
                 self.misp_event.add_attribute(**{'type': attribute_type[:-1], 'category': category[:-1], 'value': entry_value})
             elif entry_type == "Event Threat Level":
                 self.misp_event.threat_level_id = threat_level_mapping[entry_value]
+
+    def parse_tag(self, entry):
+        if entry.startswith('misp-galaxy:'):
+            tag_type, value = entry.split('=')
+            galaxy_type = tag_type.split(':')[1]
+            cluster = {'type': galaxy_type, 'value': value, 'tag_name': entry}
+            self.misp_event['Galaxy'].append({'type': galaxy_type, 'GalaxyCluster': cluster})
+        self.misp_event.add_tag(entry)
 
     def parse_vulnerability(self, exploit_targets):
         for exploit_target in exploit_targets:
