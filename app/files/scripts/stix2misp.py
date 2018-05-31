@@ -65,14 +65,14 @@ class StixParser():
             if fromMISP:
                 package = event.related_packages.related_package[0].item
                 self.event = package.incidents[0]
-                self.ttps = package.ttps.ttps
+                self.ttps = package.ttps.ttps if package.ttps else None
             else:
                 self.event = event
             self.fromMISP = fromMISP
             self.filename = filename
             self.load_mapping()
         except:
-            print(json.dumps({'success': 0, 'message': 'The temporary STIX export file could not be read'}))
+            print(json.dumps({'success': 0, 'message': 'The STIX file cannot be read'}))
             sys.exit(0)
 
     # Event loading function, recursively itterating as long as namespace errors appear
