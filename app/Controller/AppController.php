@@ -586,6 +586,9 @@ class AppController extends Controller {
 	public function updateDatabase($command) {
 		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
 		$this->loadModel('Server');
+		if (is_numeric($command)) {
+			$command = intval($command);
+		}
 		$this->Server->updateDatabase($command);
 		$this->Flash->success('Done.');
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
