@@ -38,6 +38,8 @@ cybox_to_misp_object = {"EmailMessage": "email", "NetworkConnection": "network-c
                         "NetworkSocket": "network-socket", "Process": "process",
                         "x509Certificate": "x509"}
 
+threat_level_mapping = {'High': '1', 'Medium': '2', 'Low': '3', 'Undefined': '4'}
+
 descFilename = os.path.join(__path__[0], 'data/describeTypes.json')
 with open(descFilename, 'r') as f:
     categories = json.loads(f.read())['result'].get('categories')
@@ -160,6 +162,8 @@ class StixParser():
             if entry_type.startswith('attribute['):
                 _, category, attribute_type = entry_type.split('[')
                 self.misp_event.add_attribute(**{'type': attribute_type[:-1], 'category': category[:-1], 'value': entry_value})
+            elif entry_type == "Event Threat Level":
+                self.misp_event.threat_level_id = threat_level_mapping[entry_value]
 
     def parse_vulnerability(self, exploit_targets):
         for exploit_target in exploit_targets:
