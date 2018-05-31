@@ -1093,14 +1093,14 @@ class StixBuilder(object):
             if event_colors:
                 color = self.set_color(event_colors)
             else:
-                color = TLP_mapping.get(str(self.misp_event.distribution), None)
-        if color is None:
-            return
-        tlp.color = color
-        marking_specification.marking_structures.append(tlp)
-        handling = Marking()
-        handling.add_marking(marking_specification)
-        return handling
+                color = TLP_mapping.get(str(distribution), None)
+        if color is not None:
+            tlp.color = color
+            marking_specification.marking_structures.append(tlp)
+            handling = Marking()
+            handling.add_marking(marking_specification)
+            return handling
+        return
 
     def add_journal_entry(self, entry_line):
         hi = HistoryItem()
