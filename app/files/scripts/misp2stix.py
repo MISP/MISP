@@ -190,17 +190,18 @@ class StixBuilder(object):
         incident_id = "{}:incident-{}".format(namespace[1], self.misp_event.uuid)
         incident = Incident(id_=incident_id, title=self.misp_event.info)
         self.set_dates(incident, self.misp_event.date, self.misp_event.publish_timestamp)
+        self.history = History()
         threat_level_name = threat_level_mapping.get(str(self.misp_event.threat_level_id), None)
         if threat_level_name:
             threat_level_s = "Event Threat Level: {}".format(threat_level_name)
-            self.add_journal_entry(incident, threat_level_s)
+            self.add_journal_entry(threat_level_s)
         Tags = {}
         event_tags = self.misp_event.Tag
         if event_tags:
             Tags['event'] = event_tags
         for tag in event_tags:
             tag_name = "MISP Tag: {}".format(tag['name'])
-            self.add_journal_entry(incident, tag_name)
+            self.add_journal_entry(tag_name)
         external_id = ExternalID(value=str(self.misp_event.id), source="MISP Event")
         incident.add_external_id(external_id)
         incident_status_name = status_mapping.get(str(self.misp_event.analysis), None)
@@ -217,6 +218,8 @@ class StixBuilder(object):
         self.resolve_attributes(incident, Tags)
         self.resolve_objects(incident, Tags)
         self.add_related_indicators(incident)
+        if self.history.history_items:
+            incident.history = self.history
         return incident
 
     def convert_to_stix_date(self, date):
@@ -240,7 +243,7 @@ class StixBuilder(object):
                 else:
                     journal_entry = "!Not implemented attribute category/type combination caught! attribute[{}][{}]: {}".format(attribute.category,
                     attribute_type, attribute.value)
-                    self.add_journal_entry(incident, journal_entry)
+                    self.add_journal_entry(journal_entry)
             elif attribute_type in non_indicator_attributes:
                 self.handle_non_indicator_attribute(incident, attribute, tags)
             else:
@@ -354,7 +357,7 @@ class StixBuilder(object):
                     incident.attributed_threat_actors = ata
             else:
                 entry_line = "attribute[{}][{}]: {}".format(attribute_category, attribute_type, attribute.value)
-                self.add_journal_entry(incident, entry_line)
+                self.add_journal_entry(entry_line)
         elif attribute_type == "target-machine":
             aa = AffectedAsset()
             description = attribute.value
@@ -1092,14 +1095,10 @@ class StixBuilder(object):
         handling.add_marking(marking_specification)
         return handling
 
-    @staticmethod
-    def add_journal_entry(incident, entry_line):
+    def add_journal_entry(self, entry_line):
         hi = HistoryItem()
         hi.journal_entry = entry_line
-        try:
-            incident.history.append(hi)
-        except AttributeError:
-            incident.history = History(hi)
+        self.history.append(hi)
 
     @staticmethod
     def add_reference(target, reference):
