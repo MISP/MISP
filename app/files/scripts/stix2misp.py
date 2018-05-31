@@ -36,7 +36,7 @@ eventTypes = {"ArtifactObjectType": {"type": "attachment", "relation": "attachme
 
 cybox_to_misp_object = {"EmailMessage": "email", "NetworkConnection": "network-connection",
                         "NetworkSocket": "network-socket", "Process": "process",
-                        "x509Certificate": "x509"}
+                        "x509Certificate": "x509", "Whois": "whois"}
 
 threat_level_mapping = {'High': '1', 'Medium': '2', 'Low': '3', 'Undefined': '4'}
 
