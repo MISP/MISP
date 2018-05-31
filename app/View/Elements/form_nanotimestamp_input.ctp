@@ -44,17 +44,27 @@ class NanoDatetime {
 			value = String(value);
 			var t = value.match(/\w*@(?<hour>\d{2}):(?<min>\d{2}):(?<sec>\d{2}).(?<milli>\d{0,3})(?<micro>\d{0,3})(?<nano>\d{0,3})/).groups; // get time values
 			var d = value.match(/(?<month>\d{2})\/(?<day>\d{2})\/(?<year>\d{4})\/*/).groups;
-			this.datetime = new Date(d.year+'-'+d.month+'-'+d.day+'T'+t.hour+':'+t.min+':'+t.sec+'.'+t.milli);
+			this.datetime = new Date(d.year+'-'+d.month+'-'+d.day+'T'+t.hour+':'+t.min+':'+t.sec+'.'+t.milli+'Z');
 			this.milli = parseInt(this.datetime.getUTCMilliseconds());
 			this.sec = parseInt(this.datetime.getUTCSeconds());
 			this.min = parseInt(this.datetime.getUTCMinutes());
 			this.hour = parseInt(this.datetime.getUTCHours());
 			this.nano = t.nano != "" ? parseInt(remove_leading(t.nano, '0')) : 0;
 			this.micro = t.micro != "" ? parseInt(remove_leading(t.micro, '0')) : 0;
+		// check if ISO 8601 format
+		} else if (String(value).includes('T')) {
+			value = String(value);
+			this.datetime = new Date(value);
+			this.milli = parseInt(this.datetime.getUTCMilliseconds());
+			this.sec = parseInt(this.datetime.getUTCSeconds());
+			this.min = parseInt(this.datetime.getUTCMinutes());
+			this.hour = parseInt(this.datetime.getUTCHours());
+			this.nano = 0;
+			this.micro = 0;
 		} else { // only numbers
 			var nanotimestamp = parseInt(value);
 			var nanotimestamp_str = String(nanotimestamp);
-			if (nanotimestamp === '' || nanotimestamp === undefined || nanotimestamp === null) {
+			if (nanotimestamp === '' || nanotimestamp === undefined || nanotimestamp === null || isNaN(nanotimestamp)) {
 				this.nano = 0;
 				this.micro = 0;
 				this.milli = 0;
@@ -181,6 +191,7 @@ function reflect_change_on_sliders(seen, skip_input_update) {
 
 		$('#'+controller+'LastSeen').datepicker('setDate', l_nanodatetime.datetime);
 	}
+
 	if (!skip_input_update) {
 		reflect_change_on_input(seen);
 	}
@@ -334,7 +345,7 @@ $(document).ready(function() {
 		reflect_change_on_input('both');
 	});
 
-	reflect_change_on_sliders('both');
+	reflect_change_on_sliders('both', false);
 
 });
 </script>
