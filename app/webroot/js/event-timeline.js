@@ -1,3 +1,4 @@
+var max_displayed_char_timeline = 64;
 var eventTimeline;
 var items_timeline;
 var items_backup;
@@ -368,6 +369,11 @@ function timelinePopupCallback(state) {
 	reload_timeline();
 }
 
+function adjust_text_length(elem) {
+	var maxChar = $('#slider_timeline_display_max_char_num').val();
+	elem.content = elem.content.substring(0, maxChar) + (elem.content.length < maxChar ? "" : "[...]");
+}
+
 function update_badge() {
 	if ($('#checkbox_timeline_display_gmt').prop('checked')) {
 		$("#timeline-display-badge").text("Timezone: " + ": " + new Date().toString().split(' ')[5]);
@@ -397,9 +403,11 @@ function reload_timeline() {
 				if (item.group == 'object') {
 					for (var attr of item.Attribute) {
 						mapping_text_to_id.set(attr.contentType+': '+attr.content+' ('+item.id+')', item.id);
+						adjust_text_length(attr);
 					}
 				} else {
 					mapping_text_to_id.set(item.content+' ('+item.id+')', item.id);
+					adjust_text_length(item);
 				}
 			}
 			items_timeline.add(data.items);
@@ -440,9 +448,11 @@ function enable_timeline() {
 				if (item.group == 'object') {
 					for (var attr of item.Attribute) {
 						mapping_text_to_id.set(attr.contentType+': '+attr.content+' ('+item.id+')', item.id);
+						adjust_text_length(attr);
 					}
 				} else {
 					mapping_text_to_id.set(item.content+' ('+item.id+')', item.id);
+					adjust_text_length(item);
 				}
 			}
 			items_timeline = new vis.DataSet(data.items);
@@ -545,7 +555,7 @@ function init_popover() {
 		event: function(value) {
 			reload_timeline();
 		},
-		options: ["First seen/Last seen", "Object relationship"],
+		options: ["First seen/Last seen"],
 		default: "First seen/Last seen"
 	});
 
@@ -555,21 +565,21 @@ function init_popover() {
 		style: "z-index: 1",
 		container: document.getElementById("eventtimeline_div")
 	});
-	menu_display_timeline.add_action_table({
-		id: "table_timeline_display_object_field",
-		container: menu_display_timeline.menu,
-		title: "Object's Attributes to be shown",
-		header: ["Object attribute type"],
-		control_items: [
-			{
-				DOMType: "select",
-				item_options: {
-					id: "table_timeline_control_select_obj_attr",
-					options: ['All']
-				}
-			},
-		],
-		data: [['All']],
+	menu_display_timeline.add_slider({
+		id: 'slider_timeline_display_max_char_num',
+		label: "Charater to show",
+		title: "Maximum number of charater to display in the label",
+		min: 8,
+		max: 2048,
+		value: max_displayed_char_timeline,
+		step: 8,
+		applyButton: true,
+		event: function(value) {
+			$("#slider_timeline__display_max_char_num").parent().find("span").text(value);
+		},
+		eventApply: function(value) {
+			reload_timeline();
+		}
 	});
 	menu_display_timeline.add_checkbox({
 		id: 'checkbox_timeline_display_hide_not_seen_enabled',
