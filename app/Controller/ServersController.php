@@ -754,6 +754,7 @@ class ServersController extends AppController {
 			$stixVersion = array(0 => 'Incorrect STIX version installed, found $current, expecting $expected', 1 => 'OK');
 			$cyboxVersion = array(0 => 'Incorrect CyBox version installed, found $current, expecting $expected', 1 => 'OK');
 			$mixboxVersion = array(0 => 'Incorrect mixbox version installed, found $current, expecting $expected', 1 => 'OK');
+			$pymispVersion = array(0 => 'Incorrect pymisp version installed, found $current, expecting $expected', 1 => 'OK');
 			$sessionErrors = array(0 => 'OK', 1 => 'High', 2 => 'Alternative setting used', 3 => 'Test failed');
 			$moduleErrors = array(0 => 'OK', 1 => 'System not enabled', 2 => 'No modules found');
 
@@ -858,7 +859,7 @@ class ServersController extends AppController {
 				if ($version && (!$version['upToDate'] || $version['upToDate'] == 'older')) $diagnostic_errors++;
 
 				// check if the STIX and Cybox libraries are working and the correct version using the test script stixtest.py
-				$stix = $this->Server->stixDiagnostics($diagnostic_errors, $stixVersion, $cyboxVersion, $mixboxVersion);
+				$stix = $this->Server->stixDiagnostics($diagnostic_errors, $stixVersion, $cyboxVersion, $mixboxVersion, $pymispVersion);
 
 				// if GnuPG is set up in the settings, try to encrypt a test message
 				$gpgStatus = $this->Server->gpgDiagnostics($diagnostic_errors);
@@ -879,7 +880,7 @@ class ServersController extends AppController {
 				$sessionStatus = $this->Server->sessionDiagnostics($diagnostic_errors, $sessionCount);
 				$this->set('sessionCount', $sessionCount);
 
-				$additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'moduleStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes');
+				$additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'pymispVersion', 'moduleStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes');
 			}
 			// check whether the files are writeable
 			$writeableDirs = $this->Server->writeableDirsDiagnostics($diagnostic_errors);
