@@ -61,7 +61,9 @@ class StixParser():
             else:
                 fromMISP = False
             if fromMISP:
-                self.event = event.related_packages.related_package[0].item.incidents[0]
+                package = event.related_packages.related_package[0].item
+                self.event = package.incidents[0]
+                self.ttps = package.ttps.ttps
             else:
                 self.event = event
             self.fromMISP = fromMISP
@@ -144,6 +146,12 @@ class StixParser():
         if self.event.information_source and self.event.information_source.references:
             for reference in self.event.information_source.references:
                 self.misp_event.add_attribute(**{'type': 'link', 'value': reference})
+        if self.ttps:
+            for ttp in self.ttps:
+                if ttp.exploit_targets:
+                    self.parse_vulnerability(ttp.exploit_targets.exploit_target)
+                # if ttp.handling:
+                #     self.parse_tlp_marking(ttp.handling)
 
     def parse_journal_entries(self):
         for entry in self.event.history.history_items:
@@ -152,6 +160,12 @@ class StixParser():
             if entry_type.startswith('attribute['):
                 _, category, attribute_type = entry_type.split('[')
                 self.misp_event.add_attribute(**{'type': attribute_type[:-1], 'category': category[:-1], 'value': entry_value})
+
+    def parse_vulnerability(self, exploit_targets):
+        for exploit_target in exploit_targets:
+            if exploit_target.item:
+                for vulnerability in exploit_target.item.vulnerabilities:
+                    self.misp_event.add_attribute(**{'type': 'vulnerability', 'value': vulnerability.cve_id})
 
     # Try to parse data from external STIX documents
     def buildExternalDict(self):
