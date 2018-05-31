@@ -200,7 +200,11 @@
 		</div>
 	<h3><?php echo __('STIX and Cybox libraries');?></h3>
 	<p><?php echo __('Mitre\'s STIX and Cybox python libraries have to be installed in order for MISP\'s STIX export to work. Make sure that you install them (as described in the MISP installation instructions) if you receive an error below.');?><br />
-	<?php echo __('If you run into any issues here, make sure that both STIX and CyBox are installed as described in the INSTALL.txt file. The required versions are');?>:<br /><b>STIX</b>: <?php echo $stix['stix']['expected'];?><br /><b>CyBox</b>: <?php echo $stix['cybox']['expected'];?><br /><b>mixbox</b>: <?php echo $stix['mixbox']['expected'];?><br />
+	<?php echo __('If you run into any issues here, make sure that both STIX and CyBox are installed as described in the INSTALL.txt file. The required versions are');?>:<br />
+	<b>STIX</b>: <?php echo $stix['stix']['expected'];?><br />
+	<b>CyBox</b>: <?php echo $stix['cybox']['expected'];?><br />
+	<b>mixbox</b>: <?php echo $stix['mixbox']['expected'];?><br />
+	<b>PyMISP</b>: <?php echo $stix['pymisp']['expected'];?><br />
 	<?php echo __('Other versions might work but are not tested / recommended.');?></p>
 	<div style="background-color:#f7f7f9;width:400px;">
 		<?php
@@ -221,7 +225,7 @@
 				}
 				echo __('STIX and Cybox libraries') . '…<span style="color:' . $colour . ';">' . $stixOperational[$stix['operational']] . '</span><br />';
 				if ($stix['operational'] == 1) {
-					foreach (array('stix', 'cybox', 'mixbox') as $package) {
+					foreach (array('stix', 'cybox', 'mixbox', 'pymisp') as $package) {
 						$colour = 'green';
 						if ($stix[$package]['status'] == 0) $colour = 'red';
 						echo strtoupper($package) . __(' library version') . '…<span style="color:' . $colour . ';">' . ${$package . 'Version'}[$stix[$package]['status']] . '</span><br />';
