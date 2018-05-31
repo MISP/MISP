@@ -196,12 +196,19 @@ class StixBuilder(object):
             threat_level_s = "Event Threat Level: {}".format(threat_level_name)
             self.add_journal_entry(threat_level_s)
         Tags = {}
-        event_tags = self.misp_event.Tag
-        if event_tags:
+        if self.misp_event.Tag:
+            event_tags = self.misp_event.Tag
             Tags['event'] = event_tags
-        for tag in event_tags:
-            tag_name = "MISP Tag: {}".format(tag['name'])
-            self.add_journal_entry(tag_name)
+            labels = []
+            for tag in event_tags:
+                labels.append(tag.name)
+            if 'misp:tool="misp2stix"' not in labels:
+                self.add_journal_entry('MISP Tag: misp:tool="misp2stix"')
+            for label in labels:
+                tag_name = "MISP Tag: {}".format(label)
+                self.add_journal_entry(tag_name)
+        else:
+            self.add_journal_entry('MISP Tag: misp:tool="misp2stix"')
         external_id = ExternalID(value=str(self.misp_event.id), source="MISP Event")
         incident.add_external_id(external_id)
         incident_status_name = status_mapping.get(str(self.misp_event.analysis), None)
