@@ -171,8 +171,8 @@ class StixParser():
         if entry.startswith('misp-galaxy:'):
             tag_type, value = entry.split('=')
             galaxy_type = tag_type.split(':')[1]
-            cluster = {'type': galaxy_type, 'value': value, 'tag_name': entry}
-            self.misp_event['Galaxy'].append({'type': galaxy_type, 'GalaxyCluster': cluster})
+            cluster = {'type': galaxy_type, 'value': value[1:-1], 'tag_name': entry}
+            self.misp_event['Galaxy'].append({'type': galaxy_type, 'GalaxyCluster': [cluster]})
         self.misp_event.add_tag(entry)
 
     def parse_vulnerability(self, exploit_targets):
