@@ -1738,16 +1738,10 @@ class AttributesController extends AppController {
 					}
 
 					if (isset($first_seen)) {
-						$first_seen_nanoTimestamp = $this->Attribute->toNanoTimestamp($first_seen);
-						if (is_numeric($first_seen_nanoTimestamp)) {
-							$conditions['Attribute.first_seen >='] = $first_seen_nanoTimestamp;
-						}
+						$conditions['Attribute.first_seen >='] = $first_seen;
 					}
 					if (isset($last_seen)) {
-						$last_seen_nanoTimestamp = $this->Attribute->toNanoTimestamp($last_seen);
-						if (is_numeric($last_seen_nanoTimestamp)) {
-							$conditions['Attribute.last_seen <='] = $last_seen_nanoTimestamp;
-						}
+						$conditions['Attribute.last_seen <='] = $last_seen;
 					}
 
 					if ($this->request->data['Attribute']['alternate']) {
@@ -1968,12 +1962,10 @@ class AttributesController extends AppController {
 		if ($from) $from = $this->Attribute->Event->dateFieldCheck($from);
 		if ($to) $to = $this->Attribute->Event->dateFieldCheck($to);
 		if ($first_seen) {
-			$first_seen_nanoTimestamp = $this->Attribute->toNanoTimestamp($first_seen);
-			$first_seen = is_numeric($first_seen_nanoTimestamp);
+			$first_seen = $this->Attribute->datetimeOrNull($first_seen) ? $first_seen : false;
 		}
 		if ($last_seen) {
-			$last_seen_nanoTimestamp = $this->Attribute->toNanoTimestamp($last_seen);
-			$last_seen = is_numeric($last_seen_nanoTimestamp);
+			$last_seen = $this->Attribute->datetimeOrNull($last_seen) ? $last_seen : false;
 		}
 		if ($last) $last = $this->Attribute->Event->resolveTimeDelta($last);
 		$conditions['AND'] = array();
@@ -1992,8 +1984,8 @@ class AttributesController extends AppController {
 		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
 		// seen conditions
-		if ($first_seen) $conditions['AND'][] = array('Attribute.first_seen >=' => $first_seen_nanoTimestamp);
-		if ($last_seen) $conditions['AND'][] = array('Attribute.last_seen <=' => $last_seen_nanoTimestamp);
+		if ($first_seen) $conditions['AND'][] = array('Attribute.first_seen >=' => $first_seen);
+		if ($last_seen) $conditions['AND'][] = array('Attribute.last_seen <=' => $last_seen);
 
 		if ($publish_timestamp) $conditions = $this->Attribute->setPublishTimestampConditions($publish_timestamp, $conditions);
 		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);

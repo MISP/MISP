@@ -449,16 +449,16 @@ class Attribute extends AppModel {
 		),
 		'first_seen' => array(
 				'first_seen' => array(
-					'rule' => array('numericOrNull'),
+					'rule' => array('datetimeOrNull'),
 					'required' => false,
-					'message' => array('Invalid first_seen format, valid format: (nanotimestamp | MM/DD/YYYY | MM/DD/YYYY@HH:MM:SS[.mmm[uuu[nnn]]] | ISO 8601 (YYYY-MM-DDTHH:MM:SSZ))')
+					'message' => array('Invalid ISO 8601 format')
 				)
 		),
 		'last_seen' => array(
 				'last_seen' => array(
-					'rule' => array('numericOrNull'),
+					'rule' => array('datetimeOrNull'),
 					'required' => false,
-					'message' => array('Invalid last_seen format, valid format: (nanotimestamp | MM/DD/YYYY | MM/DD/YYYY@HH:MM:SS[.mmm[uuu[nnn]]] | ISO 8601 (YYYY-MM-DDTHH:MM:SSZ))')
+					'message' => array('Invalid ISO 8601 format')
 				)
 		)
 	);
@@ -713,11 +713,11 @@ class Attribute extends AppModel {
 		}
 		// parse first_seen different formats
 		if (isset($this->data['Attribute']['first_seen'])) {
-			$this->data['Attribute']['first_seen'] = $this->toNanoTimestamp($this->data['Attribute']['first_seen']);
+			$this->data['Attribute']['first_seen'] = $this->data['Attribute']['first_seen'] === '' ? null : $this->data['Attribute']['first_seen'];
 		}
 		// parse last_seen different formats
 		if (isset($this->data['Attribute']['last_seen'])) {
-			$this->data['Attribute']['last_seen'] = $this->toNanoTimestamp($this->data['Attribute']['last_seen']);
+			$this->data['Attribute']['last_seen'] = $this->data['Attribute']['last_seen'] === '' ? null : $this->data['Attribute']['last_seen'];
 		}
 
 		// TODO: add explanatory comment
@@ -837,11 +837,17 @@ class Attribute extends AppModel {
 		return $this->runValidation($value, $this->data['Attribute']['type']);
 	}
 
-	// check whether the variable is null or numeric
-	public function numericOrNull($fields) {
+	// check whether the variable is null or datetime
+	public function datetimeOrNull($fields) {
 		$k = array_keys($fields)[0];
 		$seen = $fields[$k];
-		return is_numeric($seen) || is_null($seen);
+		try {
+			new DateTime($seen);
+			$returnValue = true;
+		} catch (Exception $e) {
+			$returnValue = false;
+		}
+		return $returnValue || is_null($seen);
 	}
 
 	private $__hexHashLengths = array(
@@ -3307,62 +3313,72 @@ class Attribute extends AppModel {
 
 	// transform the provided value into a nanotimestamp (UNIX timestamp up to nanoseconds)
 	// valid format: nanotimestamp | MM/DD/YYYY | MM/DD/YYYY@HH:MM:SS[.sss[uuu[nnn]]] | ISO 8601 (YYYY-MM-DDTHH:MM:SSZ)
-	public function toNanoTimestamp($value) {
-		if ($value === '') {
-			return null;
-		}
+	//public function toNanoTimestamp($value) {
+	//	if ($value === '') {
+	//		return null;
+	//	}
 
-		// try to parse ISO 8601
-		try {
-			$d = new DateTime($value);
-			$timestamp = $d->format('U');
-			$timestamp = strval($timestamp) . '000' . '000' . '000';
-			return $timestamp;
-		} catch (Exception $e) {
-			// Not a ISO 8601 date, trying other formats
-		}
+	//	// try to parse ISO 8601
+	//	try {
+	//		$d = new DateTime($value);
+	//		$timestamp = $d->format('Uu');
+	//		$timestamp = strval($timestamp) . '000';
+	//		return $timestamp;
+	//	} catch (Exception $e) {
+	//		// Not a standard ISO 8601 date, trying ISO 8601 date with nano support
+	//		try {
+	//			$val2 = substr($value, strlen($value)-3);
+	//			$nano = substr($value, -3);
+	//			$d = new DateTime($val2);
+	//			$timestamp = $d->format('Uu');
+	//			$timestamp = strval($timestamp) . $nano;
+	//			return $timestamp;
+	//		} catch (Exception $e) {
+	//			// Not a ISO 8601 date, trying other formats
+	//		}
+	//	}
 
-		$seen_time = ltrim(strstr($value, "@"), '@'); // split datetime into date@time
-		$seen_milli = preg_match("/(?<hour>\d{2}):(?<min>\d{2}):(?<sec>\d{2}).(?<milli>\d{0,3})(?<micro>\d{0,3})(?<nano>\d{0,3})/", $seen_time, $matchesTime); // get time values
-		$seen_date = preg_match("^(?<month>\\d{2})/(?<day>\\d{2})/(?<year>\\d{4})^", $value, $matchesDate);
-		if ($seen_date) { // a date is there
-			if($seen_milli) {
-				$seen_sec = 1; // if millisec are there, so are seconds
-				$nano = $this->padMissingZero($matchesTime['nano']);
-				$micro = $this->padMissingZero($matchesTime['micro']);
-				$milli = $this->padMissingZero($matchesTime['milli']);
-			} else {
-				$seen_sec = preg_match("/(?<hour>\d{2}):(?<min>\d{2}):(?<sec>\d{2})/", $seen_time, $matchesTime);
-				$nano = '000';
-				$micro = '000';
-				$milli = '000';
-			}
+	//	$seen_time = ltrim(strstr($value, "@"), '@'); // split datetime into date@time
+	//	$seen_milli = preg_match("/(?<hour>\d{2}):(?<min>\d{2}):(?<sec>\d{2}).(?<milli>\d{0,3})(?<micro>\d{0,3})(?<nano>\d{0,3})/", $seen_time, $matchesTime); // get time values
+	//	$seen_date = preg_match("^(?<month>\\d{2})/(?<day>\\d{2})/(?<year>\\d{4})^", $value, $matchesDate);
+	//	if ($seen_date) { // a date is there
+	//		if($seen_milli) {
+	//			$seen_sec = 1; // if millisec are there, so are seconds
+	//			$nano = $this->padMissingZero($matchesTime['nano']);
+	//			$micro = $this->padMissingZero($matchesTime['micro']);
+	//			$milli = $this->padMissingZero($matchesTime['milli']);
+	//		} else {
+	//			$seen_sec = preg_match("/(?<hour>\d{2}):(?<min>\d{2}):(?<sec>\d{2})/", $seen_time, $matchesTime);
+	//			$nano = '000';
+	//			$micro = '000';
+	//			$milli = '000';
+	//		}
 
-			if ($seen_sec) {
-				$sec = $matchesTime['sec'];
-				$min = $matchesTime['min'];
-				$hour = $matchesTime['hour'];
-			} else { // date without time, set it to 00:00:00
-				$sec = '00';
-				$min = '00';
-				$hour = '00';
-			}
-			$day = $matchesDate['day'];
-			$month = $matchesDate['month'];
-			$year = $matchesDate['year'];
+	//		if ($seen_sec) {
+	//			$sec = $matchesTime['sec'];
+	//			$min = $matchesTime['min'];
+	//			$hour = $matchesTime['hour'];
+	//		} else { // date without time, set it to 00:00:00
+	//			$sec = '00';
+	//			$min = '00';
+	//			$hour = '00';
+	//		}
+	//		$day = $matchesDate['day'];
+	//		$month = $matchesDate['month'];
+	//		$year = $matchesDate['year'];
 
-			// convert date to nanotimestamp
-			$d = DateTime::createFromFormat('m-d-Y H:i:s', $month . '-' . $day . '-' . $year . ' ' . $hour . ':' . $min . ':' . $sec);
-			$timestamp = DateTime::createFromFormat('m-d-Y H:i:s', $month . '-' . $day . '-' . $year . ' ' . $hour . ':' . $min . ':' . $sec)->format('U');
-			// add milli, micro and nano sec (already in string)
-			$timestamp = strval($timestamp) . $milli . $micro . $nano;
-			return $timestamp;
-		} else { // only a timestamp
-			return $value;
-		}
-	}
+	//		// convert date to nanotimestamp
+	//		$d = DateTime::createFromFormat('m-d-Y H:i:s', $month . '-' . $day . '-' . $year . ' ' . $hour . ':' . $min . ':' . $sec);
+	//		$timestamp = DateTime::createFromFormat('m-d-Y H:i:s', $month . '-' . $day . '-' . $year . ' ' . $hour . ':' . $min . ':' . $sec)->format('U');
+	//		// add milli, micro and nano sec (already in string)
+	//		$timestamp = strval($timestamp) . $milli . $micro . $nano;
+	//		return $timestamp;
+	//	} else { // only a timestamp
+	//		return $value;
+	//	}
+	//}
 
-	public function padMissingZero($num) {
-		return str_pad(strval($num), 3, '0');
-	}
+	//public function padMissingZero($num) {
+	//	return str_pad(strval($num), 3, '0');
+	//}
 }

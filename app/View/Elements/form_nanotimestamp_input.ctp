@@ -1,16 +1,18 @@
+<?php echo $this->Html->script('moment-with-locales'); ?>
+
 <div class="input-group input-daterange">
 <?php
 	echo $this->Form->input('first_seen', array(
 			'div' => 'input clear larger-input-field',
 			'style' => 'width: 240px;',
 			'required' => false,
-			'label' => __('First seen (UTC nano)') . '<span class="fa fa-calendar label-icon"></span>'
+			'label' => __('First seen') . '<span class="fa fa-calendar label-icon"></span>'
 			));
 	echo $this->Form->input('last_seen', array(
 			'div' => 'input text larger-input-field',
 			'style' => 'width: 240px;',
 			'required' => false,
-			'label' => __('Last seen (UTC nano)') . '<span class="fa fa-calendar label-icon"></span>'
+			'label' => __('Last seen') . '<span class="fa fa-calendar label-icon"></span>'
 			));
 ?>
 </div>
@@ -29,78 +31,46 @@
 <script>
 var controller = "<?php echo(substr(ucfirst($this->params->controller), 0, -1)); ?>"; // get current controller name fo that we can access all form fields
 var time_vals = [
-	['Hour', 23, 1000*1000*1000*60*60],
-	['Minute', 59, 1000*1000*1000*60],
-	['Second', 59, 1000*1000*1000],
-	['ms', 999, 1000*1000],
-	['us', 999, 1000],
-	['ns', 999, 1],
+	['us', 999, 1],
 ];
 
-class NanoDatetime {
+class MicroDatetime {
 	constructor(value) {
-		// check if timestamp or our datetime format (@ in string)
-		if (String(value).includes('@')) {
-			value = String(value);
-			var t = value.match(/\w*@(?<hour>\d{2}):(?<min>\d{2}):(?<sec>\d{2}).(?<milli>\d{0,3})(?<micro>\d{0,3})(?<nano>\d{0,3})/).groups; // get time values
-			var d = value.match(/(?<month>\d{2})\/(?<day>\d{2})\/(?<year>\d{4})\/*/).groups;
-			this.datetime = new Date(d.year+'-'+d.month+'-'+d.day+'T'+t.hour+':'+t.min+':'+t.sec+'.'+t.milli+'Z');
-			this.milli = parseInt(this.datetime.getUTCMilliseconds());
-			this.sec = parseInt(this.datetime.getUTCSeconds());
-			this.min = parseInt(this.datetime.getUTCMinutes());
-			this.hour = parseInt(this.datetime.getUTCHours());
-			this.nano = t.nano != "" ? parseInt(remove_leading(t.nano, '0')) : 0;
-			this.micro = t.micro != "" ? parseInt(remove_leading(t.micro, '0')) : 0;
-		// check if ISO 8601 format
-		} else if (String(value).includes('T')) {
-			value = String(value);
-			this.datetime = new Date(value);
-			this.milli = parseInt(this.datetime.getUTCMilliseconds());
-			this.sec = parseInt(this.datetime.getUTCSeconds());
-			this.min = parseInt(this.datetime.getUTCMinutes());
-			this.hour = parseInt(this.datetime.getUTCHours());
-			this.nano = 0;
+		if (value === undefined || value === "") {
+			this.moment = undefined;
 			this.micro = 0;
-		} else { // only numbers
-			var nanotimestamp = parseInt(value);
-			var nanotimestamp_str = String(nanotimestamp);
-			if (nanotimestamp === '' || nanotimestamp === undefined || nanotimestamp === null || isNaN(nanotimestamp)) {
-				this.nano = 0;
-				this.micro = 0;
-				this.milli = 0;
-				this.datetime = undefined;
-				this.milli = 0;
-				this.sec = 0;
-				this.min = 0;
-				this.hour = 0;
-			} else {
-				this.nano = parseInt(nanotimestamp_str.slice(-3));
-				this.nano = isNaN(this.nano) || this.nano === undefined ? 0 : this.nano;
-				this.micro = parseInt(nanotimestamp_str.slice(-6, -3));
-				this.micro = isNaN(this.micro) || this.micro === undefined ? 0 : this.micro;
-				this.milli = parseInt(nanotimestamp/1000000);
-				this.milli = isNaN(this.milli) || this.milli === undefined ? 0 : this.milli;
-				this.datetime = new Date(this.milli);
-				this.milli = parseInt(this.datetime.getUTCMilliseconds());
-				this.sec = parseInt(this.datetime.getUTCSeconds());
-				this.min = parseInt(this.datetime.getUTCMinutes());
-				this.hour = parseInt(this.datetime.getUTCHours());
+		} else {
+			this.isoMicroRegex = /(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})T(?<hour>\d{2}):(?<min>\d{2}):(?<sec>\d{2}).(?<milli>\d{3})(?<micro>\d*)(?<tz>\D\S*)/g;
+			this.tzRegex = /(?<datetime>.{23})(?<tz>\D\S*)/g;
+
+			// check if ISO 8601 format
+			if (String(value).includes('T')) {
+				value = String(value);
+				this.moment = new moment(value);
+				this.micro = this.isoMicroRegex.exec(value).groups.micro;
+			} else { // UNIX timestamp (in sec)
+				var timestamp = parseInt(value);
+				var timestamp_str = String(timestamp);
+				if (timestamp === '' || timestamp === undefined || timestamp === null || isNaN(timestamp)) {
+					this.moment = moment(0);
+					this.micro = 0;
+				} else {
+					var all_milli = parseInt(timestamp)*1000;
+					all_milli = isNaN(all_milli) || all_milli === undefined ? 0 : all_milli;
+					this.moment = new Date(all_milli);
+					this.micro = 0;
+				}
 			}
 		}
 	}
 
-	get_time_str() {
-		if (this.datetime === undefined) {
+	get_microISO() {
+		if (this.moment === undefined || this.moment === null) {
 			return "";
 		}
-
-		var str = (this.datetime.toISOString().split('T')[1]).slice(0, -1);
-		if (this.micro != 0) {
-			str += String(this.micro);
-		} else if (this.micro == 0 && this.nano != 0) {
-			str += "000";
-		}
-		str += this.nano != 0 ? pad_zero(this.nano, 3) : "";
+		var tz = this.tzRegex.exec(this.moment.toISOString(true)).groups.tz;
+		var str = this.moment.toISOString(true);
+		str = str.replace(tz, pad_zero(this.micro, 3)+tz);
 		return str;
 	}
 }
@@ -114,15 +84,6 @@ function pad_zero(val, pad) {
 	return ret;
 }
 
-function remove_leading(str, c) {
-	for (var i=0; i<str.length; i++) {
-		if (str[i] != c) {
-			return str.slice(i);
-		}
-	}
-	return "0"; // everything got removed
-}
-
 function get_slider_and_input(type, scale, factor, max) {
 	var row = $('<tr></tr>');
 	var td1 = $('<td></td>');
@@ -130,7 +91,7 @@ function get_slider_and_input(type, scale, factor, max) {
 	var td3 = $('<td></td>');
 	var label = $('<span>'+scale+'</span>').css({fontWeight: 'bold'});
 	var input = $('<input id="input-time-'+type+'-'+scale+'" type="number" min=0 max='+max+' step=1 value=0 factor='+factor+' scale='+scale+'></input>').css({width: '50px', margin: '5px'});
-	var slider_width = "<?php if ($ajax) { echo '200px'; } else { echo '300px'; } ?>";
+	var slider_width = '200px';
 	var slider = $('<input id="slider-time-'+type+'-'+scale+'" type="range" min=0 max='+max+' step=1 value=0 factor='+factor+' scale='+scale+'></input>').css({width: slider_width, margin: '5px'});
 	
 	row.append(td1.append(label))
@@ -141,55 +102,25 @@ function get_slider_and_input(type, scale, factor, max) {
 
 function reflect_change_on_sliders(seen, skip_input_update) {
 	if (seen == 'both' || seen == 'first') {
-		var f_nanosec = $('#'+controller+'FirstSeen').val();
-		var f_nanodatetime = new NanoDatetime(f_nanosec);
+		var f_val = $('#'+controller+'FirstSeen').val();
+		var f_microdatetime = new MicroDatetime(f_val);
 
 		// mirror slider and input field
-		$('#input-time-first-'+time_vals[0]).val(f_nanodatetime.hour);
-		$('#slider-time-first-'+time_vals[0]).val(f_nanodatetime.hour);
+		$('#input-time-first-'+time_vals[4]).val(f_microdatetime.micro);
+		$('#slider-time-first-'+time_vals[4]).val(f_microdatetime.micro);
 
-		$('#input-time-first-'+time_vals[1]).val(f_nanodatetime.min);
-		$('#slider-time-first-'+time_vals[1]).val(f_nanodatetime.min);
-
-		$('#input-time-first-'+time_vals[2]).val(f_nanodatetime.sec);
-		$('#slider-time-first-'+time_vals[2]).val(f_nanodatetime.sec);
-
-		$('#input-time-first-'+time_vals[3]).val(f_nanodatetime.milli);
-		$('#slider-time-first-'+time_vals[3]).val(f_nanodatetime.milli);
-
-		$('#input-time-first-'+time_vals[4]).val(f_nanodatetime.micro);
-		$('#slider-time-first-'+time_vals[4]).val(f_nanodatetime.micro);
-
-		$('#input-time-first-'+time_vals[5]).val(f_nanodatetime.nano);
-		$('#slider-time-first-'+time_vals[5]).val(f_nanodatetime.nano);
-
-		$('#'+controller+'FirstSeen').datepicker('setDate', f_nanodatetime.datetime);
+		$('#'+controller+'FirstSeen').datepicker('setDate', f_microdatetime.moment);
 	}
 
 	if (seen == 'both' || seen == 'last') {
-		var l_nanosec = $('#'+controller+'LastSeen').val();
-		var l_nanodatetime = new NanoDatetime(l_nanosec);
+		var l_val = $('#'+controller+'LastSeen').val();
+		var l_microdatetime = new MicroDatetime(l_val);
 
 		// mirror slider and input field
-		$('#input-time-last-'+time_vals[0]).val(l_nanodatetime.hour);
-		$('#slider-time-last-'+time_vals[0]).val(l_nanodatetime.hour);
+		$('#input-time-last-'+time_vals[4]).val(f_microdatetime.micro);
+		$('#slider-time-last-'+time_vals[4]).val(f_microdatetime.micro);
 
-		$('#input-time-last-'+time_vals[1]).val(l_nanodatetime.min);
-		$('#slider-time-last-'+time_vals[1]).val(l_nanodatetime.min);
-
-		$('#input-time-last-'+time_vals[2]).val(l_nanodatetime.sec);
-		$('#slider-time-last-'+time_vals[2]).val(l_nanodatetime.sec);
-
-		$('#input-time-last-'+time_vals[3]).val(l_nanodatetime.milli);
-		$('#slider-time-last-'+time_vals[3]).val(l_nanodatetime.milli);
-
-		$('#input-time-last-'+time_vals[4]).val(l_nanodatetime.micro);
-		$('#slider-time-last-'+time_vals[4]).val(l_nanodatetime.micro);
-
-		$('#input-time-last-'+time_vals[5]).val(l_nanodatetime.nano);
-		$('#slider-time-last-'+time_vals[5]).val(l_nanodatetime.nano);
-
-		$('#'+controller+'LastSeen').datepicker('setDate', l_nanodatetime.datetime);
+		$('#'+controller+'LastSeen').datepicker('setDate', l_microdatetime.moment);
 	}
 
 	if (!skip_input_update) {
@@ -197,38 +128,37 @@ function reflect_change_on_sliders(seen, skip_input_update) {
 	}
 }
 
+// get data stored in sliders
+function get_time_from_slider(which) {
+	var micro = 0;
+	var dp = which == 'first' ? $('#'+controller+'FirstSeen') : $('#'+controller+'LastSeen');
+	var t = dp.datepicker('getDate');
+	t = t === null ? new Date(0) : t;
+	$('#precision_tool_'+which).find('input[type="number"]').each(function() {
+		switch($(this).attr('scale')) {
+			case 'us':
+				micro = parseInt($(this).val());
+				break;
+		}
+	});
+	microdatetime = new MicroDatetime(t.toISOString(true));
+	microdatetime.micro = micro;
+	return microdatetime
+}
+
 function reflect_change_on_input(seen) {
 	if ($('#seen_precision_tool').prop('checked')) {
 		if (seen == 'both' || seen == 'first') {
-			var first_val = 0;
-			// get data stored in sliders
-			$('#precision_tool_first').find('input[type="number"]').each(function() {
-				if ($(this).attr('scale') == "nano" || $(this).attr('scale') == "micro") {
-					first_val *= $(this).attr('factor');
-				} else {
-					first_val += $(this).val()*$(this).attr('factor');
-				}
-
-			});
+			var microdatetime = get_time_from_slider('first');
 			if($("#"+controller+"FirstSeen").val() !== '') {
-				var the_date = $("#"+controller+"FirstSeen").val().slice(0, 10);
-				$("#"+controller+"FirstSeen").val(the_date + '@' + new NanoDatetime(first_val).get_time_str());
+				$("#"+controller+"FirstSeen").val(microdatetime.get_microISO());
 			}
 		}
 
 		if (seen == 'both' || seen == 'last') {
-			var last_val = 0;
-			$('#precision_tool_last').find('input[type="number"]').each(function() {
-				if ($(this).attr('scale') == "nano" || $(this).attr('scale') == "micro") {
-					last_val *= $(this).attr('factor');
-				} else {
-					last_val += $(this).val()*$(this).attr('factor');
-				}
-				//last_val += $(this).val()*$(this).attr('factor');
-			});
+			var microdatetime = get_time_from_slider('last');
 			if($("#"+controller+"LastSeen").val() !== '') {
-				var the_date = $("#"+controller+"LastSeen").val().slice(0, 10);
-				$("#"+controller+"LastSeen").val(the_date + '@' + new NanoDatetime(last_val).get_time_str());
+				$("#"+controller+"LastSeen").val(microdatetime.get_microISO());
 			}
 		}
 	}
@@ -236,7 +166,17 @@ function reflect_change_on_input(seen) {
 $(document).ready(function() {
 	$('.input-daterange').datepicker({
 		preventMultipleSet: true,
-		format: 'mm/dd/yyyy',
+		//format: 'mm/dd/yyyy',
+		format: {
+			toDisplay: function(date, format, lang) {
+				var d = moment(date.toISOString(true));
+				return d.toISOString(true);
+			},
+			toValue: function(str, format, lang) {
+				var ret = typeof str === 'object' ? str : new MicroDatetime(str).moment;
+				return new Date(ret.valueOf());
+			}
+		},
 		todayHighlight: true
 	});
 	
@@ -300,16 +240,16 @@ $(document).ready(function() {
 		$('#precision_tool').show();
 	});
 	
-	$('#'+controller+'FirstSeen').on("focusout", function(event) {
-		if ($('#seen_precision_tool').prop('checked')) {
-			reflect_change_on_input('first');
-		}
-	});
-	$('#'+controller+'LastSeen').on("focusout", function(event) {
-		if ($('#seen_precision_tool').prop('checked')) {
-			reflect_change_on_input('last');
-		}
-	});
+	//$('#'+controller+'FirstSeen').on("focusout", function(event) {
+	//	if ($('#seen_precision_tool').prop('checked')) {
+	//		//reflect_change_on_input('first');
+	//	}
+	//});
+	//$('#'+controller+'LastSeen').on("focusout", function(event) {
+	//	if ($('#seen_precision_tool').prop('checked')) {
+	//		//reflect_change_on_input('last');
+	//	}
+	//});
 
 	$('#'+controller+'LastSeen').on("paste", function(event) {
 		// prefetch clipboard text and apply change

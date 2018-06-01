@@ -929,12 +929,12 @@ class AppModel extends Model {
 					) ENGINE=InnoDB DEFAULT CHARSET=utf8;';
 				break;
 			case 9:
-				$sqlArray[] = "ALTER TABLE `attributes` ADD `first_seen` BIGINT(64) NULL DEFAULT NULL;";
-				$sqlArray[] = "ALTER TABLE `attributes` ADD `last_seen` BIGINT(64) NULL DEFAULT NULL;";
+				$sqlArray[] = "ALTER TABLE `attributes` ADD `first_seen` DATETIME NULL DEFAULT NULL;";
+				$sqlArray[] = "ALTER TABLE `attributes` ADD `last_seen` DATETIME NULL DEFAULT NULL;";
 				$indexArray[] = array('attributes', 'first_seen');
 				$indexArray[] = array('attributes', 'last_seen');
-				$sqlArray[] = "ALTER TABLE `objects` ADD `first_seen` BIGINT(64) NULL DEFAULT NULL;";
-				$sqlArray[] = "ALTER TABLE `objects` ADD `last_seen` BIGINT(64) NULL DEFAULT NULL;";
+				$sqlArray[] = "ALTER TABLE `objects` ADD `first_seen` DATETIME NULL DEFAULT NULL;";
+				$sqlArray[] = "ALTER TABLE `objects` ADD `last_seen` DATETIME NULL DEFAULT NULL;";
 				$indexArray[] = array('objects', 'first_seen');
 				$indexArray[] = array('objects', 'last_seen');
 				break;

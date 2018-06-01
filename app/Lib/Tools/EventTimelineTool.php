@@ -100,10 +100,10 @@
 
 				foreach($obj['Attribute'] as $obj_attr) {
 					if ($obj_attr['object_relation'] == 'first-seen') {
-						$toPush_obj['first_seen'] = $this->__eventModel->Attribute->toNanoTimestamp($obj_attr['value']); // replace first_seen of the object to seen of the element
+						$toPush_obj['first_seen'] = $obj_attr['value']; // replace first_seen of the object to seen of the element
 						$toPush_obj['first_seen_overwritten'] = $obj_attr['id'];
 					} else if ($obj_attr['object_relation'] == 'last-seen') {
-						$toPush_obj['last_seen'] = $this->__eventModel->Attribute->toNanoTimestamp($obj_attr['value']); // replace last_seen of the object to seen of the element
+						$toPush_obj['last_seen'] = $obj_attr['value']; // replace last_seen of the object to seen of the element
 						$toPush_obj['last_seen_overwritten'] = $obj_attr['id'];
 					}
 					$toPush_attr = array(

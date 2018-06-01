@@ -67,11 +67,11 @@ class MispObject extends AppModel {
 		}
 		// parse first_seen different formats
 		if (isset($this->data[$this->alias]['first_seen'])) {
-			$this->data[$this->alias]['first_seen'] = $this->Attribute->toNanoTimestamp($this->data[$this->alias]['first_seen']);
+			$this->data[$this->alias]['first_seen'] = $this->data[$this->alias]['first_seen'] === '' ? null : $this->data[$this->alias]['first_seen'];
 		}
 		// parse last_seen different formats
 		if (isset($this->data[$this->alias]['last_seen'])) {
-			$this->data[$this->alias]['last_seen'] = $this->Attribute->toNanoTimestamp($this->data[$this->alias]['last_seen']);
+			$this->data[$this->alias]['last_seen'] = $this->data[$this->alias]['last_seen'] === '' ? null : $this->data[$this->alias]['last_seen'];
 		}
 
 		if (empty($this->data[$this->alias]['template_version'])) {
