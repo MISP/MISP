@@ -39,6 +39,7 @@ from cybox.objects.socket_address_object import SocketAddress
 from cybox.objects.network_connection_object import NetworkConnection
 from cybox.objects.network_socket_object import NetworkSocket
 from cybox.objects.process_object import Process
+from cybox.objects.whois_object import WhoisEntry, WhoisRegistrants, WhoisRegistrant, WhoisRegistrar, WhoisNameservers
 from cybox.objects.win_service_object import WinService
 from cybox.objects.x509_certificate_object import X509Certificate, X509CertificateSignature, X509Cert, SubjectPublicKey, RSAPublicKey, Validity
 from cybox.objects.custom_object import Custom
@@ -149,6 +150,7 @@ class StixBuilder(object):
                                  "process": self.parse_process_object,
                                  "registry-key": self.parse_regkey_object,
                                  "url": self.parse_url_object,
+                                 "whois": self.parse_whois,
                                  "x509": self.parse_x509_object
                                  }
 
@@ -188,17 +190,25 @@ class StixBuilder(object):
         incident_id = "{}:incident-{}".format(namespace[1], self.misp_event.uuid)
         incident = Incident(id_=incident_id, title=self.misp_event.info)
         self.set_dates(incident, self.misp_event.date, self.misp_event.publish_timestamp)
+        self.history = History()
         threat_level_name = threat_level_mapping.get(str(self.misp_event.threat_level_id), None)
         if threat_level_name:
             threat_level_s = "Event Threat Level: {}".format(threat_level_name)
-            self.add_journal_entry(incident, threat_level_s)
+            self.add_journal_entry(threat_level_s)
         Tags = {}
-        event_tags = self.misp_event.Tag
-        if event_tags:
+        if self.misp_event.Tag:
+            event_tags = self.misp_event.Tag
             Tags['event'] = event_tags
-        for tag in event_tags:
-            tag_name = "MISP Tag: {}".format(tag['name'])
-            self.add_journal_entry(incident, tag_name)
+            labels = []
+            for tag in event_tags:
+                labels.append(tag.name)
+            if 'misp:tool="misp2stix"' not in labels:
+                self.add_journal_entry('MISP Tag: misp:tool="misp2stix"')
+            for label in labels:
+                tag_name = "MISP Tag: {}".format(label)
+                self.add_journal_entry(tag_name)
+        else:
+            self.add_journal_entry('MISP Tag: misp:tool="misp2stix"')
         external_id = ExternalID(value=str(self.misp_event.id), source="MISP Event")
         incident.add_external_id(external_id)
         incident_status_name = status_mapping.get(str(self.misp_event.analysis), None)
@@ -215,6 +225,8 @@ class StixBuilder(object):
         self.resolve_attributes(incident, Tags)
         self.resolve_objects(incident, Tags)
         self.add_related_indicators(incident)
+        if self.history.history_items:
+            incident.history = self.history
         return incident
 
     def convert_to_stix_date(self, date):
@@ -238,7 +250,7 @@ class StixBuilder(object):
                 else:
                     journal_entry = "!Not implemented attribute category/type combination caught! attribute[{}][{}]: {}".format(attribute.category,
                     attribute_type, attribute.value)
-                    self.add_journal_entry(incident, journal_entry)
+                    self.add_journal_entry(journal_entry)
             elif attribute_type in non_indicator_attributes:
                 self.handle_non_indicator_attribute(incident, attribute, tags)
             else:
@@ -352,7 +364,7 @@ class StixBuilder(object):
                     incident.attributed_threat_actors = ata
             else:
                 entry_line = "attribute[{}][{}]: {}".format(attribute_category, attribute_type, attribute.value)
-                self.add_journal_entry(incident, entry_line)
+                self.add_journal_entry(entry_line)
         elif attribute_type == "target-machine":
             aa = AffectedAsset()
             description = attribute.value
@@ -804,6 +816,57 @@ class StixBuilder(object):
             return observables[0]
         return to_ids, self.create_observable_composition(observables, uuid, "url")
 
+    def parse_whois(self, attributes, uuid):
+        to_ids, attributes_dict = self.create_attributes_dict_multiple(attributes)
+        n_attribute = len(attributes_dict)
+        whois_object = WhoisEntry()
+        for attribute in attributes_dict:
+            if "registrant-" in attribute:
+                whois_object.registrants = self.fill_whois_registrants(attributes_dict)
+                break
+        if  'registrar' in attributes_dict:
+            whois_registrar = WhoisRegistrar()
+            whois_registrar.name = attributes_dict['registrar'][0]
+            whois_object.registrar_info = whois_registrar
+        if 'creation-date' in attributes_dict:
+            whois_object.creation_date = attributes_dict['creation-date'][0]
+        if 'modification-date' in attributes_dict:
+            whois_object.updated_date = attributes_dict['modification-date'][0]
+        if 'expiration-date' in attributes_dict:
+            whois_object.expiration_date = attributes_dict['expiration-date'][0]
+        if 'nameserver' in attributes_dict:
+            whois_nameservers = WhoisNameservers()
+            for nameserver in attributes_dict['nameserver']:
+                whois_nameservers.append(URI(value=nameserver))
+            whois_object.nameservers = whois_nameservers
+        if 'domain' in attributes_dict:
+            whois_object.domain_name = URI(value=attributes_dict['domain'][0])
+        if 'ip-address' in attributes_dict:
+            whois_object.ip_address = Address(address_value=attributes_dict['ip-address'][0])
+        if 'comment' in attributes_dict:
+            whois_object.remarks = attributes_dict['comment']
+        elif 'text' in attributes_dict:
+            whois_object.remarks = attributes_dict['text']
+        whois_object.parent.id_ = "{}:WhoisObject-{}".format(self.namespace_prefix, uuid)
+        observable = Observable(whois_object)
+        observable.id_ = "{}:Whois-{}".format(self.namespace_prefix, uuid)
+        return to_ids, observable
+
+    @staticmethod
+    def fill_whois_registrants(attributes):
+        registrants = WhoisRegistrants()
+        registrant = WhoisRegistrant()
+        if 'registrant-name' in attributes:
+            registrant.name = attributes['registrant-name'][0]
+        if 'registrant-phone' in attributes:
+            registrant.phone_number = attributes['registrant-phone'][0]
+        if 'registrant-email' in attributes:
+            registrant.email_address = attributes['registrant-email'][0]
+        if 'registrant-org' in attributes:
+            registrant.organization = attributes['registrant-org'][0]
+        registrants.append(registrant)
+        return registrants
+
     def parse_x509_object(self, attributes, uuid):
         to_ids, attributes_dict = self.create_x509_attributes_dict(attributes)
         x509_object = X509Certificate()
@@ -1030,23 +1093,19 @@ class StixBuilder(object):
             if event_colors:
                 color = self.set_color(event_colors)
             else:
-                color = TLP_mapping.get(str(self.misp_event.distribution), None)
-        if color is None:
-            return
-        tlp.color = color
-        marking_specification.marking_structures.append(tlp)
-        handling = Marking()
-        handling.add_marking(marking_specification)
-        return handling
+                color = TLP_mapping.get(str(distribution), None)
+        if color is not None:
+            tlp.color = color
+            marking_specification.marking_structures.append(tlp)
+            handling = Marking()
+            handling.add_marking(marking_specification)
+            return handling
+        return
 
-    @staticmethod
-    def add_journal_entry(incident, entry_line):
+    def add_journal_entry(self, entry_line):
         hi = HistoryItem()
         hi.journal_entry = entry_line
-        try:
-            incident.history.append(hi)
-        except AttributeError:
-            incident.history = History(hi)
+        self.history.append(hi)
 
     @staticmethod
     def add_reference(target, reference):

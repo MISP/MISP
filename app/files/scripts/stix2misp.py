@@ -36,7 +36,9 @@ eventTypes = {"ArtifactObjectType": {"type": "attachment", "relation": "attachme
 
 cybox_to_misp_object = {"EmailMessage": "email", "NetworkConnection": "network-connection",
                         "NetworkSocket": "network-socket", "Process": "process",
-                        "x509Certificate": "x509"}
+                        "x509Certificate": "x509", "Whois": "whois"}
+
+threat_level_mapping = {'High': '1', 'Medium': '2', 'Low': '3', 'Undefined': '4'}
 
 descFilename = os.path.join(__path__[0], 'data/describeTypes.json')
 with open(descFilename, 'r') as f:
@@ -61,14 +63,16 @@ class StixParser():
             else:
                 fromMISP = False
             if fromMISP:
-                self.event = event.related_packages.related_package[0].item.incidents[0]
+                package = event.related_packages.related_package[0].item
+                self.event = package.incidents[0]
+                self.ttps = package.ttps.ttps if package.ttps else None
             else:
                 self.event = event
             self.fromMISP = fromMISP
             self.filename = filename
             self.load_mapping()
         except:
-            print(json.dumps({'success': 0, 'message': 'The temporary STIX export file could not be read'}))
+            print(json.dumps({'success': 0, 'message': 'The STIX file cannot be read'}))
             sys.exit(0)
 
     # Event loading function, recursively itterating as long as namespace errors appear
@@ -139,6 +143,43 @@ class StixParser():
         if self.event.related_observables:
             for observable in self.event.related_observables.observable:
                 self.parse_misp_observable(observable)
+        if self.event.history:
+            self.parse_journal_entries()
+        if self.event.information_source and self.event.information_source.references:
+            for reference in self.event.information_source.references:
+                self.misp_event.add_attribute(**{'type': 'link', 'value': reference})
+        if self.ttps:
+            for ttp in self.ttps:
+                if ttp.exploit_targets:
+                    self.parse_vulnerability(ttp.exploit_targets.exploit_target)
+                # if ttp.handling:
+                #     self.parse_tlp_marking(ttp.handling)
+
+    def parse_journal_entries(self):
+        for entry in self.event.history.history_items:
+            journal_entry = entry.journal_entry.value
+            entry_type, entry_value = journal_entry.split(': ')
+            if entry_type == "MISP Tag":
+                self.parse_tag(entry_value)
+            elif entry_type.startswith('attribute['):
+                _, category, attribute_type = entry_type.split('[')
+                self.misp_event.add_attribute(**{'type': attribute_type[:-1], 'category': category[:-1], 'value': entry_value})
+            elif entry_type == "Event Threat Level":
+                self.misp_event.threat_level_id = threat_level_mapping[entry_value]
+
+    def parse_tag(self, entry):
+        if entry.startswith('misp-galaxy:'):
+            tag_type, value = entry.split('=')
+            galaxy_type = tag_type.split(':')[1]
+            cluster = {'type': galaxy_type, 'value': value[1:-1], 'tag_name': entry}
+            self.misp_event['Galaxy'].append({'type': galaxy_type, 'GalaxyCluster': [cluster]})
+        self.misp_event.add_tag(entry)
+
+    def parse_vulnerability(self, exploit_targets):
+        for exploit_target in exploit_targets:
+            if exploit_target.item:
+                for vulnerability in exploit_target.item.vulnerabilities:
+                    self.misp_event.add_attribute(**{'type': 'vulnerability', 'value': vulnerability.cve_id})
 
     # Try to parse data from external STIX documents
     def buildExternalDict(self):
@@ -643,33 +684,41 @@ class StixParser():
     def handle_whois(self, properties):
         required_one_of = False
         attributes = []
-        if properties.remarks:
-            attribute_type = "text"
-            attributes.append([attribute_type, properties.remarks.value, attribute_type])
-            required_one_of = True
         if properties.registrar_info:
             attribute_type = "whois-registrar"
             attributes.append([attribute_type, properties.registrar_info.value, attribute_type])
             required_one_of = True
         if properties.registrants:
-            # ATM: need to see how it looks like in a real example
-            print(dir(properties.registrants))
+            registrant = properties.registrants[0]
+            if registrant.email_address:
+                attributes.append(["whois-registrant-email", registrant.email_address.address_value.value, "registrant-email"])
+            if registrant.name:
+                attributes.append(["whois-registrant-name", registrant.name.value, "registrant-name"])
+            if registrant.phone_number:
+                attributes.append(["whois-registrant-phone", registrant.phone_number.value, "registrant-phone"])
+            if registrant.organization:
+                attributes.append(["whois-registrant-org", registrant.organization.value, "registrant-org"])
         if properties.creation_date:
-            attributes.append(["datetime", properties.creation_date.value, "creation-date"])
+            attributes.append(["datetime", properties.creation_date.value.strftime('%Y-%m-%d'), "creation-date"])
             required_one_of = True
         if properties.updated_date:
-            attributes.append(["datetime", properties.updated_date.value, "modification-date"])
+            attributes.append(["datetime", properties.updated_date.value.strftime('%Y-%m-%d'), "modification-date"])
         if properties.expiration_date:
-            attributes.append(["datetime", properties.expiration_date.value, "expiration-date"])
+            attributes.append(["datetime", properties.expiration_date.value.strftime('%Y-%m-%d'), "expiration-date"])
         if properties.nameservers:
             for nameserver in properties.nameservers:
                 attributes.append(["hostname", nameserver.value.value, "nameserver"])
         if properties.ip_address:
-            attributes.append(["ip-dst", properties.ip_address.value, "ip-address"])
+            attributes.append(["ip-src", properties.ip_address.address_value.value, "ip-address"])
             required_one_of = True
         if properties.domain_name:
             attribute_type = "domain"
-            attributes.append([attribute_type, properties.domain_name.value, attribute_type])
+            attributes.append([attribute_type, properties.domain_name.value.value, attribute_type])
+            required_one_of = True
+        if properties.remarks:
+            attribute_type = "text"
+            relation = "comment" if attributes else attribute_type
+            attributes.append([attribute_type, properties.remarks.value, relation])
             required_one_of = True
         # Testing if we have the required attribute types for Object whois
         if required_one_of:
