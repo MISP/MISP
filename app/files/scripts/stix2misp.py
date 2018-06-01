@@ -354,6 +354,8 @@ class StixParser():
     # Return type & value of an attachment attribute
     @staticmethod
     def handle_attachment(properties, title):
+        if properties.hashes:
+            return "malware-sample", "{}|{}".format(title, properties.hashes[0], properties.raw_artifact.value)
         return eventTypes[properties._XSI_TYPE]['type'], title, properties.raw_artifact.value
 
     # Return type & attributes (or value) of a Custom Object
