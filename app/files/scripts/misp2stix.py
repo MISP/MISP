@@ -923,7 +923,7 @@ class StixBuilder(object):
 
     def resolve_attachment(self, attribute):
         attribute_uuid = attribute.uuid
-        if attribute.data:
+        if 'data' in attribute and attribute.data:
             artifact_object = self.create_artifact_object(attribute.to_dict()['data'])
             artifact_object.parent.id_ = "{}:ArtifactObject-{}".format(self.namespace_prefix, attribute_uuid)
             observable = Observable(artifact_object)
@@ -1027,7 +1027,7 @@ class StixBuilder(object):
         return ciq_identity
 
     def resolve_malware_sample(self, attribute):
-        if attribute.data:
+        if 'data' in attribute and attribute.data:
             filename, h_value = attribute.value.split('|')
             artifact_object = self.create_artifact_object(attribute.to_dict()['data'])
             artifact_object.hashes = HashList(Hash(hash_value=h_value, exact=True))
