@@ -457,9 +457,11 @@ class Warninglist extends AppModel{
 
 	public function filterWarninglistAttributes($warninglists, $attribute) {
 		foreach ($warninglists as $warninglist) {
-			$result = $this->__checkValue($warninglist['values'], $attribute['value'], $attribute['type'], $warninglist['Warninglist']['type']);
-			if ($result !== false) {
-				return false;
+			if (in_array('ALL', $warninglist['types']) || in_array($attribute['type'], $warninglist['types'])) {
+				$result = $this->__checkValue($warninglist['values'], $attribute['value'], $attribute['type'], $warninglist['Warninglist']['type']);
+				if ($result !== false) {
+					return false;
+				}
 			}
 		}
 		return true;
