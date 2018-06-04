@@ -354,6 +354,8 @@ class StixParser():
     # Return type & value of an attachment attribute
     @staticmethod
     def handle_attachment(properties, title):
+        if properties.hashes:
+            return "malware-sample", "{}|{}".format(title, properties.hashes[0], properties.raw_artifact.value)
         return eventTypes[properties._XSI_TYPE]['type'], title, properties.raw_artifact.value
 
     # Return type & attributes (or value) of a Custom Object
@@ -402,37 +404,32 @@ class StixParser():
 
     # Return type & value of an email attribute
     def handle_email_attribute(self, properties):
-        try:
-            if properties.from_:
-                return "email-src", properties.from_.address_value.value, "from"
-        except:
-            pass
-        try:
-            if properties.to:
-                return "email-dst", properties.to[0].address_value.value, "to"
-        except:
-            pass
-        try:
-            if properties.subject:
-                return "email-subject", properties.subject.value, "subject"
-        except:
-            pass
-        try:
-            if properties.attachments:
-                return self.handle_email_attachment(properties.parent)
-        except:
-            pass
-        try:
-            if properties.header:
-                header = properties.header
-                if header.reply_to:
-                    return "email-reply-to", header.reply_to.address_value.value, "reply-to"
-        except:
-            pass
-        # ATM USED TO TEST EMAIL PROPERTIES
-        print("Unsupported Email property")
-        print(properties.to_json())
-        sys.exit(1)
+        attributes = []
+        if properties.header:
+            header = properties.header
+            if header.from_:
+                attributes.append(["email-src", header.from_.address_value.value, "from"])
+            if header.to:
+                for to in header.to:
+                    attributes.append(["email-dst", to.address_value.value, "to"])
+            if header.cc:
+                for cc in header.cc:
+                    attributes.append(["email-dst", cc.address_value.value, "cc"])
+            if header.reply_to:
+                attributes.append(["email-reply-to", header.reply_to.address_value.value, "reply-to"])
+            if header.subject:
+                attributes.append(["email-subject", header.subject.value, "subject"])
+            if header.x_mailer:
+                attributes.append(["email-x-mailer", header.x_mailer.value, "x-mailer"])
+            if header.boundary:
+                attributes.append(["email-mime-boundary", header.boundary.value, "mime-boundary"])
+            if header.user_agent:
+                attributes.append(["text", header.user_agent.value, "user-agent"])
+        if properties.attachments:
+            attributes.append([self.handle_email_attachment(properties.parent)])
+        if len(attributes) == 1:
+            return attributes[0]
+        return "email", self.return_attributes(attributes), ""
 
     # Return type & value of an email attachment
     @staticmethod

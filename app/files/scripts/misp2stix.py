@@ -27,7 +27,7 @@ from cybox.objects.hostname_object import Hostname
 from cybox.objects.uri_object import URI
 from cybox.objects.pipe_object import Pipe
 from cybox.objects.mutex_object import Mutex
-from cybox.objects.artifact_object import Artifact
+from cybox.objects.artifact_object import Artifact, RawArtifact
 from cybox.objects.memory_object import Memory
 from cybox.objects.email_message_object import EmailMessage, EmailHeader, EmailRecipients, Attachments
 from cybox.objects.domain_name_object import DomainName
@@ -43,7 +43,7 @@ from cybox.objects.whois_object import WhoisEntry, WhoisRegistrants, WhoisRegist
 from cybox.objects.win_service_object import WinService
 from cybox.objects.x509_certificate_object import X509Certificate, X509CertificateSignature, X509Cert, SubjectPublicKey, RSAPublicKey, Validity
 from cybox.objects.custom_object import Custom
-from cybox.common import Hash, ByteRun, ByteRuns
+from cybox.common import Hash, HashList, ByteRun, ByteRuns
 from cybox.common.object_properties import CustomProperties,  Property
 from stix.extensions.test_mechanism.snort_test_mechanism import *
 from stix.extensions.identity.ciq_identity_3_0 import CIQIdentity3_0Instance, STIXCIQIdentity3_0, PartyName, ElectronicAddressIdentifier, FreeTextAddress
@@ -68,9 +68,9 @@ confidence_mapping = {False : 'None', True : 'High'}
 
 not_implemented_attributes = ['yara', 'snort', 'pattern-in-traffic', 'pattern-in-memory']
 
-non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', 'target-email', 'target-machine', 'target-org', 'target-location', 'target-external', 'vulnerability', 'attachment']
+non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', 'target-email', 'target-machine', 'target-org', 'target-location', 'target-external', 'vulnerability']
 
-hash_type_attributes = {"single":["md5", "sha1", "sha224", "sha256", "sha384", "sha512", "sha512/224", "sha512/256", "ssdeep", "imphash", "authentihash", "pehash", "tlsh", "x509-fingerprint-sha1"], "composite": ["filename|md5", "filename|sha1", "filename|sha224", "filename|sha256", "filename|sha384", "filename|sha512", "filename|sha512/224", "filename|sha512/256", "filename|authentihash", "filename|ssdeep", "filename|tlsh", "filename|imphash", "filename|pehash", "malware-sample"]}
+hash_type_attributes = {"single":["md5", "sha1", "sha224", "sha256", "sha384", "sha512", "sha512/224", "sha512/256", "ssdeep", "imphash", "authentihash", "pehash", "tlsh", "x509-fingerprint-sha1"], "composite": ["filename|md5", "filename|sha1", "filename|sha224", "filename|sha256", "filename|sha384", "filename|sha512", "filename|sha512/224", "filename|sha512/256", "filename|authentihash", "filename|ssdeep", "filename|tlsh", "filename|imphash", "filename|pehash"]}
 
 # mapping for the attributes that can go through the simpleobservable script
 misp_cybox_name = {"domain" : "DomainName", "hostname" : "Hostname", "url" : "URI", "AS" : "AutonomousSystem", "mutex" : "Mutex",
@@ -131,7 +131,7 @@ class StixBuilder(object):
         self.namespace_prefix = idgen.get_id_namespace_alias()
         ## MAPPING FOR ATTRIBUTES
         self.simple_type_to_method = {"port": self.generate_port_observable, "domain|ip": self.generate_domain_ip_observable}
-        self.simple_type_to_method.update(dict.fromkeys(hash_type_attributes["single"] + hash_type_attributes["composite"] + ["filename"] + ["attachment"], self.resolve_file_observable))
+        self.simple_type_to_method.update(dict.fromkeys(hash_type_attributes["single"] + hash_type_attributes["composite"] + ["filename"], self.resolve_file_observable))
         self.simple_type_to_method.update(dict.fromkeys(["ip-src", "ip-dst"], self.generate_ip_observable))
         self.simple_type_to_method.update(dict.fromkeys(["ip-src|port", "ip-dst|port", "hostname|port"], self.generate_socket_address_observable))
         self.simple_type_to_method.update(dict.fromkeys(["regkey", "regkey|value"], self.generate_regkey_observable))
@@ -140,6 +140,9 @@ class StixBuilder(object):
         self.simple_type_to_method.update(dict.fromkeys(["http-method", "user-agent"], self.resolve_http_observable))
         self.simple_type_to_method.update(dict.fromkeys(["pattern-in-file", "pattern-in-traffic", "pattern-in-memory"], self.resolve_pattern_observable))
         self.simple_type_to_method.update(dict.fromkeys(["mac-address"], self.resolve_system_observable))
+        self.simple_type_to_method.update(dict.fromkeys(["attachment"], self.resolve_attachment))
+        self.simple_type_to_method.update(dict.fromkeys(["email-attachment"], self.generate_email_attachment_observable))
+        self.simple_type_to_method.update(dict.fromkeys(["malware-sample"], self.resolve_malware_sample))
         ## MAPPING FOR OBJECTS
         self.objects_mapping = {"domain-ip": self.parse_domain_ip_object,
                                  "email": self.parse_email_object,
@@ -254,7 +257,7 @@ class StixBuilder(object):
             elif attribute_type in non_indicator_attributes:
                 self.handle_non_indicator_attribute(incident, attribute, tags)
             else:
-                self.handle_indicator_attribute(incident, attribute, tags)
+                self.handle_attribute(incident, attribute, tags)
 
     def resolve_objects(self, incident, tags):
         for misp_object in self.misp_event.objects:
@@ -307,39 +310,23 @@ class StixBuilder(object):
                 ittp = TTP(idref=ttp.id_, timestamp=ttp.timestamp)
                 rindicator.item.add_indicated_ttp(ittp)
 
-    def handle_indicator_attribute(self, incident, attribute, tags):
-        if attribute.to_ids:
-            indicator = self.generate_indicator(attribute, tags)
-            indicator.add_indicator_type("Malware Artifacts")
-            try:
-                indicator.add_indicator_type(misp_indicator_type[attribute.type])
-            except:
-                pass
-            indicator.add_valid_time_position(ValidTime())
-            observable = self.handle_attribute(attribute)
-            if observable:
-              indicator.add_observable(observable)
-            if 'data' in attribute and attribute.type == "malware-sample":
-                artifact = self.create_artifact_object(attribute)
-                indicator.add_observable(artifact)
-            related_indicator = RelatedIndicator(indicator, relationship=attribute.category)
-            incident.related_indicators.append(related_indicator)
-        else:
-            observable = self.handle_attribute(attribute)
+    def handle_attribute(self, incident, attribute, tags):
+        observable = self.generate_observable(attribute)
         if observable:
-              related_observable = RelatedObservable(observable, relationship=attribute.category)
-              incident.related_observables.append(related_observable)
-              if 'data' in attribute and attribute.type == "malware-sample":
-                artifact = self.create_artifact_object(attribute)
-                related_artifact = RelatedObservable(artifact)
-                incident.related_observables.append(related_artifact)
-
-    def handle_attribute(self, attribute):
-        if attribute.type == 'email-attachment':
-            observable = self.generate_email_attachment_object(attribute)
-        else:
-            observable = self.generate_observable(attribute)
-        return observable
+            if attribute.to_ids:
+                indicator = self.generate_indicator(attribute, tags)
+                indicator.add_indicator_type("Malware Artifacts")
+                try:
+                    indicator.add_indicator_type(misp_indicator_type[attribute.type])
+                except:
+                    pass
+                indicator.add_valid_time_position(ValidTime())
+                indicator.add_observable(observable)
+                related_indicator = RelatedIndicator(indicator, relationship=attribute.category)
+                incident.related_indicators.append(related_indicator)
+            else:
+                related_observable = RelatedObservable(observable, relationship=attribute.category)
+                incident.related_observables.append(related_observable)
 
     def handle_non_indicator_attribute(self, incident, attribute, tags):
         attribute_type = attribute.type
@@ -374,23 +361,12 @@ class StixBuilder(object):
             incident.affected_assets.append(aa)
         elif attribute_type.startswith('target-'):
             incident.add_victim(self.resolve_identity_attribute(attribute))
-        elif attribute_type == "attachment":
-            observable = self.return_attachment_composition(attribute)
-            related_observable = RelatedObservable(observable,  relationship=attribute.category)
-            incident.related_observables.append(related_observable)
 
-    def create_artifact_object(self, attribute, artifact=None):
-        try:
-            artifact = Artifact(data=bytes(attribute.data, encoding='utf-8'))
-        except TypeError:
-            artifact = Artifact(data=bytes(attribute.data))
-        artifact.parent.id_ = "{}:ArtifactObject-{}".format(self.namespace_prefix, attribute.uuid)
-        observable = Observable(artifact)
-        id_type = "observable"
-        if artifact is not None:
-            id_type += "-artifact"
-        observable.id_ = "{}:{}-{}".format(self.namespace_prefix, id_type, attribute.uuid)
-        return observable
+    def create_artifact_object(self, data, artifact=None):
+        raw_artifact = RawArtifact(data)
+        artifact = Artifact()
+        artifact.raw_artifact = raw_artifact
+        return artifact
 
     def generate_domain_ip_observable(self, attribute):
         domain, ip = attribute.value.split('|')
@@ -410,7 +386,7 @@ class StixBuilder(object):
         observable.observable_composition = composite_object
         return observable
 
-    def generate_email_attachment_object(self, attribute):
+    def generate_email_attachment_observable(self, attribute):
         attribute_uuid = attribute.uuid
         file_object = File()
         file_object.file_name = attribute.value
@@ -422,7 +398,7 @@ class StixBuilder(object):
         email.attachments.append(file_object.parent.id_)
         email.parent.id_ = "{}:EmailMessageObject-{}".format(self.namespace_prefix, attribute_uuid)
         observable = Observable(email)
-        observable.id_ = "{}:observable-{}".format(self.namespace_prefix, attribute_uuid)
+        observable.id_ = "{}:EmailMessage-{}".format(self.namespace_prefix, attribute_uuid)
         return observable
 
     def generate_file_observable(self, filename, h_value, fuzzy):
@@ -481,7 +457,7 @@ class StixBuilder(object):
             observable_property = self.simple_type_to_method[attribute_type](attribute)
         except KeyError:
             return False
-        if not observable_property or isinstance(observable_property, Observable):
+        if isinstance(observable_property, Observable):
             return observable_property
         observable_property.condition = "Equals"
         observable_object = Object(observable_property)
@@ -945,6 +921,22 @@ class StixBuilder(object):
             x509_validity.not_after = validity['validity-not-after']
         return x509_validity
 
+    def resolve_attachment(self, attribute):
+        attribute_uuid = attribute.uuid
+        if 'data' in attribute and attribute.data:
+            artifact_object = self.create_artifact_object(attribute.to_dict()['data'])
+            artifact_object.parent.id_ = "{}:ArtifactObject-{}".format(self.namespace_prefix, attribute_uuid)
+            observable = Observable(artifact_object)
+            observable.id_ = "{}:Artifact-{}".format(self.namespace_prefix, attribute_uuid)
+            observable.title = attribute.value
+        else:
+            file_object = File()
+            file_object.file_name = attribute.value
+            file_object.parent.id_ = "{}:FileObject-{}".format(self.namespace_prefix, attribute_uuid)
+            observable = Observable(file_object)
+            observable.id_ = "{}:File-{}".format(self.namespace_prefix, attribute_uuid)
+        return observable
+
     def resolve_email_observable(self, attribute):
         attribute_type = attribute.type
         email_object = EmailMessage()
@@ -971,7 +963,7 @@ class StixBuilder(object):
         fuzzy = False
         f, h = [""] * 2
         attribute_type = attribute.type
-        if attribute_type in hash_type_attributes['composite']:
+        if attribute_type in (hash_type_attributes['composite'], "malware-sample"):
             f, h = attribute.value.split('|')
             composite = attribute_type.split('|')
             if len(composite) > 1 and composite[1] == "ssdeep":
@@ -1034,6 +1026,18 @@ class StixBuilder(object):
         ciq_identity.name = "{}: {} (MISP Attribute #{})".format(attribute_type, attribute.value, attribute.id)
         return ciq_identity
 
+    def resolve_malware_sample(self, attribute):
+        if 'data' in attribute and attribute.data:
+            filename, h_value = attribute.value.split('|')
+            artifact_object = self.create_artifact_object(attribute.to_dict()['data'])
+            artifact_object.hashes = HashList(Hash(hash_value=h_value, exact=True))
+            artifact_object.parent.id_ = "{}:ArtifactObject-{}".format(self.namespace_prefix, attribute_uuid)
+            observable = Observable(artifact_object)
+            observable.id_ = "{}:Artifact-{}".format(self.namespace_prefix, attribute_uuid)
+            observable.title = filename
+            return observable
+        return self.resolve_file_observable(attribute)
+
     def resolve_pattern_observable(self, attribute):
         if attribute.type == "pattern-in-file":
             byte_run = ByteRun()
@@ -1056,24 +1060,6 @@ class StixBuilder(object):
         system_object.parent.id_ = "{}:SystemObject-{}".format(self.namespace_prefix, attribute.uuid)
         observable = Observable(system_object)
         observable.id_ = "{}:System-{}".format(self.namespace_prefix, attribute.uuid)
-        return observable
-
-    def return_attachment_composition(self, attribute):
-        file_object = File()
-        file_object.file_name = attribute.value
-        file_object.parent.id_ = "{}:FileObject-{}".format(self.namespace_prefix, attribute.uuid)
-        if 'data' in attribute:
-            observable_artifact = self.create_artifact_object(attribute, artifact="a")
-            observable_file = Observable(file_object)
-            observable_file.id_ = "{}:observable-file-{}".format(self.namespace_prefix, attribute.uuid)
-            observable = Observable()
-            composition = ObservableComposition(observables=[observable_artifact, observable_file])
-            observable.observable_composition = composition
-        else:
-            observable = Observable(file_object)
-        observable.id_ = "{}:File-{}".format(self.namespace_prefix, attribute.uuid)
-        if attribute.comment:
-            observable.description = attribute.comment
         return observable
 
     def set_rep(self):
