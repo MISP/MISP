@@ -1558,14 +1558,14 @@ class Event extends AppModel {
 					${'conditions' . $softDeletable . 's'}['AND'][] = array(
 						'OR' => array(
 							'(SELECT events.org_id FROM events WHERE events.id = ' . $softDeletable . '.event_id)' => $user['org_id'],
-							$softDeletable . '.deleted' => 0
+							$softDeletable . '.deleted LIKE' => 0
 						)
 					);
 				}
 			}
 		} else {
 			foreach ($softDeletables as $softDeletable) {
-				${'conditions' . $softDeletable . 's'}['AND'][$softDeletable . '.deleted'] = 0;
+				${'conditions' . $softDeletable . 's'}['AND'][$softDeletable . '.deleted LIKE'] = 0;
 			}
 		}
 		if ($options['idList'] && !$options['tags']) {
