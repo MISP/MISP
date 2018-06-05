@@ -1694,7 +1694,6 @@ class Event extends AppModel {
 				$event['Event']['event_creator_email'] = $userEmails[$event['Event']['user_id']];
 			}
 			$event = $this->massageTags($event, 'Event', $options['excludeGalaxy']);
-
 			// Let's find all the related events and attach it to the event itself
 			$results[$eventKey]['RelatedEvent'] = $this->getRelatedEvents($user, $event['Event']['id'], $sgids);
 			// Let's also find all the relations for the attributes - this won't be in the xml export though
@@ -1766,26 +1765,29 @@ class Event extends AppModel {
 						}
 					}
 					if (!$flatten && $event['Attribute'][$key]['object_id'] != 0) {
-						if (!empty($event['Object'])) {
-							$event['Object'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['Object'], $sharingGroupData);
-							foreach ($event['Object'] as $objectKey => $objectValue) {
-								if (!empty($event['Object'][$objectKey]['Attribute'])) {
-									$event['Object'][$objectKey]['Attribute'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['Object'][$objectKey]['Attribute'], $sharingGroupData);
-									foreach ($event['Object'][$objectKey]['Attribute'] as $akey => $adata) {
-										if ($adata['category'] === 'Financial fraud') {
-											$event['Object'][$objectKey]['Attribute'][$akey] = $this->Attribute->attachValidationWarnings($adata);
-										}
-									}
-								}
-								if ($event['Attribute'][$key]['object_id'] == $objectValue['id']) {
-									$event['Object'][$objectKey]['Attribute'][] = $event['Attribute'][$key];
-								}
+						foreach ($event['Object'] as $objectKey => $object) {
+							if ($object['id'] == $event['Attribute'][$key]['object_id']) {
+								$event['Object'][$objectKey]['Attribute'][] = $event['Attribute'][$key];
+								break;
 							}
 						}
 						unset($event['Attribute'][$key]);
 					}
 				}
 				$event['Attribute'] = array_values($event['Attribute']);
+			}
+			if (!empty($event['Object'])) {
+				$event['Object'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['Object'], $sharingGroupData);
+				foreach ($event['Object'] as $objectKey => $objectValue) {
+					if (!empty($event['Object'][$objectKey]['Attribute'])) {
+						$event['Object'][$objectKey]['Attribute'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['Object'][$objectKey]['Attribute'], $sharingGroupData);
+						foreach ($event['Object'][$objectKey]['Attribute'] as $akey => $adata) {
+							if ($adata['category'] === 'Financial fraud') {
+								$event['Object'][$objectKey]['Attribute'][$akey] = $this->Attribute->attachValidationWarnings($adata);
+							}
+						}
+					}
+				}
 			}
 			if (!empty($event['ShadowAttribute'])) {
 				if ($isSiteAdmin && isset($options['includeFeedCorrelations']) && $options['includeFeedCorrelations']) {
