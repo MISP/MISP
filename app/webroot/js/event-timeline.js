@@ -32,6 +32,13 @@ var options = {
 				break;
 		}
 	},
+	moment: function(date) {
+		if ($('#checkbox_timeline_display_gmt').prop('checked')) {
+			return vis.moment(date);
+		} else {
+			return vis.moment(date).utc();
+		}
+	},
 	verticalScroll: true,
 	zoomKey: 'altKey',
 	maxHeight: 400,
@@ -47,8 +54,8 @@ var options = {
 		return false;
     	},
 	onMove: function(item, callback) {
-		var newStart = datetimeTonanoTimestamp(item.start);
-		var newEnd = datetimeTonanoTimestamp(item.end);
+		var newStart = moment(item.start.toISOString());
+		var newEnd = (item.end !== undefined && item.end !== null) ? moment(item.end.toISOString()) : null;
 		if (item.first_seen != newStart) {
 			update_seen(item.group+'s', 'first', item.id, newStart, callback);
 		}
@@ -102,50 +109,15 @@ function collapseItem() {
 function expandItem() {
 	var itemID = $(this).data('itemid');
 	var item = items_timeline.get(itemID);
-	var next_step = get_next_step_nano(item.first_seen);
-	var fs = parseInt(item.first_seen);
-	var newEnd = fs+next_step;
+	var newEnd = get_next_step(item.first_seen);
 	update_seen(item.group+'s', 'last', item.id, newEnd, undefined);
 }
 
-function get_next_step_nano() {
-	var factor = 1000000; // to multiplie on milli to get nano;
-	var hourmilli = 1000*3600;
+function get_next_step(mom) {
 	var scale = eventTimeline.timeAxis.step.scale;
-	var step;
-	switch(scale) {
-		case 'millisecond':
-			step = factor*1;
-			break;
-		case 'second':
-			step = factor*1000;
-			break;
-		case 'minute':
-			step = factor*1000*60;
-			break;
-		case 'hour':
-			step = factor*hourmilli;
-			break;
-		case 'weekday':
-			step = factor*hourmilli*24;
-			break;
-		case 'day':
-			step = factor*hourmilli*24;
-			break;
-		case 'week':
-			step = factor*hourmilli*24*7;
-			break;
-		case 'month':
-			step = factor*hourmilli*24*7*30;
-			break;
-		case 'year':
-			step = factor*hourmilli*24*7*30*365;
-			break;
-		default:
-			step = factor*hourmilli*24;
-			break;
-	}
-	return step;
+	var momAhead = mom.clone();
+	momAhead.add(1, scale);
+	return momAhead;
 }
 
 function build_attr_template(attr) {
@@ -204,7 +176,7 @@ function quick_fetch_seen(itemType, seenType, item_id, callback) {
 		cache: false,
 		success:function (data, textStatus) {
 			seenTime = data.replace('&nbsp;', '');
-			seenTime = seenTime == '' ? null : parseInt(seenTime);
+			seenTime = seenTime == '' ? null : seenTime;
 			callback(seenTime);
 		},
 		complete: function () {
@@ -214,21 +186,21 @@ function quick_fetch_seen(itemType, seenType, item_id, callback) {
 	});
 }
 
-function update_seen(itemType, seenType, item_id, nanoTimestamp, callback) {
-	// determine whether the object's attribute should be updated instead of the first/last_seen value
+function update_seen(itemType, seenType, item_id, moment, callback) {
 	var item = items_timeline.get(item_id);
 	var reflect = true;
+	// determine whether the object's attribute should be updated instead of the first/last_seen value
 	if (item[seenType+'_seen_overwritten'] !== undefined) {
 		item_id = item[seenType+'_seen_overwritten']
 		itemType = 'attributes'
 		var compiled_url_form = "/" + itemType + "/fetchEditForm/" + item_id + "/" + "value";
 		var compiled_field_form_id = "value_field";
-		nanoTimestamp = nanoTimestampToDatetime(nanoTimestamp).toISOString();
 		reflect = false;
 	} else {
 		var compiled_url_form = "/" + itemType + "/fetchEditForm/" + item_id + "/" + seenType + "_seen";
 		var compiled_field_form_id = seenType+"_seen_field";
 	}
+	var momentISO = moment !== null ? moment.toISOString() : null;
 	var fieldIdItemType = itemType.charAt(0).toUpperCase() + itemType.slice(1, -1); //  strip 's' and uppercase first char
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
@@ -241,10 +213,8 @@ function update_seen(itemType, seenType, item_id, nanoTimestamp, callback) {
 			$(container_timeline).append(form);
 			form.css({display: 'none'});
 			var attr_id = item_id;
-			console.log(form);
 			var field = form.find("#"+fieldIdItemType+"_"+attr_id+"_"+compiled_field_form_id);
-			console.log(field);
-			var the_time = nanoTimestamp;
+			var the_time = momentISO;
 			field.val(the_time);
 			// submit the form
 			$.ajax({
@@ -266,78 +236,43 @@ function update_seen(itemType, seenType, item_id, nanoTimestamp, callback) {
 				url:"/" + itemType + "/" + "editField" + "/" + attr_id
 			});
 		},
-		complete: function () {
-			//$(".loadingTimeline").hide();
-		},
 		url: compiled_url_form,
 	});
 
 }
 
-function nanoTimestampToDatetime(timestamp) {
-	var factor = 0.000001; // 10^-6, fs and ls are expressed in 10^-9
-	var d = new Date(timestamp*factor);
-	if ($('#checkbox_timeline_display_gmt').prop('checked')) {
-		return d;
-	} else {
-		return new Date(d.getTime() + (d.getTimezoneOffset() * 60 * 1000)); // adjust to GMT
-	}
-}
-function timestampToDatetime(timestamp) {
+function timestampToMoment(timestamp) {
 	var factor = 1000;
-	var d = new Date(timestamp*factor);
-	if ($('#checkbox_timeline_display_gmt').prop('checked')) {
-		return d;
-	} else {
-		return new Date(d.getTime() + (d.getTimezoneOffset() * 60 * 1000)); // adjust to GMT
-	}
-}
-function datetimeTonanoTimestamp(d) {
-	if (d === null || d === undefined) {
-		return null;
-	}
-	var factor = 1000000;
-	if (!$('#checkbox_timeline_display_gmt').prop('checked')) {
-		d = new Date(d.getTime() + (d.getTimezoneOffset() * 60 * 1000)); // adjust to GMT
-	}
-	return d.getTime()*factor;
-}
-function datetimeToTimestamp(d) {
-	if (d === null || d === undefined) {
-		return null;
-	}
-	var factor = 0.001;
-	if (!$('#checkbox_timeline_display_gmt').prop('checked')) {
-		d = new Date(d.getTime() + (d.getTimezoneOffset() * 60 * 1000)); // adjust to GMT
-	}
-	return d.getTime()*factor;
+	var d = moment(timestamp*factor);
+	return d;
 }
 
 function set_spanned_time(item) {
 	var timestamp = item.timestamp;
-    	var fs = item.first_seen;
-    	var ls = item.last_seen;
+    	var fs = item.first_seen == null ? null :  moment(item.first_seen);
+    	var ls = item.last_seen == null ? null : moment(item.last_seen);
+	item.first_seen = fs;
+	item.last_seen = ls;
 
 	item.seen_enabled = false;
 	item.overwrite_enabled = false;
     	if (fs===null && ls===null) {
-		item.start = timestampToDatetime(timestamp);
+		item.start = timestampToMoment(timestamp);
 		item.type = 'box';
 
     	} else if (fs===null && ls!==null) {
-		item.start = timestampToDatetime(timestamp);
-		// item.end = nanoTimestampToDatetime(ls);
+		item.start = timestampToMoment(timestamp);
 		item.type = 'box';
 
     	} else if (ls===null && fs!==null) {
-		item.start = nanoTimestampToDatetime(fs);
+		item.start = fs;
 		item.seen_enabled = true;
 		delete item.end;
 		item.type = 'box';
 
     	} else { // fs and ls are defined
-		item.start = nanoTimestampToDatetime(fs);
-		item.end = nanoTimestampToDatetime(ls);
+		item.start = fs;
+		item.end = ls;
 		item.seen_enabled = true;
 		if (fs == ls) {
 			item.type = 'box';
@@ -345,7 +280,7 @@ function set_spanned_time(item) {
 			item.type = 'range';
 		}
 	}
-
+    
 	if (item.first_seen_overwritten !== undefined || item.last_seen_overwritten !== undefined) {
 		var e = $.extend({}, default_editable);
 		e.remove = false;
@@ -376,9 +311,9 @@ function adjust_text_length(elem) {
 
 function update_badge() {
 	if ($('#checkbox_timeline_display_gmt').prop('checked')) {
-		$("#timeline-display-badge").text("Timezone: " + ": " + new Date().toString().split(' ')[5]);
+		$("#timeline-display-badge").text("Timezone: " + ": " + moment().format('Z'));
 	} else {
-		$("#timeline-display-badge").text("Timezone: " + ": GMT+0000");
+		$("#timeline-display-badge").text("Timezone: " + ": " + moment().utc().format('Z (z)'));
 	}
 }
 
@@ -553,7 +488,9 @@ function init_popover() {
 		label: "Scope",
 		tooltip: "The time scope represented by the timeline",
 		event: function(value) {
-			reload_timeline();
+			if (value == "First seen/Last seen") {
+				reload_timeline();
+			}
 		},
 		options: ["First seen/Last seen"],
 		default: "First seen/Last seen"

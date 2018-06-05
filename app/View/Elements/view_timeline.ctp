@@ -4,7 +4,7 @@
 ?>
 
 <div>
-	<div class="eventgraph_header">
+	<div id="timeline-header" class="eventgraph_header">
 		<label id="timeline-scope" class="btn center-in-network-header network-control-btn">
 			<span class="useCursorPointer fa fa-object-group" style="margin-right: 3px;"></span><?php echo __('Time scope')?>
 		</label>
@@ -27,6 +27,7 @@
 </div>
 
 <?php 
+	echo $this->Html->script('moment-with-locales');
 	echo $this->Html->script('event-timeline');
 	echo $this->Html->css('event-timeline');
 ?>
