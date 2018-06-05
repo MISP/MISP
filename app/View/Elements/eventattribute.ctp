@@ -77,7 +77,11 @@
 <br />
 <div id="edit_object_div">
 	<?php
-		echo $this->Form->create('Attribute', array('id' => 'delete_selected', 'url' => '/attributes/deleteSelected/' . $event['Event']['id']));
+		$deleteSelectedUrl = '/attributes/deleteSelected/' . $event['Event']['id'];
+		if (empty($event['Event']['publish_timestamp'])) {
+			$deleteSelectedUrl .= '/1';
+		}
+		echo $this->Form->create('Attribute', array('id' => 'delete_selected', 'url' => $deleteSelectedUrl));
 		echo $this->Form->input('ids_delete', array(
 			'type' => 'text',
 			'value' => 'test',

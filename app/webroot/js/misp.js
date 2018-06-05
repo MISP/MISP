@@ -668,21 +668,21 @@ function multiSelectAction(event, context) {
 				controller: "attributes",
 				camelCase: "Attribute",
 				alias: "attribute",
-				action: "delete",
+				action: "delete"
 			},
 			acceptProposals: {
 				confirmation: "Are you sure you want to accept all selected proposals?",
 				controller: "shadow_attributes",
 				camelCase: "ShadowAttribute",
 				alias: "proposal",
-				action: "accept",
+				action: "accept"
 			},
 			discardProposals: {
 				confirmation: "Are you sure you want to discard all selected proposals?",
 				controller: "shadow_attributes",
 				camelCase: "ShadowAttribute",
 				alias: "proposal",
-				action: "discard",
+				action: "discard"
 			},
 	};
 	var answer = confirm("Are you sure you want to " + settings[context]["action"] + " all selected " + settings[context]["alias"] + "s?");
@@ -696,11 +696,17 @@ function multiSelectAction(event, context) {
 		});
 		$('#' + settings[context]["camelCase"] + 'Ids' + settings[context]["action"].ucfirst()).attr('value', JSON.stringify(selected));
 		var formData = $('#' + settings[context]["action"] + '_selected').serialize();
+		if (context == 'deleteAttributes') {
+			var url = $('#delete_selected').attr('action');
+			console.log(url);
+		} else {
+			var url = "/" + settings[context]["controller"] + "/" + settings[context]["action"] + "Selected/" + event;
+		}
 		$.ajax({
 			data: formData,
 			cache: false,
 			type:"POST",
-			url:"/" + settings[context]["controller"] + "/" + settings[context]["action"] + "Selected/" + event,
+			url: url,
 			success:function (data, textStatus) {
 				updateIndex(event, 'event');
 				var result = handleGenericAjaxResponse(data);
