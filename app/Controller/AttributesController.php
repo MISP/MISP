@@ -272,7 +272,8 @@ class AttributesController extends AppController {
 			if (!empty($successes)) {
 				$this->Event->unpublishEvent($eventId);
 			}
-			$result = $this->Attribute->saveMany($attributes, array('atomic' => false));
+			$atomic = Configure::read('MISP.deadlock_avoidance') ? false : true;
+			$result = $this->Attribute->saveMany($attributes, array('atomic' => $atomic));
 			if ($this->_isRest()) {
 				if (!empty($successes)) {
 					$attributes = $this->Attribute->find('all', array(
