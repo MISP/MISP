@@ -541,6 +541,13 @@ class Attribute extends AppModel {
 			if (isset($v['Attribute']['object_relation']) && $v['Attribute']['object_relation'] === null) {
 				$results[$k]['Attribute']['object_relation'] = '';
 			}
+			if (!empty($v['Attribute']['first_seen'])) {
+				$results[$k]['Attribute']['first_seen'] = DateTime::createFromFormat('Y-m-d H:i:s.u', $results[$k]['Attribute']['first_seen'])->format('Y-m-d\TH:i:s.uP');
+				
+			}
+			if (!empty($v['Attribute']['last_seen'])) {
+				$results[$k]['Attribute']['last_seen'] = DateTime::createFromFormat('Y-m-d H:i:s.u', $results[$k]['Attribute']['last_seen'])->format('Y-m-d\TH:i:s.uP');
+			}
 		}
 		return $results;
 	}
@@ -562,6 +569,18 @@ class Attribute extends AppModel {
 				$this->data['Attribute']['value1'] = $this->data['Attribute']['value'];
 				$this->data['Attribute']['value2'] = '';
 			}
+		}
+
+		// convert into utc
+		if (!empty($this->data['Attribute']['first_seen'])) {
+			$d = new DateTime($this->data['Attribute']['first_seen']);
+			$d->setTimezone(new DateTimeZone('GMT'));
+			$this->data['Attribute']['first_seen'] = $d->format('Y-m-d\TH:i:s.uP');
+		}
+		if (!empty($this->data['Attribute']['last_seen'])) {
+			$d = new DateTime($this->data['Attribute']['last_seen']);
+			$d->setTimezone(new DateTimeZone('GMT'));
+			$this->data['Attribute']['last_seen'] = $d->format('Y-m-d\TH:i:s.uP');
 		}
 
 		// update correlation... (only needed here if there's an update)

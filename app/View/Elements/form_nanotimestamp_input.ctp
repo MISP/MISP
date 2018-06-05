@@ -1,31 +1,19 @@
 <?php echo $this->Html->script('moment-with-locales'); ?>
 
-<div class="input-group input-daterange">
+<div class="input-group">
 <?php
 	echo $this->Form->input('first_seen', array(
-			'div' => 'input clear larger-input-field',
-			'style' => 'width: 240px;',
+			'type' => 'hidden',
 			'required' => false,
-			'label' => __('First seen') . '<span class="fa fa-calendar label-icon"></span>'
 			));
 	echo $this->Form->input('last_seen', array(
-			'div' => 'input text larger-input-field',
-			'style' => 'width: 240px;',
+			'type' => 'hidden',
 			'required' => false,
-			'label' => __('Last seen') . '<span class="fa fa-calendar label-icon"></span>'
 			));
 ?>
 </div>
 
 <div class="input clear"></div>
-
-<div class="clear">
-	<label style="display: inline-block">
-		<input id="seen_precision_tool" type="checkbox" style="margin-top: 0px;"></select>
-    			<?php echo(__('Enable precision tool'))?>
-		<span class="fa fa-clock-o"></span>
-	</label>
-</div>
 
 
 <script>
@@ -40,21 +28,20 @@ var time_vals = [
 
 class MicroDatetime {
 	constructor(value) {
+		//this.isoDatetimeMicroRegex = /(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})T(?<hour>\d{2})\:(?<min>\d{2})\:(?<sec>\d{2})\.(?<milli>\d{3})(?<micro>\d*)(?<tz>\D\S*)/g;
+		//this.isotimeMicroRegex = /(?<hour>\d{2})\:(?<min>\d{2})\:(?<sec>\d{2})\.(?<milli>\d{3})(?<micro>\d*)(?<tz>\D\S*)/g;
+		//this.tzRegex = /(?<datetime>\.{23})(?<tz>\D\S*)/g;
+		this.isoDatetimeMicroRegex = /(\d{4})-(\d{2})-(\d{2})T(\d{2})\:(\d{2})\:(\d{2})\.(\d{3})(\d*)(\D\S*)/g;
+		this.isotimeMicroRegex = /(\d{2})\:(\d{2})\:(\d{2})\.(\d{3})(\d*)(\D\S*)/g;
+		this.tzRegex = /(\.{23})(\D\S*)/g;
+		this.numberRegex = /^(\-|\+)?([0-9]+|Infinity)$/g;
+
 		if (value === undefined || value === "") {
 			this.moment = undefined;
 			this.micro = 0;
 		} else {
-			this.isoMicroRegex = /(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})T(?<hour>\d{2}):(?<min>\d{2}):(?<sec>\d{2}).(?<milli>\d{3})(?<micro>\d*)(?<tz>\D\S*)/g;
-			this.tzRegex = /(?<datetime>.{23})(?<tz>\D\S*)/g;
-
-			// check if ISO 8601 format
-			if (String(value).includes('T')) {
-				value = String(value);
-				this.moment = new moment(value);
-				var res = this.isoMicroRegex.exec(value);
-				var micro_str = res !== null ? res.groups.micro : 0;
-				this.micro = parseInt(micro_str);
-			} else { // UNIX timestamp (in sec)
+			// check if timestamp UNIX timestamp (in sec)
+			if (this.numberRegex.test(value)) {
 				var timestamp = parseInt(value);
 				var timestamp_str = String(timestamp);
 				if (timestamp === '' || timestamp === undefined || timestamp === null || isNaN(timestamp)) {
@@ -63,8 +50,38 @@ class MicroDatetime {
 				} else {
 					var all_milli = parseInt(timestamp)*1000;
 					all_milli = isNaN(all_milli) || all_milli === undefined ? 0 : all_milli;
-					this.moment = new Date(all_milli);
+					this.moment = moment(all_milli);
 					this.micro = 0;
+				}
+			// check if only a time
+			} else { // let moment parse the date
+				try {
+					value = String(value);
+					this.moment = new moment(value);
+					if (this.moment.isValid()) {
+						var res = this.isoDatetimeMicroRegex.exec(value);
+						var micro_str = res !== null ? res[8] : 0;
+						this.micro = parseInt(micro_str);
+						this.micro = isNaN(this.micro) ? 0 : this.micro;
+					} else {
+						this.moment = undefined;
+						this.micro = 0;
+						showMessage('fail', 'Failed to parse the date: <strong>' + value + '</strong>');
+					}
+				} catch (err) {
+					if (this.isotimeMicroRegex.test(value)) {
+						this.moment = moment(value, "HH:mm:ss.SSSSSSZ");
+						if (this.moment.isValid()) {
+							var res = this.isotimeMicroRegex.exec(value);
+							var micro_str = res !== null ? res[8] : 0;
+							this.micro = parseInt(micro_str);
+							this.micro = isNaN(this.micro) ? 0 : this.micro;
+						} else {
+							this.moment = undefined;
+							this.micro = 0;
+							showMessage('fail', 'Failed to parse the date: ' + value);
+						}
+					}
 				}
 			}
 		}
@@ -74,10 +91,42 @@ class MicroDatetime {
 		if (this.moment === undefined || this.moment === null) {
 			return "";
 		}
-		var tz = this.tzRegex.exec(this.moment.toISOString(true)).groups.tz;
+		var tz = this.tzRegex.exec(this.moment.toISOString(true))[2];
 		var str = this.moment.toISOString(true);
 		str = str.replace(tz, pad_zero(this.micro, 3)+tz);
 		return str;
+	}
+
+	get_date() {
+		if (this.moment === undefined || this.moment === null) {
+			return "";
+		}
+		return this.moment.format('YYYY/MM/DD');
+	}
+
+	get_time() {
+		if (this.moment === undefined || this.moment === null) {
+			return "";
+		}
+		return this.moment.format('HH:mm:ss.SSS')
+		    + String(pad_zero(this.micro, 3))
+		    + this.moment.format('Z');
+	}
+
+	has_date() {
+		return this.moment !== undefined;
+	}
+
+	has_time() {
+		if (this.moment === undefined) {
+			return false;
+		} else {
+			return this.moment.get('hour') != 0 
+			    || this.moment.get('minute') != 0
+			    || this.moment.get('second') != 0
+			    || this.moment.get('millisecond') != 0
+			    || this.micro != 0;
+		}
 	}
 }
 
@@ -106,15 +155,15 @@ function get_slider_and_input(type, scale, factor, max) {
 	return row;
 }
 
-function reflect_change_on_sliders(seen, skip_input_update) {
+function reflect_change_on_sliders(seen, skip_input_update, overwrite) {
 	if (seen == 'both' || seen == 'first') {
-		var f_val = $('#'+controller+'FirstSeen').val();
+		var f_val = overwrite === undefined ? $('#'+controller+'FirstSeen').val() : overwrite;
 		var f_microdatetime = new MicroDatetime(f_val);
 		var hours = f_microdatetime.moment !== undefined ? f_microdatetime.moment.hours() : 0;
 		var minutes = f_microdatetime.moment !== undefined ? f_microdatetime.moment.minutes() : 0;
 		var seconds = f_microdatetime.moment !== undefined ? f_microdatetime.moment.seconds() : 0;
 		var milli = f_microdatetime.moment !== undefined ? f_microdatetime.moment.milliseconds() : 0;
-		var d = f_microdatetime.moment !== undefined ? new Date(f_microdatetime.moment.toISOString()) : undefined;
+		var d = f_microdatetime.moment !== undefined ? f_microdatetime.get_date() : undefined;
 
 		// mirror slider and input field
 		$('#input-time-first-'+time_vals[0]).val(hours);
@@ -132,7 +181,8 @@ function reflect_change_on_sliders(seen, skip_input_update) {
 		$('#input-time-first-'+time_vals[4]).val(f_microdatetime.micro);
 		$('#slider-time-first-'+time_vals[4]).val(f_microdatetime.micro);
 
-		$('#'+controller+'FirstSeen').datepicker('setDate', d);
+		$('#date_fs').datepicker('setDate', d);
+		$('#time_fs').val(f_microdatetime.get_time());
 	}
 
 	if (seen == 'both' || seen == 'last') {
@@ -142,7 +192,7 @@ function reflect_change_on_sliders(seen, skip_input_update) {
 		var minutes = l_microdatetime.moment !== undefined ? l_microdatetime.moment.minutes() : 0;
 		var seconds = l_microdatetime.moment !== undefined ? l_microdatetime.moment.seconds() : 0;
 		var milli = l_microdatetime.moment !== undefined ? l_microdatetime.moment.milliseconds() : 0;
-		var d = l_microdatetime.moment !== undefined ? new Date(l_microdatetime.moment.toISOString()) : undefined;
+		var d = l_microdatetime.moment !== undefined ? l_microdatetime.get_date() : undefined;
 
 		// mirror slider and input field
 		$('#input-time-last-'+time_vals[0]).val(hours);
@@ -160,7 +210,8 @@ function reflect_change_on_sliders(seen, skip_input_update) {
 		$('#input-time-last-'+time_vals[4]).val(l_microdatetime.micro);
 		$('#slider-time-last-'+time_vals[4]).val(l_microdatetime.micro);
 
-		$('#'+controller+'LastSeen').datepicker('setDate', d);
+		$('#date_ls').datepicker('setDate', d);
+		$('#time_ls').val(l_microdatetime.get_time());
 	}
 
 	if (!skip_input_update) {
@@ -171,74 +222,102 @@ function reflect_change_on_sliders(seen, skip_input_update) {
 // get data stored in sliders
 function get_time_from_slider(which) {
 	var micro = 0;
-	var dp = which == 'first' ? $('#'+controller+'FirstSeen') : $('#'+controller+'LastSeen');
-	var mom = dp.datepicker('getDate');
-	mom = mom === null ? moment(0) : moment(mom.toISOString());
-	$('#precision_tool_'+which).find('input[type="number"]').each(function() {
-		switch($(this).attr('scale')) {
-			case 'us':
-				micro = parseInt($(this).val());
-				break;
-			case 'ms':
-				mom.add(parseInt($(this).val()), 'ms')
-				break;
-			case 'Second':
-				mom.add(parseInt($(this).val()), 's')
-				break;
-			case 'Minute':
-				mom.add(parseInt($(this).val()), 'm')
-				break;
-			case 'Hour':
-				mom.add(parseInt($(this).val()), 'h')
-				break;
+	var mom;
+	var dp = which == 'first' ? $('#date_fs') : $('#date_ls');
+	var timej = which == 'first' ? $('#time_fs') : $('#time_ls');
+	if (dp.val() != "") { // no time without a date
+		mom = dp.datepicker('getDate');
+		mom = mom === null ? moment(0) : moment(mom.toISOString());
+		if (timej.val() != "") {
+			$('#precision_tool_'+which).find('input[type="number"]').each(function() {
+				switch($(this).attr('scale')) {
+					case 'us':
+						micro = parseInt($(this).val());
+						break;
+					case 'ms':
+						mom.set('ms', parseInt($(this).val()));
+						break;
+					case 'Second':
+						mom.set('s', parseInt($(this).val()));
+						break;
+					case 'Minute':
+						mom.set('m', parseInt($(this).val()));
+						break;
+					case 'Hour':
+						mom.set('h', parseInt($(this).val()));
+						break;
+				}
+			});
+		} else { // no time, setting it UTC noon
+			micro = 0;
+			mom.utc();
+			mom.set('h', 12);
 		}
-	});
-	microdatetime = new MicroDatetime(mom.toISOString(true));
+	}
+	microdatetime = new MicroDatetime();
+	microdatetime.moment = mom;
 	microdatetime.micro = micro;
-	return microdatetime
+	return microdatetime;
 }
 
-function reflect_change_on_input(seen) {
+function reflect_change_on_input(seen, full) {
 	if ($('#seen_precision_tool').prop('checked')) {
 		if (seen == 'both' || seen == 'first') {
 			var microdatetime = get_time_from_slider('first');
-			if($("#"+controller+"FirstSeen").val() !== '') {
-				$("#"+controller+"FirstSeen").val(microdatetime.get_microISO());
+			if($('#'+controller+'FirstSeen').val() !== '') {
+				$("#time_fs").val(microdatetime.get_time());
 			}
 		}
 
 		if (seen == 'both' || seen == 'last') {
 			var microdatetime = get_time_from_slider('last');
-			if($("#"+controller+"LastSeen").val() !== '') {
-				$("#"+controller+"LastSeen").val(microdatetime.get_microISO());
+			if($('#'+controller+'LastSeen').val() !== '') {
+				$("#time_ls").val(microdatetime.get_time());
 			}
 		}
 	}
 }
+
+function reflect_change_on_form() {
+	var microdatetime = get_time_from_slider('first');
+	$('#'+controller+'FirstSeen').val(microdatetime.get_microISO());
+	var microdatetime = get_time_from_slider('last');
+	console.log(microdatetime);
+	$('#'+controller+'LastSeen').val(microdatetime.get_microISO());
+}
+
 $(document).ready(function() {
-	$('.input-daterange').datepicker({
-		preventMultipleSet: true,
-		format: {
-			toDisplay: function(date, format, lang) {
-				var d = moment(date.toISOString(true));
-				return d.toISOString(true);
-			},
-			toValue: function(str, format, lang) {
-				var ret = typeof str === 'object' ? str : new MicroDatetime(str).moment;
-				return new Date(ret.toISOString(true));
-			}
-		},
-		todayHighlight: true
-	})
-	.on('changeDate', function(e) {
-		reflect_change_on_input('both');
-	})
-	.on('hide', function(e) {
-		reflect_change_on_input('both');
-	});
+
+	var sliders_container = "<?php if ($this->params->controller === 'attributes') { echo 'fieldset'; } else { echo '#meta-div'; } ?>";
+	var inputs_container = $('<div class="input-group input-daterange"></div>');
+	// create separate date and time input
+	var date_div_fs = $('<div class="input clear larger-input-field"></div>').append(
+		$('<label><?php echo __('First seen date') . '<span class="fa fa-calendar label-icon"></span>'; ?><input id="date_fs" type="text" style="width: 240px;"></input></label>')
+	);
+	$(inputs_container).append(date_div_fs);
+	var date_div_ls = $('<div class="input text larger-input-field"></div>').append(
+		$('<label><?php echo __('Last seen date') . '<span class="fa fa-calendar label-icon"></span>'; ?><input id="date_ls" type="text" style="width: 240px;"></input></label>')
+	);
+	$(inputs_container).append(date_div_ls);
+	$(sliders_container).append(inputs_container);
+
+	var time_div_fs = $('<div class="input clear larger-input-field"></div>').append(
+		$('<label><?php echo __('First seen time') . '<span class="fa fa-clock-o label-icon"></span>'; ?><input id="time_fs" type="text" style="width: 240px;"></input></label>')
+	);
+	$(sliders_container).append(time_div_fs);
+	var time_div_ls = $('<div class="input larger-input-field"></div>').append(
+		$('<label><?php echo __('Last seen time') . '<span class="fa fa-clock-o label-icon"></span>'; ?><input id="time_ls" type="text" style="width: 240px;"></input></label>')
+	);
+	$(sliders_container).append(time_div_ls);
+
+	// create checkbox
+	var div_checkbox_prec_tool = $('<div class="clear checkbox"></div>').append(
+	    $('<label style="display: inline-block"><input id="seen_precision_tool" type="checkbox" style="margin-top: 0px;"></input><?php echo(__('Enable precision tool'))?><span class="fa fa-bullseye label-icon"</span></label>')
+	);
+	$(sliders_container).append(div_checkbox_prec_tool);
 
 	// create sliders
-	var div = $('<div id="precision_tool" class="precision-tool" style="display: none"></div>');
+	var div = $('<div id="precision_tool" class="precision-tool clear" style="display: none"></div>');
 	var content = $('<table id="precision_tool_first" style="float: left;"></table>');
 	for (var i=0; i<time_vals.length; i++) {
 		var type = time_vals[i][0];
@@ -257,7 +336,6 @@ $(document).ready(function() {
 		content.append(row);
 	}
 	div.append(content);
-	var sliders_container = "<?php if ($this->params->controller === 'attributes') { echo 'fieldset'; } else { echo '#meta-div'; } ?>";
 	$(sliders_container).append(div);
 
 	time_vals.forEach(function(elem) {
@@ -288,27 +366,23 @@ $(document).ready(function() {
 		}
 	});
 
-	$('#'+controller+'FirstSeen').on("focus", function(event) {
+	$('#time_fs').on("focus", function(event) {
 		$('#seen_precision_tool').prop('checked', true);
 		$('#precision_tool').show();
 	});
-	$('#'+controller+'LastSeen').on("focus", function(event) {
+	$('#time_ls').on("focus", function(event) {
 		$('#seen_precision_tool').prop('checked', true);
 		$('#precision_tool').show();
+	});
+
+	$('#time_fs').on("input", function(event) {
+		reflect_change_on_sliders('first', false, $(this).val());
+	});
+	$('#time_ls').on("input", function(event) {
+		reflect_change_on_sliders('last', false, $(this).val());
 	});
 	
-	//$('#'+controller+'FirstSeen').on("focusout", function(event) {
-	//	if ($('#seen_precision_tool').prop('checked')) {
-	//		//reflect_change_on_input('first');
-	//	}
-	//});
-	//$('#'+controller+'LastSeen').on("focusout", function(event) {
-	//	if ($('#seen_precision_tool').prop('checked')) {
-	//		//reflect_change_on_input('last');
-	//	}
-	//});
-
-	$('#'+controller+'LastSeen').on("paste", function(event) {
+	$('#time_fs').on("paste", function(event) {
 		// prefetch clipboard text and apply change
 		var datetimeString;
 		if (event.originalEvent.clipboardData && event.originalEvent.clipboardData.types
@@ -318,12 +392,12 @@ $(document).ready(function() {
 		else if (window.clipboardData) {
 			datetimeString = window.clipboardData.getData('Text');
 		}
-		$(this).val(datetimeString);
-		reflect_change_on_sliders('last', true);
+		$('#'+controller+'FirstSeen').val(datetimeString);
+		reflect_change_on_sliders('first', false);
 		event.preventDefault();
 	});
 
-	$('#'+controller+'FirstSeen').on("paste", function(event) {
+	$('#time_ls').on("paste", function(event) {
 		// prefetch clipboard text and apply change
 		var datetimeString;
 		if (event.originalEvent.clipboardData && event.originalEvent.clipboardData.types
@@ -333,16 +407,34 @@ $(document).ready(function() {
 		else if (window.clipboardData) {
 			datetimeString = window.clipboardData.getData('Text');
 		}
-		$(this).val(datetimeString);
-		reflect_change_on_sliders('first', true);
+		$('#'+controller+'LastSeen').val(datetimeString);
+		reflect_change_on_sliders('last', false);
 		event.preventDefault();
 	});
 
 	$('form').submit(function( event ) {
-		reflect_change_on_input('both');
+		reflect_change_on_form();
 	});
 
-	reflect_change_on_sliders('both', false);
+	var d1 = new MicroDatetime($('#'+controller+'FirstSeen').val());
+	var d2 = new MicroDatetime($('#'+controller+'LastSeen').val());
+	if (d1.has_date() || d2.has_date()) {
+		$('#date_fs').val(d1.get_date());
+		$('#date_ls').val(d2.get_date());
+	}
+	if (d1.has_time() || d2.has_time()) {
+		$('#seen_precision_tool').prop('checked', true);
+		$('#precision_tool').show();
+		$('#time_fs').val(d1.get_time());
+		$('#time_ls').val(d2.get_time());
+	}
+
+	$('.input-daterange').datepicker({
+		preventMultipleSet: true,
+		format: 'yyyy/mm/dd',
+		todayHighlight: true
+	})
+	reflect_change_on_sliders('both', true);
 
 });
 </script>
