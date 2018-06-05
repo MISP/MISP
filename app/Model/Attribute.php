@@ -798,7 +798,7 @@ class Attribute extends AppModel {
 		public function valueIsUnique ($fields) {
 		if (isset($this->data['Attribute']['deleted']) && $this->data['Attribute']['deleted']) return true;
 		// We escape this rule for objects as we can have the same category/type/value combination in different objects
-		if (!empty($this->data['Attribute']['object_id'])) {
+		if (!empty($this->data['Attribute']['object_relation'])) {
 			return true;
 		}
 		$value = $fields['value'];

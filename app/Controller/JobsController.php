@@ -141,7 +141,7 @@ class JobsController extends AppController {
 				$message = __('All jobs have been purged');
 			}
 			$this->Job->deleteAll($conditions, false);
-			$this->Session->setFlash($message);
+			$this->Flash->success($message);
 			$this->redirect(array('action' => 'index'));
 		}
 	}

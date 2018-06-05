@@ -247,6 +247,14 @@ class Warninglist extends AppModel{
 		foreach ($warninglists as $k => &$t) {
 			$t['values'] = $this->getWarninglistEntries($t['Warninglist']['id']);
 			$t['values'] = array_values($t['values']);
+			if ($t['Warninglist']['type'] == 'hostname') {
+				foreach ($t['values'] as $vk => $v) {
+					$t['values'][$vk] = rtrim($v, '.');
+				}
+			}
+			if ($t['Warninglist']['type'] == 'string' || $t['Warninglist']['type'] == 'hostname') {
+				$t['values'] = array_combine($t['values'], $t['values']);
+			}
 			foreach ($t['WarninglistType'] as &$wt) {
 				$t['types'][] = $wt['type'];
 			}
@@ -385,7 +393,7 @@ class Warninglist extends AppModel{
 	}
 
 	private function __evalString($listValues, $value) {
-		if (in_array($value, $listValues)) return true;
+		if (isset($listValues[$value])) return true;
 		return false;
 	}
 
@@ -401,27 +409,23 @@ class Warninglist extends AppModel{
 	private function __evalHostname($listValues, $value) {
 		// php's parse_url is dumb, so let's use some hacky workarounds
 		if (strpos($value, '//') == false) {
-			$value = 'http://' . $value;
+			$value = explode('/', $value);
+			$hostname = $value[0];
+		} else {
+			$value = explode('/', $value);
+			$hostname = $value[2];
 		}
-		$hostname = parse_url($value, PHP_URL_HOST);
 		// If the hostname is not found, just return false
 		if (!isset($hostname)) {
 			return false;
 		}
 		$hostname = rtrim($hostname, '.');
-		$value = explode('.', $hostname);
-		$pieces = count($value);
-		foreach ($listValues as $listValue) {
-			$listValue = rtrim($listValue, '.');
-			$listValue = explode('.', $listValue);
-			if (count($listValue) > $pieces) {
-				continue;
-			}
-			$piecesListValue = count($listValue);
-			$listValue = implode('.', $listValue);
-			$temp = array_slice($value, -$piecesListValue, $piecesListValue);
-			$temp = implode('.', $temp);
-			if ($listValue == $temp) {
+		$hostname = explode('.', $hostname);
+		$rebuilt = '';
+		foreach (array_reverse($hostname) as $k => $piece) {
+			if (empty($rebuilt)) $rebuilt = $piece;
+			else $rebuilt = $piece . '.' . $rebuilt;
+			if (isset($listValues[$rebuilt])) {
 				return true;
 			}
 		}
@@ -453,9 +457,11 @@ class Warninglist extends AppModel{
 
 	public function filterWarninglistAttributes($warninglists, $attribute) {
 		foreach ($warninglists as $warninglist) {
-			$result = $this->__checkValue($warninglist['values'], $attribute['value'], $attribute['type'], $warninglist['Warninglist']['type']);
-			if ($result !== false) {
-				return false;
+			if (in_array('ALL', $warninglist['types']) || in_array($attribute['type'], $warninglist['types'])) {
+				$result = $this->__checkValue($warninglist['values'], $attribute['value'], $attribute['type'], $warninglist['Warninglist']['type']);
+				if ($result !== false) {
+					return false;
+				}
 			}
 		}
 		return true;

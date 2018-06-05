@@ -16,7 +16,9 @@ class ObjectsController extends AppController {
 
 	public function beforeFilter() {
 		parent::beforeFilter();
-		$this->Security->unlockedActions = array('revise_object', 'get_row');
+		if (!$this->_isRest()) {
+			$this->Security->unlockedActions = array('revise_object', 'get_row');
+		}
 	}
 
 	public function revise_object($action, $event_id, $template_id, $object_id = false) {
@@ -88,7 +90,7 @@ class ObjectsController extends AppController {
 	 * POSTing will take the input and validate it against the template
 	 * GETing will return the template
 	 */
-  public function add($eventId, $templateId = false) {
+  public function add($eventId, $templateId = false, $version = false) {
 		if (!$this->userRole['perm_modify']) {
 			throw new MethodNotAllowedException('You don\'t have permissions to create objects.');
 		}
@@ -98,6 +100,29 @@ class ObjectsController extends AppController {
 			'conditions' => array('Event.id' => $eventId)
 		);
 
+		if (!empty($templateId) && Validation::uuid($templateId)) {
+			$conditions = array('ObjectTemplate.uuid' => $templateId);
+			if (!empty($version)) {
+				$conditions['ObjectTemplate.version'] = $version;
+			}
+			$temp = $this->MispObject->ObjectTemplate->find('all', array(
+				'recursive' => -1,
+				'fields' => array('ObjectTemplate.id', 'ObjectTemplate.uuid', 'ObjectTemplate.version'),
+				'conditions' => $conditions
+			));
+			if (!empty($temp)) {
+				$version = 0;
+				foreach ($temp as $tempTemplate) {
+					if ($tempTemplate['ObjectTemplate']['version'] > $version) {
+						$version = $tempTemplate['ObjectTemplate']['version'];
+						$templateId = $tempTemplate['ObjectTemplate']['id'];
+					}
+				}
+				unset($temp);
+			} else {
+				throw new NotFoundException('Invalid template.');
+			}
+		}
 		// Find the event that is to be updated
 		if (Validation::uuid($eventId)) {
 			$eventFindParams['conditions']['Event.uuid'] = $eventId;
@@ -202,7 +227,7 @@ class ObjectsController extends AppController {
 					}
 				} else {
 					if (is_numeric($result)) {
-						$this->Session->setFlash('Object saved.');
+						$this->Flash->success('Object saved.');
 						$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
 					}
 				}
@@ -218,7 +243,7 @@ class ObjectsController extends AppController {
 			}
 		} else {
 			if (!empty($error)) {
-				$this->Session->setFlash($error);
+				$this->Flash->error($error);
 			}
 			$template = $this->MispObject->prepareTemplate($template, $this->request->data);
 			$enabledRows = array_keys($template['ObjectTemplateElement']);
@@ -298,7 +323,7 @@ class ObjectsController extends AppController {
 			)
 		));
 		if (empty($template)) {
-			$this->Session->setFlash('Object cannot be edited, no valid template found.');
+			$this->Flash->error('Object cannot be edited, no valid template found.');
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
 		}
 		$template = $this->MispObject->prepareTemplate($template, $object);
@@ -334,7 +359,7 @@ class ObjectsController extends AppController {
 					}
 				} else {
 					$this->MispObject->Event->unpublishEvent($object['Object']['event_id']);
-					$this->Session->setFlash('Object saved.');
+					$this->Flash->success('Object saved.');
 					$this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
 				}
 			}
@@ -569,7 +594,7 @@ class ObjectsController extends AppController {
 						$this->response->type()
 					);
 				} else {
-					$this->Session->setFlash($message);
+					$this->Flash->success($message);
 					$this->redirect(array('controller' => 'events', 'action' => 'view', $object['Event']['id']));
 				}
 			} else {
@@ -596,7 +621,7 @@ class ObjectsController extends AppController {
 						$this->response->type()
 					);
 				} else {
-					$this->Session->setFlash($message);
+					$this->Flash->error($message);
 					$this->redirect(array('controller' => 'events', 'action' => 'view', $object['Event']['id']));
 				}
 			}
@@ -883,7 +908,7 @@ class ObjectsController extends AppController {
 			file_put_contents(APP . 'files/scripts/tmp/object_recovery_' . time() . '.sql', implode("\n", $counterQueries));
 			$this->MispObject->query(implode("\n", $queries));
 			$message = '';
-			$this->Session->setFlash(__('%s objects successfully reconstructed.', $success));
+			$this->Flash->success(__('%s objects successfully reconstructed.', $success));
 			$this->redirect('/objects/orphanedObjectDiagnostics');
 		}
 		$this->set('captured', $capturedObjects);

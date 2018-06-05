@@ -26,7 +26,7 @@ class ObjectReferencesController extends AppController {
 			$temp = $this->ObjectReference->Object->find('first', array(
 				'recursive' => -1,
 				'fields' => array('Object.id'),
-				'conditions' => array('Object.uuid' => $objectId)
+				'conditions' => array('Object.uuid' => $objectId, 'Object.deleted' => 0)
 			));
 			if (empty($temp)) throw new NotFoundException('Invalid Object');
 			$objectId = $temp['Object']['id'];
@@ -34,7 +34,7 @@ class ObjectReferencesController extends AppController {
 			throw new NotFoundException(__('Invalid object'));
 		}
 		$object = $this->ObjectReference->Object->find('first', array(
-			'conditions' => array('Object.id' => $objectId),
+			'conditions' => array('Object.id' => $objectId, 'Object.deleted' => 0),
 			'recursive' => -1,
 			'contain' => array(
 				'Event' => array(
@@ -53,7 +53,7 @@ class ObjectReferencesController extends AppController {
 			}
 			$referenced_type = 1;
 			$target_object = $this->ObjectReference->Object->find('first', array(
-				'conditions' => array('Object.uuid' => $this->request->data['ObjectReference']['referenced_uuid']),
+				'conditions' => array('Object.uuid' => $this->request->data['ObjectReference']['referenced_uuid'], 'Object.deleted' => 0),
 				'recursive' => -1,
 				'fields' => array('Object.id', 'Object.uuid', 'Object.event_id')
 			));
@@ -65,7 +65,7 @@ class ObjectReferencesController extends AppController {
 				}
 			} else {
 				$target_attribute = $this->ObjectReference->Object->Attribute->find('first', array(
-					'conditions' => array('Attribute.uuid' => $this->request->data['ObjectReference']['referenced_uuid']),
+					'conditions' => array('Attribute.uuid' => $this->request->data['ObjectReference']['referenced_uuid'], 'Attribute.deleted' => 0),
 					'recursive' => -1,
 					'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.event_id')
 				));
@@ -129,8 +129,7 @@ class ObjectReferencesController extends AppController {
 							'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids')
 						),
 						'Object' => array(
-							'conditions' => array('Object.deleted' => 0),
-							'conditions' => array('NOT' => array('Object.id' => $objectId)),
+							'conditions' => array('NOT' => array('Object.id' => $objectId), 'Object.deleted' => 0),
 							'fields' => array('Object.id', 'Object.uuid', 'Object.name', 'Object.meta-category'),
 							'Attribute' => array(
 								'conditions' => array('Attribute.deleted' => 0),

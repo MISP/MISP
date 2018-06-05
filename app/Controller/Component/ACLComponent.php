@@ -170,7 +170,7 @@ class ACLComponent extends Component {
 					'view' => array(),
 			),
 			'galaxies' => array(
-				'attachClusterToEvent' => array('perm_tagger'),
+				'attachCluster' => array('perm_tagger'),
 				'index' => array('*'),
 				'selectGalaxy' => array('perm_tagger'),
 				'selectCluster' => array('perm_tagger'),
@@ -180,7 +180,7 @@ class ACLComponent extends Component {
 			),
 			'galaxyClusters' => array(
 				'attachToEvent' => array('perm_tagger'),
-				'detachFromEvent' => array('perm_tagger'),
+				'detach' => array('perm_tagger'),
 				'index' => array('*'),
 				'view' => array('*')
 			),
@@ -489,6 +489,7 @@ class ACLComponent extends Component {
 	// If the requested action has a permission, check if the user's role has it flagged. If yes, return true
 	// If we fall through all of the checks, return an exception.
 	public function checkAccess($user, $controller, $action) {
+		$controller = lcfirst(Inflector::camelize($controller));
 		$action = strtolower($action);
 		$aclList = $this->__aclList;
 		foreach ($aclList as $k => $v) {

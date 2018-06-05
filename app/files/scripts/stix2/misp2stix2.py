@@ -53,17 +53,18 @@ class StixBuilder():
                        'created_by_ref': self.identity_id, 'name': self.misp_event.info,
                        'published': self.misp_event.publish_timestamp,
                        'object_refs': self.object_refs}
-        labels = []
         if self.misp_event.Tag:
+            labels = []
             for tag in self.misp_event.Tag:
                 labels.append(tag.name)
-        if labels:
             report_args['labels'] = labels
+            if 'misp:tool="misp2stix2"' not in labels:
+                report_args['labels'].append('misp:tool="misp2stix2"')
         else:
             report_args['labels'] = ['Threat-Report']
-        report_args['labels'].append('misp:tool="misp2stix2"')
+            report_args['labels'].append('misp:tool="misp2stix2"')
         if self.external_refs:
-            report_args['external_references'] = external_refs
+            report_args['external_references'] = self.external_refs
         return Report(**report_args)
 
     def generate_package(self):
@@ -105,7 +106,9 @@ class StixBuilder():
                         self.add_custom(attribute)
         if hasattr(self.misp_event, 'objects') and self.misp_event.objects:
             self.load_objects_mapping()
-            for misp_object in self.misp_event.objects:
+            misp_objects = self.misp_event.objects
+            self.object_references, self.processes = self.fetch_object_references(misp_objects)
+            for misp_object in misp_objects:
                 object_attributes = misp_object.attributes
                 to_ids = self.fetch_ids_flag(object_attributes)
                 object_name = misp_object.name
@@ -149,6 +152,10 @@ class StixBuilder():
                      'pattern': self.resolve_file_pattern},
             'ip-port': {'observable': self.resolve_ip_port_observable,
                         'pattern': self.resolve_ip_port_pattern},
+            'network-socket': {'observable': self.resolve_network_socket_observable,
+                               'pattern': self.resolve_network_socket_pattern},
+            'process': {'observable': self.resolve_process_observable,
+                        'pattern': self.resolve_process_pattern},
             'registry-key': {'observable': self.resolve_regkey_observable,
                              'pattern': self.resolve_regkey_pattern},
             'url': {'observable': self.resolve_url_observable,
@@ -156,6 +163,38 @@ class StixBuilder():
             'x509': {'observable': self.resolve_x509_observable,
                      'pattern': self.resolve_x509_pattern}
         }
+
+    def fetch_object_references(self, misp_objects):
+        object_references, processes = {}, {}
+        for misp_object in misp_objects:
+            attributes = misp_object.attributes
+            if misp_object.name == "process":
+                self.get_process_attributes(processes, misp_object.attributes)
+            if misp_object.references and not self.fetch_ids_flag(attributes):
+                for reference in misp_object.references:
+                    try:
+                        referenced_object = reference.Attribute
+                    except:
+                        referenced_object = self.misp_event.get_object_by_uuid(reference.referenced_uuid)
+                    object_references[reference.referenced_uuid] = referenced_object
+        return object_references, processes
+
+    @staticmethod
+    def get_process_attributes(processes, attributes):
+        pid, process = None, {}
+        for attribute in attributes:
+            relation = attribute.object_relation
+            attribute_value = attribute.value
+            if relation == 'pid':
+                if attribute_value in processes:
+                    return
+                pid = attribute_value
+                process[relation] = attribute_value
+            elif relation in ('name', 'creation-time'):
+                process[relation] = attribute_value
+        if pid is not None:
+            process['type'] = 'process'
+            processes[pid] = process
 
     def handle_non_indicator(self, attribute, attribute_type):
         if attribute_type == "link":
@@ -250,7 +289,7 @@ class StixBuilder():
 
     def add_custom(self, attribute):
         custom_object_id = "x-misp-object--{}".format(attribute.uuid)
-        custom_object_type = "x-misp-object-{}".format(attribute.type)
+        custom_object_type = "x-misp-object-{}".format(attribute.type.replace('|', '-'))
         labels = self.create_labels(attribute)
         custom_object_args = {'id': custom_object_id, 'x_misp_timestamp': attribute.timestamp, 'labels': labels,
                                'x_misp_value': attribute.value, 'created_by_ref': self.identity_id,
@@ -344,7 +383,7 @@ class StixBuilder():
     def add_object_custom(self, misp_object, to_ids):
         custom_object_id = 'x-misp-object--{}'.format(misp_object.uuid)
         name = misp_object.name
-        custom_object_type = 'x-misp-object--{}'.format(name)
+        custom_object_type = 'x-misp-object-{}'.format(name)
         category = misp_object.get('meta-category')
         labels = self.create_object_labels(name, category, to_ids)
         values = self.fetch_custom_values(misp_object.attributes)
@@ -440,11 +479,8 @@ class StixBuilder():
         if attribute_type == 'malware-sample':
             return mispTypesMapping[attribute_type]['observable']('filename|md5', attribute_value)
         observable = mispTypesMapping[attribute_type]['observable'](attribute_type, attribute_value)
-        if 'port' in attribute_type:
-            try:
-                observable['0']['protocols'].append(defineProtocols[attribute_value] if attribute_value in defineProtocols else "tcp")
-            except AttributeError:
-                observable['1']['protocols'].append(defineProtocols[attribute_value] if attribute_value in defineProtocols else "tcp")
+        if attribute_type == 'port':
+            observable['0']['protocols'].append(defineProtocols[attribute_value] if attribute_value in defineProtocols else "tcp")
         return observable
 
     def define_object_observable(self, name, attributes):
@@ -687,6 +723,137 @@ class StixBuilder():
                 pattern += objectsMapping['ip-port']['pattern'].format(stix_type, attribute_value)
         return pattern[:-5]
 
+    def resolve_network_socket_observable(attributes):
+        observable, socket_extension = {}, {}
+        network_object = defaultdict(list)
+        n = 0
+        ip_src, ip_dst, domain_src, domain_dst = [None] * 4
+        for attribute in attributes:
+            relation = attribute.object_relation
+            if relation in ('address-family', 'domain-family'):
+                socket_extension[networkSocketMapping[relation]] = attribute.value
+            elif relation == 'state':
+                state_type = "is_{}".format(attribute.value)
+                socket_extension[state_type] = True
+            elif relation == 'protocol':
+                network_object['protocols'].append(attribute.value)
+            elif relation == 'ip-src': ip_src = attribute.value
+            elif relation == 'ip-dst': ip_dst = attribute.value
+            elif relation == 'hostname-src': domain_src = attribute.value
+            elif relation == 'hostname-dst': domain_dst = attribute.value
+            else:
+                try:
+                    network_object[networkSocketMapping[relation]] = attribute.value
+                except:
+                    continue
+        if ip_src is not None:
+            str_n = str(n)
+            observable[str_n] = {'type': define_address_type(ip_src), 'value': ip_src}
+            network_object['_ref'] = str_n
+            n += 1
+        elif domain_src is not None:
+            str_n = str(n)
+            observable[str_n] = {'type': 'domain-name', 'value': domain_src}
+            network_object['_ref'] = str_n
+            n += 1
+        if ip_dst is not None:
+            str_n = str(n)
+            observable[str_n] = {'type': define_address_type(ip_dst), 'value': ip_dst}
+            network_object['_ref'] = str_n
+            n += 1
+        elif domain_dst is not None:
+            str_n = str(n)
+            observable[str_n] = {'type': 'domain-name', 'value': domain_dst}
+            network_object['_ref'] = str_n
+            n += 1
+        if socket_extension: network_object['extensions'] = {'socket-ext': socket_extension}
+        observable[str(n)] = network_object
+        return
+
+    def resolve_network_socket_pattern(self, attributes):
+        mapping = objectsMapping['network-socket']['pattern']
+        pattern = ""
+        stix_type = "extensions.'socket-ext'.{}"
+        ip_src, ip_dst, domain_src, domain_dst = [None] * 4
+        for attribute in attributes:
+            relation = attribute.object_relation
+            attribute_value = attribute.value
+            if relation in ('address-family', 'domain-family'):
+                pattern += mapping.format(stix_type.format(networkSocketMapping[relation]), attribute_value)
+            elif relation == 'state':
+                state_type = "is_{}".format(attribute_value)
+                pattern += mapping.format(stix_type.format(state_type), True)
+            elif relation == 'protocol':
+                pattern += mapping.format(networkSocketMapping[relation], [attribute_value])
+            elif relation == 'ip-src':
+                ip_src = mapping.format(networkSocketMapping[relation].format(define_address_type(attribute_value)), attribute_value)
+            elif relation == 'ip-dst':
+                ip_dst = mapping.format(networkSocketMapping[relation].format(define_address_type(attribute_value)), attribute_value)
+            elif relation == 'hostname-src':
+                domain_src = mapping.format(networkSocketMapping[relation].format('domain-name'), attribute_value)
+            elif relation == 'hostname-dst':
+                domain_dst = mapping.format(networkSocketMapping[relation].format('domain-name'), attribute_value)
+            else:
+                try:
+                    pattern += mapping.format(networkSocketMapping[relation], attribute_value)
+                except:
+                    continue
+        if ip_src is not None: pattern += ip_src
+        elif domain_src is not None: pattern += domain_src
+        if ip_dst is not None: pattern += ip_dst
+        elif domain_dst is not None: pattern += domain_dst
+        return pattern[:-5]
+
+    def resolve_process_observable(self, attributes):
+        observable = {}
+        current_process = defaultdict(list)
+        current_process['type'] = 'process'
+        n = 0
+        for attribute in attributes:
+            relation = attribute.object_relation
+            if relation == 'parent-pid':
+                str_n = str(n)
+                try:
+                    observable[str_n] = self.processes[attribute.value]
+                except:
+                    continue
+                current_process['parent_ref'] = str_n
+                n += 1
+            elif relation == 'child-pid':
+                str_n = str(n)
+                try:
+                    observable[str_n] = self.processes[attribute.value]
+                except:
+                    continue
+                current_process['child_refs'].append(str_n)
+                n += 1
+            else:
+                try:
+                    current_process[processMapping[relation]] = attribute.value
+                except:
+                    pass
+        observable[str(n)] = current_process
+        return observable
+
+    @staticmethod
+    def resolve_process_pattern(attributes):
+        mapping = objectsMapping['process']['pattern']
+        pattern = ""
+        child_refs = []
+        for attribute in attributes:
+            relation = attribute.object_relation
+            if relation == 'parent-pid':
+                pattern += mapping.format('parent_ref', attribute.value)
+            elif relation == 'child-pid':
+                child_refs.append(attribute.value)
+            else:
+                try:
+                    pattern += mapping.format(processMapping[relation], attribute.value)
+                except:
+                    continue
+        if child_refs: pattern += mapping.format('child_refs', child_refs)
+        return pattern[:-5]
+
     @staticmethod
     def resolve_regkey_observable(attributes):
         observable = {'0': {'type': 'windows-registry-key'}}
@@ -708,12 +875,8 @@ class StixBuilder():
     def resolve_regkey_pattern(attributes):
         pattern = ""
         for attribute in attributes:
-            attribute_type = attribute.type
             try:
-                try:
-                    stix_type = regkeyMapping[attribute_type][attribute.object_relation]
-                except:
-                    stix_type = regkeyMapping[attribute_type]
+                stix_type = regkeyMapping[attribute.object_relation]
             except:
                 continue
             pattern += objectsMapping['registry-key']['pattern'].format(stix_type, attribute.value)

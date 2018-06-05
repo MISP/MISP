@@ -1,6 +1,5 @@
 INSTALLATION INSTRUCTIONS for RHEL 7.x
 -------------------------
-Contributor: Jez Kerwin - web*at*jezlabs(.)com
 
 +----------------------------------------+
 |   0/ Overview and Assumptions          |
@@ -94,6 +93,9 @@ yum install haveged
 systemctl start haveged
 systemctl enable haveged
 
+2.12/ Install Python 3.6 from SCL
+yum install rh-python36
+
 +---------------------+
 |   3/ MISP Download  |
 +---------------------+
@@ -117,24 +119,21 @@ cd /var/www/MISP/app/files/scripts
 git clone https://github.com/CybOXProject/python-cybox.git
 git clone https://github.com/STIXProject/python-stix.git
 cd /var/www/MISP/app/files/scripts/python-cybox
-git checkout v2.1.0.12
 git config core.filemode false
 # If your umask has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
 UMASK=$(umask)
 umask 0022
-python setup.py install
+scl enable rh-python36 python3 setup.py install
 cd /var/www/MISP/app/files/scripts/python-stix
-git checkout v1.1.1.4
 git config core.filemode false
-python setup.py install
+scl enable rh-python36 python3 setup.py install
 
 3.04/ Install mixbox to accomodate the new STIX dependencies:
 cd /var/www/MISP/app/files/scripts/
 git clone https://github.com/CybOXProject/mixbox.git
 cd /var/www/MISP/app/files/scripts/mixbox
-git checkout v1.0.2
 git config core.filemode false
-python setup.py install
+scl enable rh-python36 python3 setup.py install
 umask $UMASK
 
 +---------------------+
@@ -364,6 +363,9 @@ systemctl restart rh-php71-php-fpm
 pip install pymisp
 pip install git+https://github.com/kbandla/pydeep.git
 
+10.05/ Install pymisp also in Python 3
+scl enable rh-python36 pip3 install pymisp
+
 +---------------------------+
 |   11/ LIEF Installation   |
 +---------------------------+
@@ -397,7 +399,7 @@ scl enable devtoolset-7 'bash -c "cmake3 \
 .."'
 make -j3
 cd api/python
-python setup.py install || :
+scl enable rh-python36 python3 setup.py install || :
 # you can ignore the error about finding suitable distribution
 cd $LIEF_TMP/LIEF/build
 make install

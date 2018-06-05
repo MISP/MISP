@@ -1,4 +1,11 @@
 <?php
+	$urlHere = $this->here;
+	$urlHere = explode('/', $urlHere);
+	foreach ($urlHere as $k => $v) {
+		$urlHere[$k] = urlencode($v);
+	}
+	$urlHere = implode('/', $urlHere);
+	$urlHere = $baseurl . $urlHere;
 	$mayModify = ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
 	$mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
 	$mayChangeCorrelation = !Configure::read('MISP.completely_disable_correlation') && ($isSiteAdmin || ($mayModify && Configure::read('MISP.allow_disabling_correlation')));
@@ -138,7 +145,7 @@
 		<div id="filter_correlation" title="Only show correlating attributes" role="button" tabindex="0" aria-label="Only show correlating attributes" class="attribute_filter_text<?php if ($attributeFilter == 'correlation') echo '_active'; ?>" onClick="filterAttributes('correlation', '<?php echo h($event['Event']['id']); ?>');">Correlation</div>
 		<div id="filter_warning" title="Only show potentially false positive attributes" role="button" tabindex="0" aria-label="Only show potentially false positive attributes" class="attribute_filter_text<?php if ($attributeFilter == 'warning') echo '_active'; ?>" onClick="filterAttributes('warning', '<?php echo h($event['Event']['id']); ?>');">Warnings</div>
 		<?php if ($me['Role']['perm_sync'] || $event['Orgc']['id'] == $me['org_id']): ?>
-			<div id="filter_deleted" title="Include deleted attributes" role="button" tabindex="0" aria-label="Include deleted attributes" class="attribute_filter_text<?php if ($deleted) echo '_active'; ?>" onClick="toggleDeletedAttributes('<?php echo Router::url( $this->here, true );?>');">Include deleted attributes</div>
+			<div id="filter_deleted" title="Include deleted attributes" role="button" tabindex="0" aria-label="Include deleted attributes" class="attribute_filter_text<?php if ($deleted) echo '_active'; ?>" onClick="toggleDeletedAttributes('<?php echo $urlHere;?>');">Include deleted attributes</div>
 		<?php endif; ?>
 		<div id="show_context" title="Show attribute context fields" role="button" tabindex="0" aria-label="Show attribute context fields" class="attribute_filter_text" onClick="toggleContextFields();">Show context fields</div>
 		<div title="input filter" tabindex="0" aria-label="input filter" class="attribute_filter_text" style="padding-top:0px;">
@@ -168,13 +175,14 @@
 			?>
 					<th class="event_id"><?php echo $this->Paginator->sort('event_id', 'Event');?></th>
 			<?php
-		endif;
+				endif;
 			?>
 			<th><?php echo $this->Paginator->sort('Org.name', 'Org'); ?>
 			<th><?php echo $this->Paginator->sort('category');?></th>
 			<th><?php echo $this->Paginator->sort('type');?></th>
 			<th><?php echo $this->Paginator->sort('value');?></th>
 			<th>Tags</th>
+			<th>Galaxies</th>
 			<th><?php echo $this->Paginator->sort('comment');?></th>
 			<th>Correlate</th>
 			<th>Related Events</th>

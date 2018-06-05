@@ -23,8 +23,7 @@ class Feed extends AppModel {
 
 	public $validate = array(
 		'url' => array( // TODO add extra validation to refuse multiple time the same url from the same org
-			'rule' => array('urlOrExistingFilepath'),
-			'message' => 'Please enter a valid url or file path (make sure that the choice matches the input source setting).',
+			'rule' => array('urlOrExistingFilepath')
 		),
 		'provider' => 'valueNotEmpty',
 		'name' => 'valueNotEmpty',

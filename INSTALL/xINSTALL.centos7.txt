@@ -33,6 +33,10 @@ yum install gcc git httpd zip redis mariadb mariadb-server python-devel python-p
 # Install PHP 5.6 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php56/
 yum install rh-php56 rh-php56-php-fpm rh-php56-php-devel rh-php56-php-mysqlnd rh-php56-php-mbstring rh-php56-php-xml rh-php56-php-bcmath rh-php56-php-opcache
 
+# Install Python 3.6 from SCL, see
+# https://www.softwarecollections.org/en/scls/rhscl/rh-python36/
+yum install rh-python36
+
 # rh-php56-php only provided mod_php for httpd24-httpd from SCL
 # if we want to use httpd from CentOS base we can use rh-php56-php-fpm instead
 systemctl enable rh-php56-php-fpm.service
@@ -71,30 +75,35 @@ git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
 # Make git ignore filesystem permission differences
 git config core.filemode false
 
+# Start new shell with python 3 enabled
+scl enable rh-python36 bash
+
 # install Mitre's STIX and its dependencies by running the following commands:
 yum install python-importlib python-lxml python-dateutil python-six
 cd /var/www/MISP/app/files/scripts
 git clone https://github.com/CybOXProject/python-cybox.git
 git clone https://github.com/STIXProject/python-stix.git
 cd /var/www/MISP/app/files/scripts/python-cybox
-git checkout v2.1.0.12
 git config core.filemode false
 # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
 UMASK=$(umask)
 umask 0022
-python setup.py install
+python3 setup.py install
 cd /var/www/MISP/app/files/scripts/python-stix
-git checkout v1.1.1.4
 git config core.filemode false
-python setup.py install
+python3 setup.py install
 
 # install mixbox to accomodate the new STIX dependencies:
 cd /var/www/MISP/app/files/scripts/
 git clone https://github.com/CybOXProject/mixbox.git
 cd /var/www/MISP/app/files/scripts/mixbox
-git checkout v1.0.2
 git config core.filemode false
-python setup.py install
+python3 setup.py install
+
+# install PyMISP
+cd /var/www/MISP/PyMISP
+python3 setup.py install
+
 umask $UMASK
 
 4/ CakePHP

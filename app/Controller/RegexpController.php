@@ -21,11 +21,11 @@ class RegexpController extends AppController {
 			if ($this->request->data['Regexp']['all'] == 1) {
 				$this->Regexp->create();
 				if ($this->Regexp->save($this->request->data)) {
-					$this->Session->setFlash(__('The Regexp has been saved.'));
+					$this->Flash->success(__('The Regexp has been saved.'));
 					$this->redirect(array('action' => 'index'));
 				} else {
 					if (!($this->Session->check('Message.flash'))) {
-						$this->Session->setFlash(__('The Regexp could not be saved. Please, try again.'));
+						$this->Flash->error(__('The Regexp could not be saved. Please, try again.'));
 					}
 				}
 			} else {
@@ -39,10 +39,10 @@ class RegexpController extends AppController {
 					}
 				}
 				if ($success) {
-					$this->Session->setFlash(__('The Regular expressions have been saved.'));
+					$this->Flash->success(__('The Regular expressions have been saved.'));
 					$this->redirect(array('action' => 'index'));
 				} else {
-					$this->Session->setFlash(__('Could not create the Regex entry as no types were selected. Either check "All" or check the types that you wish the Regex to affect.'));
+					$this->Flash->error(__('Could not create the Regex entry as no types were selected. Either check "All" or check the types that you wish the Regex to affect.'));
 				}
 			}
 		}
@@ -74,11 +74,11 @@ class RegexpController extends AppController {
 				$this->request->data['Regexp']['type'] = 'ALL';
 				if ($this->Regexp->save($this->request->data)) {
 					$this->Regexp->find_similar($id, true);
-					$this->Session->setFlash('The Regexp has been saved');
+					$this->Flash->success('The Regexp has been saved');
 					$this->redirect(array('action' => 'index'));
 				} else {
 					if (!($this->Session->check('Message.flash'))) {
-						$this->Session->setFlash('The Regexp could not be saved. Please, try again.');
+						$this->Flash->error('The Regexp could not be saved. Please, try again.');
 					}
 				}
 			} else {
@@ -104,14 +104,14 @@ class RegexpController extends AppController {
 						foreach ($oldArray as $old) {
 							$this->Regexp->delete($old[0]);
 						}
-						$this->Session->setFlash(__('The Regular expressions have been saved.'));
+						$this->Flash->success(__('The Regular expressions have been saved.'));
 						$this->redirect(array('action' => 'index'));
 					} else {
 						// Since some insertions failed, don't delete the old entries. It's an edit that failed after all
-						$this->Session->setFlash('There were issues saving all of the regexp entries, therefore the old entries were not deleted.');
+						$this->Flash->error('There were issues saving all of the regexp entries, therefore the old entries were not deleted.');
 					}
 				} else {
-					$this->Session->setFlash(__('Could not create the Regex entry as no types were selected. Either check "All" or check the types that you wish the Regex to affect.'));
+					$this->Flash->error(__('Could not create the Regex entry as no types were selected. Either check "All" or check the types that you wish the Regex to affect.'));
 					foreach ($this->request->data['Regexp'] as $k => $t) {
 						if (is_numeric($k))	$values[$k] = ($t == '1') ? true : false;
 					}
@@ -175,7 +175,7 @@ class RegexpController extends AppController {
 				$this->Attribute->delete($item);
 			}
 		}
-		$this->Session->setFlash(__('All done! Number of changed attributes: ' . $modifications . ' Number of deletions: ' . count($deletable)));
+		$this->Flash->info(__('All done! Number of changed attributes: ' . $modifications . ' Number of deletions: ' . count($deletable)));
 		$this->redirect(array('action' => 'index'));
 	}
 
@@ -192,7 +192,7 @@ class RegexpController extends AppController {
 				$changes++;
 			}
 		}
-		$this->Session->setFlash(__('All done! Found and cleaned ' . $changes . ' potentially malcious regexes.'));
+		$this->Flash->info(__('All done! Found and cleaned ' . $changes . ' potentially malcious regexes.'));
 		$this->redirect('/pages/display/administration');
 	}
 }

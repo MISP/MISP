@@ -30,7 +30,7 @@ function generate_additional_info(info) {
 		var to_ret = "\n\nInvolved:\n";
 		var sel = document.createElement('select');
 		sel.classList.add('distributionInfo');
-		for (var i of info) {
+		for (var i in info) {
 			var opt = document.createElement('option');
 			opt.val = i;
 			opt.innerHTML = i;

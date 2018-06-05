@@ -52,7 +52,7 @@ class RolesController extends AppController {
 					));
 					return $this->RestResponse->viewData($role, $this->response->type());
 				} else {
-					$this->Session->setFlash('The Role has been saved');
+					$this->Flash->success('The Role has been saved');
 					$this->redirect(array('action' => 'index'));
 				}
 			} else {
@@ -90,7 +90,7 @@ class RolesController extends AppController {
 					));
 					return $this->RestResponse->viewData($role, $this->response->type());
 				} else {
-					$this->Session->setFlash('The Role has been saved');
+					$this->Flash->success('The Role has been saved');
 					$this->redirect(array('action' => 'index'));
 				}
 			} else {
@@ -143,14 +143,14 @@ class RolesController extends AppController {
 			if ($this->_isRest()) {
 				return $this->RestResponse->saveSuccessResponse('Roles', 'admin_delete', $id, $this->response->type());
 			} else {
-				$this->Session->setFlash(__('Role deleted'));
+				$this->Flash->success(__('Role deleted'));
 				$this->redirect(array('action' => 'index'));
 			}
 		}
 		if ($this->_isRest()) {
 			return $this->RestResponse->saveFailResponse('Roles', 'admin_delete', $id, $this->Role->validationErrors, $this->response->type());
 		} else {
-			$this->Session->setFlash('Role could not be deleted');
+			$this->Flash->error('Role could not be deleted');
 			$this->redirect(array('action' => 'index'));
 		}
 	}

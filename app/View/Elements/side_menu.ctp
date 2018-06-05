@@ -1,4 +1,4 @@
-<div class="actions <?php echo $debugMode;?> sideMenu">
+<div class="actions sideMenu">
 	<ul class="nav nav-list">
 		<?php
 			switch ($menuList) {
@@ -191,7 +191,7 @@
 						echo $this->element('/side_menu_link', array(
 							'element_id' => 'add',
 							'url' => '/events/add',
-							'text' => 'Add Events'
+							'text' => 'Add Event'
 						));
 						echo $this->element('/side_menu_link', array(
 							'onClick' => array(

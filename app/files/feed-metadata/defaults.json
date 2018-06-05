@@ -1422,5 +1422,80 @@
       "org_id": "0",
       "hide_tag": false
     }
-  }
+  },
+  {
+    "Feed": {
+        "id": "70",
+        "name": "CyberCure - IP Feed", 
+        "provider": "www.cybercure.ai",
+        "url": "http:\/\/api.cybercure.ai\/feed\/get_ips?type=csv",
+        "rules": "",
+        "enabled": false,
+        "distribution": "3",
+        "sharing_group_id": "0",
+        "tag_id": "0",
+        "default": false,
+        "source_format": "csv",
+        "fixed_event": false,
+        "delta_merge": false,
+        "event_id": "0",
+        "publish": false,
+        "override_ids": false,
+        "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+        "input_source": "network",
+        "delete_local_file": false,
+        "lookup_visible": false,
+        "headers": ""
+       }
+  },
+  {
+      "Feed": {
+        "id": "71",
+        "name": "CyberCure - Blocked URL Feed",
+        "provider": "www.cybercure.ai",
+        "url": "http:\/\/api.cybercure.ai\/feed\/get_url?type=csv",
+        "rules": "",
+        "enabled": true,
+        "distribution": "3",
+        "sharing_group_id": "0",
+        "tag_id": "0",
+        "default": false,
+        "source_format": "csv",
+        "fixed_event": false,
+        "delta_merge": false,
+        "event_id": "0",
+        "publish": false,
+        "override_ids": false,
+        "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+        "input_source": "network",
+        "delete_local_file": false,
+        "lookup_visible": false,
+        "headers": ""
+       }
+  },
+  {
+      "Feed": {
+        "id": "72",
+        "name": "CyberCure - Hash Feed",
+        "provider": "www.cybercure.ai",
+        "url": "http:\/\/api.cybercure.ai\/feed\/get_hash?type=csv",
+        "rules": "",
+        "enabled": false,
+        "distribution": "3",
+        "sharing_group_id": "0",
+        "tag_id": "0",
+        "default": false,
+        "source_format": "csv",
+        "fixed_event": false,
+        "delta_merge": false,
+        "event_id": "0",
+        "publish": false,
+        "override_ids": false,
+        "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+        "input_source": "network",
+        "delete_local_file": false,
+        "lookup_visible": false,
+        "headers": ""
+       }
+    }
 ]

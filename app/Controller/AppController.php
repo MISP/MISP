@@ -46,10 +46,12 @@ class AppController extends Controller {
 
 	public $helpers = array('Utility', 'OrgImg');
 
-	private $__queryVersion = '36';
+	private $__queryVersion = '37';
 	public $pyMispVersion = '2.4.90';
 	public $phpmin = '5.6.5';
 	public $phprec = '7.0.16';
+
+	public $baseurl = '';
 
 	// Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
 	// This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
@@ -84,7 +86,8 @@ class AppController extends Controller {
 			),
 			'Security',
 			'ACL',
-			'RestResponse'
+			'RestResponse',
+			'Flash'
 	);
 
 	private function __isApiFunction($controller, $action) {
@@ -111,7 +114,6 @@ class AppController extends Controller {
 		$this->set('queryVersion', $this->__queryVersion);
 		$this->loadModel('User');
 		$auth_user_fields = $this->User->describeAuthFields();
-
 		//if fresh installation (salt empty) generate a new salt
 		if (!Configure::read('Security.salt')) {
 			$this->loadModel('Server');
@@ -152,6 +154,7 @@ class AppController extends Controller {
 		if (trim($baseurl) == 'http://') {
 			$this->Server->serverSettingsSaveValue('MISP.baseurl', '');
 		}
+		$this->baseurl = $baseurl;
 		$this->set('baseurl', h($baseurl));
 
 		// send users away that are using ancient versions of IE
@@ -282,7 +285,7 @@ class AppController extends Controller {
 				if ($this->_isRest()) {
 					throw new ForbiddenException('Authentication failed. Your user account has been disabled.');
 				} else {
-					$this->Session->setFlash('Your user account has been disabled.');
+					$this->Flash->error('Your user account has been disabled.', array('key' => 'error'));
 					$this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
 				}
 			}
@@ -315,11 +318,11 @@ class AppController extends Controller {
 					$email = Configure::read('MISP.email');
 					$message = str_replace('$email', $email, $message);
 				}
-				$this->Session->setFlash($message);
+				$this->Flash->info($message);
 				$this->Auth->logout();
 				throw new MethodNotAllowedException($message);//todo this should pb be removed?
 			} else {
-				$this->Session->setFlash('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live)');
+				$this->Flash->error('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live)', array('clear' => 1));
 			}
 		}
 
@@ -338,7 +341,6 @@ class AppController extends Controller {
 			}
 		}
 		unset($base_dir);
-
 		// We don't want to run these role checks before the user is logged in, but we want them available for every view once the user is logged on
 		// instead of using checkAction(), like we normally do from controllers when trying to find out about a permission flag, we can use getActions()
 		// getActions returns all the flags in a single SQL query
@@ -515,7 +517,7 @@ class AppController extends Controller {
 			$this->Event->set('attribute_count', $event[0]['attribute_count']);
 			$this->Event->save();
 		}
-		$this->Session->setFlash(__('All done. attribute_count generated from scratch for ' . (isset($k) ? $k : 'no') . ' events.'));
+		$this->Flash->success(__('All done. attribute_count generated from scratch for ' . (isset($k) ? $k : 'no') . ' events.'));
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
 
@@ -541,7 +543,7 @@ class AppController extends Controller {
 			}
 		}
 		$this->Server->updateDatabase('makeAttributeUUIDsUnique');
-		$this->Session->setFlash('Done. Deleted ' . $counter . ' duplicate attribute(s).');
+		$this->Flash->success('Done. Deleted ' . $counter . ' duplicate attribute(s).');
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
 
@@ -577,15 +579,18 @@ class AppController extends Controller {
 			}
 		}
 		$this->Server->updateDatabase('makeEventUUIDsUnique');
-		$this->Session->setFlash('Done. Removed ' . $counter . ' duplicate events.');
+		$this->Flash->success('Done. Removed ' . $counter . ' duplicate events.');
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
 
 	public function updateDatabase($command) {
 		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
 		$this->loadModel('Server');
+		if (is_numeric($command)) {
+			$command = intval($command);
+		}
 		$this->Server->updateDatabase($command);
-		$this->Session->setFlash('Done.');
+		$this->Flash->success('Done.');
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
 
@@ -594,7 +599,7 @@ class AppController extends Controller {
 		$this->loadModel('Server');
 		if (!Configure::read('MISP.background_jobs')) {
 			$this->Server->upgrade2324($this->Auth->user('id'));
-			$this->Session->setFlash('Done. For more details check the audit logs.');
+			$this->Flash->success('Done. For more details check the audit logs.');
 			$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 		} else {
 			$job = ClassRegistry::init('Job');
@@ -617,7 +622,7 @@ class AppController extends Controller {
 					true
 			);
 			$job->saveField('process_id', $process_id);
-			$this->Session->setFlash(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
+			$this->Flash->success(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
 			$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 		}
 	}
@@ -702,7 +707,7 @@ class AppController extends Controller {
 		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
 		$this->loadModel('Server');
 		$this->Server->cleanCacheFiles();
-		$this->Session->setFlash('Caches cleared.');
+		$this->Flash->success('Caches cleared.');
 		$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'diagnostics'));
 	}
 }

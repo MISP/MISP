@@ -1298,6 +1298,11 @@ function getPopup(id, context, target, admin, popupType) {
 			$(popupType).html(data);
 			openPopup(popupType);
 		},
+		error:function() {
+			$(".loading").hide();
+			$("#gray_out").fadeOut();
+			showMessage('fail', 'Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).');
+		},
 		url: url
 	});
 }
@@ -1316,10 +1321,16 @@ function simplePopup(url) {
 			$("#popover_form").html(data);
 			openPopup("#popover_form");
 		},
-		error:function() {
+		error:function(xhr) {
 			$(".loading").hide();
 			$("#gray_out").fadeOut();
-			showMessage('fail', 'Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).');
+			if (xhr.status == 403) {
+				showMessage('fail', 'Not allowed.');
+			} else if (xhr.status == 404) {
+				showMessage('fail', 'Resource not found.');
+			} else {
+				showMessage('fail', 'Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).');
+			}
 		},
 		url: url,
 	});
@@ -1331,7 +1342,7 @@ function choicePopup(legend, list) {
 		popupHtml += '<div class="popover_choice_main" id ="popover_choice_main">';
 			popupHtml += '<table style="width:100%;" id="MainTable">';
 				popupHtml += '<tbody>';
-					for (var item of list) {
+					for (var item in list) {
 						popupHtml += '<tr style="border-bottom:1px solid black;" class="templateChoiceButton">';
 							popupHtml += '<td role="button" tabindex="0" aria-label="All meta-categories" title="'+item.text+'" style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="'+item.onclick+';">'+item.text+'</td>';
 						popupHtml += '</tr>';
@@ -2471,6 +2482,8 @@ function pgpChoiceSelect(uri) {
 		},
 		error: function (data, textStatus, errorThrown) {
 			showMessage('fail', textStatus + ": " + errorThrown);
+			$(".loading").hide();
+			$("#gray_out").fadeOut();
 		}
 	});
 }
@@ -2659,11 +2672,11 @@ function filterAttributes(filter, id) {
 	url = "/events/viewEventAttributes/" + id + "/attributeFilter:" + filter;
 	if(filter === 'value'){
 		filter = $('#attributesFilterField').val().trim();
-		url += "/searchFor:" + filter;
+		url += filter.length > 0 ? "/searchFor:" + filter : "";
 	} else if(filter !== 'all') {
 		url += "/filterColumnsOverwrite:" + filter;
 		filter = $('#attributesFilterField').val().trim();
-		url += "/searchFor:" + filter;
+		url += filter.length > 0 ? "/searchFor:" + filter : "";
 	}
 	if (deleted) url += '/deleted:true';
 	$.ajax({
@@ -3104,8 +3117,10 @@ $('.galaxy-toggle-button').click(function() {
 	}
 });
 
-$('#addGalaxy').click(function() {
-	getPopup($(this).data('event-id'), 'galaxies', 'selectGalaxy');
+$('.addGalaxy').click(function() {
+	var target_type = $(this).data('target-type');
+	var target_id = $(this).data('target-id');
+	getPopup(target_type + '/' + target_id, 'galaxies', 'selectGalaxy');
 });
 
 function quickSubmitGalaxyForm(event_id, cluster_id) {
@@ -3203,7 +3218,7 @@ function submitMISPUpdate() {
 
 $(".cortex-json").click(function() {
 	var cortex_data = $(this).data('cortex-json');
-	cortex_data = JSON.stringify(cortex_data, null, 2);
+	cortex_data = htmlEncode(JSON.stringify(cortex_data, null, 2));
 	var popupHtml = '<pre class="simplepre">' + cortex_data + '</pre>';
 	popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
 	$('#screenshot_box').html(popupHtml);

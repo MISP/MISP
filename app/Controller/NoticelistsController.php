@@ -85,16 +85,21 @@ class NoticelistsController extends AppController {
 					'change' => 'Executed an update of the notice lists, but there was nothing to update.',
 			));
 		}
-		if ($successes == 0 && $fails == 0) $message = 'All noticelists are up to date already.';
-		else if ($successes == 0) $message = 'Could not update any of the notice lists';
-		else {
+		if ($successes == 0 && $fails == 0) {
+			$flashType = 'success';
+			$message = 'All noticelists are up to date already.';
+		}	else if ($successes == 0) {
+			$flashType = 'error';
+			$message = 'Could not update any of the notice lists';
+		} else {
+			$flashType = 'success';
 			$message = 'Successfully updated ' . $successes . ' noticelists.';
 			if ($fails != 0) $message . ' However, could not update ' . $fails . ' notice list.';
 		}
 		if ($this->_isRest()) {
 			return $this->RestResponse->saveSuccessResponse('Noticelist', 'update', false, $this->response->type(), $message);
 		} else {
-			$this->Session->setFlash($message);
+			$this->Flash->{$flashType}($message);
 			$this->redirect(array('controller' => 'noticelists', 'action' => 'index'));
 		}
 	}
@@ -126,7 +131,7 @@ class NoticelistsController extends AppController {
 		// DBMS interoperability: convert boolean false to integer 0 so cakephp doesn't try to insert an empty string into the database
 		if ($enable === false) $enable = 0;
 		$this->Noticelist->saveField('enabled', $enable);
-		$this->Session->setFlash('Noticelist enabled');
+		$this->Flash->info('Noticelist enabled');
 		$this->redirect(array('controller' => 'noticelists', 'action' => 'view', $id));
 	}
 
@@ -153,10 +158,10 @@ class NoticelistsController extends AppController {
 			$id = intval($id);
 			$result = $this->Noticelist->quickDelete($id);
 			if ($result) {
-				$this->Session->setFlash('Noticelist successfuly deleted.');
+				$this->Flash->success('Noticelist successfuly deleted.');
 				$this->redirect(array('controller' => 'noticelists', 'action' => 'index'));
 			} else {
-				$this->Session->setFlash('Noticelists could not be deleted.');
+				$this->Flash->error('Noticelists could not be deleted.');
 				$this->redirect(array('controller' => 'noticelists', 'action' => 'index'));
 			}
 		} else {

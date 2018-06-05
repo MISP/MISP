@@ -129,6 +129,17 @@
         <?php echo $this->element('ajaxAttributeTags', array('attributeId' => $object['id'], 'attributeTags' => $object['AttributeTag'], 'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id']) )); ?>
       </div>
     </td>
+    <td class="short">
+      <?php
+        echo $this->element('galaxyQuickViewMini', array(
+          'mayModify' => $mayModify,
+          'isAclTagger' => $isAclTagger,
+          'data' => (!empty($object['Galaxy']) ? $object['Galaxy'] : array()),
+          'target_id' => $object['id'],
+          'target_type' => 'attribute'
+        ));
+      ?>
+    </td>
     <td class="showspaces bitwider">
       <div id = "Attribute_<?php echo $object['id']; ?>_comment_placeholder" class = "inline-field-placeholder"></div>
       <div id = "Attribute_<?php echo $object['id']; ?>_comment_solid" class="inline-field-solid" ondblclick="activateField('<?php echo $editScope; ?>', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">
@@ -316,8 +327,16 @@
             endif;
       ?>
             <a href="<?php echo $baseurl;?>/attributes/edit/<?php echo $object['id']; ?>" title="<?php echo __('Edit');?>" class="icon-edit useCursorPointer"></a>
+          <?php
+            if (empty($event['Event']['publish_timestamp'])):
+          ?>
+            <span class="icon-trash useCursorPointer" title="<?php echo __('Permanently delete attribute');?>" role="button" tabindex="0" aria-label="i<?php echo __('Permanently delete attribute');?>" onClick="deleteObject('attributes', 'delete', '<?php echo h($object['id']) . '/true'; ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+          <?php
+            else:
+          ?>
             <span class="icon-trash useCursorPointer" title="<?php echo __('Soft-delete attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Soft-delete attribute');?>" onClick="deleteObject('attributes', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
-      <?php
+          <?php
+            endif;
           endif;
         endif;
     ?>

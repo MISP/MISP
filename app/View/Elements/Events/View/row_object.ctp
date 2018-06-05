@@ -61,7 +61,7 @@
     ?>
     &nbsp;
   </td>
-  <td colspan="4">
+  <td colspan="5">
     <span class="bold"><?php echo __('Name: ');?></span><?php echo h($object['name']);?>
     <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo h($object['id']); ?>_collapsible"></span>
     <br />
@@ -116,7 +116,7 @@
   <td>&nbsp;</td>
   <td class="short action-links">
     <?php
-      if ($mayModify && empty($object['deleted'])):
+      if ($mayModify && empty($object['deleted']) && !empty($event['Event']['publish_timestamp'])):
     ?>
         <a href="<?php echo $baseurl;?>/objects/edit/<?php echo $object['id']; ?>" title="Edit" class="icon-edit icon-white useCursorPointer"></a>
         <span class="icon-trash icon-white useCursorPointer" title="<?php echo __('Soft delete object');?>" role="button" tabindex="0" aria-label="<?php echo __('Soft delete object');?>" onClick="deleteObject('objects', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>

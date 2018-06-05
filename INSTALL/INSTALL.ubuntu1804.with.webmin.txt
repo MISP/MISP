@@ -58,23 +58,24 @@ git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
 git config core.filemode false
 
 # install Mitre's STIX and its dependencies by running the following commands:
-sudo apt-get install python-dev python-pip libxml2-dev libxslt1-dev zlib1g-dev python-setuptools
+sudo apt-get install python3-dev python3-pip libxml2-dev libxslt1-dev zlib1g-dev python-setuptools
 cd /home/misp/public_html/MISP/app/files/scripts
 git clone https://github.com/CybOXProject/python-cybox.git
 git clone https://github.com/STIXProject/python-stix.git
 cd /home/misp/public_html/MISP/app/files/scripts/python-cybox
-git checkout v2.1.0.12
-sudo python setup.py install
+sudo python3 setup.py install
 cd /home/misp/public_html/MISP/app/files/scripts/python-stix
-git checkout v1.1.1.4
-sudo python setup.py install
+sudo python3 setup.py install
 
 # install mixbox to accomodate the new STIX dependencies:
 cd /home/misp/public_html/MISP/app/files/scripts/
 git clone https://github.com/CybOXProject/mixbox.git
 cd /home/misp/public_html/MISP/app/files/scripts/mixbox
-git checkout v1.0.2
-sudo python setup.py install
+sudo python3 setup.py install
+
+# install PyMISP
+cd /var/www/MISP/PyMISP
+sudo python3 setup.py install
 
 4/ CakePHP
 -----------

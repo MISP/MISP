@@ -3270,7 +3270,7 @@ msgid "Delete Delegation Request"
 msgstr ""
 
 #: View/EventDelegations/ajax/delete_delegation.ctp:4
-msgid "Are you sure you would like to discard the request by %s to take owenership of Event #%s"
+msgid "Are you sure you would like to discard the request by %s to take ownership of Event #%s"
 msgstr ""
 
 #: View/EventDelegations/ajax/view.ctp:2

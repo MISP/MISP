@@ -22,6 +22,7 @@
 			<th><?php echo $this->Paginator->sort('icon');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
 			<th><?php echo $this->Paginator->sort('version');?></th>
+			<th><?php echo $this->Paginator->sort('namespace');?></th>
 			<th><?php echo $this->Paginator->sort('description');?></th>
 			<th class="actions"><?php echo $this->Paginator->sort('description');?></th>
 	</tr><?php
@@ -31,6 +32,7 @@ foreach ($list as $item):?>
 		<td class="short"><span class="fa fa-<?php echo h($item['Galaxy']['icon']); ?>"></span></td>
 		<td><?php echo h($item['Galaxy']['name']);?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Galaxy']['version']);?>&nbsp;</td>
+		<td class="short"><?php echo h($item['Galaxy']['namespace']);?>&nbsp;</td>
 		<td><?php echo h($item['Galaxy']['description']);?>&nbsp;</td>
 		<td class="short action-links">
 			<?php echo $this->Html->link('', array('action' => 'view', $item['Galaxy']['id']), array('class' => 'icon-list-alt', 'title' => 'View'));?>
