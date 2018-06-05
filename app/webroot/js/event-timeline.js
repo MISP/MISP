@@ -2,6 +2,7 @@ var max_displayed_char_timeline = 64;
 var eventTimeline;
 var items_timeline;
 var items_backup;
+var use_local_timezone = true;
 var mapping_text_to_id = new Map();
 var user_manipulation = $('#event_timeline').data('user-manipulation');
 var extended_text = $('#event_timeline').data('extended') == 1 ? "extended:1/" : "";
@@ -33,7 +34,7 @@ var options = {
 		}
 	},
 	moment: function(date) {
-		if ($('#checkbox_timeline_display_gmt').prop('checked')) {
+		if (use_local_timezone) {
 			return vis.moment(date);
 		} else {
 			return vis.moment(date).utc();
@@ -310,7 +311,7 @@ function adjust_text_length(elem) {
 }
 
 function update_badge() {
-	if ($('#checkbox_timeline_display_gmt').prop('checked')) {
+	if (use_local_timezone) {
 		$("#timeline-display-badge").text("Timezone: " + ": " + moment().format('Z'));
 	} else {
 		$("#timeline-display-badge").text("Timezone: " + ": " + moment().utc().format('Z (z)'));
@@ -531,6 +532,7 @@ function init_popover() {
 		label: "Display with current timezone",
 		title: "Set the dates relative to the browser timezone. Otherwise, keep dates in GMT",
 		event: function(value) {
+			use_local_timezone = value;
 			reload_timeline()
 		},
 		checked: true

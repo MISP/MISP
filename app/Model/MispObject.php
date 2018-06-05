@@ -51,6 +51,19 @@ class MispObject extends AppModel {
 	public $validate = array(
 	);
 
+	public function afterFind($results, $primary = false) {
+		foreach ($results as $k => $v) {
+			if (!empty($v[$this->alias]['first_seen'])) {
+				$results[$k][$this->alias]['first_seen'] = DateTime::createFromFormat('Y-m-d H:i:s.u', $results[$k][$this->alias]['first_seen'])->format('Y-m-d\TH:i:s.uP');
+				
+			}
+			if (!empty($v[$this->alias]['last_seen'])) {
+				$results[$k][$this->alias]['last_seen'] = DateTime::createFromFormat('Y-m-d H:i:s.u', $results[$k][$this->alias]['last_seen'])->format('Y-m-d\TH:i:s.uP');
+			}
+		}
+		return $results;
+	}
+
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
 		if (empty($this->data[$this->alias]['comment'])) {
