@@ -72,7 +72,7 @@
       ?>
     </dd>
 
-	<?php echo $this->element('form_nanotimestamp_input'); ?>
+	<?php echo $this->element('form_seen_input'); ?>
 
   </dl>
 </div>

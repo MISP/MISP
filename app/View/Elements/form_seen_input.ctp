@@ -182,7 +182,7 @@ function reflect_change_on_sliders(seen, skip_input_update, overwrite) {
 	}
 
 	if (seen == 'both' || seen == 'last') {
-		var l_val = $('#'+controller+'LastSeen').val();
+		var l_val = overwrite === undefined ? $('#'+controller+'LastSeen').val() : overwrite;
 		var l_microdatetime = new MicroDatetime(l_val);
 		var hours = l_microdatetime.moment !== undefined ? l_microdatetime.moment.hours() : 0;
 		var minutes = l_microdatetime.moment !== undefined ? l_microdatetime.moment.minutes() : 0;
@@ -278,10 +278,14 @@ function reflect_change_on_form() {
 	var microdatetime = get_time_from_slider('first');
 	if (microdatetime.moment !== undefined) {
 		$('#'+controller+'FirstSeen').val(microdatetime.get_microISO());
+	} else {
+		$('#'+controller+'FirstSeen').val("");
 	}
 	var microdatetime = get_time_from_slider('last');
 	if (microdatetime.moment !== undefined) {
 		$('#'+controller+'LastSeen').val(microdatetime.get_microISO());
+	} else {
+		$('#'+controller+'LastSeen').val("");
 	}
 }
 

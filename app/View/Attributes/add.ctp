@@ -80,7 +80,7 @@
 			));
 		?>
 
-		<?php echo $this->element('form_nanotimestamp_input'); ?>
+		<?php echo $this->element('form_seen_input'); ?>
 		</div>
 	</fieldset>
 	<p id="notice_message" style="display:none;"></p>
