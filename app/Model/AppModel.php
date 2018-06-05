@@ -944,6 +944,7 @@ class AppModel extends Model {
 				$sqlArray[] = "ALTER TABLE `objects` ADD `last_seen` DATETIME(6) NULL DEFAULT NULL;";
 				$indexArray[] = array('objects', 'first_seen');
 				$indexArray[] = array('objects', 'last_seen');
+				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
 				$sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
