@@ -1,6 +1,5 @@
 INSTALLATION INSTRUCTIONS for RHEL 7.x
 -------------------------
-Contributor: Jez Kerwin - web*at*jezlabs(.)com
 
 +----------------------------------------+
 |   0/ Overview and Assumptions          |

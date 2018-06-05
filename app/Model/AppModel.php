@@ -34,6 +34,8 @@ class AppModel extends Model {
 
 	private $__redisConnection = false;
 
+	private $__profiler = array();
+
 	public function __construct($id = false, $table = null, $ds = null) {
 		parent::__construct($id, $table, $ds);
 
@@ -1327,5 +1329,62 @@ class AppModel extends Model {
 			$db->expression($subQuery)->value
 		);
 		return $conditions;
+	}
+
+	// start a benchmark run for the given bench name
+	public function benchmarkInit($name = 'default') {
+		$this->__profiler[$name]['start'] = microtime(true);
+		if (empty($this->__profiler[$name]['memory_start'])) $this->__profiler[$name]['memory_start'] = memory_get_usage();
+		return true;
+	}
+
+	// calculate the duration from the init time to the current point in execution. Aggregate flagged executions will increment the duration instead of just setting it
+	public function benchmark($name = 'default', $aggregate = false, $memory_chart = false) {
+		if (!empty($this->__profiler[$name]['start'])) {
+			if ($aggregate) {
+				if (!isset($this->__profiler[$name]['duration'])) $this->__profiler[$name]['duration'] = 0;
+				if (!isset($this->__profiler[$name]['executions'])) $this->__profiler[$name]['executions'] = 0;
+				$this->__profiler[$name]['duration'] += microtime(true) - $this->__profiler[$name]['start'];
+				$this->__profiler[$name]['executions']++;
+				$currentUsage = memory_get_usage();
+				if ($memory_chart) {
+					$this->__profiler[$name]['memory_chart'][] = $currentUsage - $this->__profiler[$name]['memory_start'];
+				}
+				if (
+					empty($this->__profiler[$name]['memory_peak']) ||
+					$this->__profiler[$name]['memory_peak'] < ($currentUsage - $this->__profiler[$name]['memory_start'])
+				) {
+					$this->__profiler[$name]['memory_peak'] = $currentUsage - $this->__profiler[$name]['memory_start'];
+				}
+			} else {
+				$this->__profiler[$name]['memory_peak'] = memory_get_usage() - $this->__profiler[$name]['memory_start'];
+				$this->__profiler[$name]['duration'] = microtime(true) - $this->__profiler[$name]['start'];
+			}
+		}
+		return true;
+	}
+
+	// return the results of the benchmark(s). If no name is set all benchmark results are returned in an array.
+	public function benchmarkResult($name = false) {
+		if ($name) {
+			return array($name => $this->__profiler[$name]['duration']);
+		} else {
+			$results = array();
+			foreach ($this->__profiler as $name => $benchmark) {
+				if (!empty($benchmark['duration'])) {
+					$results[$name] = $benchmark;
+					unset($results[$name]['start']);
+					unset($results[$name]['memory_start']);
+				}
+			}
+			return $results;
+		}
+	}
+
+	public function benchmarkCustomAdd($valueToAdd = 0, $name = 'default', $customName = 'custom') {
+		if (empty($this->__profiler[$name]['custom'][$customName])) {
+			$this->__profiler[$name]['custom'][$customName] = 0;
+		}
+		$this->__profiler[$name]['custom'][$customName] += $valueToAdd;
 	}
 }
