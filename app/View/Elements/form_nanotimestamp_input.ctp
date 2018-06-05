@@ -290,7 +290,7 @@ $(document).ready(function() {
 	var sliders_container = "<?php if ($this->params->controller === 'attributes') { echo 'fieldset'; } else { echo '#meta-div'; } ?>";
 	var inputs_container = $('<div class="input-group input-daterange"></div>');
 	// create separate date and time input
-	var date_div_fs = $('<div class="input clear larger-input-field"></div>').append(
+	var date_div_fs = $('<div class="input clear larger-input-field" style="margin-left: 10px;"></div>').append(
 		$('<label><?php echo __('First seen date') . '<span class="fa fa-calendar label-icon"></span>'; ?><input id="date_fs" type="text" style="width: 240px;"></input></label>')
 	);
 	$(inputs_container).append(date_div_fs);
@@ -300,7 +300,7 @@ $(document).ready(function() {
 	$(inputs_container).append(date_div_ls);
 	$(sliders_container).append(inputs_container);
 
-	var time_div_fs = $('<div class="input clear larger-input-field"></div>').append(
+	var time_div_fs = $('<div class="input clear larger-input-field" style="margin-left: 10px;"></div>').append(
 		$('<label><?php echo __('First seen time') . '<span class="fa fa-clock-o label-icon"></span>'; ?><input id="time_fs" type="text" style="width: 240px; text-align: center;"></input></label>')
 	);
 	$(sliders_container).append(time_div_fs);
@@ -310,7 +310,7 @@ $(document).ready(function() {
 	$(sliders_container).append(time_div_ls);
 
 	// create checkbox
-	var div_checkbox_prec_tool = $('<div class="clear checkbox"></div>').append(
+	var div_checkbox_prec_tool = $('<div class="clear checkbox" style="margin-left: 10px;"></div>').append(
 	    $('<label style="display: inline-block"><input id="seen_precision_tool" type="checkbox" style="margin-top: 0px;"></input><?php echo(__('Enable precision tool'))?><span class="fa fa-bullseye label-icon"</span></label>')
 	);
 	$(sliders_container).append(div_checkbox_prec_tool);
