@@ -54,40 +54,22 @@ class StixParser():
 
     # Load data from STIX document, and other usefull data
     def load(self, args, pathname):
-        try:
-            filename = '{}/tmp/{}'.format(pathname, args[1])
-            event = self.load_event(filename)
-            title = event.stix_header.title
-            if title is not None and "Export from " in title and "MISP" in title:
-                fromMISP = True
-            else:
-                fromMISP = False
-            if fromMISP:
-                package = event.related_packages.related_package[0].item
-                self.event = package.incidents[0]
-                self.ttps = package.ttps.ttps if package.ttps else None
-            else:
-                self.event = event
-            self.fromMISP = fromMISP
-            self.filename = filename
-            self.load_mapping()
-        except:
-            print(json.dumps({'success': 0, 'message': 'The STIX file cannot be read'}))
-            sys.exit(0)
-
-    # Event loading function, recursively itterating as long as namespace errors appear
-    def load_event(self, filename):
-        try:
-            return STIXPackage.from_xml(filename)
-        except Exception as ns_error:
-            if ns_error.__str__().startswith('Namespace not found:'):
-                ns_value = ns_error.ns_uri
-                prefix = ns_value.split('/')[-1]
-                ns = mixbox_ns.Namespace(ns_value, prefix, '')
-                mixbox_ns.register_namespace(ns)
-                return self.load_event(filename)
-            else:
-                return None
+        filename = '{}/tmp/{}'.format(pathname, args[1])
+        event = STIXPackage.from_xml(filename)
+        title = event.stix_header.title
+        if title is not None and "Export from " in title and "MISP" in title:
+            fromMISP = True
+        else:
+            fromMISP = False
+        if fromMISP:
+            package = event.related_packages.related_package[0].item
+            self.event = package.incidents[0]
+            self.ttps = package.ttps.ttps if package.ttps else None
+        else:
+            self.event = event
+        self.fromMISP = fromMISP
+        self.filename = filename
+        self.load_mapping()
 
     # Load the mapping dictionary for STIX object types
     def load_mapping(self):
