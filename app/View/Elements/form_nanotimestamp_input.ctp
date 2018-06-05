@@ -3,11 +3,11 @@
 <div class="input-group">
 <?php
 	echo $this->Form->input('first_seen', array(
-			'type' => 'hidden',
+			'div' => 'input hidden',
 			'required' => false,
 			));
 	echo $this->Form->input('last_seen', array(
-			'type' => 'hidden',
+			'div' => 'input hidden',
 			'required' => false,
 			));
 ?>
@@ -28,12 +28,8 @@ var time_vals = [
 
 class MicroDatetime {
 	constructor(value) {
-		//this.isoDatetimeMicroRegex = /(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})T(?<hour>\d{2})\:(?<min>\d{2})\:(?<sec>\d{2})\.(?<milli>\d{3})(?<micro>\d*)(?<tz>\D\S*)/g;
-		//this.isotimeMicroRegex = /(?<hour>\d{2})\:(?<min>\d{2})\:(?<sec>\d{2})\.(?<milli>\d{3})(?<micro>\d*)(?<tz>\D\S*)/g;
-		//this.tzRegex = /(?<datetime>\.{23})(?<tz>\D\S*)/g;
 		this.isoDatetimeMicroRegex = /(\d{4})-(\d{2})-(\d{2})T(\d{2})\:(\d{2})\:(\d{2})\.(\d{3})(\d*)(\D\S*)/g;
 		this.isotimeMicroRegex = /(\d{2})\:(\d{2})\:(\d{2})\.(\d{3})(\d*)(\D\S*)/g;
-		this.tzRegex = /(\.{23})(\D\S*)/g;
 		this.numberRegex = /^(\-|\+)?([0-9]+|Infinity)$/g;
 
 		if (value === undefined || value === "") {
@@ -91,7 +87,7 @@ class MicroDatetime {
 		if (this.moment === undefined || this.moment === null) {
 			return "";
 		}
-		var tz = this.tzRegex.exec(this.moment.toISOString(true))[2];
+		var tz = this.moment.format('Z');
 		var str = this.moment.toISOString(true);
 		str = str.replace(tz, pad_zero(this.micro, 3)+tz);
 		return str;
@@ -280,10 +276,13 @@ function reflect_change_on_input(seen, full) {
 
 function reflect_change_on_form() {
 	var microdatetime = get_time_from_slider('first');
-	$('#'+controller+'FirstSeen').val(microdatetime.get_microISO());
+	if (microdatetime.moment !== undefined) {
+		$('#'+controller+'FirstSeen').val(microdatetime.get_microISO());
+	}
 	var microdatetime = get_time_from_slider('last');
-	console.log(microdatetime);
-	$('#'+controller+'LastSeen').val(microdatetime.get_microISO());
+	if (microdatetime.moment !== undefined) {
+		$('#'+controller+'LastSeen').val(microdatetime.get_microISO());
+	}
 }
 
 $(document).ready(function() {
@@ -302,11 +301,11 @@ $(document).ready(function() {
 	$(sliders_container).append(inputs_container);
 
 	var time_div_fs = $('<div class="input clear larger-input-field"></div>').append(
-		$('<label><?php echo __('First seen time') . '<span class="fa fa-clock-o label-icon"></span>'; ?><input id="time_fs" type="text" style="width: 240px;"></input></label>')
+		$('<label><?php echo __('First seen time') . '<span class="fa fa-clock-o label-icon"></span>'; ?><input id="time_fs" type="text" style="width: 240px; text-align: center;"></input></label>')
 	);
 	$(sliders_container).append(time_div_fs);
 	var time_div_ls = $('<div class="input larger-input-field"></div>').append(
-		$('<label><?php echo __('Last seen time') . '<span class="fa fa-clock-o label-icon"></span>'; ?><input id="time_ls" type="text" style="width: 240px;"></input></label>')
+		$('<label><?php echo __('Last seen time') . '<span class="fa fa-clock-o label-icon"></span>'; ?><input id="time_ls" type="text" style="width: 240px; text-align: center;"></input></label>')
 	);
 	$(sliders_container).append(time_div_ls);
 
