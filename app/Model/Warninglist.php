@@ -309,15 +309,25 @@ class Warninglist extends AppModel{
 		foreach ($components as $component) {
 			if (!isset($value[$component])) continue;
 			if ($listType === 'cidr') {
+				$this->benchmarkInit('cidr');
 				$result = $this->__evalCIDRList($listValues, $value[$component]);
+				$this->benchmark('cidr', 1);
 			} else if ($listType === 'string') {
+				$this->benchmarkInit('string');
 				$result = $this->__evalString($listValues, $value[$component]);
+				$this->benchmark('string', 1);
 			} else if ($listType === 'substring') {
+				$this->benchmarkInit('substring');
 				$result = $this->__evalSubString($listValues, $value[$component]);
+				$this->benchmark('substring', 1);
 			} else if ($listType === 'hostname') {
+				$this->benchmarkInit('hostname');
 				$result = $this->__evalHostname($listValues, $value[$component]);
+				$this->benchmark('hostname', 1);
 			} else if ($listType === 'regex') {
+				$this->benchmarkInit('regex');
 				$result = $this->__evalRegex($listValues, $value[$component]);
+				$this->benchmark('regex', 1);
 			}
 			if (!empty($result)) return ($component + 1);
 		}

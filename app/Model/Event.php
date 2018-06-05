@@ -3718,6 +3718,7 @@ class Event extends AppModel {
 		$params = $customPagination->applyRulesOnArray($event['objects'], $passedArgs, 'events', 'category');
 		$params['total_elements'] = count($event['objects']);
 		$event['Event']['warnings'] = $eventWarnings;
+				debug($this->Warninglist->benchmarkResult());
 		return $params;
 	}
 
