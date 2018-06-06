@@ -1,5 +1,5 @@
 <div class="attributes <?php if (!isset($ajax) || !$ajax) echo 'form';?>">
-<?php echo $this->Form->create('Attribute');?>
+<?php echo $this->Form->create('Attribute', array('id'=>'AttributeForm'));?>
 	<fieldset>
 		<legend><?php echo __('Edit Attribute'); ?></legend>
 		<?php

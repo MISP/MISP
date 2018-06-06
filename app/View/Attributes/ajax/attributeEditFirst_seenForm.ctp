@@ -4,6 +4,7 @@
 <?php
 	echo $this->Form->input('first_seen', array(
 			'label' => false,
+			'type' => 'text',
 			'value' => 0,
 			'id' => 'Attribute' . '_' . $object['id'] . '_first_seen_field',
 			'div' => false

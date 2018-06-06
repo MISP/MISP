@@ -3,10 +3,12 @@
 <div class="input-group">
 <?php
 	echo $this->Form->input('first_seen', array(
+			'type' => 'text',
 			'div' => 'input hidden',
 			'required' => false,
 			));
 	echo $this->Form->input('last_seen', array(
+			'type' => 'text',
 			'div' => 'input hidden',
 			'required' => false,
 			));
@@ -246,8 +248,7 @@ function get_time_from_slider(which) {
 			});
 		} else { // no time, setting it UTC noon
 			micro = 0;
-			mom.utc();
-			mom.set('h', 12);
+			mom.set('h', 0);
 		}
 	}
 	microdatetime = new MicroDatetime();
@@ -260,14 +261,14 @@ function reflect_change_on_input(seen, full) {
 	if ($('#seen_precision_tool').prop('checked')) {
 		if (seen == 'both' || seen == 'first') {
 			var microdatetime = get_time_from_slider('first');
-			if($('#'+controller+'FirstSeen').val() !== '') {
+			if($('#date_fs').val() !== '') {
 				$("#time_fs").val(microdatetime.get_time());
 			}
 		}
 
 		if (seen == 'both' || seen == 'last') {
 			var microdatetime = get_time_from_slider('last');
-			if($('#'+controller+'LastSeen').val() !== '') {
+			if($('#date_ls').val() !== '') {
 				$("#time_ls").val(microdatetime.get_time());
 			}
 		}
@@ -415,7 +416,7 @@ $(document).ready(function() {
 		event.preventDefault();
 	});
 
-	$('form').submit(function( event ) {
+	$('#AttributeForm').submit(function( event ) {
 		reflect_change_on_form();
 	});
 

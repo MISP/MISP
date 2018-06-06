@@ -949,6 +949,9 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 			break;
 	}
 	if (url !== null) {
+		// execute potential listener before submitting
+		var form = $("#submitButton").closest("form");
+		form.triggerHandler("submit");
 		$.ajax({
 			beforeSend: function (XMLHttpRequest) {
 				$(".loading").show();
