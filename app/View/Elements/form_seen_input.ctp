@@ -416,7 +416,7 @@ $(document).ready(function() {
 		event.preventDefault();
 	});
 
-	$('#AttributeForm').submit(function( event ) {
+	$('#date_fs').closest('form').submit(function( event ) {
 		reflect_change_on_form();
 	});
 

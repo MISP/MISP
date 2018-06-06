@@ -1747,11 +1747,11 @@ class AttributesController extends AppController {
 						}
 					}
 
-					if (isset($first_seen)) {
+					if (!empty($first_seen)) {
 						$first_seen = (new DateTime($first_seen))->format('Y-m-d H:i:s.u');
 						$conditions['Attribute.first_seen >='] = $first_seen;
 					}
-					if (isset($last_seen)) {
+					if (!empty($last_seen)) {
 						$last_seen = (new DateTime($last_seen))->format('Y-m-d H:i:s.u');
 						$conditions['Attribute.last_seen <='] = $last_seen;
 					}
