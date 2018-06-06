@@ -840,6 +840,10 @@ class AttributesController extends AppController {
 					} else {
 						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Could not update attribute, reason: ' . json_encode($this->Attribute->validationErrors))),'status' => 200, 'type' => 'json'));
 					}
+				} else {
+ 					if (!$result) {
+						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Could not update attribute, reason: ' . json_encode($this->Attribute->validationErrors))),'status' => 200, 'type' => 'json'));
+					}
 				}
 			}
 			if ($result) {
