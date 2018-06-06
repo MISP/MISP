@@ -826,6 +826,15 @@ class Server extends AppModel {
 						'errorMessage' => '',
 						'test' => null,
 						'type' => 'string',
+					),
+					'deadlock_avoidance' => array(
+							'level' => 1,
+							'description' => 'Only enable this if you have some tools using MISP with extreme high concurency. General performance will be lower as normal as certain transactional queries are avoided in favour of shorter table locks.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
 					)
 			),
 			'GnuPG' => array(

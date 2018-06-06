@@ -272,7 +272,8 @@ class AttributesController extends AppController {
 			if (!empty($successes)) {
 				$this->Event->unpublishEvent($eventId);
 			}
-			$result = $this->Attribute->saveMany($attributes);
+			$atomic = Configure::read('MISP.deadlock_avoidance') ? false : true;
+			$result = $this->Attribute->saveMany($attributes, array('atomic' => $atomic));
 			if ($this->_isRest()) {
 				if (!empty($successes)) {
 					$attributes = $this->Attribute->find('all', array(
@@ -307,7 +308,7 @@ class AttributesController extends AppController {
 						if (!empty($fails["attribute_0"])) {
 							foreach ($fails["attribute_0"] as $k => $v) {
 								$failed = 1;
-								$message = 'Attribute validation failed [' . $k . ']: ' . $v[0];
+								$message = '$this->Flash->info [' . $k . ']: ' . $v[0];
 								break;
 							}
 						} else {
@@ -1213,7 +1214,7 @@ class AttributesController extends AppController {
 		}
 	}
 
-	public function deleteSelected($id = false) {
+	public function deleteSelected($id = false, $hard = false) {
 		if (!$this->request->is('post')) {
 			if ($this->request->is('get')) {
 				return $this->RestResponse->describe('Attributes', 'deleteSelected', false, $this->response->type());
@@ -1250,7 +1251,7 @@ class AttributesController extends AppController {
 		if (empty($ids)) $ids = -1;
 		$conditions = array('id' => $ids, 'event_id' => $id);
 		if ($ids == 'all') unset($conditions['id']);
-		if ($this->_isRest() && empty($this->request->data['Attribute']['allow_hard_delete'])) {
+		if ($hard || ($this->_isRest() && empty($this->request->data['Attribute']['allow_hard_delete']))) {
 			$conditions['deleted'] = 0;
 		}
 		// find all attributes from the ID list that also match the provided event ID.
@@ -1270,7 +1271,12 @@ class AttributesController extends AppController {
 		}
 		$successes = array();
 		foreach ($attributes as $a) {
-			if ($this->__delete($a['Attribute']['id'], $a['Attribute']['deleted'] == 1 ? true : false)) $successes[] = $a['Attribute']['id'];
+			if ($hard) {
+				if ($this->__delete($a['Attribute']['id'], true)) $successes[] = $a['Attribute']['id'];
+			} else {
+				if ($this->__delete($a['Attribute']['id'], $a['Attribute']['deleted'] == 1 ? true : false)) $successes[] = $a['Attribute']['id'];
+			}
+
 		}
 		$fails = array_diff($ids, $successes);
 		$this->autoRender = false;
