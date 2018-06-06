@@ -1,7 +1,3 @@
-<?php
-	echo $this->Html->css('jquery-ui');
-	echo $this->Html->script('jquery-ui');
-?>
 <div class="attributes form">
 <?php echo $this->Form->create('Attribute');?>
 	<fieldset>

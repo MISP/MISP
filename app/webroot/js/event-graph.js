@@ -135,7 +135,7 @@ class EventGraph {
 			$("#select_graph_scope").val(value);
 		}
 
-		if (value == "Rotation key") {
+		if (value == "Pivot key") {
 			$("#network-scope-badge").text(value + ": " + eventGraph.scope_keyType);
 		} else {
 			$("#network-scope-badge").text(value);
@@ -156,30 +156,30 @@ class EventGraph {
 			label: "Scope",
 			tooltip: "The scope represented by the network",
 			event: function(value) {
-				if (value == "Rotation key" && $('#input_graph_scope_jsonkey').val() == "") { // no key selected  for Rotation key scope
+				if (value == "Pivot key" && $('#input_graph_scope_jsonkey').val() == "") { // no key selected  for Pivot key scope
 					return;
 				} else {
 					eventGraph.update_scope(value);
 					dataHandler.fetch_data_and_update();
 				}
 			},
-			options: ["Reference", "Tag", "Rotation key"],
+			options: ["Reference", "Tag", "Pivot key"],
 			default: "Reference"
 		});
 		menu_scope.add_select({
 			id: "input_graph_scope_jsonkey",
-			label: "Rotation key",
+			label: "Pivot key",
 			tooltip: "The key around which the network will be constructed",
 			event: function(value) {
-				if (value == "Rotation key" && $('#input_graph_scope_jsonkey').val() == "") { // no key selected for Rotation key scope
+				if (value == "Pivot key" && $('#input_graph_scope_jsonkey').val() == "") { // no key selected for Pivot key scope
 					return;
 				} else {
 					eventGraph.scope_keyType = value;
-					eventGraph.update_scope("Rotation key");
+					eventGraph.update_scope("Pivot key");
 					dataHandler.fetch_data_and_update();
 				}
 			},
-			options: dataHandler.available_rotation_key ? dataHandler.available_rotation_key : [],
+			options: dataHandler.available_pivot_key ? dataHandler.available_pivot_key : [],
 			default: ""
 		});
 		return menu_scope;
@@ -277,7 +277,8 @@ class EventGraph {
 				for(var nodeId of objectIds) {
 					eventGraph.expand_node(nodeId);
 				}
-			}
+			},
+			title: "Expanding all nodes may takes some time"
 		});
 		menu_display.add_button({
 			label: "Collapse all nodes",
@@ -289,11 +290,12 @@ class EventGraph {
 				for(var nodeId of objectIds) {
 					eventGraph.collapse_node(nodeId);
 				}
-			}
+			},
+			title: "Collapsing all nodes may takes some time"
 		});
 		menu_display.add_slider({
 			id: 'slider_display_max_char_num',
-			label: "Charater to show",
+			label: "Character to show",
 			title: "Maximum number of charater to display in the label",
 			min: 8,
 			max: 1024,
@@ -1137,8 +1139,8 @@ class DataHandler {
 						return [[index, value]];
 					});
 					dataHandler.update_filtering_selectors(available_object_references, available_tags);
-					dataHandler.available_rotation_key = data.available_rotation_key;
-					eventGraph.menu_scope.add_options("input_graph_scope_jsonkey", dataHandler.available_rotation_key);
+					dataHandler.available_pivot_key = data.available_pivot_key;
+					eventGraph.menu_scope.add_options("input_graph_scope_jsonkey", dataHandler.available_pivot_key);
 					if (data.items.length < nodes_ask_threshold) {
 						eventGraph.update_graph(data);
 					} else if (data.items.length > nodes_ask_threshold && confirm("The network contains a lot of nodes, displaying it may slow down your browser. Continue?")) {
