@@ -63,7 +63,7 @@ class AppModel extends Model {
 
 	public $db_changes = array(
 		1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
-		7 => false, 8 => false, 9 => false, 10 => false
+		7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false
 	);
 
 	function afterSave($created, $options = array()) {
@@ -936,12 +936,50 @@ class AppModel extends Model {
 				$indexArray[] = array('galaxies', 'namespace');
 				break;
 			case 10:
-				$sqlArray[] = "ALTER TABLE `attributes` ADD `first_seen` DATETIME(6) NULL DEFAULT NULL;";
-				$sqlArray[] = "ALTER TABLE `attributes` ADD `last_seen` DATETIME(6) NULL DEFAULT NULL;";
-				$indexArray[] = array('attributes', 'first_seen');
-				$indexArray[] = array('attributes', 'last_seen');
-				$sqlArray[] = "ALTER TABLE `objects` ADD `first_seen` DATETIME(6) NULL DEFAULT NULL;";
-				$sqlArray[] = "ALTER TABLE `objects` ADD `last_seen` DATETIME(6) NULL DEFAULT NULL;";
+				$sqlArray[] =
+					"ALTER TABLE `attributes`
+						DROP INDEX uuid,
+						DROP INDEX event_id,
+						DROP INDEX sharing_group_id,
+						DROP INDEX type,
+						DROP INDEX category,
+						DROP INDEX value1,
+						DROP INDEX value2,
+						DROP INDEX object_id,
+						DROP INDEX object_relation,
+						DROP INDEX deleted
+					";
+				break;
+			case 11:
+				$sqlArray[] =
+					"ALTER TABLE `attributes`
+						ADD COLUMN `first_seen` DATETIME(6) NULL DEFAULT NULL,
+						ADD COLUMN `last_seen` DATETIME(6) NULL DEFAULT NULL,
+						MODIFY comment TEXT COLLATE utf8_unicode_ci
+					;";
+				break;
+			case 12:
+				$sqlArray[] = "
+					ALTER TABLE `attributes`
+						ADD INDEX `uuid` (`uuid`),
+						ADD INDEX `event_id` (`event_id`),
+						ADD INDEX `sharing_group_id` (`sharing_group_id`),
+						ADD INDEX `type` (`type`),
+						ADD INDEX `category` (`category`),
+						ADD INDEX `value1` (`value1`(255)),
+						ADD INDEX `value2` (`value2`(255)),
+						ADD INDEX `object_id` (`object_id`),
+						ADD INDEX `object_relation` (`object_relation`),
+						ADD INDEX `deleted` (`deleted`),
+						ADD INDEX `first_seen` (`first_seen`),
+						ADD INDEX `last_seen` (`last_seen`),
+						ADD INDEX `comment` (`comment`(767))
+				";
+				$sqlArray[] = "
+					ALTER TABLE `objects`
+						ADD `first_seen` DATETIME(6) NULL DEFAULT NULL,
+						ADD `last_seen` DATETIME(6) NULL DEFAULT NULL
+				;";
 				$indexArray[] = array('objects', 'first_seen');
 				$indexArray[] = array('objects', 'last_seen');
 				break;
@@ -1159,6 +1197,7 @@ class AppModel extends Model {
 		if ($requiresLogout) {
 			$this->updateDatabase('destroyAllSessions');
 		}
+		return true;
 	}
 
 	private function __queueCleanDB() {
