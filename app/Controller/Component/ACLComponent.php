@@ -119,7 +119,7 @@ class ACLComponent extends Component {
 					'nids' => array('*'),
 					'proposalEventIndex' => array('*'),
 					'publish' => array('perm_publish'),
-					'pushEventToZMQ' => array('perm_site_admin'),
+					'pushEventToZMQ' => array('perm_publish_zmq'),
 					'pushProposals' => array('perm_sync'),
 					'queryEnrichment' => array('perm_add'),
 					'removePivot' => array('*'),

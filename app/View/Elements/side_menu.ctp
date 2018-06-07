@@ -153,7 +153,7 @@
 							echo $this->element('/side_menu_divider');
 						}
 					}
-					if (Configure::read('Plugin.ZeroMQ_enable') && $isSiteAdmin) {
+					if (Configure::read('Plugin.ZeroMQ_enable') && $isAclZmq) {
 						echo '<li>' . $this->Form->postLink(__('Publish event to ZMQ'), array('action' => 'pushEventToZMQ', $event['Event']['id'])) . '</li>';
 					}
 					echo $this->element('/side_menu_link', array(
