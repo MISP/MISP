@@ -878,6 +878,10 @@ class AppModel extends Model {
 			case '2.4.87':
 				$sqlArray[] = "ALTER TABLE `feeds` ADD `headers` TEXT COLLATE utf8_bin;";
 				break;
+			case '2.4.90':
+				$sqlArray[] = "ALTER TABLE attributes MODIFY comment TEXT COLLATE utf8_unicode_ci;";
+				$indexArray[] = array('attributes', 'comment', 767);  // https://dev.mysql.com/doc/refman/5.7/en/create-index.html
+				break;
 			case 1:
 				$sqlArray[] = "ALTER TABLE `tags` ADD `user_id` int(11) NOT NULL DEFAULT 0;";
 				$sqlArray[] = 'ALTER TABLE `tags` ADD INDEX `user_id` (`user_id`);';

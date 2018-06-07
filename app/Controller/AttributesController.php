@@ -1544,23 +1544,23 @@ class AttributesController extends AppController {
 											if (!$toInclude) {
 												$temp2[] = array(
 													'AND' => array(
-														'LOWER(Attribute.value1) NOT LIKE' => $resultParts[0],
-														'LOWER(Attribute.value2) NOT LIKE' => $resultParts[1],
+														'Attribute.value1 NOT LIKE' => $resultParts[0],
+														'Attribute.value2 NOT LIKE' => $resultParts[1],
 													));
 											} else {
 												$temp[] = array(
 													'AND' => array(
-														'LOWER(Attribute.value1)' => $resultParts[0],
-														'LOWER(Attribute.value2)' => $resultParts[1],
+														'Attribute.value1' => $resultParts[0],
+														'Attribute.value2' => $resultParts[1],
 													));
 											}
 										} else {
 											if (!$toInclude) {
-												array_push($temp2, array('LOWER(Attribute.value1) NOT LIKE' => $result));
-												array_push($temp2, array('LOWER(Attribute.value2) NOT LIKE' => $result));
+												array_push($temp2, array('Attribute.value1 NOT LIKE' => $result));
+												array_push($temp2, array('Attribute.value2 NOT LIKE' => $result));
 											} else {
-												array_push($temp, array('LOWER(Attribute.value1) LIKE' => $result));
-												array_push($temp, array('LOWER(Attribute.value2) LIKE' => $result));
+												array_push($temp, array('Attribute.value1 LIKE' => $result));
+												array_push($temp, array('Attribute.value2 LIKE' => $result));
 											}
 										}
 									}
@@ -1570,30 +1570,30 @@ class AttributesController extends AppController {
 										if (!$toInclude) {
 											$temp2[] = array(
 												'AND' => array(
-													'LOWER(Attribute.value1) NOT LIKE' => $resultParts[0],
-													'LOWER(Attribute.value2) NOT LIKE' => $resultParts[1],
+													'Attribute.value1 NOT LIKE' => $resultParts[0],
+													'Attribute.value2 NOT LIKE' => $resultParts[1],
 												));
 										} else {
 											$temp2[] = array(
 												'AND' => array(
-													'LOWER(Attribute.value1)' => $resultParts[0],
-													'LOWER(Attribute.value2)' => $resultParts[1],
+													'Attribute.value1' => $resultParts[0],
+													'Attribute.value2' => $resultParts[1],
 												));
 										}
 									} else {
 										if (!$toInclude) {
-											array_push($temp2, array('LOWER(Attribute.value1) NOT LIKE' => $saveWord));
-											array_push($temp2, array('LOWER(Attribute.value2) NOT LIKE' => $saveWord));
+											array_push($temp2, array('Attribute.value1 NOT LIKE' => $saveWord));
+											array_push($temp2, array('Attribute.value2 NOT LIKE' => $saveWord));
 										} else {
-											array_push($temp, array('LOWER(Attribute.value1) LIKE' => $saveWord));
-											array_push($temp, array('LOWER(Attribute.value2) LIKE' => $saveWord));
+											array_push($temp, array('Attribute.value1 LIKE' => $saveWord));
+											array_push($temp, array('Attribute.value2 LIKE' => $saveWord));
 										}
 									}
 								}
 								if ($toInclude) {
-									array_push($temp, array('LOWER(Attribute.comment) LIKE' => $saveWord));
+									array_push($temp, array('Attribute.comment LIKE' => $saveWord));
 								} else {
-									array_push($temp2, array('LOWER(Attribute.comment) NOT LIKE' => $saveWord));
+									array_push($temp2, array('Attribute.comment NOT LIKE' => $saveWord));
 								}
 							}
 							if ($i == 1 && $saveWord != '') {
@@ -2669,10 +2669,10 @@ class AttributesController extends AppController {
 						'conditions' => array(
 							'OR' => array(
 								'AND' => array(
-									'LOWER(Attribute.value1) LIKE' => strtolower($hash),
+									'Attribute.value1 LIKE' => strtolower($hash),
 									'Attribute.value2' => '',
 								),
-								'LOWER(Attribute.value2) LIKE' => strtolower($hash)
+								'Attribute.value2 LIKE' => strtolower($hash)
 							)
 						),
 					));
@@ -2684,7 +2684,7 @@ class AttributesController extends AppController {
 			} else {
 				if (!in_array('md5', $validTypes)) $error = 'Only MD5 hashes can be used to fetch malware samples at this point in time.';
 				if (empty($error)) {
-					$searchConditions = array('AND' => array('LOWER(Attribute.value2) LIKE' => strtolower($hash)));
+					$searchConditions = array('AND' => array('Attribute.value2 LIKE' => strtolower($hash)));
 				}
 			}
 		}
