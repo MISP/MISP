@@ -208,4 +208,59 @@ class Galaxy extends AppModel{
 		}
 		return 'Could not attach the cluster';
 	}
+
+	public function getMitreAttackMatrix($type="mitre-enterprise-attack-attack-pattern") {
+		$conditions = array('Galaxy.type' => $type);
+		$contains = array(
+			//'GalaxyCluster.GalaxyElement' => function($q) {
+			//	return $q->where(['GalaxyElement.key' => 'kill_chain']);
+			//}
+			//'GalaxyCluster' => array('GalaxyElement'),
+			//'GalaxyCluster.GalaxyElement' => array(
+			//	'conditions' => array('GalaxyElement.key' => 'kill_chain')
+			//),
+			'GalaxyCluster' => array('GalaxyElement'),
+			//'GalaxyCluster' => array('GalaxyElement' => function ($q) {
+			//	return $q->where(array('GalaxyElement.key' => 'kill_chain'));
+			//}),
+
+		);
+
+		$galaxy = $this->find('first', array(
+				'recursive' => -1,
+				'contain' => $contains,
+				'conditions' => $conditions,
+		));
+
+		if (empty($galaxy)) {
+			throw new NotFoundException('Galaxy not found.');
+		}
+		if (empty($galaxy['GalaxyCluster'])) {
+			throw new NotFoundException('Galaxy not found.');
+		}
+		$clusters = $galaxy['GalaxyCluster'];
+		$attackClusters = array();
+
+		foreach ($clusters as $cluster) {
+			if (empty($cluster['GalaxyElement'])) {
+				continue;
+			}
+			$toBeAdded = false;
+			$galaxyElements = $cluster['GalaxyElement'];
+			foreach ($galaxyElements as $element) {
+				if ($element['key'] == 'kill_chain') {
+					$kc = explode(":", $element['value'])[2];
+					$toBeAdded = true;
+				}
+				if ($element['key'] == 'external_id') {
+					$cluster['external_id'] = $element['value'];
+				}
+			}
+			if ($toBeAdded) {
+				$attackClusters[$kc][] = $cluster;
+			}
+		}
+
+		return $attackClusters;
+	}
 }

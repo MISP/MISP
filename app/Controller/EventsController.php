@@ -4538,6 +4538,15 @@ class EventsController extends AppController {
 		return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
 	}
 
+	public function viewMitreAttackMatrix($eventId) {
+		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId));
+		if (empty($event)) throw new NotFoundException('Event not found or you are not authorised to view it.');
+		$event = $event[0];
+		$attackClusters = $this->Event->GalaxyCluster->Galaxy->getMitreAttackMatrix();
+		$this->set('killChainNames', array_keys($attackClusters));
+		$this->set('attackClusters', $attackClusters);
+	}
+
 	public function delegation_index() {
 		$this->loadModel('EventDelegation');
 		$delegatedEvents = $this->EventDelegation->find('list', array(
