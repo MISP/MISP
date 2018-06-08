@@ -4539,6 +4539,8 @@ class EventsController extends AppController {
 	}
 
 	public function viewMitreAttackMatrix($eventId) {
+		$killChainOrder = array('initial-access', 'execution', 'persistence', 'privilege-escalation', 'defense-evasion', 'credential-access', 'discovery', 'lateral-movement', 'collection', 'exfiltration', 'command-and-control');
+
 		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId));
 		if (empty($event)) throw new NotFoundException('Event not found or you are not authorised to view it.');
 		$event = $event[0];
@@ -4591,6 +4593,7 @@ class EventsController extends AppController {
 		$gradientTool = new ColourGradientTool();
 		$colours = $gradientTool->createGradientFromValues($scores);
 
+		$this->set('killChainOrder', $killChainOrder);
 		$this->set('killChainNames', array_keys($attackClusters));
 		$this->set('attackClusters', $attackClusters);
 		$this->set('scores', $scores);

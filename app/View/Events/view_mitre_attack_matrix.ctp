@@ -1,3 +1,7 @@
+<?php
+    //debug($killChainOrder);
+    //debug($attackClusters[$killChainOrder[0]]);
+?>
 <div id="matrix_container" class="fixed-table-container-inner" style="padding-top: 30px;">
 	<div class="header-background"></div>
 	<div class="fixed-table-container-inner">
@@ -23,7 +27,8 @@
 		do {
 			$added = false;
 			echo '<tr>';
-				foreach($attackClusters as $kc => $clusters) {
+				foreach($killChainOrder as $kc) {
+					$clusters = $attackClusters[$kc];
 					$td = '<td ';
 					if ($i < count($clusters)) {
 						$tagName = $clusters[$i]['tag_name'];
