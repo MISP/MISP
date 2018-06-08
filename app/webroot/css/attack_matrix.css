@@ -22,7 +22,7 @@ td.matrix-interaction:hover {
 .fixed-table-container-inner {
     overflow-x: hidden;
     overflow-y: auto;
-    height: 100%;
+    height: 470px;
 }
 
 .extra-wrap {

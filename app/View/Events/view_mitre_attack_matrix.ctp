@@ -1,4 +1,7 @@
-<div id="matrix_container" class="fixed-table-container-inner" style="height: 500px; padding-top: 30px;">
+<?php
+    debug($tags);
+?>
+<div id="matrix_container" class="fixed-table-container-inner" style="padding-top: 30px;">
 	<div class="header-background"></div>
 	<div class="fixed-table-container-inner">
 	<table class="table table-condensed matrix-table">
@@ -8,9 +11,11 @@
 		foreach($killChainNames as $kc) {
 			$name = str_replace("-", " ", $kc);
 			//echo '<th>' . ucfirst($name) .'<div class="extra-wrap"></div>'. '</th>';
-			echo '<th><div class="extra-wrap">
-				<div class="th-inner">'.ucfirst($name).'</div>
-			    </div></th>';
+			echo '<th>
+				<div class="extra-wrap">
+				    <div class="th-inner">'.ucfirst($name).'</div>
+				</div>
+			    </th>';
 		}
 	?>
 	</tr>
