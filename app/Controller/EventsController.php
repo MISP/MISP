@@ -4543,8 +4543,59 @@ class EventsController extends AppController {
 		if (empty($event)) throw new NotFoundException('Event not found or you are not authorised to view it.');
 		$event = $event[0];
 		$attackClusters = $this->Event->GalaxyCluster->Galaxy->getMitreAttackMatrix();
+
+		$type = "mitre-enterprise-attack-attack-pattern";
+		//$allAttackClusters = $this->Event->GalaxyCluster->Galaxy->find('all', array(
+		//	'recursive' => -1, 
+		//	'conditions' => array('type' => $type),
+		//	'contain' => array(
+		//		'GalaxyCluster' => array(
+		//			'fields' => array('tag_name')
+		//		)
+		//	),
+		//))[0];
+		//debug($allAttackClusters['GalaxyCluster']);
+		//$allAttackClusters = array_values($allAttackClusters['GalaxyCluster']);
+
+
+		$eventTags = $this->Event->EventTag->find('list', array(
+			'recursive' => -1, 
+			'conditions' => array('event_id' => $eventId),
+			'fields' => array('Tag.name'),
+			'contain' => 'Tag',
+		));
+		$attributeTags = $this->Event->Attribute->AttributeTag->find('list', array(
+			'recursive' => -1,
+			'conditions' => array('event_id' => $eventId),
+			'fields' => array('Tag.name'),
+			'contain' => array(
+				'Tag' => array(
+					'fields' => array('name')
+				),
+			)
+		));
+		$tags = array('eventTags' => $eventTags, 'attributeTags' => $attributeTags);
+
+		$scores = array();
+		foreach ($attributeTags as $name) {
+			if (strpos($name, $type) === false) { // do not belong to mitre attack
+				continue;
+			}
+			if (!isset($scores[$name])) {
+				$scores[$name] = 0;
+			}
+			$scores[$name]++;
+		}
+
+		App::uses('ColourGradientTool', 'Tools');
+		$gradientTool = new ColourGradientTool();
+		$colours = $gradientTool->createGradientFromValues($scores);
+
 		$this->set('killChainNames', array_keys($attackClusters));
 		$this->set('attackClusters', $attackClusters);
+		$this->set('scores', $scores);
+		$this->set('colours', $colours);
+		$this->set('heatMap', true);
 	}
 
 	public function delegation_index() {

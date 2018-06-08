@@ -1,6 +1,5 @@
 .matrix-table td {
     border-top: none;
-    cursor: pointer;
 }
 
 .matrix-table th {
@@ -12,6 +11,10 @@
 .matrix-table tbody {
     height: 470px;
     overflow-y: scroll;
+}
+
+td.matrix-interaction {
+    cursor: pointer;
 }
 
 td.matrix-interaction:hover {

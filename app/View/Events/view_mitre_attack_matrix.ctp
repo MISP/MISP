@@ -1,6 +1,3 @@
-<?php
-    debug($tags);
-?>
 <div id="matrix_container" class="fixed-table-container-inner" style="padding-top: 30px;">
 	<div class="header-background"></div>
 	<div class="fixed-table-container-inner">
@@ -10,7 +7,6 @@
 	<?php
 		foreach($killChainNames as $kc) {
 			$name = str_replace("-", " ", $kc);
-			//echo '<th>' . ucfirst($name) .'<div class="extra-wrap"></div>'. '</th>';
 			echo '<th>
 				<div class="extra-wrap">
 				    <div class="th-inner">'.ucfirst($name).'</div>
@@ -28,17 +24,21 @@
 			$added = false;
 			echo '<tr>';
 				foreach($attackClusters as $kc => $clusters) {
+					$td = '<td ';
 					if ($i < count($clusters)) {
+						$tagName = $clusters[$i]['tag_name'];
 						$name = join(" ", array_slice(explode(" ", $clusters[$i]['value']), 0, -2)); // remove " - external_id"
-						echo '<td 
-							class="matrix-interaction" 
-							data-tag_name="'.h($clusters[$i]['tag_name']).'"
-							title="'.h($clusters[$i]['external_id']).'"
-						    >' . h($name) . '</td>';
+						$td .= $heatMap ? ' class="heatCell"' : ' class="matrix-interaction"' ;
+						$td .= isset($colours[$tagName]) ? ' style="background: ' . $colours[$tagName] . '; color: ' . $this->TextColour->getTextColour($colours[$tagName]) . '"' : '' ;
+						$td .= ' data-tag_name="'.h($tagName).'"';
+						$td .= ' title="'.h($clusters[$i]['external_id']).'"';
+						$td .= '>' . h($name);
 						$added = true;
 					} else {
-						echo '<td class="">' . '</td>';
+						$td .= 'class="">';
 					}
+					$td .=  '</td>';
+					echo $td;
 				}
 			echo '</tr>';
 			$i++;
