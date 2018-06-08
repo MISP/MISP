@@ -47,7 +47,7 @@ class AppController extends Controller {
 	public $helpers = array('Utility', 'OrgImg');
 
 	private $__queryVersion = '38';
-	public $pyMispVersion = '2.4.90';
+	public $pyMispVersion = '2.4.92';
 	public $phpmin = '5.6.5';
 	public $phprec = '7.0.16';
 
@@ -368,6 +368,7 @@ class AppController extends Controller {
 			$this->set('isAclTemplate', $role['perm_template']);
 			$this->set('isAclSharingGroup', $role['perm_sharing_group']);
 			$this->set('isAclSighting', isset($role['perm_sighting']) ? $role['perm_sighting'] : false);
+			$this->set('isAclZmq', isset($role['perm_publish_zmq']) ? $role['perm_publish_zmq'] : false);
 			$this->userRole = $role;
 		} else {
 			$this->set('me', false);

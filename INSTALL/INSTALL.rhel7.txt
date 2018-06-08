@@ -136,6 +136,12 @@ git config core.filemode false
 scl enable rh-python36 'python3 setup.py install'
 umask $UMASK
 
+3.05/ Enable python3 for php-fpm
+
+echo 'source scl_source enable rh-python36' >> /etc/opt/rh/rh-php71/sysconfig/php-fpm
+sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php71/php-fpm.d/www.conf
+systemctl restart rh-php71-php-fpm.service
+
 +---------------------+
 |   4/ CakePHP        |
 +---------------------+
