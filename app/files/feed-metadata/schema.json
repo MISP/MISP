@@ -38,7 +38,12 @@
           "type": "boolean"
         },
         "source_format": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "misp",
+            "csv",
+            "freetext"
+          ]
         },
         "fixed_event": {
           "type": "boolean"
@@ -59,7 +64,11 @@
           "type": "string"
         },
         "input_source": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "network",
+            "local"
+          ]
         },
         "delete_local_file": {
           "type": "boolean"
