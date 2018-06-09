@@ -122,6 +122,9 @@ script:
     - pushd PyMISP/examples/events/
     - python3 ./create_massive_dummy_events.py -l 5 -a 30
     - popd
+    - pushd app/files/feed-metadata
+    - jsonschema -i defaults.json schema.json
+    - popd
 
 after_failure:
     - curl http://misp.local
