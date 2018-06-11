@@ -1,6 +1,8 @@
 $(document).ready(function() {
 	$('.matrix-interaction').click(function(event) {
-		console.log($(this).attr('data-tag_name'));
+		var tagName = $(this).attr('data-tag_name');
+		$('#attributesFilterField').val(tagName);
+		filterAttributes('value', $('#attributesFilterField').data('eventid'));
 	});
 
 	$('#checkbox_attackMatrix_showAll').click(function() { toggleAttackMatrixCells(); });
@@ -11,7 +13,7 @@ $(document).ready(function() {
 
 	scoredCells.tooltip({ 
 		container: 'body',
-		placement: 'right',
+		placement: 'top',
 	});
 	
 	scoredCells.hover(enteringScoredCell, leavingScoredCell);
@@ -37,12 +39,22 @@ function toggleAttackMatrixCells() {
 	});
 	var rowNum = $('.matrix-table > tbody > tr').length;
 	var colNum = $('.matrix-table > thead > tr > th').length;
-	for (var i=0; i<rowNum; i++) {
+	for (var i=1; i<=rowNum; i++) {
 		var cellNoValues = $('.matrix-table > tbody > tr:nth-child('+i+') > td').filter(function() {
 			return $(this).attr('data-score') == 0 || $(this).attr('data-score') === undefined;
 		});
 		if (cellNoValues.length == colNum) {
 			$('.matrix-table > tbody > tr:nth-child('+i+')').css({ display: displayVal });
+		}
+	}
+
+	for (var i=1; i<=colNum; i++) {
+		var cellNoValues = $('.matrix-table tr td:nth-child('+i+')').filter(function() {
+			return $(this).attr('data-score') == 0 || $(this).attr('data-score') === undefined;
+		});
+		if (cellNoValues.length == rowNum) {
+			$('.matrix-table tr td:nth-child('+i+')').css({ display: displayVal });
+			$('.matrix-table tr th:nth-child('+i+')').css({ display: displayVal });
 		}
 	}
 }

@@ -47,7 +47,7 @@
 						$tagName = $clusters[$i]['tag_name'];
 						$score = empty($scores[$tagName]) ? 0 : $scores[$tagName];
 						$name = join(" ", array_slice(explode(" ", $clusters[$i]['value']), 0, -2)); // remove " - external_id"
-						$td .= $heatMap ? ' class="heatCell"' : ' class="matrix-interaction"' ;
+						$td .= ' class="heatCell matrix-interaction"' ;
 						$td .= isset($colours[$tagName]) ? ' style="background: ' . $colours[$tagName] . '; color: ' . $this->TextColour->getTextColour($colours[$tagName]) . '"' : '' ;
 						$td .= ' data-score="'.h($score).'"';
 						$td .= ' data-tag_name="'.h($tagName).'"';

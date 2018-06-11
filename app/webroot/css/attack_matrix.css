@@ -3,13 +3,14 @@
 }
 
 .matrix-table th {
+    padding: 0px 5px;
 }
 
 .matrix-table thead {
 }
 
 .matrix-table tbody {
-    height: 670px;
+    /*height: 670px;*/
     overflow-y: scroll;
 }
 
@@ -22,14 +23,14 @@ td.matrix-interaction {
 }
 
 td.matrix-interaction:hover {
-    background: #0088cc;
+    background: #da6600;
     color: white;
 }
 
 .fixed-table-container-inner {
     overflow-x: hidden;
     overflow-y: auto;
-    height: 670px;
+    max-height: 670px;
 }
 
 .extra-wrap {
