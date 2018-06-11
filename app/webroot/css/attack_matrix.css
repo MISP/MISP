@@ -9,8 +9,12 @@
 }
 
 .matrix-table tbody {
-    height: 470px;
+    height: 670px;
     overflow-y: scroll;
+}
+
+table.matrix-table {
+    table-layout: fixed;
 }
 
 td.matrix-interaction {
@@ -25,7 +29,7 @@ td.matrix-interaction:hover {
 .fixed-table-container-inner {
     overflow-x: hidden;
     overflow-y: auto;
-    height: 470px;
+    height: 670px;
 }
 
 .extra-wrap {
@@ -49,4 +53,51 @@ td.matrix-interaction:hover {
     top: 0;
     right: 0;
     left: 0;
+}
+
+#matrix_container {
+    padding-top: 30px;
+    overflow: hidden
+}
+
+.attack-matrix-options {
+    position: absolute;
+    right: -1px;
+    top: -18px;
+    background: #363636;
+    color: white;
+    padding: 1px 5px;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+}
+
+.attack-matrix-options input {
+    margin: 0px;
+    margin-right: 3px;
+}
+
+#matrix-heatmap-legend {
+    width: 300px;
+    height: 10px;
+    background: linear-gradient(to right, white, #0000FF);
+}
+
+.attack-matrix-options div {
+    display: inline-block;
+}
+
+#matrix-heatmap-legend-caret {
+    position: absolute;
+    color: black;
+    top: -17px;
+    margin-left: 12px;
+    line-height: 6px;
+    left: 0px;
+    transition: left 0.7s;
+}
+
+#matrix-heatmap-legend-caret span {
+    line-height: 9px;
+    position: relative;
+    display: block;
 }

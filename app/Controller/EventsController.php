@@ -4579,6 +4579,7 @@ class EventsController extends AppController {
 		$tags = array('eventTags' => $eventTags, 'attributeTags' => $attributeTags);
 
 		$scores = array();
+		$maxScore = 0;
 		foreach ($attributeTags as $name) {
 			if (strpos($name, $type) === false) { // do not belong to mitre attack
 				continue;
@@ -4587,6 +4588,7 @@ class EventsController extends AppController {
 				$scores[$name] = 0;
 			}
 			$scores[$name]++;
+			$maxScore = $scores[$name] > $maxScore ? $scores[$name] : $maxScore;
 		}
 
 		App::uses('ColourGradientTool', 'Tools');
@@ -4594,9 +4596,10 @@ class EventsController extends AppController {
 		$colours = $gradientTool->createGradientFromValues($scores);
 
 		$this->set('killChainOrder', $killChainOrder);
-		$this->set('killChainNames', array_keys($attackClusters));
+		$this->set('killChainNames', $killChainOrder);
 		$this->set('attackClusters', $attackClusters);
 		$this->set('scores', $scores);
+		$this->set('maxScore', $maxScore);
 		$this->set('colours', $colours);
 		$this->set('heatMap', true);
 	}

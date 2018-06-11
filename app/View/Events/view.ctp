@@ -392,8 +392,7 @@
 	</div>
 	<div id="correlationgraph_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
 	</div>
-	<div id="attackmatrix_div" class="info_container_eventgraph_network" style="display: none; border-color: #363636;" data-fullscreen="false">
-		<?php echo $this->element('view_attack_matrix'); ?>
+	<div id="attackmatrix_div" class="info_container_eventgraph_network" style="display: none; border-color: #363636; overflow: visible; height: 700px; margin-top: 30px;" data-fullscreen="false">
 	</div>
 	<div id="attributes_div">
 		<?php echo $this->element('eventattribute'); ?>
