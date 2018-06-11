@@ -926,6 +926,27 @@ class EventsController extends AppController {
 		}
 		$emptyEvent = (empty($event['Object']) && empty($event['Attribute']));
 		$this->set('emptyEvent', $emptyEvent);
+
+		// remove galaxies tags
+		$this->loadModel('GalaxyCluster');
+		$cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
+		foreach ($event['Object'] as $k => $object) {
+			foreach ($object['Attribute'] as $k2 => $attribute){
+				foreach ($attribute['AttributeTag'] as $k3 => $attributeTag) {
+					if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
+						unset($event['Object'][$k]['Attribute'][$k2]['AttributeTag'][$k3]);
+					}
+				}
+			}
+		}
+		foreach ($event['Attribute'] as $k => $attribute) {
+			foreach ($attribute['AttributeTag'] as $k2 => $attributeTag) {
+				if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
+					unset($event['Attribute'][$k]['AttributeTag'][$k2]);
+				}
+			}
+		}
+
 		$params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
 		$this->params->params['paging'] = array($this->modelClass => $params);
 		// workaround to get the event dates in to the attribute relations
@@ -4601,7 +4622,6 @@ class EventsController extends AppController {
 		$this->set('scores', $scores);
 		$this->set('maxScore', $maxScore);
 		$this->set('colours', $colours);
-		$this->set('heatMap', true);
 	}
 
 	public function delegation_index() {
