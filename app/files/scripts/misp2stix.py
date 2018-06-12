@@ -42,6 +42,7 @@ from cybox.objects.process_object import Process
 from cybox.objects.whois_object import WhoisEntry, WhoisRegistrants, WhoisRegistrant, WhoisRegistrar, WhoisNameservers
 from cybox.objects.win_service_object import WinService
 from cybox.objects.x509_certificate_object import X509Certificate, X509CertificateSignature, X509Cert, SubjectPublicKey, RSAPublicKey, Validity
+from cybox.objects.account_object import Account, Authentication, StructuredAuthenticationMechanism
 from cybox.objects.custom_object import Custom
 from cybox.common import Hash, HashList, ByteRun, ByteRuns
 from cybox.common.object_properties import CustomProperties,  Property
@@ -144,18 +145,19 @@ class StixBuilder(object):
         self.simple_type_to_method.update(dict.fromkeys(["email-attachment"], self.generate_email_attachment_observable))
         self.simple_type_to_method.update(dict.fromkeys(["malware-sample"], self.resolve_malware_sample))
         ## MAPPING FOR OBJECTS
-        self.objects_mapping = {"domain-ip": self.parse_domain_ip_object,
-                                 "email": self.parse_email_object,
-                                 "file": self.parse_file_object,
-                                 "ip-port": self.parse_ip_port_object,
-                                 "network-connection": self.parse_network_connection_object,
-                                 "network-socket": self.parse_network_socket_object,
-                                 "process": self.parse_process_object,
-                                 "registry-key": self.parse_regkey_object,
-                                 "url": self.parse_url_object,
-                                 "whois": self.parse_whois,
-                                 "x509": self.parse_x509_object
-                                 }
+        self.objects_mapping = {"credential": self.parse_credential_object,
+                                "domain-ip": self.parse_domain_ip_object,
+                                "email": self.parse_email_object,
+                                "file": self.parse_file_object,
+                                "ip-port": self.parse_ip_port_object,
+                                "network-connection": self.parse_network_connection_object,
+                                "network-socket": self.parse_network_socket_object,
+                                "process": self.parse_process_object,
+                                "registry-key": self.parse_regkey_object,
+                                "url": self.parse_url_object,
+                                "whois": self.parse_whois,
+                                "x509": self.parse_x509_object
+                                }
 
     def loadEvent(self):
         pathname = os.path.dirname(self.args[0])
@@ -569,6 +571,41 @@ class StixBuilder(object):
         ET.add_vulnerability(vulnerability)
         ttp.exploit_targets.append(ET)
         return ttp
+
+    def parse_credential_object(self, attributes, uuid):
+        to_ids, attributes_dict = self.create_attributes_dict_multiple(attributes)
+        account = Account()
+        if 'text' in attributes_dict:
+            account.description = attributes_dict.pop('text')[0]
+        if 'username' in attributes_dict or 'origin' in attributes_dict or 'notification' in attributes_dict:
+            custom_properties = CustomProperties()
+            for attribute_relation in ('username', 'origin', 'notification'):
+                if attribute_relation in attributes_dict:
+                    for attribute in attributes_dict.pop(attribute_relation):
+                        property = Property()
+                        property.name = attribute_relation
+                        property.value = attribute
+                        custom_properties.append(property)
+            account.custom_properties = custom_properties
+        if attributes_dict:
+            authentication = Authentication()
+            if 'type' in attributes_dict:
+                authentication.authentication_type = attributes_dict['type'][0]
+            if 'format' in attributes_dict:
+                struct_auth_meca = StructuredAuthenticationMechanism()
+                struct_auth_meca.description = attributes_dict['format'][0]
+                authentication.structured_authentication_mechanism = struct_auth_meca
+            if 'password' in attributes_dict:
+                for password in attributes_dict['password']:
+                    auth = deepcopy(authentication)
+                    auth.authentication_data = password
+                    account.authentication.append(auth)
+            else:
+                account.authentication.append(authentication)
+        account.parent.id_ = "{}:AccountObject-{}".format(self.namespace_prefix, uuid)
+        observable = Observable(account)
+        observable.id_ = "{}:Account-{}".format(self.namespace_prefix, uuid)
+        return to_ids, observable
 
     def parse_domain_ip_object(self, attributes, uuid):
         to_ids, attributes_dict = self.create_attributes_dict_multiple(attributes, with_uuid=True)
