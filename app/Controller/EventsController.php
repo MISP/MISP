@@ -4561,6 +4561,9 @@ class EventsController extends AppController {
 	}
 
 	public function viewMitreAttackMatrix($eventId, $itemType='attribute', $itemId=false, $galaxyId=false) {
+		if (!$this->request->is('ajax')) {
+			throw new MethodNotAllowedException('Invalid method.');
+		}
 		$killChainOrder = array('initial-access', 'execution', 'persistence', 'privilege-escalation', 'defense-evasion', 'credential-access', 'discovery', 'lateral-movement', 'collection', 'exfiltration', 'command-and-control');
 
 		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId));
@@ -4571,18 +4574,6 @@ class EventsController extends AppController {
 		$attackGalaxyId = $mitreAttackMatrix['attackGalaxyId'];
 
 		$type = "mitre-enterprise-attack-attack-pattern";
-		//$allAttackClusters = $this->Event->GalaxyCluster->Galaxy->find('all', array(
-		//	'recursive' => -1, 
-		//	'conditions' => array('type' => $type),
-		//	'contain' => array(
-		//		'GalaxyCluster' => array(
-		//			'fields' => array('tag_name')
-		//		)
-		//	),
-		//))[0];
-		//debug($allAttackClusters['GalaxyCluster']);
-		//$allAttackClusters = array_values($allAttackClusters['GalaxyCluster']);
-
 
 		$eventTags = $this->Event->EventTag->find('list', array(
 			'recursive' => -1, 
