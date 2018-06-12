@@ -3397,7 +3397,7 @@ class EventsController extends AppController {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event.')), 'status'=>200, 'type' => 'json'));
 		}
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
-			if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
+			if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
 				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
 			}
 		}
@@ -3461,7 +3461,7 @@ class EventsController extends AppController {
 			$this->Event->recursive = -1;
 			$event = $this->Event->read(array(), $id);
 			// org should allow to tag too, so that an event that gets pushed can be tagged locally by the owning org
-			if ((($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id']) || (!$this->userRole['perm_tagger'])) && !$this->_isSiteAdmin()) {
+			if ((($this->Auth->user('org_id') !== $event['Event']['orgc_id']) || (!$this->userRole['perm_tagger'])) && !$this->_isSiteAdmin()) {
 				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
 			}
 			$this->Event->insertLock($this->Auth->user(), $id);
@@ -4248,7 +4248,7 @@ class EventsController extends AppController {
 				'fields' => array('id'),
 			));
 			if (empty($event)) throw new NotFoundException('Event not found.');
-			$this->Event->insertLock($this->Auth->user(), $id);
+			$this->Event->insertLock($this->Auth->user(), $event['Event']['id']);
 			$this->Event->id = $data['settings']['event_id'];
 			$date = new DateTime();
 			$this->Event->saveField('timestamp', $date->getTimestamp());
