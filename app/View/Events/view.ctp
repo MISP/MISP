@@ -120,7 +120,7 @@
 					if (Configure::read('MISP.tagging')): ?>
 						<dt><?php echo __('Tags');?></dt>
 						<dd class="eventTagContainer">
-							<?php echo $this->element('ajaxTags', array('event' => $event, 'tags' => $event['EventTag'], 'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id']) )); ?>
+							<?php echo $this->element('ajaxTags', array('event' => $event, 'tags' => $event['EventTag'], 'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['orgc_id']) )); ?>
 						</dd>
 				<?php endif; ?>
 				<dt><?php echo __('Date');?></dt>
