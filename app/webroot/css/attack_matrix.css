@@ -97,6 +97,10 @@ td.matrix-interaction:hover {
     transition: left 0.7s;
 }
 
+.ajax_popover_form #matrix-heatmap-legend-caret {
+    color: white;
+}
+
 #matrix-heatmap-legend-caret span {
     line-height: 9px;
     position: relative;

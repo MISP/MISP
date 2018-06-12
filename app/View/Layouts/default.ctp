@@ -37,6 +37,7 @@
 </head>
 <body>
 	<div id="popover_form" class="ajax_popover_form"></div>
+	<div id="popover_form_large" class="ajax_popover_form ajax_popover_form_large"></div>
 	<div id="screenshot_box" class="screenshot_box"></div>
 	<div id="confirmation_box" class="confirmation_box"></div>
 	<div id="gray_out" class="gray_out"></div>

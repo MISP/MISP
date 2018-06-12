@@ -1248,6 +1248,7 @@ class EventsController extends AppController {
 		}
 		$this->set('deleted', isset($this->params['named']['deleted']) && $this->params['named']['deleted']);
 		if (!$this->_isRest()) $this->__viewUI($event, $continue, $fromEvent);
+		$this->set('mitreAttackGalaxyId', $this->Event->GalaxyCluster->Galaxy->getMitreAttackGalaxyId());
 	}
 
 	private function __startPivoting($id, $info, $date) {
@@ -4559,13 +4560,15 @@ class EventsController extends AppController {
 		return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
 	}
 
-	public function viewMitreAttackMatrix($eventId) {
+	public function viewMitreAttackMatrix($eventId, $itemType='attribute', $itemId=false, $galaxyId=false) {
 		$killChainOrder = array('initial-access', 'execution', 'persistence', 'privilege-escalation', 'defense-evasion', 'credential-access', 'discovery', 'lateral-movement', 'collection', 'exfiltration', 'command-and-control');
 
 		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId));
 		if (empty($event)) throw new NotFoundException('Event not found or you are not authorised to view it.');
 		$event = $event[0];
-		$attackClusters = $this->Event->GalaxyCluster->Galaxy->getMitreAttackMatrix();
+		$mitreAttackMatrix = $this->Event->GalaxyCluster->Galaxy->getMitreAttackMatrix();
+		$attackClusters = $mitreAttackMatrix['attackClusters'];
+		$attackGalaxyId = $mitreAttackMatrix['attackGalaxyId'];
 
 		$type = "mitre-enterprise-attack-attack-pattern";
 		//$allAttackClusters = $this->Event->GalaxyCluster->Galaxy->find('all', array(
@@ -4616,12 +4619,22 @@ class EventsController extends AppController {
 		$gradientTool = new ColourGradientTool();
 		$colours = $gradientTool->createGradientFromValues($scores);
 
+		$this->set('target_type', $itemType);
 		$this->set('killChainOrder', $killChainOrder);
 		$this->set('killChainNames', $killChainOrder);
+		$this->set('attackGalaxyId', $attackGalaxyId);
 		$this->set('attackClusters', $attackClusters);
 		$this->set('scores', $scores);
 		$this->set('maxScore', $maxScore);
 		$this->set('colours', $colours);
+
+		// picking mode
+		if ($itemId !== false && $galaxyId == $attackGalaxyId) {
+			$this->set('pickingMode', true);
+			$this->set('target_id', $itemId);
+		} else {
+			$this->set('pickingMode', false);
+		}
 	}
 
 	public function delegation_index() {

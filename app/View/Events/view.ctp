@@ -392,7 +392,7 @@
 	</div>
 	<div id="correlationgraph_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
 	</div>
-	<div id="attackmatrix_div" class="info_container_eventgraph_network" style="display: none; border-color: #363636; overflow: visible; max-height: 700px; height: auto; margin-top: 30px;" data-fullscreen="false">
+	<div id="attackmatrix_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false" data-mitre-attack-galaxy-id="<?php echo h($mitreAttackGalaxyId)?>">
 	</div>
 	<div id="attributes_div">
 		<?php echo $this->element('eventattribute'); ?>

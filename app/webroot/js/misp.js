@@ -1046,13 +1046,16 @@ function showMessage(success, message, context) {
 	$("#ajax_" + success + "_container").delay(duration).fadeOut("slow");
 }
 
-function cancelPopoverForm() {
+function cancelPopoverForm(id) {
 	$("#gray_out").fadeOut();
 	$("#popover_form").fadeOut();
 	$("#screenshot_box").fadeOut();
 	$("#confirmation_box").fadeOut();
 	$('#gray_out').fadeOut();
 	$('#popover_form').fadeOut();
+	if (id !== undefined && id !== '') {
+		$(id).fadeOut();
+	}
 }
 
 function activateTagField() {
@@ -1240,32 +1243,41 @@ function openPopup(id) {
 }
 
 function getPopup(id, context, target, admin, popupType) {
-	$("#gray_out").fadeIn();
-	var url = "";
-	if (typeof admin !== 'undefined' && admin != '') url+= "/admin";
-	if (context != '') url += "/" + context;
-	if (target != '') url += "/" + target;
-	if (id != '') url += "/" + id;
-	if (popupType == '' || typeof popupType == 'undefined') popupType = '#popover_form';
-	$.ajax({
-		beforeSend: function (XMLHttpRequest) {
-			$(".loading").show();
-		},
-		dataType:"html",
-		async: true,
-		cache: false,
-		success:function (data, textStatus) {
-			$(".loading").hide();
-			$(popupType).html(data);
-			openPopup(popupType);
-		},
-		error:function() {
-			$(".loading").hide();
-			$("#gray_out").fadeOut();
-			showMessage('fail', 'Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).');
-		},
-		url: url
-	});
+	var attackClusterID = $('#attackmatrix_div').data('mitre-attack-galaxy-id');
+	var clusterID = id.split('/').pop();
+	if (context == 'galaxies' && target == 'selectCluster' && clusterID == attackClusterID) { // overwrite default popup behavior for galaxyCluster picking
+		cancelPopoverForm();
+		getPopup(scope_id + '/' + id, 'events', 'viewMitreAttackMatrix', '', '#popover_form_large');
+	} else {
+		$("#gray_out").fadeIn();
+		var url = "";
+		if (typeof admin !== 'undefined' && admin != '') url+= "/admin";
+		if (context != '') {
+			url += "/" + context;
+		}
+		if (target != '') url += "/" + target;
+		if (id != '') url += "/" + id;
+		if (popupType == '' || typeof popupType == 'undefined') popupType = '#popover_form';
+		$.ajax({
+			beforeSend: function (XMLHttpRequest) {
+				$(".loading").show();
+			},
+			dataType:"html",
+			async: true,
+			cache: false,
+			success:function (data, textStatus) {
+				$(".loading").hide();
+				$(popupType).html(data);
+				openPopup(popupType);
+			},
+			error:function() {
+				$(".loading").hide();
+				$("#gray_out").fadeOut();
+				showMessage('fail', 'Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).');
+			},
+			url: url
+		});
+	}
 }
 
 function simplePopup(url) {

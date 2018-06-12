@@ -209,6 +209,15 @@ class Galaxy extends AppModel{
 		return 'Could not attach the cluster';
 	}
 
+	public function getMitreAttackGalaxyId($type="mitre-enterprise-attack-attack-pattern") {
+		$galaxy = $this->find('first', array(
+				'recursive' => -1,
+				'fields' => 'id',
+				'conditions' => array('Galaxy.type' => $type),
+		));
+		return $galaxy['Galaxy']['id'];
+	}
+
 	public function getMitreAttackMatrix($type="mitre-enterprise-attack-attack-pattern") {
 		$conditions = array('Galaxy.type' => $type);
 		$contains = array(
@@ -261,6 +270,6 @@ class Galaxy extends AppModel{
 			}
 		}
 
-		return $attackClusters;
+		return array('attackClusters' => $attackClusters, 'attackGalaxyId' => $galaxy['Galaxy']['id']);
 	}
 }
