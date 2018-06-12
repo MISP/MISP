@@ -33,7 +33,7 @@ except Exception:
 
 try:
     import maec
-    result['maec'] = maec.__version__
+    results['maec'] = maec.__version__
 except Exception:
     pass
 
