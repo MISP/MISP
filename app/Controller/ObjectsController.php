@@ -136,7 +136,7 @@ class ObjectsController extends AppController {
 			throw new NotFoundException('Invalid event.');
 		}
 		$eventId = $event['Event']['id'];
-		if (!$this->_isRest()) $this->Event->insertLock($this->Auth->user(), $eventId);
+		if (!$this->_isRest()) $this->MispObject->Event->insertLock($this->Auth->user(), $eventId);
 		if (!empty($templateId) || !$this->_isRest()) {
 			$templates = $this->MispObject->ObjectTemplate->find('all', array(
 				'conditions' => array('ObjectTemplate.id' => $templateId),
@@ -313,7 +313,7 @@ class ObjectsController extends AppController {
 		if (empty($event) || (!$this->_isSiteAdmin() &&	$event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
 			throw new NotFoundException('Invalid object.');
 		}
-		if (!$this->_isRest()) $this->Event->insertLock($this->Auth->user(), $event['Event']['id']);
+		if (!$this->_isRest()) $this->MispObject->Event->insertLock($this->Auth->user(), $event['Event']['id']);
 		$template = $this->MispObject->ObjectTemplate->find('first', array(
 			'conditions' => array(
 				'ObjectTemplate.uuid' => $object['Object']['template_uuid'],
@@ -425,7 +425,7 @@ class ObjectsController extends AppController {
 		if (!$this->_isSiteAdmin() && ($object['Event']['orgc_id'] != $this->Auth->user('org_id') || !$this->userRole['perm_modify'])) {
 			throw new UnauthorizedException('You do not have permission to do that.');
 		}
-		if (!$this->_isRest()) $this->Event->insertLock($this->Auth->user(), $eventId);
+		if (!$this->_isRest()) $this->MispObject->Event->insertLock($this->Auth->user(), $eventId);
 		if ($this->request->is('post')) {
 			if ($this->__delete($id, $hard)) {
 				$message = 'Object deleted.';
