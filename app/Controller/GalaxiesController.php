@@ -64,12 +64,28 @@ class GalaxiesController extends AppController {
 		}
 	}
 
-	public function selectGalaxy($target_id, $target_type='event') {
-		$galaxies = $this->Galaxy->find('all', array('recursive' => -1));
+	public function selectGalaxy($target_id, $target_type='event', $namespace='misp') {
+		$conditions = $namespace == '0' ? array() : array('namespace' => $namespace);
+		$galaxies = $this->Galaxy->find('all', array(
+			'recursive' => -1,
+			'conditions' => $conditions,
+		));
 		$this->set('galaxies', $galaxies);
 		$this->set('target_id', $target_id);
 		$this->set('target_type', $target_type);
 		$this->render('ajax/galaxy_choice');
+	}
+
+	public function selectGalaxyNamespace($target_id, $target_type='event') {
+		$namespaces = $this->Galaxy->find('list', array(
+			'recursive' => -1,
+			'fields' => array('namespace'),
+			'group' => array('namespace')
+		));
+		$this->set('namespaces', $namespaces);
+		$this->set('target_id', $target_id);
+		$this->set('target_type', $target_type);
+		$this->render('ajax/galaxy_namespace_choice');
 	}
 
 	public function selectCluster($target_id, $target_type = 'event', $selectGalaxy = false) {
