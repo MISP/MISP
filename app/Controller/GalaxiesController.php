@@ -65,11 +65,31 @@ class GalaxiesController extends AppController {
 	}
 
 	public function selectGalaxy($target_id, $target_type='event', $namespace='misp') {
+		$expectedDescription = 'ATT&CK Tactic';
 		$conditions = $namespace == '0' ? array() : array('namespace' => $namespace);
+		if ($namespace == 'mitre-attack') {
+			$conditions[] = array('description !=' => $expectedDescription);
+			$conditions2 = array('namespace' => $namespace);
+			$conditions2[] = array('description' => $expectedDescription);
+		}
 		$galaxies = $this->Galaxy->find('all', array(
 			'recursive' => -1,
 			'conditions' => $conditions,
 		));
+		$tacticGalaxies = $this->Galaxy->find('all', array(
+			'recursive' => -1,
+			'conditions' => $conditions2,
+		));
+		if (count($tacticGalaxies) > 0) {
+			$galaxies[] = array('Galaxy' => array(
+				'id' => '-1',
+				'uuid' => '-1',
+				'name' => $expectedDescription,
+				'type' => '-1',
+				'icon' => '/img/mitre-attack-icon.ico',
+				'namespace' => 'mitre-attack'
+			));
+		}
 		$this->set('galaxies', $galaxies);
 		$this->set('target_id', $target_id);
 		$this->set('target_type', $target_type);

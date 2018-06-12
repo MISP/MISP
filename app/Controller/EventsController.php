@@ -4560,7 +4560,7 @@ class EventsController extends AppController {
 		return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
 	}
 
-	public function viewMitreAttackMatrix($eventId, $itemType='attribute', $itemId=false, $galaxyId=false) {
+	public function viewMitreAttackMatrix($eventId, $itemType='attribute', $itemId=false) {
 		if (!$this->request->is('ajax')) {
 			throw new MethodNotAllowedException('Invalid method.');
 		}
@@ -4620,7 +4620,7 @@ class EventsController extends AppController {
 		$this->set('colours', $colours);
 
 		// picking mode
-		if ($itemId !== false && $galaxyId == $attackGalaxyId) {
+		if ($itemId !== false) {
 			$this->set('pickingMode', true);
 			$this->set('target_id', $itemId);
 		} else {
