@@ -82,16 +82,26 @@
 		<div class="spinner"></div>
 		<div class="loadingText"><?php echo __('Loading');?></div>
 	</div>
+
+	<script type="text/javascript">
 	<?php
 		if (!isset($debugMode)):
 	?>
-	<script type="text/javascript">
 		$(window).scroll(function(e) {
 			$('.actions').css('left',-$(window).scrollLeft());
 		});
-	</script>
 	<?php
 		endif;
 	?>
+		var tabIsActive = true;
+		$(document).ready(function(){
+			$(window).blur(function(){
+				tabIsActive = false;
+			});
+			$(window).focus(function(){
+				tabIsActive = true;
+			});
+		});
+	</script>
 </body>
 </html>

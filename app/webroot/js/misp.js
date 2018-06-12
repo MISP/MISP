@@ -3390,6 +3390,18 @@ $(document).ready(function() {
 	});
 });
 
+function queryEventLock(event_id, user_org_id) {
+	if (tabIsActive) {
+		$.get( "/events/checkLocks/" + event_id, function(data) {
+			if ($('#event_lock_warning').length != 0) {
+				$('#event_lock_warning').remove();
+			}
+			$('#main-view-container').html(data);
+		});
+	}
+	setTimeout(function() { queryEventLock(event_id, user_org_id); }, 5000);
+}
+
 (function(){
     "use strict";
     $(".datepicker").datepicker({

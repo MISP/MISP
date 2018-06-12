@@ -33,6 +33,7 @@ class EventLock extends AppModel{
 			'user_id' => $user['id'],
 			'event_id' => $eventId
 		);
+		$this->deleteAll(array('user_id' => $user['id']));
 		$this->create();
 		return $this->save($lock);
 	}
@@ -41,7 +42,7 @@ class EventLock extends AppModel{
 		$this->cleanupLock($user, $eventId);
 		$locks = $this->find('all', array(
 			'recursive' => -1,
-			'contain' => array('User.email'),
+			'contain' => array('User.email', 'User.org_id', 'User.id'),
 			'conditions' => array(
 				'event_id' => $eventId
 			)
@@ -50,7 +51,7 @@ class EventLock extends AppModel{
 	}
 
 	// If a lock has been active for 15 minutes, delete it
-	public function cleanupLock($user, $eventId, $timestamp = false) {
+	public function cleanupLock() {
 		$date = new DateTime();
 		$timestamp = $date->getTimestamp();
 		$timestamp -= 900;

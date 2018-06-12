@@ -400,6 +400,7 @@
 <script type="text/javascript">
 var showContext = false;
 $(document).ready(function () {
+	queryEventLock('<?php echo h($event['Event']['id']); ?>', '<?php echo h($me['org_id']); ?>');
 	popoverStartup();
 
 	$("th, td, dt, div, span, li").tooltip({

@@ -4304,4 +4304,9 @@ class Event extends AppModel {
 		}
 		return $data;
 	}
+
+	public function insertLock($user, $id) {
+		$eventLock = ClassRegistry::init('EventLock');
+		$eventLock->insertLock($user, $id);
+	}
 }

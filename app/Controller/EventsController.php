@@ -1609,6 +1609,7 @@ class EventsController extends AppController {
 			$this->Flash->error(__('You are not authorised to do that. Please consider using the \'propose attribute\' feature.'));
 			$this->redirect(array('action' => 'view', $target_id));
 		}
+		$this->Event->insertLock($this->Auth->user(), $target_id);
 		if ($this->request->is('post')) {
 			$source_id = $this->request->data['Event']['source_id'];
 			$to_ids = $this->request->data['Event']['to_ids'];
@@ -1691,6 +1692,7 @@ class EventsController extends AppController {
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}
 		}
+		if (!$this->_isRest()) $this->Event->insertLock($this->Auth->user(), $id);
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if ($this->_isRest()) {
 				if (isset($this->request->data['response'])) {
@@ -1831,6 +1833,7 @@ class EventsController extends AppController {
 							continue;
 						}
 					}
+					$this->Event->insertLock($this->Auth->user(), $event['Event']['id']);
 					if ($this->Event->quickDelete($event)) {
 						$successes[] = $eid;
 					} else {
@@ -1890,6 +1893,7 @@ class EventsController extends AppController {
 				throw new MethodNotAllowedException('You don\'t have the permission to do that.');
 			}
 		}
+		$this->Event->insertLock($this->Auth->user(), $id);
 		$success = true;
 		$message = '';
 		$errors = array();
@@ -3460,6 +3464,7 @@ class EventsController extends AppController {
 			if ((($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id']) || (!$this->userRole['perm_tagger'])) && !$this->_isSiteAdmin()) {
 				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
 			}
+			$this->Event->insertLock($this->Auth->user(), $id);
 			$eventTag = $this->Event->EventTag->find('first', array(
 				'conditions' => array(
 					'event_id' => $id,
@@ -3771,6 +3776,7 @@ class EventsController extends AppController {
 			if (!$this->Event->checkIfAuthorised($this->Auth->user(), $id)) {
 				throw new MethodNotAllowedException('Invalid event.');
 			}
+			$this->Event->insertLock($this->Auth->user(), $id);
 			$attributes = json_decode($this->request->data['Attribute']['JsonObject'], true);
 			$default_comment = $this->request->data['Attribute']['default_comment'];
 			$force = $this->request->data['Attribute']['force'];
@@ -4242,6 +4248,7 @@ class EventsController extends AppController {
 				'fields' => array('id'),
 			));
 			if (empty($event)) throw new NotFoundException('Event not found.');
+			$this->Event->insertLock($this->Auth->user(), $id);
 			$this->Event->id = $data['settings']['event_id'];
 			$date = new DateTime();
 			$this->Event->saveField('timestamp', $date->getTimestamp());
@@ -4958,6 +4965,7 @@ class EventsController extends AppController {
 		if (empty($event) || (!$this->_isSiteAdmin() && ($this->Auth->user('org_id') != $event['Event']['orgc_id'] || !$this->userRole['perm_modify']))) {
 			throw new MethodNotAllowedException('Invalid Event');
 		}
+		$this->Event->insertLock($this->Auth->user(), $event['Event']['id']);
 		if ($this->request->is('post')) {
 			$modules = array();
 			foreach ($this->request->data['Event'] as $module => $enabled) {
@@ -4983,6 +4991,37 @@ class EventsController extends AppController {
 			$this->layout = 'ajax';
 			$this->set('modules', $modules);
 			$this->render('ajax/enrich_event');
+		}
+	}
+
+	public function checkLocks($id) {
+		$this->loadModel('EventLock');
+		$event = $this->Event->find('first', array(
+			'recursive' => -1,
+			'conditions' => array('Event.id' => $id),
+			'fields' => array('Event.orgc_id')
+		));
+		$locks = array();
+		if (!empty($event) && ($event['Event']['orgc_id'] == $this->Auth->user('org_id') || $this->_isSiteAdmin())) {
+			$locks = $this->EventLock->checkLock($this->Auth->user(), $id);
+		}
+		if (!empty($locks)) {
+			$temp = $locks;
+			$locks = array();
+			foreach ($temp as $t) {
+				if ($t['User']['id'] !== $this->Auth->user('id')) {
+					if (!$this->_isSiteAdmin() && $t['User']['org_id'] != $this->Auth->user('org_id')) continue;
+					$locks[] = $t['User']['email'];
+				}
+			}
+		}
+		if (!empty($locks)) {
+			$message = sprintf('Warning: Your view on this event might not be up to date as it is currently being edited by: %s', implode(', ', $locks));
+			$this->set('message', $message);
+			$this->layout = false;
+			$this->render('/Events/ajax/event_lock');
+		} else {
+			return $this->RestResponse->viewData(array(), $this->response->type());
 		}
 	}
 }
