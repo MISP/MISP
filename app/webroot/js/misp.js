@@ -3402,6 +3402,17 @@ function queryEventLock(event_id, user_org_id) {
 	setTimeout(function() { queryEventLock(event_id, user_org_id); }, 5000);
 }
 
+function checkIfLoggedIn() {
+	if (tabIsActive) {
+		$.get("/users/checkIfLoggedIn", function(data) {
+			if (data !== 'OK') {
+				window.location.replace(baseurl + "/users/login");
+			}
+		});
+	}
+	setTimeout(function() { checkIfLoggedIn(); }, 5000);
+}
+
 (function(){
     "use strict";
     $(".datepicker").datepicker({

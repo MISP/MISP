@@ -94,13 +94,15 @@
 		endif;
 	?>
 		var tabIsActive = true;
+		var baseurl = '<?php echo $baseurl; ?>';
 		$(document).ready(function(){
-			$(window).blur(function(){
+			$(window).blur(function() {
 				tabIsActive = false;
 			});
-			$(window).focus(function(){
+			$(window).focus(function() {
 				tabIsActive = true;
 			});
+			checkIfLoggedIn();
 		});
 	</script>
 </body>
