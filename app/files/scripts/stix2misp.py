@@ -35,7 +35,7 @@ eventTypes = {"ArtifactObjectType": {"type": "attachment", "relation": "attachme
               "WindowsRegistryKeyObjectType": {"type": "regkey", "relation": ""}}
 
 cybox_to_misp_object = {"EmailMessage": "email", "NetworkConnection": "network-connection",
-                        "NetworkSocket": "network-socket", "Process": "process",
+                        "NetworkSocket": "network-socket", "Process": "process", "Account": "credential",
                         "x509Certificate": "x509", "Whois": "whois"}
 
 threat_level_mapping = {'High': '1', 'Medium': '2', 'Low': '3', 'Undefined': '4'}
@@ -74,6 +74,7 @@ class StixParser():
     # Load the mapping dictionary for STIX object types
     def load_mapping(self):
         self.attribute_types_mapping = {
+            "AccountObjectType": self.handle_credential,
             'AddressObjectType': self.handle_address,
             "ArtifactObjectType": self.handle_attachment,
             "CustomObjectType": self.handle_custom,
@@ -339,6 +340,42 @@ class StixParser():
         if properties.hashes:
             return "malware-sample", "{}|{}".format(title, properties.hashes[0], properties.raw_artifact.value)
         return eventTypes[properties._XSI_TYPE]['type'], title, properties.raw_artifact.value
+
+    # Return type & attributes of a credential object
+    def handle_credential(self, properties):
+        attributes = []
+        if properties.description:
+            attributes.append(["text", properties.description.value, "text"])
+        if properties.authentication:
+            l_password, l_type, l_format = [], [], []
+            for authentication in properties.authentication:
+                if authentication.authentication_type:
+                    auth_type = authentication.authentication_type.value
+                    if auth_type not in l_type: l_type.append(auth_type)
+                if authentication.authentication_data:
+                    auth_data = authentication.authentication_data.value
+                    if auth_data not in l_password: l_password.append(auth_data)
+                if authentication.structured_authentication_mechanism:
+                    auth_format = authentication.structured_authentication_mechanism.description.value
+                    if auth_format not in l_format: l_format.append(auth_format)
+            if l_type:
+                # auth_type = l_type[0] if len(l_type) == 1 else "".join(["{}, ".format(t) for t in l_type])[:-2]
+                for auth_type in l_type:
+                    attributes.append(["text", auth_type, "type"])
+            if l_format:
+                # auth_format = l_format[0] if len(l_format) == 1 else "".join(["{}, ".format(f) for f in l_format])[:-2]
+                for auth_format in l_format:
+                    attributes.append(["text", auth_format, "format"])
+            if l_password:
+                for password in l_password:
+                    attributes.append(["text", password, "password"])
+        if properties.custom_properties:
+            for property in properties.custom_properties:
+                if property.name in ("username", "origin", "notification"):
+                    attributes.append(["text", property.value, property.name])
+        if len(attributes) == 1:
+            return attributes[0]
+        return "credential", self.return_attributes(attributes), ""
 
     # Return type & attributes (or value) of a Custom Object
     def handle_custom(self, properties):
