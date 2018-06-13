@@ -150,6 +150,7 @@ class AttributesController extends AppController {
 		if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
 			throw new UnauthorizedException('You do not have permission to do that.');
 		}
+		if (!$this->_isRest()) $this->Event->insertLock($this->Auth->user(), $this->Event->data['Event']['id']);
 		if ($this->request->is('ajax'))	{
 			$this->set('ajax', true);
 			$this->layout = 'ajax';
@@ -519,12 +520,13 @@ class AttributesController extends AppController {
 			}
 			if (empty($success) && !empty($fails)) $this->Flash->error($message);
 			else $this->Flash->success($message);
+			if (!$this->_isRest()) $this->Attribute->Event->insertLock($this->Auth->user(), $eventId);
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
 		} else {
 			// set the event_id in the form
 			$this->request->data['Attribute']['event_id'] = $eventId;
 		}
-
+		if (!$this->_isRest()) $this->Attribute->Event->insertLock($this->Auth->user(), $eventId);
 		// combobox for categories
 		$categories = array_keys($this->Attribute->categoryDefinitions);
 		// just get them with attachments..
@@ -783,7 +785,7 @@ class AttributesController extends AppController {
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}
 		}
-
+		if (!$this->_isRest()) $this->Attribute->Event->insertLock($this->Auth->user(), $this->Attribute->data['Attribute']['event_id']);
 		$eventId = $this->Attribute->data['Attribute']['event_id'];
 		if ('attachment' == $this->Attribute->data['Attribute']['type'] ||
 			'malware-sample' == $this->Attribute->data['Attribute']['type'] ) {
@@ -978,6 +980,7 @@ class AttributesController extends AppController {
 				return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'Invalid attribute')), 'status'=>200, 'type' => 'json'));
 			}
 		}
+		if (!$this->_isRest()) $this->Attribute->Event->insertLock($this->Auth->user(), $this->Attribute->data['Attribute']['event_id']);
 		$validFields = array('value', 'category', 'type', 'comment', 'to_ids', 'distribution');
 		$changed = false;
 		if (empty($this->request->data['Attribute'])) {
@@ -1127,6 +1130,7 @@ class AttributesController extends AppController {
 			if ($this->request->is('ajax')) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Attribute')), 'type' => 'json', 'status'=>200));
 			else throw new MethodNotAllowedException('Invalid Attribute');
 		}
+		if (!$this->_isRest()) $this->Event->insertLock($this->Auth->user(), $attribute['Attribute']['event_id']);
 		if ($this->request->is('ajax')) {
 			if ($this->request->is('post')) {
 				$result = $this->Attribute->restore($id, $this->Auth->user());
@@ -1357,6 +1361,7 @@ class AttributesController extends AppController {
 			}
 
 			if ($this->Attribute->saveMany($attributes)) {
+				if (!$this->_isRest()) $this->Attribute->Event->insertLock($this->Auth->user(), $id);
 				$event['Event']['timestamp'] = $date->getTimestamp();
 				$event['Event']['published'] = 0;
 				$this->Attribute->Event->save($event, array('fieldList' => array('published', 'timestamp', 'info', 'id')));
@@ -2908,7 +2913,7 @@ class AttributesController extends AppController {
 					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status' => 200, 'type' => 'json'));
 				}
 			}
-
+			if (!$this->_isRest()) $this->Attribute->Event->insertLock($this->Auth->user(), $eventId);
 			$this->Attribute->recursive = -1;
 			$this->Attribute->AttributeTag->Tag->id = $tag_id;
 			if (!$this->Attribute->AttributeTag->Tag->exists()) {
@@ -2999,6 +3004,7 @@ class AttributesController extends AppController {
 
 			$this->Attribute->Event->recursive = -1;
 			$event = $this->Attribute->Event->read(array(), $eventId);
+			if (!$this->_isRest()) $this->Attribute->Event->insertLock($this->Auth->user(), $eventId);
 			// org should allow to (un)tag too, so that an event that gets pushed can be (un)tagged locally by the owning org
 			if ((($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'] && $event['Event']['distribution'] == 0) || (!$this->userRole['perm_tagger'])) && !$this->_isSiteAdmin()) {
 				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status' => 200, 'type' => 'json'));
@@ -3061,6 +3067,7 @@ class AttributesController extends AppController {
 		if (!$this->Auth->user('Role')['perm_modify_org'] && $this->Auth->user('id') != $attribute['Event']['user_id']) {
 			throw new MethodNotAllowedException('You don\'t have permission to do that.');
 		}
+		if (!$this->_isRest()) $this->Event->insertLock($this->Auth->user(), $attribute['Event']['event_id']);
 		if ($this->request->is('post')) {
 			if ($attribute['Attribute']['disable_correlation']) {
 				$attribute['Attribute']['disable_correlation'] = 0;

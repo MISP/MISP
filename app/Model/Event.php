@@ -409,6 +409,18 @@ class Event extends AppModel {
 		if (empty($this->data['Event']['uuid'])) {
 			$this->data['Event']['uuid'] = CakeText::uuid();
 		}
+
+		// Convert event ID to uuid if needed
+		if (!empty($this->data['Event']['extends_uuid']) && is_numeric($this->data['Event']['extends_uuid'])) {
+			$extended_event = $this->find('first', array(
+				'recursive' -1,
+				'conditions' => array('Event.id' => $this->data['Event']['extends_uuid']),
+				'fields' => array('Event.uuid')
+			));
+			if (empty($extended_event)) $this->data['Event']['extends_uuid'] = '';
+			else $this->data['Event']['extends_uuid'] = $extended_event['Event']['uuid'];
+		}
+
 		// generate timestamp if it doesn't exist
 		if (empty($this->data['Event']['timestamp'])) {
 			$date = new DateTime();
@@ -4303,5 +4315,10 @@ class Event extends AppModel {
 			$data[$dataType . 'Tag'] = array_values($data[$dataType . 'Tag']);
 		}
 		return $data;
+	}
+
+	public function insertLock($user, $id) {
+		$eventLock = ClassRegistry::init('EventLock');
+		$eventLock->insertLock($user, $id);
 	}
 }

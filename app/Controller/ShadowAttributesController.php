@@ -102,6 +102,7 @@ class ShadowAttributesController extends AppController {
 			$this->Event->recursive = -1;
 			// Unpublish the event, accepting a proposal is modifying the event after all. Also, reset the lock.
 			$event = $this->Event->read(null, $activeAttribute['Attribute']['event_id']);
+			if (!$this->_isRest()) $this->Event->insertLock($this->Auth->user(), $event['Event']['id']);
 			$this->Event->unpublishEvent($activeAttribute['Attribute']['event_id'], true);
 			$this->Log = ClassRegistry::init('Log');
 			$this->Log->create();
@@ -129,6 +130,7 @@ class ShadowAttributesController extends AppController {
 					$this->redirect(array('controller' => 'events', 'action' => 'index'));
 				}
 			}
+			if (!$this->_isRest()) $this->Event->insertLock($this->Auth->user(), $event['Event']['id']);
 			$shadowForLog = $shadow;
 			// Stuff that we won't use in its current form for the attribute
 			unset($shadow['email'], $shadow['org_id'], $shadow['id'], $shadow['old_id']);
@@ -757,16 +759,11 @@ class ShadowAttributesController extends AppController {
 			if ($temp == null) throw new NotFoundException('Invalid attribute');
 			$id = $temp['Attribute']['id'];
 		}
-
-		$existingAttribute = $this->ShadowAttribute->Event->Attribute->find(
-			'first',
-			array(
-				'recursive' => -1,
-				'conditions' => array(
-					'Attribute.id' => $id
-				),
-				'contain' => array('Event' => array('fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id')))
-		));
+		
+		$existingAttribute = $this->ShadowAttribute->Event->Attribute->fetchAttributes($this->Auth->user(), array('Attriute.id' => $id));
+		if (empty($existingAttribute)) {
+			throw new NotFoundException('Invalid attribute.');
+		}
 
 		if ($this->request->is('post')) {
 			if (empty($existingAttribute)) return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Invalid Attribute.')), 'status'=>200, 'type' => 'json'));
