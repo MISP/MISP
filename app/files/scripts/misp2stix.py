@@ -589,19 +589,44 @@ class StixBuilder(object):
             account.custom_properties = custom_properties
         if attributes_dict:
             authentication = Authentication()
-            if 'type' in attributes_dict:
-                authentication.authentication_type = attributes_dict['type'][0]
             if 'format' in attributes_dict:
                 struct_auth_meca = StructuredAuthenticationMechanism()
                 struct_auth_meca.description = attributes_dict['format'][0]
                 authentication.structured_authentication_mechanism = struct_auth_meca
-            if 'password' in attributes_dict:
-                for password in attributes_dict['password']:
+            if 'type' in attributes_dict and 'password' in attributes_dict and len(attributes_dict['type']) == len(attributes_dict['password']):
+                for type, password in zip(attributes_dict['type'], attributes_dict['password']):
                     auth = deepcopy(authentication)
+                    auth.authentication_type = type
                     auth.authentication_data = password
                     account.authentication.append(auth)
             else:
-                account.authentication.append(authentication)
+                if 'type' in attributes_dict:
+                    credential_types = attributes_dict['type']
+                    if len(credential_types) == 1:
+                        authentication.authentication_type = credential_types[0]
+                    else:
+                        auth_type = credential_types[0]
+                        for misp_credential_type in ('password', 'api-key', 'encryption-key', 'unknown'):
+                            if misp_credential_type in credential_types:
+                                auth_type = misp_credential_type
+                                break
+                        authentication.authentication_type = auth_type
+                        credential_types.pop(credential_types.index(auth_type))
+                if 'password' in attributes_dict:
+                    for password in attributes_dict['password']:
+                        auth = deepcopy(authentication)
+                        auth.authentication_data = password
+                        account.authentication.append(auth)
+                else:
+                    account.authentication.append(authentication)
+                try:
+                    if credential_types:
+                        for remaining_credential_type in credential_types:
+                            authentication = Authentication()
+                            authentication.authentication_type = remaining_credential_type
+                            account.authentication.append(authentication)
+                except:
+                    pass
         account.parent.id_ = "{}:AccountObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(account)
         observable.id_ = "{}:Account-{}".format(self.namespace_prefix, uuid)
