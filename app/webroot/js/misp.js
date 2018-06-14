@@ -3396,7 +3396,7 @@ function queryEventLock(event_id, user_org_id) {
 			if ($('#event_lock_warning').length != 0) {
 				$('#event_lock_warning').remove();
 			}
-			$('#main-view-container').html(data);
+			$('#main-view-container').append(data);
 		});
 	}
 	setTimeout(function() { queryEventLock(event_id, user_org_id); }, 5000);
