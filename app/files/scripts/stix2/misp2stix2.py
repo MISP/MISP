@@ -20,6 +20,7 @@ import pymisp
 from stix2 import *
 from misp2stix2_mapping import *
 from collections import defaultdict
+from copy import deepcopy
 
 non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', 'target-email',
                             'target-machine', 'target-org', 'target-location', 'target-external',
@@ -433,8 +434,33 @@ class StixBuilder():
                               'number_observed': 1, 'labels': labels, 'objects': observable_objects,
                               'first_observed': timestamp, 'last_observed': timestamp,
                               'created_by_ref': self.identity_id}
-        observed_data = ObservedData(**observed_data_args)
+        try:
+            observed_data = ObservedData(**observed_data_args)
+        except exceptions.InvalidValueError:
+            observed_data = self.fix_enumeration_issues(name, observed_data_args)
         self.append_object(observed_data, observed_data_id)
+
+    @staticmethod
+    def fix_enumeration_issues(name, args):
+        enumeration_fails = {}
+        if name == 'network-socket':
+            ns_args = deepcopy(args)
+            observable_object = ns_args['objects']
+            n = sorted(observable_object.keys())[-1]
+            current_dict = observable_object[n]['extensions']['socket-ext']
+            for field in ('address_family', 'protocol_family'):
+                enumeration_fails[field] = current_dict.pop(field)
+                try:
+                    return ObservedData(**ns_args)
+                except exceptions.InvalidValueError:
+                    current_dict[field] = enumeration_fails[field]
+            for field in enumeration_fails:
+                current_dict.pop(field)
+            try:
+                return ObservedData(**ns_args)
+            except:
+                pass
+        return ObservedData(**args)
 
     def add_object_vulnerability(self, misp_object, to_ids):
         vulnerability_id = 'vulnerability--{}'.format(misp_object.uuid)
@@ -723,9 +749,11 @@ class StixBuilder():
                 pattern += objectsMapping['ip-port']['pattern'].format(stix_type, attribute_value)
         return pattern[:-5]
 
+    @staticmethod
     def resolve_network_socket_observable(attributes):
         observable, socket_extension = {}, {}
         network_object = defaultdict(list)
+        network_object['type'] = 'network-traffic'
         n = 0
         ip_src, ip_dst, domain_src, domain_dst = [None] * 4
         for attribute in attributes:
@@ -749,26 +777,26 @@ class StixBuilder():
         if ip_src is not None:
             str_n = str(n)
             observable[str_n] = {'type': define_address_type(ip_src), 'value': ip_src}
-            network_object['_ref'] = str_n
+            network_object['src_ref'] = str_n
             n += 1
         elif domain_src is not None:
             str_n = str(n)
             observable[str_n] = {'type': 'domain-name', 'value': domain_src}
-            network_object['_ref'] = str_n
+            network_object['src_ref'] = str_n
             n += 1
         if ip_dst is not None:
             str_n = str(n)
             observable[str_n] = {'type': define_address_type(ip_dst), 'value': ip_dst}
-            network_object['_ref'] = str_n
+            network_object['dst_ref'] = str_n
             n += 1
         elif domain_dst is not None:
             str_n = str(n)
             observable[str_n] = {'type': 'domain-name', 'value': domain_dst}
-            network_object['_ref'] = str_n
+            network_object['dst_ref'] = str_n
             n += 1
         if socket_extension: network_object['extensions'] = {'socket-ext': socket_extension}
         observable[str(n)] = network_object
-        return
+        return observable
 
     def resolve_network_socket_pattern(self, attributes):
         mapping = objectsMapping['network-socket']['pattern']
@@ -784,7 +812,7 @@ class StixBuilder():
                 state_type = "is_{}".format(attribute_value)
                 pattern += mapping.format(stix_type.format(state_type), True)
             elif relation == 'protocol':
-                pattern += mapping.format(networkSocketMapping[relation], [attribute_value])
+                pattern += "network-traffic:{0}[0] = '{1}' AND ".format(networkSocketMapping[relation], attribute_value)
             elif relation == 'ip-src':
                 ip_src = mapping.format(networkSocketMapping[relation].format(define_address_type(attribute_value)), attribute_value)
             elif relation == 'ip-dst':
@@ -859,12 +887,11 @@ class StixBuilder():
         observable = {'0': {'type': 'windows-registry-key'}}
         values = {}
         for attribute in attributes:
-            attribute_type = attribute.type
-            if attribute_type == 'text':
-                values[regkeyMapping[attribute_type][attribute.object_relation]] = attribute.value
+            if attribute.type == 'text':
+                values[regkeyMapping[attribute.object_relation]] = attribute.value
             else:
                 try:
-                    observable['0'][regkeyMapping[attribute_type]] = attribute.value
+                    observable['0'][regkeyMapping[attribute.object_relation]] = attribute.value.replace('\\\\', '\\')
                 except:
                     pass
         if values:
