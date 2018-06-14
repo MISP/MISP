@@ -749,9 +749,11 @@ class StixBuilder():
                 pattern += objectsMapping['ip-port']['pattern'].format(stix_type, attribute_value)
         return pattern[:-5]
 
+    @staticmethod
     def resolve_network_socket_observable(attributes):
         observable, socket_extension = {}, {}
         network_object = defaultdict(list)
+        network_object['type'] = 'network-traffic'
         n = 0
         ip_src, ip_dst, domain_src, domain_dst = [None] * 4
         for attribute in attributes:
@@ -775,26 +777,26 @@ class StixBuilder():
         if ip_src is not None:
             str_n = str(n)
             observable[str_n] = {'type': define_address_type(ip_src), 'value': ip_src}
-            network_object['_ref'] = str_n
+            network_object['src_ref'] = str_n
             n += 1
         elif domain_src is not None:
             str_n = str(n)
             observable[str_n] = {'type': 'domain-name', 'value': domain_src}
-            network_object['_ref'] = str_n
+            network_object['src_ref'] = str_n
             n += 1
         if ip_dst is not None:
             str_n = str(n)
             observable[str_n] = {'type': define_address_type(ip_dst), 'value': ip_dst}
-            network_object['_ref'] = str_n
+            network_object['dst_ref'] = str_n
             n += 1
         elif domain_dst is not None:
             str_n = str(n)
             observable[str_n] = {'type': 'domain-name', 'value': domain_dst}
-            network_object['_ref'] = str_n
+            network_object['dst_ref'] = str_n
             n += 1
         if socket_extension: network_object['extensions'] = {'socket-ext': socket_extension}
         observable[str(n)] = network_object
-        return
+        return observable
 
     def resolve_network_socket_pattern(self, attributes):
         mapping = objectsMapping['network-socket']['pattern']
