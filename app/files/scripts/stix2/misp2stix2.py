@@ -784,7 +784,7 @@ class StixBuilder():
                 state_type = "is_{}".format(attribute_value)
                 pattern += mapping.format(stix_type.format(state_type), True)
             elif relation == 'protocol':
-                pattern += mapping.format(networkSocketMapping[relation], [attribute_value])
+                pattern += "network-traffic:{0}[0] = '{1}' AND ".format(networkSocketMapping[relation], attribute_value)
             elif relation == 'ip-src':
                 ip_src = mapping.format(networkSocketMapping[relation].format(define_address_type(attribute_value)), attribute_value)
             elif relation == 'ip-dst':
