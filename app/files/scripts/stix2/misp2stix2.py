@@ -887,12 +887,11 @@ class StixBuilder():
         observable = {'0': {'type': 'windows-registry-key'}}
         values = {}
         for attribute in attributes:
-            attribute_type = attribute.type
-            if attribute_type == 'text':
-                values[regkeyMapping[attribute_type][attribute.object_relation]] = attribute.value
+            if attribute.type == 'text':
+                values[regkeyMapping[attribute.object_relation]] = attribute.value
             else:
                 try:
-                    observable['0'][regkeyMapping[attribute_type]] = attribute.value
+                    observable['0'][regkeyMapping[attribute.object_relation]] = attribute.value.replace('\\\\', '\\')
                 except:
                     pass
         if values:
