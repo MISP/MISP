@@ -189,7 +189,7 @@ class Galaxy extends AppModel{
 			$result = $this->Tag->AttributeTag->save(array('attribute_id' => $target_id, 'tag_id' => $tag_id, 'event_id' => $attribute['Attribute']['event_id']));
 		}
 		if ($result) {
-			$this->Tag->EventTag->Event->insertLock($this->Auth->user(), $event['Event']['id']);
+			$this->Tag->EventTag->Event->insertLock($user, $event['Event']['id']);
 			$event['Event']['published'] = 0;
 			$date = new DateTime();
 			$event['Event']['timestamp'] = $date->getTimestamp();

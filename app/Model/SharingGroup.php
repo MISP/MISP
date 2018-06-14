@@ -255,8 +255,7 @@ class SharingGroup extends AppModel {
 				),
 				'recursive' => -1,
 			));
-			if (empty($sg)) return false;
-			else return true;
+			if (!empty($sg)) return true;
 		}
 		$sgo = $this->SharingGroupOrg->find('first', array(
 				'conditions' => array(
