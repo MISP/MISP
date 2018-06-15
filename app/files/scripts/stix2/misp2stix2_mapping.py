@@ -247,8 +247,7 @@ objectsMapping = {'domain-ip': {'pattern': "domain-name:{0} = '{1}' AND "},
                                   'pattern': "windows-registry-key:{0} = '{1}' AND "},
                  'url': {'observable': {'0': {'type': 'url'}},
                          'pattern': "url:{0} = '{1}' AND "},
-                 'x509': {'observable': {'0': {'type': 'x509-certificate', 'hashes': {}}},
-                          'pattern': "x509-certificate:{0} = '{1}' AND "}
+                 'x509': {'pattern': "x509-certificate:{0} = '{1}' AND "}
 }
 
 domainIpObjectMapping = {'ip-dst': 'resolves_to_refs[*].value', 'domain': 'value'}

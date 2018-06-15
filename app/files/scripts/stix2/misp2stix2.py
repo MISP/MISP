@@ -561,13 +561,14 @@ class StixBuilder():
 
     @staticmethod
     def resolve_domain_ip_pattern(attributes):
+        mapping = objectsMapping['domain-ip']['pattern']
         pattern = ""
         for attribute in attributes:
             try:
                 stix_type = domainIpObjectMapping[attribute.type]
             except:
                 continue
-            pattern += objectsMapping['domain-ip']['pattern'].format(stix_type, attribute.value)
+            pattern += mapping.format(stix_type, attribute.value)
         return pattern[:-5]
 
     @staticmethod
@@ -619,6 +620,7 @@ class StixBuilder():
 
     @staticmethod
     def resolve_email_object_pattern(attributes):
+        pattern_mapping = objectsMapping['email']['pattern']
         pattern = ""
         for attribute in attributes:
             try:
@@ -629,7 +631,7 @@ class StixBuilder():
                 stix_type = mapping['stix_type'][attribute.object_relation]
             except:
                 stix_type = mapping['stix_type']
-            pattern += objectsMapping['email']['pattern'].format(mapping['email_type'], stix_type, attribute.value)
+            pattern += pattern_mapping.format(mapping['email_type'], stix_type, attribute.value)
         return pattern[:-5]
 
     @staticmethod
@@ -901,13 +903,14 @@ class StixBuilder():
 
     @staticmethod
     def resolve_regkey_pattern(attributes):
+        mapping = objectsMapping['registry-key']['pattern']
         pattern = ""
         for attribute in attributes:
             try:
                 stix_type = regkeyMapping[attribute.object_relation]
             except:
                 continue
-            pattern += objectsMapping['registry-key']['pattern'].format(stix_type, attribute.value)
+            pattern += mapping.format(stix_type, attribute.value)
         return pattern[:-5]
 
     @staticmethod
@@ -961,7 +964,7 @@ class StixBuilder():
 
     @staticmethod
     def resolve_x509_observable(attributes):
-        observable = {'0': {'type': 'x509-certificate'}}
+        observable = {'type': 'x509-certificate'}
         hashes = {}
         for attribute in attributes:
             attribute_type = attribute.type
@@ -970,15 +973,16 @@ class StixBuilder():
                 hashes[h_type] = attribute.value
             else:
                 try:
-                    observable['0'][x509mapping[attribute_type][attribute.object_relation]] = attribute.value
+                    observable[x509mapping[attribute_type][attribute.object_relation]] = attribute.value
                 except:
                     pass
         if hashes:
-            observable['0']['hashes'] = hashes
-        return observable
+            observable['hashes'] = hashes
+        return {'0': observable}
 
     @staticmethod
     def resolve_x509_pattern(attributes):
+        mapping = objectsMapping['x509']['pattern']
         pattern = ""
         for attribute in attributes:
             attribute_type = attribute.type
@@ -990,7 +994,7 @@ class StixBuilder():
                     stix_type = x509mapping[attribute_type][attribute.object_relation]
                 except:
                     continue
-            pattern += objectsMapping['x509']['pattern'].format(stix_type, attribute.value)
+            pattern += mapping.format(stix_type, attribute.value)
         return pattern[:-5]
 
 def main(args):
