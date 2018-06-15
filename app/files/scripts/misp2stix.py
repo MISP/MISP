@@ -501,16 +501,25 @@ class StixBuilder(object):
     def generate_simple_observable(self, attribute):
         cybox_name = misp_cybox_name[attribute.type]
         if cybox_name == "AutonomousSystem":
-            if not attribute.value.isdigit():
-                return False
+            attribute_value = self.define_attribute_value(attribute.value, attribute.comment)
+            stix_field = cybox_name_attribute[cybox_name] if not attribute_value.startswith('AS') else 'handle'
+        else:
+            attribute_value = attribute.value
+            stix_field = cybox_name_attribute[cybox_name]
         constructor = getattr(this_module, cybox_name, None)
         new_object = constructor()
-        setattr(new_object, cybox_name_attribute[cybox_name], attribute.value)
-        setattr(getattr(new_object, cybox_name_attribute[cybox_name]), "condition", "Equals")
+        setattr(new_object, stix_field, attribute_value)
+        setattr(getattr(new_object, stix_field), "condition", "Equals")
         new_object.parent.id_ = "{}:{}Object-{}".format(self.namespace_prefix, cybox_name, attribute.uuid)
         observable = Observable(new_object)
         observable.id_ = "{}:{}-{}".format(self.namespace_prefix, cybox_name, attribute.uuid)
         return observable
+
+    @staticmethod
+    def define_attribute_value(value, comment):
+        if comment.startswith("AS") and not value.startswith("AS"):
+            return comment
+        return value
 
     def generate_socket_address_observable(self, attribute):
         value1, port = attribute.value.split('|')
