@@ -34,6 +34,7 @@
 		var scoredCells = $('.ajax_popover_form .heatCell').filter(function() {
 			return $(this).attr('data-score') > 0;
 		});
+		scoredCells.hover(function() { enteringScoredCell($(this), '.ajax_popover_form'); }, function() { leavingScoredCell('.ajax_popover_form'); });
 		$('.ajax_popover_form #checkbox_attackMatrix_showAll').off('click.showAll').on('click.showAll', function() { toggleAttackMatrixCells('.ajax_popover_form'); });
 		$('#pick-matrix-elem').typeahead(typeaheadOptionMatrix);
 		$('.info_container_eventgraph_network .matrix-div-search').hide()
@@ -48,7 +49,7 @@
 		});
 		$('.info_container_eventgraph_network #checkbox_attackMatrix_showAll').off('click.showAll').on('click.showAll', function() { toggleAttackMatrixCells('.info_container_eventgraph_network'); });
 	
-		scoredCells.hover(enteringScoredCell, leavingScoredCell);
+		scoredCells.hover(function() { enteringScoredCell($(this), '.info_container_eventgraph_network'); }, function() { leavingScoredCell('.info_container_eventgraph_network'); });
 
 		$('span[data-toggle="tab"]').off('shown.resize').on('shown.resize', function (e) {
 			var tabId = $(e.target).attr('href');
@@ -124,23 +125,23 @@
 		}
 	}
 	
-	function enteringScoredCell() {
-		var score = $(this).attr('data-score');
-		adjust_caret_on_scale(score);
+	function enteringScoredCell(elem, jfilter) {
+		var score = elem.attr('data-score');
+		adjust_caret_on_scale(score, jfilter);
 	}
 	
-	function leavingScoredCell() {
-		adjust_caret_on_scale(0);
+	function leavingScoredCell(jfilter) {
+		adjust_caret_on_scale(0, jfilter);
 	}
 	
-	function adjust_caret_on_scale(score) {
-		var totWidth = $('#matrix-heatmap-legend').width();
-		var maxScore = parseInt($('#matrix-heatmap-maxval').text());
+	function adjust_caret_on_scale(score, jfilter) {
+		var totWidth = $(jfilter + ' #matrix-heatmap-legend').width();
+		var maxScore = parseInt($(jfilter + ' #matrix-heatmap-maxval').text());
 		var x = (parseInt(score)/maxScore)*totWidth;
-		$('#matrix-heatmap-legend-caret').css({
+		$(jfilter + ' #matrix-heatmap-legend-caret').css({
 			left: x
 		});
-		$('#matrix-heatmap-legend-caret-value').text(score);
+		$(jfilter + ' #matrix-heatmap-legend-caret-value').text(score);
 	}
 
 	function get_typeaheadDataMatrix_search() {
