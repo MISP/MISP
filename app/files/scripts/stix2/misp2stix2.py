@@ -324,13 +324,15 @@ class StixBuilder():
         self.append_object(identity, identity_id)
 
     def add_indicator(self, attribute):
+        attribute_type = attribute.type
         indicator_id = "indicator--{}".format(attribute.uuid)
         category = attribute.category
         killchain = self.create_killchain(category)
         labels = self.create_labels(attribute)
+        attribute_value = attribute.value if attribute_type != "AS" else self.define_attribute_value(attribute.value, attribute.comment)
         indicator_args = {'id': indicator_id, 'type': 'indicator', 'labels': labels, 'kill_chain_phases': killchain,
                            'valid_from': attribute.timestamp, 'created_by_ref': self.identity_id,
-                           'pattern': [self.define_pattern(attribute.type, attribute.value)]}
+                           'pattern': [self.define_pattern(attribute_type, attribute_value)]}
         if hasattr(attribute, 'comment') and attribute.comment:
             indicator_args['description'] = attribute.comment
         indicator = Indicator(**indicator_args)
@@ -349,13 +351,15 @@ class StixBuilder():
         self.append_object(malware, malware_id)
 
     def add_observed_data(self, attribute):
+        attribute_type = attribute.type
         observed_data_id = "observed-data--{}".format(attribute.uuid)
         timestamp = attribute.timestamp
         labels = self.create_labels(attribute)
+        attribute_value = attribute.value if attribute_type != "AS" else self.define_attribute_value(attribute.value, attribute.comment)
         observed_data_args = {'id': observed_data_id, 'type': 'observed-data', 'number_observed': 1,
                               'first_observed': timestamp, 'last_observed': timestamp, 'labels': labels,
                               'created_by_ref': self.identity_id,
-                              'objects': self.define_observable(attribute.type, attribute.value)}
+                              'objects': self.define_observable(attribute_type, attribute_value)}
         observed_data = ObservedData(**observed_data_args)
         self.append_object(observed_data, observed_data_id)
 
@@ -990,6 +994,12 @@ class StixBuilder():
                     continue
             pattern += mapping.format(stix_type, attribute.value)
         return pattern[:-5]
+
+    @staticmethod
+    def define_attribute_value(value, comment):
+        if comment.startswith("AS") and not value.startswith("AS"):
+            return comment
+        return value
 
 def main(args):
     stix_builder = StixBuilder()
