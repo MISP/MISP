@@ -48,14 +48,12 @@
 			var cell = $(this).find('thead > tr > th');
 			for(var i=0; i<cell.length; i++) {
 				var cellH = $(cell[i]).css('height')
-				console.log(cellH);
 				max_height = $(cell[i]).height() > max_height ? $(cell[i]).height() : max_height;
 				$(div[i]).css({
 					width: $(cell[i]).css('width'),
 					height: cellH,
 				});
 			}
-			console.log(max_height);
 			$(tabId + ' .header-background').css('height', max_height+'px');
 		});
 	}
