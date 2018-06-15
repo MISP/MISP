@@ -145,7 +145,8 @@ class StixBuilder(object):
         self.simple_type_to_method.update(dict.fromkeys(["email-attachment"], self.generate_email_attachment_observable))
         self.simple_type_to_method.update(dict.fromkeys(["malware-sample"], self.resolve_malware_sample))
         ## MAPPING FOR OBJECTS
-        self.objects_mapping = {"credential": self.parse_credential_object,
+        self.objects_mapping = {"asn": self.parse_asn_object,
+                                "credential": self.parse_credential_object,
                                 "domain-ip": self.parse_domain_ip_object,
                                 "email": self.parse_email_object,
                                 "file": self.parse_file_object,
@@ -571,6 +572,22 @@ class StixBuilder(object):
         ET.add_vulnerability(vulnerability)
         ttp.exploit_targets.append(ET)
         return ttp
+
+    def parse_asn_object(self, attributes, uuid):
+        to_ids, attributes_dict = self.create_attributes_dict(attributes)
+        auto_sys = AutonomousSystem()
+        if 'asn' in attributes_dict:
+            asn = attributes_dict['asn']
+            if asn.startswith('AS'):
+                auto_sys.handle = asn
+            else:
+                auto_sys.number = asn
+        if 'description' in attributes_dict:
+            auto_sys.name = attributes_dict['description']
+        auto_sys.parent.id_ = "{}:AutonomousSystemObject-{}".format(self.namespace_prefix, uuid)
+        observable = Observable(auto_sys)
+        observable.id_ = "{}:AutonomousSystem-{}".format(self.namespace_prefix, uuid)
+        return to_ids, observable
 
     def parse_credential_object(self, attributes, uuid):
         to_ids, attributes_dict = self.create_attributes_dict_multiple(attributes)
