@@ -119,7 +119,7 @@ class StixBuilder():
                     self.add_course_of_action(misp_object, from_object=True)
                 elif object_name in objectsMapping:
                     try:
-                        if to_ids:
+                        if to_ids or object_name == "stix2-pattern":
                             self.add_object_indicator(misp_object, to_ids)
                         else:
                             self.add_object_observable(misp_object, to_ids)
@@ -159,6 +159,7 @@ class StixBuilder():
                         'pattern': self.resolve_process_pattern},
             'registry-key': {'observable': self.resolve_regkey_observable,
                              'pattern': self.resolve_regkey_pattern},
+            'stix2': {'pattern': self.resolve_stix2_pattern},
             'url': {'observable': self.resolve_url_observable,
                     'pattern': self.resolve_url_pattern},
             'x509': {'observable': self.resolve_x509_observable,
@@ -908,6 +909,12 @@ class StixBuilder():
                 continue
             pattern += objectsMapping['registry-key']['pattern'].format(stix_type, attribute.value)
         return pattern[:-5]
+
+    @staticmethod
+    def resolve_stix2_pattern(attributes):
+        for attribute in attributes:
+            if attribute.object_relation == 'stix2-pattern':
+                return attribute.value
 
     @staticmethod
     def resolve_url_observable(attributes):
