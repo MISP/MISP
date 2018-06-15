@@ -71,16 +71,17 @@ class GalaxiesController extends AppController {
 			$conditions[] = array('description !=' => $expectedDescription);
 			$conditions2 = array('namespace' => $namespace);
 			$conditions2[] = array('description' => $expectedDescription);
+
+			$tacticGalaxies = $this->Galaxy->find('all', array(
+				'recursive' => -1,
+				'conditions' => $conditions2,
+			));
 		}
 		$galaxies = $this->Galaxy->find('all', array(
 			'recursive' => -1,
 			'conditions' => $conditions,
 		));
-		$tacticGalaxies = $this->Galaxy->find('all', array(
-			'recursive' => -1,
-			'conditions' => $conditions2,
-		));
-		if (count($tacticGalaxies) > 0) {
+		if (!empty($tacticGalaxies)) {
 			$galaxies[] = array('Galaxy' => array(
 				'id' => '-1',
 				'uuid' => '-1',
