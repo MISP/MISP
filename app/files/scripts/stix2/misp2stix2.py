@@ -415,7 +415,7 @@ class StixBuilder():
         category = misp_object.get('meta-category')
         killchain = self.create_killchain(category)
         labels = self.create_object_labels(name, category, to_ids)
-        pattern = self.define_object_pattern(name, misp_object.attributes)
+        pattern = self.objects_mapping[name]['pattern'](misp_object.attributes)
         timestamp = self.get_date_from_timestamp(int(misp_object.timestamp))
         indicator_args = {'id': indicator_id, 'valid_from': timestamp, 'type': 'indicator',
                           'labels': labels, 'description': misp_object.description,
@@ -429,7 +429,7 @@ class StixBuilder():
         name = misp_object.name
         category = misp_object.get('meta-category')
         labels = self.create_object_labels(name, category, to_ids)
-        observable_objects = self.define_object_observable(name, misp_object.attributes)
+        observable_objects = self.objects_mapping[name]['observable'](misp_objects.attributes)
         timestamp = self.get_date_from_timestamp(int(misp_object.timestamp))
         observed_data_args = {'id': observed_data_id, 'type': 'observed-data',
                               'number_observed': 1, 'labels': labels, 'objects': observable_objects,
@@ -510,18 +510,12 @@ class StixBuilder():
             observable['0']['protocols'].append(defineProtocols[attribute_value] if attribute_value in defineProtocols else "tcp")
         return observable
 
-    def define_object_observable(self, name, attributes):
-        return self.objects_mapping[name]['observable'](attributes)
-
     @staticmethod
     def define_pattern(attribute_type, attribute_value):
         attribute_value = attribute_value.replace("'", '##APOSTROPHE##').replace('"', '##QUOTE##')
         if attribute_type == 'malware-sample':
             return [mispTypesMapping[attribute_type]['pattern']('filename|md5', attribute_value)]
         return mispTypesMapping[attribute_type]['pattern'](attribute_type, attribute_value)
-
-    def define_object_pattern(self, name, attributes):
-        return self.objects_mapping[name]['pattern'](attributes)
 
     @staticmethod
     def fetch_custom_values(attributes):
