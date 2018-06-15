@@ -21,11 +21,11 @@
 	}
 
 	$(document).ready(function() {
-		$('#attack-matrix-tabscontroller span').click(function (e) {
+		$('#attack-matrix-tabscontroller span').off('click.tab').on('click.tab', function (e) {
 			$(this).tab('show');
 		})
 
-		$('.ajax_popover_form .cell-picking').one('click', function() {
+		$('.ajax_popover_form .cell-picking').off('click.picking').on('click.picking', function() {
 			// sumbit galaxy
 			$('#GalaxyTargetId').val($(this).data('cluster-id'));
 			$('#GalaxyViewMitreAttackMatrixForm').submit();
@@ -34,11 +34,11 @@
 		var scoredCells = $('.ajax_popover_form .heatCell').filter(function() {
 			return $(this).attr('data-score') > 0;
 		});
-		$('#checkbox_attackMatrix_showAll').one('click', function() { toggleAttackMatrixCells('.ajax_popover_form'); });
+		$('.ajax_popover_form #checkbox_attackMatrix_showAll').off('click.showAll').on('click.showAll', function() { toggleAttackMatrixCells('.ajax_popover_form'); });
 		$('#pick-matrix-elem').typeahead(typeaheadOptionMatrix);
 		$('.info_container_eventgraph_network .matrix-div-search').hide()
 
-		$('.matrix-interaction').one('click', function(event) {
+		$('.matrix-interaction').off('click.interaction').on('click.interaction', function(event) {
 			var tagName = $(this).attr('data-tag_name');
 			$('#attributesFilterField').val(tagName);
 			filterAttributes('value', $('#attributesFilterField').data('eventid'));
@@ -46,11 +46,11 @@
 		var scoredCells = $('.info_container_eventgraph_network .heatCell').filter(function() {
 			return $(this).attr('data-score') > 0;
 		});
-		$('#checkbox_attackMatrix_showAll').one('click', function() { toggleAttackMatrixCells('.info_container_eventgraph_network'); });
+		$('.info_container_eventgraph_network #checkbox_attackMatrix_showAll').off('click.showAll').on('click.showAll', function() { toggleAttackMatrixCells('.info_container_eventgraph_network'); });
 	
 		scoredCells.hover(enteringScoredCell, leavingScoredCell);
 
-		$('span[data-toggle="tab"]').on('shown', function (e) {
+		$('span[data-toggle="tab"]').off('shown.resize').on('shown.resize', function (e) {
 			var tabId = $(e.target).attr('href');
 			resizeHeader(tabId);
 		});
