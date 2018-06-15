@@ -1,3 +1,15 @@
+<div class="attack-matrix-options" style="right: initial; background: transparent;">
+<ul id="attack-matrix-tabscontroller" class="nav nav-tabs" style="margin-bottom: 2px;">
+<?php 
+$enterpriseTag = "mitre-enterprise-attack-attack-pattern";
+foreach($attackTactic as $tactic) { 
+    $galaxy = $tactic['galaxy'];	
+?>
+	<li class="tactic <?php echo $galaxy['type']==$enterpriseTag ? "active" : ""; ?>"><span href="#tabMatrix-<?php echo $galaxy['type']; ?>" data-toggle="tab" style="padding-top: 3px; padding-bottom: 3px;"><?php echo($galaxy['name']); ?></span></li>
+<?php } ?>
+</ul>
+</div>
+
 <div class="attack-matrix-options">
     <span id="matrix-heatmap-legend-caret">
 	<span id="matrix-heatmap-legend-caret-value">0</span>
@@ -21,22 +33,27 @@
     </div>
 <?php endif; ?>
 
-<div id="matrix_container" class="fixed-table-container-inner" style="height: 670px;" data-picking-mode="<?php echo $pickingMode ? 'true' : 'false'; ?>">
+<div id="matrix_container" class="fixed-table-container-inner" style="max-height: 670px;" data-picking-mode="<?php echo $pickingMode ? 'true' : 'false'; ?>">
+    <div class="tab-content">
+    <?php foreach($attackTactic as $galaxy):
+	$galaxyType = $galaxy['galaxy']['type'];
+    ?>
+	<div class="tab-pane <?php echo $galaxyType==$enterpriseTag ? "active" : ""; ?>" id="tabMatrix-<?php echo $galaxyType; ?>">
 	<div class="header-background"></div>
-	<div class="fixed-table-container-inner" style="height: 670px;">
+	<div class="fixed-table-container-inner" style="max-height: 670px;">
 	<table class="table table-condensed matrix-table">
 	<thead>
 	<tr>
 	<?php
-		foreach($killChainNames as $kc) {
+		foreach($killChainOrders[$galaxyType] as $kc):
 			$name = str_replace("-", " ", $kc);
-			echo '<th>
-				<div class="extra-wrap">
-				    <div class="th-inner">'.ucfirst($name).'</div>
-				</div>
-			    </th>';
-		}
 	?>
+		<th>
+			<?php echo ucfirst($name); ?>
+			<div class="th-inner"><?php echo ucfirst($name); ?></div>
+		</th>
+		
+	<?php endforeach; ?>
 	</tr>
 	</thead>
 	<tbody style="overflow-y: scroll;">
@@ -46,28 +63,34 @@
 		do {
 			$added = false;
 			echo '<tr>';
+				$killChainOrder = $killChainOrders[$galaxyType];
+				$attackClusters = $galaxy['clusters'];
 				foreach($killChainOrder as $kc) {
-					$clusters = $attackClusters[$kc];
-					$td = '<td ';
-					if ($i < count($clusters)) {
-						$clusterId = $clusters[$i]['id'];
-						$tagName = $clusters[$i]['tag_name'];
-						$score = empty($scores[$tagName]) ? 0 : $scores[$tagName];
-						$name = join(" ", array_slice(explode(" ", $clusters[$i]['value']), 0, -2)); // remove " - external_id"
-						$td .= ' class="heatCell matrix-interaction ' . ($pickingMode ? 'cell-picking"' : '"');
-						$td .= isset($colours[$tagName]) ? ' style="background: ' . $colours[$tagName] . '; color: ' . $this->TextColour->getTextColour($colours[$tagName]) . '"' : '' ;
-						$td .= ' data-score="'.h($score).'"';
-						$td .= ' data-tag_name="'.h($tagName).'"';
-						if ($pickingMode) {
-							$td .= ' data-target-type="attribute"';
-							$td .= ' data-target-id="'.h($target_id).'"';
-							$td .= ' data-cluster-id="'.h($clusterId).'"';
-						}
-						$td .= ' title="'.h($clusters[$i]['external_id']).'"';
-						$td .= '>' . h($name);
-						$added = true;
+					if(!isset($attackClusters[$kc])) { // undefined index
+						$td = '<td class="">';
 					} else {
-						$td .= 'class="">';
+						$clusters = $attackClusters[$kc];
+						$td = '<td ';
+						if ($i < count($clusters)) {
+							$clusterId = $clusters[$i]['id'];
+							$tagName = $clusters[$i]['tag_name'];
+							$score = empty($scores[$tagName]) ? 0 : $scores[$tagName];
+							$name = join(" ", array_slice(explode(" ", $clusters[$i]['value']), 0, -2)); // remove " - external_id"
+							$td .= ' class="heatCell matrix-interaction ' . ($pickingMode ? 'cell-picking"' : '"');
+							$td .= isset($colours[$tagName]) ? ' style="background: ' . $colours[$tagName] . '; color: ' . $this->TextColour->getTextColour($colours[$tagName]) . '"' : '' ;
+							$td .= ' data-score="'.h($score).'"';
+							$td .= ' data-tag_name="'.h($tagName).'"';
+							if ($pickingMode) {
+								$td .= ' data-target-type="attribute"';
+								$td .= ' data-target-id="'.h($target_id).'"';
+								$td .= ' data-cluster-id="'.h($clusterId).'"';
+							}
+							$td .= ' title="'.h($clusters[$i]['external_id']).'"';
+							$td .= '>' . h($name);
+							$added = true;
+						} else {
+							$td .= 'class="">';
+						}
 					}
 					$td .=  '</td>';
 					echo $td;
@@ -79,6 +102,9 @@
 	</tbody>
 	</table>
 	</div>
+	</div>
+    <?php endforeach; ?>
+    </div>
 </div>
 
 <?php if($pickingMode): ?>

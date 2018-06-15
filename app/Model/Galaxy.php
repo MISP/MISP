@@ -219,57 +219,55 @@ class Galaxy extends AppModel{
 	}
 
 	public function getMitreAttackMatrix($type="mitre-enterprise-attack-attack-pattern") {
-		$conditions = array('Galaxy.type' => $type);
+		$expectedDescription = 'ATT&CK Tactic';
+		$expectedNamespace = 'mitre-attack';
+		$conditions = array('Galaxy.description' => $expectedDescription, 'Galaxy.namespace' => $expectedNamespace);
 		$contains = array(
-			//'GalaxyCluster.GalaxyElement' => function($q) {
-			//	return $q->where(['GalaxyElement.key' => 'kill_chain']);
-			//}
-			//'GalaxyCluster' => array('GalaxyElement'),
-			//'GalaxyCluster.GalaxyElement' => array(
-			//	'conditions' => array('GalaxyElement.key' => 'kill_chain')
-			//),
 			'GalaxyCluster' => array('GalaxyElement'),
-			//'GalaxyCluster' => array('GalaxyElement' => function ($q) {
-			//	return $q->where(array('GalaxyElement.key' => 'kill_chain'));
-			//}),
-
 		);
 
-		$galaxy = $this->find('first', array(
+		$galaxies = $this->find('all', array(
 				'recursive' => -1,
 				'contain' => $contains,
 				'conditions' => $conditions,
 		));
 
-		if (empty($galaxy)) {
-			throw new NotFoundException('Galaxy not found.');
+		if (empty($galaxies)) {
+			throw new NotFoundException('Galaxies not found.');
 		}
-		if (empty($galaxy['GalaxyCluster'])) {
-			throw new NotFoundException('Galaxy not found.');
-		}
-		$clusters = $galaxy['GalaxyCluster'];
-		$attackClusters = array();
+		$attackTactic = array();
 
-		foreach ($clusters as $cluster) {
-			if (empty($cluster['GalaxyElement'])) {
-				continue;
-			}
-			$toBeAdded = false;
-			$galaxyElements = $cluster['GalaxyElement'];
-			foreach ($galaxyElements as $element) {
-				if ($element['key'] == 'kill_chain') {
-					$kc = explode(":", $element['value'])[2];
-					$toBeAdded = true;
+		foreach ($galaxies as $galaxy) {
+			$galaxyType = $galaxy['Galaxy']['type'];
+			$clusters = $galaxy['GalaxyCluster'];
+			$attackClusters = array();
+			// add cluster if kill_chain is present
+			foreach ($clusters as $cluster) {
+				if (empty($cluster['GalaxyElement'])) {
+					continue;
 				}
-				if ($element['key'] == 'external_id') {
-					$cluster['external_id'] = $element['value'];
+				$toBeAdded = false;
+				$clusterType = $cluster['type'];
+				$galaxyElements = $cluster['GalaxyElement'];
+				foreach ($galaxyElements as $element) {
+					if ($element['key'] == 'kill_chain') {
+						$kc = explode(":", $element['value'])[2];
+						$toBeAdded = true;
+					}
+					if ($element['key'] == 'external_id') {
+						$cluster['external_id'] = $element['value'];
+					}
+				}
+				if ($toBeAdded) {
+					$attackClusters[$kc][] = $cluster;
 				}
 			}
-			if ($toBeAdded) {
-				$attackClusters[$kc][] = $cluster;
-			}
+			$attackTactic[$galaxyType] = array(
+				'clusters' => $attackClusters,
+				'galaxy' => $galaxy['Galaxy']
+			);
 		}
 
-		return array('attackClusters' => $attackClusters, 'attackGalaxyId' => $galaxy['Galaxy']['id']);
+		return $attackTactic;
 	}
 }

@@ -4,6 +4,11 @@
 
 .matrix-table th {
     padding: 0px 5px;
+    color: transparent;
+    line-height: 12px;
+}
+
+.matrix-table thead > tr {
 }
 
 .matrix-table thead {
@@ -16,6 +21,7 @@
 
 table.matrix-table {
     table-layout: fixed;
+    margin-bottom: unset;
 }
 
 td.matrix-interaction {
@@ -41,15 +47,23 @@ td.matrix-interaction:hover {
     color: white;
     position: absolute;
     top: 0;
-    line-height: 30px;
     text-align: left;
     padding-left: 5px;
     margin-left: -5px;
+    /*line-height: 30px;*/
+    line-height: 12px;
+}
+
+div.th-inner {
+    min-height: 30px;
+    display: flex;
+    align-items: center;
 }
 
 .header-background {
     background-color: #363636;
     height: 30px;
+    min-height: 30px;
     position: absolute;
     top: 0;
     right: 0;
@@ -64,7 +78,7 @@ td.matrix-interaction:hover {
 .attack-matrix-options {
     position: absolute;
     right: -1px;
-    top: -18px;
+    top: -22px;
     background: #363636;
     color: white;
     padding: 1px 5px;
@@ -105,4 +119,24 @@ td.matrix-interaction:hover {
     line-height: 9px;
     position: relative;
     display: block;
+}
+
+li.tactic {
+    color: #555555;
+    cursor: default;
+    background-color: #ffffff;
+    border: 1px solid #ddd;
+    border-bottom-color: transparent;
+    padding: 2px 8px 2px 8px;
+}
+
+li.tactic:hover {
+    background-color: #6f6f6f;
+    color: white;
+}
+
+li.tactic.active {
+    background-color: #363636;
+    color: white;
+    font-weight: bold;
 }

@@ -4564,46 +4564,90 @@ class EventsController extends AppController {
 		if (!$this->request->is('ajax')) {
 			throw new MethodNotAllowedException('Invalid method.');
 		}
-		$killChainOrder = array('initial-access', 'execution', 'persistence', 'privilege-escalation', 'defense-evasion', 'credential-access', 'discovery', 'lateral-movement', 'collection', 'exfiltration', 'command-and-control');
 
-		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId));
-		if (empty($event)) throw new NotFoundException('Event not found or you are not authorised to view it.');
-		$event = $event[0];
-		$mitreAttackMatrix = $this->Event->GalaxyCluster->Galaxy->getMitreAttackMatrix();
-		$attackClusters = $mitreAttackMatrix['attackClusters'];
-		$attackGalaxyId = $mitreAttackMatrix['attackGalaxyId'];
+		$killChainOrderEnterprise = array(
+			'initial-access',
+			'execution',
+			'persistence',
+			'privilege-escalation',
+			'defense-evasion',
+			'credential-access',
+			'discovery',
+			'lateral-movement',
+			'collection',
+			'exfiltration',
+			'command-and-control'
+		);
+		$killChainOrderMobile = array(
+			'persistence',
+			'privilege-escalation',
+			'defense-evasion',
+			'credential-access',
+			'discovery',
+			'lateral-movement',
+			'effects', 'collection',
+			'exfiltration',
+			'command-and-control',
+			'general-network-based',
+			'cellular-network-based',
+			'could-based'
+		);
+		$killChainOrderPre = array(
+			'priority-definition-planning',
+			'priority-definition-direction',
+			'target-selection',
+			'technical-information-gathering',
+			'people-information-gathering',
+			'organizational-information-gathering',
+			'technical-weakness-identification',
+			'people-weakness-identification',
+			'organizational-weakness-identification',
+			'adversary-opsec',
+			'establish-&-maintain-infrastructure',
+			'persona-development',
+			'build-capabilities',
+			'test-capabilities',
+			'stage-capabilities',
+			'app-delivery-via-authorized-app-store',
+			'app-delivery-via-other-means',
+			'exploit-via-cellular-network',
+			'exploit-via-internet',
+		);
 
-		$type = "mitre-enterprise-attack-attack-pattern";
+		$killChainOrders = array(
+			'mitre-enterprise-attack-attack-pattern' => $killChainOrderEnterprise,
+			'mitre-mobile-attack-attack-pattern' => $killChainOrderMobile,
+			'mitre-pre-attack-attack-pattern' => $killChainOrderPre,
+		);
 
-		$eventTags = $this->Event->EventTag->find('list', array(
-			'recursive' => -1, 
-			'conditions' => array('event_id' => $eventId),
-			'fields' => array('Tag.name'),
-			'contain' => 'Tag',
-		));
-		$attributeTags = $this->Event->Attribute->AttributeTag->find('list', array(
-			'recursive' => -1,
-			'conditions' => array('event_id' => $eventId),
-			'fields' => array('Tag.name'),
-			'contain' => array(
-				'Tag' => array(
-					'fields' => array('name')
-				),
-			)
-		));
-		$tags = array('eventTags' => $eventTags, 'attributeTags' => $attributeTags);
+		$this->loadModel('GalaxyCluster');
+		$attackTactic = $this->GalaxyCluster->Galaxy->getMitreAttackMatrix();
 
+		// get score of galaxy
+		$db = $this->Event->getDataSource();
+		// tag along with its occurence in the event
+		$subQuery = $db->buildStatement(
+			array(
+				'fields' => array('attr_tag.tag_id as id', 'count(attr_tag.tag_id) as value'),
+				'table' => $db->fullTableName($this->Event->Attribute->AttributeTag),
+				'alias' => 'attr_tag',
+				'conditions' => array('event_id' => $eventId),
+				'group' => 'tag_id'
+			),
+			$this->Event
+		);
+		$subQueryExpression = $db->expression($subQuery)->value;
+		// get related galaxies
+		$attributeTagScores = $this->Event->query("SELECT name, value FROM (" . $subQueryExpression . ") AS score, tags WHERE tags.id=score.id;");
+
+		// arrange data
 		$scores = array();
 		$maxScore = 0;
-		foreach ($attributeTags as $name) {
-			if (strpos($name, $type) === false) { // do not belong to mitre attack
-				continue;
-			}
-			if (!isset($scores[$name])) {
-				$scores[$name] = 0;
-			}
-			$scores[$name]++;
-			$maxScore = $scores[$name] > $maxScore ? $scores[$name] : $maxScore;
+		foreach($attributeTagScores as $item) {
+			$score = $item['score']['value'];
+			$name = $item['tags']['name'];
+			$maxScore = $score > $maxScore ? $score : $maxScore;
+			$scores[$name] = $score;
 		}
 
 		App::uses('ColourGradientTool', 'Tools');
@@ -4611,10 +4655,8 @@ class EventsController extends AppController {
 		$colours = $gradientTool->createGradientFromValues($scores);
 
 		$this->set('target_type', $itemType);
-		$this->set('killChainOrder', $killChainOrder);
-		$this->set('killChainNames', $killChainOrder);
-		$this->set('attackGalaxyId', $attackGalaxyId);
-		$this->set('attackClusters', $attackClusters);
+		$this->set('killChainOrders', $killChainOrders);
+		$this->set('attackTactic', $attackTactic);
 		$this->set('scores', $scores);
 		$this->set('maxScore', $maxScore);
 		$this->set('colours', $colours);
