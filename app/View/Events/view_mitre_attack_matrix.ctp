@@ -2,12 +2,16 @@
 <ul id="attack-matrix-tabscontroller" class="nav nav-tabs" style="margin-bottom: 2px;">
 <?php 
 $enterpriseTag = "mitre-enterprise-attack-attack-pattern";
-foreach($attackTactic as $tactic) { 
+foreach($attackTactic as $tactic): 
     $galaxy = $tactic['galaxy'];	
 ?>
 	<li class="tactic <?php echo $galaxy['type']==$enterpriseTag ? "active" : ""; ?>"><span href="#tabMatrix-<?php echo $galaxy['type']; ?>" data-toggle="tab" style="padding-top: 3px; padding-bottom: 3px;"><?php echo($galaxy['name']); ?></span></li>
-<?php } ?>
+<?php endforeach; ?>
 </ul>
+</div>
+
+<div class="attack-matrix-options matrix-div-search">
+    <input type="text" id="pick-matrix-elem" placeholder="Pick item" style="margin-right: 0px;">
 </div>
 
 <div class="attack-matrix-options">
@@ -112,6 +116,7 @@ foreach($attackTactic as $tactic) {
 <?php endif; ?>
 
 <?php
+	echo $this->Html->script('bootstrap-typeahead');
 	echo $this->Html->script('attack_matrix');
 	echo $this->Html->css('attack_matrix');
 ?>

@@ -140,3 +140,16 @@ li.tactic.active {
     color: white;
     font-weight: bold;
 }
+
+#pick-matrix-elem {
+    margin: 0px;
+    height: 10px;
+    line-height: 10px;
+}
+
+.matrix-div-search {
+    left: 50%;
+    padding-left: 1px;
+    right: unset;
+    padding-right: 1px;
+}
