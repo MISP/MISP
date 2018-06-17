@@ -653,4 +653,17 @@ class SharingGroup extends AppModel {
 		if (empty($sg)) return false;
 		return $sg[0];
 	}
+
+	public function getSharingGroupIdByUuid($user, $data) {
+		$sg = $this->find('first', array(
+			'conditions' => array('SharingGroup.uuid' => $data['sharing_group_id']),
+			'recursive' => -1,
+			'fields' => array('SharingGroup.id')
+		));
+		if (!empty($sg) && $this->checkIfAuthorised($user, $sg['SharingGroup']['id'])) {
+			$data['sharing_group_id'] = $sg['SharingGroup']['id'];
+			return $data;
+		}
+		return false;
+	}
 }
