@@ -110,6 +110,9 @@ misp_types_mapping = {
 }
 
 address_family_attribute_mapping = {'type': 'text','relation': 'address-family'}
+as_number_attribute_mapping = {'type': 'AS', 'relation': 'asn'}
+asn_description_attribute_mapping = {'type': 'text', 'relation': 'description'}
+asn_subnet_attribute_mapping = {'type': 'ip-src', 'relation': 'subnet-announced'}
 cc_attribute_mapping = {'type': 'email-dst', 'relation': 'cc'}
 data_attribute_mapping = {'type': 'text', 'relation': 'data'}
 data_type_attribute_mapping = {'type': 'text', 'relation': 'data-type'}
@@ -149,6 +152,13 @@ x509_subject_attribute_mapping = {'type': 'text', 'relation': 'subject'}
 x509_version_attribute_mapping = {'type': 'text', 'relation': 'version'}
 x509_vna_attribute_mapping = {'type': 'datetime', 'relation': 'validity-not-after'} # x509 validity not after
 x509_vnb_attribute_mapping = {'type': 'datetime', 'relation': 'validity-not-before'} # x509 validity not before
+
+asn_mapping = {'number': as_number_attribute_mapping,
+               'autonomous-system:number': as_number_attribute_mapping,
+               'name': asn_description_attribute_mapping,
+               'autonomous-system:name': asn_description_attribute_mapping,
+               'ipv4-address:value': asn_subnet_attribute_mapping,
+               'ipv6-address:value': asn_subnet_attribute_mapping}
 
 domain_ip_mapping = {'domain-name': domain_attribute_mapping,
                      'domain-name:value': domain_attribute_mapping,
@@ -275,6 +285,14 @@ def fill_pattern_attributes(pattern, object_mapping):
         attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
                            'value': p_value[1:-1]})
     return attributes
+
+def observable_asn(observable):
+    attributes = []
+    fill_observable_attributes(attributes, observable, asn_mapping)
+    return attributes
+
+def pattern_asn(pattern):
+    return fill_pattern_attributes(pattern, asn_mapping)
 
 def observable_domain_ip(observable):
     attributes = []
@@ -548,7 +566,8 @@ def observable_x509(observable):
 def pattern_x509(pattern):
     return fill_pattern_attributes(pattern, x509_mapping)
 
-objects_mapping = {'domain-ip':{'observable': observable_domain_ip, 'pattern': pattern_domain_ip},
+objects_mapping = {'asn': {'observable': observable_asn, 'pattern': pattern_asn},
+                   'domain-ip': {'observable': observable_domain_ip, 'pattern': pattern_domain_ip},
                    'email': {'observable': observable_email, 'pattern': pattern_email},
                    'file': {'observable': observable_file, 'pattern': pattern_file},
                    'ip-port': {'observable': observable_ip_port, 'pattern': pattern_ip_port},

@@ -123,18 +123,24 @@ git config core.filemode false
 # If your umask has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
 UMASK=$(umask)
 umask 0022
-scl enable rh-python36 python3 setup.py install
+scl enable rh-python36 'python3 setup.py install'
 cd /var/www/MISP/app/files/scripts/python-stix
 git config core.filemode false
-scl enable rh-python36 python3 setup.py install
+scl enable rh-python36 'python3 setup.py install'
 
 3.04/ Install mixbox to accomodate the new STIX dependencies:
 cd /var/www/MISP/app/files/scripts/
 git clone https://github.com/CybOXProject/mixbox.git
 cd /var/www/MISP/app/files/scripts/mixbox
 git config core.filemode false
-scl enable rh-python36 python3 setup.py install
+scl enable rh-python36 'python3 setup.py install'
 umask $UMASK
+
+3.05/ Enable python3 for php-fpm
+
+echo 'source scl_source enable rh-python36' >> /etc/opt/rh/rh-php71/sysconfig/php-fpm
+sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php71/php-fpm.d/www.conf
+systemctl restart rh-php71-php-fpm.service
 
 +---------------------+
 |   4/ CakePHP        |
@@ -142,6 +148,7 @@ umask $UMASK
 
 4.01/ CakePHP is now included as a submodule of MISP, execute the following commands to let git fetch it ignore this
 message: No submodule mapping found in .gitmodules for path 'app/Plugin/CakeResque'
+cd /var/www/MISP
 git submodule init
 git submodule update
 # Make git ignore filesystem permission differences for submodules

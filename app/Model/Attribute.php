@@ -870,20 +870,20 @@ class Attribute extends AppModel {
 	}
 
 	private $__hexHashLengths = array(
-			'authentihash' => 64,
-			'md5' => 32,
-			'imphash' => 32,
-			'sha1' => 40,
-            'x509-fingerprint-md5' => 32,
-			'x509-fingerprint-sha1' => 40,
-            'x509-fingerprint-sha256' => 64,
-			'pehash' => 40,
-			'sha224' => 56,
-			'sha256' => 64,
-			'sha384' => 96,
-			'sha512' => 128,
-			'sha512/224' => 56,
-			'sha512/256' => 64,
+		'authentihash' => 64,
+		'md5' => 32,
+		'imphash' => 32,
+		'sha1' => 40,
+		'x509-fingerprint-md5' => 32,
+		'x509-fingerprint-sha1' => 40,
+		'x509-fingerprint-sha256' => 64,
+		'pehash' => 40,
+		'sha224' => 56,
+		'sha256' => 64,
+		'sha384' => 96,
+		'sha512' => 128,
+		'sha512/224' => 56,
+		'sha512/256' => 64
 	);
 
 	public function runValidation($value, $type) {
@@ -900,8 +900,8 @@ class Attribute extends AppModel {
 			case 'sha512/224':
 			case 'sha512/256':
 			case 'authentihash':
-            case 'x509-fingerprint-md5':
-            case 'x509-fingerprint-sha256':
+			case 'x509-fingerprint-md5':
+			case 'x509-fingerprint-sha256':
 			case 'x509-fingerprint-sha1':
 				$length = $this->__hexHashLengths[$type];
 				if (preg_match("#^[0-9a-f]{" . $length . "}$#", $value)) {
@@ -930,6 +930,13 @@ class Attribute extends AppModel {
 					if (is_numeric($parts[0])) $returnValue = true;
 				}
 				if (!$returnValue) $returnValue = 'Invalid SSDeep hash. The format has to be blocksize:hash:hash';
+				break;
+			case 'impfuzzy':
+				if (substr_count($value, ':') == 2) {
+					$parts = explode(':', $value);
+					if (is_numeric($parts[0])) $returnValue = true;
+				}
+				if (!$returnValue) $returnValue = 'Invalid impfuzzy format. The format has to be imports:hash:hash';
 				break;
 			case 'http-method':
 				if (preg_match("#(OPTIONS|GET|HEAD|POST|PUT|DELETE|TRACE|CONNECT|PROPFIND|PROPPATCH|MKCOL|COPY|MOVE|LOCK|UNLOCK|VERSION-CONTROL|REPORT|CHECKOUT|CHECKIN|UNCHECKOUT|MKWORKSPACE|UPDATE|LABEL|MERGE|BASELINE-CONTROL|MKACTIVITY|ORDERPATCH|ACL|PATCH|SEARCH)#", $value)) {
@@ -1325,8 +1332,8 @@ class Attribute extends AppModel {
 				$value = preg_replace('/^hxxp/i', 'http', $value);
 				$value = preg_replace('/\[\.\]/', '.' , $value);
 				break;
-            case 'x509-fingerprint-md5':
-            case 'x509-fingerprint-sha256':
+      case 'x509-fingerprint-md5':
+      case 'x509-fingerprint-sha256':
 			case 'x509-fingerprint-sha1':
 				$value = str_replace(':', '', $value);
 				$value = strtolower($value);

@@ -3,6 +3,8 @@ results = {
     'success': 1,
     'stix': 0,
     'cybox': 0,
+    'mixbox': 0,
+    'maec': 0,
     'pymisp': 0
 }
 try:
@@ -22,11 +24,16 @@ try:
     results['cybox'] = cybox.__version__
 except Exception:
     results['success'] = 0
-    pass
 
 try:
     import mixbox
     results['mixbox'] = mixbox.__version__
+except Exception:
+    results['success'] = 0
+
+try:
+    import maec
+    results['maec'] = maec.__version__
 except Exception:
     pass
 
@@ -35,7 +42,7 @@ print(json.dumps({
     'stix' : results['stix'],
     'cybox' : results['cybox'],
     'mixbox' : results['mixbox'],
+    'maec': results['maec'],
     'pymisp' : results['pymisp']
 }))
 sys.exit(1)
-

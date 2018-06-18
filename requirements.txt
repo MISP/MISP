@@ -6,3 +6,4 @@ git+https://github.com/MISP/PyMISP.git#egg=Package
 requests-mock
 pip
 nose
+jsonschema

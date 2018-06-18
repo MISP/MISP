@@ -104,6 +104,11 @@ python3 setup.py install
 cd /var/www/MISP/PyMISP
 python3 setup.py install
 
+# Enable python3 for php-fpm
+echo 'source scl_source enable rh-python36' >> /etc/opt/rh/rh-php56/sysconfig/php-fpm
+sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php56/php-fpm.d/www.conf
+systemctl restart rh-php56-php-fpm.service
+
 umask $UMASK
 
 4/ CakePHP

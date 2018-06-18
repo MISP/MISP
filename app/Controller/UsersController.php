@@ -1677,4 +1677,8 @@ class UsersController extends AppController {
 		$this->set('notifications', $notifications);
 		$this->set('events', $events);
 	}
+
+	public function checkIfLoggedIn() {
+		return new CakeResponse(array('body'=> 'OK','status' => 200));
+	}
 }

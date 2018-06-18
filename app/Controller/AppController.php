@@ -46,8 +46,8 @@ class AppController extends Controller {
 
 	public $helpers = array('Utility', 'OrgImg');
 
-	private $__queryVersion = '38';
-	public $pyMispVersion = '2.4.90';
+	private $__queryVersion = '39';
+	public $pyMispVersion = '2.4.92';
 	public $phpmin = '5.6.5';
 	public $phprec = '7.0.16';
 
@@ -327,17 +327,19 @@ class AppController extends Controller {
 		}
 
 		if ($this->Session->check(AuthComponent::$sessionKey)) {
-			if (!empty(Configure::read('MISP.terms_file')) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/logout', $base_dir.'/users/login', $base_dir.'/users/downloadTerms')))) {
-				if ($this->_isRest()) throw new MethodNotAllowedException('You have not accepted the terms of use yet, please log in via the web interface and accept them.');
-				$this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
-			} else if ($this->Auth->user('change_pw') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/change_pw', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
-				if ($this->_isRest()) throw new MethodNotAllowedException('Your user account is expecting a password change, please log in via the web interface and change it before proceeding.');
-				$this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
-			} else if (!$this->_isRest() && !($this->params['controller'] == 'news' && $this->params['action'] == 'index') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/change_pw', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
-				$newsread = $this->User->field('newsread', array('User.id' => $this->Auth->user('id')));
-				$this->loadModel('News');
-				$latest_news = $this->News->field('date_created', array(), 'date_created DESC');
-				if ($latest_news && $newsread < $latest_news) $this->redirect(array('controller' => 'news', 'action' => 'index', 'admin' => false));
+			if ($this->action !== 'checkIfLoggedIn' || $this->request->params['controller'] !== 'users') {
+				if (!empty(Configure::read('MISP.terms_file')) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/logout', $base_dir.'/users/login', $base_dir.'/users/downloadTerms')))) {
+					if ($this->_isRest()) throw new MethodNotAllowedException('You have not accepted the terms of use yet, please log in via the web interface and accept them.');
+					$this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
+				} else if ($this->Auth->user('change_pw') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/change_pw', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
+					if ($this->_isRest()) throw new MethodNotAllowedException('Your user account is expecting a password change, please log in via the web interface and change it before proceeding.');
+					$this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
+				} else if (!$this->_isRest() && !($this->params['controller'] == 'news' && $this->params['action'] == 'index') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/change_pw', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
+					$newsread = $this->User->field('newsread', array('User.id' => $this->Auth->user('id')));
+					$this->loadModel('News');
+					$latest_news = $this->News->field('date_created', array(), 'date_created DESC');
+					if ($latest_news && $newsread < $latest_news) $this->redirect(array('controller' => 'news', 'action' => 'index', 'admin' => false));
+				}
 			}
 		}
 		unset($base_dir);
@@ -368,6 +370,7 @@ class AppController extends Controller {
 			$this->set('isAclTemplate', $role['perm_template']);
 			$this->set('isAclSharingGroup', $role['perm_sharing_group']);
 			$this->set('isAclSighting', isset($role['perm_sighting']) ? $role['perm_sighting'] : false);
+			$this->set('isAclZmq', isset($role['perm_publish_zmq']) ? $role['perm_publish_zmq'] : false);
 			$this->userRole = $role;
 		} else {
 			$this->set('me', false);
