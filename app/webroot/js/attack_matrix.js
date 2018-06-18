@@ -25,6 +25,7 @@
 			$(this).tab('show');
 		})
 
+		// form
 		$('.ajax_popover_form .cell-picking').off('click.picking').on('click.picking', function() {
 			// sumbit galaxy
 			$('#GalaxyTargetId').val($(this).data('cluster-id'));
@@ -39,6 +40,7 @@
 		$('#pick-matrix-elem').typeahead(typeaheadOptionMatrix);
 		$('.ajax_popover_form .matrix-div-search').show()
 
+		// info container
 		$('.info_container_eventgraph_network .matrix-interaction').off('click.interaction').on('click.interaction', function(event) {
 			var tagName = $(this).attr('data-tag_name');
 			$('#attributesFilterField').val(tagName);
@@ -48,14 +50,9 @@
 			return $(this).attr('data-score') > 0;
 		});
 		$('.info_container_eventgraph_network #checkbox_attackMatrix_showAll').off('click.showAll').on('click.showAll', function() { toggleAttackMatrixCells('.info_container_eventgraph_network'); });
-	
 		scoredCells.hover(function() { enteringScoredCell($(this), '.info_container_eventgraph_network'); }, function() { leavingScoredCell('.info_container_eventgraph_network'); });
 
-		$('span[data-toggle="tab"]').off('shown.resize').on('shown.resize', function (e) {
-			var tabId = $(e.target).attr('href');
-			resizeHeader(tabId);
-		});
-
+		// statistic page
 		var scoredCells = $('.statistics_attack_matrix .heatCell').filter(function() {
 			return $(this).attr('data-score') > 0;
 		});
@@ -66,6 +63,11 @@
 		scoredCells.hover(function() { enteringScoredCell($(this), '.statistics_attack_matrix'); }, function() { leavingScoredCell('.statistics_attack_matrix'); });
 		$('.statistics_attack_matrix #checkbox_attackMatrix_showAll').off('click.showAll').on('click.showAll', function() { toggleAttackMatrixCells('.statistics_attack_matrix'); });
 	
+		// resize
+		$('span[data-toggle="tab"]').off('shown.resize').on('shown.resize', function (e) {
+			var tabId = $(e.target).attr('href');
+			resizeHeader(tabId);
+		});
 	});
 	
 	function resizeHeader(tabId) {
