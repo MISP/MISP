@@ -216,7 +216,7 @@ class Galaxy extends AppModel{
 				'fields' => 'id',
 				'conditions' => array('Galaxy.type' => $type),
 		));
-		return $galaxy['Galaxy']['id'];
+		return empty($galaxy) ? 0 : $galaxy['Galaxy']['id'];
 	}
 
 	public function getMitreAttackMatrix() {
@@ -287,10 +287,6 @@ class Galaxy extends AppModel{
 				'contain' => $contains,
 				'conditions' => $conditions,
 		));
-
-		if (empty($galaxies)) {
-			throw new NotFoundException('Galaxies not found.');
-		}
 
 		$mispUUID = Configure::read('MISP')['uuid'];
 
