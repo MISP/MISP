@@ -34,8 +34,9 @@ eventTypes = {"ArtifactObjectType": {"type": "attachment", "relation": "attachme
               "WindowsExecutableFileObjectType": file_object_type,
               "WindowsRegistryKeyObjectType": {"type": "regkey", "relation": ""}}
 
-cybox_to_misp_object = {"EmailMessage": "email", "NetworkConnection": "network-connection",
-                        "NetworkSocket": "network-socket", "Process": "process", "Account": "credential",
+cybox_to_misp_object = {"Account": "credential", "AutonomousSystem": "asn",
+                        "EmailMessage": "email", "NetworkConnection": "network-connection",
+                        "NetworkSocket": "network-socket", "Process": "process",
                         "x509Certificate": "x509", "Whois": "whois"}
 
 threat_level_mapping = {'High': '1', 'Medium': '2', 'Low': '3', 'Undefined': '4'}
@@ -77,6 +78,7 @@ class StixParser():
             "AccountObjectType": self.handle_credential,
             'AddressObjectType': self.handle_address,
             "ArtifactObjectType": self.handle_attachment,
+            "ASObjectType": self.handle_as,
             "CustomObjectType": self.handle_custom,
             "DNSRecordObjectType": self.handle_dns,
             'DomainNameObjectType': self.handle_domain_or_url,
@@ -333,6 +335,18 @@ class StixParser():
         else:
             ip_type = "ip-dst"
         return ip_type, properties.address_value.value, "ip"
+
+    def handle_as(self, properties):
+        attributes = []
+        if properties.number:
+            attributes.append(['AS', properties.number.value, 'asn'])
+        if properties.handle:
+            attributes.append(['AS', properties.handle.value, 'asn'])
+        if properties.name:
+            attributes.append(['text', properties.name.value, 'description'])
+        if len(attributes) == 1:
+            return attributes[0]
+        return 'asn', self.return_attributes(attributes), ''
 
     # Return type & value of an attachment attribute
     @staticmethod
