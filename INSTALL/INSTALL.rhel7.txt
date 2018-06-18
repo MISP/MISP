@@ -45,6 +45,9 @@ subscription-manager repos --disable rhel-7-server-rt-beta-rpms
 1.6/ Install the EPEL repo
 yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
 
+1.7/ Install the SCL repo
+yum install centos-release-scl
+
 +-----------------------------+
 |   2/ Install Dependencies   |
 +-----------------------------+
