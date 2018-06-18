@@ -218,7 +218,62 @@ class Galaxy extends AppModel{
 		return $galaxy['Galaxy']['id'];
 	}
 
-	public function getMitreAttackMatrix($type="mitre-enterprise-attack-attack-pattern") {
+	public function getMitreAttackMatrix() {
+		$killChainOrderEnterprise = array(
+			'initial-access',
+			'execution',
+			'persistence',
+			'privilege-escalation',
+			'defense-evasion',
+			'credential-access',
+			'discovery',
+			'lateral-movement',
+			'collection',
+			'exfiltration',
+			'command-and-control'
+		);
+		$killChainOrderMobile = array(
+			'persistence',
+			'privilege-escalation',
+			'defense-evasion',
+			'credential-access',
+			'discovery',
+			'lateral-movement',
+			'effects', 'collection',
+			'exfiltration',
+			'command-and-control',
+			'general-network-based',
+			'cellular-network-based',
+			'could-based'
+		);
+		$killChainOrderPre = array(
+			'priority-definition-planning',
+			'priority-definition-direction',
+			'target-selection',
+			'technical-information-gathering',
+			'people-information-gathering',
+			'organizational-information-gathering',
+			'technical-weakness-identification',
+			'people-weakness-identification',
+			'organizational-weakness-identification',
+			'adversary-opsec',
+			'establish-&-maintain-infrastructure',
+			'persona-development',
+			'build-capabilities',
+			'test-capabilities',
+			'stage-capabilities',
+			'app-delivery-via-authorized-app-store',
+			'app-delivery-via-other-means',
+			'exploit-via-cellular-network',
+			'exploit-via-internet',
+		);
+
+		$killChainOrders = array(
+			'mitre-enterprise-attack-attack-pattern' => $killChainOrderEnterprise,
+			'mitre-mobile-attack-attack-pattern' => $killChainOrderMobile,
+			'mitre-pre-attack-attack-pattern' => $killChainOrderPre,
+		);
+
 		$expectedDescription = 'ATT&CK Tactic';
 		$expectedNamespace = 'mitre-attack';
 		$conditions = array('Galaxy.description' => $expectedDescription, 'Galaxy.namespace' => $expectedNamespace);
@@ -235,7 +290,12 @@ class Galaxy extends AppModel{
 		if (empty($galaxies)) {
 			throw new NotFoundException('Galaxies not found.');
 		}
-		$attackTactic = array();
+
+		$attackTactic = array(
+			'killChain' => $killChainOrders,
+			'attackTactic' => array(),
+			'attackTags' => array()
+		);
 
 		foreach ($galaxies as $galaxy) {
 			$galaxyType = $galaxy['Galaxy']['type'];
@@ -260,11 +320,12 @@ class Galaxy extends AppModel{
 				}
 				if ($toBeAdded) {
 					$attackClusters[$kc][] = $cluster;
+					array_push($attackTactic['attackTags'], $cluster['tag_name']);
 				}
 			}
-			$attackTactic[$galaxyType] = array(
+			$attackTactic['attackTactic'][$galaxyType] = array(
 				'clusters' => $attackClusters,
-				'galaxy' => $galaxy['Galaxy']
+				'galaxy' => $galaxy['Galaxy'],
 			);
 		}
 

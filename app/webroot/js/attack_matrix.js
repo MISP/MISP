@@ -37,7 +37,7 @@
 		scoredCells.hover(function() { enteringScoredCell($(this), '.ajax_popover_form'); }, function() { leavingScoredCell('.ajax_popover_form'); });
 		$('.ajax_popover_form #checkbox_attackMatrix_showAll').off('click.showAll').on('click.showAll', function() { toggleAttackMatrixCells('.ajax_popover_form'); });
 		$('#pick-matrix-elem').typeahead(typeaheadOptionMatrix);
-		$('.info_container_eventgraph_network .matrix-div-search').hide()
+		$('.ajax_popover_form .matrix-div-search').show()
 
 		$('.matrix-interaction').off('click.interaction').on('click.interaction', function(event) {
 			var tagName = $(this).attr('data-tag_name');

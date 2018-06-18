@@ -152,4 +152,5 @@ li.tactic.active {
     padding-left: 1px;
     right: unset;
     padding-right: 1px;
+    display: none;
 }

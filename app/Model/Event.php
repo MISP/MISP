@@ -4304,4 +4304,5 @@ class Event extends AppModel {
 		}
 		return $data;
 	}
+
 }
