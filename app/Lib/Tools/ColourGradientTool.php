@@ -25,11 +25,17 @@ class ColourGradientTool {
 	$vals = array_values($items);
 	$maxDec = max($vals);
 	$minDec = min($vals);
-	$intervalHex = ($maxColorHex - $minColorHex)/($maxDec-$minDec);
+
+	if ($maxDec == $minDec) {
+		$intervalHex = 0x0;
+	} else {
+		$intervalHex = ($maxColorHex - $minColorHex)/($maxDec-$minDec);
+	}
 
 	$coloursMapping = array();
 	foreach($items as $name => $val) {
-		$colour = ($val-$minDec)*($intervalHex) + $minColorHex;
+		$ratio = ($val-$minDec)*($intervalHex);
+		$colour = $maxDec == $minDec ? $maxColorHex : $ratio + $minColorHex;
 		$coloursMapping[$name] = '#' . str_pad(dechex($colour), 6 ,'0', STR_PAD_LEFT);
 	}
 	return $coloursMapping;
