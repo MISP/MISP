@@ -518,7 +518,7 @@ class StixBuilder():
 
     @staticmethod
     def define_pattern(attribute_type, attribute_value):
-        attribute_value = attribute_value.replace("'", '##APOSTROPHE##').replace('"', '##QUOTE##')
+        attribute_value = attribute_value.replace("'", '##APOSTROPHE##').replace('"', '##QUOTE##') if isinstance(attribute_value, str) else attribute_value
         if attribute_type == 'malware-sample':
             return [mispTypesMapping[attribute_type]['pattern']('filename|md5', attribute_value)]
         return mispTypesMapping[attribute_type]['pattern'](attribute_type, attribute_value)
@@ -1038,9 +1038,10 @@ class StixBuilder():
 
     @staticmethod
     def define_attribute_value(value, comment):
-        if comment.startswith("AS") and not value.startswith("AS"):
-            return comment
-        return value
+        if value.isdigit() or value.startswith("AS"):
+            return int(value) if value.isdigit() else int(value[2:].split(' ')[0])
+        if comment.startswith("AS") or comment.isdigit():
+            return int(comment) if comment.isdigit() else int(comment[2:].split(' ')[0])
 
 def main(args):
     stix_builder = StixBuilder()
