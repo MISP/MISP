@@ -145,6 +145,8 @@ class StixBuilder():
 
     def load_objects_mapping(self):
         self.objects_mapping = {
+            'asn': {'observable': self.resolve_asn_observable,
+                    'pattern': self.resolve_asn_pattern},
             'domain-ip': {'observable': self.resolve_domain_ip_observable,
                           'pattern': self.resolve_domain_ip_pattern},
             'email': {'observable': self.resolve_email_object_observable,
@@ -546,6 +548,45 @@ class StixBuilder():
     @staticmethod
     def get_date_from_timestamp(timestamp):
         return datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=timestamp)
+
+    @staticmethod
+    def resolve_asn_observable(attributes):
+        asn = objectsMapping['asn']['observable']
+        observable = {}
+        object_num = 0
+        for attribute in attributes:
+            relation = attribute.object_relation
+            try:
+                stix_type = asnObjectMapping[relation]
+            except KeyError:
+                continue
+            attribute_value = attribute.value
+            if relation == "subnet-announced":
+                observable[str(object_num)] = {'type': define_address_type(attribute_value), 'value': attribute_value}
+                object_num += 1
+            else:
+                asn[stix_type] = int(attribute_value[2:]) if (stix_type == 'number' and attribute_value.startswith("AS")) else attribute_value
+        observable[str(object_num)] = asn
+        for n in range(object_num):
+            observable[n]['belongs_to_refs'] = [str(object_num)]
+        return observable
+
+    @staticmethod
+    def resolve_asn_pattern(attributes):
+        mapping = objectsMapping['asn']['pattern']
+        pattern = ""
+        for attribute in attributes:
+            relation = attribute.object_relation
+            try:
+                stix_type = asnObjectMapping[relation]
+            except KeyError:
+                continue
+            attribute_value = attribute.value
+            if relation == "subnet-announced":
+                pattern += "{0}:{1} = '{2}' AND ".format(define_address_type(attribute_value), stix_type, attribute_value)
+            else:
+                pattern += mapping.format(stix_type, attribute_value)
+        return pattern[:-5]
 
     @staticmethod
     def resolve_domain_ip_observable(attributes):

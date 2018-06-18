@@ -235,20 +235,24 @@ network_traffic_pattern = "network-traffic:{0} = '{1}' AND "
 network_traffic_src_ref = "src_ref.type = '{0}' AND network-traffic:src_ref.value"
 network_traffic_dst_ref = "dst_ref.type = '{0}' AND network-traffic:dst_ref.value"
 
-objectsMapping = {'domain-ip': {'pattern': "domain-name:{0} = '{1}' AND "},
-                 'email': {'observable': {'0': {'type': 'email-message'}},
-                           'pattern': "email-{0}:{1} = '{2}' AND "},
-                 'file': {'observable': {'0': {'type': 'file', 'hashes': {}}},
-                          'pattern': "file:{0} = '{1}' AND "},
-                 'ip-port': {'pattern': network_traffic_pattern},
-                 'network-socket': {'pattern': network_traffic_pattern},
-                 'process': {'pattern': "process:{0} = '{1}' AND "},
-                 'registry-key': {'observable': {'0': {'type': 'windows-registry-key'}},
-                                  'pattern': "windows-registry-key:{0} = '{1}' AND "},
-                 'url': {'observable': {'0': {'type': 'url'}},
-                         'pattern': "url:{0} = '{1}' AND "},
-                 'x509': {'pattern': "x509-certificate:{0} = '{1}' AND "}
+objectsMapping = {'asn': {'observable': {'type': 'autonomous-system'},
+                          'pattern': "autonomous-system:{0} = '{1}' AND "},
+                  'domain-ip': {'pattern': "domain-name:{0} = '{1}' AND "},
+                  'email': {'observable': {'0': {'type': 'email-message'}},
+                            'pattern': "email-{0}:{1} = '{2}' AND "},
+                  'file': {'observable': {'0': {'type': 'file', 'hashes': {}}},
+                           'pattern': "file:{0} = '{1}' AND "},
+                  'ip-port': {'pattern': network_traffic_pattern},
+                  'network-socket': {'pattern': network_traffic_pattern},
+                  'process': {'pattern': "process:{0} = '{1}' AND "},
+                  'registry-key': {'observable': {'0': {'type': 'windows-registry-key'}},
+                                   'pattern': "windows-registry-key:{0} = '{1}' AND "},
+                  'url': {'observable': {'0': {'type': 'url'}},
+                          'pattern': "url:{0} = '{1}' AND "},
+                  'x509': {'pattern': "x509-certificate:{0} = '{1}' AND "}
 }
+
+asnObjectMapping = {'asn': 'number', 'description': 'name', 'subnet-announced': 'value'}
 
 domainIpObjectMapping = {'ip-dst': 'resolves_to_refs[*].value', 'domain': 'value'}
 
