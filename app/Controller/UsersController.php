@@ -1371,7 +1371,7 @@ class UsersController extends AppController {
 	// shows some statistics about the instance
 	public function statistics($page = 'data') {
 		$this->set('page', $page);
-		$pages = array('data' => 'Usage data', 'orgs' => 'Organisations', 'tags' => 'Tags', 'attributehistogram' => 'Attribute histogram', 'sightings' => 'Sightings toplists');
+		$pages = array('data' => 'Usage data', 'orgs' => 'Organisations', 'tags' => 'Tags', 'attributehistogram' => 'Attribute histogram', 'sightings' => 'Sightings toplists', 'attackMatrix' => 'Attack Matrix');
 		if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
 			unset($pages['orgs']);
 		}
@@ -1394,6 +1394,8 @@ class UsersController extends AppController {
 			}
 		} else if ($page == 'sightings') {
 			$result = $this->__statisticsSightings($this->params['named']);
+		} else if ($page == 'attackMatrix') {
+			$result = $this->__statisticsAttackMatrix($this->params['named']);
 		}
 		if ($this->_isRest()) {
 			return $result;
@@ -1627,6 +1629,39 @@ class UsersController extends AppController {
 			return $this->tagStatisticsGraph();
 		} else {
 			$this->render('statistics_tags');
+		}
+	}
+
+	private function __statisticsAttackMatrix($params = array()) {
+		$this->loadModel('Event');
+		$this->loadModel('Galaxy');
+		$attackTacticData = $this->Galaxy->getMitreAttackMatrix();
+		$attackTactic = $attackTacticData['attackTactic'];
+		$attackTags = $attackTacticData['attackTags'];
+		$killChainOrders = $attackTacticData['killChain'];
+		$instanceUUID = $attackTacticData['instance-uuid'];
+
+		$scoresData = $this->Event->Attribute->AttributeTag->getTagScores(0, $attackTags);
+		$maxScore = $scoresData['maxScore'];
+		$scores = $scoresData['scores'];
+
+		if ($this->_isRest()) {
+			$json = array('matrix' => $attackTactic, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
+			return $this->RestResponse->viewData($json, $this->response->type());
+		} else {
+			App::uses('ColourGradientTool', 'Tools');
+			$gradientTool = new ColourGradientTool();
+			$colours = $gradientTool->createGradientFromValues($scores);
+
+			$this->set('target_type', 'attribute');
+			$this->set('killChainOrders', $killChainOrders);
+			$this->set('attackTactic', $attackTactic);
+			$this->set('scores', $scores);
+			$this->set('maxScore', $maxScore);
+			$this->set('colours', $colours);
+			$this->set('pickingMode', false);
+
+			$this->render('statistics_attackmatrix');
 		}
 	}
 
