@@ -3400,6 +3400,29 @@ $(document).ready(function() {
 	});
 });
 
+function queryEventLock(event_id, user_org_id) {
+	if (tabIsActive) {
+		$.get( "/events/checkLocks/" + event_id, function(data) {
+			if ($('#event_lock_warning').length != 0) {
+				$('#event_lock_warning').remove();
+			}
+			$('#main-view-container').append(data);
+		});
+	}
+	setTimeout(function() { queryEventLock(event_id, user_org_id); }, 5000);
+}
+
+function checkIfLoggedIn() {
+	if (tabIsActive) {
+		$.get("/users/checkIfLoggedIn", function(data) {
+			if (data.slice(-2) !== 'OK') {
+				window.location.replace(baseurl + "/users/login");
+			}
+		});
+	}
+	setTimeout(function() { checkIfLoggedIn(); }, 5000);
+}
+
 (function(){
     "use strict";
     $(".datepicker").datepicker({

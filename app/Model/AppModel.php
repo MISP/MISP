@@ -63,7 +63,7 @@ class AppModel extends Model {
 
 	public $db_changes = array(
 		1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
-		7 => false, 8 => false, 9 => false
+		7 => false, 8 => false, 9 => false, 10 => false, 11 => false
 	);
 
 	function afterSave($created, $options = array()) {
@@ -145,6 +145,11 @@ class AppModel extends Model {
 			case 8:
 				$this->Server = Classregistry::init('Server');
 				$this->Server->restartWorkers();
+				break;
+			case 10:
+				$this->updateDatabase($command);
+				$this->Role = Classregistry::init('Role');
+				$this->Role->setPublishZmq();
 				break;
 			default:
 				$this->updateDatabase($command);
@@ -934,6 +939,21 @@ class AppModel extends Model {
 				$sqlArray[] = 'ALTER TABLE galaxies ADD namespace varchar(255) COLLATE utf8_unicode_ci NOT NULL DEFAULT "misp";';
 				$indexArray[] = array('galaxies', 'namespace');
 				break;
+			case 10:
+				$sqlArray[] = "ALTER TABLE `roles` ADD `perm_publish_zmq` tinyint(1) NOT NULL DEFAULT 0;";
+				break;
+			case 11:
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS event_locks (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`event_id` int(11) NOT NULL,
+					`user_id` int(11) NOT NULL,
+					`timestamp` int(11) NOT NULL DEFAULT 0,
+					PRIMARY KEY (id),
+					INDEX `event_id` (`event_id`),
+					INDEX `user_id` (`user_id`),
+					INDEX `timestamp` (`timestamp`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
 				$sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1296,6 +1316,10 @@ class AppModel extends Model {
 	public function checkVersionRequirements($versionString, $minVersion) {
 		$version = explode('.', $versionString);
 		$minVersion = explode('.', $minVersion);
+		if (count($version) > $minVersion) return true;
+		if (count($version) == 1) {
+			return $minVersion <= $version;
+		}
 		return ($version[0] >= $minVersion[0] && $version[1] >= $minVersion[1] && $version[2] >= $minVersion[2]);
 	}
 

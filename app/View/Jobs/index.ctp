@@ -40,19 +40,21 @@
 		var intervalArray = new Array();
 
 		function queueInterval(k, id) {
-			intervalArray[k] = setInterval(function(){
-				$.getJSON('/jobs/getGenerateCorrelationProgress/' + id, function(data) {
-					var x = document.getElementById("bar" + id);
-					x.style.width = data+"%";
-					if (data > 0 && data < 100) {
-						x.innerHTML = data + "%";
-					}
-					if (data == 100) {
-						x.innerHTML = "<?php echo __('Completed.');?>";
-						clearInterval(intervalArray[k]);
-					}
-				});
-				}, 3000);
+			intervalArray[k] = setInterval(function() {
+				if (tabIsActive) {
+					$.getJSON('/jobs/getGenerateCorrelationProgress/' + id, function(data) {
+						var x = document.getElementById("bar" + id);
+						x.style.width = data+"%";
+						if (data > 0 && data < 100) {
+							x.innerHTML = data + "%";
+						}
+						if (data == 100) {
+							x.innerHTML = "<?php echo __('Completed.');?>";
+							clearInterval(intervalArray[k]);
+						}
+					});
+				}
+			}, 3000);
 		}
 	</script>
 	<div id="attributeList" class="attributeListContainer">
