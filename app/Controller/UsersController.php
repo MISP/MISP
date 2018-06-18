@@ -1371,7 +1371,7 @@ class UsersController extends AppController {
 	// shows some statistics about the instance
 	public function statistics($page = 'data') {
 		$this->set('page', $page);
-		$pages = array('data' => 'Usage data', 'orgs' => 'Organisations', 'tags' => 'Tags', 'attributehistogram' => 'Attribute histogram', 'sightings' => 'Sightings toplists', 'attackMatrix' => 'Attack Matrix');
+		$pages = array('data' => 'Usage data', 'orgs' => 'Organisations', 'tags' => 'Tags', 'attributehistogram' => 'Attribute histogram', 'sightings' => 'Sightings toplists', 'attackMatrix' => 'ATT&CK Matrix');
 		if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
 			unset($pages['orgs']);
 		}
@@ -1641,9 +1641,14 @@ class UsersController extends AppController {
 		$killChainOrders = $attackTacticData['killChain'];
 		$instanceUUID = $attackTacticData['instance-uuid'];
 
-		$scoresData = $this->Event->Attribute->AttributeTag->getTagScores(0, $attackTags);
-		$maxScore = $scoresData['maxScore'];
-		$scores = $scoresData['scores'];
+		$scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores(0, $attackTags);
+		$scoresDataEvent = $this->Event->EventTag->getTagScores(0, $attackTags);
+		$scoresData = array();
+		foreach(array_keys($scoresDataAttr['scores'] + $scoresDataEvent['scores']) as $key) {
+			$scoresData[$key] = (isset($scoresDataAttr['scores'][$key]) ? $scoresDataAttr['scores'][$key] : 0) + (isset($scoresDataEvent['scores'][$key]) ? $scoresDataEvent['scores'][$key] : 0);
+		}
+		$maxScore = max($scoresDataAttr['maxScore'], $scoresDataEvent['maxScore']);
+		$scores = $scoresData;
 
 		if ($this->_isRest()) {
 			$json = array('matrix' => $attackTactic, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
