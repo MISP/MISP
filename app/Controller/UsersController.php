@@ -1639,14 +1639,15 @@ class UsersController extends AppController {
 		$attackTactic = $attackTacticData['attackTactic'];
 		$attackTags = $attackTacticData['attackTags'];
 		$killChainOrders = $attackTacticData['killChain'];
+		$instanceUUID = $attackTacticData['instance-uuid'];
 
 		$scoresData = $this->Event->Attribute->AttributeTag->getTagScores(0, $attackTags);
 		$maxScore = $scoresData['maxScore'];
 		$scores = $scoresData['scores'];
 
 		if ($this->_isRest()) {
-			$data = array('matrix' => $attackTactic, 'scores' => $scores);
-			return $this->RestResponse->viewData($data, $this->response->type());
+			$json = array('matrix' => $attackTactic, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
+			return $this->RestResponse->viewData($json, $this->response->type());
 		} else {
 			App::uses('ColourGradientTool', 'Tools');
 			$gradientTool = new ColourGradientTool();

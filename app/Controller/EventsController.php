@@ -4567,13 +4567,14 @@ class EventsController extends AppController {
 		$attackTactic = $attackTacticData['attackTactic'];
 		$attackTags = $attackTacticData['attackTags'];
 		$killChainOrders = $attackTacticData['killChain'];
+		$instanceUUID = $attackTacticData['instance-uuid'];
 
 		$scoresData = $this->Event->Attribute->AttributeTag->getTagScores($eventId, $attackTags);
 		$maxScore = $scoresData['maxScore'];
 		$scores = $scoresData['scores'];
 
 		if ($this->_isRest()) {
-			$json = array('matrix' => $attackTactic, 'scores' => $scores);
+			$json = array('matrix' => $attackTactic, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
 			$this->response->type('json');
 			return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
 		} else {

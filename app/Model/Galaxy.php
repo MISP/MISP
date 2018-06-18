@@ -291,10 +291,13 @@ class Galaxy extends AppModel{
 			throw new NotFoundException('Galaxies not found.');
 		}
 
+		$mispUUID = Configure::read('MISP')['uuid'];
+
 		$attackTactic = array(
 			'killChain' => $killChainOrders,
 			'attackTactic' => array(),
-			'attackTags' => array()
+			'attackTags' => array(),
+			'instance-uuid' => $mispUUID
 		);
 
 		foreach ($galaxies as $galaxy) {
