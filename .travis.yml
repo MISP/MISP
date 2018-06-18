@@ -39,6 +39,7 @@ before_install:
     - git config --global user.name "TravisCI"
 
 install:
+    - sudo pip3 install --upgrade pip setuptools requests
     - pip3 install --user --upgrade -r requirements.txt
     - phpenv rehash
     - pushd app
