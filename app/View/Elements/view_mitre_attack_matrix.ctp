@@ -5,7 +5,7 @@ $enterpriseTag = "mitre-enterprise-attack-attack-pattern";
 foreach($attackTactic as $tactic): 
     $galaxy = $tactic['galaxy'];	
 ?>
-	<li class="tactic <?php echo $galaxy['type']==$enterpriseTag ? "active" : ""; ?>"><span href="#tabMatrix-<?php echo $galaxy['type']; ?>" data-toggle="tab" style="padding-top: 3px; padding-bottom: 3px;"><?php echo($galaxy['name']); ?></span></li>
+	<li class="tactic <?php echo $galaxy['type']==$enterpriseTag ? "active" : ""; ?>"><span href="#tabMatrix-<?php echo h($galaxy['type']); ?>" data-toggle="tab" style="padding-top: 3px; padding-bottom: 3px;"><?php echo h($galaxy['name']); ?></span></li>
 <?php endforeach; ?>
 </ul>
 </div>
@@ -42,7 +42,7 @@ foreach($attackTactic as $tactic):
     <?php foreach($attackTactic as $galaxy):
 	$galaxyType = $galaxy['galaxy']['type'];
     ?>
-	<div class="tab-pane <?php echo $galaxyType==$enterpriseTag ? "active" : ""; ?>" id="tabMatrix-<?php echo $galaxyType; ?>">
+	<div class="tab-pane <?php echo $galaxyType==$enterpriseTag ? "active" : ""; ?>" id="tabMatrix-<?php echo h($galaxyType); ?>">
 	<div class="header-background"></div>
 	<div class="fixed-table-container-inner" style="max-height: 670px;">
 	<table class="table table-condensed matrix-table">
@@ -53,8 +53,8 @@ foreach($attackTactic as $tactic):
 			$name = str_replace("-", " ", $kc);
 	?>
 		<th>
-			<?php echo ucfirst($name); ?>
-			<div class="th-inner"><?php echo ucfirst($name); ?></div>
+			<?php echo h(ucfirst($name)); ?>
+			<div class="th-inner"><?php echo h(ucfirst($name)); ?></div>
 		</th>
 		
 	<?php endforeach; ?>
@@ -81,7 +81,7 @@ foreach($attackTactic as $tactic):
 							$score = empty($scores[$tagName]) ? 0 : $scores[$tagName];
 							$name = join(" ", array_slice(explode(" ", $clusters[$i]['value']), 0, -2)); // remove " - external_id"
 							$td .= ' class="heatCell matrix-interaction ' . ($pickingMode ? 'cell-picking"' : '"');
-							$td .= isset($colours[$tagName]) ? ' style="background: ' . $colours[$tagName] . '; color: ' . $this->TextColour->getTextColour($colours[$tagName]) . '"' : '' ;
+							$td .= isset($colours[$tagName]) ? ' style="background: ' . h($colours[$tagName]) . '; color: ' . h($this->TextColour->getTextColour($colours[$tagName])) . '"' : '' ;
 							$td .= ' data-score="'.h($score).'"';
 							$td .= ' data-tag_name="'.h($tagName).'"';
 							$td .= ' data-cluster-id="'.h($clusterId).'"';
