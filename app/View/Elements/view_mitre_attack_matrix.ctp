@@ -84,10 +84,10 @@ foreach($attackTactic as $tactic):
 							$td .= isset($colours[$tagName]) ? ' style="background: ' . $colours[$tagName] . '; color: ' . $this->TextColour->getTextColour($colours[$tagName]) . '"' : '' ;
 							$td .= ' data-score="'.h($score).'"';
 							$td .= ' data-tag_name="'.h($tagName).'"';
+							$td .= ' data-cluster-id="'.h($clusterId).'"';
 							if ($pickingMode) {
 								$td .= ' data-target-type="attribute"';
 								$td .= ' data-target-id="'.h($target_id).'"';
-								$td .= ' data-cluster-id="'.h($clusterId).'"';
 							}
 							$td .= ' title="'.h($clusters[$i]['external_id']).'"';
 							$td .= '>' . h($name);
