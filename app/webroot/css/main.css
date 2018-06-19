@@ -837,6 +837,11 @@ a.proposal_link_red:hover {
 	z-index:5;
 }
 
+.ajax_popover_form_large {
+    width: 1400px;
+    left: calc(50% - 700px);
+}
+
 .screenshot_box {
 	display:none;
 	position: fixed;
@@ -2054,4 +2059,12 @@ table tr:hover .down-expand-button {
 	to {
 		transform: rotate(359deg);
 	}
+}
+
+#attackmatrix_div {
+    border-color: #363636;
+    overflow: visible;
+    max-height: 700px;
+    height: auto;
+    margin-top: 30px;
 }
