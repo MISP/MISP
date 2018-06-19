@@ -212,7 +212,7 @@ class EventGraph {
 			event: function(value) {
 				eventGraph.physics_change_repulsion(parseInt(value));
 			},
-			tooltip: "Correspond to spring length for barnesHut and node spacing for hierachical"
+			tooltip: "Correspond to spring length for barnesHut and node spacing for hierarchical"
 		});
 		menu_physic.add_checkbox({
 			label: "Enable physics",
@@ -252,9 +252,10 @@ class EventGraph {
 			},
 			options: [
 				{text: "Default layout", value: "default"},
-				{text: "Hierachical directed", value: "hierarchical.directed"},
-				{text: "Hierachical hubsize", value: "hierarchical.hubsize"}
+				{text: "Hierarchical directed", value: "hierarchical.directed"},
+				{text: "Hierarchical hubsize", value: "hierarchical.hubsize"}
 			],
+			tooltip: "Choose layout"
 			default: "default"
 		});
 		menu_display.add_select({
@@ -265,7 +266,7 @@ class EventGraph {
 				dataHandler.fetch_data_and_update();
 			},
 			options: [],
-			title: "If no item is selected, display the first requiredOneOf of the object"
+			tooltip: "If no item is selected display the first requiredOneOf of the object"
 		});
 		menu_display.add_button({
 			label: "Expand all nodes",
@@ -293,8 +294,8 @@ class EventGraph {
 		});
 		menu_display.add_slider({
 			id: 'slider_display_max_char_num',
-			label: "Charater to show",
-			title: "Maximum number of charater to display in the label",
+			label: "Characters to show",
+			tooltip: "Maximum number of characters to display in the label",
 			min: 8,
 			max: 1024,
 			value: max_displayed_char,
@@ -715,7 +716,7 @@ class EventGraph {
 
 	physics_change_solver(solver) {
 		var that = eventGraph;
-		if(that.layout == 'default') { // only hierachical repulsion for other layout
+		if(that.layout == 'default') { // only hierarchical repulsion for other layout
 			that.network.setOptions({physics: { solver: solver } })
 			// update physics slider value
 			if(solver == "barnesHut") {
