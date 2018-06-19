@@ -54,6 +54,18 @@ class ContextualMenu {
         this.items[select.id] = select;
     }
 
+    add_select_button(options) {
+        this.__create_divider_if_needed('select_button');
+        var select_button = this.__create_select_button(options);
+        this.items[select_button.id] = select_button;
+    }
+
+    add_fileinput(options) {
+        this.__create_divider_if_needed('fileinput');
+        var fileinput = this.__create_fileinput(options);
+        this.items[fileinput.id] = fileinput;
+    }
+
     add_action_table(options) {
         this.__create_divider_if_needed('action_table');
         var action_table = this.__create_action_table(options);
@@ -210,6 +222,53 @@ class ContextualMenu {
         return input;
     }
 
+    __create_fileinput(options) {
+        var div = document.createElement('div');
+        var label = document.createElement('label');
+        label.innerHTML = options.label+":";
+        var input = document.createElement("input");
+        input.classList.add("form-group");
+        input.id = options.id === undefined ? 'contextualMenu_'+this.__get_uniq_index() : options.id;
+        if(options.tooltip !== undefined) {
+            input.title = options.tooltip;
+        }
+        input.type = "file";
+        input.accept = ".json";
+        var file_status = document.createElement('span');
+        file_status.id = input.id + "_status";
+        input.dataset.relatedStatusId = file_status.id;
+        if(options.event !== undefined) {
+            input.addEventListener("change", function(evtInput) {
+                var file = this.files[0];
+                if (file) {
+                    var reader = new FileReader();
+                    reader.readAsText(file, "UTF-8");
+                    reader.onload = function (evtReader) {
+                        document.getElementById(evtInput.target.dataset.relatedStatusId).innerHTML = "File loaded";
+                        var content = evtReader.target.result;
+                        options.event(content);
+                    };
+                    reader.onerror = function (evtReader) {
+                        document.getElementById(evtInput.target.dataset.relatedStatusId).innerHTML = "Error while reading the file";
+                    };
+                    reader.onprogress = function (evtReader) {
+                        if (evtReader.lengthComputable) {
+                            var loaded = (evtReader.loaded / evtReader.total)*100;
+                            if (loaded < 100) {
+                                document.getElementById(evtInput.target.dataset.relatedStatusId).innerHTML = "Reading file: "+loaded.toFixed(2)+"%";
+                            }
+                        }
+                    };
+                }
+            });
+        }
+        div.appendChild(label);
+        div.appendChild(input);
+        div.appendChild(file_status);
+        this.menu.appendChild(div);
+        return input;
+    }
+
     __create_slider(options) {
         var div = document.createElement('div');
         var label = document.createElement('label');
@@ -283,6 +342,38 @@ class ContextualMenu {
             select.addEventListener("change", function(evt) { select_options.event(evt.target.value); });
         }
         return select;
+    }
+
+    __create_select_button(options) {
+        var div = document.createElement('div');
+	div.style = "width: inherit;";
+        var select = document.createElement('select');
+        var label = document.createElement('label');
+        var button = document.createElement('button');
+        button.classList.add("btn-dropdown", "btn", "btn-default");
+        button.style = "padding: 4px 12px; line-height: 20px; margin-left: 7px;";
+        button.id = options.id === undefined ? 'contextualMenu_'+this.__get_uniq_index() : options.id+"_btn";
+	button.innerHTML = options.textButton !== undefined ? options.textButton : "";
+        label.innerHTML = options.label+":";
+        label.title = options.tooltip;
+        select.id = options.id === undefined ? 'contextualMenu_'+this.__get_uniq_index() : options.id+"_select";
+        button.dataset.correspondingId = select.id;
+        this.__add_options_to_select(select, options.options);
+        if(options.default !== undefined) {
+            select.value = options.default;
+        }
+        div.appendChild(select);
+        div.appendChild(button);
+        this.menu.appendChild(label);
+        this.menu.appendChild(div);
+        if(options.event !== undefined) {
+            button.addEventListener("click", function(evt) { 
+		var corresponding_select_id = evt.target.dataset.correspondingId;
+		var selected_value = $('#'+corresponding_select_id).val();
+		options.event(selected_value);
+	    });
+        }
+        return button;
     }
 
     __add_options_to_select(select, options) {

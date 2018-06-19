@@ -156,6 +156,9 @@ class ActionTable {
 			case "input":
 				item = this.__create_input(options.item_options);
 				break;
+			case "empty":
+				item = this.__create_empty(options.item_options);
+				break;
 			default:
 				break;
 		}
@@ -175,6 +178,13 @@ class ActionTable {
 		});
 		td.appendChild(btn);
 		tr.appendChild(td);
+	}
+
+	__create_empty(options) {
+		var empty = document.createElement('span');
+		empty.classList.add("form-group");
+		empty.id = options.id !== undefined ? options.id : 'actionTable_controlSelect_'+this.__get_uniq_index();
+		return empty;
 	}
 
 	__create_input(options) {
