@@ -455,6 +455,7 @@ class EventGraph {
 				eventGraph.collapse_node(selected_id);
 			}
 		});
+		return menu_canvas;
 	}
 
 	get_filtering_rules() {

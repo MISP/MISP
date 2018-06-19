@@ -110,9 +110,9 @@ class ContextualMenu {
         if (this.right_click) {
             this.trigger_container.addEventListener('contextmenu', function(evt) {
                 evt.preventDefault();
-                var offsetX = 0;
-                var offsetY = 1;
-                that.__toggleMenu(evt.pageX+offsetX, evt.pageY+offsetY);
+                var offsetX = $(that.trigger_container).offset().left;
+                var offsetY = $(that.trigger_container).offset().top-40;
+                that.__toggleMenu(evt.pageX-offsetX, evt.pageY-offsetY);
             });
             // hide the contextual menu on any click
             document.getElementsByTagName("BODY")[0].addEventListener("click", function(evt) {
