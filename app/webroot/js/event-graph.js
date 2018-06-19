@@ -255,7 +255,7 @@ class EventGraph {
 				{text: "Hierarchical directed", value: "hierarchical.directed"},
 				{text: "Hierarchical hubsize", value: "hierarchical.hubsize"}
 			],
-			tooltip: "Choose layout"
+			tooltip: "Choose layout",
 			default: "default"
 		});
 		menu_display.add_select({
