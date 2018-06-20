@@ -64,6 +64,7 @@ class EventGraph {
 			nodes: this.nodes,
 			edges: this.edges
 		};
+		this.hiddenNode = new vis.DataSet();
 		this.object_templates = {};
 
 		this.cluster_index = 0; // use to get uniq cluster ID
@@ -92,6 +93,7 @@ class EventGraph {
 
 		this.network.on("dragStart", function (params) {
 			eventGraph.physics_state(false);
+			eventGraph.physics_activate_physics_for_nodes(params.nodes);
 		});
 		this.network.on("dragEnd", function (params) {
 			eventGraph.physics_disable_physics_for_nodes(params.nodes);
@@ -153,7 +155,7 @@ class EventGraph {
 			trigger_container: document.getElementById("network-scope"),
 			bootstrap_popover: true,
 			style: "z-index: 1",
-			container: document.getElementById("eventgraph_div")
+			container: document.getElementById("eventgraph_div"),
 		});
 		menu_scope.add_select({
 			id: "select_graph_scope",
@@ -434,7 +436,7 @@ class EventGraph {
 				if (selected_id === undefined) { // A node is selected
 					return;
 				}
-				eventGraph.nodes.remove(selected_id);
+				eventGraph.hideNode([selected_id]);
 			}
 		});
 		menu_canvas.add_button({
@@ -475,22 +477,36 @@ class EventGraph {
 			tooltip: "Export graph",
 			textButton: "Export",
 			event: function(selected_value) {
-				var nodeData = eventGraph.nodes.get();
-				var edgeData = eventGraph.edges.get();
+				var nodeData = [];
 				var nodePositions = eventGraph.network.getPositions();
-				nodeData.forEach(function(nodeD) {
+				eventGraph.nodes.get().forEach(function(nodeD) {
 					var nodeP = nodePositions[nodeD.id];
-					if (nodeP !== undefined) {
-						nodeD.x = nodeP.x;
-						nodeD.y = nodeP.y;
+					//if (nodeP !== undefined && (nodeD.group == 'object' || nodeD.group == 'attribute')) {
+					if (nodeP !== undefined && nodeD.group != 'obj_relation') {
+						var temp = { 
+							id: nodeD.id,
+							x: nodeP.x,
+							y: nodeP.y,
+						};
+						if (nodeD.fixed !== undefined) {
+							temp.fixed = nodeD.fixed;
+						}
+						if (nodeD.expanded !== undefined) {
+							temp.expanded = nodeD.expanded;
+						}
+						nodeData.push(temp);
 					}
+				});
+				var hiddenNodeData = [];
+				eventGraph.hiddenNode.forEach(function(node) {
+					hiddenNodeData.push(node.id);
 				});
 				
 				var data = { 
 					eventId: scope_id,
 					eventLastChange: event_last_change,
 					nodes: nodeData,
-					edges: edgeData,
+					hiddenNodes: hiddenNodeData,
 					scope: {
 						scope: eventGraph.scope_name,
 						keyType: eventGraph.scope_keyType
@@ -507,7 +523,6 @@ class EventGraph {
 					}
 				};
 				var jsonData = JSON.stringify(data);
-				console.log(data.nodes);
 				download_file(jsonData);
 			},
 			options: ["JSON"],
@@ -556,22 +571,13 @@ class EventGraph {
 					eventGraph.physics_state(data.physics.enabled)
 					$('#checkbox_physics_enable').prop('checked', data.physics.enabled);
 
-					// set data
-					eventGraph.nodes = new vis.DataSet(data.nodes);
-					eventGraph.edges = new vis.DataSet(data.edges);
-					if (data.display.layout == 'default') {
-						eventGraph.destroy_and_redraw();
-					} else { // node position should be overwritten because the layout engine do not care for hierarchical layout
-						eventGraph.destroy_and_redraw(function() {
-							// re-apply node position
-							var toUpdate = [];
-							data.nodes.forEach(function(node) {
-								toUpdate.push({id: node.id, x: node.x});
-							});
-							eventGraph.nodes.update(toUpdate);
-						});
-					}
-					eventGraph.expand_previous_expansion(data.nodes);
+					// update data
+					dataHandler.fetch_data_and_update(false, function() {
+						eventGraph.nodes.update(data.nodes);
+						eventGraph.hiddenNode.clear();
+						eventGraph.hideNode(data.hiddenNodes);
+						eventGraph.expand_previous_expansion(data.nodes);
+					});
 				}
 			}
 		});
@@ -887,7 +893,18 @@ class EventGraph {
 	physics_disable_physics_for_nodes(nodes) {
 		var update = [];
 		nodes.forEach(function(nodeId) {
-			update.push({id: nodeId, fixed: {x: true, y: true}});
+			if (!eventGraph.network.isCluster(nodeId)) {
+				update.push({id: nodeId, fixed: {x: true, y: true}});
+			}
+		});
+		eventGraph.nodes.update(update);
+	}
+	physics_activate_physics_for_nodes(nodes) {
+		var update = [];
+		nodes.forEach(function(nodeId) {
+			if (!eventGraph.network.isCluster(nodeId)) {
+				update.push({id: nodeId, fixed: {x: false, y: false}});
+			}
 		});
 		eventGraph.nodes.update(update);
 	}
@@ -1013,6 +1030,14 @@ class EventGraph {
 				}
 			}
 		}
+	}
+
+	hideNode(nodeIds) {
+		nodeIds.forEach(function(nodeId) {
+			var node = eventGraph.nodes.get(nodeId);
+			eventGraph.hiddenNode.add(node);
+			eventGraph.nodes.remove(nodeId);
+		});
 	}
 
 	link_not_referenced_nodes() {
@@ -1292,7 +1317,7 @@ class DataHandler {
 		eventGraph.menu_filter.items["table_attr_value"].add_options("table_control_select_attr_value", available_object_references);
 	}
 
-	fetch_data_and_update(stabilize) {
+	fetch_data_and_update(stabilize, callback) {
 		eventGraph.network_loading(true, loadingText_fetching);
 		$.when(this.fetch_objects_template()).done(function() {
 			var filtering_rules = eventGraph.get_filtering_rules();
@@ -1333,6 +1358,9 @@ class DataHandler {
 
 					if ( stabilize === undefined || stabilize) {
 						eventGraph.reset_view_on_stabilized();
+					}
+					if (callback !== undefined) {
+						callback();
 					}
 				},
 				error: function( jqXhr, textStatus, errorThrown ){
@@ -1817,7 +1845,7 @@ var network_options = {
 		addNode: mispInteraction.add_item,
 		editNode: mispInteraction.edit_item,
 		deleteNode: mispInteraction.delete_item,
-		deleteEdge: mispInteraction.remove_reference
+		deleteEdge: mispInteraction.remove_reference,
 	},
 	physics: {
 		enabled: true,
