@@ -908,7 +908,7 @@ class AppModel extends Model {
 				$sqlArray[] = "ALTER TABLE `roles` ADD `restricted_to_site_admin` tinyint(1) NOT NULL DEFAULT 0;";
 				break;
 			case 5:
-				$sqlArray[] = "ALTER TABLE `feeds` ADD `caching_enabled` BOOLEAN NOT NULL DEFAULT 0;";
+				$sqlArray[] = "ALTER TABLE `feeds` ADD `caching_enabled` tinyint(1) NOT NULL DEFAULT 0;";
 				break;
 			case 6:
 				$sqlArray[] = "ALTER TABLE `events` ADD `extends_uuid` varchar(40) COLLATE utf8_bin DEFAULT '';";
