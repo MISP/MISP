@@ -975,25 +975,7 @@ class UsersController extends AppController {
 			// populate the DB with the first user if it's empty
 			if ($this->User->find('count') == 0 ) {
 				$this->User->runUpdates();
-				$admin = array('User' => array(
-					'id' => 1,
-					'email' => 'admin@admin.test',
-					'org_id' => $org_id,
-					'password' => 'admin',
-					'confirm_password' => 'admin',
-					'authkey' => $this->User->generateAuthKey(),
-					'nids_sid' => 4000000,
-					'newsread' => 0,
-					'role_id' => 1,
-					'change_pw' => 1
-				));
-				$this->User->validator()->remove('password'); // password is too simple, remove validation
-				$this->User->save($admin);
-				// PostgreSQL: update value of auto incremented serial primary key after setting the column by force
-				if ($dataSource == 'Database/Postgres') {
-					$sql = "SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));";
-					$this->User->query($sql);
-				}
+				$this->User->createInitialUser($org_id);
 			}
 		}
 	}
