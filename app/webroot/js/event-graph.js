@@ -8,6 +8,7 @@ var nodes = new vis.DataSet();
 var edges = new vis.DataSet();
 
 var typeaheadDataSearch;
+var event_last_change = $('#eventgraph_network').data('event-timestamp');
 var scope_id = $('#eventgraph_network').data('event-id');
 var container = document.getElementById('eventgraph_network');
 var user_manipulation = $('#eventgraph_network').data('user-manipulation');
@@ -93,6 +94,7 @@ class EventGraph {
 			eventGraph.physics_state(false);
 		});
 		this.network.on("dragEnd", function (params) {
+			eventGraph.physics_disable_physics_for_nodes(params.nodes);
 			eventGraph.physics_state($('#checkbox_physics_enable').prop("checked"));
 		});
 
@@ -485,6 +487,8 @@ class EventGraph {
 				});
 				
 				var data = { 
+					eventId: scope_id,
+					eventLastChange: event_last_change,
 					nodes: nodeData,
 					edges: edgeData,
 					scope: {
@@ -515,58 +519,60 @@ class EventGraph {
 			tooltip: "Import from a JSON, Gephy or DOT",
 			event: function(fileContent) {
 				var data = JSON.parse(fileContent);
-				// set options
-				eventGraph.scope_name = data.scope;
-				eventGraph.scope_keyType = data.scope.keyType;
-				eventGraph.update_scope(data.scope.scope)
+				// validate data
+				if (dataHandler.validateImportedFile(data)) {
+					// set options
+					eventGraph.scope_name = data.scope;
+					eventGraph.scope_keyType = data.scope.keyType;
+					eventGraph.update_scope(data.scope.scope)
 
-				var layoutVal;
-				switch(data.display.layout) {
-					case "default":
-						layoutVal = 'default';
-						break;
-					case "directed":
-						layoutVal = 'hierarchical.directed';
-						break;
-					case "hubsize":
-						layoutVal = 'hierarchical.hubsize';
-						break;
-					default:
-						layoutVal = 'default';
-				}
-				$('#select_display_layout').val(layoutVal);
-				eventGraph.change_layout_type(data.display.layout);
-				dataHandler.selected_type_to_display = data.display.label;
-				$('#select_display_object_field').val(data.display.label);
-				$("#slider_display_max_char_num").val(data.display.charLength);
-				$('#slider_display_max_char_num').trigger('reflectOnSpan');
+					var layoutVal;
+					switch(data.display.layout) {
+						case "default":
+							layoutVal = 'default';
+							break;
+						case "directed":
+							layoutVal = 'hierarchical.directed';
+							break;
+						case "hubsize":
+							layoutVal = 'hierarchical.hubsize';
+							break;
+						default:
+							layoutVal = 'default';
+					}
+					$('#select_display_layout').val(layoutVal);
+					eventGraph.change_layout_type(data.display.layout);
+					dataHandler.selected_type_to_display = data.display.label;
+					$('#select_display_object_field').val(data.display.label);
+					$("#slider_display_max_char_num").val(data.display.charLength);
+					$('#slider_display_max_char_num').trigger('reflectOnSpan');
 
-				eventGraph.solver = data.physics.solver;
-				eventGraph.physics_change_solver(data.physics.solver)
-				$('#select_physic_solver').val(data.physics.solver);
-				$('#slider_physic_node_repulsion').val(data.physics.repulsion);
-				$('#slider_physic_node_repulsion').trigger('reflectOnSpan');
-				eventGraph.physics_change_repulsion(data.physics.repulsion)
-				eventGraph.physics_state(data.physics.enabled)
-				$('#checkbox_physics_enable').prop('checked', data.physics.enabled);
+					eventGraph.solver = data.physics.solver;
+					eventGraph.physics_change_solver(data.physics.solver)
+					$('#select_physic_solver').val(data.physics.solver);
+					$('#slider_physic_node_repulsion').val(data.physics.repulsion);
+					$('#slider_physic_node_repulsion').trigger('reflectOnSpan');
+					eventGraph.physics_change_repulsion(data.physics.repulsion)
+					eventGraph.physics_state(data.physics.enabled)
+					$('#checkbox_physics_enable').prop('checked', data.physics.enabled);
 
-				// set data
-				console.log(data.nodes);
-				eventGraph.nodes = new vis.DataSet(data.nodes);
-				eventGraph.edges = new vis.DataSet(data.edges);
-				if (data.display.layout == 'default') {
-					eventGraph.destroy_and_redraw();
-				} else { // node position should be overwritten because the layout engine do not care for hierarchical layout
-					eventGraph.destroy_and_redraw(function() {
-						// re-apply node position
-						var toUpdate = [];
-						data.nodes.forEach(function(node) {
-							toUpdate.push({id: node.id, x: node.x});
+					// set data
+					eventGraph.nodes = new vis.DataSet(data.nodes);
+					eventGraph.edges = new vis.DataSet(data.edges);
+					if (data.display.layout == 'default') {
+						eventGraph.destroy_and_redraw();
+					} else { // node position should be overwritten because the layout engine do not care for hierarchical layout
+						eventGraph.destroy_and_redraw(function() {
+							// re-apply node position
+							var toUpdate = [];
+							data.nodes.forEach(function(node) {
+								toUpdate.push({id: node.id, x: node.x});
+							});
+							eventGraph.nodes.update(toUpdate);
 						});
-						eventGraph.nodes.update(toUpdate);
-					});
+					}
+					eventGraph.expand_previous_expansion(data.nodes);
 				}
-				eventGraph.expand_previous_expansion(data.nodes);
 			}
 		});
 		return menu_import;
@@ -876,6 +882,14 @@ class EventGraph {
 			}
 		}
 		that.solver = solver;
+	}
+
+	physics_disable_physics_for_nodes(nodes) {
+		var update = [];
+		nodes.forEach(function(nodeId) {
+			update.push({id: nodeId, fixed: {x: true, y: true}});
+		});
+		eventGraph.nodes.update(update);
 	}
 
 	// state true: loading
@@ -1341,6 +1355,22 @@ class DataHandler {
 				dataHandler.mapping_uuid_to_template.set(template.uuid, template.requirements.requiredOneOf);
 			}
 		});
+	}
+
+	// same event, same timestamp
+	validateImportedFile(data) {
+		if (scope_id == data.scope_id) {
+			showMessage('fail', 'Failed to import file: Event not compatible');
+			return false;
+		}
+		if (parseInt(event_last_change) < parseInt(data.event_last_change)) {
+			showMessage('fail', 'Fail: Imported graph is newer than current event');
+			return false;
+		}
+		if (parseInt(event_last_change) >= parseInt(data.event_last_change)) {
+			showMessage('success', 'Warning: Imported graph is not the latest version');
+		}
+		return true;
 	}
 
 	get_typeaheadData_search() {
