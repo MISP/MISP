@@ -148,6 +148,16 @@ class Server extends AppModel {
 							'test' => 'testLive',
 							'type' => 'boolean',
 					),
+					'language' => array(
+							'level' => 0,
+							'description' => 'Select the language MISP should use. The default is english.',
+							'value' => 'eng',
+							'errorMessage' => '',
+							'test' => 'testLanguage',
+							'type' => 'string',
+							'optionsSource' => 'AvailableLanguages',
+							'afterHook' => 'cleanCacheFiles'
+					),
 					'enable_advanced_correlations' => array(
 							'level' => 0,
 							'description' => 'Enable some performance heavy correlations (currently CIDR correlation)',
@@ -2385,6 +2395,22 @@ class Server extends AppModel {
 			}
 		}
 		return $leafValue;
+	}
+
+	public function loadAvailableLanguages() {
+		$dirs = glob(APP . 'Locale/*', GLOB_ONLYDIR);
+		$languages = array('eng' => 'eng');
+		foreach ($dirs as $k => $dir) {
+			$dir = str_replace(APP . 'Locale' . DS, '', $dir);
+			$languages[$dir] = $dir;
+		}
+		return $languages;
+	}
+
+	public function testLanguage($value) {
+		$languages = $this->loadAvailableLanguages();
+		if (!isset($languages[$value])) return 'Invalid language.';
+		return true;
 	}
 
 	public function testForNumeric($value) {

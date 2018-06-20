@@ -114,6 +114,11 @@ class AppController extends Controller {
 		$this->set('queryVersion', $this->__queryVersion);
 		$this->loadModel('User');
 		$auth_user_fields = $this->User->describeAuthFields();
+		$language = Configure::read('MISP.language');
+		if (!empty($language) && $language !== 'eng') {
+			Configure::write('Config.language', $language);
+		}
+
 		//if fresh installation (salt empty) generate a new salt
 		if (!Configure::read('Security.salt')) {
 			$this->loadModel('Server');

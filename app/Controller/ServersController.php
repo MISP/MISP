@@ -725,6 +725,10 @@ class ServersController extends AppController {
 		$this->render('/Elements/healthElements/settings_row');
 	}
 
+	private function __loadAvailableLanguages() {
+		return $this->Server->loadAvailableLanguages();
+	}
+
 	private function __loadLocalOrgs() {
 		$this->loadModel('Organisation');
 		$local_orgs = $this->Organisation->find('list', array(
