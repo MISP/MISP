@@ -100,7 +100,7 @@ class GalaxiesController extends AppController {
 	public function selectGalaxyNamespace($target_id, $target_type='event') {
 		$namespaces = $this->Galaxy->find('list', array(
 			'recursive' => -1,
-			'fields' => array('namespace'),
+			'fields' => array('namespace', 'namespace'),
 			'group' => array('namespace')
 		));
 		$this->set('namespaces', $namespaces);
