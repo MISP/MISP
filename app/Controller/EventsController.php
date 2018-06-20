@@ -1191,6 +1191,7 @@ class EventsController extends AppController {
 			}
 		}
 		$this->set('currentUri', $attributeUri);
+		$this->set('mitreAttackGalaxyId', $this->Event->GalaxyCluster->Galaxy->getMitreAttackGalaxyId());
 	}
 
 	public function view($id = null, $continue=false, $fromEvent=null) {
@@ -1205,11 +1206,11 @@ class EventsController extends AppController {
 			if ($temp == null) throw new NotFoundException('Invalid event');
 			$id = $temp['Event']['id'];
 		} else if (!is_numeric($id)) {
-			throw new NotFoundException(__('Invalid event id.'));
+			throw new NotFoundException(__('Invalid event'));
 		}
 		$this->Event->id = $id;
 		if (!$this->Event->exists()) {
-			throw new NotFoundException(__('Invalid event.'));
+			throw new NotFoundException(__('Invalid event'));
 		}
 		$conditions = array('eventid' => $id);
 		if (!$this->_isRest()) {
@@ -1248,7 +1249,6 @@ class EventsController extends AppController {
 		}
 		$this->set('deleted', isset($this->params['named']['deleted']) && $this->params['named']['deleted']);
 		if (!$this->_isRest()) $this->__viewUI($event, $continue, $fromEvent);
-		$this->set('mitreAttackGalaxyId', $this->Event->GalaxyCluster->Galaxy->getMitreAttackGalaxyId());
 	}
 
 	private function __startPivoting($id, $info, $date) {

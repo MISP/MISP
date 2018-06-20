@@ -148,6 +148,16 @@ class Server extends AppModel {
 							'test' => 'testLive',
 							'type' => 'boolean',
 					),
+					'language' => array(
+							'level' => 0,
+							'description' => 'Select the language MISP should use. The default is english.',
+							'value' => 'eng',
+							'errorMessage' => '',
+							'test' => 'testLanguage',
+							'type' => 'string',
+							'optionsSource' => 'AvailableLanguages',
+							'afterHook' => 'cleanCacheFiles'
+					),
 					'enable_advanced_correlations' => array(
 							'level' => 0,
 							'description' => 'Enable some performance heavy correlations (currently CIDR correlation)',
@@ -2387,6 +2397,22 @@ class Server extends AppModel {
 		return $leafValue;
 	}
 
+	public function loadAvailableLanguages() {
+		$dirs = glob(APP . 'Locale/*', GLOB_ONLYDIR);
+		$languages = array('eng' => 'eng');
+		foreach ($dirs as $k => $dir) {
+			$dir = str_replace(APP . 'Locale' . DS, '', $dir);
+			$languages[$dir] = $dir;
+		}
+		return $languages;
+	}
+
+	public function testLanguage($value) {
+		$languages = $this->loadAvailableLanguages();
+		if (!isset($languages[$value])) return 'Invalid language.';
+		return true;
+	}
+
 	public function testForNumeric($value) {
 		if (!is_numeric($value)) return 'This setting has to be a number.';
 		return true;
@@ -2813,28 +2839,28 @@ class Server extends AppModel {
 	public function getFileRules() {
 		$validItems = array(
 				'orgs' => array(
-						'name' => 'Organisation logos',
-						'description' => 'The logo used by an organisation on the event index, event view, discussions, proposals, etc. Make sure that the filename is in the org.png format, where org is the case-sensitive organisation name.',
+						'name' => __('Organisation logos'),
+						'description' => __('The logo used by an organisation on the event index, event view, discussions, proposals, etc. Make sure that the filename is in the org.png format, where org is the case-sensitive organisation name.'),
 						'expected' => array(),
-						'valid_format' => '48x48 pixel .png files',
+						'valid_format' => __('48x48 pixel .png files'),
 						'path' => APP . 'webroot' . DS . 'img' . DS . 'orgs',
 						'regex' => '.*\.(png|PNG)$',
-						'regex_error' => 'Filename must be in the following format: *.png',
+						'regex_error' => __('Filename must be in the following format: *.png'),
 						'files' => array(),
 				),
 				'img' => array(
-						'name' => 'Additional image files',
-						'description' => 'Image files uploaded into this directory can be used for various purposes, such as for the login page logos',
+						'name' => __('Additional image files'),
+						'description' => __('Image files uploaded into this directory can be used for various purposes, such as for the login page logos'),
 						'expected' => array(
 								'MISP.footer_logo' => Configure::read('MISP.footer_logo'),
 								'MISP.home_logo' => Configure::read('MISP.home_logo'),
 								'MISP.welcome_logo' => Configure::read('MISP.welcome_logo'),
 								'MISP.welcome_logo2' => Configure::read('MISP.welcome_logo2'),
 						),
-						'valid_format' => 'text/html if served inline, anything that conveys the terms of use if served as download',
+						'valid_format' => __('text/html if served inline, anything that conveys the terms of use if served as download'),
 						'path' => APP . 'webroot' . DS . 'img' . DS . 'custom',
 						'regex' => '.*\.(png|PNG)$',
-						'regex_error' => 'Filename must be in the following format: *.png',
+						'regex_error' => __('Filename must be in the following format: *.png'),
 						'files' => array(),
 				),
 		);

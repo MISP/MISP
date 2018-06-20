@@ -60,7 +60,7 @@ class RolesController extends AppController {
 					return $this->RestResponse->saveFailResponse('Role', 'admin_add', false, $this->Role->validationErrors, $this->response->type());
 				} else {
 					if (!($this->Session->check('Message.flash'))) {
-						$this->Role->Session->setFlash(__(sprintf('The Role could not be saved. Please, try again.')));
+						$this->Role->Session->setFlash(__('The Role could not be saved. Please, try again.'));
 					}
 				}
 			}
@@ -98,7 +98,7 @@ class RolesController extends AppController {
 					return $this->RestResponse->saveFailResponse('Role', 'admin_edit', false, $this->Role->validationErrors, $this->response->type());
 				} else {
 					if (!($this->Session->check('Message.flash'))) {
-						$this->Role->Session->setFlash(__(sprintf('The Role could not be saved. Please, try again.')));
+						$this->Role->Session->setFlash(__('The Role could not be saved. Please, try again.'));
 					}
 				}
 			}
