@@ -246,6 +246,7 @@ class ContextualMenu {
                     reader.onload = function (evtReader) {
                         document.getElementById(evtInput.target.dataset.relatedStatusId).innerHTML = "File loaded";
                         var content = evtReader.target.result;
+			evtInput.target.value = '';
                         options.event(content);
                     };
                     reader.onerror = function (evtReader) {
@@ -294,6 +295,9 @@ class ContextualMenu {
                 options.event(evt.target.value);
             });
         }
+        $(slider).on('reflectOnSpan', function(evt) {
+            span.innerHTML = evt.target.value; // Update associated span
+        });
         div.appendChild(label);
         div.appendChild(span);
         if (options.applyButton !== undefined) {

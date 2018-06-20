@@ -51,6 +51,8 @@ class EventGraph {
 		this.menu_display = this.init_display_menu();
 		this.menu_filter = this.init_filter_menu();
 		this.menu_canvas = this.init_canvas_menu();
+		this.menu_import = this.init_import_menu();
+		this.menu_history = this.init_history_menu();
 		this.new_edges_for_unreferenced_nodes = [];
 		this.layout = 'default';
 		this.solver = 'barnesHut';
@@ -458,6 +460,152 @@ class EventGraph {
 		return menu_canvas;
 	}
 
+	init_import_menu() {
+		var menu_import = new ContextualMenu({
+			trigger_container: document.getElementById("network-import"),
+			bootstrap_popover: true,
+			style: "z-index: 1",
+			container: document.getElementById("eventgraph_div")
+		});
+		menu_import.add_select_button({
+			id: "select_button_graph_import_export",
+			label: "Export",
+			tooltip: "Export graph",
+			textButton: "Export",
+			event: function(selected_value) {
+				var nodeData = eventGraph.nodes.get();
+				var edgeData = eventGraph.edges.get();
+				var nodePositions = eventGraph.network.getPositions();
+				nodeData.forEach(function(nodeD) {
+					var nodeP = nodePositions[nodeD.id];
+					if (nodeP !== undefined) {
+						nodeD.x = nodeP.x;
+						nodeD.y = nodeP.y;
+					}
+				});
+				
+				var data = { 
+					nodes: nodeData,
+					edges: edgeData,
+					scope: {
+						scope: eventGraph.scope_name,
+						keyType: eventGraph.scope_keyType
+					},
+					physics: { 
+						solver: eventGraph.solver,
+						repulsion: parseInt($('#slider_physic_node_repulsion').val()),
+						enabled: $('#checkbox_physics_enable').prop("checked")
+					},
+					display: {
+						layout: eventGraph.layout,
+						label: dataHandler.selected_type_to_display,
+						charLength: parseInt($("#slider_display_max_char_num").val())
+					}
+				};
+				var jsonData = JSON.stringify(data);
+				console.log(data.nodes);
+				download_file(jsonData);
+			},
+			options: ["JSON"],
+			default: "JSON"
+		});
+		menu_import.add_fileinput({
+			id: "fileinput_graph_import_import",
+			label: "Import",
+			tooltip: "Import from a JSON, Gephy or DOT",
+			event: function(fileContent) {
+				var data = JSON.parse(fileContent);
+				// set options
+				eventGraph.scope_name = data.scope;
+				eventGraph.scope_keyType = data.scope.keyType;
+				eventGraph.update_scope(data.scope.scope)
+
+				var layoutVal;
+				switch(data.display.layout) {
+					case "default":
+						layoutVal = 'default';
+						break;
+					case "directed":
+						layoutVal = 'hierarchical.directed';
+						break;
+					case "hubsize":
+						layoutVal = 'hierarchical.hubsize';
+						break;
+					default:
+						layoutVal = 'default';
+				}
+				$('#select_display_layout').val(layoutVal);
+				eventGraph.change_layout_type(data.display.layout);
+				dataHandler.selected_type_to_display = data.display.label;
+				$('#select_display_object_field').val(data.display.label);
+				$("#slider_display_max_char_num").val(data.display.charLength);
+				$('#slider_display_max_char_num').trigger('reflectOnSpan');
+
+				eventGraph.solver = data.physics.solver;
+				eventGraph.physics_change_solver(data.physics.solver)
+				$('#select_physic_solver').val(data.physics.solver);
+				$('#slider_physic_node_repulsion').val(data.physics.repulsion);
+				$('#slider_physic_node_repulsion').trigger('reflectOnSpan');
+				eventGraph.physics_change_repulsion(data.physics.repulsion)
+				eventGraph.physics_state(data.physics.enabled)
+				$('#checkbox_physics_enable').prop('checked', data.physics.enabled);
+
+				// set data
+				console.log(data.nodes);
+				eventGraph.nodes = new vis.DataSet(data.nodes);
+				eventGraph.edges = new vis.DataSet(data.edges);
+				if (data.display.layout == 'default') {
+					eventGraph.destroy_and_redraw();
+				} else { // node position should be overwritten because the layout engine do not care for hierarchical layout
+					eventGraph.destroy_and_redraw(function() {
+						// re-apply node position
+						var toUpdate = [];
+						data.nodes.forEach(function(node) {
+							toUpdate.push({id: node.id, x: node.x});
+						});
+						eventGraph.nodes.update(toUpdate);
+					});
+				}
+				eventGraph.expand_previous_expansion(data.nodes);
+			}
+		});
+		return menu_import;
+	}
+
+	init_history_menu() {
+		var menu_history= new ContextualMenu({
+			trigger_container: document.getElementById("network-history"),
+			bootstrap_popover: true,
+			style: "z-index: 1",
+			container: document.getElementById("eventgraph_div")
+		});
+		menu_history.add_action_table({
+			id: "table_graph_history_actiontable",
+			container: menu_history.menu,
+			title: "Graph history",
+			header: ["Name", "Owner", "Date"],
+			control_items: [
+				{
+					DOMType: "input",
+					colspan: 3,
+					item_options: {}
+				}
+			],
+			action_buttons: {
+				type: "success",
+				icon: "fa-save",
+			},
+			data: [],
+			preventRowAddition: true,
+			onAddition: function(data) {
+				//fetch_graph_history();
+				console.log(data);
+			}
+		});
+		//menu_share.items["table_graph_share_actiontable"].table.style.minWidth = "550px";
+		return menu_history;
+	}
+
 	get_filtering_rules() {
 		var rules_presence = eventGraph.menu_filter.items["table_attr_presence"].get_data();
 		var rules_tag_presence = eventGraph.menu_filter.items["table_tag_presence"].get_data();
@@ -748,10 +896,12 @@ class EventGraph {
 		if(parent_id === undefined) { return; }
 
 		if (!(parent_id == root_id_attr || parent_id == root_id_object || parent_id == root_id_tag || parent_id == root_id_keyType)) { // Is not a root node
-			var node_group = this.nodes.get(parent_id).group;
+			var parent_node = this.nodes.get(parent_id);
+			var node_group = parent_node.group;
 			if (parent_id === undefined || node_group != 'object') { //  No node selected  or collapse not permitted
 				return
 			}
+			parent_node.expanded = false;
 			var connected_nodes_ids = this.network.getConnectedNodes(parent_id);
 			var connected_nodes = this.nodes.get(connected_nodes_ids);
 			for (var node of connected_nodes) {
@@ -764,6 +914,7 @@ class EventGraph {
 					this.nodes.remove(node.id);
 				}
 			}
+			this.nodes.update(parent_node);
 		} else { // Is a root node
 			this.clusterize(parent_id);
 		}
@@ -777,6 +928,7 @@ class EventGraph {
 			    || parent_node.group != "object") { //  Cannot expand attribute
 				return;
 			}
+			parent_node.expanded = true;
 
 			var objAttributes = parent_node.Attribute;
 			var newNodes = [];
@@ -824,6 +976,7 @@ class EventGraph {
 
 			this.nodes.add(newNodes);
 			this.edges.add(newRelations);
+			this.nodes.update(parent_node);
 
 		} else { // is a cluster
 			if(this.network.getNodesInCluster(parent_id).length > cluster_expand_threshold) {
@@ -833,6 +986,18 @@ class EventGraph {
 			}
 			// expand cluster
 			this.network.openCluster(parent_id);
+		}
+	}
+
+	expand_previous_expansion(nodes) {
+		var that = this;
+		for (var id in nodes) {
+			if (nodes.hasOwnProperty(id)) {
+				var node = nodes[id];
+				if (node.expanded) {
+					eventGraph.expand_node(node.id);
+				}
+			}
 		}
 	}
 
@@ -1039,7 +1204,7 @@ class EventGraph {
 		that.network_loading(false, "");
 	}
 
-	destroy_and_redraw() {
+	destroy_and_redraw(callback) {
 		var that = eventGraph;
 		that.network.destroy();
 		that.network = null;
@@ -1047,6 +1212,9 @@ class EventGraph {
 		that.network = new vis.Network(container, data, that.network_options);
 		that.init_clusterize();
 		that.bind_listener();
+		if (callback !== undefined) {
+			callback();
+		}
 	}
 
 }
@@ -1447,6 +1615,15 @@ function genericPopupCallback(result) {
 }
 
 
+function download_file(jsonData) {
+	var dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(jsonData);
+	var filename = 'graphExport_'+ parseInt(new Date().getTime()/1000) + '.json';
+
+	var a = document.createElement('a');
+	a.setAttribute('href', dataUri);
+	a.setAttribute('download', filename);
+	a.click();
+}
 
 // Called when the user click on the 'Event graph' toggle
 function enable_interactive_graph() {

@@ -9,8 +9,10 @@ class ActionTable {
 		this.onAddition = options.onAddition;
 		this.header.push("Action");
 		this.row_num = this.header.length;
-		this.data = options.data == undefined ? [] : options.data;
+		this.data = options.data === undefined ? [] : options.data;
 		this.control_items = options.control_items;
+		this.action_buttons = options.action_buttons === undefined ? {} : options.action_buttons;
+		this.preventRowAddition = options.preventRowAddition === undefined ? false : options.preventRowAddition;
 
 		this.selects = {};
 
@@ -115,16 +117,28 @@ class ActionTable {
 
 	__add_control_row() {
 		var tr = document.createElement('tr');
-		for (var item of this.control_items) {
+		for (var itemOption of this.control_items) {
 			var td = document.createElement('td');
-			var item = this.__add_control_item(item);
+			var item = this.__add_control_item(itemOption);
+			if (itemOption.colspan !== undefined) {
+				td.colSpan = itemOption.colspan;
+			}
 			td.appendChild(item);
 			tr.appendChild(td);
 		}
 		var td = document.createElement('td');
+		
 		var btn = document.createElement('button');
-		btn.classList.add("btn", "btn-primary");
-		btn.innerHTML = '<span class="fa fa-plus-square"></span>';
+		if (this.action_buttons.type !== undefined) {
+			btn.classList.add("btn", "btn-"+this.action_buttons.type);
+		} else {
+			btn.classList.add("btn", "btn-primary");
+		}
+		if (this.action_buttons.icon !== undefined) {
+			btn.innerHTML = '<span class="fa '+this.action_buttons.icon+'"></span>';
+		} else {
+			btn.innerHTML = '<span class="fa fa-plus-square"></span>';
+		}
 		btn.type = "button";
 
 		var that = this;
@@ -135,13 +149,16 @@ class ActionTable {
 					data.push(elem.value);
 				}
 			}
-			that.add_row(data);
+			if (!that.preventRowAddition) {
+				that.add_row(data);
+			}
 			if (that.onAddition !== undefined) {
 				that.onAddition(data);
 			}
 		});
 
 		td.appendChild(btn);
+
 		tr.appendChild(td);
 		this.thead.appendChild(tr);
 	}
