@@ -1202,7 +1202,7 @@ class ServersController extends AppController {
 		// only keep the last part of the filename, this should prevent directory attacks
 		$filename = basename($this->request->data['Server']['file']['name']);
 		if (!preg_match("/" . $validItems[$type]['regex'] . "/", $filename)) {
-			$this->Flash->error(__($validItems[$type]['regex_error'], true), 'default', array(), 'error');
+			$this->Flash->error($validItems[$type]['regex_error'], 'default', array(), 'error');
 			$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'files'));
 		}
 		if (empty($this->request->data['Server']['file']['tmp_name']) || !is_uploaded_file($this->request->data['Server']['file']['tmp_name'])) {

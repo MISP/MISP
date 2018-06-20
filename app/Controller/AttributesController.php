@@ -733,15 +733,17 @@ class AttributesController extends AppController {
 			$this->Event->saveField('published', 0);
 
 			// everything is done, now redirect to event view
-			$message = 'The ThreatConnect data has been imported.';
+			$message = __('The ThreatConnect data has been imported.');
 			if ($results['successes'] != 0) {
 				$flashType = 'success';
-				$message .= ' ' . $results['successes'] . ' entries imported.';
+				$temp = sprintf(__('%s entries imported.'), $results['successes']);
+				$message .= ' ' . $temp;
 			}
 			if ($results['fails'] != 0) {
-				$message .= ' ' . $results['fails'] . ' entries could not be imported.';
+				$temp = sprintf(__('%s entries could not be imported.'), $results['fails']);
+				$message .= ' ' . $temp;
 			}
-			$this->Flash->{empty($flashType) ? 'error' : $flashType}(__($message));
+			$this->Flash->{empty($flashType) ? 'error' : $flashType}($message);
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
 
 		} else {
