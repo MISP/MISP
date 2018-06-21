@@ -3069,7 +3069,7 @@ class AttributesController extends AppController {
 		if (!$this->Auth->user('Role')['perm_modify_org'] && $this->Auth->user('id') != $attribute['Event']['user_id']) {
 			throw new MethodNotAllowedException('You don\'t have permission to do that.');
 		}
-		if (!$this->_isRest()) $this->Event->insertLock($this->Auth->user(), $attribute['Event']['event_id']);
+		if (!$this->_isRest()) $this->Attribute->Event->insertLock($this->Auth->user(), $attribute['Event']['id']);
 		if ($this->request->is('post')) {
 			if ($attribute['Attribute']['disable_correlation']) {
 				$attribute['Attribute']['disable_correlation'] = 0;
