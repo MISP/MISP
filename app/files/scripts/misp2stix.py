@@ -322,6 +322,7 @@ class StixBuilder(object):
                     break
             pe_object = self.objects2parse['pe'][pe_uuid]
             pe_headers = PEHeaders()
+            pe_file_header = PEFileHeader()
             pe_sections = PESectionList()
             to_ids_pe, pe_dict = self.create_attributes_dict(pe_object.attributes)
             to_ids_list.append(to_ids_pe)
@@ -333,11 +334,11 @@ class StixBuilder(object):
                     if reference.relationship_type == "included-in":
                         pe_sections.append(self.create_pe_section_object(section_dict))
                     elif reference.relationship_type == "header-of":
-                        entropy, header = self.create_pe_file_header(section_dict)
+                        entropy = self.create_pe_file_header(section_dict, pe_file_header)
                         if entropy:
                             pe_headers.entropy = Entropy()
                             pe_headers.entropy.value = entropy
-                        pe_headers.file_header = header
+            pe_headers.file_header = pe_file_header
             win_exec_file.sections = pe_sections
             if 'number-sections' in pe_dict:
                 pe_headers.file_header.number_of_sections = pe_dict['number-sections']
@@ -1418,8 +1419,7 @@ class StixBuilder(object):
         return address_object
 
     @staticmethod
-    def create_pe_file_header(header_dict):
-        pe_file_header = PEFileHeader()
+    def create_pe_file_header(header_dict, pe_file_header):
         hashlist = []
         entropy = header_dict.pop('entropy') if 'entropy' in header_dict else None
         if 'size-in-bytes' in header_dict:
@@ -1430,7 +1430,7 @@ class StixBuilder(object):
         if hashlist:
             pe_file_header.hashes = HashList()
             pe_file_header.hashes.hashes = hashlist
-        return entropy, pe_file_header
+        return entropy
 
     @staticmethod
     def create_pe_section_object(section_dict):
