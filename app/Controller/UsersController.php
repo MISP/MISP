@@ -856,13 +856,13 @@ class UsersController extends AppController {
 	}
 
 	public function login() {
-		$this->Bruteforce = ClassRegistry::init('Bruteforce');
-		if ($this->request->is('post') && isset($this->request->data['User']['email'])) {
-			if ($this->Bruteforce->isBlacklisted($_SERVER['REMOTE_ADDR'], $this->request->data['User']['email'])) {
-				throw new ForbiddenException('You have reached the maximum number of login attempts. Please wait ' . Configure::read('SecureAuth.expire') . ' seconds and try again.');
-			}
-		}
 		if ($this->request->is('post') || $this->request->is('put')) {
+			$this->Bruteforce = ClassRegistry::init('Bruteforce');
+			if (!empty($this->request->data['User']['email'])) {
+				if ($this->Bruteforce->isBlacklisted($_SERVER['REMOTE_ADDR'], $this->request->data['User']['email'])) {
+					throw new ForbiddenException('You have reached the maximum number of login attempts. Please wait ' . Configure::read('SecureAuth.expire') . ' seconds and try again.');
+				}
+			}
 			// Check the length of the user's authkey
 			$userPass = $this->User->find('first', array(
 				'conditions' => array('User.email' => $this->request->data['User']['email']),
