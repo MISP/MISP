@@ -66,6 +66,7 @@ class EventGraph {
 		};
 		this.hiddenNode = new vis.DataSet();
 		this.object_templates = {};
+		this.canvasContext;
 
 		this.cluster_index = 0; // use to get uniq cluster ID
 		this.clusters = [];
@@ -118,6 +119,10 @@ class EventGraph {
 				});
 				drawExtendedEventHull(ctx, nodes, chosen_color, "Event "+event_id);
 			}
+		});
+
+		this.network.on("afterDrawing", function (ctx) {
+			that.canvasContext = ctx;
 		});
 	}
 
@@ -477,56 +482,80 @@ class EventGraph {
 			tooltip: "Export graph",
 			textButton: "Export",
 			event: function(selected_value) {
-				var nodeData = [];
-				var nodePositions = eventGraph.network.getPositions();
-				eventGraph.nodes.get().forEach(function(nodeD) {
-					var nodeP = nodePositions[nodeD.id];
-					//if (nodeP !== undefined && (nodeD.group == 'object' || nodeD.group == 'attribute')) {
-					if (nodeP !== undefined && nodeD.group != 'obj_relation') {
-						var temp = { 
-							id: nodeD.id,
-							x: nodeP.x,
-							y: nodeP.y,
-						};
-						if (nodeD.fixed !== undefined) {
-							temp.fixed = nodeD.fixed;
+				if (selected_value == 'json') {
+					var nodeData = [];
+					var nodePositions = eventGraph.network.getPositions();
+					eventGraph.nodes.get().forEach(function(nodeD) {
+						var nodeP = nodePositions[nodeD.id];
+						//if (nodeP !== undefined && (nodeD.group == 'object' || nodeD.group == 'attribute')) {
+						if (nodeP !== undefined && nodeD.group != 'obj_relation') {
+							var temp = { 
+								id: nodeD.id,
+								x: nodeP.x,
+								y: nodeP.y,
+							};
+							if (nodeD.fixed !== undefined) {
+								temp.fixed = nodeD.fixed;
+							}
+							if (nodeD.expanded !== undefined) {
+								temp.expanded = nodeD.expanded;
+							}
+							nodeData.push(temp);
 						}
-						if (nodeD.expanded !== undefined) {
-							temp.expanded = nodeD.expanded;
+					});
+					var hiddenNodeData = [];
+					eventGraph.hiddenNode.forEach(function(node) {
+						hiddenNodeData.push(node.id);
+					});
+					
+					var data = { 
+						eventId: scope_id,
+						eventLastChange: event_last_change,
+						nodes: nodeData,
+						hiddenNodes: hiddenNodeData,
+						scope: {
+							scope: eventGraph.scope_name,
+							keyType: eventGraph.scope_keyType
+						},
+						physics: { 
+							solver: eventGraph.solver,
+							repulsion: parseInt($('#slider_physic_node_repulsion').val()),
+							enabled: $('#checkbox_physics_enable').prop("checked")
+						},
+						display: {
+							layout: eventGraph.layout,
+							label: dataHandler.selected_type_to_display,
+							charLength: parseInt($("#slider_display_max_char_num").val())
 						}
-						nodeData.push(temp);
-					}
-				});
-				var hiddenNodeData = [];
-				eventGraph.hiddenNode.forEach(function(node) {
-					hiddenNodeData.push(node.id);
-				});
-				
-				var data = { 
-					eventId: scope_id,
-					eventLastChange: event_last_change,
-					nodes: nodeData,
-					hiddenNodes: hiddenNodeData,
-					scope: {
-						scope: eventGraph.scope_name,
-						keyType: eventGraph.scope_keyType
-					},
-					physics: { 
-						solver: eventGraph.solver,
-						repulsion: parseInt($('#slider_physic_node_repulsion').val()),
-						enabled: $('#checkbox_physics_enable').prop("checked")
-					},
-					display: {
-						layout: eventGraph.layout,
-						label: dataHandler.selected_type_to_display,
-						charLength: parseInt($("#slider_display_max_char_num").val())
-					}
-				};
-				var jsonData = JSON.stringify(data);
-				download_file(jsonData);
+					};
+					var jsonData = JSON.stringify(data);
+					download_file(jsonData, 'json');
+				} else if (selected_value == 'png') {
+					var dataURL = eventGraph.canvasContext.canvas.toDataURL();
+					download_file(dataURL, 'png');
+				} else if (selected_value == 'DOT Language') {
+					var hiddenNodeIds = [];
+					eventGraph.hiddenNode.forEach(function(node) {
+						hiddenNodeIds.push(node.id);
+					});
+
+					var nodePositions = eventGraph.network.getPositions();
+					var validNodes = eventGraph.nodes.get({ filter: function (nodeD) {
+						var nodeP = nodePositions[nodeD.id];
+						if (nodeP !== undefined) {
+							return true;
+						}
+						return false;
+					}});
+
+
+					var dotData = convert_to_dot_lang(validNodes, eventGraph.edges, hiddenNodeIds);
+					console.log(dotData);
+					download_file(dotData, 'dot');
+				}
 			},
-			options: ["JSON"],
-			default: "JSON"
+			options: ["json", "png", "DOT Language"],
+			default: "json"
 		});
 		menu_import.add_fileinput({
 			id: "fileinput_graph_import_import",
@@ -1686,10 +1715,20 @@ function genericPopupCallback(result) {
 }
 
 
-function download_file(jsonData) {
-	var dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(jsonData);
-	var filename = 'graphExport_'+ parseInt(new Date().getTime()/1000) + '.json';
+function download_file(data, type) {
+	var dataUri;
+	var filename = 'graphExport_'+ parseInt(new Date().getTime()/1000);
+	if (type == 'json') {
+		dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(data);
+		filename +=  '.json';
 
+	} else if (type == 'png') {
+		dataUri = data;
+		filename +=  '.png';
+	} else if (type == 'dot') {
+		dataUri = 'data:text/x-graphviz;charset=utf-8,' + encodeURIComponent(data);
+		filename +=  '.dot';
+	}
 	var a = document.createElement('a');
 	a.setAttribute('href', dataUri);
 	a.setAttribute('download', filename);
@@ -1750,6 +1789,96 @@ function import_graph_from_json(data) {
 	}
 }
 
+function escapeQuote(str) {
+	return str.replace(/"/g, '\\\"');
+}
+
+function convert_to_dot_lang(nodes, edges, hiddenNodeIds) {
+	var mappingStringDic = new Map(); // in case the id is not an int, map it to a letter
+
+	var dotNodes = [];
+	var validNodeId = {};
+	nodes.forEach(function(node) {
+		if (hiddenNodeIds.indexOf(node.id) != -1) return;
+		var nodeId = node.id;
+		if (node.id != parseInt(node.id, 10)) {
+			nodeId = 'autgenerated_id_'+mappingStringDic.size;
+			mappingStringDic.set(node.id, nodeId);
+		}
+		var dnode = {
+			id: nodeId,
+			shape: node.group == 'object' ? 'box' : 'ellipse',
+			label: escapeQuote(node.label),
+			style: 'filled',
+		};
+		switch(node.group) {
+			case 'object':
+				dnode.fillcolor = '#f3a500';
+				break;
+			case 'tag':
+				dnode.fillcolor = node.color.background;
+				break;
+			case 'keyType':
+				dnode.fillcolor = node.color.background;
+				break;
+			default:
+				dnode.fillcolor = '#f3a500';
+				break;
+		}
+		validNodeId[nodeId] = true;
+		dotNodes.push(dnode);
+	});
+	var dotNodesStr = "";
+	dotNodes.forEach(function(node) {
+		var nodeAttr = "";
+		for (var attr in node) {
+			if (!node.hasOwnProperty(attr)) continue;
+			if (attr=='id') continue;
+			nodeAttr += attr + "=\"" + node[attr] + "\" ";
+		}
+		dotNodesStr += node.id + " ["+nodeAttr+"];\n";
+	});
+
+	var dotEdges = [];
+	edges.forEach(function(edge) {
+		if (edge.to.includes("rootNode:")) return; // drop root nodes
+		if (edge.from.includes("rootNode:")) return; // drop root nodes
+		var from = edge.from;
+		if (edge.from != parseInt(edge.from, 10)) {
+			from = mappingStringDic.get(edge.from);
+		}
+		var to = edge.to;
+		if (edge.to != parseInt(edge.to, 10)) {
+			to = mappingStringDic.get(edge.to);
+		}
+		var dedge = {
+			from: from,
+			to: to,
+			label: edge.label !== undefined ? escapeQuote(edge.label) : "",
+			color: edge.color.color !== undefined ? edge.color.color : "#597ce9",
+			dirType: edge.label !== undefined ? "forward" : "none",
+		};
+		dotEdges.push(dedge);
+	});
+	var dotEdgesStr = "";
+	dotEdges.forEach(function(edge) {
+		if (hiddenNodeIds.indexOf(edge.from) != -1 || hiddenNodeIds.indexOf(edge.to) != -1) return;
+		var edgeAttr = "";
+		for (var attr in edge) {
+			if (!edge.hasOwnProperty(attr)) continue;
+			if (attr=='id' || attr=='from' || attr=='to') continue;
+			edgeAttr += attr + "=\"" + edge[attr] + "\" ";
+		}
+		dotEdgesStr += edge.from + " -> " + edge.to + " ["+edgeAttr+"];\n";
+	});
+
+	var dotLang = "digraph network_event_"+scope_id+" {\n";
+	dotLang += dotNodesStr;
+	dotLang += "\n";
+	dotLang += dotEdgesStr;
+	dotLang += "}";
+	return dotLang;
+}
 
 // Called when the user click on the 'Event graph' toggle
 function enable_interactive_graph() {
