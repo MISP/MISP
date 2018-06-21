@@ -265,19 +265,19 @@ class StixParser():
 
     # Parse STIX objects that we know will give MISP attributes
     def parse_misp_attribute_indicator(self, indicator):
-        misp_attribute = {'category': str(indicator.relationship)}
+        misp_attribute = {'to_ids': True, 'category': str(indicator.relationship)}
         item = indicator.item
         misp_attribute['timestamp'] = self.getTimestampfromDate(item.timestamp)
         if item.observable:
             observable = item.observable
-            self.parse_misp_attribute(observable, misp_attribute)
+            self.parse_misp_attribute(observable, misp_attribute, to_ids=True)
 
     def parse_misp_attribute_observable(self, observable):
-        misp_attribute = {'category': str(observable.relationship)}
+        misp_attribute = {'to_ids': False, 'category': str(observable.relationship)}
         if observable.item:
             self.parse_misp_attribute(observable.item, misp_attribute)
 
-    def parse_misp_attribute(self, observable, misp_attribute):
+    def parse_misp_attribute(self, observable, misp_attribute, to_ids=False):
         try:
             properties = observable.object_.properties
             if properties:
@@ -285,7 +285,7 @@ class StixParser():
                 if type(attribute_value) in (str, int):
                     self.handle_attribute_case(attribute_type, attribute_value, compl_data, misp_attribute)
                 else:
-                    self.handle_object_case(attribute_type, attribute_value, compl_data)
+                    self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=to_ids)
         except AttributeError:
             attribute_dict = {}
             for observables in observable.observable_composition.observables:
@@ -909,6 +909,7 @@ class StixParser():
                 properties = observable.object_.properties
                 misp_attribute = MISPAttribute()
                 misp_attribute.type, misp_attribute.value, misp_attribute.object_relation = self.handle_attribute_type(properties, is_object=True, observable_id=observable.id_)
+                misp_attribute.to_ids = to_ids
                 misp_object.add_attribute(**misp_attribute)
                 self.misp_event.add_object(**misp_object)
         except AttributeError:
@@ -922,7 +923,7 @@ class StixParser():
             attribute = {'to_ids': to_ids}
             self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
         else:
-            self.handle_object_case(attribute_type, attribute_value, compl_data)
+            self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=to_ids)
 
     # Parse indicators of an external STIX document
     def parse_external_indicator(self, indicators):
@@ -942,7 +943,7 @@ class StixParser():
                     self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
                 else:
                     # otherwise, it is a dictionary of attributes, so we build an object
-                    self.handle_object_case(attribute_type, attribute_value, compl_data)
+                    self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=True)
 
     # Parse observables of an external STIX document
     def parse_external_observable(self, observables):
@@ -1005,11 +1006,12 @@ class StixParser():
 
     # The value returned by the indicators or observables parser is a list of dictionaries
     # These dictionaries are the attributes we add in an object, itself added in the MISP event
-    def handle_object_case(self, attribute_type, attribute_value, compl_data, object_uuid=None):
+    def handle_object_case(self, attribute_type, attribute_value, compl_data, to_ids=False, object_uuid=None):
         misp_object = MISPObject(attribute_type)
         if object_uuid:
             misp_object.uuid = object_uuid
         for attribute in attribute_value:
+            attribute['to_ids'] = to_ids
             misp_object.add_attribute(**attribute)
         if type(compl_data) is dict:
             # if some complementary data is a dictionary containing an uuid,
