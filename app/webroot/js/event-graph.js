@@ -534,7 +534,6 @@ class EventGraph {
 			tooltip: "Import from a JSON, Gephy or DOT",
 			event: function(fileContent) {
 				var data = JSON.parse(fileContent);
-				// validate data
 				import_graph_from_json(data);
 			}
 		});
@@ -1377,16 +1376,16 @@ class DataHandler {
 
 	// same event, same timestamp
 	validateImportedFile(data) {
-		if (scope_id == data.scope_id) {
-			showMessage('fail', 'Failed to import file: Event not compatible');
+		if (scope_id != data.eventId) {
+			showMessage('fail', '<b>Failed</b> to import file: Event '+data.eventId+' not compatible with event '+scope_id);
 			return false;
 		}
-		if (parseInt(event_last_change) < parseInt(data.event_last_change)) {
-			showMessage('fail', 'Fail: Imported graph is newer than current event');
+		if (parseInt(event_last_change) < parseInt(data.eventLastChange)) {
+			showMessage('fail', '<b>Fail</b>: Imported graph is newer than current event');
 			return false;
 		}
-		if (parseInt(event_last_change) >= parseInt(data.event_last_change)) {
-			showMessage('success', 'Warning: Imported graph is not the latest version');
+		if (parseInt(event_last_change) >= parseInt(data.eventLastChange)) {
+			showMessage('success', '<b>Warning</b>: Imported graph is not the latest version');
 		}
 		return true;
 	}
