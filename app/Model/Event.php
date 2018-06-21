@@ -1030,7 +1030,7 @@ class Event extends AppModel {
 		// cleanup the array from things we do not want to expose
 		foreach (array('Org', 'org_id', 'orgc_id', 'proposal_email_lock', 'org', 'orgc') as $field) unset($event['Event'][$field]);
 		foreach ($event['Event']['EventTag'] as $kt => $tag) {
-			if (!$tag['Tag']['exportable']) {
+			if ((!$tag['Tag']['exportable']) && (!$server['Server']['internal'])) {
 				unset($event['Event']['EventTag'][$kt]);
 			} else {
 				unset($tag['org_id']);
@@ -1129,7 +1129,7 @@ class Event extends AppModel {
 				}
 			}
 			foreach ($attribute['AttributeTag'] as $kt => $tag) {
-				if (!$tag['Tag']['exportable']) {
+				if ((!$tag['Tag']['exportable']) && (!$server['Server']['internal'])) {
 					unset($attribute['AttributeTag'][$kt]);
 				} else {
 					unset($tag['Tag']['org_id']);
