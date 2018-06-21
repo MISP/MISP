@@ -550,7 +550,6 @@ class EventGraph {
 
 
 					var dotData = convert_to_dot_lang(validNodes, eventGraph.edges, hiddenNodeIds);
-					console.log(dotData);
 					download_file(dotData, 'dot');
 				}
 			},
@@ -1813,7 +1812,7 @@ function convert_to_dot_lang(nodes, edges, hiddenNodeIds) {
 		};
 		switch(node.group) {
 			case 'object':
-				dnode.fillcolor = '#f3a500';
+				dnode.fillcolor = node.icon.color;
 				break;
 			case 'tag':
 				dnode.fillcolor = node.color.background;
