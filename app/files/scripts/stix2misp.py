@@ -837,7 +837,7 @@ class StixParser():
                 header_object.add_attribute(**{"type": "size-in-bytes", "object_relation": "size-in-bytes",
                                                "value": file_header.size_of_optional_header.value})
             self.misp_event.add_object(**header_object)
-            misp_object.add_reference(header_object.uuid, 'included-in')
+            misp_object.add_reference(header_object.uuid, 'header-of')
         if properties.sections:
             for section in properties.sections:
                 section_uuid = self.parse_pe_section(section)
@@ -911,7 +911,7 @@ class StixParser():
                 misp_attribute.type, misp_attribute.value, misp_attribute.object_relation = self.handle_attribute_type(properties, is_object=True, observable_id=observable.id_)
                 misp_attribute.to_ids = to_ids
                 misp_object.add_attribute(**misp_attribute)
-                self.misp_event.add_object(**misp_object)
+            self.misp_event.add_object(**misp_object)
         except AttributeError:
             properties = item.observable.object_.properties if to_ids else item.object_.properties
             self.parse_observable(properties, to_ids)

@@ -41,6 +41,7 @@ from cybox.objects.network_socket_object import NetworkSocket
 from cybox.objects.process_object import Process
 from cybox.objects.whois_object import WhoisEntry, WhoisRegistrants, WhoisRegistrant, WhoisRegistrar, WhoisNameservers
 from cybox.objects.win_service_object import WinService
+from cybox.objects.win_executable_file_object import WinExecutableFile, PEHeaders, PEFileHeader, PESectionList, PESection, PESectionHeaderStruct, Entropy
 from cybox.objects.x509_certificate_object import X509Certificate, X509CertificateSignature, X509Cert, SubjectPublicKey, RSAPublicKey, Validity
 from cybox.objects.account_object import Account, Authentication, StructuredAuthenticationMechanism
 from cybox.objects.custom_object import Custom
@@ -230,6 +231,7 @@ class StixBuilder(object):
         self.ttps = []
         self.resolve_attributes(incident, Tags)
         self.resolve_objects(incident, Tags)
+        self.resolve_objects2parse(incident, Tags)
         self.add_related_indicators(incident)
         if self.history.history_items:
             incident.history = self.history
@@ -263,10 +265,23 @@ class StixBuilder(object):
                 self.handle_attribute(incident, attribute, tags)
 
     def resolve_objects(self, incident, tags):
+        objects_to_parse = defaultdict(dict)
         for misp_object in self.misp_event.objects:
             category = misp_object.get('meta-category')
-            tlp_tags = deepcopy(tags)
             name = misp_object.name
+            if name in ('pe', 'pe-section'):
+                objects_to_parse[name][misp_object.uuid] = misp_object
+                continue
+            elif name == 'file':
+                if misp_object.references:
+                    to_parse = False
+                    for reference in misp_object.references:
+                        if reference.relationship_type == 'included-in' and reference.Object['name'] == "pe":
+                            objects_to_parse[name][misp_object.uuid] = misp_object
+                            to_parse = True
+                            break
+                    if to_parse:
+                        continue
             try:
                 to_ids, observable = self.objects_mapping[name](misp_object.attributes, misp_object.uuid)
             except KeyError:
@@ -286,26 +301,82 @@ class StixBuilder(object):
                         related_object.relationship = "Connected_To"
                         observable.object_.related_objects.append(related_object)
             if to_ids:
-                indicator = Indicator(timestamp=self.get_date_from_timestamp(int(misp_object.timestamp)))
-                indicator.id_ = "{}:MISPObject-{}".format(namespace[1], misp_object.uuid)
-                indicator.producer = self.set_prod(self.orgc_name)
-                for attribute in misp_object.attributes:
-                    tlp_tags = self.merge_tags(tlp_tags, attribute)
-                try:
-                    indicator.handling = self.set_tlp(misp_object.distribution, tlp_tags)
-                except:
-                    pass
-                title = "{} (MISP Object #{})".format(misp_object.name, misp_object.id)
-                indicator.title = title
-                indicator.description = misp_object.comment if misp_object.comment else title
-                indicator.add_indicator_type("Malware Artifacts")
-                indicator.add_valid_time_position(ValidTime())
-                indicator.add_observable(observable)
+                indicator = self.create_indicator(misp_object, observable, tags)
                 related_indicator = RelatedIndicator(indicator, relationship=category)
                 incident.related_indicators.append(related_indicator)
             else:
                 related_observable = RelatedObservable(observable, relationship=category)
                 incident.related_observables.append(related_observable)
+        if objects_to_parse: self.objects2parse = objects_to_parse
+
+    def resolve_objects2parse(self, incident, tags):
+        for uuid, file_object in self.objects2parse['file'].items():
+            category = file_object.get('meta-category')
+            to_ids_file, file_dict = self.create_attributes_dict(file_object.attributes)
+            to_ids_list = [to_ids_file]
+            win_exec_file = WinExecutableFile()
+            self.fill_file_object(win_exec_file, file_dict)
+            for reference in file_object.references:
+                if reference.relationship_type == "included-in" and reference.Object['name'] == "pe":
+                    pe_uuid = reference.referenced_uuid
+                    break
+            pe_object = self.objects2parse['pe'][pe_uuid]
+            pe_headers = PEHeaders()
+            pe_sections = PESectionList()
+            to_ids_pe, pe_dict = self.create_attributes_dict(pe_object.attributes)
+            to_ids_list.append(to_ids_pe)
+            for reference in pe_object.references:
+                if reference.Object['name'] == "pe-section":
+                    pe_section_object = self.objects2parse['pe-section'][reference.referenced_uuid]
+                    to_ids_section, section_dict = self.create_attributes_dict(pe_section_object.attributes)
+                    to_ids_list.append(to_ids_section)
+                    if reference.relationship_type == "included-in":
+                        pe_sections.append(self.create_pe_section_object(section_dict))
+                    elif reference.relationship_type == "header-of":
+                        entropy, header = self.create_pe_file_header(section_dict)
+                        if entropy:
+                            pe_headers.entropy = Entropy()
+                            pe_headers.entropy.value = entropy
+                        pe_headers.file_header = header
+            win_exec_file.sections = pe_sections
+            if 'number-sections' in pe_dict:
+                pe_headers.file_header.number_of_sections = pe_dict['number-sections']
+            if not win_exec_file.file_name and ('internal-filename' in pe_dict or 'original-filename' in pe_dict):
+                try:
+                    win_exec_file.file_name = pe_dict['original-filename']
+                except KeyError:
+                    win_exec_file.file_name = pe_dict['internal-filename']
+            win_exec_file.headers = pe_headers
+            win_exec_file.parent.id_ = "{}:WinExecutableFileObject-{}".format(self.namespace_prefix, uuid)
+            observable = Observable(win_exec_file)
+            observable.id_ = "{}:WinExecutableFile-{}".format(self.namespace_prefix, uuid)
+            to_ids = True if True in to_ids_list else False
+            if to_ids:
+                indicator = self.create_indicator(file_object, observable, tags)
+                related_indicator = RelatedIndicator(indicator, relationship=category)
+                incident.related_indicators.append(related_indicator)
+            else:
+                related_observable = RelatedObservable(observable, relationship=category)
+                incident.related_observables.append(related_observable)
+
+    def create_indicator(self, misp_object, observable, tags):
+        tlp_tags = deepcopy(tags)
+        indicator = Indicator(timestamp=self.get_date_from_timestamp(int(misp_object.timestamp)))
+        indicator.id_ = "{}:MISPObject-{}".format(namespace[1], misp_object.uuid)
+        indicator.producer = self.set_prod(self.orgc_name)
+        for attribute in misp_object.attributes:
+            tlp_tags = self.merge_tags(tlp_tags, attribute)
+        try:
+            indicator.handling = self.set_tlp(misp_object.distribution, tlp_tags)
+        except:
+            pass
+        title = "{} (MISP Object #{})".format(misp_object.name, misp_object.id)
+        indicator.title = title
+        indicator.description = misp_object.comment if misp_object.comment else title
+        indicator.add_indicator_type("Malware Artifacts")
+        indicator.add_valid_time_position(ValidTime())
+        indicator.add_observable(observable)
+        return indicator
 
     def add_related_indicators(self, incident):
         for rindicator in incident.related_indicators:
@@ -718,23 +789,7 @@ class StixBuilder(object):
     def parse_file_object(self, attributes, uuid):
         to_ids, attributes_dict = self.create_attributes_dict(attributes)
         file_object = File()
-        if 'filename' in attributes_dict:
-            # for filename in attributes_dict['filename'][1:]:
-            #     custom_property = CustomProp
-            #     filename.custom_properties.append()
-            self.resolve_filename(file_object, attributes_dict.pop('filename'))
-        if 'path' in attributes_dict:
-            file_object.full_path = attributes_dict.pop('path')
-            file_object.full_path.condition = "Equals"
-        if 'size-in-bytes' in attributes_dict:
-            file_object.size_in_bytes = attributes_dict.pop('size-in-bytes')
-            file_object.size_in_bytes.condition = "Equals"
-        if 'entropy' in attributes_dict:
-            file_object.peak_entropy = attributes_dict.pop('entropy')
-            file_object.peak_entropy.condition = "Equals"
-        for attribute in attributes_dict:
-            if attribute in hash_type_attributes['single']:
-                file_object.add_hash(Hash(hash_value=attributes_dict[attribute], exact=True))
+        self.fill_file_object(file_object, attributes_dict)
         file_object.parent.id_ = "{}:FileObject-{}".format(self.namespace_prefix, uuid)
         file_observable = Observable(file_object)
         file_observable.id_ = "{}:File-{}".format(self.namespace_prefix, uuid)
@@ -1363,11 +1418,70 @@ class StixBuilder(object):
         return address_object
 
     @staticmethod
+    def create_pe_file_header(header_dict):
+        pe_file_header = PEFileHeader()
+        hashlist = []
+        entropy = header_dict.pop('entropy') if 'entropy' in header_dict else None
+        if 'size-in-bytes' in header_dict:
+            pe_file_header.size_of_optional_header = header_dict.pop('size-in-bytes')
+        for key, value in header_dict.items():
+            if key in hash_type_attributes['single']:
+                hashlist.append(Hash(hash_value=value, exact=True))
+        if hashlist:
+            pe_file_header.hashes = HashList()
+            pe_file_header.hashes.hashes = hashlist
+        return entropy, pe_file_header
+
+    @staticmethod
+    def create_pe_section_object(section_dict):
+        section = PESection()
+        hashlist = []
+        if 'entropy' in section_dict:
+            section.entropy = Entropy()
+            section.entropy.value = section_dict.pop('entropy')
+        if 'name' in section_dict or 'size-in-bytes' in section_dict:
+            section.section_header = PESectionHeaderStruct()
+            try:
+                section.section_header.name = section_dict.pop('name')
+            except KeyError:
+                pass
+            try:
+                section.section_header.size_of_raw_data = section_dict.pop('size-in-bytes')
+            except KeyError:
+                pass
+        for key, value in section_dict.items():
+            if key in hash_type_attributes['single']:
+                hashlist.append(Hash(hash_value=value, exact=True))
+        if hashlist:
+            section.header_hashes = HashList()
+            section.header_hashes.hashes = hashlist
+        return section
+
+    @staticmethod
     def create_port_object(port):
         port_object = Port()
         port_object.port_value = port
         port_object.port_value.condition = "Equals"
         return port_object
+
+    def fill_file_object(self, file_object, attributes_dict):
+        if 'filename' in attributes_dict:
+            # for filename in attributes_dict['filename'][1:]:
+            #     custom_property = CustomProp
+            #     filename.custom_properties.append()
+            self.resolve_filename(file_object, attributes_dict.pop('filename'))
+        if 'path' in attributes_dict:
+            file_object.full_path = attributes_dict.pop('path')
+            file_object.full_path.condition = "Equals"
+        if 'size-in-bytes' in attributes_dict:
+            file_object.size_in_bytes = attributes_dict.pop('size-in-bytes')
+            file_object.size_in_bytes.condition = "Equals"
+        if 'entropy' in attributes_dict:
+            file_object.peak_entropy = attributes_dict.pop('entropy')
+            file_object.peak_entropy.condition = "Equals"
+        for key, value in attributes_dict.items():
+            if key in hash_type_attributes['single']:
+                file_object.add_hash(Hash(hash_value=value, exact=True))
 
     @staticmethod
     def get_date_from_timestamp(timestamp):
