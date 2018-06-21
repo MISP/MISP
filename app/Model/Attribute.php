@@ -815,20 +815,20 @@ class Attribute extends AppModel {
 	}
 
 	private $__hexHashLengths = array(
-			'authentihash' => 64,
-			'md5' => 32,
-			'imphash' => 32,
-			'sha1' => 40,
-            'x509-fingerprint-md5' => 32,
-			'x509-fingerprint-sha1' => 40,
-            'x509-fingerprint-sha256' => 64,
-			'pehash' => 40,
-			'sha224' => 56,
-			'sha256' => 64,
-			'sha384' => 96,
-			'sha512' => 128,
-			'sha512/224' => 56,
-			'sha512/256' => 64,
+		'authentihash' => 64,
+		'md5' => 32,
+		'imphash' => 32,
+		'sha1' => 40,
+		'x509-fingerprint-md5' => 32,
+		'x509-fingerprint-sha1' => 40,
+		'x509-fingerprint-sha256' => 64,
+		'pehash' => 40,
+		'sha224' => 56,
+		'sha256' => 64,
+		'sha384' => 96,
+		'sha512' => 128,
+		'sha512/224' => 56,
+		'sha512/256' => 64
 	);
 
 	public function runValidation($value, $type) {
@@ -845,8 +845,8 @@ class Attribute extends AppModel {
 			case 'sha512/224':
 			case 'sha512/256':
 			case 'authentihash':
-            case 'x509-fingerprint-md5':
-            case 'x509-fingerprint-sha256':
+			case 'x509-fingerprint-md5':
+			case 'x509-fingerprint-sha256':
 			case 'x509-fingerprint-sha1':
 				$length = $this->__hexHashLengths[$type];
 				if (preg_match("#^[0-9a-f]{" . $length . "}$#", $value)) {
@@ -875,6 +875,13 @@ class Attribute extends AppModel {
 					if (is_numeric($parts[0])) $returnValue = true;
 				}
 				if (!$returnValue) $returnValue = 'Invalid SSDeep hash. The format has to be blocksize:hash:hash';
+				break;
+			case 'impfuzzy':
+				if (substr_count($value, ':') == 2) {
+					$parts = explode(':', $value);
+					if (is_numeric($parts[0])) $returnValue = true;
+				}
+				if (!$returnValue) $returnValue = 'Invalid impfuzzy format. The format has to be imports:hash:hash';
 				break;
 			case 'http-method':
 				if (preg_match("#(OPTIONS|GET|HEAD|POST|PUT|DELETE|TRACE|CONNECT|PROPFIND|PROPPATCH|MKCOL|COPY|MOVE|LOCK|UNLOCK|VERSION-CONTROL|REPORT|CHECKOUT|CHECKIN|UNCHECKOUT|MKWORKSPACE|UPDATE|LABEL|MERGE|BASELINE-CONTROL|MKACTIVITY|ORDERPATCH|ACL|PATCH|SEARCH)#", $value)) {
@@ -1270,8 +1277,8 @@ class Attribute extends AppModel {
 				$value = preg_replace('/^hxxp/i', 'http', $value);
 				$value = preg_replace('/\[\.\]/', '.' , $value);
 				break;
-            case 'x509-fingerprint-md5':
-            case 'x509-fingerprint-sha256':
+      case 'x509-fingerprint-md5':
+      case 'x509-fingerprint-sha256':
 			case 'x509-fingerprint-sha1':
 				$value = str_replace(':', '', $value);
 				$value = strtolower($value);
@@ -1709,36 +1716,68 @@ class Attribute extends AppModel {
 				}
 			}
 			$correlations = array();
+			$testCorrelations = array();
 			foreach ($correlatingAttributes as $k => $cA) {
 				foreach ($cA as $corr) {
-					$correlations[] = array(
-							$correlatingValues[$k],
-							$event['Event']['id'],
-							$a['id'],
-							$corr['Attribute']['event_id'],
-							$corr['Attribute']['id'],
-							$corr['Event']['org_id'],
-							$corr['Event']['distribution'],
-							$corr['Attribute']['distribution'],
-							$corr['Event']['sharing_group_id'],
-							$corr['Attribute']['sharing_group_id'],
-							$corr['Event']['date'],
-							$corr['Event']['info']
-					);
-					$correlations[] = array(
-							$correlatingValues[$k],
-							$corr['Event']['id'],
-							$corr['Attribute']['id'],
-							$a['event_id'],
-							$a['id'],
-							$event['Event']['org_id'],
-							$event['Event']['distribution'],
-							$a['distribution'],
-							$event['Event']['sharing_group_id'],
-							$a['sharing_group_id'],
-							$event['Event']['date'],
-							$event['Event']['info']
-					);
+					if (Configure::read('MISP.deadlock_avoidance')) {
+						$correlations[] = array(
+							'value' => $correlatingValues[$k],
+							'1_event_id' => $event['Event']['id'],
+							'1_attribute_id' => $a['id'],
+							'event_id' => $corr['Attribute']['event_id'],
+							'attribute_id' => $corr['Attribute']['id'],
+							'org_id' => $corr['Event']['org_id'],
+							'distribution' => $corr['Event']['distribution'],
+							'a_distribution' => $corr['Attribute']['distribution'],
+							'sharing_group_id' => $corr['Event']['sharing_group_id'],
+							'a_sharing_group_id' => $corr['Attribute']['sharing_group_id'],
+							'date' => $corr['Event']['date'],
+							'info' => $corr['Event']['info']
+						);
+						$correlations[] = array(
+							'value' => $correlatingValues[$k],
+							'1_event_id' => $corr['Event']['id'],
+							'1_attribute_id' => $corr['Attribute']['id'],
+							'event_id' => $a['event_id'],
+							'attribute_id' => $a['id'],
+							'org_id' => $event['Event']['org_id'],
+							'distribution' => $event['Event']['distribution'],
+							'a_distribution' => $a['distribution'],
+							'sharing_group_id' => $event['Event']['sharing_group_id'],
+							'a_sharing_group_id' => $a['sharing_group_id'],
+							'date' => $event['Event']['date'],
+							'info' => $event['Event']['info']
+						);
+					} else {
+						$correlations[] = array(
+								$correlatingValues[$k],
+								$event['Event']['id'],
+								$a['id'],
+								$corr['Attribute']['event_id'],
+								$corr['Attribute']['id'],
+								$corr['Event']['org_id'],
+								$corr['Event']['distribution'],
+								$corr['Attribute']['distribution'],
+								$corr['Event']['sharing_group_id'],
+								$corr['Attribute']['sharing_group_id'],
+								$corr['Event']['date'],
+								$corr['Event']['info']
+						);
+						$correlations[] = array(
+								$correlatingValues[$k],
+								$corr['Event']['id'],
+								$corr['Attribute']['id'],
+								$a['event_id'],
+								$a['id'],
+								$event['Event']['org_id'],
+								$event['Event']['distribution'],
+								$a['distribution'],
+								$event['Event']['sharing_group_id'],
+								$a['sharing_group_id'],
+								$event['Event']['date'],
+								$event['Event']['info']
+						);
+					}
 				}
 			}
 			$fields = array(
@@ -1755,9 +1794,21 @@ class Attribute extends AppModel {
 					'date',
 					'info'
 			);
-			if (!empty($correlations)) {
-				$db = $this->getDataSource();
-				$db->insertMulti('correlations', $fields, $correlations);
+			if (Configure::read('MISP.deadlock_avoidance')) {
+				if (!empty($correlations)) {
+					$this->Correlation->saveMany($correlations, array(
+						'atomic' => false,
+						'callbacks' => false,
+						'deep' => false,
+						'validate' => false,
+						'fieldList' => $fields
+					));
+				}
+			} else {
+				if (!empty($correlations)) {
+					$db = $this->getDataSource();
+					$db->insertMulti('correlations', $fields, $correlations);
+				}
 			}
 		}
 	}

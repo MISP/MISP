@@ -90,7 +90,7 @@ class ObjectsController extends AppController {
 	 * POSTing will take the input and validate it against the template
 	 * GETing will return the template
 	 */
-  public function add($eventId, $templateId = false) {
+  public function add($eventId, $templateId = false, $version = false) {
 		if (!$this->userRole['perm_modify']) {
 			throw new MethodNotAllowedException('You don\'t have permissions to create objects.');
 		}
@@ -100,6 +100,29 @@ class ObjectsController extends AppController {
 			'conditions' => array('Event.id' => $eventId)
 		);
 
+		if (!empty($templateId) && Validation::uuid($templateId)) {
+			$conditions = array('ObjectTemplate.uuid' => $templateId);
+			if (!empty($version)) {
+				$conditions['ObjectTemplate.version'] = $version;
+			}
+			$temp = $this->MispObject->ObjectTemplate->find('all', array(
+				'recursive' => -1,
+				'fields' => array('ObjectTemplate.id', 'ObjectTemplate.uuid', 'ObjectTemplate.version'),
+				'conditions' => $conditions
+			));
+			if (!empty($temp)) {
+				$version = 0;
+				foreach ($temp as $tempTemplate) {
+					if ($tempTemplate['ObjectTemplate']['version'] > $version) {
+						$version = $tempTemplate['ObjectTemplate']['version'];
+						$templateId = $tempTemplate['ObjectTemplate']['id'];
+					}
+				}
+				unset($temp);
+			} else {
+				throw new NotFoundException('Invalid template.');
+			}
+		}
 		// Find the event that is to be updated
 		if (Validation::uuid($eventId)) {
 			$eventFindParams['conditions']['Event.uuid'] = $eventId;
@@ -113,6 +136,7 @@ class ObjectsController extends AppController {
 			throw new NotFoundException('Invalid event.');
 		}
 		$eventId = $event['Event']['id'];
+		if (!$this->_isRest()) $this->MispObject->Event->insertLock($this->Auth->user(), $eventId);
 		if (!empty($templateId) || !$this->_isRest()) {
 			$templates = $this->MispObject->ObjectTemplate->find('all', array(
 				'conditions' => array('ObjectTemplate.id' => $templateId),
@@ -289,6 +313,7 @@ class ObjectsController extends AppController {
 		if (empty($event) || (!$this->_isSiteAdmin() &&	$event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
 			throw new NotFoundException('Invalid object.');
 		}
+		if (!$this->_isRest()) $this->MispObject->Event->insertLock($this->Auth->user(), $event['Event']['id']);
 		$template = $this->MispObject->ObjectTemplate->find('first', array(
 			'conditions' => array(
 				'ObjectTemplate.uuid' => $object['Object']['template_uuid'],
@@ -375,10 +400,6 @@ class ObjectsController extends AppController {
 		$this->render('add');
   }
 
-	public function addValueField() {
-
-	}
-
   public function delete($id, $hard = false) {
 		if (!$this->userRole['perm_modify']) {
 			throw new MethodNotAllowedException('You don\'t have permissions to delete objects.');
@@ -404,6 +425,7 @@ class ObjectsController extends AppController {
 		if (!$this->_isSiteAdmin() && ($object['Event']['orgc_id'] != $this->Auth->user('org_id') || !$this->userRole['perm_modify'])) {
 			throw new UnauthorizedException('You do not have permission to do that.');
 		}
+		if (!$this->_isRest()) $this->MispObject->Event->insertLock($this->Auth->user(), $eventId);
 		if ($this->request->is('post')) {
 			if ($this->__delete($id, $hard)) {
 				$message = 'Object deleted.';

@@ -1,4 +1,4 @@
-	<?php
+<?php
 App::uses('AppController', 'Controller');
 
 class GalaxiesController extends AppController {
@@ -64,12 +64,49 @@ class GalaxiesController extends AppController {
 		}
 	}
 
-	public function selectGalaxy($target_id, $target_type='event') {
-		$galaxies = $this->Galaxy->find('all', array('recursive' => -1));
+	public function selectGalaxy($target_id, $target_type='event', $namespace='misp') {
+		$expectedDescription = 'ATT&CK Tactic';
+		$conditions = $namespace == '0' ? array() : array('namespace' => $namespace);
+		if ($namespace == 'mitre-attack') {
+			$conditions[] = array('description !=' => $expectedDescription);
+			$conditions2 = array('namespace' => $namespace);
+			$conditions2[] = array('description' => $expectedDescription);
+
+			$tacticGalaxies = $this->Galaxy->find('all', array(
+				'recursive' => -1,
+				'conditions' => $conditions2,
+			));
+		}
+		$galaxies = $this->Galaxy->find('all', array(
+			'recursive' => -1,
+			'conditions' => $conditions,
+		));
+		if (!empty($tacticGalaxies)) {
+			$galaxies[] = array('Galaxy' => array(
+				'id' => '-1',
+				'uuid' => '-1',
+				'name' => $expectedDescription,
+				'type' => '-1',
+				'icon' => '/img/mitre-attack-icon.ico',
+				'namespace' => 'mitre-attack'
+			));
+		}
 		$this->set('galaxies', $galaxies);
 		$this->set('target_id', $target_id);
 		$this->set('target_type', $target_type);
 		$this->render('ajax/galaxy_choice');
+	}
+
+	public function selectGalaxyNamespace($target_id, $target_type='event') {
+		$namespaces = $this->Galaxy->find('list', array(
+			'recursive' => -1,
+			'fields' => array('namespace', 'namespace'),
+			'group' => array('namespace')
+		));
+		$this->set('namespaces', $namespaces);
+		$this->set('target_id', $target_id);
+		$this->set('target_type', $target_type);
+		$this->render('ajax/galaxy_namespace_choice');
 	}
 
 	public function selectCluster($target_id, $target_type = 'event', $selectGalaxy = false) {

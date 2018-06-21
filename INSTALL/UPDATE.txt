@@ -41,9 +41,9 @@ rm -rf python-stix
 sudo -u www-data git clone https://github.com/CybOXProject/python-cybox.git
 sudo -u www-data git clone https://github.com/STIXProject/python-stix.git
 cd /var/www/MISP/app/files/scripts/python-cybox 
-python setup.py install 
+python3 setup.py install 
 cd /var/www/MISP/app/files/scripts/python-stix 
-python setup.py install
+python3 setup.py install
 
 
 # 4. Update mixbox to accomodate the new STIX dependencies:
@@ -51,10 +51,22 @@ cd /var/www/MISP/app/files/scripts/
 rm -rf mixbox
 sudo -u www-data git clone https://github.com/CybOXProject/mixbox.git
 cd /var/www/MISP/app/files/scripts/mixbox
-python setup.py install
+python3 setup.py install
 
 
-# 5. Update CakeResque and its dependencies
+# 5. install PyMISP
+cd /var/www/MISP/PyMISP
+python3 setup.py install
+
+
+# 6. For RHEL/CentOS: enable python3 for php-fpm
+
+echo 'source scl_source enable rh-python36' >> /etc/opt/rh/rh-php71/sysconfig/php-fpm
+sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php71/php-fpm.d/www.conf
+systemctl restart rh-php71-php-fpm.service
+
+
+# 7. Update CakeResque and its dependencies
 
 cd /var/www/MISP/app
 
@@ -71,21 +83,21 @@ php composer.phar update
 cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResque/Config/config.php
 
 
-# 6. Make sure all file permissions are set correctly
+# 8. Make sure all file permissions are set correctly
 
 find /var/www/MISP -type d -exec chmod g=rx {} \;
 chmod -R g+r,o= /var/www/MISP/
 chown -R www-data:www-data /var/www/MISP/
 
 
-# 7. Restart the CakeResque workers
+# 9. Restart the CakeResque workers
 
 su - www-data -s /bin/bash -c 'bash /var/www/MISP/app/Console/worker/start.sh'
 
 # You can also do this using the MISP application by navigating to the workers tab in the server settings and clicking on the "Restart all workers" button.
 
 
-# 8. Add any new dependencies that might have been added since you've last updated (shown below)
+# 10. Add any new dependencies that might have been added since you've last updated (shown below)
 
-# 8.a requirements for the pubsub optional feature
+# 11. Add requirements for the pubsub optional feature
 pip install pyzmq

@@ -11,17 +11,22 @@
 				'type' => 'text',
 				'class' => 'datepicker'
 		));
-		$initialDistribution = 3;
-		if (Configure::read('MISP.default_event_distribution') != null) {
-			$initialDistribution = Configure::read('MISP.default_event_distribution');
+		if (isset($this->request->data['Event']['distribution'])) {
+			$initialDistribution = $this->request->data['Event']['distribution'];
+		} else {
+			$initialDistribution = 3;
+			if (Configure::read('MISP.default_event_distribution') != null) {
+				$initialDistribution = Configure::read('MISP.default_event_distribution');
+			}
 		}
 		echo $this->Form->input('distribution', array(
 				'options' => array($distributionLevels),
 				'label' => __('Distribution ') . $this->element('formInfo', array('type' => 'distribution')),
 				'selected' => $initialDistribution,
 			));
+			$style = $initialDistribution == 4 ? '' : 'style="display:none"';
 		?>
-			<div id="SGContainer" style="display:none;">
+			<div id="SGContainer" <?php echo $style; ?>>
 		<?php
 		if (!empty($sharingGroups)) {
 			echo $this->Form->input('sharing_group_id', array(
@@ -32,10 +37,16 @@
 		?>
 			</div>
 		<?php
+		if (isset($this->request->data['Event']['threat_level_id'])) {
+			$selected = $this->request->data['Event']['threat_level_id'];
+		} else {
+			$selected = Configure::read('MISP.default_event_threat_level') ? Configure::read('MISP.default_event_threat_level') : '4';
+		}
+
 		echo $this->Form->input('threat_level_id', array(
 				'div' => 'input clear',
 				'label' => __('Threat Level ') . $this->element('formInfo', array('type' => 'threat_level')),
-				'selected' => Configure::read('MISP.default_event_threat_level') ? Configure::read('MISP.default_event_threat_level') : '1',
+				'selected' => $selected,
 				));
 		echo $this->Form->input('analysis', array(
 				'label' => __('Analysis ') . $this->element('formInfo', array('type' => 'analysis')),

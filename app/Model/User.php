@@ -1083,4 +1083,28 @@ class User extends AppModel {
 		$hashed = $passwordHasher->check($password, $currentUser['User']['password']);
 		return $hashed;
 	}
+
+	public function createInitialUser($org_id) {
+		$authKey = $this->generateAuthKey();
+		$admin = array('User' => array(
+			'id' => 1,
+			'email' => 'admin@admin.test',
+			'org_id' => $org_id,
+			'password' => 'admin',
+			'confirm_password' => 'admin',
+			'authkey' => $authKey,
+			'nids_sid' => 4000000,
+			'newsread' => 0,
+			'role_id' => 1,
+			'change_pw' => 1
+		));
+		$this->validator()->remove('password'); // password is too simple, remove validation
+		$this->save($admin);
+		// PostgreSQL: update value of auto incremented serial primary key after setting the column by force
+		if ($dataSource == 'Database/Postgres') {
+			$sql = "SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));";
+			$this->query($sql);
+		}
+		return $authKey;
+	}
 }

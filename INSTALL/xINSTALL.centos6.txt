@@ -35,6 +35,9 @@ yum install gcc git httpd zip redis mysql-server python-devel python-pip libxslt
 # Install PHP 5.6 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php56/
 yum install rh-php56 rh-php56-php-fpm rh-php56-php-devel rh-php56-php-mysqlnd rh-php56-php-mbstring rh-php56-php-xml rh-php56-php-bcmath
 
+# Install Python 3.6 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-python36/
+yum install rh-python36
+
 # rh-php56-php only provided mod_php for httpd24-httpd from SCL
 # if we want to use httpd from CentOS base we can use rh-php56-php-fpm instead
 chkconfig rh-php56-php-fpm on
@@ -69,6 +72,9 @@ git clone https://github.com/MISP/MISP.git
 cd /var/www/MISP
 git config core.filemode false
 
+# Start new shell with python 3 enabled
+scl enable rh-python36 bash
+
 # install Mitre's STIX and its dependencies by running the following commands:
 yum install python-importlib python-lxml python-dateutil python-six
 cd /var/www/MISP/app/files/scripts
@@ -79,17 +85,27 @@ git config core.filemode false
 # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
 UMASK=$(umask)
 umask 0022
-python setup.py install
+python3 setup.py install
 cd /var/www/MISP/app/files/scripts/python-stix
 git config core.filemode false
-python setup.py install
+python3 setup.py install
 
 # install mixbox to accomodate the new STIX dependencies:
 cd /var/www/MISP/app/files/scripts/
 git clone https://github.com/CybOXProject/mixbox.git
 cd /var/www/MISP/app/files/scripts/mixbox
 git config core.filemode false
-python setup.py install
+python3 setup.py install
+
+# install PyMISP
+cd /var/www/MISP/PyMISP
+python3 setup.py install
+
+# Enable python3 for php-fpm
+echo 'source scl_source enable rh-python36' >> /etc/opt/rh/rh-php56/sysconfig/php-fpm
+sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php56/php-fpm.d/www.conf
+service rh-php56-php-fpm restart
+
 umask $UMASK
 
 4/ CakePHP

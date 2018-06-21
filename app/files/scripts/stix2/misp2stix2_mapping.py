@@ -4,6 +4,12 @@ def define_address_type(address):
     else:
         return 'ipv4-addr'
 
+def observable_as(_, attribute_value):
+    return {'0': {'type': 'autonomous-system', 'number': attribute_value}}
+
+def pattern_as(_, attribute_value):
+    return "autonomous-system:number = '{}'".format(attribute_value)
+
 def observable_attachment(_, attribute_value):
     return {'0': {'type': 'artifact', 'payload_bin': attribute_value}}
 
@@ -84,7 +90,8 @@ def observable_ip(attribute_type, attribute_value):
     ip_type = attribute_type.split('-')[1]
     address_type = define_address_type(attribute_value)
     return {'0': {'type': address_type, 'value': attribute_value},
-            '1': {'type': 'network-traffic', '{}_ref'.format(ip_type): '0', 'protocols': ['tcp']}}
+            '1': {'type': 'network-traffic', '{}_ref'.format(ip_type): '0',
+                  'protocols': [address_type.split('-')[0]]}}
 
 def pattern_ip(attribute_type, attribute_value):
     ip_type = attribute_type.split('-')[1]
@@ -216,26 +223,36 @@ mispTypesMapping = {
     'hostname|port': {'observable': observable_hostname_port, 'pattern': pattern_hostname_port},
     'email-reply-to': {'observable': observable_reply_to, 'pattern': pattern_reply_to},
     'attachment': {'observable': observable_attachment, 'pattern': pattern_attachment},
-    'mac-address': {'observable': observable_mac_address, 'pattern': pattern_mac_address}
+    'mac-address': {'observable': observable_mac_address, 'pattern': pattern_mac_address},
+    'AS': {'observable': observable_as, 'pattern': pattern_as}
     #'email-dst-display-name': {'observable': {'0': {'type': 'email-addr', 'display_name': ''}},
     #                           'pattern': 'email-addr:display_name = \'{0}\''},
     #'email-src-display-name': {'observable': {'0': {'type': 'email-addr', 'display_name': ''}},
     #                           'pattern': 'email-addr:display_name = \'{0}\''}
 }
 
-objectsMapping = {'domain-ip': {'pattern': "domain-name:{0} = '{1}' AND "},
-                 'email': {'observable': {'0': {'type': 'email-message'}},
-                           'pattern': "email-{0}:{1} = '{2}' AND "},
-                 'file': {'observable': {'0': {'type': 'file', 'hashes': {}}},
-                          'pattern': "file:{0} = '{1}' AND "},
-                 'ip-port': {'pattern': "network-traffic:{0} = '{1}' AND "},
-                 'registry-key': {'observable': {'0': {'type': 'windows-registry-key'}},
-                                  'pattern': "windows-registry-key:{0} = '{1}' AND "},
-                 'url': {'observable': {'0': {'type': 'url'}},
-                         'pattern': "url:{0} = '{1}' AND "},
-                 'x509': {'observable': {'0': {'type': 'x509-certificate', 'hashes': {}}},
-                          'pattern': "x509-certificate:{0} = '{1}' AND "}
+network_traffic_pattern = "network-traffic:{0} = '{1}' AND "
+network_traffic_src_ref = "src_ref.type = '{0}' AND network-traffic:src_ref.value"
+network_traffic_dst_ref = "dst_ref.type = '{0}' AND network-traffic:dst_ref.value"
+
+objectsMapping = {'asn': {'observable': {'type': 'autonomous-system'},
+                          'pattern': "autonomous-system:{0} = '{1}' AND "},
+                  'domain-ip': {'pattern': "domain-name:{0} = '{1}' AND "},
+                  'email': {'observable': {'0': {'type': 'email-message'}},
+                            'pattern': "email-{0}:{1} = '{2}' AND "},
+                  'file': {'observable': {'0': {'type': 'file', 'hashes': {}}},
+                           'pattern': "file:{0} = '{1}' AND "},
+                  'ip-port': {'pattern': network_traffic_pattern},
+                  'network-socket': {'pattern': network_traffic_pattern},
+                  'process': {'pattern': "process:{0} = '{1}' AND "},
+                  'registry-key': {'observable': {'0': {'type': 'windows-registry-key'}},
+                                   'pattern': "windows-registry-key:{0} = '{1}' AND "},
+                  'url': {'observable': {'0': {'type': 'url'}},
+                          'pattern': "url:{0} = '{1}' AND "},
+                  'x509': {'pattern': "x509-certificate:{0} = '{1}' AND "}
 }
+
+asnObjectMapping = {'asn': 'number', 'description': 'name', 'subnet-announced': 'value'}
 
 domainIpObjectMapping = {'ip-dst': 'resolves_to_refs[*].value', 'domain': 'value'}
 
@@ -252,13 +269,20 @@ emailObjectMapping = {'email-body': {'email_type': 'message', 'stix_type': 'body
 
 fileMapping = {'hashes': "hashes.'{0}'", 'size-in-bytes': 'size', 'filename': 'name', 'mime-type': 'mime_type'}
 
-ipPortObjectMapping = {'ip-dst': "dst_ref.type = '{0}' AND network-traffic:dst_ref.value",
+ipPortObjectMapping = {'ip-dst': network_traffic_dst_ref,
                        'port': {'src-port': 'src_port', 'dst-port': 'dst_port'},
                        'datetime': {'first-seen': 'start', 'last-seen': 'end'},
                        'domain': 'value'}
 
-regkeyMapping = {'text': {'data-type': 'data_type', 'data': 'data', 'name': 'name'},
-                 'datetime': 'modified', 'regkey': 'key'}
+networkSocketMapping = {'address-family': 'address_family', 'domain-family': 'protocol_family',
+                        'protocol': 'protocols', 'src-port': 'src_port', 'dst-port': 'dst_port',
+                        'ip-src': network_traffic_src_ref, 'ip-dst': network_traffic_dst_ref,
+                        'hostname-src': network_traffic_src_ref, 'hostname-dst': network_traffic_dst_ref}
+
+processMapping = {'name': 'name', 'pid': 'pid', 'creation-time': 'created'}
+
+regkeyMapping = {'data-type': 'data_type', 'data': 'data', 'name': 'name',
+                 'last-modified': 'modified', 'key': 'key'}
 
 urlMapping = {'url': 'value', 'domain': 'value', 'port': 'dst_port'}
 

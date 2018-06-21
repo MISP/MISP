@@ -7,7 +7,7 @@
 			$aClass = $full ? 'tagFirstHalf' : 'tag';
 			$aText = h($tag['Tag']['name']);
 			$aSearchTagUrl = $baseurl . '/events/index/searchtag: ' . h($tag['Tag']['id']);
-			$span1 = sprintf('<a href"%s" style="%s" class="%s">%s</a>', $aSearchTagUrl, $aStyle, $aClass, $aText);
+			$span1 = sprintf('<a href="%s" style="%s" class="%s">%s</a>', $aSearchTagUrl, $aStyle, $aClass, $aText);
 			$span2 = '';
 			if ($full) {
 				$spanClass = "tagSecondHalf useCursorPointer noPrint";

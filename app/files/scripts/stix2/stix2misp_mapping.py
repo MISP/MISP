@@ -41,6 +41,9 @@ def parse_filename_hash(observable, attribute_type):
 def parse_malware_sample(observable, _):
     return parse_filename_hash(observable, 'filename|md5')
 
+def parse_number(observable, _):
+    return observable['0'].get('number')
+
 def parse_port(observable, _):
     return observable
 
@@ -102,13 +105,19 @@ misp_types_mapping = {
     'hostname|port': parse_hostname_port,
     'email-reply-to': parse_value,
     'attachment': parse_attachment,
-    'mac-address': parse_value
+    'mac-address': parse_value,
+    'AS': parse_number
 }
 
+address_family_attribute_mapping = {'type': 'text','relation': 'address-family'}
+as_number_attribute_mapping = {'type': 'AS', 'relation': 'asn'}
+asn_description_attribute_mapping = {'type': 'text', 'relation': 'description'}
+asn_subnet_attribute_mapping = {'type': 'ip-src', 'relation': 'subnet-announced'}
 cc_attribute_mapping = {'type': 'email-dst', 'relation': 'cc'}
 data_attribute_mapping = {'type': 'text', 'relation': 'data'}
 data_type_attribute_mapping = {'type': 'text', 'relation': 'data-type'}
 domain_attribute_mapping = {'type': 'domain', 'relation': 'domain'}
+domain_family_attribute_mapping = {'type': 'text', 'relation': 'domain-family'}
 dst_port_attribute_mapping = {'type': 'port', 'relation': 'dst-port'}
 email_date_attribute_mapping = {'type': 'datetime', 'relation': 'send-date'}
 email_subject_attribute_mapping = {'type': 'email-subject', 'relation': 'subject'}
@@ -119,12 +128,16 @@ issuer_attribute_mapping = {'type': 'text', 'relation': 'issuer'}
 key_attribute_mapping = {'type': 'regkey', 'relation': 'key'}
 mime_type_attribute_mapping = {'type': 'mime-type', 'relation': 'mimetype'}
 modified_attribute_mapping = {'type': 'datetime', 'relation': 'last-modified'}
+pid_attribute_mapping = {'type': 'text', 'relation': 'pid'}
+process_creation_time_mapping = {'type': 'datetime', 'relation': 'creation-time'}
+process_name_mapping = {'type': 'text', 'relation': 'name'}
 regkey_name_attribute_mapping = {'type': 'text', 'relation': 'name'}
 reply_to_attribute_mapping = {'type': 'email-reply-to', 'relation': 'reply-to'}
 serial_number_attribute_mapping = {'type': 'text', 'relation': 'serial-number'}
 size_attribute_mapping = {'type': 'size-in-bytes', 'relation': 'size-in-bytes'}
 src_port_attribute_mapping = {'type': 'port', 'relation': 'src-port'}
 start_datetime_attribute_mapping = {'type': 'datetime', 'relation': 'first-seen'}
+state_attribute_mapping = {'type': 'text', 'relation': 'state'}
 to_attribute_mapping = {'type': 'email-dst', 'relation': 'to'}
 url_attribute_mapping = {'type': 'url', 'relation': 'url'}
 url_port_attribute_mapping = {'type': 'port', 'relation': 'port'}
@@ -139,6 +152,13 @@ x509_subject_attribute_mapping = {'type': 'text', 'relation': 'subject'}
 x509_version_attribute_mapping = {'type': 'text', 'relation': 'version'}
 x509_vna_attribute_mapping = {'type': 'datetime', 'relation': 'validity-not-after'} # x509 validity not after
 x509_vnb_attribute_mapping = {'type': 'datetime', 'relation': 'validity-not-before'} # x509 validity not before
+
+asn_mapping = {'number': as_number_attribute_mapping,
+               'autonomous-system:number': as_number_attribute_mapping,
+               'name': asn_description_attribute_mapping,
+               'autonomous-system:name': asn_description_attribute_mapping,
+               'ipv4-address:value': asn_subnet_attribute_mapping,
+               'ipv6-address:value': asn_subnet_attribute_mapping}
 
 domain_ip_mapping = {'domain-name': domain_attribute_mapping,
                      'domain-name:value': domain_attribute_mapping,
@@ -158,7 +178,7 @@ email_mapping = {'date': email_date_attribute_mapping,
                  'email-message:additional_header_fields.x_mailer': x_mailer_attribute_mapping,
                  'Reply-To': reply_to_attribute_mapping,
                  'email-message:additional_header_fields.reply_to': reply_to_attribute_mapping,
-                 'email-message:from_ref': {'type': 'email-dst', 'relation': 'from'},
+                 'email-message:from_ref': {'type': 'email-src', 'relation': 'from'},
                  'email-message:body_multipart[*].body_raw_ref.name': {'type': 'email-attachment',
                                                                        'relation': 'attachment'}
                  }
@@ -170,17 +190,34 @@ file_mapping = {'mime_type': mime_type_attribute_mapping,
                 'size': size_attribute_mapping,
                 'file:size': size_attribute_mapping}
 
-ip_port_mapping = {'src_port': src_port_attribute_mapping,
-                   'network-traffic:src_port': src_port_attribute_mapping,
-                   'dst_port': dst_port_attribute_mapping,
-                   'network-traffic:dst_port': dst_port_attribute_mapping,
-                   'start': start_datetime_attribute_mapping,
-                   'network-traffic:start': start_datetime_attribute_mapping,
-                   'end': end_datetime_attribute_mapping,
-                   'network-traffic:end': end_datetime_attribute_mapping,
-                   'value': domain_attribute_mapping,
-                   'domain-name:value': domain_attribute_mapping,
-                   'network-traffic:dst_ref.value': ip_attribute_mapping}
+network_traffic_mapping = {'src_port': src_port_attribute_mapping,
+                           'network-traffic:src_port': src_port_attribute_mapping,
+                           'dst_port': dst_port_attribute_mapping,
+                           'network-traffic:dst_port': dst_port_attribute_mapping,
+                           'start': start_datetime_attribute_mapping,
+                           'network-traffic:start': start_datetime_attribute_mapping,
+                           'end': end_datetime_attribute_mapping,
+                           'network-traffic:end': end_datetime_attribute_mapping,
+                           'value': domain_attribute_mapping,
+                           'domain-name:value': domain_attribute_mapping,
+                           'network-traffic:dst_ref.value': ip_attribute_mapping,
+                           'address_family': address_family_attribute_mapping,
+                           "network-traffic:extensions.'socket-ext'.address_family": address_family_attribute_mapping,
+                           'protocol_family': domain_family_attribute_mapping,
+                           "network-traffic:extensions.'socket-ext'.protocol_family": domain_family_attribute_mapping,
+                           'is_blocking': state_attribute_mapping,
+                           "network-traffic:extensions.'socket-ext'.is_blocking": state_attribute_mapping,
+                           'is_listening': state_attribute_mapping,
+                           "network-traffic:extensions.'socket-ext'.is_listening": state_attribute_mapping}
+
+process_mapping = {'name': process_name_mapping,
+                   'process:name': process_name_mapping,
+                   'pid': pid_attribute_mapping,
+                   'process:pid': pid_attribute_mapping,
+                   'created': process_creation_time_mapping,
+                   'process:created': process_creation_time_mapping,
+                   'process:parent_ref': {'type': 'text', 'relation': 'parent-pid'},
+                   'process:child_refs': {'type': 'text', 'relation': 'child-pid'}}
 
 regkey_mapping = {'data': data_attribute_mapping,
                   'windows-registry-key:data': data_attribute_mapping,
@@ -248,6 +285,14 @@ def fill_pattern_attributes(pattern, object_mapping):
         attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
                            'value': p_value[1:-1]})
     return attributes
+
+def observable_asn(observable):
+    attributes = []
+    fill_observable_attributes(attributes, observable, asn_mapping)
+    return attributes
+
+def pattern_asn(pattern):
+    return fill_pattern_attributes(pattern, asn_mapping)
 
 def observable_domain_ip(observable):
     attributes = []
@@ -345,18 +390,58 @@ def observable_ip_port(observable):
         attributes.append({'type': 'ip-dst', 'object_relation': 'ip',
                            'value': observable['0'].get('value')})
         observable_part = dict(observable['1'])
-        fill_observable_attributes(attributes, observable_part, ip_port_mapping)
+        fill_observable_attributes(attributes, observable_part, network_traffic_mapping)
         try:
             observable_part = dict(observable['2'])
         except:
             return attributes
     else:
         observable_part = dict(observable['0'])
-    fill_observable_attributes(attributes, observable_part, ip_port_mapping)
+    fill_observable_attributes(attributes, observable_part, network_traffic_mapping)
     return attributes
 
 def pattern_ip_port(pattern):
-    return fill_pattern_attributes(pattern, ip_port_mapping)
+    return fill_pattern_attributes(pattern, network_traffic_mapping)
+
+def observable_process(observable):
+    attributes = []
+    observable_object = observable['0'] if len(observable) == 1 else parse_process_observable(observable)
+    try:
+        parent_key = observable_object.pop('parent_ref')
+        attributes.append({'type': 'text', 'value': observable[parent_key]['pid'], 'object_relation': 'parent-pid'})
+    except:
+        pass
+    try:
+        children_keys = observable_object.pop('child_refs')
+        for key in children_keys:
+            attributes.append({'type': 'text', 'value': observable[key]['pid'], 'object_relation': 'child-pid'})
+    except:
+        pass
+    fill_observable_attributes(attributes, observable_object, process_mapping)
+    return attributes
+
+def parse_process_observable(observable):
+    for key in observable:
+        observable_object = observable[key]
+        if observable_object['type'] == 'process' and ('parent_ref' in observable_object or 'child_refs' in observable_object):
+            return observable_object
+
+def pattern_process(pattern):
+    attributes = []
+    for p in pattern:
+        p_type, p_value = p.split(' = ')
+        try:
+            mapping = process_mapping[p_type]
+        except:
+            continue
+        if p_type == 'process:child_refs':
+            for value in p_value[1:-1].split(','):
+                attribute.append({'type': mapping['type'], 'value': value.strip(),
+                                 'object_relation': mapping['relation']})
+        else:
+            attributes.append({'type': mapping['type'], 'value': p_value,
+                               'object_relation': mapping['relation']})
+    return attributes
 
 def observable_regkey(observable):
     attributes = []
@@ -385,6 +470,68 @@ def pattern_regkey(pattern):
             continue
         attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
                            'value': p_value.replace('\\\\', '\\')[1:-1]})
+    return attributes
+
+def observable_socket(observable):
+    observable_object = observable['0'] if len(observable) == 1 else parse_socket_observable(observable)
+    try:
+        extension = observable_object.pop('extensions')
+        if 'socket-ext' in extension:
+            attributes = parse_socket_extension(extension['socket-ext'])
+    except:
+        attributes = []
+    for element in observable_object:
+        if element in ('src_ref', 'dst_ref'):
+            element_object = observable[observable_object[element]]
+            if 'domain-name' in element_object['type']:
+                attribute_type = 'hostname'
+                relation = 'hostname-{}'.format(element.split('_')[0])
+            else:
+                attribute_type = relation = "ip-{}".format(element.split('_')[0])
+            attributes.append({'type': attribute_type, 'object_relation': relation,
+                               'value': element_object['value']})
+            continue
+        try:
+            mapping = network_traffic_mapping[element]
+        except:
+            continue
+        attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                           'value': attribute_value})
+    return attributes
+
+def parse_socket_observable(observable):
+    for key in observable:
+        observable_object = observable[key]
+        if observable_object['type'] == 'network-traffic':
+            return observable_object
+
+def parse_socket_extension(extension):
+    attributes = []
+    for element in extension:
+        try:
+            mapping = network_traffic_mapping[element]
+        except:
+            continue
+        if element in ('is_listening', 'is_blocking'):
+            attribute_value = element.split('_')[1]
+        else:
+            attribute_value = extension['element']
+        attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                           'value': attribute_value})
+    return attributes
+
+def pattern_socket(pattern):
+    attributes = []
+    for p in pattern:
+        p_type, p_value = p.split(' = ')
+        try:
+            mapping = network_traffic_mapping[p_type]
+        except:
+            continue
+        if "network-traffic:extensions.'socket-ext'.is_" in p_type:
+            p_value = p_type.split('_')[1]
+        attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                           'value': p_value})
     return attributes
 
 def observable_url(observable):
@@ -419,10 +566,13 @@ def observable_x509(observable):
 def pattern_x509(pattern):
     return fill_pattern_attributes(pattern, x509_mapping)
 
-objects_mapping = {'domain-ip':{'observable': observable_domain_ip, 'pattern': pattern_domain_ip},
+objects_mapping = {'asn': {'observable': observable_asn, 'pattern': pattern_asn},
+                   'domain-ip': {'observable': observable_domain_ip, 'pattern': pattern_domain_ip},
                    'email': {'observable': observable_email, 'pattern': pattern_email},
                    'file': {'observable': observable_file, 'pattern': pattern_file},
                    'ip-port': {'observable': observable_ip_port, 'pattern': pattern_ip_port},
+                   'network-socket': {'observable': observable_socket, 'pattern': pattern_socket},
+                   'process': {'observable': observable_process, 'pattern': pattern_process},
                    'registry-key': {'observable': observable_regkey, 'pattern': pattern_regkey},
                    'url': {'observable': observable_url, 'pattern': pattern_url},
                    'x509': {'observable': observable_x509, 'pattern': pattern_x509}}

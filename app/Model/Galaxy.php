@@ -189,6 +189,7 @@ class Galaxy extends AppModel{
 			$result = $this->Tag->AttributeTag->save(array('attribute_id' => $target_id, 'tag_id' => $tag_id, 'event_id' => $attribute['Attribute']['event_id']));
 		}
 		if ($result) {
+			$this->Tag->EventTag->Event->insertLock($user, $event['Event']['id']);
 			$event['Event']['published'] = 0;
 			$date = new DateTime();
 			$event['Event']['timestamp'] = $date->getTimestamp();
@@ -207,5 +208,127 @@ class Galaxy extends AppModel{
 			return 'Cluster attached.';
 		}
 		return 'Could not attach the cluster';
+	}
+
+	public function getMitreAttackGalaxyId($type="mitre-enterprise-attack-attack-pattern") {
+		$galaxy = $this->find('first', array(
+				'recursive' => -1,
+				'fields' => 'id',
+				'conditions' => array('Galaxy.type' => $type),
+		));
+		return empty($galaxy) ? 0 : $galaxy['Galaxy']['id'];
+	}
+
+	public function getMitreAttackMatrix() {
+		$killChainOrderEnterprise = array(
+			'initial-access',
+			'execution',
+			'persistence',
+			'privilege-escalation',
+			'defense-evasion',
+			'credential-access',
+			'discovery',
+			'lateral-movement',
+			'collection',
+			'exfiltration',
+			'command-and-control'
+		);
+		$killChainOrderMobile = array(
+			'persistence',
+			'privilege-escalation',
+			'defense-evasion',
+			'credential-access',
+			'discovery',
+			'lateral-movement',
+			'effects', 'collection',
+			'exfiltration',
+			'command-and-control',
+			'general-network-based',
+			'cellular-network-based',
+			'could-based'
+		);
+		$killChainOrderPre = array(
+			'priority-definition-planning',
+			'priority-definition-direction',
+			'target-selection',
+			'technical-information-gathering',
+			'people-information-gathering',
+			'organizational-information-gathering',
+			'technical-weakness-identification',
+			'people-weakness-identification',
+			'organizational-weakness-identification',
+			'adversary-opsec',
+			'establish-&-maintain-infrastructure',
+			'persona-development',
+			'build-capabilities',
+			'test-capabilities',
+			'stage-capabilities',
+			'app-delivery-via-authorized-app-store',
+			'app-delivery-via-other-means',
+			'exploit-via-cellular-network',
+			'exploit-via-internet',
+		);
+
+		$killChainOrders = array(
+			'mitre-enterprise-attack-attack-pattern' => $killChainOrderEnterprise,
+			'mitre-mobile-attack-attack-pattern' => $killChainOrderMobile,
+			'mitre-pre-attack-attack-pattern' => $killChainOrderPre,
+		);
+
+		$expectedDescription = 'ATT&CK Tactic';
+		$expectedNamespace = 'mitre-attack';
+		$conditions = array('Galaxy.description' => $expectedDescription, 'Galaxy.namespace' => $expectedNamespace);
+		$contains = array(
+			'GalaxyCluster' => array('GalaxyElement'),
+		);
+
+		$galaxies = $this->find('all', array(
+				'recursive' => -1,
+				'contain' => $contains,
+				'conditions' => $conditions,
+		));
+
+		$mispUUID = Configure::read('MISP')['uuid'];
+
+		$attackTactic = array(
+			'killChain' => $killChainOrders,
+			'attackTactic' => array(),
+			'attackTags' => array(),
+			'instance-uuid' => $mispUUID
+		);
+
+		foreach ($galaxies as $galaxy) {
+			$galaxyType = $galaxy['Galaxy']['type'];
+			$clusters = $galaxy['GalaxyCluster'];
+			$attackClusters = array();
+			// add cluster if kill_chain is present
+			foreach ($clusters as $cluster) {
+				if (empty($cluster['GalaxyElement'])) {
+					continue;
+				}
+				$toBeAdded = false;
+				$clusterType = $cluster['type'];
+				$galaxyElements = $cluster['GalaxyElement'];
+				foreach ($galaxyElements as $element) {
+					if ($element['key'] == 'kill_chain') {
+						$kc = explode(":", $element['value'])[2];
+						$toBeAdded = true;
+					}
+					if ($element['key'] == 'external_id') {
+						$cluster['external_id'] = $element['value'];
+					}
+				}
+				if ($toBeAdded) {
+					$attackClusters[$kc][] = $cluster;
+					array_push($attackTactic['attackTags'], $cluster['tag_name']);
+				}
+			}
+			$attackTactic['attackTactic'][$galaxyType] = array(
+				'clusters' => $attackClusters,
+				'galaxy' => $galaxy['Galaxy'],
+			);
+		}
+
+		return $attackTactic;
 	}
 }

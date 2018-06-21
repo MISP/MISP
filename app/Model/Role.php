@@ -132,6 +132,13 @@ class Role extends AppModel {
 			'text' => 'Object Template Editor',
 			'readonlyenabled' => false,
 			'title' => 'Create or modify MISP Object templates'
+		),
+		// Urgently needed permission flag to avoid waking up next to a decapitated horse head sent by Enrico
+		'perm_publish_zmq' => array(
+			'id' => 'RolePermPublishZmq',
+			'text' => 'ZMQ publisher',
+			'readonlyenabled' => false,
+			'title' => 'Allow users to publish data to the ZMQ pubsub channel via the publish event to ZMQ button.'
 		)
 	);
 
@@ -213,5 +220,19 @@ class Role extends AppModel {
 			}
     }
     return $results;
-}
+	}
+
+	public function setPublishZmq() {
+		$roles = $this->find('all', array(
+			'recursive' => -1,
+			'conditions' => array(
+				'perm_publish' => 1
+			)
+		));
+		foreach ($roles as $k => $role) {
+			$role['Role']['perm_publish_zmq'] = 1;
+			$this->save($role);
+		}
+		return true;
+	}
 }

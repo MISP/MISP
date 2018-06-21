@@ -148,6 +148,16 @@ class Server extends AppModel {
 							'test' => 'testLive',
 							'type' => 'boolean',
 					),
+					'language' => array(
+							'level' => 0,
+							'description' => 'Select the language MISP should use. The default is english.',
+							'value' => 'eng',
+							'errorMessage' => '',
+							'test' => 'testLanguage',
+							'type' => 'string',
+							'optionsSource' => 'AvailableLanguages',
+							'afterHook' => 'cleanCacheFiles'
+					),
 					'enable_advanced_correlations' => array(
 							'level' => 0,
 							'description' => 'Enable some performance heavy correlations (currently CIDR correlation)',
@@ -826,6 +836,15 @@ class Server extends AppModel {
 						'errorMessage' => '',
 						'test' => null,
 						'type' => 'string',
+					),
+					'deadlock_avoidance' => array(
+							'level' => 1,
+							'description' => 'Only enable this if you have some tools using MISP with extreme high concurency. General performance will be lower as normal as certain transactional queries are avoided in favour of shorter table locks.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
 					)
 			),
 			'GnuPG' => array(
@@ -1867,7 +1886,7 @@ class Server extends AppModel {
 					}
 					if ($jobId) {
 						if ($k % 50 == 0) {
-							$job->id = $jobId;
+							$job->id =  $jobId;
 							$job->saveField('progress', 50 * (($k + 1) / count($proposals)));
 						}
 					}
@@ -2378,6 +2397,22 @@ class Server extends AppModel {
 		return $leafValue;
 	}
 
+	public function loadAvailableLanguages() {
+		$dirs = glob(APP . 'Locale/*', GLOB_ONLYDIR);
+		$languages = array('eng' => 'eng');
+		foreach ($dirs as $k => $dir) {
+			$dir = str_replace(APP . 'Locale' . DS, '', $dir);
+			$languages[$dir] = $dir;
+		}
+		return $languages;
+	}
+
+	public function testLanguage($value) {
+		$languages = $this->loadAvailableLanguages();
+		if (!isset($languages[$value])) return 'Invalid language.';
+		return true;
+	}
+
 	public function testForNumeric($value) {
 		if (!is_numeric($value)) return 'This setting has to be a number.';
 		return true;
@@ -2480,9 +2515,14 @@ class Server extends AppModel {
 
 	public function testBaseURL($value) {
 		// only run this check via the GUI, via the CLI it won't work
-		if (php_sapi_name() == 'cli') return true;
+		if (php_sapi_name() == 'cli') {
+			if (!empty($value) && !preg_match('/^http(s)?:\/\//i', $value)) {
+				return 'Invalid baseurl, please make sure that the protocol is set.';
+			}
+			return true;
+		}
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
-		if ($value != strtolower($this->getProto()) . '://' . $this->getHost()) return false;
+		if ($value != strtolower($this->getProto()) . '://' . $this->getHost()) return 'critical_error##COMMA##block';
 		return true;
 	}
 
@@ -2799,28 +2839,28 @@ class Server extends AppModel {
 	public function getFileRules() {
 		$validItems = array(
 				'orgs' => array(
-						'name' => 'Organisation logos',
-						'description' => 'The logo used by an organisation on the event index, event view, discussions, proposals, etc. Make sure that the filename is in the org.png format, where org is the case-sensitive organisation name.',
+						'name' => __('Organisation logos'),
+						'description' => __('The logo used by an organisation on the event index, event view, discussions, proposals, etc. Make sure that the filename is in the org.png format, where org is the case-sensitive organisation name.'),
 						'expected' => array(),
-						'valid_format' => '48x48 pixel .png files',
+						'valid_format' => __('48x48 pixel .png files'),
 						'path' => APP . 'webroot' . DS . 'img' . DS . 'orgs',
 						'regex' => '.*\.(png|PNG)$',
-						'regex_error' => 'Filename must be in the following format: *.png',
+						'regex_error' => __('Filename must be in the following format: *.png'),
 						'files' => array(),
 				),
 				'img' => array(
-						'name' => 'Additional image files',
-						'description' => 'Image files uploaded into this directory can be used for various purposes, such as for the login page logos',
+						'name' => __('Additional image files'),
+						'description' => __('Image files uploaded into this directory can be used for various purposes, such as for the login page logos'),
 						'expected' => array(
 								'MISP.footer_logo' => Configure::read('MISP.footer_logo'),
 								'MISP.home_logo' => Configure::read('MISP.home_logo'),
 								'MISP.welcome_logo' => Configure::read('MISP.welcome_logo'),
 								'MISP.welcome_logo2' => Configure::read('MISP.welcome_logo2'),
 						),
-						'valid_format' => 'text/html if served inline, anything that conveys the terms of use if served as download',
+						'valid_format' => __('text/html if served inline, anything that conveys the terms of use if served as download'),
 						'path' => APP . 'webroot' . DS . 'img' . DS . 'custom',
 						'regex' => '.*\.(png|PNG)$',
-						'regex_error' => 'Filename must be in the following format: *.png',
+						'regex_error' => __('Filename must be in the following format: *.png'),
 						'files' => array(),
 				),
 		);
@@ -3168,9 +3208,9 @@ class Server extends AppModel {
 		return $readableFiles;
 	}
 
-	public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion) {
+	public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion, &$maecVersion, &$pymispVersion) {
 		$result = array();
-		$expected = array('stix' => '1.2.0.6', 'cybox' => '2.1.0.18.dev0', 'mixbox' => '1.0.3');
+		$expected = array('stix' => '1.2.0.6', 'cybox' => '2.1.0.18.dev0', 'mixbox' => '1.0.3', 'maec' => '4.1.0.13', 'pymisp' => '>2.4.92');
 		// check if the STIX and Cybox libraries are working using the test script stixtest.py
 		$scriptResult = shell_exec('python3 ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
 		$scriptResult = json_decode($scriptResult, true);
@@ -3178,16 +3218,21 @@ class Server extends AppModel {
 			$scriptResult['operational'] = $scriptResult['success'];
 			if ($scriptResult['operational'] == 0) {
 				$diagnostic_errors++;
-				return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']), 'mixbox' => array('expected' => $expected['mixbox']));
+				return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']), 'mixbox' => array('expected' => $expected['mixbox']), 'maec' => array('expected' => $expected['maec']), 'pymisp' => array('expected' => $expected['pymisp']));
 			}
 		} else {
-			return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']), 'mixbox' => array('expected' => $expected['mixbox']));
+			return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']), 'mixbox' => array('expected' => $expected['mixbox']), 'maec' => array('expected' => $expected['maec']), 'pymisp' => array('expected' => $expected['pymisp']));
 		}
 		$result['operational'] = $scriptResult['operational'];
 		foreach ($expected as $package => $version) {
 			$result[$package]['version'] = $scriptResult[$package];
 			$result[$package]['expected'] = $expected[$package];
-			$result[$package]['status'] = $result[$package]['version'] == $result[$package]['expected'] ? 1 : 0;
+			if ($expected[$package][0] === '>') {
+				$expected[$package] = trim($expected[$package], '>');
+				$result[$package]['status'] = (version_compare($result[$package]['version'], $expected[$package]) >= 0) ? 1 : 0;
+			} else {
+				$result[$package]['status'] = $result[$package]['version'] == $result[$package]['expected'] ? 1 : 0;
+			}
 			if ($result[$package]['status'] == 0) $diagnostic_errors++;
 			${$package . 'Version'}[0] = str_replace('$current', $result[$package]['version'], ${$package . 'Version'}[0]);
 			${$package . 'Version'}[0] = str_replace('$expected', $result[$package]['expected'], ${$package . 'Version'}[0]);

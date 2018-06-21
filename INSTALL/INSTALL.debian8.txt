@@ -24,7 +24,7 @@ sudo postfix reload
 Once the system is installed you can perform the following steps:
 
 # Install the dependencies: (some might already be installed)
-sudo apt-get install curl gcc git gnupg-agent make python openssl redis-server sudo vim zip
+sudo apt-get install curl gcc git gnupg-agent make python openssl redis-server sudo vim zip python3
 
 # Install MariaDB (a MySQL fork/alternative)
 sudo apt-get install mariadb-client mariadb-server
@@ -65,20 +65,24 @@ sudo -u www-data git checkout tags/$(git describe --tags `git rev-list --tags --
 sudo -u www-data git config core.filemode false
 
 # install Mitre's STIX and its dependencies by running the following commands:
-sudo apt-get install python-dev python-pip libxml2-dev libxslt1-dev zlib1g-dev
+sudo apt-get install python3-dev python3-pip libxml2-dev libxslt1-dev zlib1g-dev
 cd /var/www/MISP/app/files/scripts
 sudo -u www-data git clone https://github.com/CybOXProject/python-cybox.git
 sudo -u www-data git clone https://github.com/STIXProject/python-stix.git
 cd /var/www/MISP/app/files/scripts/python-cybox
-sudo python setup.py install
+sudo python3 setup.py install
 cd /var/www/MISP/app/files/scripts/python-stix
-sudo python setup.py install
+sudo python3 setup.py install
 
 # install mixbox to accomodate the new STIX dependencies:
 cd /var/www/MISP/app/files/scripts/
 git clone https://github.com/CybOXProject/mixbox.git
 cd /var/www/MISP/app/files/scripts/mixbox
-python setup.py install
+python3 setup.py install
+
+# install PyMISP
+cd /var/www/MISP/PyMISP
+python3 setup.py install
 
 
 4/ CakePHP

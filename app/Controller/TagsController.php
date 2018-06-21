@@ -168,6 +168,17 @@ class TagsController extends AppController {
 			if (isset($this->request->data['Tag']['request'])) $this->request->data['Tag'] = $this->request->data['Tag']['request'];
 			if (!isset($this->request->data['Tag']['colour'])) $this->request->data['Tag']['colour'] = $this->Tag->random_color();
 			if (isset($this->request->data['Tag']['id'])) unset($this->request->data['Tag']['id']);
+			if ($this->_isRest()) {
+				$tag = $this->Tag->find('first', array(
+					'conditions' => array(
+						'Tag.name' => $this->request->data['Tag']['name']
+					),
+					'recursive' => -1
+				));
+				if (!empty($tag)) {
+					return $this->RestResponse->viewData($tag, $this->response->type());
+				}
+			}
 			if ($this->Tag->save($this->request->data)) {
 				if ($this->_isRest()) {
 					$tag = $this->Tag->find('first', array(
@@ -246,8 +257,6 @@ class TagsController extends AppController {
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$this->request->data['Tag']['id'] = $id;
-			if (isset($this->request->data['Tag']['request'])) $this->request->data['Tag'] = $this->request->data['Tag']['request'];
-
 			if ($this->Tag->save($this->request->data)) {
 				if ($this->_isRest()) {
 					$tag = $this->Tag->find('first', array(

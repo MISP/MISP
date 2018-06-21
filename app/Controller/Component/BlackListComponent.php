@@ -59,13 +59,13 @@ class BlackListComponent extends Component {
 					$fails[] = $uuid;
 				}
 			}
-			$message = 'Done. Added ' . count($successes) . ' new entries to the blacklist. ' . count($fails) . ' entries could not be saved.';
+			$message = sprintf(__('Done. Added %d new entries to the blacklist. %d entries could not be saved.'), count($successes), count($fails));
 			if ($rest) {
 				$this->set('result', array('successes' => $successes, 'fails' => $fails));
 				$this->set('message', $message);
 				$this->set('_serialize', array('message', 'result'));
 			} else {
-				$this->controller->Session->setFlash(__($message));
+				$this->controller->Session->setFlash($message);
 				$this->controller->redirect(array('action' => 'index'));
 			}
 		}

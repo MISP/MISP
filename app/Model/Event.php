@@ -403,12 +403,25 @@ class Event extends AppModel {
 		} else {
 			$this->data['Event']['analysis'] = 0;
 		}
+
 		if (!isset($this->data['Event']['threat_level_id'])) $this->data['Event']['threat_level_id'] = Configure::read('MISP.default_event_threat_level') ? Configure::read('MISP.default_event_threat_level') : 4;
 
 		// generate UUID if it doesn't exist
 		if (empty($this->data['Event']['uuid'])) {
 			$this->data['Event']['uuid'] = CakeText::uuid();
 		}
+
+		// Convert event ID to uuid if needed
+		if (!empty($this->data['Event']['extends_uuid']) && is_numeric($this->data['Event']['extends_uuid'])) {
+			$extended_event = $this->find('first', array(
+				'recursive' -1,
+				'conditions' => array('Event.id' => $this->data['Event']['extends_uuid']),
+				'fields' => array('Event.uuid')
+			));
+			if (empty($extended_event)) $this->data['Event']['extends_uuid'] = '';
+			else $this->data['Event']['extends_uuid'] = $extended_event['Event']['uuid'];
+		}
+
 		// generate timestamp if it doesn't exist
 		if (empty($this->data['Event']['timestamp'])) {
 			$date = new DateTime();
@@ -936,7 +949,6 @@ class Event extends AppModel {
 		}
 		$serverModel = ClassRegistry::init('Server');
 		$server = $serverModel->eventFilterPushableServers($event, array($server));
-
 		if (empty($server)) return 403;
 		$server = $server[0];
 		if ($this->checkDistributionForPush($event, $server, $context = 'Event')) {
@@ -1558,14 +1570,14 @@ class Event extends AppModel {
 					${'conditions' . $softDeletable . 's'}['AND'][] = array(
 						'OR' => array(
 							'(SELECT events.org_id FROM events WHERE events.id = ' . $softDeletable . '.event_id)' => $user['org_id'],
-							$softDeletable . '.deleted' => 0
+							$softDeletable . '.deleted LIKE' => 0
 						)
 					);
 				}
 			}
 		} else {
 			foreach ($softDeletables as $softDeletable) {
-				${'conditions' . $softDeletable . 's'}['AND'][$softDeletable . '.deleted'] = 0;
+				${'conditions' . $softDeletable . 's'}['AND'][$softDeletable . '.deleted LIKE'] = 0;
 			}
 		}
 		if ($options['idList'] && !$options['tags']) {
@@ -1694,7 +1706,6 @@ class Event extends AppModel {
 				$event['Event']['event_creator_email'] = $userEmails[$event['Event']['user_id']];
 			}
 			$event = $this->massageTags($event, 'Event', $options['excludeGalaxy']);
-
 			// Let's find all the related events and attach it to the event itself
 			$results[$eventKey]['RelatedEvent'] = $this->getRelatedEvents($user, $event['Event']['id'], $sgids);
 			// Let's also find all the relations for the attributes - this won't be in the xml export though
@@ -1766,26 +1777,29 @@ class Event extends AppModel {
 						}
 					}
 					if (!$flatten && $event['Attribute'][$key]['object_id'] != 0) {
-						if (!empty($event['Object'])) {
-							$event['Object'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['Object'], $sharingGroupData);
-							foreach ($event['Object'] as $objectKey => $objectValue) {
-								if (!empty($event['Object'][$objectKey]['Attribute'])) {
-									$event['Object'][$objectKey]['Attribute'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['Object'][$objectKey]['Attribute'], $sharingGroupData);
-									foreach ($event['Object'][$objectKey]['Attribute'] as $akey => $adata) {
-										if ($adata['category'] === 'Financial fraud') {
-											$event['Object'][$objectKey]['Attribute'][$akey] = $this->Attribute->attachValidationWarnings($adata);
-										}
-									}
-								}
-								if ($event['Attribute'][$key]['object_id'] == $objectValue['id']) {
-									$event['Object'][$objectKey]['Attribute'][] = $event['Attribute'][$key];
-								}
+						foreach ($event['Object'] as $objectKey => $object) {
+							if ($object['id'] == $event['Attribute'][$key]['object_id']) {
+								$event['Object'][$objectKey]['Attribute'][] = $event['Attribute'][$key];
+								break;
 							}
 						}
 						unset($event['Attribute'][$key]);
 					}
 				}
 				$event['Attribute'] = array_values($event['Attribute']);
+			}
+			if (!empty($event['Object'])) {
+				$event['Object'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['Object'], $sharingGroupData);
+				foreach ($event['Object'] as $objectKey => $objectValue) {
+					if (!empty($event['Object'][$objectKey]['Attribute'])) {
+						$event['Object'][$objectKey]['Attribute'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['Object'][$objectKey]['Attribute'], $sharingGroupData);
+						foreach ($event['Object'][$objectKey]['Attribute'] as $akey => $adata) {
+							if ($adata['category'] === 'Financial fraud') {
+								$event['Object'][$objectKey]['Attribute'][$akey] = $this->Attribute->attachValidationWarnings($adata);
+							}
+						}
+					}
+				}
 			}
 			if (!empty($event['ShadowAttribute'])) {
 				if ($isSiteAdmin && isset($options['includeFeedCorrelations']) && $options['includeFeedCorrelations']) {
@@ -2384,9 +2398,6 @@ class Event extends AppModel {
 	private function __captureObjects($data, $user) {
 		// First we need to check whether the event or any attributes are tied to a sharing group and whether the user is even allowed to create the sharing group / is part of it
 		if (isset($data['Event']['distribution']) && $data['Event']['distribution'] == 4) {
-			if (isset($data['Event']['SharingGroup']) && !$this->SharingGroup->checkIfAuthorisedToSave($user, $data['Event']['SharingGroup'])) {
-				return false;
-			}
 			$data['Event'] = $this->__captureSGForElement($data['Event'], $user);
 		}
 		if (!empty($data['Event']['Attribute'])) {
@@ -4241,7 +4252,7 @@ class Event extends AppModel {
 						$data = json_encode($data);
 						$result = $this->Module->queryModuleServer('/query', $data, false, 'Enrichment');
 						if (!$result) throw new MethodNotAllowedException($type . ' service not reachable.');
-						if (isset($result['error'])) $this->Session->setFlash($result['error']);
+						//if (isset($result['error'])) $this->Session->setFlash($result['error']);
 						if (!is_array($result)) throw new Exception($result);
 						$attributes = $this->handleModuleResult($result, $attribute['event_id']);
 						foreach ($attributes as $a) {
@@ -4301,5 +4312,10 @@ class Event extends AppModel {
 			$data[$dataType . 'Tag'] = array_values($data[$dataType . 'Tag']);
 		}
 		return $data;
+	}
+
+	public function insertLock($user, $id) {
+		$eventLock = ClassRegistry::init('EventLock');
+		$eventLock->insertLock($user, $id);
 	}
 }

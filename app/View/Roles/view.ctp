@@ -26,7 +26,7 @@
 				foreach ($nameParts as &$p) $p = ucfirst($p);
 				$name = implode(' ', $nameParts);
 				?>
-					<dt><?php echo __($name); ?></dt>
+					<dt><?php echo $name; ?></dt>
 					<dd class="<?php echo $role['Role'][$k] ? 'green' : 'red';?>">
 						<?php echo $role['Role'][$k] ? 'Yes' : 'No'; ?>
 						&nbsp;

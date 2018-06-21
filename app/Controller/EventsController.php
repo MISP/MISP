@@ -926,6 +926,27 @@ class EventsController extends AppController {
 		}
 		$emptyEvent = (empty($event['Object']) && empty($event['Attribute']));
 		$this->set('emptyEvent', $emptyEvent);
+
+		// remove galaxies tags
+		$this->loadModel('GalaxyCluster');
+		$cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
+		foreach ($event['Object'] as $k => $object) {
+			foreach ($object['Attribute'] as $k2 => $attribute){
+				foreach ($attribute['AttributeTag'] as $k3 => $attributeTag) {
+					if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
+						unset($event['Object'][$k]['Attribute'][$k2]['AttributeTag'][$k3]);
+					}
+				}
+			}
+		}
+		foreach ($event['Attribute'] as $k => $attribute) {
+			foreach ($attribute['AttributeTag'] as $k2 => $attributeTag) {
+				if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
+					unset($event['Attribute'][$k]['AttributeTag'][$k2]);
+				}
+			}
+		}
+
 		$params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
 		$this->params->params['paging'] = array($this->modelClass => $params);
 		// workaround to get the event dates in to the attribute relations
@@ -1170,6 +1191,7 @@ class EventsController extends AppController {
 			}
 		}
 		$this->set('currentUri', $attributeUri);
+		$this->set('mitreAttackGalaxyId', $this->Event->GalaxyCluster->Galaxy->getMitreAttackGalaxyId());
 	}
 
 	public function view($id = null, $continue=false, $fromEvent=null) {
@@ -1184,11 +1206,11 @@ class EventsController extends AppController {
 			if ($temp == null) throw new NotFoundException('Invalid event');
 			$id = $temp['Event']['id'];
 		} else if (!is_numeric($id)) {
-			throw new NotFoundException(__('Invalid event id.'));
+			throw new NotFoundException(__('Invalid event'));
 		}
 		$this->Event->id = $id;
 		if (!$this->Event->exists()) {
-			throw new NotFoundException(__('Invalid event.'));
+			throw new NotFoundException(__('Invalid event'));
 		}
 		$conditions = array('eventid' => $id);
 		if (!$this->_isRest()) {
@@ -1609,6 +1631,7 @@ class EventsController extends AppController {
 			$this->Flash->error(__('You are not authorised to do that. Please consider using the \'propose attribute\' feature.'));
 			$this->redirect(array('action' => 'view', $target_id));
 		}
+		$this->Event->insertLock($this->Auth->user(), $target_id);
 		if ($this->request->is('post')) {
 			$source_id = $this->request->data['Event']['source_id'];
 			$to_ids = $this->request->data['Event']['to_ids'];
@@ -1691,6 +1714,7 @@ class EventsController extends AppController {
 				$this->redirect(array('controller' => 'events', 'action' => 'index'));
 			}
 		}
+		if (!$this->_isRest()) $this->Event->insertLock($this->Auth->user(), $id);
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if ($this->_isRest()) {
 				if (isset($this->request->data['response'])) {
@@ -1831,6 +1855,7 @@ class EventsController extends AppController {
 							continue;
 						}
 					}
+					$this->Event->insertLock($this->Auth->user(), $event['Event']['id']);
 					if ($this->Event->quickDelete($event)) {
 						$successes[] = $eid;
 					} else {
@@ -1890,6 +1915,7 @@ class EventsController extends AppController {
 				throw new MethodNotAllowedException('You don\'t have the permission to do that.');
 			}
 		}
+		$this->Event->insertLock($this->Auth->user(), $id);
 		$success = true;
 		$message = '';
 		$errors = array();
@@ -3393,7 +3419,7 @@ class EventsController extends AppController {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event.')), 'status'=>200, 'type' => 'json'));
 		}
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
-			if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
+			if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
 				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
 			}
 		}
@@ -3457,9 +3483,10 @@ class EventsController extends AppController {
 			$this->Event->recursive = -1;
 			$event = $this->Event->read(array(), $id);
 			// org should allow to tag too, so that an event that gets pushed can be tagged locally by the owning org
-			if ((($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id']) || (!$this->userRole['perm_tagger'])) && !$this->_isSiteAdmin()) {
+			if ((($this->Auth->user('org_id') !== $event['Event']['orgc_id']) || (!$this->userRole['perm_tagger'])) && !$this->_isSiteAdmin()) {
 				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
 			}
+			$this->Event->insertLock($this->Auth->user(), $id);
 			$eventTag = $this->Event->EventTag->find('first', array(
 				'conditions' => array(
 					'event_id' => $id,
@@ -3771,6 +3798,7 @@ class EventsController extends AppController {
 			if (!$this->Event->checkIfAuthorised($this->Auth->user(), $id)) {
 				throw new MethodNotAllowedException('Invalid event.');
 			}
+			$this->Event->insertLock($this->Auth->user(), $id);
 			$attributes = json_decode($this->request->data['Attribute']['JsonObject'], true);
 			$default_comment = $this->request->data['Attribute']['default_comment'];
 			$force = $this->request->data['Attribute']['force'];
@@ -4242,6 +4270,7 @@ class EventsController extends AppController {
 				'fields' => array('id'),
 			));
 			if (empty($event)) throw new NotFoundException('Event not found.');
+			$this->Event->insertLock($this->Auth->user(), $event['Event']['id']);
 			$this->Event->id = $data['settings']['event_id'];
 			$date = new DateTime();
 			$this->Event->saveField('timestamp', $date->getTimestamp());
@@ -4536,6 +4565,54 @@ class EventsController extends AppController {
 		});
 		$this->response->type('json');
 		return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+	}
+
+	public function viewMitreAttackMatrix($eventId, $itemType='attribute', $itemId=false) {
+		$this->loadModel('Galaxy');
+
+		$attackTacticData = $this->Galaxy->getMitreAttackMatrix();
+		$attackTactic = $attackTacticData['attackTactic'];
+		$attackTags = $attackTacticData['attackTags'];
+		$killChainOrders = $attackTacticData['killChain'];
+		$instanceUUID = $attackTacticData['instance-uuid'];
+
+		$scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores($eventId, $attackTags);
+		$scoresDataEvent = $this->Event->EventTag->getTagScores($eventId, $attackTags);
+		$scoresData = array();
+		foreach(array_keys($scoresDataAttr['scores'] + $scoresDataEvent['scores']) as $key) {
+			$scoresData[$key] = (isset($scoresDataAttr['scores'][$key]) ? $scoresDataAttr['scores'][$key] : 0) + (isset($scoresDataEvent['scores'][$key]) ? $scoresDataEvent['scores'][$key] : 0);
+		}
+		$maxScore = max($scoresDataAttr['maxScore'], $scoresDataEvent['maxScore']);
+		$scores = $scoresData;
+
+		if ($this->_isRest()) {
+			$json = array('matrix' => $attackTactic, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
+			$this->response->type('json');
+			return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+		} else {
+			if (!$this->request->is('ajax')) {
+				throw new MethodNotAllowedException('Invalid method.');
+			}
+
+			App::uses('ColourGradientTool', 'Tools');
+			$gradientTool = new ColourGradientTool();
+			$colours = $gradientTool->createGradientFromValues($scores);
+
+			$this->set('target_type', $itemType);
+			$this->set('killChainOrders', $killChainOrders);
+			$this->set('attackTactic', $attackTactic);
+			$this->set('scores', $scores);
+			$this->set('maxScore', $maxScore);
+			$this->set('colours', $colours);
+
+			// picking mode
+			if ($itemId !== false) {
+				$this->set('pickingMode', true);
+				$this->set('target_id', $itemId);
+			} else {
+				$this->set('pickingMode', false);
+			}
+		}
 	}
 
 	public function delegation_index() {
@@ -4958,6 +5035,7 @@ class EventsController extends AppController {
 		if (empty($event) || (!$this->_isSiteAdmin() && ($this->Auth->user('org_id') != $event['Event']['orgc_id'] || !$this->userRole['perm_modify']))) {
 			throw new MethodNotAllowedException('Invalid Event');
 		}
+		$this->Event->insertLock($this->Auth->user(), $event['Event']['id']);
 		if ($this->request->is('post')) {
 			$modules = array();
 			foreach ($this->request->data['Event'] as $module => $enabled) {
@@ -4983,6 +5061,37 @@ class EventsController extends AppController {
 			$this->layout = 'ajax';
 			$this->set('modules', $modules);
 			$this->render('ajax/enrich_event');
+		}
+	}
+
+	public function checkLocks($id) {
+		$this->loadModel('EventLock');
+		$event = $this->Event->find('first', array(
+			'recursive' => -1,
+			'conditions' => array('Event.id' => $id),
+			'fields' => array('Event.orgc_id')
+		));
+		$locks = array();
+		if (!empty($event) && ($event['Event']['orgc_id'] == $this->Auth->user('org_id') || $this->_isSiteAdmin())) {
+			$locks = $this->EventLock->checkLock($this->Auth->user(), $id);
+		}
+		if (!empty($locks)) {
+			$temp = $locks;
+			$locks = array();
+			foreach ($temp as $t) {
+				if ($t['User']['id'] !== $this->Auth->user('id')) {
+					if (!$this->_isSiteAdmin() && $t['User']['org_id'] != $this->Auth->user('org_id')) continue;
+					$locks[] = $t['User']['email'];
+				}
+			}
+		}
+		if (!empty($locks)) {
+			$message = sprintf('Warning: Your view on this event might not be up to date as it is currently being edited by: %s', implode(', ', $locks));
+			$this->set('message', $message);
+			$this->layout = false;
+			$this->render('/Events/ajax/event_lock');
+		} else {
+			return $this->RestResponse->viewData(array(), $this->response->type());
 		}
 	}
 }

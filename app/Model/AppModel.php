@@ -34,6 +34,8 @@ class AppModel extends Model {
 
 	private $__redisConnection = false;
 
+	private $__profiler = array();
+
 	public function __construct($id = false, $table = null, $ds = null) {
 		parent::__construct($id, $table, $ds);
 
@@ -61,7 +63,7 @@ class AppModel extends Model {
 
 	public $db_changes = array(
 		1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
-		7 => false, 8 => false, 9 => false
+		7 => false, 8 => false, 9 => false, 10 => false, 11 => false
 	);
 
 	function afterSave($created, $options = array()) {
@@ -143,6 +145,11 @@ class AppModel extends Model {
 			case 8:
 				$this->Server = Classregistry::init('Server');
 				$this->Server->restartWorkers();
+				break;
+			case 10:
+				$this->updateDatabase($command);
+				$this->Role = Classregistry::init('Role');
+				$this->Role->setPublishZmq();
 				break;
 			default:
 				$this->updateDatabase($command);
@@ -901,7 +908,7 @@ class AppModel extends Model {
 				$sqlArray[] = "ALTER TABLE `roles` ADD `restricted_to_site_admin` tinyint(1) NOT NULL DEFAULT 0;";
 				break;
 			case 5:
-				$sqlArray[] = "ALTER TABLE `feeds` ADD `caching_enabled` BOOLEAN NOT NULL DEFAULT 0;";
+				$sqlArray[] = "ALTER TABLE `feeds` ADD `caching_enabled` tinyint(1) NOT NULL DEFAULT 0;";
 				break;
 			case 6:
 				$sqlArray[] = "ALTER TABLE `events` ADD `extends_uuid` varchar(40) COLLATE utf8_bin DEFAULT '';";
@@ -931,6 +938,21 @@ class AppModel extends Model {
 			case 9:
 				$sqlArray[] = 'ALTER TABLE galaxies ADD namespace varchar(255) COLLATE utf8_unicode_ci NOT NULL DEFAULT "misp";';
 				$indexArray[] = array('galaxies', 'namespace');
+				break;
+			case 10:
+				$sqlArray[] = "ALTER TABLE `roles` ADD `perm_publish_zmq` tinyint(1) NOT NULL DEFAULT 0;";
+				break;
+			case 11:
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS event_locks (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`event_id` int(11) NOT NULL,
+					`user_id` int(11) NOT NULL,
+					`timestamp` int(11) NOT NULL DEFAULT 0,
+					PRIMARY KEY (id),
+					INDEX `event_id` (`event_id`),
+					INDEX `user_id` (`user_id`),
+					INDEX `timestamp` (`timestamp`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1294,6 +1316,10 @@ class AppModel extends Model {
 	public function checkVersionRequirements($versionString, $minVersion) {
 		$version = explode('.', $versionString);
 		$minVersion = explode('.', $minVersion);
+		if (count($version) > $minVersion) return true;
+		if (count($version) == 1) {
+			return $minVersion <= $version;
+		}
 		return ($version[0] >= $minVersion[0] && $version[1] >= $minVersion[1] && $version[2] >= $minVersion[2]);
 	}
 
@@ -1327,5 +1353,62 @@ class AppModel extends Model {
 			$db->expression($subQuery)->value
 		);
 		return $conditions;
+	}
+
+	// start a benchmark run for the given bench name
+	public function benchmarkInit($name = 'default') {
+		$this->__profiler[$name]['start'] = microtime(true);
+		if (empty($this->__profiler[$name]['memory_start'])) $this->__profiler[$name]['memory_start'] = memory_get_usage();
+		return true;
+	}
+
+	// calculate the duration from the init time to the current point in execution. Aggregate flagged executions will increment the duration instead of just setting it
+	public function benchmark($name = 'default', $aggregate = false, $memory_chart = false) {
+		if (!empty($this->__profiler[$name]['start'])) {
+			if ($aggregate) {
+				if (!isset($this->__profiler[$name]['duration'])) $this->__profiler[$name]['duration'] = 0;
+				if (!isset($this->__profiler[$name]['executions'])) $this->__profiler[$name]['executions'] = 0;
+				$this->__profiler[$name]['duration'] += microtime(true) - $this->__profiler[$name]['start'];
+				$this->__profiler[$name]['executions']++;
+				$currentUsage = memory_get_usage();
+				if ($memory_chart) {
+					$this->__profiler[$name]['memory_chart'][] = $currentUsage - $this->__profiler[$name]['memory_start'];
+				}
+				if (
+					empty($this->__profiler[$name]['memory_peak']) ||
+					$this->__profiler[$name]['memory_peak'] < ($currentUsage - $this->__profiler[$name]['memory_start'])
+				) {
+					$this->__profiler[$name]['memory_peak'] = $currentUsage - $this->__profiler[$name]['memory_start'];
+				}
+			} else {
+				$this->__profiler[$name]['memory_peak'] = memory_get_usage() - $this->__profiler[$name]['memory_start'];
+				$this->__profiler[$name]['duration'] = microtime(true) - $this->__profiler[$name]['start'];
+			}
+		}
+		return true;
+	}
+
+	// return the results of the benchmark(s). If no name is set all benchmark results are returned in an array.
+	public function benchmarkResult($name = false) {
+		if ($name) {
+			return array($name => $this->__profiler[$name]['duration']);
+		} else {
+			$results = array();
+			foreach ($this->__profiler as $name => $benchmark) {
+				if (!empty($benchmark['duration'])) {
+					$results[$name] = $benchmark;
+					unset($results[$name]['start']);
+					unset($results[$name]['memory_start']);
+				}
+			}
+			return $results;
+		}
+	}
+
+	public function benchmarkCustomAdd($valueToAdd = 0, $name = 'default', $customName = 'custom') {
+		if (empty($this->__profiler[$name]['custom'][$customName])) {
+			$this->__profiler[$name]['custom'][$customName] = 0;
+		}
+		$this->__profiler[$name]['custom'][$customName] += $valueToAdd;
 	}
 }

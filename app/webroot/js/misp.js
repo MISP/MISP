@@ -668,21 +668,21 @@ function multiSelectAction(event, context) {
 				controller: "attributes",
 				camelCase: "Attribute",
 				alias: "attribute",
-				action: "delete",
+				action: "delete"
 			},
 			acceptProposals: {
 				confirmation: "Are you sure you want to accept all selected proposals?",
 				controller: "shadow_attributes",
 				camelCase: "ShadowAttribute",
 				alias: "proposal",
-				action: "accept",
+				action: "accept"
 			},
 			discardProposals: {
 				confirmation: "Are you sure you want to discard all selected proposals?",
 				controller: "shadow_attributes",
 				camelCase: "ShadowAttribute",
 				alias: "proposal",
-				action: "discard",
+				action: "discard"
 			},
 	};
 	var answer = confirm("Are you sure you want to " + settings[context]["action"] + " all selected " + settings[context]["alias"] + "s?");
@@ -696,11 +696,17 @@ function multiSelectAction(event, context) {
 		});
 		$('#' + settings[context]["camelCase"] + 'Ids' + settings[context]["action"].ucfirst()).attr('value', JSON.stringify(selected));
 		var formData = $('#' + settings[context]["action"] + '_selected').serialize();
+		if (context == 'deleteAttributes') {
+			var url = $('#delete_selected').attr('action');
+			console.log(url);
+		} else {
+			var url = "/" + settings[context]["controller"] + "/" + settings[context]["action"] + "Selected/" + event;
+		}
 		$.ajax({
 			data: formData,
 			cache: false,
 			type:"POST",
-			url:"/" + settings[context]["controller"] + "/" + settings[context]["action"] + "Selected/" + event,
+			url: url,
 			success:function (data, textStatus) {
 				updateIndex(event, 'event');
 				var result = handleGenericAjaxResponse(data);
@@ -1040,13 +1046,16 @@ function showMessage(success, message, context) {
 	$("#ajax_" + success + "_container").delay(duration).fadeOut("slow");
 }
 
-function cancelPopoverForm() {
+function cancelPopoverForm(id) {
 	$("#gray_out").fadeOut();
 	$("#popover_form").fadeOut();
 	$("#screenshot_box").fadeOut();
 	$("#confirmation_box").fadeOut();
 	$('#gray_out').fadeOut();
 	$('#popover_form').fadeOut();
+	if (id !== undefined && id !== '') {
+		$(id).fadeOut();
+	}
 }
 
 function activateTagField() {
@@ -1233,11 +1242,18 @@ function openPopup(id) {
 	$(id).fadeIn();
 }
 
+function getMitreMatrixPopup(id) {
+	cancelPopoverForm();
+	getPopup(scope_id + '/' + id, 'events', 'viewMitreAttackMatrix', '', '#popover_form_large');
+}
+
 function getPopup(id, context, target, admin, popupType) {
 	$("#gray_out").fadeIn();
 	var url = "";
 	if (typeof admin !== 'undefined' && admin != '') url+= "/admin";
-	if (context != '') url += "/" + context;
+	if (context != '') {
+		url += "/" + context;
+	}
 	if (target != '') url += "/" + target;
 	if (id != '') url += "/" + id;
 	if (popupType == '' || typeof popupType == 'undefined') popupType = '#popover_form';
@@ -1297,7 +1313,7 @@ function choicePopup(legend, list) {
 		popupHtml += '<div class="popover_choice_main" id ="popover_choice_main">';
 			popupHtml += '<table style="width:100%;" id="MainTable">';
 				popupHtml += '<tbody>';
-					for (var item of list) {
+					for (var item in list) {
 						popupHtml += '<tr style="border-bottom:1px solid black;" class="templateChoiceButton">';
 							popupHtml += '<td role="button" tabindex="0" aria-label="All meta-categories" title="'+item.text+'" style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="'+item.onclick+';">'+item.text+'</td>';
 						popupHtml += '</tr>';
@@ -3072,11 +3088,11 @@ $('.galaxy-toggle-button').click(function() {
 	}
 });
 
-$('.addGalaxy').click(function() {
+function addGalaxyListener() {
 	var target_type = $(this).data('target-type');
 	var target_id = $(this).data('target-id');
-	getPopup(target_type + '/' + target_id, 'galaxies', 'selectGalaxy');
-});
+	getPopup(target_type + '/' + target_id, 'galaxies', 'selectGalaxyNamespace');
+}
 
 function quickSubmitGalaxyForm(event_id, cluster_id) {
 	$('#GalaxyTargetId').val(cluster_id);
@@ -3383,6 +3399,29 @@ $(document).ready(function() {
 		$(this).hide();
 	});
 });
+
+function queryEventLock(event_id, user_org_id) {
+	if (tabIsActive) {
+		$.get( "/events/checkLocks/" + event_id, function(data) {
+			if ($('#event_lock_warning').length != 0) {
+				$('#event_lock_warning').remove();
+			}
+			$('#main-view-container').append(data);
+		});
+	}
+	setTimeout(function() { queryEventLock(event_id, user_org_id); }, 5000);
+}
+
+function checkIfLoggedIn() {
+	if (tabIsActive) {
+		$.get("/users/checkIfLoggedIn", function(data) {
+			if (data.slice(-2) !== 'OK') {
+				window.location.replace(baseurl + "/users/login");
+			}
+		});
+	}
+	setTimeout(function() { checkIfLoggedIn(); }, 5000);
+}
 
 (function(){
     "use strict";
