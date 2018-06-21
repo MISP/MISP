@@ -574,9 +574,9 @@ class EventGraph {
 					// update data
 					dataHandler.fetch_data_and_update(false, function() {
 						eventGraph.nodes.update(data.nodes);
+						eventGraph.expand_previous_expansion(data.nodes);
 						eventGraph.hiddenNode.clear();
 						eventGraph.hideNode(data.hiddenNodes);
-						eventGraph.expand_previous_expansion(data.nodes);
 					});
 				}
 			}
