@@ -4,15 +4,32 @@ class ActionTable {
 		this.options = options;
 		this.id = options.id;
 		this.container = options.container;
+		this.classes = options.classes;
 		this.table_title = options.title;
 		this.header = options.header;
 		this.onAddition = options.onAddition;
+		this.onRemove = options.onRemove;
 		this.header.push("Action");
 		this.row_num = this.header.length;
 		this.data = options.data === undefined ? [] : options.data;
 		this.control_items = options.control_items;
-		this.action_buttons = options.action_buttons === undefined ? {} : options.action_buttons;
-		this.preventRowAddition = options.preventRowAddition === undefined ? false : options.preventRowAddition;
+		this.header_action_button = options.header_action_button === undefined ? {} : options.header_action_button;
+		if (options.header_action_button === undefined) {
+			this.header_action_button_style = this.header_action_button.style === undefined ? {} : this.header_action_button.style;
+			this.additionEnabled = this.header_action_button.additionEnabled === undefined ? false : this.header_action_button.additionEnabled;
+		} else {
+			this.header_action_button_style = {};
+			this.additionEnabled = false;
+		}
+
+		this.row_action_button = options.row_action_button === undefined ? {} : options.row_action_button;
+		if (options.row_action_button === undefined) {
+			this.row_action_button_style = this.row_action_button.style === undefined ? {} : this.row_action_button.style;
+			this.removalEnabled = this.row_action_button.removalEnabled === undefined ? false : this.header_action_button.removalEnabled;
+		} else {
+			this.row_action_button_style = {};
+			this.additionEnabled = false;
+		}
 
 		this.selects = {};
 
@@ -41,6 +58,19 @@ class ActionTable {
 
 	get_data() {
 		return this.data;
+	}
+
+	clear_table() {
+		for (var i in this.data.length) {
+			this.delete_row(i);
+		}
+	}
+
+	set_table_data(data) {
+		this.clear_table();
+		for (var i in data) {
+			this.add_row(data[i]);
+		}
 	}
 
 	add_options(id, values) {
@@ -82,6 +112,11 @@ class ActionTable {
 		this.form = document.createElement('form');
 		this.table = document.createElement('table');
 		this.table.classList.add("table", "table-bordered", "action-table");
+		if (this.classes !== undefined) {
+			for (var i in this.classes) {
+				this.table.classList.add(this.classes[i]);
+			}
+		}
 		this.thead = document.createElement('thead');
 		this.tbody = document.createElement('tbody');
 		var trHead = document.createElement('tr');
@@ -127,15 +162,19 @@ class ActionTable {
 			tr.appendChild(td);
 		}
 		var td = document.createElement('td');
-		
+
 		var btn = document.createElement('button');
-		if (this.action_buttons.type !== undefined) {
-			btn.classList.add("btn", "btn-"+this.action_buttons.type);
+		var header_action_button_style = this.header_action_button.style === undefined ? {} : this.header_action_button.style;
+		if (header_action_button_style.type !== undefined) {
+			btn.classList.add("btn", "btn-"+header_action_button_style.type);
 		} else {
 			btn.classList.add("btn", "btn-primary");
 		}
-		if (this.action_buttons.icon !== undefined) {
-			btn.innerHTML = '<span class="fa '+this.action_buttons.icon+'"></span>';
+		if (header_action_button_style.tooltip !== undefined) {
+			btn.title = header_action_button_style.tooltip;
+		}
+		if (header_action_button_style.icon !== undefined) {
+			btn.innerHTML = '<span class="fa '+header_action_button_style.icon+'"></span>';
 		} else {
 			btn.innerHTML = '<span class="fa fa-plus-square"></span>';
 		}
@@ -149,11 +188,11 @@ class ActionTable {
 					data.push(elem.value);
 				}
 			}
-			if (!that.preventRowAddition) {
+			if (that.additionEnabled) {
 				that.add_row(data);
 			}
 			if (that.onAddition !== undefined) {
-				that.onAddition(data);
+				that.onAddition(data, that);
 			}
 		});
 
@@ -183,17 +222,69 @@ class ActionTable {
 	}
 
 	__add_action_button(tr) {
+		var that = this;
 		var td = document.createElement('td');
 		var btn = document.createElement('button');
 		btn.classList.add("btn", "btn-danger");
 		btn.innerHTML = '<span class="fa fa-trash-o"></span>';
 		btn.type = "button";
 		btn.setAttribute('rowID', tr.id);
+		if (that.row_action_button_style.tooltip !== undefined) {
+			btn.title = that.row_action_button_style.tooltip;
+		}
+		if (that.row_action_button_style.style !== undefined) {
+			btn.style = that.row_action_button_style.style;
+		}
 		var that = this;
 		btn.addEventListener("click", function(evt) {
-			that.delete_row(this.getAttribute('rowID'));
+			if (that.onRemove !== undefined) {
+				var tr = document.getElementById(this.getAttribute('rowID'));
+				var data = that.__get_array_from_DOM_row(tr);
+				that.onRemove(data, that);
+			}
+			if (that.removalEnabled) {
+				that.delete_row(this.getAttribute('rowID'));
+			}
 		});
 		td.appendChild(btn);
+
+		if (that.row_action_button.others !== undefined) {
+			for (var i in that.row_action_button.others) {
+				var newBtnOptions = that.row_action_button.others[i];
+
+				var btn_style = newBtnOptions.style !== undefined ? newBtnOptions.style : {};
+				var btn = document.createElement('button');
+				btn.type = "button";
+				if (btn_style.type !== undefined) {
+					btn.classList.add("btn", "btn-"+btn_style.type);
+				} else {
+					btn.classList.add("btn", "btn-primary");
+				}
+				if (btn_style.icon !== undefined) {
+					btn.innerHTML = '<span class="fa '+btn_style.icon+'"></span>';
+				} else {
+					btn.innerHTML = '<span class="fa fa-check"></span>';
+				}
+				if (btn_style.title !== undefined) {
+					btn.title = btn_style.title;
+				}
+				if (btn_style.style !== undefined) {
+					btn.style = btn_style.style+"margin-left: 3px";
+				} else {
+					btn.style = "margin-left: 3px";
+				}
+				btn.setAttribute('rowID', tr.id);
+				if (newBtnOptions.event !== undefined) {
+					btn.addEventListener("click", function(evt) {
+						var tr = document.getElementById(this.getAttribute('rowID'));
+						var data = that.__get_array_from_DOM_row(tr);
+						newBtnOptions.event(data, that);
+					});
+				}
+				td.appendChild(btn);
+			}
+		}
+
 		tr.appendChild(td);
 	}
 
@@ -208,6 +299,12 @@ class ActionTable {
 		var input = document.createElement('input');
 		input.classList.add("form-group");
 		input.id = options.id !== undefined ? options.id : 'actionTable_controlSelect_'+this.__get_uniq_index();
+		if (options.style !== undefined) {
+			input.style = options.style;
+		}
+		if (options.placeholder !== undefined) {
+			input.placeholder = options.placeholder;
+		}
 		if (options.typeahead !== undefined) {
 			var typeaheadOption = options.typeahead;
 			$('#'+input.id).typeahead(typeaheadOption);

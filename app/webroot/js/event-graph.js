@@ -332,7 +332,7 @@ class EventGraph {
 				{
 					DOMType: "select",
 					item_options: {
-						options: ["Contains", "Do not contain"]
+						options: ["Contains", "Do not contain"],
 					}
 				},
 				{
@@ -535,50 +535,7 @@ class EventGraph {
 			event: function(fileContent) {
 				var data = JSON.parse(fileContent);
 				// validate data
-				if (dataHandler.validateImportedFile(data)) {
-					// set options
-					eventGraph.scope_name = data.scope;
-					eventGraph.scope_keyType = data.scope.keyType;
-					eventGraph.update_scope(data.scope.scope)
-
-					var layoutVal;
-					switch(data.display.layout) {
-						case "default":
-							layoutVal = 'default';
-							break;
-						case "directed":
-							layoutVal = 'hierarchical.directed';
-							break;
-						case "hubsize":
-							layoutVal = 'hierarchical.hubsize';
-							break;
-						default:
-							layoutVal = 'default';
-					}
-					$('#select_display_layout').val(layoutVal);
-					eventGraph.change_layout_type(data.display.layout);
-					dataHandler.selected_type_to_display = data.display.label;
-					$('#select_display_object_field').val(data.display.label);
-					$("#slider_display_max_char_num").val(data.display.charLength);
-					$('#slider_display_max_char_num').trigger('reflectOnSpan');
-
-					eventGraph.solver = data.physics.solver;
-					eventGraph.physics_change_solver(data.physics.solver)
-					$('#select_physic_solver').val(data.physics.solver);
-					$('#slider_physic_node_repulsion').val(data.physics.repulsion);
-					$('#slider_physic_node_repulsion').trigger('reflectOnSpan');
-					eventGraph.physics_change_repulsion(data.physics.repulsion)
-					eventGraph.physics_state(data.physics.enabled)
-					$('#checkbox_physics_enable').prop('checked', data.physics.enabled);
-
-					// update data
-					dataHandler.fetch_data_and_update(false, function() {
-						eventGraph.nodes.update(data.nodes);
-						eventGraph.expand_previous_expansion(data.nodes);
-						eventGraph.hiddenNode.clear();
-						eventGraph.hideNode(data.hiddenNodes);
-					});
-				}
+				import_graph_from_json(data);
 			}
 		});
 		return menu_import;
@@ -594,27 +551,60 @@ class EventGraph {
 		menu_history.add_action_table({
 			id: "table_graph_history_actiontable",
 			container: menu_history.menu,
-			title: "Graph history",
-			header: ["Name", "Owner", "Date"],
+			title: "Network history",
+			header: ["Id", "Name", "Owner", "Date"],
 			control_items: [
 				{
 					DOMType: "input",
-					colspan: 3,
-					item_options: {}
+					colspan: 4,
+					item_options: {
+						style: "width: 98%;",
+						placeholder: "Network's name"
+					}
 				}
 			],
-			action_buttons: {
-				type: "success",
-				icon: "fa-save",
+			header_action_button: {
+				additionEnabled: false,
+				style: {
+					type: "success",
+					icon: "fa-save",
+					tooltip: "Save network"
+				},
+			},
+			row_action_button: {
+				removalEnabled: false,
+				style: {
+					tooltip: "Delete saved network"
+				},
+				others: [
+					{
+						style: {
+							type: "success",
+							icon: "fa-share ",
+							tooltip: "Load saved network"
+						},
+						event: function(data) {
+							dataHandler.fetch_and_import_graph(data);
+						}
+					}
+				]
 			},
 			data: [],
-			preventRowAddition: true,
-			onAddition: function(data) {
-				//fetch_graph_history();
-				console.log(data);
+			onAddition: function(data, selfTable) {
+				mispInteraction.save_network(data);
+			},
+			onRemove: function(data, selfTable) {
+				mispInteraction.delete_network(data);
 			}
 		});
-		//menu_share.items["table_graph_share_actiontable"].table.style.minWidth = "550px";
+		menu_history.items["table_graph_history_actiontable"].table.style.minWidth = "450px";
+
+		// fill history table
+		// has to do it manually here (not using reset_graph_history) because menu_history still not constructed yet
+		dataHandler.fetch_graph_history(function(history) {
+			menu_history.items["table_graph_history_actiontable"].set_table_data(history);
+		});
+
 		return menu_history;
 	}
 
@@ -1401,6 +1391,20 @@ class DataHandler {
 		return true;
 	}
 
+	fetch_graph_history(callback) {
+		//$.getJSON( "/events/getNetworkHistory/"+scope_id+"/networkHistory.json", function( data ) {
+		//	callback(data);
+		//});
+		return callback([[1, 'my super graph', 'admin@admin.test', '2018-03-23'], [2, 'Another network', 'org@CIRCL.lu', '2017-04-06']]);
+	}
+
+	fetch_and_import_graph(data, callback) {
+		console.log('fetching');
+		//$.getJSON( "/events/getNetwork/"+scope_id+"/networkHistory.json", function( data ) {
+		//	import_graph_from_json(data);
+		//});
+	}
+
 	get_typeaheadData_search() {
 		var to_ret = []
 		for( var entry of this.mapping_value_to_nodeID) {
@@ -1538,6 +1542,16 @@ class MispInteraction {
 		} else if (group == 'object') {
 			window.location = '/objects/edit/'+id;
 		}
+	}
+
+	save_network(networkName) {
+		console.log('saving');
+		reset_graph_history();
+	}
+
+	delete_network(data) {
+		console.log('deleting');
+		reset_graph_history();
 	}
 }
 
@@ -1682,6 +1696,61 @@ function download_file(jsonData) {
 	a.setAttribute('download', filename);
 	a.click();
 }
+
+function reset_graph_history() {
+	var table = eventGraph.menu_history.items["table_graph_history_actiontable"];
+	dataHandler.fetch_graph_history(function(history) {
+		table.set_table_data(history);
+	});
+}
+
+function import_graph_from_json(data) {
+	if (dataHandler.validateImportedFile(data)) {
+		// set options
+		eventGraph.scope_name = data.scope;
+		eventGraph.scope_keyType = data.scope.keyType;
+		eventGraph.update_scope(data.scope.scope)
+
+		var layoutVal;
+		switch(data.display.layout) {
+			case "default":
+				layoutVal = 'default';
+				break;
+			case "directed":
+				layoutVal = 'hierarchical.directed';
+				break;
+			case "hubsize":
+				layoutVal = 'hierarchical.hubsize';
+				break;
+			default:
+				layoutVal = 'default';
+		}
+		$('#select_display_layout').val(layoutVal);
+		eventGraph.change_layout_type(data.display.layout);
+		dataHandler.selected_type_to_display = data.display.label;
+		$('#select_display_object_field').val(data.display.label);
+		$("#slider_display_max_char_num").val(data.display.charLength);
+		$('#slider_display_max_char_num').trigger('reflectOnSpan');
+
+		eventGraph.solver = data.physics.solver;
+		eventGraph.physics_change_solver(data.physics.solver)
+		$('#select_physic_solver').val(data.physics.solver);
+		$('#slider_physic_node_repulsion').val(data.physics.repulsion);
+		$('#slider_physic_node_repulsion').trigger('reflectOnSpan');
+		eventGraph.physics_change_repulsion(data.physics.repulsion)
+		eventGraph.physics_state(data.physics.enabled)
+		$('#checkbox_physics_enable').prop('checked', data.physics.enabled);
+
+		// update data
+		dataHandler.fetch_data_and_update(false, function() {
+			eventGraph.nodes.update(data.nodes);
+			eventGraph.expand_previous_expansion(data.nodes);
+			eventGraph.hiddenNode.clear();
+			eventGraph.hideNode(data.hiddenNodes);
+		});
+	}
+}
+
 
 // Called when the user click on the 'Event graph' toggle
 function enable_interactive_graph() {
