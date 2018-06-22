@@ -221,29 +221,28 @@
 				}
 			}
 			if (!$testReadError) {
+				$error_count = 0;
+				$libraries = '';
+				foreach (array('stix', 'cybox', 'mixbox', 'maec', 'pymisp') as $package) {
+					$lib_colour = 'green';
+					if ($stix[$package]['status'] == 0) {
+						$lib_colour = 'red';
+						$error_count += 1;
+					}
+					$libraries = $libraries . strtoupper($package) . __(' library version') . '…<span style="color:' . $lib_colour . ';">' . ${$package . 'Version'}[$stix[$package]['status']] . '</span><br />';
+				}
 				if ($stix['operational'] == 0) {
 					$colour = 'red';
 					echo '<b>Current libraries status</b>…<span style="color:' . $colour . ';">' . $stixOperational[$stix['operational']] . '</span><br />';
-				}
-				if ($stix['operational'] == 1) {
-					$error_count = 0;
-					$libraries = '';
-					foreach (array('stix', 'cybox', 'mixbox', 'maec', 'pymisp') as $package) {
-						$lib_colour = 'green';
-						if ($stix[$package]['status'] == 0) {
-							$lib_colour = 'red';
-							$error_count += 1;
-						}
-						$libraries = $libraries . strtoupper($package) . __(' library version') . '…<span style="color:' . $lib_colour . ';">' . ${$package . 'Version'}[$stix[$package]['status']] . '</span><br />';
-					}
+				} else {
 					if ($error_count > 0) {
 						$colour = 'orange';
 						echo '<b>Current libraries status</b>…<span style="color:' . $colour . ';">Some versions should be updated</span>:<br />';
 					} else {
 						echo '<b>Current libraries status</b>…<span style="color:' . $colour . ';">' . $stixOperational[$stix['operational']] . '</span><br />';
 					}
-					echo $libraries;
 				}
+				echo $libraries;
 			}
 		?>
 	</div>

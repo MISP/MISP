@@ -754,7 +754,7 @@ class ServersController extends AppController {
 			$gpgErrors = array(0 => 'OK', 1 => 'FAIL: settings not set', 2 => 'FAIL: Failed to load GnuPG', 3 => 'FAIL: Issues with the key/passphrase', 4 => 'FAIL: encrypt failed');
 			$proxyErrors = array(0 => 'OK', 1 => 'not configured (so not tested)', 2 => 'Getting URL via proxy failed');
 			$zmqErrors = array(0 => 'OK', 1 => 'not enabled (so not tested)', 2 => 'Python ZeroMQ library not installed correctly.', 3 => 'ZeroMQ script not running.');
-			$stixOperational = array(0 => 'STIX or CyBox or mixbox or maec library not installed correctly', 1 => 'OK');
+			$stixOperational = array(0 => 'Some of the libraries related to STIX are not installed. Make sure that all libraries listed below are correctly installed.', 1 => 'OK');
 			$stixVersion = array(0 => 'Incorrect STIX version installed, found $current, expecting $expected', 1 => 'OK');
 			$cyboxVersion = array(0 => 'Incorrect CyBox version installed, found $current, expecting $expected', 1 => 'OK');
 			$mixboxVersion = array(0 => 'Incorrect mixbox version installed, found $current, expecting $expected', 1 => 'OK');
