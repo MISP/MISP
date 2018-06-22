@@ -156,6 +156,16 @@ class GalaxiesController extends AppController {
 		$this->redirect($this->referer());
 	}
 
+	public function attachMultipleClusters($target_id, $target_type = 'event') {
+		$cluster_ids = json_decode($this->request->data['Galaxy']['target_ids'], true);
+		$result = ""; // temp
+		foreach($cluster_ids as $cluster_id) {
+			$result .= $this->Galaxy->attachCluster($this->Auth->user(), $target_type, $target_id, $cluster_id);
+		}
+		$this->Flash->info($result);
+		$this->redirect($this->referer());
+	}
+
 	public function viewGraph($id) {
 		$cluster = $this->Galaxy->GalaxyCluster->find('first', array(
 			'conditions' => array('GalaxyCluster.id' => $id),

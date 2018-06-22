@@ -21,14 +21,35 @@
 	}
 
 	$(document).ready(function() {
+		var pickedGalaxies = [];
+
 		$('#attack-matrix-tabscontroller span').off('click.tab').on('click.tab', function (e) {
 			$(this).tab('show');
 		})
 
 		// form
+		$('.ajax_popover_form .cell-picking input').off('click.picking').on('click.picking', function(event) {
+			event.stopPropagation();
+		});
 		$('.ajax_popover_form .cell-picking').off('click.picking').on('click.picking', function() {
 			// sumbit galaxy
-			$('#GalaxyTargetId').val($(this).data('cluster-id'));
+			if (!$(this).hasClass('cell-picked')) {
+				pickedGalaxies.push($(this).data('cluster-id'));
+				$(this).addClass('cell-picked');
+			} else { // remove class and data from array
+				var i = pickedGalaxies.indexOf($(this).data('cluster-id'));
+				if (i > -1) {
+					pickedGalaxies.splice(i, 1);
+				}
+				$(this).removeClass('cell-picked');
+			}
+			//$('#GalaxyTargetId').val($(this).data('cluster-id'));
+			//$('#GalaxyViewMitreAttackMatrixForm').submit();
+			//cancelPopoverForm('#popover_form_large');
+		});
+		$('.ajax_popover_form .matrix-div-submit').css('display', 'block');
+		$('.ajax_popover_form .btn-matrix-submit').click(function() {
+			$('#GalaxyTargetIds').val(JSON.stringify(pickedGalaxies));
 			$('#GalaxyViewMitreAttackMatrixForm').submit();
 			cancelPopoverForm('#popover_form_large');
 		});
@@ -38,7 +59,7 @@
 		scoredCells.hover(function() { enteringScoredCell($(this), '.ajax_popover_form'); }, function() { leavingScoredCell('.ajax_popover_form'); });
 		$('.ajax_popover_form #checkbox_attackMatrix_showAll').off('click.showAll').on('click.showAll', function() { toggleAttackMatrixCells('.ajax_popover_form'); });
 		$('#pick-matrix-elem').typeahead(typeaheadOptionMatrix);
-		$('.ajax_popover_form .matrix-div-search').show()
+		//$('.ajax_popover_form .matrix-div-search').show()
 
 		// info container
 		$('.info_container_eventgraph_network .matrix-interaction').off('click.interaction').on('click.interaction', function(event) {

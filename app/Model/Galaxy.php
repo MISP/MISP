@@ -186,6 +186,7 @@ class Galaxy extends AppModel{
 				),
 				'recursive' => -1
 			));
+			debug(array('attribute_id' => $target_id, 'tag_id' => $tag_id, 'event_id' => $attribute['Attribute']['event_id']));
 			$result = $this->Tag->AttributeTag->save(array('attribute_id' => $target_id, 'tag_id' => $tag_id, 'event_id' => $attribute['Attribute']['event_id']));
 		}
 		if ($result) {
