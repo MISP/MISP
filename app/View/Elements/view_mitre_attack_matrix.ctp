@@ -10,8 +10,8 @@ foreach($attackTactic as $tactic):
 </ul>
 </div>
 
-<div class="attack-matrix-options matrix-div-search">
-    <input type="text" id="pick-matrix-elem" placeholder="Pick item" style="margin-right: 0px;">
+<div class="attack-matrix-options matrix-div-submit">
+    <span class="btn btn-inverse btn-matrix-submit" role="button" style="padding: 1px 5px !important;font-size: 12px !important;font-weight: bold;"><?php echo _('Submit'); ?></span>
 </div>
 
 <div class="attack-matrix-options">
@@ -30,8 +30,8 @@ foreach($attackTactic as $tactic):
 <?php if($pickingMode): ?>
     <div class="hidden">
     	<?php
-    		echo $this->Form->create('Galaxy', array('url' => '/galaxies/attachCluster/' . $target_id . '/' . (empty($target_type) ? 'attribute' : $target_type), 'style' => 'margin:0px;'));
-    		echo $this->Form->input('target_id', array('type' => 'text'));
+    		echo $this->Form->create('Galaxy', array('url' => '/galaxies/attachMultipleClusters/' . $target_id . '/' . (empty($target_type) ? 'attribute' : $target_type), 'style' => 'margin:0px;'));
+    		echo $this->Form->input('target_ids', array('type' => 'text'));
     		echo $this->Form->end();
     	?>
     </div>
