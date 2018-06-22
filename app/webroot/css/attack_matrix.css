@@ -154,14 +154,6 @@ li.tactic.active {
     line-height: 10px;
 }
 
-.matrix-div-search {
-    left: 50%;
-    padding-left: 1px;
-    right: unset;
-    padding-right: 1px;
-    display: none;
-}
-
 .matrix-div-submit {
     left: 50%;
     padding-left: 1px;

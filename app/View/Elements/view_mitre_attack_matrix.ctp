@@ -10,9 +10,7 @@ foreach($attackTactic as $tactic):
 </ul>
 </div>
 
-<!--<div class="attack-matrix-options matrix-div-search">-->
 <div class="attack-matrix-options matrix-div-submit">
-<!--<input type="text" id="pick-matrix-elem" placeholder="<?php echo _('Highlight item'); ?>" style="margin-right: 0px;">-->
     <span class="btn btn-inverse btn-matrix-submit" role="button" style="padding: 1px 5px !important;font-size: 12px !important;font-weight: bold;"><?php echo _('Submit'); ?></span>
 </div>
 
