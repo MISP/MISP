@@ -35,7 +35,7 @@ try:
     import maec
     results['maec'] = maec.__version__
 except Exception:
-    pass
+    results['success'] = 0
 
 print(json.dumps({
     'success' : results['success'],
