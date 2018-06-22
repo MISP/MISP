@@ -3088,9 +3088,10 @@ $('.galaxy-toggle-button').click(function() {
 	}
 });
 
-function addGalaxyListener() {
-	var target_type = $(this).data('target-type');
-	var target_id = $(this).data('target-id');
+function addGalaxyListener(that) {
+	that = (that !== undefined) ? that : this;
+	var target_type = $(that).data('target-type');
+	var target_id = $(that).data('target-id');
 	getPopup(target_type + '/' + target_id, 'galaxies', 'selectGalaxyNamespace');
 }
 
