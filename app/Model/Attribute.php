@@ -3154,23 +3154,27 @@ class Attribute extends AppModel {
 			));
 			} else {
 				$tags = array();
-				if (isset($attribute['Tag'])) {
-					$tags = $attribute['Tag'];
-				}
+
 				if (isset($attribute['AttributeTag'])) {
 					foreach ($attribute['AttributeTag'] as $at) {
-						$tags[] = $at['Tag'];
-					}
-				}
-				foreach ($tags as $tag) {
-					$tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
-					if ($tag_id) {
+						unset($at['id']);
 						$this->AttributeTag->create();
-						$at = array();
 						$at['attribute_id'] = $this->id;
 						$at['event_id'] = $eventId;
-						$at['tag_id'] = $tag_id;
 						$this->AttributeTag->save($at);
+					}
+				}
+				if (isset($attribute['Tag'])) {
+					foreach ($attribute['Tag'] as $tag) {
+						$tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
+						if ($tag_id) {
+							$this->AttributeTag->create();
+							$at = array();
+							$at['attribute_id'] = $this->id;
+							$at['event_id'] = $eventId;
+							$at['tag_id'] = $tag_id;
+							$this->AttributeTag->save($at);
+						}
 					}
 				}
 				if (!empty($attribute['Sighting'])) {
