@@ -56,7 +56,15 @@ class StixParser():
     # Load data from STIX document, and other usefull data
     def load(self, args, pathname):
         filename = '{}/tmp/{}'.format(pathname, args[1])
-        event = STIXPackage.from_xml(filename)
+        try:
+            event = STIXPackage.from_xml(filename)
+        except:
+            try:
+                import maec
+                print(2)
+            except:
+                print(3)
+            sys.exit(0)
         title = event.stix_header.title
         if title is not None and "Export from " in title and "MISP" in title:
             fromMISP = True

@@ -4176,8 +4176,19 @@ class Event extends AppModel {
 			if ($result) return $created_id;
 			return $validationIssues;
 		} else {
-			$response = __('Issues executing the ingestion script or invalid input.');
-			if ($user['Role']['perm_site_admin']) $response .= ' ' . __('Check whether the dependencies for STIX are met via the diagnostic tool.');
+			if (trim($result) == '2') {
+				$response = __('Issues while loading the stix file. ');
+			} elseif (trim($result) == '3') {
+				$response = __('Issues with the maec library. ');
+			} else {
+				$response = __('Issues executing the ingestion script or invalid input. ');
+			}
+			if (!$user['Role']['perm_site_admin']) {
+				$response .= __('Please ask your administrator to ');
+			} else {
+				$response .= __('Please ');
+			}
+			$response .= ' ' . __('check whether the dependencies for STIX are met via the diagnostic tool.');
 			return $response;
 		}
 	}
