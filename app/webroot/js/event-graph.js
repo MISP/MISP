@@ -127,7 +127,9 @@ class EventGraph {
 
 		this.network.on("oncontext", function (event) {
 			var node = that.network.getNodeAt({x: event.pointer.DOM.x, y: event.pointer.DOM.y});
-			that.network.selectNodes([node]);
+			if (node !== undefined) {
+				that.network.selectNodes([node]);
+			}
 		});
 	}
 
