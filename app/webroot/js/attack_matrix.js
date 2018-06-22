@@ -28,9 +28,6 @@
 		})
 
 		// form
-		$('.ajax_popover_form .cell-picking input').off('click.picking').on('click.picking', function(event) {
-			event.stopPropagation();
-		});
 		$('.ajax_popover_form .cell-picking').off('click.picking').on('click.picking', function() {
 			// sumbit galaxy
 			if (!$(this).hasClass('cell-picked')) {
@@ -42,6 +39,11 @@
 					pickedGalaxies.splice(i, 1);
 				}
 				$(this).removeClass('cell-picked');
+			}
+			if (pickedGalaxies.length > 0) {
+				$('.ajax_popover_form .btn-matrix-submit').addClass('highlightGreen');
+			} else {
+				$('.ajax_popover_form .btn-matrix-submit').removeClass('highlightGreen');
 			}
 			//$('#GalaxyTargetId').val($(this).data('cluster-id'));
 			//$('#GalaxyViewMitreAttackMatrixForm').submit();

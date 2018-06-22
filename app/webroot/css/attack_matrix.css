@@ -169,3 +169,8 @@ li.tactic.active {
     padding-right: 1px;
     display: none;
 }
+
+.highlightGreen {
+    box-shadow: 0px 0px 10px 1px #b4ff00;
+    transform: scale(1.3);
+}
