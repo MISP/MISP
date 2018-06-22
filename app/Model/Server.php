@@ -3214,14 +3214,12 @@ class Server extends AppModel {
 		// check if the STIX and Cybox libraries are working using the test script stixtest.py
 		$scriptResult = shell_exec('python3 ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
 		$scriptResult = json_decode($scriptResult, true);
-		if ($scriptResult !== null) {
-			$scriptResult['operational'] = $scriptResult['success'];
-			if ($scriptResult['operational'] == 0) {
-				$diagnostic_errors++;
-				return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']), 'mixbox' => array('expected' => $expected['mixbox']), 'maec' => array('expected' => $expected['maec']), 'pymisp' => array('expected' => $expected['pymisp']));
-			}
-		} else {
+		if ($scriptResult == null) {
 			return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']), 'mixbox' => array('expected' => $expected['mixbox']), 'maec' => array('expected' => $expected['maec']), 'pymisp' => array('expected' => $expected['pymisp']));
+		}
+		$scriptResult['operational'] = $scriptResult['success'];
+		if ($scriptResult['operational'] == 0) {
+			$diagnostic_errors++;
 		}
 		$result['operational'] = $scriptResult['operational'];
 		foreach ($expected as $package => $version) {
