@@ -67,9 +67,9 @@ class GalaxiesController extends AppController {
 	public function selectGalaxy($target_id, $target_type='event', $namespace='misp') {
 		$expectedDescription = 'ATT&CK Tactic';
 		$conditions = $namespace == '0' ? array() : array('namespace' => $namespace);
-		if ($namespace == 'mitre-attack') {
+		if ($namespace == 'mitre-attack' || $namespace == '0') {
 			$conditions[] = array('description !=' => $expectedDescription);
-			$conditions2 = array('namespace' => $namespace);
+			$conditions2 = array('namespace' => 'mitre-attack');
 			$conditions2[] = array('description' => $expectedDescription);
 
 			$tacticGalaxies = $this->Galaxy->find('all', array(
@@ -82,14 +82,14 @@ class GalaxiesController extends AppController {
 			'conditions' => $conditions,
 		));
 		if (!empty($tacticGalaxies)) {
-			$galaxies[] = array('Galaxy' => array(
+			array_unshift($galaxies, array('Galaxy' => array(
 				'id' => '-1',
 				'uuid' => '-1',
 				'name' => $expectedDescription,
 				'type' => '-1',
 				'icon' => '/img/mitre-attack-icon.ico',
 				'namespace' => 'mitre-attack'
-			));
+			)));
 		}
 		$this->set('galaxies', $galaxies);
 		$this->set('target_id', $target_id);
