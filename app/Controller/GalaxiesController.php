@@ -158,9 +158,9 @@ class GalaxiesController extends AppController {
 
 	public function attachMultipleClusters($target_id, $target_type = 'event') {
 		$cluster_ids = json_decode($this->request->data['Galaxy']['target_ids'], true);
-		$result = ""; // temp
+		$result = "";
 		foreach($cluster_ids as $cluster_id) {
-			$result .= $this->Galaxy->attachCluster($this->Auth->user(), $target_type, $target_id, $cluster_id);
+			$result = $this->Galaxy->attachCluster($this->Auth->user(), $target_type, $target_id, $cluster_id);
 		}
 		$this->Flash->info($result);
 		$this->redirect($this->referer());
