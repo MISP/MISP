@@ -279,6 +279,9 @@ attributes or the appropriate distribution level. If you think there is a mistak
 	var lastSelected = false;
 	var deleted = <?php echo (isset($deleted) && $deleted) ? 'true' : 'false';?>;
 	$(document).ready(function() {
+		$('.addGalaxy').click(function() {
+			addGalaxyListener();
+		});
 		<?php
 			if ($focusedRow !== false):
 		?>

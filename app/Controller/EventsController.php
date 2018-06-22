@@ -926,6 +926,27 @@ class EventsController extends AppController {
 		}
 		$emptyEvent = (empty($event['Object']) && empty($event['Attribute']));
 		$this->set('emptyEvent', $emptyEvent);
+
+		// remove galaxies tags
+		$this->loadModel('GalaxyCluster');
+		$cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
+		foreach ($event['Object'] as $k => $object) {
+			foreach ($object['Attribute'] as $k2 => $attribute){
+				foreach ($attribute['AttributeTag'] as $k3 => $attributeTag) {
+					if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
+						unset($event['Object'][$k]['Attribute'][$k2]['AttributeTag'][$k3]);
+					}
+				}
+			}
+		}
+		foreach ($event['Attribute'] as $k => $attribute) {
+			foreach ($attribute['AttributeTag'] as $k2 => $attributeTag) {
+				if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
+					unset($event['Attribute'][$k]['AttributeTag'][$k2]);
+				}
+			}
+		}
+
 		$params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
 		$this->params->params['paging'] = array($this->modelClass => $params);
 		// workaround to get the event dates in to the attribute relations
@@ -1170,6 +1191,7 @@ class EventsController extends AppController {
 			}
 		}
 		$this->set('currentUri', $attributeUri);
+		$this->set('mitreAttackGalaxyId', $this->Event->GalaxyCluster->Galaxy->getMitreAttackGalaxyId());
 	}
 
 	public function view($id = null, $continue=false, $fromEvent=null) {
@@ -1184,11 +1206,11 @@ class EventsController extends AppController {
 			if ($temp == null) throw new NotFoundException('Invalid event');
 			$id = $temp['Event']['id'];
 		} else if (!is_numeric($id)) {
-			throw new NotFoundException(__('Invalid event id.'));
+			throw new NotFoundException(__('Invalid event'));
 		}
 		$this->Event->id = $id;
 		if (!$this->Event->exists()) {
-			throw new NotFoundException(__('Invalid event.'));
+			throw new NotFoundException(__('Invalid event'));
 		}
 		$conditions = array('eventid' => $id);
 		if (!$this->_isRest()) {
@@ -4543,6 +4565,54 @@ class EventsController extends AppController {
 		});
 		$this->response->type('json');
 		return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+	}
+
+	public function viewMitreAttackMatrix($eventId, $itemType='attribute', $itemId=false) {
+		$this->loadModel('Galaxy');
+
+		$attackTacticData = $this->Galaxy->getMitreAttackMatrix();
+		$attackTactic = $attackTacticData['attackTactic'];
+		$attackTags = $attackTacticData['attackTags'];
+		$killChainOrders = $attackTacticData['killChain'];
+		$instanceUUID = $attackTacticData['instance-uuid'];
+
+		$scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores($eventId, $attackTags);
+		$scoresDataEvent = $this->Event->EventTag->getTagScores($eventId, $attackTags);
+		$scoresData = array();
+		foreach(array_keys($scoresDataAttr['scores'] + $scoresDataEvent['scores']) as $key) {
+			$scoresData[$key] = (isset($scoresDataAttr['scores'][$key]) ? $scoresDataAttr['scores'][$key] : 0) + (isset($scoresDataEvent['scores'][$key]) ? $scoresDataEvent['scores'][$key] : 0);
+		}
+		$maxScore = max($scoresDataAttr['maxScore'], $scoresDataEvent['maxScore']);
+		$scores = $scoresData;
+
+		if ($this->_isRest()) {
+			$json = array('matrix' => $attackTactic, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
+			$this->response->type('json');
+			return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+		} else {
+			if (!$this->request->is('ajax')) {
+				throw new MethodNotAllowedException('Invalid method.');
+			}
+
+			App::uses('ColourGradientTool', 'Tools');
+			$gradientTool = new ColourGradientTool();
+			$colours = $gradientTool->createGradientFromValues($scores);
+
+			$this->set('target_type', $itemType);
+			$this->set('killChainOrders', $killChainOrders);
+			$this->set('attackTactic', $attackTactic);
+			$this->set('scores', $scores);
+			$this->set('maxScore', $maxScore);
+			$this->set('colours', $colours);
+
+			// picking mode
+			if ($itemId !== false) {
+				$this->set('pickingMode', true);
+				$this->set('target_id', $itemId);
+			} else {
+				$this->set('pickingMode', false);
+			}
+		}
 	}
 
 	public function delegation_index() {

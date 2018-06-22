@@ -119,7 +119,7 @@ class StixBuilder():
                     self.add_course_of_action(misp_object, from_object=True)
                 elif object_name in objectsMapping:
                     try:
-                        if to_ids:
+                        if to_ids or object_name == "stix2-pattern":
                             self.add_object_indicator(misp_object, to_ids)
                         else:
                             self.add_object_observable(misp_object, to_ids)
@@ -145,6 +145,8 @@ class StixBuilder():
 
     def load_objects_mapping(self):
         self.objects_mapping = {
+            'asn': {'observable': self.resolve_asn_observable,
+                    'pattern': self.resolve_asn_pattern},
             'domain-ip': {'observable': self.resolve_domain_ip_observable,
                           'pattern': self.resolve_domain_ip_pattern},
             'email': {'observable': self.resolve_email_object_observable,
@@ -159,6 +161,7 @@ class StixBuilder():
                         'pattern': self.resolve_process_pattern},
             'registry-key': {'observable': self.resolve_regkey_observable,
                              'pattern': self.resolve_regkey_pattern},
+            'stix2': {'pattern': self.resolve_stix2_pattern},
             'url': {'observable': self.resolve_url_observable,
                     'pattern': self.resolve_url_pattern},
             'x509': {'observable': self.resolve_x509_observable,
@@ -323,13 +326,15 @@ class StixBuilder():
         self.append_object(identity, identity_id)
 
     def add_indicator(self, attribute):
+        attribute_type = attribute.type
         indicator_id = "indicator--{}".format(attribute.uuid)
         category = attribute.category
         killchain = self.create_killchain(category)
         labels = self.create_labels(attribute)
+        attribute_value = attribute.value if attribute_type != "AS" else self.define_attribute_value(attribute.value, attribute.comment)
         indicator_args = {'id': indicator_id, 'type': 'indicator', 'labels': labels, 'kill_chain_phases': killchain,
                            'valid_from': attribute.timestamp, 'created_by_ref': self.identity_id,
-                           'pattern': [self.define_pattern(attribute.type, attribute.value)]}
+                           'pattern': [self.define_pattern(attribute_type, attribute_value)]}
         if hasattr(attribute, 'comment') and attribute.comment:
             indicator_args['description'] = attribute.comment
         indicator = Indicator(**indicator_args)
@@ -348,13 +353,15 @@ class StixBuilder():
         self.append_object(malware, malware_id)
 
     def add_observed_data(self, attribute):
+        attribute_type = attribute.type
         observed_data_id = "observed-data--{}".format(attribute.uuid)
         timestamp = attribute.timestamp
         labels = self.create_labels(attribute)
+        attribute_value = attribute.value if attribute_type != "AS" else self.define_attribute_value(attribute.value, attribute.comment)
         observed_data_args = {'id': observed_data_id, 'type': 'observed-data', 'number_observed': 1,
                               'first_observed': timestamp, 'last_observed': timestamp, 'labels': labels,
                               'created_by_ref': self.identity_id,
-                              'objects': self.define_observable(attribute.type, attribute.value)}
+                              'objects': self.define_observable(attribute_type, attribute_value)}
         observed_data = ObservedData(**observed_data_args)
         self.append_object(observed_data, observed_data_id)
 
@@ -414,7 +421,7 @@ class StixBuilder():
         category = misp_object.get('meta-category')
         killchain = self.create_killchain(category)
         labels = self.create_object_labels(name, category, to_ids)
-        pattern = self.define_object_pattern(name, misp_object.attributes)
+        pattern = self.objects_mapping[name]['pattern'](misp_object.attributes)
         timestamp = self.get_date_from_timestamp(int(misp_object.timestamp))
         indicator_args = {'id': indicator_id, 'valid_from': timestamp, 'type': 'indicator',
                           'labels': labels, 'description': misp_object.description,
@@ -428,7 +435,7 @@ class StixBuilder():
         name = misp_object.name
         category = misp_object.get('meta-category')
         labels = self.create_object_labels(name, category, to_ids)
-        observable_objects = self.define_object_observable(name, misp_object.attributes)
+        observable_objects = self.objects_mapping[name]['observable'](misp_objects.attributes)
         timestamp = self.get_date_from_timestamp(int(misp_object.timestamp))
         observed_data_args = {'id': observed_data_id, 'type': 'observed-data',
                               'number_observed': 1, 'labels': labels, 'objects': observable_objects,
@@ -509,18 +516,12 @@ class StixBuilder():
             observable['0']['protocols'].append(defineProtocols[attribute_value] if attribute_value in defineProtocols else "tcp")
         return observable
 
-    def define_object_observable(self, name, attributes):
-        return self.objects_mapping[name]['observable'](attributes)
-
     @staticmethod
     def define_pattern(attribute_type, attribute_value):
-        attribute_value = attribute_value.replace("'", '##APOSTROPHE##').replace('"', '##QUOTE##')
+        attribute_value = attribute_value.replace("'", '##APOSTROPHE##').replace('"', '##QUOTE##') if isinstance(attribute_value, str) else attribute_value
         if attribute_type == 'malware-sample':
             return [mispTypesMapping[attribute_type]['pattern']('filename|md5', attribute_value)]
         return mispTypesMapping[attribute_type]['pattern'](attribute_type, attribute_value)
-
-    def define_object_pattern(self, name, attributes):
-        return self.objects_mapping[name]['pattern'](attributes)
 
     @staticmethod
     def fetch_custom_values(attributes):
@@ -549,6 +550,45 @@ class StixBuilder():
         return datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=timestamp)
 
     @staticmethod
+    def resolve_asn_observable(attributes):
+        asn = objectsMapping['asn']['observable']
+        observable = {}
+        object_num = 0
+        for attribute in attributes:
+            relation = attribute.object_relation
+            try:
+                stix_type = asnObjectMapping[relation]
+            except KeyError:
+                continue
+            attribute_value = attribute.value
+            if relation == "subnet-announced":
+                observable[str(object_num)] = {'type': define_address_type(attribute_value), 'value': attribute_value}
+                object_num += 1
+            else:
+                asn[stix_type] = int(attribute_value[2:]) if (stix_type == 'number' and attribute_value.startswith("AS")) else attribute_value
+        observable[str(object_num)] = asn
+        for n in range(object_num):
+            observable[n]['belongs_to_refs'] = [str(object_num)]
+        return observable
+
+    @staticmethod
+    def resolve_asn_pattern(attributes):
+        mapping = objectsMapping['asn']['pattern']
+        pattern = ""
+        for attribute in attributes:
+            relation = attribute.object_relation
+            try:
+                stix_type = asnObjectMapping[relation]
+            except KeyError:
+                continue
+            attribute_value = attribute.value
+            if relation == "subnet-announced":
+                pattern += "{0}:{1} = '{2}' AND ".format(define_address_type(attribute_value), stix_type, attribute_value)
+            else:
+                pattern += mapping.format(stix_type, attribute_value)
+        return pattern[:-5]
+
+    @staticmethod
     def resolve_domain_ip_observable(attributes):
         for attribute in attributes:
             if attribute.type == 'ip-dst':
@@ -560,13 +600,14 @@ class StixBuilder():
 
     @staticmethod
     def resolve_domain_ip_pattern(attributes):
+        mapping = objectsMapping['domain-ip']['pattern']
         pattern = ""
         for attribute in attributes:
             try:
                 stix_type = domainIpObjectMapping[attribute.type]
             except:
                 continue
-            pattern += objectsMapping['domain-ip']['pattern'].format(stix_type, attribute.value)
+            pattern += mapping.format(stix_type, attribute.value)
         return pattern[:-5]
 
     @staticmethod
@@ -618,6 +659,7 @@ class StixBuilder():
 
     @staticmethod
     def resolve_email_object_pattern(attributes):
+        pattern_mapping = objectsMapping['email']['pattern']
         pattern = ""
         for attribute in attributes:
             try:
@@ -628,7 +670,7 @@ class StixBuilder():
                 stix_type = mapping['stix_type'][attribute.object_relation]
             except:
                 stix_type = mapping['stix_type']
-            pattern += objectsMapping['email']['pattern'].format(mapping['email_type'], stix_type, attribute.value)
+            pattern += pattern_mapping.format(mapping['email_type'], stix_type, attribute.value)
         return pattern[:-5]
 
     @staticmethod
@@ -900,14 +942,21 @@ class StixBuilder():
 
     @staticmethod
     def resolve_regkey_pattern(attributes):
+        mapping = objectsMapping['registry-key']['pattern']
         pattern = ""
         for attribute in attributes:
             try:
                 stix_type = regkeyMapping[attribute.object_relation]
             except:
                 continue
-            pattern += objectsMapping['registry-key']['pattern'].format(stix_type, attribute.value)
+            pattern += mapping.format(stix_type, attribute.value)
         return pattern[:-5]
+
+    @staticmethod
+    def resolve_stix2_pattern(attributes):
+        for attribute in attributes:
+            if attribute.object_relation == 'stix2-pattern':
+                return attribute.value
 
     @staticmethod
     def resolve_url_observable(attributes):
@@ -954,7 +1003,7 @@ class StixBuilder():
 
     @staticmethod
     def resolve_x509_observable(attributes):
-        observable = {'0': {'type': 'x509-certificate'}}
+        observable = {'type': 'x509-certificate'}
         hashes = {}
         for attribute in attributes:
             attribute_type = attribute.type
@@ -963,15 +1012,16 @@ class StixBuilder():
                 hashes[h_type] = attribute.value
             else:
                 try:
-                    observable['0'][x509mapping[attribute_type][attribute.object_relation]] = attribute.value
+                    observable[x509mapping[attribute_type][attribute.object_relation]] = attribute.value
                 except:
                     pass
         if hashes:
-            observable['0']['hashes'] = hashes
-        return observable
+            observable['hashes'] = hashes
+        return {'0': observable}
 
     @staticmethod
     def resolve_x509_pattern(attributes):
+        mapping = objectsMapping['x509']['pattern']
         pattern = ""
         for attribute in attributes:
             attribute_type = attribute.type
@@ -983,8 +1033,15 @@ class StixBuilder():
                     stix_type = x509mapping[attribute_type][attribute.object_relation]
                 except:
                     continue
-            pattern += objectsMapping['x509']['pattern'].format(stix_type, attribute.value)
+            pattern += mapping.format(stix_type, attribute.value)
         return pattern[:-5]
+
+    @staticmethod
+    def define_attribute_value(value, comment):
+        if value.isdigit() or value.startswith("AS"):
+            return int(value) if value.isdigit() else int(value[2:].split(' ')[0])
+        if comment.startswith("AS") or comment.isdigit():
+            return int(comment) if comment.isdigit() else int(comment[2:].split(' ')[0])
 
 def main(args):
     stix_builder = StixBuilder()

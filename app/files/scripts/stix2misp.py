@@ -34,8 +34,9 @@ eventTypes = {"ArtifactObjectType": {"type": "attachment", "relation": "attachme
               "WindowsExecutableFileObjectType": file_object_type,
               "WindowsRegistryKeyObjectType": {"type": "regkey", "relation": ""}}
 
-cybox_to_misp_object = {"EmailMessage": "email", "NetworkConnection": "network-connection",
-                        "NetworkSocket": "network-socket", "Process": "process", "Account": "credential",
+cybox_to_misp_object = {"Account": "credential", "AutonomousSystem": "asn",
+                        "EmailMessage": "email", "NetworkConnection": "network-connection",
+                        "NetworkSocket": "network-socket", "Process": "process",
                         "x509Certificate": "x509", "Whois": "whois"}
 
 threat_level_mapping = {'High': '1', 'Medium': '2', 'Low': '3', 'Undefined': '4'}
@@ -77,6 +78,7 @@ class StixParser():
             "AccountObjectType": self.handle_credential,
             'AddressObjectType': self.handle_address,
             "ArtifactObjectType": self.handle_attachment,
+            "ASObjectType": self.handle_as,
             "CustomObjectType": self.handle_custom,
             "DNSRecordObjectType": self.handle_dns,
             'DomainNameObjectType': self.handle_domain_or_url,
@@ -263,19 +265,19 @@ class StixParser():
 
     # Parse STIX objects that we know will give MISP attributes
     def parse_misp_attribute_indicator(self, indicator):
-        misp_attribute = {'category': str(indicator.relationship)}
+        misp_attribute = {'to_ids': True, 'category': str(indicator.relationship)}
         item = indicator.item
         misp_attribute['timestamp'] = self.getTimestampfromDate(item.timestamp)
         if item.observable:
             observable = item.observable
-            self.parse_misp_attribute(observable, misp_attribute)
+            self.parse_misp_attribute(observable, misp_attribute, to_ids=True)
 
     def parse_misp_attribute_observable(self, observable):
-        misp_attribute = {'category': str(observable.relationship)}
+        misp_attribute = {'to_ids': False, 'category': str(observable.relationship)}
         if observable.item:
             self.parse_misp_attribute(observable.item, misp_attribute)
 
-    def parse_misp_attribute(self, observable, misp_attribute):
+    def parse_misp_attribute(self, observable, misp_attribute, to_ids=False):
         try:
             properties = observable.object_.properties
             if properties:
@@ -283,7 +285,7 @@ class StixParser():
                 if type(attribute_value) in (str, int):
                     self.handle_attribute_case(attribute_type, attribute_value, compl_data, misp_attribute)
                 else:
-                    self.handle_object_case(attribute_type, attribute_value, compl_data)
+                    self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=to_ids)
         except AttributeError:
             attribute_dict = {}
             for observables in observable.observable_composition.observables:
@@ -333,6 +335,18 @@ class StixParser():
         else:
             ip_type = "ip-dst"
         return ip_type, properties.address_value.value, "ip"
+
+    def handle_as(self, properties):
+        attributes = []
+        if properties.number:
+            attributes.append(['AS', properties.number.value, 'asn'])
+        if properties.handle:
+            attributes.append(['AS', properties.handle.value, 'asn'])
+        if properties.name:
+            attributes.append(['text', properties.name.value, 'description'])
+        if len(attributes) == 1:
+            return attributes[0]
+        return 'asn', self.return_attributes(attributes), ''
 
     # Return type & value of an attachment attribute
     @staticmethod
@@ -823,7 +837,7 @@ class StixParser():
                 header_object.add_attribute(**{"type": "size-in-bytes", "object_relation": "size-in-bytes",
                                                "value": file_header.size_of_optional_header.value})
             self.misp_event.add_object(**header_object)
-            misp_object.add_reference(header_object.uuid, 'included-in')
+            misp_object.add_reference(header_object.uuid, 'header-of')
         if properties.sections:
             for section in properties.sections:
                 section_uuid = self.parse_pe_section(section)
@@ -895,8 +909,9 @@ class StixParser():
                 properties = observable.object_.properties
                 misp_attribute = MISPAttribute()
                 misp_attribute.type, misp_attribute.value, misp_attribute.object_relation = self.handle_attribute_type(properties, is_object=True, observable_id=observable.id_)
+                misp_attribute.to_ids = to_ids
                 misp_object.add_attribute(**misp_attribute)
-                self.misp_event.add_object(**misp_object)
+            self.misp_event.add_object(**misp_object)
         except AttributeError:
             properties = item.observable.object_.properties if to_ids else item.object_.properties
             self.parse_observable(properties, to_ids)
@@ -908,7 +923,7 @@ class StixParser():
             attribute = {'to_ids': to_ids}
             self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
         else:
-            self.handle_object_case(attribute_type, attribute_value, compl_data)
+            self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=to_ids)
 
     # Parse indicators of an external STIX document
     def parse_external_indicator(self, indicators):
@@ -928,7 +943,7 @@ class StixParser():
                     self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
                 else:
                     # otherwise, it is a dictionary of attributes, so we build an object
-                    self.handle_object_case(attribute_type, attribute_value, compl_data)
+                    self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=True)
 
     # Parse observables of an external STIX document
     def parse_external_observable(self, observables):
@@ -991,11 +1006,12 @@ class StixParser():
 
     # The value returned by the indicators or observables parser is a list of dictionaries
     # These dictionaries are the attributes we add in an object, itself added in the MISP event
-    def handle_object_case(self, attribute_type, attribute_value, compl_data, object_uuid=None):
+    def handle_object_case(self, attribute_type, attribute_value, compl_data, to_ids=False, object_uuid=None):
         misp_object = MISPObject(attribute_type)
         if object_uuid:
             misp_object.uuid = object_uuid
         for attribute in attribute_value:
+            attribute['to_ids'] = to_ids
             misp_object.add_attribute(**attribute)
         if type(compl_data) is dict:
             # if some complementary data is a dictionary containing an uuid,

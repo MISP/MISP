@@ -15,11 +15,11 @@ class AdminCrudComponent extends AuthComponent {
 		if ($this->controller->request->is('post')) {
 			$this->controller->{$this->controller->defaultModel}->create();
 			if ($this->controller->{$this->controller->defaultModel}->save($this->controller->request->data)) {
-				$this->controller->Session->setFlash(__(sprintf('The %s has been saved.', strtolower($this->controller->defaultModel))));
+				$this->controller->Session->setFlash(sprintf(__('The %s has been saved.'), strtolower($this->controller->defaultModel)));
 				$this->controller->redirect(array('action' => 'index'));
 			} else {
 				if (!($this->Session->check('Message.flash'))) {
-					$this->controller->Session->setFlash(__(sprintf('The %s could not be saved. Please, try again.', strtolower($this->controller->defaultModel))));
+					$this->controller->Session->setFlash(sprintf(__('The %s could not be saved. Please, try again.'), strtolower($this->controller->defaultModel)));
 				}
 			}
 		}
@@ -45,16 +45,16 @@ class AdminCrudComponent extends AuthComponent {
 	public function adminEdit($id = null) {
 		$this->controller->{$this->controller->defaultModel}->id = $id;
 		if (!$this->controller->{$this->controller->defaultModel}->exists()) {
-			throw new NotFoundException(__(sprintf('Invalid %s', strtolower($this->controller->defaultModel))));
+			throw new NotFoundException(sprintf(__('Invalid %s'), strtolower($this->controller->defaultModel)));
 		}
 		if ($this->controller->request->is('post') || $this->controller->request->is('put')) {
 			$this->controller->request->data[$this->controller->defaultModel]['id'] = $id;
 			if ($this->controller->{$this->controller->defaultModel}->save($this->controller->request->data)) {
-				$this->controller->Session->setFlash(__(sprintf('The %s has been saved', strtolower($this->controller->defaultModel))));
+				$this->controller->Session->setFlash(sprintf(__('The %s has been saved'), strtolower($this->controller->defaultModel)));
 				$this->controller->redirect(array('action' => 'index'));
 			} else {
 				if (!($this->Session->check('Message.flash'))) {
-					$this->controller->Session->setFlash(__(sprintf('The %s could not be saved. Please, try again.', strtolower($this->controller->defaultModel))));
+					$this->controller->Session->setFlash(sprintf(__('The %s could not be saved. Please, try again.'), strtolower($this->controller->defaultModel)));
 				}
 			}
 		} else {
@@ -77,13 +77,13 @@ class AdminCrudComponent extends AuthComponent {
 		}
 		$this->controller->{$this->controller->defaultModel}->id = $id;
 		if (!$this->controller->{$this->controller->defaultModel}->exists()) {
-			throw new NotFoundException(__(sprintf('Invalid %s', strtolower($this->controller->defaultModel))));
+			throw new NotFoundException(sprintf(__('Invalid %s'), strtolower($this->controller->defaultModel)));
 		}
 		if ($this->controller->{$this->controller->defaultModel}->delete()) {
-			$this->controller->Session->setFlash(__(sprintf('%s deleted', $this->controller->defaultModel)));
+			$this->controller->Session->setFlash(sprintf(__('%s deleted'), $this->controller->defaultModel));
 			$this->controller->redirect(array('action' => 'index'));
 		}
-		$this->controller->Session->setFlash(__(sprintf('%s was not deleted', $this->controller->defaultModel)));
+		$this->controller->Session->setFlash(sprintf(__('%s was not deleted'), $this->controller->defaultModel));
 		$this->controller->redirect(array('action' => 'index'));
 	}
 

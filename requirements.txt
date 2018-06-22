@@ -1,7 +1,7 @@
 pyzmq
 coveralls
 codecov
-stix == 1.2.0.0
+stix == 1.2.0.6
 git+https://github.com/MISP/PyMISP.git#egg=Package
 requests-mock
 pip
