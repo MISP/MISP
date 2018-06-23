@@ -1190,6 +1190,10 @@ class EventsController extends AppController {
 				$attributeUri .= '/' . $v;
 			}
 		}
+		$orgTable = $this->Event->Orgc->find('list', array(
+			'fields' => array('Orgc.id', 'Orgc.name')
+		));
+		$this->set('orgTable', $orgTable);
 		$this->set('currentUri', $attributeUri);
 		$this->set('mitreAttackGalaxyId', $this->Event->GalaxyCluster->Galaxy->getMitreAttackGalaxyId());
 	}

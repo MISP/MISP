@@ -173,7 +173,12 @@
                 </li>
                 <?php
                   endif;
-                  $relatedData = array('Event info' => $relatedAttribute['info'], 'Correlating Value' => $relatedAttribute['value'], 'date' => isset($relatedAttribute['date']) ? $relatedAttribute['date'] : 'N/A');
+                  $relatedData = array(
+                    'Orgc' => !empty($orgTable[$relatedAttribute['org_id']]) ? $orgTable[$relatedAttribute['org_id']] : 'N/A',
+                    'Date' => isset($relatedAttribute['date']) ? $relatedAttribute['date'] : 'N/A',
+                    'Info' => $relatedAttribute['info'],
+                    'Correlating Value' => $relatedAttribute['value']
+                  );
                   $popover = '';
                   foreach ($relatedData as $k => $v):
                     $popover .= '<span class=\'bold black\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
