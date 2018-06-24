@@ -1132,7 +1132,7 @@ class AttributesController extends AppController {
 			if ($this->request->is('ajax')) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Attribute')), 'type' => 'json', 'status'=>200));
 			else throw new MethodNotAllowedException('Invalid Attribute');
 		}
-		if (!$this->_isRest()) $this->Event->insertLock($this->Auth->user(), $attribute['Attribute']['event_id']);
+		if (!$this->_isRest()) $this->Attribute->Event->insertLock($this->Auth->user(), $attribute['Attribute']['event_id']);
 		if ($this->request->is('ajax')) {
 			if ($this->request->is('post')) {
 				$result = $this->Attribute->restore($id, $this->Auth->user());
