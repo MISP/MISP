@@ -33,6 +33,13 @@ td.matrix-interaction:hover {
     color: white;
 }
 
+td.matrix-interaction.cell-picked {
+    border: solid #a00b03;
+    background-color: #6f6f6f;
+    color: white;
+}
+
+
 .fixed-table-container-inner {
     overflow-x: hidden;
     overflow-y: auto;
@@ -147,10 +154,15 @@ li.tactic.active {
     line-height: 10px;
 }
 
-.matrix-div-search {
+.matrix-div-submit {
     left: 50%;
     padding-left: 1px;
     right: unset;
     padding-right: 1px;
     display: none;
+}
+
+.highlightGreen {
+    box-shadow: 0px 0px 10px 1px #b4ff00;
+    transform: scale(1.3);
 }
