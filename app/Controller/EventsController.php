@@ -119,8 +119,8 @@ class EventsController extends AppController {
 					'conditions' => array(),
 			);
 			foreach ($include as $i) {
-				$includeQuery['conditions']['OR'][] = array('lower(Attribute.value1) LIKE' => $i);
-				$includeQuery['conditions']['OR'][] = array('lower(Attribute.value2) LIKE' => $i);
+				$includeQuery['conditions']['OR'][] = array('Attribute.value1 LIKE' => $i);
+				$includeQuery['conditions']['OR'][] = array('Attribute.value2 LIKE' => $i);
 			}
 			$includeQuery['conditions']['AND'][] = array('Attribute.deleted' => 0);
 			$includeHits = $this->Event->Attribute->find('all', $includeQuery);
@@ -139,8 +139,8 @@ class EventsController extends AppController {
 				'conditions' => array(),
 			);
 			foreach ($exclude as $e) {
-				$excludeQuery['conditions']['OR'][] = array('lower(Attribute.value1) LIKE' => $e);
-				$excludeQuery['conditions']['OR'][] = array('lower(Attribute.value2) LIKE' => $e);
+				$excludeQuery['conditions']['OR'][] = array('Attribute.value1 LIKE' => $e);
+				$excludeQuery['conditions']['OR'][] = array('Attribute.value2 LIKE' => $e);
 			}
 			$excludeQuery['conditions']['AND'][] = array('Attribute.deleted' => 0);
 			$excludeHits = $this->Event->Attribute->find('all', $excludeQuery);
@@ -171,9 +171,9 @@ class EventsController extends AppController {
 		// This is not perfect, the search will be case insensitive, but value1 and value2 are searched separately. lower() doesn't seem to work on virtualfields
 		$subconditions = array();
 		foreach ($values as $v) {
-			$subconditions[] = array('lower(value1) LIKE' => $v);
-			$subconditions[] = array('lower(value2) LIKE' => $v);
-			$subconditions[] = array('lower(Attribute.comment) LIKE' => $v);
+			$subconditions[] = array('Attribute.value1 LIKE' => $v);
+			$subconditions[] = array('Attribute.value2 LIKE' => $v);
+			$subconditions[] = array('Attribute.comment LIKE' => $v);
 		}
 		$conditions = array(
 			'AND' => array(
