@@ -279,6 +279,10 @@ networkSocketMapping = {'address-family': 'address_family', 'domain-family': 'pr
                         'ip-src': network_traffic_src_ref, 'ip-dst': network_traffic_dst_ref,
                         'hostname-src': network_traffic_src_ref, 'hostname-dst': network_traffic_dst_ref}
 
+peMapping = {'type': 'pe_type', 'number-sections': 'number_of_sections', 'imphash': 'imphash'}
+
+peSectionMapping = {'name': 'name', 'size-in-bytes': 'size', 'entropy': 'entropy'}
+
 processMapping = {'name': 'name', 'pid': 'pid', 'creation-time': 'created'}
 
 regkeyMapping = {'data-type': 'data_type', 'data': 'data', 'name': 'name',

@@ -107,26 +107,38 @@ class StixBuilder():
                         self.add_custom(attribute)
         if hasattr(self.misp_event, 'objects') and self.misp_event.objects:
             self.load_objects_mapping()
+            objects_to_parse = defaultdict(dict)
             misp_objects = self.misp_event.objects
             self.object_references, self.processes = self.fetch_object_references(misp_objects)
             for misp_object in misp_objects:
-                object_attributes = misp_object.attributes
-                to_ids = self.fetch_ids_flag(object_attributes)
-                object_name = misp_object.name
-                if object_name == "vulnerability":
+                to_ids = self.fetch_ids_flag(misp_object.attributes)
+                name = misp_object.name
+                if name == "vulnerability":
                     self.add_object_vulnerability(misp_object, to_ids)
-                elif object_name == "course-of-action":
+                elif name == "course-of-action":
                     self.add_course_of_action(misp_object, from_object=True)
-                elif object_name in objectsMapping:
+                elif name in ('pe', 'pe-section'):
+                    objects_to_parse[name][misp_object.uuid] = to_ids, misp_object
+                elif name in objectsMapping:
+                    if  name == 'file' and misp_object.references:
+                        to_parse = False
+                        for reference in misp_object.references:
+                            if reference.relationship_type == 'included-in' and reference.Object['name'] == "pe":
+                                objects_to_parse[name][misp_object.uuid] = to_ids, misp_object
+                                to_parse = True
+                                break
+                        if to_parse:
+                            continue
                     try:
-                        if to_ids or object_name == "stix2-pattern":
-                            self.add_object_indicator(misp_object, to_ids)
+                        if to_ids or name == "stix2-pattern":
+                            self.add_object_indicator(misp_object)
                         else:
-                            self.add_object_observable(misp_object, to_ids)
+                            self.add_object_observable(misp_object)
                     except:
                         self.add_object_custom(misp_object, to_ids)
                 else:
                     self.add_object_custom(misp_object, to_ids)
+            if objects_to_parse: self.resolve_objects2parse(objects_to_parse)
         if hasattr(self.misp_event, 'Galaxy') and self.misp_event.Galaxy:
             for galaxy in self.misp_event.Galaxy:
                 galaxy_type = galaxy.get('type')
@@ -242,6 +254,78 @@ class StixBuilder():
             pass
         link = {'source_name': source, 'url': url}
         self.external_refs.append(link)
+
+    def resolve_objects2parse(self, objects2parse):
+        for uuid, misp_object in objects2parse['file'].items():
+            to_ids_file, file_object = misp_object
+            to_ids_list = [to_ids_file]
+            object2create = defaultdict(list)
+            for reference in file_object.references:
+                if reference.relationship_type == "included-in" and reference.Object['name'] == "pe":
+                    pe_uuid = reference.referenced_uuid
+                    break
+            to_ids_pe, pe_object = objects2parse['pe'][pe_uuid]
+            to_ids_list.append(to_ids_pe)
+            sections = []
+            for reference in pe_object.references:
+                if reference.Object['name'] == "pe-section":
+                    to_ids_section, section_object = objects2parse['pe-section'][reference.referenced_uuid]
+                    to_ids_list.append(to_ids_section)
+                    sections.append(section_object)
+            if True in to_ids_list:
+                pattern = self.resolve_file_pattern(file_object.attributes)
+                pattern += " AND {}".format(self.parse_pe_extensions_pattern(pe_object, sections))
+                self.add_object_indicator(misp_object, pattern_arg=pattern)
+            else:
+                observable = self.resolve_file_observable(file_object.attributes)
+                observable['extensions'] = self.parse_pe_extensions_observable(pe_object, sections)
+                self.add_object_observable(misp_object, observable_arg=observable)
+
+    def parse_pe_extensions_observable(self, pe_object, sections):
+        extension = defaultdict(list)
+        for attribute in pe_object.attributes:
+            try:
+                extension[peMapping[attribute.object_relation]] = attribute.value
+            except KeyError:
+                continue
+        for section in sections:
+            d_section = defaultdict(dict)
+            for attribute in section.attributes:
+                relation = attribute.object_relation
+                if relation in misp_hash_types:
+                    d_section['hashes'][relation] = attribute.value
+                else:
+                    try:
+                        d_section[peSectionMapping[relation]] = attribute.value
+                    except KeyError:
+                        continue
+            extension['sections'].append(d_section)
+        return {"windows-pebinary-ext": extension}
+
+    def parse_pe_extensions_pattern(self, pe_object, sections):
+        pattern = ""
+        mapping = objectsMapping['file']['pattern']
+        pe_mapping = "extensions.'windows-pebinary-ext'"
+        for attribute in pe_object.attributes:
+            try:
+                stix_type = "{}.{}".format(pe_mapping, peMapping[attribute.object_relation])
+                pattern += mapping.format(stix_type, attribute.value)
+            except KeyError:
+                continue
+        section_mapping = "{}.sections[*]".format(pe_mapping)
+        for section in sections:
+            for attribute in section.attributes:
+                relation = attribute.object_relation
+                if relation in misp_hash_types:
+                    stix_type = "{}.hashes.'{}'".format(section_mapping, relation)
+                    pattern += mapping.format(stix_type, attribute.value)
+                else:
+                    try:
+                        stix_type = "{}.{}".format(section_mapping, peSectionMapping[relation])
+                        pattern += mapping.format(stix_type, attribute.value)
+                    except KeyError:
+                        continue
+        return pattern[:-5]
 
     @staticmethod
     def generate_galaxy_args(galaxy, b_killchain, b_alias, sdo_type):
@@ -415,13 +499,17 @@ class StixBuilder():
         custom_object = Custom(**custom_object_args)
         self.append_object(custom_object, custom_object_id)
 
-    def add_object_indicator(self, misp_object, to_ids):
+    def add_object_indicator(self, misp_object, pattern_arg=None):
+        if pattern_arg:
+            name = 'WindowsPEBinaryFile'
+            pattern = pattern_arg
+        else:
+            name = misp_object.name
+            pattern = self.objects_mapping[name]['pattern'](misp_object.attribute)
         indicator_id = 'indicator--{}'.format(misp_object.uuid)
-        name = misp_object.name
         category = misp_object.get('meta-category')
         killchain = self.create_killchain(category)
-        labels = self.create_object_labels(name, category, to_ids)
-        pattern = self.objects_mapping[name]['pattern'](misp_object.attributes)
+        labels = self.create_object_labels(name, category, True)
         timestamp = self.get_date_from_timestamp(int(misp_object.timestamp))
         indicator_args = {'id': indicator_id, 'valid_from': timestamp, 'type': 'indicator',
                           'labels': labels, 'description': misp_object.description,
@@ -430,12 +518,16 @@ class StixBuilder():
         indicator = Indicator(**indicator_args)
         self.append_object(indicator, indicator_id)
 
-    def add_object_observable(self, misp_object, to_ids):
+    def add_object_observable(self, misp_object, observable_arg=None):
+        if observable_arg:
+            name = 'WindowsPEBinaryFile'
+            observable_objects = observable_arg
+        else:
+            name = misp_object.name
+            observable_objects = self.objects_mapping[name]['observable'](misp_object.attribute)
         observed_data_id = 'observed-data--{}'.format(misp_object.uuid)
-        name = misp_object.name
         category = misp_object.get('meta-category')
-        labels = self.create_object_labels(name, category, to_ids)
-        observable_objects = self.objects_mapping[name]['observable'](misp_objects.attributes)
+        labels = self.create_object_labels(name, category, False)
         timestamp = self.get_date_from_timestamp(int(misp_object.timestamp))
         observed_data_args = {'id': observed_data_id, 'type': 'observed-data',
                               'number_observed': 1, 'labels': labels, 'objects': observable_objects,
