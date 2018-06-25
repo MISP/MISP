@@ -279,6 +279,10 @@ networkSocketMapping = {'address-family': 'address_family', 'domain-family': 'pr
                         'ip-src': network_traffic_src_ref, 'ip-dst': network_traffic_dst_ref,
                         'hostname-src': network_traffic_src_ref, 'hostname-dst': network_traffic_dst_ref}
 
+peMapping = {'type': 'pe_type', 'number-sections': 'number_of_sections', 'imphash': 'imphash'}
+
+peSectionMapping = {'name': 'name', 'size-in-bytes': 'size', 'entropy': 'entropy'}
+
 processMapping = {'name': 'name', 'pid': 'pid', 'creation-time': 'created'}
 
 regkeyMapping = {'data-type': 'data_type', 'data': 'data', 'name': 'name',
@@ -286,10 +290,11 @@ regkeyMapping = {'data-type': 'data_type', 'data': 'data', 'name': 'name',
 
 urlMapping = {'url': 'value', 'domain': 'value', 'port': 'dst_port'}
 
-x509mapping = {'text':{'subject': 'subject', 'issuer': 'issuer', 'pubkey-info-algorithm': 'subject_public_key_algorithm',
-                       'pubkey-info-exponent': 'subject_public_key_exponent', 'pubkey-info-modulus': 'subject_public_key_modulus',
-                       'serial-number': 'serial_number', 'version': 'version'},
-               'datetime': {'validity-not-before': 'validity_not_before', 'validity-not-after': 'validity_not_after'}}
+x509mapping = {'pubkey-info-algorithm': 'subject_public_key_algorithm', 'subject': 'subject',
+               'pubkey-info-exponent': 'subject_public_key_exponent', 'issuer': 'issuer',
+               'pubkey-info-modulus': 'subject_public_key_modulus', 'serial-number': 'serial_number',
+               'validity-not-before': 'validity_not_before', 'validity-not-after': 'validity_not_after',
+               'version': 'version',}
 
 defineProtocols = {'80': 'http', '443': 'https'}
 
