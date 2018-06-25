@@ -176,6 +176,7 @@ class Galaxy extends AppModel{
 			if ($tag_id === false) {
 				throw new MethodNotAllowedException('Could not attach cluster.');
 			}
+			$this->Tag->AttributeTag->create();
 			$existingTag = $this->Tag->AttributeTag->find('first', array('conditions' => array('attribute_id' => $target_id, 'tag_id' => $tag_id)));
 			if (!empty($existingTag)) {
 				return 'Cluster already attached.';
