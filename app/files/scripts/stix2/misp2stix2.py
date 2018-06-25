@@ -1006,13 +1006,12 @@ class StixBuilder():
         observable = {'type': 'x509-certificate'}
         hashes = {}
         for attribute in attributes:
-            attribute_type = attribute.type
-            if attribute_type in ("x509-fingerprint-md5", "x509-fingerprint-sha1", "x509-fingerprint-sha256"):
-                h_type = attribute_type.split('-')[2]
-                hashes[h_type] = attribute.value
+            relation = attribute.object_relation
+            if relation in ("x509-fingerprint-md5", "x509-fingerprint-sha1", "x509-fingerprint-sha256"):
+                hashes[relation.split('-')[2]] = attribute.value
             else:
                 try:
-                    observable[x509mapping[attribute_type][attribute.object_relation]] = attribute.value
+                    observable[x509mapping[relation]] = attribute.value
                 except:
                     pass
         if hashes:
@@ -1024,13 +1023,12 @@ class StixBuilder():
         mapping = objectsMapping['x509']['pattern']
         pattern = ""
         for attribute in attributes:
-            attribute_type = attribute.type
-            if attribute_type in ("x509-fingerprint-md5", "x509-fingerprint-sha1", "x509-fingerprint-sha256"):
-                h_type = attribute_type.split('-')[2]
-                stix_type = fileMapping['hashes'].format(h_type)
+            relation = attribute.object_relation
+            if relation in ("x509-fingerprint-md5", "x509-fingerprint-sha1", "x509-fingerprint-sha256"):
+                stix_type = fileMapping['hashes'].format(relation.split('-')[2])
             else:
                 try:
-                    stix_type = x509mapping[attribute_type][attribute.object_relation]
+                    stix_type = x509mapping[relation]
                 except:
                     continue
             pattern += mapping.format(stix_type, attribute.value)
