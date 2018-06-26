@@ -231,7 +231,6 @@ class StixBuilder(object):
         self.ttps = []
         self.resolve_attributes(incident, Tags)
         self.resolve_objects(incident, Tags)
-        self.resolve_objects2parse(incident, Tags)
         self.add_related_indicators(incident)
         if self.history.history_items:
             incident.history = self.history
@@ -307,10 +306,11 @@ class StixBuilder(object):
             else:
                 related_observable = RelatedObservable(observable, relationship=category)
                 incident.related_observables.append(related_observable)
-        if objects_to_parse: self.objects2parse = objects_to_parse
+        if objects_to_parse: self.resolve_objects2parse(objects_to_parse, incident, tags)
 
-    def resolve_objects2parse(self, incident, tags):
-        for uuid, file_object in self.objects2parse['file'].items():
+
+    def resolve_objects2parse(self, objects2parse, incident, tags):
+        for uuid, file_object in objects2parse['file'].items():
             category = file_object.get('meta-category')
             to_ids_file, file_dict = self.create_attributes_dict(file_object.attributes)
             to_ids_list = [to_ids_file]
@@ -320,7 +320,7 @@ class StixBuilder(object):
                 if reference.relationship_type == "included-in" and reference.Object['name'] == "pe":
                     pe_uuid = reference.referenced_uuid
                     break
-            pe_object = self.objects2parse['pe'][pe_uuid]
+            pe_object = objects2parse['pe'][pe_uuid]
             pe_headers = PEHeaders()
             pe_file_header = PEFileHeader()
             pe_sections = PESectionList()
@@ -328,7 +328,7 @@ class StixBuilder(object):
             to_ids_list.append(to_ids_pe)
             for reference in pe_object.references:
                 if reference.Object['name'] == "pe-section":
-                    pe_section_object = self.objects2parse['pe-section'][reference.referenced_uuid]
+                    pe_section_object = objects2parse['pe-section'][reference.referenced_uuid]
                     to_ids_section, section_dict = self.create_attributes_dict(pe_section_object.attributes)
                     to_ids_list.append(to_ids_section)
                     if reference.relationship_type == "included-in":
