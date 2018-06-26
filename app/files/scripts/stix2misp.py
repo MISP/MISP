@@ -54,8 +54,8 @@ class StixParser():
         self.dns_ips = []
 
     # Load data from STIX document, and other usefull data
-    def load(self, args, pathname):
-        filename = '{}/tmp/{}'.format(pathname, args[1])
+    def load(self, args):
+        filename = '{}/tmp/{}'.format(os.path.dirname(args[0]), args[1])
         try:
             event = STIXPackage.from_xml(filename)
         except:
@@ -1127,9 +1127,8 @@ class StixParser():
             f.write(eventDict)
 
 def main(args):
-    pathname = os.path.dirname(args[0])
     stix_parser = StixParser()
-    stix_parser.load(args, pathname)
+    stix_parser.load(args)
     stix_parser.handler()
     stix_parser.saveFile()
     print(1)
