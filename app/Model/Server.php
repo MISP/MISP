@@ -2081,17 +2081,24 @@ class Server extends AppModel {
 				$fails = array();
 				$lowestfailedid = null;
 				foreach ($eventUUIDsFiltered as $k => $eventUuid) {
-					$event = $this->Event->fetchEvent($user, array(
+					$params = array();
+					if (!empty($this->data['Server']['push_rules'])) {
+						$push_rules = json_decode($this->data['Server']['push_rules'], true);
+						if (!empty($push_rules['tags']['NOT'])) {
+							$params['blockedAttributeTags'] = $push_rules['tags']['NOT'];
+						}
+					}
+					$params = array_merge($params, array(
 						'event_uuid' => $eventUuid,
 						'includeAttachments' => true,
-						'includeAllTags' => true
+						'includeAllTags' => true,
+						'deleted' => true,
+						'excludeGalaxy' => 1
 					));
+					$event = $this->Event->fetchEvent($user, $params);
 					$event = $event[0];
-					$event['Event']['locked'] = true;
-					$result = $this->Event->uploadEventToServer(
-							$event,
-							$this->data,
-							$HttpSocket);
+					$event['Event']['locked'] = 1;
+					$result = $this->Event->uploadEventToServer($event, $this->data, $HttpSocket);
 					if ('Success' === $result) {
 						$successes[] = $event['Event']['id'];
 					} else {
