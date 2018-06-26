@@ -414,7 +414,7 @@ class Event extends AppModel {
 		// Convert event ID to uuid if needed
 		if (!empty($this->data['Event']['extends_uuid']) && is_numeric($this->data['Event']['extends_uuid'])) {
 			$extended_event = $this->find('first', array(
-				'recursive' -1,
+				'recursive' => -1,
 				'conditions' => array('Event.id' => $this->data['Event']['extends_uuid']),
 				'fields' => array('Event.uuid')
 			));
