@@ -4154,16 +4154,17 @@ class Event extends AppModel {
 		if ($stix_version == '2') {
 			$scriptFile = APP . 'files/scripts/stix2/stix2misp.py';
 			$tempFilePath = APP . 'files/scripts/tmp/' . $filename;
-			$shell_command = 'python3 ' . $scriptFile . ' ' . $tempFilePath . ' 2>' . APP . 'tmp/logs/exec-errors.log';
+			$shell_command = 'python3 ' . $scriptFile . ' ' . $tempFilePath;
 			$output_path = $tempFilePath . '.stix2';
 		} else if ($stix_version == '1' || $stix_version == '1.1' || $stix_version == '1.2') {
 			$scriptFile = APP . 'files/scripts/stix2misp.py';
 			$tempFilePath = APP . 'files/scripts/tmp/' . $filename;
-			$shell_command = 'python3 ' . $scriptFile . ' ' . $filename . ' 2>' . APP . 'tmp/logs/exec-errors.log';
+			$shell_command = 'python3 ' . $scriptFile . ' ' . $filename;
 			$output_path = $tempFilePath . '.json';
 		} else {
 			throw new MethodNotAllowedException('Invalid STIX version');
 		}
+		$shell_command .=  ' ' . escapeshellarg(Configure::read('MISP.default_event_distribution')) . ' ' . escapeshellarg(Configure::read('MISP.default_attribute_distribution')) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
 		$result = shell_exec($shell_command);
 		unlink($tempFilePath);
 		if (trim($result) == '1') {

@@ -76,6 +76,20 @@ class StixParser():
             self.ttps = package.ttps.ttps if package.ttps else None
         else:
             self.event = event
+        try:
+            event_distribution = args[2]
+            if not isinstance(event_distribution, int):
+                event_distribution = int(event_distribution) if event_distribution.isdigit() else 5
+        except:
+            event_distribution = 5
+        try:
+            attribute_distribution = args[3]
+            if attribute_distribution != 'event' and not isinstance(attribute_distribution, int):
+                attribute_distribution = int(attribute_distribution) if attribute_distribution.isdigit() else 5
+        except:
+            attribute_distribution = 5
+        self.misp_event.distribution = event_distribution
+        self.__attribute_distribution = event_distribution if attribute_distribution == 'event' else attribute_distribution
         self.fromMISP = fromMISP
         self.filename = filename
         self.load_mapping()
@@ -123,6 +137,7 @@ class StixParser():
             self.buildExternalDict()
         if self.dns_objects:
             self.resolve_dns_objects()
+        self.set_distribution()
         if self.references:
             self.build_references()
 
@@ -208,7 +223,16 @@ class StixParser():
                 self.misp_event.add_attribute(**domain_attribute)
         for ip in self.dns_objects['ip']:
             if ip not in self.dns_ips:
+                # print(ip)
                 self.misp_event.add_attribute(**self.dns_objects['ip'][ip])
+
+    def set_distribution(self):
+        for attribute in misp_event.attributes:
+            attribute.distribution = self.__attribute_distribution
+        for misp_oject in misp_event.objects:
+            misp_object.distribution = self.__attribute_distribution
+            for attribute in misp_object.attributes:
+                attribute.distribution = self.__attribute_distribution
 
     # Make references between objects
     def build_references(self):
