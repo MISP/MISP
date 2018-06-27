@@ -227,9 +227,9 @@ class StixParser():
                 self.misp_event.add_attribute(**self.dns_objects['ip'][ip])
 
     def set_distribution(self):
-        for attribute in misp_event.attributes:
+        for attribute in self.misp_event.attributes:
             attribute.distribution = self.__attribute_distribution
-        for misp_oject in misp_event.objects:
+        for misp_oject in self.misp_event.objects:
             misp_object.distribution = self.__attribute_distribution
             for attribute in misp_object.attributes:
                 attribute.distribution = self.__attribute_distribution
