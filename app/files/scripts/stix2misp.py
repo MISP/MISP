@@ -832,8 +832,15 @@ class StixParser():
             if certificate.subject:
                 attributes.append(["text", certificate.subject.value, "subject"])
         if properties.raw_certificate:
-            raw = properties.raw_certificate
-            print(raw.to_json())
+            raw = properties.raw_certificate.value
+            try:
+                if raw == base64.b64encode(base64.b64decode(raw)).strip():
+                    relation = "raw-base64"
+                else:
+                    relation = "pem"
+            except:
+                relation = "pem"
+            attributes.append(["text", raw, relation])
         if properties.certificate_signature:
             signature = properties.certificate_signature
             attribute_type = "x509-fingerprint-{}".format(signature.signature_algorithm.value.lower())
