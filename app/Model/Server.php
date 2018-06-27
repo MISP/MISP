@@ -1056,6 +1056,15 @@ class Server extends AppModel {
 						'test' => 'testBool',
 						'type' => 'boolean',
 						'null' => true
+					),
+					'allow_unsafe_apikey_named_param' => array(
+						'level' => 0,
+						'description' => 'Allows passing the API key via the named url parameter "apikey" - highly recommended not to enable this, but if you have some dodgy legacy tools that cannot pass the authorization header it can work as a workaround. Again, only use this as a last resort.',
+						'value' => false,
+						'errorMessage' => 'You have enabled the passing of API keys via URL parameters. This is highly recommended against, do you really want to reveal APIkeys in your logs?...',
+						'test' => 'testBoolFalse',
+						'type' => 'boolean',
+						'null' => true
 					)
 			),
 			'SecureAuth' => array(

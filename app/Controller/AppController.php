@@ -178,10 +178,18 @@ class AppController extends Controller {
 				// disable CSRF for REST access
 				if (array_key_exists('Security', $this->components))
 					$this->Security->csrfCheck = false;
+				// If enabled, allow passing the API key via a named parameter (for crappy legacy systems only)
+				$namedParamAuthkey = false;
+				if (Configure::read('Security.allow_unsafe_apikey_named_param') && !empty($this->params['named']['apikey'])) {
+					$namedParamAuthkey = $this->params['named']['apikey'];
+				}
 				// Authenticate user with authkey in Authorization HTTP header
-				if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
+				if (!empty($_SERVER['HTTP_AUTHORIZATION']) || !empty($namedParamAuthkey)) {
 					$found_misp_auth_key = false;
 					$authentication = explode(',', $_SERVER['HTTP_AUTHORIZATION']);
+					if (!empty($namedParamAuthkey)) {
+						$authentication[] = $namedParamAuthkey;
+					}
 					$user = false;
 					foreach ($authentication as $auth_key) {
 						if (preg_match('/^[a-zA-Z0-9]{40}$/', trim($auth_key))) {
