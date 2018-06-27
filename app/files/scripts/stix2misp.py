@@ -229,7 +229,7 @@ class StixParser():
     def set_distribution(self):
         for attribute in self.misp_event.attributes:
             attribute.distribution = self.__attribute_distribution
-        for misp_oject in self.misp_event.objects:
+        for misp_object in self.misp_event.objects:
             misp_object.distribution = self.__attribute_distribution
             for attribute in misp_object.attributes:
                 attribute.distribution = self.__attribute_distribution
