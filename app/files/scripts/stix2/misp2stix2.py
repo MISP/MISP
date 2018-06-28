@@ -278,7 +278,7 @@ class StixBuilder():
                 self.add_object_indicator(file_object, pattern_arg=pattern)
             else:
                 observable = self.resolve_file_observable(file_object.attributes)
-                observable['extensions'] = self.parse_pe_extensions_observable(pe_object, sections)
+                observable['0']['extensions'] = self.parse_pe_extensions_observable(pe_object, sections)
                 self.add_object_observable(file_object, observable_arg=observable)
 
     def parse_pe_extensions_observable(self, pe_object, sections):
@@ -299,7 +299,7 @@ class StixBuilder():
                         d_section[peSectionMapping[relation]] = attribute.value
                     except KeyError:
                         continue
-            extension['sections'].append(d_section)
+            extension['sections'].append(WindowsPESection(**d_section))
         return {"windows-pebinary-ext": extension}
 
     def parse_pe_extensions_pattern(self, pe_object, sections):
