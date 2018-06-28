@@ -1,4 +1,5 @@
 (function () {
+	var minWidth = 1400;
 	var clusterNameToIdMapping = new Map();
 	var typeaheadDataMatrixSearch;
 	$(document).ready(function() {
@@ -22,7 +23,16 @@
 				$(this).removeClass('cell-picked');
 			}
 		});
-		$('.ajax_popover_form .matrix-div-submit').css('display', 'block');
+
+		if($(window).width() <= minWidth) {
+			$('#popover_form_large').css('position', 'absolute');
+			$('#popover_form_large').css('left', '10px');
+			$('#popover_form_large').css('top', '35px');
+		} else {
+			$('#popover_form_large').css('position', 'fixed');
+			$('#popover_form_large').css('left', '');
+		}
+
 		$('.ajax_popover_form .btn-matrix-submit').click(function() {
 			$('#GalaxyTargetIds').val(JSON.stringify(pickedGalaxies));
 			$('#GalaxyViewMitreAttackMatrixForm').submit();
