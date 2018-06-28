@@ -10,10 +10,6 @@ foreach($attackTactic as $tactic):
 </ul>
 </div>
 
-<div class="attack-matrix-options matrix-div-submit">
-    <span class="btn btn-inverse btn-matrix-submit" role="button" style="padding: 1px 5px !important;font-size: 12px !important;font-weight: bold;"><?php echo _('Submit'); ?></span>
-</div>
-
 <div class="attack-matrix-options">
     <span id="matrix-heatmap-legend-caret">
 	<span id="matrix-heatmap-legend-caret-value">0</span>
@@ -112,7 +108,8 @@ foreach($attackTactic as $tactic):
 </div>
 
 <?php if($pickingMode): ?>
-<div role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm('#popover_form_large');">Cancel</div>
+<div role="button" tabindex="0" aria-label="Submit" title="Submit" class="templateChoiceButton btn-matrix-submit" onClick="cancelPopoverForm('#popover_form_large');"><?php echo _('Submit'); ?></div>
+<div role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm('#popover_form_large');"><?php echo _('Cancel'); ?></div>
 <?php endif; ?>
 
 <?php

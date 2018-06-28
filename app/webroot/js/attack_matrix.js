@@ -21,11 +21,6 @@
 				}
 				$(this).removeClass('cell-picked');
 			}
-			if (pickedGalaxies.length > 0) {
-				$('.ajax_popover_form .btn-matrix-submit').addClass('highlightGreen');
-			} else {
-				$('.ajax_popover_form .btn-matrix-submit').removeClass('highlightGreen');
-			}
 		});
 		$('.ajax_popover_form .matrix-div-submit').css('display', 'block');
 		$('.ajax_popover_form .btn-matrix-submit').click(function() {
