@@ -63,7 +63,7 @@ class AppModel extends Model {
 
 	public $db_changes = array(
 		1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
-		7 => false, 8 => false, 9 => false, 10 => false, 11 => false
+		7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
 	);
 
 	function afterSave($created, $options = array()) {
@@ -952,6 +952,21 @@ class AppModel extends Model {
 					INDEX `event_id` (`event_id`),
 					INDEX `user_id` (`user_id`),
 					INDEX `timestamp` (`timestamp`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+				break;
+			case 12:
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS event_network_history (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`event_id` int(11) NOT NULL,
+					`user_id` int(11) NOT NULL,
+					`org_id` int(11) NOT NULL,
+					`timestamp` int(11) NOT NULL DEFAULT 0,
+					`network_name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+					`network_json` MEDIUMTEXT NOT NULL,
+					PRIMARY KEY (id),
+					INDEX `event_id` (`event_id`),
+					INDEX `user_id` (`user_id`),
+					INDEX `org_id` (`org_id`)
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 				break;
 			case 'fixNonEmptySharingGroupID':

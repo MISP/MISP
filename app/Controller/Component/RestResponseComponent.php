@@ -180,6 +180,13 @@ class RestResponseComponent extends Component {
 				'description' => "POST a body and a subject in a JSON to send an e-mail through MISP to the user ID given in the URL",
 				'mandatory' => array('subject', 'body')
 			)
+		),
+		'NetworkHistory' => array(
+			'add' => array(
+				'description' => "POST a network in JSON format to this API to to keep an history of it",
+				'mandatory' => array('event_id', 'network_json'),
+				'optional' => array('network_name')
+			)
 		)
 	);
 

@@ -490,52 +490,7 @@ class EventGraph {
 			textButton: "Export",
 			event: function(selected_value) {
 				if (selected_value == 'json') {
-					var nodeData = [];
-					var nodePositions = eventGraph.network.getPositions();
-					eventGraph.nodes.get().forEach(function(nodeD) {
-						var nodeP = nodePositions[nodeD.id];
-						//if (nodeP !== undefined && (nodeD.group == 'object' || nodeD.group == 'attribute')) {
-						if (nodeP !== undefined && nodeD.group != 'obj_relation') {
-							var temp = { 
-								id: nodeD.id,
-								x: nodeP.x,
-								y: nodeP.y,
-							};
-							if (nodeD.fixed !== undefined) {
-								temp.fixed = nodeD.fixed;
-							}
-							if (nodeD.expanded !== undefined) {
-								temp.expanded = nodeD.expanded;
-							}
-							nodeData.push(temp);
-						}
-					});
-					var hiddenNodeData = [];
-					eventGraph.hiddenNode.forEach(function(node) {
-						hiddenNodeData.push(node.id);
-					});
-					
-					var data = { 
-						eventId: scope_id,
-						eventLastChange: event_last_change,
-						nodes: nodeData,
-						hiddenNodes: hiddenNodeData,
-						scope: {
-							scope: eventGraph.scope_name,
-							keyType: eventGraph.scope_keyType
-						},
-						physics: { 
-							solver: eventGraph.solver,
-							repulsion: parseInt($('#slider_physic_node_repulsion').val()),
-							enabled: $('#checkbox_physics_enable').prop("checked")
-						},
-						display: {
-							layout: eventGraph.layout,
-							label: dataHandler.selected_type_to_display,
-							charLength: parseInt($("#slider_display_max_char_num").val())
-						}
-					};
-					var jsonData = JSON.stringify(data);
+					var jsonData = eventGraph.toJSON();
 					download_file(jsonData, 'json');
 				} else if (selected_value == 'png') {
 					var dataURL = eventGraph.canvasContext.canvas.toDataURL();
@@ -624,8 +579,9 @@ class EventGraph {
 				]
 			},
 			data: [],
-			onAddition: function(data, selfTable) {
-				mispInteraction.save_network(data);
+			onAddition: function(network_name, selfTable) {
+				var network_json = eventGraph.toJSON();
+				mispInteraction.save_network(network_json, network_name);
 			},
 			onRemove: function(data, selfTable) {
 				mispInteraction.delete_network(data);
@@ -1280,6 +1236,55 @@ class EventGraph {
 		}
 	}
 
+	toJSON() {
+		var nodeData = [];
+		var nodePositions = eventGraph.network.getPositions();
+		eventGraph.nodes.get().forEach(function(nodeD) {
+			var nodeP = nodePositions[nodeD.id];
+			if (nodeP !== undefined && nodeD.group != 'obj_relation') {
+				var temp = { 
+					id: nodeD.id,
+					x: nodeP.x,
+					y: nodeP.y,
+				};
+				if (nodeD.fixed !== undefined) {
+					temp.fixed = nodeD.fixed;
+				}
+				if (nodeD.expanded !== undefined) {
+					temp.expanded = nodeD.expanded;
+				}
+				nodeData.push(temp);
+			}
+		});
+		var hiddenNodeData = [];
+		eventGraph.hiddenNode.forEach(function(node) {
+			hiddenNodeData.push(node.id);
+		});
+		
+		var data = { 
+			eventId: scope_id,
+			eventLastChange: event_last_change,
+			nodes: nodeData,
+			hiddenNodes: hiddenNodeData,
+			scope: {
+				scope: eventGraph.scope_name,
+				keyType: eventGraph.scope_keyType
+			},
+			physics: { 
+				solver: eventGraph.solver,
+				repulsion: parseInt($('#slider_physic_node_repulsion').val()),
+				enabled: $('#checkbox_physics_enable').prop("checked")
+			},
+			display: {
+				layout: eventGraph.layout,
+				label: dataHandler.selected_type_to_display,
+				charLength: parseInt($("#slider_display_max_char_num").val())
+			}
+		};
+		var jsonData = JSON.stringify(data);
+		return jsonData;
+	}
+
 }
 
 // data class (handle data)
@@ -1578,14 +1583,86 @@ class MispInteraction {
 		}
 	}
 
-	save_network(networkName) {
+	save_network(network_json, network_name) {
 		console.log('saving');
-		reset_graph_history();
+		var network_json = eventGraph.toJSON();
+		this.quickSaveNetworkHistory(scope_id, network_json, network_name, reset_graph_history);
 	}
 
 	delete_network(data) {
 		console.log('deleting');
 		reset_graph_history();
+	}
+
+	quickSaveNetworkHistory(event_id, network_json, network_name, callback) {
+		this.networkFetchForm('add', event_id, undefined, function(form) {
+			var container = $('#eventgraph_network');
+			// append the form somewhere
+			container.append(form);
+
+			var url = form.attr('action');
+
+			// locate wanted field and set the value
+			var field_network_json = form.find('#' + 'EventNetworkHistory' + 'NetworkJson');
+			field_network_json.val(network_json);
+			var field_network_name = form.find('#' + 'EventNetworkHistory' + 'NetworkName');
+			field_network_name.val(network_name);
+
+			// submit the form
+			$.ajax({
+				data: form.serialize(),
+				cache: false,
+				beforeSend: function(XMLHttpRequest) {
+					$('.loading').show();
+				},
+				success: function(data, textStatus) {
+					if (callback !== undefined) {
+						callback();
+					}
+				},
+				error: function( jqXhr, textStatus, errorThrown ){
+					console.log( errorThrown );
+				},
+				complete: function() {
+					$(".loading").hide();
+					// remove form ?
+				},
+				type: 'post',
+				url: url
+			});
+		});
+	}
+
+	networkFetchForm(type, event_id, network_id, callback) {
+		var url = '/' + 'eventNetworkHistory' + '/' + 'fetchForm' + '/' + type + '/' + event_id;
+		if (type == 'edit' && network_id !== undefined) {
+			url += '/' + network_id
+		}
+
+		$.ajax({
+			beforeSend: function(XMLHttpRequest) {
+				$('.loading').show();
+			},
+			dataType: 'html',
+			cache: false,
+			success: function(data, textStatus) {
+				var form = $(data);
+				form.css('display', 'none');
+				if (callback !== undefined) {
+					callback(form);
+				} else {
+					return form;
+				}
+			},
+			error: function( jqXhr, textStatus, errorThrown ){
+				console.log( errorThrown );
+			},
+			complete: function() {
+				$(".loading").hide();
+			},
+			type: 'get',
+			url: url
+		});
 	}
 }
 
