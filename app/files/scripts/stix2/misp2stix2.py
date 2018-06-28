@@ -275,11 +275,11 @@ class StixBuilder():
             if True in to_ids_list:
                 pattern = self.resolve_file_pattern(file_object.attributes)
                 pattern += " AND {}".format(self.parse_pe_extensions_pattern(pe_object, sections))
-                self.add_object_indicator(misp_object, pattern_arg=pattern)
+                self.add_object_indicator(file_object, pattern_arg=pattern)
             else:
                 observable = self.resolve_file_observable(file_object.attributes)
                 observable['extensions'] = self.parse_pe_extensions_observable(pe_object, sections)
-                self.add_object_observable(misp_object, observable_arg=observable)
+                self.add_object_observable(file_object, observable_arg=observable)
 
     def parse_pe_extensions_observable(self, pe_object, sections):
         extension = defaultdict(list)
@@ -791,7 +791,7 @@ class StixBuilder():
             attribute_type = attribute.type
             attribute_value = attribute.value
             if attribute_type == "malware-sample":
-                filename, md5 = attribute_value.slit('|')
+                filename, md5 = attribute_value.split('|')
                 malware_sample['filename'] = filename
                 malware_sample['md5'] = md5
             else:
