@@ -173,7 +173,7 @@
 			?>
 			<th class="context hidden"><?php echo $this->Paginator->sort('id');?></th>
 			<th class="context hidden">UUID</th>
-			<th><?php echo $this->Paginator->sort('timestamp', 'Date');?></th>
+			<th><?php echo $this->Paginator->sort('timestamp', 'Date', array('direction' => 'desc'));?></th>
 			<?php
 				if ($extended):
 			?>
