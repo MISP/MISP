@@ -3843,7 +3843,7 @@ class Server extends AppModel {
 	public function update($status) {
 		$final = '';
 		$command1 = 'git pull origin ' . $status['branch'] . ' 2>&1';
-		$command2 = 'git submodule init && git submodule update 2>&1';
+		$command2 = 'git submodule update --init --recursive 2>&1';
 		$final = $command1 . "\n\n";
 		exec($command1, $output);
 		$final .= implode("\n", $output) . "\n\n=================================\n\n";
