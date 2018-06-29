@@ -362,11 +362,9 @@ def observable_file(observable):
     attributes = []
     observable = dict(observable['0'])
     if 'hashes' in observable:
-        hashes = observable.pop('hashes')
-        for h in hashes:
-            h_type = h.lower().replace('-', '')
-            attributes.append({'type': h_type, 'object_relation': h_type,
-                               'value': hashes[h]})
+        for h_type, h_value in observable.pop('hashes').items():
+            h_type = h_type.lower().replace('-', '')
+            attributes.append({'type': h_type, 'object_relation': h_type, 'value': h_value})
     fill_observable_attributes(attributes, observable, file_mapping)
     return attributes
 
