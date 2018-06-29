@@ -566,17 +566,6 @@ def observable_x509(observable):
 def pattern_x509(pattern):
     return fill_pattern_attributes(pattern, x509_mapping)
 
-objects_mapping = {'asn': {'observable': observable_asn, 'pattern': pattern_asn},
-                   'domain-ip': {'observable': observable_domain_ip, 'pattern': pattern_domain_ip},
-                   'email': {'observable': observable_email, 'pattern': pattern_email},
-                   'file': {'observable': observable_file, 'pattern': pattern_file},
-                   'ip-port': {'observable': observable_ip_port, 'pattern': pattern_ip_port},
-                   'network-socket': {'observable': observable_socket, 'pattern': pattern_socket},
-                   'process': {'observable': observable_process, 'pattern': pattern_process},
-                   'registry-key': {'observable': observable_regkey, 'pattern': pattern_regkey},
-                   'url': {'observable': observable_url, 'pattern': pattern_url},
-                   'x509': {'observable': observable_x509, 'pattern': pattern_x509}}
-
 domain_pattern_mapping = {'value': {'type': 'domain'}}
 ip_pattern_mapping = {'value': {'type': 'ip-dst'}}
 

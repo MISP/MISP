@@ -50,6 +50,7 @@ class StixParser():
             if not self.event:
                 print(json.dumps({'success': 0, 'message': 'There is no valid STIX object to import'}))
                 sys.exit(1)
+            self.load_mapping()
         except:
             print(json.dumps({'success': 0, 'message': 'The STIX file could not be read'}))
             sys.exit(1)
@@ -84,6 +85,18 @@ class StixParser():
                     return
             custom = Custom(**obj)
         self.event.append(stix2.parse(custom))
+
+    def load_mapping(self):
+        self.objects_mapping = {'asn': {'observable': observable_asn, 'pattern': pattern_asn},
+                                'domain-ip': {'observable': observable_domain_ip, 'pattern': pattern_domain_ip},
+                                'email': {'observable': observable_email, 'pattern': pattern_email},
+                                'file': {'observable': observable_file, 'pattern': pattern_file},
+                                'ip-port': {'observable': observable_ip_port, 'pattern': pattern_ip_port},
+                                'network-socket': {'observable': observable_socket, 'pattern': pattern_socket},
+                                'process': {'observable': observable_process, 'pattern': pattern_process},
+                                'registry-key': {'observable': observable_regkey, 'pattern': pattern_regkey},
+                                'url': {'observable': observable_url, 'pattern': pattern_url},
+                                'x509': {'observable': observable_x509, 'pattern': pattern_x509}}
 
     def handler(self):
         self.outputname = '{}.stix2'.format(self.filename)
@@ -209,10 +222,10 @@ class StixParser():
             pattern = o.get('pattern').replace('\\\\', '\\').split(' AND ')
             pattern[0] = pattern[0][2:]
             pattern[-1] = pattern[-1][:-2]
-            attributes = objects_mapping[object_type]['pattern'](pattern)
+            attributes = self.objects_mapping[object_type]['pattern'](pattern)
         if stix_type == 'observed-data':
             observable = o.get('objects')
-            attributes = objects_mapping[object_type]['observable'](observable)
+            attributes = self.objects_mapping[object_type]['observable'](observable)
         for attribute in attributes:
             misp_object.add_attribute(**attribute)
         misp_object.to_ids = bool(labels[1].split('=')[1])
