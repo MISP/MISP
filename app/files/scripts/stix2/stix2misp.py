@@ -215,9 +215,10 @@ class StixParser():
 
     def parse_object(self, o, labels):
         object_type = self.get_misp_type(labels)
+        misp_object_type = 'file' is object_type == 'WindowsPEBinaryFile' else object_type
         object_category = self.get_misp_category(labels)
         stix_type = o._type
-        misp_object = MISPObject(object_type)
+        misp_object = MISPObject(misp_object_type)
         misp_object['meta-category'] = object_category
         if stix_type == 'indicator':
             pattern = o.get('pattern').replace('\\\\', '\\').split(' AND ')
