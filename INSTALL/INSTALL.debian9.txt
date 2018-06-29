@@ -83,6 +83,8 @@ cd /var/www/MISP/app/files/scripts/mixbox
 sudo python3 setup.py install
 
 # install PyMISP
+cd /var/www/MISP
+sudo -u www-data git clone https://github.com/MISP/PyMISP.git
 cd /var/www/MISP/PyMISP
 sudo python3 setup.py install
 
