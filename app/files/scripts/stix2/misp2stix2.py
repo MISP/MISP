@@ -312,8 +312,9 @@ class StixBuilder():
                 pattern += mapping.format(stix_type, attribute.value)
             except KeyError:
                 continue
-        section_mapping = "{}.sections[*]".format(pe_mapping)
+        n_section = 0
         for section in sections:
+            section_mapping = "{}.sections[{}]".format(pe_mapping, str(n_section))
             for attribute in section.attributes:
                 relation = attribute.object_relation
                 if relation in misp_hash_types:
@@ -325,6 +326,7 @@ class StixBuilder():
                         pattern += mapping.format(stix_type, attribute.value)
                     except KeyError:
                         continue
+            n_section += 1
         return pattern[:-5]
 
     @staticmethod
