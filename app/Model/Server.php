@@ -1096,6 +1096,14 @@ class Server extends AppModel {
 							'test' => 'testBoolFalse',
 							'type' => 'boolean',
 					),
+					'checkAgent' => array(
+							'level' => 0,
+							'description' => 'Set to true to check for the user agent string in each request. This can lead to occasional logouts (not recommended).',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBoolFalse',
+							'type' => 'boolean',
+					),
 					'defaults' => array(
 							'level' => 0,
 							'description' => 'The session type used by MISP. The default setting is php, which will use the session settings configured in php.ini for the session data (supported options: php, database). The recommended option is php and setting your PHP up to use redis sessions via your php.ini. Just add \'session.save_handler = redis\' and "session.save_path = \'tcp://localhost:6379\'" (replace the latter with your redis connection) to ',
