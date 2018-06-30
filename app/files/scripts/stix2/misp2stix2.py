@@ -275,11 +275,11 @@ class StixBuilder():
             if True in to_ids_list:
                 pattern = self.resolve_file_pattern(file_object.attributes)
                 pattern += " AND {}".format(self.parse_pe_extensions_pattern(pe_object, sections))
-                self.add_object_indicator(misp_object, pattern_arg=pattern)
+                self.add_object_indicator(file_object, pattern_arg=pattern)
             else:
                 observable = self.resolve_file_observable(file_object.attributes)
-                observable['extensions'] = self.parse_pe_extensions_observable(pe_object, sections)
-                self.add_object_observable(misp_object, observable_arg=observable)
+                observable['0']['extensions'] = self.parse_pe_extensions_observable(pe_object, sections)
+                self.add_object_observable(file_object, observable_arg=observable)
 
     def parse_pe_extensions_observable(self, pe_object, sections):
         extension = defaultdict(list)
@@ -299,7 +299,7 @@ class StixBuilder():
                         d_section[peSectionMapping[relation]] = attribute.value
                     except KeyError:
                         continue
-            extension['sections'].append(d_section)
+            extension['sections'].append(WindowsPESection(**d_section))
         return {"windows-pebinary-ext": extension}
 
     def parse_pe_extensions_pattern(self, pe_object, sections):
@@ -312,8 +312,9 @@ class StixBuilder():
                 pattern += mapping.format(stix_type, attribute.value)
             except KeyError:
                 continue
-        section_mapping = "{}.sections[*]".format(pe_mapping)
+        n_section = 0
         for section in sections:
+            section_mapping = "{}.sections[{}]".format(pe_mapping, str(n_section))
             for attribute in section.attributes:
                 relation = attribute.object_relation
                 if relation in misp_hash_types:
@@ -325,6 +326,7 @@ class StixBuilder():
                         pattern += mapping.format(stix_type, attribute.value)
                     except KeyError:
                         continue
+            n_section += 1
         return pattern[:-5]
 
     @staticmethod
@@ -791,7 +793,7 @@ class StixBuilder():
             attribute_type = attribute.type
             attribute_value = attribute.value
             if attribute_type == "malware-sample":
-                filename, md5 = attribute_value.slit('|')
+                filename, md5 = attribute_value.split('|')
                 malware_sample['filename'] = filename
                 malware_sample['md5'] = md5
             else:

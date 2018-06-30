@@ -2067,4 +2067,6 @@ table tr:hover .down-expand-button {
     max-height: 700px;
     height: auto;
     margin-top: 30px;
+    width: calc(100vw - 230px);
+    min-width: 1400px;
 }

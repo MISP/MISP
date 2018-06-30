@@ -122,17 +122,23 @@ dst_port_attribute_mapping = {'type': 'port', 'relation': 'dst-port'}
 email_date_attribute_mapping = {'type': 'datetime', 'relation': 'send-date'}
 email_subject_attribute_mapping = {'type': 'email-subject', 'relation': 'subject'}
 end_datetime_attribute_mapping = {'type': 'datetime', 'relation': 'last-seen'}
+entropy_mapping = {'type': 'float', 'relation': 'entropy'}
 filename_attribute_mapping = {'type': 'filename', 'relation': 'filename'}
+imphash_mapping = {'type': 'imphash', 'relation': 'imphash'}
 ip_attribute_mapping = {'type': 'ip-dst', 'relation': 'ip'}
 issuer_attribute_mapping = {'type': 'text', 'relation': 'issuer'}
 key_attribute_mapping = {'type': 'regkey', 'relation': 'key'}
 mime_type_attribute_mapping = {'type': 'mime-type', 'relation': 'mimetype'}
 modified_attribute_mapping = {'type': 'datetime', 'relation': 'last-modified'}
+number_sections_mapping = {'type': 'counter', 'relation': 'number-sections'}
+password_mapping = {'type': 'text', 'relation': 'password'}
+pe_type_mapping = {'type': 'text', 'relation': 'type'}
 pid_attribute_mapping = {'type': 'text', 'relation': 'pid'}
 process_creation_time_mapping = {'type': 'datetime', 'relation': 'creation-time'}
 process_name_mapping = {'type': 'text', 'relation': 'name'}
 regkey_name_attribute_mapping = {'type': 'text', 'relation': 'name'}
 reply_to_attribute_mapping = {'type': 'email-reply-to', 'relation': 'reply-to'}
+section_name_mapping = {'type': 'text', 'relation': 'name'}
 serial_number_attribute_mapping = {'type': 'text', 'relation': 'serial-number'}
 size_attribute_mapping = {'type': 'size-in-bytes', 'relation': 'size-in-bytes'}
 src_port_attribute_mapping = {'type': 'port', 'relation': 'src-port'}
@@ -141,6 +147,7 @@ state_attribute_mapping = {'type': 'text', 'relation': 'state'}
 to_attribute_mapping = {'type': 'email-dst', 'relation': 'to'}
 url_attribute_mapping = {'type': 'url', 'relation': 'url'}
 url_port_attribute_mapping = {'type': 'port', 'relation': 'port'}
+username_mapping = {'type': 'text', 'relation': 'username'}
 x_mailer_attribute_mapping = {'type': 'email-x-mailer', 'relation': 'x-mailer'}
 x509_md5_attribute_mapping = {'type': 'x509-fingerprint-md5', 'relation': 'x509-fingerprint-md5'}
 x509_sha1_attribute_mapping = {'type': 'x509-fingerprint-sha1', 'relation': 'x509-fingerprint-sha1'}
@@ -209,6 +216,10 @@ network_traffic_mapping = {'src_port': src_port_attribute_mapping,
                            "network-traffic:extensions.'socket-ext'.is_blocking": state_attribute_mapping,
                            'is_listening': state_attribute_mapping,
                            "network-traffic:extensions.'socket-ext'.is_listening": state_attribute_mapping}
+
+pe_mapping = {'pe_type': pe_type_mapping, 'number_of_sections': number_sections_mapping, 'imphash': imphash_mapping}
+
+pe_section_mapping = {'name': section_name_mapping, 'size': size_attribute_mapping, 'entropy': entropy_mapping}
 
 process_mapping = {'name': process_name_mapping,
                    'process:name': process_name_mapping,
@@ -362,11 +373,9 @@ def observable_file(observable):
     attributes = []
     observable = dict(observable['0'])
     if 'hashes' in observable:
-        hashes = observable.pop('hashes')
-        for h in hashes:
-            h_type = h.lower().replace('-', '')
-            attributes.append({'type': h_type, 'object_relation': h_type,
-                               'value': hashes[h]})
+        for h_type, h_value in observable.pop('hashes').items():
+            h_type = h_type.lower().replace('-', '')
+            attributes.append({'type': h_type, 'object_relation': h_type, 'value': h_value})
     fill_observable_attributes(attributes, observable, file_mapping)
     return attributes
 
@@ -565,17 +574,6 @@ def observable_x509(observable):
 
 def pattern_x509(pattern):
     return fill_pattern_attributes(pattern, x509_mapping)
-
-objects_mapping = {'asn': {'observable': observable_asn, 'pattern': pattern_asn},
-                   'domain-ip': {'observable': observable_domain_ip, 'pattern': pattern_domain_ip},
-                   'email': {'observable': observable_email, 'pattern': pattern_email},
-                   'file': {'observable': observable_file, 'pattern': pattern_file},
-                   'ip-port': {'observable': observable_ip_port, 'pattern': pattern_ip_port},
-                   'network-socket': {'observable': observable_socket, 'pattern': pattern_socket},
-                   'process': {'observable': observable_process, 'pattern': pattern_process},
-                   'registry-key': {'observable': observable_regkey, 'pattern': pattern_regkey},
-                   'url': {'observable': observable_url, 'pattern': pattern_url},
-                   'x509': {'observable': observable_x509, 'pattern': pattern_x509}}
 
 domain_pattern_mapping = {'value': {'type': 'domain'}}
 ip_pattern_mapping = {'value': {'type': 'ip-dst'}}

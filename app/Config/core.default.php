@@ -178,7 +178,7 @@ define('LOG_ERROR', LOG_ERR);
 Configure::write('Session', array(
 	'timeout'        => 60,    // Session timeout, default is 1 hour
 	'defaults'       => 'php',
-	'autoRegenerate' => true
+	'autoRegenerate' => false
 ));
 
 /**

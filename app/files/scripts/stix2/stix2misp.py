@@ -15,7 +15,7 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import sys, json, os, time
+import sys, json, os, time, uuid
 import stix2
 from pymisp import MISPEvent, MISPObject, __path__
 from stix2misp_mapping import *
@@ -50,6 +50,7 @@ class StixParser():
             if not self.event:
                 print(json.dumps({'success': 0, 'message': 'There is no valid STIX object to import'}))
                 sys.exit(1)
+            self.load_mapping()
         except:
             print(json.dumps({'success': 0, 'message': 'The STIX file could not be read'}))
             sys.exit(1)
@@ -84,6 +85,19 @@ class StixParser():
                     return
             custom = Custom(**obj)
         self.event.append(stix2.parse(custom))
+
+    def load_mapping(self):
+        self.objects_mapping = {'asn': {'observable': observable_asn, 'pattern': pattern_asn},
+                                'domain-ip': {'observable': observable_domain_ip, 'pattern': pattern_domain_ip},
+                                'email': {'observable': observable_email, 'pattern': pattern_email},
+                                'file': {'observable': observable_file, 'pattern': pattern_file},
+                                'ip-port': {'observable': observable_ip_port, 'pattern': pattern_ip_port},
+                                'network-socket': {'observable': observable_socket, 'pattern': pattern_socket},
+                                'process': {'observable': observable_process, 'pattern': pattern_process},
+                                'registry-key': {'observable': observable_regkey, 'pattern': pattern_regkey},
+                                'url': {'observable': observable_url, 'pattern': pattern_url},
+                                'WindowsPEBinaryFile': {'observable': self.observable_pe, 'pattern': self.pattern_pe},
+                                'x509': {'observable': observable_x509, 'pattern': pattern_x509}}
 
     def handler(self):
         self.outputname = '{}.stix2'.format(self.filename)
@@ -201,18 +215,22 @@ class StixParser():
 
     def parse_object(self, o, labels):
         object_type = self.get_misp_type(labels)
+        misp_object_type = 'file' is object_type == 'WindowsPEBinaryFile' else object_type
         object_category = self.get_misp_category(labels)
         stix_type = o._type
-        misp_object = MISPObject(object_type)
+        misp_object = MISPObject(misp_object_type)
         misp_object['meta-category'] = object_category
         if stix_type == 'indicator':
             pattern = o.get('pattern').replace('\\\\', '\\').split(' AND ')
             pattern[0] = pattern[0][2:]
             pattern[-1] = pattern[-1][:-2]
-            attributes = objects_mapping[object_type]['pattern'](pattern)
+            attributes = self.objects_mapping[object_type]['pattern'](pattern)
         if stix_type == 'observed-data':
             observable = o.get('objects')
-            attributes = objects_mapping[object_type]['observable'](observable)
+            attributes = self.objects_mapping[object_type]['observable'](observable)
+        if isinstance(attributes, tuple):
+            attributes, pe_uuid = attributes
+            misp_object.add_reference(pe_uuid, 'included-in')
         for attribute in attributes:
             misp_object.add_attribute(**attribute)
         misp_object.to_ids = bool(labels[1].split('=')[1])
@@ -247,6 +265,84 @@ class StixParser():
             self.misp_event.add_attribute(**attribute)
         except:
             pass
+
+    def observable_pe(self, observable):
+        extension = observable['0']['extensions']['windows-pebinary-ext']
+        sections = extension['sections']
+        pe = MISPObject('pe')
+        pe_uuid = str(uuid.uuid4())
+        pe.uuid = pe_uuid
+        self.fill_object_attributes_observable(pe, pe_mapping, extension)
+        for section in sections:
+            pe_section = MISPObject('pe-section')
+            if 'hashes' in section:
+                for h_type, h_value in section['hashes'].items():
+                    h_type = h_type.lower().replace('-', '')
+                    pe_section.add_attribute(**{'type': h_type, 'object_relation': h_type,
+                                                'value': h_value, 'to_ids': False})
+            self.fill_object_attributes_observable(pe_section, pe_section_mapping, section)
+            section_uuid = str(uuid.uuid4())
+            pe_section.uuid = section_uuid
+            pe.add_reference(section_uuid, 'included-in')
+            self.misp_event.add_object(**pe_section)
+        self.misp_event.add_object(**pe)
+        return observable_file(observable), pe_uuid
+
+    @staticmethod
+    def fill_object_attributes_observable(misp_object, mapping_dict, stix_object):
+        for stix_type, value in stix_object.items():
+            try:
+                mapping = mapping_dict[stix_type]
+            except KeyError:
+                continue
+            misp_object.add_attribute(**{'type': mapping['type'], 'object_relation': mapping['relation'],
+                                         'value': value, 'to_ids': False})
+
+    def pattern_pe(self, pattern):
+        attributes = []
+        sections = defaultdict(dict)
+        pe = MISPObject('pe')
+        pe_uuid = str(uuid.uuid4())
+        pe.uuid = pe_uuid
+        for p in pattern:
+            p_type, p_value = p.split(' = ')
+            p_value = p_value[1:-1]
+            if ':extensions.' in p_type:
+                if '.sections[' in p_type:
+                    p_type_list = p_type.split('.')
+                    stix_type = "hashes.{}".format(p_type_list[4][1:-1]) if '.hashes.' in p_type else p_type_list[3]
+                    sections[p_type_list[2]][stix_type] = p_value
+                else:
+                    stix_type = p_type.split('.')[-1]
+                    mapping = pe_mapping[stix_type]
+                    pe.add_attribute(**{'type': mapping['type'], 'object_relation': mapping['relation'],
+                                        'value': p_value, 'to_ids': True})
+            else:
+                if 'file:hashes.' in p_type :
+                    _, h = p_type.split('.')
+                    h = h[1:-1]
+                    attributes.append({'type': h, 'object_relation': h, 'value': p_value, 'to_ids': True})
+                else:
+                    mapping = file_mapping[p_type]
+                    attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                                       'value': p_value, 'to_ids': True})
+        for _, section in sections.items():
+            pe_section = MISPObject('pe-section')
+            for stix_type, value in section.items():
+                if 'hashes.' in stix_type:
+                    h_type = stix_type.split('.')[1]
+                    pe_section.add_attribute(**{'type': h_type, 'object_relation': h_type,
+                                                'value': value, 'to_ids': True})
+                else:
+                    mapping = pe_section_mapping[stix_type]
+                    pe_section.add_attribute(**{'type': mapping['type'], 'object_relation': mapping['relation'],
+                                                'value': value, 'to_ids': True})
+            section_uuid = str(uuid.uuid4())
+            pe_section.uuid = pe_uuid
+            pe.add_reference(section_uuid, 'included-in')
+            self.misp_event.add_object(**pe_section)
+        self.misp_event.add_object(**pe)
+        return attributes, pe_uuid
 
     def buildExternalDict(self):
         self.fetch_report()

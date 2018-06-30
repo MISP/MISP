@@ -1,4 +1,6 @@
 (function () {
+	var minWidth = 1400;
+	var savedTopOffset;
 	var clusterNameToIdMapping = new Map();
 	var typeaheadDataMatrixSearch;
 	$(document).ready(function() {
@@ -6,6 +8,13 @@
 
 		$('#attack-matrix-tabscontroller span').off('click.tab').on('click.tab', function (e) {
 			$(this).tab('show');
+			var jfilter = '.info_container_eventgraph_network';
+			var colNum = $(jfilter+' .matrix-table > thead > tr > th :visible').length;
+			$('#attackmatrix_div').css('min-width', 100*colNum);
+			jfilter = '.ajax_popover_form';
+			var colNum = $(jfilter+' .matrix-table > thead > tr > th :visible').length;
+			$('#popover_form_large').css('min-width', 100*colNum);
+			adapt_position_from_viewport(100*colNum);
 		})
 
 		// form
@@ -21,13 +30,10 @@
 				}
 				$(this).removeClass('cell-picked');
 			}
-			if (pickedGalaxies.length > 0) {
-				$('.ajax_popover_form .btn-matrix-submit').addClass('highlightGreen');
-			} else {
-				$('.ajax_popover_form .btn-matrix-submit').removeClass('highlightGreen');
-			}
 		});
-		$('.ajax_popover_form .matrix-div-submit').css('display', 'block');
+
+		adapt_position_from_viewport();
+
 		$('.ajax_popover_form .btn-matrix-submit').click(function() {
 			$('#GalaxyTargetIds').val(JSON.stringify(pickedGalaxies));
 			$('#GalaxyViewMitreAttackMatrixForm').submit();
@@ -152,5 +158,21 @@
 			left: x
 		});
 		$(jfilter + ' #matrix-heatmap-legend-caret-value').text(score);
+	}
+
+	function adapt_position_from_viewport(minOverwrite) {
+		minOverwrite = minOverwrite !== undefined ? minOverwrite : minWidth;
+		minOverwrite = minWidth > minOverwrite ? minWidth : minOverwrite;
+		if($(window).width()*0.5+700 <= minOverwrite) {
+			$('#popover_form_large').css('position', 'absolute');
+			$('#popover_form_large').css('left', '10px');
+			var topOff = $('#popover_form_large').offset().top;
+			savedTopOffset =  topOff >= $(document).scrollTop() ? topOff - $(document).scrollTop() : topOff;
+			$('#popover_form_large').css('top', savedTopOffset+$(document).scrollTop()+'px');
+		} else {
+			$('#popover_form_large').css('position', 'fixed');
+			$('#popover_form_large').css('left', '');
+			$('#popover_form_large').css('top', savedTopOffset);
+		}
 	}
 }());
