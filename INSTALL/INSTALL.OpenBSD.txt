@@ -10,9 +10,7 @@ INSTALLATION INSTRUCTIONS
 
 # System Hardening
 
-- Clean /tmp
-- Disable Syslogd network socket
-- Disable Sendmail service
+- TBD
 
 # doas & pkg
 ```
@@ -68,7 +66,7 @@ server "default" {
         listen on $ext6_addr port 80
         listen on $ext6_addr tls port 443
 
-        root "/htdocs/MISP/app"
+        root "/htdocs/MISP/app/webroot"
 
         tls {
                 key "/etc/ssl/private/server.key"
@@ -195,6 +193,8 @@ doas -u www git clone https://github.com/MISP/MISP.git /var/www/htdocs/MISP
 
 # Make git ignore filesystem permission differences
 doas -u www git config core.filemode false
+
+doas pkg_add py-pip py3-pip libxml libxslt
 
 cd /var/www/htdocs/MISP/app/files/scripts
 doas -u www git clone https://github.com/CybOXProject/python-cybox.git
