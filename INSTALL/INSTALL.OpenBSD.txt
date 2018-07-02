@@ -3,6 +3,9 @@ INSTALLATION INSTRUCTIONS
 
 0/ WIP /!\ You are warned, this does not work yet! /!\
 
+Current issues: php-redis only available in binary for php-56, workaround: use ports.
+This guide attempts to offer native httpd or apache2/nginx set-up.
+
 1/ Minimal OpenBSD install
 --------------------------
 
@@ -23,13 +26,18 @@ echo "permit keepenv setenv { PKG_PATH ENV PS1 SSH_AUTH_SOCK } :wheel" > /etc/do
 pkg_add -v bash ntp
 ```
 
-# rc.local
+# rc.local - Add ntpdate on boot
 
 ```
 echo -n ' ntpdate'
 /usr/local/sbin/ntpdate -b pool.ntp.org >/dev/null
-xntpd_flags="-p /var/run/ntpd.pid"
-echo -n ' ntpd'; /usr/local/sbin/ntpd ${xntpd_flags}
+```
+
+# Launch ntpd on boot
+```
+doas rcctl set xntpd status on
+doas rcctl set xntpd flags "-p /var/run/ntpd.pid"
+doas /usr/local/sbin/ntpd -p /var/run/ntpd.pid
 ```
 
 # misp user
@@ -37,7 +45,7 @@ echo -n ' ntpd'; /usr/local/sbin/ntpd ${xntpd_flags}
 useradd -m -s /usr/local/bin/bash -G wheel,www misp
 ```
 
-# nvim
+# nvim (optional)
 ```
 doas pkg_add -v neovim
 doas mv /usr/bin/vi /usr/bin/vi-`date +%d%m%y`
@@ -46,7 +54,7 @@ doas ln -s /usr/local/bin/nvim /usr/bin/vi
 
 # /etc/httpd.conf
 ```
-cp /etc/examples/httpd.conf /etc # adjust by hand, or copy paste below
+cp /etc/examples/httpd.conf /etc # adjust by hand, or copy/paste the config example below
 ```
 
 ```
@@ -137,7 +145,7 @@ doas pkg_add -v postfix
 
 # Enable httpd
 ```
-rcctl set httpd status on
+doas rcctl enable httpd
 ```
 
 # Install misc dependencies
@@ -146,31 +154,56 @@ rcctl set httpd status on
 doas pkg_add -v curl git python redis
 ```
 
-# OAMP
+# OpendBSD + Apache/httpd/nginx + MySQL/Mariadb + PHP
 ```
-#pkg_add -v apache-httpd \ think about mod_php
+#pkg_add -v apache-httpd
 pkg_add -v \
     gnupg \
     php-mysqli \
     php-pcntl \
     php-pdo_mysql \
+    pecl-redis \
+    pear
 ```
 
-# /etc/php-7.0.ini 
+# Optional for Apache2
 ```
-allow_url_fopen = true
-extension=mysqli.so
-extension=pcntl.so
-extension=pdo_mysql.so
+doas pkg_add -v fcgi-cgi fcgi
+``
+
+# /etc/php-5.6.ini 
 ```
+allow_url_fopen = On
+```
+
+```
+cd /etc/php-56
+doas cp ../php-5.6.sample/* .
+```
+
 # php ln
 ```
-doas ln -s /usr/local/bin/php-7.0 /usr/local/bin/php
+doas ln -s /usr/local/bin/php-5.6 /usr/local/bin/php
 ```
+
+# Enable php fpm 
+``
+doas rcctl enable php56_fpm
+```
+
+# Configure fpm
+```
+doas vi /etc/php-fpm.conf
+```
+
+error_log = log/php-fpm.log
+
+For native httpd: listen = /var/www/run/php-fpm.sock
+For apache2: listen = 127.0.0.1:9000
 
 # Enable redis
 ```
-doas rcctl set redis status on
+doas rcctl enable redis
 doas /etc/rc.d/redis start
 ```
 
@@ -265,13 +298,13 @@ doas -u www sh -c "mysql -u misp -p misp < /var/www/htdocs/MISP/INSTALL/MYSQL.sq
 
 7/ Apache configuration (optional)
 -----------------------
-# Now configure your Apache webserver with the DocumentRoot /usr/local/www/MISP/app/webroot/
+# Now configure your Apache webserver with the DocumentRoot /var/www/htdocs/MISP/app/webroot/
 
 #2.4
-doas mkdir /usr/local/etc/apache24/sites-available/ /usr/local/etc/apache24/sites-enabled/
+doas mkdir /etc/apache2/sites-available/ /etc/apache2/sites-enabled/
 
 # If the apache version is 2.4:
-doas cp /usr/local/www/MISP/INSTALL/apache.24.misp.ssl /usr/local/etc/apache24/sites-available/misp-ssl.conf
+doas cp /var/www/htdocs/MISP/INSTALL/apache.24.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
 
 # Be aware that the configuration files for apache 2.4 and up have changed.
 # The configuration file has to have the .conf extension in the sites-available directory
@@ -281,6 +314,10 @@ doas mkdir /etc/ssl/private/
 # If a valid SSL certificate is not already created for the server, create a self-signed certificate: (Make sure to fill the <…>)
 doas openssl req -newkey rsa:4096 -days 3650 -nodes -x509 \
 -subj "/C=<Country>/ST=<State>/L=<Locality>/O=<Organization>/OU=<Organizational Unit Name>/CN=<QDN.here>/emailAddress=admin@<your.FQDN.here>" \
+-keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt
+
+doas openssl req -newkey rsa:4096 -days 3650 -nodes -x509 \
+-subj "/C=LU/ST=Lxu/L=Lux/O=Test/CN=192.168.99.50/emailAddress=admin@admin.test" \
 -keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt
 
 # Otherwise, copy the SSLCertificateFile, SSLCertificateKeyFile, and SSLCertificateChainFile to /etc/ssl/private/. (Modify path and config to fit your environment)
@@ -294,16 +331,16 @@ doas mkdir /var/log/apache2/
         Redirect permanent / https://<your.FQDN.here>
 
         LogLevel warn
-        ErrorLog /var/log/apache24/misp.local_error.log
-        CustomLog /var/log/apache24/misp.local_access.log combined
+        ErrorLog /var/log/apache2/misp.local_error.log
+        CustomLog /var/log/apache2/misp.local_access.log combined
         ServerSignature Off
 </VirtualHost>
 
 <VirtualHost <IP, FQDN, or *>:443>
         ServerAdmin admin@<your.FQDN.here>
         ServerName <your.FQDN.here>
-        DocumentRoot /usr/local/www/MISP/app/webroot
-        <Directory /usr/local/www/MISP/app/webroot>
+        DocumentRoot /var/www/htdocs/MISP/app/webroot
+        <Directory /var/www/htdocs/MISP/app/webroot>
                 Options -Indexes
                 AllowOverride all
                 Order allow,deny
@@ -316,19 +353,25 @@ doas mkdir /var/log/apache2/
 #        SSLCertificateChainFile /etc/ssl/private/misp-chain.crt
 
         LogLevel warn
-        ErrorLog /var/log/apache24/misp.local_error.log
-        CustomLog /var/log/apache24/misp.local_access.log combined
+        ErrorLog /var/log/apache2/misp.local_error.log
+        CustomLog /var/log/apache2/misp.local_access.log combined
         ServerSignature Off
 </VirtualHost>
 ============================================= End sample working SSL config for MISP
 
 # activate new vhost
-cd /usr/local/etc/apache24/sites-enabled/
-ln -s ../sites-available/misp.conf
-echo "Include etc/apache24/sites-enabled/*.conf" >> /usr/local/etc/apache24/httpd.conf
+cd /etc/apache2/sites-enabled/
+doas ln -s ../sites-available/misp-ssl.conf
+echo "Include /etc/apache2/sites-enabled/*.conf" >> /etc/apache2/httpd2.conf
 
-/!\ Enable mod_rewrite in httpd.conf /!\
-LoadModule rewrite_module libexec/apache24/mod_rewrite.so
+doas vi /etc/apache2/httpd2.conf
+
+/!\ Enable mod_rewrite in httpd2.conf /!\
+LoadModule rewrite_module /usr/local/lib/apache2/mod_rewrite.so
+LoadModule ssl_module /usr/local/lib/apache2/mod_ssl.so
+LoadModule proxy_module /usr/local/lib/apache2/mod_proxy.so
+LoadModule proxy_fcgi_module /usr/local/lib/apache2/mod_proxy_fcgi.so
+Listen 443
 
 # Restart apache
 doas /etc/rc.d/apache2 restart
