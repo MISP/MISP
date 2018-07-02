@@ -536,7 +536,7 @@ class StixBuilder():
                               'first_observed': timestamp, 'last_observed': timestamp,
                               'created_by_ref': self.identity_id}
         try:
-            observed_data = ObservedData(**observed_data_args)
+            observed_data = ObservedData(**observed_data_args, allow_custom=True)
         except exceptions.InvalidValueError:
             observed_data = self.fix_enumeration_issues(name, observed_data_args)
         self.append_object(observed_data, observed_data_id)
@@ -653,7 +653,7 @@ class StixBuilder():
             try:
                 stix_type = asnObjectMapping[relation]
             except KeyError:
-                continue
+                stix_type = "x_misp_{}_{}".format(attribute.type, relation)
             attribute_value = attribute.value
             if relation == "subnet-announced":
                 observable[str(object_num)] = {'type': define_address_type(attribute_value), 'value': attribute_value}
@@ -662,7 +662,7 @@ class StixBuilder():
                 asn[stix_type] = int(attribute_value[2:]) if (stix_type == 'number' and attribute_value.startswith("AS")) else attribute_value
         observable[str(object_num)] = asn
         for n in range(object_num):
-            observable[n]['belongs_to_refs'] = [str(object_num)]
+            observable[str(n)]['belongs_to_refs'] = [str(object_num)]
         return observable
 
     @staticmethod
@@ -674,7 +674,7 @@ class StixBuilder():
             try:
                 stix_type = asnObjectMapping[relation]
             except KeyError:
-                continue
+                stix_type = "'x_misp_{}_{}'".format(attribute.type, relation)
             attribute_value = attribute.value
             if relation == "subnet-announced":
                 pattern += "{0}:{1} = '{2}' AND ".format(define_address_type(attribute_value), stix_type, attribute_value)
