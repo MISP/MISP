@@ -507,7 +507,7 @@ class StixBuilder():
             pattern = pattern_arg
         else:
             name = misp_object.name
-            pattern = self.objects_mapping[name]['pattern'](misp_object.attribute)
+            pattern = self.objects_mapping[name]['pattern'](misp_object.attributes)
         indicator_id = 'indicator--{}'.format(misp_object.uuid)
         category = misp_object.get('meta-category')
         killchain = self.create_killchain(category)
@@ -526,7 +526,7 @@ class StixBuilder():
             observable_objects = observable_arg
         else:
             name = misp_object.name
-            observable_objects = self.objects_mapping[name]['observable'](misp_object.attribute)
+            observable_objects = self.objects_mapping[name]['observable'](misp_object.attributes)
         observed_data_id = 'observed-data--{}'.format(misp_object.uuid)
         category = misp_object.get('meta-category')
         labels = self.create_object_labels(name, category, False)
