@@ -2605,39 +2605,57 @@ class Attribute extends AppModel {
 			));
 			return $results;
 		}
-		$results = $this->find('all', $params);
-		// return false if we're paginating
-		if (isset($options['limit']) && empty($results)) return false;
+
 		if ($options['enforceWarninglist']) {
 			$this->Warninglist = ClassRegistry::init('Warninglist');
 			$warninglists = $this->Warninglist->fetchForEventView();
 		}
-		$results = array_values($results);
-		$proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
-		foreach ($results as $key => $attribute) {
-			if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute['Attribute'])) {
-				unset($results[$key]);
-				continue;
+
+		if (empty($params['limit'])) {
+			$pagesToFetch = $this->find('count', array('conditions' => $params['conditions']));
+			$loopLimit = 100000;
+			$pagesToFetch = ceil($pagesToFetch / $loopLimit);
+			$loop = true;
+		} else {
+			$loop = false;
+			$pagesToFetch = 1;
+		}
+
+		$attributes = array();
+		for ($i = 0; $i < $pagesToFetch; $i++) {
+			if ($loop) {
+				$params['limit'] = $loopLimit;
+				$params['page'] = $i+1;
 			}
-			if (!empty($options['includeAttributeUuid']) || !empty($options['includeEventUuid'])) {
-				$results[$key]['Attribute']['event_uuid'] = $results[$key]['Event']['uuid'];
-			}
-			if ($proposals_block_attributes) {
-				if (!empty($attribute['ShadowAttribute'])) {
-					unset($results[$key]);
-				} else {
-					unset($results[$key]['ShadowAttribute']);
+			$results = $this->find('all', $params);
+			// return false if we're paginating
+			if (isset($options['limit']) && empty($results)) return false;
+			$results = array_values($results);
+			$proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
+			foreach ($results as $key => $attribute) {
+				if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute['Attribute'])) {
+					continue;
 				}
-			}
-			if ($options['withAttachments']) {
-				if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
-					$encodedFile = $this->base64EncodeAttachment($attribute['Attribute']);
-					$results[$key]['Attribute']['data'] = $encodedFile;
+				if (!empty($options['includeAttributeUuid']) || !empty($options['includeEventUuid'])) {
+					$results[$key]['Attribute']['event_uuid'] = $results[$key]['Event']['uuid'];
 				}
+				if ($proposals_block_attributes) {
+					if (!empty($attribute['ShadowAttribute'])) {
+						continue;
+					} else {
+						unset($results[$key]['ShadowAttribute']);
+					}
+				}
+				if ($options['withAttachments']) {
+					if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
+						$encodedFile = $this->base64EncodeAttachment($attribute['Attribute']);
+						$results[$key]['Attribute']['data'] = $encodedFile;
+					}
+				}
+				$attributes[] = $results[$key];
 			}
 		}
-		$results = array_values($results);
-		return $results;
+		return $attributes;
 	}
 
 	// Method gets and converts the contents of a file passed along as a base64 encoded string with the original filename into a zip archive
