@@ -63,7 +63,7 @@ class AppModel extends Model {
 
 	public $db_changes = array(
 		1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
-		7 => false, 8 => false, 9 => false, 10 => false, 11 => false
+		7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false
 	);
 
 	function afterSave($created, $options = array()) {
@@ -150,6 +150,9 @@ class AppModel extends Model {
 				$this->updateDatabase($command);
 				$this->Role = Classregistry::init('Role');
 				$this->Role->setPublishZmq();
+				break;
+			case 12:
+				$this->__forceSettings();
 				break;
 			default:
 				$this->updateDatabase($command);
@@ -1410,5 +1413,17 @@ class AppModel extends Model {
 			$this->__profiler[$name]['custom'][$customName] = 0;
 		}
 		$this->__profiler[$name]['custom'][$customName] += $valueToAdd;
+	}
+
+	private function __forceSettings() {
+		$settingsToForce = array(
+			'Session.autoRegenerate' => false,
+			'Session.checkAgent' => false
+		);
+		$server = ClassRegistry::init('Server');
+		foreach ($settingsToForce as $setting => $value) {
+			$server->serverSettingsSaveValue($setting, $value);
+		}
+		return true;
 	}
 }
