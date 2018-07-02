@@ -1,5 +1,7 @@
 INSTALLATION INSTRUCTIONS
-------------------------- for FreeBSD 11.1-amd64
+------------------------- for FreeBSD 11.2-amd64
+
+0/ WIP /!\ You are warned, this does not work yet! /!\
 
 1/ Minimal FreeBSD install
 --------------------------
@@ -17,45 +19,56 @@ INSTALLATION INSTRUCTIONS
 # Install pkg and point to latest
 
 Install pkg by typing:
-
+```
+$ su -
 # pkg
+```
 
 Edit the default pkg location in /etc/pkg/FreeBSD.conf
 Change: quarterly to: latest
-
- perl -pi -w -e 's/quarterly/latest/g;' /etc/pkg/FreeBSD.conf
+```
+ # perl -pi -w -e 's/quarterly/latest/g;' /etc/pkg/FreeBSD.conf
+```
 
 # Install sudo
 
 pkg install sudo
 
-Edit: pw useradd misp -s bash -G wheel,www
-Make sure users in group wheel can sudo.
-
-# Update system
-
-sudo freebsd-update fetch install
-
 # Install bash
 
 sudo pkg install bash
 
-# Install postfix
+Make sure users in group wheel can sudo, uncomment in /usr/local/etc/sudoers :
+```
+%wheel ALL=(ALL) ALL
+```
 
+# Update system
+```
+sudo freebsd-update fetch install
+```
+
+# Install postfix
+```
 sudo pkg install postfix
 
 # Optional but useful, add a local misp user
-pw useradd misp -s /usr/local/bin/bash -G wheel,www
-mkdir /home/misp ; chown misp:misp /home/misp
-passwd misp
+sudo pw user add misp -s /usr/local/bin/bash -G wheel,www
+sudo mkdir /home/misp ; sudo chown misp:misp /home/misp
+sudo passwd misp
+```
 
 # Install misc dependencies
+```
+sudo pkg install curl git python3 redis vim
+```
 
-pkg install curl git python3 redis vim
+# FAMP
 
-# LAMP
+/!\ N.B: MariaDB 10.3 currently segfaults on 11.2: https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=229219
 
-pkg install apache24 \
+```
+sudo pkg install apache24 \
     logrotate \
     gnupg \
     mariadb102-server mariadb102-client \
@@ -72,7 +85,7 @@ pkg install apache24 \
     php72-dom \
     php72-opcache \
     php72-session \
-    mod_php72 \
+    mod_php72
 
 sudo cp -p /usr/local/etc/php.ini-development /usr/local/etc/php.ini
 
@@ -82,9 +95,11 @@ sudo sysrc mysql_enable="yes"
 sudo sysrc mysql_args="--bind-address=127.0.0.1"
 sudo service apache24 start
 sudo service mysql-server start
-sudo usr/local/bin/mysql_secure_installation
+sudo /usr/local/bin/mysql_secure_installation
+```
 
-vi /usr/local/etc/apache24/Includes/php.conf
+```
+sudo vi /usr/local/etc/apache24/Includes/php.conf
 <IfModule dir_module>
     DirectoryIndex index.php index.html
     SetHandler application/x-httpd-php
@@ -92,6 +107,7 @@ vi /usr/local/etc/apache24/Includes/php.conf
         SetHandler application/x-httpd-php-source
     </FilesMatch>
 </IfModule>
+```
 
 3/ MISP code
 ------------
@@ -100,31 +116,27 @@ sudo mkdir /usr/local/www/MISP
 sudo chown www:www /usr/local/www/MISP
 cd /usr/local/www/MISP
 sudo -u www git clone https://github.com/MISP/MISP.git /usr/local/www/MISP
-sudo -u www git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
-# if the last shortcut doesn't work, specify the latest version manually
-# example: git checkout tags/v2.4.XY
-# the message regarding a "detached HEAD state" is expected behaviour
-# (you only have to create a new branch, if you want to change stuff and do a pull request for example)
 
 # Make git ignore filesystem permission differences
 sudo -u www git config core.filemode false
 
 # install Mitre's STIX and its dependencies by running the following commands:
-sudo apt-get install python-dev zlib1g-dev python-setuptools
+##sudo apt-get install python-dev zlib1g-dev python-setuptools
 sudo pkg install py27-pip py36-pip libxml2 libxslt
+
 cd /usr/local/www/MISP/app/files/scripts
 sudo -u www git clone https://github.com/CybOXProject/python-cybox.git
 sudo -u www git clone https://github.com/STIXProject/python-stix.git
 cd /usr/local/www/MISP/app/files/scripts/python-cybox
-sudo python2 setup.py install
+sudo python3 setup.py install
 cd /usr/local/www/MISP/app/files/scripts/python-stix
-sudo python2 setup.py install
+sudo python3 setup.py install
 
 # install mixbox to accomodate the new STIX dependencies:
 cd /usr/local/www/MISP/app/files/scripts/
 sudo -u www git clone https://github.com/CybOXProject/mixbox.git
 cd /usr/local/www/MISP/app/files/scripts/mixbox
-sudo python2 setup.py install
+sudo python3 setup.py install
 
 4/ CakePHP
 -----------
@@ -172,16 +184,11 @@ sudo -u www sh -c "mysql -u misp -p misp < /usr/local/www/MISP/INSTALL/MYSQL.sql
 
 7/ Apache configuration
 -----------------------
+```
 # Now configure your Apache webserver with the DocumentRoot /usr/local/www/MISP/app/webroot/
-
-# 2.2
-sudo mkdir /usr/local/etc/apache22/sites-available/ /usr/local/etc/apache2/sites-enabled/
 
 #2.4
 sudo mkdir /usr/local/etc/apache24/sites-available/ /usr/local/etc/apache24/sites-enabled/
-
-# If the apache version is 2.2:
-sudo cp /usr/local/www/MISP/INSTALL/apache.22.misp.ssl /usr/local/etc/apache22/sites-available/misp-ssl.conf
 
 # If the apache version is 2.4:
 sudo cp /usr/local/www/MISP/INSTALL/apache.24.misp.ssl /usr/local/etc/apache24/sites-available/misp-ssl.conf
@@ -196,10 +203,20 @@ sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
 -subj "/C=<Country>/ST=<State>/L=<Locality>/O=<Organization>/OU=<Organizational Unit Name>/CN=<QDN.here>/emailAddress=admin@<your.FQDN.here>" \
 -keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt
 
+ chmod 750 /etc/ssl/private/
+ chmod 640 /etc/ssl/private/*
+
 # Otherwise, copy the SSLCertificateFile, SSLCertificateKeyFile, and SSLCertificateChainFile to /etc/ssl/private/. (Modify path and config to fit your environment)
 
-sudo mkdir /var/log/apache2/
+sudo mkdir /var/log/apache24/
+```
 
+Now edit: /usr/local/etc/apache24/sites-available/misp-ssl.conf to reflect the below.
+Make sure the ssl fqdn will reflect what you entered as a CN in the SSL-Cert.
+You might see this: "AH00558: httpd: Could not reliably determine the server's fully qualified domain name, using 127.0.0.1. Set the 'ServerName' directive globally to suppress this message"
+Edit: 
+
+```
 ============================================= Begin sample working SSL config for MISP
 <VirtualHost <IP, FQDN, or *>:80>
         ServerName <your.FQDN.here>
@@ -234,17 +251,24 @@ sudo mkdir /var/log/apache2/
         ServerSignature Off
 </VirtualHost>
 ============================================= End sample working SSL config for MISP
+```
 
+```
 # activate new vhost
 cd /usr/local/etc/apache24/sites-enabled/
-ln -s ../sites-available/misp.conf
+sudo ln -s ../sites-available/misp-ssl.conf
 echo "Include etc/apache24/sites-enabled/*.conf" >> /usr/local/etc/apache24/httpd.conf
+echo "IncludeOptional etc/apache24/sites-enabled/*.conf" >> /usr/local/etc/apache24/httpd.conf
 
+sudo vi /usr/local/etc/apache24/httpd.conf
 /!\ Enable mod_rewrite in httpd.conf /!\
 LoadModule rewrite_module libexec/apache24/mod_rewrite.so
+LoadModule ssl_module libexec/apache24/mod_ssl.so
+Listen 443
 
 # Restart apache
 sudo service apache24 restart
+```
 
 8/ Log rotation
 ---------------
