@@ -1096,6 +1096,14 @@ class Server extends AppModel {
 							'test' => 'testBoolFalse',
 							'type' => 'boolean',
 					),
+					'checkAgent' => array(
+							'level' => 0,
+							'description' => 'Set to true to check for the user agent string in each request. This can lead to occasional logouts (not recommended).',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBoolFalse',
+							'type' => 'boolean',
+					),
 					'defaults' => array(
 							'level' => 0,
 							'description' => 'The session type used by MISP. The default setting is php, which will use the session settings configured in php.ini for the session data (supported options: php, database). The recommended option is php and setting your PHP up to use redis sessions via your php.ini. Just add \'session.save_handler = redis\' and "session.save_path = \'tcp://localhost:6379\'" (replace the latter with your redis connection) to ',
@@ -2814,7 +2822,12 @@ class Server extends AppModel {
 				Configure::write($settingFix, $arrayElements);
 			}
 		}
-		$settingsToSave = array('debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth', 'Security', 'Session.defaults', 'Session.timeout', 'Session.cookie_timeout', 'Session.autoRegenerate', 'site_admin_debug', 'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth');
+		$settingsToSave = array(
+			'debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth',
+			'Security', 'Session.defaults', 'Session.timeout', 'Session.cookie_timeout',
+			'Session.autoRegenerate', 'Session.checkAgent', 'site_admin_debug',
+			'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth'
+		);
 		$settingsArray = array();
 		foreach ($settingsToSave as $setting) {
 			$settingsArray[$setting] = Configure::read($setting);
@@ -3226,7 +3239,7 @@ class Server extends AppModel {
 
 	public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion, &$maecVersion, &$pymispVersion) {
 		$result = array();
-		$expected = array('stix' => '1.2.0.6', 'cybox' => '2.1.0.18.dev0', 'mixbox' => '1.0.3', 'maec' => '4.1.0.13', 'pymisp' => '>2.4.92');
+		$expected = array('stix' => '1.2.0.6', 'cybox' => '2.1.0.18.dev0', 'mixbox' => '1.0.3', 'maec' => '4.1.0.13', 'pymisp' => '>2.4.93');
 		// check if the STIX and Cybox libraries are working using the test script stixtest.py
 		$scriptResult = shell_exec('python3 ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
 		$scriptResult = json_decode($scriptResult, true);

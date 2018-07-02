@@ -28,7 +28,7 @@ class AttributesController extends AppController {
 
 		// permit reuse of CSRF tokens on the search page.
 		if ('search' == $this->request->params['action']) {
-			$this->Security->csrfUseOnce = false;
+			$this->Security->csrfCheck = false;
 		}
 		if ($this->action == 'add_attachment') {
 			$this->Security->disabledFields = array('values');
