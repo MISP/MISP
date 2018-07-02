@@ -88,6 +88,10 @@
 		echo $this->Form->input('self_signed', array(
 			'type' => 'checkbox',
 		));
+		?>
+			<div class = "input clear"></div>
+		<?php
+		echo $this->Form->input('skip_proxy', array('type' => 'checkbox', 'label' => 'Skip proxy (if applicable)'));
 
 		echo $this->Form->input('Server.submitted_cert', array(
 			'label' => '<b>' . __('Server certificate file') . '</b>',
