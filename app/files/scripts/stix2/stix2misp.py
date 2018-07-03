@@ -42,7 +42,7 @@ class StixParser():
             for o in event.get('objects'):
                 try:
                     try:
-                        self.event.append(stix2.parse(o))
+                        self.event.append(stix2.parse(o, allow_custom=True))
                     except:
                         self.parse_custom(o)
                 except:
