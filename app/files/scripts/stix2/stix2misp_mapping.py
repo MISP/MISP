@@ -164,8 +164,8 @@ asn_mapping = {'number': as_number_attribute_mapping,
                'autonomous-system:number': as_number_attribute_mapping,
                'name': asn_description_attribute_mapping,
                'autonomous-system:name': asn_description_attribute_mapping,
-               'ipv4-address:value': asn_subnet_attribute_mapping,
-               'ipv6-address:value': asn_subnet_attribute_mapping}
+               'ipv4-addr:value': asn_subnet_attribute_mapping,
+               'ipv6-addr:value': asn_subnet_attribute_mapping}
 
 domain_ip_mapping = {'domain-name': domain_attribute_mapping,
                      'domain-name:value': domain_attribute_mapping,
