@@ -3,13 +3,13 @@
 # Option 1: To update to the latest commit from the 2.4 branch simply pull the latest commit
 cd /var/www/MISP
 git pull origin 2.4
-git submodule update --init --force
+git submodule update --init --recursive
 
 # Option 2: If you want to stick to a point release instead of pulling the latest commit directly:
 cd /var/www/MISP
 git fetch
 git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
-git submodule update --init --force
+git submodule update --init --recursive
 
 # If you would like to upgrade from a minor version to another, look at the UPGRADE.txt file instead (such as 2.3.142 -> 2.4.13)
 
@@ -30,7 +30,7 @@ git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
 # 2. Update CakePHP to the latest supported version (if for some reason it doesn't get updated automatically with git submodule)
 
 cd /var/www/MISP
-git submodule update --init --force
+git submodule update --init --recursive
 
 
 # 3. Update Mitre's STIX and its dependencies
