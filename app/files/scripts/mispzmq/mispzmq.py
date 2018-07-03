@@ -30,7 +30,7 @@ class MISPZMQ():
             with open(self.pidfile) as f:
                 pid = f.read()
             if check_pid(pid):
-                raise Exception(f'mispzmq already running on PID {pid}')
+                raise Exception('mispzmq already running on PID {}'.format(pid))
             else:
                 # Cleanup
                 self.pidfile.unlink()
@@ -57,8 +57,8 @@ class MISPZMQ():
             self.setup()
         if command == "status":
             print("Status command received, responding with latest stats.")
-            self.r.delete(f"{self.namespace}:status")
-            self.r.lpush(f"{self.namespace}:status",
+            self.r.delete("{self.namespace}:status".format(self.namespace))
+            self.r.lpush("{self.namespace}:status".format(self.namespace),
                          json.dumps({"timestamp": time.time(),
                                      "timestampSettings": self.timestampSettings,
                                      "publishCount": self.publishCount}))
@@ -68,7 +68,7 @@ class MISPZMQ():
             f.write(str(os.getpid()))
 
     def pubMessage(self, topic, data, socket):
-        socket.send_string(f"{topic} {data}")
+        socket.send_string("{} {}".format(topic, data))
         if topic is 'misp_json':
             self.publishCount += 1
 
@@ -88,7 +88,7 @@ class MISPZMQ():
         time.sleep(1)
 
         while True:
-            command = self.r.lpop(f"{self.namespace}:command")
+            command = self.r.lpop("{}:command".format(self.namespace))
             if command is not None:
                 self.handleCommand(command)
             topics = ["misp_json", "misp_json_event", "misp_json_attribute", "misp_json_sighting",
@@ -98,7 +98,7 @@ class MISPZMQ():
                       ]
             message_received = False
             for topic in topics:
-                data = self.r.lpop(f"{self.namespace}:data:{topic}")
+                data = self.r.lpop("{}:data:{}".format(self.namespace, topic))
                 if data is not None:
                     self.pubMessage(topic, data, socket)
                     message_received = True
