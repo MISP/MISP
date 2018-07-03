@@ -277,13 +277,19 @@ x509_mapping = {'issuer': issuer_attribute_mapping,
                 }
 
 def fill_observable_attributes(attributes, stix_object, object_mapping):
-    for o in stix_object:
+    for o_key, o_value in stix_object.items():
+        print(o_key, o_value)
         try:
-            mapping = object_mapping[o]
+            mapping = object_mapping[o_key]
+            attributes.append({'type': mapping.get('type'), 'object_relation': mapping.get('relation'),
+                               'value': o_value, 'to_ids': False})
         except:
-            continue
-        attributes.append({'type': mapping.get('type'), 'object_relation': mapping.get('relation'),
-                           'value': stix_object.get(o)})
+            if "x_misp_" in o_key:
+                attribute_type, relation = o_key.split("x_misp_")[1].split("_")
+                attributes.append({'type': attribute_type, 'object_relation': relation,
+                                   'value': o_value, 'to_ids': False})
+            else:
+                continue
 
 def fill_pattern_attributes(pattern, object_mapping):
     attributes = []
@@ -291,15 +297,23 @@ def fill_pattern_attributes(pattern, object_mapping):
         p_type, p_value = p.split(' = ')
         try:
             mapping = object_mapping[p_type]
+            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                               'value': p_value[1:-1], 'to_ids': True})
         except KeyError:
-            continue
-        attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                           'value': p_value[1:-1]})
+            if "x_misp_" in p_type:
+                attribute_type, relation = p_type.split("x_misp_")[1][:-1].split("_")
+                attributes.append({'type': attribute_type, 'object_relation': relation,
+                                   'value': p_value[1:-1], 'to_ids': True})
+            else:
+                continue
     return attributes
 
 def observable_asn(observable):
     attributes = []
-    fill_observable_attributes(attributes, observable, asn_mapping)
+    fill_observable_attributes(attributes, observable.pop(str(len(observable) - 1)), asn_mapping)
+    for o_dict in observable.values():
+        attributes.append({'type': 'ip-src', 'object_relation': 'subnet-announced',
+                           'value': o_dict['value'], 'to_ids': False})
     return attributes
 
 def pattern_asn(pattern):
