@@ -63,7 +63,8 @@ class AppModel extends Model {
 
 	public $db_changes = array(
 		1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
-		7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false
+		7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
+		13 => false
 	);
 
 	function afterSave($created, $options = array()) {
@@ -956,6 +957,9 @@ class AppModel extends Model {
 					INDEX `user_id` (`user_id`),
 					INDEX `timestamp` (`timestamp`)
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+				break;
+			case 13:
+				$sqlArray[] = "ALTER TABLE `servers` ADD `skip_proxy` tinyint(1) NOT NULL DEFAULT 0;";
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

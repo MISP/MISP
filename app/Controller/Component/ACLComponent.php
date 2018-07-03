@@ -106,6 +106,7 @@ class ACLComponent extends Component {
 					'filterEventIdsForPush' => array('perm_sync'),
 					'filterEventIndex' => array('*'),
 					'freeTextImport' => array('perm_add'),
+					'getEditStrategy' => array('perm_add'),
 					'getEventInfoById' => array('*'),
 					'getEventGraphReferences' => array('*'),
 					'getEventGraphTags' => array('*'),

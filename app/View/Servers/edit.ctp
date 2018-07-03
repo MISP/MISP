@@ -95,6 +95,10 @@
 			'type' => 'checkbox',
 		));
 	?>
+		<div class = "input clear"></div>
+	<?php
+		echo $this->Form->input('skip_proxy', array('type' => 'checkbox', 'label' => 'Skip proxy (if applicable)'));
+	?>
 	<div class="clear">
 		<p>
 			<span class="bold"><?php echo __('Server certificate file (*.pem): ');?></span>
