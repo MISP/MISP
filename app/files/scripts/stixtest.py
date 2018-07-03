@@ -1,4 +1,7 @@
-import json, sys
+#!/usr/bin/env python3
+
+import json
+import sys
 results = {
     'success': 1,
     'stix': 0,
@@ -38,11 +41,11 @@ except Exception:
     results['success'] = 0
 
 print(json.dumps({
-    'success' : results['success'],
-    'stix' : results['stix'],
-    'cybox' : results['cybox'],
-    'mixbox' : results['mixbox'],
+    'success': results['success'],
+    'stix': results['stix'],
+    'cybox': results['cybox'],
+    'mixbox': results['mixbox'],
     'maec': results['maec'],
-    'pymisp' : results['pymisp']
+    'pymisp': results['pymisp']
 }))
 sys.exit(1)

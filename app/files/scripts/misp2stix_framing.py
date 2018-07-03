@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys, json, uuid, os, time, datetime, re
 from dateutil.tz import tzutc
 from stix.indicator import Indicator
