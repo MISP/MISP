@@ -536,7 +536,7 @@ class StixBuilder():
                               'first_observed': timestamp, 'last_observed': timestamp,
                               'created_by_ref': self.identity_id}
         try:
-            observed_data = ObservedData(**observed_data_args)
+            observed_data = ObservedData(**observed_data_args, allow_custom=True)
         except exceptions.InvalidValueError:
             observed_data = self.fix_enumeration_issues(name, observed_data_args)
         self.append_object(observed_data, observed_data_id)
@@ -653,7 +653,7 @@ class StixBuilder():
             try:
                 stix_type = asnObjectMapping[relation]
             except KeyError:
-                continue
+                stix_type = "x_misp_{}_{}".format(attribute.type, relation)
             attribute_value = attribute.value
             if relation == "subnet-announced":
                 observable[str(object_num)] = {'type': define_address_type(attribute_value), 'value': attribute_value}
@@ -662,7 +662,7 @@ class StixBuilder():
                 asn[stix_type] = int(attribute_value[2:]) if (stix_type == 'number' and attribute_value.startswith("AS")) else attribute_value
         observable[str(object_num)] = asn
         for n in range(object_num):
-            observable[n]['belongs_to_refs'] = [str(object_num)]
+            observable[str(n)]['belongs_to_refs'] = [str(object_num)]
         return observable
 
     @staticmethod
@@ -674,7 +674,7 @@ class StixBuilder():
             try:
                 stix_type = asnObjectMapping[relation]
             except KeyError:
-                continue
+                stix_type = "'x_misp_{}_{}'".format(attribute.type, relation)
             attribute_value = attribute.value
             if relation == "subnet-announced":
                 pattern += "{0}:{1} = '{2}' AND ".format(define_address_type(attribute_value), stix_type, attribute_value)
@@ -711,36 +711,36 @@ class StixBuilder():
         reply_to = []
         object_num = 0
         for attribute in attributes:
-            attribute_type = attribute.type
+            relation = attribute.object_relation
             attribute_value = attribute.value
             try:
-                mapping = emailObjectMapping[attribute_type]
+                mapping = emailObjectMapping[relation]['stix_type']
             except:
-                continue
-            if attribute_type in ('email-src', 'email-dst'):
+                mapping = "x_misp_{}_{}".format(attribute.type, relation)
+            if relation in ('from', 'to', 'cc'):
                 object_str = str(object_num)
                 observable[object_str] = {'type': 'email-addr', 'value': attribute_value}
-                try:
-                    message[mapping['stix_type'][attribute.object_relation]].append(object_str)
-                except:
-                    message[mapping['stix_type']] = object_str
+                if relation == 'from':
+                    message[mapping] = object_str
+                else:
+                    message[mapping].append(object_str)
                 object_num += 1
-            elif attribute_type == 'email-reply-to':
+            elif relation == 'reply-to':
                 reply_to.append(attribute_value)
-            elif attribute_type == 'email-attachment':
+            elif relation == 'attachment':
                 object_str = str(object_num)
                 body = {"content_disposition": "attachment; filename='{}'".format(attribute_value),
                                   "body_raw_ref": object_str}
                 message['body_multipart'].append(body)
                 observable[object_str] = {'type': 'file', 'name': attribute_value}
                 object_num += 1
-            elif attribute_type == 'email-x-mailer':
+            elif relation == 'x-mailer':
                 if 'additional_header_fields' in message:
                     message['additional_header_fields']['X-Mailer'] = attribute_value
                 else:
                     message['additional_header_fields'] = {'X-Mailer': attribute_value}
             else:
-                message[mapping['stix_type']] = attribute_value
+                message[mapping] = attribute_value
         if reply_to and 'additional_header_fields' in message:
             message['additional_header_fields']['Reply-To'] = reply_to
         message['type'] = 'email-message'
@@ -757,14 +757,13 @@ class StixBuilder():
         pattern = ""
         for attribute in attributes:
             try:
-                mapping = emailObjectMapping[attribute.type]
-            except:
-                continue
-            try:
-                stix_type = mapping['stix_type'][attribute.object_relation]
-            except:
+                mapping = emailObjectMapping[attribute.object_relation]
                 stix_type = mapping['stix_type']
-            pattern += pattern_mapping.format(mapping['email_type'], stix_type, attribute.value)
+                email_type = mapping['email_type']
+            except:
+                stix_type = "'x_misp_{}_{}'".format(attribute.type, attribute.object_relation)
+                email_type = 'message'
+            pattern += pattern_mapping.format(email_type, stix_type, attribute.value)
         return pattern[:-5]
 
     @staticmethod

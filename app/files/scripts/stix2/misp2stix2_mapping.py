@@ -257,15 +257,15 @@ asnObjectMapping = {'asn': 'number', 'description': 'name', 'subnet-announced': 
 domainIpObjectMapping = {'ip-dst': 'resolves_to_refs[*].value', 'domain': 'value'}
 
 emailObjectMapping = {'email-body': {'email_type': 'message', 'stix_type': 'body'},
-                      'email-subject': {'email_type': 'message', 'stix_type': 'subject'},
-                      'email-dst': {'email_type': 'message', 'stix_type': {'to': 'to_refs', 'cc': 'cc_refs'}},
-                      'email-dst-display-name': {'email_type': 'addr', 'stix_type': 'display_name'},
-                      'email-src': {'email_type': 'message', 'stix_type': 'from_ref'},
-                      'email-src-display-name': {'email_type': 'addr', 'stix_type': 'display_name'},
-                      'email-reply-to': {'email_type': 'message', 'stix_type': 'additional_header_fields.reply_to'},
-                      'email-attachment': {'email_type': 'message', 'stix_type': 'body_multipart[*].body_raw_ref.name'},
-                      'datetime': {'email_type': 'message', 'stix_type': 'date'},
-                      'email-x-mailer': {'email_type': 'message', 'stix_type': 'additional_header_fields.x_mailer'}}
+                      'subject': {'email_type': 'message', 'stix_type': 'subject'},
+                      'to': {'email_type': 'message', 'stix_type': 'to_refs'}, 'cc': {'email_type': 'message', 'stix_type': 'cc_refs'},
+                      'to-display-name': {'email_type': 'addr', 'stix_type': 'display_name'},
+                      'from': {'email_type': 'message', 'stix_type': 'from_ref'},
+                      'from-display-name': {'email_type': 'addr', 'stix_type': 'display_name'},
+                      'reply-to': {'email_type': 'message', 'stix_type': 'additional_header_fields.reply_to'},
+                      'attachment': {'email_type': 'message', 'stix_type': 'body_multipart[*].body_raw_ref.name'},
+                      'send-date': {'email_type': 'message', 'stix_type': 'date'},
+                      'x-mailer': {'email_type': 'message', 'stix_type': 'additional_header_fields.x_mailer'}}
 
 fileMapping = {'hashes': "hashes.'{0}'", 'size-in-bytes': 'size', 'filename': 'name', 'mime-type': 'mime_type'}
 
