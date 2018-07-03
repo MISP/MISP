@@ -1,9 +1,9 @@
 <div class="attack-matrix-options" style="right: initial; background: transparent;">
 <ul id="attack-matrix-tabscontroller" class="nav nav-tabs" style="margin-bottom: 2px;">
-<?php 
+<?php
 $enterpriseTag = "mitre-enterprise-attack-attack-pattern";
-foreach($attackTactic as $tactic): 
-    $galaxy = $tactic['galaxy'];	
+foreach($attackTactic as $tactic):
+    $galaxy = $tactic['galaxy'];
 ?>
 	<li class="tactic <?php echo $galaxy['type']==$enterpriseTag ? "active" : ""; ?>"><span href="#tabMatrix-<?php echo h($galaxy['type']); ?>" data-toggle="tab" style="padding-top: 3px; padding-bottom: 3px;"><?php echo h($galaxy['name']); ?></span></li>
 <?php endforeach; ?>
@@ -52,7 +52,7 @@ foreach($attackTactic as $tactic):
 			<?php echo h(ucfirst($name)); ?>
 			<div class="th-inner"><?php echo h(ucfirst($name)); ?></div>
 		</th>
-		
+
 	<?php endforeach; ?>
 	</tr>
 	</thead>
@@ -108,8 +108,8 @@ foreach($attackTactic as $tactic):
 </div>
 
 <?php if($pickingMode): ?>
-<div role="button" tabindex="0" aria-label="Submit" title="Submit" class="templateChoiceButton btn-matrix-submit" onClick="cancelPopoverForm('#popover_form_large');"><?php echo _('Submit'); ?></div>
-<div role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm('#popover_form_large');"><?php echo _('Cancel'); ?></div>
+<div role="button" tabindex="0" aria-label="Submit" title="Submit" class="templateChoiceButton btn-matrix-submit" onClick="cancelPopoverForm('#popover_form_large');"><?php echo __('Submit'); ?></div>
+<div role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm('#popover_form_large');"><?php echo __('Cancel'); ?></div>
 <?php endif; ?>
 
 <?php
