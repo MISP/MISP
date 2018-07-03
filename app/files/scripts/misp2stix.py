@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import sys, json, uuid, os, time, datetime, re, ntpath, socket
 from pymisp import MISPEvent

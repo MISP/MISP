@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #    Copyright (C) 2017-2018 CIRCL Computer Incident Response Center Luxembourg (smile gie)
 #    Copyright (C) 2017-2018 Christian Studer
