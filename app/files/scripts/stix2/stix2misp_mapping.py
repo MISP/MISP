@@ -347,7 +347,7 @@ def observable_email(observable):
             message = dict(observable_part)
     attributes.append({'type': 'email-src', 'object_relation': 'from',
                        'value': addresses[message.pop('from_ref')]})
-    for ref in ('to_refs', 'cc_refs', 'ouioui'):
+    for ref in ('to_refs', 'cc_refs'):
         if ref in message:
             for item in message.pop(ref):
                 mapping = email_mapping[ref]
