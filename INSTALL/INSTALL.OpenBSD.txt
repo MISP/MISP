@@ -9,21 +9,36 @@ This guide attempts to offer native httpd or apache2/nginx set-up.
 1/ Minimal OpenBSD install
 --------------------------
 
-# Install standard OpenBSD-amd64
+# Install standard OpenBSD-amd64 with ports
+
+## In case you forgot to fetch ports
+
+```
+$ cd /tmp
+$ ftp https://ftp.openbsd.org/pub/OpenBSD/$(uname -r)/{ports.tar.gz,SHA256.sig}
+$ signify -Cp /etc/signify/openbsd-$(uname -r | cut -c 1,3)-base.pub -x SHA256.sig ports.tar.gz
+# cd /usr
+# tar xzf /tmp/ports.tar.gz
+````
 
 # System Hardening
 
 - TBD
 
-# doas & pkg
+# doas & pkg (as root)
 ```
 echo http://ftp.belnet.be/pub/OpenBSD/ > /etc/installurl
 echo "permit keepenv setenv { PKG_PATH ENV PS1 SSH_AUTH_SOCK } :wheel" > /etc/doas.conf
 ```
 
+# Update system
+```
+doas syspatch
+```
+
 # Install bash & ntp
 ```
-pkg_add -v bash ntp
+doas pkg_add -v bash ntp
 ```
 
 # rc.local - Add ntpdate on boot
@@ -35,7 +50,7 @@ echo -n ' ntpdate'
 
 # Launch ntpd on boot
 ```
-doas rcctl set xntpd status on
+doas rcctl enable xntpd
 doas rcctl set xntpd flags "-p /var/run/ntpd.pid"
 doas /usr/local/sbin/ntpd -p /var/run/ntpd.pid
 ```
@@ -133,11 +148,6 @@ pkd_add -v mariadb-server
 /etc/rc.d/httpd -f start
 ```
 
-# Update system
-```
-doas syspatch
-```
-
 # Install postfix
 ```
 doas pkg_add -v postfix
@@ -159,10 +169,14 @@ doas pkg_add -v curl git python redis
 #pkg_add -v apache-httpd
 pkg_add -v \
     gnupg \
-    php-mysqli \
-    php-pcntl \
-    php-pdo_mysql \
-    pecl-redis \
+```
+
+# php7 ports
+```
+    php-mysqli 
+    php-pcntl 
+    php-pdo_mysql 
+    pecl-redis 
     pear
 ```
 
@@ -177,7 +191,7 @@ allow_url_fopen = On
 ```
 
 ```
-cd /etc/php-56
+cd /etc/php-5.6
 doas cp ../php-5.6.sample/* .
 ```
 
@@ -197,6 +211,8 @@ doas vi /etc/php-fpm.conf
 ```
 
 error_log = log/php-fpm.log
+chroot -> remove for the time being
+
 
 For native httpd: listen = /var/www/run/php-fpm.sock
 For apache2: listen = 127.0.0.1:9000
@@ -227,21 +243,28 @@ doas -u www git clone https://github.com/MISP/MISP.git /var/www/htdocs/MISP
 # Make git ignore filesystem permission differences
 doas -u www git config core.filemode false
 
-doas pkg_add py-pip py3-pip libxml libxslt
+doas pkg_add py-pip py3-pip libxml libxslt py3-jsonschema
 
 cd /var/www/htdocs/MISP/app/files/scripts
 doas -u www git clone https://github.com/CybOXProject/python-cybox.git
 doas -u www git clone https://github.com/STIXProject/python-stix.git
 cd /var/www/htdocs/MISP/app/files/scripts/python-cybox
-doas python setup.py install
+doas python3 setup.py install
 cd /var/www/htdocs/MISP/app/files/scripts/python-stix
-doas python setup.py install
+doas python3 setup.py install
 
 # install mixbox to accomodate the new STIX dependencies:
 cd /var/www/htdocs/MISP/app/files/scripts/
 doas -u www git clone https://github.com/CybOXProject/mixbox.git
 cd /var/www/htdocs/MISP/app/files/scripts/mixbox
-doas python setup.py install
+doas python3 setup.py install
+
+# install PyMISP
+cd /var/www/htdocs/MISP/PyMISP
+doas python3 setup.py install
+
+# install support for STIX 2.0
+doas pip3.6 install stix2
 ```
 
 4/ CakePHP
@@ -256,9 +279,9 @@ doas -u www git submodule foreach git config core.filemode false
 
 # Once done, install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd /var/www/htdocs/MISP/app
-doas -u www php-7.0 composer.phar require kamisama/cake-resque:4.1.2
-doas -u www php-7.0 composer.phar config vendor-dir Vendor
-doas -u www php-7.0 composer.phar install
+doas -u www php composer.phar require kamisama/cake-resque:4.1.2
+doas -u www php composer.phar config vendor-dir Vendor
+doas -u www php composer.phar install
 
 # To use the scheduler worker for scheduled tasks, do the following:
 doas -u www cp -f /var/www/htdocs/MISP/INSTALL/setup/config.php /var/www/htdocs/MISP/app/Plugin/CakeResque/Config/config.php
@@ -480,3 +503,6 @@ Optional features
 # MISP has a new pub/sub feature, using ZeroMQ.
 
 # ZeroMQ depends on the Python client for Redis
+```
+doas pkg_add -v py3-zmq
+```
