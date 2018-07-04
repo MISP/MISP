@@ -3081,8 +3081,8 @@ class EventsController extends AppController {
 			}
 			if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 			if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
-			if ($publish_timestamp) $conditions = $this->Event->Attribute->setPublishTimestampConditions($publish_timestamp, $conditions);
-			if ($timestamp) $conditions = $this->Event->Attribute->setTimestampConditions($timestamp, $conditions);
+			if ($publish_timestamp) $conditions = $this->Event->Attribute->setTimestampConditions($publish_timestamp, $conditions, 'Event.publish_timestamp');
+			if ($timestamp) $conditions = $this->Event->Attribute->setTimestampConditions($timestamp, $conditions, 'Event.timestamp');
 			if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
 			if ($published !== null && $published !== false) $conditions['AND'][] = array('Event.published' => $published);
 			if ($preFilterLevel == 'event') {
@@ -5097,5 +5097,46 @@ class EventsController extends AppController {
 		} else {
 			return $this->RestResponse->viewData(array(), $this->response->type());
 		}
+	}
+
+	public function getEditStrategy($id) {
+		// find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
+		if (Validation::uuid($id)) {
+			$this->Event->recursive = -1;
+			$event = $this->Event->find('first', array(
+				'recursive' => -1,
+				'conditions' => array('Event.uuid' => $id),
+				'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id')
+			));
+			if ($event == null) throw new NotFoundException('Invalid event');
+			$id = $event['Event']['id'];
+		} else if (!is_numeric($id)) {
+			throw new NotFoundException(__('Invalid event'));
+		} else {
+			$event = $this->Event->find('first', array(
+				'recursive' => -1,
+				'conditions' => array('Event.id' => $id),
+				'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id')
+			));
+		}
+		if (empty($event)) throw new NotFoundException(__('Invalid event'));
+		$response = array('extensions' => array());
+		if ($event['Event']['orgc_id'] === $this->Auth->user('org_id')) {
+			$response['strategy'] = 'edit';
+		} else {
+			$response['strategy'] = 'extend';
+		}
+		$extendedEvents = $this->Event->find('all', array(
+			'recursive' => -1,
+			'fields' => array('Event.id', 'Event.info', 'Event.uuid'),
+			'conditions' => array(
+				'Event.extends_uuid' => $event['Event']['uuid'],
+				'Event.orgc_id' => $this->Auth->user('org_id')
+			)
+		));
+		foreach ($extendedEvents as $extendedEvent) {
+			$response['extensions'][] = $extendedEvent['Event'];
+		}
+		return $this->RestResponse->viewData($response, $this->response->type());
 	}
 }
