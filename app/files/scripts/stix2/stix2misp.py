@@ -223,8 +223,8 @@ class StixParser():
         misp_object['meta-category'] = object_category
         if stix_type == 'indicator':
             pattern = o.get('pattern').replace('\\\\', '\\').split(' AND ')
-            pattern[0] = pattern[0][2:]
-            pattern[-1] = pattern[-1][:-2]
+            pattern[0] = pattern[0][1:]
+            pattern[-1] = pattern[-1][:-1]
             attributes = self.objects_mapping[object_type]['pattern'](pattern)
         if stix_type == 'observed-data':
             observable = o.get('objects')
@@ -448,15 +448,15 @@ class StixParser():
             if len(pattern_parts) == 3:
                 _, value1 = pattern_parts[2].split(' = ')
                 _, value2 = pattern_parts[0].split(' = ')
-                return '{}|{}'.format(value1[1:-3], value2[1:-1])
+                return '{}|{}'.format(value1[1:-2], value2[1:-1])
             else:
                 _, value1 = pattern_parts[0].split(' = ')
                 _, value2 = pattern_parts[1].split(' = ')
                 if value1 in ("'ipv4-addr'", "'ipv6-addr'"):
-                    return value2[1:-3]
-                return '{}|{}'.format(value1[1:-1], value2[1:-3])
+                    return value2[1:-2]
+                return '{}|{}'.format(value1[1:-1], value2[1:-2])
         else:
-            return pattern.split(' = ')[1][1:-3]
+            return pattern.split(' = ')[1][1:-2]
 
 def main(args):
     pathname = os.path.dirname(args[0])
