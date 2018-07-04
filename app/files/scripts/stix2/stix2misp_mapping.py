@@ -334,49 +334,60 @@ def pattern_domain_ip(pattern):
 def observable_email(observable):
     attributes = []
     addresses = {}
+    binaries = {}
     files = {}
-    for o in observable:
-        observable_part = observable[o]
-        part_type = observable_part._type
+    for o_key, o_dict in observable.items():
+        part_type = o_dict._type
         if part_type == 'email-addr':
-            addresses[o] = observable_part.get('value')
+            addresses[o_key] = o_dict.get('value')
         elif part_type == 'file':
-            files[o] = observable_part.get('name')
+            files[o_key] = o_dict.get('name')
+        elif part_type == 'artifact':
+            binaries[o_key] = o_dict.get('payload_bin')
         else:
-            message = dict(observable_part)
+            message = dict(o_dict)
     attributes.append({'type': 'email-src', 'object_relation': 'from',
-                       'value': addresses[message.pop('from_ref')]})
+                       'value': addresses[message.pop('from_ref')], 'to_ids': False})
     for ref in ('to_refs', 'cc_refs'):
         if ref in message:
             for item in message.pop(ref):
                 mapping = email_mapping[ref]
                 attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                                   'value': addresses[item]})
+                                   'value': addresses[item], 'to_ids': False})
     if 'body_multipart' in message:
         for f in message.pop('body_multipart'):
-            attributes.append({'type': 'email-attachment', 'object_relation': 'attachment',
-                               'value': files[f.get('body_raw_ref')]})
-    for m in message:
-        if m == 'additional_header_fields':
-            fields = message[m]
-            for field in fields:
-                mapping = email_mapping[field]
-                if field == 'Reply-To':
-                    for rt in fields[field]:
+            content = f['content_disposition']
+            if content.startswith('attachment'):
+                attributes.append({'type': 'email-attachment', 'object_relation': 'attachment',
+                                   'value': files[f.get('body_raw_ref')], 'to_ids': False})
+            else:
+                relation, value = content.split('; ')
+                value = value.split('=')[1][1:-1]
+                attributes.append({'type': 'attachment', 'object_relation': relation, 'to_ids': False,
+                                   'value': value, 'data': binaries[f.get('body_raw_ref')]})
+    for m_key, m_value in message.items():
+        if m_key == 'additional_header_fields':
+            for field_key, field_value in m_value.items():
+                mapping = email_mapping[field_key]
+                if field_key == 'Reply-To':
+                    for rt in field_value:
                         attributes.append({'type': mapping['type'],
                                            'object_relation': mapping['relation'],
-                                           'value': rt})
+                                           'value': rt, 'to_ids': False})
                 else:
                     attributes.append({'type': mapping['type'],
                                        'object_relation': mapping['relation'],
-                                       'value': fields[field]})
+                                       'value': field_value, 'to_ids': False})
         else:
             try:
-                mapping = email_mapping[m]
+                mapping = email_mapping[m_key]
+                attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                                   'value': m_value, 'to_ids': False})
             except:
-                continue
-            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                               'value': message[m]})
+                if "x_misp_" in m_key:
+                    attribute_type, relation = m_key.split("x_misp_")[1].split("_")
+                    attributes.append({'type': attribute_type, 'object_relation': relation,
+                                       'value': m_value, 'to_ids': False})
     return attributes
 
 def pattern_email(pattern):
