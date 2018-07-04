@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #    Copyright (C) 2017-2018 CIRCL Computer Incident Response Center Luxembourg (smile gie)
 #    Copyright (C) 2017-2018 Christian Studer
@@ -42,7 +43,7 @@ class StixParser():
             for o in event.get('objects'):
                 try:
                     try:
-                        self.event.append(stix2.parse(o))
+                        self.event.append(stix2.parse(o, allow_custom=True))
                     except:
                         self.parse_custom(o)
                 except:
@@ -215,10 +216,10 @@ class StixParser():
 
     def parse_object(self, o, labels):
         object_type = self.get_misp_type(labels)
-        misp_object_type = 'file' is object_type == 'WindowsPEBinaryFile' else object_type
+        name = 'file' if object_type == 'WindowsPEBinaryFile' else object_type
         object_category = self.get_misp_category(labels)
         stix_type = o._type
-        misp_object = MISPObject(misp_object_type)
+        misp_object = MISPObject(name)
         misp_object['meta-category'] = object_category
         if stix_type == 'indicator':
             pattern = o.get('pattern').replace('\\\\', '\\').split(' AND ')
