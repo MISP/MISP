@@ -2866,22 +2866,15 @@ class Attribute extends AppModel {
 		return $conditions;
 	}
 
-	public function setPublishTimestampConditions($publish_timestamp, $conditions) {
-		if (is_array($publish_timestamp)) {
-			$conditions['AND'][] = array('Event.publish_timestamp >=' => $publish_timestamp[0]);
-			$conditions['AND'][] = array('Event.publish_timestamp <=' => $publish_timestamp[1]);
-		} else {
-			$conditions['AND'][] = array('Event.publish_timestamp >=' => $publish_timestamp);
-		}
-		return $conditions;
-	}
-
-	public function setTimestampConditions($timestamp, $conditions, $scope = 'Event') {
+	public function setTimestampConditions($timestamp, $conditions, $scope = 'Event.timestamp') {
 		if (is_array($timestamp)) {
-			$conditions['AND'][] = array($scope . '.timestamp >=' => $timestamp[0]);
-			$conditions['AND'][] = array($scope . '.timestamp <=' => $timestamp[1]);
+			$timestamp[0] = $this->Event->resolveTimeDelta($timestamp[0]);
+			$timestamp[1] = $this->Event->resolveTimeDelta($timestamp[1]);
+			$conditions['AND'][] = array($scope . ' >=' => $timestamp[0]);
+			$conditions['AND'][] = array($scope . ' <=' => $timestamp[1]);
 		} else {
-			$conditions['AND'][] = array($scope . '.timestamp >=' => $timestamp);
+			$timestamp = $this->Event->resolveTimeDelta($timestamp);
+			$conditions['AND'][] = array($scope . ' >=' => $timestamp);
 		}
 		return $conditions;
 	}
