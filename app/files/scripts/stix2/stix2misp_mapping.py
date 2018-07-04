@@ -502,23 +502,23 @@ def observable_socket(observable):
             attributes = parse_socket_extension(extension['socket-ext'])
     except:
         attributes = []
-    for element in observable_object:
-        if element in ('src_ref', 'dst_ref'):
-            element_object = observable[observable_object[element]]
+    for o_key, o_value in observable_object.items():
+        if o_key in ('src_ref', 'dst_ref'):
+            element_object = observable[o_value]
             if 'domain-name' in element_object['type']:
                 attribute_type = 'hostname'
-                relation = 'hostname-{}'.format(element.split('_')[0])
+                relation = 'hostname-{}'.format(o_key.split('_')[0])
             else:
-                attribute_type = relation = "ip-{}".format(element.split('_')[0])
+                attribute_type = relation = "ip-{}".format(o_key.split('_')[0])
             attributes.append({'type': attribute_type, 'object_relation': relation,
                                'value': element_object['value']})
             continue
         try:
-            mapping = network_traffic_mapping[element]
+            mapping = network_traffic_mapping[o_key]
         except:
             continue
         attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                           'value': attribute_value})
+                           'value': o_value})
     return attributes
 
 def parse_socket_observable(observable):
