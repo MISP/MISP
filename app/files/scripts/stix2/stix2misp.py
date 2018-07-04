@@ -120,7 +120,10 @@ class StixParser():
         self.parse_identity()
         self.parse_report()
         for o in self.event:
-            object_type = o._type
+            try:
+                object_type = o._type
+            except:
+                object_type = o['type']
             labels = o.get('labels')
             if object_type in galaxy_types:
                 self.parse_galaxy(o, labels)
