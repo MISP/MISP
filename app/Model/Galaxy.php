@@ -162,7 +162,7 @@ class Galaxy extends AppModel{
 				}
 			}
 			$db = $this->getDataSource();
-			$fields = array('galaxy_cluster_id', 'key', 'value', 'galaxy_id');
+			$fields = array('galaxy_cluster_id', 'key', 'value');
 			if (!empty($elements)) {
 				$db->insertMulti('galaxy_elements', $fields, $elements);
 			}
