@@ -278,7 +278,6 @@ x509_mapping = {'issuer': issuer_attribute_mapping,
 
 def fill_observable_attributes(attributes, stix_object, object_mapping):
     for o_key, o_value in stix_object.items():
-        print(o_key, o_value)
         try:
             mapping = object_mapping[o_key]
             attributes.append({'type': mapping.get('type'), 'object_relation': mapping.get('relation'),
