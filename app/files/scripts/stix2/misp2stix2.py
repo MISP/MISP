@@ -16,9 +16,10 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import sys, json, os, datetime, re, base64
+import sys, json, os, datetime
 import pymisp
 from stix2 import *
+from base64 import b64encode
 from misp2stix2_mapping import *
 from collections import defaultdict
 from copy import deepcopy
@@ -728,12 +729,15 @@ class StixBuilder():
                 object_num += 1
             elif relation == 'reply-to':
                 reply_to.append(attribute_value)
-            elif relation == 'attachment':
+            elif relation in ('attachment', 'eml', 'screenshot'):
                 object_str = str(object_num)
-                body = {"content_disposition": "attachment; filename='{}'".format(attribute_value),
-                                  "body_raw_ref": object_str}
+                body = {"content_disposition": "{}; filename='{}'".format(relation, attribute_value),
+                        "body_raw_ref": object_str}
                 message['body_multipart'].append(body)
-                observable[object_str] = {'type': 'file', 'name': attribute_value}
+                try:
+                    observable[object_str] = {'type': 'artifact', 'payload_bin': b64encode(attribute.data.getvalue())} if attribute.data else {'type': 'file', 'name': attribute_value}
+                except AttributeError:
+                    observable[object_str] = {'type': 'file', 'name': attribute_value}
                 object_num += 1
             elif relation == 'x-mailer':
                 if 'additional_header_fields' in message:
@@ -757,12 +761,15 @@ class StixBuilder():
         pattern_mapping = objectsMapping['email']['pattern']
         pattern = ""
         for attribute in attributes:
+            relation = attribute.object_relation
             try:
-                mapping = emailObjectMapping[attribute.object_relation]
+                mapping = emailObjectMapping[relation]
                 stix_type = mapping['stix_type']
                 email_type = mapping['email_type']
+                if relation in ('screenshot', 'eml'):
+                    pattern += "{} AND ".format(pattern_attachment('', b64encode(attribute.data.getvalue()).decode()))
             except:
-                stix_type = "'x_misp_{}_{}'".format(attribute.type, attribute.object_relation)
+                stix_type = "'x_misp_{}_{}'".format(attribute.type, relation)
                 email_type = 'message'
             pattern += pattern_mapping.format(email_type, stix_type, attribute.value)
         return pattern[:-5]
