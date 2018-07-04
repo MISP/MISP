@@ -146,16 +146,14 @@ class Galaxy extends AppModel{
 								$elements[] = array(
 									$galaxyClusterId,
 									$key,
-									$v,
-									$galaxies[$cluster_package['type']]
+									$v
 								);
 							}
 						} else {
 							$elements[] = array(
 								$this->GalaxyCluster->id,
 								$key,
-								$value,
-								$galaxies[$cluster_package['type']]
+								$value
 							);
 						}
 					}
