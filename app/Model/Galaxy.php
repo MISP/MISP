@@ -26,7 +26,7 @@ class Galaxy extends AppModel{
 		$this->GalaxyCluster->deleteAll(array('GalaxyCluster.galaxy_id' => $this->id));
 	}
 
-	private function __load_galaxies() {
+	private function __load_galaxies($force = false) {
 		$dir = new Folder(APP . 'files' . DS . 'misp-galaxy' . DS . 'galaxies');
 		$files = $dir->find('.*\.json');
 		$galaxies = array();
@@ -50,6 +50,7 @@ class Galaxy extends AppModel{
 		foreach ($galaxies as $k => $galaxy) {
 			if (isset($existingGalaxies[$galaxy['uuid']])) {
 				if (
+					$force ||
 					$existingGalaxies[$galaxy['uuid']]['version'] < $galaxy['version'] ||
 					(!empty($galaxy['icon']) && ($existingGalaxies[$galaxy['uuid']]['icon'] != $galaxy['icon']))
 				) {
@@ -65,7 +66,7 @@ class Galaxy extends AppModel{
 	}
 
 	public function update($force = false) {
-		$galaxies = $this->__load_galaxies();
+		$galaxies = $this->__load_galaxies($force);
 		$dir = new Folder(APP . 'files' . DS . 'misp-galaxy' . DS . 'clusters');
 		$files = $dir->find('.*\.json');
 		$cluster_packages = array();
