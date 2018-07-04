@@ -526,6 +526,7 @@
 					if ($isSiteAdmin):
 				?>
 						<li><?php echo $this->Form->postLink(__('Update Galaxies'), array('controller' => 'galaxies', 'action' => 'update'), null, __('Are you sure you want to reimport all galaxies from the submodule?')); ?></li>
+						<li><?php echo $this->Form->postLink(__('Force Update Galaxies'), array('controller' => 'galaxies', 'action' => 'update', 'force' => 1), null, __('Are you sure you want to drop and reimport all galaxies from the submodule?')); ?></li>
 				<?php
 					endif;
 					if ($menuItem === 'viewGraph' || $menuItem === 'view_cluster'): ?>
