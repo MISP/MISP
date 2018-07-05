@@ -1,5 +1,5 @@
 INSTALLATION INSTRUCTIONS
-------------------------- for Ubuntu 16.04-server
+------------------------- for Ubuntu 18.04-server
 
 1/ Minimal Ubuntu install
 -------------------------
