@@ -8,19 +8,19 @@ def observable_as(_, attribute_value):
     return {'0': {'type': 'autonomous-system', 'number': attribute_value}}
 
 def pattern_as(_, attribute_value):
-    return "autonomous-system:number = '{}'".format(attribute_value)
+    return "[autonomous-system:number = '{}']".format(attribute_value)
 
 def observable_attachment(_, attribute_value):
     return {'0': {'type': 'artifact', 'payload_bin': attribute_value}}
 
 def pattern_attachment(_, attribute_value):
-    return "artifact:payload_bin = '{}'".format(attribute_value)
+    return "[artifact:payload_bin = '{}']".format(attribute_value)
 
 def observable_domain(_, attribute_value):
     return {'0': {'type': 'domain-name', 'value': attribute_value}}
 
 def pattern_domain(_, attribute_value):
-    return "domain-name:value = '{}'".format(attribute_value)
+    return "[domain-name:value = '{}']".format(attribute_value)
 
 def observable_domain_ip(_, attribute_value):
     address_type = define_address_type(attribute_value)
@@ -33,9 +33,9 @@ def observable_domain_ip(_, attribute_value):
 def pattern_domain_ip(_, attribute_value):
     address_type = define_address_type(attribute_value)
     domain_value, ip_value = attribute_value.split('|')
-    domain = pattern_domain(_, domain_value)
+    domain = pattern_domain(_, domain_value)[1:-1]
     domain += " AND domain-name:resolves_to_refs[*].value = '{}'".format(ip_value)
-    return domain
+    return "[{}]".format(domain)
 
 def observable_email_address(attribute_type, attribute_value):
     email_type = "from_ref" if 'src' in attribute_type else "to_refs"
@@ -44,7 +44,7 @@ def observable_email_address(attribute_type, attribute_value):
 
 def pattern_email_address(attribute_type, attribute_value):
     email_type = "from_ref" if 'src' in attribute_type else "to_refs"
-    return "email-message:{} = '{}'".format(email_type, attribute_value)
+    return "[email-message:{} = '{}']".format(email_type, attribute_value)
 
 def observable_email_message(attribute_type, attribute_value):
     email_type = attribute_type.split('-')[1]
@@ -52,13 +52,13 @@ def observable_email_message(attribute_type, attribute_value):
 
 def pattern_email_message(attribute_type, attribute_value):
     email_type = attribute_type.split('-')[1]
-    return "email-message:{} = '{}'".format(email_type, attribute_value)
+    return "[email-message:{} = '{}']".format(email_type, attribute_value)
 
 def observable_file(_, attribute_value):
     return {'0': {'type': 'file', 'name': attribute_value}}
 
 def pattern_file(_, attribute_value):
-    return "file:name = '{}'".format(attribute_value)
+    return "[file:name = '{}']".format(attribute_value)
 
 def observable_file_hash(attribute_type, attribute_value):
     _, hash_type = attribute_type.split('|')
@@ -68,13 +68,13 @@ def observable_file_hash(attribute_type, attribute_value):
 def pattern_file_hash(attribute_type, attribute_value):
     _, hash_type = attribute_type.split('|')
     value1, value2 = attribute_value.split('|')
-    return "file:name = '{0}' AND file:hashes.'{1}' = '{2}'".format(value1, hash_type, value2)
+    return "[file:name = '{0}' AND file:hashes.'{1}' = '{2}']".format(value1, hash_type, value2)
 
 def observable_hash(attribute_type, attribute_value):
     return {'0': {'type': 'file', 'hashes': {attribute_type: attribute_value}}}
 
 def pattern_hash(attribute_type, attribute_value):
-    return "file:hashes.'{}' = '{}'".format(attribute_type, attribute_value)
+    return "[file:hashes.'{}' = '{}']".format(attribute_type, attribute_value)
 
 def observable_hostname_port(_, attribute_value):
     hostname, port = attribute_value.split('|')
@@ -84,7 +84,7 @@ def observable_hostname_port(_, attribute_value):
 
 def pattern_hostname_port(_, attribute_value):
     hostname, port = attribute_value.split('|')
-    return "{} AND {}".format(pattern_domain(_, hostname), pattern_port(_, port))
+    return "[{} AND {}]".format(pattern_domain(_, hostname)[1:-1], pattern_port(_, port)[1:-1])
 
 def observable_ip(attribute_type, attribute_value):
     ip_type = attribute_type.split('-')[1]
@@ -96,7 +96,7 @@ def observable_ip(attribute_type, attribute_value):
 def pattern_ip(attribute_type, attribute_value):
     ip_type = attribute_type.split('-')[1]
     address_type = define_address_type(attribute_value)
-    return "network-traffic:{0}_ref.type = '{1}' AND network-traffic:{0}_ref.value = '{2}'".format(ip_type, address_type, attribute_value)
+    return "[network-traffic:{0}_ref.type = '{1}' AND network-traffic:{0}_ref.value = '{2}']".format(ip_type, address_type, attribute_value)
 
 def observable_ip_port(attribute_type, attribute_value):
     ip_type, _ = attribute_type.split('|')
@@ -110,31 +110,31 @@ def pattern_ip_port(attribute_type, attribute_value):
     ip_type, _ = attribute_type.split('|')
     ip, port = attribute_value.split('|')
     port_type = "{}_port".format(ip_type.split('-')[1])
-    return "network-traffic:{} = '{}' AND {}".format(port_type, port, pattern_ip(ip_type, ip))
+    return "[network-traffic:{} = '{}' AND {}]".format(port_type, port, pattern_ip(ip_type, ip)[1:-1])
 
 def observable_mac_address(_, attribute_value):
     return {'0': {'type': 'mac-addr', 'value': attribute_value}}
 
 def pattern_mac_address(_, attribute_value):
-    return "mac-addr:value = '{}'".format(attribute_value)
+    return "[mac-addr:value = '{}']".format(attribute_value)
 
 def observable_mutex(_, attribute_value):
     return {'0': {'type': 'mutex', 'name': attribute_value}}
 
 def pattern_mutex(_, attribute_value):
-    return "mutex:name = '{}'".format(attribute_value)
+    return "[mutex:name = '{}']".format(attribute_value)
 
 def observable_port(_, attribute_value):
     return {'0': {'type': 'network-traffic', 'dst_port': attribute_value, 'protocols': []}}
 
 def pattern_port(_, attribute_value):
-    return "network-traffic:dst_port = '{}'".format(attribute_value)
+    return "[network-traffic:dst_port = '{}']".format(attribute_value)
 
 def observable_regkey(_, attribute_value):
     return {'0': {'type': 'windows-registry-key', 'key': attribute_value.strip()}}
 
 def pattern_regkey(_, attribute_value):
-    return "windows-registry-key:key = '{}'".format(attribute_value.strip())
+    return "[windows-registry-key:key = '{}']".format(attribute_value.strip())
 
 def observable_regkey_value(_, attribute_value):
     key, value = attribute_value.split('|')
@@ -144,28 +144,28 @@ def observable_regkey_value(_, attribute_value):
 
 def pattern_regkey_value(_, attribute_value):
     key, value = attribute_value.split('|')
-    regkey = pattern_regkey(_, key)
+    regkey = pattern_regkey(_, key)[1:-1]
     regkey += " AND windows-registry-key:values = '{}'".format(value.strip())
-    return regkey
+    return "[{}]".format(regkey)
 
 def observable_reply_to(_, attribute_value):
     return {'0': {'type': 'email-addr', 'value': attribute_value},
             '1': {'type': 'email-message', 'additional_header_fields': {'Reply-To': ['0']}, 'is_multipart': 'false'}}
 
 def pattern_reply_to(_, attribute_value):
-    return "email-message:additional_header_fields.reply_to = '{}'".format(attribute_value)
+    return "[email-message:additional_header_fields.reply_to = '{}']".format(attribute_value)
 
 def observable_url(_, attribute_value):
     return {'0': {'type': 'url', 'value': attribute_value}}
 
 def pattern_url(_, attribute_value):
-    return "url:value = '{}'".format(attribute_value)
+    return "[url:value = '{}']".format(attribute_value)
 
 def observable_x509(_, attribute_value):
     return {'0': {'type': 'x509-certificate', 'hashes': {'sha1': attribute_value}}}
 
 def pattern_x509(_, attribute_value):
-    return "x509-certificate:hashes = '{}'".format(attribute_value)
+    return "[x509-certificate:hashes = '{}']".format(attribute_value)
 
 def return_vulnerability(name):
     return {'source_name': 'cve', 'external_id': name}

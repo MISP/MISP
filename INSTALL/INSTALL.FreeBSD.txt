@@ -3,6 +3,8 @@ INSTALLATION INSTRUCTIONS
 
 0/ WIP /!\ You are warned, this does not work yet! /!\
 
+NOT working: pydeep, lief, py-yara, MAEC
+
 1/ Minimal FreeBSD install
 --------------------------
 

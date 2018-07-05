@@ -2,7 +2,7 @@
 App::uses('AppShell', 'Console/Command');
 class AdminShell extends AppShell
 {
-	public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist', 'Server', 'Organisation', 'AdminSetting');
+	public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy');
 
 	public function jobGenerateCorrelation() {
 		$jobId = $this->args[0];
@@ -33,6 +33,15 @@ class AdminShell extends AppShell
 		$this->loadModel('ShadowAttribute');
 		$this->ShadowAttribute->generateCorrelation($jobId);
 	}
+
+  public function updateGalaxies() {
+		$result = $this->Galaxy->update();
+    if ($result) {
+        echo 'Galaxies updated';
+    } else {
+        echo 'Could not update Galaxies';
+    }
+  }
 
 	public function jobUpgrade24() {
 		$jobId = $this->args[0];
