@@ -51,12 +51,17 @@ class ActionTable {
 	}
 
 	delete_row(row_pos) {
-		var row_id = this.tr_id_mapping[row_pos];
-		var tr = document.getElementById(row_id);
+		var tr = this.get_DOM_row(row_pos);
 		var array = this.__get_array_from_DOM_row(tr);
 		var data_index = this.__find_array_index(array, this.data);
 		tr.outerHTML = "";
 		this.data.splice(data_index, 1);
+	}
+
+	get_DOM_row(row_pos) {
+		var row_id = this.tr_id_mapping[row_pos];
+		var tr = document.getElementById(row_id);
+		return tr;
 	}
 
 	get_data() {

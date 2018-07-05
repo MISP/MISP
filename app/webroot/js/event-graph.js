@@ -10,6 +10,7 @@ var edges = new vis.DataSet();
 var typeaheadDataSearch;
 var event_last_change = $('#eventgraph_network').data('event-timestamp');
 var scope_id = $('#eventgraph_network').data('event-id');
+var user_email = $('#eventgraph_network').data('user-email'); 
 var container = document.getElementById('eventgraph_network');
 var user_manipulation = $('#eventgraph_network').data('user-manipulation');
 var root_id_attr = "rootNode:attribute";
@@ -596,6 +597,16 @@ class EventGraph {
 		// has to do it manually here (not using reset_graph_history) because menu_history still not constructed yet
 		dataHandler.fetch_graph_history(function(history_formatted) {
 			menu_history.items["table_graph_history_actiontable"].set_table_data(history_formatted);
+			for(var i=0; i<history_formatted.length; i++) {
+				var history = history_formatted[i];
+				var cur_email = history[2];
+				if (cur_email != user_email) {
+					// disable delete button
+					var tr = eventGraph.menu_history.items.table_graph_history_actiontable.get_DOM_row(i);
+					var btn_del = $(tr).find('.btn-danger');
+					btn_del.prop('disabled', true);
+				}
+			}
 		});
 
 		return menu_history;
@@ -1600,7 +1611,6 @@ class MispInteraction {
 	}
 
 	delete_saved_network(data) {
-		console.log('deleting');
 		var network_id = data[0];
 		var url = "/" + "eventNetworkHistory" + "/" + "delete" + "/" + network_id;
 		$.get(url, function(data) {
@@ -1835,6 +1845,16 @@ function reset_graph_history() {
 	var table = eventGraph.menu_history.items["table_graph_history_actiontable"];
 	dataHandler.fetch_graph_history(function(history_formatted) {
 		table.set_table_data(history_formatted);
+		for(var i=0; i<history_formatted.length; i++) {
+			var history = history_formatted[i];
+			var cur_email = history[2];
+			if (cur_email != user_email) {
+				// disable delete button
+				var tr = eventGraph.menu_history.items.table_graph_history_actiontable.get_DOM_row(i);
+				var btn_del = $(tr).find('.btn-danger');
+				btn_del.prop('disabled', true);
+			}
+		}
 	});
 }
 

@@ -71,9 +71,7 @@ class EventNetworkHistoryController extends AppController {
 			$formURL = 'eventNetworkHistory_add_form';
 
 			if (!$this->_isSiteAdmin()) {
-				if ($networkHistory['org_id'] == $this->Auth->user('org_id')
-				&& (($this->userRole['perm_modify'] && $networkHistory['user_id'] != $this->Auth->user('id'))
-						|| $this->userRole['perm_modify_org'])) {
+				if ($this->userRole['perm_modify'] || $this->userRole['perm_modify_org']) {
 					// Allow the edit
 				} else {
 					throw new NotFoundException(__('Invalid network history'));
@@ -164,11 +162,13 @@ class EventNetworkHistoryController extends AppController {
 			$networkHistory = $this->EventNetworkHistory->find('first', array(
 					'conditions' => $conditions,
 					'recursive' => -1,
-					'fields' => array('id', 'event_id'),
+					'fields' => array('id', 'event_id', 'user_id'),
 			));
 			if (empty($networkHistory)) throw new NotFoundException('Invalid NetworkHistory');
 			if ($this->request->is('ajax')) {
 				if ($this->request->is('post')) {
+					// only creator can delete its network
+					if ($networkHistory['EventNetworkHistory']['user_id'] != $this->Auth->user()['id']) throw new MethodNotAllowedException('This network does not belong to you.');
 					$result = $this->EventNetworkHistory->delete($id);
 					if ($result) {
 						return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Network history deleted.')), 'status'=>200, 'type' => 'json'));
@@ -187,7 +187,6 @@ class EventNetworkHistoryController extends AppController {
 				'conditions' => array('EventNetworkHistory.id' => $id),
 				'flatten' => 1,
 			);
-			//$networkHistory = $this->NetworkHistory->fetchNetworkHistory($this->Auth->user(), $params);
 			$networkHistory = $this->NetworkHistory->get($this->Auth->user(), $params);
 			if (empty($networkHistory)) throw new NotFoundException(__('Invalid network history'));
 			$networkHistory = $networkHistory[0];
