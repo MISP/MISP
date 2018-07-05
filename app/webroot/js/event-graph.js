@@ -1438,7 +1438,7 @@ class DataHandler {
 			showMessage('fail', '<b>Fail</b>: Imported graph is newer than current event');
 			return false;
 		}
-		if (parseInt(event_last_change) >= parseInt(data.eventLastChange)) {
+		if (parseInt(event_last_change) > parseInt(data.eventLastChange)) {
 			showMessage('success', '<b>Warning</b>: Imported graph is not the latest version');
 		}
 		return true;
