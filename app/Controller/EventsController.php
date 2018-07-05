@@ -601,14 +601,31 @@ class EventsController extends AppController {
 				$rules['recursive'] = -1;
 				$rules['fields'] = array('id', 'timestamp', 'published', 'uuid');
 			}
-			$events = $this->Event->find('all', $rules);
+			if (empty($rules['limit'])) {
+				$events = array();
+				$i = 1;
+				$continue = true;
+				$rules['limit'] = 20000;
+				while($continue) {
+					$rules['page'] = $i;
+					$temp = $this->Event->find('all', $rules);
+					if (!empty($temp)) {
+						$events = array_merge($events, $temp);
+					} else {
+						$continue = false;
+					}
+					$i += 1;
+				}
+			} else {
+				$events = $this->Event->find('all', $rules);
+			}
+			$total_events = count($events);
 			foreach ($events as $k => $event) {
 				if (empty($event['SharingGroup']['name'])) {
 					unset($events[$k]['SharingGroup']);
 				}
 			}
 			if (empty($passedArgs['searchminimal'])) {
-				$total_events = count($events);
 				$passes = ceil($total_events / 1000);
 				for ($i = 0; $i < $passes; $i++) {
 					$event_tag_objects = array();
