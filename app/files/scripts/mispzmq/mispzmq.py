@@ -28,7 +28,6 @@ class MISPZMQ():
 
     def __init__(self):
         self.current_location = Path(__file__).parent
-        workDir = self.current_location
         self.pidfile = self.current_location / "mispzmq.pid"
         self.publishCount = 0
         if self.pidfile.exists():
@@ -49,7 +48,8 @@ class MISPZMQ():
             self.settings = json.load(settings_file)
         self.namespace = self.settings["redis_namespace"]
         self.r = redis.StrictRedis(host=self.settings["redis_host"], db=self.settings["redis_database"],
-                                   password=self.settings["redis_password"], port=self.settings["redis_port"], decode_responses=True)
+                                   password=self.settings["redis_password"], port=self.settings["redis_port"],
+                                   decode_responses=True)
         self.timestampSettings = time.time()
 
     def handleCommand(self, command):
