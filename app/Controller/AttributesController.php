@@ -1983,11 +1983,11 @@ class AttributesController extends AppController {
 		if ($tags) $conditions = $this->Attribute->setTagConditions($tags, $conditions, 'attribute');
 		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
-		if ($publish_timestamp) $conditions = $this->Attribute->setPublishTimestampConditions($publish_timestamp, $conditions);
+		if ($publish_timestamp) $conditions = $this->Attribute->setTimestampConditions($publish_timestamp, $conditions, 'Event.publish_timestamp');
 		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
 		if ($published) $conditions['AND'][] = array('Event.published' => $published);
-		if ($timestamp) $conditions['AND'][] = array('Attribute.timestamp >=' => $timestamp);
-		if ($event_timestamp) $conditions['AND'][] = array('Event.timestamp >=' => $event_timestamp);
+		if ($timestamp) $conditions = $this->Attribute->setTimestampConditions($timestamp, $conditions, 'Attribute.timestamp');
+		if ($event_timestamp) $conditions = $this->Attribute->setTimestampConditions($event_timestamp, $conditions, 'Event.timestamp');
 		if ($threat_level_id) {
 			if (!is_array($threat_level_id)) {
 				$threat_level_id = array($threat_level_id);

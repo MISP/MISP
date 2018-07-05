@@ -152,6 +152,7 @@ class Attribute extends AppModel {
 			'target-location' => array('desc' => 'Attack Targets Physical Location(s)', 'default_category' => 'Targeting data', 'to_ids' => 0),
 			'target-external' => array('desc' => 'External Target Organizations Affected by this Attack', 'default_category' => 'Targeting data', 'to_ids' => 0),
 			'btc' => array('desc' => 'Bitcoin Address', 'default_category' => 'Financial fraud', 'to_ids' => 1),
+			'xmr' => array('desc' => 'Monero Address', 'default_category' => 'Financial fraud', 'to_ids' => 1),
 			'iban' => array('desc' => 'International Bank Account Number', 'default_category' => 'Financial fraud', 'to_ids' => 1),
 			'bic' => array('desc' => 'Bank Identifier Code Number also known as SWIFT-BIC, SWIFT code or ISO 9362 code', 'default_category' => 'Financial fraud', 'to_ids' => 1),
 			'bank-account-nr' => array('desc' => 'Bank account number without any routing number', 'default_category' => 'Financial fraud', 'to_ids' => 1),
@@ -316,7 +317,7 @@ class Attribute extends AppModel {
 			'Financial fraud' => array(
 					'desc' => 'Financial Fraud indicators',
 					'formdesc' => 'Financial Fraud indicators, for example: IBAN Numbers, BIC codes, Credit card numbers, etc.',
-					'types' => array('btc', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number', 'comment', 'text', 'other', 'hex'),
+					'types' => array('btc', 'xmr', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number', 'comment', 'text', 'other', 'hex'),
 					),
 			'Support Tool' => array(
 					'desc' => 'Tools supporting analysis or detection of the event',
@@ -383,7 +384,7 @@ class Attribute extends AppModel {
 	public $typeGroupings = array(
 		'file' => array('attachment', 'pattern-in-file', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy','authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'malware-sample', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-fingerprint-md5'),
         'network' => array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port', 'mac-address', 'mac-eui-64', 'hostname', 'hostname|port', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-traffic', 'x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256'),
-        'financial' => array('btc', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number')
+        'financial' => array('btc', 'xmr', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number')
 	);
 
 	private $__fTool = false;
@@ -1170,6 +1171,7 @@ class Attribute extends AppModel {
 			case 'iban':
 			case 'bic':
 			case 'btc':
+			case 'xmr':
 				if (preg_match('/^[a-zA-Z0-9]+$/', $value)) {
 					$returnValue = true;
 				}
@@ -2864,22 +2866,15 @@ class Attribute extends AppModel {
 		return $conditions;
 	}
 
-	public function setPublishTimestampConditions($publish_timestamp, $conditions) {
-		if (is_array($publish_timestamp)) {
-			$conditions['AND'][] = array('Event.publish_timestamp >=' => $publish_timestamp[0]);
-			$conditions['AND'][] = array('Event.publish_timestamp <=' => $publish_timestamp[1]);
-		} else {
-			$conditions['AND'][] = array('Event.publish_timestamp >=' => $publish_timestamp);
-		}
-		return $conditions;
-	}
-
-	public function setTimestampConditions($timestamp, $conditions, $scope = 'Event') {
+	public function setTimestampConditions($timestamp, $conditions, $scope = 'Event.timestamp') {
 		if (is_array($timestamp)) {
-			$conditions['AND'][] = array($scope . '.timestamp >=' => $timestamp[0]);
-			$conditions['AND'][] = array($scope . '.timestamp <=' => $timestamp[1]);
+			$timestamp[0] = $this->Event->resolveTimeDelta($timestamp[0]);
+			$timestamp[1] = $this->Event->resolveTimeDelta($timestamp[1]);
+			$conditions['AND'][] = array($scope . ' >=' => $timestamp[0]);
+			$conditions['AND'][] = array($scope . ' <=' => $timestamp[1]);
 		} else {
-			$conditions['AND'][] = array($scope . '.timestamp >=' => $timestamp);
+			$timestamp = $this->Event->resolveTimeDelta($timestamp);
+			$conditions['AND'][] = array($scope . ' >=' => $timestamp);
 		}
 		return $conditions;
 	}

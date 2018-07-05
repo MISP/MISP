@@ -1100,11 +1100,6 @@ class User extends AppModel {
 		));
 		$this->validator()->remove('password'); // password is too simple, remove validation
 		$this->save($admin);
-		// PostgreSQL: update value of auto incremented serial primary key after setting the column by force
-		if ($dataSource == 'Database/Postgres') {
-			$sql = "SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));";
-			$this->query($sql);
-		}
 		return $authKey;
 	}
 }

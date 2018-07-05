@@ -3081,8 +3081,8 @@ class EventsController extends AppController {
 			}
 			if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 			if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
-			if ($publish_timestamp) $conditions = $this->Event->Attribute->setPublishTimestampConditions($publish_timestamp, $conditions);
-			if ($timestamp) $conditions = $this->Event->Attribute->setTimestampConditions($timestamp, $conditions);
+			if ($publish_timestamp) $conditions = $this->Event->Attribute->setTimestampConditions($publish_timestamp, $conditions, 'Event.publish_timestamp');
+			if ($timestamp) $conditions = $this->Event->Attribute->setTimestampConditions($timestamp, $conditions, 'Event.timestamp');
 			if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
 			if ($published !== null && $published !== false) $conditions['AND'][] = array('Event.published' => $published);
 			if ($preFilterLevel == 'event') {

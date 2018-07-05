@@ -27,7 +27,10 @@ class GalaxiesController extends AppController {
 
 	public function update() {
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('This action is only accessible via POST requests.');
-		$result = $this->Galaxy->update();
+		if (!empty($this->params['named']['force'])) {
+			$force = 1;
+		}
+		$result = $this->Galaxy->update($force);
 		$message = 'Galaxies updated.';
 		if ($this->_isRest()) {
 			return $this->RestResponse->saveSuccessResponse('Galaxy', 'update', false, $this->response->type(), $message);

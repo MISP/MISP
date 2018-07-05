@@ -3,12 +3,15 @@ INSTALLATION INSTRUCTIONS
 
 0/ WIP /!\ You are warned, this does not work yet! /!\
 
+NOT working: pydeep, lief, py-yara, MAEC
+
 1/ Minimal FreeBSD install
 --------------------------
 
 # Install standard FreeBSD-amd64 with:
 - sshd
 - ntpd
+- ports
 
 # System Hardening
 
@@ -22,12 +25,6 @@ Install pkg by typing:
 ```
 $ su -
 # pkg
-```
-
-Edit the default pkg location in /etc/pkg/FreeBSD.conf
-Change: quarterly to: latest
-```
- # perl -pi -w -e 's/quarterly/latest/g;' /etc/pkg/FreeBSD.conf
 ```
 
 # Install sudo
@@ -48,6 +45,11 @@ Make sure users in group wheel can sudo, uncomment in /usr/local/etc/sudoers :
 sudo freebsd-update fetch install
 ```
 
+# Make python3 default
+
+echo "DEFAULT_VERSIONS= python=3.6 python2=2.7 python3=3.6" >> /etc/make.conf
+sudo ln -s /usr/local/bin/python3 /usr/local/bin/python
+
 # Install postfix
 ```
 sudo pkg install postfix
@@ -58,12 +60,11 @@ sudo mkdir /home/misp ; sudo chown misp:misp /home/misp
 sudo passwd misp
 ```
 
-# Install misc dependencies
-```
-sudo pkg install curl git python3 redis vim
-```
-
 # FAMP
+## Install misc dependencies
+```
+sudo pkg install curl git python3 vim m4 help2man gmake automake libtool
+```
 
 /!\ N.B: MariaDB 10.3 currently segfaults on 11.2: https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=229219
 
@@ -90,7 +91,6 @@ sudo pkg install apache24 \
 sudo cp -p /usr/local/etc/php.ini-development /usr/local/etc/php.ini
 
 sudo sysrc apache24_enable="yes"
-sudo sysrc redis_enable="yes"
 sudo sysrc mysql_enable="yes"
 sudo sysrc mysql_args="--bind-address=127.0.0.1"
 sudo service apache24 start
@@ -100,17 +100,50 @@ sudo /usr/local/bin/mysql_secure_installation
 
 ```
 sudo vi /usr/local/etc/apache24/Includes/php.conf
+```
+
+Add:
+```
 <IfModule dir_module>
     DirectoryIndex index.php index.html
-    SetHandler application/x-httpd-php
+
+    <FilesMatch "\.php$">
+        SetHandler application/x-httpd-php
+    </FilesMatch>
+
     <FilesMatch "\.phps$">
         SetHandler application/x-httpd-php-source
     </FilesMatch>
 </IfModule>
 ```
 
+
+## Redis need to be installed via ports
+
+```
+cd /usr/ports/databases/redis
+sudo make install clean
+sudo sysrc redis_enable="yes"
+```
+
+### php-redis
+```
+cd /use/ports/databases/pecl-redis
+sudo make install clean
+```
+
+## Maybe needed, had to add the path for php CLI to work…
+add this: PATH=$PATH:/usr/local/bin
+to: /usr/local/etc/apache24/envvars.d/php.env
+
+
+```
+sudo service apache24 restart
+```
+
 3/ MISP code
 ------------
+
 # Download MISP using git in the /usr/local/www/ directory.
 sudo mkdir /usr/local/www/MISP
 sudo chown www:www /usr/local/www/MISP
@@ -137,6 +170,8 @@ cd /usr/local/www/MISP/app/files/scripts/
 sudo -u www git clone https://github.com/CybOXProject/mixbox.git
 cd /usr/local/www/MISP/app/files/scripts/mixbox
 sudo python3 setup.py install
+
+
 
 4/ CakePHP
 -----------
@@ -203,8 +238,8 @@ sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
 -subj "/C=<Country>/ST=<State>/L=<Locality>/O=<Organization>/OU=<Organizational Unit Name>/CN=<QDN.here>/emailAddress=admin@<your.FQDN.here>" \
 -keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt
 
- chmod 750 /etc/ssl/private/
- chmod 640 /etc/ssl/private/*
+sudo chmod 750 /etc/ssl/private/
+sudo chmod 640 /etc/ssl/private/*
 
 # Otherwise, copy the SSLCertificateFile, SSLCertificateKeyFile, and SSLCertificateChainFile to /etc/ssl/private/. (Modify path and config to fit your environment)
 
@@ -359,6 +394,56 @@ sudo chown -R www:www /usr/local/www/MISP/<directory path with an indicated issu
 # /usr/local/www/MISP/app/tmp/logs/resque-scheduler-error.log
 # /usr/local/www/MISP/app/tmp/logs/resque-2015-01-01.log // where the actual date is the current date
 
+set PATH_TO_MISP='/usr/local/www/MISP'
+set MISP_BASEURL=''
+set MISP_LIVE='1'
+set FQDN='localhost'
+
+
+# Enable Enrichment set better timeouts
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_services_enable" true
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_hover_enable" true
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_timeout" 300
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_hover_timeout" 150
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_cve_enabled" true
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_dns_enabled" true
+
+# Enable Import modules set better timout
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Import_services_enable" true
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Import_timeout" 300
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Import_ocr_enabled" true
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Import_csvimport_enabled" true
+
+# Enable Export modules set better timout
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Export_services_enable" true
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Export_timeout" 300
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Export_pdfexport_enabled" true
+
+sudo $PATH_TO_MISP/app/Console/cake Live $MISP_LIVE
+
+
+# Enable installer org and tune some configurables
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.host_org_id" 1
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.email" "info@admin.test"
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.disable_emailing" true
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.contact" "info@admin.test"
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.disablerestalert" true
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.showCorrelationsOnIndex" true
+
+# Force defaults to make MISP Server Settings less RED
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.language" "eng"
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.proposals_block_attributes" false
+## Redis block
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.redis_host" "127.0.0.1"
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.redis_port" 6379
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.redis_database" 13
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.redis_password" ""
+
+# Tune global time outs
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Session.autoRegenerate" 0
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Session.timeout" 600
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Session.cookie_timeout" 3600
+
 
 Recommended actions
 -------------------
@@ -370,10 +455,36 @@ Recommended actions
 - Keep your software up2date (OS, MISP, CakePHP and everything else)
 - Log and audit
 
+10/ MISP modulesß
+
+sudo pkg install yara
+sudo mkdir /usr/local/src/
+cd /usr/local/src/
+sudo git clone https://github.com/MISP/misp-modules.git
+cd misp-modules
+# pip3 install
+sudo pip-3.6 install -I -r REQUIREMENTS
+sudo pip-3.6 install -I .
+##sudo pip-3.6 install lief
+sudo pip-3.6 install maec
+sudo pip-3.6 install pymisp python-magic wand yara
+##sudo pip-3.6 install git+https://github.com/kbandla/pydeep.git
+
+# pip2 install
+sudo pip-2.7 install pymisp python-magic wand yara
+##sudo pip-2.7 install git+https://github.com/kbandla/pydeep.git
+##sudo pip-2.7 install lief
+# install STIX2.0 library to support STIX 2.0 export:
+sudo pip-3.6 install stix2
+
+Add this to rc.local:
+
+```
+sudo -u www misp-modules -l 0.0.0.0 -s &
+```
 
 Optional features
 -------------------
 # MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
-sudo pkg install py27-pyzmq
+sudo pkg install libzmq4
 # ZeroMQ depends on the Python client for Redis
-sudo pkg install redis
