@@ -584,7 +584,7 @@ class EventGraph {
 				mispInteraction.save_network(network_json, network_name);
 			},
 			onRemove: function(data, selfTable) {
-				mispInteraction.delete_network(data);
+				mispInteraction.delete_saved_network(data);
 			}
 		});
 		menu_history.items["table_graph_history_actiontable"].table.style.minWidth = "450px";
@@ -592,7 +592,16 @@ class EventGraph {
 		// fill history table
 		// has to do it manually here (not using reset_graph_history) because menu_history still not constructed yet
 		dataHandler.fetch_graph_history(function(history) {
-			menu_history.items["table_graph_history_actiontable"].set_table_data(history);
+			var history_formatted = [];
+			history.forEach(function(item) {
+				history_formatted.push([
+					item['EventNetworkHistory']['id'],
+					item['EventNetworkHistory']['network_name'],
+					item['User']['email'],
+					new Date(parseInt(item['EventNetworkHistory']['timestamp'])*1000).toLocaleString()
+				]);
+			});
+			menu_history.items["table_graph_history_actiontable"].set_table_data(history_formatted);
 		});
 
 		return menu_history;
@@ -1431,10 +1440,9 @@ class DataHandler {
 	}
 
 	fetch_graph_history(callback) {
-		//$.getJSON( "/events/getNetworkHistory/"+scope_id+"/networkHistory.json", function( data ) {
-		//	callback(data);
-		//});
-		return callback([[1, 'my super graph', 'admin@admin.test', '2018-03-23'], [2, 'Another network', 'org@CIRCL.lu', '2017-04-06']]);
+		$.getJSON( "/eventNetworkHistory/get/"+scope_id, function( data ) {
+			callback(data);
+		});
 	}
 
 	fetch_and_import_graph(data, callback) {
@@ -1584,14 +1592,18 @@ class MispInteraction {
 	}
 
 	save_network(network_json, network_name) {
-		console.log('saving');
 		var network_json = eventGraph.toJSON();
 		this.quickSaveNetworkHistory(scope_id, network_json, network_name, reset_graph_history);
 	}
 
-	delete_network(data) {
+	delete_saved_network(data) {
 		console.log('deleting');
-		reset_graph_history();
+		var network_id = data[0];
+		var url = "/" + "eventNetworkHistory" + "/" + "delete" + "/" + network_id;
+		$.get(url, function(data) {
+			openPopup("#confirmation_box");
+			$("#confirmation_box").html(data);
+		});
 	}
 
 	quickSaveNetworkHistory(event_id, network_json, network_name, callback) {
@@ -1616,16 +1628,18 @@ class MispInteraction {
 					$('.loading').show();
 				},
 				success: function(data, textStatus) {
+					showMessage('success', 'Network has been saved');
 					if (callback !== undefined) {
 						callback();
 					}
 				},
 				error: function( jqXhr, textStatus, errorThrown ){
+					showMessage('fail', 'Could not save network');
 					console.log( errorThrown );
 				},
 				complete: function() {
 					$(".loading").hide();
-					// remove form ?
+					form.remove();
 				},
 				type: 'post',
 				url: url
@@ -1634,11 +1648,7 @@ class MispInteraction {
 	}
 
 	networkFetchForm(type, event_id, network_id, callback) {
-		var url = '/' + 'eventNetworkHistory' + '/' + 'fetchForm' + '/' + type + '/' + event_id;
-		if (type == 'edit' && network_id !== undefined) {
-			url += '/' + network_id
-		}
-
+		var url = '/' + 'eventNetworkHistory' + '/' + 'add' + '/' + event_id;
 		$.ajax({
 			beforeSend: function(XMLHttpRequest) {
 				$('.loading').show();
@@ -1821,7 +1831,16 @@ function download_file(data, type) {
 function reset_graph_history() {
 	var table = eventGraph.menu_history.items["table_graph_history_actiontable"];
 	dataHandler.fetch_graph_history(function(history) {
-		table.set_table_data(history);
+		var history_formatted = [];
+		history.forEach(function(item) {
+			history_formatted.push([
+				item['EventNetworkHistory']['id'],
+				item['EventNetworkHistory']['network_name'],
+				item['User']['email'],
+				new Date(parseInt(item['EventNetworkHistory']['timestamp'])*1000).toLocaleString()
+			]);
+		});
+		table.set_table_data(history_formatted);
 	});
 }
 

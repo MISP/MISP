@@ -479,6 +479,13 @@ class ACLComponent extends Component {
 					'admin_edit' => array('perm_regexp_access'),
 					'admin_index' => array('perm_regexp_access'),
 					'index' => array('*'),
+			),
+			'eventNetworkHistory' => array(
+					'get' => array('*'),
+					'add' => array('perm_add'),
+					'edit' => array('perm_modify'),
+					'delete' => array('perm_modify'),
+					'fetchForm' => array('*')
 			)
 	);
 

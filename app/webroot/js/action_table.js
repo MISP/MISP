@@ -12,6 +12,7 @@ class ActionTable {
 		this.header.push("Action");
 		this.row_num = this.header.length;
 		this.data = options.data === undefined ? [] : options.data;
+		this.tr_id_mapping = {};
 		this.control_items = options.control_items;
 		this.header_action_button = options.header_action_button === undefined ? {} : options.header_action_button;
 		if (options.header_action_button === undefined) {
@@ -43,12 +44,14 @@ class ActionTable {
 
 	add_row(row) {
 		if (!this.__data_already_exists(row)) {
+			var id = this.__add_row(row);
+			this.tr_id_mapping[this.data.length] = id;
 			this.data.push(row);
-			this.__add_row(row);
 		}
 	}
 
-	delete_row(row_id) {
+	delete_row(row_pos) {
+		var row_id = this.tr_id_mapping[row_pos];
 		var tr = document.getElementById(row_id);
 		var array = this.__get_array_from_DOM_row(tr);
 		var data_index = this.__find_array_index(array, this.data);
@@ -61,7 +64,8 @@ class ActionTable {
 	}
 
 	clear_table() {
-		for (var i in this.data.length) {
+		var dataLength = this.data.length;
+		for (var i=0; i<dataLength; i++) {
 			this.delete_row(i);
 		}
 	}
@@ -140,7 +144,7 @@ class ActionTable {
 
 	__add_row(row) {
 		var tr = document.createElement('tr');
-		tr.id = "tr_" + this.__get_uniq_index();
+		tr.id = "tr_" + this.__uuidv4();
 		for (var col of row) {
 			var td = document.createElement('td');
 			td.innerHTML = col;
@@ -148,6 +152,7 @@ class ActionTable {
 		}
 		this.__add_action_button(tr);
 		this.tbody.appendChild(tr);
+		return tr.id;
 	}
 
 	__add_control_row() {
@@ -336,5 +341,12 @@ class ActionTable {
 			}
 			select.appendChild(option);
 		}
+	}
+
+	__uuidv4() {
+		return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+			var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+			return v.toString(16);
+		});
 	}
 }

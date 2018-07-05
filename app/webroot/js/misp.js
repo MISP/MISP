@@ -85,8 +85,13 @@ function submitDeletion(context_id, action, type, id) {
 		},
 		data: formData,
 		success:function (data, textStatus) {
-			updateIndex(context_id, context);
-			handleGenericAjaxResponse(data);
+			if (type == 'eventNetworkHistory') {
+				showMessage('success', 'Network has been deleted');
+				reset_graph_history();
+			} else {
+				updateIndex(context_id, context);
+				handleGenericAjaxResponse(data);
+			}
 		},
 		complete:function() {
 			$(".loading").hide();
