@@ -126,6 +126,7 @@ sudo a2ensite default-ssl
 
 # Install PHP and dependencies
 sudo apt-get install -y libapache2-mod-php7.2 php7.2 php7.2-cli php7.2-gnupg php7.2-dev php7.2-json php7.2-xml php7.2-mysql php7.2-opcache php7.2-readline php7.2-redis php7.2-mbstring php-pear
+sudo pear channel-update pear.php.net
 sudo pear install Crypt_GPG
 sudo a2enmod php7.2
 
@@ -433,6 +434,9 @@ sudo sed -i -e '$i \sudo -u www-data bash /var/www/MISP/app/Console/worker/start
 sudo sed -i -e '$i \sudo -u www-data misp-modules -l 0.0.0.0 -s &\n' /etc/rc.local
 sudo sed -i -e '$i \sudo -u www-data bash /var/www/misp-dashboard/start_all.sh\n' /etc/rc.local
 
+# Start the workers
+/var/www/MISP/app/Console/worker/start.sh
+
 # Installing MISP modules…
 sudo apt-get install -y python3-dev python3-pip python-pip libpq5 libjpeg-dev libfuzzy-dev
 cd /usr/local/src/
@@ -481,6 +485,7 @@ Recommended actions
 
 Optional features
 -------------------
+# MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following commands
 
 # Install misp-dashboard
 
