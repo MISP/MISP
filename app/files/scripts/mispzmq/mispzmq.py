@@ -12,6 +12,10 @@ from pathlib import Path
 
 def check_pid(pid):
     """ Check For the existence of a unix pid. """
+    if not pid:
+        return False
+    pid = int(pid)
+
     try:
         os.kill(pid, 0)
     except OSError:
@@ -23,11 +27,12 @@ def check_pid(pid):
 class MISPZMQ():
 
     def __init__(self):
-        self.current_location = Path(__file__).cwd()
+        self.current_location = Path(__file__).parent
+        workDir = self.current_location
         self.pidfile = self.current_location / "mispzmq.pid"
         self.publishCount = 0
         if self.pidfile.exists():
-            with open(self.pidfile) as f:
+            with open(self.pidfile.as_posix()) as f:
                 pid = f.read()
             if check_pid(pid):
                 raise Exception('mispzmq already running on PID {}'.format(pid))
@@ -40,11 +45,11 @@ class MISPZMQ():
             raise Exception("The settings file is missing.")
 
     def setup(self):
-        with open(self.current_location / 'settings.json') as settings_file:
+        with open((self.current_location / 'settings.json').as_posix()) as settings_file:
             self.settings = json.load(settings_file)
         self.namespace = self.settings["redis_namespace"]
         self.r = redis.StrictRedis(host=self.settings["redis_host"], db=self.settings["redis_database"],
-                                   password=self.settings["redis_password"], port=self.settings["redis_port"])
+                                   password=self.settings["redis_password"], port=self.settings["redis_port"], decode_responses=True)
         self.timestampSettings = time.time()
 
     def handleCommand(self, command):
@@ -64,7 +69,7 @@ class MISPZMQ():
                                      "publishCount": self.publishCount}))
 
     def createPidFile(self):
-        with open(self.pidfile, 'w') as f:
+        with open(self.pidfile.as_posix(), 'w') as f:
             f.write(str(os.getpid()))
 
     def pubMessage(self, topic, data, socket):
