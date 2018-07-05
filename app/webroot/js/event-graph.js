@@ -548,7 +548,8 @@ class EventGraph {
 					colspan: 4,
 					item_options: {
 						style: "width: 98%;",
-						placeholder: "Network's name"
+						placeholder: "Network's name",
+						id: "networkHistory_input_name_save"
 					}
 				}
 			],
@@ -573,7 +574,8 @@ class EventGraph {
 							tooltip: "Load saved network"
 						},
 						event: function(data) {
-							dataHandler.fetch_and_import_graph(data);
+							var network_id = data[0];
+							dataHandler.fetch_and_import_graph(network_id);
 						}
 					}
 				]
@@ -582,6 +584,7 @@ class EventGraph {
 			onAddition: function(network_name, selfTable) {
 				var network_json = eventGraph.toJSON();
 				mispInteraction.save_network(network_json, network_name);
+				$('#networkHistory_input_name_save').val('');
 			},
 			onRemove: function(data, selfTable) {
 				mispInteraction.delete_saved_network(data);
@@ -591,16 +594,7 @@ class EventGraph {
 
 		// fill history table
 		// has to do it manually here (not using reset_graph_history) because menu_history still not constructed yet
-		dataHandler.fetch_graph_history(function(history) {
-			var history_formatted = [];
-			history.forEach(function(item) {
-				history_formatted.push([
-					item['EventNetworkHistory']['id'],
-					item['EventNetworkHistory']['network_name'],
-					item['User']['email'],
-					new Date(parseInt(item['EventNetworkHistory']['timestamp'])*1000).toLocaleString()
-				]);
-			});
+		dataHandler.fetch_graph_history(function(history_formatted) {
 			menu_history.items["table_graph_history_actiontable"].set_table_data(history_formatted);
 		});
 
@@ -1067,7 +1061,6 @@ class EventGraph {
 					new_edge.from = root_id_tag;
 					that.nodes.update({id: nodeData.id, unreferenced: 'tag'});
 				}
-			} else if (that.scope_name == 'Correlation') {
 			} else {  // specified key
 				if (cur_group == 'attribute' || cur_group == 'object') {
 					new_edge.from = root_id_keyType;
@@ -1304,6 +1297,7 @@ class DataHandler {
 		this.mapping_uuid_to_template = new Map();
 		this.selected_type_to_display = "";
 		this.extended_event = $('#eventgraph_network').data('extended') == 1 ? true : false;
+		this.networkHistoryJsonData = new Map();
 		this.scope_name;
 	}
 
@@ -1440,16 +1434,25 @@ class DataHandler {
 	}
 
 	fetch_graph_history(callback) {
-		$.getJSON( "/eventNetworkHistory/get/"+scope_id, function( data ) {
-			callback(data);
+		$.getJSON( "/eventNetworkHistory/get/"+scope_id, function( history ) {
+			var history_formatted = [];
+			history.forEach(function(item) {
+				history_formatted.push([
+					item['EventNetworkHistory']['id'],
+					item['EventNetworkHistory']['network_name'],
+					item['User']['email'],
+					new Date(parseInt(item['EventNetworkHistory']['timestamp'])*1000).toLocaleString()
+				]);
+				dataHandler.networkHistoryJsonData.set(item['EventNetworkHistory']['id'], item['EventNetworkHistory']['network_json']);
+			});
+			callback(history_formatted);
 		});
 	}
 
-	fetch_and_import_graph(data, callback) {
-		console.log('fetching');
-		//$.getJSON( "/events/getNetwork/"+scope_id+"/networkHistory.json", function( data ) {
-		//	import_graph_from_json(data);
-		//});
+	fetch_and_import_graph(network_id) {
+		var data = dataHandler.networkHistoryJsonData.get(network_id);
+		var json = JSON.parse(data);
+		import_graph_from_json(json);
 	}
 
 	get_typeaheadData_search() {
@@ -1830,16 +1833,7 @@ function download_file(data, type) {
 
 function reset_graph_history() {
 	var table = eventGraph.menu_history.items["table_graph_history_actiontable"];
-	dataHandler.fetch_graph_history(function(history) {
-		var history_formatted = [];
-		history.forEach(function(item) {
-			history_formatted.push([
-				item['EventNetworkHistory']['id'],
-				item['EventNetworkHistory']['network_name'],
-				item['User']['email'],
-				new Date(parseInt(item['EventNetworkHistory']['timestamp'])*1000).toLocaleString()
-			]);
-		});
+	dataHandler.fetch_graph_history(function(history_formatted) {
 		table.set_table_data(history_formatted);
 	});
 }
@@ -2235,7 +2229,6 @@ var network_options = {
 				color: 'white'
 			},
 			mass: 25
-
 		},
 		rootNodeObject: {
 			shape: 'icon',
@@ -2247,7 +2240,8 @@ var network_options = {
 				size: 18, // px
 				background: 'rgba(255, 255, 255, 0.7)'
 			},
-			mass: 5
+			mass: 5,
+			physics: false
 		},
 		rootNodeAttribute: {
 			shape: 'icon',
@@ -2259,7 +2253,8 @@ var network_options = {
 				size: 18, // px
 				background: 'rgba(255, 255, 255, 0.7)'
 			},
-			mass: 5
+			mass: 5,
+			physics: false
 		},
 		rootNodeKeyType: {
 			shape: 'icon',
@@ -2271,7 +2266,8 @@ var network_options = {
 				size: 22, // px
 				background: 'rgba(255, 255, 255, 0.7)'
 			},
-			mass: 5
+			mass: 5,
+			physics: false
 		},
 		rootNodeTag: {
 			shape: 'icon',
@@ -2283,7 +2279,8 @@ var network_options = {
 				size: 22, // px
 				background: 'rgba(255, 255, 255, 0.7)'
 			},
-			mass: 5
+			mass: 5,
+			physics: false
 		},
 		clustered_object: {
 			shape: 'icon',
@@ -2295,7 +2292,8 @@ var network_options = {
 				size: 18, // px
 				background: 'rgba(255, 255, 255, 0.7)'
 			},
-			mass: 5
+			mass: 5,
+			physics: false
 		}
 	},
 	locales: {
