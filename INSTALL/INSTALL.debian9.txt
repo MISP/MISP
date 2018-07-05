@@ -64,6 +64,14 @@ installation, just alter the salt,
 
 # Install a minimal Debian 9 "stretch" server system with the software:
 - OpenSSH server
+- Web server, apache FTW!
+- This guide assumes a user name of 'misp'
+
+# install sudo and etckeeper
+su -
+apt install etckeeper
+apt install sudo
+adduser -aG sudo misp
 
 # Make sure your system is up2date:
 sudo apt-get update
@@ -128,11 +136,6 @@ sudo chown www-data:www-data /var/www/MISP
 cd /var/www/MISP
 sudo -u www-data git clone https://github.com/MISP/MISP.git /var/www/MISP
 
-sudo -u www-data git submodule init
-sudo -u www-data git submodule update
-# Make git ignore filesystem permission differences for submodules
-sudo -u www-data git submodule foreach git config core.filemode false
-
 # Make git ignore filesystem permission differences
 sudo -u www-data git config core.filemode false
 
@@ -160,6 +163,10 @@ sudo python3 setup.py install
 -----------
 # CakePHP is included as a submodule of MISP, execute the following commands to let git fetch it:
 cd /var/www/MISP
+sudo -u www-data git submodule init
+sudo -u www-data git submodule update
+# Make git ignore filesystem permission differences for submodules
+sudo -u www-data git submodule foreach git config core.filemode false
 
 # Once done, install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd /var/www/MISP/app
@@ -192,11 +199,13 @@ sudo chmod -R g+ws /var/www/MISP/app/files/scripts/tmp
 # Enter the mysql shell
 sudo mysql -u root -p
 
+```
 MariaDB [(none)]> create database misp;
 MariaDB [(none)]> grant usage on *.* to misp@localhost identified by 'XXXXdbpasswordhereXXXXX';
 MariaDB [(none)]> grant all privileges on misp.* to misp@localhost;
 MariaDB [(none)]> flush privileges;
 MariaDB [(none)]> exit
+```
 
 # Import the empty MISP database from MYSQL.sql
 sudo -u www-data sh -c "mysql -u misp -p misp < /var/www/MISP/INSTALL/MYSQL.sql"
@@ -223,6 +232,7 @@ sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
 
 ============================================= Begin sample working SSL config for MISP
 <VirtualHost <IP, FQDN, or *>:80>
+        ServerAdmin admin@<your.FQDN.here>
         ServerName <your.FQDN.here>
 
         Redirect permanent / https://<your.FQDN.here>
@@ -315,8 +325,9 @@ sudo -u www-data vim /var/www/MISP/app/Config/database.php
 # delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
 # e.g. https://pythontips.com/2013/07/28/generating-a-random-string/
 
-# Change base url in config.php
-sudo -u www-data vim /var/www/MISP/app/Config/config.php
+# Change base url
+sudo /var/www/MISP/app/Console/cake Baseurl ""
+
 # example: 'baseurl' => 'https://<your.FQDN.here>',
 # alternatively, you can leave this field empty if you would like to use relative pathing in MISP
 # 'baseurl' => '',
@@ -347,6 +358,21 @@ sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh
 # start the workers by navigating to the workers tab and clicking restart all workers
 
 # Don't forget to change the email, password and authentication key after installation.
+
+# Set MISP Live
+sudo /var/www/MISP/app/Console/cake Live 1
+
+AUTH_KEY=$(mysql -u misp -pPassword1234 misp -e "SELECT authkey FROM users;" | tail -1)
+
+# Update the galaxies…
+curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/galaxies/update
+
+# Updating the taxonomies…
+curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/taxonomies/update
+
+# Updating the warning lists…
+curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/warninglists/update
+# Updating the notice lists…
 
 # Start the workers
 
