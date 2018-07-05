@@ -49,7 +49,7 @@ class MISPZMQ():
             self.settings = json.load(settings_file)
         self.namespace = self.settings["redis_namespace"]
         self.r = redis.StrictRedis(host=self.settings["redis_host"], db=self.settings["redis_database"],
-                                   password=self.settings["redis_password"], port=self.settings["redis_port"])
+                                   password=self.settings["redis_password"], port=self.settings["redis_port"], decode_responses=True)
         self.timestampSettings = time.time()
 
     def handleCommand(self, command):
