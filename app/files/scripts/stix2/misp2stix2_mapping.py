@@ -234,7 +234,6 @@ mispTypesMapping = {
 network_traffic_pattern = "network-traffic:{0} = '{1}' AND "
 network_traffic_src_ref = "src_ref.type = '{0}' AND network-traffic:src_ref.value"
 network_traffic_dst_ref = "dst_ref.type = '{0}' AND network-traffic:dst_ref.value"
-body_raw_ref = {'email_type': 'message', 'stix_type': 'body_multipart[*].body_raw_ref.name'}
 
 objectsMapping = {'asn': {'observable': {'type': 'autonomous-system'},
                           'pattern': "autonomous-system:{0} = '{1}' AND "},
@@ -264,9 +263,7 @@ emailObjectMapping = {'email-body': {'email_type': 'message', 'stix_type': 'body
                       'from': {'email_type': 'message', 'stix_type': 'from_ref'},
                       'from-display-name': {'email_type': 'addr', 'stix_type': 'display_name'},
                       'reply-to': {'email_type': 'message', 'stix_type': 'additional_header_fields.reply_to'},
-                      'attachment': body_raw_ref,
-                      'screenshot': body_raw_ref,
-                      'eml': body_raw_ref,
+                      'attachment': {'email_type': 'message', 'stix_type': 'body_multipart[*].body_raw_ref.name'},
                       'send-date': {'email_type': 'message', 'stix_type': 'date'},
                       'x-mailer': {'email_type': 'message', 'stix_type': 'additional_header_fields.x_mailer'}}
 

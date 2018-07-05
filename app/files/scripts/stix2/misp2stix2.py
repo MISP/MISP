@@ -717,35 +717,36 @@ class StixBuilder():
             attribute_value = attribute.value
             try:
                 mapping = emailObjectMapping[relation]['stix_type']
+                if relation in ('from', 'to', 'cc'):
+                    object_str = str(object_num)
+                    observable[object_str] = {'type': 'email-addr', 'value': attribute_value}
+                    if relation == 'from':
+                        message[mapping] = object_str
+                    else:
+                        message[mapping].append(object_str)
+                    object_num += 1
+                elif relation == 'reply-to':
+                    reply_to.append(attribute_value)
+                elif relation == 'attachment':
+                    object_str = str(object_num)
+                    body = {"content_disposition": "{}; filename='{}'".format(relation, attribute_value),
+                            "body_raw_ref": object_str}
+                    message['body_multipart'].append(body)
+                    observable[object_str] = {'type': 'file', 'name': attribute_value}
+                    object_num += 1
+                elif relation == 'x-mailer':
+                    if 'additional_header_fields' in message:
+                        message['additional_header_fields']['X-Mailer'] = attribute_value
+                    else:
+                        message['additional_header_fields'] = {'X-Mailer': attribute_value}
+                else:
+                    message[mapping] = attribute_value
             except:
                 mapping = "x_misp_{}_{}".format(attribute.type, relation)
-            if relation in ('from', 'to', 'cc'):
-                object_str = str(object_num)
-                observable[object_str] = {'type': 'email-addr', 'value': attribute_value}
-                if relation == 'from':
-                    message[mapping] = object_str
+                if relation in ('eml', 'screenshot'):
+                    message[mapping] = {'value': attribute_value, 'data': b64encode(attribute.data.getvalue()).decode()[1:-1]}
                 else:
-                    message[mapping].append(object_str)
-                object_num += 1
-            elif relation == 'reply-to':
-                reply_to.append(attribute_value)
-            elif relation in ('attachment', 'eml', 'screenshot'):
-                object_str = str(object_num)
-                body = {"content_disposition": "{}; filename='{}'".format(relation, attribute_value),
-                        "body_raw_ref": object_str}
-                message['body_multipart'].append(body)
-                try:
-                    observable[object_str] = {'type': 'artifact', 'payload_bin': b64encode(attribute.data.getvalue())} if attribute.data else {'type': 'file', 'name': attribute_value}
-                except AttributeError:
-                    observable[object_str] = {'type': 'file', 'name': attribute_value}
-                object_num += 1
-            elif relation == 'x-mailer':
-                if 'additional_header_fields' in message:
-                    message['additional_header_fields']['X-Mailer'] = attribute_value
-                else:
-                    message['additional_header_fields'] = {'X-Mailer': attribute_value}
-            else:
-                message[mapping] = attribute_value
+                    message[mapping] = attribute_value
         if reply_to and 'additional_header_fields' in message:
             message['additional_header_fields']['Reply-To'] = reply_to
         message['type'] = 'email-message'
@@ -766,11 +767,13 @@ class StixBuilder():
                 mapping = emailObjectMapping[relation]
                 stix_type = mapping['stix_type']
                 email_type = mapping['email_type']
-                if relation in ('screenshot', 'eml'):
-                    pattern += "{} AND ".format(pattern_attachment('', b64encode(attribute.data.getvalue()).decode())[1:-1])
             except:
-                stix_type = "'x_misp_{}_{}'".format(attribute.type, relation)
                 email_type = 'message'
+                stix_type = "'x_misp_{}_{}'".format(attribute.type, relation)
+                if relation in ('eml', 'screenshot'):
+                    stix_type_data = "{}.data".format(stix_type)
+                    pattern += pattern_mapping.format(email_type, stix_type_data, b64encode(attribute.data.getvalue()).decode()[1:-1])
+                    stix_type += ".value"
             pattern += pattern_mapping.format(email_type, stix_type, attribute.value)
         return "[{}]".format(pattern[:-5])
 
