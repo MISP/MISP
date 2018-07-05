@@ -106,7 +106,7 @@ sudo postfix reload
 Once the system is installed you can perform the following steps:
 
 # Install the dependencies: (some might already be installed)
-sudo apt-get install -y curl gcc git gnupg-agent make python openssl redis-server neovim zip libyara-dev python3-yara python3-redis python-redis python-zmq python3-zmq
+sudo apt-get install -y curl gcc git gnupg-agent make openssl redis-server neovim zip libyara-dev python3-yara python3-redis python3-zmq
 sudo ln -s /usr/lib/x86_64-linux-gnu/libyara.so.3.7.1 /usr/lib/libyara.so
 
 # Install MariaDB (a MySQL fork/alternative)
