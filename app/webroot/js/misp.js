@@ -85,7 +85,7 @@ function submitDeletion(context_id, action, type, id) {
 		},
 		data: formData,
 		success:function (data, textStatus) {
-			if (type == 'eventNetworkHistory') {
+			if (type == 'eventGraph') {
 				showMessage('success', 'Network has been deleted');
 				reset_graph_history();
 			} else {
