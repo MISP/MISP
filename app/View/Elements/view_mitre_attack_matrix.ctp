@@ -1,17 +1,13 @@
 <div class="attack-matrix-options" style="right: initial; background: transparent;">
 <ul id="attack-matrix-tabscontroller" class="nav nav-tabs" style="margin-bottom: 2px;">
-<?php 
+<?php
 $enterpriseTag = "mitre-enterprise-attack-attack-pattern";
-foreach($attackTactic as $tactic): 
-    $galaxy = $tactic['galaxy'];	
+foreach($attackTactic as $tactic):
+    $galaxy = $tactic['galaxy'];
 ?>
 	<li class="tactic <?php echo $galaxy['type']==$enterpriseTag ? "active" : ""; ?>"><span href="#tabMatrix-<?php echo h($galaxy['type']); ?>" data-toggle="tab" style="padding-top: 3px; padding-bottom: 3px;"><?php echo h($galaxy['name']); ?></span></li>
 <?php endforeach; ?>
 </ul>
-</div>
-
-<div class="attack-matrix-options matrix-div-search">
-    <input type="text" id="pick-matrix-elem" placeholder="Pick item" style="margin-right: 0px;">
 </div>
 
 <div class="attack-matrix-options">
@@ -30,8 +26,8 @@ foreach($attackTactic as $tactic):
 <?php if($pickingMode): ?>
     <div class="hidden">
     	<?php
-    		echo $this->Form->create('Galaxy', array('url' => '/galaxies/attachCluster/' . $target_id . '/' . (empty($target_type) ? 'attribute' : $target_type), 'style' => 'margin:0px;'));
-    		echo $this->Form->input('target_id', array('type' => 'text'));
+    		echo $this->Form->create('Galaxy', array('url' => '/galaxies/attachMultipleClusters/' . $target_id . '/' . (empty($target_type) ? 'attribute' : $target_type), 'style' => 'margin:0px;'));
+    		echo $this->Form->input('target_ids', array('type' => 'text'));
     		echo $this->Form->end();
     	?>
     </div>
@@ -56,7 +52,7 @@ foreach($attackTactic as $tactic):
 			<?php echo h(ucfirst($name)); ?>
 			<div class="th-inner"><?php echo h(ucfirst($name)); ?></div>
 		</th>
-		
+
 	<?php endforeach; ?>
 	</tr>
 	</thead>
@@ -112,7 +108,8 @@ foreach($attackTactic as $tactic):
 </div>
 
 <?php if($pickingMode): ?>
-<div role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm('#popover_form_large');">Cancel</div>
+<div role="button" tabindex="0" aria-label="Submit" title="Submit" class="templateChoiceButton btn-matrix-submit" onClick="cancelPopoverForm('#popover_form_large');"><?php echo __('Submit'); ?></div>
+<div role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm('#popover_form_large');"><?php echo __('Cancel'); ?></div>
 <?php endif; ?>
 
 <?php

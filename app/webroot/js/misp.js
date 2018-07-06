@@ -3093,11 +3093,12 @@ $('.galaxy-toggle-button').click(function() {
 	}
 });
 
-$('.addGalaxy').click(function() {
-	var target_type = $(this).data('target-type');
-	var target_id = $(this).data('target-id');
+
+function addGalaxyListener(id) {
+	var target_type = $(id).data('target-type');
+	var target_id = $(id).data('target-id');
 	getPopup(target_type + '/' + target_id, 'galaxies', 'selectGalaxyNamespace');
-});
+}
 
 function quickSubmitGalaxyForm(event_id, cluster_id) {
 	$('#GalaxyTargetId').val(cluster_id);

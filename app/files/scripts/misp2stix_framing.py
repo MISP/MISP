@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys, json, uuid, os, time, datetime, re
 from dateutil.tz import tzutc
 from stix.indicator import Indicator
@@ -49,6 +51,7 @@ NS_DICT = {
     "http://cybox.mitre.org/objects#ProcessObject-2" : 'ProcessObj',
     "http://cybox.mitre.org/objects#X509CertificateObject-2" : 'X509CertificateObj',
     "http://cybox.mitre.org/objects#WhoisObject-2" : 'WhoisObj',
+    "http://cybox.mitre.org/objects#WinExecutableFileObject-2" : 'WinExecutableFileObj',
     "http://data-marking.mitre.org/Marking-1" : 'marking',
     "http://data-marking.mitre.org/extensions/MarkingStructure#TLP-1" : 'tlpMarking',
     "http://stix.mitre.org/ExploitTarget-1" : 'et',
@@ -91,6 +94,7 @@ SCHEMALOC_DICT = {
     'http://cybox.mitre.org/objects#ProcessObject-2': 'https://cybox.mitre.org/XMLSchema/objects/Process/2.1/Process_Object.xsd',
     'http://cybox.mitre.org/objects#X509CertificateObject-2': 'http://cybox.mitre.org/XMLSchema/objects/X509_Certificate/2.1/X509_Certificate_Object.xsd',
     'http://cybox.mitre.org/objects#WhoisObject-2': 'http://cybox.mitre.org/XMLSchema/objects/Whois/2.1/Whois_Object.xsd',
+    'http://cybox.mitre.org/objects#WinExecutableFileObject-2': 'http://cybox.mitre.org/XMLSchema/objects/Win_Executable_File/2.1/Win_Executable_File_Object.xsd',
     'http://data-marking.mitre.org/Marking-1': 'http://stix.mitre.org/XMLSchema/data_marking/1.1.1/data_marking.xsd',
     'http://data-marking.mitre.org/extensions/MarkingStructure#TLP-1': 'http://stix.mitre.org/XMLSchema/extensions/marking/tlp/1.1.1/tlp_marking.xsd',
     'http://stix.mitre.org/ExploitTarget-1': 'http://stix.mitre.org/XMLSchema/exploit_target/1.1.1/exploit_target.xsd',

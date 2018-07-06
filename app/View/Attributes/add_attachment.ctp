@@ -61,7 +61,7 @@
 					'type' => 'checkbox',
 					'checked' => false,
 					'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
-					'label' => __('IDS (encrypt and hash)')
+					'label' => __('Is a malware sample (encrypt and hash)')
 			));
 		?>
 			<div class="input clear"></div>

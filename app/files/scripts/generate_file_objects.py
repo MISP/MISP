@@ -53,6 +53,7 @@ def make_objects(path):
             to_return['references'] += fo.ObjectReference
     return json.dumps(to_return, cls=MISPEncode)
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Extract indicators out of binaries and returns MISP objects.')
     group = parser.add_mutually_exclusive_group()

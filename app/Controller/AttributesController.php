@@ -28,7 +28,7 @@ class AttributesController extends AppController {
 
 		// permit reuse of CSRF tokens on the search page.
 		if ('search' == $this->request->params['action']) {
-			$this->Security->csrfUseOnce = false;
+			$this->Security->csrfCheck = false;
 		}
 		if ($this->action == 'add_attachment') {
 			$this->Security->disabledFields = array('values');
@@ -733,15 +733,17 @@ class AttributesController extends AppController {
 			$this->Event->saveField('published', 0);
 
 			// everything is done, now redirect to event view
-			$message = 'The ThreatConnect data has been imported.';
+			$message = __('The ThreatConnect data has been imported.');
 			if ($results['successes'] != 0) {
 				$flashType = 'success';
-				$message .= ' ' . $results['successes'] . ' entries imported.';
+				$temp = sprintf(__('%s entries imported.'), $results['successes']);
+				$message .= ' ' . $temp;
 			}
 			if ($results['fails'] != 0) {
-				$message .= ' ' . $results['fails'] . ' entries could not be imported.';
+				$temp = sprintf(__('%s entries could not be imported.'), $results['fails']);
+				$message .= ' ' . $temp;
 			}
-			$this->Flash->{empty($flashType) ? 'error' : $flashType}(__($message));
+			$this->Flash->{empty($flashType) ? 'error' : $flashType}($message);
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
 
 		} else {
@@ -1130,7 +1132,7 @@ class AttributesController extends AppController {
 			if ($this->request->is('ajax')) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Attribute')), 'type' => 'json', 'status'=>200));
 			else throw new MethodNotAllowedException('Invalid Attribute');
 		}
-		if (!$this->_isRest()) $this->Event->insertLock($this->Auth->user(), $attribute['Attribute']['event_id']);
+		if (!$this->_isRest()) $this->Attribute->Event->insertLock($this->Auth->user(), $attribute['Attribute']['event_id']);
 		if ($this->request->is('ajax')) {
 			if ($this->request->is('post')) {
 				$result = $this->Attribute->restore($id, $this->Auth->user());
@@ -1981,11 +1983,11 @@ class AttributesController extends AppController {
 		if ($tags) $conditions = $this->Attribute->setTagConditions($tags, $conditions, 'attribute');
 		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
-		if ($publish_timestamp) $conditions = $this->Attribute->setPublishTimestampConditions($publish_timestamp, $conditions);
+		if ($publish_timestamp) $conditions = $this->Attribute->setTimestampConditions($publish_timestamp, $conditions, 'Event.publish_timestamp');
 		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
 		if ($published) $conditions['AND'][] = array('Event.published' => $published);
-		if ($timestamp) $conditions['AND'][] = array('Attribute.timestamp >=' => $timestamp);
-		if ($event_timestamp) $conditions['AND'][] = array('Event.timestamp >=' => $event_timestamp);
+		if ($timestamp) $conditions = $this->Attribute->setTimestampConditions($timestamp, $conditions, 'Attribute.timestamp');
+		if ($event_timestamp) $conditions = $this->Attribute->setTimestampConditions($event_timestamp, $conditions, 'Event.timestamp');
 		if ($threat_level_id) {
 			if (!is_array($threat_level_id)) {
 				$threat_level_id = array($threat_level_id);
@@ -3067,7 +3069,7 @@ class AttributesController extends AppController {
 		if (!$this->Auth->user('Role')['perm_modify_org'] && $this->Auth->user('id') != $attribute['Event']['user_id']) {
 			throw new MethodNotAllowedException('You don\'t have permission to do that.');
 		}
-		if (!$this->_isRest()) $this->Event->insertLock($this->Auth->user(), $attribute['Event']['event_id']);
+		if (!$this->_isRest()) $this->Attribute->Event->insertLock($this->Auth->user(), $attribute['Event']['id']);
 		if ($this->request->is('post')) {
 			if ($attribute['Attribute']['disable_correlation']) {
 				$attribute['Attribute']['disable_correlation'] = 0;

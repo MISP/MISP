@@ -377,7 +377,7 @@ class ServersController extends AppController {
 			}
 			if (!$fail) {
 				// say what fields are to be updated
-				$fieldList = array('id', 'url', 'push', 'pull', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name' ,'self_signed', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal');
+				$fieldList = array('id', 'url', 'push', 'pull', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name' ,'self_signed', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal', 'skip_proxy');
 				$this->request->data['Server']['id'] = $id;
 				if (isset($this->request->data['Server']['authkey']) && "" != $this->request->data['Server']['authkey']) $fieldList[] = 'authkey';
 				if(isset($this->request->data['Server']['organisation_type']) && isset($json)) {
@@ -725,6 +725,10 @@ class ServersController extends AppController {
 		$this->render('/Elements/healthElements/settings_row');
 	}
 
+	private function __loadAvailableLanguages() {
+		return $this->Server->loadAvailableLanguages();
+	}
+
 	private function __loadLocalOrgs() {
 		$this->loadModel('Organisation');
 		$local_orgs = $this->Organisation->find('list', array(
@@ -750,7 +754,7 @@ class ServersController extends AppController {
 			$gpgErrors = array(0 => 'OK', 1 => 'FAIL: settings not set', 2 => 'FAIL: Failed to load GnuPG', 3 => 'FAIL: Issues with the key/passphrase', 4 => 'FAIL: encrypt failed');
 			$proxyErrors = array(0 => 'OK', 1 => 'not configured (so not tested)', 2 => 'Getting URL via proxy failed');
 			$zmqErrors = array(0 => 'OK', 1 => 'not enabled (so not tested)', 2 => 'Python ZeroMQ library not installed correctly.', 3 => 'ZeroMQ script not running.');
-			$stixOperational = array(0 => 'STIX or CyBox or mixbox or maec library not installed correctly', 1 => 'OK');
+			$stixOperational = array(0 => 'Some of the libraries related to STIX are not installed. Make sure that all libraries listed below are correctly installed.', 1 => 'OK');
 			$stixVersion = array(0 => 'Incorrect STIX version installed, found $current, expecting $expected', 1 => 'OK');
 			$cyboxVersion = array(0 => 'Incorrect CyBox version installed, found $current, expecting $expected', 1 => 'OK');
 			$mixboxVersion = array(0 => 'Incorrect mixbox version installed, found $current, expecting $expected', 1 => 'OK');
@@ -1202,7 +1206,7 @@ class ServersController extends AppController {
 		// only keep the last part of the filename, this should prevent directory attacks
 		$filename = basename($this->request->data['Server']['file']['name']);
 		if (!preg_match("/" . $validItems[$type]['regex'] . "/", $filename)) {
-			$this->Flash->error(__($validItems[$type]['regex_error'], true), 'default', array(), 'error');
+			$this->Flash->error($validItems[$type]['regex_error'], 'default', array(), 'error');
 			$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'files'));
 		}
 		if (empty($this->request->data['Server']['file']['tmp_name']) || !is_uploaded_file($this->request->data['Server']['file']['tmp_name'])) {

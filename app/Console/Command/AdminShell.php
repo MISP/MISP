@@ -2,7 +2,7 @@
 App::uses('AppShell', 'Console/Command');
 class AdminShell extends AppShell
 {
-	public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist', 'Server', 'Organisation');
+	public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy');
 
 	public function jobGenerateCorrelation() {
 		$jobId = $this->args[0];
@@ -33,6 +33,15 @@ class AdminShell extends AppShell
 		$this->loadModel('ShadowAttribute');
 		$this->ShadowAttribute->generateCorrelation($jobId);
 	}
+
+  public function updateGalaxies() {
+		$result = $this->Galaxy->update();
+    if ($result) {
+        echo 'Galaxies updated';
+    } else {
+        echo 'Could not update Galaxies';
+    }
+  }
 
 	public function jobUpgrade24() {
 		$jobId = $this->args[0];
@@ -78,10 +87,29 @@ class AdminShell extends AppShell
 	public function setSetting() {
 		$setting = !isset($this->args[0]) ? null : $this->args[0];
 		$value = !isset($this->args[1]) ? null : $this->args[1];
+		if ($value === 'false') $value = 0;
+		if ($value === 'true') $value = 1;
 		if (empty($setting) || $value === null) {
 			echo 'Invalid parameters. Usage: ' . APP . 'Console/cake Admin setSetting [setting_name] [setting_value]';
 		} else {
 			$this->Server->serverSettingsSaveValue($setting, $value);
 		}
 	}
+
+	public function setDatabaseVersion() {
+		if (empty($this->args[0])) echo 'Invalid parameters. Usage: ' . APP . 'Console/cake Admin setDatabaseVersion [db_version]' . PHP_EOL;
+		else {
+			$db_version = $this->AdminSetting->find('first', array(
+				'conditions' => array('setting' => 'db_version')
+			));
+			if (!empty($db_version)) {
+				$db_version['value'] = trim($this->args[0]);
+				$this->AdminSetting->save($db_version);
+				echo 'Database version set. MISP will replay all of the upgrade scripts since the selected version on the next user login.' . PHP_EOL;
+			} else {
+				echo 'Something went wrong. Could not find the existing db version.' . PHP_EOL;
+			}
+		}
+	}
+
 }

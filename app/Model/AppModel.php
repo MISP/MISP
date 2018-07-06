@@ -64,6 +64,7 @@ class AppModel extends Model {
 	public $db_changes = array(
 		1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
 		7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
+		13 => false
 	);
 
 	function afterSave($created, $options = array()) {
@@ -150,6 +151,9 @@ class AppModel extends Model {
 				$this->updateDatabase($command);
 				$this->Role = Classregistry::init('Role');
 				$this->Role->setPublishZmq();
+				break;
+			case 12:
+				$this->__forceSettings();
 				break;
 			default:
 				$this->updateDatabase($command);
@@ -908,7 +912,7 @@ class AppModel extends Model {
 				$sqlArray[] = "ALTER TABLE `roles` ADD `restricted_to_site_admin` tinyint(1) NOT NULL DEFAULT 0;";
 				break;
 			case 5:
-				$sqlArray[] = "ALTER TABLE `feeds` ADD `caching_enabled` BOOLEAN NOT NULL DEFAULT 0;";
+				$sqlArray[] = "ALTER TABLE `feeds` ADD `caching_enabled` tinyint(1) NOT NULL DEFAULT 0;";
 				break;
 			case 6:
 				$sqlArray[] = "ALTER TABLE `events` ADD `extends_uuid` varchar(40) COLLATE utf8_bin DEFAULT '';";
@@ -955,6 +959,9 @@ class AppModel extends Model {
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 				break;
 			case 12:
+				$sqlArray[] = "ALTER TABLE `servers` ADD `skip_proxy` tinyint(1) NOT NULL DEFAULT 0;";
+				break;
+			case 13:
 				$sqlArray[] = "CREATE TABLE IF NOT EXISTS event_network_history (
 					`id` int(11) NOT NULL AUTO_INCREMENT,
 					`event_id` int(11) NOT NULL,
@@ -1420,10 +1427,30 @@ class AppModel extends Model {
 		}
 	}
 
+	public function getRowCount($table = false) {
+		if (empty($table)) {
+			$table = $this->table;
+		}
+		$table_data = $this->query("show table status like '" . $table . "'");
+		return $table_data[0]['TABLES']['Rows'];
+	}
+
 	public function benchmarkCustomAdd($valueToAdd = 0, $name = 'default', $customName = 'custom') {
 		if (empty($this->__profiler[$name]['custom'][$customName])) {
 			$this->__profiler[$name]['custom'][$customName] = 0;
 		}
 		$this->__profiler[$name]['custom'][$customName] += $valueToAdd;
+	}
+
+	private function __forceSettings() {
+		$settingsToForce = array(
+			'Session.autoRegenerate' => false,
+			'Session.checkAgent' => false
+		);
+		$server = ClassRegistry::init('Server');
+		foreach ($settingsToForce as $setting => $value) {
+			$server->serverSettingsSaveValue($setting, $value);
+		}
+		return true;
 	}
 }

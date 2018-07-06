@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #    Copyright (C) 2017-2018 CIRCL Computer Incident Response Center Luxembourg (smile gie)
 #    Copyright (C) 2017-2018 Christian Studer
@@ -15,9 +16,10 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import sys, json, os, datetime, re, base64
+import sys, json, os, datetime
 import pymisp
 from stix2 import *
+from base64 import b64encode
 from misp2stix2_mapping import *
 from collections import defaultdict
 from copy import deepcopy
@@ -107,26 +109,38 @@ class StixBuilder():
                         self.add_custom(attribute)
         if hasattr(self.misp_event, 'objects') and self.misp_event.objects:
             self.load_objects_mapping()
+            objects_to_parse = defaultdict(dict)
             misp_objects = self.misp_event.objects
             self.object_references, self.processes = self.fetch_object_references(misp_objects)
             for misp_object in misp_objects:
-                object_attributes = misp_object.attributes
-                to_ids = self.fetch_ids_flag(object_attributes)
-                object_name = misp_object.name
-                if object_name == "vulnerability":
+                to_ids = self.fetch_ids_flag(misp_object.attributes)
+                name = misp_object.name
+                if name == "vulnerability":
                     self.add_object_vulnerability(misp_object, to_ids)
-                elif object_name == "course-of-action":
+                elif name == "course-of-action":
                     self.add_course_of_action(misp_object, from_object=True)
-                elif object_name in objectsMapping:
+                elif name in ('pe', 'pe-section'):
+                    objects_to_parse[name][misp_object.uuid] = to_ids, misp_object
+                elif name in objectsMapping:
+                    if  name == 'file' and misp_object.references:
+                        to_parse = False
+                        for reference in misp_object.references:
+                            if reference.relationship_type == 'included-in' and reference.Object['name'] == "pe":
+                                objects_to_parse[name][misp_object.uuid] = to_ids, misp_object
+                                to_parse = True
+                                break
+                        if to_parse:
+                            continue
                     try:
-                        if to_ids or object_name == "stix2-pattern":
-                            self.add_object_indicator(misp_object, to_ids)
+                        if to_ids or name == "stix2-pattern":
+                            self.add_object_indicator(misp_object)
                         else:
-                            self.add_object_observable(misp_object, to_ids)
+                            self.add_object_observable(misp_object)
                     except:
                         self.add_object_custom(misp_object, to_ids)
                 else:
                     self.add_object_custom(misp_object, to_ids)
+            if objects_to_parse: self.resolve_objects2parse(objects_to_parse)
         if hasattr(self.misp_event, 'Galaxy') and self.misp_event.Galaxy:
             for galaxy in self.misp_event.Galaxy:
                 galaxy_type = galaxy.get('type')
@@ -243,6 +257,80 @@ class StixBuilder():
         link = {'source_name': source, 'url': url}
         self.external_refs.append(link)
 
+    def resolve_objects2parse(self, objects2parse):
+        for uuid, misp_object in objects2parse['file'].items():
+            to_ids_file, file_object = misp_object
+            to_ids_list = [to_ids_file]
+            object2create = defaultdict(list)
+            for reference in file_object.references:
+                if reference.relationship_type == "included-in" and reference.Object['name'] == "pe":
+                    pe_uuid = reference.referenced_uuid
+                    break
+            to_ids_pe, pe_object = objects2parse['pe'][pe_uuid]
+            to_ids_list.append(to_ids_pe)
+            sections = []
+            for reference in pe_object.references:
+                if reference.Object['name'] == "pe-section":
+                    to_ids_section, section_object = objects2parse['pe-section'][reference.referenced_uuid]
+                    to_ids_list.append(to_ids_section)
+                    sections.append(section_object)
+            if True in to_ids_list:
+                pattern = self.resolve_file_pattern(file_object.attributes)[1:-1]
+                pattern += " AND {}".format(self.parse_pe_extensions_pattern(pe_object, sections))
+                self.add_object_indicator(file_object, pattern_arg="[{}]".format(pattern))
+            else:
+                observable = self.resolve_file_observable(file_object.attributes)
+                observable['0']['extensions'] = self.parse_pe_extensions_observable(pe_object, sections)
+                self.add_object_observable(file_object, observable_arg=observable)
+
+    def parse_pe_extensions_observable(self, pe_object, sections):
+        extension = defaultdict(list)
+        for attribute in pe_object.attributes:
+            try:
+                extension[peMapping[attribute.object_relation]] = attribute.value
+            except KeyError:
+                continue
+        for section in sections:
+            d_section = defaultdict(dict)
+            for attribute in section.attributes:
+                relation = attribute.object_relation
+                if relation in misp_hash_types:
+                    d_section['hashes'][relation] = attribute.value
+                else:
+                    try:
+                        d_section[peSectionMapping[relation]] = attribute.value
+                    except KeyError:
+                        continue
+            extension['sections'].append(WindowsPESection(**d_section))
+        return {"windows-pebinary-ext": extension}
+
+    def parse_pe_extensions_pattern(self, pe_object, sections):
+        pattern = ""
+        mapping = objectsMapping['file']['pattern']
+        pe_mapping = "extensions.'windows-pebinary-ext'"
+        for attribute in pe_object.attributes:
+            try:
+                stix_type = "{}.{}".format(pe_mapping, peMapping[attribute.object_relation])
+                pattern += mapping.format(stix_type, attribute.value)
+            except KeyError:
+                continue
+        n_section = 0
+        for section in sections:
+            section_mapping = "{}.sections[{}]".format(pe_mapping, str(n_section))
+            for attribute in section.attributes:
+                relation = attribute.object_relation
+                if relation in misp_hash_types:
+                    stix_type = "{}.hashes.'{}'".format(section_mapping, relation)
+                    pattern += mapping.format(stix_type, attribute.value)
+                else:
+                    try:
+                        stix_type = "{}.{}".format(section_mapping, peSectionMapping[relation])
+                        pattern += mapping.format(stix_type, attribute.value)
+                    except KeyError:
+                        continue
+            n_section += 1
+        return pattern[:-5]
+
     @staticmethod
     def generate_galaxy_args(galaxy, b_killchain, b_alias, sdo_type):
         galaxy_type = galaxy.get('type')
@@ -293,7 +381,7 @@ class StixBuilder():
 
     def add_custom(self, attribute):
         custom_object_id = "x-misp-object--{}".format(attribute.uuid)
-        custom_object_type = "x-misp-object-{}".format(attribute.type.replace('|', '-'))
+        custom_object_type = "x-misp-object-{}".format(attribute.type.replace('|', '-').lower())
         labels = self.create_labels(attribute)
         custom_object_args = {'id': custom_object_id, 'x_misp_timestamp': attribute.timestamp, 'labels': labels,
                                'x_misp_value': attribute.value, 'created_by_ref': self.identity_id,
@@ -334,7 +422,7 @@ class StixBuilder():
         attribute_value = attribute.value if attribute_type != "AS" else self.define_attribute_value(attribute.value, attribute.comment)
         indicator_args = {'id': indicator_id, 'type': 'indicator', 'labels': labels, 'kill_chain_phases': killchain,
                            'valid_from': attribute.timestamp, 'created_by_ref': self.identity_id,
-                           'pattern': [self.define_pattern(attribute_type, attribute_value)]}
+                           'pattern': self.define_pattern(attribute_type, attribute_value)}
         if hasattr(attribute, 'comment') and attribute.comment:
             indicator_args['description'] = attribute.comment
         indicator = Indicator(**indicator_args)
@@ -415,34 +503,42 @@ class StixBuilder():
         custom_object = Custom(**custom_object_args)
         self.append_object(custom_object, custom_object_id)
 
-    def add_object_indicator(self, misp_object, to_ids):
+    def add_object_indicator(self, misp_object, pattern_arg=None):
+        if pattern_arg:
+            name = 'WindowsPEBinaryFile'
+            pattern = pattern_arg
+        else:
+            name = misp_object.name
+            pattern = self.objects_mapping[name]['pattern'](misp_object.attributes)
         indicator_id = 'indicator--{}'.format(misp_object.uuid)
-        name = misp_object.name
         category = misp_object.get('meta-category')
         killchain = self.create_killchain(category)
-        labels = self.create_object_labels(name, category, to_ids)
-        pattern = self.objects_mapping[name]['pattern'](misp_object.attributes)
+        labels = self.create_object_labels(name, category, True)
         timestamp = self.get_date_from_timestamp(int(misp_object.timestamp))
         indicator_args = {'id': indicator_id, 'valid_from': timestamp, 'type': 'indicator',
                           'labels': labels, 'description': misp_object.description,
-                          'pattern': [pattern], 'kill_chain_phases': killchain,
+                          'pattern': pattern, 'kill_chain_phases': killchain,
                           'created_by_ref': self.identity_id}
         indicator = Indicator(**indicator_args)
         self.append_object(indicator, indicator_id)
 
-    def add_object_observable(self, misp_object, to_ids):
+    def add_object_observable(self, misp_object, observable_arg=None):
+        if observable_arg:
+            name = 'WindowsPEBinaryFile'
+            observable_objects = observable_arg
+        else:
+            name = misp_object.name
+            observable_objects = self.objects_mapping[name]['observable'](misp_object.attributes)
         observed_data_id = 'observed-data--{}'.format(misp_object.uuid)
-        name = misp_object.name
         category = misp_object.get('meta-category')
-        labels = self.create_object_labels(name, category, to_ids)
-        observable_objects = self.objects_mapping[name]['observable'](misp_objects.attributes)
+        labels = self.create_object_labels(name, category, False)
         timestamp = self.get_date_from_timestamp(int(misp_object.timestamp))
         observed_data_args = {'id': observed_data_id, 'type': 'observed-data',
                               'number_observed': 1, 'labels': labels, 'objects': observable_objects,
                               'first_observed': timestamp, 'last_observed': timestamp,
                               'created_by_ref': self.identity_id}
         try:
-            observed_data = ObservedData(**observed_data_args)
+            observed_data = ObservedData(**observed_data_args, allow_custom=True)
         except exceptions.InvalidValueError:
             observed_data = self.fix_enumeration_issues(name, observed_data_args)
         self.append_object(observed_data, observed_data_id)
@@ -520,7 +616,7 @@ class StixBuilder():
     def define_pattern(attribute_type, attribute_value):
         attribute_value = attribute_value.replace("'", '##APOSTROPHE##').replace('"', '##QUOTE##') if isinstance(attribute_value, str) else attribute_value
         if attribute_type == 'malware-sample':
-            return [mispTypesMapping[attribute_type]['pattern']('filename|md5', attribute_value)]
+            return mispTypesMapping[attribute_type]['pattern']('filename|md5', attribute_value)
         return mispTypesMapping[attribute_type]['pattern'](attribute_type, attribute_value)
 
     @staticmethod
@@ -559,7 +655,7 @@ class StixBuilder():
             try:
                 stix_type = asnObjectMapping[relation]
             except KeyError:
-                continue
+                stix_type = "x_misp_{}_{}".format(attribute.type, relation)
             attribute_value = attribute.value
             if relation == "subnet-announced":
                 observable[str(object_num)] = {'type': define_address_type(attribute_value), 'value': attribute_value}
@@ -568,7 +664,7 @@ class StixBuilder():
                 asn[stix_type] = int(attribute_value[2:]) if (stix_type == 'number' and attribute_value.startswith("AS")) else attribute_value
         observable[str(object_num)] = asn
         for n in range(object_num):
-            observable[n]['belongs_to_refs'] = [str(object_num)]
+            observable[str(n)]['belongs_to_refs'] = [str(object_num)]
         return observable
 
     @staticmethod
@@ -580,13 +676,13 @@ class StixBuilder():
             try:
                 stix_type = asnObjectMapping[relation]
             except KeyError:
-                continue
+                stix_type = "'x_misp_{}_{}'".format(attribute.type, relation)
             attribute_value = attribute.value
             if relation == "subnet-announced":
                 pattern += "{0}:{1} = '{2}' AND ".format(define_address_type(attribute_value), stix_type, attribute_value)
             else:
                 pattern += mapping.format(stix_type, attribute_value)
-        return pattern[:-5]
+        return "[{}]".format(pattern[:-5])
 
     @staticmethod
     def resolve_domain_ip_observable(attributes):
@@ -608,7 +704,7 @@ class StixBuilder():
             except:
                 continue
             pattern += mapping.format(stix_type, attribute.value)
-        return pattern[:-5]
+        return "[{}]".format(pattern[:-5])
 
     @staticmethod
     def resolve_email_object_observable(attributes):
@@ -617,36 +713,40 @@ class StixBuilder():
         reply_to = []
         object_num = 0
         for attribute in attributes:
-            attribute_type = attribute.type
+            relation = attribute.object_relation
             attribute_value = attribute.value
             try:
-                mapping = emailObjectMapping[attribute_type]
-            except:
-                continue
-            if attribute_type in ('email-src', 'email-dst'):
-                object_str = str(object_num)
-                observable[object_str] = {'type': 'email-addr', 'value': attribute_value}
-                try:
-                    message[mapping['stix_type'][attribute.object_relation]].append(object_str)
-                except:
-                    message[mapping['stix_type']] = object_str
-                object_num += 1
-            elif attribute_type == 'email-reply-to':
-                reply_to.append(attribute_value)
-            elif attribute_type == 'email-attachment':
-                object_str = str(object_num)
-                body = {"content_disposition": "attachment; filename='{}'".format(attribute_value),
-                                  "body_raw_ref": object_str}
-                message['body_multipart'].append(body)
-                observable[object_str] = {'type': 'file', 'name': attribute_value}
-                object_num += 1
-            elif attribute_type == 'email-x-mailer':
-                if 'additional_header_fields' in message:
-                    message['additional_header_fields']['X-Mailer'] = attribute_value
+                mapping = emailObjectMapping[relation]['stix_type']
+                if relation in ('from', 'to', 'cc'):
+                    object_str = str(object_num)
+                    observable[object_str] = {'type': 'email-addr', 'value': attribute_value}
+                    if relation == 'from':
+                        message[mapping] = object_str
+                    else:
+                        message[mapping].append(object_str)
+                    object_num += 1
+                elif relation == 'reply-to':
+                    reply_to.append(attribute_value)
+                elif relation == 'attachment':
+                    object_str = str(object_num)
+                    body = {"content_disposition": "{}; filename='{}'".format(relation, attribute_value),
+                            "body_raw_ref": object_str}
+                    message['body_multipart'].append(body)
+                    observable[object_str] = {'type': 'file', 'name': attribute_value}
+                    object_num += 1
+                elif relation == 'x-mailer':
+                    if 'additional_header_fields' in message:
+                        message['additional_header_fields']['X-Mailer'] = attribute_value
+                    else:
+                        message['additional_header_fields'] = {'X-Mailer': attribute_value}
                 else:
-                    message['additional_header_fields'] = {'X-Mailer': attribute_value}
-            else:
-                message[mapping['stix_type']] = attribute_value
+                    message[mapping] = attribute_value
+            except:
+                mapping = "x_misp_{}_{}".format(attribute.type, relation)
+                if relation in ('eml', 'screenshot'):
+                    message[mapping] = {'value': attribute_value, 'data': b64encode(attribute.data.getvalue()).decode()[1:-1]}
+                else:
+                    message[mapping] = attribute_value
         if reply_to and 'additional_header_fields' in message:
             message['additional_header_fields']['Reply-To'] = reply_to
         message['type'] = 'email-message'
@@ -662,16 +762,20 @@ class StixBuilder():
         pattern_mapping = objectsMapping['email']['pattern']
         pattern = ""
         for attribute in attributes:
+            relation = attribute.object_relation
             try:
-                mapping = emailObjectMapping[attribute.type]
-            except:
-                continue
-            try:
-                stix_type = mapping['stix_type'][attribute.object_relation]
-            except:
+                mapping = emailObjectMapping[relation]
                 stix_type = mapping['stix_type']
-            pattern += pattern_mapping.format(mapping['email_type'], stix_type, attribute.value)
-        return pattern[:-5]
+                email_type = mapping['email_type']
+            except:
+                email_type = 'message'
+                stix_type = "'x_misp_{}_{}'".format(attribute.type, relation)
+                if relation in ('eml', 'screenshot'):
+                    stix_type_data = "{}.data".format(stix_type)
+                    pattern += pattern_mapping.format(email_type, stix_type_data, b64encode(attribute.data.getvalue()).decode()[1:-1])
+                    stix_type += ".value"
+            pattern += pattern_mapping.format(email_type, stix_type, attribute.value)
+        return "[{}]".format(pattern[:-5])
 
     @staticmethod
     def resolve_file_observable(attributes):
@@ -699,7 +803,7 @@ class StixBuilder():
             attribute_type = attribute.type
             attribute_value = attribute.value
             if attribute_type == "malware-sample":
-                filename, md5 = attribute_value.slit('|')
+                filename, md5 = attribute_value.split('|')
                 malware_sample['filename'] = filename
                 malware_sample['md5'] = md5
             else:
@@ -718,7 +822,7 @@ class StixBuilder():
                 except:
                     continue
             pattern += s_pattern.format(stix_type, d_pattern[p])
-        return pattern[:-5]
+        return "[{}]".format(pattern[:-5])
 
     def resolve_ip_port_observable(self, attributes):
         observable = {'type': 'network-traffic', 'protocols': ['tcp']}
@@ -789,7 +893,7 @@ class StixBuilder():
                 except:
                     continue
                 pattern += objectsMapping['ip-port']['pattern'].format(stix_type, attribute_value)
-        return pattern[:-5]
+        return "[{}]".format(pattern[:-5])
 
     @staticmethod
     def resolve_network_socket_observable(attributes):
@@ -872,7 +976,7 @@ class StixBuilder():
         elif domain_src is not None: pattern += domain_src
         if ip_dst is not None: pattern += ip_dst
         elif domain_dst is not None: pattern += domain_dst
-        return pattern[:-5]
+        return "[{}]".format(pattern[:-5])
 
     def resolve_process_observable(self, attributes):
         observable = {}
@@ -922,7 +1026,7 @@ class StixBuilder():
                 except:
                     continue
         if child_refs: pattern += mapping.format('child_refs', child_refs)
-        return pattern[:-5]
+        return "[{}]".format(pattern[:-5])
 
     @staticmethod
     def resolve_regkey_observable(attributes):
@@ -950,7 +1054,7 @@ class StixBuilder():
             except:
                 continue
             pattern += mapping.format(stix_type, attribute.value)
-        return pattern[:-5]
+        return "[{}]".format(pattern[:-5])
 
     @staticmethod
     def resolve_stix2_pattern(attributes):
@@ -999,20 +1103,19 @@ class StixBuilder():
             else:
                 mapping = attribute_type
             pattern += objectsMapping[mapping]['pattern'].format(stix_type, attribute.value)
-        return pattern[:-5]
+        return "[{}]".format(pattern[:-5])
 
     @staticmethod
     def resolve_x509_observable(attributes):
         observable = {'type': 'x509-certificate'}
         hashes = {}
         for attribute in attributes:
-            attribute_type = attribute.type
-            if attribute_type in ("x509-fingerprint-md5", "x509-fingerprint-sha1", "x509-fingerprint-sha256"):
-                h_type = attribute_type.split('-')[2]
-                hashes[h_type] = attribute.value
+            relation = attribute.object_relation
+            if relation in ("x509-fingerprint-md5", "x509-fingerprint-sha1", "x509-fingerprint-sha256"):
+                hashes[relation.split('-')[2]] = attribute.value
             else:
                 try:
-                    observable[x509mapping[attribute_type][attribute.object_relation]] = attribute.value
+                    observable[x509mapping[relation]] = attribute.value
                 except:
                     pass
         if hashes:
@@ -1024,17 +1127,16 @@ class StixBuilder():
         mapping = objectsMapping['x509']['pattern']
         pattern = ""
         for attribute in attributes:
-            attribute_type = attribute.type
-            if attribute_type in ("x509-fingerprint-md5", "x509-fingerprint-sha1", "x509-fingerprint-sha256"):
-                h_type = attribute_type.split('-')[2]
-                stix_type = fileMapping['hashes'].format(h_type)
+            relation = attribute.object_relation
+            if relation in ("x509-fingerprint-md5", "x509-fingerprint-sha1", "x509-fingerprint-sha256"):
+                stix_type = fileMapping['hashes'].format(relation.split('-')[2])
             else:
                 try:
-                    stix_type = x509mapping[attribute_type][attribute.object_relation]
+                    stix_type = x509mapping[relation]
                 except:
                     continue
             pattern += mapping.format(stix_type, attribute.value)
-        return pattern[:-5]
+        return "[{}]".format(pattern[:-5])
 
     @staticmethod
     def define_attribute_value(value, comment):

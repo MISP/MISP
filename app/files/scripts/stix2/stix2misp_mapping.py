@@ -122,17 +122,23 @@ dst_port_attribute_mapping = {'type': 'port', 'relation': 'dst-port'}
 email_date_attribute_mapping = {'type': 'datetime', 'relation': 'send-date'}
 email_subject_attribute_mapping = {'type': 'email-subject', 'relation': 'subject'}
 end_datetime_attribute_mapping = {'type': 'datetime', 'relation': 'last-seen'}
+entropy_mapping = {'type': 'float', 'relation': 'entropy'}
 filename_attribute_mapping = {'type': 'filename', 'relation': 'filename'}
+imphash_mapping = {'type': 'imphash', 'relation': 'imphash'}
 ip_attribute_mapping = {'type': 'ip-dst', 'relation': 'ip'}
 issuer_attribute_mapping = {'type': 'text', 'relation': 'issuer'}
 key_attribute_mapping = {'type': 'regkey', 'relation': 'key'}
 mime_type_attribute_mapping = {'type': 'mime-type', 'relation': 'mimetype'}
 modified_attribute_mapping = {'type': 'datetime', 'relation': 'last-modified'}
+number_sections_mapping = {'type': 'counter', 'relation': 'number-sections'}
+password_mapping = {'type': 'text', 'relation': 'password'}
+pe_type_mapping = {'type': 'text', 'relation': 'type'}
 pid_attribute_mapping = {'type': 'text', 'relation': 'pid'}
 process_creation_time_mapping = {'type': 'datetime', 'relation': 'creation-time'}
 process_name_mapping = {'type': 'text', 'relation': 'name'}
 regkey_name_attribute_mapping = {'type': 'text', 'relation': 'name'}
 reply_to_attribute_mapping = {'type': 'email-reply-to', 'relation': 'reply-to'}
+section_name_mapping = {'type': 'text', 'relation': 'name'}
 serial_number_attribute_mapping = {'type': 'text', 'relation': 'serial-number'}
 size_attribute_mapping = {'type': 'size-in-bytes', 'relation': 'size-in-bytes'}
 src_port_attribute_mapping = {'type': 'port', 'relation': 'src-port'}
@@ -141,6 +147,7 @@ state_attribute_mapping = {'type': 'text', 'relation': 'state'}
 to_attribute_mapping = {'type': 'email-dst', 'relation': 'to'}
 url_attribute_mapping = {'type': 'url', 'relation': 'url'}
 url_port_attribute_mapping = {'type': 'port', 'relation': 'port'}
+username_mapping = {'type': 'text', 'relation': 'username'}
 x_mailer_attribute_mapping = {'type': 'email-x-mailer', 'relation': 'x-mailer'}
 x509_md5_attribute_mapping = {'type': 'x509-fingerprint-md5', 'relation': 'x509-fingerprint-md5'}
 x509_sha1_attribute_mapping = {'type': 'x509-fingerprint-sha1', 'relation': 'x509-fingerprint-sha1'}
@@ -157,8 +164,8 @@ asn_mapping = {'number': as_number_attribute_mapping,
                'autonomous-system:number': as_number_attribute_mapping,
                'name': asn_description_attribute_mapping,
                'autonomous-system:name': asn_description_attribute_mapping,
-               'ipv4-address:value': asn_subnet_attribute_mapping,
-               'ipv6-address:value': asn_subnet_attribute_mapping}
+               'ipv4-addr:value': asn_subnet_attribute_mapping,
+               'ipv6-addr:value': asn_subnet_attribute_mapping}
 
 domain_ip_mapping = {'domain-name': domain_attribute_mapping,
                      'domain-name:value': domain_attribute_mapping,
@@ -209,6 +216,10 @@ network_traffic_mapping = {'src_port': src_port_attribute_mapping,
                            "network-traffic:extensions.'socket-ext'.is_blocking": state_attribute_mapping,
                            'is_listening': state_attribute_mapping,
                            "network-traffic:extensions.'socket-ext'.is_listening": state_attribute_mapping}
+
+pe_mapping = {'pe_type': pe_type_mapping, 'number_of_sections': number_sections_mapping, 'imphash': imphash_mapping}
+
+pe_section_mapping = {'name': section_name_mapping, 'size': size_attribute_mapping, 'entropy': entropy_mapping}
 
 process_mapping = {'name': process_name_mapping,
                    'process:name': process_name_mapping,
@@ -266,13 +277,18 @@ x509_mapping = {'issuer': issuer_attribute_mapping,
                 }
 
 def fill_observable_attributes(attributes, stix_object, object_mapping):
-    for o in stix_object:
+    for o_key, o_value in stix_object.items():
         try:
-            mapping = object_mapping[o]
+            mapping = object_mapping[o_key]
+            attributes.append({'type': mapping.get('type'), 'object_relation': mapping.get('relation'),
+                               'value': o_value, 'to_ids': False})
         except:
-            continue
-        attributes.append({'type': mapping.get('type'), 'object_relation': mapping.get('relation'),
-                           'value': stix_object.get(o)})
+            if "x_misp_" in o_key:
+                attribute_type, relation = o_key.split("x_misp_")[1].split("_")
+                attributes.append({'type': attribute_type, 'object_relation': relation,
+                                   'value': o_value, 'to_ids': False})
+            else:
+                continue
 
 def fill_pattern_attributes(pattern, object_mapping):
     attributes = []
@@ -280,15 +296,23 @@ def fill_pattern_attributes(pattern, object_mapping):
         p_type, p_value = p.split(' = ')
         try:
             mapping = object_mapping[p_type]
+            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                               'value': p_value[1:-1], 'to_ids': True})
         except KeyError:
-            continue
-        attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                           'value': p_value[1:-1]})
+            if "x_misp_" in p_type:
+                attribute_type, relation = p_type.split("x_misp_")[1][:-1].split("_")
+                attributes.append({'type': attribute_type, 'object_relation': relation,
+                                   'value': p_value[1:-1], 'to_ids': True})
+            else:
+                continue
     return attributes
 
 def observable_asn(observable):
     attributes = []
-    fill_observable_attributes(attributes, observable, asn_mapping)
+    fill_observable_attributes(attributes, observable.pop(str(len(observable) - 1)), asn_mapping)
+    for o_dict in observable.values():
+        attributes.append({'type': 'ip-src', 'object_relation': 'subnet-announced',
+                           'value': o_dict['value'], 'to_ids': False})
     return attributes
 
 def pattern_asn(pattern):
@@ -307,66 +331,13 @@ def observable_domain_ip(observable):
 def pattern_domain_ip(pattern):
     return fill_pattern_attributes(pattern, domain_ip_mapping)
 
-def observable_email(observable):
-    attributes = []
-    addresses = {}
-    files = {}
-    for o in observable:
-        observable_part = observable[o]
-        part_type = observable_part._type
-        if part_type == 'email-addr':
-            addresses[o] = observable_part.get('value')
-        elif part_type == 'file':
-            files[o] = observable_part.get('name')
-        else:
-            message = dict(observable_part)
-    attributes.append({'type': 'email-src', 'object_relation': 'from',
-                       'value': addresses[message.pop('from_ref')]})
-    for ref in ('to_refs', 'cc_refs', 'ouioui'):
-        if ref in message:
-            for item in message.pop(ref):
-                mapping = email_mapping[ref]
-                attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                                   'value': addresses[item]})
-    if 'body_multipart' in message:
-        for f in message.pop('body_multipart'):
-            attributes.append({'type': 'email-attachment', 'object_relation': 'attachment',
-                               'value': files[f.get('body_raw_ref')]})
-    for m in message:
-        if m == 'additional_header_fields':
-            fields = message[m]
-            for field in fields:
-                mapping = email_mapping[field]
-                if field == 'Reply-To':
-                    for rt in fields[field]:
-                        attributes.append({'type': mapping['type'],
-                                           'object_relation': mapping['relation'],
-                                           'value': rt})
-                else:
-                    attributes.append({'type': mapping['type'],
-                                       'object_relation': mapping['relation'],
-                                       'value': fields[field]})
-        else:
-            try:
-                mapping = email_mapping[m]
-            except:
-                continue
-            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                               'value': message[m]})
-    return attributes
-
-def pattern_email(pattern):
-    return fill_pattern_attributes(pattern, email_mapping)
-
 def observable_file(observable):
     attributes = []
     observable = dict(observable['0'])
     if 'hashes' in observable:
-        hashes = observable.pop('hashes')
-        for h in hashes:
-            h_type = h.lower().replace('-', '')
-            attributes.append({'type': h_type, 'object_relation': h_type,
-                               'value': hashes[h]})
+        for h_type, h_value in observable.pop('hashes').items():
+            h_type = h_type.lower().replace('-', '')
+            attributes.append({'type': h_type, 'object_relation': h_type, 'value': h_value})
     fill_observable_attributes(attributes, observable, file_mapping)
     return attributes
 
@@ -480,23 +451,23 @@ def observable_socket(observable):
             attributes = parse_socket_extension(extension['socket-ext'])
     except:
         attributes = []
-    for element in observable_object:
-        if element in ('src_ref', 'dst_ref'):
-            element_object = observable[observable_object[element]]
+    for o_key, o_value in observable_object.items():
+        if o_key in ('src_ref', 'dst_ref'):
+            element_object = observable[o_value]
             if 'domain-name' in element_object['type']:
                 attribute_type = 'hostname'
-                relation = 'hostname-{}'.format(element.split('_')[0])
+                relation = 'hostname-{}'.format(o_key.split('_')[0])
             else:
-                attribute_type = relation = "ip-{}".format(element.split('_')[0])
+                attribute_type = relation = "ip-{}".format(o_key.split('_')[0])
             attributes.append({'type': attribute_type, 'object_relation': relation,
                                'value': element_object['value']})
             continue
         try:
-            mapping = network_traffic_mapping[element]
+            mapping = network_traffic_mapping[o_key]
         except:
             continue
         attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                           'value': attribute_value})
+                           'value': o_value})
     return attributes
 
 def parse_socket_observable(observable):
@@ -565,17 +536,6 @@ def observable_x509(observable):
 
 def pattern_x509(pattern):
     return fill_pattern_attributes(pattern, x509_mapping)
-
-objects_mapping = {'asn': {'observable': observable_asn, 'pattern': pattern_asn},
-                   'domain-ip': {'observable': observable_domain_ip, 'pattern': pattern_domain_ip},
-                   'email': {'observable': observable_email, 'pattern': pattern_email},
-                   'file': {'observable': observable_file, 'pattern': pattern_file},
-                   'ip-port': {'observable': observable_ip_port, 'pattern': pattern_ip_port},
-                   'network-socket': {'observable': observable_socket, 'pattern': pattern_socket},
-                   'process': {'observable': observable_process, 'pattern': pattern_process},
-                   'registry-key': {'observable': observable_regkey, 'pattern': pattern_regkey},
-                   'url': {'observable': observable_url, 'pattern': pattern_url},
-                   'x509': {'observable': observable_x509, 'pattern': pattern_x509}}
 
 domain_pattern_mapping = {'value': {'type': 'domain'}}
 ip_pattern_mapping = {'value': {'type': 'ip-dst'}}

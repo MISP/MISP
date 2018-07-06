@@ -11,13 +11,16 @@
 <div style="padding-left:5px;padding-right:5px;padding-bottom:5px;">
 <?php
   $type = 'soft-';
-  if ($hard) $type = 'hard-';
+  $typeMessage = __('Are you sure you want to soft delete Object reference #%s?%s');
+  if ($hard) {
+    $type = 'hard-';
+    $typeMessage = __('Are you sure you want to hard delete Object reference #%s?%s');
+  }
 ?>
 <p>
   <?php
-    echo __(
-      'Are you sure you want to %s delete Object reference #%s?%s',
-      __($type),
+    echo sprintf(
+      $typeMessage,
       $id,
       $hard ? __(' The Attribute will be permanently deleted and unrecoverable. Also, this will prevent the deletion to be propagated to other instances.') : ''
     );
