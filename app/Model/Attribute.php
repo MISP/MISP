@@ -1453,67 +1453,6 @@ class Attribute extends AppModel {
 		}
 	}
 
-	public function uploadAttachment($fileP, $realFileName, $malware, $eventId = null, $category = null, $extraPath = '', $fullFileName = '', $dist, $fromGFI = false) {
-		// Check if there were problems with the file upload
-		// only keep the last part of the filename, this should prevent directory attacks
-		$filename = basename($fileP);
-		$tmpfile = new File($fileP);
-
-		// save the file-info in the database
-		$this->create();
-		$this->data['Attribute']['event_id'] = $eventId;
-		$this->data['Attribute']['distribution'] = $dist;
-		if ($malware) {
-			$md5 = !$tmpfile->size() ? md5_file($fileP) : $tmpfile->md5();
-			$this->data['Attribute']['category'] = $category ? $category : "Payload delivery";
-			$this->data['Attribute']['type'] = "malware-sample";
-			$this->data['Attribute']['value'] = $fullFileName ? $fullFileName . '|' . $md5 : $filename . '|' . $md5; // TODO gives problems with bigger files
-			$this->data['Attribute']['to_ids'] = 1; // LATER let user choose whether to send this to an IDS
-			if ($fromGFI) $this->data['Attribute']['comment'] = 'GFI import';
-		} else {
-			$this->data['Attribute']['category'] = $category ? $category : "Artifacts dropped";
-			$this->data['Attribute']['type'] = "attachment";
-			$this->data['Attribute']['value'] = $fullFileName ? $fullFileName : $realFileName;
-			$this->data['Attribute']['to_ids'] = 0;
-			if ($fromGFI) $this->data['Attribute']['comment'] = 'GFI import';
-		}
-
-		if (!$this->save($this->data)) {
-			// TODO: error handling
-		}
-
-		// no errors in file upload, entry already in db, now move the file where needed and zip it if required.
-		// no sanitization is required on the filename, path or type as we save
-		// create directory structure
-		$attachments_dir = Configure::read('MISP.attachments_dir');
-		if (empty($attachments_dir)) {
-			$my_server = ClassRegistry::init('Server');
-			$attachments_dir = $my_server->getDefaultAttachments_dir();
-		}
-		$rootDir = $attachments_dir . DS . $eventId;
-		$dir = new Folder($rootDir, true);
-		// move the file to the correct location
-		$destpath = $rootDir . DS . $this->getID(); // id of the new attribute in the database
-		$file = new File($destpath);
-		$zipfile = new File($destpath . '.zip');
-		$fileInZip = new File($rootDir . DS . $extraPath . $filename);
-
-		// zip and password protect the malware files
-		if ($malware) {
-			$execRetval = '';
-			$execOutput = array();
-			exec('zip -j -P infected ' . escapeshellarg($zipfile->path) . ' ' . escapeshellarg($fileInZip->path), $execOutput, $execRetval);
-			if ($execRetval != 0) { // not EXIT_SUCCESS
-				throw new Exception('An error has occured while attempting to zip the malware file.');
-			}
-			$fileInZip->delete(); // delete the original non-zipped-file
-			rename($zipfile->path, $file->path); // rename the .zip to .nothing
-		} else {
-			$fileAttach = new File($fileP);
-			rename($fileAttach->path, $file->path);
-		}
-	}
-
 	public function __beforeSaveCorrelation($a) {
 		// (update-only) clean up the relation of the old value: remove the existing relations related to that attribute, we DO have a reference, the id
 		// ==> DELETE FROM correlations WHERE 1_attribute_id = $a_id OR attribute_id = $a_id; */
@@ -3086,7 +3025,7 @@ class Attribute extends AppModel {
 	public function advancedAddMalwareSample($event_id, $attribute_settings, $filename, $tmpfile) {
 		$execRetval = '';
 		$execOutput = array();
-		$result = shell_exec('python ' . APP . 'files/scripts/generate_file_objects.py -p ' . $tmpfile->path);
+		$result = shell_exec('python3 ' . APP . 'files/scripts/generate_file_objects.py -p ' . $tmpfile->path);
 		if (!empty($result)) {
 			$result = json_decode($result, true);
 			if (isset($result['objects'])) {
