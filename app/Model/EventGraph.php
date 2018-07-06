@@ -1,6 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
-class EventNetworkHistory extends AppModel{
+class EventGraph extends AppModel{
 
 	public $useTable = 'event_graph';
 

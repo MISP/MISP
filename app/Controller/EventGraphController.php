@@ -23,11 +23,7 @@ class EventGraphController extends AppController {
 
 		// validate event
 		$this->loadModel('Event');
-		if (Validation::uuid($event_id)) {
-			$temp = $this->Event->find('first', array('recursive' => -1, 'fields' => array('Event.id'), 'conditions' => array('Event.uuid' => $event_id)));
-			if (empty($temp)) throw new NotFoundException(__('Invalid event'));
-			$event_id = $temp['Event']['id'];
-		} else if (!is_numeric($event_id)) {
+		if (!is_numeric($event_id)) {
 			throw new NotFoundException(__('Invalid event'));
 		}
 
