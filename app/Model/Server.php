@@ -1995,10 +1995,24 @@ class Server extends AppModel {
 					if (!empty($eventArray)) {
 						foreach ($eventArray as $event) {
 							if ($force_uuid) $eventIds[] = $event['uuid'];
-							else $eventIds[] = $event['id'];
+							else $eventIds[] = $event['uuid'];
 						}
 					}
 				}
+				if (!empty($eventIds) && Configure::read('MISP.enableEventBlacklisting') !== false) {
+					$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
+					foreach ($eventIds as $k => $eventUuid) {
+						$blacklistEntry = $this->EventBlacklist->find('first', array(
+							'conditions' => array('event_uuid' => $eventUuid),
+							'recursive' => -1,
+							'fields' => array('EventBlacklist.id')
+						));
+						if (!empty($blacklistEntry)) {
+							unset($eventIds[$k]);
+						}
+					}
+				}
+				$eventIds = array_values($eventIds);
 				return $eventIds;
 			}
 			if ($response->code == '403') {
