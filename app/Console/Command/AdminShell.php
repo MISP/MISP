@@ -35,7 +35,7 @@ class AdminShell extends AppShell
 	}
 
   public function updateGalaxies() {
-		$result = $this->Galaxy->update($force);
+		$result = $this->Galaxy->update();
     if ($result) {
         echo 'Galaxies updated';
     } else {

@@ -1412,6 +1412,14 @@ class AppModel extends Model {
 		}
 	}
 
+	public function getRowCount($table = false) {
+		if (empty($table)) {
+			$table = $this->table;
+		}
+		$table_data = $this->query("show table status like '" . $table . "'");
+		return $table_data[0]['TABLES']['Rows'];
+	}
+
 	public function benchmarkCustomAdd($valueToAdd = 0, $name = 'default', $customName = 'custom') {
 		if (empty($this->__profiler[$name]['custom'][$customName])) {
 			$this->__profiler[$name]['custom'][$customName] = 0;

@@ -74,7 +74,6 @@ and attachments and finally publishing it.');?><br /><br />
 			<li><i><?php echo __('Completed');?>:</i> <?php echo __('The analysis is complete');?></li>
 		</ul></li>
 		<li><b><?php echo __('Event Description');?>:</b> <?php echo __('The info field, where the malware/incident can get a brief description starting with the internal reference. This field should be as brief and concise as possible, the more detailed description happens through attributes in the next stage of the event\'s creation. Keep in mind that the system will automatically replace detected text strings that match a regular expression entry set up by your server\'s administrator(s).');?></li>
-		<li><b><?php echo __('GFI Sandbox');?>:</b> <?php echo __('It is possible to upload the exported .zip file from GFI sandbox with the help of this tool. These will be dissected by the MISP and a list of attributes and attachments will automatically be generated from the .zip file. Whilst this does most of the work needed to be done in the second step of the event\'s creation, it is important to manually look over all the data that is being entered.');?></li>
 	</ul>
 <hr />
 <a id="create_attribute"></a><h3><?php echo __('Add attributes to the event');?>:</h3>
