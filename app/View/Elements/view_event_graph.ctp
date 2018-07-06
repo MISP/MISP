@@ -12,7 +12,7 @@
 	<label id="network-physic" class="btn center-in-network-header network-control-btn"><span class="useCursorPointer fa fa-space-shuttle" style="margin-right: 3px;"></span><?php echo __('Physics')?></label>
 	<label id="network-display" class="btn center-in-network-header network-control-btn"><span class="useCursorPointer fa fa-list-alt" style="margin-right: 3px;"></span><?php echo __('Display')?></label>
 	<label id="network-filter" class="btn center-in-network-header network-control-btn"><span class="useCursorPointer fa fa-filter" style="margin-right: 3px;"></span><?php echo __('Filters')?></label>
-	<label id="network-import" class="btn center-in-network-header network-control-btn"><span class="useCursorPointer fa fa-exchange" style="margin-right: 3px;"></span><?php echo __('Import/Export')?></label>
+	<label id="network-import" class="btn center-in-network-header network-control-btn"><span class="useCursorPointer fa fa-exchange" style="margin-right: 3px;"></span><?php echo __('Export')?></label>
 	<label id="network-history" class="btn center-in-network-header network-control-btn"><span class="useCursorPointer fa fa-history" style="margin-right: 3px;"></span><?php echo __('History')?></label>
 			
 	<input type="text" id="network-typeahead" class="center-in-network-header network-typeahead flushright" data-provide="typeahead" size="20" placeholder="Search for an item">
