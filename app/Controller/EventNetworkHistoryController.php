@@ -128,10 +128,6 @@ class EventNetworkHistoryController extends AppController {
 		}
 	}
 
-	public function edit($id) {
-		//$this->EventNetworkHistory->edit();
-	}
-
 	public function delete($id) {
 		if (!$this->request->is('post')) {
 			$this->set('id', $id);

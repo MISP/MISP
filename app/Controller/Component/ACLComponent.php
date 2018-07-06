@@ -483,9 +483,7 @@ class ACLComponent extends Component {
 			'eventNetworkHistory' => array(
 					'get' => array('*'),
 					'add' => array('perm_add'),
-					'edit' => array('perm_modify'),
 					'delete' => array('perm_modify'),
-					'fetchForm' => array('*')
 			)
 	);
 
