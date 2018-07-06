@@ -520,15 +520,6 @@ class EventGraph {
 			options: ["json", "png", "DOT Language"],
 			default: "json"
 		});
-		menu_import.add_fileinput({
-			id: "fileinput_graph_import_import",
-			label: "Import",
-			tooltip: "Import from a JSON, Gephy or DOT",
-			event: function(fileContent) {
-				var data = JSON.parse(fileContent);
-				import_graph_from_json(data);
-			}
-		});
 		return menu_import;
 	}
 
