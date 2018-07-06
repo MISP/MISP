@@ -42,7 +42,7 @@ class Server extends AppModel {
 	public $validate = array(
 		'url' => array( // TODO add extra validation to refuse multiple time the same url from the same org
 			'url' => array(
-				'rule' => array('url'),
+				'rule' => array('valueIsUrl'),
 				'message' => 'Please enter a valid base-url.'
 			)
 		),
@@ -104,6 +104,10 @@ class Server extends AppModel {
 			),
 		),
 	);
+
+	public function valueIsUrl($value) {
+		return true;
+	}
 
 	public $command_line_functions = array(
 		'console_admin_tasks' => array(
@@ -1776,45 +1780,39 @@ class Server extends AppModel {
 							$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
 							$r = $this->EventBlacklist->find('first', array('conditions' => array('event_uuid' => $event['Event']['uuid'])));
 							if (!empty($r))	{
-								$blocked = true;
-								$fails[$eventId] = 'Event blocked by local blocklist.';
+								continue;
 							}
 						}
-						if (!$blocked) {
-							// we have an Event array
-							// The event came from a pull, so it should be locked.
-							$event['Event']['locked'] = true;
-							if (!isset($event['Event']['distribution'])) { // version 1
-								$event['Event']['distribution'] = '1';
+						// we have an Event array
+						// The event came from a pull, so it should be locked.
+						$event['Event']['locked'] = true;
+						if (!isset($event['Event']['distribution'])) { // version 1
+							$event['Event']['distribution'] = '1';
+						}
+						// Distribution
+						if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id']) {
+							switch ($event['Event']['distribution']) {
+								case 1:
+									// if community only, downgrade to org only after pull
+									$event['Event']['distribution'] = '0';
+									break;
+								case 2:
+									// if connected communities downgrade to community only
+									$event['Event']['distribution'] = '1';
+									break;
 							}
-							// Distribution
-							if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id']) {
-								switch ($event['Event']['distribution']) {
-									case 1:
-										// if community only, downgrade to org only after pull
-										$event['Event']['distribution'] = '0';
-										break;
-									case 2:
-										// if connected communities downgrade to community only
-										$event['Event']['distribution'] = '1';
-										break;
-								}
-								if (isset($event['Event']['Attribute']) && !empty($event['Event']['Attribute'])) {
-									foreach ($event['Event']['Attribute'] as $key => $a) {
-										switch ($a['distribution']) {
-											case '1':
-												$event['Event']['Attribute'][$key]['distribution'] = '0';
-												break;
-											case '2':
-												$event['Event']['Attribute'][$key]['distribution'] = '1';
-												break;
-										}
+							if (isset($event['Event']['Attribute']) && !empty($event['Event']['Attribute'])) {
+								foreach ($event['Event']['Attribute'] as $key => $a) {
+									switch ($a['distribution']) {
+										case '1':
+											$event['Event']['Attribute'][$key]['distribution'] = '0';
+											break;
+										case '2':
+											$event['Event']['Attribute'][$key]['distribution'] = '1';
+											break;
 									}
 								}
 							}
-						} else {
-							$fails[$eventId] = 'Event blocked by blacklist.';
-							continue;
 						}
 						// Distribution, set reporter of the event, being the admin that initiated the pull
 						$event['Event']['user_id'] = $user['id'];
@@ -1827,7 +1825,7 @@ class Server extends AppModel {
 							$result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
 							if ($result) $successes[] = $eventId;
 							else {
-								$fails[$eventId] = 'Failed (partially?) because of validation errors: '. print_r($eventModel->validationErrors, true);
+								$fails[$eventId] = 'Failed (partially?) because of validation errors: '. json_encode($eventModel->validationErrors, true);
 
 							}
 						} else {
