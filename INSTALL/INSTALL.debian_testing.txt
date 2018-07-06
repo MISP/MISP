@@ -75,8 +75,8 @@ installation, just alter the salt,
 sudo apt install -y etckeeper
 
 # Make sure your system is up2date:
-sudo apt-get update
-sudo apt-get -y dist-upgrade
+sudo apt update
+sudo apt -y dist-upgrade
 
 # Network Interface Name salvage (optional)
 
@@ -93,7 +93,7 @@ sudo grub-mkconfig -o /boot/grub/grub.cfg
 ```
 
 # install postfix, there will be some questions.
-sudo apt-get install -y postfix
+sudo apt install -y postfix
 # Postfix Configuration: Satellite system
 # change the relay server later with:
 sudo postconf -e 'relayhost = example.com'
@@ -104,18 +104,18 @@ sudo postfix reload
 ------------------------------
 Once the system is installed you can perform the following steps:
 
-# Install the dependencies: (some might already be installed)
-sudo apt-get install -y curl gcc git gnupg-agent make openssl redis-server neovim zip libyara-dev python3-yara python3-redis python3-zmq
-sudo ln -s /usr/lib/x86_64-linux-gnu/libyara.so /usr/lib/libyara.so
-
-# Install MariaDB (a MySQL fork/alternative)
-sudo apt-get install -y mariadb-client mariadb-server
+# Install all the dependencies: (some might already be installed)
+sudo apt install -y \
+curl gcc git gnupg-agent make openssl redis-server neovim zip libyara-dev python3-yara python3-redis python3-zmq \
+mariadb-client \
+mariadb-server \
+apache2 apache2-doc apache2-utils \
+libapache2-mod-php7.2 php7.2 php7.2-cli  php7.2-mbstring php-pear php7.2-dev php7.2-json php7.2-xml php7.2-mysql php7.2-opcache php7.2-readline \
+python3-dev python3-pip libpq5 libjpeg-dev libfuzzy-dev ruby asciidoctor \
+libxml2-dev libxslt1-dev zlib1g-dev python3-setuptools
 
 # Secure the MariaDB installation (especially by setting a strong root password)
 sudo mysql_secure_installation
-
-# Install Apache2
-sudo apt-get install -y apache2 apache2-doc apache2-utils
 
 # Enable modules, settings, and default of SSL in Apache
 sudo a2dismod status
@@ -123,8 +123,7 @@ sudo a2enmod ssl rewrite
 sudo a2dissite 000-default
 sudo a2ensite default-ssl
 
-# Install PHP and dependencies
-sudo apt-get install -y libapache2-mod-php7.2 php7.2 php7.2-cli  php7.2-mbstring php-pear php7.2-dev php7.2-json php7.2-xml php7.2-mysql php7.2-opcache php7.2-readline 
+# Install PHP external dependencies
 sudo pear channel-update pear.php.net
 sudo pear install Crypt_GPG
 sudo pecl channel-update pecl.php.net
@@ -153,8 +152,6 @@ sudo -u www-data git clone https://github.com/MISP/MISP.git /var/www/MISP
 # Make git ignore filesystem permission differences
 sudo -u www-data git config core.filemode false
 
-# install Mitre's STIX and its dependencies by running the following commands:
-sudo apt-get install -y python3-dev python3-pip libxml2-dev libxslt1-dev zlib1g-dev python3-setuptools
 cd /var/www/MISP/app/files/scripts
 sudo -u www-data git clone https://github.com/CybOXProject/python-cybox.git
 sudo -u www-data git clone https://github.com/STIXProject/python-stix.git
@@ -506,8 +503,6 @@ sudo sed -i -e '$i \sudo -u www-data misp-modules -l 0.0.0.0 -s &\n' /etc/rc.loc
 # Start the workers
 sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh
 
-# Installing MISP modules…
-sudo apt-get install -y python3-dev python3-pip libpq5 libjpeg-dev libfuzzy-dev ruby asciidoctor
 cd /usr/local/src/
 sudo git clone https://github.com/MISP/misp-modules.git
 cd misp-modules
