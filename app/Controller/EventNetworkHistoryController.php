@@ -99,6 +99,11 @@ class EventNetworkHistoryController extends AppController {
 			} else {
 				$networkHistory['EventNetworkHistory']['network_name'] = $this->request->data['EventNetworkHistory']['network_name'];
 			}
+
+			if (isset($this->request->data['EventNetworkHistory']['preview_img'])) {
+				$networkHistory['EventNetworkHistory']['preview_img'] = $this->request->data['EventNetworkHistory']['preview_img'];
+			}
+
 			$networkHistory['EventNetworkHistory']['timestamp'] = $date->getTimestamp();
 
 			// Network pushed will be the owner of the authentication key
@@ -111,7 +116,8 @@ class EventNetworkHistoryController extends AppController {
 				'network_name',
 				'timestamp',
 				'user_id',
-				'org_id'
+				'org_id',
+				'preview_img',
 				)
 			);
 			if ($result) {

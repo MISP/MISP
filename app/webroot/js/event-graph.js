@@ -587,7 +587,9 @@ class EventGraph {
 			data: [],
 			onAddition: function(network_name, selfTable) {
 				var network_json = eventGraph.toJSON();
-				mispInteraction.save_network(network_json, network_name);
+				var preview = eventGraph.canvasContext.canvas.toDataURL('image/png', 0.1);
+
+				mispInteraction.save_network(network_json, network_name, preview);
 				$('#networkHistory_input_name_save').val('');
 			},
 			onRemove: function(data, selfTable) {
@@ -598,16 +600,30 @@ class EventGraph {
 
 		// fill history table
 		// has to do it manually here (not using reset_graph_history) because menu_history still not constructed yet
-		dataHandler.fetch_graph_history(function(history_formatted) {
+		dataHandler.fetch_graph_history(function(history_formatted, network_previews) {
 			menu_history.items["table_graph_history_actiontable"].set_table_data(history_formatted);
 			for(var i=0; i<history_formatted.length; i++) {
 				var history = history_formatted[i];
 				var cur_email = history[2];
+				var tr = eventGraph.menu_history.items.table_graph_history_actiontable.get_DOM_row(i);
 				if (!(cur_email == user_email || is_siteadmin)) {
 					// disable delete button
-					var tr = eventGraph.menu_history.items.table_graph_history_actiontable.get_DOM_row(i);
 					var btn_del = $(tr).find('.btn-danger');
 					btn_del.prop('disabled', true);
+				}
+				// set tooltip preview
+				var preview = network_previews[i];
+				if (typeof preview == 'string') {
+					var btn_plot = $(tr).find('.btn-success');
+					btn_plot.data('network-preview', preview);
+					btn_plot.popover({
+						container: 'body',
+						content: function() { return '<img src="' + $(this).data('network-preview') + '" />'; },
+						placement: 'right',
+						trigger: 'hover',
+						template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content" style="width: 500px; height: 150px;"></div></div>',
+						html: true,
+					});
 				}
 			}
 		});
@@ -1450,8 +1466,8 @@ class DataHandler {
 	fetch_graph_history(callback) {
 		$.getJSON( "/eventNetworkHistory/get/"+scope_id, function( history ) {
 			var history_formatted = [];
+			var network_previews = [];
 			history.forEach(function(item) {
-				console.log(item['EventNetworkHistory']['timestamp']);
 				history_formatted.push([
 					item['EventNetworkHistory']['id'],
 					item['EventNetworkHistory']['network_name'],
@@ -1459,8 +1475,9 @@ class DataHandler {
 					new Date(parseInt(item['EventNetworkHistory']['timestamp'])*1000).toLocaleString()
 				]);
 				dataHandler.networkHistoryJsonData.set(item['EventNetworkHistory']['id'], item['EventNetworkHistory']['network_json']);
+				network_previews.push(item['EventNetworkHistory']['preview_img']);
 			});
-			callback(history_formatted);
+			callback(history_formatted, network_previews);
 		});
 	}
 
@@ -1609,9 +1626,9 @@ class MispInteraction {
 		}
 	}
 
-	save_network(network_json, network_name) {
+	save_network(network_json, network_name, network_preview) {
 		var network_json = eventGraph.toJSON();
-		this.quickSaveNetworkHistory(scope_id, network_json, network_name, reset_graph_history);
+		this.quickSaveNetworkHistory(scope_id, network_json, network_name, network_preview, reset_graph_history);
 	}
 
 	delete_saved_network(data) {
@@ -1623,7 +1640,7 @@ class MispInteraction {
 		});
 	}
 
-	quickSaveNetworkHistory(event_id, network_json, network_name, callback) {
+	quickSaveNetworkHistory(event_id, network_json, network_name, network_preview, callback) {
 		this.networkFetchForm('add', event_id, undefined, function(form) {
 			var container = $('#eventgraph_network');
 			// append the form somewhere
@@ -1636,6 +1653,9 @@ class MispInteraction {
 			field_network_json.val(network_json);
 			var field_network_name = form.find('#' + 'EventNetworkHistory' + 'NetworkName');
 			field_network_name.val(network_name);
+			var field_network_preview = form.find('#' + 'EventNetworkHistory' + 'PreviewImg');
+			field_network_preview.val(network_preview);
+
 
 			// submit the form
 			$.ajax({
@@ -1847,16 +1867,30 @@ function download_file(data, type) {
 
 function reset_graph_history() {
 	var table = eventGraph.menu_history.items["table_graph_history_actiontable"];
-	dataHandler.fetch_graph_history(function(history_formatted) {
+	dataHandler.fetch_graph_history(function(history_formatted, network_previews) {
 		table.set_table_data(history_formatted);
 		for(var i=0; i<history_formatted.length; i++) {
 			var history = history_formatted[i];
 			var cur_email = history[2];
+			var tr = eventGraph.menu_history.items.table_graph_history_actiontable.get_DOM_row(i);
 			if (!(cur_email == user_email || is_siteadmin)) {
 				// disable delete button
-				var tr = eventGraph.menu_history.items.table_graph_history_actiontable.get_DOM_row(i);
 				var btn_del = $(tr).find('.btn-danger');
 				btn_del.prop('disabled', true);
+			}
+			// set tooltip preview
+			var preview = network_previews[i];
+			if (typeof preview == 'string') {
+				var btn_plot = $(tr).find('.btn-success');
+				btn_plot.data('network-preview', preview);
+				btn_plot.popover({
+					container: 'body',
+					content: function() { return '<img src="' + $(this).data('network-preview') + '" />'; },
+					placement: 'right',
+					trigger: 'hover',
+					template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content" style="width: 500px; height: 150px;"></div></div>',
+					html: true,
+				});
 			}
 		}
 	});
