@@ -79,7 +79,10 @@ adduser misp sudo
 sudo apt-get update
 sudo apt-get -y dist-upgrade
 
-# Optional Network Interface Name salvage
+# Network Interface Name salvage (optional)
+
+This will bring back 'ethX' e.g: eth0
+
 ```
 GRUB_CMDLINE_LINUX="net.ifnames=0 biosdevname=0"
 DEFAULT_GRUB=/etc/default/grub
@@ -125,7 +128,7 @@ sudo apt-get install -y libapache2-mod-php7.0 php7.0 php7.0-cli php7.0-dev php7.
 sudo pear channel-update pear.php.net
 sudo pear install Crypt_GPG
 
-# Optional, switch to python3 by default
+# Switch to python3 by default (optional)
 
 sudo update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1
 sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.5 2
@@ -346,7 +349,7 @@ sudo $PATH_TO_MISP/app/Console/cake Live $MISP_LIVE
 # e.g. https://pythontips.com/2013/07/28/generating-a-random-string/
 
 # Change base url
-sudo /var/www/MISP/app/Console/cake Baseurl ""
+sudo /var/www/MISP/app/Console/cake Baseurl $MISP_BASEURL
 
 # example: 'baseurl' => 'https://<your.FQDN.here>',
 # alternatively, you can leave this field empty if you would like to use relative pathing in MISP
@@ -377,7 +380,7 @@ sudo -u www-data gpg --homedir $PATH_TO_MISP/.gnupg --batch --gen-key /tmp/gen-k
 # The email address should match the one set in the config.php / set in the configuration menu in the administration menu configuration file
 
 # And export the public key to the webroot
-sudo -u www-data sh -c "gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR-KEYS-EMAIL-HERE > /var/www/MISP/app/webroot/gpg.asc"
+sudo -u www-data sh -c "gpg --homedir /var/www/MISP/.gnupg --export --armor $GPG_EMAIL_ADDRESS > /var/www/MISP/app/webroot/gpg.asc"
 
 # To make the background workers start on boot
 sudo chmod +x /var/www/MISP/app/Console/worker/start.sh
@@ -473,8 +476,6 @@ sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Security.password_policy_l
 # Set MISP Live
 sudo /var/www/MISP/app/Console/cake Live 1
 
-AUTH_KEY=$(mysql -u misp -pPassword1234 misp -e "SELECT authkey FROM users;" | tail -1)
-
 # Update the galaxies…
 sudo $PATH_TO_MISP/app/Console/cake Admin updateGalaxies
 
@@ -548,34 +549,16 @@ Optional features
 # MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following commands
 
 # ZeroMQ depends on the Python client for Redis
-sudo pip install redis
+sudo pip3 install redis
 
 # Debian has an ancient version of ZeroMQ, so manually install a current version
 
 ## Install ZeroMQ and prerequisites
 sudo apt-get install pkg-config
 cd /usr/local/src/
-sudo git clone git://github.com/jedisct1/libsodium.git
-cd libsodium
-sudo ./autogen.sh
-sudo ./configure
-sudo make check
-sudo make
-sudo make install
-sudo ldconfig
-cd /usr/local/src/
-sudo wget https://archive.org/download/zeromq_4.1.5/zeromq-4.1.5.tar.gz
-sudo tar -xvf zeromq-4.1.5.tar.gz
-cd zeromq-4.1.5/
-sudo ./autogen.sh
-sudo ./configure
-sudo make check
-sudo make
-sudo make install
-sudo ldconfig
 
 ## install pyzmq
-sudo pip install pyzmq
+sudo pip3 install pyzmq
 
 
 MISP Dashboard
@@ -584,7 +567,7 @@ MISP Dashboard
 cd /var/www
 sudo mkdir misp-dashboard
 sudo chown www-data:www-data misp-dashboard
-sudo -u www-data git clone https://github.com/SteveClement/misp-dashboard.git
+sudo -u www-data git clone https://github.com/MISP/misp-dashboard.git
 cd misp-dashboard
 sudo /var/www/misp-dashboard/install_dependencies.sh
 sudo sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/config/config.cfg
