@@ -495,9 +495,9 @@ class EventGraph {
 				if (selected_value == 'json') {
 					var jsonData = eventGraph.toJSON();
 					download_file(jsonData, 'json');
-				} else if (selected_value == 'png') {
-					var dataURL = eventGraph.canvasContext.canvas.toDataURL();
-					download_file(dataURL, 'png');
+				} else if (selected_value == 'png' || selected_value == 'jpeg') {
+					var dataURL = eventGraph.canvasContext.canvas.toDataURL('image/'+selected_value);
+					download_file(dataURL, selected_value);
 				} else if (selected_value == 'DOT Language') {
 					var hiddenNodeIds = [];
 					eventGraph.hiddenNode.forEach(function(node) {
@@ -518,7 +518,7 @@ class EventGraph {
 					download_file(dotData, 'dot');
 				}
 			},
-			options: ["json", "png", "DOT Language"],
+			options: ["json", "png", "jpeg", "DOT Language"],
 			default: "json"
 		});
 		return menu_import;
@@ -1844,9 +1844,9 @@ function download_file(data, type) {
 		dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(data);
 		filename +=  '.json';
 
-	} else if (type == 'png') {
+	} else if (type == 'png' || type == 'jpeg') {
 		dataUri = data;
-		filename +=  '.png';
+		filename +=  type;
 	} else if (type == 'dot') {
 		dataUri = 'data:text/x-graphviz;charset=utf-8,' + encodeURIComponent(data);
 		filename +=  '.dot';
