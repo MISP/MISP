@@ -62,7 +62,7 @@
 	<?php echo __('Administrators can add, edit or delete blacklisted items by using the appropriate functions in the list\'s action menu and the menu on the left.');?><br />
 	<hr />
 	<h2><a id="regexp"></a><?php echo __('Import Regexp');?></h2>
-	<?php echo __('The system allows administrators to set up rules for regular expressions that will automatically alter newly entered or imported events (from GFI Sandbox).');?><br />
+	<?php echo __('The system allows administrators to set up rules for regular expressions that will automatically alter newly entered or imported events.');?><br />
 	<h3><?php echo __('The purpose of Import Regexp entries');?></h3>
 	<?php echo __('They can be used for several things, such as unifying the capitalisation of file paths for more accurate event correlation or to automatically censor the usernames and use system path variable names (changing C:\Users\UserName\Appdata\Roaming\file.exe to %APPDATA%\file.exe).<br />
 		The second use is blocking, if a regular expression is entered with a blank replacement, any event info or attribute value containing the expression will not be added. Please make sure the entered regexp expression follows the preg_replace pattern rules as described <a href="http://php.net/manual/en/function.preg-replace.php">here</a>.');?><br />

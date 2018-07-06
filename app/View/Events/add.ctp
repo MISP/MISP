@@ -67,13 +67,6 @@
 				));
 		?>
 			<div id="extended_event_preview" style="width:446px;"></div>
-		<?php
-		echo $this->Form->input('Event.submittedgfi', array(
-				'label' => '<b>GFI sandbox</b>',
-				'type' => 'file',
-				'div' => 'clear'
-				));
-		?>
 	</fieldset>
 <?php
 echo $this->Form->button(__('Add'), array('class' => 'btn btn-primary'));
