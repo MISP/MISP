@@ -1440,7 +1440,6 @@ class Event extends AppModel {
 			'sharing_group_id',
 			'disableSiteAdmin',
 			'metadata',
-			'includeGalaxy',
 			'enforceWarninglist',
 			'sgReferenceOnly',
 			'flatten',
@@ -3270,7 +3269,7 @@ class Event extends AppModel {
 	}
 
 	public function stix2($id, $user) {
-		$event = $this->fetchEvent($user, array('eventid' => $id));
+		$event = $this->fetchEvent($user, array('eventid' => $id, 'includeAttachments' => 1));
 		App::uses('JSONConverterTool', 'Tools');
 		$converter = new JSONConverterTool();
 		$event = $converter->convert($event[0]);
