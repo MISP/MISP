@@ -17,21 +17,21 @@ class ActionTable {
 		this.header_action_button = options.header_action_button === undefined ? {} : options.header_action_button;
 		if (options.header_action_button !== undefined) {
 			this.header_action_button_style = this.header_action_button.style === undefined ? {} : this.header_action_button.style;
-			this.additionEnabled = this.header_action_button.additionEnabled === undefined ? false : this.header_action_button.additionEnabled;
+			this.additionEnabled = this.header_action_button.additionEnabled === undefined ? true : this.header_action_button.additionEnabled;
 			this.additionButtonDisabled = this.header_action_button.disabled === undefined ? false : this.header_action_button.disabled;
 		} else {
 			this.header_action_button_style = {};
-			this.additionEnabled = false;
+			this.additionEnabled = true;
 			this.additionButtonDisabled = false;
 		}
 
 		this.row_action_button = options.row_action_button === undefined ? {} : options.row_action_button;
-		if (options.row_action_button === undefined) {
+		if (options.row_action_button !== undefined) {
 			this.row_action_button_style = this.row_action_button.style === undefined ? {} : this.row_action_button.style;
-			this.removalEnabled = this.row_action_button.removalEnabled === undefined ? false : this.header_action_button.removalEnabled;
+			this.removalEnabled = this.row_action_button.removalEnabled === undefined ? true : this.row_action_button.removalEnabled;
 		} else {
 			this.row_action_button_style = {};
-			this.additionEnabled = false;
+			this.removalEnabled = true;
 		}
 
 		this.selects = {};
@@ -52,7 +52,15 @@ class ActionTable {
 		}
 	}
 
-	delete_row(row_pos) {
+	delete_row(row_id) {
+		var tr = document.getElementById(row_id);
+		var array = this.__get_array_from_DOM_row(tr);
+		var data_index = this.__find_array_index(array, this.data);
+		tr.outerHTML = "";
+		this.data.splice(data_index, 1);
+	}
+
+	delete_row_index(row_pos) {
 		var tr = this.get_DOM_row(row_pos);
 		var array = this.__get_array_from_DOM_row(tr);
 		var data_index = this.__find_array_index(array, this.data);
@@ -73,7 +81,7 @@ class ActionTable {
 	clear_table() {
 		var dataLength = this.data.length;
 		for (var i=0; i<dataLength; i++) {
-			this.delete_row(i);
+			this.delete_row_index(i);
 		}
 	}
 
