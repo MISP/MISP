@@ -3025,7 +3025,7 @@ class Attribute extends AppModel {
 	public function advancedAddMalwareSample($event_id, $attribute_settings, $filename, $tmpfile) {
 		$execRetval = '';
 		$execOutput = array();
-		$result = shell_exec('python ' . APP . 'files/scripts/generate_file_objects.py -p ' . $tmpfile->path);
+		$result = shell_exec('python3 ' . APP . 'files/scripts/generate_file_objects.py -p ' . $tmpfile->path);
 		if (!empty($result)) {
 			$result = json_decode($result, true);
 			if (isset($result['objects'])) {
