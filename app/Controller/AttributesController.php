@@ -73,7 +73,6 @@ class AttributesController extends AppController {
 		if ($this->_isRest()) {
 			return $this->RestResponse->viewData($attributes, $this->response->type());
 		}
-		$attributes = $this->paginate();
 		$org_ids = array();
 		$tag_ids = array();
 		foreach ($attributes as $k => $attribute) {
