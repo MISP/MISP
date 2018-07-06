@@ -26,7 +26,6 @@ class EventGraphController extends AppController {
 		if (!is_numeric($event_id)) {
 			throw new NotFoundException(__('Invalid event'));
 		}
-
 		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $event_id));
 		if (empty($event)) throw new NotFoundException('Invalid event');
 
@@ -55,14 +54,13 @@ class EventGraphController extends AppController {
 		if ($this->request->is('get') && $this->_isRest()) {
 			return $this->RestResponse->describe('EventGraph', 'add', false, $this->response->type());
 		} else if ($this->request->is('get')) { // retreive form
-			//throw new MethodNotAllowedException(__('Invalid method.'));
 			$formURL = 'eventGraph_add_form';
 
 			if (!$this->_isSiteAdmin()) {
 				if ($this->userRole['perm_modify'] || $this->userRole['perm_modify_org']) {
 					// Allow the edit
 				} else {
-					throw new NotFoundException(__('Invalid eventGraph'));
+					throw new NotFoundException(__('Invalid event'));
 				}
 			}
 
@@ -127,12 +125,6 @@ class EventGraphController extends AppController {
 	public function delete($id) {
 		if (!$this->request->is('post')) {
 			$this->set('id', $id);
-			$conditions = array('id' => $id);
-			$eventGraph = $this->EventGraph->find('first', array(
-					'conditions' => $conditions,
-					'recursive' => -1,
-					'fields' => array('id', 'event_id'),
-			));
 			$this->render('ajax/eventGraph_delete_form');
 		} else {
 			$this->set('id', $id);
@@ -145,7 +137,7 @@ class EventGraphController extends AppController {
 			if (empty($eventGraph)) throw new NotFoundException('Invalid EventGraph');
 			if ($this->request->is('ajax')) {
 				if ($this->request->is('post')) {
-					// only creator can delete its network
+					// only creator (or siteAdmin) can delete the eventGraph
 					if (($eventGraph['EventGraph']['user_id'] != $this->Auth->user()['id']) && !$this->_isSiteAdmin()) throw new MethodNotAllowedException('This eventGraph does not belong to you.');
 					$result = $this->EventGraph->delete($id);
 					if ($result) {
