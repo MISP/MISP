@@ -9,8 +9,7 @@ Maintained and tested by @SteveClement on 20180705
 Some configurables used below:
 
 ```
-# MISP configuration
-SALT_MISP="$(openssl rand -hex 32)"
+# MISP configuration variables
 
 # Database configuration
 DBHOST='localhost'
@@ -50,17 +49,6 @@ memory_limit=512M
 PHP_INI=/etc/php/7.0/apache2/php.ini
 ```
 
-# Important! Change the salt key in /var/www/MISP/app/Config/config.php
-# The salt key must be a string at least 32 bytes long.
-# The admin user account will be generated on the first login, make sure that
-the salt is changed before you create that user
-# If you forget to do this step, and you are still dealing with a fresh
-installation, just alter the salt,
-# delete the user from mysql and log in again using the default admin
-  credentials (admin@admin.test / admin)
-# e.g. https://pythontips.com/2013/07/28/generating-a-random-string/
-
-
 1/ Minimal Debian install
 -------------------------
 
@@ -69,15 +57,15 @@ installation, just alter the salt,
 - Web server, apache FTW!
 - This guide assumes a user name of 'misp'
 
-# install sudo and etckeeper
+# install etckeeper (optional)
 su -
 apt install etckeeper
 apt install sudo
 adduser misp sudo
 
 # Make sure your system is up2date:
-sudo apt-get update
-sudo apt-get -y dist-upgrade
+sudo apt update
+sudo apt -y dist-upgrade
 
 # Network Interface Name salvage (optional)
 
@@ -94,7 +82,7 @@ sudo grub-mkconfig -o /boot/grub/grub.cfg
 ```
 
 # install postfix, there will be some questions.
-sudo apt-get install -y postfix
+sudo apt install -y postfix
 # Postfix Configuration: Satellite system
 # change the relay server later with:
 sudo postconf -e 'relayhost = example.com'
@@ -124,7 +112,7 @@ sudo a2enmod ssl rewrite
 sudo a2dissite 000-default
 sudo a2ensite default-ssl
 
-# Install PHP and dependencies
+# Install PHP external dependencies
 sudo pear channel-update pear.php.net
 sudo pear install Crypt_GPG
 
@@ -315,8 +303,7 @@ sudo -u www-data cp -a /var/www/MISP/app/Config/core.default.php /var/www/MISP/a
 sudo -u www-data cp -a /var/www/MISP/app/Config/config.default.php /var/www/MISP/app/Config/config.php
 
 
-sudo -u www-data cat > $PATH_TO_MISP/app/Config/database.php <<EOF
-<?php
+echo "<?php
 class DATABASE_CONFIG {
         public \$default = array(
                 'datasource' => 'Database/Mysql',
@@ -331,23 +318,16 @@ class DATABASE_CONFIG {
                 'prefix' => '',
                 'encoding' => 'utf8',
         );
-}
-EOF
+}" | sudo -u www-data tee $PATH_TO_MISP/app/Config/database.php
+
 # and make sure the file permissions are still OK
 sudo chown -R www-data:www-data $PATH_TO_MISP/app/Config
 sudo chmod -R 750 $PATH_TO_MISP/app/Config
 # Set some MISP directives with the command line tool
 sudo $PATH_TO_MISP/app/Console/cake Live $MISP_LIVE
 
-# Important! Change the salt key in /var/www/MISP/app/Config/config.php
-# The salt key must be a string at least 32 bytes long.
-# The admin user account will be generated on the first login, make sure that the salt is changed before you create that user
-# If you forget to do this step, and you are still dealing with a fresh installation, just alter the salt,
-# delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
-# e.g. https://pythontips.com/2013/07/28/generating-a-random-string/
-
 # Change base url
-sudo /var/www/MISP/app/Console/cake Baseurl $MISP_BASEURL
+sudo $PATH_TO_MISP/app/Console/cake Baseurl $MISP_BASEURL
 
 # example: 'baseurl' => 'https://<your.FQDN.here>',
 # alternatively, you can leave this field empty if you would like to use relative pathing in MISP
@@ -378,7 +358,7 @@ sudo -u www-data gpg --homedir $PATH_TO_MISP/.gnupg --batch --gen-key /tmp/gen-k
 # The email address should match the one set in the config.php / set in the configuration menu in the administration menu configuration file
 
 # And export the public key to the webroot
-sudo -u www-data sh -c "gpg --homedir /var/www/MISP/.gnupg --export --armor $GPG_EMAIL_ADDRESS > /var/www/MISP/app/webroot/gpg.asc"
+sudo -u www-data sh -c "gpg --homedir $PATH_TO_MISP/.gnupg --export --armor $GPG_EMAIL_ADDRESS > $PATH_TO_MISP/MISP/app/webroot/gpg.asc"
 
 # To make the background workers start on boot
 sudo chmod +x /var/www/MISP/app/Console/worker/start.sh
@@ -570,8 +550,7 @@ sudo sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/c
 sudo sed -i -e '$i \sudo -u www-data bash /var/www/misp-dashboard/start_all.sh\n' /etc/rc.local
 sudo apt install libapache2-mod-wsgi-py3
 
-sudo cat > /etc/apache2/sites-available/misp-dashboard.conf <<EOF
-<VirtualHost *:8001>
+echo "<VirtualHost *:8001>
     ServerAdmin admin@misp.local
     ServerName misp.local
     DocumentRoot /var/www/misp-dashboard
@@ -607,8 +586,7 @@ sudo cat > /etc/apache2/sites-available/misp-dashboard.conf <<EOF
     ErrorLog /var/log/apache2/misp-dashboard.local_error.log
     CustomLog /var/log/apache2/misp-dashboard.local_access.log combined
     ServerSignature Off
-</VirtualHost>
-EOF
+</VirtualHost>" | sudo tee /etc/apache2/sites-available/misp-dashboard.conf
 
 sudo a2ensite misp-dashboard
 
