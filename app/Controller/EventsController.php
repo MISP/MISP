@@ -1394,103 +1394,89 @@ class EventsController extends AppController {
 				$this->request->data['Event']['user_id'] = $this->Auth->user('id');
 			}
 			if (!empty($this->data)) {
-				$ext = '';
-				if (isset($this->data['Event']['submittedgfi'])) {
-					App::uses('File', 'Utility');
-					$file = new File($this->data['Event']['submittedgfi']['name']);
-					$ext = $file->ext();
+				if (!isset($this->request->data['Event']['distribution'])) {
+					$this->request->data['Event']['distribution'] = Configure::read('MISP.default_event_distribution') ? Configure::read('MISP.default_event_distribution') : 0;
 				}
-				if (isset($this->data['Event']['submittedgfi']) && ($ext != 'zip') && $this->data['Event']['submittedgfi']['size'] > 0 &&
-						is_uploaded_file($this->data['Event']['submittedgfi']['tmp_name'])) {
-					$this->Flash->error(__('You may only upload GFI Sandbox zip files.'));
-				} else {
-					if (!isset($this->request->data['Event']['distribution'])) {
-						$this->request->data['Event']['distribution'] = Configure::read('MISP.default_event_distribution') ? Configure::read('MISP.default_event_distribution') : 0;
-					}
-					if (!isset($this->request->data['Event']['analysis'])) {
-						$this->request->data['Event']['analysis'] = 0;
-					}
-					if (!isset($this->request->data['Event']['threat_level_id'])) {
-						$this->request->data['Event']['threat_level_id'] = Configure::read('MISP.default_event_threat_level') ? Configure::read('MISP.default_event_threat_level') : 4;
-					}
-					if (!isset($this->request->data['Event']['date'])) {
-						$this->request->data['Event']['date'] = date('Y-m-d');
-					}
-					// If the distribution is set to sharing group, check if the id provided is really visible to the user, if not throw an error.
-					if ($this->request->data['Event']['distribution'] == 4) {
-						if ($this->userRole['perm_sync'] && $this->_isRest()) {
-							if (isset($this->request->data['Event']['SharingGroup'])) {
-								if (!isset($this->request->data['Event']['SharingGroup']['uuid'])) {
-									if ($this->Event->SharingGroup->checkIfExists($this->request->data['Event']['SharingGroup']['uuid']) &&
-										$this->Event->SharingGroup->checkIfAuthorised($this->Auth->user(), $this->request->data['Event']['SharingGroup']['uuid'])) {
-											throw new MethodNotAllowedException('Invalid Sharing Group or not authorised (Sync user is not contained in the Sharing group).');
-									}
+				if (!isset($this->request->data['Event']['analysis'])) {
+					$this->request->data['Event']['analysis'] = 0;
+				}
+				if (!isset($this->request->data['Event']['threat_level_id'])) {
+					$this->request->data['Event']['threat_level_id'] = Configure::read('MISP.default_event_threat_level') ? Configure::read('MISP.default_event_threat_level') : 4;
+				}
+				if (!isset($this->request->data['Event']['date'])) {
+					$this->request->data['Event']['date'] = date('Y-m-d');
+				}
+				// If the distribution is set to sharing group, check if the id provided is really visible to the user, if not throw an error.
+				if ($this->request->data['Event']['distribution'] == 4) {
+					if ($this->userRole['perm_sync'] && $this->_isRest()) {
+						if (isset($this->request->data['Event']['SharingGroup'])) {
+							if (!isset($this->request->data['Event']['SharingGroup']['uuid'])) {
+								if ($this->Event->SharingGroup->checkIfExists($this->request->data['Event']['SharingGroup']['uuid']) &&
+									$this->Event->SharingGroup->checkIfAuthorised($this->Auth->user(), $this->request->data['Event']['SharingGroup']['uuid'])) {
+										throw new MethodNotAllowedException('Invalid Sharing Group or not authorised (Sync user is not contained in the Sharing group).');
 								}
-							} else if (!isset($sgs[$this->request->data['Event']['sharing_group_id']])) {
-								throw new MethodNotAllowedException('Invalid Sharing Group or not authorised.');
 							}
-						} else {
-							if (!isset($sgs[$this->request->data['Event']['sharing_group_id']])) throw new MethodNotAllowedException('Invalid Sharing Group or not authorised.');
+						} else if (!isset($sgs[$this->request->data['Event']['sharing_group_id']])) {
+							throw new MethodNotAllowedException('Invalid Sharing Group or not authorised.');
 						}
 					} else {
-						// If the distribution is set to something "traditional", set the SG id to 0.
-						$this->request->data['Event']['sharing_group_id'] = 0;
+						if (!isset($sgs[$this->request->data['Event']['sharing_group_id']])) throw new MethodNotAllowedException('Invalid Sharing Group or not authorised.');
 					}
-					// If we are not sync users / site admins, we only allow events to be created for our own org
-					// Set the orgc ID as our own orgc ID and unset both the 2.4 and 2.3 style creator orgs
-					if ($this->_isRest() && !$this->userRole['perm_sync']) {
-						$this->request->data['Event']['orgc_id'] = $this->Auth->user('org_id');
-						if (isset($this->request->data['Event']['Orgc'])) {
-							unset($this->request->data['Event']['Orgc']);
-						}
-						if (isset($this->request->data['Event']['orgc'])) {
-							unset($this->request->data['Event']['orgc']);
-						}
+				} else {
+					// If the distribution is set to something "traditional", set the SG id to 0.
+					$this->request->data['Event']['sharing_group_id'] = 0;
+				}
+				// If we are not sync users / site admins, we only allow events to be created for our own org
+				// Set the orgc ID as our own orgc ID and unset both the 2.4 and 2.3 style creator orgs
+				if ($this->_isRest() && !$this->userRole['perm_sync']) {
+					$this->request->data['Event']['orgc_id'] = $this->Auth->user('org_id');
+					if (isset($this->request->data['Event']['Orgc'])) {
+						unset($this->request->data['Event']['Orgc']);
 					}
-					$validationErrors = array();
-					$created_id = 0;
-					$add = $this->Event->_add($this->request->data, $this->_isRest(), $this->Auth->user(), '', null, false, null, $created_id, $validationErrors);
-					if ($add === true && !is_numeric($add)) {
-						if ($this->_isRest()) {
-							if ($add === 'blocked') {
-								throw new ForbiddenException('Event blocked by local blacklist.');
-							}
-							// REST users want to see the newly created event
-							$results = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $created_id));
-							$event = $results[0];
-							if (!empty($validationErrors)) {
-								$event['errors'] = $validationErrors;
-							}
-							$this->set('event', $event);
-							$this->render('view');
-							return true;
-						} else {
-							// TODO now save uploaded attributes using $this->Event->getID() ..
-							if (isset($this->data['Event']['submittedgfi'])) $this->_addGfiZip($this->Event->getID());
-
-							// redirect to the view of the newly created event
-							$this->Flash->success(__('The event has been saved'));
-							$this->redirect(array('action' => 'view', $this->Event->getID()));
+					if (isset($this->request->data['Event']['orgc'])) {
+						unset($this->request->data['Event']['orgc']);
+					}
+				}
+				$validationErrors = array();
+				$created_id = 0;
+				$add = $this->Event->_add($this->request->data, $this->_isRest(), $this->Auth->user(), '', null, false, null, $created_id, $validationErrors);
+				if ($add === true && !is_numeric($add)) {
+					if ($this->_isRest()) {
+						if ($add === 'blocked') {
+							throw new ForbiddenException('Event blocked by local blacklist.');
 						}
+						// REST users want to see the newly created event
+						$results = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $created_id));
+						$event = $results[0];
+						if (!empty($validationErrors)) {
+							$event['errors'] = $validationErrors;
+						}
+						$this->set('event', $event);
+						$this->render('view');
+						return true;
 					} else {
-						if ($this->_isRest()) { // TODO return error if REST
-							if (is_numeric($add)) {
-								$this->response->header('Location', Configure::read('MISP.baseurl') . '/events/' . $add);
-								$this->response->send();
-								throw new NotFoundException('Event already exists, if you would like to edit it, use the url in the location header.');
-							}
-							$this->set('name', 'Add event failed.');
-							$this->set('message', 'The event could not be saved.');
-							$this->set('errors', $validationErrors);
-							$this->set('url', '/events/add');
-							$this->set('_serialize', array('name', 'message', 'url', 'errors'));
-							return false;
+						// redirect to the view of the newly created event
+						$this->Flash->success(__('The event has been saved'));
+						$this->redirect(array('action' => 'view', $this->Event->getID()));
+					}
+				} else {
+					if ($this->_isRest()) { // TODO return error if REST
+						if (is_numeric($add)) {
+							$this->response->header('Location', Configure::read('MISP.baseurl') . '/events/' . $add);
+							$this->response->send();
+							throw new NotFoundException('Event already exists, if you would like to edit it, use the url in the location header.');
+						}
+						$this->set('name', 'Add event failed.');
+						$this->set('message', 'The event could not be saved.');
+						$this->set('errors', $validationErrors);
+						$this->set('url', '/events/add');
+						$this->set('_serialize', array('name', 'message', 'url', 'errors'));
+						return false;
+					} else {
+						if ($add === 'blocked') {
+							$this->Flash->error('A blacklist entry is blocking you from creating any events. Please contact the administration team of this instance' . (Configure::read('MISP.contact') ? ' at ' . Configure::read('MISP.contact') : '') . '.');
 						} else {
-							if ($add === 'blocked') {
-								$this->Flash->error('A blacklist entry is blocking you from creating any events. Please contact the administration team of this instance' . (Configure::read('MISP.contact') ? ' at ' . Configure::read('MISP.contact') : '') . '.');
-							} else {
-								$this->Flash->error(__('The event could not be saved. Please, try again.'), 'default', array(), 'error');
-							}
+							$this->Flash->error(__('The event could not be saved. Please, try again.'), 'default', array(), 'error');
 						}
 					}
 				}
@@ -2601,47 +2587,6 @@ class EventsController extends AppController {
 		return $this->RestResponse->viewData($final, 'csv', false, true, $filename);
 	}
 
-	public function _addGfiZip($id) {
-		if (!empty($this->data) && $this->data['Event']['submittedgfi']['size'] > 0 &&
-				is_uploaded_file($this->data['Event']['submittedgfi']['tmp_name'])) {
-			App::uses('FileAccessTool', 'Tools');
-			$fileAccessTool = new FileAccessTool();
-			$zipData = $fileAccessTool->readFromFile($this->data['Event']['submittedgfi']['tmp_name'], $this->data['Event']['submittedgfi']['size']);
-
-			// write
-			$attachments_dir = Configure::read('MISP.attachments_dir');
-			if (empty($attachments_dir)) {
-				$this->loadModel('Server');
-				$attachments_dir = $this->Server->getDefaultAttachments_dir();
-			}
-			$rootDir = $attachments_dir . DS . "GFI" . DS . $id . DS;
-			App::uses('Folder', 'Utility');
-			$dir = new Folder($rootDir, true);
-			if (!$this->Event->checkFilename($this->data['Event']['submittedgfi']['name'])) {
-				throw new Exception ('Filename not allowed.');
-			}
-			$zipFile = new File($rootDir . $this->data['Event']['submittedgfi']['name']);
-			$result = $zipFile->write($zipData);
-			if (!$result) $this->Flash->error(__('Problem with writing the zip file. Please report to administrator.'));
-
-			// extract zip
-			$execRetval = '';
-			$execOutput = array();
-			exec("unzip " . $zipFile->path . ' -d ' . $rootDir, $execOutput, $execRetval);
-			if ($execRetval != 0) {	// not EXIT_SUCCESS
-				throw new Exception('An error has occured while attempting to unzip the GFI sandbox .zip file. We apologise for the inconvenience.');
-			}
-
-			// open the xml
-			$xmlFileName = 'analysis.xml';
-			$xmlFilePath = $rootDir . DS . 'Analysis' . DS . $xmlFileName;
-			$xmlFileData = $fileAccessTool->readFromFile($xmlFilePath);
-
-			// read XML
-			$this->_readGfiXML($xmlFileData, $id);
-		}
-	}
-
 	public function _addIOCFile($id) {
 		if (!empty($this->data) && $this->data['Event']['submittedioc']['size'] > 0 &&
 				is_uploaded_file($this->data['Event']['submittedioc']['tmp_name'])) {
@@ -2792,176 +2737,6 @@ class EventsController extends AppController {
 			$results = array(0 => array('info' => $temp['Event']['info'], 'result' => $result, 'id' => $created_id, 'validationIssues' => $validationIssues));
 		}
 		return $results;
-	}
-
-	public function _readGfiXML($data, $id) {
-		$this->loadModel('Attribute');
-		$this->Event->recursive = -1;
-		$this->Event->read(array('id', 'uuid', 'distribution'), $id);
-
-		// import XML class
-		App::uses('Xml', 'Utility');
-		// now parse it
-		try {
-			$parsedXml = Xml::build($data, array('return' => 'simplexml'));
-		} catch (Exception $e) {
-			$this->Flash->error('Invalid GFI archive.');
-			$this->redirect(array('controller' => 'events', 'action' => 'view', $id));
-		}
-
-		// xpath..
-		if (Configure::read('MISP.default_attribute_distribution') != null) {
-			if (Configure::read('MISP.default_attribute_distribution') === 'event') {
-				$dist = $this->Event->data['Event']['distribution'];
-			} else {
-				$dist = '';
-				$dist .= Configure::read('MISP.default_attribute_distribution');
-			}
-		} else {
-			throw new Exception('Couldn\'t read "MISP.default_attribute_distribution".');
-		}
-
-		// Payload delivery -- malware-sample
-		$realFileName = '';
-		$results = $parsedXml->xpath('/analysis');
-		foreach ($results as $result) {
-			foreach ($result[0]->attributes() as $key => $val) {
-				if ((string)$key == 'filename') $realFileName = (string)$val;
-			}
-		}
-		$attachments_dir = Configure::read('MISP.attachments_dir');
-		if (empty($attachments_dir)) {
-			$this->loadModel('Server');
-			$attachments_dir = $this->Server->getDefaultAttachments_dir();
-		}
-		$rootDir = $attachments_dir . DS . $id . DS;
-		$malware = $rootDir . DS . 'sample';
-		$this->Event->Attribute->uploadAttachment($malware,	$realFileName,	true, $id, null, '', $this->Event->data['Event']['uuid'] . '-sample', $dist, true);
-
-		// Network activity -- .pcap
-		$realFileName = 'analysis.pcap';
-		$rootDir = $attachments_dir . DS . $id . DS;
-		$malware = $rootDir . DS . 'Analysis' . DS . 'analysis.pcap';
-		$this->Event->Attribute->uploadAttachment($malware,	$realFileName,	false, $id, 'Network activity', '', $this->Event->data['Event']['uuid'] . '-analysis.pcap', $dist, true);
-
-		// Artifacts dropped -- filename|md5
-		$files = array();
-		// TODO what about stored_modified_file ??
-		$results = $parsedXml->xpath('/analysis/processes/process/stored_files/stored_created_file');
-		foreach ($results as $result) {
-			$arrayItemKey = '';
-			$arrayItemValue = '';
-			$arrayItemSize = 0;
-			foreach ($result[0]->attributes() as $key => $val) {
-				if ($key == 'filename') $arrayItemKey = (string)$val;
-				if ($key == 'md5') $arrayItemValue = (string)$val;
-				if ($key == 'filesize') $arrayItemSize = $val;
-			}
-			if ($arrayItemSize > 0) {
-				$files[] = array('key' => $arrayItemKey, 'val' => $arrayItemValue);
-			}
-		}
-		// write content..
-		$actualFileNameArray = array();
-		foreach ($files as $file) {
-			$keyName = $file['key'];
-
-			// the actual files..
-			// seek $val in dirs and add..
-			$ext = substr($file['key'], strrpos($file['key'], '.'));
-			$actualFileName = $file['val'] . $ext;
-			$actualFileNameBase = str_replace('\\', '/', $file['key']);
-			$actualFileNameArray[] = basename($actualFileNameBase);
-			$tempExplode = explode('\\', $file['key']);
-			$realFileName = end($tempExplode);
-			// have the filename, now look at parents parent for the process number
-			$express = "/analysis/processes/process/stored_files/stored_created_file[@md5='" . $file['val'] . "']/../..";
-			$results = $parsedXml->xpath($express);
-			foreach ($results as $result) {
-				foreach ($result[0]->attributes() as $key => $val) {
-					if ((string)$key == 'index') $index = (string)$val;
-				}
-			}
-			if (!isset($index) || !is_numeric($index)) {
-				throw new Exception('The GFI sandbox xml file seems to be malformed, at least one process with stored_files hasn\'t got a valid numeric index attribute.');
-			}
-			$actualFile = $rootDir . DS . 'Analysis' . DS . 'proc_' . $index . DS . 'modified_files' . DS . $actualFileName;
-			$extraPath = 'Analysis' . DS . 'proc_' . $index . DS . 'modified_files' . DS;
-			$file = new File($actualFile);
-			if ($file->exists()) { // TODO put in array for test later
-				$this->Event->Attribute->uploadAttachment($actualFile, $realFileName, true, $id, null, $extraPath, $keyName, $dist, true); // TODO was false
-			} else {
-			}
-		}
-
-		// Network activity -- ip-dst
-		$ips = array();
-		$hostnames = array();
-		$results = $parsedXml->xpath('/analysis/processes/process/networkpacket_section/connect_to_computer');
-		foreach ($results as $result) {
-			foreach ($result[0]->attributes() as $key => $val) {
-				if ($key == 'remote_ip') $ips[] = (string)$val;
-				if ($key == 'remote_hostname') $hostnames[] = (string)$val;
-			}
-		}
-		// write content..
-		// ip-s
-		foreach ($ips as $ip) {
-			// add attribute..
-			$this->Attribute->create();
-			$this->Attribute->save(array(
-					'event_id' => $id,
-					'category' => 'Network activity',
-					'type' => 'ip-dst',
-					'value' => $ip,
-					'to_ids' => false,
-					'distribution' => $dist,
-					'comment' => 'GFI import',
-					));
-		}
-		foreach ($hostnames as $hostname) {
-			// add attribute..
-			$this->Attribute->create();
-			$this->Attribute->save(array(
-					'event_id' => $id,
-					'category' => 'Network activity',
-					'type' => 'hostname',
-					'value' => $hostname,
-					'to_ids' => false,
-					'distribution' => $dist,
-					'comment' => 'GFI import',
-			));
-		}
-		// Persistence mechanism -- regkey|value
-		$regs = array();
-		$results = $parsedXml->xpath('/analysis/processes/process/registry_section/set_value');
-		foreach ($results as $result) {
-			$arrayItemKey = '';
-			$arrayItemValue = '';
-			foreach ($result[0]->attributes() as $key => $val) {
-				if ($key == 'key_name') $arrayItemKey = (string)$val;
-				if ($key == 'data') $arrayItemValue = (string)$val;
-			}
-			$regs[$arrayItemKey] = str_replace('(UNICODE_0x00000000)', '', $arrayItemValue);
-		}
-
-		// write content..
-		foreach ($regs as $key => $val) {
-			// add attribute..
-			$this->Attribute->create();
-
-			if ($this->__strposarray($val,$actualFileNameArray)) {
-				$this->Attribute->save(array(
-					'event_id' => $id,
-					'comment' => 'GFI import',
-					'category' => 'Persistence mechanism', // 'Persistence mechanism'
-					'type' => 'regkey|value',
-					'value' => $key . '|' . $val,
-					'distribution' => $dist,
-					'to_ids' => false
-				));
-			}
-		}
 	}
 
 	private function __strposarray($string, $array) {
