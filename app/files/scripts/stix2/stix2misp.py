@@ -91,7 +91,7 @@ class StixParser():
         self.objects_mapping = {'asn': {'observable': observable_asn, 'pattern': pattern_asn},
                                 'domain-ip': {'observable': observable_domain_ip, 'pattern': pattern_domain_ip},
                                 'email': {'observable': self.observable_email, 'pattern': self.pattern_email},
-                                'file': {'observable': observable_file, 'pattern': pattern_file},
+                                'file': {'observable': observable_file, 'pattern': self.pattern_file},
                                 'ip-port': {'observable': observable_ip_port, 'pattern': pattern_ip_port},
                                 'network-socket': {'observable': observable_socket, 'pattern': pattern_socket},
                                 'process': {'observable': observable_process, 'pattern': pattern_process},
@@ -347,6 +347,44 @@ class StixParser():
             _, _, attribute_type, relation = a_key.split('_')
             attributes.append({'type': attribute_type, 'object_relation': relation, 'to_ids': True,
                                'value': a_dict['value'], 'data': io.BytesIO(a_dict['data'].encode())})
+        return attributes
+
+    @staticmethod
+    def pattern_file(pattern):
+        attributes = []
+        malware_sample = {}
+        for p in pattern:
+            p_type, p_value = p.split(' = ')
+            if p_type == 'artifact:payload_bin':
+                malware_sample['data'] = p_value
+            elif p_type in ("file:name", "file:hashes.'md5'"):
+                try:
+                    mapping = file_mapping[p_type]
+                    attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                                       'value': p_value[1:-1], 'to_ids': True})
+                    malware_sample['filename'] = p_value[1:-1]
+                except KeyError:
+                    attributes.append({'type': 'md5', 'object_relation': 'md5',
+                                       'value': p_value[1:-1], 'to_ids': True})
+                    malware_sample['md5'] = p_value[1:-1]
+            elif 'file:hashes.' in p_type:
+                _, h = p_type.split('.')
+                h = h[1:-1]
+                attributes.append({'type': h, 'object_relation': h, 'value': p_value[1:-1]})
+            else:
+                try:
+                    mapping = file_mapping[p_type]
+                    attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                                       'value': p_value[1:-1], 'to_ids': True})
+                except KeyError:
+                    if "x_misp_" in  p_type:
+                        attribute_type, relation = p_type.split("x_misp_")[1][:-1].split("_")
+                        attributes.append({'type': attribute_type, 'object_relation': relation,
+                                           'value': p_value[1:-1], 'to_ids': True})
+        if 'data' in malware_sample:
+            value = "{}|{}".format(malware_sample['filename'], malware_sample['md5'])
+            attributes.append({'type': 'malware-sample', 'object_relation': 'malware-sample',
+                               'value': value, 'to_ids': True, 'data': io.BytesIO(malware_sample['data'].encode())})
         return attributes
 
     def observable_pe(self, observable):

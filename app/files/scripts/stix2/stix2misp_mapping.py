@@ -332,27 +332,22 @@ def pattern_domain_ip(pattern):
     return fill_pattern_attributes(pattern, domain_ip_mapping)
 
 def observable_file(observable):
-    attributes = []
-    observable = dict(observable['0'])
+    if len(observable) > 1:
+        data = dict(observable['0'])['payload_bin']
+        observable = dict(observable['1'])
+        filename = observable['name']
+        md5 = observable['hashes']['MD5']
+        attributes = [{'type': 'malware-sample', 'object_relation': 'malware-sample',
+                       'value': '{}|{}'.format(filename, md5), 'to_ids': False, 'data': data}]
+    else:
+        observable = dict(observable['0'])
+        attributes = []
     if 'hashes' in observable:
         for h_type, h_value in observable.pop('hashes').items():
             h_type = h_type.lower().replace('-', '')
-            attributes.append({'type': h_type, 'object_relation': h_type, 'value': h_value})
+            attributes.append({'type': h_type, 'object_relation': h_type,
+                               'value': h_value, 'to_ids': False})
     fill_observable_attributes(attributes, observable, file_mapping)
-    return attributes
-
-def pattern_file(pattern):
-    attributes = []
-    for p in pattern:
-        p_type, p_value = p.split(' = ')
-        if 'file:hashes.' in p:
-            _, h = p_type.split('.')
-            h = h[1:-1]
-            attributes.append({'type': h, 'object_relation': h, 'value': p_value[1:-1]})
-        else:
-            mapping = file_mapping[p_type]
-            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                               'value': p_value[1:-1]})
     return attributes
 
 def observable_ip_port(observable):
