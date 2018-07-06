@@ -42,7 +42,7 @@ class Server extends AppModel {
 	public $validate = array(
 		'url' => array( // TODO add extra validation to refuse multiple time the same url from the same org
 			'url' => array(
-				'rule' => array('valueIsUrl'),
+				'rule' => array('url'),
 				'message' => 'Please enter a valid base-url.'
 			)
 		),
@@ -104,10 +104,6 @@ class Server extends AppModel {
 			),
 		),
 	);
-
-	public function valueIsUrl($value) {
-		return true;
-	}
 
 	public $command_line_functions = array(
 		'console_admin_tasks' => array(
