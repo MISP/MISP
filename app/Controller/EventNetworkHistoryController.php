@@ -166,44 +166,4 @@ class EventNetworkHistoryController extends AppController {
 		}
 	}
 
-	public function fetchForm($action, $event_id, $id = null) {
-		$formURL = 'eventNetworkHistory_add_form';
-		if ($action == 'edit') {
-			$params = array(
-				'conditions' => array('EventNetworkHistory.id' => $id),
-				'flatten' => 1,
-			);
-			$networkHistory = $this->NetworkHistory->get($this->Auth->user(), $params);
-			if (empty($networkHistory)) throw new NotFoundException(__('Invalid network history'));
-			$networkHistory = $networkHistory[0];
-			$this->set('networkHistory', $networkHistory);
-			$formURL = 'eventNetworkHistory_add_form';
-		} else if ($action == 'delete') {
-			$params = array(
-				'conditions' => array('EventNetworkHistory.id' => $id),
-				'flatten' => 1,
-			);
-			//$networkHistory = $this->NetworkHistory->fetchNetworkHistory($this->Auth->user(), $params);
-			$networkHistory = $this->NetworkHistory->get($this->Auth->user(), $params);
-			if (empty($networkHistory)) throw new NotFoundException(__('Invalid network history'));
-			$networkHistory = $networkHistory[0];
-			$this->set('networkHistory', $networkHistory);
-			$formURL = 'eventNetworkHistory_delete_form';
-		}
-
-		if (!$this->_isSiteAdmin()) {
-			if ($networkHistory['org_id'] == $this->Auth->user('org_id')
-			&& (($this->userRole['perm_modify'] && $networkHistory['user_id'] != $this->Auth->user('id'))
-					|| $this->userRole['perm_modify_org'])) {
-				// Allow the edit
-			} else {
-				throw new NotFoundException(__('Invalid network history'));
-			}
-		}
-
-		$this->set('action', $action);
-		$this->set('event_id', $event_id);
-
-		$this->render('ajax/' . $formURL);
-	}
 }

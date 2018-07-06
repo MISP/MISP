@@ -609,7 +609,7 @@ class EventGraph {
 					btn_plot.data('network-preview', preview);
 					btn_plot.popover({
 						container: 'body',
-						content: function() { return '<img src="' + $(this).data('network-preview') + '" />'; },
+						content: function() { return '<img style="width: 500px; height: 150px;" src="' + $(this).data('network-preview') + '" />'; },
 						placement: 'right',
 						trigger: 'hover',
 						template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content" style="width: 500px; height: 150px;"></div></div>',
@@ -1876,7 +1876,7 @@ function reset_graph_history() {
 				btn_plot.data('network-preview', preview);
 				btn_plot.popover({
 					container: 'body',
-					content: function() { return '<img src="' + $(this).data('network-preview') + '" />'; },
+					content: function() { return '<img style="width: 500px; height: 150px;" src="' + $(this).data('network-preview') + '" />'; },
 					placement: 'right',
 					trigger: 'hover',
 					template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content" style="width: 500px; height: 150px;"></div></div>',
@@ -2065,6 +2065,9 @@ function enable_interactive_graph() {
 				if (evt.keyCode == 27) { // <ESC>
 					$('#network-typeahead').blur();
 				}
+				return;
+			}
+			if (evt.target !== undefined && $(evt.target).is('input')) {
 				return;
 			}
 			switch(evt.keyCode) {
