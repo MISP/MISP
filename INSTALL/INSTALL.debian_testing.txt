@@ -132,36 +132,36 @@ sudo systemctl restart apache2
 3/ MISP code
 ------------
 # Download MISP using git in the /var/www/ directory.
-sudo mkdir /var/www/MISP
-sudo chown www-data:www-data /var/www/MISP
-cd /var/www/MISP
-sudo -u www-data git clone https://github.com/MISP/MISP.git /var/www/MISP
+sudo mkdir $PATH_TO_MISP
+sudo chown www-data:www-data $PATH_TO_MISP
+cd $PATH_TO_MISP
+sudo -u www-data git clone https://github.com/MISP/MISP.git $PATH_TO_MISP
 
 # Make git ignore filesystem permission differences
 sudo -u www-data git config core.filemode false
 
-cd /var/www/MISP/app/files/scripts
+cd $PATH_TO_MISP/app/files/scripts
 sudo -u www-data git clone https://github.com/CybOXProject/python-cybox.git
 sudo -u www-data git clone https://github.com/STIXProject/python-stix.git
-cd /var/www/MISP/app/files/scripts/python-cybox
+cd $PATH_TO_MISP/app/files/scripts/python-cybox
 sudo pip3 install .
-cd /var/www/MISP/app/files/scripts/python-stix
+cd $PATH_TO_MISP/app/files/scripts/python-stix
 sudo pip3 install .
 
 # install mixbox to accomodate the new STIX dependencies:
-cd /var/www/MISP/app/files/scripts/
+cd $PATH_TO_MISP/app/files/scripts/
 sudo -u www-data git clone https://github.com/CybOXProject/mixbox.git
-cd /var/www/MISP/app/files/scripts/mixbox
+cd $PATH_TO_MISP/app/files/scripts/mixbox
 sudo pip3 install .
 
-cd /var/www/MISP
+cd $PATH_TO_MISP
 sudo -u www-data git submodule init
 sudo -u www-data git submodule update
 # Make git ignore filesystem permission differences for submodules
 sudo -u www-data git submodule foreach git config core.filemode false
 
 # install PyMISP
-cd /var/www/MISP/PyMISP
+cd $PATH_TO_MISP/PyMISP
 sudo pip3 install .
 
 4/ CakePHP
@@ -169,7 +169,7 @@ sudo pip3 install .
 # CakePHP is included as a submodule of MISP.
 
 # Install CakeResque along with its dependencies if you intend to use the built in background jobs:
-cd /var/www/MISP/app
+cd $PATH_TO_MISP/app
 # Make composer cache happy
 sudo mkdir /var/www/.composer ; sudo chown www-data:www-data /var/www/.composer
 sudo -u www-data php composer.phar require kamisama/cake-resque:4.1.2
@@ -180,18 +180,18 @@ sudo -u www-data php composer.phar install
 sudo phpenmod redis
 
 # To use the scheduler worker for scheduled tasks, do the following:
-sudo -u www-data cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResque/Config/config.php
+sudo -u www-data cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
 
 
 5/ Set the permissions
 ----------------------
 
 # Check if the permissions are set correctly using the following commands:
-sudo chown -R www-data:www-data /var/www/MISP
-sudo chmod -R 750 /var/www/MISP
-sudo chmod -R g+ws /var/www/MISP/app/tmp
-sudo chmod -R g+ws /var/www/MISP/app/files
-sudo chmod -R g+ws /var/www/MISP/app/files/scripts/tmp
+sudo chown -R www-data:www-data $PATH_TO_MISP
+sudo chmod -R 750 $PATH_TO_MISP
+sudo chmod -R g+ws $PATH_TO_MISP/app/tmp
+sudo chmod -R g+ws $PATH_TO_MISP/app/files
+sudo chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
 
 
 6/ Create a database and user
@@ -216,14 +216,14 @@ sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "flush privileges;"
 ```
 
 # Import the empty MISP database from MYSQL.sql
-sudo -u www-data cat /var/www/MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
+sudo -u www-data cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
 
 7/ Apache configuration
 -----------------------
-# Now configure your Apache webserver with the DocumentRoot /var/www/MISP/app/webroot/
+# Now configure your Apache webserver with the DocumentRoot $PATH_TO_MISP/app/webroot/
 
 # If the apache version is 2.4:
-sudo cp /var/www/MISP/INSTALL/apache.24.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
+sudo cp $PATH_TO_MISP/INSTALL/apache.24.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
 
 # Be aware that the configuration files for apache 2.4 and up have changed.
 # The configuration file has to have the .conf extension in the sites-available directory
@@ -252,8 +252,8 @@ sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
 <VirtualHost _default_:443>
         ServerAdmin admin@<your.FQDN.here>
         ServerName <your.FQDN.here>
-        DocumentRoot /var/www/MISP/app/webroot
-        <Directory /var/www/MISP/app/webroot>
+        DocumentRoot $PATH_TO_MISP/app/webroot
+        <Directory $PATH_TO_MISP/app/webroot>
                 Options -Indexes
                 AllowOverride all
                 Require all granted
@@ -292,18 +292,18 @@ sudo systemctl restart apache2
 
 8/ Log rotation
 ---------------
-# MISP saves the stdout and stderr of its workers in /var/www/MISP/app/tmp/logs
+# MISP saves the stdout and stderr of its workers in $PATH_TO_MISP/app/tmp/logs
 # To rotate these logs install the supplied logrotate script:
 
-sudo cp /var/www/MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
+sudo cp $PATH_TO_MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
 
 9/ MISP configuration
 ---------------------
-# There are 4 sample configuration files in /var/www/MISP/app/Config that need to be copied
-sudo -u www-data cp -a /var/www/MISP/app/Config/bootstrap.default.php /var/www/MISP/app/Config/bootstrap.php
-sudo -u www-data cp -a /var/www/MISP/app/Config/database.default.php /var/www/MISP/app/Config/database.php
-sudo -u www-data cp -a /var/www/MISP/app/Config/core.default.php /var/www/MISP/app/Config/core.php
-sudo -u www-data cp -a /var/www/MISP/app/Config/config.default.php /var/www/MISP/app/Config/config.php
+# There are 4 sample configuration files in $PATH_TO_MISP/app/Config that need to be copied
+sudo -u www-data cp -a $PATH_TO_MISP/app/Config/bootstrap.default.php $PATH_TO_MISP/app/Config/bootstrap.php
+sudo -u www-data cp -a $PATH_TO_MISP/app/Config/database.default.php $PATH_TO_MISP/app/Config/database.php
+sudo -u www-data cp -a $PATH_TO_MISP/app/Config/core.default.php $PATH_TO_MISP/app/Config/core.php
+sudo -u www-data cp -a $PATH_TO_MISP/app/Config/config.default.php $PATH_TO_MISP/app/Config/config.php
 
 
 echo "<?php
@@ -337,8 +337,8 @@ sudo $PATH_TO_MISP/app/Console/cake Baseurl $MISP_BASEURL
 # 'baseurl' => '',
 
 # and make sure the file permissions are still OK
-sudo chown -R www-data:www-data /var/www/MISP/app/Config
-sudo chmod -R 750 /var/www/MISP/app/Config
+sudo chown -R www-data:www-data $PATH_TO_MISP/app/Config
+sudo chmod -R 750 $PATH_TO_MISP/app/Config
 
 # Generate a GPG encryption key.
 
@@ -364,7 +364,7 @@ sudo -u www-data gpg --homedir $PATH_TO_MISP/.gnupg --batch --gen-key /tmp/gen-k
 sudo -u www-data sh -c "gpg --homedir $PATH_TO_MISP/.gnupg --export --armor $GPG_EMAIL_ADDRESS > $PATH_TO_MISP/MISP/app/webroot/gpg.asc"
 
 # To make the background workers start on boot
-sudo chmod +x /var/www/MISP/app/Console/worker/start.sh
+sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
 if [ ! -e /etc/rc.local ]
 then
     echo '#!/bin/sh -e' | sudo tee -a /etc/rc.local
@@ -373,7 +373,7 @@ then
 fi
 
 # Initialize user and fetch Auth Key
-sudo -E /var/www/MISP/app/Console/cake userInit -q
+sudo -E $PATH_TO_MISP/app/Console/cake userInit -q
 AUTH_KEY=$(mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM users;" | tail -1)
 
 # Setup some more MISP default via cake CLI
@@ -385,7 +385,7 @@ sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Session.cookie_timeout" 36
 
 # Enable GnuPG
 sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "GnuPG.email" "admin@admin.test"
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "GnuPG.homedir" "/var/www/MISP/.gnupg"
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "GnuPG.homedir" "$PATH_TO_MISP/.gnupg"
 sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "GnuPG.password" "Password1234"
 
 # Enable Enrichment set better timeouts
@@ -455,7 +455,7 @@ sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Security.password_policy_l
 # Don't forget to change the email, password and authentication key after installation.
 
 # Set MISP Live
-sudo /var/www/MISP/app/Console/cake Live 1
+sudo $PATH_TO_MISP/app/Console/cake Live $MISP_LIVE
 
 # Update the galaxies…
 sudo $PATH_TO_MISP/app/Console/cake Admin updateGalaxies
@@ -476,11 +476,11 @@ curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --h
 sudo sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
 sudo sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
 sudo sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
-sudo sed -i -e '$i \sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh\n' /etc/rc.local
+sudo sed -i -e '$i \sudo -u www-data bash $PATH_TO_MISP/app/Console/worker/start.sh\n' /etc/rc.local
 sudo sed -i -e '$i \sudo -u www-data misp-modules -l 0.0.0.0 -s &\n' /etc/rc.local
 
 # Start the workers
-sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh
+sudo -u www-data bash $PATH_TO_MISP/app/Console/worker/start.sh
 
 cd /usr/local/src/
 sudo git clone https://github.com/MISP/misp-modules.git
@@ -500,16 +500,16 @@ sudo gem install asciidoctor-pdf --pre
 # If any of the directories that MISP uses to store files is not writeable to the apache user, change the permissions
 # you can do this by running the following commands:
 
-sudo chmod -R 750 /var/www/MISP/<directory path with an indicated issue>
-sudo chown -R www-data:www-data /var/www/MISP/<directory path with an indicated issue>
+sudo chmod -R 750 $PATH_TO_MISP/<directory path with an indicated issue>
+sudo chown -R www-data:www-data $PATH_TO_MISP/<directory path with an indicated issue>
 
 # Make sure that the STIX libraries and GnuPG work as intended, if not, refer to INSTALL.txt's paragraphs dealing with these two items
 
 # If anything goes wrong, make sure that you check MISP's logs for errors:
-# /var/www/MISP/app/tmp/logs/error.log
-# /var/www/MISP/app/tmp/logs/resque-worker-error.log
-# /var/www/MISP/app/tmp/logs/resque-scheduler-error.log
-# /var/www/MISP/app/tmp/logs/resque-2015-01-01.log // where the actual date is the current date
+# $PATH_TO_MISP/app/tmp/logs/error.log
+# $PATH_TO_MISP/app/tmp/logs/resque-worker-error.log
+# $PATH_TO_MISP/app/tmp/logs/resque-scheduler-error.log
+# $PATH_TO_MISP/app/tmp/logs/resque-2015-01-01.log // where the actual date is the current date
 
 
 Recommended actions
@@ -595,14 +595,14 @@ sudo a2ensite misp-dashboard
 
 
 # Enable ZeroMQ for misp-dashboard
-sudo /var/www/MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" true
-sudo /var/www/MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" true
-sudo /var/www/MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_object_notifications_enable" true
-sudo /var/www/MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_object_reference_notifications_enable" true
-sudo /var/www/MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_attribute_notifications_enable" true
-sudo /var/www/MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_sighting_notifications_enable" true
-sudo /var/www/MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_user_notifications_enable" true
-sudo /var/www/MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_organisation_notifications_enable" true
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" true
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" true
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_object_notifications_enable" true
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_object_reference_notifications_enable" true
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_attribute_notifications_enable" true
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_sighting_notifications_enable" true
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_user_notifications_enable" true
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_organisation_notifications_enable" true
 
 
 Install viper framework
