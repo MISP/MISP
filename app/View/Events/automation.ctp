@@ -485,10 +485,10 @@
 	<b>searchDateuntil</b>: <?php echo __('Filters on the date, anything older than the given date in YYYY-MM-DD format is taken - non-negatable');?><br /></p>
 	<?php
 		foreach ($command_line_functions as $clusterRef => $cluster) {
-			echo sprintf('<a id="%s"></a><h3>%s</h3>', $clusterRef, __($cluster['header']));
-			echo sprintf('<p>%s:<br />', __($cluster['description']));
+			echo sprintf('<a id="%s"></a><h3>%s</h3>', $clusterRef, $cluster['header']);
+			echo sprintf('<p>%s:<br />', $cluster['description']);
 			foreach ($cluster['data'] as $commandName => $command) {
-				echo '<b>' . __(Inflector::humanize($commandName)) . '</b>: <code>' . $command . '</code><br />';
+				echo '<b>' . Inflector::humanize($commandName) . '</b>: <code>' . $command . '</code><br />';
 			}
 		}
 	?>

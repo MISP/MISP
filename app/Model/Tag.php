@@ -206,7 +206,7 @@ class Tag extends AppModel {
 				$tag = array(
 						'name' => $tag['name'],
 						'colour' => $tag['colour'],
-						'exportable' => isset($tag['exportable']) ? $tag['exportable'] : 0,
+						'exportable' => isset($tag['exportable']) ? $tag['exportable'] : 1,
 						'org_id' => 0,
 						'user_id' => 0,
 						'hide_tag' => Configure::read('MISP.incoming_tags_disabled_by_default') ? 1 : 0

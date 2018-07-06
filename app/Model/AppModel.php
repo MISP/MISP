@@ -63,7 +63,8 @@ class AppModel extends Model {
 
 	public $db_changes = array(
 		1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
-		7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false
+		7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
+		13 => false, 14 => false
 	);
 
 	function afterSave($created, $options = array()) {
@@ -150,6 +151,9 @@ class AppModel extends Model {
 				$this->updateDatabase($command);
 				$this->Role = Classregistry::init('Role');
 				$this->Role->setPublishZmq();
+				break;
+			case 12:
+				$this->__forceSettings();
 				break;
 			default:
 				$this->updateDatabase($command);
@@ -908,7 +912,7 @@ class AppModel extends Model {
 				$sqlArray[] = "ALTER TABLE `roles` ADD `restricted_to_site_admin` tinyint(1) NOT NULL DEFAULT 0;";
 				break;
 			case 5:
-				$sqlArray[] = "ALTER TABLE `feeds` ADD `caching_enabled` BOOLEAN NOT NULL DEFAULT 0;";
+				$sqlArray[] = "ALTER TABLE `feeds` ADD `caching_enabled` tinyint(1) NOT NULL DEFAULT 0;";
 				break;
 			case 6:
 				$sqlArray[] = "ALTER TABLE `events` ADD `extends_uuid` varchar(40) COLLATE utf8_bin DEFAULT '';";
@@ -940,21 +944,12 @@ class AppModel extends Model {
 				$sqlArray[] = 'ALTER TABLE galaxies ADD namespace varchar(255) COLLATE utf8_unicode_ci NOT NULL DEFAULT "misp";';
 				$indexArray[] = array('galaxies', 'namespace');
 				break;
-			case 10:
-				$sqlArray[] = "ALTER TABLE `attributes` ADD `first_seen` DATETIME(6) NULL DEFAULT NULL;";
-				$sqlArray[] = "ALTER TABLE `attributes` ADD `last_seen` DATETIME(6) NULL DEFAULT NULL;";
-				$indexArray[] = array('attributes', 'first_seen');
-				$indexArray[] = array('attributes', 'last_seen');
-				$sqlArray[] = "ALTER TABLE `objects` ADD `first_seen` DATETIME(6) NULL DEFAULT NULL;";
-				$sqlArray[] = "ALTER TABLE `objects` ADD `last_seen` DATETIME(6) NULL DEFAULT NULL;";
-				$indexArray[] = array('objects', 'first_seen');
-				$indexArray[] = array('objects', 'last_seen');
-				break;
 
-			case 11:
+
+			case 10:
 				$sqlArray[] = "ALTER TABLE `roles` ADD `perm_publish_zmq` tinyint(1) NOT NULL DEFAULT 0;";
 				break;
-			case 12:
+			case 11:
 				$sqlArray[] = "CREATE TABLE IF NOT EXISTS event_locks (
 					`id` int(11) NOT NULL AUTO_INCREMENT,
 					`event_id` int(11) NOT NULL,
@@ -965,6 +960,19 @@ class AppModel extends Model {
 					INDEX `user_id` (`user_id`),
 					INDEX `timestamp` (`timestamp`)
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+				break;
+			case 13:
+				$sqlArray[] = "ALTER TABLE `servers` ADD `skip_proxy` tinyint(1) NOT NULL DEFAULT 0;";
+				break;
+			case 14:
+				$sqlArray[] = "ALTER TABLE `attributes` ADD `first_seen` DATETIME(6) NULL DEFAULT NULL;";
+				$sqlArray[] = "ALTER TABLE `attributes` ADD `last_seen` DATETIME(6) NULL DEFAULT NULL;";
+				$indexArray[] = array('attributes', 'first_seen');
+				$indexArray[] = array('attributes', 'last_seen');
+				$sqlArray[] = "ALTER TABLE `objects` ADD `first_seen` DATETIME(6) NULL DEFAULT NULL;";
+				$sqlArray[] = "ALTER TABLE `objects` ADD `last_seen` DATETIME(6) NULL DEFAULT NULL;";
+				$indexArray[] = array('objects', 'first_seen');
+				$indexArray[] = array('objects', 'last_seen');
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1417,10 +1425,30 @@ class AppModel extends Model {
 		}
 	}
 
+	public function getRowCount($table = false) {
+		if (empty($table)) {
+			$table = $this->table;
+		}
+		$table_data = $this->query("show table status like '" . $table . "'");
+		return $table_data[0]['TABLES']['Rows'];
+	}
+
 	public function benchmarkCustomAdd($valueToAdd = 0, $name = 'default', $customName = 'custom') {
 		if (empty($this->__profiler[$name]['custom'][$customName])) {
 			$this->__profiler[$name]['custom'][$customName] = 0;
 		}
 		$this->__profiler[$name]['custom'][$customName] += $valueToAdd;
+	}
+
+	private function __forceSettings() {
+		$settingsToForce = array(
+			'Session.autoRegenerate' => false,
+			'Session.checkAgent' => false
+		);
+		$server = ClassRegistry::init('Server');
+		foreach ($settingsToForce as $setting => $value) {
+			$server->serverSettingsSaveValue($setting, $value);
+		}
+		return true;
 	}
 }

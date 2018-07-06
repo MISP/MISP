@@ -4,14 +4,13 @@
 <div class="templateTableRow ui-sortable-handle">
 	<div class="templateElementHeader" style="width:100%; position:relative;">
 		<div class="templateGlass"></div>
-		<div class="templateElementHeaderText"><?php echo h(__($type)); ?></div>
+		<div class="templateElementHeaderText"><?php echo h($type); ?></div>
 	</div>
   <div style="padding:10px;">
-    <div><?php echo h(__($moduleTypes[$type]['description'])); ?></div>
+    <div><?php echo h($moduleTypes[$type]['description']); ?></div>
     <div><span class="bold"><?php echo __('Status'); ?></span>: <span id="<?php echo h(strtolower($type)); ?>_type">&nbsp;</span></div>
     <?php
       foreach ($branches as $branch):
-        debug($modules[$type][$branch]);
         if (isset($modules[$type][$branch])):
           if (isset($modules[$type][$branch]['value'])) {
             $modules[$type][$branch] = array($branch => $modules[$type][$branch]);
@@ -33,8 +32,6 @@
           if ($moduleSettings['enabled']['value']) $enabledModuleCounter++;
         endforeach;
       endif;
-      debug($moduleCounter);
-      debug($enabledModuleCounter);
     ?>
   </div>
 </div>

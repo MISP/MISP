@@ -46,8 +46,8 @@ class AppController extends Controller {
 
 	public $helpers = array('Utility', 'OrgImg');
 
-	private $__queryVersion = '39';
-	public $pyMispVersion = '2.4.92';
+	private $__queryVersion = '42';
+	public $pyMispVersion = '2.4.93';
 	public $phpmin = '5.6.5';
 	public $phprec = '7.0.16';
 
@@ -114,6 +114,11 @@ class AppController extends Controller {
 		$this->set('queryVersion', $this->__queryVersion);
 		$this->loadModel('User');
 		$auth_user_fields = $this->User->describeAuthFields();
+		$language = Configure::read('MISP.language');
+		if (!empty($language) && $language !== 'eng') {
+			Configure::write('Config.language', $language);
+		}
+
 		//if fresh installation (salt empty) generate a new salt
 		if (!Configure::read('Security.salt')) {
 			$this->loadModel('Server');
@@ -173,10 +178,18 @@ class AppController extends Controller {
 				// disable CSRF for REST access
 				if (array_key_exists('Security', $this->components))
 					$this->Security->csrfCheck = false;
+				// If enabled, allow passing the API key via a named parameter (for crappy legacy systems only)
+				$namedParamAuthkey = false;
+				if (Configure::read('Security.allow_unsafe_apikey_named_param') && !empty($this->params['named']['apikey'])) {
+					$namedParamAuthkey = $this->params['named']['apikey'];
+				}
 				// Authenticate user with authkey in Authorization HTTP header
-				if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
+				if (!empty($_SERVER['HTTP_AUTHORIZATION']) || !empty($namedParamAuthkey)) {
 					$found_misp_auth_key = false;
 					$authentication = explode(',', $_SERVER['HTTP_AUTHORIZATION']);
+					if (!empty($namedParamAuthkey)) {
+						$authentication[] = $namedParamAuthkey;
+					}
 					$user = false;
 					foreach ($authentication as $auth_key) {
 						if (preg_match('/^[a-zA-Z0-9]{40}$/', trim($auth_key))) {
@@ -329,11 +342,11 @@ class AppController extends Controller {
 		if ($this->Session->check(AuthComponent::$sessionKey)) {
 			if ($this->action !== 'checkIfLoggedIn' || $this->request->params['controller'] !== 'users') {
 				if (!empty(Configure::read('MISP.terms_file')) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/logout', $base_dir.'/users/login', $base_dir.'/users/downloadTerms')))) {
-					if ($this->_isRest()) throw new MethodNotAllowedException('You have not accepted the terms of use yet, please log in via the web interface and accept them.');
-					$this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
+					//if ($this->_isRest()) throw new MethodNotAllowedException('You have not accepted the terms of use yet, please log in via the web interface and accept them.');
+					if (!$this->_isRest()) $this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
 				} else if ($this->Auth->user('change_pw') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/change_pw', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
-					if ($this->_isRest()) throw new MethodNotAllowedException('Your user account is expecting a password change, please log in via the web interface and change it before proceeding.');
-					$this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
+					//if ($this->_isRest()) throw new MethodNotAllowedException('Your user account is expecting a password change, please log in via the web interface and change it before proceeding.');
+					if (!$this->_isRest()) $this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
 				} else if (!$this->_isRest() && !($this->params['controller'] == 'news' && $this->params['action'] == 'index') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/change_pw', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
 					$newsread = $this->User->field('newsread', array('User.id' => $this->Auth->user('id')));
 					$this->loadModel('News');

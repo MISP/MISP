@@ -124,7 +124,7 @@
         );
         echo sprintf(
           '<span class="icon-trash icon-white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onClick="%2$s"></span>',
-          __((empty($event['Event']['publish_timestamp']) ? 'Permanently' : 'Soft') . ' delete object'),
+          (empty($event['Event']['publish_timestamp']) ? __('Permanently delete object') : __('Soft delete object')),
           sprintf(
             'deleteObject(\'objects\', \'delete\', \'%s\', \'%s\');',
             empty($event['Event']['publish_timestamp']) ? h($object['id']) . '/true' : h($object['id']),

@@ -54,9 +54,17 @@ class StixParser():
         self.dns_ips = []
 
     # Load data from STIX document, and other usefull data
-    def load(self, args, pathname):
-        filename = '{}/tmp/{}'.format(pathname, args[1])
-        event = STIXPackage.from_xml(filename)
+    def load(self, args):
+        filename = '{}/tmp/{}'.format(os.path.dirname(args[0]), args[1])
+        try:
+            event = STIXPackage.from_xml(filename)
+        except:
+            try:
+                import maec
+                print(2)
+            except:
+                print(3)
+            sys.exit(0)
         title = event.stix_header.title
         if title is not None and "Export from " in title and "MISP" in title:
             fromMISP = True
@@ -68,6 +76,20 @@ class StixParser():
             self.ttps = package.ttps.ttps if package.ttps else None
         else:
             self.event = event
+        try:
+            event_distribution = args[2]
+            if not isinstance(event_distribution, int):
+                event_distribution = int(event_distribution) if event_distribution.isdigit() else 5
+        except:
+            event_distribution = 5
+        try:
+            attribute_distribution = args[3]
+            if attribute_distribution != 'event' and not isinstance(attribute_distribution, int):
+                attribute_distribution = int(attribute_distribution) if attribute_distribution.isdigit() else 5
+        except:
+            attribute_distribution = 5
+        self.misp_event.distribution = event_distribution
+        self.__attribute_distribution = event_distribution if attribute_distribution == 'event' else attribute_distribution
         self.fromMISP = fromMISP
         self.filename = filename
         self.load_mapping()
@@ -115,6 +137,7 @@ class StixParser():
             self.buildExternalDict()
         if self.dns_objects:
             self.resolve_dns_objects()
+        self.set_distribution()
         if self.references:
             self.build_references()
 
@@ -200,7 +223,16 @@ class StixParser():
                 self.misp_event.add_attribute(**domain_attribute)
         for ip in self.dns_objects['ip']:
             if ip not in self.dns_ips:
+                # print(ip)
                 self.misp_event.add_attribute(**self.dns_objects['ip'][ip])
+
+    def set_distribution(self):
+        for attribute in self.misp_event.attributes:
+            attribute.distribution = self.__attribute_distribution
+        for misp_object in self.misp_event.objects:
+            misp_object.distribution = self.__attribute_distribution
+            for attribute in misp_object.attributes:
+                attribute.distribution = self.__attribute_distribution
 
     # Make references between objects
     def build_references(self):
@@ -265,19 +297,19 @@ class StixParser():
 
     # Parse STIX objects that we know will give MISP attributes
     def parse_misp_attribute_indicator(self, indicator):
-        misp_attribute = {'category': str(indicator.relationship)}
+        misp_attribute = {'to_ids': True, 'category': str(indicator.relationship)}
         item = indicator.item
         misp_attribute['timestamp'] = self.getTimestampfromDate(item.timestamp)
         if item.observable:
             observable = item.observable
-            self.parse_misp_attribute(observable, misp_attribute)
+            self.parse_misp_attribute(observable, misp_attribute, to_ids=True)
 
     def parse_misp_attribute_observable(self, observable):
-        misp_attribute = {'category': str(observable.relationship)}
+        misp_attribute = {'to_ids': False, 'category': str(observable.relationship)}
         if observable.item:
             self.parse_misp_attribute(observable.item, misp_attribute)
 
-    def parse_misp_attribute(self, observable, misp_attribute):
+    def parse_misp_attribute(self, observable, misp_attribute, to_ids=False):
         try:
             properties = observable.object_.properties
             if properties:
@@ -285,7 +317,7 @@ class StixParser():
                 if type(attribute_value) in (str, int):
                     self.handle_attribute_case(attribute_type, attribute_value, compl_data, misp_attribute)
                 else:
-                    self.handle_object_case(attribute_type, attribute_value, compl_data)
+                    self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=to_ids)
         except AttributeError:
             attribute_dict = {}
             for observables in observable.observable_composition.observables:
@@ -800,8 +832,15 @@ class StixParser():
             if certificate.subject:
                 attributes.append(["text", certificate.subject.value, "subject"])
         if properties.raw_certificate:
-            raw = properties.raw_certificate
-            print(raw.to_json())
+            raw = properties.raw_certificate.value
+            try:
+                if raw == base64.b64encode(base64.b64decode(raw)).strip():
+                    relation = "raw-base64"
+                else:
+                    relation = "pem"
+            except:
+                relation = "pem"
+            attributes.append(["text", raw, relation])
         if properties.certificate_signature:
             signature = properties.certificate_signature
             attribute_type = "x509-fingerprint-{}".format(signature.signature_algorithm.value.lower())
@@ -837,7 +876,7 @@ class StixParser():
                 header_object.add_attribute(**{"type": "size-in-bytes", "object_relation": "size-in-bytes",
                                                "value": file_header.size_of_optional_header.value})
             self.misp_event.add_object(**header_object)
-            misp_object.add_reference(header_object.uuid, 'included-in')
+            misp_object.add_reference(header_object.uuid, 'header-of')
         if properties.sections:
             for section in properties.sections:
                 section_uuid = self.parse_pe_section(section)
@@ -909,8 +948,9 @@ class StixParser():
                 properties = observable.object_.properties
                 misp_attribute = MISPAttribute()
                 misp_attribute.type, misp_attribute.value, misp_attribute.object_relation = self.handle_attribute_type(properties, is_object=True, observable_id=observable.id_)
+                misp_attribute.to_ids = to_ids
                 misp_object.add_attribute(**misp_attribute)
-                self.misp_event.add_object(**misp_object)
+            self.misp_event.add_object(**misp_object)
         except AttributeError:
             properties = item.observable.object_.properties if to_ids else item.object_.properties
             self.parse_observable(properties, to_ids)
@@ -922,7 +962,7 @@ class StixParser():
             attribute = {'to_ids': to_ids}
             self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
         else:
-            self.handle_object_case(attribute_type, attribute_value, compl_data)
+            self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=to_ids)
 
     # Parse indicators of an external STIX document
     def parse_external_indicator(self, indicators):
@@ -942,7 +982,7 @@ class StixParser():
                     self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
                 else:
                     # otherwise, it is a dictionary of attributes, so we build an object
-                    self.handle_object_case(attribute_type, attribute_value, compl_data)
+                    self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=True)
 
     # Parse observables of an external STIX document
     def parse_external_observable(self, observables):
@@ -1005,11 +1045,12 @@ class StixParser():
 
     # The value returned by the indicators or observables parser is a list of dictionaries
     # These dictionaries are the attributes we add in an object, itself added in the MISP event
-    def handle_object_case(self, attribute_type, attribute_value, compl_data, object_uuid=None):
+    def handle_object_case(self, attribute_type, attribute_value, compl_data, to_ids=False, object_uuid=None):
         misp_object = MISPObject(attribute_type)
         if object_uuid:
             misp_object.uuid = object_uuid
         for attribute in attribute_value:
+            attribute['to_ids'] = to_ids
             misp_object.add_attribute(**attribute)
         if type(compl_data) is dict:
             # if some complementary data is a dictionary containing an uuid,
@@ -1117,9 +1158,8 @@ class StixParser():
             f.write(eventDict)
 
 def main(args):
-    pathname = os.path.dirname(args[0])
     stix_parser = StixParser()
-    stix_parser.load(args, pathname)
+    stix_parser.load(args)
     stix_parser.handler()
     stix_parser.saveFile()
     print(1)

@@ -25,7 +25,7 @@
           if ($field == 'analysis') {
             $data[0] = $analysisLevels[intval($data[0])];
           }
-          echo '<span class="blue bold">' . ucfirst(__($field)) . '</span>: ' . h($data[0]) . '<br />';
+          echo '<span class="blue bold">' . ucfirst($field) . '</span>: ' . h($data[0]) . '<br />';
         }
       }
     }

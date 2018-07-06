@@ -1,7 +1,6 @@
 <?php
   $tr_class = '';
   $linkClass = 'blue';
-  $otherColour = 'blue';
   if ($event['Event']['id'] != $object['event_id']) {
     if (!$isSiteAdmin && $event['extensionEvents'][$object['event_id']]['Orgc']['id'] != $me['org_id']) {
       $mayModify = false;
@@ -161,42 +160,13 @@
     <td class="shortish">
       <ul class="inline" style="margin:0px;">
         <?php
-          $relatedObject = 'Attribute';
-          if (!empty($event['Related' . $relatedObject][$object['id']])):
-            $i = 0;
-            $count = count($event['Related' . $relatedObject][$object['id']]);
-            foreach ($event['Related' . $relatedObject][$object['id']] as $relatedAttribute):
-              if ($i == 4):
-            ?>
-                <li class="no-side-padding correlation-expand-button useCursorPointer linkButton blue">
-                  <?php echo __('Show ') . (count($event['Related' . $relatedObject][$object['id']]) - 4); echo __(' more...');?>
-                </li>
-                <?php
-                  endif;
-                  $relatedData = array('Event info' => $relatedAttribute['info'], 'Correlating Value' => $relatedAttribute['value'], 'date' => isset($relatedAttribute['date']) ? $relatedAttribute['date'] : 'N/A');
-                  $popover = '';
-                  foreach ($relatedData as $k => $v):
-                    $popover .= '<span class=\'bold black\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
-                  endforeach;
-                ?>
-                <li class="no-side-padding <?php if ($i > 3) echo 'correlation-expanded-area'; ?>" <?php if ($i > 3) echo 'style="display:none;"'; ?> data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover">
-                <?php
-                  if ($relatedAttribute['org_id'] == $me['org_id']):
-                    echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array('class' => 'red'));
-                  else:
-                    echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array('class' => $otherColour));
-                  endif;
-                ?>
-                </li>
-            <?php
-              $i++;
-            endforeach;
-            if ($i > 4):
-          ?>
-              <li class="no-side-padding correlation-collapse-button useCursorPointer linkButton blue" style="display:none;"><?php echo __('Collapse…');?></li>
-          <?php
-            endif;
-          endif;
+          if (!empty($event['RelatedAttribute'][$object['id']])) {
+            echo $this->element('Events/View/attribute_correlations', array(
+              'scope' => 'Attribute',
+              'object' => $object,
+              'event' => $event,
+            ));
+          }
         ?>
       </ul>
     </td>

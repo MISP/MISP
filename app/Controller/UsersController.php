@@ -856,13 +856,13 @@ class UsersController extends AppController {
 	}
 
 	public function login() {
-		$this->Bruteforce = ClassRegistry::init('Bruteforce');
-		if ($this->request->is('post') && isset($this->request->data['User']['email'])) {
-			if ($this->Bruteforce->isBlacklisted($_SERVER['REMOTE_ADDR'], $this->request->data['User']['email'])) {
-				throw new ForbiddenException('You have reached the maximum number of login attempts. Please wait ' . Configure::read('SecureAuth.expire') . ' seconds and try again.');
-			}
-		}
 		if ($this->request->is('post') || $this->request->is('put')) {
+			$this->Bruteforce = ClassRegistry::init('Bruteforce');
+			if (!empty($this->request->data['User']['email'])) {
+				if ($this->Bruteforce->isBlacklisted($_SERVER['REMOTE_ADDR'], $this->request->data['User']['email'])) {
+					throw new ForbiddenException('You have reached the maximum number of login attempts. Please wait ' . Configure::read('SecureAuth.expire') . ' seconds and try again.');
+				}
+			}
 			// Check the length of the user's authkey
 			$userPass = $this->User->find('first', array(
 				'conditions' => array('User.email' => $this->request->data['User']['email']),
@@ -975,25 +975,7 @@ class UsersController extends AppController {
 			// populate the DB with the first user if it's empty
 			if ($this->User->find('count') == 0 ) {
 				$this->User->runUpdates();
-				$admin = array('User' => array(
-					'id' => 1,
-					'email' => 'admin@admin.test',
-					'org_id' => $org_id,
-					'password' => 'admin',
-					'confirm_password' => 'admin',
-					'authkey' => $this->User->generateAuthKey(),
-					'nids_sid' => 4000000,
-					'newsread' => 0,
-					'role_id' => 1,
-					'change_pw' => 1
-				));
-				$this->User->validator()->remove('password'); // password is too simple, remove validation
-				$this->User->save($admin);
-				// PostgreSQL: update value of auto incremented serial primary key after setting the column by force
-				if ($dataSource == 'Database/Postgres') {
-					$sql = "SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));";
-					$this->User->query($sql);
-				}
+				$this->User->createInitialUser($org_id);
 			}
 		}
 	}
@@ -1371,7 +1353,7 @@ class UsersController extends AppController {
 	// shows some statistics about the instance
 	public function statistics($page = 'data') {
 		$this->set('page', $page);
-		$pages = array('data' => 'Usage data', 'orgs' => 'Organisations', 'tags' => 'Tags', 'attributehistogram' => 'Attribute histogram', 'sightings' => 'Sightings toplists');
+		$pages = array('data' => 'Usage data', 'orgs' => 'Organisations', 'tags' => 'Tags', 'attributehistogram' => 'Attribute histogram', 'sightings' => 'Sightings toplists', 'attackMatrix' => 'ATT&CK Matrix');
 		if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
 			unset($pages['orgs']);
 		}
@@ -1394,6 +1376,8 @@ class UsersController extends AppController {
 			}
 		} else if ($page == 'sightings') {
 			$result = $this->__statisticsSightings($this->params['named']);
+		} else if ($page == 'attackMatrix') {
+			$result = $this->__statisticsAttackMatrix($this->params['named']);
 		}
 		if ($this->_isRest()) {
 			return $result;
@@ -1627,6 +1611,44 @@ class UsersController extends AppController {
 			return $this->tagStatisticsGraph();
 		} else {
 			$this->render('statistics_tags');
+		}
+	}
+
+	private function __statisticsAttackMatrix($params = array()) {
+		$this->loadModel('Event');
+		$this->loadModel('Galaxy');
+		$attackTacticData = $this->Galaxy->getMitreAttackMatrix();
+		$attackTactic = $attackTacticData['attackTactic'];
+		$attackTags = $attackTacticData['attackTags'];
+		$killChainOrders = $attackTacticData['killChain'];
+		$instanceUUID = $attackTacticData['instance-uuid'];
+
+		$scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores(0, $attackTags);
+		$scoresDataEvent = $this->Event->EventTag->getTagScores(0, $attackTags);
+		$scoresData = array();
+		foreach(array_keys($scoresDataAttr['scores'] + $scoresDataEvent['scores']) as $key) {
+			$scoresData[$key] = (isset($scoresDataAttr['scores'][$key]) ? $scoresDataAttr['scores'][$key] : 0) + (isset($scoresDataEvent['scores'][$key]) ? $scoresDataEvent['scores'][$key] : 0);
+		}
+		$maxScore = max($scoresDataAttr['maxScore'], $scoresDataEvent['maxScore']);
+		$scores = $scoresData;
+
+		if ($this->_isRest()) {
+			$json = array('matrix' => $attackTactic, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
+			return $this->RestResponse->viewData($json, $this->response->type());
+		} else {
+			App::uses('ColourGradientTool', 'Tools');
+			$gradientTool = new ColourGradientTool();
+			$colours = $gradientTool->createGradientFromValues($scores);
+
+			$this->set('target_type', 'attribute');
+			$this->set('killChainOrders', $killChainOrders);
+			$this->set('attackTactic', $attackTactic);
+			$this->set('scores', $scores);
+			$this->set('maxScore', $maxScore);
+			$this->set('colours', $colours);
+			$this->set('pickingMode', false);
+
+			$this->render('statistics_attackmatrix');
 		}
 	}
 

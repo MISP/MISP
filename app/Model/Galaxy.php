@@ -26,7 +26,7 @@ class Galaxy extends AppModel{
 		$this->GalaxyCluster->deleteAll(array('GalaxyCluster.galaxy_id' => $this->id));
 	}
 
-	private function __load_galaxies() {
+	private function __load_galaxies($force = false) {
 		$dir = new Folder(APP . 'files' . DS . 'misp-galaxy' . DS . 'galaxies');
 		$files = $dir->find('.*\.json');
 		$galaxies = array();
@@ -50,6 +50,7 @@ class Galaxy extends AppModel{
 		foreach ($galaxies as $k => $galaxy) {
 			if (isset($existingGalaxies[$galaxy['uuid']])) {
 				if (
+					$force ||
 					$existingGalaxies[$galaxy['uuid']]['version'] < $galaxy['version'] ||
 					(!empty($galaxy['icon']) && ($existingGalaxies[$galaxy['uuid']]['icon'] != $galaxy['icon']))
 				) {
@@ -64,8 +65,8 @@ class Galaxy extends AppModel{
 		return $this->find('list', array('recursive' => -1, 'fields' => array('type', 'id')));
 	}
 
-	public function update() {
-		$galaxies = $this->__load_galaxies();
+	public function update($force = false) {
+		$galaxies = $this->__load_galaxies($force);
 		$dir = new Folder(APP . 'files' . DS . 'misp-galaxy' . DS . 'clusters');
 		$files = $dir->find('.*\.json');
 		$cluster_packages = array();
@@ -90,27 +91,43 @@ class Galaxy extends AppModel{
 					'GalaxyCluster.galaxy_id' => $galaxies[$cluster_package['type']]
 				),
 				'recursive' => -1,
-				'fields' => array('version', 'id', 'value')
+				'fields' => array('version', 'id', 'value', 'uuid')
 			));
 			$existingClusters = array();
 			foreach ($temp as $k => $v) {
 				$existingClusters[$v['GalaxyCluster']['value']] = $v;
 			}
-			foreach ($cluster_package['values'] as $cluster) {
+			$clusters_to_delete = array();
+
+			// Delete all existing outdated clusters
+			foreach ($cluster_package['values'] as $k => $cluster) {
+								if (empty($cluster['value'])) {
+									debug($cluster);
+									throw new Exception();
+								}
 				if (isset($cluster['version'])) {
-					$template['version'] = $cluster['version'];
+
 				} else if (!empty($cluster_package['version'])) {
-					$template['version'] = $cluster_package['version'];
+					$cluster_package['values'][$k]['version'] = $cluster_package['version'];
 				} else {
-					$template['version'] = 0;
+					$cluster_package['values'][$k]['version'] = 0;
 				}
 				if (!empty($existingClusters[$cluster['value']])){
-					if ($existingClusters[$cluster['value']]['GalaxyCluster']['version'] < $template['version']) {
-						$this->GalaxyCluster->delete($existingClusters[$cluster['value']]['GalaxyCluster']['id']);
+					if ($force || $existingClusters[$cluster['value']]['GalaxyCluster']['version'] < $cluster_package['values'][$k]['version']) {
+						$clusters_to_delete[] = $existingClusters[$cluster['value']]['GalaxyCluster']['id'];
 					} else {
-						continue;
+						unset($cluster_package['values'][$k]);
 					}
 				}
+			}
+			if (!empty($clusters_to_delete)) {
+				$this->GalaxyCluster->GalaxyElement->deleteAll(array('GalaxyElement.galaxy_cluster_id' => $clusters_to_delete), false, false);
+				$this->GalaxyCluster->delete($clusters_to_delete, false, false);
+			}
+
+			// create all clusters
+			foreach ($cluster_package['values'] as $cluster) {
+				$template['version'] = $cluster['version'];
 				$this->GalaxyCluster->create();
 				$cluster_to_save = $template;
 				if (isset($cluster['description'])) {
@@ -120,29 +137,34 @@ class Galaxy extends AppModel{
 				$cluster_to_save['value'] = $cluster['value'];
 				$cluster_to_save['tag_name'] = $cluster_to_save['tag_name'] . $cluster['value'] . '"';
 				unset($cluster['value']);
-				$result = $this->GalaxyCluster->save($cluster_to_save);
+				if (empty($cluster_to_save['description'])) $cluster_to_save['description'] = '';
+				$result = $this->GalaxyCluster->save($cluster_to_save, false);
 				$galaxyClusterId = $this->GalaxyCluster->id;
 				if (isset($cluster['meta'])) {
 					foreach ($cluster['meta'] as $key => $value) {
 						if (is_array($value)) {
 							foreach ($value as $v) {
 								$elements[] = array(
-									'galaxy_cluster_id' => $galaxyClusterId,
-									'key' => $key,
-									'value' => $v
+									$galaxyClusterId,
+									$key,
+									$v
 								);
 							}
 						} else {
 							$elements[] = array(
-								'galaxy_cluster_id' => $this->GalaxyCluster->id,
-								'key' => $key,
-								'value' => $value
+								$this->GalaxyCluster->id,
+								$key,
+								$value
 							);
 						}
 					}
 				}
 			}
-			$this->GalaxyCluster->GalaxyElement->saveMany($elements);
+			$db = $this->getDataSource();
+			$fields = array('galaxy_cluster_id', 'key', 'value');
+			if (!empty($elements)) {
+				$db->insertMulti('galaxy_elements', $fields, $elements);
+			}
 		}
 		return true;
 	}
@@ -176,6 +198,7 @@ class Galaxy extends AppModel{
 			if ($tag_id === false) {
 				throw new MethodNotAllowedException('Could not attach cluster.');
 			}
+			$this->Tag->AttributeTag->create();
 			$existingTag = $this->Tag->AttributeTag->find('first', array('conditions' => array('attribute_id' => $target_id, 'tag_id' => $tag_id)));
 			if (!empty($existingTag)) {
 				return 'Cluster already attached.';
@@ -208,5 +231,127 @@ class Galaxy extends AppModel{
 			return 'Cluster attached.';
 		}
 		return 'Could not attach the cluster';
+	}
+
+	public function getMitreAttackGalaxyId($type="mitre-enterprise-attack-attack-pattern") {
+		$galaxy = $this->find('first', array(
+				'recursive' => -1,
+				'fields' => 'id',
+				'conditions' => array('Galaxy.type' => $type),
+		));
+		return empty($galaxy) ? 0 : $galaxy['Galaxy']['id'];
+	}
+
+	public function getMitreAttackMatrix() {
+		$killChainOrderEnterprise = array(
+			'initial-access',
+			'execution',
+			'persistence',
+			'privilege-escalation',
+			'defense-evasion',
+			'credential-access',
+			'discovery',
+			'lateral-movement',
+			'collection',
+			'exfiltration',
+			'command-and-control'
+		);
+		$killChainOrderMobile = array(
+			'persistence',
+			'privilege-escalation',
+			'defense-evasion',
+			'credential-access',
+			'discovery',
+			'lateral-movement',
+			'effects', 'collection',
+			'exfiltration',
+			'command-and-control',
+			'general-network-based',
+			'cellular-network-based',
+			'could-based'
+		);
+		$killChainOrderPre = array(
+			'priority-definition-planning',
+			'priority-definition-direction',
+			'target-selection',
+			'technical-information-gathering',
+			'people-information-gathering',
+			'organizational-information-gathering',
+			'technical-weakness-identification',
+			'people-weakness-identification',
+			'organizational-weakness-identification',
+			'adversary-opsec',
+			'establish-&-maintain-infrastructure',
+			'persona-development',
+			'build-capabilities',
+			'test-capabilities',
+			'stage-capabilities',
+			'app-delivery-via-authorized-app-store',
+			'app-delivery-via-other-means',
+			'exploit-via-cellular-network',
+			'exploit-via-internet',
+		);
+
+		$killChainOrders = array(
+			'mitre-enterprise-attack-attack-pattern' => $killChainOrderEnterprise,
+			'mitre-mobile-attack-attack-pattern' => $killChainOrderMobile,
+			'mitre-pre-attack-attack-pattern' => $killChainOrderPre,
+		);
+
+		$expectedDescription = 'ATT&CK Tactic';
+		$expectedNamespace = 'mitre-attack';
+		$conditions = array('Galaxy.description' => $expectedDescription, 'Galaxy.namespace' => $expectedNamespace);
+		$contains = array(
+			'GalaxyCluster' => array('GalaxyElement'),
+		);
+
+		$galaxies = $this->find('all', array(
+				'recursive' => -1,
+				'contain' => $contains,
+				'conditions' => $conditions,
+		));
+
+		$mispUUID = Configure::read('MISP')['uuid'];
+
+		$attackTactic = array(
+			'killChain' => $killChainOrders,
+			'attackTactic' => array(),
+			'attackTags' => array(),
+			'instance-uuid' => $mispUUID
+		);
+
+		foreach ($galaxies as $galaxy) {
+			$galaxyType = $galaxy['Galaxy']['type'];
+			$clusters = $galaxy['GalaxyCluster'];
+			$attackClusters = array();
+			// add cluster if kill_chain is present
+			foreach ($clusters as $cluster) {
+				if (empty($cluster['GalaxyElement'])) {
+					continue;
+				}
+				$toBeAdded = false;
+				$clusterType = $cluster['type'];
+				$galaxyElements = $cluster['GalaxyElement'];
+				foreach ($galaxyElements as $element) {
+					if ($element['key'] == 'kill_chain') {
+						$kc = explode(":", $element['value'])[2];
+						$toBeAdded = true;
+					}
+					if ($element['key'] == 'external_id') {
+						$cluster['external_id'] = $element['value'];
+					}
+				}
+				if ($toBeAdded) {
+					$attackClusters[$kc][] = $cluster;
+					array_push($attackTactic['attackTags'], $cluster['tag_name']);
+				}
+			}
+			$attackTactic['attackTactic'][$galaxyType] = array(
+				'clusters' => $attackClusters,
+				'galaxy' => $galaxy['Galaxy'],
+			);
+		}
+
+		return $attackTactic;
 	}
 }

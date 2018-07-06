@@ -837,6 +837,11 @@ a.proposal_link_red:hover {
 	z-index:5;
 }
 
+.ajax_popover_form_large {
+    width: 1400px;
+    left: calc(50% - 700px);
+}
+
 .screenshot_box {
 	display:none;
 	position: fixed;
@@ -2056,6 +2061,7 @@ table tr:hover .down-expand-button {
 	}
 }
 
+<<<<<<< HEAD
 .label-icon {
     left: 5px;
     position: relative;
@@ -2076,4 +2082,14 @@ table tr:hover .down-expand-button {
 .precision-tool {
     margin-left: 10px;
     display: inline-block;
+=======
+#attackmatrix_div {
+    border-color: #363636;
+    overflow: visible;
+    max-height: 700px;
+    height: auto;
+    margin-top: 30px;
+    width: calc(100vw - 230px);
+    min-width: 1400px;
+>>>>>>> upstream/2.4
 }
