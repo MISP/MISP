@@ -13,6 +13,7 @@ var scope_id = $('#eventgraph_network').data('event-id');
 var user_email = $('#eventgraph_network').data('user-email'); 
 var container = document.getElementById('eventgraph_network');
 var user_manipulation = $('#eventgraph_network').data('user-manipulation');
+var is_siteadmin = $('#eventgraph_network').data('is-site-admin');
 var root_id_attr = "rootNode:attribute";
 var root_id_object = "rootNode:object";
 var root_id_tag = "rootNode:tag";
@@ -550,7 +551,8 @@ class EventGraph {
 					item_options: {
 						style: "width: 98%;",
 						placeholder: "Network's name",
-						id: "networkHistory_input_name_save"
+						id: "networkHistory_input_name_save",
+						disabled: !user_manipulation
 					}
 				}
 			],
@@ -561,6 +563,7 @@ class EventGraph {
 					icon: "fa-save",
 					tooltip: "Save network"
 				},
+				disabled: !user_manipulation
 			},
 			row_action_button: {
 				removalEnabled: false,
@@ -600,7 +603,7 @@ class EventGraph {
 			for(var i=0; i<history_formatted.length; i++) {
 				var history = history_formatted[i];
 				var cur_email = history[2];
-				if (cur_email != user_email) {
+				if (!(cur_email == user_email || is_siteadmin)) {
 					// disable delete button
 					var tr = eventGraph.menu_history.items.table_graph_history_actiontable.get_DOM_row(i);
 					var btn_del = $(tr).find('.btn-danger');
@@ -1448,6 +1451,7 @@ class DataHandler {
 		$.getJSON( "/eventNetworkHistory/get/"+scope_id, function( history ) {
 			var history_formatted = [];
 			history.forEach(function(item) {
+				console.log(item['EventNetworkHistory']['timestamp']);
 				history_formatted.push([
 					item['EventNetworkHistory']['id'],
 					item['EventNetworkHistory']['network_name'],
@@ -1848,7 +1852,7 @@ function reset_graph_history() {
 		for(var i=0; i<history_formatted.length; i++) {
 			var history = history_formatted[i];
 			var cur_email = history[2];
-			if (cur_email != user_email) {
+			if (!(cur_email == user_email || is_siteadmin)) {
 				// disable delete button
 				var tr = eventGraph.menu_history.items.table_graph_history_actiontable.get_DOM_row(i);
 				var btn_del = $(tr).find('.btn-danger');

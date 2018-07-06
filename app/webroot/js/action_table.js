@@ -15,12 +15,14 @@ class ActionTable {
 		this.tr_id_mapping = {};
 		this.control_items = options.control_items;
 		this.header_action_button = options.header_action_button === undefined ? {} : options.header_action_button;
-		if (options.header_action_button === undefined) {
+		if (options.header_action_button !== undefined) {
 			this.header_action_button_style = this.header_action_button.style === undefined ? {} : this.header_action_button.style;
 			this.additionEnabled = this.header_action_button.additionEnabled === undefined ? false : this.header_action_button.additionEnabled;
+			this.additionButtonDisabled = this.header_action_button.disabled === undefined ? false : this.header_action_button.disabled;
 		} else {
 			this.header_action_button_style = {};
 			this.additionEnabled = false;
+			this.additionButtonDisabled = false;
 		}
 
 		this.row_action_button = options.row_action_button === undefined ? {} : options.row_action_button;
@@ -189,6 +191,7 @@ class ActionTable {
 			btn.innerHTML = '<span class="fa fa-plus-square"></span>';
 		}
 		btn.type = "button";
+		btn.disabled = this.additionButtonDisabled;
 
 		var that = this;
 		btn.addEventListener("click", function(evt) {
@@ -314,6 +317,9 @@ class ActionTable {
 		}
 		if (options.placeholder !== undefined) {
 			input.placeholder = options.placeholder;
+		}
+		if (options.disabled !== undefined) {
+			input.disabled = options.disabled;
 		}
 		if (options.typeahead !== undefined) {
 			var typeaheadOption = options.typeahead;

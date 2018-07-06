@@ -17,9 +17,6 @@ class EventNetworkHistoryController extends AppController {
 			throw new MethodNotAllowedException(__('Invalid method.'));
 		}
 		if ($event_id === false) throw new MethodNotAllowedException(__('No event ID set.'));
-		if (!$this->userRole['perm_add']) {
-			throw new MethodNotAllowedException(__('You don\'t have permissions to add a new network'));
-		}
 
 		// retreive current org_id
 		$org_id = $this->_checkOrg();
@@ -33,18 +30,13 @@ class EventNetworkHistoryController extends AppController {
 		} else if (!is_numeric($event_id)) {
 			throw new NotFoundException(__('Invalid event'));
 		}
-		$this->Event->id = $event_id;
-		if (!$this->Event->exists()) {
-			throw new NotFoundException(__('Invalid event'));
-		}
 
-		$this->Event->read(null, $event_id);
-		if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
-			throw new UnauthorizedException(__('You do not have permission to do that.'));
-		}
+		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $event_id));
+		if (empty($event)) throw new NotFoundException('Invalid event');
 
 		// fetch networks
 		$networks = $this->EventNetworkHistory->find('all', array(
+			'order' => 'EventNetworkHistory.timestamp DESC',
 			'conditions' => array(
 				'EventNetworkHistory.event_id' => $event_id,
 				'EventNetworkHistory.org_id' => $org_id
@@ -84,25 +76,13 @@ class EventNetworkHistoryController extends AppController {
 
 		} else {
 			if ($event_id === false) throw new MethodNotAllowedException(__('No event ID set.'));
-			if (!$this->userRole['perm_add']) {
-				throw new MethodNotAllowedException(__('You don\'t have permissions to add a new network'));
-			}
+
 			$this->loadModel('Event');
-			if (Validation::uuid($event_id)) {
-				$temp = $this->Event->find('first', array('recursive' => -1, 'fields' => array('Event.id'), 'conditions' => array('Event.uuid' => $event_id)));
-				if (empty($temp)) throw new NotFoundException(__('Invalid event'));
-				$event_id = $temp['Event']['id'];
-			} else if (!is_numeric($event_id)) {
-				throw new NotFoundException(__('Invalid event'));
-			}
-			$this->Event->id = $event_id;
-			if (!$this->Event->exists()) {
-				throw new NotFoundException(__('Invalid event'));
-			}
+			$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $event_id));
+			if (empty($event)) throw new NotFoundException('Invalid event');
 
 			$networkHistory = array();
-			$this->Event->read(null, $event_id);
-			if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
+			if (!$this->_isSiteAdmin() && ($event['Event']['orgc_id'] != $this->_checkOrg() && !$this->userRole['perm_modify'])) {
 				throw new UnauthorizedException(__('You do not have permission to do that.'));
 			} else {
 				$networkHistory['EventNetworkHistory']['event_id'] = $event_id;
@@ -143,7 +123,7 @@ class EventNetworkHistoryController extends AppController {
 	}
 
 	public function edit($id) {
-		$this->EventNetworkHistory->edit();
+		//$this->EventNetworkHistory->edit();
 	}
 
 	public function delete($id) {
@@ -168,7 +148,7 @@ class EventNetworkHistoryController extends AppController {
 			if ($this->request->is('ajax')) {
 				if ($this->request->is('post')) {
 					// only creator can delete its network
-					if ($networkHistory['EventNetworkHistory']['user_id'] != $this->Auth->user()['id']) throw new MethodNotAllowedException('This network does not belong to you.');
+					if (($networkHistory['EventNetworkHistory']['user_id'] != $this->Auth->user()['id']) && !$this->_isSiteAdmin()) throw new MethodNotAllowedException('This network does not belong to you.');
 					$result = $this->EventNetworkHistory->delete($id);
 					if ($result) {
 						return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Network history deleted.')), 'status'=>200, 'type' => 'json'));
