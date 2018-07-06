@@ -181,7 +181,7 @@ class RestResponseComponent extends Component {
 				'mandatory' => array('subject', 'body')
 			)
 		),
-		'NetworkHistory' => array(
+		'EventGraph' => array(
 			'add' => array(
 				'description' => "POST a network in JSON format to this API to to keep an history of it",
 				'mandatory' => array('event_id', 'network_json'),

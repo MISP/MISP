@@ -1,7 +1,7 @@
 <?php
 App::uses('AppController', 'Controller');
 
-class EventNetworkHistoryController extends AppController {
+class EventGraphController extends AppController {
 
 	public $components = array(
 			'Security',
@@ -34,17 +34,17 @@ class EventNetworkHistoryController extends AppController {
 		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $event_id));
 		if (empty($event)) throw new NotFoundException('Invalid event');
 
-		// fetch networks
-		$networks = $this->EventNetworkHistory->find('all', array(
-			'order' => 'EventNetworkHistory.timestamp DESC',
+		// fetch eventGraphs
+		$eventGraphs = $this->EventGraph->find('all', array(
+			'order' => 'EventGraph.timestamp DESC',
 			'conditions' => array(
-				'EventNetworkHistory.event_id' => $event_id,
-				'EventNetworkHistory.org_id' => $org_id
+				'EventGraph.event_id' => $event_id,
+				'EventGraph.org_id' => $org_id
 			),
 			'contain' => array(
 				'User' => array(
 					'conditions' => array(
-						'User.id = EventNetworkHistory.user_id'
+						'User.id = EventGraph.user_id'
 					),
 					'fields' => array(
 						'User.email'
@@ -52,21 +52,21 @@ class EventNetworkHistoryController extends AppController {
 				)
 			)
 		));
-		return $this->RestResponse->viewData($networks, $this->response->type());
+		return $this->RestResponse->viewData($eventGraphs, $this->response->type());
 	}
 
 	public function add($event_id = false) {
 		if ($this->request->is('get') && $this->_isRest()) {
-			return $this->RestResponse->describe('NetworkHistory', 'add', false, $this->response->type());
+			return $this->RestResponse->describe('EventGraph', 'add', false, $this->response->type());
 		} else if ($this->request->is('get')) { // retreive form
 			//throw new MethodNotAllowedException(__('Invalid method.'));
-			$formURL = 'eventNetworkHistory_add_form';
+			$formURL = 'eventGraph_add_form';
 
 			if (!$this->_isSiteAdmin()) {
 				if ($this->userRole['perm_modify'] || $this->userRole['perm_modify_org']) {
 					// Allow the edit
 				} else {
-					throw new NotFoundException(__('Invalid network history'));
+					throw new NotFoundException(__('Invalid eventGraph'));
 				}
 			}
 
@@ -81,36 +81,36 @@ class EventNetworkHistoryController extends AppController {
 			$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $event_id));
 			if (empty($event)) throw new NotFoundException('Invalid event');
 
-			$networkHistory = array();
+			$eventGraph = array();
 			if (!$this->_isSiteAdmin() && ($event['Event']['orgc_id'] != $this->_checkOrg() && !$this->userRole['perm_modify'])) {
 				throw new UnauthorizedException(__('You do not have permission to do that.'));
 			} else {
-				$networkHistory['EventNetworkHistory']['event_id'] = $event_id;
+				$eventGraph['EventGraph']['event_id'] = $event_id;
 			}
 
 			$date = new DateTime();
-			if (!isset($this->request->data['EventNetworkHistory']['network_json'])) {
+			if (!isset($this->request->data['EventGraph']['network_json'])) {
 				throw new MethodNotAllowedException('No network data set');
 			} else {
-				$networkHistory['EventNetworkHistory']['network_json'] = $this->request->data['EventNetworkHistory']['network_json'];
+				$eventGraph['EventGraph']['network_json'] = $this->request->data['EventGraph']['network_json'];
 			}
-			if (!isset($this->request->data['EventNetworkHistory']['network_name'])) {
-				$networkHistory['EventNetworkHistory']['network_name'] = null;
+			if (!isset($this->request->data['EventGraph']['network_name'])) {
+				$eventGraph['EventGraph']['network_name'] = null;
 			} else {
-				$networkHistory['EventNetworkHistory']['network_name'] = $this->request->data['EventNetworkHistory']['network_name'];
+				$eventGraph['EventGraph']['network_name'] = $this->request->data['EventGraph']['network_name'];
 			}
 
-			if (isset($this->request->data['EventNetworkHistory']['preview_img'])) {
-				$networkHistory['EventNetworkHistory']['preview_img'] = $this->request->data['EventNetworkHistory']['preview_img'];
+			if (isset($this->request->data['EventGraph']['preview_img'])) {
+				$eventGraph['EventGraph']['preview_img'] = $this->request->data['EventGraph']['preview_img'];
 			}
 
-			$networkHistory['EventNetworkHistory']['timestamp'] = $date->getTimestamp();
+			$eventGraph['EventGraph']['timestamp'] = $date->getTimestamp();
 
 			// Network pushed will be the owner of the authentication key
-			$networkHistory['EventNetworkHistory']['user_id'] = $this->Auth->user('id');
-			$networkHistory['EventNetworkHistory']['org_id'] = $this->Auth->user('org_id');
+			$eventGraph['EventGraph']['user_id'] = $this->Auth->user('id');
+			$eventGraph['EventGraph']['org_id'] = $this->Auth->user('org_id');
 
-			$result = $this->EventNetworkHistory->save($networkHistory, true, array(
+			$result = $this->EventGraph->save($eventGraph, true, array(
 				'event_id',
 				'network_json',
 				'network_name',
@@ -121,9 +121,9 @@ class EventNetworkHistoryController extends AppController {
 				)
 			);
 			if ($result) {
-				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Network history saved.')), 'status'=>200, 'type' => 'json'));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'eventGraph saved.')), 'status'=>200, 'type' => 'json'));
 			} else {
-				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Network history could not be saved.')), 'status'=>200, 'type' => 'json'));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'eventGraph could not be saved.')), 'status'=>200, 'type' => 'json'));
 			}
 		}
 	}
@@ -132,30 +132,30 @@ class EventNetworkHistoryController extends AppController {
 		if (!$this->request->is('post')) {
 			$this->set('id', $id);
 			$conditions = array('id' => $id);
-			$networkHistory = $this->EventNetworkHistory->find('first', array(
+			$eventGraph = $this->EventGraph->find('first', array(
 					'conditions' => $conditions,
 					'recursive' => -1,
 					'fields' => array('id', 'event_id'),
 			));
-			$this->render('ajax/eventNetworkHistory_delete_form');
+			$this->render('ajax/eventGraph_delete_form');
 		} else {
 			$this->set('id', $id);
 			$conditions = array('id' => $id);
-			$networkHistory = $this->EventNetworkHistory->find('first', array(
+			$eventGraph = $this->EventGraph->find('first', array(
 					'conditions' => $conditions,
 					'recursive' => -1,
 					'fields' => array('id', 'event_id', 'user_id'),
 			));
-			if (empty($networkHistory)) throw new NotFoundException('Invalid NetworkHistory');
+			if (empty($eventGraph)) throw new NotFoundException('Invalid EventGraph');
 			if ($this->request->is('ajax')) {
 				if ($this->request->is('post')) {
 					// only creator can delete its network
-					if (($networkHistory['EventNetworkHistory']['user_id'] != $this->Auth->user()['id']) && !$this->_isSiteAdmin()) throw new MethodNotAllowedException('This network does not belong to you.');
-					$result = $this->EventNetworkHistory->delete($id);
+					if (($eventGraph['EventGraph']['user_id'] != $this->Auth->user()['id']) && !$this->_isSiteAdmin()) throw new MethodNotAllowedException('This eventGraph does not belong to you.');
+					$result = $this->EventGraph->delete($id);
 					if ($result) {
-						return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Network history deleted.')), 'status'=>200, 'type' => 'json'));
+						return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'EventGraph deleted.')), 'status'=>200, 'type' => 'json'));
 					} else {
-						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Network history was not deleted.')), 'status'=>200, 'type' => 'json'));
+						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'EventGraph not deleted.')), 'status'=>200, 'type' => 'json'));
 					}
 				}
 			}

@@ -2,7 +2,7 @@
 App::uses('AppModel', 'Model');
 class EventNetworkHistory extends AppModel{
 
-	public $useTable = 'event_network_history';
+	public $useTable = 'event_graph';
 
 	public $recursive = -1;
 
@@ -31,7 +31,7 @@ class EventNetworkHistory extends AppModel{
 	public $validate = array(
 		'is_json' => array(
 				'rule' => array('isValidJson'),
-				'message' => 'The provided network is not a valid json format',
+				'message' => 'The provided eventGraph is not a valid json format',
 				'required' => true,
 		),
 	);

@@ -1456,18 +1456,18 @@ class DataHandler {
 	}
 
 	fetch_graph_history(callback) {
-		$.getJSON( "/eventNetworkHistory/get/"+scope_id, function( history ) {
+		$.getJSON( "/eventGraph/get/"+scope_id, function( history ) {
 			var history_formatted = [];
 			var network_previews = [];
 			history.forEach(function(item) {
 				history_formatted.push([
-					item['EventNetworkHistory']['id'],
-					item['EventNetworkHistory']['network_name'],
+					item['EventGraph']['id'],
+					item['EventGraph']['network_name'],
 					item['User']['email'],
-					new Date(parseInt(item['EventNetworkHistory']['timestamp'])*1000).toLocaleString()
+					new Date(parseInt(item['EventGraph']['timestamp'])*1000).toLocaleString()
 				]);
-				dataHandler.networkHistoryJsonData.set(item['EventNetworkHistory']['id'], item['EventNetworkHistory']['network_json']);
-				network_previews.push(item['EventNetworkHistory']['preview_img']);
+				dataHandler.networkHistoryJsonData.set(item['EventGraph']['id'], item['EventGraph']['network_json']);
+				network_previews.push(item['EventGraph']['preview_img']);
 			});
 			callback(history_formatted, network_previews);
 		});
@@ -1625,7 +1625,7 @@ class MispInteraction {
 
 	delete_saved_network(data) {
 		var network_id = data[0];
-		var url = "/" + "eventNetworkHistory" + "/" + "delete" + "/" + network_id;
+		var url = "/" + "eventGraph" + "/" + "delete" + "/" + network_id;
 		$.get(url, function(data) {
 			openPopup("#confirmation_box");
 			$("#confirmation_box").html(data);
@@ -1641,11 +1641,11 @@ class MispInteraction {
 			var url = form.attr('action');
 
 			// locate wanted field and set the value
-			var field_network_json = form.find('#' + 'EventNetworkHistory' + 'NetworkJson');
+			var field_network_json = form.find('#' + 'EventGraph' + 'NetworkJson');
 			field_network_json.val(network_json);
-			var field_network_name = form.find('#' + 'EventNetworkHistory' + 'NetworkName');
+			var field_network_name = form.find('#' + 'EventGraph' + 'NetworkName');
 			field_network_name.val(network_name);
-			var field_network_preview = form.find('#' + 'EventNetworkHistory' + 'PreviewImg');
+			var field_network_preview = form.find('#' + 'EventGraph' + 'PreviewImg');
 			field_network_preview.val(network_preview);
 
 
@@ -1677,7 +1677,7 @@ class MispInteraction {
 	}
 
 	networkFetchForm(type, event_id, network_id, callback) {
-		var url = '/' + 'eventNetworkHistory' + '/' + 'add' + '/' + event_id;
+		var url = '/' + 'EventGraph' + '/' + 'add' + '/' + event_id;
 		$.ajax({
 			beforeSend: function(XMLHttpRequest) {
 				$('.loading').show();
