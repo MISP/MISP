@@ -2,7 +2,7 @@
 App::uses('AppShell', 'Console/Command');
 class AdminShell extends AppShell
 {
-	public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy');
+	public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate');
 
 	public function jobGenerateCorrelation() {
 		$jobId = $this->args[0];
@@ -47,6 +47,42 @@ class AdminShell extends AppShell
 			echo 'Galaxies updated';
 		} else {
 			echo 'Could not update Galaxies';
+		}
+	}
+
+	public function updateTaxonomies() {
+		$result = $this->Taxonomy->update();
+		if ($result) {
+			echo 'Taxonomies updated';
+		} else {
+			echo 'Could not update Taxonomies';
+		}
+	}
+
+	public function updateWarningLists() {
+		$result = $this->Galaxy->update();
+		if ($result) {
+			echo 'Warning lists updated';
+		} else {
+			echo 'Could not update warning lists';
+		}
+	}
+
+	public function updateNoticeLists() {
+		$result = $this->Noticelist->update();
+		if ($result) {
+			echo 'Notice lists updated';
+		} else {
+			echo 'Could not update notice lists';
+		}
+	}
+
+	public function updateObjectTemplates() {
+		$result = $this->ObjectTemplate->update(false,false);
+		if ($result) {
+			echo 'Object templates updated';
+		} else {
+			echo 'Could not update object templates';
 		}
 	}
 
