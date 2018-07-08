@@ -779,19 +779,37 @@ class StixBuilder():
 
     @staticmethod
     def resolve_file_observable(attributes):
-        observable = defaultdict(dict)
-        observable['type'] = 'file'
+        observable = {}
+        observable_file = defaultdict(dict)
+        observable_file['type'] = 'file'
+        malware_sample = {}
+        d_observable = {}
+        n_object = 0
         for attribute in attributes:
             attribute_type = attribute.type
-            if attribute_type in misp_hash_types:
-                observable['hashes'][attribute_type.upper()] = attribute.value
+            if attribute_type == 'malware-sample':
+                filename, md5 = attribute.value.split('|')
+                malware_sample['filename'] = filename
+                malware_sample['md5'] = md5
+                if attribute.data:
+                    observable[str(n_object)] = {'type': 'artifact', 'payload_bin': b64encode(attribute.data.getvalue())}
+                    n_object += 1
+            elif attribute_type in ('filename', 'md5'):
+                d_observable[attribute_type] = attribute.value
+            elif attribute_type in misp_hash_types:
+                observable_file['hashes'][attribute_type] = attribute.value
             else:
                 try:
                     observable_type = fileMapping[attribute_type]
                 except:
-                    continue
-                observable[observable_type] = attribute.value
-        return {'0': dict(observable)}
+                    observable_type = "x_misp_{}_{}".format(attribute_type, attribute.object_relation)
+                observable_file[observable_type] = attribute.value
+        if 'md5' in d_observable:
+            observable_file['hashes']['MD5'] = malware_sample['md5'] if 'md5' in malware_sample else d_observable['md5']
+        if 'filename' in d_observable:
+            observable_file['name'] = malware_sample['filename'] if 'filename' in malware_sample else d_observable['filename']
+        observable[str(n_object)] = observable_file
+        return observable
 
     @staticmethod
     def resolve_file_pattern(attributes):
@@ -801,27 +819,26 @@ class StixBuilder():
         malware_sample = {}
         for attribute in attributes:
             attribute_type = attribute.type
-            attribute_value = attribute.value
             if attribute_type == "malware-sample":
-                filename, md5 = attribute_value.split('|')
+                filename, md5 = attribute.value.split('|')
                 malware_sample['filename'] = filename
                 malware_sample['md5'] = md5
-            else:
-                d_pattern[attribute_type] = attribute_value
-        if malware_sample:
-            if not('md5' in d_pattern and 'filename' in d_pattern and d_pattern['md5'] == malware_sample['md5'] and d_pattern['filename'] == malware_sample['filename']):
-                filename_pattern = s_pattern.format('name', malware_sample['filename'])
-                md5_pattern = s_pattern.format(fileMapping['hashes'].format('md5'), malware_sample['md5'])
-                pattern += "{}{}".format(filename_pattern, md5_pattern)
-        for p in d_pattern:
-            if p in misp_hash_types:
-                stix_type = fileMapping['hashes'].format(p)
+                if attribute.data:
+                    pattern += "{} AND ".format(pattern_attachment('', b64encode(attribute.data.getvalue()).decode()[1:-1])[1:-1])
+            elif attribute_type in ("filename", "md5"):
+                d_pattern[attribute_type] = attribute.value
             else:
                 try:
-                    stix_type = fileMapping[p]
-                except:
-                    continue
-            pattern += s_pattern.format(stix_type, d_pattern[p])
+                    stix_type = fileMapping['hashes'].format(attribute_type) if attribute_type in misp_hash_types else fileMapping[attribute_type]
+                except KeyError:
+                    stix_type = "'x_misp_{}_{}'".format(attribute_type, attribute.object_relation)
+                pattern += s_pattern.format(stix_type, attribute.value)
+        for attribute_type in ('filename', 'md5'):
+            stix_type = fileMapping['hashes'].format(attribute_type) if attribute_type in misp_hash_types else fileMapping[attribute_type]
+            if attribute_type in malware_sample:
+                pattern += s_pattern.format(stix_type, malware_sample[attribute_type])
+            elif attribute_type in d_pattern:
+                pattern += s_pattern.format(stix_type, d_pattern[attribute_type])
         return "[{}]".format(pattern[:-5])
 
     def resolve_ip_port_observable(self, attributes):
