@@ -34,14 +34,21 @@ class AdminShell extends AppShell
 		$this->ShadowAttribute->generateCorrelation($jobId);
 	}
 
-  public function updateGalaxies() {
-		$result = $this->Galaxy->update();
-    if ($result) {
-        echo 'Galaxies updated';
-    } else {
-        echo 'Could not update Galaxies';
-    }
-  }
+	public function updateGalaxies() {
+		// The following is 7.x upwards only
+		//$value = $this->args[0] ?? $this->args[0] ?? 0;
+		$value = empty($this->args[0])  ? null : $this->args[0];
+		if ($value === 'false') $value = 0;
+		if ($value === 'true') $value = 1;
+		if ($value === 'force') $value = 1;
+		$force = $value;
+		$result = $this->Galaxy->update($force);
+		if ($result) {
+			echo 'Galaxies updated';
+		} else {
+			echo 'Could not update Galaxies';
+		}
+	}
 
 	public function jobUpgrade24() {
 		$jobId = $this->args[0];
