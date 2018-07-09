@@ -46,6 +46,15 @@ def pattern_email_address(attribute_type, attribute_value):
     email_type = "from_ref" if 'src' in attribute_type else "to_refs"
     return "[email-message:{} = '{}']".format(email_type, attribute_value)
 
+def observable_email_attachment(_, attribute_value):
+    observable = observable_file(_, attribute_value)
+    observable['1'] = {"type": "email-message", 'is_multipart': 'true',
+                       "body_multipart": [{"content_disposition": "attachment; filename=''".format(attribute_value), "body_raw_ref": "0"}]}
+    return observable
+
+def pattern_email_attachment(_, attribute_value):
+    return "[email-message:body_multipart[*].body_raw_ref.name = '{}']".format(attribute_value)
+
 def observable_email_message(attribute_type, attribute_value):
     email_type = attribute_type.split('-')[1]
     return {'0': {'type': 'email-message', email_type: attribute_value, 'is_multipart': 'false'}}
@@ -188,6 +197,7 @@ mispTypesMapping = {
     'email-dst': {'observable': observable_email_address, 'pattern': pattern_email_address},
     'email-subject': {'observable': observable_email_message, 'pattern': pattern_email_message},
     'email-body': {'observable': observable_email_message, 'pattern': pattern_email_message},
+    'email-attachment': {'observable': observable_email_attachment, 'pattern': pattern_email_attachment},
     'url': {'observable': observable_url, 'pattern': pattern_url},
     'regkey': {'observable': observable_regkey, 'pattern': pattern_regkey},
     'regkey|value': {'observable': observable_regkey_value, 'pattern': pattern_regkey_value},
