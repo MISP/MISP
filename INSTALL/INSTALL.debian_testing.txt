@@ -59,6 +59,16 @@ PHP_INI=/etc/php/7.2/apache2/php.ini
 - Web server, apache FTW!
 - This guide assumes a user name of 'misp'
 
+# Make sure you can sudo
+```
+misp@debian:~$ sudo ls
+[sudo] password for misp:
+misp is not in the sudoers file.  This incident will be reported.
+```
+
+su -
+adduser misp sudo
+
 # install etckeeper (optional)
 sudo apt install -y etckeeper
 
