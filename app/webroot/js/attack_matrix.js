@@ -48,8 +48,17 @@
 		// info container
 		$('.info_container_eventgraph_network .matrix-interaction').off('click.interaction').on('click.interaction', function(event) {
 			var tagName = $(this).attr('data-tag_name');
-			$('#attributesFilterField').val(tagName);
-			filterAttributes('value', $('#attributesFilterField').data('eventid'));
+			var tagId = $(this).attr('data-cluster-id');
+			// trigger contextual menu
+			//matrixContextualMenu(event.clientX, event.clientY, tagName, tagId, [
+			var target = event.target.getBoundingClientRect();
+			var parentDom = document.getElementById('matrix_container').getBoundingClientRect();
+			var x = target.x - target.width/2 - 118; 
+			var y = target.y - parentDom.y - 28; 
+			matrixContextualMenu(x, y, tagName, tagId, [
+				'Tag event',
+				'Filter event'
+			]);
 		});
 		var scoredCells = $('.info_container_eventgraph_network .heatCell').filter(function() {
 			return $(this).attr('data-score') > 0;
@@ -174,5 +183,56 @@
 			$('#popover_form_large').css('left', '');
 			$('#popover_form_large').css('top', savedTopOffset);
 		}
+	}
+
+	function matrixContextualMenu(x, y, tagName, tagId, func_name) {
+		// get menu if already created
+		var should_append = false;
+		var div = document.getElementById('matrixContextualMenu');
+		if (div === null) {
+			div = document.createElement('div');
+			div.id = 'matrixContextualMenu';
+			document.getElementById('matrix_container').appendChild(div);
+		}
+		div = $(div);
+		div.empty();
+		div.css('position', 'absolute');
+		div.css('left', x+'px');
+		div.css('top', y+'px');
+		for (var i=0; i<func_name.length; i++) {
+			var span = $(document.createElement('span'));
+			span.addClass('icon-matrix-contextual-menu');
+			span.attr('title', func_name[i]);
+			switch(func_name[i]) {
+				case 'Tag event':
+					span.addClass('fa fa-tag');
+					span.click(function(evt) { 
+						tagEvent(tagName, tagId);
+					});
+					break;
+				case 'Filter event':
+					span.addClass('fa fa-filter');
+					span.click(function(evt) { 
+						filterEvent(tagName, tagId);
+					});
+					break;
+				default:
+					span.addClass('fa fa-filter');
+					span.click(function(evt) { 
+						filterEvent(tagName, tagId);
+					});
+					break;
+			}
+			div.append(span);
+		}
+	}
+
+	function tagEvent(tagName, tagId) {
+		console.log('tagging', tagName, tagId);
+	}
+
+	function filterEvent(tagName, tagId) {
+		$('#attributesFilterField').val(tagName);
+		filterAttributes('value', $('#attributesFilterField').data('eventid'));
 	}
 }());
