@@ -597,13 +597,6 @@ class StixBuilder():
                 'from_object']
 
     @staticmethod
-    def define_address_type(value):
-        if ':' in value:
-            return 'ipv6-addr'
-        else:
-            return 'ipv4-addr'
-
-    @staticmethod
     def define_observable(attribute_type, attribute_value):
         if attribute_type == 'malware-sample':
             return mispTypesMapping[attribute_type]['observable']('filename|md5', attribute_value)
@@ -849,7 +842,7 @@ class StixBuilder():
             attribute_type = attribute.type
             attribute_value = attribute.value
             if attribute_type == 'ip-dst':
-                ip_address['type'] = self.define_address_type(attribute_value)
+                ip_address['type'] = define_address_type(attribute_value)
                 ip_address['value'] = attribute_value
             elif attribute_type == 'domain':
                 domain['type'] = 'domain-name'
@@ -894,7 +887,8 @@ class StixBuilder():
             observable[str(o_id)] = domain
         return observable
 
-    def resolve_ip_port_pattern(self, attributes):
+    @staticmethod
+    def resolve_ip_port_pattern(attributes):
         pattern = ""
         for attribute in attributes:
             attribute_type = attribute.type
@@ -906,7 +900,7 @@ class StixBuilder():
                     try:
                         stix_type = ipPortObjectMapping[attribute_type][attribute.object_relation]
                     except:
-                        stix_type = ipPortObjectMapping[attribute_type].format(self.define_address_type(attribute_value))
+                        stix_type = ipPortObjectMapping[attribute_type].format(define_address_type(attribute_value))
                 except:
                     continue
                 pattern += objectsMapping['ip-port']['pattern'].format(stix_type, attribute_value)
