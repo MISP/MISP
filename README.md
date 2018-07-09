@@ -2,6 +2,7 @@ MISP - Malware Information Sharing Platform and Threat Sharing
 --------------------------------------------------------------
 
 ![logo](./INSTALL/logos/misp-logo.png?raw=true "MISP")
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FMISP%2FMISP.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FMISP%2FMISP?ref=badge_shield)
 
 <table>
 <tr>
@@ -111,3 +112,6 @@ This software is licensed under [GNU Affero General Public License version 3](ht
 * Copyright (C) 2016 Andreas Ziegler
 
 For more information, [the list of authors and contributors](AUTHORS) is available.
+
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FMISP%2FMISP.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FMISP%2FMISP?ref=badge_large)
