@@ -164,7 +164,7 @@ li.tactic.active {
     background-image: unset;
     text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white;
     transition: background .2s linear;
-
+    color: black;
 }
 
 .icon-matrix-contextual-menu:hover {

@@ -187,11 +187,13 @@
 		// get menu if already created
 		var should_append = false;
 		var div = document.getElementById('matrixContextualMenu');
-		if (div === null) {
-			div = document.createElement('div');
-			div.id = 'matrixContextualMenu';
-			document.getElementById('matrix_container').appendChild(div);
+		if (div !== null) {
+			div.remove();
 		}
+		div = document.createElement('div');
+		div.id = 'matrixContextualMenu';
+		cell.appendChild(div);
+		
 		div = $(div);
 		div.empty();
 		div.css('position', 'absolute');
