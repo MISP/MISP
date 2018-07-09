@@ -26,6 +26,7 @@ table.matrix-table {
 
 td.matrix-interaction {
     cursor: pointer;
+    position: relative;
 }
 
 td.matrix-interaction:hover {

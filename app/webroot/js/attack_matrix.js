@@ -51,8 +51,8 @@
 			// trigger contextual menu
 			var target = event.target.getBoundingClientRect();
 			var parentDom = document.getElementById('matrix_container').getBoundingClientRect();
-			var x = target.x - target.width/2 - 88; 
-			var y = target.y - parentDom.y + target.height/2 - 18; 
+			var x = target.width/2 - 30; 
+			var y = target.height/2 - 14; 
 			matrixContextualMenu(event.target, x, y, tagName, tagId, [
 				'Tag event',
 				'Filter event'
@@ -235,6 +235,10 @@
 			if (!$(this).hasClass('heatCell')) {
 				div.remove();
 			}
+		});
+		// register onLeave on the cell to dismiss the menu
+		$(cell).off('mouseleave.dismissCM').one('mouseleave.dismissCM', function(e) {
+			div.remove();
 		});
 	}
 
