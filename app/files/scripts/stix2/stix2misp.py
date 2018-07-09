@@ -33,9 +33,9 @@ class StixParser():
         self.event = []
         self.misp_event['Galaxy'] = []
 
-    def loadEvent(self, args, pathname):
+    def loadEvent(self, args):
         try:
-            filename = os.path.join(pathname, args[1])
+            filename = os.path.join(os.path.dirname(args[0]), args[1])
             tempFile = open(filename, 'r', encoding='utf-8')
             self.filename = filename
             event = json.loads(tempFile.read())
@@ -51,6 +51,20 @@ class StixParser():
             if not self.event:
                 print(json.dumps({'success': 0, 'message': 'There is no valid STIX object to import'}))
                 sys.exit(1)
+            try:
+                event_distribution = args[2]
+                if not isinstance(event_distribution, int):
+                    event_distribution = int(event_distribution) if event_distribution.isdigit() else 5
+            except:
+                event_distribution = 5
+            try:
+                attribute_distribution = args[3]
+                if attribute_distribution != 'event' and not isinstance(attribute_distribution, int):
+                    attribute_distribution = int(attribute_distribution) if attribute_distribution.isdigit() else 5
+            except:
+                attribute_distribution = 5
+            self.misp_event.distribution = event_distribution
+            self.__attribute_distribution = event_distribution if attribute_distribution == 'event' else attribute_distribution
             self.load_mapping()
         except:
             print(json.dumps({'success': 0, 'message': 'The STIX file could not be read'}))
@@ -91,7 +105,7 @@ class StixParser():
         self.objects_mapping = {'asn': {'observable': observable_asn, 'pattern': pattern_asn},
                                 'domain-ip': {'observable': observable_domain_ip, 'pattern': pattern_domain_ip},
                                 'email': {'observable': self.observable_email, 'pattern': self.pattern_email},
-                                'file': {'observable': observable_file, 'pattern': pattern_file},
+                                'file': {'observable': observable_file, 'pattern': self.pattern_file},
                                 'ip-port': {'observable': observable_ip_port, 'pattern': pattern_ip_port},
                                 'network-socket': {'observable': observable_socket, 'pattern': pattern_socket},
                                 'process': {'observable': observable_process, 'pattern': pattern_process},
@@ -107,6 +121,7 @@ class StixParser():
         else:
             self.version_attribute = {'type': 'text', 'object_relation': 'version', 'value': self.stix_version}
             self.buildExternalDict()
+        self.set_distribution()
 
     def from_misp(self):
         for o in self.event:
@@ -349,6 +364,44 @@ class StixParser():
                                'value': a_dict['value'], 'data': io.BytesIO(a_dict['data'].encode())})
         return attributes
 
+    @staticmethod
+    def pattern_file(pattern):
+        attributes = []
+        malware_sample = {}
+        for p in pattern:
+            p_type, p_value = p.split(' = ')
+            if p_type == 'artifact:payload_bin':
+                malware_sample['data'] = p_value
+            elif p_type in ("file:name", "file:hashes.'md5'"):
+                try:
+                    mapping = file_mapping[p_type]
+                    attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                                       'value': p_value[1:-1], 'to_ids': True})
+                    malware_sample['filename'] = p_value[1:-1]
+                except KeyError:
+                    attributes.append({'type': 'md5', 'object_relation': 'md5',
+                                       'value': p_value[1:-1], 'to_ids': True})
+                    malware_sample['md5'] = p_value[1:-1]
+            elif 'file:hashes.' in p_type:
+                _, h = p_type.split('.')
+                h = h[1:-1]
+                attributes.append({'type': h, 'object_relation': h, 'value': p_value[1:-1]})
+            else:
+                try:
+                    mapping = file_mapping[p_type]
+                    attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                                       'value': p_value[1:-1], 'to_ids': True})
+                except KeyError:
+                    if "x_misp_" in  p_type:
+                        attribute_type, relation = p_type.split("x_misp_")[1][:-1].split("_")
+                        attributes.append({'type': attribute_type, 'object_relation': relation,
+                                           'value': p_value[1:-1], 'to_ids': True})
+        if 'data' in malware_sample:
+            value = "{}|{}".format(malware_sample['filename'], malware_sample['md5'])
+            attributes.append({'type': 'malware-sample', 'object_relation': 'malware-sample',
+                               'value': value, 'to_ids': True, 'data': io.BytesIO(malware_sample['data'].encode())})
+        return attributes
+
     def observable_pe(self, observable):
         extension = observable['0']['extensions']['windows-pebinary-ext']
         sections = extension['sections']
@@ -498,6 +551,14 @@ class StixParser():
             # Might cause some issues, need more examples to test
             return {'type': external_pattern_mapping[stix_type][value_type].get('type'), 'value': pattern_value}
 
+    def set_distribution(self):
+        for attribute in self.misp_event.attributes:
+            attribute.distribution = self.__attribute_distribution
+        for misp_object in self.misp_event.objects:
+            misp_object.distribution = self.__attribute_distribution
+            for attribute in misp_object.attributes:
+                attribute.distribution = self.__attribute_distribution
+
     def saveFile(self):
         eventDict = self.misp_event.to_json()
         outputfile = '{}.stix2'.format(self.filename)
@@ -541,9 +602,8 @@ class StixParser():
             return pattern.split(' = ')[1][1:-2]
 
 def main(args):
-    pathname = os.path.dirname(args[0])
     stix_parser = StixParser()
-    stix_parser.loadEvent(args, pathname)
+    stix_parser.loadEvent(args)
     stix_parser.handler()
     stix_parser.saveFile()
     print(1)

@@ -1,3 +1,9 @@
+def attribute_data_observable(data):
+    return {'type': 'artifact', 'payload_bin': data}
+
+def attribute_data_pattern(data):
+    return "artifact:payload_bin = '{}'".format(data)
+
 def define_address_type(address):
     if ':' in address:
         return 'ipv6-addr'
@@ -10,11 +16,18 @@ def observable_as(_, attribute_value):
 def pattern_as(_, attribute_value):
     return "[autonomous-system:number = '{}']".format(attribute_value)
 
-def observable_attachment(_, attribute_value):
-    return {'0': {'type': 'artifact', 'payload_bin': attribute_value}}
+def observable_attachment(*args):
+    observable = observable_file(args[0], args[1])
+    if len(args) == 3:
+        observable['0']['content_ref'] = '0'
+        return {'0': attribute_data_observable(args[2]), '1': observable['0']}
+    return observable
 
-def pattern_attachment(_, attribute_value):
-    return "[artifact:payload_bin = '{}']".format(attribute_value)
+def pattern_attachment(*args):
+    pattern = pattern_file(args[0], args[1])[1:-1]
+    if len(args) == 3:
+        pattern += " AND {}".format(attribute_data_pattern(args[2]))
+    return "[{}]".format(pattern)
 
 def observable_domain(_, attribute_value):
     return {'0': {'type': 'domain-name', 'value': attribute_value}}
@@ -45,6 +58,15 @@ def observable_email_address(attribute_type, attribute_value):
 def pattern_email_address(attribute_type, attribute_value):
     email_type = "from_ref" if 'src' in attribute_type else "to_refs"
     return "[email-message:{} = '{}']".format(email_type, attribute_value)
+
+def observable_email_attachment(_, attribute_value):
+    observable = observable_file(_, attribute_value)
+    observable['1'] = {"type": "email-message", 'is_multipart': 'true',
+                       "body_multipart": [{"content_disposition": "attachment; filename=''".format(attribute_value), "body_raw_ref": "0"}]}
+    return observable
+
+def pattern_email_attachment(_, attribute_value):
+    return "[email-message:body_multipart[*].body_raw_ref.name = '{}']".format(attribute_value)
 
 def observable_email_message(attribute_type, attribute_value):
     email_type = attribute_type.split('-')[1]
@@ -118,6 +140,19 @@ def observable_mac_address(_, attribute_value):
 def pattern_mac_address(_, attribute_value):
     return "[mac-addr:value = '{}']".format(attribute_value)
 
+def observable_malware_sample(*args):
+    observable = observable_file_hash("filename|md5", args[1])
+    if len(args) == 3:
+        observable['0']['content_ref'] = '0'
+        return {'0': attribute_data_observable(args[2]), '1': observable['0']}
+    return observable
+
+def pattern_malware_sample(*args):
+    pattern = pattern_file_hash("filename|md5", args[1])[1:-1]
+    if len(args) == 3:
+        pattern += " AND {}".format(attribute_data_pattern(args[2]))
+    return "[{}]".format(pattern)
+
 def observable_mutex(_, attribute_value):
     return {'0': {'type': 'mutex', 'name': attribute_value}}
 
@@ -188,10 +223,11 @@ mispTypesMapping = {
     'email-dst': {'observable': observable_email_address, 'pattern': pattern_email_address},
     'email-subject': {'observable': observable_email_message, 'pattern': pattern_email_message},
     'email-body': {'observable': observable_email_message, 'pattern': pattern_email_message},
+    'email-attachment': {'observable': observable_email_attachment, 'pattern': pattern_email_attachment},
     'url': {'observable': observable_url, 'pattern': pattern_url},
     'regkey': {'observable': observable_regkey, 'pattern': pattern_regkey},
     'regkey|value': {'observable': observable_regkey_value, 'pattern': pattern_regkey_value},
-    'malware-sample': {'observable': observable_file_hash, 'pattern': pattern_file_hash},
+    'malware-sample': {'observable': observable_malware_sample, 'pattern': pattern_malware_sample},
     'mutex': {'observable': observable_mutex, 'pattern': pattern_mutex},
     'uri': {'observable': observable_url, 'pattern': pattern_url},
     'authentihash': {'observable': observable_hash, 'pattern': pattern_hash},
