@@ -155,12 +155,21 @@ li.tactic.active {
 }
 
 .icon-matrix-contextual-menu {
-    font-size: large;
-    margin: 3px;
-    padding: 3px;
+    font-size: 20px;
+    padding-left: 2px;
+    padding-top: 2px;
+    width: 18px;
+    height: 20px;
+    cursor: pointer;
+    background-image: unset;
+    text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white;
+    transition: background .2s linear;
+
 }
 
 .icon-matrix-contextual-menu:hover {
-    background-color: black;
+    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+    font-weight: 900;
+    font-size: 22px;
     color: white;
 }

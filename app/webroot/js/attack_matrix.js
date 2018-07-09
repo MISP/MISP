@@ -50,12 +50,11 @@
 			var tagName = $(this).attr('data-tag_name');
 			var tagId = $(this).attr('data-cluster-id');
 			// trigger contextual menu
-			//matrixContextualMenu(event.clientX, event.clientY, tagName, tagId, [
 			var target = event.target.getBoundingClientRect();
 			var parentDom = document.getElementById('matrix_container').getBoundingClientRect();
-			var x = target.x - target.width/2 - 118; 
-			var y = target.y - parentDom.y - 28; 
-			matrixContextualMenu(x, y, tagName, tagId, [
+			var x = target.x - target.width/2 - 88; 
+			var y = target.y - parentDom.y + target.height/2 - 18; 
+			matrixContextualMenu(event.target, x, y, tagName, tagId, [
 				'Tag event',
 				'Filter event'
 			]);
@@ -185,7 +184,7 @@
 		}
 	}
 
-	function matrixContextualMenu(x, y, tagName, tagId, func_name) {
+	function matrixContextualMenu(cell, x, y, tagName, tagId, func_name) {
 		// get menu if already created
 		var should_append = false;
 		var div = document.getElementById('matrixContextualMenu');
@@ -208,23 +207,32 @@
 					span.addClass('fa fa-tag');
 					span.click(function(evt) { 
 						tagEvent(tagName, tagId);
+						div.remove();
 					});
 					break;
 				case 'Filter event':
 					span.addClass('fa fa-filter');
 					span.click(function(evt) { 
 						filterEvent(tagName, tagId);
+						div.remove();
 					});
 					break;
 				default:
 					span.addClass('fa fa-filter');
 					span.click(function(evt) { 
 						filterEvent(tagName, tagId);
+						div.remove();
 					});
 					break;
 			}
 			div.append(span);
 		}
+		// register onClick on matrixTable to dismiss the menu
+		$('.matrix-table > tbody > tr > td ').off('click.dismissCM').one('click.dismissCM', function(e) {
+			if (!$(this).hasClass('heatCell')) {
+				div.remove();
+			}
+		});
 	}
 
 	function tagEvent(tagName, tagId) {
