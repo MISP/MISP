@@ -786,6 +786,7 @@ class StixBuilder():
                 malware_sample['md5'] = md5
                 if attribute.data:
                     observable[str(n_object)] = {'type': 'artifact', 'payload_bin': b64encode(attribute.data.getvalue())}
+                    observable_file['content_ref'] = str(n_object)
                     n_object += 1
             elif attribute_type in ('filename', 'md5'):
                 d_observable[attribute_type] = attribute.value
