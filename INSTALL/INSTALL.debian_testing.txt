@@ -488,7 +488,7 @@ cd misp-modules
 # pip3 install
 sudo pip3 install -I -r REQUIREMENTS
 sudo pip3 install -I .
-sudo pip3 install maec lief python-magic wand yara
+sudo pip3 install maec lief python-magic wand
 sudo pip3 install git+https://github.com/kbandla/pydeep.git
 # install STIX2.0 library to support STIX 2.0 export:
 sudo pip3 install stix2
@@ -525,6 +525,16 @@ Recommended actions
 
 Optional features
 -------------------
+# set PATH so it includes viper if it exists
+if [ -d "/usr/local/src/viper" ] ; then
+    PATH="$PATH:/usr/local/src/viper"
+fi
+
+# set PATH so it includes viper if it exists
+if [ -d "/var/www/MISP/app/Console" ] ; then
+    PATH="$PATH:/var/www/MISP/app/Console"
+fi
+
 # MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following commands
 
 # ZeroMQ depends on the Python client for Redis
@@ -607,8 +617,6 @@ sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_organisation
 
 Install viper framework
 -----------------------
-
-/!\ Has libyara issues
 
 cd /usr/local/src/
 sudo apt-get install -y libssl-dev swig python3-ssdeep p7zip-full unrar-free sqlite python3-pyclamd exiftool radare2
