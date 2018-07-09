@@ -279,11 +279,8 @@ class StixParser():
             attribute['timestamp'] = self.getTimestampfromDate(o_date)
         if 'description' in o:
             attribute['comment'] = o.get('description')
-        try:
-            attribute['value'] = value
-            self.misp_event.add_attribute(**attribute)
-        except:
-            pass
+        attribute['value'] = value
+        self.misp_event.add_attribute(**attribute)
 
     @staticmethod
     def observable_email(observable):
