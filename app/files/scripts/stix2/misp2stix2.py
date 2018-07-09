@@ -280,7 +280,7 @@ class StixBuilder():
                 self.add_object_indicator(file_object, pattern_arg="[{}]".format(pattern))
             else:
                 observable = self.resolve_file_observable(file_object.attributes)
-                observable['0']['extensions'] = self.parse_pe_extensions_observable(pe_object, sections)
+                observable['1']['extensions'] = self.parse_pe_extensions_observable(pe_object, sections)
                 self.add_object_observable(file_object, observable_arg=observable)
 
     def parse_pe_extensions_observable(self, pe_object, sections):
