@@ -70,6 +70,7 @@ misp_types_mapping = {
     'email-dst': parse_value,
     'email-subject': parse_email_message,
     'email-body': parse_email_message,
+    'email-attachment': parse_name,
     'url': parse_value,
     'regkey': parse_regkey,
     'regkey|value': parse_regkey_value,
