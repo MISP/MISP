@@ -266,7 +266,7 @@ class StixParser():
             if stix_type == 'indicator':
                 o_date = o.get('valid_from')
                 pattern = o.get('pattern').replace('\\\\', '\\')
-                value = self.parse_pattern(pattern)
+                value = self.parse_pattern_with_data(pattern) if attribute_type in ('malware-sample', 'attachment') else self.parse_pattern(pattern)
                 attribute['to_ids'] = True
             else:
                 o_date = o.get('first_observed')
@@ -279,11 +279,11 @@ class StixParser():
             attribute['timestamp'] = self.getTimestampfromDate(o_date)
         if 'description' in o:
             attribute['comment'] = o.get('description')
-        try:
-            attribute['value'] = value
-            self.misp_event.add_attribute(**attribute)
-        except:
-            pass
+        if isinstance(value, tuple):
+            value, data = value
+            attribute['data'] = io.BytesIO(data.encode())
+        attribute['value'] = value
+        self.misp_event.add_attribute(**attribute)
 
     @staticmethod
     def observable_email(observable):
@@ -600,6 +600,17 @@ class StixParser():
                 return '{}|{}'.format(value1[1:-1], value2[1:-2])
         else:
             return pattern.split(' = ')[1][1:-2]
+
+    def parse_pattern_with_data(self, pattern):
+        if 'artifact:payload_bin' not in pattern:
+            return self.parse_pattern(pattern)
+        pattern_parts = pattern.split(' AND ')
+        if len(pattern_parts) == 3:
+            filename = pattern_parts[0].split(' = ')[1]
+            md5 = pattern_parts[1].split(' = ')[1]
+            return "{}|{}".format(filename[1:-1], md5[1:-1]), pattern_parts[2].split(' = ')[1][1:-2]
+        else:
+            return pattern_parts[0].split(' = ')[1][1:-1], pattern_parts[1].split(' = ')[1][1:-2]
 
 def main(args):
     stix_parser = StixParser()
