@@ -278,7 +278,6 @@ x509_mapping = {'issuer': issuer_attribute_mapping,
 
 def fill_observable_attributes(attributes, stix_object, object_mapping):
     for o_key, o_value in stix_object.items():
-        print(o_key, o_value)
         try:
             mapping = object_mapping[o_key]
             attributes.append({'type': mapping.get('type'), 'object_relation': mapping.get('relation'),
@@ -332,79 +331,23 @@ def observable_domain_ip(observable):
 def pattern_domain_ip(pattern):
     return fill_pattern_attributes(pattern, domain_ip_mapping)
 
-def observable_email(observable):
-    attributes = []
-    addresses = {}
-    files = {}
-    for o in observable:
-        observable_part = observable[o]
-        part_type = observable_part._type
-        if part_type == 'email-addr':
-            addresses[o] = observable_part.get('value')
-        elif part_type == 'file':
-            files[o] = observable_part.get('name')
-        else:
-            message = dict(observable_part)
-    attributes.append({'type': 'email-src', 'object_relation': 'from',
-                       'value': addresses[message.pop('from_ref')]})
-    for ref in ('to_refs', 'cc_refs'):
-        if ref in message:
-            for item in message.pop(ref):
-                mapping = email_mapping[ref]
-                attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                                   'value': addresses[item]})
-    if 'body_multipart' in message:
-        for f in message.pop('body_multipart'):
-            attributes.append({'type': 'email-attachment', 'object_relation': 'attachment',
-                               'value': files[f.get('body_raw_ref')]})
-    for m in message:
-        if m == 'additional_header_fields':
-            fields = message[m]
-            for field in fields:
-                mapping = email_mapping[field]
-                if field == 'Reply-To':
-                    for rt in fields[field]:
-                        attributes.append({'type': mapping['type'],
-                                           'object_relation': mapping['relation'],
-                                           'value': rt})
-                else:
-                    attributes.append({'type': mapping['type'],
-                                       'object_relation': mapping['relation'],
-                                       'value': fields[field]})
-        else:
-            try:
-                mapping = email_mapping[m]
-            except:
-                continue
-            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                               'value': message[m]})
-    return attributes
-
-def pattern_email(pattern):
-    return fill_pattern_attributes(pattern, email_mapping)
-
 def observable_file(observable):
-    attributes = []
-    observable = dict(observable['0'])
+    if len(observable) > 1:
+        data = dict(observable['0'])['payload_bin']
+        observable = dict(observable['1'])
+        filename = observable['name']
+        md5 = observable['hashes']['MD5']
+        attributes = [{'type': 'malware-sample', 'object_relation': 'malware-sample',
+                       'value': '{}|{}'.format(filename, md5), 'to_ids': False, 'data': data}]
+    else:
+        observable = dict(observable['0'])
+        attributes = []
     if 'hashes' in observable:
         for h_type, h_value in observable.pop('hashes').items():
             h_type = h_type.lower().replace('-', '')
-            attributes.append({'type': h_type, 'object_relation': h_type, 'value': h_value})
+            attributes.append({'type': h_type, 'object_relation': h_type,
+                               'value': h_value, 'to_ids': False})
     fill_observable_attributes(attributes, observable, file_mapping)
-    return attributes
-
-def pattern_file(pattern):
-    attributes = []
-    for p in pattern:
-        p_type, p_value = p.split(' = ')
-        if 'file:hashes.' in p:
-            _, h = p_type.split('.')
-            h = h[1:-1]
-            attributes.append({'type': h, 'object_relation': h, 'value': p_value[1:-1]})
-        else:
-            mapping = file_mapping[p_type]
-            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                               'value': p_value[1:-1]})
     return attributes
 
 def observable_ip_port(observable):
@@ -503,23 +446,23 @@ def observable_socket(observable):
             attributes = parse_socket_extension(extension['socket-ext'])
     except:
         attributes = []
-    for element in observable_object:
-        if element in ('src_ref', 'dst_ref'):
-            element_object = observable[observable_object[element]]
+    for o_key, o_value in observable_object.items():
+        if o_key in ('src_ref', 'dst_ref'):
+            element_object = observable[o_value]
             if 'domain-name' in element_object['type']:
                 attribute_type = 'hostname'
-                relation = 'hostname-{}'.format(element.split('_')[0])
+                relation = 'hostname-{}'.format(o_key.split('_')[0])
             else:
-                attribute_type = relation = "ip-{}".format(element.split('_')[0])
+                attribute_type = relation = "ip-{}".format(o_key.split('_')[0])
             attributes.append({'type': attribute_type, 'object_relation': relation,
                                'value': element_object['value']})
             continue
         try:
-            mapping = network_traffic_mapping[element]
+            mapping = network_traffic_mapping[o_key]
         except:
             continue
         attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                           'value': attribute_value})
+                           'value': o_value})
     return attributes
 
 def parse_socket_observable(observable):

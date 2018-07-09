@@ -24,7 +24,6 @@ class Event extends AppModel {
 	public $fieldDescriptions = array(
 		'threat_level_id' => array('desc' => 'Risk levels: *low* means mass-malware, *medium* means APT malware, *high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Risk levels: low: mass-malware medium: APT malware high: sophisticated APT malware or 0-day attack'),
 		'classification' => array('desc' => 'Set the Traffic Light Protocol classification. <ol><li><em>TLP:AMBER</em>- Share only within the organization on a need-to-know basis</li><li><em>TLP:GREEN:NeedToKnow</em>- Share within your constituency on the need-to-know basis.</li><li><em>TLP:GREEN</em>- Share within your constituency.</li></ol>'),
-		'submittedgfi' => array('desc' => 'GFI sandbox: export upload', 'formdesc' => 'GFI sandbox: export upload'),
 		'submittedioc' => array('desc' => '', 'formdesc' => ''),
 		'analysis' => array('desc' => 'Analysis Levels: *Initial* means the event has just been created, *Ongoing* means that the event is being populated, *Complete* means that the event\'s creation is complete', 'formdesc' => 'Analysis levels: Initial: event has been started Ongoing: event population is in progress Complete: event creation has finished'),
 		'distribution' => array('desc' => 'Describes who will have access to the event.')
@@ -1440,7 +1439,6 @@ class Event extends AppModel {
 			'sharing_group_id',
 			'disableSiteAdmin',
 			'metadata',
-			'includeGalaxy',
 			'enforceWarninglist',
 			'sgReferenceOnly',
 			'flatten',
@@ -3270,7 +3268,7 @@ class Event extends AppModel {
 	}
 
 	public function stix2($id, $user) {
-		$event = $this->fetchEvent($user, array('eventid' => $id));
+		$event = $this->fetchEvent($user, array('eventid' => $id, 'includeAttachments' => 1));
 		App::uses('JSONConverterTool', 'Tools');
 		$converter = new JSONConverterTool();
 		$event = $converter->convert($event[0]);
