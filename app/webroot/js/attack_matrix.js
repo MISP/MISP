@@ -35,8 +35,7 @@
 		adapt_position_from_viewport();
 
 		$('.ajax_popover_form .btn-matrix-submit').click(function() {
-			$('#GalaxyTargetIds').val(JSON.stringify(pickedGalaxies));
-			$('#GalaxyViewMitreAttackMatrixForm').submit();
+			makeTagging(pickedGalaxies);
 			cancelPopoverForm('#popover_form_large');
 		});
 		var scoredCells = $('.ajax_popover_form .heatCell').filter(function() {
@@ -206,7 +205,9 @@
 				case 'Tag event':
 					span.addClass('fa fa-tag');
 					span.click(function(evt) { 
-						tagEvent(tagName, tagId);
+						if(confirm('Are you sure you want to attach ' + tagName + ' to this event?')) {
+							makeTagging([tagId]);
+						}
 						div.remove();
 					});
 					break;
@@ -235,8 +236,9 @@
 		});
 	}
 
-	function tagEvent(tagName, tagId) {
-		console.log('tagging', tagName, tagId);
+	function makeTagging(tagIds) {
+		$('#GalaxyTargetIds').val(JSON.stringify(tagIds));
+		$('#GalaxyViewMitreAttackMatrixForm').submit();
 	}
 
 	function filterEvent(tagName, tagId) {
