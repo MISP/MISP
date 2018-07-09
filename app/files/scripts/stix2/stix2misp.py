@@ -459,9 +459,15 @@ class StixParser():
                     h = h[1:-1]
                     attributes.append({'type': h, 'object_relation': h, 'value': p_value, 'to_ids': True})
                 else:
-                    mapping = file_mapping[p_type]
-                    attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                                       'value': p_value, 'to_ids': True})
+                    try:
+                        mapping = file_mapping[p_type]
+                        attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                                           'value': p_value, 'to_ids': True})
+                    except KeyError:
+                        if "x_misp_" in  p_type:
+                            attribute_type, relation = p_type.split("x_misp_")[1][:-1].split("_")
+                            attributes.append({'type': attribute_type, 'object_relation': relation,
+                                               'value': p_value, 'to_ids': True})
         for _, section in sections.items():
             pe_section = MISPObject('pe-section')
             for stix_type, value in section.items():
@@ -470,9 +476,15 @@ class StixParser():
                     pe_section.add_attribute(**{'type': h_type, 'object_relation': h_type,
                                                 'value': value, 'to_ids': True})
                 else:
-                    mapping = pe_section_mapping[stix_type]
-                    pe_section.add_attribute(**{'type': mapping['type'], 'object_relation': mapping['relation'],
-                                                'value': value, 'to_ids': True})
+                    try:
+                        mapping = pe_section_mapping[stix_type]
+                        pe_section.add_attribute(**{'type': mapping['type'], 'object_relation': mapping['relation'],
+                                                    'value': value, 'to_ids': True})
+                    except KeyError:
+                        if "x_misp_" in  stix_type:
+                            attribute_type, relation = stix_type.split("x_misp_")[1][:-1].split("_")
+                            attributes.append({'type': attribute_type, 'object_relation': relation,
+                                               'value': value, 'to_ids': True})
             section_uuid = str(uuid.uuid4())
             pe_section.uuid = pe_uuid
             pe.add_reference(section_uuid, 'included-in')
