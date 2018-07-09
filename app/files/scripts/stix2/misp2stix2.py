@@ -26,7 +26,7 @@ from copy import deepcopy
 
 non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', 'target-email',
                             'target-machine', 'target-org', 'target-location', 'target-external',
-                            'vulnerability', 'attachment']
+                            'vulnerability']
 
 misp_hash_types = ["authentihash", "ssdeep", "imphash", "md5", "sha1", "sha224",
                    "sha256", "sha384", "sha512", "sha512/224","sha512/256","tlsh"]
@@ -420,9 +420,9 @@ class StixBuilder():
         killchain = self.create_killchain(category)
         labels = self.create_labels(attribute)
         attribute_value = attribute.value if attribute_type != "AS" else self.define_attribute_value(attribute.value, attribute.comment)
+        pattern = mispTypesMapping[attribute_type]['pattern'](attribute_type, attribute_value, b64encode(attribute.data.getvalue()).decode()[1:-1]) if 'data' in attribute else self.define_pattern(attribute_type, attribute_value)
         indicator_args = {'id': indicator_id, 'type': 'indicator', 'labels': labels, 'kill_chain_phases': killchain,
-                           'valid_from': attribute.timestamp, 'created_by_ref': self.identity_id,
-                           'pattern': self.define_pattern(attribute_type, attribute_value)}
+                           'valid_from': attribute.timestamp, 'created_by_ref': self.identity_id, 'pattern': pattern}
         if hasattr(attribute, 'comment') and attribute.comment:
             indicator_args['description'] = attribute.comment
         indicator = Indicator(**indicator_args)
@@ -446,10 +446,10 @@ class StixBuilder():
         timestamp = attribute.timestamp
         labels = self.create_labels(attribute)
         attribute_value = attribute.value if attribute_type != "AS" else self.define_attribute_value(attribute.value, attribute.comment)
+        observable = mispTypesMapping[attribute_type]['observable'](attribute_type, attribute_value, b64encode(attribute.data.getvalue())) if 'data' in attribute else self.define_observable(attribute_type, attribute_value)
         observed_data_args = {'id': observed_data_id, 'type': 'observed-data', 'number_observed': 1,
                               'first_observed': timestamp, 'last_observed': timestamp, 'labels': labels,
-                              'created_by_ref': self.identity_id,
-                              'objects': self.define_observable(attribute_type, attribute_value)}
+                              'created_by_ref': self.identity_id, 'objects': observable}
         observed_data = ObservedData(**observed_data_args)
         self.append_object(observed_data, observed_data_id)
 
@@ -595,13 +595,6 @@ class StixBuilder():
                 'misp:category="{}"'.format(category),
                 'misp:to_ids="{}"'.format(to_ids),
                 'from_object']
-
-    @staticmethod
-    def define_address_type(value):
-        if ':' in value:
-            return 'ipv6-addr'
-        else:
-            return 'ipv4-addr'
 
     @staticmethod
     def define_observable(attribute_type, attribute_value):
@@ -849,7 +842,7 @@ class StixBuilder():
             attribute_type = attribute.type
             attribute_value = attribute.value
             if attribute_type == 'ip-dst':
-                ip_address['type'] = self.define_address_type(attribute_value)
+                ip_address['type'] = define_address_type(attribute_value)
                 ip_address['value'] = attribute_value
             elif attribute_type == 'domain':
                 domain['type'] = 'domain-name'
@@ -894,7 +887,8 @@ class StixBuilder():
             observable[str(o_id)] = domain
         return observable
 
-    def resolve_ip_port_pattern(self, attributes):
+    @staticmethod
+    def resolve_ip_port_pattern(attributes):
         pattern = ""
         for attribute in attributes:
             attribute_type = attribute.type
@@ -906,7 +900,7 @@ class StixBuilder():
                     try:
                         stix_type = ipPortObjectMapping[attribute_type][attribute.object_relation]
                     except:
-                        stix_type = ipPortObjectMapping[attribute_type].format(self.define_address_type(attribute_value))
+                        stix_type = ipPortObjectMapping[attribute_type].format(define_address_type(attribute_value))
                 except:
                     continue
                 pattern += objectsMapping['ip-port']['pattern'].format(stix_type, attribute_value)

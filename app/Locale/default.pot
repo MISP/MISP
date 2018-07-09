@@ -5064,7 +5064,7 @@ msgid "Import %s"
 msgstr ""
 
 #: View/Events/ajax/toggle_correlation.ctp:6
-msgid "Toggle Corruelation %s"
+msgid "Toggle Correlation %s"
 msgstr ""
 
 #: View/Events/ajax/toggle_correlation.ctp:11
