@@ -69,11 +69,27 @@ class AdminShell extends AppShell
 	}
 
 	public function updateNoticeLists() {
-		$result = $this->Noticelist->update();
-		if ($result) {
-			echo 'Notice lists updated';
+		if (empty($this->args[0])) {
+			echo 'Usage: ' . APP . '/cake ' . 'Admin updateNoticeLists [user_id]';
 		} else {
-			echo 'Could not update notice lists';
+			$userId = $this->args[0];
+			$user = $this->User->find('first', array(
+				'recursive' => -1,
+				'conditions' => array(
+					'User.id' => $userId,
+				),
+				'fields' => array('User.id', 'User.org_id')
+			));
+			if (empty($user)) {
+				echo 'User not found';
+			} else {
+				$result = $this->Noticelist->update($user);
+				if ($result) {
+					echo 'Notice lists updated';
+				} else {
+					echo 'Could not update notice lists';
+				}
+			}
 		}
 	}
 
