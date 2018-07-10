@@ -4,7 +4,10 @@
     "require": {
         "kamisama/cake-resque": "@stable",
         "pear/crypt_gpg": "@stable",
-        "pear/net_geoip": "@dev"
+        "pear/net_geoip": "@dev",
+        "elasticsearch/elasticsearch": "~6.0"
+    },
+    "config": {
+        "vendor-dir": "Vendor"
     }
 }
-
