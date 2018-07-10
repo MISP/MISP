@@ -50,6 +50,7 @@ class AdminShell extends AppShell
 		}
 	}
 
+	# FIXME: Make Taxonomy->update() return a status string on API if successful
 	public function updateTaxonomies() {
 		$result = $this->Taxonomy->update();
 		if ($result) {
@@ -69,6 +70,7 @@ class AdminShell extends AppShell
 	}
 
 	public function updateNoticeLists() {
+		$result = $this->Noticelist->update();
 		if ($result) {
 			echo 'Notice lists updated';
 		} else {
@@ -76,6 +78,7 @@ class AdminShell extends AppShell
 		}
 	}
 
+	# FIXME: Debug and make it work, fails to pass userId/orgId properly
 	public function updateObjectTemplates() {
 		if (empty($this->args[0])) {
 			echo 'Usage: ' . APP . '/cake ' . 'Admin updateNoticeLists [user_id]';
