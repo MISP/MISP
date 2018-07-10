@@ -1364,6 +1364,30 @@ class Server extends AppModel {
 						'test' => 'testBool',
 						'type' => 'boolean'
 					),
+                    'ElasticSearch_logging_enable' => array (
+                        'level' => 2,
+                        'description' => 'Enabled logging to an ElasticSearch instance',
+                        'value' => false,
+                        'errorMessage' => '',
+                        'test' => 'testBool',
+                        'type' => 'boolean'
+                    ),
+                    'ElasticSearch_connection_string' => array(
+                        'level' => 2,
+                        'description' => 'The URL at which to access ElasticSearch',
+                        'value' => '',
+                        'errorMessage' => '',
+                        'test' => 'testForEmpty',
+                        'type' => 'string'
+                    ),
+                    'ElasticSearch_log_index' => array(
+                        'level' => 2,
+                        'description' => 'The index in which to place logs',
+                        'value' => '',
+                        'errorMessage' => '',
+                        'test' => 'testForEmpty',
+                        'type' => 'string'
+                    ),
 					'Sightings_policy' => array(
 						'level' => 1,
 						'description' => 'This setting defines who will have access to seeing the reported sightings. The default setting is the event owner alone (in addition to everyone seeing their own contribution) with the other options being Sighting reporters (meaning the event owner and anyone that provided sighting data about the event) and Everyone (meaning anyone that has access to seeing the event / attribute).',
