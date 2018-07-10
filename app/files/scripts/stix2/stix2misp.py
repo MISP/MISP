@@ -403,7 +403,7 @@ class StixParser():
         return attributes
 
     def observable_pe(self, observable):
-        extension = observable['0']['extensions']['windows-pebinary-ext']
+        extension = observable['1']['extensions']['windows-pebinary-ext']
         sections = extension['sections']
         pe = MISPObject('pe')
         pe_uuid = str(uuid.uuid4())
