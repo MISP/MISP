@@ -26,6 +26,7 @@ table.matrix-table {
 
 td.matrix-interaction {
     cursor: pointer;
+    position: relative;
 }
 
 td.matrix-interaction:hover {
@@ -152,4 +153,24 @@ li.tactic.active {
     margin: 0px;
     height: 10px;
     line-height: 10px;
+}
+
+.icon-matrix-contextual-menu {
+    font-size: 20px;
+    padding-left: 2px;
+    padding-top: 2px;
+    width: 18px;
+    height: 20px;
+    cursor: pointer;
+    background-image: unset;
+    text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white;
+    transition: background .2s linear;
+    color: black;
+}
+
+.icon-matrix-contextual-menu:hover {
+    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+    font-weight: 900;
+    font-size: 22px;
+    color: white;
 }

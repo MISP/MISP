@@ -35,8 +35,7 @@
 		adapt_position_from_viewport();
 
 		$('.ajax_popover_form .btn-matrix-submit').click(function() {
-			$('#GalaxyTargetIds').val(JSON.stringify(pickedGalaxies));
-			$('#GalaxyViewMitreAttackMatrixForm').submit();
+			makeTagging(pickedGalaxies);
 			cancelPopoverForm('#popover_form_large');
 		});
 		var scoredCells = $('.ajax_popover_form .heatCell').filter(function() {
@@ -48,8 +47,16 @@
 		// info container
 		$('.info_container_eventgraph_network .matrix-interaction').off('click.interaction').on('click.interaction', function(event) {
 			var tagName = $(this).attr('data-tag_name');
-			$('#attributesFilterField').val(tagName);
-			filterAttributes('value', $('#attributesFilterField').data('eventid'));
+			var tagId = $(this).attr('data-cluster-id');
+			// trigger contextual menu
+			var target = event.target.getBoundingClientRect();
+			var parentDom = document.getElementById('matrix_container').getBoundingClientRect();
+			var x = target.width/2 - 30; 
+			var y = target.height/2 - 14; 
+			matrixContextualMenu(event.target, x, y, tagName, tagId, [
+				'Tag event',
+				'Filter event'
+			]);
 		});
 		var scoredCells = $('.info_container_eventgraph_network .heatCell').filter(function() {
 			return $(this).attr('data-score') > 0;
@@ -174,5 +181,74 @@
 			$('#popover_form_large').css('left', '');
 			$('#popover_form_large').css('top', savedTopOffset);
 		}
+	}
+
+	function matrixContextualMenu(cell, x, y, tagName, tagId, func_name) {
+		// get menu if already created
+		var should_append = false;
+		var div = document.getElementById('matrixContextualMenu');
+		if (div !== null) {
+			div.remove();
+		}
+		div = document.createElement('div');
+		div.id = 'matrixContextualMenu';
+		cell.appendChild(div);
+		
+		div = $(div);
+		div.empty();
+		div.css('position', 'absolute');
+		div.css('left', x+'px');
+		div.css('top', y+'px');
+		for (var i=0; i<func_name.length; i++) {
+			var span = $(document.createElement('span'));
+			span.addClass('icon-matrix-contextual-menu');
+			span.attr('title', func_name[i]);
+			switch(func_name[i]) {
+				case 'Tag event':
+					span.addClass('fa fa-tag');
+					span.click(function(evt) { 
+						if(confirm('Are you sure you want to attach ' + tagName + ' to this event?')) {
+							makeTagging([tagId]);
+						}
+						div.remove();
+					});
+					break;
+				case 'Filter event':
+					span.addClass('fa fa-filter');
+					span.click(function(evt) { 
+						filterEvent(tagName, tagId);
+						div.remove();
+					});
+					break;
+				default:
+					span.addClass('fa fa-filter');
+					span.click(function(evt) { 
+						filterEvent(tagName, tagId);
+						div.remove();
+					});
+					break;
+			}
+			div.append(span);
+		}
+		// register onClick on matrixTable to dismiss the menu
+		$('.matrix-table > tbody > tr > td ').off('click.dismissCM').one('click.dismissCM', function(e) {
+			if (!$(this).hasClass('heatCell')) {
+				div.remove();
+			}
+		});
+		// register onLeave on the cell to dismiss the menu
+		$(cell).off('mouseleave.dismissCM').one('mouseleave.dismissCM', function(e) {
+			div.remove();
+		});
+	}
+
+	function makeTagging(tagIds) {
+		$('#GalaxyTargetIds').val(JSON.stringify(tagIds));
+		$('#GalaxyViewMitreAttackMatrixForm').submit();
+	}
+
+	function filterEvent(tagName, tagId) {
+		$('#attributesFilterField').val(tagName);
+		filterAttributes('value', $('#attributesFilterField').data('eventid'));
 	}
 }());
