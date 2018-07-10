@@ -3,7 +3,7 @@
 use Elasticsearch\ClientBuilder;
 
 class ElasticSearchClient {
-	private $__settings = false;
+    private $__settings = false;
     private $__client = false;
 
 	private function __getSetSettings() {
@@ -13,8 +13,8 @@ class ElasticSearchClient {
 		);
 
 		foreach ($settings as $key => $setting) {
-			$temp = Configure::read('Plugin.ElasticSearch_' . $key);
-			if ($temp) $settings[$key] = $temp;
+            $temp = Configure::read('Plugin.ElasticSearch_' . $key);
+		    if ($temp) $settings[$key] = $temp;
 		}
 		return $settings;
 	}
@@ -22,7 +22,7 @@ class ElasticSearchClient {
 	public function initTool() {
         $settings = $this->__getSetSettings();
         $hosts = explode(",", $settings["connection_string"]);
-	    $client = ClientBuilder::create()
+        $client = ClientBuilder::create()
                     ->setHosts($hosts)
                     ->build();  
         $this->__client = $client;
