@@ -152,6 +152,7 @@ class Attribute extends AppModel {
 			'target-location' => array('desc' => 'Attack Targets Physical Location(s)', 'default_category' => 'Targeting data', 'to_ids' => 0),
 			'target-external' => array('desc' => 'External Target Organizations Affected by this Attack', 'default_category' => 'Targeting data', 'to_ids' => 0),
 			'btc' => array('desc' => 'Bitcoin Address', 'default_category' => 'Financial fraud', 'to_ids' => 1),
+			'xmr' => array('desc' => 'Monero Address', 'default_category' => 'Financial fraud', 'to_ids' => 1),
 			'iban' => array('desc' => 'International Bank Account Number', 'default_category' => 'Financial fraud', 'to_ids' => 1),
 			'bic' => array('desc' => 'Bank Identifier Code Number also known as SWIFT-BIC, SWIFT code or ISO 9362 code', 'default_category' => 'Financial fraud', 'to_ids' => 1),
 			'bank-account-nr' => array('desc' => 'Bank account number without any routing number', 'default_category' => 'Financial fraud', 'to_ids' => 1),
@@ -316,7 +317,7 @@ class Attribute extends AppModel {
 			'Financial fraud' => array(
 					'desc' => 'Financial Fraud indicators',
 					'formdesc' => 'Financial Fraud indicators, for example: IBAN Numbers, BIC codes, Credit card numbers, etc.',
-					'types' => array('btc', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number', 'comment', 'text', 'other', 'hex'),
+					'types' => array('btc', 'xmr', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number', 'comment', 'text', 'other', 'hex'),
 					),
 			'Support Tool' => array(
 					'desc' => 'Tools supporting analysis or detection of the event',
@@ -383,7 +384,7 @@ class Attribute extends AppModel {
 	public $typeGroupings = array(
 		'file' => array('attachment', 'pattern-in-file', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy','authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'malware-sample', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-fingerprint-md5'),
         'network' => array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port', 'mac-address', 'mac-eui-64', 'hostname', 'hostname|port', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-traffic', 'x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256'),
-        'financial' => array('btc', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number')
+        'financial' => array('btc', 'xmr', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number')
 	);
 
 	private $__fTool = false;
@@ -870,20 +871,20 @@ class Attribute extends AppModel {
 	}
 
 	private $__hexHashLengths = array(
-			'authentihash' => 64,
-			'md5' => 32,
-			'imphash' => 32,
-			'sha1' => 40,
-            'x509-fingerprint-md5' => 32,
-			'x509-fingerprint-sha1' => 40,
-            'x509-fingerprint-sha256' => 64,
-			'pehash' => 40,
-			'sha224' => 56,
-			'sha256' => 64,
-			'sha384' => 96,
-			'sha512' => 128,
-			'sha512/224' => 56,
-			'sha512/256' => 64,
+		'authentihash' => 64,
+		'md5' => 32,
+		'imphash' => 32,
+		'sha1' => 40,
+		'x509-fingerprint-md5' => 32,
+		'x509-fingerprint-sha1' => 40,
+		'x509-fingerprint-sha256' => 64,
+		'pehash' => 40,
+		'sha224' => 56,
+		'sha256' => 64,
+		'sha384' => 96,
+		'sha512' => 128,
+		'sha512/224' => 56,
+		'sha512/256' => 64
 	);
 
 	public function runValidation($value, $type) {
@@ -900,8 +901,8 @@ class Attribute extends AppModel {
 			case 'sha512/224':
 			case 'sha512/256':
 			case 'authentihash':
-            case 'x509-fingerprint-md5':
-            case 'x509-fingerprint-sha256':
+			case 'x509-fingerprint-md5':
+			case 'x509-fingerprint-sha256':
 			case 'x509-fingerprint-sha1':
 				$length = $this->__hexHashLengths[$type];
 				if (preg_match("#^[0-9a-f]{" . $length . "}$#", $value)) {
@@ -930,6 +931,13 @@ class Attribute extends AppModel {
 					if (is_numeric($parts[0])) $returnValue = true;
 				}
 				if (!$returnValue) $returnValue = 'Invalid SSDeep hash. The format has to be blocksize:hash:hash';
+				break;
+			case 'impfuzzy':
+				if (substr_count($value, ':') == 2) {
+					$parts = explode(':', $value);
+					if (is_numeric($parts[0])) $returnValue = true;
+				}
+				if (!$returnValue) $returnValue = 'Invalid impfuzzy format. The format has to be imports:hash:hash';
 				break;
 			case 'http-method':
 				if (preg_match("#(OPTIONS|GET|HEAD|POST|PUT|DELETE|TRACE|CONNECT|PROPFIND|PROPPATCH|MKCOL|COPY|MOVE|LOCK|UNLOCK|VERSION-CONTROL|REPORT|CHECKOUT|CHECKIN|UNCHECKOUT|MKWORKSPACE|UPDATE|LABEL|MERGE|BASELINE-CONTROL|MKACTIVITY|ORDERPATCH|ACL|PATCH|SEARCH)#", $value)) {
@@ -1218,6 +1226,7 @@ class Attribute extends AppModel {
 			case 'iban':
 			case 'bic':
 			case 'btc':
+			case 'xmr':
 				if (preg_match('/^[a-zA-Z0-9]+$/', $value)) {
 					$returnValue = true;
 				}
@@ -1325,8 +1334,8 @@ class Attribute extends AppModel {
 				$value = preg_replace('/^hxxp/i', 'http', $value);
 				$value = preg_replace('/\[\.\]/', '.' , $value);
 				break;
-            case 'x509-fingerprint-md5':
-            case 'x509-fingerprint-sha256':
+      case 'x509-fingerprint-md5':
+      case 'x509-fingerprint-sha256':
 			case 'x509-fingerprint-sha1':
 				$value = str_replace(':', '', $value);
 				$value = strtolower($value);
@@ -1496,67 +1505,6 @@ class Attribute extends AppModel {
 		} else {
 			// error
 			return false;
-		}
-	}
-
-	public function uploadAttachment($fileP, $realFileName, $malware, $eventId = null, $category = null, $extraPath = '', $fullFileName = '', $dist, $fromGFI = false) {
-		// Check if there were problems with the file upload
-		// only keep the last part of the filename, this should prevent directory attacks
-		$filename = basename($fileP);
-		$tmpfile = new File($fileP);
-
-		// save the file-info in the database
-		$this->create();
-		$this->data['Attribute']['event_id'] = $eventId;
-		$this->data['Attribute']['distribution'] = $dist;
-		if ($malware) {
-			$md5 = !$tmpfile->size() ? md5_file($fileP) : $tmpfile->md5();
-			$this->data['Attribute']['category'] = $category ? $category : "Payload delivery";
-			$this->data['Attribute']['type'] = "malware-sample";
-			$this->data['Attribute']['value'] = $fullFileName ? $fullFileName . '|' . $md5 : $filename . '|' . $md5; // TODO gives problems with bigger files
-			$this->data['Attribute']['to_ids'] = 1; // LATER let user choose whether to send this to an IDS
-			if ($fromGFI) $this->data['Attribute']['comment'] = 'GFI import';
-		} else {
-			$this->data['Attribute']['category'] = $category ? $category : "Artifacts dropped";
-			$this->data['Attribute']['type'] = "attachment";
-			$this->data['Attribute']['value'] = $fullFileName ? $fullFileName : $realFileName;
-			$this->data['Attribute']['to_ids'] = 0;
-			if ($fromGFI) $this->data['Attribute']['comment'] = 'GFI import';
-		}
-
-		if (!$this->save($this->data)) {
-			// TODO: error handling
-		}
-
-		// no errors in file upload, entry already in db, now move the file where needed and zip it if required.
-		// no sanitization is required on the filename, path or type as we save
-		// create directory structure
-		$attachments_dir = Configure::read('MISP.attachments_dir');
-		if (empty($attachments_dir)) {
-			$my_server = ClassRegistry::init('Server');
-			$attachments_dir = $my_server->getDefaultAttachments_dir();
-		}
-		$rootDir = $attachments_dir . DS . $eventId;
-		$dir = new Folder($rootDir, true);
-		// move the file to the correct location
-		$destpath = $rootDir . DS . $this->getID(); // id of the new attribute in the database
-		$file = new File($destpath);
-		$zipfile = new File($destpath . '.zip');
-		$fileInZip = new File($rootDir . DS . $extraPath . $filename);
-
-		// zip and password protect the malware files
-		if ($malware) {
-			$execRetval = '';
-			$execOutput = array();
-			exec('zip -j -P infected ' . escapeshellarg($zipfile->path) . ' ' . escapeshellarg($fileInZip->path), $execOutput, $execRetval);
-			if ($execRetval != 0) { // not EXIT_SUCCESS
-				throw new Exception('An error has occured while attempting to zip the malware file.');
-			}
-			$fileInZip->delete(); // delete the original non-zipped-file
-			rename($zipfile->path, $file->path); // rename the .zip to .nothing
-		} else {
-			$fileAttach = new File($fileP);
-			rename($fileAttach->path, $file->path);
 		}
 	}
 
@@ -2653,39 +2601,57 @@ class Attribute extends AppModel {
 			));
 			return $results;
 		}
-		$results = $this->find('all', $params);
-		// return false if we're paginating
-		if (isset($options['limit']) && empty($results)) return false;
+
 		if ($options['enforceWarninglist']) {
 			$this->Warninglist = ClassRegistry::init('Warninglist');
 			$warninglists = $this->Warninglist->fetchForEventView();
 		}
-		$results = array_values($results);
-		$proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
-		foreach ($results as $key => $attribute) {
-			if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute['Attribute'])) {
-				unset($results[$key]);
-				continue;
+
+		if (empty($params['limit'])) {
+			$pagesToFetch = $this->find('count', array('conditions' => $params['conditions']));
+			$loopLimit = 100000;
+			$pagesToFetch = ceil($pagesToFetch / $loopLimit);
+			$loop = true;
+		} else {
+			$loop = false;
+			$pagesToFetch = 1;
+		}
+
+		$attributes = array();
+		for ($i = 0; $i < $pagesToFetch; $i++) {
+			if ($loop) {
+				$params['limit'] = $loopLimit;
+				$params['page'] = $i+1;
 			}
-			if (!empty($options['includeAttributeUuid']) || !empty($options['includeEventUuid'])) {
-				$results[$key]['Attribute']['event_uuid'] = $results[$key]['Event']['uuid'];
-			}
-			if ($proposals_block_attributes) {
-				if (!empty($attribute['ShadowAttribute'])) {
-					unset($results[$key]);
-				} else {
-					unset($results[$key]['ShadowAttribute']);
+			$results = $this->find('all', $params);
+			// return false if we're paginating
+			if (isset($options['limit']) && empty($results)) return false;
+			$results = array_values($results);
+			$proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
+			foreach ($results as $key => $attribute) {
+				if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute['Attribute'])) {
+					continue;
 				}
-			}
-			if ($options['withAttachments']) {
-				if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
-					$encodedFile = $this->base64EncodeAttachment($attribute['Attribute']);
-					$results[$key]['Attribute']['data'] = $encodedFile;
+				if (!empty($options['includeAttributeUuid']) || !empty($options['includeEventUuid'])) {
+					$results[$key]['Attribute']['event_uuid'] = $results[$key]['Event']['uuid'];
 				}
+				if ($proposals_block_attributes) {
+					if (!empty($attribute['ShadowAttribute'])) {
+						continue;
+					} else {
+						unset($results[$key]['ShadowAttribute']);
+					}
+				}
+				if ($options['withAttachments']) {
+					if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
+						$encodedFile = $this->base64EncodeAttachment($attribute['Attribute']);
+						$results[$key]['Attribute']['data'] = $encodedFile;
+					}
+				}
+				$attributes[] = $results[$key];
 			}
 		}
-		$results = array_values($results);
-		return $results;
+		return $attributes;
 	}
 
 	// Method gets and converts the contents of a file passed along as a base64 encoded string with the original filename into a zip archive
@@ -2894,22 +2860,15 @@ class Attribute extends AppModel {
 		return $conditions;
 	}
 
-	public function setPublishTimestampConditions($publish_timestamp, $conditions) {
-		if (is_array($publish_timestamp)) {
-			$conditions['AND'][] = array('Event.publish_timestamp >=' => $publish_timestamp[0]);
-			$conditions['AND'][] = array('Event.publish_timestamp <=' => $publish_timestamp[1]);
-		} else {
-			$conditions['AND'][] = array('Event.publish_timestamp >=' => $publish_timestamp);
-		}
-		return $conditions;
-	}
-
-	public function setTimestampConditions($timestamp, $conditions, $scope = 'Event') {
+	public function setTimestampConditions($timestamp, $conditions, $scope = 'Event.timestamp') {
 		if (is_array($timestamp)) {
-			$conditions['AND'][] = array($scope . '.timestamp >=' => $timestamp[0]);
-			$conditions['AND'][] = array($scope . '.timestamp <=' => $timestamp[1]);
+			$timestamp[0] = $this->Event->resolveTimeDelta($timestamp[0]);
+			$timestamp[1] = $this->Event->resolveTimeDelta($timestamp[1]);
+			$conditions['AND'][] = array($scope . ' >=' => $timestamp[0]);
+			$conditions['AND'][] = array($scope . ' <=' => $timestamp[1]);
 		} else {
-			$conditions['AND'][] = array($scope . '.timestamp >=' => $timestamp);
+			$timestamp = $this->Event->resolveTimeDelta($timestamp);
+			$conditions['AND'][] = array($scope . ' >=' => $timestamp);
 		}
 		return $conditions;
 	}
@@ -3121,7 +3080,7 @@ class Attribute extends AppModel {
 	public function advancedAddMalwareSample($event_id, $attribute_settings, $filename, $tmpfile) {
 		$execRetval = '';
 		$execOutput = array();
-		$result = shell_exec('python ' . APP . 'files/scripts/generate_file_objects.py -p ' . $tmpfile->path);
+		$result = shell_exec('python3 ' . APP . 'files/scripts/generate_file_objects.py -p ' . $tmpfile->path);
 		if (!empty($result)) {
 			$result = json_decode($result, true);
 			if (isset($result['objects'])) {
@@ -3201,6 +3160,8 @@ class Attribute extends AppModel {
 					'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute),
 			));
 			} else {
+				$tags = array();
+
 				if (isset($attribute['AttributeTag'])) {
 					foreach ($attribute['AttributeTag'] as $at) {
 						unset($at['id']);
@@ -3208,6 +3169,19 @@ class Attribute extends AppModel {
 						$at['attribute_id'] = $this->id;
 						$at['event_id'] = $eventId;
 						$this->AttributeTag->save($at);
+					}
+				}
+				if (isset($attribute['Tag'])) {
+					foreach ($attribute['Tag'] as $tag) {
+						$tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
+						if ($tag_id) {
+							$this->AttributeTag->create();
+							$at = array();
+							$at['attribute_id'] = $this->id;
+							$at['event_id'] = $eventId;
+							$at['tag_id'] = $tag_id;
+							$this->AttributeTag->save($at);
+						}
 					}
 				}
 				if (!empty($attribute['Sighting'])) {

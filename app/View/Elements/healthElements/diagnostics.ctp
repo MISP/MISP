@@ -204,6 +204,7 @@
 	<b>STIX</b>: <?php echo $stix['stix']['expected'];?><br />
 	<b>CyBox</b>: <?php echo $stix['cybox']['expected'];?><br />
 	<b>mixbox</b>: <?php echo $stix['mixbox']['expected'];?><br />
+	<b>maec</b>: <?php echo $stix['maec']['expected'];?><br />
 	<b>PyMISP</b>: <?php echo $stix['pymisp']['expected'];?><br />
 	<?php echo __('Other versions might work but are not tested / recommended.');?></p>
 	<div style="background-color:#f7f7f9;width:400px;">
@@ -220,17 +221,28 @@
 				}
 			}
 			if (!$testReadError) {
+				$error_count = 0;
+				$libraries = '';
+				foreach (array('stix', 'cybox', 'mixbox', 'maec', 'pymisp') as $package) {
+					$lib_colour = 'green';
+					if ($stix[$package]['status'] == 0) {
+						$lib_colour = 'red';
+						$error_count += 1;
+					}
+					$libraries = $libraries . strtoupper($package) . __(' library version') . '…<span style="color:' . $lib_colour . ';">' . ${$package . 'Version'}[$stix[$package]['status']] . '</span><br />';
+				}
 				if ($stix['operational'] == 0) {
 					$colour = 'red';
-				}
-				echo __('STIX and Cybox libraries') . '…<span style="color:' . $colour . ';">' . $stixOperational[$stix['operational']] . '</span><br />';
-				if ($stix['operational'] == 1) {
-					foreach (array('stix', 'cybox', 'mixbox', 'pymisp') as $package) {
-						$colour = 'green';
-						if ($stix[$package]['status'] == 0) $colour = 'red';
-						echo strtoupper($package) . __(' library version') . '…<span style="color:' . $colour . ';">' . ${$package . 'Version'}[$stix[$package]['status']] . '</span><br />';
+					echo '<b>Current libraries status</b>…<span style="color:' . $colour . ';">' . $stixOperational[$stix['operational']] . '</span><br />';
+				} else {
+					if ($error_count > 0) {
+						$colour = 'orange';
+						echo '<b>Current libraries status</b>…<span style="color:' . $colour . ';">Some versions should be updated</span>:<br />';
+					} else {
+						echo '<b>Current libraries status</b>…<span style="color:' . $colour . ';">' . $stixOperational[$stix['operational']] . '</span><br />';
 					}
 				}
+				echo $libraries;
 			}
 		?>
 	</div>

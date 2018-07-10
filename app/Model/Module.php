@@ -177,7 +177,7 @@ class Module extends AppModel {
 		);
 		if ($moduleFamily == 'Cortex') {
 			if (!empty(Configure::read('Plugin.' . $moduleFamily . '_authkey'))) {
-				$request['header']['Authorization'] = 'bearer ' . Configure::read('Plugin.' . $moduleFamily . '_authkey');
+				$request['header']['Authorization'] = 'Bearer ' . Configure::read('Plugin.' . $moduleFamily . '_authkey');
 			}
 		}
 		try {

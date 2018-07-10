@@ -24,7 +24,6 @@ class Event extends AppModel {
 	public $fieldDescriptions = array(
 		'threat_level_id' => array('desc' => 'Risk levels: *low* means mass-malware, *medium* means APT malware, *high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Risk levels: low: mass-malware medium: APT malware high: sophisticated APT malware or 0-day attack'),
 		'classification' => array('desc' => 'Set the Traffic Light Protocol classification. <ol><li><em>TLP:AMBER</em>- Share only within the organization on a need-to-know basis</li><li><em>TLP:GREEN:NeedToKnow</em>- Share within your constituency on the need-to-know basis.</li><li><em>TLP:GREEN</em>- Share within your constituency.</li></ol>'),
-		'submittedgfi' => array('desc' => 'GFI sandbox: export upload', 'formdesc' => 'GFI sandbox: export upload'),
 		'submittedioc' => array('desc' => '', 'formdesc' => ''),
 		'analysis' => array('desc' => 'Analysis Levels: *Initial* means the event has just been created, *Ongoing* means that the event is being populated, *Complete* means that the event\'s creation is complete', 'formdesc' => 'Analysis levels: Initial: event has been started Ongoing: event population is in progress Complete: event creation has finished'),
 		'distribution' => array('desc' => 'Describes who will have access to the event.')
@@ -403,12 +402,25 @@ class Event extends AppModel {
 		} else {
 			$this->data['Event']['analysis'] = 0;
 		}
+
 		if (!isset($this->data['Event']['threat_level_id'])) $this->data['Event']['threat_level_id'] = Configure::read('MISP.default_event_threat_level') ? Configure::read('MISP.default_event_threat_level') : 4;
 
 		// generate UUID if it doesn't exist
 		if (empty($this->data['Event']['uuid'])) {
 			$this->data['Event']['uuid'] = CakeText::uuid();
 		}
+
+		// Convert event ID to uuid if needed
+		if (!empty($this->data['Event']['extends_uuid']) && is_numeric($this->data['Event']['extends_uuid'])) {
+			$extended_event = $this->find('first', array(
+				'recursive' => -1,
+				'conditions' => array('Event.id' => $this->data['Event']['extends_uuid']),
+				'fields' => array('Event.uuid')
+			));
+			if (empty($extended_event)) $this->data['Event']['extends_uuid'] = '';
+			else $this->data['Event']['extends_uuid'] = $extended_event['Event']['uuid'];
+		}
+
 		// generate timestamp if it doesn't exist
 		if (empty($this->data['Event']['timestamp'])) {
 			$date = new DateTime();
@@ -936,7 +948,6 @@ class Event extends AppModel {
 		}
 		$serverModel = ClassRegistry::init('Server');
 		$server = $serverModel->eventFilterPushableServers($event, array($server));
-
 		if (empty($server)) return 403;
 		$server = $server[0];
 		if ($this->checkDistributionForPush($event, $server, $context = 'Event')) {
@@ -1428,7 +1439,6 @@ class Event extends AppModel {
 			'sharing_group_id',
 			'disableSiteAdmin',
 			'metadata',
-			'includeGalaxy',
 			'enforceWarninglist',
 			'sgReferenceOnly',
 			'flatten',
@@ -2386,9 +2396,6 @@ class Event extends AppModel {
 	private function __captureObjects($data, $user) {
 		// First we need to check whether the event or any attributes are tied to a sharing group and whether the user is even allowed to create the sharing group / is part of it
 		if (isset($data['Event']['distribution']) && $data['Event']['distribution'] == 4) {
-			if (isset($data['Event']['SharingGroup']) && !$this->SharingGroup->checkIfAuthorisedToSave($user, $data['Event']['SharingGroup'])) {
-				return false;
-			}
 			$data['Event'] = $this->__captureSGForElement($data['Event'], $user);
 		}
 		if (!empty($data['Event']['Attribute'])) {
@@ -3261,7 +3268,7 @@ class Event extends AppModel {
 	}
 
 	public function stix2($id, $user) {
-		$event = $this->fetchEvent($user, array('eventid' => $id));
+		$event = $this->fetchEvent($user, array('eventid' => $id, 'includeAttachments' => 1));
 		App::uses('JSONConverterTool', 'Tools');
 		$converter = new JSONConverterTool();
 		$event = $converter->convert($event[0]);
@@ -3441,6 +3448,7 @@ class Event extends AppModel {
 	}
 
 	public function resolveTimeDelta($delta) {
+		if (is_int($delta)) return $delta;
 		$multiplierArray = array('d' => 86400, 'h' => 3600, 'm' => 60);
 		$multiplier = $multiplierArray['d'];
 		$lastChar = strtolower(substr($delta, -1));
@@ -4145,16 +4153,17 @@ class Event extends AppModel {
 		if ($stix_version == '2') {
 			$scriptFile = APP . 'files/scripts/stix2/stix2misp.py';
 			$tempFilePath = APP . 'files/scripts/tmp/' . $filename;
-			$shell_command = 'python3 ' . $scriptFile . ' ' . $tempFilePath . ' 2>' . APP . 'tmp/logs/exec-errors.log';
+			$shell_command = 'python3 ' . $scriptFile . ' ' . $tempFilePath;
 			$output_path = $tempFilePath . '.stix2';
 		} else if ($stix_version == '1' || $stix_version == '1.1' || $stix_version == '1.2') {
 			$scriptFile = APP . 'files/scripts/stix2misp.py';
 			$tempFilePath = APP . 'files/scripts/tmp/' . $filename;
-			$shell_command = 'python3 ' . $scriptFile . ' ' . $filename . ' 2>' . APP . 'tmp/logs/exec-errors.log';
+			$shell_command = 'python3 ' . $scriptFile . ' ' . $filename;
 			$output_path = $tempFilePath . '.json';
 		} else {
 			throw new MethodNotAllowedException('Invalid STIX version');
 		}
+		$shell_command .=  ' ' . escapeshellarg(Configure::read('MISP.default_event_distribution')) . ' ' . escapeshellarg(Configure::read('MISP.default_attribute_distribution')) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
 		$result = shell_exec($shell_command);
 		unlink($tempFilePath);
 		if (trim($result) == '1') {
@@ -4167,8 +4176,19 @@ class Event extends AppModel {
 			if ($result) return $created_id;
 			return $validationIssues;
 		} else {
-			$response = __('Issues executing the ingestion script or invalid input.');
-			if ($user['Role']['perm_site_admin']) $response .= ' ' . __('Check whether the dependencies for STIX are met via the diagnostic tool.');
+			if (trim($result) == '2') {
+				$response = __('Issues while loading the stix file. ');
+			} elseif (trim($result) == '3') {
+				$response = __('Issues with the maec library. ');
+			} else {
+				$response = __('Issues executing the ingestion script or invalid input. ');
+			}
+			if (!$user['Role']['perm_site_admin']) {
+				$response .= __('Please ask your administrator to ');
+			} else {
+				$response .= __('Please ');
+			}
+			$response .= ' ' . __('check whether the dependencies for STIX are met via the diagnostic tool.');
 			return $response;
 		}
 	}
@@ -4243,7 +4263,7 @@ class Event extends AppModel {
 						$data = json_encode($data);
 						$result = $this->Module->queryModuleServer('/query', $data, false, 'Enrichment');
 						if (!$result) throw new MethodNotAllowedException($type . ' service not reachable.');
-						if (isset($result['error'])) $this->Session->setFlash($result['error']);
+						//if (isset($result['error'])) $this->Session->setFlash($result['error']);
 						if (!is_array($result)) throw new Exception($result);
 						$attributes = $this->handleModuleResult($result, $attribute['event_id']);
 						foreach ($attributes as $a) {
@@ -4303,5 +4323,10 @@ class Event extends AppModel {
 			$data[$dataType . 'Tag'] = array_values($data[$dataType . 'Tag']);
 		}
 		return $data;
+	}
+
+	public function insertLock($user, $id) {
+		$eventLock = ClassRegistry::init('EventLock');
+		$eventLock->insertLock($user, $id);
 	}
 }

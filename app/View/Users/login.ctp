@@ -36,7 +36,7 @@
 		?>
 		<legend style="width:450px;"><?php echo __('Login');?></legend>
 		<?php
-			echo $this->Form->input('email', array('autocomplete' => 'off'));
+			echo $this->Form->input('email', array('autocomplete' => 'off', 'autofocus'));
 			echo $this->Form->input('password', array('autocomplete' => 'off'));
 		?>
 			<div class="clear"></div>

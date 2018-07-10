@@ -125,18 +125,11 @@
     <ul class="inline" style="margin:0px;">
       <?php
         if (!empty($event['RelatedShadowAttribute'][$object['id']])) {
-          foreach ($event['RelatedShadowAttribute'][$object['id']] as $relatedAttribute) {
-            $relatedData = array('Event info' => $relatedAttribute['info'], 'Correlating Value' => $relatedAttribute['value'], 'date' => isset($relatedAttribute['date']) ? $relatedAttribute['date'] : 'N/A');
-            $popover = '';
-            foreach ($relatedData as $k => $v) {
-              $popover .= '<span class=\'bold black\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
-            }
-            echo '<li style="padding-right: 0px; padding-left:0px;" data-toggle="popover" data-content="' . h($popover) . '" data-trigger="hover"><span>';
-            $correlationClass = 'white' . ($relatedAttribute['org_id'] == $me['org_id'] ? ' bold' : '');
-            echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array('class' => $correlationClass));
-            echo "</span></li>";
-            echo ' ';
-          }
+          echo $this->element('Events/View/attribute_correlations', array(
+            'scope' => 'ShadowAttribute',
+            'object' => $object,
+            'event' => $event,
+          ));
         }
       ?>
     </ul>

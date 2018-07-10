@@ -37,6 +37,7 @@
 </head>
 <body>
 	<div id="popover_form" class="ajax_popover_form"></div>
+	<div id="popover_form_large" class="ajax_popover_form ajax_popover_form_large"></div>
 	<div id="screenshot_box" class="screenshot_box"></div>
 	<div id="confirmation_box" class="confirmation_box"></div>
 	<div id="gray_out" class="gray_out"></div>
@@ -82,16 +83,28 @@
 		<div class="spinner"></div>
 		<div class="loadingText"><?php echo __('Loading');?></div>
 	</div>
+
+	<script type="text/javascript">
 	<?php
 		if (!isset($debugMode)):
 	?>
-	<script type="text/javascript">
 		$(window).scroll(function(e) {
 			$('.actions').css('left',-$(window).scrollLeft());
 		});
-	</script>
 	<?php
 		endif;
 	?>
+		var tabIsActive = true;
+		var baseurl = '<?php echo $baseurl; ?>';
+		$(document).ready(function(){
+			$(window).blur(function() {
+				tabIsActive = false;
+			});
+			$(window).focus(function() {
+				tabIsActive = true;
+			});
+			checkIfLoggedIn();
+		});
+	</script>
 </body>
 </html>

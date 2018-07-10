@@ -4,6 +4,7 @@ php:
     - 5.6
     - 7.0
     - 7.1
+    - 7.2
     - nightly
 
 services:
@@ -39,6 +40,7 @@ before_install:
     - git config --global user.name "TravisCI"
 
 install:
+    - sudo pip3 install --upgrade pip setuptools requests
     - pip3 install --user --upgrade -r requirements.txt
     - phpenv rehash
     - pushd app
@@ -121,6 +123,9 @@ script:
     - cp PyMISP/tests/keys.py PyMISP/examples/events/
     - pushd PyMISP/examples/events/
     - python3 ./create_massive_dummy_events.py -l 5 -a 30
+    - popd
+    - pushd app/files/feed-metadata
+    - jsonschema -i defaults.json schema.json
     - popd
 
 after_failure:

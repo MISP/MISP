@@ -55,7 +55,7 @@ class Feed extends AppModel {
 				}
 			} else {
 				if (!file_exists($this->data['Feed']['url'])) {
-					return 'For non-MISP type local feeds, please specify the file to be ingested.';
+					return 'Invalid path or file not found. Make sure that the path points to an existing file that is readable and watch out for typos.';
 				}
 			}
 		} else {
@@ -443,6 +443,7 @@ class Feed extends AppModel {
 		}
 		if (isset($actions['edit']) && !empty($actions['edit'])) {
 			foreach ($actions['edit'] as $editTarget) {
+				$uuid = $editTarget['uuid'];
 				if ($result === 'blocked') continue;
 				$result = $this->__updateEventFromFeed($HttpSocket, $feed, $editTarget['uuid'], $editTarget['id'], $user, $filterRules);
 				$this->__cleanupFile($feed, '/' . $uuid . '.json');

@@ -1,5 +1,5 @@
 INSTALLATION INSTRUCTIONS
-------------------------- for Ubuntu 16.04-server
+------------------------- for Ubuntu 18.04-server
 
 1/ Minimal Ubuntu install
 -------------------------
@@ -62,6 +62,11 @@ sudo -u www-data git checkout tags/$(git describe --tags `git rev-list --tags --
 # the message regarding a "detached HEAD state" is expected behaviour
 # (you only have to create a new branch, if you want to change stuff and do a pull request for example)
 
+sudo -u www-data git submodule init
+sudo -u www-data git submodule update
+# Make git ignore filesystem permission differences for submodules
+sudo -u www-data git submodule foreach git config core.filemode false
+
 # Make git ignore filesystem permission differences
 sudo -u www-data git config core.filemode false
 
@@ -90,12 +95,7 @@ sudo pip3 install stix2
 
 4/ CakePHP
 -----------
-# CakePHP is included as a submodule of MISP, execute the following commands to let git fetch it:
 cd /var/www/MISP
-sudo -u www-data git submodule init
-sudo -u www-data git submodule update
-# Make git ignore filesystem permission differences for submodules
-sudo -u www-data git submodule foreach git config core.filemode false
 
 # Once done, install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd /var/www/MISP/app

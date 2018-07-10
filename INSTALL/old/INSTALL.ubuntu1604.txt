@@ -66,7 +66,7 @@ sudo -u www-data git checkout tags/$(git describe --tags `git rev-list --tags --
 sudo -u www-data git config core.filemode false
 
 # install Mitre's STIX and its dependencies by running the following commands:
-sudo apt-get install python3-dev python3-pip python3-pip libxml2-dev libxslt1-dev zlib1g-dev python-setuptools
+sudo apt-get install python3-dev python3-pip libxml2-dev libxslt1-dev zlib1g-dev python-setuptools
 cd /var/www/MISP/app/files/scripts
 sudo -u www-data git clone https://github.com/CybOXProject/python-cybox.git
 sudo -u www-data git clone https://github.com/STIXProject/python-stix.git
@@ -243,13 +243,13 @@ sudo -u www-data vim /var/www/MISP/app/Config/database.php
 # The salt key must be a string at least 32 bytes long.
 # The admin user account will be generated on the first login, make sure that the salt is changed before you create that user
 # If you forget to do this step, and you are still dealing with a fresh installation, just alter the salt,
-# delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
+# you can reset the admin password with the following command
+/var/www/MISP/app/Console/cake Password admin@admin.test Password1234
 
-# Change base url in config.php
-sudo -u www-data vim /var/www/MISP/app/Config/config.php
-# example: 'baseurl' => 'https://<your.FQDN.here>',
-# alternatively, you can leave this field empty if you would like to use relative pathing in MISP
-# 'baseurl' => '',
+# Change baseurl
+/var/www/MISP/app/Console/cake Baseurl https://<your.FQDN.here>
+# alternatively, you can leave this field empty if you would like to use relative pathing in MISP.
+# This however is highly advised against.
 
 # and make sure the file permissions are still OK
 sudo chown -R www-data:www-data /var/www/MISP/app/Config

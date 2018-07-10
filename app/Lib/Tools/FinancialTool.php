@@ -95,6 +95,7 @@ class FinancialTool {
 			'bic' => 'BIC',
 			'iban' => 'IBAN',
 			'btc' => 'BTC',
+			'xmr' => 'XMR'
 		);
 		if (in_array($type, array_keys($validationRoutes))) return $this->{'validate' . strtoupper($validationRoutes[$type])}($value);
 		return true;
@@ -186,6 +187,13 @@ private function my_bcmod( $x, $y )
 		$d2 = hash("sha256", $d1, true);
 
 		if (substr_compare($decoded, $d2, 21, 4)) {
+			return false;
+		}
+		return true;
+	}
+
+	public function validateXMR($address) {
+		if (!preg_match('/^4[0-9AB][1-9A-HJ-NP-Za-km-z]{93}$/', $address)) {
 			return false;
 		}
 		return true;

@@ -1,0 +1,1505 @@
+<stix:STIX_Package 
+	xmlns:cyboxCommon="http://cybox.mitre.org/common-2"
+	xmlns:cybox="http://cybox.mitre.org/cybox-2"
+	xmlns:cyboxVocabs="http://cybox.mitre.org/default_vocabularies-2"
+	xmlns:AccountObj="http://cybox.mitre.org/objects#AccountObject-2"
+	xmlns:ASObj="http://cybox.mitre.org/objects#ASObject-1"
+	xmlns:AddressObj="http://cybox.mitre.org/objects#AddressObject-2"
+	xmlns:PortObj="http://cybox.mitre.org/objects#PortObject-2"
+	xmlns:DomainNameObj="http://cybox.mitre.org/objects#DomainNameObject-1"
+	xmlns:EmailMessageObj="http://cybox.mitre.org/objects#EmailMessageObject-2"
+	xmlns:FileObj="http://cybox.mitre.org/objects#FileObject-2"
+	xmlns:HTTPSessionObj="http://cybox.mitre.org/objects#HTTPSessionObject-2"
+	xmlns:HostnameObj="http://cybox.mitre.org/objects#HostnameObject-1"
+	xmlns:MutexObj="http://cybox.mitre.org/objects#MutexObject-2"
+	xmlns:PipeObj="http://cybox.mitre.org/objects#PipeObject-2"
+	xmlns:URIObj="http://cybox.mitre.org/objects#URIObject-2"
+	xmlns:WinRegistryKeyObj="http://cybox.mitre.org/objects#WinRegistryKeyObject-2"
+	xmlns:WinServiceObj="http://cybox.mitre.org/objects#WinServiceObject-2"
+	xmlns:NetworkConnectionObj="http://cybox.mitre.org/objects#NetworkConnectionObject-2"
+	xmlns:NetworkSocketObj="http://cybox.mitre.org/objects#NetworkSocketObject-2"
+	xmlns:SocketAddressObj="http://cybox.mitre.org/objects#SocketAddressObject-1"
+	xmlns:SystemObj="http://cybox.mitre.org/objects#SystemObject-2"
+	xmlns:ProcessObj="http://cybox.mitre.org/objects#ProcessObject-2"
+	xmlns:X509CertificateObj="http://cybox.mitre.org/objects#X509CertificateObject-2"
+	xmlns:WhoisObj="http://cybox.mitre.org/objects#WhoisObject-2"
+	xmlns:marking="http://data-marking.mitre.org/Marking-1"
+	xmlns:tlpMarking="http://data-marking.mitre.org/extensions/MarkingStructure#TLP-1"
+	xmlns:et="http://stix.mitre.org/ExploitTarget-1"
+	xmlns:incident="http://stix.mitre.org/Incident-1"
+	xmlns:indicator="http://stix.mitre.org/Indicator-2"
+	xmlns:ttp="http://stix.mitre.org/TTP-1"
+	xmlns:ta="http://stix.mitre.org/ThreatActor-1"
+	xmlns:stixCommon="http://stix.mitre.org/common-1"
+	xmlns:stixVocabs="http://stix.mitre.org/default_vocabularies-1"
+	xmlns:ciqIdentity="http://stix.mitre.org/extensions/Identity#CIQIdentity3.0-1"
+	xmlns:snortTM="http://stix.mitre.org/extensions/TestMechanism#Snort-1"
+	xmlns:stix="http://stix.mitre.org/stix-1"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:xal="urn:oasis:names:tc:ciq:xal:3"
+	xmlns:xnl="urn:oasis:names:tc:ciq:xnl:3"
+	xmlns:xpil="urn:oasis:names:tc:ciq:xpil:3"
+	xmlns:ORGNAME="https://www.misp-project.org"
+	xmlns:xlink="http://www.w3.org/1999/xlink"
+	xmlns:ds="http://www.w3.org/2000/09/xmldsig#"
+	xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	 id="ORGNAME:Package-fad44fb7-3fd8-44ea-b1e8-8c7015787555" version="1.1.1" timestamp="2018-06-19T14:31:22.688607">
+    <stix:STIX_Header>
+        <stix:Title>Export from ORGNAME MISP</stix:Title>
+        <stix:Package_Intent xsi:type="stixVocabs:PackageIntentVocab-1.0">Threat Report</stix:Package_Intent>
+    </stix:STIX_Header>
+    <stix:Related_Packages>
+        <stix:Related_Package>
+            <stix:Package id="ORGNAME:STIXPackage-5abb8534-ba9c-48cd-bb63-02480a00020f" version="1.1.1" timestamp="2018-06-15T11:14:22+00:00">
+                <stix:STIX_Header>
+                    <stix:Title>Export from ORGNAME MISP</stix:Title>
+                    <stix:Package_Intent xsi:type="stixVocabs:PackageIntentVocab-1.0">Threat Report</stix:Package_Intent>
+                </stix:STIX_Header>
+                <stix:TTPs>
+                    <stix:TTP id="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'>
+                        <ttp:Title>External analysis: CVE-2010-4444 (MISP Attribute #22)</ttp:Title>
+                        <ttp:Exploit_Targets>
+                            <ttp:Exploit_Target>
+                                <stixCommon:Exploit_Target id="ORGNAME:et-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='et:ExploitTargetType'>
+                                    <et:Title>Vulnerability CVE-2010-4444</et:Title>
+                                    <et:Vulnerability>
+                                        <et:CVE_ID>CVE-2010-4444</et:CVE_ID>
+                                        <et:References/>
+                                    </et:Vulnerability>
+                                </stixCommon:Exploit_Target>
+                            </ttp:Exploit_Target>
+                        </ttp:Exploit_Targets>
+                        <ttp:Handling>
+                            <marking:Marking>
+                                <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="AMBER"/>
+                            </marking:Marking>
+                        </ttp:Handling>
+                    </stix:TTP>
+                </stix:TTPs>
+                <stix:Incidents>
+                    <stix:Incident id="ORGNAME:incident-5abb8534-ba9c-48cd-bb63-02480a00020f" timestamp="2018-06-15T14:51:58+00:00" xsi:type='incident:IncidentType'>
+                        <incident:Title>STIX indicators test event</incident:Title>
+                        <incident:External_ID source="MISP Event">1</incident:External_ID>
+                        <incident:Time>
+                            <incident:Incident_Discovery precision="second">2018-03-28T00:00:00</incident:Incident_Discovery>
+                            <incident:Incident_Reported precision="second">2018-06-15T14:51:58+00:00</incident:Incident_Reported>
+                        </incident:Time>
+                        <incident:Reporter>
+                            <stixCommon:Identity>
+                                <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                            </stixCommon:Identity>
+                        </incident:Reporter>
+                        <incident:Status xsi:type="stixVocabs:IncidentStatusVocab-1.0">New</incident:Status>
+                        <incident:Related_Indicators>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>Payload delivery</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:indicator-5abb8534-4368-4bb2-adf1-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>Payload delivery: b2a5abfeef9e36964281a31e17b57c97 (MISP Attribute #1)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">File Hash Watchlist</indicator:Type>
+                                    <indicator:Description>Payload delivery: b2a5abfeef9e36964281a31e17b57c97 (MISP Attribute #1)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:File-5abb8534-4368-4bb2-adf1-02480a00020f">
+                                        <cybox:Object id="ORGNAME:FileObject-5abb8534-4368-4bb2-adf1-02480a00020f">
+                                            <cybox:Properties xsi:type="FileObj:FileObjectType">
+                                                <FileObj:Hashes>
+                                                    <cyboxCommon:Hash>
+                                                        <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">MD5</cyboxCommon:Type>
+                                                        <cyboxCommon:Simple_Hash_Value condition="Equals">b2a5abfeef9e36964281a31e17b57c97</cyboxCommon:Simple_Hash_Value>
+                                                    </cyboxCommon:Hash>
+                                                </FileObj:Hashes>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Handling>
+                                        <marking:Marking>
+                                            <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                            <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="AMBER"/>
+                                        </marking:Marking>
+                                    </indicator:Handling>
+                                    <indicator:Confidence timestamp="2018-03-28T12:06:12+00:00">
+                                        <stixCommon:Value>High</stixCommon:Value>
+                                        <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
+                                    </indicator:Confidence>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>Payload delivery</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:indicator-5abb8534-123c-4ed4-8e80-02480a00020f" timestamp="2018-06-15T11:10:21+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>Payload delivery: 5898fc860300e228dcd54c0b1045b5fa0dcda502 (MISP Attribute #2)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">File Hash Watchlist</indicator:Type>
+                                    <indicator:Description>Payload delivery: 5898fc860300e228dcd54c0b1045b5fa0dcda502 (MISP Attribute #2)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:File-5abb8534-123c-4ed4-8e80-02480a00020f">
+                                        <cybox:Object id="ORGNAME:FileObject-5abb8534-123c-4ed4-8e80-02480a00020f">
+                                            <cybox:Properties xsi:type="FileObj:FileObjectType">
+                                                <FileObj:Hashes>
+                                                    <cyboxCommon:Hash>
+                                                        <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">SHA1</cyboxCommon:Type>
+                                                        <cyboxCommon:Simple_Hash_Value condition="Equals">5898fc860300e228dcd54c0b1045b5fa0dcda502</cyboxCommon:Simple_Hash_Value>
+                                                    </cyboxCommon:Hash>
+                                                </FileObj:Hashes>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Handling>
+                                        <marking:Marking>
+                                            <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                            <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="AMBER"/>
+                                        </marking:Marking>
+                                    </indicator:Handling>
+                                    <indicator:Confidence timestamp="2018-06-15T11:10:21+00:00">
+                                        <stixCommon:Value>High</stixCommon:Value>
+                                        <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
+                                    </indicator:Confidence>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>Payload delivery</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:indicator-5abb8534-1014-4283-a1fc-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>Payload delivery: 3a3468fa89b2ab7cbfe5400858a8ec0066e9e8defa9a64c993b5f24210244df8 (MISP Attribute #3)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">File Hash Watchlist</indicator:Type>
+                                    <indicator:Description>Payload delivery: 3a3468fa89b2ab7cbfe5400858a8ec0066e9e8defa9a64c993b5f24210244df8 (MISP Attribute #3)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:File-5abb8534-1014-4283-a1fc-02480a00020f">
+                                        <cybox:Object id="ORGNAME:FileObject-5abb8534-1014-4283-a1fc-02480a00020f">
+                                            <cybox:Properties xsi:type="FileObj:FileObjectType">
+                                                <FileObj:Hashes>
+                                                    <cyboxCommon:Hash>
+                                                        <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">SHA256</cyboxCommon:Type>
+                                                        <cyboxCommon:Simple_Hash_Value condition="Equals">3a3468fa89b2ab7cbfe5400858a8ec0066e9e8defa9a64c993b5f24210244df8</cyboxCommon:Simple_Hash_Value>
+                                                    </cyboxCommon:Hash>
+                                                </FileObj:Hashes>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Handling>
+                                        <marking:Marking>
+                                            <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                            <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="AMBER"/>
+                                        </marking:Marking>
+                                    </indicator:Handling>
+                                    <indicator:Confidence timestamp="2018-03-28T12:06:12+00:00">
+                                        <stixCommon:Value>High</stixCommon:Value>
+                                        <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
+                                    </indicator:Confidence>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>Payload delivery</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:indicator-5abb8534-d930-4139-8263-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>Payload delivery: oui|5898fc860300e228dcd54c0b1045b5fa0dcda502 (MISP Attribute #4)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">File Hash Watchlist</indicator:Type>
+                                    <indicator:Description>Payload delivery: oui|5898fc860300e228dcd54c0b1045b5fa0dcda502 (MISP Attribute #4)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:File-5abb8534-d930-4139-8263-02480a00020f">
+                                        <cybox:Object id="ORGNAME:FileObject-5abb8534-d930-4139-8263-02480a00020f">
+                                            <cybox:Properties xsi:type="FileObj:FileObjectType">
+                                                <FileObj:Hashes>
+                                                    <cyboxCommon:Hash>
+                                                        <cyboxCommon:Type condition="Equals">Other</cyboxCommon:Type>
+                                                        <cyboxCommon:Simple_Hash_Value condition="Equals">oui|5898fc860300e228dcd54c0b1045b5fa0dcda502</cyboxCommon:Simple_Hash_Value>
+                                                    </cyboxCommon:Hash>
+                                                </FileObj:Hashes>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Handling>
+                                        <marking:Marking>
+                                            <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                            <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="AMBER"/>
+                                        </marking:Marking>
+                                    </indicator:Handling>
+                                    <indicator:Confidence timestamp="2018-03-28T12:06:12+00:00">
+                                        <stixCommon:Value>High</stixCommon:Value>
+                                        <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
+                                    </indicator:Confidence>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>Payload delivery</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:indicator-5abb8534-dc80-455e-93b3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>Payload delivery: oui|b2a5abfeef9e36964281a31e17b57c97 (MISP Attribute #5)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Description>Payload delivery: oui|b2a5abfeef9e36964281a31e17b57c97 (MISP Attribute #5)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:File-5abb8534-dc80-455e-93b3-02480a00020f">
+                                        <cybox:Object id="ORGNAME:FileObject-5abb8534-dc80-455e-93b3-02480a00020f">
+                                            <cybox:Properties xsi:type="FileObj:FileObjectType">
+                                                <FileObj:File_Name condition="Equals">oui</FileObj:File_Name>
+                                                <FileObj:Hashes>
+                                                    <cyboxCommon:Hash>
+                                                        <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">MD5</cyboxCommon:Type>
+                                                        <cyboxCommon:Simple_Hash_Value condition="Equals">b2a5abfeef9e36964281a31e17b57c97</cyboxCommon:Simple_Hash_Value>
+                                                    </cyboxCommon:Hash>
+                                                </FileObj:Hashes>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Handling>
+                                        <marking:Marking>
+                                            <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                            <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="AMBER"/>
+                                        </marking:Marking>
+                                    </indicator:Handling>
+                                    <indicator:Confidence timestamp="2018-03-28T12:06:12+00:00">
+                                        <stixCommon:Value>High</stixCommon:Value>
+                                        <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
+                                    </indicator:Confidence>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>Network activity</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:indicator-5abb8534-4840-4087-a16a-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>Network activity: 1.2.3.4 (MISP Attribute #6)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">IP Watchlist</indicator:Type>
+                                    <indicator:Description>Network activity: 1.2.3.4 (MISP Attribute #6)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:Address-5abb8534-4840-4087-a16a-02480a00020f">
+                                        <cybox:Object id="ORGNAME:AddressObject-5abb8534-4840-4087-a16a-02480a00020f">
+                                            <cybox:Properties xsi:type="AddressObj:AddressObjectType" category="ipv4-addr" is_source="true" is_destination="false">
+                                                <AddressObj:Address_Value condition="Equals">1.2.3.4</AddressObj:Address_Value>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Handling>
+                                        <marking:Marking>
+                                            <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                            <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="AMBER"/>
+                                        </marking:Marking>
+                                    </indicator:Handling>
+                                    <indicator:Confidence timestamp="2018-03-28T12:06:12+00:00">
+                                        <stixCommon:Value>High</stixCommon:Value>
+                                        <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
+                                    </indicator:Confidence>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>Network activity</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:indicator-5abb8534-a8d0-4956-812f-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>Network activity: www.circl.lu (MISP Attribute #7)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Domain Watchlist</indicator:Type>
+                                    <indicator:Description>Network activity: www.circl.lu (MISP Attribute #7)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:Hostname-5abb8534-a8d0-4956-812f-02480a00020f">
+                                        <cybox:Object id="ORGNAME:HostnameObject-5abb8534-a8d0-4956-812f-02480a00020f">
+                                            <cybox:Properties xsi:type="HostnameObj:HostnameObjectType">
+                                                <HostnameObj:Hostname_Value condition="Equals">www.circl.lu</HostnameObj:Hostname_Value>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Handling>
+                                        <marking:Marking>
+                                            <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                            <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="AMBER"/>
+                                        </marking:Marking>
+                                    </indicator:Handling>
+                                    <indicator:Confidence timestamp="2018-03-28T12:06:12+00:00">
+                                        <stixCommon:Value>High</stixCommon:Value>
+                                        <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
+                                    </indicator:Confidence>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>Network activity</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:indicator-5abb8534-1ab4-4eb2-8056-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>Network activity: www.circl.lu|1.2.3.4 (MISP Attribute #8)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Domain Watchlist</indicator:Type>
+                                    <indicator:Description>Network activity: www.circl.lu|1.2.3.4 (MISP Attribute #8)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:ObservableComposition-5abb8534-1ab4-4eb2-8056-02480a00020f">
+                                        <cybox:Observable_Composition operator="AND">
+                                            <cybox:Observable id="ORGNAME:Address-5abb8534-1ab4-4eb2-8056-02480a00020f">
+                                                <cybox:Object id="ORGNAME:AddressObject-5abb8534-1ab4-4eb2-8056-02480a00020f">
+                                                    <cybox:Properties xsi:type="AddressObj:AddressObjectType" category="ipv4-addr" is_source="false" is_destination="true">
+                                                        <AddressObj:Address_Value condition="Equals">1.2.3.4</AddressObj:Address_Value>
+                                                    </cybox:Properties>
+                                                </cybox:Object>
+                                            </cybox:Observable>
+                                            <cybox:Observable id="ORGNAME:DomainName-5abb8534-1ab4-4eb2-8056-02480a00020f">
+                                                <cybox:Object id="ORGNAME:DomainNameObject-5abb8534-1ab4-4eb2-8056-02480a00020f">
+                                                    <cybox:Properties xsi:type="DomainNameObj:DomainNameObjectType">
+                                                        <DomainNameObj:Value condition="Equals">www.circl.lu</DomainNameObj:Value>
+                                                    </cybox:Properties>
+                                                </cybox:Object>
+                                            </cybox:Observable>
+                                        </cybox:Observable_Composition>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Handling>
+                                        <marking:Marking>
+                                            <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                            <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="AMBER"/>
+                                        </marking:Marking>
+                                    </indicator:Handling>
+                                    <indicator:Confidence timestamp="2018-03-28T12:06:12+00:00">
+                                        <stixCommon:Value>High</stixCommon:Value>
+                                        <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
+                                    </indicator:Confidence>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>Network activity</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:indicator-5abb8534-8b88-4566-983f-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>Network activity: 2510 (MISP Attribute #9)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Description>Network activity: 2510 (MISP Attribute #9)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:Port-5abb8534-8b88-4566-983f-02480a00020f">
+                                        <cybox:Object id="ORGNAME:PortObject-5abb8534-8b88-4566-983f-02480a00020f">
+                                            <cybox:Properties xsi:type="PortObj:PortObjectType">
+                                                <PortObj:Port_Value condition="Equals">2510</PortObj:Port_Value>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Handling>
+                                        <marking:Marking>
+                                            <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                            <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="AMBER"/>
+                                        </marking:Marking>
+                                    </indicator:Handling>
+                                    <indicator:Confidence timestamp="2018-03-28T12:06:12+00:00">
+                                        <stixCommon:Value>High</stixCommon:Value>
+                                        <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
+                                    </indicator:Confidence>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>Payload delivery</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:indicator-5abb8534-9e40-467d-b334-02480a00020f" timestamp="2018-06-15T08:40:38+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>Payload delivery: src@email.test (MISP Attribute #10)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malicious E-mail</indicator:Type>
+                                    <indicator:Description>Payload delivery: src@email.test (MISP Attribute #10)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:EmailMessage-5abb8534-9e40-467d-b334-02480a00020f">
+                                        <cybox:Object id="ORGNAME:EmailMessageObject-5abb8534-9e40-467d-b334-02480a00020f">
+                                            <cybox:Properties xsi:type="EmailMessageObj:EmailMessageObjectType">
+                                                <EmailMessageObj:Header>
+                                                    <EmailMessageObj:From xsi:type="AddressObj:AddressObjectType" category="e-mail">
+                                                        <AddressObj:Address_Value condition="Equals">src@email.test</AddressObj:Address_Value>
+                                                    </EmailMessageObj:From>
+                                                </EmailMessageObj:Header>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Handling>
+                                        <marking:Marking>
+                                            <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                            <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="AMBER"/>
+                                        </marking:Marking>
+                                    </indicator:Handling>
+                                    <indicator:Confidence timestamp="2018-06-15T08:40:38+00:00">
+                                        <stixCommon:Value>High</stixCommon:Value>
+                                        <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
+                                    </indicator:Confidence>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>Payload delivery</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:indicator-5abb8534-8f7c-4c92-aaec-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>Payload delivery: Oui (MISP Attribute #11)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malicious E-mail</indicator:Type>
+                                    <indicator:Description>Payload delivery: Oui (MISP Attribute #11)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:EmailMessage-5abb8534-8f7c-4c92-aaec-02480a00020f">
+                                        <cybox:Object id="ORGNAME:EmailMessageObject-5abb8534-8f7c-4c92-aaec-02480a00020f">
+                                            <cybox:Properties xsi:type="EmailMessageObj:EmailMessageObjectType">
+                                                <EmailMessageObj:Header>
+                                                    <EmailMessageObj:Subject condition="Equals">Oui</EmailMessageObj:Subject>
+                                                </EmailMessageObj:Header>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Handling>
+                                        <marking:Marking>
+                                            <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                            <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="AMBER"/>
+                                        </marking:Marking>
+                                    </indicator:Handling>
+                                    <indicator:Confidence timestamp="2018-03-28T12:06:12+00:00">
+                                        <stixCommon:Value>High</stixCommon:Value>
+                                        <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
+                                    </indicator:Confidence>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>External analysis</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:indicator-5abb8534-dd0c-4f8f-8f31-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>External analysis: https://www.circl.lu/team (MISP Attribute #12)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">URL Watchlist</indicator:Type>
+                                    <indicator:Description>External analysis: https://www.circl.lu/team (MISP Attribute #12)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:URI-5abb8534-dd0c-4f8f-8f31-02480a00020f">
+                                        <cybox:Object id="ORGNAME:URIObject-5abb8534-dd0c-4f8f-8f31-02480a00020f">
+                                            <cybox:Properties xsi:type="URIObj:URIObjectType">
+                                                <URIObj:Value condition="Equals">https://www.circl.lu/team</URIObj:Value>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Handling>
+                                        <marking:Marking>
+                                            <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                            <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="AMBER"/>
+                                        </marking:Marking>
+                                    </indicator:Handling>
+                                    <indicator:Confidence timestamp="2018-03-28T12:06:12+00:00">
+                                        <stixCommon:Value>High</stixCommon:Value>
+                                        <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
+                                    </indicator:Confidence>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>Persistence mechanism</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:indicator-5abb8534-a800-479d-bb5c-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>Persistence mechanism: HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run (MISP Attribute #13)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Host Characteristics</indicator:Type>
+                                    <indicator:Description>Persistence mechanism: HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run (MISP Attribute #13)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:WinRegistryKey-5abb8534-a800-479d-bb5c-02480a00020f">
+                                        <cybox:Object id="ORGNAME:WinRegistryKeyObject-5abb8534-a800-479d-bb5c-02480a00020f">
+                                            <cybox:Properties xsi:type="WinRegistryKeyObj:WindowsRegistryKeyObjectType">
+                                                <WinRegistryKeyObj:Key condition="Equals">Software\Microsoft\Windows\CurrentVersion\Run</WinRegistryKeyObj:Key>
+                                                <WinRegistryKeyObj:Hive condition="Equals">HKEY_CURRENT_USER</WinRegistryKeyObj:Hive>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Handling>
+                                        <marking:Marking>
+                                            <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                            <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="AMBER"/>
+                                        </marking:Marking>
+                                    </indicator:Handling>
+                                    <indicator:Confidence timestamp="2018-03-28T12:06:12+00:00">
+                                        <stixCommon:Value>High</stixCommon:Value>
+                                        <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
+                                    </indicator:Confidence>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>Persistence mechanism</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:indicator-5abb8534-e5a8-49ee-8952-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>Persistence mechanism: HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run | %TEMP%\seagate.exe (MISP Attribute #14)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Host Characteristics</indicator:Type>
+                                    <indicator:Description>Persistence mechanism: HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run | %TEMP%\seagate.exe (MISP Attribute #14)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:WinRegistryKey-5abb8534-e5a8-49ee-8952-02480a00020f">
+                                        <cybox:Object id="ORGNAME:WinRegistryKeyObject-5abb8534-e5a8-49ee-8952-02480a00020f">
+                                            <cybox:Properties xsi:type="WinRegistryKeyObj:WindowsRegistryKeyObjectType">
+                                                <WinRegistryKeyObj:Key condition="Equals">Software\Microsoft\Windows\CurrentVersion\Run </WinRegistryKeyObj:Key>
+                                                <WinRegistryKeyObj:Hive condition="Equals">HKEY_CURRENT_USER</WinRegistryKeyObj:Hive>
+                                                <WinRegistryKeyObj:Values>
+                                                    <WinRegistryKeyObj:Value>
+                                                        <WinRegistryKeyObj:Data condition="Equals"> %TEMP%\seagate.exe</WinRegistryKeyObj:Data>
+                                                    </WinRegistryKeyObj:Value>
+                                                </WinRegistryKeyObj:Values>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Handling>
+                                        <marking:Marking>
+                                            <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                            <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="AMBER"/>
+                                        </marking:Marking>
+                                    </indicator:Handling>
+                                    <indicator:Confidence timestamp="2018-03-28T12:06:12+00:00">
+                                        <stixCommon:Value>High</stixCommon:Value>
+                                        <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
+                                    </indicator:Confidence>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>Artifacts dropped</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:indicator-5abb8534-d3c4-40fc-8723-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>Artifacts dropped: no idea (MISP Attribute #15)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Host Characteristics</indicator:Type>
+                                    <indicator:Description>Artifacts dropped: no idea (MISP Attribute #15)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:Mutex-5abb8534-d3c4-40fc-8723-02480a00020f">
+                                        <cybox:Object id="ORGNAME:MutexObject-5abb8534-d3c4-40fc-8723-02480a00020f">
+                                            <cybox:Properties xsi:type="MutexObj:MutexObjectType">
+                                                <MutexObj:Name condition="Equals">no idea</MutexObj:Name>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Handling>
+                                        <marking:Marking>
+                                            <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                            <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="AMBER"/>
+                                        </marking:Marking>
+                                    </indicator:Handling>
+                                    <indicator:Confidence timestamp="2018-03-28T12:06:12+00:00">
+                                        <stixCommon:Value>High</stixCommon:Value>
+                                        <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
+                                    </indicator:Confidence>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>Payload delivery</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:indicator-5abb8534-453c-4543-80a6-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>Payload delivery: oui|12288:LLaIgXMVvf2u/n42bDaxGrAz1N4QiqPW44NGMJw3:LLFgXMVvf2cDaxG0N4RPK (MISP Attribute #16)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">File Hash Watchlist</indicator:Type>
+                                    <indicator:Description>Payload delivery: oui|12288:LLaIgXMVvf2u/n42bDaxGrAz1N4QiqPW44NGMJw3:LLFgXMVvf2cDaxG0N4RPK (MISP Attribute #16)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:File-5abb8534-453c-4543-80a6-02480a00020f">
+                                        <cybox:Object id="ORGNAME:FileObject-5abb8534-453c-4543-80a6-02480a00020f">
+                                            <cybox:Properties xsi:type="FileObj:FileObjectType">
+                                                <FileObj:Hashes>
+                                                    <cyboxCommon:Hash>
+                                                        <cyboxCommon:Type condition="Equals">Other</cyboxCommon:Type>
+                                                        <cyboxCommon:Simple_Hash_Value condition="Equals">oui|12288:LLaIgXMVvf2u/n42bDaxGrAz1N4QiqPW44NGMJw3:LLFgXMVvf2cDaxG0N4RPK</cyboxCommon:Simple_Hash_Value>
+                                                    </cyboxCommon:Hash>
+                                                </FileObj:Hashes>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Handling>
+                                        <marking:Marking>
+                                            <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                            <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="AMBER"/>
+                                        </marking:Marking>
+                                    </indicator:Handling>
+                                    <indicator:Confidence timestamp="2018-03-28T12:06:12+00:00">
+                                        <stixCommon:Value>High</stixCommon:Value>
+                                        <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
+                                    </indicator:Confidence>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>Network activity</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:indicator-5abb8534-5bf8-4072-946b-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>Network activity: 12.34.56.78|2510 (MISP Attribute #17)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">IP Watchlist</indicator:Type>
+                                    <indicator:Description>Network activity: 12.34.56.78|2510 (MISP Attribute #17)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:SocketAddress-5abb8534-5bf8-4072-946b-02480a00020f">
+                                        <cybox:Object id="ORGNAME:SocketAddressObject-5abb8534-5bf8-4072-946b-02480a00020f">
+                                            <cybox:Properties xsi:type="SocketAddressObj:SocketAddressObjectType">
+                                                <SocketAddressObj:IP_Address xsi:type="AddressObj:AddressObjectType" category="ipv4-addr" is_source="false" is_destination="true">
+                                                    <AddressObj:Address_Value condition="Equals">12.34.56.78</AddressObj:Address_Value>
+                                                </SocketAddressObj:IP_Address>
+                                                <SocketAddressObj:Port xsi:type="PortObj:PortObjectType">
+                                                    <PortObj:Port_Value condition="Equals">2510</PortObj:Port_Value>
+                                                </SocketAddressObj:Port>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Handling>
+                                        <marking:Marking>
+                                            <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                            <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="AMBER"/>
+                                        </marking:Marking>
+                                    </indicator:Handling>
+                                    <indicator:Confidence timestamp="2018-03-28T12:06:12+00:00">
+                                        <stixCommon:Value>High</stixCommon:Value>
+                                        <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
+                                    </indicator:Confidence>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>External analysis</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:indicator-5abb8534-a2c0-49a8-b9e7-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>External analysis: oui.oui (MISP Attribute #18)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">File Hash Watchlist</indicator:Type>
+                                    <indicator:Description>External analysis: oui.oui (MISP Attribute #18)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:File-5abb8534-a2c0-49a8-b9e7-02480a00020f">
+                                        <cybox:Object id="ORGNAME:FileObject-5abb8534-a2c0-49a8-b9e7-02480a00020f">
+                                            <cybox:Properties xsi:type="FileObj:FileObjectType">
+                                                <FileObj:File_Name>oui.oui</FileObj:File_Name>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Handling>
+                                        <marking:Marking>
+                                            <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                            <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="AMBER"/>
+                                        </marking:Marking>
+                                    </indicator:Handling>
+                                    <indicator:Confidence timestamp="2018-03-28T12:06:12+00:00">
+                                        <stixCommon:Value>High</stixCommon:Value>
+                                        <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
+                                    </indicator:Confidence>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>Network activity</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:indicator-5abb8534-5d70-47cd-a543-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>Network activity: 5E:FF:56:A2:AF:15 (MISP Attribute #19)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Description>Network activity: 5E:FF:56:A2:AF:15 (MISP Attribute #19)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:System-5abb8534-5d70-47cd-a543-02480a00020f">
+                                        <cybox:Object id="ORGNAME:SystemObject-5abb8534-5d70-47cd-a543-02480a00020f">
+                                            <cybox:Properties xsi:type="SystemObj:SystemObjectType">
+                                                <SystemObj:Network_Interface_List>
+                                                    <SystemObj:Network_Interface>
+                                                        <SystemObj:MAC>5E:FF:56:A2:AF:15</SystemObj:MAC>
+                                                    </SystemObj:Network_Interface>
+                                                </SystemObj:Network_Interface_List>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Handling>
+                                        <marking:Marking>
+                                            <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                            <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="AMBER"/>
+                                        </marking:Marking>
+                                    </indicator:Handling>
+                                    <indicator:Confidence timestamp="2018-03-28T12:06:12+00:00">
+                                        <stixCommon:Value>High</stixCommon:Value>
+                                        <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
+                                    </indicator:Confidence>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>Network activity</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:indicator-5abb8534-0514-48e7-9f3b-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>Network activity: fa3d5d670dc1d153b999c3aec7b1d815cc33c4dc (MISP Attribute #23)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">File Hash Watchlist</indicator:Type>
+                                    <indicator:Description>Network activity: fa3d5d670dc1d153b999c3aec7b1d815cc33c4dc (MISP Attribute #23)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:File-5abb8534-0514-48e7-9f3b-02480a00020f">
+                                        <cybox:Object id="ORGNAME:FileObject-5abb8534-0514-48e7-9f3b-02480a00020f">
+                                            <cybox:Properties xsi:type="FileObj:FileObjectType">
+                                                <FileObj:Hashes>
+                                                    <cyboxCommon:Hash>
+                                                        <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">SHA1</cyboxCommon:Type>
+                                                        <cyboxCommon:Simple_Hash_Value condition="Equals">fa3d5d670dc1d153b999c3aec7b1d815cc33c4dc</cyboxCommon:Simple_Hash_Value>
+                                                    </cyboxCommon:Hash>
+                                                </FileObj:Hashes>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Handling>
+                                        <marking:Marking>
+                                            <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                            <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="AMBER"/>
+                                        </marking:Marking>
+                                    </indicator:Handling>
+                                    <indicator:Confidence timestamp="2018-03-28T12:06:12+00:00">
+                                        <stixCommon:Value>High</stixCommon:Value>
+                                        <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
+                                    </indicator:Confidence>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>Payload delivery</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:indicator-5abb8534-d8c4-4a6f-a58a-02480a00020f" timestamp="2018-06-15T08:38:00+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>Payload delivery: reply.to@email.test (MISP Attribute #24)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malicious E-mail</indicator:Type>
+                                    <indicator:Description>Payload delivery: reply.to@email.test (MISP Attribute #24)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:EmailMessage-5abb8534-d8c4-4a6f-a58a-02480a00020f">
+                                        <cybox:Object id="ORGNAME:EmailMessageObject-5abb8534-d8c4-4a6f-a58a-02480a00020f">
+                                            <cybox:Properties xsi:type="EmailMessageObj:EmailMessageObjectType">
+                                                <EmailMessageObj:Header>
+                                                    <EmailMessageObj:Reply_To xsi:type="AddressObj:AddressObjectType" category="e-mail">
+                                                        <AddressObj:Address_Value condition="Equals">reply.to@email.test</AddressObj:Address_Value>
+                                                    </EmailMessageObj:Reply_To>
+                                                </EmailMessageObj:Header>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Handling>
+                                        <marking:Marking>
+                                            <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                            <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="AMBER"/>
+                                        </marking:Marking>
+                                    </indicator:Handling>
+                                    <indicator:Confidence timestamp="2018-06-15T08:38:00+00:00">
+                                        <stixCommon:Value>High</stixCommon:Value>
+                                        <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
+                                    </indicator:Confidence>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>Payload delivery</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:indicator-5b239e0f-d7fc-4426-b92b-02740a00020f" timestamp="2018-06-15T11:07:59+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>Payload delivery: 08a2fc565a1389a511ab9206b9a1e6b4b433486a (MISP Attribute #94)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">File Hash Watchlist</indicator:Type>
+                                    <indicator:Description>Payload delivery: 08a2fc565a1389a511ab9206b9a1e6b4b433486a (MISP Attribute #94)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:File-5b239e0f-d7fc-4426-b92b-02740a00020f">
+                                        <cybox:Object id="ORGNAME:FileObject-5b239e0f-d7fc-4426-b92b-02740a00020f">
+                                            <cybox:Properties xsi:type="FileObj:FileObjectType">
+                                                <FileObj:Hashes>
+                                                    <cyboxCommon:Hash>
+                                                        <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">SHA1</cyboxCommon:Type>
+                                                        <cyboxCommon:Simple_Hash_Value condition="Equals">08a2fc565a1389a511ab9206b9a1e6b4b433486a</cyboxCommon:Simple_Hash_Value>
+                                                    </cyboxCommon:Hash>
+                                                </FileObj:Hashes>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Confidence timestamp="2018-06-15T11:07:59+00:00">
+                                        <stixCommon:Value>High</stixCommon:Value>
+                                        <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
+                                    </indicator:Confidence>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>Network activity</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:indicator-5b239f8e-20d8-4880-ad38-02740a00020f" timestamp="2018-06-15T11:14:22+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>Network activity: AS66642 (MISP Attribute #95)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1"/>
+                                    <indicator:Description>Network activity: AS66642 (MISP Attribute #95)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:AutonomousSystem-5b239f8e-20d8-4880-ad38-02740a00020f">
+                                        <cybox:Object id="ORGNAME:AutonomousSystemObject-5b239f8e-20d8-4880-ad38-02740a00020f">
+                                            <cybox:Properties xsi:type="ASObj:ASObjectType">
+                                                <ASObj:Handle condition="Equals">AS66642</ASObj:Handle>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Confidence timestamp="2018-06-15T11:14:22+00:00">
+                                        <stixCommon:Value>High</stixCommon:Value>
+                                        <stixCommon:Description>Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none</stixCommon:Description>
+                                    </indicator:Confidence>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>file</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:MISPObject-5ac3379c-3e74-44ba-9160-04120a00020f" timestamp="2018-04-03T08:13:16+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>registry-key (MISP Object #1)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Description>registry-key (MISP Object #1)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:WinRegistryKey-5ac3379c-3e74-44ba-9160-04120a00020f">
+                                        <cybox:Object id="ORGNAME:WinRegistryKeyObject-5ac3379c-3e74-44ba-9160-04120a00020f">
+                                            <cybox:Properties xsi:type="WinRegistryKeyObj:WindowsRegistryKeyObjectType">
+                                                <WinRegistryKeyObj:Key condition="Equals">system\bar\foo</WinRegistryKeyObj:Key>
+                                                <WinRegistryKeyObj:Hive condition="Equals">HKEY_LOCAL_MACHINE</WinRegistryKeyObj:Hive>
+                                                <WinRegistryKeyObj:Values>
+                                                    <WinRegistryKeyObj:Value>
+                                                        <WinRegistryKeyObj:Name condition="Equals">Oui</WinRegistryKeyObj:Name>
+                                                        <WinRegistryKeyObj:Data condition="Equals">qwertyuiop</WinRegistryKeyObj:Data>
+                                                        <WinRegistryKeyObj:Datatype condition="Equals">REG_SZ</WinRegistryKeyObj:Datatype>
+                                                    </WinRegistryKeyObj:Value>
+                                                </WinRegistryKeyObj:Values>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>network</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:MISPObject-5ac337df-e078-4e99-8b17-02550a00020f" timestamp="2018-04-03T08:14:23+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>domain-ip (MISP Object #2)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Description>domain-ip (MISP Object #2)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:domain-ip_ObservableComposition-5ac337df-e078-4e99-8b17-02550a00020f">
+                                        <cybox:Observable_Composition operator="AND">
+                                            <cybox:Observable id="ORGNAME:DomainName-5ac337df-2078-4c3c-b064-02550a00020f">
+                                                <cybox:Object id="ORGNAME:DomainNameObject-5ac337df-2078-4c3c-b064-02550a00020f">
+                                                    <cybox:Properties xsi:type="DomainNameObj:DomainNameObjectType">
+                                                        <DomainNameObj:Value condition="Equals">www.circl.lu</DomainNameObj:Value>
+                                                    </cybox:Properties>
+                                                </cybox:Object>
+                                            </cybox:Observable>
+                                            <cybox:Observable id="ORGNAME:Address-5ac337df-3c54-413c-a748-02550a00020f">
+                                                <cybox:Object id="ORGNAME:AddressObject-5ac337df-3c54-413c-a748-02550a00020f">
+                                                    <cybox:Properties xsi:type="AddressObj:AddressObjectType" category="ipv4-addr" is_source="false" is_destination="true">
+                                                        <AddressObj:Address_Value condition="Equals">8.8.8.8</AddressObj:Address_Value>
+                                                    </cybox:Properties>
+                                                </cybox:Object>
+                                            </cybox:Observable>
+                                        </cybox:Observable_Composition>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>network</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:MISPObject-5ac3444e-145c-4749-8467-02550a00020f" timestamp="2018-04-03T09:08:02+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>x509 (MISP Object #3)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Description>x509 (MISP Object #3)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:x509Certificate-5ac3444e-145c-4749-8467-02550a00020f">
+                                        <cybox:Object id="ORGNAME:x509CertificateObject-5ac3444e-145c-4749-8467-02550a00020f">
+                                            <cybox:Properties xsi:type="X509CertificateObj:X509CertificateObjectType">
+                                                <X509CertificateObj:Certificate>
+                                                    <X509CertificateObj:Version>1</X509CertificateObj:Version>
+                                                    <X509CertificateObj:Serial_Number>1234567890</X509CertificateObj:Serial_Number>
+                                                    <X509CertificateObj:Issuer>mr oui</X509CertificateObj:Issuer>
+                                                    <X509CertificateObj:Subject_Public_Key>
+                                                        <X509CertificateObj:Public_Key_Algorithm>oui algo</X509CertificateObj:Public_Key_Algorithm>
+                                                    </X509CertificateObj:Subject_Public_Key>
+                                                </X509CertificateObj:Certificate>
+                                                <X509CertificateObj:Certificate_Signature>
+                                                    <X509CertificateObj:Signature_Algorithm>SHA1</X509CertificateObj:Signature_Algorithm>
+                                                    <X509CertificateObj:Signature>5898fc860300e228dcd54c0b1045b5fa0dcda502</X509CertificateObj:Signature>
+                                                </X509CertificateObj:Certificate_Signature>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>network</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:MISPObject-5ac347ca-dac4-4562-9775-04120a00020f" timestamp="2018-04-03T09:22:18+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>url (MISP Object #4)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Description>url (MISP Object #4)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:url_ObservableComposition-5ac347ca-dac4-4562-9775-04120a00020f">
+                                        <cybox:Observable_Composition operator="AND">
+                                            <cybox:Observable id="ORGNAME:URI-5ac347ca-62e4-408c-9238-04120a00020f">
+                                                <cybox:Object id="ORGNAME:URIObject-5ac347ca-62e4-408c-9238-04120a00020f">
+                                                    <cybox:Properties xsi:type="URIObj:URIObjectType">
+                                                        <URIObj:Value condition="Equals">https://www.circl.lu</URIObj:Value>
+                                                    </cybox:Properties>
+                                                </cybox:Object>
+                                            </cybox:Observable>
+                                            <cybox:Observable id="ORGNAME:DomainName-5ac347ca-565c-4d9f-88d1-04120a00020f">
+                                                <cybox:Object id="ORGNAME:DomainNameObject-5ac347ca-565c-4d9f-88d1-04120a00020f">
+                                                    <cybox:Properties xsi:type="DomainNameObj:DomainNameObjectType">
+                                                        <DomainNameObj:Value condition="Equals">www.circl.lu</DomainNameObj:Value>
+                                                    </cybox:Properties>
+                                                </cybox:Object>
+                                            </cybox:Observable>
+                                        </cybox:Observable_Composition>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>network</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:MISPObject-5ac37bdf-b19c-4826-b953-02520a00020f" timestamp="2018-04-03T13:04:31+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>email (MISP Object #5)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Description>email (MISP Object #5)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:EmailMessage-5ac37bdf-b19c-4826-b953-02520a00020f">
+                                        <cybox:Object id="ORGNAME:EmailMessageObject-5ac37bdf-b19c-4826-b953-02520a00020f">
+                                            <cybox:Properties xsi:type="EmailMessageObj:EmailMessageObjectType">
+                                                <EmailMessageObj:Header>
+                                                    <EmailMessageObj:To>
+                                                        <EmailMessageObj:Recipient xsi:type="AddressObj:AddressObjectType" category="e-mail">
+                                                            <AddressObj:Address_Value>oui@to.lu</AddressObj:Address_Value>
+                                                        </EmailMessageObj:Recipient>
+                                                    </EmailMessageObj:To>
+                                                    <EmailMessageObj:CC>
+                                                        <EmailMessageObj:Recipient xsi:type="AddressObj:AddressObjectType" category="e-mail">
+                                                            <AddressObj:Address_Value>oui1@cc.com</AddressObj:Address_Value>
+                                                        </EmailMessageObj:Recipient>
+                                                        <EmailMessageObj:Recipient xsi:type="AddressObj:AddressObjectType" category="e-mail">
+                                                            <AddressObj:Address_Value>oui2@cc.com</AddressObj:Address_Value>
+                                                        </EmailMessageObj:Recipient>
+                                                    </EmailMessageObj:CC>
+                                                    <EmailMessageObj:From xsi:type="AddressObj:AddressObjectType" category="e-mail">
+                                                        <AddressObj:Address_Value condition="Equals">oui@source.com</AddressObj:Address_Value>
+                                                    </EmailMessageObj:From>
+                                                    <EmailMessageObj:Subject condition="Equals">Le Oui</EmailMessageObj:Subject>
+                                                    <EmailMessageObj:Reply_To xsi:type="AddressObj:AddressObjectType" category="e-mail">
+                                                        <AddressObj:Address_Value condition="Equals">oui@reply.com</AddressObj:Address_Value>
+                                                    </EmailMessageObj:Reply_To>
+                                                    <EmailMessageObj:X_Mailer condition="Equals">oui_X-mailer</EmailMessageObj:X_Mailer>
+                                                </EmailMessageObj:Header>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>file</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:MISPObject-5ac47782-e1b8-40b6-96b4-02510a00020f" timestamp="2018-04-04T06:58:10+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>file (MISP Object #6)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Description>file (MISP Object #6)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:File-5ac47782-e1b8-40b6-96b4-02510a00020f">
+                                        <cybox:Object id="ORGNAME:FileObject-5ac47782-e1b8-40b6-96b4-02510a00020f">
+                                            <cybox:Properties xsi:type="FileObj:FileObjectType">
+                                                <FileObj:File_Name condition="Equals">oui</FileObj:File_Name>
+                                                <FileObj:Size_In_Bytes condition="Equals">1234</FileObj:Size_In_Bytes>
+                                                <FileObj:Hashes>
+                                                    <cyboxCommon:Hash>
+                                                        <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">MD5</cyboxCommon:Type>
+                                                        <cyboxCommon:Simple_Hash_Value condition="Equals">b2a5abfeef9e36964281a31e17b57c97</cyboxCommon:Simple_Hash_Value>
+                                                    </cyboxCommon:Hash>
+                                                    <cyboxCommon:Hash>
+                                                        <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">SHA256</cyboxCommon:Type>
+                                                        <cyboxCommon:Simple_Hash_Value condition="Equals">3a3468fa89b2ab7cbfe5400858a8ec0066e9e8defa9a64c993b5f24210244df8</cyboxCommon:Simple_Hash_Value>
+                                                    </cyboxCommon:Hash>
+                                                    <cyboxCommon:Hash>
+                                                        <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">SHA1</cyboxCommon:Type>
+                                                        <cyboxCommon:Simple_Hash_Value condition="Equals">5898fc860300e228dcd54c0b1045b5fa0dcda502</cyboxCommon:Simple_Hash_Value>
+                                                    </cyboxCommon:Hash>
+                                                </FileObj:Hashes>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>network</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:MISPObject-5ac47edc-31e4-4402-a7b6-040d0a00020f" timestamp="2018-04-04T07:29:32+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>ip-port (MISP Object #7)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Description>ip-port (MISP Object #7)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:ip-port_ObservableComposition-5ac47edc-31e4-4402-a7b6-040d0a00020f">
+                                        <cybox:Observable_Composition operator="AND">
+                                            <cybox:Observable id="ORGNAME:DomainName-5ac47edc-3674-4794-9516-040d0a00020f">
+                                                <cybox:Object id="ORGNAME:DomainNameObject-5ac47edc-3674-4794-9516-040d0a00020f">
+                                                    <cybox:Properties xsi:type="DomainNameObj:DomainNameObjectType">
+                                                        <DomainNameObj:Value condition="Equals">www.circl.lu</DomainNameObj:Value>
+                                                    </cybox:Properties>
+                                                </cybox:Object>
+                                            </cybox:Observable>
+                                            <cybox:Observable id="ORGNAME:srcPort-5ac47edc-4b44-4425-b9e8-040d0a00020f">
+                                                <cybox:Object id="ORGNAME:PortObject-5ac47edc-4b44-4425-b9e8-040d0a00020f">
+                                                    <cybox:Properties xsi:type="PortObj:PortObjectType">
+                                                        <PortObj:Port_Value condition="Equals">443</PortObj:Port_Value>
+                                                    </cybox:Properties>
+                                                </cybox:Object>
+                                            </cybox:Observable>
+                                            <cybox:Observable id="ORGNAME:dstPort-5ac47edc-dadc-4b3f-8405-040d0a00020f">
+                                                <cybox:Object id="ORGNAME:PortObject-5ac47edc-dadc-4b3f-8405-040d0a00020f">
+                                                    <cybox:Properties xsi:type="PortObj:PortObjectType">
+                                                        <PortObj:Port_Value condition="Equals">443</PortObj:Port_Value>
+                                                    </cybox:Properties>
+                                                </cybox:Object>
+                                            </cybox:Observable>
+                                            <cybox:Observable id="ORGNAME:Address-5ac47edc-0548-4a91-8beb-040d0a00020f">
+                                                <cybox:Object id="ORGNAME:AddressObject-5ac47edc-0548-4a91-8beb-040d0a00020f">
+                                                    <cybox:Properties xsi:type="AddressObj:AddressObjectType" category="ipv4-addr" is_source="false" is_destination="true">
+                                                        <AddressObj:Address_Value condition="Equals">8.8.8.8</AddressObj:Address_Value>
+                                                    </cybox:Properties>
+                                                </cybox:Object>
+                                            </cybox:Observable>
+                                        </cybox:Observable_Composition>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>network</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:MISPObject-5afacc53-c0b0-4825-a6ee-03c80a00020f" timestamp="2018-05-15T12:02:27+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>network-connection (MISP Object #8)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Description>network-connection (MISP Object #8)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:NetworkConnection-5afacc53-c0b0-4825-a6ee-03c80a00020f">
+                                        <cybox:Object id="ORGNAME:NetworkConnectionObject-5afacc53-c0b0-4825-a6ee-03c80a00020f">
+                                            <cybox:Properties xsi:type="NetworkConnectionObj:NetworkConnectionObjectType">
+                                                <NetworkConnectionObj:Layer3_Protocol>IP</NetworkConnectionObj:Layer3_Protocol>
+                                                <NetworkConnectionObj:Layer4_Protocol>TCP</NetworkConnectionObj:Layer4_Protocol>
+                                                <NetworkConnectionObj:Layer7_Protocol>HTTP</NetworkConnectionObj:Layer7_Protocol>
+                                                <NetworkConnectionObj:Source_Socket_Address xsi:type="SocketAddressObj:SocketAddressObjectType">
+                                                    <SocketAddressObj:IP_Address xsi:type="AddressObj:AddressObjectType" category="ipv4-addr" is_source="true" is_destination="false">
+                                                        <AddressObj:Address_Value condition="Equals">1.2.3.4</AddressObj:Address_Value>
+                                                    </SocketAddressObj:IP_Address>
+                                                    <SocketAddressObj:Port xsi:type="PortObj:PortObjectType">
+                                                        <PortObj:Port_Value condition="Equals">2510</PortObj:Port_Value>
+                                                    </SocketAddressObj:Port>
+                                                </NetworkConnectionObj:Source_Socket_Address>
+                                                <NetworkConnectionObj:Destination_Socket_Address xsi:type="SocketAddressObj:SocketAddressObjectType">
+                                                    <SocketAddressObj:IP_Address xsi:type="AddressObj:AddressObjectType" category="ipv4-addr" is_source="false" is_destination="true">
+                                                        <AddressObj:Address_Value condition="Equals">8.8.8.8</AddressObj:Address_Value>
+                                                    </SocketAddressObj:IP_Address>
+                                                    <SocketAddressObj:Hostname xsi:type="HostnameObj:HostnameObjectType">
+                                                        <HostnameObj:Hostname_Value condition="Equals">www.hostname.circl.lu</HostnameObj:Hostname_Value>
+                                                    </SocketAddressObj:Hostname>
+                                                    <SocketAddressObj:Port xsi:type="PortObj:PortObjectType">
+                                                        <PortObj:Port_Value condition="Equals">443</PortObj:Port_Value>
+                                                    </SocketAddressObj:Port>
+                                                </NetworkConnectionObj:Destination_Socket_Address>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>network</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:MISPObject-5afb3223-0988-4ef1-a920-02070a00020f" timestamp="2018-05-15T19:16:51+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>network-socket (MISP Object #9)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Description>network-socket (MISP Object #9)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:NetworkSocket-5afb3223-0988-4ef1-a920-02070a00020f">
+                                        <cybox:Object id="ORGNAME:NetworkSocketObject-5afb3223-0988-4ef1-a920-02070a00020f">
+                                            <cybox:Properties xsi:type="NetworkSocketObj:NetworkSocketObjectType" is_blocking="false" is_listening="true">
+                                                <NetworkSocketObj:Address_Family>AF_FILE</NetworkSocketObj:Address_Family>
+                                                <NetworkSocketObj:Domain>PF_INET</NetworkSocketObj:Domain>
+                                                <NetworkSocketObj:Local_Address xsi:type="SocketAddressObj:SocketAddressObjectType">
+                                                    <SocketAddressObj:IP_Address xsi:type="AddressObj:AddressObjectType" category="ipv4-addr" is_source="true" is_destination="false">
+                                                        <AddressObj:Address_Value condition="Equals">1.2.3.4</AddressObj:Address_Value>
+                                                    </SocketAddressObj:IP_Address>
+                                                    <SocketAddressObj:Port xsi:type="PortObj:PortObjectType">
+                                                        <PortObj:Port_Value condition="Equals">2510</PortObj:Port_Value>
+                                                    </SocketAddressObj:Port>
+                                                </NetworkSocketObj:Local_Address>
+                                                <NetworkSocketObj:Protocol>TCP</NetworkSocketObj:Protocol>
+                                                <NetworkSocketObj:Remote_Address xsi:type="SocketAddressObj:SocketAddressObjectType">
+                                                    <SocketAddressObj:IP_Address xsi:type="AddressObj:AddressObjectType" category="ipv4-addr" is_source="false" is_destination="true">
+                                                        <AddressObj:Address_Value condition="Equals">8.8.8.8</AddressObj:Address_Value>
+                                                    </SocketAddressObj:IP_Address>
+                                                    <SocketAddressObj:Port xsi:type="PortObj:PortObjectType">
+                                                        <PortObj:Port_Value condition="Equals">443</PortObj:Port_Value>
+                                                    </SocketAddressObj:Port>
+                                                </NetworkSocketObj:Remote_Address>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>misc</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:MISPObject-5afbeb3e-1b04-4195-b5e2-021e0a00020f" timestamp="2018-06-15T08:44:16+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>process (MISP Object #10)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Description>process (MISP Object #10)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:Process-5afbeb3e-1b04-4195-b5e2-021e0a00020f">
+                                        <cybox:Object id="ORGNAME:ProcessObject-5afbeb3e-1b04-4195-b5e2-021e0a00020f">
+                                            <cybox:Properties xsi:type="ProcessObj:ProcessObjectType">
+                                                <ProcessObj:PID>2510</ProcessObj:PID>
+                                                <ProcessObj:Name>Process_in_progress</ProcessObj:Name>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>network</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:MISPObject-5b0d1b61-6c00-4387-a5fa-04370a00020f" timestamp="2018-05-29T09:20:33+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>whois (MISP Object #11)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Description>whois (MISP Object #11)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:Whois-5b0d1b61-6c00-4387-a5fa-04370a00020f">
+                                        <cybox:Object id="ORGNAME:WhoisObject-5b0d1b61-6c00-4387-a5fa-04370a00020f">
+                                            <cybox:Properties xsi:type="WhoisObj:WhoisObjectType">
+                                                <WhoisObj:Domain_Name xsi:type="URIObj:URIObjectType">
+                                                    <URIObj:Value>www.circl.lu</URIObj:Value>
+                                                </WhoisObj:Domain_Name>
+                                                <WhoisObj:IP_Address xsi:type="AddressObj:AddressObjectType">
+                                                    <AddressObj:Address_Value>1.2.3.4</AddressObj:Address_Value>
+                                                </WhoisObj:IP_Address>
+                                                <WhoisObj:Nameservers>
+                                                    <WhoisObj:Nameserver xsi:type="URIObj:URIObjectType">
+                                                        <URIObj:Value>circl.lu</URIObj:Value>
+                                                    </WhoisObj:Nameserver>
+                                                </WhoisObj:Nameservers>
+                                                <WhoisObj:Creation_Date precision="day">2017-05-22</WhoisObj:Creation_Date>
+                                                <WhoisObj:Registrants>
+                                                    <WhoisObj:Registrant>
+                                                        <WhoisObj:Name>Registrant Name</WhoisObj:Name>
+                                                        <WhoisObj:Email_Address xsi:type="AddressObj:AddressObjectType" category="e-mail">
+                                                            <AddressObj:Address_Value>registant@email.com</AddressObj:Address_Value>
+                                                        </WhoisObj:Email_Address>
+                                                        <WhoisObj:Phone_Number>0123456789</WhoisObj:Phone_Number>
+                                                        <WhoisObj:Organization>Registrant Org</WhoisObj:Organization>
+                                                    </WhoisObj:Registrant>
+                                                </WhoisObj:Registrants>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>misc</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:MISPObject-5b1f9378-46d4-494b-a4c1-044e0a00020f" timestamp="2018-06-12T09:34:08+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>credential (MISP Object #12)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Description>credential (MISP Object #12)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:Account-5b1f9378-46d4-494b-a4c1-044e0a00020f">
+                                        <cybox:Object id="ORGNAME:AccountObject-5b1f9378-46d4-494b-a4c1-044e0a00020f">
+                                            <cybox:Properties xsi:type="AccountObj:AccountObjectType">
+                                                <cyboxCommon:Custom_Properties>
+                                                    <cyboxCommon:Property name="username">misp</cyboxCommon:Property>
+                                                    <cyboxCommon:Property name="origin">malware-analysis</cyboxCommon:Property>
+                                                    <cyboxCommon:Property name="notification">victim-notified</cyboxCommon:Property>
+                                                </cyboxCommon:Custom_Properties>
+                                                <AccountObj:Description>MISP default credentials</AccountObj:Description>
+                                                <AccountObj:Authentication>
+                                                    <AccountObj:Authentication_Type>password</AccountObj:Authentication_Type>
+                                                    <AccountObj:Authentication_Data>Password1234</AccountObj:Authentication_Data>
+                                                    <AccountObj:Structured_Authentication_Mechanism>
+                                                        <AccountObj:Description>clear-text</AccountObj:Description>
+                                                    </AccountObj:Structured_Authentication_Mechanism>
+                                                </AccountObj:Authentication>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                            <incident:Related_Indicator>
+                                <stixCommon:Relationship>network</stixCommon:Relationship>
+                                <stixCommon:Indicator id="ORGNAME:MISPObject-5b23c82b-6508-4bdc-b580-045b0a00020f" timestamp="2018-06-15T14:07:39+00:00" xsi:type='indicator:IndicatorType'>
+                                    <indicator:Title>asn (MISP Object #25)</indicator:Title>
+                                    <indicator:Type xsi:type="stixVocabs:IndicatorTypeVocab-1.1">Malware Artifacts</indicator:Type>
+                                    <indicator:Description>asn (MISP Object #25)</indicator:Description>
+                                    <indicator:Valid_Time_Position/>
+                                    <indicator:Observable id="ORGNAME:AutonomousSystem-5b23c82b-6508-4bdc-b580-045b0a00020f">
+                                        <cybox:Object id="ORGNAME:AutonomousSystemObject-5b23c82b-6508-4bdc-b580-045b0a00020f">
+                                            <cybox:Properties xsi:type="ASObj:ASObjectType">
+                                                <ASObj:Name>AS name</ASObj:Name>
+                                                <ASObj:Handle>AS66642</ASObj:Handle>
+                                            </cybox:Properties>
+                                        </cybox:Object>
+                                    </indicator:Observable>
+                                    <indicator:Indicated_TTP>
+                                        <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                                    </indicator:Indicated_TTP>
+                                    <indicator:Producer>
+                                        <stixCommon:Identity>
+                                            <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                                        </stixCommon:Identity>
+                                    </indicator:Producer>
+                                </stixCommon:Indicator>
+                            </incident:Related_Indicator>
+                        </incident:Related_Indicators>
+                        <incident:Leveraged_TTPs>
+                            <incident:Leveraged_TTP>
+                                <stixCommon:Relationship>External analysis</stixCommon:Relationship>
+                                <stixCommon:TTP idref="ORGNAME:ttp-5abb8534-8264-4041-b3e3-02480a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                            </incident:Leveraged_TTP>
+                        </incident:Leveraged_TTPs>
+                        <incident:History>
+                            <incident:History_Item>
+                                <incident:Journal_Entry time_precision="second">Event Threat Level: Medium</incident:Journal_Entry>
+                            </incident:History_Item>
+                            <incident:History_Item>
+                                <incident:Journal_Entry time_precision="second">MISP Tag: misp:tool="misp2stix"</incident:Journal_Entry>
+                            </incident:History_Item>
+                            <incident:History_Item>
+                                <incident:Journal_Entry time_precision="second">MISP Tag: misp-galaxy:mitre-attack-pattern="DLL Injection"</incident:Journal_Entry>
+                            </incident:History_Item>
+                            <incident:History_Item>
+                                <incident:Journal_Entry time_precision="second">MISP Tag: misp-galaxy:mitre-malware="Elise"</incident:Journal_Entry>
+                            </incident:History_Item>
+                            <incident:History_Item>
+                                <incident:Journal_Entry time_precision="second">MISP Tag: misp-galaxy:mitre-intrusion-set="APT16"</incident:Journal_Entry>
+                            </incident:History_Item>
+                            <incident:History_Item>
+                                <incident:Journal_Entry time_precision="second">MISP Tag: misp-galaxy:mitre-tool="ifconfig"</incident:Journal_Entry>
+                            </incident:History_Item>
+                            <incident:History_Item>
+                                <incident:Journal_Entry time_precision="second">attribute[Other][comment]: It is a comment, indeed</incident:Journal_Entry>
+                            </incident:History_Item>
+                            <incident:History_Item>
+                                <incident:Journal_Entry time_precision="second">attribute[Other][other]: bla</incident:Journal_Entry>
+                            </incident:History_Item>
+                        </incident:History>
+                        <incident:Information_Source>
+                            <stixCommon:Identity>
+                                <stixCommon:Name>ORGNAME</stixCommon:Name>
+                            </stixCommon:Identity>
+                            <stixCommon:References>
+                                <stixCommon:Reference>https://www.circl.lu</stixCommon:Reference>
+                            </stixCommon:References>
+                        </incident:Information_Source>
+                        <incident:Handling>
+                            <marking:Marking>
+                                <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="AMBER"/>
+                            </marking:Marking>
+                        </incident:Handling>
+                    </stix:Incident>
+                </stix:Incidents>
+            </stix:Package>
+        </stix:Related_Package>
+    </stix:Related_Packages>
+</stix:STIX_Package>
+

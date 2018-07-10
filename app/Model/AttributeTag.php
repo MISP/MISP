@@ -81,4 +81,41 @@ class AttributeTag extends AppModel {
 			'conditions' => array('AttributeTag.tag_id' => $tag_id)
 		));
 	}
+
+	public function getTagScores($eventId=0, $allowedTags=array()) {
+		// get score of galaxy
+		$db = $this->getDataSource();
+		$statementArray = array(
+			'fields' => array('attr_tag.tag_id as id', 'count(attr_tag.tag_id) as value'),
+			'table' => $db->fullTableName($this),
+			'alias' => 'attr_tag',
+			'group' => 'tag_id'
+		);
+		if ($eventId != 0) {
+			$statementArray['conditions'] = array('event_id' => $eventId);
+		}
+		// tag along with its occurence in the event
+		$subQuery = $db->buildStatement(
+			$statementArray,
+			$this
+		);
+		$subQueryExpression = $db->expression($subQuery)->value;
+		// get related galaxies
+		$attributeTagScores = $this->query("SELECT name, value FROM (" . $subQueryExpression . ") AS score, tags WHERE tags.id=score.id;");
+
+		// arrange data
+		$scores = array();
+		$maxScore = 0;
+		foreach($attributeTagScores as $item) {
+			$score = $item['score']['value'];
+			$name = $item['tags']['name'];
+			if (in_array($name, $allowedTags)) {
+				$maxScore = $score > $maxScore ? $score : $maxScore;
+				$scores[$name] = $score;
+			}
+		}
+		return array('scores' => $scores, 'maxScore' => $maxScore);
+	}
+
+
 }

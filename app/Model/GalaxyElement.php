@@ -24,11 +24,8 @@ class GalaxyElement extends AppModel{
 		parent::beforeValidate();
 		return true;
 	}
-	
+
 	public function update($galaxy_id, $oldClusters, $newClusters) {
-		debug($oldClusters);
-		debug($newClusters);
-		throw new Exception();
 		$elementsToSave = array();
 		// Since we are dealing with flat files as the end all be all content, we are safe to just drop all of the old clusters and recreate them.
 		foreach ($oldClusters as $oldCluster) {
@@ -49,7 +46,7 @@ class GalaxyElement extends AppModel{
 					$tempCluster[] = array('key' => $key, 'value' => $value);
 				}
 			}
-			
+
 			foreach ($tempCluster as $key => $value) {
 				$tempCluster[$key]['galaxy_cluster_id'] = $oldCluster['GalaxyCluster']['id'];
 			}

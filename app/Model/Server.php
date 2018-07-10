@@ -148,6 +148,16 @@ class Server extends AppModel {
 							'test' => 'testLive',
 							'type' => 'boolean',
 					),
+					'language' => array(
+							'level' => 0,
+							'description' => 'Select the language MISP should use. The default is english.',
+							'value' => 'eng',
+							'errorMessage' => '',
+							'test' => 'testLanguage',
+							'type' => 'string',
+							'optionsSource' => 'AvailableLanguages',
+							'afterHook' => 'cleanCacheFiles'
+					),
 					'enable_advanced_correlations' => array(
 							'level' => 0,
 							'description' => 'Enable some performance heavy correlations (currently CIDR correlation)',
@@ -1046,6 +1056,15 @@ class Server extends AppModel {
 						'test' => 'testBool',
 						'type' => 'boolean',
 						'null' => true
+					),
+					'allow_unsafe_apikey_named_param' => array(
+						'level' => 0,
+						'description' => 'Allows passing the API key via the named url parameter "apikey" - highly recommended not to enable this, but if you have some dodgy legacy tools that cannot pass the authorization header it can work as a workaround. Again, only use this as a last resort.',
+						'value' => false,
+						'errorMessage' => 'You have enabled the passing of API keys via URL parameters. This is highly recommended against, do you really want to reveal APIkeys in your logs?...',
+						'test' => 'testBoolFalse',
+						'type' => 'boolean',
+						'null' => true
 					)
 			),
 			'SecureAuth' => array(
@@ -1072,6 +1091,14 @@ class Server extends AppModel {
 					'autoRegenerate' => array(
 							'level' => 0,
 							'description' => 'Set to true to automatically regenerate sessions after x number of requests. This might lead to the user getting de-authenticated and is frustrating in general, so only enable it if you really need to regenerate sessions. (Not recommended)',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBoolFalse',
+							'type' => 'boolean',
+					),
+					'checkAgent' => array(
+							'level' => 0,
+							'description' => 'Set to true to check for the user agent string in each request. This can lead to occasional logouts (not recommended).',
 							'value' => false,
 							'errorMessage' => '',
 							'test' => 'testBoolFalse',
@@ -1749,45 +1776,39 @@ class Server extends AppModel {
 							$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
 							$r = $this->EventBlacklist->find('first', array('conditions' => array('event_uuid' => $event['Event']['uuid'])));
 							if (!empty($r))	{
-								$blocked = true;
-								$fails[$eventId] = 'Event blocked by local blocklist.';
+								continue;
 							}
 						}
-						if (!$blocked) {
-							// we have an Event array
-							// The event came from a pull, so it should be locked.
-							$event['Event']['locked'] = true;
-							if (!isset($event['Event']['distribution'])) { // version 1
-								$event['Event']['distribution'] = '1';
+						// we have an Event array
+						// The event came from a pull, so it should be locked.
+						$event['Event']['locked'] = true;
+						if (!isset($event['Event']['distribution'])) { // version 1
+							$event['Event']['distribution'] = '1';
+						}
+						// Distribution
+						if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id']) {
+							switch ($event['Event']['distribution']) {
+								case 1:
+									// if community only, downgrade to org only after pull
+									$event['Event']['distribution'] = '0';
+									break;
+								case 2:
+									// if connected communities downgrade to community only
+									$event['Event']['distribution'] = '1';
+									break;
 							}
-							// Distribution
-							if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id']) {
-								switch ($event['Event']['distribution']) {
-									case 1:
-										// if community only, downgrade to org only after pull
-										$event['Event']['distribution'] = '0';
-										break;
-									case 2:
-										// if connected communities downgrade to community only
-										$event['Event']['distribution'] = '1';
-										break;
-								}
-								if (isset($event['Event']['Attribute']) && !empty($event['Event']['Attribute'])) {
-									foreach ($event['Event']['Attribute'] as $key => $a) {
-										switch ($a['distribution']) {
-											case '1':
-												$event['Event']['Attribute'][$key]['distribution'] = '0';
-												break;
-											case '2':
-												$event['Event']['Attribute'][$key]['distribution'] = '1';
-												break;
-										}
+							if (isset($event['Event']['Attribute']) && !empty($event['Event']['Attribute'])) {
+								foreach ($event['Event']['Attribute'] as $key => $a) {
+									switch ($a['distribution']) {
+										case '1':
+											$event['Event']['Attribute'][$key]['distribution'] = '0';
+											break;
+										case '2':
+											$event['Event']['Attribute'][$key]['distribution'] = '1';
+											break;
 									}
 								}
 							}
-						} else {
-							$fails[$eventId] = 'Event blocked by blacklist.';
-							continue;
 						}
 						// Distribution, set reporter of the event, being the admin that initiated the pull
 						$event['Event']['user_id'] = $user['id'];
@@ -1800,7 +1821,7 @@ class Server extends AppModel {
 							$result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
 							if ($result) $successes[] = $eventId;
 							else {
-								$fails[$eventId] = 'Failed (partially?) because of validation errors: '. print_r($eventModel->validationErrors, true);
+								$fails[$eventId] = 'Failed (partially?) because of validation errors: '. json_encode($eventModel->validationErrors, true);
 
 							}
 						} else {
@@ -1974,10 +1995,24 @@ class Server extends AppModel {
 					if (!empty($eventArray)) {
 						foreach ($eventArray as $event) {
 							if ($force_uuid) $eventIds[] = $event['uuid'];
-							else $eventIds[] = $event['id'];
+							else $eventIds[] = $event['uuid'];
 						}
 					}
 				}
+				if (!empty($eventIds) && Configure::read('MISP.enableEventBlacklisting') !== false) {
+					$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
+					foreach ($eventIds as $k => $eventUuid) {
+						$blacklistEntry = $this->EventBlacklist->find('first', array(
+							'conditions' => array('event_uuid' => $eventUuid),
+							'recursive' => -1,
+							'fields' => array('EventBlacklist.id')
+						));
+						if (!empty($blacklistEntry)) {
+							unset($eventIds[$k]);
+						}
+					}
+				}
+				$eventIds = array_values($eventIds);
 				return $eventIds;
 			}
 			if ($response->code == '403') {
@@ -2071,17 +2106,24 @@ class Server extends AppModel {
 				$fails = array();
 				$lowestfailedid = null;
 				foreach ($eventUUIDsFiltered as $k => $eventUuid) {
-					$event = $this->Event->fetchEvent($user, array(
+					$params = array();
+					if (!empty($this->data['Server']['push_rules'])) {
+						$push_rules = json_decode($this->data['Server']['push_rules'], true);
+						if (!empty($push_rules['tags']['NOT'])) {
+							$params['blockedAttributeTags'] = $push_rules['tags']['NOT'];
+						}
+					}
+					$params = array_merge($params, array(
 						'event_uuid' => $eventUuid,
 						'includeAttachments' => true,
-						'includeAllTags' => true
+						'includeAllTags' => true,
+						'deleted' => true,
+						'excludeGalaxy' => 1
 					));
+					$event = $this->Event->fetchEvent($user, $params);
 					$event = $event[0];
-					$event['Event']['locked'] = true;
-					$result = $this->Event->uploadEventToServer(
-							$event,
-							$this->data,
-							$HttpSocket);
+					$event['Event']['locked'] = 1;
+					$result = $this->Event->uploadEventToServer($event, $this->data, $HttpSocket);
 					if ('Success' === $result) {
 						$successes[] = $event['Event']['id'];
 					} else {
@@ -2385,6 +2427,22 @@ class Server extends AppModel {
 			}
 		}
 		return $leafValue;
+	}
+
+	public function loadAvailableLanguages() {
+		$dirs = glob(APP . 'Locale/*', GLOB_ONLYDIR);
+		$languages = array('eng' => 'eng');
+		foreach ($dirs as $k => $dir) {
+			$dir = str_replace(APP . 'Locale' . DS, '', $dir);
+			$languages[$dir] = $dir;
+		}
+		return $languages;
+	}
+
+	public function testLanguage($value) {
+		$languages = $this->loadAvailableLanguages();
+		if (!isset($languages[$value])) return 'Invalid language.';
+		return true;
 	}
 
 	public function testForNumeric($value) {
@@ -2772,7 +2830,12 @@ class Server extends AppModel {
 				Configure::write($settingFix, $arrayElements);
 			}
 		}
-		$settingsToSave = array('debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth', 'Security', 'Session.defaults', 'Session.timeout', 'Session.cookie_timeout', 'Session.autoRegenerate', 'site_admin_debug', 'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth');
+		$settingsToSave = array(
+			'debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth',
+			'Security', 'Session.defaults', 'Session.timeout', 'Session.cookie_timeout',
+			'Session.autoRegenerate', 'Session.checkAgent', 'site_admin_debug',
+			'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth'
+		);
 		$settingsArray = array();
 		foreach ($settingsToSave as $setting) {
 			$settingsArray[$setting] = Configure::read($setting);
@@ -2813,28 +2876,28 @@ class Server extends AppModel {
 	public function getFileRules() {
 		$validItems = array(
 				'orgs' => array(
-						'name' => 'Organisation logos',
-						'description' => 'The logo used by an organisation on the event index, event view, discussions, proposals, etc. Make sure that the filename is in the org.png format, where org is the case-sensitive organisation name.',
+						'name' => __('Organisation logos'),
+						'description' => __('The logo used by an organisation on the event index, event view, discussions, proposals, etc. Make sure that the filename is in the org.png format, where org is the case-sensitive organisation name.'),
 						'expected' => array(),
-						'valid_format' => '48x48 pixel .png files',
+						'valid_format' => __('48x48 pixel .png files'),
 						'path' => APP . 'webroot' . DS . 'img' . DS . 'orgs',
 						'regex' => '.*\.(png|PNG)$',
-						'regex_error' => 'Filename must be in the following format: *.png',
+						'regex_error' => __('Filename must be in the following format: *.png'),
 						'files' => array(),
 				),
 				'img' => array(
-						'name' => 'Additional image files',
-						'description' => 'Image files uploaded into this directory can be used for various purposes, such as for the login page logos',
+						'name' => __('Additional image files'),
+						'description' => __('Image files uploaded into this directory can be used for various purposes, such as for the login page logos'),
 						'expected' => array(
 								'MISP.footer_logo' => Configure::read('MISP.footer_logo'),
 								'MISP.home_logo' => Configure::read('MISP.home_logo'),
 								'MISP.welcome_logo' => Configure::read('MISP.welcome_logo'),
 								'MISP.welcome_logo2' => Configure::read('MISP.welcome_logo2'),
 						),
-						'valid_format' => 'text/html if served inline, anything that conveys the terms of use if served as download',
+						'valid_format' => __('text/html if served inline, anything that conveys the terms of use if served as download'),
 						'path' => APP . 'webroot' . DS . 'img' . DS . 'custom',
 						'regex' => '.*\.(png|PNG)$',
-						'regex_error' => 'Filename must be in the following format: *.png',
+						'regex_error' => __('Filename must be in the following format: *.png'),
 						'files' => array(),
 				),
 		);
@@ -3182,20 +3245,18 @@ class Server extends AppModel {
 		return $readableFiles;
 	}
 
-	public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion, &$pymispVersion) {
+	public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion, &$maecVersion, &$pymispVersion) {
 		$result = array();
-		$expected = array('stix' => '1.2.0.6', 'cybox' => '2.1.0.18.dev0', 'mixbox' => '1.0.3', 'pymisp' => '>2.4.90.1');
+		$expected = array('stix' => '1.2.0.6', 'cybox' => '2.1.0.18.dev0', 'mixbox' => '1.0.3', 'maec' => '4.1.0.13', 'pymisp' => '>2.4.93');
 		// check if the STIX and Cybox libraries are working using the test script stixtest.py
 		$scriptResult = shell_exec('python3 ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
 		$scriptResult = json_decode($scriptResult, true);
-		if ($scriptResult !== null) {
-			$scriptResult['operational'] = $scriptResult['success'];
-			if ($scriptResult['operational'] == 0) {
-				$diagnostic_errors++;
-				return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']), 'mixbox' => array('expected' => $expected['mixbox']));
-			}
-		} else {
-			return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']), 'mixbox' => array('expected' => $expected['mixbox']));
+		if ($scriptResult == null) {
+			return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']), 'mixbox' => array('expected' => $expected['mixbox']), 'maec' => array('expected' => $expected['maec']), 'pymisp' => array('expected' => $expected['pymisp']));
+		}
+		$scriptResult['operational'] = $scriptResult['success'];
+		if ($scriptResult['operational'] == 0) {
+			$diagnostic_errors++;
 		}
 		$result['operational'] = $scriptResult['operational'];
 		foreach ($expected as $package => $version) {
@@ -3803,7 +3864,7 @@ class Server extends AppModel {
 	public function update($status) {
 		$final = '';
 		$command1 = 'git pull origin ' . $status['branch'] . ' 2>&1';
-		$command2 = 'git submodule init && git submodule update 2>&1';
+		$command2 = 'git submodule update --init --recursive 2>&1';
 		$final = $command1 . "\n\n";
 		exec($command1, $output);
 		$final .= implode("\n", $output) . "\n\n=================================\n\n";

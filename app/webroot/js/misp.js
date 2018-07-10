@@ -1094,13 +1094,17 @@ function showMessage(success, message, context) {
 	$("#ajax_" + success + "_container").delay(duration).fadeOut("slow");
 }
 
-function cancelPopoverForm() {
+function cancelPopoverForm(id) {
 	$("#gray_out").fadeOut();
 	$("#popover_form").fadeOut();
+	$("#popover_form_large").fadeOut();
 	$("#screenshot_box").fadeOut();
 	$("#confirmation_box").fadeOut();
 	$('#gray_out').fadeOut();
 	$('#popover_form').fadeOut();
+	if (id !== undefined && id !== '') {
+		$(id).fadeOut();
+	}
 }
 
 function activateTagField() {
@@ -1287,11 +1291,18 @@ function openPopup(id) {
 	$(id).fadeIn();
 }
 
+function getMitreMatrixPopup(id) {
+	cancelPopoverForm();
+	getPopup(scope_id + '/' + id, 'events', 'viewMitreAttackMatrix', '', '#popover_form_large');
+}
+
 function getPopup(id, context, target, admin, popupType) {
 	$("#gray_out").fadeIn();
 	var url = "";
 	if (typeof admin !== 'undefined' && admin != '') url+= "/admin";
-	if (context != '') url += "/" + context;
+	if (context != '') {
+		url += "/" + context;
+	}
 	if (target != '') url += "/" + target;
 	if (id != '') url += "/" + id;
 	if (popupType == '' || typeof popupType == 'undefined') popupType = '#popover_form';
@@ -3126,11 +3137,12 @@ $('.galaxy-toggle-button').click(function() {
 	}
 });
 
-$('.addGalaxy').click(function() {
-	var target_type = $(this).data('target-type');
-	var target_id = $(this).data('target-id');
-	getPopup(target_type + '/' + target_id, 'galaxies', 'selectGalaxy');
-});
+
+function addGalaxyListener(id) {
+	var target_type = $(id).data('target-type');
+	var target_id = $(id).data('target-id');
+	getPopup(target_type + '/' + target_id, 'galaxies', 'selectGalaxyNamespace');
+}
 
 function quickSubmitGalaxyForm(event_id, cluster_id) {
 	$('#GalaxyTargetId').val(cluster_id);
@@ -3155,6 +3167,7 @@ $(document).keyup(function(e){
     if (e.keyCode === 27) {
     $("#gray_out").fadeOut();
 		$("#popover_form").fadeOut();
+		$("#popover_form_large").fadeOut();
 		$("#screenshot_box").fadeOut();
 		$("#confirmation_box").fadeOut();
 		$(".loading").hide();
@@ -3437,6 +3450,29 @@ $(document).ready(function() {
 		$(this).hide();
 	});
 });
+
+function queryEventLock(event_id, user_org_id) {
+	if (tabIsActive) {
+		$.get( "/events/checkLocks/" + event_id, function(data) {
+			if ($('#event_lock_warning').length != 0) {
+				$('#event_lock_warning').remove();
+			}
+			$('#main-view-container').append(data);
+		});
+	}
+	setTimeout(function() { queryEventLock(event_id, user_org_id); }, 5000);
+}
+
+function checkIfLoggedIn() {
+	if (tabIsActive) {
+		$.get("/users/checkIfLoggedIn", function(data) {
+			if (data.slice(-2) !== 'OK') {
+				window.location.replace(baseurl + "/users/login");
+			}
+		});
+	}
+	setTimeout(function() { checkIfLoggedIn(); }, 5000);
+}
 
 (function(){
     "use strict";

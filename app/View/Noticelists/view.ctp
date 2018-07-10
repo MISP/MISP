@@ -26,7 +26,7 @@
 			} else {
 				$value = h($noticelist['Noticelist'][$field_name]);
 			}
-			$fields[] = sprintf('<dt>%s</dt><dd>%s</dd>', __(Inflector::humanize($field_name)), $value);
+			$fields[] = sprintf('<dt>%s</dt><dd>%s</dd>', Inflector::humanize($field_name), $value);
 		}
 		$dl = implode($fields);
 		echo sprintf('<dl>%s</dl>', $dl);

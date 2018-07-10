@@ -1,0 +1,186 @@
+.matrix-table td {
+    border-top: none;
+}
+
+.matrix-table th {
+    padding: 0px 5px;
+    color: transparent;
+    line-height: 12px;
+}
+
+.matrix-table thead > tr {
+}
+
+.matrix-table thead {
+}
+
+.matrix-table tbody {
+    /*height: 670px;*/
+    overflow-y: scroll;
+}
+
+table.matrix-table {
+    table-layout: fixed;
+    margin-bottom: unset;
+}
+
+td.matrix-interaction {
+    cursor: pointer;
+    position: relative;
+}
+
+td.matrix-interaction:hover {
+    background: #da6600;
+    color: white;
+}
+
+td.matrix-interaction.cell-picked {
+    border: solid #a00b03;
+    background-color: #6f6f6f;
+    color: white;
+}
+
+
+.fixed-table-container-inner {
+    overflow-x: hidden;
+    overflow-y: auto;
+    max-height: 670px;
+}
+
+.extra-wrap {
+    width: 100%;
+}
+
+.th-inner {
+    color: white;
+    position: absolute;
+    top: 0;
+    text-align: left;
+    padding-left: 5px;
+    margin-left: -5px;
+    /*line-height: 30px;*/
+    line-height: 12px;
+}
+
+div.th-inner {
+    min-height: 30px;
+    display: flex;
+    align-items: center;
+}
+
+.header-background {
+    background-color: #363636;
+    height: 30px;
+    min-height: 30px;
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+}
+
+#matrix_container {
+    padding-top: 30px;
+    overflow: hidden
+}
+
+.attack-matrix-options {
+    position: absolute;
+    right: -1px;
+    top: -22px;
+    background: #363636;
+    color: white;
+    padding: 1px 5px;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+}
+
+.attack-matrix-options input {
+    margin: 0px;
+    margin-right: 3px;
+}
+
+#matrix-heatmap-legend {
+    width: 300px;
+    height: 10px;
+    background: linear-gradient(to right, white, #0000FF);
+}
+
+.attack-matrix-options div {
+    display: inline-block;
+}
+
+#matrix-heatmap-legend-caret {
+    position: absolute;
+    color: black;
+    top: -17px;
+    margin-left: 12px;
+    line-height: 6px;
+    left: 0px;
+    transition: left 0.7s;
+}
+
+.ajax_popover_form #matrix-heatmap-legend-caret {
+    color: white;
+}
+
+#matrix-heatmap-legend-caret span {
+    line-height: 9px;
+    position: relative;
+    display: block;
+}
+
+li.tactic {
+    color: #555555;
+    cursor: default;
+    background-color: #ffffff;
+    border: 1px solid #ddd;
+    border-bottom-color: transparent;
+    padding: 2px 8px 2px 8px;
+}
+
+li.tactic:hover {
+    background-color: #6f6f6f;
+    color: white;
+}
+
+li.tactic.active {
+    background-color: #363636;
+    color: white;
+    font-weight: bold;
+}
+
+#pick-matrix-elem {
+    margin: 0px;
+    height: 10px;
+    line-height: 10px;
+}
+
+.icon-matrix-contextual-menu {
+    font-size: 20px;
+    padding-left: 2px;
+    padding-top: 2px;
+    width: 18px;
+    height: 20px;
+    cursor: pointer;
+    background-image: unset;
+    text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white;
+    transition: background .2s linear;
+    color: black;
+}
+
+.icon-matrix-contextual-menu:hover {
+    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+    font-weight: 900;
+    font-size: 22px;
+    color: white;
+}
+
+.matrix-div-submit {
+    left: 50%;
+    padding-left: 1px;
+    right: unset;
+    padding-right: 1px;
+    display: none;
+    transform: scale(1.2);
+    box-shadow: 0px 0px 10px 1px #4288cc;
+}
