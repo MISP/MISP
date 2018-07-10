@@ -2555,7 +2555,7 @@ class EventsController extends AppController {
 					if ($includeContext) {
 						foreach ($this->Event->csv_event_context_fields_to_fetch as $header => $field) {
 							if ($field['object']) $line .= ',' . $attribute['Event'][$field['object']][$field['var']];
-							else $line .= ',' . $attribute['Event'][$field['var']];
+							else $line .= ',' . str_replace(array("\n","\t","\r")," ",$attribute['Event'][$field['var']]);
 						}
 					}
 					$final[] = $line;
@@ -4363,7 +4363,7 @@ class EventsController extends AppController {
 		return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
 	}
 
-	public function viewMitreAttackMatrix($eventId, $itemType='attribute', $itemId=false) {
+	public function viewMitreAttackMatrix($eventId, $itemType='event', $itemId=false) {
 		$this->loadModel('Galaxy');
 
 		$attackTacticData = $this->Galaxy->getMitreAttackMatrix();
@@ -4394,6 +4394,7 @@ class EventsController extends AppController {
 			$gradientTool = new ColourGradientTool();
 			$colours = $gradientTool->createGradientFromValues($scores);
 
+			$this->set('eventId', $eventId);
 			$this->set('target_type', $itemType);
 			$this->set('killChainOrders', $killChainOrders);
 			$this->set('attackTactic', $attackTactic);

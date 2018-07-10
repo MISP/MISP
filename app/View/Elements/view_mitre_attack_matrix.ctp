@@ -10,6 +10,10 @@ foreach($attackTactic as $tactic):
 </ul>
 </div>
 
+<div class="attack-matrix-options matrix-div-submit">
+    <span class="btn btn-inverse btn-matrix-submit" role="button" style="padding: 1px 5px !important;font-size: 12px !important;font-weight: bold;"><?php echo _('Submit'); ?></span>
+</div>
+
 <div class="attack-matrix-options">
     <span id="matrix-heatmap-legend-caret">
 	<span id="matrix-heatmap-legend-caret-value">0</span>
@@ -23,15 +27,13 @@ foreach($attackTactic as $tactic):
     <label style="display: inline-block; margin-left: 30px;"><input type="checkbox" id="checkbox_attackMatrix_showAll" checked><span class="fa fa-filter"> Show all</span></input></label>
 </div>
 
-<?php if($pickingMode): ?>
-    <div class="hidden">
-    	<?php
-    		echo $this->Form->create('Galaxy', array('url' => '/galaxies/attachMultipleClusters/' . $target_id . '/' . (empty($target_type) ? 'attribute' : $target_type), 'style' => 'margin:0px;'));
-    		echo $this->Form->input('target_ids', array('type' => 'text'));
-    		echo $this->Form->end();
-    	?>
-    </div>
-<?php endif; ?>
+<div class="hidden">
+	<?php
+		echo $this->Form->create('Galaxy', array('url' => '/galaxies/attachMultipleClusters/' . (empty($target_id) ? $eventId : $target_id ) . '/' . (empty($target_type) ? 'event' : $target_type), 'style' => 'margin:0px;'));
+		echo $this->Form->input('target_ids', array('type' => 'text'));
+		echo $this->Form->end();
+	?>
+</div>
 
 <div id="matrix_container" class="fixed-table-container-inner" style="max-height: 670px;" data-picking-mode="<?php echo $pickingMode ? 'true' : 'false'; ?>">
     <div class="tab-content">

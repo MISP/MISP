@@ -1054,6 +1054,7 @@ function showMessage(success, message, context) {
 function cancelPopoverForm(id) {
 	$("#gray_out").fadeOut();
 	$("#popover_form").fadeOut();
+	$("#popover_form_large").fadeOut();
 	$("#screenshot_box").fadeOut();
 	$("#confirmation_box").fadeOut();
 	$('#gray_out').fadeOut();
@@ -3123,6 +3124,7 @@ $(document).keyup(function(e){
     if (e.keyCode === 27) {
     $("#gray_out").fadeOut();
 		$("#popover_form").fadeOut();
+		$("#popover_form_large").fadeOut();
 		$("#screenshot_box").fadeOut();
 		$("#confirmation_box").fadeOut();
 		$(".loading").hide();
