@@ -3,8 +3,9 @@
 	var savedTopOffset;
 	var clusterNameToIdMapping = new Map();
 	var typeaheadDataMatrixSearch;
+	var pickedGalaxies = [];
+
 	$(document).ready(function() {
-		var pickedGalaxies = [];
 
 		$('#attack-matrix-tabscontroller span').off('click.tab').on('click.tab', function (e) {
 			$(this).tab('show');
@@ -19,17 +20,7 @@
 
 		// form
 		$('.ajax_popover_form .cell-picking').off('click.picking').on('click.picking', function() {
-			// sumbit galaxy
-			if (!$(this).hasClass('cell-picked')) {
-				pickedGalaxies.push($(this).data('cluster-id'));
-				$(this).addClass('cell-picked');
-			} else { // remove class and data from array
-				var i = pickedGalaxies.indexOf($(this).data('cluster-id'));
-				if (i > -1) {
-					pickedGalaxies.splice(i, 1);
-				}
-				$(this).removeClass('cell-picked');
-			}
+			pickCell($(this), $(this).data('cluster-id'));
 		});
 
 		adapt_position_from_viewport();
@@ -55,7 +46,8 @@
 			var y = target.height/2 - 14; 
 			matrixContextualMenu(event.target, x, y, tagName, tagId, [
 				'Tag event',
-				'Filter event'
+				'Filter event',
+				'Pick cell'
 			]);
 		});
 		var scoredCells = $('.info_container_eventgraph_network .heatCell').filter(function() {
@@ -63,6 +55,9 @@
 		});
 		$('.info_container_eventgraph_network #checkbox_attackMatrix_showAll').off('click.showAll').on('click.showAll', function() { toggleAttackMatrixCells('.info_container_eventgraph_network'); });
 		scoredCells.hover(function() { enteringScoredCell($(this), '.info_container_eventgraph_network'); }, function() { leavingScoredCell('.info_container_eventgraph_network'); });
+		$('.btn-matrix-submit').off('click.submit').on('click.submit', function() {
+			makeTagging(pickedGalaxies);
+		});
 
 		// statistic page
 		var scoredCells = $('.statistics_attack_matrix .heatCell').filter(function() {
@@ -220,6 +215,17 @@
 						div.remove();
 					});
 					break;
+				case 'Pick cell':
+					if ($(cell).hasClass('cell-picked')) {
+						span.addClass('fa fa-times');
+					} else {
+						span.addClass('fa fa-check');
+					}
+					span.click(function(evt) { 
+						pickCell($(cell), tagId);
+						div.remove();
+					});
+					break;
 				default:
 					span.addClass('fa fa-filter');
 					span.click(function(evt) { 
@@ -250,5 +256,24 @@
 	function filterEvent(tagName, tagId) {
 		$('#attributesFilterField').val(tagName);
 		filterAttributes('value', $('#attributesFilterField').data('eventid'));
+	}
+
+	function pickCell(cell, tagId) {
+		if (!cell.hasClass('cell-picked')) {
+			pickedGalaxies.push(tagId);
+			cell.addClass('cell-picked');
+		} else { // remove class and data from array
+			var i = pickedGalaxies.indexOf(tagId);
+			if (i > -1) {
+				pickedGalaxies.splice(i, 1);
+			}
+			cell.removeClass('cell-picked');
+		}
+
+		if (pickedGalaxies.length > 0) {
+			$('.matrix-div-submit').show();
+		} else {
+			$('.matrix-div-submit').hide();
+		}
 	}
 }());
