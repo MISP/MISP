@@ -12,7 +12,9 @@ def parse_value(observable, _):
     return observable['0'].get('value')
 
 def parse_attachment(observable, _):
-    return observable['0'].get('payload_bin')
+    if len(observable) > 1:
+        return observable['1'].get('name'), observable['0'].get('payload_bin')
+    return observable['0'].get('name')
 
 def parse_domain_ip(observable, _):
     return "{}|{}".format(parse_value(observable, _), observable['1'].get('value'))
@@ -39,6 +41,11 @@ def parse_filename_hash(observable, attribute_type):
     return "{}|{}".format(parse_name(observable, _), parse_hash(observable, h))
 
 def parse_malware_sample(observable, _):
+    if len(observable) > 1:
+        file_observable = observable['1']
+        filename = file_observable['name']
+        md5 = file_observable['hashes']['MD5']
+        return "{}|{}".format(filename, md5), observable['0'].get('payload_bin')
     return parse_filename_hash(observable, 'filename|md5')
 
 def parse_number(observable, _):
@@ -70,6 +77,7 @@ misp_types_mapping = {
     'email-dst': parse_value,
     'email-subject': parse_email_message,
     'email-body': parse_email_message,
+    'email-attachment': parse_name,
     'url': parse_value,
     'regkey': parse_regkey,
     'regkey|value': parse_regkey_value,

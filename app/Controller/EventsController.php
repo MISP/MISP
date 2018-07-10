@@ -4363,7 +4363,7 @@ class EventsController extends AppController {
 		return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
 	}
 
-	public function viewMitreAttackMatrix($eventId, $itemType='attribute', $itemId=false) {
+	public function viewMitreAttackMatrix($eventId, $itemType='event', $itemId=false) {
 		$this->loadModel('Galaxy');
 
 		$attackTacticData = $this->Galaxy->getMitreAttackMatrix();
@@ -4394,6 +4394,7 @@ class EventsController extends AppController {
 			$gradientTool = new ColourGradientTool();
 			$colours = $gradientTool->createGradientFromValues($scores);
 
+			$this->set('eventId', $eventId);
 			$this->set('target_type', $itemType);
 			$this->set('killChainOrders', $killChainOrders);
 			$this->set('attackTactic', $attackTactic);
