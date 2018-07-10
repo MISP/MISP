@@ -975,6 +975,7 @@ class AppModel extends Model {
 					INDEX `event_id` (`event_id`),
 					INDEX `user_id` (`user_id`),
 					INDEX `org_id` (`org_id`)
+					INDEX `timestamp` (`timestamp`)
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 				break;
 			case 'fixNonEmptySharingGroupID':

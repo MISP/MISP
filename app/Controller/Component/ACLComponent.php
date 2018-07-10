@@ -483,7 +483,7 @@ class ACLComponent extends Component {
 					'index' => array('*'),
 			),
 			'eventGraph' => array(
-					'get' => array('*'),
+					'view' => array('*'),
 					'add' => array('perm_add'),
 					'delete' => array('perm_modify'),
 			)

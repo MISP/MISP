@@ -29,21 +29,24 @@ class EventGraph extends AppModel{
 
 
 	public $validate = array(
-		'is_json' => array(
-				'rule' => array('isValidJson'),
-				'message' => 'The provided eventGraph is not a valid json format',
-				'required' => true,
+		'network_json' => array(
+			'rule' => array('isValidJson'),
+			'message' => 'The provided eventGraph is not a valid json format',
+			'required' => true,
 		),
 	);
 
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
+		$date = new DateTime();
+		$this->data['EventGraph']['timestamp'] = $date->getTimestamp();
 		return true;
 	}
 
-	public function isValidJson($text) {
-		$check = json_decode($text);
-		if ($check === null) {
+	public function isValidJson($fields) {	
+		$text = $fields['network_json'];
+		$check = json_decode($text);	
+		if ($check === null) {      	
 			return false;
 		}
 		return true;

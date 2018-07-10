@@ -1456,7 +1456,7 @@ class DataHandler {
 	}
 
 	fetch_graph_history(callback) {
-		$.getJSON( "/eventGraph/get/"+scope_id, function( history ) {
+		$.getJSON( "/eventGraph/view/"+scope_id, function( history ) {
 			var history_formatted = [];
 			var network_previews = [];
 			history.forEach(function(item) {
