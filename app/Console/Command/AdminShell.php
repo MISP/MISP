@@ -69,6 +69,14 @@ class AdminShell extends AppShell
 	}
 
 	public function updateNoticeLists() {
+		if ($result) {
+			echo 'Notice lists updated';
+		} else {
+			echo 'Could not update notice lists';
+		}
+	}
+
+	public function updateObjectTemplates() {
 		if (empty($this->args[0])) {
 			echo 'Usage: ' . APP . '/cake ' . 'Admin updateNoticeLists [user_id]';
 		} else {
@@ -83,22 +91,13 @@ class AdminShell extends AppShell
 			if (empty($user)) {
 				echo 'User not found';
 			} else {
-				$result = $this->Noticelist->update($user);
+				$result = $this->ObjectTemplate->update($user, false,false);
 				if ($result) {
-					echo 'Notice lists updated';
+					echo 'Object templates updated';
 				} else {
-					echo 'Could not update notice lists';
+					echo 'Could not update object templates';
 				}
 			}
-		}
-	}
-
-	public function updateObjectTemplates() {
-		$result = $this->ObjectTemplate->update(false,false);
-		if ($result) {
-			echo 'Object templates updated';
-		} else {
-			echo 'Could not update object templates';
 		}
 	}
 
