@@ -14,83 +14,82 @@ msgstr ""
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 
 #: Console/Command/EventShell.php:13
-#: Controller/AttributesController.php:141;145
-#: Controller/EventsController.php:1626;1703;1707;1908;1971;2049;2658
+#: Controller/AttributesController.php:140;144
+#: Controller/EventsController.php:1230;1234;1633;1710;1714;1915;1978;2056;2624;4907;4915
 #: Controller/PostsController.php:52
 msgid "Invalid event"
 msgstr ""
 
-#: Controller/AppController.php:523
+#: Controller/AppController.php:536
 msgid "All done. attribute_count generated from scratch for "
 msgstr ""
 
-#: Controller/AppController.php:628
-#: Controller/AttributesController.php:2381
+#: Controller/AppController.php:641
+#: Controller/AttributesController.php:2380
 #: Controller/ShadowAttributesController.php:1167
 msgid "Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs)."
 msgstr ""
 
-#: Controller/AttributesController.php:388;771;776;779;2392;2405;2425;2446;2454;2906;2908;2995;2997
+#: Controller/AttributesController.php:387;770;775;778;2391;2404;2424;2445;2453;2905;2907;2994;2996
 #: Controller/ShadowAttributesController.php:976;1000;1028;1038
 #: Controller/TagsController.php:439
 msgid "Invalid attribute"
 msgstr ""
 
-#: Controller/AttributesController.php:419
+#: Controller/AttributesController.php:418
 msgid "Attribute not an attachment or malware-sample"
 msgstr ""
 
-#: Controller/AttributesController.php:600
+#: Controller/AttributesController.php:599
 #: Controller/ShadowAttributesController.php:508;518
 msgid "There was a problem to upload the file."
 msgstr ""
 
-#: Controller/AttributesController.php:736
+#: Controller/AttributesController.php:735
 msgid "The ThreatConnect data has been imported."
 msgstr ""
 
-#: Controller/AttributesController.php:739
+#: Controller/AttributesController.php:738
 msgid "%s entries imported."
 msgstr ""
 
-#: Controller/AttributesController.php:743
+#: Controller/AttributesController.php:742
 msgid "%s entries could not be imported."
 msgstr ""
 
-#: Controller/AttributesController.php:786;823
+#: Controller/AttributesController.php:785;822
 msgid "Invalid attribute."
 msgstr ""
 
-#: Controller/AttributesController.php:850
+#: Controller/AttributesController.php:849
 msgid "The attribute has been saved"
 msgstr ""
 
-#: Controller/AttributesController.php:879
+#: Controller/AttributesController.php:878
 msgid "The attribute could not be saved. Please, try again."
 msgstr ""
 
-#: Controller/AttributesController.php:965
-#: Controller/EventsController.php:1208
+#: Controller/AttributesController.php:964
 msgid "Invalid event id."
 msgstr ""
 
-#: Controller/AttributesController.php:1038
+#: Controller/AttributesController.php:1037
 msgid "Invalid attribute id."
 msgstr ""
 
-#: Controller/AttributesController.php:1104;1114
+#: Controller/AttributesController.php:1103;1113
 msgid "Attribute deleted"
 msgstr ""
 
-#: Controller/AttributesController.php:1111
+#: Controller/AttributesController.php:1110
 msgid "Attribute was not deleted"
 msgstr ""
 
-#: Controller/AttributesController.php:1476
+#: Controller/AttributesController.php:1475
 msgid "Invalid tag"
 msgstr ""
 
-#: Controller/AttributesController.php:2358
+#: Controller/AttributesController.php:2357
 #: Controller/ShadowAttributesController.php:1145
 msgid "All done. "
 msgstr ""
@@ -99,95 +98,83 @@ msgstr ""
 msgid "Event Blacklisting is not currently enabled on this instance."
 msgstr ""
 
-#: Controller/EventsController.php:688
+#: Controller/EventsController.php:705
 msgid "No x509 certificate or GnuPG key set in your profile. To receive emails, submit your public certificate or GnuPG key in your profile."
 msgstr ""
 
-#: Controller/EventsController.php:690
+#: Controller/EventsController.php:707
 msgid "No GnuPG key set in your profile. To receive emails, submit your public key in your profile."
 msgstr ""
 
-#: Controller/EventsController.php:696
+#: Controller/EventsController.php:713
 msgid "No x509 certificate or GnuPG key set in your profile. To receive attributes in emails, submit your public certificate or GnuPG key in your profile."
 msgstr ""
 
-#: Controller/EventsController.php:698
+#: Controller/EventsController.php:715
 msgid "No GnuPG key set in your profile. To receive attributes in emails, submit your public key in your profile."
 msgstr ""
 
-#: Controller/EventsController.php:1212
-msgid "Invalid event."
-msgstr ""
-
-#: Controller/EventsController.php:1384
-msgid "You may only upload GFI Sandbox zip files."
-msgstr ""
-
-#: Controller/EventsController.php:1451;1525;1772
+#: Controller/EventsController.php:1459;1532;1779
 msgid "The event has been saved"
 msgstr ""
 
-#: Controller/EventsController.php:1471;1775
+#: Controller/EventsController.php:1479;1782
 msgid "The event could not be saved. Please, try again."
 msgstr ""
 
-#: Controller/EventsController.php:1549
+#: Controller/EventsController.php:1556
 msgid "You may only upload MISP XML or MISP JSON files."
 msgstr ""
 
-#: Controller/EventsController.php:1597
+#: Controller/EventsController.php:1604
 msgid "STIX document imported, event's created: "
 msgstr ""
 
-#: Controller/EventsController.php:1600
+#: Controller/EventsController.php:1607
 msgid "STIX document imported."
 msgstr ""
 
-#: Controller/EventsController.php:1603
+#: Controller/EventsController.php:1610
 msgid "Could not import STIX document: "
 msgstr ""
 
-#: Controller/EventsController.php:1608
+#: Controller/EventsController.php:1615
 msgid "File upload failed. Make sure that you select a stix file to be uploaded and that the file doesn't exceed the maximum file size of "
 msgstr ""
 
-#: Controller/EventsController.php:1631;1713
+#: Controller/EventsController.php:1638;1720
 msgid "You are not authorised to do that. Please consider using the 'propose attribute' feature."
 msgstr ""
 
-#: Controller/EventsController.php:1639
+#: Controller/EventsController.php:1646
 msgid "Invalid event ID entered."
 msgstr ""
 
-#: Controller/EventsController.php:1644
+#: Controller/EventsController.php:1651
 msgid "You are not authorised to read the selected event."
 msgstr ""
 
-#: Controller/EventsController.php:1835
+#: Controller/EventsController.php:1842
 msgid "Invalid input."
 msgstr ""
 
-#: Controller/EventsController.php:2060
+#: Controller/EventsController.php:2067
 msgid "Email sent to the reporter."
 msgstr ""
 
-#: Controller/EventsController.php:2062
+#: Controller/EventsController.php:2069
 msgid "Sending of email failed"
 msgstr ""
 
-#: Controller/EventsController.php:2604
-msgid "Problem with writing the zip file. Please report to administrator."
-msgstr ""
-
-#: Controller/EventsController.php:2648
+#: Controller/EventsController.php:2614
 msgid "Problem with writing the ioc file. Please report to administrator."
 msgstr ""
 
-#: Controller/EventsController.php:3193
+#: Controller/EventsController.php:2989
 msgid "Invalid event or not authorised."
 msgstr ""
 
-#: Controller/EventsController.php:5053
+#: Controller/EventsController.php:4850
 msgid "Enrichment task queued for background processing. Check back later to see the results."
 msgstr ""
 
@@ -231,11 +218,11 @@ msgstr ""
 msgid "Organisation Blacklisting is not currently enabled on this instance."
 msgstr ""
 
-#: Controller/OrganisationsController.php:227
+#: Controller/OrganisationsController.php:228
 msgid "Organisation deleted"
 msgstr ""
 
-#: Controller/OrganisationsController.php:234
+#: Controller/OrganisationsController.php:235
 msgid "Organisation could not be deleted. Generally organisations should never be deleted, instead consider moving them to the known remote organisations list. Alternatively, if you are certain that you would like to remove an organisation and are aware of the impact, make sure that there are no users or events still tied to this organisation before deleting it."
 msgstr ""
 
@@ -267,11 +254,11 @@ msgstr ""
 msgid "Could not create the Regex entry as no types were selected. Either check \"All\" or check the types that you wish the Regex to affect."
 msgstr ""
 
-#: Controller/RegexpController.php:178
+#: Controller/RegexpController.php:187
 msgid "All done! Number of changed attributes: "
 msgstr ""
 
-#: Controller/RegexpController.php:195
+#: Controller/RegexpController.php:204
 msgid "All done! Found and cleaned "
 msgstr ""
 
@@ -311,7 +298,7 @@ msgstr ""
 msgid "The server could not be saved. Please, try again."
 msgstr ""
 
-#: Controller/ServersController.php:340;520;542;548;608;1278
+#: Controller/ServersController.php:340;520;542;548;608;1282
 msgid "Invalid server"
 msgstr ""
 
@@ -335,19 +322,19 @@ msgstr ""
 msgid "Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting."
 msgstr ""
 
-#: Controller/ServersController.php:1183
+#: Controller/ServersController.php:1187
 msgid "File not found."
 msgstr ""
 
-#: Controller/ServersController.php:1189
+#: Controller/ServersController.php:1193
 msgid "File could not be deleted."
 msgstr ""
 
-#: Controller/ServersController.php:1209;1225
+#: Controller/ServersController.php:1213;1229
 msgid "Upload failed."
 msgstr ""
 
-#: Controller/ServersController.php:1217
+#: Controller/ServersController.php:1221
 msgid "File already exists. If you would like to replace it, remove the old one first."
 msgstr ""
 
@@ -555,47 +542,63 @@ msgstr ""
 msgid "Could not remove the blacklist entry"
 msgstr ""
 
-#: Model/Event.php:4179
-msgid "Issues executing the ingestion script or invalid input."
-msgstr ""
-
 #: Model/Event.php:4180
-msgid "Check whether the dependencies for STIX are met via the diagnostic tool."
+msgid "Issues while loading the stix file. "
 msgstr ""
 
-#: Model/Event.php:4219
+#: Model/Event.php:4182
+msgid "Issues with the maec library. "
+msgstr ""
+
+#: Model/Event.php:4184
+msgid "Issues executing the ingestion script or invalid input. "
+msgstr ""
+
+#: Model/Event.php:4187
+msgid "Please ask your administrator to "
+msgstr ""
+
+#: Model/Event.php:4189
+msgid "Please "
+msgstr ""
+
+#: Model/Event.php:4191
+msgid "check whether the dependencies for STIX are met via the diagnostic tool."
+msgstr ""
+
+#: Model/Event.php:4230
 msgid "#"
 msgstr ""
 
-#: Model/Event.php:4227
+#: Model/Event.php:4238
 msgid "%s not set"
 msgstr ""
 
-#: Model/Server.php:2816
+#: Model/Server.php:2879
 msgid "Organisation logos"
 msgstr ""
 
-#: Model/Server.php:2817
+#: Model/Server.php:2880
 msgid "The logo used by an organisation on the event index, event view, discussions, proposals, etc. Make sure that the filename is in the org.png format, where org is the case-sensitive organisation name."
 msgstr ""
 
-#: Model/Server.php:2819
+#: Model/Server.php:2882
 msgid "48x48 pixel .png files"
 msgstr ""
 
-#: Model/Server.php:2822;2837
+#: Model/Server.php:2885;2900
 msgid "Filename must be in the following format: *.png"
 msgstr ""
 
-#: Model/Server.php:2826
+#: Model/Server.php:2889
 msgid "Additional image files"
 msgstr ""
 
-#: Model/Server.php:2827
+#: Model/Server.php:2890
 msgid "Image files uploaded into this directory can be used for various purposes, such as for the login page logos"
 msgstr ""
 
-#: Model/Server.php:2834
+#: Model/Server.php:2897
 msgid "text/html if served inline, anything that conveys the terms of use if served as download"
 msgstr ""
 
@@ -623,7 +626,7 @@ msgstr ""
 
 #: View/Attributes/add.ctp:7
 #: View/Elements/eventattributecreation.ctp:9
-#: View/Pages/doc/using_the_system.ctp:85
+#: View/Pages/doc/using_the_system.ctp:84
 msgid "Add Attribute"
 msgstr ""
 
@@ -687,7 +690,7 @@ msgstr ""
 #: View/Attributes/add_attachment.ctp:41
 #: View/Attributes/edit.ctp:46
 #: View/Attributes/ajax/attributeEditMassForm.ctp:44
-#: View/Pages/doc/using_the_system.ctp:94;96;132
+#: View/Pages/doc/using_the_system.ctp:93;95;131
 #: View/ShadowAttributes/add.ctp:28
 #: View/ShadowAttributes/add_attachment.ctp:13
 #: View/ShadowAttributes/edit.ctp:32
@@ -704,6 +707,7 @@ msgstr ""
 #: View/Attributes/attribute_replace.ctp:38
 #: View/Attributes/ajax/attributeEditMassForm.ctp:58
 #: View/Attributes/ajax/attributeRestorationForm.ctp:11
+#: View/Elements/view_mitre_attack_matrix.ctp:113
 #: View/Events/contact.ctp:29
 #: View/Events/edit.ctp:59
 #: View/Events/free_text_import.ctp:27
@@ -713,8 +717,8 @@ msgstr ""
 #: View/Objects/revise_object.ctp:85
 #: View/Organisations/admin_add.ctp:49
 #: View/Organisations/admin_edit.ctp:60
-#: View/Servers/add.ctp:122
-#: View/Servers/edit.ctp:163
+#: View/Servers/add.ctp:126
+#: View/Servers/edit.ctp:167
 #: View/SharingGroups/add.ctp:75
 #: View/TemplateElements/ajax/template_element_add_attribute.ctp:91
 #: View/TemplateElements/ajax/template_element_add_file.ctp:67
@@ -738,6 +742,7 @@ msgstr ""
 #: View/Attributes/ajax/attributeRestorationForm.ctp:16
 #: View/Attributes/ajax/tagRemoveConfirmation.ctp:17
 #: View/Attributes/ajax/toggle_correlation.ctp:25
+#: View/Elements/view_mitre_attack_matrix.ctp:114
 #: View/Elements/serverRuleElements/pull.ctp:70
 #: View/Elements/serverRuleElements/push.ctp:72
 #: View/EventDelegations/ajax/accept_delegation.ctp:17
@@ -800,7 +805,7 @@ msgid "Add Attachment(s)"
 msgstr ""
 
 #: View/Attributes/add_attachment.ctp:64
-msgid "IDS (encrypt and hash)"
+msgid "Is a malware sample (encrypt and hash)"
 msgstr ""
 
 #: View/Attributes/add_attachment.ctp:73
@@ -826,7 +831,7 @@ msgstr ""
 #: View/Attributes/alternate_search_result.ctp:7
 #: View/Elements/Users/userIndexTable.ctp:4
 #: View/Pages/doc/administration.ctp:90;119;182;196;227
-#: View/Pages/doc/using_the_system.ctp:162;206;269;281
+#: View/Pages/doc/using_the_system.ctp:161;205;268;280
 #: View/Users/admin_view.ctp:14
 #: View/Users/view.ctp:14
 msgid "Org"
@@ -857,7 +862,7 @@ msgid "Attribute Count"
 msgstr ""
 
 #: View/Attributes/attribute_replace.ctp:6
-#: View/Pages/doc/using_the_system.ctp:118;120
+#: View/Pages/doc/using_the_system.ctp:117;119
 msgid "Attribute Replace Tool"
 msgstr ""
 
@@ -905,7 +910,7 @@ msgid "No Failed Composites"
 msgstr ""
 
 #: View/Attributes/edit.ctp:16
-#: View/Pages/doc/using_the_system.ctp:369
+#: View/Pages/doc/using_the_system.ctp:368
 msgid "disabled"
 msgstr ""
 
@@ -919,7 +924,7 @@ msgstr ""
 #: View/Elements/histogram.ctp:4
 #: View/Events/view.ctp:375
 #: View/Objects/orphaned_object_diagnostics.ctp:44
-#: View/Pages/doc/using_the_system.ctp:243
+#: View/Pages/doc/using_the_system.ctp:242
 #: View/Users/statistics.ctp:16
 #: View/Users/statistics_data.ctp:19
 msgid "Attributes"
@@ -981,7 +986,7 @@ msgstr ""
 #: View/Regexp/index.ctp:13;45
 #: View/Roles/admin_index.ctp:13;82
 #: View/Roles/index.ctp:13;55
-#: View/Servers/index.ctp:13;115
+#: View/Servers/index.ctp:13;117
 #: View/Servers/preview_index.ctp:15;164
 #: View/ShadowAttributes/index.ctp:12;108
 #: View/SharingGroups/index.ctp:13;86
@@ -1027,7 +1032,7 @@ msgstr ""
 #: View/Regexp/index.ctp:15;47
 #: View/Roles/admin_index.ctp:15;84
 #: View/Roles/index.ctp:15;57
-#: View/Servers/index.ctp:15;117
+#: View/Servers/index.ctp:15;119
 #: View/Servers/preview_index.ctp:17;166
 #: View/ShadowAttributes/index.ctp:14;110
 #: View/SharingGroups/index.ctp:15;88
@@ -1063,7 +1068,7 @@ msgstr ""
 #: View/Noticelists/index.ctp:66
 #: View/ObjectTemplates/index.ctp:104
 #: View/Organisations/index.ctp:122
-#: View/Pages/doc/using_the_system.ctp:194
+#: View/Pages/doc/using_the_system.ctp:193
 #: View/Servers/preview_index.ctp:148
 #: View/Taxonomies/index.ctp:47
 #: View/Warninglists/index.ctp:60
@@ -1094,7 +1099,7 @@ msgstr ""
 #: View/Regexp/index.ctp:38
 #: View/Roles/admin_index.ctp:75
 #: View/Roles/index.ctp:48
-#: View/Servers/index.ctp:108
+#: View/Servers/index.ctp:110
 #: View/Servers/preview_index.ctp:156
 #: View/ShadowAttributes/index.ctp:101
 #: View/SharingGroups/index.ctp:79
@@ -1127,6 +1132,12 @@ msgstr ""
 #: View/Attributes/report_validation_issues_attributes.ctp:10
 #: View/Elements/templateElements/populateTemplateFile.ctp:21
 #: View/Errors/error403.ctp:3
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1304
+#: View/Errors/error400.ctp:20
+#: View/Errors/error500.ctp:19
+#: View/Errors/missing_connection.ctp:4
+#: View/Errors/missing_datasource_config.ctp:4
+#: View/Errors/pdo_error.ctp:4
 msgid "Error"
 msgstr ""
 
@@ -1196,9 +1207,9 @@ msgstr ""
 #: View/ObjectReferences/ajax/delete.ctp:32
 #: View/Objects/ajax/delete.ctp:19
 #: View/Organisations/index.ctp:119
-#: View/Pages/doc/using_the_system.ctp:193
+#: View/Pages/doc/using_the_system.ctp:192
 #: View/Roles/admin_index.ctp:67
-#: View/Servers/index.ctp:97
+#: View/Servers/index.ctp:99
 #: View/Tags/index.ctp:125
 msgid "Delete"
 msgstr ""
@@ -1319,7 +1330,7 @@ msgstr ""
 #: View/Feeds/freetext_index.ctp:36
 #: View/Objects/add.ctp:41;99
 #: View/Objects/revise_object.ctp:27;50
-#: View/Pages/doc/using_the_system.ctp:34;91;127;187;212;238
+#: View/Pages/doc/using_the_system.ctp:34;90;126;186;211;237
 #: View/Servers/preview_event.ctp:53
 #: View/Templates/populate_event_from_template_attributes.ctp:11
 #: View/Threads/index.ctp:27
@@ -1327,7 +1338,7 @@ msgid "Distribution"
 msgstr ""
 
 #: View/Attributes/ajax/attributeEditMassForm.ctp:33
-#: View/Pages/doc/using_the_system.ctp:97
+#: View/Pages/doc/using_the_system.ctp:96
 msgid "For Intrusion Detection System"
 msgstr ""
 
@@ -1450,7 +1461,7 @@ msgstr ""
 
 #: View/Elements/side_menu.ctp:50;262;293;346;366
 #: View/Elements/Events/eventIndexTable.ctp:226
-#: View/Servers/index.ctp:97
+#: View/Servers/index.ctp:99
 msgid "Are you sure you want to delete # %s?"
 msgstr ""
 
@@ -1764,7 +1775,7 @@ msgstr ""
 msgid "View Taxonomy"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:460;534
+#: View/Elements/side_menu.ctp:460;535
 msgid "View Correlation Graph"
 msgstr ""
 
@@ -1854,23 +1865,31 @@ msgstr ""
 msgid "Are you sure you want to reimport all galaxies from the submodule?"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:532;540
+#: View/Elements/side_menu.ctp:529
+msgid "Force Update Galaxies"
+msgstr ""
+
+#: View/Elements/side_menu.ctp:529
+msgid "Are you sure you want to drop and reimport all galaxies from the submodule?"
+msgstr ""
+
+#: View/Elements/side_menu.ctp:533;541
 msgid "View Galaxy"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:533
+#: View/Elements/side_menu.ctp:534
 msgid "View Cluster"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:546
+#: View/Elements/side_menu.ctp:547
 msgid "List Object Templates"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:550
+#: View/Elements/side_menu.ctp:551
 msgid "Update Objects"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:555
+#: View/Elements/side_menu.ctp:556
 msgid "View Object Template"
 msgstr ""
 
@@ -1911,7 +1930,7 @@ msgstr ""
 
 #: View/Elements/view_event_graph.ctp:14
 #: View/Jobs/index.ctp:62
-#: View/Pages/doc/using_the_system.ctp:198
+#: View/Pages/doc/using_the_system.ctp:197
 msgid "Filters"
 msgstr ""
 
@@ -1940,7 +1959,7 @@ msgstr ""
 #: View/Events/view.ctp:121
 #: View/Feeds/preview_event.ctp:16
 #: View/Noticelists/view.ctp:43
-#: View/Pages/doc/using_the_system.ctp:165;208;319
+#: View/Pages/doc/using_the_system.ctp:164;207;318
 #: View/Servers/preview_event.ctp:27
 #: View/Servers/preview_index.ctp:68
 #: View/Tags/index.ctp:10
@@ -2016,71 +2035,71 @@ msgid "Not published"
 msgstr ""
 
 #: View/Elements/Events/eventIndexTable.ctp:223
-#: View/Elements/Events/View/row_attribute.ctp:329
+#: View/Elements/Events/View/row_attribute.ctp:299
 #: View/Elements/Users/userIndexTable.ctp:90
 #: View/Feeds/edit.ctp:193
 #: View/OrgBlacklists/edit.ctp:22
-#: View/Pages/doc/using_the_system.ctp:192
-#: View/Servers/index.ctp:96
+#: View/Pages/doc/using_the_system.ctp:191
+#: View/Servers/index.ctp:98
 #: View/Tags/edit.ctp:35
 #: View/Templates/edit.ctp:49
 msgid "Edit"
 msgstr ""
 
-#: View/Elements/Events/View/row_attribute.ctp:172
+#: View/Elements/Events/View/attribute_correlations.ctp:7
 msgid "Show "
 msgstr ""
 
-#: View/Elements/Events/View/row_attribute.ctp:172
+#: View/Elements/Events/View/attribute_correlations.ctp:7
 msgid " more..."
 msgstr ""
 
-#: View/Elements/Events/View/row_attribute.ctp:196
+#: View/Elements/Events/View/attribute_correlations.ctp:43
 #: View/Events/view.ctp:295
 msgid "Collapse…"
 msgstr ""
 
-#: View/Elements/Events/View/row_attribute.ctp:292
+#: View/Elements/Events/View/row_attribute.ctp:262
 msgid "Restore attribute"
 msgstr ""
 
-#: View/Elements/Events/View/row_attribute.ctp:293;333
+#: View/Elements/Events/View/row_attribute.ctp:263;303
 msgid "Permanently delete attribute"
 msgstr ""
 
-#: View/Elements/Events/View/row_attribute.ctp:300
+#: View/Elements/Events/View/row_attribute.ctp:270
 msgid "Query enrichment"
 msgstr ""
 
-#: View/Elements/Events/View/row_attribute.ctp:300
+#: View/Elements/Events/View/row_attribute.ctp:270
 msgid "Propose enrichment"
 msgstr ""
 
-#: View/Elements/Events/View/row_attribute.ctp:305
+#: View/Elements/Events/View/row_attribute.ctp:275
 msgid "Query Cortex"
 msgstr ""
 
-#: View/Elements/Events/View/row_attribute.ctp:305
+#: View/Elements/Events/View/row_attribute.ctp:275
 msgid "Propose enrichment through Cortex"
 msgstr ""
 
-#: View/Elements/Events/View/row_attribute.ctp:309
+#: View/Elements/Events/View/row_attribute.ctp:279
 msgid "Propose Edit"
 msgstr ""
 
-#: View/Elements/Events/View/row_attribute.ctp:310
+#: View/Elements/Events/View/row_attribute.ctp:280
 msgid "Propose Deletion"
 msgstr ""
 
-#: View/Elements/Events/View/row_attribute.ctp:320;325
+#: View/Elements/Events/View/row_attribute.ctp:290;295
 msgid "Add enrichment"
 msgstr ""
 
-#: View/Elements/Events/View/row_attribute.ctp:325
+#: View/Elements/Events/View/row_attribute.ctp:295
 msgid "Add enrichment via Cortex"
 msgstr ""
 
-#: View/Elements/Events/View/row_attribute.ctp:337
+#: View/Elements/Events/View/row_attribute.ctp:307
 msgid "Soft-delete attribute"
 msgstr ""
 
@@ -2142,32 +2161,32 @@ msgstr ""
 msgid "Referenced by: "
 msgstr ""
 
-#: View/Elements/Events/View/row_proposal.ctp:190
+#: View/Elements/Events/View/row_proposal.ctp:183
 #: View/Elements/Events/View/row_proposal_delete.ctp:77
 msgid "Accept Proposal"
 msgstr ""
 
-#: View/Elements/Events/View/row_proposal.ctp:190
+#: View/Elements/Events/View/row_proposal.ctp:183
 #: View/Elements/Events/View/row_proposal_delete.ctp:77
 msgid "Accept proposal"
 msgstr ""
 
-#: View/Elements/Events/View/row_proposal.ctp:195
+#: View/Elements/Events/View/row_proposal.ctp:188
 #: View/Elements/Events/View/row_proposal_delete.ctp:82
 msgid "Discard proposal"
 msgstr ""
 
-#: View/Elements/Events/View/sighting_field.ctp:15
+#: View/Elements/Events/View/sighting_field.ctp:12
 #: View/Sightings/ajax/add_sighting.ctp:33
 #: View/Sightings/ajax/advanced.ctp:10
 msgid "Add sighting"
 msgstr ""
 
-#: View/Elements/Events/View/sighting_field.ctp:16
+#: View/Elements/Events/View/sighting_field.ctp:13
 msgid "Mark as false-positive"
 msgstr ""
 
-#: View/Elements/Events/View/sighting_field.ctp:17
+#: View/Elements/Events/View/sighting_field.ctp:14
 #: View/Events/view.ctp:203
 msgid "Advanced sightings"
 msgstr ""
@@ -2198,7 +2217,7 @@ msgstr ""
 #: View/Elements/Servers/eventattribute.ctp:47
 #: View/Events/view.ctp:263
 #: View/Feeds/preview_event.ctp:73
-#: View/Pages/doc/using_the_system.ctp:236
+#: View/Pages/doc/using_the_system.ctp:235
 #: View/Servers/preview_event.ctp:95
 msgid "Related Events"
 msgstr ""
@@ -2226,7 +2245,7 @@ msgstr ""
 
 #: View/Elements/Servers/eventattribute.ctp:41
 #: View/Events/view.ctp:126
-#: View/Pages/doc/using_the_system.ctp:33;168;209;231;252
+#: View/Pages/doc/using_the_system.ctp:33;167;208;230;251
 #: View/Servers/preview_event.ctp:36
 #: View/Sightings/ajax/list_sightings.ctp:5
 msgid "Date"
@@ -2237,14 +2256,15 @@ msgstr ""
 #: View/Events/resolved_attributes.ctp:49
 #: View/Feeds/freetext_index.ctp:34
 #: View/Objects/add.ctp:97
-#: View/Pages/doc/using_the_system.ctp:237;286
+#: View/Pages/doc/using_the_system.ctp:236;285
 #: View/Templates/populate_event_from_template_attributes.ctp:10
 msgid "IDS"
 msgstr ""
 
 #: View/Elements/Servers/Module/type.ctp:11
-#: View/Elements/healthElements/diagnostics.ctp:277
+#: View/Elements/healthElements/diagnostics.ctp:276
 #: View/Pages/doc/administration.ctp:56;228
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1060;1083
 msgid "Status"
 msgstr ""
 
@@ -2268,7 +2288,7 @@ msgstr ""
 #: View/ObjectTemplates/view.ctp:11
 #: View/Objects/revise_object.ctp:19
 #: View/Organisations/ajax/merge.ctp:57;64
-#: View/Pages/doc/using_the_system.ctp:307;318;328;341;352
+#: View/Pages/doc/using_the_system.ctp:306;317;327;340;351
 #: View/Roles/view.ctp:9
 #: View/SharingGroups/add.ctp:11;31;51
 #: View/SharingGroups/edit.ctp:11;31;59
@@ -2293,7 +2313,7 @@ msgstr ""
 #: View/Organisations/view.ctp:32;89;90
 #: View/Pages/doc/administration.ctp:48;241
 #: View/Pages/doc/categories_and_types.ctp:50;67
-#: View/Pages/doc/using_the_system.ctp:109;146;329;342;380
+#: View/Pages/doc/using_the_system.ctp:108;145;328;341;379
 #: View/Servers/preview_event.ctp:65
 #: View/SharingGroups/add.ctp:15
 #: View/SharingGroups/edit.ctp:15
@@ -2333,7 +2353,7 @@ msgstr ""
 
 #: View/Elements/Users/userIndexTable.ctp:17
 #: View/Pages/doc/administration.ctp:183
-#: View/Pages/doc/using_the_system.ctp:273
+#: View/Pages/doc/using_the_system.ctp:272
 #: View/ShadowAttributes/index.ctp:54
 msgid "Created"
 msgstr ""
@@ -2355,10 +2375,10 @@ msgstr ""
 #: View/ObjectTemplates/index.ctp:55
 #: View/OrgBlacklists/index.ctp:26
 #: View/Organisations/index.ctp:81
-#: View/Pages/doc/using_the_system.ctp:188;239;287;383
+#: View/Pages/doc/using_the_system.ctp:187;238;286;382
 #: View/Regexp/admin_index.ctp:25
 #: View/Roles/admin_index.ctp:35
-#: View/Servers/index.ctp:35
+#: View/Servers/index.ctp:36
 #: View/Servers/preview_index.ctp:80
 #: View/SharingGroups/add.ctp:34;54
 #: View/SharingGroups/edit.ctp:34;62
@@ -2504,6 +2524,7 @@ msgstr ""
 #: View/Elements/healthElements/diagnostics.ctp:121
 #: View/Elements/healthElements/workers.ctp:78;80
 #: View/Organisations/view.ctp:66
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1060;1085
 msgid "Unknown"
 msgstr ""
 
@@ -2541,7 +2562,7 @@ msgstr ""
 
 #: View/Elements/healthElements/diagnostics.ctp:156
 #: View/Events/filter_event_index.ctp:32;190
-#: View/Pages/doc/using_the_system.ctp:66;172
+#: View/Pages/doc/using_the_system.ctp:66;171
 msgid "Low"
 msgstr ""
 
@@ -2597,190 +2618,190 @@ msgstr ""
 msgid "Could not read test script (stixtest.py)."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:237
+#: View/Elements/healthElements/diagnostics.ctp:232
 msgid " library version"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:250
+#: View/Elements/healthElements/diagnostics.ctp:249
 msgid "GnuPG"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:251
+#: View/Elements/healthElements/diagnostics.ctp:250
 msgid "This tool tests whether your GnuPG is set up correctly or not."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:259
+#: View/Elements/healthElements/diagnostics.ctp:258
 msgid "GnuPG installation and settings"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:262
+#: View/Elements/healthElements/diagnostics.ctp:261
 msgid "ZeroMQ"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:263
+#: View/Elements/healthElements/diagnostics.ctp:262
 msgid "This tool tests whether the ZeroMQ extension is installed and functional."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:271
+#: View/Elements/healthElements/diagnostics.ctp:270
 msgid "ZeroMQ settings"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:275
+#: View/Elements/healthElements/diagnostics.ctp:274
 msgid "Start ZMQ service"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:275
+#: View/Elements/healthElements/diagnostics.ctp:274
 msgid "Start ZeroMQ service"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:275
+#: View/Elements/healthElements/diagnostics.ctp:274
 msgid "Start"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:276
+#: View/Elements/healthElements/diagnostics.ctp:275
 msgid "Stop ZeroMQ service"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:276
+#: View/Elements/healthElements/diagnostics.ctp:275
 msgid "Stop"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:277
+#: View/Elements/healthElements/diagnostics.ctp:276
 msgid "Check ZeroMQ service status"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:279
+#: View/Elements/healthElements/diagnostics.ctp:278
 msgid "Proxy"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:280
+#: View/Elements/healthElements/diagnostics.ctp:279
 msgid "This tool tests whether your HTTP proxy settings are correct."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:288
+#: View/Elements/healthElements/diagnostics.ctp:287
 #: View/Pages/doc/administration.ctp:35
 msgid "Proxy settings"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:291
+#: View/Elements/healthElements/diagnostics.ctp:290
 msgid "Module System"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:292
+#: View/Elements/healthElements/diagnostics.ctp:291
 msgid "This tool tests the various module systems and whether they are reachable based on the module settings."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:307
+#: View/Elements/healthElements/diagnostics.ctp:306
 msgid " module system"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:313
+#: View/Elements/healthElements/diagnostics.ctp:312
 msgid "Session table"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:314
+#: View/Elements/healthElements/diagnostics.ctp:313
 msgid "This tool checks how large your database's session table is. <br />Sessions in CakePHP rely on PHP's garbage collection for clean-up and in certain distributions this can be disabled by default resulting in an ever growing cake session table. <br />If you are affected by this, just click the clean session table button below."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:321
+#: View/Elements/healthElements/diagnostics.ctp:320
 msgid "Expired sessions"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:327
+#: View/Elements/healthElements/diagnostics.ctp:326
 msgid "Purge sessions"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:331
+#: View/Elements/healthElements/diagnostics.ctp:330
 msgid "Clean model cache"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:332
+#: View/Elements/healthElements/diagnostics.ctp:331
 msgid "If you ever run into issues with missing database fields / tables, please run the following script to clean the model cache."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:333
+#: View/Elements/healthElements/diagnostics.ctp:332
 msgid "Clean cache"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:334
+#: View/Elements/healthElements/diagnostics.ctp:333
 msgid "Overwritten objects"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:335
+#: View/Elements/healthElements/diagnostics.ctp:334
 msgid "Prior to 2.4.89, due to a bug a situation could occur where objects got overwritten on a sync pull. This tool allows you to inspect whether you are affected and if yes, remedy the issue."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:337;340
+#: View/Elements/healthElements/diagnostics.ctp:336;339
 msgid "Orphaned attributes"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:338
+#: View/Elements/healthElements/diagnostics.ctp:337
 msgid "In some rare cases attributes can remain in the database after an event is deleted becoming orphaned attributes. This means that they do not belong to any event, which can cause issues with the correlation engine (known cases include event deletion directly in the database without cleaning up the attributes and situations involving a race condition with an event deletion happening before all attributes are synchronised over)."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:340;356
+#: View/Elements/healthElements/diagnostics.ctp:339;355
 msgid "Run the test below"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:342
+#: View/Elements/healthElements/diagnostics.ctp:341
 msgid "Check for orphaned attribute"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:342
+#: View/Elements/healthElements/diagnostics.ctp:341
 msgid "Check for orphaned attributes"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:343
+#: View/Elements/healthElements/diagnostics.ctp:342
 msgid "Remove orphaned attributes"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:344;346
+#: View/Elements/healthElements/diagnostics.ctp:343;345
 #: View/Pages/administration.ctp:17
 msgid "Verify GnuPG keys"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:345
+#: View/Elements/healthElements/diagnostics.ctp:344
 msgid "Run a full validation of all GnuPG keys within this instance's userbase. The script will try to identify possible issues with each key and report back on the results."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:346
+#: View/Elements/healthElements/diagnostics.ctp:345
 #: View/Pages/administration.ctp:17
 msgid "Check whether every user's GnuPG key is usable"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:347
+#: View/Elements/healthElements/diagnostics.ctp:346
 msgid "Database cleanup scripts"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:348
+#: View/Elements/healthElements/diagnostics.ctp:347
 msgid "If you run into an issue with an infinite upgrade loop (when upgrading from version ~2.4.50) that ends up filling your database with upgrade script log messages, run the following script."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:349
+#: View/Elements/healthElements/diagnostics.ctp:348
 msgid "Prune upgrade logs"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:350;352
+#: View/Elements/healthElements/diagnostics.ctp:349;351
 msgid "Legacy Administrative Tools"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:351
+#: View/Elements/healthElements/diagnostics.ctp:350
 msgid "Click the following button to go to the legacy administrative tools page. There should in general be no need to do this unless you are upgrading a very old MISP instance (<2.4), all updates are done automatically with more current versions."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:353
+#: View/Elements/healthElements/diagnostics.ctp:352
 msgid "Verify bad link on attachments"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:354
+#: View/Elements/healthElements/diagnostics.ctp:353
 msgid "Verify each attachment referenced in database is accessible on filesystem."
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:356
+#: View/Elements/healthElements/diagnostics.ctp:355
 msgid "Non existing attachments referenced in Database"
 msgstr ""
 
-#: View/Elements/healthElements/diagnostics.ctp:358
+#: View/Elements/healthElements/diagnostics.ctp:357
 msgid "Check bad link on attachments"
 msgstr ""
 
@@ -2915,7 +2936,7 @@ msgstr ""
 
 #: View/Elements/healthElements/workers.ctp:52
 #: View/Pages/doc/administration.ctp:166
-#: View/Pages/doc/using_the_system.ctp:256
+#: View/Pages/doc/using_the_system.ctp:255
 #: View/Users/admin_view.ctp:7
 #: View/Users/view.ctp:2
 msgid "User"
@@ -3080,7 +3101,7 @@ msgstr ""
 
 #: View/Elements/templateElements/populateTemplateAttribute.ctp:3
 #: View/Noticelists/view.ctp:41
-#: View/Pages/doc/using_the_system.ctp:108
+#: View/Pages/doc/using_the_system.ctp:107
 msgid "Field"
 msgstr ""
 
@@ -3093,7 +3114,7 @@ msgstr ""
 #: View/Organisations/ajax/merge.ctp:59;66
 #: View/Pages/doc/administration.ctp:237
 #: View/Pages/doc/categories_and_types.ctp:66
-#: View/Pages/doc/using_the_system.ctp:90;146;233;283;331;378
+#: View/Pages/doc/using_the_system.ctp:89;145;232;282;330;377
 #: View/ShadowAttributes/index.ctp:36;51
 #: View/SharingGroups/add.ctp:30
 #: View/SharingGroups/edit.ctp:30
@@ -3175,7 +3196,7 @@ msgstr ""
 #: View/Objects/add.ctp:95
 #: View/Objects/revise_object.ctp:44
 #: View/Pages/doc/categories_and_types.ctp:17;23;37;43;49
-#: View/Pages/doc/using_the_system.ctp:89;126;232;282;330;343
+#: View/Pages/doc/using_the_system.ctp:88;125;231;281;329;342
 #: View/ShadowAttributes/index.ctp:48
 #: View/TemplateElements/ajax/template_element_add_attribute.ctp:28
 #: View/TemplateElements/ajax/template_element_add_file.ctp:28
@@ -3187,7 +3208,7 @@ msgstr ""
 
 #: View/Elements/templateElements/templateRowAttribute.ctp:39
 #: View/Pages/doc/categories_and_types.ctp:63
-#: View/Pages/doc/using_the_system.ctp:110
+#: View/Pages/doc/using_the_system.ctp:109
 #: View/Pages/doc/md/categories_and_types.ctp:33
 msgid "Types"
 msgstr ""
@@ -3214,7 +3235,7 @@ msgid "Edit template element"
 msgstr ""
 
 #: View/Elements/templateElements/templateRowFile.ctp:38
-#: View/Pages/doc/using_the_system.ctp:131;344
+#: View/Pages/doc/using_the_system.ctp:130;343
 #: View/TemplateElements/ajax/template_element_add_file.ctp:38
 #: View/TemplateElements/ajax/template_element_edit_file.ctp:38
 msgid "Malware"
@@ -3225,7 +3246,7 @@ msgid "Req."
 msgstr ""
 
 #: View/Elements/templateElements/templateRowText.ctp:4;20
-#: View/Pages/doc/using_the_system.ctp:353
+#: View/Pages/doc/using_the_system.ctp:352
 #: View/TemplateElements/ajax/template_element_add_choices.ctp:5
 msgid "Text"
 msgstr ""
@@ -3291,7 +3312,7 @@ msgstr ""
 
 #: View/EventBlacklists/add.ctp:35
 #: View/EventBlacklists/edit.ctp:29
-#: View/Events/add.ctp:79
+#: View/Events/add.ctp:72
 #: View/Events/filter_event_index.ctp:125
 #: View/Feeds/add.ctp:198
 #: View/Feeds/import_feeds.ctp:19
@@ -3422,15 +3443,15 @@ msgid "Discard"
 msgstr ""
 
 #: View/Events/add.ctp:3
-msgid "The event created will be restricted to %s until it is published."
+msgid "The event created %s, but not synchronised to other MISP instances until it is published."
 msgstr ""
 
 #: View/Events/add.ctp:3
-msgid "your organisation only"
+msgid "will be restricted to your organisation"
 msgstr ""
 
 #: View/Events/add.ctp:3
-msgid "the organisations included in the distribution setting on the local instance only"
+msgid "will be visible to the organisations having an account on this platform"
 msgstr ""
 
 #: View/Events/add.ctp:8
@@ -3534,7 +3555,7 @@ msgstr ""
 #: View/Events/automation.ctp:2
 #: View/Events/export_alternate.ctp:97
 #: View/Pages/doc/general.ctp:45
-#: View/Pages/doc/using_the_system.ctp:15;362
+#: View/Pages/doc/using_the_system.ctp:15;361
 msgid "Automation"
 msgstr ""
 
@@ -4155,7 +4176,7 @@ msgid "HTTP"
 msgstr ""
 
 #: View/Events/automation.ctp:394
-#: View/Pages/doc/using_the_system.ctp:446
+#: View/Pages/doc/using_the_system.ctp:445
 #: View/SharingGroups/add.ctp:52
 #: View/SharingGroups/edit.ctp:60
 msgid "URL"
@@ -4208,7 +4229,7 @@ msgstr ""
 #: View/Events/automation.ctp:439;446
 #: View/Noticelists/view.ctp:44
 #: View/Pages/doc/administration.ctp:226;242
-#: View/Pages/doc/using_the_system.ctp:255
+#: View/Pages/doc/using_the_system.ctp:254
 msgid "Message"
 msgstr ""
 
@@ -4325,12 +4346,12 @@ msgid "Simply click on any of the following buttons to download the appropriate 
 msgstr ""
 
 #: View/Events/export.ctp:26
-#: View/Pages/doc/using_the_system.ctp:379
+#: View/Pages/doc/using_the_system.ctp:378
 msgid "Last Update"
 msgstr ""
 
 #: View/Events/export.ctp:28
-#: View/Pages/doc/using_the_system.ctp:381
+#: View/Pages/doc/using_the_system.ctp:380
 msgid "Outdated"
 msgstr ""
 
@@ -4340,7 +4361,7 @@ msgstr ""
 
 #: View/Events/export.ctp:30
 #: View/Pages/doc/administration.ctp:230
-#: View/Pages/doc/using_the_system.ctp:382
+#: View/Pages/doc/using_the_system.ctp:381
 msgid "Progress"
 msgstr ""
 
@@ -4469,34 +4490,34 @@ msgid "Any"
 msgstr ""
 
 #: View/Events/filter_event_index.ctp:32;188
-#: View/Pages/doc/using_the_system.ctp:68;174
+#: View/Pages/doc/using_the_system.ctp:68;173
 msgid "High"
 msgstr ""
 
 #: View/Events/filter_event_index.ctp:32;189
-#: View/Pages/doc/using_the_system.ctp:67;173
+#: View/Pages/doc/using_the_system.ctp:67;172
 msgid "Medium"
 msgstr ""
 
 #: View/Events/filter_event_index.ctp:32;191
-#: View/Pages/doc/using_the_system.ctp:175
+#: View/Pages/doc/using_the_system.ctp:174
 #: View/Users/statistics_sightings.ctp:21
 msgid "Undefined"
 msgstr ""
 
 #: View/Events/filter_event_index.ctp:39;194
-#: View/Pages/doc/using_the_system.ctp:72;181
+#: View/Pages/doc/using_the_system.ctp:72;180
 msgid "Initial"
 msgstr ""
 
 #: View/Events/filter_event_index.ctp:39;195
-#: View/Pages/doc/using_the_system.ctp:73;182
+#: View/Pages/doc/using_the_system.ctp:73;181
 msgid "Ongoing"
 msgstr ""
 
 #: View/Events/filter_event_index.ctp:39;196
 #: View/Jobs/index.ctp:9;101
-#: View/Pages/doc/using_the_system.ctp:74;183
+#: View/Pages/doc/using_the_system.ctp:74;182
 msgid "Completed"
 msgstr ""
 
@@ -4532,7 +4553,7 @@ msgstr ""
 #: View/Objects/add.ctp:96
 #: View/Objects/revise_object.ctp:46
 #: View/Pages/doc/administration.ctp:47
-#: View/Pages/doc/using_the_system.ctp:95;146;234;284
+#: View/Pages/doc/using_the_system.ctp:94;145;233;283
 #: View/Templates/populate_event_from_template_attributes.ctp:8
 #: View/Users/admin_filter_user_index.ctp:71
 msgid "Value"
@@ -4563,7 +4584,7 @@ msgid "\"No\""
 msgstr ""
 
 #: View/Events/free_text_import.ctp:6
-#: View/Pages/doc/using_the_system.ctp:113
+#: View/Pages/doc/using_the_system.ctp:112
 msgid "Freetext Import Tool"
 msgstr ""
 
@@ -4659,7 +4680,7 @@ msgstr ""
 
 #: View/Events/proposal_event_index.ctp:25
 #: View/Events/view.ctp:93
-#: View/Pages/doc/using_the_system.ctp:207
+#: View/Pages/doc/using_the_system.ctp:206
 msgid "Contributors"
 msgstr ""
 
@@ -4668,7 +4689,7 @@ msgstr ""
 #: View/Jobs/index.ctp:65
 #: View/Logs/admin_search.ctp:6
 #: View/Pages/doc/administration.ctp:87;104;116;181;195
-#: View/Pages/doc/using_the_system.ctp:167
+#: View/Pages/doc/using_the_system.ctp:166
 #: View/Users/admin_view.ctp:24
 #: View/Users/view.ctp:9
 msgid "Email"
@@ -4710,7 +4731,7 @@ msgstr ""
 #: View/ObjectReferences/ajax/add.ctp:30
 #: View/Objects/add.ctp:61;100
 #: View/Objects/revise_object.ctp:37;48
-#: View/Pages/doc/using_the_system.ctp:235;285
+#: View/Pages/doc/using_the_system.ctp:234;284
 #: View/Templates/populate_event_from_template_attributes.ctp:9
 msgid "Comment"
 msgstr ""
@@ -4754,7 +4775,7 @@ msgstr ""
 #: View/ObjectTemplates/view.ctp:15
 #: View/Organisations/view.ctp:54
 #: View/Organisations/ajax/merge.ctp:58
-#: View/Pages/doc/using_the_system.ctp:205
+#: View/Pages/doc/using_the_system.ctp:204
 #: View/Servers/preview_event.ctp:17
 msgid "Uuid"
 msgstr ""
@@ -4807,27 +4828,27 @@ msgstr ""
 
 #: View/Events/view.ctp:131
 #: View/Feeds/preview_event.ctp:30
-#: View/Pages/doc/using_the_system.ctp:64;169;210
+#: View/Pages/doc/using_the_system.ctp:64;168;209
 #: View/Servers/preview_event.ctp:41
 msgid "Threat Level"
 msgstr ""
 
 #: View/Events/view.ctp:139
 #: View/Feeds/preview_event.ctp:37
-#: View/Pages/doc/using_the_system.ctp:70;178;211
+#: View/Pages/doc/using_the_system.ctp:70;177;210
 #: View/Servers/preview_event.ctp:48
 msgid "Analysis"
 msgstr ""
 
 #: View/Events/view.ctp:159
 #: View/Feeds/preview_event.ctp:42
-#: View/Pages/doc/using_the_system.ctp:186;213
+#: View/Pages/doc/using_the_system.ctp:185;212
 msgid "Info"
 msgstr ""
 
 #: View/Events/view.ctp:165;167
 #: View/Feeds/preview_event.ctp:55;60;65
-#: View/Pages/doc/using_the_system.ctp:161;214
+#: View/Pages/doc/using_the_system.ctp:160;213
 #: View/Servers/preview_event.ctp:78;88
 #: View/Servers/preview_index.ctp:86
 msgid "Published"
@@ -4848,7 +4869,7 @@ msgstr ""
 #: View/Events/view.ctp:180;191
 #: View/Objects/orphaned_object_diagnostics.ctp:21
 #: View/Pages/doc/administration.ctp:167
-#: View/Pages/doc/using_the_system.ctp:201;280
+#: View/Pages/doc/using_the_system.ctp:200;279
 #: View/Posts/add.ctp:33
 #: View/ShadowAttributes/index.ctp:31
 msgid "Event"
@@ -5042,7 +5063,7 @@ msgstr ""
 
 #: View/Events/ajax/eventPublishConfirmationForm.ctp:23
 #: View/Feeds/index.ctp:54
-#: View/Pages/doc/using_the_system.ctp:191
+#: View/Pages/doc/using_the_system.ctp:190
 #: View/Servers/ajax/update.ctp:11
 msgid "Publish"
 msgstr ""
@@ -5266,8 +5287,8 @@ msgstr ""
 
 #: View/Feeds/add.ctp:196
 #: View/Feeds/edit.ctp:191
-#: View/Servers/add.ctp:109
-#: View/Servers/edit.ctp:148;154
+#: View/Servers/add.ctp:113
+#: View/Servers/edit.ctp:152;158
 msgid "Modify"
 msgstr ""
 
@@ -5296,53 +5317,53 @@ msgid "The base-url to the external server you want to sync with. Example: https
 msgstr ""
 
 #: View/Feeds/edit.ctp:207
-#: View/Servers/add.ctp:139
-#: View/Servers/edit.ctp:182
+#: View/Servers/add.ctp:143
+#: View/Servers/edit.ctp:186
 msgid "A name that will make it clear to your users what this instance is. For example: Organisation A's instance"
 msgstr ""
 
 #: View/Feeds/edit.ctp:208
-#: View/Servers/add.ctp:140
-#: View/Servers/edit.ctp:181
+#: View/Servers/add.ctp:144
+#: View/Servers/edit.ctp:185
 msgid "The organization having the external server you want to sync with. Example: BE"
 msgstr ""
 
 #: View/Feeds/edit.ctp:209
-#: View/Servers/add.ctp:141
-#: View/Servers/edit.ctp:183
+#: View/Servers/add.ctp:145
+#: View/Servers/edit.ctp:187
 msgid "You can find the authentication key on your profile on the external server."
 msgstr ""
 
 #: View/Feeds/edit.ctp:210
-#: View/Servers/add.ctp:142
-#: View/Servers/edit.ctp:184
+#: View/Servers/add.ctp:146
+#: View/Servers/edit.ctp:188
 msgid "Allow the upload of events and their attributes."
 msgstr ""
 
 #: View/Feeds/edit.ctp:211
-#: View/Servers/add.ctp:143
-#: View/Servers/edit.ctp:185
+#: View/Servers/add.ctp:147
+#: View/Servers/edit.ctp:189
 msgid "Allow the download of events and their attributes from the server."
 msgstr ""
 
 #: View/Feeds/edit.ctp:212
-#: View/Servers/edit.ctp:186
+#: View/Servers/edit.ctp:190
 msgid "Unpublish new event (working with Push event)."
 msgstr ""
 
 #: View/Feeds/edit.ctp:213
-#: View/Servers/edit.ctp:187
+#: View/Servers/edit.ctp:191
 msgid "Publish new event without email (working with Pull event)."
 msgstr ""
 
 #: View/Feeds/edit.ctp:214
-#: View/Servers/edit.ctp:188
+#: View/Servers/edit.ctp:192
 msgid "You can also upload a certificate file if the instance you are trying to connect to has its own signing authority."
 msgstr ""
 
 #: View/Feeds/edit.ctp:215
-#: View/Servers/add.ctp:147
-#: View/Servers/edit.ctp:190
+#: View/Servers/add.ctp:151
+#: View/Servers/edit.ctp:194
 msgid "Click this, if you would like to allow a connection despite the other instance using a self-signed certificate (not recommended)."
 msgstr ""
 
@@ -5485,7 +5506,7 @@ msgid "Caching"
 msgstr ""
 
 #: View/Feeds/index.ctp:108
-#: View/Servers/index.ctp:72;73
+#: View/Servers/index.ctp:73;74
 msgid "Rules"
 msgstr ""
 
@@ -5713,7 +5734,7 @@ msgstr ""
 
 #: View/Logs/admin_search.ctp:19
 #: View/Pages/doc/administration.ctp:185;198
-#: View/Pages/doc/using_the_system.ctp:272
+#: View/Pages/doc/using_the_system.ctp:271
 #: View/Threads/index.ctp:22
 msgid "Title"
 msgstr ""
@@ -5779,7 +5800,7 @@ msgid "version"
 msgstr ""
 
 #: View/Noticelists/index.ctp:36
-#: View/Pages/doc/using_the_system.ctp:372
+#: View/Pages/doc/using_the_system.ctp:371
 msgid "enabled"
 msgstr ""
 
@@ -6244,7 +6265,7 @@ msgid "Organisation to be merged"
 msgstr ""
 
 #: View/Organisations/ajax/merge.ctp:56;63
-#: View/Pages/doc/using_the_system.ctp:164;204
+#: View/Pages/doc/using_the_system.ctp:163;203
 msgid "ID"
 msgstr ""
 
@@ -6652,7 +6673,7 @@ msgid "Administrators can add, edit or delete blacklisted items by using the app
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:65
-msgid "The system allows administrators to set up rules for regular expressions that will automatically alter newly entered or imported events (from GFI Sandbox)."
+msgid "The system allows administrators to set up rules for regular expressions that will automatically alter newly entered or imported events."
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:66
@@ -6776,7 +6797,7 @@ msgid "This option will subscribe the new user to e-mails that are generated whe
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:94;123
-#: View/Pages/doc/using_the_system.ctp:400
+#: View/Pages/doc/using_the_system.ctp:399
 #: View/Users/admin_view.ctp:40
 #: View/Users/view.ctp:34
 msgid "Authkey"
@@ -6924,7 +6945,7 @@ msgid "Contact your users here."
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:133;184;197
-#: View/Pages/doc/using_the_system.ctp:270
+#: View/Pages/doc/using_the_system.ctp:269
 #: View/Taxonomies/view.ctp:78
 msgid "Action"
 msgstr ""
@@ -7474,7 +7495,7 @@ msgid "When an event is first created by a user, it is visible to everyone on th
 msgstr ""
 
 #: View/Pages/doc/concepts.ctp:32
-#: View/Pages/doc/using_the_system.ctp:402
+#: View/Pages/doc/using_the_system.ctp:401
 msgid "Pull"
 msgstr ""
 
@@ -7483,7 +7504,7 @@ msgid "Pulling is the process of using the configured sync user on a remote inst
 msgstr ""
 
 #: View/Pages/doc/concepts.ctp:34
-#: View/Pages/doc/using_the_system.ctp:401
+#: View/Pages/doc/using_the_system.ctp:400
 msgid "Push"
 msgstr ""
 
@@ -7512,7 +7533,7 @@ msgid "What we call synchronisation is an exchange of data between two (or more)
 msgstr ""
 
 #: View/Pages/doc/concepts.ctp:42
-#: View/Pages/doc/using_the_system.ctp:13;302
+#: View/Pages/doc/using_the_system.ctp:13;301
 msgid "Tagging"
 msgstr ""
 
@@ -7521,7 +7542,7 @@ msgid "Users with tagging rights can assigned various dynamically created tags t
 msgstr ""
 
 #: View/Pages/doc/concepts.ctp:44
-#: View/Pages/doc/using_the_system.ctp:14;311
+#: View/Pages/doc/using_the_system.ctp:14;310
 msgid "Templating"
 msgstr ""
 
@@ -8020,7 +8041,7 @@ msgstr ""
 msgid "Creating an event"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:10;155
+#: View/Pages/doc/using_the_system.ctp:10;154
 msgid "Browsing past events"
 msgstr ""
 
@@ -8032,7 +8053,7 @@ msgstr ""
 msgid "Contacting the publisher"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:16;366
+#: View/Pages/doc/using_the_system.ctp:16;365
 msgid "Exporting data"
 msgstr ""
 
@@ -8040,7 +8061,7 @@ msgstr ""
 msgid "Connecting to other servers"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:18;423
+#: View/Pages/doc/using_the_system.ctp:18;422
 msgid "Rest API"
 msgstr ""
 
@@ -8120,23 +8141,23 @@ msgstr ""
 msgid "Sophisticated APTs and 0day attacks."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:70;178
+#: View/Pages/doc/using_the_system.ctp:70;177
 msgid "Indicates the current stage of the analysis for the event, with the following possible options"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:72;181
+#: View/Pages/doc/using_the_system.ctp:72;180
 msgid "The analysis is just beginning"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:73;182
+#: View/Pages/doc/using_the_system.ctp:73;181
 msgid "The analysis is in progress"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:74;183
+#: View/Pages/doc/using_the_system.ctp:74;182
 msgid "The analysis is complete"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:76;320
+#: View/Pages/doc/using_the_system.ctp:76;319
 msgid "Event Description"
 msgstr ""
 
@@ -8144,903 +8165,895 @@ msgstr ""
 msgid "The info field, where the malware/incident can get a brief description starting with the internal reference. This field should be as brief and concise as possible, the more detailed description happens through attributes in the next stage of the event's creation. Keep in mind that the system will automatically replace detected text strings that match a regular expression entry set up by your server's administrator(s)."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:77
-msgid "GFI Sandbox"
-msgstr ""
-
-#: View/Pages/doc/using_the_system.ctp:77
-msgid "It is possible to upload the exported .zip file from GFI sandbox with the help of this tool. These will be dissected by the MISP and a list of attributes and attachments will automatically be generated from the .zip file. Whilst this does most of the work needed to be done in the second step of the event's creation, it is important to manually look over all the data that is being entered."
-msgstr ""
-
-#: View/Pages/doc/using_the_system.ctp:80
+#: View/Pages/doc/using_the_system.ctp:79
 msgid "Add attributes to the event"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:81
+#: View/Pages/doc/using_the_system.ctp:80
 msgid "The second step of creating an event is to populate it with attributes and attachments. This can be done by adding them manually or importing the attributes from an external format (OpenIOC, ThreatConnect). To import from an external format or to upload an attachment use the options in the menu on the left."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:83
+#: View/Pages/doc/using_the_system.ctp:82
 msgid "Attribute tools"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:83
+#: View/Pages/doc/using_the_system.ctp:82
 msgid "Use these tools to populate the event."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:84
+#: View/Pages/doc/using_the_system.ctp:83
 msgid "Using the above shown buttons, you can populate an event using various tools that will be explained in the following section. Let's start with the Add Attribute button."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:86
+#: View/Pages/doc/using_the_system.ctp:85
 msgid "Keep in mind that the system searches for regular expressions in the value field of all attributes when entered, replacing detected strings within it as set up by the server's administrator (for example to enforce standardised capitalisation in paths for event correlation or to bring exact paths to a standardised format). The following fields need to be filled out"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:87
+#: View/Pages/doc/using_the_system.ctp:86
 msgid "Add attribute"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:87
+#: View/Pages/doc/using_the_system.ctp:86
 msgid "This form allows you to add attributes."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:89
+#: View/Pages/doc/using_the_system.ctp:88
 msgid "This drop-down menu explains the category of the attribute, meaning what aspect of the malware this attribute is describing. This could mean the persistence mechanisms of the malware or network activity, etc. For a list of valid categories, %s"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:89;90;95;188;293
+#: View/Pages/doc/using_the_system.ctp:88;89;94;187;292
 msgid "click here"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:90
+#: View/Pages/doc/using_the_system.ctp:89
 msgid "Whilst categories determine what aspect of an event they are describing, the Type explains by what means that aspect is being described. As an example, the source IP address of an attack, a source e-mail address or a file sent through an attachment can all describe the payload delivery of a malware. These would be the types of attributes with the category of payload deliver. For an explanation of what each of the types looks like together with the valid combinations of categories and types, %s."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:91
+#: View/Pages/doc/using_the_system.ctp:90
 msgid "This drop-down list allows you to control who will be able to see this attribute.\n\t\t\t\tThe distribution is inherited by attributes: the most restrictive setting wins.\n\t\t\t\tFor more info <a href=\"#distribution\">click here</a>."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:94
+#: View/Pages/doc/using_the_system.ctp:93
 msgid "Add a comment to the attribute. This will not be used for correlation."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:95
+#: View/Pages/doc/using_the_system.ctp:94
 msgid "The actual value of the attribute, enter data about the value based on what is valid for the chosen attribute type. For example, for an attribute of type ip-src (source IP address), 11.11.11.11 would be a valid value. For more information on types and values, %s."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:96;132
+#: View/Pages/doc/using_the_system.ctp:95;131
 msgid "You can add some comments to the attribute that will not be used for correlation but instead serves as purely an informational field."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:97
+#: View/Pages/doc/using_the_system.ctp:96
 msgid "This option allows the attribute to be used as an IDS signature when exporting the NIDS data, unless it is being overruled by the white-list. For more information about the whitelist, head over to the %s section."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:97
+#: View/Pages/doc/using_the_system.ctp:96
 msgid "administration"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:98
+#: View/Pages/doc/using_the_system.ctp:97
 msgid "Batch import"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:98
+#: View/Pages/doc/using_the_system.ctp:97
 msgid "If there are several attributes of the same type to enter (such as a list of IP addresses, it is possible to enter them all into the same value-field, separated by a line break between each line. This will allow the system to create separate lines for the each attribute."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:100
+#: View/Pages/doc/using_the_system.ctp:99
 msgid "Populate from Template"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:101
+#: View/Pages/doc/using_the_system.ctp:100
 msgid "Templates allow users to rapidly populate events of a specific type by filling out a series of pre-defined fields. Users with template creation privileges can create new templates for their organisations or for all organisations on their instance. If you are interested in template creation, please refer to the templating section.<br />\nFor users trying to populate an event, after clicking on the populate from template button, you'll be presented with a list of all currently accessible templates. Pick the one that best describes the event that you are creating."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:103
+#: View/Pages/doc/using_the_system.ctp:102
 msgid "Template Choice"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:103
+#: View/Pages/doc/using_the_system.ctp:102
 msgid "Choose the most appropriate template for your event."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:104
+#: View/Pages/doc/using_the_system.ctp:103
 msgid "Once you have chosen a template, you'll be presented with the actual form contained within. Make sure you fill out as many fields as possible with the mandatory fields - marked by a star in a bracket such as this: (*) - are filled out.<br />\nTemplates are devided into sections, with each section having a title and a description in addition to a series of fields. Each field can be an attribute or a file attachment field. An attribute field has the following components"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:106
+#: View/Pages/doc/using_the_system.ctp:105
 msgid "Template Field"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:106
+#: View/Pages/doc/using_the_system.ctp:105
 msgid "MISP will generate attributes based on the field's settings and the data that you provide."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:108
+#: View/Pages/doc/using_the_system.ctp:107
 msgid "The name of the field along with an indication if the field is mandatory."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:109
+#: View/Pages/doc/using_the_system.ctp:108
 msgid "A short description of the field."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:110
+#: View/Pages/doc/using_the_system.ctp:109
 msgid "The value(s) that are valid for the field. In the case of several types being shown here, you can enter value(s) matching any one of the types, or in the case of a batch import field, any mixture of the given types."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:111
+#: View/Pages/doc/using_the_system.ctp:110
 msgid "Text field"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:111
+#: View/Pages/doc/using_the_system.ctp:110
 msgid "This field can either be a single line textfield or a multi-line text area. For the former, enter a single value of the above indicated type, whilst for the latter you cna paste a list of values separated by line-breaks."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:114;116
+#: View/Pages/doc/using_the_system.ctp:113;115
 msgid "Freetext"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:114
+#: View/Pages/doc/using_the_system.ctp:113
 msgid "Just paste a line-break separated list of indicators into the freetext import tool."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:115
+#: View/Pages/doc/using_the_system.ctp:114
 msgid "If you have a list of indicators that you would like to quickly generate attributes out of then the Free-text import tool is just what you need. Simply paste a list of indicators (separated by line-breaks into this tool)."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:116
+#: View/Pages/doc/using_the_system.ctp:115
 msgid "MISP will often find several valid category/type combinations for the values. Do last minute adjustments on the result page."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:117
+#: View/Pages/doc/using_the_system.ctp:116
 msgid "Since there are several category / type combinations that can be valid for a lot of values, MISP will suggest the most common settings. You can alter the category / type / IDS fields manually if you disagree with the results. The options will be restricted to valid category/type combinations for the value that you have entered."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:119
+#: View/Pages/doc/using_the_system.ctp:118
 msgid "If you would like to create and maintain an event with a set of indicators that receives removals and additions over time, then the attribute replace tool might make this task easier for you."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:120
+#: View/Pages/doc/using_the_system.ctp:119
 msgid "Select a category/type combination and paste the updated list of indicators into the textarea."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:121
+#: View/Pages/doc/using_the_system.ctp:120
 msgid "Simply select the desired category / type combination, choose whether the attributes should be marked for IDS exports and paste the new list of indicators into the textarea. Attributes of the same category/type that are present in the event but not the new list will be removed, values in the pasted list that do not yet exist as attributes will be created as attributes and values that already have matching attributes will be left untouched."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:122
+#: View/Pages/doc/using_the_system.ctp:121
 msgid "Add attachments to the event"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:123
+#: View/Pages/doc/using_the_system.ctp:122
 msgid "You can also upload attachments, such as the malware itself, report files from external analysis or simply artifacts dropped by the malware. Clicking on the add attachment button brings up a form that allows you to quickly attach a file to the event. The following fields need to be filled out"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:124
+#: View/Pages/doc/using_the_system.ctp:123
 msgid "Add attachment"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:124
+#: View/Pages/doc/using_the_system.ctp:123
 msgid "Point the uploader to the file you want to upload. Make sure to mark it as malware if the uploaded file is harmful, that way it will be neutralised."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:126
+#: View/Pages/doc/using_the_system.ctp:125
 msgid "The category is the same as with the attributes, it answers the question of what the uploaded file is meant to describe."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:127
+#: View/Pages/doc/using_the_system.ctp:126
 msgid "This drop-down list allows you to control who will be able to see this attachment.\n\t\t\tThe distribution is inherited by attributes: the most restrictive setting wins.\n\t\t\tFor more info <a href=\"#distribution\">click here</a>."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:130
+#: View/Pages/doc/using_the_system.ctp:129
 msgid "Upload field"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:130
+#: View/Pages/doc/using_the_system.ctp:129
 msgid "By hitting browse, you can browse your file system and point the uploader to the file that you want to attach to the attribute. This will then be uploaded when the upload button is pushed."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:131
+#: View/Pages/doc/using_the_system.ctp:130
 msgid "This check-box marks the file as malware and as such it will be zipped and passworded, to protect the users of the system from accidentally downloading and executing the file. Make sure to tick this if you suspect that the filed is infected, before uploading it."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:135
+#: View/Pages/doc/using_the_system.ctp:134
 msgid "Propose a change to an event that belongs to another organisation"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:136
+#: View/Pages/doc/using_the_system.ctp:135
 msgid "If you would like to propose a modification to an attribute, or to propose some additional attributes to the creating organisation, you can do this with the buttons that replace the add attribute field on the left and the edit icon on the right end of each listed attribute in the event view. The creating organisation of the event will be able to see any proposals and discard or accept the changes."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:137
+#: View/Pages/doc/using_the_system.ctp:136
 msgid "Propose attribute"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:137
+#: View/Pages/doc/using_the_system.ctp:136
 msgid "An attribute with a proposal attached will turn blue and the proposal itself will be grey. If there is a grey proposal without a blue attribute infront of it, it means that someone has proposed a new attribute"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:138
+#: View/Pages/doc/using_the_system.ctp:137
 msgid "If the organisation that has created the event is on another connected server, they will be able to accept the proposal once they initiate a pull and receive your proposal. After this they can republish the event, sending the altered attribute back to your instance."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:140
+#: View/Pages/doc/using_the_system.ctp:139
 msgid "Populate from OpenIOC"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:141
+#: View/Pages/doc/using_the_system.ctp:140
 msgid "It is also possible to attempt to import the data contained in a .ioc file, The import tool will attempt to gather as many IndicatorItems within nested logical operators as possible without breaking their validity. After the procedure is done, you'll be presented with a list of successfully created attributes and a list of failed IndicatorItems as well as a graph of the .ioc file."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:142
+#: View/Pages/doc/using_the_system.ctp:141
 msgid "OpenIOC1"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:142
+#: View/Pages/doc/using_the_system.ctp:141
 msgid "The import tool will list the successful and failed entries after the process is done."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:143
+#: View/Pages/doc/using_the_system.ctp:142
 msgid "OpenIOC2"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:143
+#: View/Pages/doc/using_the_system.ctp:142
 msgid "You'll also be able to see a graph of the imported .ioc file and how successful the import was."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:145
+#: View/Pages/doc/using_the_system.ctp:144
 msgid "Populate from ThreatConnect"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:146
+#: View/Pages/doc/using_the_system.ctp:145
 msgid "You can also import the data from a ThreatConnect export csv file. The following columns are used by the import tool (and are thus mandatory fields to select during the export)"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:146
+#: View/Pages/doc/using_the_system.ctp:145
 msgid "Confidence"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:146
+#: View/Pages/doc/using_the_system.ctp:145
 #: View/Sightings/ajax/list_sightings.ctp:8
 #: View/Users/statistics_sightings.ctp:9
 msgid "Source"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:146
+#: View/Pages/doc/using_the_system.ctp:145
 msgid "The result will be a list of attributes that get added to the currently selected event, each of which will be marked with a comment that indicates that its origin being from a ThreatConnect import."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:148
+#: View/Pages/doc/using_the_system.ctp:147
 msgid "Publish an event"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:150
+#: View/Pages/doc/using_the_system.ctp:149
 msgid "Once all the attributes and attachments that you want to include with the event are uploaded / set, it is time to finalise its creation by publishing the event (click on publish event in the event view). This will alert the eligible users of it (based on the private-controls of the event and its attributes/attachments and whether they have auto-alert turned on), push the event to instances that your instance connects to and propagate it further based on the distribution rules. It also readies the network related attributes for NIDS signature creation (through the NIDS signature export feature, for more information, go to the export section.)."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:151
+#: View/Pages/doc/using_the_system.ctp:150
 msgid "There is an alternate way of publishing an event without alerting any other users, by using the \"publish (no email)\" button. This should only be used for minor edits (such as correcting a typo)."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:153
+#: View/Pages/doc/using_the_system.ctp:152
 msgid "If your instance has background jobs enabled then the event might not get published immediately."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:156
+#: View/Pages/doc/using_the_system.ctp:155
 msgid "The MISP interface allows the user to have an overview over or to search for events and attributes of events that are already stored in the system in various ways."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:157
+#: View/Pages/doc/using_the_system.ctp:156
 msgid "To list all events"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:158
+#: View/Pages/doc/using_the_system.ctp:157
 msgid "On the left menu bar, the option \"List events\" will generate a list of the last 60 events. While the attributes themselves aren't shown in this view, the following pieces of information can be seen"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:159
+#: View/Pages/doc/using_the_system.ctp:158
 msgid "List events"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:159
+#: View/Pages/doc/using_the_system.ctp:158
 msgid "This is the list of events in the system. Use the buttons to the right to alter or view any of the events."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:161
+#: View/Pages/doc/using_the_system.ctp:160
 msgid "Already published events are marked by a checkmark. Unpublished events are marked by a cross."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:162
+#: View/Pages/doc/using_the_system.ctp:161
 msgid "The organisation that created the event."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:163
+#: View/Pages/doc/using_the_system.ctp:162
 msgid "Owner Org"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:163
+#: View/Pages/doc/using_the_system.ctp:162
 msgid "The organisation that owns the event on this instance. This field is only visible to administrators."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:164
+#: View/Pages/doc/using_the_system.ctp:163
 msgid "The event's ID number, assigned by the system when the event was first entered (or in the case of an event that was synchronized, when it was first copied over - more on synchronisation in chapter xy)"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:165
+#: View/Pages/doc/using_the_system.ctp:164
 msgid "Tags that are assigned to this event."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:166
+#: View/Pages/doc/using_the_system.ctp:165
 msgid "#Attr."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:166
+#: View/Pages/doc/using_the_system.ctp:165
 msgid "The number of attributes that the event has."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:167
+#: View/Pages/doc/using_the_system.ctp:166
 msgid "The e-mail address of the event's reporter. This is not visible to regular users. Organisation administrators can see the e-mail addresses of their own organisation's users."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:168
+#: View/Pages/doc/using_the_system.ctp:167
 msgid "The date of the attack."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:169
+#: View/Pages/doc/using_the_system.ctp:168
 msgid "The risk level of the attack, the following levels are possible"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:172
+#: View/Pages/doc/using_the_system.ctp:171
 msgid "General Malware"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:173
+#: View/Pages/doc/using_the_system.ctp:172
 msgid "Advanced Persistent Threats (APTs)"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:174
+#: View/Pages/doc/using_the_system.ctp:173
 msgid "Sophisticated APTs and 0day exploits<"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:175
+#: View/Pages/doc/using_the_system.ctp:174
 msgid "This field can be left undefined and edited at a later date."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:186
+#: View/Pages/doc/using_the_system.ctp:185
 msgid "A short description of the event, starting with an internal reference number."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:187
+#: View/Pages/doc/using_the_system.ctp:186
 msgid "This field indicates what the sharing privileges of the event. The options are described <a href=\"#distribution\">here</a>."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:188
+#: View/Pages/doc/using_the_system.ctp:187
 msgid "The controls that the user has to view or modify the event. The possible actions that are available (depending on user privileges - %s to find out more about privileges)"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:191
+#: View/Pages/doc/using_the_system.ctp:190
 msgid "Publishing an event will have several effects: The system will e-mail all eligible users that have auto-alert turned on (and having the needed privileges for the event, depending on its private classification) with a description of your newly published event, it will be flagged as published and it will be pushed to all eligible servers (to read more about synchronisation between servers, have a look at the %s)."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:191
+#: View/Pages/doc/using_the_system.ctp:190
 msgid "section on connecting servers"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:192
+#: View/Pages/doc/using_the_system.ctp:191
 msgid "Clicking on the edit button will bring up the same screen as the one used for creating new events, with the exception that all fields come filled out with the data of the event that is being edited. The distribution of an event can only be edited if you are a user of the creating organisation of the event. For more information on this view, refer to the section on <a href=\"#create\">creating an event</a>."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:193
+#: View/Pages/doc/using_the_system.ctp:192
 msgid "The system will prompt you before erasing the unwanted event."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:194
+#: View/Pages/doc/using_the_system.ctp:193
 msgid "Will bring up the event view, which besides the basic information contained in the event list, will also include the following"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:199
+#: View/Pages/doc/using_the_system.ctp:198
 msgid "It is also possible to filter the events shown by clicking on the small magnifying glass icons next to the field names and entering a filter term."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:200
+#: View/Pages/doc/using_the_system.ctp:199
 msgid "Event view"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:201
+#: View/Pages/doc/using_the_system.ctp:200
 msgid "This view includes the basic information about an event, a link to related events, all attributes and attachments with tools to modify or delete them and extra functions for publishing the event or getting in touch with the event's reporter."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:202
+#: View/Pages/doc/using_the_system.ctp:201
 msgid "General Event Information"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:204
+#: View/Pages/doc/using_the_system.ctp:203
 msgid "The ID of the event."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:205
+#: View/Pages/doc/using_the_system.ctp:204
 msgid "In order to avoid collisions between events and attributes (during for example a sync) a Uuid is assigned that uniquely identifies each of them."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:206
+#: View/Pages/doc/using_the_system.ctp:205
 msgid "The organisation that has originally created the event. The logo (if it exists on the server, alternatively a string) representing the organisation is also shown int he right upper corner."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:207
+#: View/Pages/doc/using_the_system.ctp:206
 msgid "Shows a list of the organisations that have contributed to the event via proposals. If you click any of the logos listed here, you'll get redirected to a filtered event history view, including only the changes made by the organisation."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:208
+#: View/Pages/doc/using_the_system.ctp:207
 msgid "A list of tags associated with the event. Clicking a tag will show a list of events with the same tag attached. The little cross next to each tag allows you to remove the tag from the event, whilst the '+' button allows you to assign a tag. For the latter two options to be visible, you have to have tagging permission."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:209
+#: View/Pages/doc/using_the_system.ctp:208
 msgid "The date of detection, set by the user that creates the event, not to be confused with the creation date of the event."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:210
+#: View/Pages/doc/using_the_system.ctp:209
 msgid "The assigned threat level of the event."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:211
+#: View/Pages/doc/using_the_system.ctp:210
 msgid "The status of the analysis."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:212
+#: View/Pages/doc/using_the_system.ctp:211
 msgid "This shows the distribution rules applied to this event, controlling whether only the creating organisation can see (Your organisation only) it or everyone on the instance (This community only). The two remaining settings allow the event to be propagated to organisations on remote connected instances."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:213
+#: View/Pages/doc/using_the_system.ctp:212
 msgid "A short description of the event itself. Make sure not to put information in here that could be used for correlation purposes and be better suited as an Attribute."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:214
+#: View/Pages/doc/using_the_system.ctp:213
 msgid "Whether the event has been published or not. Publishing allows the attributes of the event to be used for all eligible exports and it notifies users that have subscribed to the event alerts. Also, a publish initiates a push to all eligible instances."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:216
+#: View/Pages/doc/using_the_system.ctp:215
 msgid "List of Related Events"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:217
+#: View/Pages/doc/using_the_system.ctp:216
 msgid "The list of relations is shown on the right hand side of the general event information. Events can be related by having one or more attributes that are exact matches. For example, if two events both contain a source IP attribute of 11.11.11.11 then they are related. The list of events that are related the currently shown one, are listed under \"Related Events\", as links (titled the related event's date and ID number) to the events themselves."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:218
+#: View/Pages/doc/using_the_system.ctp:217
 msgid "Data Element Toggles"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:219
+#: View/Pages/doc/using_the_system.ctp:218
 msgid "You can control some of the data that is shown on this page using three toggles. The elements that can be disabled are the pivot threads, the attributes (and proposals) and the Discussions. You can collapse these elements and then expand them again using the same button."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:220
+#: View/Pages/doc/using_the_system.ctp:219
 msgid "Pivot Threads"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:221
+#: View/Pages/doc/using_the_system.ctp:220
 msgid "While moving from event to event through the relation links (a process that we refer to as pivoting), you create a path that shows which events you have traversed. This path is reset by leaving the event view and navigating elsewhere in the application or by deleting the root pivot element."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:222
+#: View/Pages/doc/using_the_system.ctp:221
 msgid "Each event visited is represented by a bubble in the pivot thread graph, connected by lines that show how the user has arrived at the next connected event. It is possible to jump back to an earlier relation and pivot to another event through that, creating branches in the graph."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:223
+#: View/Pages/doc/using_the_system.ctp:222
 msgid "The currently selected event is coloured blue in the graph. If you would like to delete an element from the graph (including all of elements that branch off of it) just click on the small x within a pivot bubble. For a deletion to be possible the following conditions have to be met"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:225
+#: View/Pages/doc/using_the_system.ctp:224
 msgid "The pivot element to be deleted cannot be on the path that leads to the currently selected event"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:226
+#: View/Pages/doc/using_the_system.ctp:225
 msgid "The pivot element residing in the graph's root can always be deleted - this will simply reset the current pivot thread"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:228
+#: View/Pages/doc/using_the_system.ctp:227
 msgid "Attributes and Proposals"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:229
+#: View/Pages/doc/using_the_system.ctp:228
 msgid "A list of all attributes and proposals attached to the event. The fields for each of them only differ in the available actions and the fact that for proposals to attributes all fields are blank that would stay unchanged if the proposal was accepted (for example, proposing a change to an attribute to turn the IDS flag on will have all fields apart from the IDS flag blank in the proposal. Here is a list of what each of the fields represents"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:231
+#: View/Pages/doc/using_the_system.ctp:230
 msgid "The date of the last modification to the attribute. Proposals don't have a date of last edit."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:232
+#: View/Pages/doc/using_the_system.ctp:231
 msgid "The category of the attribute or proposal. For a list of possible categories visit the section on <a href=\"%s/pages/display/doc/categories_and_types\">categories and types</a>."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:233
+#: View/Pages/doc/using_the_system.ctp:232
 msgid "The type of the attribute or proposal. For a list of possible categories visit the section on <a href=\"%s/pages/display/doc/categories_and_types\">categories and types</a>."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:234
+#: View/Pages/doc/using_the_system.ctp:233
 msgid "The value or value-pair of the attribute. This is the main payload of the attribute, which is described by the category and type columns. For certain types of attributes that are made up of value-pairs the two parts will be split by a pipe (|), such as for filename|md5. The value field(s) are used by the correlation engine to find relations between events. In value-pair attributes both values are correlated individually."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:235
+#: View/Pages/doc/using_the_system.ctp:234
 msgid "Attributes can have a contextual comment to further describe the attribute. These comments are not used for correlation and are purely informative."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:236
+#: View/Pages/doc/using_the_system.ctp:235
 msgid "A list of the event IDs that also contain an attribute with the same value."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:237
+#: View/Pages/doc/using_the_system.ctp:236
 msgid "Flags an attribute as an indicator of compromise, allowing it to be included in all of the eligible exports."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:238
+#: View/Pages/doc/using_the_system.ctp:237
 msgid "Defines the distribution of the attribute individually. An attribute can have a different distribution level than the event. In any case, the lowest distribution level of the two is used."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:239
+#: View/Pages/doc/using_the_system.ctp:238
 msgid "The user can interact with the events through these buttons, which will be further described in the next portion of the guide as they differ for attributes and proposals."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:241
+#: View/Pages/doc/using_the_system.ctp:240
 msgid "Depending on the colour coding of the row, you can have an attribute, a proposal to the event or a proposal to an attribute"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:243
+#: View/Pages/doc/using_the_system.ctp:242
 msgid "Each uncoloured line represents an Attribute."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:244
+#: View/Pages/doc/using_the_system.ctp:243
 msgid "Proposals to an Event"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:244
+#: View/Pages/doc/using_the_system.ctp:243
 msgid "Each gray line at the end of the list represents a Proposal to an event. These are proposals for a new attribute, mostly unrelated to any of the currently existing attributes. If the creator of the event accepts one of these a new attribute will be created."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:245
+#: View/Pages/doc/using_the_system.ctp:244
 msgid "Proposals to an Attribute"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:245
+#: View/Pages/doc/using_the_system.ctp:244
 msgid "Each attribute can have several edit proposals. These will be placed right below the attribute that the proposal affects and - as with the event proposals - is coloured grey. The original attribute's row is coloured blue if a proposal exists for it."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:247
+#: View/Pages/doc/using_the_system.ctp:246
 msgid "Using the modify button will bring up the attribute creation view, with all data filled out with the attributes currently stored data."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:248
+#: View/Pages/doc/using_the_system.ctp:247
 msgid "Event Discussion Thread"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:249
+#: View/Pages/doc/using_the_system.ctp:248
 msgid "Each event has its own assigned discussion where users (that are eligible to see the event) can participate in an open discussion. The users are anonymised in the messages, all that other users will see is their user ID number and their organisation. To post a message on the Event Discussion, either use the reply button on a previous post or use the quickresponse field at the bottom of the page.\nEach post is made up of the following"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:252
+#: View/Pages/doc/using_the_system.ctp:251
 msgid "The date when the post was created."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:253
+#: View/Pages/doc/using_the_system.ctp:252
 msgid "Post navigation"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:253
+#: View/Pages/doc/using_the_system.ctp:252
 msgid "This should the posts' ID as well as a link to jump to the top of the discussion thread on the page itself."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:254
+#: View/Pages/doc/using_the_system.ctp:253
 msgid "Organisation logo"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:254
+#: View/Pages/doc/using_the_system.ctp:253
 msgid "If such an image exists for the organisation that has posted the message, then the logo is shown."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:255
+#: View/Pages/doc/using_the_system.ctp:254
 msgid "The body of the post itself. This can also include automatically generated links to other events and threads as well as show quoted test in embedded bubbles. Editing an event will also append a post with a message indicating that it was edited together with the timestamp of the edit."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:256
+#: View/Pages/doc/using_the_system.ctp:255
 msgid "The e-mail address of the poster if he/she is from the organisation as the current user. Alternatively a generated sting is shown that includes the user ID of the user, so that his/her e-mail address could remain hidden whilst still being identifiable."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:257
+#: View/Pages/doc/using_the_system.ctp:256
 msgid "Action buttons"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:257
+#: View/Pages/doc/using_the_system.ctp:256
 msgid "Edit, Delete and Reply. The first two of the three options are only available to the poster of the message or a site admin. Quoting a post will automatically include the original message in [quote] tags."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:259
+#: View/Pages/doc/using_the_system.ctp:258
 msgid "Here is a list of the various tools you can use while using this feature"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:261
+#: View/Pages/doc/using_the_system.ctp:260
 msgid "Pagination"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:261
+#: View/Pages/doc/using_the_system.ctp:260
 msgid "There are 5 posts visible on each event page, if there have been more messages posted, use the previous and next button to navigate through the thread. This will not reload the rest of the page."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:262
+#: View/Pages/doc/using_the_system.ctp:261
 msgid "Discussion Tags"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:262
+#: View/Pages/doc/using_the_system.ctp:261
 msgid "Users can quote something by encapsulating it in [quote][/quote] tags, they can create a link to another event with the [event][/event] tags or to another discussion thread with [thread][/thread]."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:263
+#: View/Pages/doc/using_the_system.ctp:262
 msgid "Quick Post"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:263
+#: View/Pages/doc/using_the_system.ctp:262
 msgid "Adding a post will take the user to a separate add Post page, something that can be a bit of an inconvenience. To avoid this, there is a quick post button, where users can add messages on the fly without having to reload the page. On top of the quick post field, 3 buttons allow users to generate quote, event and thread tags quickly."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:266
+#: View/Pages/doc/using_the_system.ctp:265
 msgid "Event History"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:267
+#: View/Pages/doc/using_the_system.ctp:266
 msgid "View the logs of the event that show how the event has changed over time, including the contribution from other organisations in the form of proposals. There are two ways to get to this view, either by clicking on View Event History on the side menu of an event view, or by clicking on a contributing organisation's logo on the event view. The latter will show a restricted form of the logs, showing only Proposals created by the selected organisation. The fields shown in this view are as described as follows"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:269
+#: View/Pages/doc/using_the_system.ctp:268
 msgid "The logo (or in the lack thereof a string representation) of the organisation."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:270
+#: View/Pages/doc/using_the_system.ctp:269
 msgid "Each entry in the log happens during an action, such as the creation, modification or deletion of data and some special actions (such as accepting a proposal). This field shows which action caused the entry to be created."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:271
+#: View/Pages/doc/using_the_system.ctp:270
 msgid "Model"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:271
+#: View/Pages/doc/using_the_system.ctp:270
 msgid "As described above, a log entry is generated on certain actions. This field shows which type of data was affected that caused the log entry to be created (such as a change to the event, the creation of an attribute, the discarding of a proposal, etc)."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:272
+#: View/Pages/doc/using_the_system.ctp:271
 msgid "This is a short description of the change itself and it is not nearly as detailed as the information administrators get in the audit logs. However, for attributes and proposals the category / type and value of the created or edited attribute is shown."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:273
+#: View/Pages/doc/using_the_system.ctp:272
 msgid "The date and time of the log entrys' creation."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:276
+#: View/Pages/doc/using_the_system.ctp:275
 msgid "Listing all attributes"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:277
+#: View/Pages/doc/using_the_system.ctp:276
 msgid "Apart from having a list of all the events, it is also possible to get a list of all the stored attributes in the system by clicking on the list attributes button. The produced list of attributes will include the followings fields"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:278
+#: View/Pages/doc/using_the_system.ctp:277
 msgid "Use the buttons to the right to view the event that this attribute belongs to or to modify/delete the attribute."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:280
+#: View/Pages/doc/using_the_system.ctp:279
 msgid "This is the ID number of the event that the attribute is tied to. If an event belongs to your organisation, then this field will be coloured red."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:281
+#: View/Pages/doc/using_the_system.ctp:280
 msgid "The organisation that has created the event."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:282
+#: View/Pages/doc/using_the_system.ctp:281
 msgid "The category of the attribute, showing what the attribute describes (for example the malware's payload). For more information on categories, go to section xy"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:283
+#: View/Pages/doc/using_the_system.ctp:282
 msgid "The type of the value contained in the attribute (for example a source IP address). For more information on types, go to section xy"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:284
+#: View/Pages/doc/using_the_system.ctp:283
 msgid "The actual value of the attribute, describing an aspect, defined by the category and type fields of the malware (for example 11.11.11.11)."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:285
+#: View/Pages/doc/using_the_system.ctp:284
 msgid "An optional contextual comment attached to the attribute."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:286
+#: View/Pages/doc/using_the_system.ctp:285
 msgid "Shows whether the attribute has been flagged for NIDS signature generation or not."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:287
+#: View/Pages/doc/using_the_system.ctp:286
 msgid "A set of buttons that allow you to view the event that the attribute is tied to, to edit the attribute (using the same view as what is used to set up attributes, but filled out with the attribute's current data) and a delete button."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:289
+#: View/Pages/doc/using_the_system.ctp:288
 msgid "Searching for attributes"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:290
+#: View/Pages/doc/using_the_system.ctp:289
 msgid "Apart from being able to list all events, it is also possible to search for data contained in the value field of an attribute, by clicking on the \"Search Attributes\" button."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:291
+#: View/Pages/doc/using_the_system.ctp:290
 msgid "Search attribute"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:292
+#: View/Pages/doc/using_the_system.ctp:291
 msgid "This will bring up a form that lets you enter one or several search strings (separate search strings with line breaks) that will be compared to the values of all attributes, along with options to narrow down the search based on category and type. The entered search string has to be an exact match with (the sub-string of) a value. A second text field makes it possible to enter event IDs for events that should be excluded from the search (again, each line represents an event ID to be excluded). The third text field allows the user to restrict the results to attributes from certain organisations or to attributes not created by certain other organisations, using the above described syntax."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:293
+#: View/Pages/doc/using_the_system.ctp:292
 msgid "The list generated by the search will look exactly the same as listing all attributes, except that only the attributes that matched the search criteria will be listed (to find out more about the list attributes view, %s.). The search parameters will be shown above the produced list and the search terms will be highlighted."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:294
+#: View/Pages/doc/using_the_system.ctp:293
 msgid "The last option is a checkbox that restricts all of the results to attributes that are marked as IDS signatures."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:295
+#: View/Pages/doc/using_the_system.ctp:294
 msgid "You can view the event that an attribute belongs to with the view button, or you can edit/delete the attribute via the buttons on the right."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:297
+#: View/Pages/doc/using_the_system.ctp:296
 msgid "Updating and modifying events and attributes"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:298
+#: View/Pages/doc/using_the_system.ctp:297
 msgid "Every event and attribute can easily be edited. First of all it is important to find the event or attribute that is to be edited, using any of the methods mentioned in the section on <a href=\"#browsing_events\">browsing past events</a>."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:299
+#: View/Pages/doc/using_the_system.ctp:298
 msgid "Once it is found, the edit button (whether it be under actions when events/attributes get listed or simply on the event view) will bring up the same screen as what is used to create the entry of the same type (for an event it would be the event screen as <a href=\"#create\">seen here</a>, for an attribute the attribute screen as <a href=\"#create_attribute\">described here</a>)."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:300
+#: View/Pages/doc/using_the_system.ctp:299
 msgid "Keep in mind that editing any event (either directly or indirectly through an attribute) will unpublish it, meaning that you'll have to publish it (through the event view) again once you are done."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:303
+#: View/Pages/doc/using_the_system.ctp:302
 msgid "As described earlier, users with tagging rights can arbitrarily tag events using tags chosen from a pool of available options. If you have tagging privileges and would like to create a new tag, navigate to Event Actions - Add Tag. You'll be presented with the following form"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:304
+#: View/Pages/doc/using_the_system.ctp:303
 #: View/Templates/add.ctp:17
 #: View/Templates/edit.ctp:17
 msgid "Add tag"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:304
+#: View/Pages/doc/using_the_system.ctp:303
 msgid "Enter a name for the tag and click on the color field to be able to pick a colour for it."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:305
+#: View/Pages/doc/using_the_system.ctp:304
 msgid "Fill out the following fields"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:307
+#: View/Pages/doc/using_the_system.ctp:306
 msgid "Pick a name for the tag. Try to use consistent naming conventions across your instance, to avoid confusion."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:308
+#: View/Pages/doc/using_the_system.ctp:307
 msgid "Colour"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:308
+#: View/Pages/doc/using_the_system.ctp:307
 msgid "You can choose a colour for the tag by clicking on the colour field and using the colour picker tool. Try to avoid having duplicate or similar looking colours to help avoid confusion."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:312
+#: View/Pages/doc/using_the_system.ctp:311
 msgid "Newer users can easily be overwhelmed by having to manually populate events with attributes without any guidance. What sort of information should go into the event? What should be the category and type of a C2 IP? Templates allow users to use simple forms to populate events."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:313
+#: View/Pages/doc/using_the_system.ctp:312
 msgid "Even though MISP ships with a few default templates, it is possible for users (with the appropriate templating privilege) to create new templates for their users or for all users of the instance. Let's look at how you can create a template."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:314
+#: View/Pages/doc/using_the_system.ctp:313
 msgid "First go to Event Actions - Add Template to go to the event creation view."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:315
+#: View/Pages/doc/using_the_system.ctp:314
 #: View/Templates/add.ctp:6
 msgid "Create Template"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:315
+#: View/Pages/doc/using_the_system.ctp:314
 msgid "Fill in the generic information about the template."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:316;326;339;350
+#: View/Pages/doc/using_the_system.ctp:315;325;338;349
 msgid "The following fields have to be filled out"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:318
+#: View/Pages/doc/using_the_system.ctp:317
 msgid "The name of the template should describe what type of an event it should be used to generate attributes."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:319
+#: View/Pages/doc/using_the_system.ctp:318
 msgid "You can attach tags to the template - an event populated using the template would automatically receive the tag(s). Add new tags using the + button. If you change your mind about a tag you can remove it with the cross next to the tag name."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:320
+#: View/Pages/doc/using_the_system.ctp:319
 msgid "A short description about the events that this template should be used for."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:321
+#: View/Pages/doc/using_the_system.ctp:320
 #: View/Templates/add.ctp:44
 #: View/Templates/edit.ctp:44
 msgid "Share this template with others"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:321
+#: View/Pages/doc/using_the_system.ctp:320
 msgid "The template can be set to be usable by any organisation on the instance or only by the one that has created it."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:323
+#: View/Pages/doc/using_the_system.ctp:322
 msgid "Once the skeleton template is created, you can start populating the template with data. There are 3 types of elements that can be used during the creation of a template: attribute, file and text elements. Text elements divide the template into sections with an information field, followed by all of the attribute/file fields until a new text field is read. Don't worry about the order of the elements during creation, they can be re-arranged using drag &amp; drop. Let's look at the 3 element types"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:324
+#: View/Pages/doc/using_the_system.ctp:323
 msgid "Attribute Element"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:325
+#: View/Pages/doc/using_the_system.ctp:324
 msgid "Template Attribute Element"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:325
+#: View/Pages/doc/using_the_system.ctp:324
 msgid "This element will generate regular attributes based on user entry."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:328;341
+#: View/Pages/doc/using_the_system.ctp:327;340
 msgid "The field name that will be presented to the user."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:329;342
+#: View/Pages/doc/using_the_system.ctp:328;341
 msgid "A brief description of the element. Make sure that you provide sufficient information to the user to make it obvious what is expected."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:330
+#: View/Pages/doc/using_the_system.ctp:329
 msgid "The category used for any attributes created using this template element."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:331
+#: View/Pages/doc/using_the_system.ctp:330
 msgid "The type or complex type used for any attributes created using this template element. Complex types allow for several related types to be used on data entry. For example, a \"file\" complex type element allows for filenames and hashes."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:332
+#: View/Pages/doc/using_the_system.ctp:331
 msgid "Use Complex types"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:332
+#: View/Pages/doc/using_the_system.ctp:331
 msgid "If the category permits it, switch to a complex type using this checkbox."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:333
+#: View/Pages/doc/using_the_system.ctp:332
 #: View/TemplateElements/ajax/template_element_add_attribute.ctp:63
 #: View/TemplateElements/ajax/template_element_edit_attribute.ctp:60
 msgid "Automatically mark for IDS"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:333
+#: View/Pages/doc/using_the_system.ctp:332
 msgid "If checked, any attributes generated using this element will be marked for IDS exporting."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:334;345
+#: View/Pages/doc/using_the_system.ctp:333;344
 #: View/TemplateElements/ajax/template_element_add_attribute.ctp:72
 #: View/TemplateElements/ajax/template_element_add_file.ctp:48
 #: View/TemplateElements/ajax/template_element_edit_file.ctp:48
 msgid "Mandatory element"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:334
+#: View/Pages/doc/using_the_system.ctp:333
 msgid "If the elemnt is marked as mandatory, then the template form can only be submitted by users if this field is filled out."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:335;346
+#: View/Pages/doc/using_the_system.ctp:334;345
 #: View/TemplateElements/ajax/template_element_add_attribute.ctp:81
 #: View/TemplateElements/ajax/template_element_add_file.ctp:57
 #: View/TemplateElements/ajax/template_element_edit_attribute.ctp:76
@@ -9048,415 +9061,415 @@ msgstr ""
 msgid "Batch import element"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:335
+#: View/Pages/doc/using_the_system.ctp:334
 msgid "Allow for multiple values to be entered (separated by line breaks)."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:337
+#: View/Pages/doc/using_the_system.ctp:336
 msgid "File Element"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:338
+#: View/Pages/doc/using_the_system.ctp:337
 msgid "Template File Element"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:338
+#: View/Pages/doc/using_the_system.ctp:337
 msgid "This element will generate attachments based on user entry."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:343
+#: View/Pages/doc/using_the_system.ctp:342
 msgid "The category to be used by all attachments uploaded through this element."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:344
+#: View/Pages/doc/using_the_system.ctp:343
 msgid "If the uploaded files are malicious and should be encrypted and password protected, mark this checkbox."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:345
+#: View/Pages/doc/using_the_system.ctp:344
 msgid "If it should be required to upload an attachment, check this checkbox."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:346
+#: View/Pages/doc/using_the_system.ctp:345
 msgid "Ticking this checkbox allows users to upload several files using this element."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:348
+#: View/Pages/doc/using_the_system.ctp:347
 msgid "Text Element"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:349
+#: View/Pages/doc/using_the_system.ctp:348
 msgid "Template Text Element"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:349
+#: View/Pages/doc/using_the_system.ctp:348
 msgid "This element will start a section in the template, which continues until the next text element or the end of the template."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:352
+#: View/Pages/doc/using_the_system.ctp:351
 msgid "The name of the section that will be presented to the user."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:353
+#: View/Pages/doc/using_the_system.ctp:352
 msgid "The description of the section. Explain briefly to the user what the following attribute/file elements will be dealing with. There are several ways to split a template into sections, try to have ease of use in mind while creating it."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:356
+#: View/Pages/doc/using_the_system.ctp:355
 msgid "Contacting the reporter"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:357
+#: View/Pages/doc/using_the_system.ctp:356
 msgid "To get in touch with the reporter of a previously registered event, just find the event for which you would like to contact the reporter by either finding it on the list of events, by finding it through one of its attributes or by finding it through a related event."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:358
+#: View/Pages/doc/using_the_system.ctp:357
 msgid "Once the event is found and the event view opened, click the button titled \"Contact Reporter\". This will bring up a view where you can enter your message that is to be e-mailed to all members of the reporting organisation that subscribe to receiving such reports or the reporting user himself. Along with your message, the detailed information about the event in question will be included in the e-mail."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:359
+#: View/Pages/doc/using_the_system.ctp:358
 msgid "Enter your message to the reporter and choose whether his/her entire organisation should get the message or not by ticking the check-box."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:360
+#: View/Pages/doc/using_the_system.ctp:359
 msgid "By default, the message will be sent to every member of the organisation that posted the event in the first place, but if you tick the check-box below the message field before sending the mail, only the person that reported the event will get e-mailed."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:363
+#: View/Pages/doc/using_the_system.ctp:362
 msgid "It is possible to quickly and conveniently export the data contained within the system using the automation features located in the main menu on the left (available to users with authentication key access only). There are various sets of data that can be exported, by using the authentication key provided by the system (also shown on the export page). If for whatever reason you would need to invalidate your current key and get a new one instead (for example due to the old one becoming compromised) just hit the reset link next to the authentication key in the export view or in your \"my profile\" view."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:364
+#: View/Pages/doc/using_the_system.ctp:363
 msgid "To find out about the various export formats and the usage within the automation functions, please read the page on <a href=\"%s/events/automation\">automation</a>."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:367
+#: View/Pages/doc/using_the_system.ctp:366
 msgid "For users that do not have authentication key access, an alternate export feature is available that relies on your interactive login to the site. To access these, just use the export menu button to the left and you'll be presented with a list of export options."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:368
+#: View/Pages/doc/using_the_system.ctp:367
 msgid "Depending on your server's configuration, you will be presented with one of two possible pages, depending on whether you have background processing enabled or not. (The setting on this instance is currently set to: <code>%s</code>)"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:368
+#: View/Pages/doc/using_the_system.ctp:367
 msgid "On"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:368
+#: View/Pages/doc/using_the_system.ctp:367
 msgid "Off"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:369;372
+#: View/Pages/doc/using_the_system.ctp:368;371
 msgid "Export page with background jobs"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:370
+#: View/Pages/doc/using_the_system.ctp:369
 msgid "The page will list a set of export formats that you can immediately download as a file. Just click on the desired export format and MISP will start collecting all the data that you will receive in a file. Keep in mind that this can be a lengthy process. To avoid having to wait, consult with your instance's site administrator about enabling the background processing."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:371;385
+#: View/Pages/doc/using_the_system.ctp:370;384
 msgid "Use the export features here to quickly download data in various formats"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:373
+#: View/Pages/doc/using_the_system.ctp:372
 msgid "If the background jobs are enabled, you'll be redirected to a different version of the export page. Here you will see a table with all of the major export formats and the current status of the cached export files. Keep in mind that these are generated on an organisation by organisation basis, so even though others have generated newer export caches your organisation may have an outdated cache. You can simply issue a generate command (by clicking the \"Generate\" button) on the desired export type and the background workers will start fetching and assembling your cache. A progress bar will show the progress of the export process."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:374
+#: View/Pages/doc/using_the_system.ctp:373
 msgid "Once done, you can click \"Download\" to download the freshly generated cache file. If the cache is already up to date from before, then you don't have to regenerate the cache, just click on the \"download\" button."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:375
+#: View/Pages/doc/using_the_system.ctp:374
 msgid "You may have noticed that the TEXT export only has a generate button - this is because TEXT exports are made up of a lot of types of exports, all of which get generated together. To download any of these files, just click on any of the attribute types at the bottom of the table."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:376
+#: View/Pages/doc/using_the_system.ctp:375
 msgid "A quick description of each of the fields in the table"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:378
+#: View/Pages/doc/using_the_system.ctp:377
 msgid "The type of the export (such as XML, Suricata, MD5, etc.)."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:379
+#: View/Pages/doc/using_the_system.ctp:378
 msgid "The generation date of the current cache for the given export type."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:380
+#: View/Pages/doc/using_the_system.ctp:379
 msgid "A description of the export format."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:381
+#: View/Pages/doc/using_the_system.ctp:380
 msgid "This compares the cache generation date to the last timestamp when an event was updated and lets you know whether the cache is outdated or not."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:382
+#: View/Pages/doc/using_the_system.ctp:381
 msgid "Shows the progress of the last initiated generation process."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:383
+#: View/Pages/doc/using_the_system.ctp:382
 msgid "Download or Generate the given cache with these buttons."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:386
+#: View/Pages/doc/using_the_system.ctp:385
 msgid "Exporting search results and individual events"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:387
+#: View/Pages/doc/using_the_system.ctp:386
 msgid "Apart from the options offered by the export pages, it's also possible to export all events involved in a search attribute result table, by using the \"Download results as XML\" button on the left menu bar."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:388
+#: View/Pages/doc/using_the_system.ctp:387
 msgid "Download a .xml from all the events that are shown through an attribute in the search results."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:389
+#: View/Pages/doc/using_the_system.ctp:388
 msgid "Each event's view has its own export feature, both as an XML export and as a .ioc file. To reach these features, just navigate to an event and use the appropriate buttons on the right side."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:390
+#: View/Pages/doc/using_the_system.ctp:389
 msgid "Download a .xml or a .ioc of the event."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:392
+#: View/Pages/doc/using_the_system.ctp:391
 msgid "Connecting to other instances"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:393
+#: View/Pages/doc/using_the_system.ctp:392
 msgid "Apart from being a self contained repository of attacks/malware, one of the main features of MISP is its ability to connect to other instances and share (parts of) its information. The following options allow you to set up and maintain such connections."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:394
+#: View/Pages/doc/using_the_system.ctp:393
 msgid "Setting up a connection to another server"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:395
+#: View/Pages/doc/using_the_system.ctp:394
 msgid "In order to share data with a remote server via pushes and pulls, you need to request a valid authentication key from the hosting organisation of the remote instance. When clicking on List Servers and then on New Server, a form comes up that needs to be filled out in order for your instance to connect to it. The following fields need to be filled out"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:396
+#: View/Pages/doc/using_the_system.ctp:395
 msgid "Add server"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:396
+#: View/Pages/doc/using_the_system.ctp:395
 msgid "Make sure that you enter the authentication key that you have been given by the hosting organisation of the remote instance, instead of the one you have gotten from this one."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:398
+#: View/Pages/doc/using_the_system.ctp:397
 #: View/Servers/add.ctp:7
 #: View/Servers/edit.ctp:7
 msgid "Base URL"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:398
+#: View/Pages/doc/using_the_system.ctp:397
 msgid "The URL of the remote server."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:399
+#: View/Pages/doc/using_the_system.ctp:398
 msgid "Organization"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:399
+#: View/Pages/doc/using_the_system.ctp:398
 msgid "The organisation that runs the remote server. It is very impoportant that this setting is filled out exactly as the organisation name set up in the bootstrap file of the remote instance."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:400
+#: View/Pages/doc/using_the_system.ctp:399
 msgid "The authentication key that you have received from the hosting organisation of the remote instance."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:401
+#: View/Pages/doc/using_the_system.ctp:400
 msgid "This check-box controls whether your server is allowed to push to the remote instance."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:402
+#: View/Pages/doc/using_the_system.ctp:401
 msgid "This check-box controls whether your server can request to pull all data from the remote instance."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:403
+#: View/Pages/doc/using_the_system.ctp:402
 msgid "Unpublish event (Push only)"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:403
+#: View/Pages/doc/using_the_system.ctp:402
 msgid "This check-box controls to unpublish new event (working with Push events)."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:404
+#: View/Pages/doc/using_the_system.ctp:403
 msgid "Publish without email (Pull only)"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:404
+#: View/Pages/doc/using_the_system.ctp:403
 msgid "This check-box controls whether your server is allowed to publish event without email (working with Pull events)."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:405
+#: View/Pages/doc/using_the_system.ctp:404
 msgid "Self Signed"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:405
+#: View/Pages/doc/using_the_system.ctp:404
 msgid "Ticking this checkbox will allow syncing with instances using self-signed certificates."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:406
+#: View/Pages/doc/using_the_system.ctp:405
 msgid "Certificate File"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:406
+#: View/Pages/doc/using_the_system.ctp:405
 msgid "If the instance that you want to connect to has their entire own certificate chain, you can use this to import a .pem file with it and override CakePHP's standard root CA file."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:408
+#: View/Pages/doc/using_the_system.ctp:407
 msgid "If you are an administrator</b>, trying to allow another instance to connect to your own, it is vital that two rules are followed when setting up a synchronisation account"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:410
+#: View/Pages/doc/using_the_system.ctp:409
 msgid "The synchronisation user has to have the sync permission and full read/write/publish privileges turned on"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:411
+#: View/Pages/doc/using_the_system.ctp:410
 msgid "Both the sync user and the organisation setting in your instance's Config/bootstrap.php file have to match the organisation identifier of the hosting organisation."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:413
+#: View/Pages/doc/using_the_system.ctp:412
 msgid "Browsing the currently set up server connections and interacting with them"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:414
+#: View/Pages/doc/using_the_system.ctp:413
 msgid "If you ever need to change the data about the linked servers or remove any connections, you have the following options to view and manipulate the server connections, when clicking on List Servers: (you will be able to see a list of all servers that your server connects to, including the base address, the organisation running the server the last pushed and pulled event IDs and the control buttons.)."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:415
+#: View/Pages/doc/using_the_system.ctp:414
 msgid "Apart from editing / deleting the link to the remote server, you can issue a push all or pull all command from here."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:417
+#: View/Pages/doc/using_the_system.ctp:416
 msgid "Editing the connection to the"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:417
+#: View/Pages/doc/using_the_system.ctp:416
 msgid "By clicking edit a view, <a href=#new_server>that is identical to the new instance view</a>, is loaded, with all the current information of the instance pre-entered."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:418
+#: View/Pages/doc/using_the_system.ctp:417
 msgid "Deleting the connection to the instance"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:418
+#: View/Pages/doc/using_the_system.ctp:417
 msgid "Clicking the delete button will delete the link to the instance."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:419
-#: View/Servers/index.ctp:90
+#: View/Pages/doc/using_the_system.ctp:418
+#: View/Servers/index.ctp:92
 msgid "Push all"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:419
+#: View/Pages/doc/using_the_system.ctp:418
 msgid " By clicking this button, all events that are eligible to be pushed on the instance you are on will start to be pushed to the remote instance. Events and attributes that exist on the far end will be updated."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:420
-#: View/Servers/index.ctp:87
+#: View/Pages/doc/using_the_system.ctp:419
+#: View/Servers/index.ctp:89
 msgid "Pull all"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:420
+#: View/Pages/doc/using_the_system.ctp:419
 msgid "By clicking this button, all events that are set to be pull-able or full access on the remote server will be copied to this instance. Existing events will not be updated."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:424
+#: View/Pages/doc/using_the_system.ctp:423
 msgid "The platform is also <a href=\"http://en.wikipedia.org/wiki/Representational_state_transfer\">RESTfull</a>, so this means that you can use structured format (XML or JSON) to access Events data."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:425
+#: View/Pages/doc/using_the_system.ctp:424
 msgid "Requests"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:426
+#: View/Pages/doc/using_the_system.ctp:425
 msgid "Use any HTTP compliant library to perform requests."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:427
+#: View/Pages/doc/using_the_system.ctp:426
 msgid "You can choose which format you would like to use as input/output for the REST calls by specifying the Accept and Content-Type headers."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:428
+#: View/Pages/doc/using_the_system.ctp:427
 msgid "The following headers are required if you wish to recieve / push XML data"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:432
+#: View/Pages/doc/using_the_system.ctp:431
 msgid "The following headers are required if you wish to receive / push JSON data"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:436
+#: View/Pages/doc/using_the_system.ctp:435
 msgid "The following table shows the relation of the request type and the resulting action"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:445
+#: View/Pages/doc/using_the_system.ctp:444
 msgid "HTTP format"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:447
+#: View/Pages/doc/using_the_system.ctp:446
 msgid "Controller action invoked"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:477
+#: View/Pages/doc/using_the_system.ctp:476
 msgid "(1) Warning, there's a limit on the number of results when you call <code>index</code>."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:478
+#: View/Pages/doc/using_the_system.ctp:477
 msgid "(2) Attachments are included using base64 encoding below the <code>data</code> tag."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:481
+#: View/Pages/doc/using_the_system.ctp:480
 msgid "Example - Get single Event"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:482
+#: View/Pages/doc/using_the_system.ctp:481
 msgid "In this example we fetch the details of a single Event (and thus also his Attributes)."
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:483
+#: View/Pages/doc/using_the_system.ctp:482
 msgid "The request should be"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:485
+#: View/Pages/doc/using_the_system.ctp:484
 msgid "And with the HTTP Headers"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:488;549
+#: View/Pages/doc/using_the_system.ctp:487;548
 msgid "The response you're going to get is the following data"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:496;597
+#: View/Pages/doc/using_the_system.ctp:495;596
 msgid "Code monkey doing code monkey stuff"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:510;582
+#: View/Pages/doc/using_the_system.ctp:509;581
 msgid "Artifacts dropped"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:516;545
+#: View/Pages/doc/using_the_system.ctp:515;544
 msgid "This is an Attribute"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:517;546;589
+#: View/Pages/doc/using_the_system.ctp:516;545;588
 msgid "Some_attribute"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:526
+#: View/Pages/doc/using_the_system.ctp:525
 msgid "Example - Add new Event"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:527
+#: View/Pages/doc/using_the_system.ctp:526
 msgid "In this example we want to add a single Event.<br/>\nThe request should be"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:532
+#: View/Pages/doc/using_the_system.ctp:531
 msgid "And the request body"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:536;568
+#: View/Pages/doc/using_the_system.ctp:535;567
 msgid "Something concise"
 msgstr ""
 
-#: View/Pages/doc/using_the_system.ctp:614
+#: View/Pages/doc/using_the_system.ctp:613
 msgid "The response from requesting an invalid page"
 msgstr ""
 
@@ -9591,58 +9604,58 @@ msgstr ""
 msgid "Remote Organisation's Uuid"
 msgstr ""
 
-#: View/Servers/add.ctp:93
+#: View/Servers/add.ctp:97
 msgid "Server certificate file"
 msgstr ""
 
-#: View/Servers/add.ctp:99
+#: View/Servers/add.ctp:103
 msgid "Client certificate file"
 msgstr ""
 
-#: View/Servers/add.ctp:104
-#: View/Servers/edit.ctp:143
+#: View/Servers/add.ctp:108
+#: View/Servers/edit.ctp:147
 msgid "Push rules:"
 msgstr ""
 
-#: View/Servers/add.ctp:105;111
-#: View/Servers/edit.ctp:144;150
+#: View/Servers/add.ctp:109;115
+#: View/Servers/edit.ctp:148;154
 msgid "Events with the following tags allowed: "
 msgstr ""
 
-#: View/Servers/add.ctp:106;112
-#: View/Servers/edit.ctp:145;151
+#: View/Servers/add.ctp:110;116
+#: View/Servers/edit.ctp:149;155
 msgid "Events with the following tags blocked: "
 msgstr ""
 
-#: View/Servers/add.ctp:107;113
-#: View/Servers/edit.ctp:146;152
+#: View/Servers/add.ctp:111;117
+#: View/Servers/edit.ctp:150;156
 msgid "Events with the following organisations allowed: "
 msgstr ""
 
-#: View/Servers/add.ctp:108;114
-#: View/Servers/edit.ctp:147;153
+#: View/Servers/add.ctp:112;118
+#: View/Servers/edit.ctp:151;157
 msgid "Events with the following organisations blocked: "
 msgstr ""
 
-#: View/Servers/add.ctp:110
-#: View/Servers/edit.ctp:149
+#: View/Servers/add.ctp:114
+#: View/Servers/edit.ctp:153
 msgid "Pull rules:"
 msgstr ""
 
-#: View/Servers/add.ctp:138
-#: View/Servers/edit.ctp:180
+#: View/Servers/add.ctp:142
+#: View/Servers/edit.ctp:184
 msgid "The base-url to the external server you want to sync with. Example: https://foo.sig.mil.be"
 msgstr ""
 
-#: View/Servers/add.ctp:144
+#: View/Servers/add.ctp:148
 msgid "Unpublish new event (working with Pull event)."
 msgstr ""
 
-#: View/Servers/add.ctp:145
+#: View/Servers/add.ctp:149
 msgid "Publish new event without email (working with Push event)."
 msgstr ""
 
-#: View/Servers/add.ctp:146
+#: View/Servers/add.ctp:150
 msgid "You can also upload a certificate file if the instance you are trying to connect to has its own signing authority.  (*.pem)"
 msgstr ""
 
@@ -9658,27 +9671,27 @@ msgstr ""
 msgid "Leave empty to use current key"
 msgstr ""
 
-#: View/Servers/edit.ctp:100
+#: View/Servers/edit.ctp:104
 msgid "Server certificate file (*.pem): "
 msgstr ""
 
-#: View/Servers/edit.ctp:108;130
+#: View/Servers/edit.ctp:112;134
 msgid "Add certificate file"
 msgstr ""
 
-#: View/Servers/edit.ctp:109;131
+#: View/Servers/edit.ctp:113;135
 msgid "Remove certificate file"
 msgstr ""
 
-#: View/Servers/edit.ctp:122
+#: View/Servers/edit.ctp:126
 msgid "Client certificate file: "
 msgstr ""
 
-#: View/Servers/edit.ctp:189
+#: View/Servers/edit.ctp:193
 msgid "You can also upload a client certificate file if the instance you are trying to connect requires this."
 msgstr ""
 
-#: View/Servers/edit.ctp:246;250
+#: View/Servers/edit.ctp:250;254
 msgid "Not set."
 msgstr ""
 
@@ -9706,27 +9719,27 @@ msgstr ""
 msgid "Remote Organisation"
 msgstr ""
 
-#: View/Servers/index.ctp:70
+#: View/Servers/index.ctp:71
 msgid "Test the connection to the remote instance"
 msgstr ""
 
-#: View/Servers/index.ctp:70
+#: View/Servers/index.ctp:71
 msgid "Run"
 msgstr ""
 
-#: View/Servers/index.ctp:71
+#: View/Servers/index.ctp:72
 msgid "Internal instance that ignores distribution level degradation *WARNING: Only use this setting if you have several internal instances and the sync link is to an internal extension of the current MISP community*"
 msgstr ""
 
-#: View/Servers/index.ctp:71
+#: View/Servers/index.ctp:72
 msgid "Normal sync link to an external MISP instance. Distribution degradation will follow the normal rules."
 msgstr ""
 
-#: View/Servers/index.ctp:84
+#: View/Servers/index.ctp:86
 msgid "Explore"
 msgstr ""
 
-#: View/Servers/index.ctp:86
+#: View/Servers/index.ctp:88
 msgid "Pull updates to events that already exist locally"
 msgstr ""
 
@@ -11248,5 +11261,590 @@ msgstr ""
 
 #: Model/Whitelist.php:validation for field name
 msgid "Name not in the right format. Whitelist entries have to be enclosed by a valid php delimiter (which can be most non-alphanumeric / non-whitespace character). Format: \"/8.8.8.8/\" Please double check the name."
+msgstr ""
+
+#: Controller/AppController.php:437
+msgid "The request has been black-holed"
+msgstr ""
+
+#: View/Layouts/error.ctp:19
+msgid "CakePHP: the rapid development php framework"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:94;135
+msgid "User running the workers"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:98
+msgid "Name of the queue. If multiple queues, separe with comma."
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:102;139
+msgid "Pause time in seconds between each works"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:106
+msgid "Number of workers to fork"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:110;143
+msgid "Log path"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:113;146
+msgid "Log Handler to use for logging."
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:116;149
+msgid "Log Handler arguments"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:120;153
+msgid "Log more verbose informations"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:125;189;209;229;251
+msgid "Print debug informations"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:163
+msgid "Force workers shutdown, forcing all the current jobs to finish (and fail)"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:168
+msgid "Shutdown all workers"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:173
+msgid "Stop one or all workers"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:174
+msgid "Unless you force the stop with the --force option,"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:175
+msgid "the worker will wait for all jobs to complete"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:176
+msgid "before shutting down"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:184;726
+msgid "Pause all workers"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:194
+msgid "Pause one or all workers"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:195
+msgid "Pausing is only supported on Unix system,"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:196;216;238
+msgid "with PHP pcntl extension installed"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:204
+msgid "Resume all paused workers"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:214
+msgid "Resume one or all paused workers"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:215;237
+msgid "Resuming is only supported on Unix system,"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:224;676
+msgid "Clean up all workers"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:234
+msgid "Cleaning Up one or all paused workers"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:235
+msgid "Cleaning Up will immedately terminate the job"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:236
+msgid "the worker is currently working on."
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:246;1155
+msgid "Clear all queues"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:256
+msgid "Clear one or all queues"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:257
+msgid "Clearing a queue will remove all its jobs"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:263
+msgid "A Shell to manage PHP Resque"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:264
+msgid "Version "
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:268
+msgid "Start a new worker."
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:272
+msgid "Start a new scheduler worker."
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:276
+msgid "Stop a worker."
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:280
+msgid "Pause a worker."
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:284
+msgid "Resume a paused worker."
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:288
+msgid "Immediately terminate a worker job execution."
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:292
+msgid "Stop all Resque workers, and start a new one."
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:296
+msgid "Clear all jobs inside a queue"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:300
+msgid "Reset CakeResque internal worker's saved status"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:304
+msgid "View stats about processed/failed jobs."
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:307
+msgid "Tail the workers logs."
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:310
+msgid "Track a job status."
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:313
+msgid "Load a set of predefined workers."
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:323
+msgid "Adding a job to worker"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:325;348;372
+msgid "Wrong number of arguments"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:326
+msgid "Usage : enqueue <queue> <jobclass> <comma-separated-args>"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:334
+msgid "Succesfully enqueued Job #%s"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:346;370
+msgid "Scheduling a job"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:349
+msgid "Usage : enqueueIn <seconds> <queue> <jobclass> <comma-separated-args>"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:358;381
+msgid "Succesfully scheduled Job #%s"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:373
+msgid "Usage : enqueue <timestamp> <queue> <jobclass> <comma-separated-args>"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:417
+msgid "Tailing log file"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:419
+msgid "No log file to tail"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:428
+msgid "Choose a log file to tail"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:431
+msgid "Tailing %s"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:462
+msgid "Creating the scheduler workers"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:463
+msgid "Creating workers"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:472
+msgid "Scheduler Worker is not enabled"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:477
+msgid "The scheduler worker is already running"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:544
+msgid "Will start "
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:547
+msgid "Starting worker ("
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:548
+msgid "Running command : \n\t "
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:555
+msgid "Starting scheduler worker "
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:555
+msgid "Starting worker "
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:565;862;1180
+msgid "Done"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:567
+msgid "Registering worker #"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:585;1182
+msgid "Fail"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:614
+msgid "Stopping %s ... "
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:636
+msgid "Stopping workers"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:636
+msgid "force"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:638
+msgid "There is no workers to stop ..."
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:639
+msgid "Workers list"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:640
+msgid "Stop all workers"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:641
+msgid "Worker to stop"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:642
+msgid "Stopping the Scheduler Worker ... "
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:665
+msgid "Cleaning up %s ... "
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:672
+msgid "Cleaning up workers"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:674
+msgid "There is no active workers to clean up ..."
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:675;725
+msgid "Active workers list"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:677
+msgid "Worker to Cleanup"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:678
+msgid "Cleaning up the Scheduler Worker ... "
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:704
+msgid "Pausing %s ... "
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:712
+msgid "Fetching list of active workers"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:722
+msgid "Pausing workers"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:724
+msgid "There is no active workers to pause ..."
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:727
+msgid "Worker to pause"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:728
+msgid "Pausing the Scheduler Worker ... "
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:754
+msgid "Resuming %s ... "
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:762
+msgid "Resuming workers"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:764
+msgid "There is no paused workers to resume ..."
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:765
+msgid "Paused workers list"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:766
+msgid "Resume all workers"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:767
+msgid "Worker to resume"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:768
+msgid "Resuming the Scheduler Worker ... "
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:801
+msgid "This function requires the PCNTL extension"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:882
+msgid "Loading predefined workers"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:888
+msgid "You have no configured workers to load."
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:917
+msgid "Restarting workers"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:920
+msgid "Found "
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:932
+msgid "No active workers found, will start brand new worker"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:962
+msgid "Resque Statistics"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:966
+msgid "Jobs Stats"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:967
+msgid "Processed Jobs : %12s"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:968
+msgid "Failed Jobs    : %12s"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:971
+msgid "Scheduled Jobs : %12s"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:977
+msgid "Queues Stats"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:985
+msgid "Queues count : %d"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:991
+msgid "Workers Stats"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:992
+msgid "Workers count : %s"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:998
+msgid "regular workers"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1004;1016
+msgid "paused"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1005;1020
+msgid "Started on"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1006
+msgid "Processed Jobs"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1008;1009
+msgid "Failed Jobs"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1016
+msgid "scheduler worker"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1021
+msgid "Delayed Jobs"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1024
+msgid "Next Job on"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1031
+msgid "Alert"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1032
+msgid "The Scheduler Worker is not running"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1033
+msgid "But there is still <bold>%d</bold> scheduled jobs left in its queue"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1048
+msgid "Tracking job status"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1053
+msgid "Please provide a valid job ID"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1063
+msgid "waiting"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1064
+msgid "running"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1065
+msgid "failed"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1066
+msgid "complete"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1078
+msgid "scheduled"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1093
+msgid "Failed job details"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1130
+msgid "Clearing queues"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1135
+msgid "There is no queues to clear"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1146
+msgid "Queues list"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1159
+msgid "Queue to clear"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1174
+msgid "Clearing %s ... "
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1202
+msgid "Emptying the worker database"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1204
+msgid "Unregistering the scheduler worker"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1206
+msgid "CakeResque state has been reseted"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1252
+msgid "Interval time [%s] is not valid. Please enter a valid number"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1260
+msgid "Workers number [%s] is not valid. Please enter a valid number"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1282
+msgid "User [%s] does not exists. Please enter a valid system user"
+msgstr ""
+
+#: Plugin/CakeResque/Console/Command/CakeResqueShell.php:987
+msgid "pending job"
+msgid_plural "pending jobs"
+msgstr[0] ""
+msgstr[1] ""
+
+#: View/Errors/error400.ctp:22
+msgid "The requested address %s was not found on this server."
+msgstr ""
+
+#: View/Errors/error500.ctp:20
+#: View/Errors/missing_connection.ctp:5
+#: View/Errors/missing_datasource_config.ctp:5
+#: View/Errors/pdo_error.ctp:5
+msgid "An Internal Error Has Occurred."
 msgstr ""
 
