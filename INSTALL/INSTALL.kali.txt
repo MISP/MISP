@@ -10,7 +10,7 @@
 # useradd -s /bin/bash -m -G adm,cdrom,sudo,dip,plugdev,www-data misp
 # passwd misp
 # su - misp
-# sh -c "$(curl -fsSL https://raw.githubusercontent.com/MISP/MISP/master/INSTALL/INSTALL.kali.txt)"
+# sh -c "$(curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.kali.txt)"
 
 # MISP configuration variables
 PATH_TO_MISP='/var/www/MISP'
