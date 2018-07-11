@@ -280,7 +280,7 @@ class StixBuilder():
                 self.add_object_indicator(file_object, pattern_arg="[{}]".format(pattern))
             else:
                 observable = self.resolve_file_observable(file_object.attributes)
-                observable['0']['extensions'] = self.parse_pe_extensions_observable(pe_object, sections)
+                observable['1']['extensions'] = self.parse_pe_extensions_observable(pe_object, sections)
                 self.add_object_observable(file_object, observable_arg=observable)
 
     def parse_pe_extensions_observable(self, pe_object, sections):
@@ -786,6 +786,7 @@ class StixBuilder():
                 malware_sample['md5'] = md5
                 if attribute.data:
                     observable[str(n_object)] = {'type': 'artifact', 'payload_bin': b64encode(attribute.data.getvalue())}
+                    observable_file['content_ref'] = str(n_object)
                     n_object += 1
             elif attribute_type in ('filename', 'md5'):
                 d_observable[attribute_type] = attribute.value
