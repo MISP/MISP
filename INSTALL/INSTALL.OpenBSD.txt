@@ -339,10 +339,6 @@ doas openssl req -newkey rsa:4096 -days 3650 -nodes -x509 \
 -subj "/C=<Country>/ST=<State>/L=<Locality>/O=<Organization>/OU=<Organizational Unit Name>/CN=<QDN.here>/emailAddress=admin@<your.FQDN.here>" \
 -keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt
 
-doas openssl req -newkey rsa:4096 -days 3650 -nodes -x509 \
--subj "/C=LU/ST=Lxu/L=Lux/O=Test/CN=192.168.99.50/emailAddress=admin@admin.test" \
--keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt
-
 # Otherwise, copy the SSLCertificateFile, SSLCertificateKeyFile, and SSLCertificateChainFile to /etc/ssl/private/. (Modify path and config to fit your environment)
 
 doas mkdir /var/log/apache2/
