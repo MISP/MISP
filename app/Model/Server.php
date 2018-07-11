@@ -398,7 +398,7 @@ class Server extends AppModel {
 					'attachments_dir' => array(
 							'level' => 2,
 							'description' => 'Directory where attachments are stored. MISP will NOT migrate the existing data if you change this setting. The only safe way to change this setting is in config.php, when MISP is not running, and after having moved/copied the existing data to the new location. This directory must already exist and be writable and readable by the MISP application.',
-							'value' =>  'app/files', # GUI display purpose only. Default value defined in func getDefaultAttachments_dir()
+							'value' =>  '/var/www/MISP/app/' . 'files', # GUI display purpose only. Default value defined in func getDefaultAttachments_dir()
 							'errorMessage' => '',
 							'null' => false,
 							'test' => 'testForWritableDir',

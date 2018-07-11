@@ -12,6 +12,10 @@ Some configurables used below:
 
 ```
 # MISP configuration variables
+PATH_TO_MISP='/var/www/MISP'
+CAKE="$PATH_TO_MISP/app/Console/cake"
+MISP_BASEURL=''
+MISP_LIVE='1'
 
 # Database configuration
 DBHOST='localhost'
@@ -22,9 +26,6 @@ DBUSER_MISP='misp'
 DBPASSWORD_MISP="$(openssl rand -hex 32)"
 
 # Webserver configuration
-PATH_TO_MISP='/var/www/MISP'
-MISP_BASEURL=''
-MISP_LIVE='1'
 FQDN='localhost'
 
 # OpenSSL configuration
@@ -105,8 +106,9 @@ libapache2-mod-php7.2 php7.2 php7.2-cli  php7.2-mbstring php-pear php7.2-dev php
 python3-dev python3-pip libpq5 libjpeg-dev libfuzzy-dev ruby asciidoctor \
 libxml2-dev libxslt1-dev zlib1g-dev python3-setuptools
 
-# Setup rng-tools to get more entropy (optional)
-sudo apt install rng-tools -y # This might fail on TPM grounds, enable 
+# Start rng-tools to get more entropy (optional)
+# If you get TPM errors, enable "Security chip" in BIOS (keep secure boot disabled)
+sudo apt install rng-tools
 sudo service rng-tools start
 
 # Secure the MariaDB installation (especially by setting a strong root password)
@@ -334,10 +336,10 @@ class DATABASE_CONFIG {
 sudo chown -R www-data:www-data $PATH_TO_MISP/app/Config
 sudo chmod -R 750 $PATH_TO_MISP/app/Config
 # Set some MISP directives with the command line tool
-sudo $PATH_TO_MISP/app/Console/cake Live $MISP_LIVE
+sudo $CAKE Live $MISP_LIVE
 
 # Change base url
-sudo $PATH_TO_MISP/app/Console/cake Baseurl $MISP_BASEURL
+sudo $CAKE Baseurl $MISP_BASEURL
 
 # example: 'baseurl' => 'https://<your.FQDN.here>',
 # alternatively, you can leave this field empty if you would like to use relative pathing in MISP
@@ -368,7 +370,7 @@ sudo -u www-data gpg --homedir $PATH_TO_MISP/.gnupg --batch --gen-key /tmp/gen-k
 # The email address should match the one set in the config.php / set in the configuration menu in the administration menu configuration file
 
 # And export the public key to the webroot
-sudo -u www-data sh -c "gpg --homedir $PATH_TO_MISP/.gnupg --export --armor $GPG_EMAIL_ADDRESS" | sudo -u www-data tee $PATH_TO_MISP/MISP/app/webroot/gpg.asc
+sudo -u www-data sh -c "gpg --homedir $PATH_TO_MISP/.gnupg --export --armor $GPG_EMAIL_ADDRESS" | sudo -u www-data tee $PATH_TO_MISP/app/webroot/gpg.asc
 
 # To make the background workers start on boot
 sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
@@ -380,77 +382,127 @@ then
 fi
 
 # Initialize user and fetch Auth Key
-sudo -E $PATH_TO_MISP/app/Console/cake userInit -q
+sudo -E $CAKE userInit -q
 AUTH_KEY=$(mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM users;" | tail -1)
 
 # Setup some more MISP default via cake CLI
 
 # Tune global time outs
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Session.autoRegenerate" 0
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Session.timeout" 600
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Session.cookie_timeout" 3600
+sudo $CAKE Admin setSetting "Session.autoRegenerate" 0
+sudo $CAKE Admin setSetting "Session.timeout" 600
+sudo $CAKE Admin setSetting "Session.cookie_timeout" 3600
 
 # Enable GnuPG
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "GnuPG.email" "admin@admin.test"
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "GnuPG.homedir" "$PATH_TO_MISP/.gnupg"
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "GnuPG.password" "Password1234"
+sudo $CAKE Admin setSetting "GnuPG.email" "admin@admin.test"
+sudo $CAKE Admin setSetting "GnuPG.homedir" "$PATH_TO_MISP/.gnupg"
+sudo $CAKE Admin setSetting "GnuPG.password" "Password1234"
 
 # Enable Enrichment set better timeouts
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_services_enable" true
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_hover_enable" true
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_timeout" 300
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_hover_timeout" 150
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_cve_enabled" true
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_dns_enabled" true
+sudo $CAKE Admin setSetting "Plugin.Enrichment_services_enable" true
+sudo $CAKE Admin setSetting "Plugin.Enrichment_hover_enable" true
+sudo $CAKE Admin setSetting "Plugin.Enrichment_timeout" 300
+sudo $CAKE Admin setSetting "Plugin.Enrichment_hover_timeout" 150
+sudo $CAKE Admin setSetting "Plugin.Enrichment_cve_enabled" true
+sudo $CAKE Admin setSetting "Plugin.Enrichment_dns_enabled" true
+sudo $CAKE Admin setSetting "Plugin.Enrichment_services_url" "http://127.0.0.1"
+sudo $CAKE Admin setSetting "Plugin.Enrichment_services_port" 6666
 
 # Enable Import modules set better timout
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Import_services_enable" true
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Import_timeout" 300
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Import_ocr_enabled" true
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Import_csvimport_enabled" true
+sudo $CAKE Admin setSetting "Plugin.Import_services_enable" true
+sudo $CAKE Admin setSetting "Plugin.Import_services_url" "http://127.0.0.1"
+sudo $CAKE Admin setSetting "Plugin.Import_services_port" 6666
+sudo $CAKE Admin setSetting "Plugin.Import_timeout" 300
+sudo $CAKE Admin setSetting "Plugin.Import_ocr_enabled" true
+sudo $CAKE Admin setSetting "Plugin.Import_csvimport_enabled" true
 
 # Enable Export modules set better timout
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Export_services_enable" true
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Export_timeout" 300
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Export_pdfexport_enabled" true
+sudo $CAKE Admin setSetting "Plugin.Export_services_enable" true
+sudo $CAKE Admin setSetting "Plugin.Export_services_url" "http://127.0.0.1"
+sudo $CAKE Admin setSetting "Plugin.Export_services_port" 6666
+sudo $CAKE Admin setSetting "Plugin.Export_timeout" 300
+sudo $CAKE Admin setSetting "Plugin.Export_pdfexport_enabled" true
 
 # Enable installer org and tune some configurables
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.host_org_id" 1
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.email" "info@admin.test"
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.disable_emailing" true
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.contact" "info@admin.test"
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.disablerestalert" true
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.showCorrelationsOnIndex" true
+sudo $CAKE Admin setSetting "MISP.host_org_id" 1
+sudo $CAKE Admin setSetting "MISP.email" "info@admin.test"
+sudo $CAKE Admin setSetting "MISP.disable_emailing" true
+sudo $CAKE Admin setSetting "MISP.contact" "info@admin.test"
+sudo $CAKE Admin setSetting "MISP.disablerestalert" true
+sudo $CAKE Admin setSetting "MISP.showCorrelationsOnIndex" true
+
+# Provisional Cortex tunes
+sudo $CAKE Admin setSetting "Plugin.Cortex_services_enable" false
+sudo $CAKE Admin setSetting "Plugin.Cortex_services_url" "http://127.0.0.1"
+sudo $CAKE Admin setSetting "Plugin.Cortex_services_port" 9000
+sudo $CAKE Admin setSetting "Plugin.Cortex_timeout" 120
+sudo $CAKE Admin setSetting "Plugin.Cortex_services_url" "http://127.0.0.1"
+sudo $CAKE Admin setSetting "Plugin.Cortex_services_port" 9000
+sudo $CAKE Admin setSetting "Plugin.Cortex_services_timeout" 120
+sudo $CAKE Admin setSetting "Plugin.Cortex_services_authkey" ""
+sudo $CAKE Admin setSetting "Plugin.Cortex_ssl_verify_peer" false
+sudo $CAKE Admin setSetting "Plugin.Cortex_ssl_verify_host" false
+sudo $CAKE Admin setSetting "Plugin.Cortex_ssl_allow_self_signed" true
+
+# Various plugin sightings settings
+sudo $CAKE Admin setSetting "Plugin.Sightings_policy" 0
+sudo $CAKE Admin setSetting "Plugin.Sightings_anonymise" false
+sudo $CAKE Admin setSetting "Plugin.Sightings_range" 365
+
+# Plugin CustomAuth tuneable
+sudo $CAKE Admin setSetting "Plugin.CustomAuth_disable_logout" false
+
+# RPZ Plugin settings
+
+sudo $CAKE Admin setSetting "Plugin.RPZ_policy" "DROP"
+sudo $CAKE Admin setSetting "Plugin.RPZ_walled_garden" "127.0.0.1"
+sudo $CAKE Admin setSetting "Plugin.RPZ_serial" "\$date00"
+sudo $CAKE Admin setSetting "Plugin.RPZ_refresh" "2h"
+sudo $CAKE Admin setSetting "Plugin.RPZ_retry" "30m"
+sudo $CAKE Admin setSetting "Plugin.RPZ_expiry" "30d"
+sudo $CAKE Admin setSetting "Plugin.RPZ_minimum_ttl" "1h"
+sudo $CAKE Admin setSetting "Plugin.RPZ_ttl" "1w"
+sudo $CAKE Admin setSetting "Plugin.RPZ_ns" "localhost."
+sudo $CAKE Admin setSetting "Plugin.RPZ_ns_alt" ""
+sudo $CAKE Admin setSetting "Plugin.RPZ_email" "root.localhost"
 
 # Force defaults to make MISP Server Settings less RED
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.language" "eng"
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.proposals_block_attributes" false
+sudo $CAKE Admin setSetting "MISP.language" "eng"
+sudo $CAKE Admin setSetting "MISP.proposals_block_attributes" false
+
 ## Redis block
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.redis_host" "127.0.0.1"
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.redis_port" 6379
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.redis_database" 13
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.redis_password" ""
-
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Cortex_services_enable" false
-
+sudo $CAKE Admin setSetting "MISP.redis_host" "127.0.0.1"
+sudo $CAKE Admin setSetting "MISP.redis_port" 6379
+sudo $CAKE Admin setSetting "MISP.redis_database" 13
+sudo $CAKE Admin setSetting "MISP.redis_password" ""
 
 # Force defaults to make MISP Server Settings less YELLOW
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.ssdeep_correlation_threshold" 40
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.extended_alert_subject" false
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.default_event_threat_level" 4
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.enableEventBlacklisting" true
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.enableOrgBlacklisting" true
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.log_client_ip" false
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.log_auth" false
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.disableUserSelfManagement" false
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.block_event_alert" false
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.block_event_alert_tag" "no-alerts=\"true\""
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.block_old_event_alert" false
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.block_old_event_alert_age" ""
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.incoming_tags_disabled_by_default" false
+sudo $CAKE Admin setSetting "MISP.ssdeep_correlation_threshold" 40
+sudo $CAKE Admin setSetting "MISP.extended_alert_subject" false
+sudo $CAKE Admin setSetting "MISP.default_event_threat_level" 4
+sudo $CAKE Admin setSetting "MISP.newUserText" "Dear new MISP user,\\n\\nWe would hereby like to welcome you to the \$org MISP community.\\n\\n Use the credentials below to log into MISP at \$misp, where you will be prompted to manually change your password to something of your own choice.\\n\\nUsername: \$username\\nPassword: \$password\\n\\nIf you have any questions, don't hesitate to contact us at: \$contact.\\n\\nBest regards,\\nYour \$org MISP support team"
+sudo $CAKE Admin setSetting "MISP.passwordResetText" "Dear MISP user,\\n\\nA password reset has been triggered for your account. Use the below provided temporary password to log into MISP at \$misp, where you will be prompted to manually change your password to something of your own choice.\\n\\nUsername: \$username\\nYour temporary password: \$password\\n\\nIf you have any questions, don't hesitate to contact us at: \$contact.\\n\\nBest regards,\\nYour \$org MISP support team"
+sudo $CAKE Admin setSetting "MISP.enableEventBlacklisting" true
+sudo $CAKE Admin setSetting "MISP.enableOrgBlacklisting" true
+sudo $CAKE Admin setSetting "MISP.log_client_ip" false
+sudo $CAKE Admin setSetting "MISP.log_auth" false
+sudo $CAKE Admin setSetting "MISP.disableUserSelfManagement" false
+sudo $CAKE Admin setSetting "MISP.block_event_alert" false
+sudo $CAKE Admin setSetting "MISP.block_event_alert_tag" "no-alerts=\"true\""
+sudo $CAKE Admin setSetting "MISP.block_old_event_alert" false
+sudo $CAKE Admin setSetting "MISP.block_old_event_alert_age" ""
+sudo $CAKE Admin setSetting "MISP.incoming_tags_disabled_by_default" false
+sudo $CAKE Admin setSetting "MISP.footermidleft" "This is an initial install"
+sudo $CAKE Admin setSetting "MISP.footermidright" "Please configure and harden accordingly"
+sudo $CAKE Admin setSetting "MISP.welcome_text_top" "Initial Install, please configure"
+sudo $CAKE Admin setSetting "MISP.welcome_text_bottom" "Welcome to MISP, change this message in MISP Settings"
 
 # Force defaults to make MISP Server Settings less GREEN
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Security.password_policy_length" 12
+sudo $CAKE Admin setSetting "Security.password_policy_length" 12
+sudo $CAKE Admin setSetting "Security.password_policy_complexity" '/^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/'
+# Tune global time outs
+sudo $CAKE Admin setSetting "Session.autoRegenerate" 0
+sudo $CAKE Admin setSetting "Session.timeout" 600
+sudo $CAKE Admin setSetting "Session.cookie_timeout" 3600
 
 # Now log in using the webinterface:
 # The default user/pass = admin@admin.test/admin
@@ -462,30 +514,30 @@ sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Security.password_policy_l
 # Don't forget to change the email, password and authentication key after installation.
 
 # Set MISP Live
-sudo $PATH_TO_MISP/app/Console/cake Live $MISP_LIVE
+sudo $CAKE Live $MISP_LIVE
 
 # Update the galaxies…
-sudo $PATH_TO_MISP/app/Console/cake Admin updateGalaxies
+sudo $CAKE Admin updateGalaxies
 
 # Updating the taxonomies…
-sudo $PATH_TO_MISP/app/Console/cake Admin updateTaxonomies
+sudo $CAKE Admin updateTaxonomies
 
 # Updating the warning lists…
-sudo $PATH_TO_MISP/app/Console/cake Admin updateWarningLists
+sudo $CAKE Admin updateWarningLists
 
 # Updating the notice lists…
-## sudo $PATH_TO_MISP/app/Console/cake Admin updateNoticeLists
+## sudo $CAKE Admin updateNoticeLists
 curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/noticelists/update
 
 # Updating the object templates…
-##sudo $PATH_TO_MISP/app/Console/cake Admin updateObjectTemplates
+##sudo $CAKE Admin updateObjectTemplates
 curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/objectTemplates/update
 
 # Add the following lines before the last line (exit 0). Make sure that you replace www-data with your apache user:
 sudo sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
 sudo sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
 sudo sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
-sudo sed -i -e '$i \sudo -u www-data bash $PATH_TO_MISP/app/Console/worker/start.sh\n' /etc/rc.local
+sudo sed -i -e '$i \sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh\n' /etc/rc.local
 sudo sed -i -e '$i \sudo -u www-data misp-modules -l 0.0.0.0 -s &\n' /etc/rc.local
 
 # Start the workers
@@ -602,14 +654,22 @@ sudo a2ensite misp-dashboard
 sudo systemctl reload apache2
 
 # Enable ZeroMQ for misp-dashboard
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" true
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" true
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_object_notifications_enable" true
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_object_reference_notifications_enable" true
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_attribute_notifications_enable" true
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_sighting_notifications_enable" true
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_user_notifications_enable" true
-sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_organisation_notifications_enable" true
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_enable" true
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" true
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_object_notifications_enable" true
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_object_reference_notifications_enable" true
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_attribute_notifications_enable" true
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_sighting_notifications_enable" true
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_user_notifications_enable" true
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_organisation_notifications_enable" true
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_port" 50000
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_redis_host" "localhost"
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_redis_port" 6379
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_redis_database" 1
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_redis_namespace" "mispq"
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_include_attachments" false
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false
 
 
 Install viper framework
