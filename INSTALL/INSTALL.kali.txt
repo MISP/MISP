@@ -57,7 +57,8 @@ echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 
 sudo apt install -y etckeeper
 sudo apt update
-sudo apt -y dist-upgrade
+# Skip dist-upgrade for now, pulls in 500+ updated packages
+#sudo apt -y dist-upgrade
 sudo apt install -y postfix
 
 sudo apt install -y \
