@@ -105,9 +105,6 @@ sudo a2ensite default-ssl
 sudo pear channel-update pear.php.net
 sudo pear install Crypt_GPG
 sudo pecl channel-update pecl.php.net
-sudo pecl install redis
-
-echo "extension=redis.so" | sudo tee /etc/php/7.2/mods-available/redis.ini
 
 sudo expect -f - <<-EOF
   set timeout 3
@@ -118,6 +115,10 @@ sudo expect -f - <<-EOF
   send -- "\r"
   expect eof
 EOF
+
+echo "extension=redis.so" | sudo tee /etc/php/7.2/mods-available/redis.ini
+
+sudo phpenmod redis
 
 sudo update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1
 sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.6 2
@@ -158,8 +159,6 @@ sudo -u www-data php composer.phar require kamisama/cake-resque:4.1.2
 sudo -u www-data php composer.phar config vendor-dir Vendor
 sudo -u www-data php composer.phar install
 
-sudo phpenmod redis
-
 sudo -u www-data cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
 
 sudo chown -R www-data:www-data $PATH_TO_MISP
@@ -189,23 +188,44 @@ sudo sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/c
 sudo sed -i -e '$i \sudo -u www-data bash /var/www/misp-dashboard/start_all.sh\n' /etc/rc.local
 sudo apt install libapache2-mod-wsgi-py3 -y
 
-echo "<VirtualHost *:80>
-    ServerAdmin admin@misp.local
-    ServerName misp.local
-    DocumentRoot $PATH_TO_MISP/app/webroot
+echo "<VirtualHost _default_:80>
+        ServerAdmin admin@localhost.lu
+        ServerName misp.local
 
-    <Directory $PATH_TO_MISP/app/webroot>
-        Options -Indexes
-        AllowOverride all
-        Require all granted
-    </Directory>
+        Redirect permanent / https://localhost
 
-    LogLevel warn
-    ErrorLog /var/log/apache2/misp.local_error.log
-    CustomLog /var/log/apache2/misp.local_access.log combined
-    ServerSignature Off
+        LogLevel warn
+        ErrorLog /var/log/apache2/misp.local_error.log
+        CustomLog /var/log/apache2/misp.local_access.log combined
+        ServerSignature Off
+</VirtualHost>
+
+<VirtualHost _default_:443>
+        ServerAdmin admin@localhost.lu
+        ServerName misp.local
+        DocumentRoot $PATH_TO_MISP/app/webroot
+
+        <Directory $PATH_TO_MISP/app/webroot>
+                Options -Indexes
+                AllowOverride all
+		            Require all granted
+                Order allow,deny
+                allow from all
+        </Directory>
+
+        SSLEngine On
+        SSLCertificateFile /etc/ssl/private/misp.local.crt
+        SSLCertificateKeyFile /etc/ssl/private/misp.local.key
+#        SSLCertificateChainFile /etc/ssl/private/misp-chain.crt
+
+        LogLevel warn
+        ErrorLog /var/log/apache2/misp.local_error.log
+        CustomLog /var/log/apache2/misp.local_access.log combined
+        ServerSignature Off
 </VirtualHost>" | sudo tee /etc/apache2/sites-available/misp-ssl.conf
 EOF
+
+echo "127.0.0.1 misp.local" | sudo tee -a /etc/hosts
 
 echo "<VirtualHost *:8001>
     ServerAdmin admin@misp.local
