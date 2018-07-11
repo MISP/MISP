@@ -454,6 +454,12 @@ sed -i "s/^misp_url\ =/misp_url\ =\ http:\/\/localhost/g" ~/.viper/viper.conf
 sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" ~/.viper/viper.conf
 sqlite3 ~/.viper/admin.db 'UPDATE auth_user SET password="pbkdf2_sha256$100000$iXgEJh8hz7Cf$vfdDAwLX8tko1t0M1TLTtGlxERkNnltUnMhbv56wK/U="'
 
+sudo chown -R www-data:www-data $PATH_TO_MISP
+sudo chmod -R 750 $PATH_TO_MISP
+sudo chmod -R g+ws $PATH_TO_MISP/app/tmp
+sudo chmod -R g+ws $PATH_TO_MISP/app/files
+sudo chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
+
 echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" > mysql.txt
 echo "User  (misp) DB Password: $DBPASSWORD_MISP" >> mysql.txt
 echo "Authkey: $AUTH_KEY" > authkey.txt
