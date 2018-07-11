@@ -398,7 +398,7 @@ class Server extends AppModel {
 					'attachments_dir' => array(
 							'level' => 2,
 							'description' => 'Directory where attachments are stored. MISP will NOT migrate the existing data if you change this setting. The only safe way to change this setting is in config.php, when MISP is not running, and after having moved/copied the existing data to the new location. This directory must already exist and be writable and readable by the MISP application.',
-							'value' =>  '/var/www/MISP/app/' . 'files', # GUI display purpose only. Default value defined in func getDefaultAttachments_dir()
+							'value' =>  '', # GUI display purpose only. Default value defined in func getDefaultAttachments_dir()
 							'errorMessage' => '',
 							'null' => false,
 							'test' => 'testForWritableDir',
@@ -1696,6 +1696,11 @@ class Server extends AppModel {
 			'Security' => 'Security',
 			'Session' => 'Security'
 	);
+
+	public function __construct($id = false, $table = null, $ds = null) {
+		parent::__construct($id, $table, $ds);
+		$this->serverSettings['MISP']['attachments_dir']['value'] = APP . '/files';
+	}
 
 	public $validEventIndexFilters = array('searchall', 'searchpublished', 'searchorg', 'searchtag', 'searcheventid', 'searchdate', 'searcheventinfo', 'searchthreatlevel', 'searchdistribution', 'searchanalysis', 'searchattribute');
 
