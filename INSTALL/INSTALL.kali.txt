@@ -106,15 +106,7 @@ sudo pear channel-update pear.php.net
 sudo pear install Crypt_GPG
 sudo pecl channel-update pecl.php.net
 
-sudo expect -f - <<-EOF
-  set timeout 3
-  spawn pecl install redis
-  expect "enable igbinary serializer support? \[no\] :"
-  send -- "\r"
-  expect "enable lzf compression support? \[no\] :"
-  send -- "\r"
-  expect eof
-EOF
+yes '' |sudo pecl install redis
 
 echo "extension=redis.so" | sudo tee /etc/php/7.2/mods-available/redis.ini
 
