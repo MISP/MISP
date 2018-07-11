@@ -62,8 +62,8 @@ class MISPZMQ():
             self.setup()
         if command == "status":
             print("Status command received, responding with latest stats.")
-            self.r.delete("{self.namespace}:status".format(self.namespace))
-            self.r.lpush("{self.namespace}:status".format(self.namespace),
+            self.r.delete("{}:status".format(self.namespace))
+            self.r.lpush("{}:status".format(self.namespace),
                          json.dumps({"timestamp": time.time(),
                                      "timestampSettings": self.timestampSettings,
                                      "publishCount": self.publishCount}))
