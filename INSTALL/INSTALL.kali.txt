@@ -178,6 +178,8 @@ cd misp-dashboard
 sudo /var/www/misp-dashboard/install_dependencies.sh
 sudo sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/config/config.cfg
 sudo sed -i -e '$i \sudo -u www-data bash /var/www/misp-dashboard/start_all.sh\n' /etc/rc.local
+sudo -u www-data bash /var/www/misp-dashboard/start_all.sh
+
 sudo apt install libapache2-mod-wsgi-py3 -y
 
 echo "<VirtualHost _default_:80>
