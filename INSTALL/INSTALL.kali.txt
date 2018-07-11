@@ -381,7 +381,7 @@ sudo $CAKE Admin setSetting "Plugin.Export_timeout" 300
 sudo $CAKE Admin setSetting "Plugin.Export_pdfexport_enabled" true
 sudo $CAKE Admin setSetting "MISP.host_org_id" 1
 sudo $CAKE Admin setSetting "MISP.email" "info@admin.test"
-sudo $CAKE Admin setSetting "MISP.disable_emailing" true
+sudo $CAKE Admin setSetting "MISP.disable_emailing" false
 sudo $CAKE Admin setSetting "MISP.contact" "info@admin.test"
 sudo $CAKE Admin setSetting "MISP.disablerestalert" true
 sudo $CAKE Admin setSetting "MISP.showCorrelationsOnIndex" true
@@ -445,8 +445,13 @@ sudo $CAKE Live $MISP_LIVE
 sudo $CAKE Admin updateGalaxies
 sudo $CAKE Admin updateTaxonomies
 sudo $CAKE Admin updateWarningLists
-curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST http://127.0.0.1/noticelists/update
-curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST http://127.0.0.1/objectTemplates/update
+curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/noticelists/update
+curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/objectTemplates/update
+sudo sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
+sudo sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
+sudo sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
+sudo sed -i -e '$i \sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh\n' /etc/rc.local
+sudo sed -i -e '$i \sudo -u www-data misp-modules -l 0.0.0.0 -s &\n' /etc/rc.local
 sudo -u www-data bash $PATH_TO_MISP/app/Console/worker/start.sh
 cd /usr/local/src/
 sudo git clone https://github.com/MISP/misp-modules.git
@@ -459,6 +464,7 @@ sudo pip3 install git+https://github.com/kbandla/pydeep.git
 sudo pip3 install stix2
 sudo gem install pygments.rb
 sudo gem install asciidoctor-pdf --pre
+sudo -u www-data misp-modules -l 0.0.0.0 -s &
 cd /usr/local/src/
 sudo apt-get install -y libssl-dev swig python3-ssdeep p7zip-full unrar-free sqlite python3-pyclamd exiftool radare2
 sudo pip3 install SQLAlchemy PrettyTable python-magic
@@ -481,9 +487,9 @@ sudo chmod -R g+ws $PATH_TO_MISP/app/tmp
 sudo chmod -R g+ws $PATH_TO_MISP/app/files
 sudo chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
 
-echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" > mysql.txt
-echo "User  (misp) DB Password: $DBPASSWORD_MISP" >> mysql.txt
-echo "Authkey: $AUTH_KEY" > authkey.txt
+echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" > ~/mysql.txt
+echo "User  (misp) DB Password: $DBPASSWORD_MISP" >> ~/mysql.txt
+echo "Authkey: $AUTH_KEY" > ~/MISP-authkey.txt
 # TODO: mail-to-misp
 #cd /usr/local/src/
 #sudo apt-get install -y cmake
