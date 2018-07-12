@@ -840,17 +840,17 @@ class StixBuilder():
         ip_address = {}
         domain = {}
         for attribute in attributes:
-            attribute_type = attribute.type
+            relation = attribute.object_relation
             attribute_value = attribute.value
-            if attribute_type == 'ip-dst':
+            if relation == 'ip':
                 ip_address['type'] = define_address_type(attribute_value)
                 ip_address['value'] = attribute_value
-            elif attribute_type == 'domain':
+            elif relation == 'domain':
                 domain['type'] = 'domain-name'
                 domain['value'] = attribute_value
             else:
                 try:
-                    observable_type = ipPortObjectMapping[attribute_type][attribute.object_relation]
+                    observable_type = ipPortObjectMapping[relation]
                 except:
                     continue
                 observable[observable_type] = attribute_value
@@ -892,19 +892,21 @@ class StixBuilder():
     def resolve_ip_port_pattern(attributes):
         pattern = ""
         for attribute in attributes:
-            attribute_type = attribute.type
+            relation = attribute.object_relation
             attribute_value = attribute.value
-            if attribute_type == 'domain':
-                pattern += objectsMapping['domain-ip']['pattern'].format(ipPortObjectMapping[attribute_type], attribute_value)
+            if relation == 'domain':
+                mapping_type = 'domain-ip'
+                stix_type = ipPortObjectMapping[relation]
+            elif relation == 'ip':
+                mapping_type = 'ip-port'
+                stix_type = ipPortObjectMapping[relation].format(define_address_type(attribute_value))
             else:
                 try:
-                    try:
-                        stix_type = ipPortObjectMapping[attribute_type][attribute.object_relation]
-                    except:
-                        stix_type = ipPortObjectMapping[attribute_type].format(define_address_type(attribute_value))
+                    stix_type = ipPortObjectMapping[relation]
+                    mapping_type = 'ip-port'
                 except:
                     continue
-                pattern += objectsMapping['ip-port']['pattern'].format(stix_type, attribute_value)
+            pattern += objectsMapping[mapping_type]['pattern'].format(stix_type, attribute_value)
         return "[{}]".format(pattern[:-5])
 
     @staticmethod
