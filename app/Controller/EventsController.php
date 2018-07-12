@@ -889,7 +889,7 @@ class EventsController extends AppController {
 		$conditions['includeFeedCorrelations'] = true;
 		$conditions['includeAllTags'] = true;
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
-		if (empty($results)) throw new NotFoundException('Invalid event');
+		if (empty($results)) throw new NotFoundException(__('Invalid event'));
 		$event = $results[0];
 
 		if(isset($this->params['named']['searchFor'])) {
@@ -1224,7 +1224,7 @@ class EventsController extends AppController {
 				'conditions' => array('Event.uuid' => $id),
 				'fields' => array('Event.id', 'Event.uuid')
 			));
-			if ($temp == null) throw new NotFoundException('Invalid event');
+			if ($temp == null) throw new NotFoundException(__('Invalid event'));
 			$id = $temp['Event']['id'];
 		} else if (!is_numeric($id)) {
 			throw new NotFoundException(__('Invalid event'));
@@ -1259,7 +1259,7 @@ class EventsController extends AppController {
 		}
 		$conditions['includeFeedCorrelations'] = true;
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
-		if (empty($results)) throw new NotFoundException('Invalid event');
+		if (empty($results)) throw new NotFoundException(__('Invalid event'));
 		//if the current user is an org admin AND event belongs to his/her org, fetch also the event creator info
 		if ($this->userRole['perm_admin'] && !$this->_isSiteAdmin() && ($results[0]['Org']['id'] == $this->Auth->user('org_id'))) {
 			$results[0]['User']['email'] = $this->User->field('email', array('id' => $results[0]['Event']['user_id']));
@@ -1378,13 +1378,13 @@ class EventsController extends AppController {
 
 	public function add() {
 		if (!$this->userRole['perm_add']) {
-			throw new MethodNotAllowedException('You don\'t have permissions to create events');
+			throw new MethodNotAllowedException(__('You don\'t have permissions to create events'));
 		}
 		$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
 		if ($this->request->is('post')) {
 			if ($this->_isRest()) {
 				if (empty($this->data)) {
-					throw new MethodNotAllowedException('No valid event data received.');
+					throw new MethodNotAllowedException(__('No valid event data received.'));
 				}
 				// rearrange the response if the event came from an export
 				if (isset($this->request->data['response'])) $this->request->data = $this->request->data['response'];
@@ -1413,14 +1413,14 @@ class EventsController extends AppController {
 							if (!isset($this->request->data['Event']['SharingGroup']['uuid'])) {
 								if ($this->Event->SharingGroup->checkIfExists($this->request->data['Event']['SharingGroup']['uuid']) &&
 									$this->Event->SharingGroup->checkIfAuthorised($this->Auth->user(), $this->request->data['Event']['SharingGroup']['uuid'])) {
-										throw new MethodNotAllowedException('Invalid Sharing Group or not authorised (Sync user is not contained in the Sharing group).');
+										throw new MethodNotAllowedException(__('Invalid Sharing Group or not authorised (Sync user is not contained in the Sharing group).'));
 								}
 							}
 						} else if (!isset($sgs[$this->request->data['Event']['sharing_group_id']])) {
-							throw new MethodNotAllowedException('Invalid Sharing Group or not authorised.');
+							throw new MethodNotAllowedException(__('Invalid Sharing Group or not authorised.'));
 						}
 					} else {
-						if (!isset($sgs[$this->request->data['Event']['sharing_group_id']])) throw new MethodNotAllowedException('Invalid Sharing Group or not authorised.');
+						if (!isset($sgs[$this->request->data['Event']['sharing_group_id']])) throw new MethodNotAllowedException(__('Invalid Sharing Group or not authorised.'));
 					}
 				} else {
 					// If the distribution is set to something "traditional", set the SG id to 0.
@@ -1443,7 +1443,7 @@ class EventsController extends AppController {
 				if ($add === true && !is_numeric($add)) {
 					if ($this->_isRest()) {
 						if ($add === 'blocked') {
-							throw new ForbiddenException('Event blocked by local blacklist.');
+							throw new ForbiddenException(__('Event blocked by local blacklist.'));
 						}
 						// REST users want to see the newly created event
 						$results = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $created_id));
@@ -1464,8 +1464,9 @@ class EventsController extends AppController {
 						if (is_numeric($add)) {
 							$this->response->header('Location', Configure::read('MISP.baseurl') . '/events/' . $add);
 							$this->response->send();
-							throw new NotFoundException('Event already exists, if you would like to edit it, use the url in the location header.');
+							throw new NotFoundException(__('Event already exists, if you would like to edit it, use the url in the location header.'));
 						}
+						// # TODO i18n?
 						$this->set('name', 'Add event failed.');
 						$this->set('message', 'The event could not be saved.');
 						$this->set('errors', $validationErrors);
@@ -1474,7 +1475,7 @@ class EventsController extends AppController {
 						return false;
 					} else {
 						if ($add === 'blocked') {
-							$this->Flash->error('A blacklist entry is blocking you from creating any events. Please contact the administration team of this instance' . (Configure::read('MISP.contact') ? ' at ' . Configure::read('MISP.contact') : '') . '.');
+							$this->Flash->error(__('A blacklist entry is blocking you from creating any events. Please contact the administration team of this instance') . (Configure::read('MISP.contact') ? ' at ' . Configure::read('MISP.contact') : '') . '.');
 						} else {
 							$this->Flash->error(__('The event could not be saved. Please, try again.'), 'default', array(), 'error');
 						}
@@ -1522,7 +1523,7 @@ class EventsController extends AppController {
 		$this->Event->recursive = -1;
 		$this->Event->read(null, $id);
 		if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
-			throw new UnauthorizedException('You do not have permission to do that.');
+			throw new UnauthorizedException(__('You do not have permission to do that.'));
 		}
 		if ($this->request->is('post')) {
 			if (!empty($this->data)) {
@@ -1540,7 +1541,7 @@ class EventsController extends AppController {
 
 	public function add_misp_export() {
 		if (!$this->userRole['perm_modify']) {
-			throw new UnauthorizedException('You do not have permission to do that.');
+			throw new UnauthorizedException(__('You do not have permission to do that.'));
 		}
 		if ($this->request->is('post')) {
 			$results = array();
@@ -1552,9 +1553,10 @@ class EventsController extends AppController {
 				if (isset($this->data['Event']['submittedfile']) && (strtolower($ext) != 'xml' && strtolower($ext) != 'json') && $this->data['Event']['submittedfile']['size'] > 0 &&
 				is_uploaded_file($this->data['Event']['submittedfile']['tmp_name'])) {
 					$log = ClassRegistry::init('Log');
+					// #TODO Think about whether we want to Localize Log entries.
 					$log->createLogEntry($this->Auth->user(), 'file_upload', 'Event', 0, 'MISP export file upload failed', 'File details: ' . json_encode($this->data['Event']['submittedfile']));
 					$this->Flash->error(__('You may only upload MISP XML or MISP JSON files.'));
-					throw new MethodNotAllowedException('File upload failed or file does not have the expected extension (.xml / .json).');
+					throw new MethodNotAllowedException(__('File upload failed or file does not have the expected extension (.xml / .json).'));
 				}
 				if (isset($this->data['Event']['submittedfile'])) {
 					if (Configure::read('MISP.take_ownership_xml_import')
@@ -1572,7 +1574,7 @@ class EventsController extends AppController {
 
 	public function upload_stix($stix_version = '1') {
 		if (!$this->userRole['perm_modify']) {
-			throw new UnauthorizedException('You do not have permission to do that.');
+			throw new UnauthorizedException(__('You do not have permission to do that.'));
 		}
 		if ($this->request->is('post')) {
 			if ($this->_isRest()) {
@@ -1704,7 +1706,7 @@ class EventsController extends AppController {
 		}
 		if (Validation::uuid($id)) {
 			$temp = $this->Event->find('first', array('recursive' => -1, 'fields' => array('Event.id'), 'conditions' => array('Event.uuid' => $id)));
-			if (empty($temp)) throw new NotFoundException('Invalid event');
+			if (empty($temp)) throw new NotFoundException(__('Invalid event'));
 			$id = $temp['Event']['id'];
 		} else if (!is_numeric($id)) {
 			throw new NotFoundException(__('Invalid event'));
@@ -1919,7 +1921,7 @@ class EventsController extends AppController {
 		$event = $this->Event->read(null, $id);
 		if (!$this->_isSiteAdmin()) {
 			if (!$this->userRole['perm_publish'] || $this->Auth->user('org_id') !== $this->Event->data['Event']['orgc_id']) {
-				throw new MethodNotAllowedException('You don\'t have the permission to do that.');
+				throw new MethodNotAllowedException(__('You don\'t have the permission to do that.'));
 			}
 		}
 		$this->Event->insertLock($this->Auth->user(), $id);
@@ -1981,7 +1983,7 @@ class EventsController extends AppController {
 		$this->Event->read(null, $id);
 		if (!$this->_isSiteAdmin()) {
 			if (!$this->userRole['perm_publish'] || $this->Auth->user('org_id') !== $this->Event->data['Event']['orgc_id']) {
-				throw new MethodNotAllowedException('You don\'t have the permission to do that.');
+				throw new MethodNotAllowedException(__('You don\'t have the permission to do that.'));
 			}
 		}
 		$success = true;
@@ -2197,7 +2199,7 @@ class EventsController extends AppController {
 
 	public function downloadExport($type, $extra = null) {
 		if (Configure::read('MISP.disable_cached_exports')) {
-			throw new MethodNotAllowedException('This feature is currently disabled');
+			throw new MethodNotAllowedException(__('This feature is currently disabled'));
 		}
 		if ($this->_isSiteAdmin()) $org = 'ADMIN';
 		else $org = $this->Auth->user('Organisation')['name'];
@@ -2232,7 +2234,7 @@ class EventsController extends AppController {
 		// For XML: <request><value>7.7.7.7&amp;&amp;1.1.1.1</value><type>ip-src</type></request>
 		if ($this->request->is('post')) {
 			if (empty($this->request->data)) {
-				throw new BadRequestException('Either specify the search terms in the url, or POST an xml (with the root element being "request".');
+				throw new BadRequestException(__('Either specify the search terms in the url, or POST an xml (with the root element being "request".'));
 			} else {
 				$data = $this->request->data;
 			}
@@ -2259,7 +2261,7 @@ class EventsController extends AppController {
 		$eventIdArray = array();
 
 		if ($eventid) {
-			if (!is_numeric($eventid)) throw new MethodNotAllowedException('Invalid Event ID.');
+			if (!is_numeric($eventid)) throw new MethodNotAllowedException(__('Invalid Event ID.'));
 			$eventIdArray[] = $eventid;
 		}
 
@@ -2267,11 +2269,11 @@ class EventsController extends AppController {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
 			if (!$user) {
-				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+				throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
 			}
 		} else {
 			if (!$this->Auth->user('id')) {
-				throw new UnauthorizedException('You have to be logged in to do that.');
+				throw new UnauthorizedException(__('You have to be logged in to do that.'));
 			}
 			$user = $this->Auth->user();
 		}
@@ -2300,7 +2302,7 @@ class EventsController extends AppController {
 			$result = $this->Whitelist->removeWhitelistedFromArray($result, false);
 			$final .= $converter->convert($result[0]) . PHP_EOL;
 		}
-		if ($validEvents == 0) throw new NotFoundException('No events found that match the passed parameters.');
+		if ($validEvents == 0) throw new NotFoundException(__('No events found that match the passed parameters.'));
 		$final .= '</response>' . PHP_EOL;
 		$this->response->body($final);
 		$this->response->type('xml');
@@ -2322,7 +2324,7 @@ class EventsController extends AppController {
 	public function nids($format = 'suricata', $key = 'download', $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false, $type = false, $enforceWarninglist = false, $includeAllTags = false, $eventid = false) {
 		if ($this->request->is('post')) {
 			if (empty($this->request->data)) {
-				throw new BadRequestException('Either specify the search terms in the url, or POST a json or xml with the filter parameters. Valid filters: id (event ID), tags (list of tags), from (from date in YYYY-MM-DD format), to (to date in YYYY-MM-DD format), last (events with a published timestamp newer than - valid options are in time + unit format such as 6d or 2w, etc)');
+				throw new BadRequestException(__('Either specify the search terms in the url, or POST a json or xml with the filter parameters. Valid filters: id (event ID), tags (list of tags), from (from date in YYYY-MM-DD format), to (to date in YYYY-MM-DD format), last (events with a published timestamp newer than - valid options are in time + unit format such as 6d or 2w, etc)'));
 			} else {
 				$data = $this->request->data;
 			}
@@ -2362,12 +2364,12 @@ class EventsController extends AppController {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
 			if (!$user) {
-				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+				throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
 			}
 		} else {
 			// check if there's a user logged in or not
 			if (!$this->Auth->user('id')) {
-				throw new UnauthorizedException('You have to be logged in to do that.');
+				throw new UnauthorizedException(__('You have to be logged in to do that.'));
 			}
 			$user = $this->Auth->user();
 		}
@@ -2383,7 +2385,7 @@ class EventsController extends AppController {
 		$simpleFalse = array('tags', 'from', 'to', 'last', 'enforceWarninglist');
 		if ($this->request->is('post')) {
 			if (empty($this->request->data)) {
-				throw new BadRequestException('Either specify the search terms in the url, or POST a json or xml with the filter parameters.');
+				throw new BadRequestException(__('Either specify the search terms in the url, or POST a json or xml with the filter parameters.'));
 			} else {
 				$data = $this->request->data;
 			}
@@ -2402,7 +2404,7 @@ class EventsController extends AppController {
 			}
 		}
 		if (!in_array($type, array('md5', 'sha1', 'sha256'))) {
-			throw new MethodNotAllowedException('Invalid hash type.');
+			throw new MethodNotAllowedException(__('Invalid hash type.'));
 		}
 		if ($from) $from = $this->Event->dateFieldCheck($from);
 		if ($to) $to = $this->Event->dateFieldCheck($to);
@@ -2415,12 +2417,12 @@ class EventsController extends AppController {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
 			if (!$user) {
-				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+				throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
 			}
 		} else {
 			// check if there's a user logged in or not
 			if (!$this->Auth->user('id')) {
-				throw new UnauthorizedException('You have to be logged in to do that.');
+				throw new UnauthorizedException(__('You have to be logged in to do that.'));
 			}
 		}
 		$this->loadModel('Attribute');
@@ -2436,7 +2438,7 @@ class EventsController extends AppController {
 		$paramArray = array('eventid', 'ignore', 'tags', 'category', 'type', 'includeContext', 'from', 'to', 'last', 'headerless', 'enforceWarninglist', 'value', 'timestamp');
 		if ($this->request->is('post')) {
 			if (empty($this->request->data)) {
-				return $this->RestResponse->throwException(400, 'Either specify the search terms in the url, or POST a json or xml with the filter parameters.', 'csv', true);
+				return $this->RestResponse->throwException(400, __('Either specify the search terms in the url, or POST a json or xml with the filter parameters.'), 'csv', true);
 			} else {
 				$data = $this->request->data;
 			}
@@ -2462,11 +2464,11 @@ class EventsController extends AppController {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
 			if (!$user) {
-				return $this->RestResponse->throwException(401, 'This authentication key is not authorized to be used for exports. Contact your administrator.', 'csv', true);
+				return $this->RestResponse->throwException(401, __('This authentication key is not authorized to be used for exports. Contact your administrator.'), 'csv', true);
 			}
 		} else {
 			if (!$this->Auth->user('id')) {
-				return $this->RestResponse->throwException(401, 'You have to be logged in to do that.', 'csv', true);
+				return $this->RestResponse->throwException(401, __('You have to be logged in to do that.'), 'csv', true);
 			}
 			$user = $this->Auth->user();
 		}
@@ -2591,7 +2593,7 @@ class EventsController extends AppController {
 		if (!empty($this->data) && $this->data['Event']['submittedioc']['size'] > 0 &&
 				is_uploaded_file($this->data['Event']['submittedioc']['tmp_name'])) {
 			if (!$this->Event->checkFilename($this->data['Event']['submittedioc']['name'])) {
-				throw new Exception ('Filename not allowed.');
+				throw new Exception (__('Filename not allowed.'));
 			}
 
 			App::uses('FileAccessTool', 'Tools');
@@ -2703,7 +2705,7 @@ class EventsController extends AppController {
 			unset($dataArray['Event']);
 		}
 		if (!isset($dataArray['response']) || !isset($dataArray['response']['Event'])) {
-			throw new Exception('This is not a valid MISP XML file.');
+			throw new Exception(__('This is not a valid MISP XML file.'));
 		}
 		$dataArray = $this->Event->updateXMLArray($dataArray);
 		$results = array();
@@ -2790,11 +2792,11 @@ class EventsController extends AppController {
 	public function restSearch($key = 'download', $value = false, $type = false, $category = false, $org = false, $tags = false, $searchall = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $metadata = false, $uuid = false, $publish_timestamp = false, $timestamp = false, $published = false, $enforceWarninglist = false, $sgReferenceOnly = false) {
 		if ($key != null && strlen($key) == 40) {
 			if (!$this->checkAuthUser($key)) {
-				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+				throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
 			}
 		} else {
 			$key = strtolower($key);
-			if (!$this->Auth->user()) throw new UnauthorizedException('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.');
+			if (!$this->Auth->user()) throw new UnauthorizedException(__('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.'));
 		}
 		if (!is_array($value) && $value !== false) $value = str_replace('|', '/', $value);
 		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
@@ -2808,7 +2810,7 @@ class EventsController extends AppController {
 			} else if ($this->response->type() === 'application/xml') {
 				$data = $this->request->data;
 			} else {
-				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.');
+				throw new BadRequestException(__('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.'));
 			}
 			if (!isset($data['request'])) {
 				$data['request'] = $data;
@@ -2968,18 +2970,18 @@ class EventsController extends AppController {
 		// TODO implement mass download of all events - maybe in a zip file?
 		$this->response->type('text');	// set the content type
 		if ($eventid == null) {
-			throw new Exception('Not yet implemented');
+			throw new Exception(__('Not yet implemented'));
 		}
 		$this->layout = 'text/default';
 
 		if ($key != 'download'){
 			$user = $this->checkAuthUser($key);
 			if (!$user) {
-				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+				throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
 			}
 		} else {
 			if (!$this->Auth->user('id')) {
-				throw new UnauthorizedException('You have to be logged in to do that.');
+				throw new UnauthorizedException(__('You have to be logged in to do that.'));
 			}
 		}
 
@@ -2989,7 +2991,7 @@ class EventsController extends AppController {
 			throw new NotFoundException(__('Invalid event or not authorised.'));
 		}
 		$event = $this->Event->fetchEvent($this->Auth->user(), $options = array('eventid' => $eventid, 'to_ids' => 1, 'enforceWarninglist' => $enforceWarninglist));
-		if (empty($event)) throw new NotFoundException('Invalid event or not authorised.');
+		if (empty($event)) throw new NotFoundException(__('Invalid event or not authorised.'));
 		$this->loadModel('Whitelist');
 		$temp = $this->Whitelist->removeWhitelistedFromArray(array($event[0]), false);
 		$event = $temp[0];
@@ -3006,7 +3008,7 @@ class EventsController extends AppController {
 	}
 
 	public function create_dummy_event() {
-		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException('You don\'t have the privileges to access this.');
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException(__('You don\'t have the privileges to access this.'));
 		$data['Event']['info'] = 'Test event showing every category-type combination';
 		$data['Event']['date'] = '2013-10-09';
 		$data['Event']['threat_level_id'] = 4; //'Undefined'
@@ -3073,7 +3075,7 @@ class EventsController extends AppController {
 
 	// for load testing, it's slow, execution time is set at 1 hour maximum
 	public function create_massive_dummy_events() {
-		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException('You don\'t have the privileges to access this.');
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException(__('You don\'t have the privileges to access this.'));
 		ini_set('max_execution_time', 3600);
 		$this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
 		$date = new DateTime();
@@ -3322,7 +3324,7 @@ class EventsController extends AppController {
 	 */
 	public function freeTextImport($id, $adhereToWarninglists = false, $returnMetaAttributes = false) {
 		if (!$this->userRole['perm_add']) {
-			throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
+			throw new MethodNotAllowedException(__('Event not found or you don\'t have permissions to create attributes'));
 		}
 		$event = $this->Event->find('first', array(
 				'conditions' => array('Event.id' => $id),
@@ -3542,7 +3544,7 @@ class EventsController extends AppController {
 								$TagId = $this->Tag->captureTag(array('name' => $tagName),array('Role' => $this->userRole));
 								$this->loadModel('AttributeTag');
 								if (!$this->AttributeTag->attachTagToAttribute($AttributSave['Attribute']['id'],$id,$TagId)) {
-									throw new MethodNotAllowedException('Could not add tags.');
+									throw new MethodNotAllowedException(__('Could not add tags.'));
 								}
 							}
 						}
@@ -3588,11 +3590,11 @@ class EventsController extends AppController {
 
 	public function saveFreeText($id) {
 		if (!$this->userRole['perm_add']) {
-			throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
+			throw new MethodNotAllowedException(__('Event not found or you don\'t have permissions to create attributes'));
 		}
 		if ($this->request->is('post')) {
 			if (!$this->Event->checkIfAuthorised($this->Auth->user(), $id)) {
-				throw new MethodNotAllowedException('Invalid event.');
+				throw new MethodNotAllowedException(__('Invalid event.'));
 			}
 			$this->Event->insertLock($this->Auth->user(), $id);
 			$attributes = json_decode($this->request->data['Attribute']['JsonObject'], true);
@@ -3613,11 +3615,11 @@ class EventsController extends AppController {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
 			if (!$user) {
-				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+				throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
 			}
 		} else {
 			if (!$this->Auth->user('id')) {
-				throw new UnauthorizedException('You have to be logged in to do that.');
+				throw new UnauthorizedException(__('You have to be logged in to do that.'));
 			}
 		}
 		$result = $this->Event->stix2($id, $this->Auth->user());
@@ -3630,11 +3632,11 @@ class EventsController extends AppController {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
 			if (!$user) {
-				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+				throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
 			}
 		} else {
 			if (!$this->Auth->user('id')) {
-				throw new UnauthorizedException('You have to be logged in to do that.');
+				throw new UnauthorizedException(__('You have to be logged in to do that.'));
 			}
 		}
 
@@ -3644,7 +3646,7 @@ class EventsController extends AppController {
 		// This would return all OSINT tagged events except for event #3 and #4
 		if ($this->request->is('post')) {
 			if (empty($this->request->data)) {
-				throw new BadRequestException('Either specify the search terms in the url, or POST an xml (with the root element being "request".');
+				throw new BadRequestException(__('Either specify the search terms in the url, or POST an xml (with the root element being "request".'));
 			} else {
 				$data = $this->request->data;
 			}
@@ -3691,7 +3693,7 @@ class EventsController extends AppController {
 	}
 
 	public function filterEventIdsForPush() {
-		if (!$this->userRole['perm_sync']) throw new MethodNotAllowedException('You do not have the permission to do that.');
+		if (!$this->userRole['perm_sync']) throw new MethodNotAllowedException(__('You do not have the permission to do that.'));
 		if ($this->request->is('post')) {
 			$incomingIDs = array();
 			$incomingEvents = array();
@@ -3718,7 +3720,7 @@ class EventsController extends AppController {
 	}
 
 	public function checkuuid($uuid) {
-		if (!$this->userRole['perm_sync']) throw new MethodNotAllowedException('You do not have the permission to do that.');
+		if (!$this->userRole['perm_sync']) throw new MethodNotAllowedException(__('You do not have the permission to do that.'));
 		$events = $this->Event->find('first', array(
 				'conditions' => array('Event.uuid' => $uuid),
 				'recursive' => -1,
@@ -3731,7 +3733,7 @@ class EventsController extends AppController {
 		$message= "";
 		$success = true;
 		$counter = 0;
-		if (!$this->userRole['perm_sync'] || !$this->userRole['perm_add']) throw new MethodNotAllowedException('You do not have the permission to do that.');
+		if (!$this->userRole['perm_sync'] || !$this->userRole['perm_add']) throw new MethodNotAllowedException(__('You do not have the permission to do that.'));
 		if ($this->request->is('post')) {
 			$event = $this->Event->find('first', array(
 					'conditions' => array('Event.uuid' => $uuid),
@@ -3789,10 +3791,11 @@ class EventsController extends AppController {
 	}
 
 	public function exportChoice($id) {
-		if (!is_numeric($id)) throw new MethodNotAllowedException('Invalid ID');
+		if (!is_numeric($id)) throw new MethodNotAllowedException(__('Invalid ID'));
 		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
-		if (empty($event)) throw new NotFoundException('Event not found or you are not authorised to view it.');
+		if (empty($event)) throw new NotFoundException(__('Event not found or you are not authorised to view it.'));
 		$event = $event[0];
+		// #TODO i18n
 		$exports = array(
 			'xml' => array(
 					'url' => '/events/restSearch/download/false/false/false/false/false/false/false/false/false/' . $id . '/false.xml',
@@ -3919,10 +3922,11 @@ class EventsController extends AppController {
 
 	public function importChoice($id = false, $scope = 'event') {
 		if ($scope == 'event') {
-			if (!is_numeric($id)) throw new MethodNotAllowedException('Invalid ID');
+			if (!is_numeric($id)) throw new MethodNotAllowedException(__('Invalid ID'));
 			$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
-			if (empty($event)) throw new NotFoundException('Event not found or you are not authorised to view it.');
+			if (empty($event)) throw new NotFoundException(__('Event not found or you are not authorised to view it.'));
 			$event = $event[0];
+			// #TODO i18n
 			$imports = array(
 					'freetext' => array(
 							'url' => '/events/freeTextImport/' . $id,
@@ -3997,6 +4001,7 @@ class EventsController extends AppController {
 		}
 		$default_distribution = !empty(Configure::read('MISP.default_attribute_distribution')) ? Configure::read('MISP.default_attribute_distribution') : 5;
 		if ($default_distribution == 'event') $default_distribution = 5;
+		// #TODO i18n
 		$parameter_options = array(
 				'distribution' => array('valid_options' => array(0, 1, 2, 3, 5), 'default' => $default_distribution),
 				'threat_level_id' => array('valid_options' => array(1, 2, 3, 4), 'default' => 4),
@@ -4007,14 +4012,14 @@ class EventsController extends AppController {
 				'comment' => array('default' => '')
 		);
 
-		if (!$this->userRole['perm_auth']) throw new MethodNotAllowedException('This functionality requires API key access.');
-		if (!$this->request->is('post')) throw new MethodNotAllowedException('Please POST the samples as described on the automation page.');
+		if (!$this->userRole['perm_auth']) throw new MethodNotAllowedException(__('This functionality requires API key access.'));
+		if (!$this->request->is('post')) throw new MethodNotAllowedException(__('Please POST the samples as described on the automation page.'));
 		if ($this->response->type() === 'application/json') {
 			$data = $this->request->input('json_decode', true);
 		} else if ($this->response->type() === 'application/xml') {
 			$data = $this->request->data;
 		} else {
-			throw new BadRequestException('Please POST the samples as described on the automation page.');
+			throw new BadRequestException(__('Please POST the samples as described on the automation page.'));
 		}
 
 		if (isset($data['request'])) $data = $data['request'];
@@ -4041,12 +4046,12 @@ class EventsController extends AppController {
 		}
 
 		if (empty($data['files'])) {
-			throw new BadRequestException('No samples received, or samples not in the correct format. Please refer to the API documentation on the automation page.');
+			throw new BadRequestException(__('No samples received, or samples not in the correct format. Please refer to the API documentation on the automation page.'));
 		}
 		if (isset($event_id)) $data['settings']['event_id'] = $event_id;
 		if (isset($data['settings']['event_id'])) {
 			$this->Event->id = $data['settings']['event_id'];
-			if (!$this->Event->exists()) throw new NotFoundException('Event not found');
+			if (!$this->Event->exists()) throw new NotFoundException(__('Event not found'));
 		}
 		if (isset($data['advanced'])) $advanced = $data['advanced'];
 
@@ -4065,7 +4070,7 @@ class EventsController extends AppController {
 				'conditions' => $conditions,
 				'fields' => array('id'),
 			));
-			if (empty($event)) throw new NotFoundException('Event not found.');
+			if (empty($event)) throw new NotFoundException(__('Event not found.'));
 			$this->Event->insertLock($this->Auth->user(), $event['Event']['id']);
 			$this->Event->id = $data['settings']['event_id'];
 			$date = new DateTime();
@@ -4073,7 +4078,7 @@ class EventsController extends AppController {
 			$this->Event->saveField('published', 0);
 		} else {
 			$this->Event->create();
-			if ($data['settings']['distribution'] == 5) throw new BadRequestException('Distribution level 5 is not supported when uploading a sample without passing an event ID. Distribution level 5 is meant to take on the distribution level of an existing event.');
+			if ($data['settings']['distribution'] == 5) throw new BadRequestException(__('Distribution level 5 is not supported when uploading a sample without passing an event ID. Distribution level 5 is meant to take on the distribution level of an existing event.'));
 			$result = $this->Event->save(
 				array(
 					'info' => $data['settings']['info'],
@@ -4097,7 +4102,7 @@ class EventsController extends AppController {
 						'title' => 'Error: Failed to create event using the upload sample functionality',
 						'change' => 'There was an issue creating an event (' . $data['settings']['info'] . '). The validation errors were: ' . json_encode($this->Event->validationErrors),
 				));
-				throw new BadRequestException('The creation of a new event with the supplied information has failed.');
+				throw new BadRequestException(__('The creation of a new event with the supplied information has failed.'));
 			}
 			$data['settings']['event_id'] = $this->Event->id;
 			$event_id = $this->Event->id;
@@ -4182,7 +4187,7 @@ class EventsController extends AppController {
 
 	public function viewGraph($id) {
 		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
-		if (empty($event)) throw new MethodNotAllowedException('Invalid Event.');
+		if (empty($event)) throw new MethodNotAllowedException(__('Invalid Event.'));
 
 		$this->set('event', $event[0]);
 		$this->set('scope', 'event');
@@ -4192,7 +4197,7 @@ class EventsController extends AppController {
 
 	public function viewEventGraph() {
 		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
-		if (empty($event)) throw new MethodNotAllowedException('Invalid Event.');
+		if (empty($event)) throw new MethodNotAllowedException(__('Invalid Event.'));
 		$this->set('event', $event[0]);
 		$this->set('scope', 'event');
 		$this->set('id', $id);
@@ -4202,7 +4207,7 @@ class EventsController extends AppController {
 
 /*
 	public function deleteNode($id) {
-		if (!$this->request->is('post')) throw new MethodNotAllowedException('Only POST requests are allowed.');
+		if (!$this->request->is('post')) throw new MethodNotAllowedException(__('Only POST requests are allowed.'));
 		App::uses('CorrelationGraphTool', 'Tools');
 		$grapher = new CorrelationGraphTool();
 		$grapher->construct($this->Event, $this->Taxonomy, $this->GalaxyCluster, $this->Auth->user(), $this->request->data);
@@ -4212,7 +4217,7 @@ class EventsController extends AppController {
 
 	public function updateGraph($id, $type = 'event') {
 		$validTools = array('event', 'galaxy', 'tag');
-		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
+		if (!in_array($type, $validTools)) throw new MethodNotAllowedException(__('Invalid type.'));
 		$this->loadModel('Taxonomy');
 		$this->loadModel('GalaxyCluster');
 		App::uses('CorrelationGraphTool', 'Tools');
@@ -4231,7 +4236,7 @@ class EventsController extends AppController {
 
 	public function getDistributionGraph($id, $type = 'event') {
 		$validTools = array('event');
-		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
+		if (!in_array($type, $validTools)) throw new MethodNotAllowedException(__('Invalid type.'));
 		$this->loadModel('Server');
 		$this->loadModel('Organisation');
 		App::uses('DistributionGraphTool', 'Tools');
@@ -4257,7 +4262,7 @@ class EventsController extends AppController {
 
 	public function getEventGraphReferences($id, $type = 'event') {
 		$validTools = array('event');
-		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
+		if (!in_array($type, $validTools)) throw new MethodNotAllowedException(__('Invalid type.'));
 		$this->loadModel('Tag');
 		App::uses('EventGraphTool', 'Tools');
 		$grapher = new EventGraphTool();
@@ -4279,7 +4284,7 @@ class EventsController extends AppController {
 
 	public function getEventGraphTags($id, $type = 'event') {
 		$validTools = array('event');
-		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
+		if (!in_array($type, $validTools)) throw new MethodNotAllowedException(__('Invalid type.'));
 		$this->loadModel('Tag');
 		App::uses('EventGraphTool', 'Tools');
 		$grapher = new EventGraphTool();
@@ -4301,7 +4306,7 @@ class EventsController extends AppController {
 
 	public function getEventGraphGeneric($id, $type = 'event') {
 		$validTools = array('event');
-		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
+		if (!in_array($type, $validTools)) throw new MethodNotAllowedException(__('Invalid type.'));
 		$this->loadModel('Tag');
 		App::uses('EventGraphTool', 'Tools');
 		$grapher = new EventGraphTool();
@@ -4328,7 +4333,7 @@ class EventsController extends AppController {
 
 	public function getReferenceData($uuid, $type = 'reference') {
 		$validTools = array('reference');
-		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
+		if (!in_array($type, $validTools)) throw new MethodNotAllowedException(__('Invalid type.'));
 		App::uses('EventGraphTool', 'Tools');
 		$grapher = new EventGraphTool();
 		$data = $this->request->is('post') ? $this->request->data : array();
@@ -4346,7 +4351,7 @@ class EventsController extends AppController {
 
 	public function getObjectTemplate($type = 'templates') {
 		$validTools = array('templates');
-		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
+		if (!in_array($type, $validTools)) throw new MethodNotAllowedException(__('Invalid type.'));
 		App::uses('EventGraphTool', 'Tools');
 		$eventGraphTool = new EventGraphTool();
 
@@ -4387,7 +4392,7 @@ class EventsController extends AppController {
 			return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
 		} else {
 			if (!$this->request->is('ajax')) {
-				throw new MethodNotAllowedException('Invalid method.');
+				throw new MethodNotAllowedException(__('Invalid method.'));
 			}
 
 			App::uses('ColourGradientTool', 'Tools');
@@ -4464,13 +4469,13 @@ class EventsController extends AppController {
 
 	// expects an attribute ID and the module to be used
 	public function queryEnrichment($attribute_id, $module = false, $type = 'Enrichment') {
-		if (!Configure::read('Plugin.' . $type . '_services_enable')) throw new MethodNotAllowedException($type . ' services are not enabled.');
+		if (!Configure::read('Plugin.' . $type . '_services_enable')) throw new MethodNotAllowedException(__('%s services are not enabled.', $type));
 		$attribute = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $attribute_id), 'flatten' => 1));
-		if (empty($attribute)) throw new MethodNotAllowedException('Attribute not found or you are not authorised to see it.');
+		if (empty($attribute)) throw new MethodNotAllowedException(__('Attribute not found or you are not authorised to see it.'));
 		if ($this->request->is('ajax')) {
 			$this->loadModel('Module');
 			$enabledModules = $this->Module->getEnabledModules($this->Auth->user(), false, $type);
-			if (!is_array($enabledModules) || empty($enabledModules)) throw new MethodNotAllowedException('No valid ' . $type . ' options found for this attribute.');
+			if (!is_array($enabledModules) || empty($enabledModules)) throw new MethodNotAllowedException(__('No valid %s options found for this attribute.', $type));
 			$modules = array();
 			foreach ($enabledModules['modules'] as $module) {
 				if (in_array($attribute[0]['Attribute']['type'], $module['mispattributes']['input'])) {
@@ -4483,7 +4488,7 @@ class EventsController extends AppController {
 		} else {
 			$this->loadModel('Module');
 			$enabledModules = $this->Module->getEnabledModules($this->Auth->user(), false, $type);
-			if (!is_array($enabledModules) || empty($enabledModules)) throw new MethodNotAllowedException('No valid ' . $type . ' options found for this attribute.');
+			if (!is_array($enabledModules) || empty($enabledModules)) throw new MethodNotAllowedException(__('no valid %s options found for this attribute.', $type));
 			$options = array();
 			foreach ($enabledModules['modules'] as $temp) {
 				if ($temp['name'] == $module) {
@@ -4501,7 +4506,7 @@ class EventsController extends AppController {
 			if (!empty($options)) $data['config'] = $options;
 			$data = json_encode($data);
 			$result = $this->Module->queryModuleServer('/query', $data, false, $type);
-			if (!$result) throw new MethodNotAllowedException($type . ' service not reachable.');
+			if (!$result) throw new MethodNotAllowedException(__('%s service not reachable.', $type));
 			if (isset($result['error'])) $this->Flash->error($result['error']);
 			if (!is_array($result)) throw new Exception($result);
 			$resultArray = $this->Event->handleModuleResult($result, $attribute[0]['Attribute']['event_id']);
@@ -4509,7 +4514,7 @@ class EventsController extends AppController {
 				$importComment = $result['comment'];
 			}
 			else {
-				$importComment = $attribute[0]['Attribute']['value'] . ': Enriched via the ' . $module . ($type != 'Enrichment' ? ' ' . $type : '')  . ' module';
+				$importComment = $attribute[0]['Attribute']['value'] . __(': Enriched via the %s', $module) . ($type != 'Enrichment' ? ' ' . $type : '')  . ' module';
 			}
 			$typeCategoryMapping = array();
 			foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
@@ -4556,7 +4561,7 @@ class EventsController extends AppController {
 		$this->loadModel('Module');
 		$moduleName = $module;
 		if (!$this->Event->checkIfAuthorised($this->Auth->user(), $eventId)) {
-			throw new MethodNotAllowedException('Invalid event.');
+			throw new MethodNotAllowedException(__('Invalid event.'));
 		}
 		$module = $this->Module->getEnabledModule($module, 'Import');
 		if (!is_array($module)) throw new MethodNotAllowedException($module);
@@ -4630,7 +4635,7 @@ class EventsController extends AppController {
 						$modulePayload['filename'] = $filename;
 					}
 					$result = $this->Module->queryModuleServer('/query', json_encode($modulePayload, true), false, $moduleFamily = 'Import');
-					if (!$result) throw new Exception('Import service not reachable.');
+					if (!$result) throw new Exception(__('Import service not reachable.'));
 					if (isset($result['error'])) $this->Flash->error($result['error']);
 					if (!is_array($result)) throw new Exception($result);
 					$resultArray = $this->Event->handleModuleResult($result, $eventId);
@@ -4697,14 +4702,14 @@ class EventsController extends AppController {
 
 	public function toggleCorrelation($id) {
 		if (!$this->_isSiteAdmin() && Configure.read('MISP.allow_disabling_correlation')) {
-			throw new MethodNotAllowedException('Disabling the correlation is not permitted on this instance.');
+			throw new MethodNotAllowedException(__('Disabling the correlation is not permitted on this instance.'));
 		}
 		$this->Event->id = $id;
 		if (!$this->Event->exists()) {
-			throw new NotFoundException('Invalid Event.');
+			throw new NotFoundException(__('Invalid Event.'));
 		}
 		if (!$this->Auth->user('Role')['perm_modify']) {
-			throw new MethodNotAllowedException('You don\'t have permission to do that.');
+			throw new MethodNotAllowedException(__('You don\'t have permission to do that.'));
 		}
 		$conditions = array('Event.id' => $id);
 		if (!$this->_isSiteAdmin()) {
@@ -4715,10 +4720,10 @@ class EventsController extends AppController {
 			'recursive' => -1
 		));
 		if (empty($event)) {
-			throw new NotFoundException('Invalid Event.');
+			throw new NotFoundException(__('Invalid Event.'));
 		}
 		if (!$this->Auth->user('Role')['perm_modify_org'] && $this->Auth->user('id') != $event['Event']['user_id']) {
-			throw new MethodNotAllowedException('You don\'t have permission to do that.');
+			throw new MethodNotAllowedException(__('You don\'t have permission to do that.'));
 		}
 		if ($this->request->is('post')) {
 			if ($event['Event']['disable_correlation']) {
@@ -4751,11 +4756,11 @@ class EventsController extends AppController {
 	public function checkPublishedStatus($id) {
 		$event = $this->Event->fetchEvent($this->Auth->user(), array('metadata' => 1, 'eventid' => $id));
 		if (empty($event)) {
-			throw new NotFoundException('Invalid event');
+			throw new NotFoundException(__('Invalid event'));
 		}
 		return new CakeResponse(array('body'=> h($event[0]['Event']['published']), 'status'=>200, 'type' => 'txt'));
 	}
-
+	// #TODO i18n
 	public function pushEventToZMQ($id) {
 		if ($this->request->is('Post')) {
 			if (Configure::read('Plugin.ZeroMQ_enable')) {
@@ -4784,7 +4789,7 @@ class EventsController extends AppController {
 	}
 
 	public function getEventInfoById($id) {
-		if (empty($id)) throw new MethodNotAllowedException('Invalid ID.');
+		if (empty($id)) throw new MethodNotAllowedException(__('Invalid ID.'));
 		$conditions = array('Event.id' => $id);
 		if (Validation::uuid($id)) {
 			$conditions = array('Event.uuid' => $id);
@@ -4830,7 +4835,7 @@ class EventsController extends AppController {
 		}
 		$event = $this->Event->find('first', array('conditions' => $conditions, 'recursive' => -1));
 		if (empty($event) || (!$this->_isSiteAdmin() && ($this->Auth->user('org_id') != $event['Event']['orgc_id'] || !$this->userRole['perm_modify']))) {
-			throw new MethodNotAllowedException('Invalid Event');
+			throw new MethodNotAllowedException(__('Invalid Event'));
 		}
 		$this->Event->insertLock($this->Auth->user(), $event['Event']['id']);
 		if ($this->request->is('post')) {
@@ -4882,6 +4887,7 @@ class EventsController extends AppController {
 				}
 			}
 		}
+		// TODO: i18n
 		if (!empty($locks)) {
 			$message = sprintf('Warning: Your view on this event might not be up to date as it is currently being edited by: %s', implode(', ', $locks));
 			$this->set('message', $message);
@@ -4901,7 +4907,7 @@ class EventsController extends AppController {
 				'conditions' => array('Event.uuid' => $id),
 				'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id')
 			));
-			if ($event == null) throw new NotFoundException('Invalid event');
+			if ($event == null) throw new NotFoundException(__('Invalid event'));
 			$id = $event['Event']['id'];
 		} else if (!is_numeric($id)) {
 			throw new NotFoundException(__('Invalid event'));

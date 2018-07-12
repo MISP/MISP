@@ -256,7 +256,7 @@ class ShadowAttributesController extends AppController {
 				}
 			} else {
 				if ($this->_isRest()) {
-					throw new MethodNotAllowedException('Could not discard proposal.');
+					throw new MethodNotAllowedException(__('Could not discard proposal.'));
 				} else {
 					$this->autoRender = false;
 					return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Could not discard proposal.')), 'status'=>200, 'type' => 'json'));
@@ -286,10 +286,10 @@ class ShadowAttributesController extends AppController {
 			$this->set('ajax', false);
 		}
 		if (empty($eventId)) {
-			if (empty($event)) throw new NotFoundException('Invalid Event');
+			if (empty($event)) throw new NotFoundException(__('Invalid Event'));
 		}
 		$event = $this->ShadowAttribute->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId));
-		if (empty($event)) throw new NotFoundException('Invalid Event');
+		if (empty($event)) throw new NotFoundException(__('Invalid Event'));
 		$event = $event[0];
 
 		if ($this->request->is('post')) {
@@ -420,7 +420,7 @@ class ShadowAttributesController extends AppController {
 						foreach ($this->ShadowAttribute->validationErrors as $k => $v) {
 							$message .= '[' . $k . ']: ' . $v[0] . PHP_EOL;
 						}
-						throw new NotFoundException('Could not save the proposal. Errors: ' . $message);
+						throw new NotFoundException(__('Could not save the proposal. Errors: ', $message));
 					} else {
 						$this->Flash->error(__('The proposal could not be saved. Please, try again.'));
 					}
@@ -465,7 +465,7 @@ class ShadowAttributesController extends AppController {
 			'contain' => array('Event' => array('fields' => array('Event.org_id', 'Event.distribution', 'Event.id'))),
 			'conditions' => array('ShadowAttribute.id' => $id)
 		));
-		if (!$this->ShadowAttribute->Event->checkIfAuthorised($this->Auth->user(), $sa['Event']['id'])) throw new UnauthorizedException('You do not have the permission to view this event.');
+		if (!$this->ShadowAttribute->Event->checkIfAuthorised($this->Auth->user(), $sa['Event']['id'])) throw new UnauthorizedException(__('You do not have the permission to view this event.'));
 		$this->__downloadAttachment($sa['ShadowAttribute']);
 	}
 
@@ -490,7 +490,7 @@ class ShadowAttributesController extends AppController {
 
 	public function add_attachment($eventId = null) {
 		$event = $this->ShadowAttribute->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId));
-		if (empty($event)) throw new NotFoundException('Invalid Event');
+		if (empty($event)) throw new NotFoundException(__('Invalid Event'));
 		$event = $event[0];
 
 		if ($this->request->is('post')) {
@@ -503,7 +503,7 @@ class ShadowAttributesController extends AppController {
 			(!empty( $this->request->data['ShadowAttribute']['value']['tmp_name']) && $this->request->data['ShadowAttribute']['value']['tmp_name'] != 'none')
 			) {
 				if (!is_uploaded_file($tmpfile->path))
-					throw new InternalErrorException('PHP says file was not uploaded. Are you attacking me?');
+					throw new InternalErrorException(__('PHP says file was not uploaded. Are you attacking me?'));
 			} else {
 				$this->Flash->error(__('There was a problem to upload the file.', true));
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
@@ -624,7 +624,7 @@ class ShadowAttributesController extends AppController {
 				'conditions' => array('Attribute.id' => $id),
 				'flatten' => 1
 		));
-		if (empty($existingAttribute)) throw new MethodNotAllowedException('Invalid Attribute.');
+		if (empty($existingAttribute)) throw new MethodNotAllowedException(__('Invalid Attribute.'));
 		$existingAttribute = $existingAttribute[0];
 
 		// Check if the attribute is an attachment, if yes, block the type and the value fields from being edited.
@@ -668,7 +668,7 @@ class ShadowAttributesController extends AppController {
 					$validChangeMade = true;
 				}
 			}
-			if (!$validChangeMade) throw new MethodNotAllowedException('Invalid input.');
+			if (!$validChangeMade) throw new MethodNotAllowedException(__('Invalid input.'));
 			$this->request->data['ShadowAttribute']['org_id'] =  $this->Auth->user('org_id');
 			$this->request->data['ShadowAttribute']['email'] = $this->Auth->user('email');
 			if ($this->ShadowAttribute->save($this->request->data)) {
@@ -697,7 +697,7 @@ class ShadowAttributesController extends AppController {
 					foreach ($this->ShadowAttribute->validationErrors as $k => $v) {
 						$message .= '[' . $k . ']: ' . $v[0] . PHP_EOL;
 					}
-					throw new NotFoundException('Could not save the proposal. Errors: ' . $message);
+					throw new NotFoundException(__('Could not save the proposal. Errors: ', $message));
 				} else {
 					$this->Flash->error(__('The ShadowAttribute could not be saved. Please, try again.'));
 				}
@@ -756,13 +756,13 @@ class ShadowAttributesController extends AppController {
 		if (strlen($id) == 36) {
 			$this->ShadowAttribute->Event->recursive = -1;
 			$temp = $this->ShadowAttribute->Event->Attribute->find('first', array('recursive' => -1, 'conditions' => array('Attribute.uuid' => $id), 'fields' => array('id')));
-			if ($temp == null) throw new NotFoundException('Invalid attribute');
+			if ($temp == null) throw new NotFoundException(__('Invalid attribute'));
 			$id = $temp['Attribute']['id'];
 		}
-		
+
 		$existingAttribute = $this->ShadowAttribute->Event->Attribute->fetchAttributes($this->Auth->user(), array('Attriute.id' => $id));
 		if (empty($existingAttribute)) {
-			throw new NotFoundException('Invalid attribute.');
+			throw new NotFoundException(__('Invalid attribute.'));
 		}
 
 		if ($this->request->is('post')) {
@@ -817,7 +817,7 @@ class ShadowAttributesController extends AppController {
 				),
 				'conditions' => array('AND' => array('ShadowAttribute.id' => $id, $distConditions, 'ShadowAttribute.deleted' => 0))
 		));
-		if (empty($sa)) throw new NotFoundException('Invalid proposal.');
+		if (empty($sa)) throw new NotFoundException(__('Invalid proposal.'));
 		if (!$this->_isSiteAdmin()) {
 			if ($sa['ShadowAttribute']['old_id'] != 0 && $sa['Event']['org_id'] != $this->Auth->user('org_id') && $sa['Event']['orgc_id'] != $this->Auth->user('org_id')) {
 				$a = $this->ShadowAttribute->Event->Attribute->find('first', array(
@@ -825,7 +825,7 @@ class ShadowAttributesController extends AppController {
 					'fields' => array('Attribute.id', 'Attribute.distribution'),
 					'conditions' => array('Attribute.id' => $sa['ShadowAttribute']['old_id'], 'Attribute.distribution >' => 0)
 				));
-				if (empty($a)) throw new NotFoundException('Invalid proposal.');
+				if (empty($a)) throw new NotFoundException(__('Invalid proposal.'));
 			}
 		}
 		$this->set('ShadowAttribute', $sa['ShadowAttribute']);
@@ -864,7 +864,7 @@ class ShadowAttributesController extends AppController {
 					),
 					'recursive' => 1
 			));
-			if (empty($temp)) throw new MethodNotAllowedException('No proposals found or invalid event.');
+			if (empty($temp)) throw new MethodNotAllowedException(__('No proposals found or invalid event.'));
 			$proposals = array();
 			foreach ($temp as $proposal) {
 				$proposal['ShadowAttribute']['org'] = $proposal['Org']['name'];
@@ -931,7 +931,7 @@ class ShadowAttributesController extends AppController {
 		if (!$this->_isRest() || !$this->userRole['perm_sync']) {
 			throw new MethodNotAllowedException(__('This feature is only available using the API to Sync users'));
 		}
-		if (!$this->request->is('Post')) throw new MethodNotAllowedException('This feature is only available using POST requests');
+		if (!$this->request->is('Post')) throw new MethodNotAllowedException(__('This feature is only available using POST requests'));
 		$result = array();
 		if (!empty($this->request->data)) {
 			foreach ($this->request->data as $eventUuid) {
@@ -969,7 +969,7 @@ class ShadowAttributesController extends AppController {
 
 	public function fetchEditForm($id, $field = null) {
 		$validFields = array('value', 'comment', 'type', 'category', 'to_ids');
-		if (!isset($field) || !in_array($field, $validFields)) throw new MethodNotAllowedException('Invalid field requested.');
+		if (!isset($field) || !in_array($field, $validFields)) throw new MethodNotAllowedException(__('Invalid field requested.'));
 		$this->loadModel('Attribute');
 		$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) {
