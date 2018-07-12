@@ -70,7 +70,7 @@
 								'function' => 'getPopup',
 								'params' => array($event['Event']['id'], 'events', 'importChoice')
 							),
-							'text' => _('Populate from...')
+							'text' => __('Populate from...')
 						));
 						if ($menuItem === 'populateFromtemplate') {
 							echo $this->element('/side_menu_link', array(

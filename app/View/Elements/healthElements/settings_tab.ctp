@@ -10,11 +10,11 @@
 				</tr>
 			<?php endif;?>
 			<tr class="subGroup_<?php echo h($subGroup);?> hidden">
-				<th><?php __('Priority'); ?></th>
-				<th><?php __('Setting'); ?></th>
-				<th><?php __('Value'); ?></th>
-				<th><?php __('Description'); ?></th>
-				<th><?php __('Error Message'); ?></th>
+					<th><?php __('Priority'); ?></th>
+					<th><?php __('Setting'); ?></th>
+					<th><?php __('Value'); ?></th>
+					<th><?php __('Description'); ?></th>
+					<th><?php __('Error Message'); ?></th>
 			</tr>
 			<?php
 				foreach ($settings as $k => $setting):
