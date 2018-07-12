@@ -816,7 +816,7 @@ class ServersController extends AppController {
 			if ($tab == 'diagnostics' || $tab == 'download') {
 				$php_ini = php_ini_loaded_file();
 				$this->set('php_ini', $php_ini);
-				$advanced_attachments = shell_exec('python ' . APP . 'files/scripts/generate_file_objects.py -c');
+				$advanced_attachments = shell_exec('python3 ' . APP . 'files/scripts/generate_file_objects.py -c');
 				try {
 					$advanced_attachments = json_decode($advanced_attachments, true);
 				} catch (Exception $e) {
