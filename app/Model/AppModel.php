@@ -36,6 +36,8 @@ class AppModel extends Model {
 
 	private $__profiler = array();
 
+	public $elasticSearchClient = false;
+
 	public function __construct($id = false, $table = null, $ds = null) {
 		parent::__construct($id, $table, $ds);
 
@@ -1335,6 +1337,20 @@ class AppModel extends Model {
 		$pubSubTool->initTool();
 		$this->loadedPubSubTool = $pubSubTool;
 		return true;
+	}
+
+	public function getElasticSearchTool() {
+		if (!$this->elasticSearchClient) {
+			$this->loadElasticSearchTool();
+		}
+		return $this->elasticSearchClient;
+	}
+
+	public function loadElasticSearchTool() {
+		App::uses('ElasticSearchClient', 'Tools');
+		$client = new ElasticSearchClient();
+		$client->initTool();
+		$this->elasticSearchClient = $client;
 	}
 
 	public function checkVersionRequirements($versionString, $minVersion) {
