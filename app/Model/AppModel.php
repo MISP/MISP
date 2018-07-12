@@ -1322,19 +1322,19 @@ class AppModel extends Model {
 		return true;
 	}
 
-    public function getElasticSearchTool() {
-        if (!$this->elasticSearchClient) {
-            $this->loadElasticSearchTool();
-        }
-        return $this->elasticSearchClient;
-    }
+	public function getElasticSearchTool() {
+		if (!$this->elasticSearchClient) {
+			$this->loadElasticSearchTool();
+		}
+		return $this->elasticSearchClient;
+	}
 
-    public function loadElasticSearchTool() {
-        App::uses('ElasticSearchClient', 'Tools');
-        $client = new ElasticSearchClient();
-        $client->initTool();
-        $this->elasticSearchClient = $client;
-    }
+	public function loadElasticSearchTool() {
+		App::uses('ElasticSearchClient', 'Tools');
+		$client = new ElasticSearchClient();
+		$client->initTool();
+		$this->elasticSearchClient = $client;
+	}
 
 	public function checkVersionRequirements($versionString, $minVersion) {
 		$version = explode('.', $versionString);

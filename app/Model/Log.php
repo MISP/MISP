@@ -240,12 +240,12 @@ class Log extends AppModel {
 			$pubSubTool->publish($data, 'audit', 'log');
 		}
 
-        if (Configure::read('Plugin.ElasticSearch_logging_enable')) {
-            // send off our logs to distributed /dev/null
-            $logIndex = Configure::read("Plugin.ElasticSearch_log_index");
-            $elasticSearchClient = $this->getElasticSearchTool();
-            $elasticSearchClient->pushDocument($logIndex, "log", $data);
-        }
+		if (Configure::read('Plugin.ElasticSearch_logging_enable')) {
+			// send off our logs to distributed /dev/null
+			$logIndex = Configure::read("Plugin.ElasticSearch_log_index");
+			$elasticSearchClient = $this->getElasticSearchTool();
+			$elasticSearchClient->pushDocument($logIndex, "log", $data);
+        	}
 
 		if (Configure::read('Security.syslog')) {
 			// write to syslogd as well
