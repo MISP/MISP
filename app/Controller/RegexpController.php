@@ -157,16 +157,25 @@ class RegexpController extends AppController {
 		$deletable = array();
 		$modifications = 0;
 		$this->loadModel('Attribute');
-		$all = $this->Attribute->find('all', array('recursive' => -1));
-		foreach ($all as $item) {
-			$result = $this->Regexp->replaceSpecific($item['Attribute']['value'], $allRegexp, $item['Attribute']['type']);
-			// 0 = delete it, it is a blocked regexp; 1 = ran regexp check, made changes, resave this attribute with the new value; 2 = ran regexp check, no changes made, go on
-			if ($result == 0) $deletable[] = $item['Attribute']['id'];
-			else {
-				// Until now this wasn't checked and all attributes were resaved, no matter if they were changed...
-				if ($result == 1) {
-					$this->Attribute->save($item);
-					$modifications++;
+		$count = $this->Attribute->find('count', array());
+		$chunks = ceil($count / 1000);
+		for ($i = 1; $i <= $chunks; $i++) {
+			$all = $this->Attribute->find('all', array(
+				'recursive' => -1,
+				'deleted' => 0,
+				'limit' => 1000,
+				'page' => $i
+			));
+			foreach ($all as $item) {
+				$result = $this->Regexp->replaceSpecific($item['Attribute']['value'], $allRegexp, $item['Attribute']['type']);
+				// 0 = delete it, it is a blocked regexp; 1 = ran regexp check, made changes, resave this attribute with the new value; 2 = ran regexp check, no changes made, go on
+				if ($result == 0) $deletable[] = $item['Attribute']['id'];
+				else {
+					// Until now this wasn't checked and all attributes were resaved, no matter if they were changed...
+					if ($result == 1) {
+						$this->Attribute->save($item);
+						$modifications++;
+					}
 				}
 			}
 		}

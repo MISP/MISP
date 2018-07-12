@@ -27,7 +27,10 @@ class GalaxiesController extends AppController {
 
 	public function update() {
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('This action is only accessible via POST requests.');
-		$result = $this->Galaxy->update();
+		if (!empty($this->params['named']['force'])) {
+			$force = 1;
+		}
+		$result = $this->Galaxy->update($force);
 		$message = 'Galaxies updated.';
 		if ($this->_isRest()) {
 			return $this->RestResponse->saveSuccessResponse('Galaxy', 'update', false, $this->response->type(), $message);
@@ -67,9 +70,9 @@ class GalaxiesController extends AppController {
 	public function selectGalaxy($target_id, $target_type='event', $namespace='misp') {
 		$expectedDescription = 'ATT&CK Tactic';
 		$conditions = $namespace == '0' ? array() : array('namespace' => $namespace);
-		if ($namespace == 'mitre-attack') {
+		if ($namespace == 'mitre-attack' || $namespace == '0') {
 			$conditions[] = array('description !=' => $expectedDescription);
-			$conditions2 = array('namespace' => $namespace);
+			$conditions2 = array('namespace' => 'mitre-attack');
 			$conditions2[] = array('description' => $expectedDescription);
 
 			$tacticGalaxies = $this->Galaxy->find('all', array(
@@ -82,14 +85,14 @@ class GalaxiesController extends AppController {
 			'conditions' => $conditions,
 		));
 		if (!empty($tacticGalaxies)) {
-			$galaxies[] = array('Galaxy' => array(
+			array_unshift($galaxies, array('Galaxy' => array(
 				'id' => '-1',
 				'uuid' => '-1',
 				'name' => $expectedDescription,
 				'type' => '-1',
 				'icon' => '/img/mitre-attack-icon.ico',
 				'namespace' => 'mitre-attack'
-			));
+			)));
 		}
 		$this->set('galaxies', $galaxies);
 		$this->set('target_id', $target_id);
@@ -152,6 +155,16 @@ class GalaxiesController extends AppController {
 	public function attachCluster($target_id, $target_type = 'event') {
 		$cluster_id = $this->request->data['Galaxy']['target_id'];
 		$result = $this->Galaxy->attachCluster($this->Auth->user(), $target_type, $target_id, $cluster_id);
+		$this->Flash->info($result);
+		$this->redirect($this->referer());
+	}
+
+	public function attachMultipleClusters($target_id, $target_type = 'event') {
+		$cluster_ids = json_decode($this->request->data['Galaxy']['target_ids'], true);
+		$result = "";
+		foreach($cluster_ids as $cluster_id) {
+			$result = $this->Galaxy->attachCluster($this->Auth->user(), $target_type, $target_id, $cluster_id);
+		}
 		$this->Flash->info($result);
 		$this->redirect($this->referer());
 	}

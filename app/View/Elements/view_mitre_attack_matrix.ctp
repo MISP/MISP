@@ -1,17 +1,17 @@
 <div class="attack-matrix-options" style="right: initial; background: transparent;">
 <ul id="attack-matrix-tabscontroller" class="nav nav-tabs" style="margin-bottom: 2px;">
-<?php 
+<?php
 $enterpriseTag = "mitre-enterprise-attack-attack-pattern";
-foreach($attackTactic as $tactic): 
-    $galaxy = $tactic['galaxy'];	
+foreach($attackTactic as $tactic):
+    $galaxy = $tactic['galaxy'];
 ?>
 	<li class="tactic <?php echo $galaxy['type']==$enterpriseTag ? "active" : ""; ?>"><span href="#tabMatrix-<?php echo h($galaxy['type']); ?>" data-toggle="tab" style="padding-top: 3px; padding-bottom: 3px;"><?php echo h($galaxy['name']); ?></span></li>
 <?php endforeach; ?>
 </ul>
 </div>
 
-<div class="attack-matrix-options matrix-div-search">
-    <input type="text" id="pick-matrix-elem" placeholder="Pick item" style="margin-right: 0px;">
+<div class="attack-matrix-options matrix-div-submit">
+    <span class="btn btn-inverse btn-matrix-submit" role="button" style="padding: 1px 5px !important;font-size: 12px !important;font-weight: bold;"><?php echo _('Submit'); ?></span>
 </div>
 
 <div class="attack-matrix-options">
@@ -27,15 +27,13 @@ foreach($attackTactic as $tactic):
     <label style="display: inline-block; margin-left: 30px;"><input type="checkbox" id="checkbox_attackMatrix_showAll" checked><span class="fa fa-filter"> Show all</span></input></label>
 </div>
 
-<?php if($pickingMode): ?>
-    <div class="hidden">
-    	<?php
-    		echo $this->Form->create('Galaxy', array('url' => '/galaxies/attachCluster/' . $target_id . '/' . (empty($target_type) ? 'attribute' : $target_type), 'style' => 'margin:0px;'));
-    		echo $this->Form->input('target_id', array('type' => 'text'));
-    		echo $this->Form->end();
-    	?>
-    </div>
-<?php endif; ?>
+<div class="hidden">
+	<?php
+		echo $this->Form->create('Galaxy', array('url' => '/galaxies/attachMultipleClusters/' . (empty($target_id) ? $eventId : $target_id ) . '/' . (empty($target_type) ? 'event' : $target_type), 'style' => 'margin:0px;'));
+		echo $this->Form->input('target_ids', array('type' => 'text'));
+		echo $this->Form->end();
+	?>
+</div>
 
 <div id="matrix_container" class="fixed-table-container-inner" style="max-height: 670px;" data-picking-mode="<?php echo $pickingMode ? 'true' : 'false'; ?>">
     <div class="tab-content">
@@ -56,7 +54,7 @@ foreach($attackTactic as $tactic):
 			<?php echo h(ucfirst($name)); ?>
 			<div class="th-inner"><?php echo h(ucfirst($name)); ?></div>
 		</th>
-		
+
 	<?php endforeach; ?>
 	</tr>
 	</thead>
@@ -112,7 +110,8 @@ foreach($attackTactic as $tactic):
 </div>
 
 <?php if($pickingMode): ?>
-<div role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm('#popover_form_large');">Cancel</div>
+<div role="button" tabindex="0" aria-label="Submit" title="Submit" class="templateChoiceButton btn-matrix-submit" onClick="cancelPopoverForm('#popover_form_large');"><?php echo __('Submit'); ?></div>
+<div role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm('#popover_form_large');"><?php echo __('Cancel'); ?></div>
 <?php endif; ?>
 
 <?php

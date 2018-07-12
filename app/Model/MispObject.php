@@ -216,6 +216,25 @@ class MispObject extends AppModel {
 	//     group
 	public function fetchObjects($user, $options = array()) {
 		$sgsids = $this->SharingGroup->fetchAllAuthorised($user);
+		$attributeConditions = array();
+		if (!$user['Role']['perm_site_admin']) {
+			$attributeConditions = array(
+				'OR' => array(
+					array(
+						'(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['org_id']
+					),
+					array(
+						'OR' => array(
+							'Attribute.distribution' => array(1, 2, 3, 5),
+							array(
+								'Attribute.distribution' => 4,
+								'Attribute.sharing_group_id' => $sgsids
+							)
+						)
+					)
+				)
+			);
+		}
 		$params = array(
 			'conditions' => $this->buildConditions($user),
 			'recursive' => -1,
@@ -224,23 +243,8 @@ class MispObject extends AppModel {
 					'fields' => array('id', 'info', 'org_id', 'orgc_id'),
 				),
 				'Attribute' => array(
-					'conditions' => array(
-						'OR' => array(
-							array(
-								'Event.org_id' => $user['org_id'],
-							),
-							array(
-								'OR' => array(
-									'Attribute.distribution' => array(1, 2, 3, 5),
-									array(
-										'Attribute.distribution' => 4,
-										'Attribute.sharing_group_id' => $sgids
-									)
-								)
-							)
-						)
-					),
-					'ShadowAttribute',
+					'conditions' => $attributeConditions,
+					//'ShadowAttribute',
 					'AttributeTag' => array(
 						'Tag'
 					)

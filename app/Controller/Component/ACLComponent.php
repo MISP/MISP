@@ -106,6 +106,7 @@ class ACLComponent extends Component {
 					'filterEventIdsForPush' => array('perm_sync'),
 					'filterEventIndex' => array('*'),
 					'freeTextImport' => array('perm_add'),
+					'getEditStrategy' => array('perm_add'),
 					'getEventInfoById' => array('*'),
 					'getEventGraphReferences' => array('*'),
 					'getEventGraphTags' => array('*'),
@@ -172,6 +173,7 @@ class ACLComponent extends Component {
 			),
 			'galaxies' => array(
 				'attachCluster' => array('perm_tagger'),
+				'attachMultipleClusters' => array('perm_tagger'),
 				'index' => array('*'),
 				'selectGalaxy' => array('perm_tagger'),
 				'selectGalaxyNamespace' => array('perm_tagger'),

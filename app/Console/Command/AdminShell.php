@@ -2,7 +2,7 @@
 App::uses('AppShell', 'Console/Command');
 class AdminShell extends AppShell
 {
-	public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist', 'Server', 'Organisation', 'AdminSetting');
+	public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate');
 
 	public function jobGenerateCorrelation() {
 		$jobId = $this->args[0];
@@ -32,6 +32,76 @@ class AdminShell extends AppShell
 		$this->Job->id = $jobId;
 		$this->loadModel('ShadowAttribute');
 		$this->ShadowAttribute->generateCorrelation($jobId);
+	}
+
+	public function updateGalaxies() {
+		// The following is 7.x upwards only
+		//$value = $this->args[0] ?? $this->args[0] ?? 0;
+		$value = empty($this->args[0])  ? null : $this->args[0];
+		if ($value === 'false') $value = 0;
+		if ($value === 'true') $value = 1;
+		if ($value === 'force') $value = 1;
+		$force = $value;
+		$result = $this->Galaxy->update($force);
+		if ($result) {
+			echo 'Galaxies updated';
+		} else {
+			echo 'Could not update Galaxies';
+		}
+	}
+
+	# FIXME: Make Taxonomy->update() return a status string on API if successful
+	public function updateTaxonomies() {
+		$result = $this->Taxonomy->update();
+		if ($result) {
+			echo 'Taxonomies updated';
+		} else {
+			echo 'Could not update Taxonomies';
+		}
+	}
+
+	public function updateWarningLists() {
+		$result = $this->Galaxy->update();
+		if ($result) {
+			echo 'Warning lists updated';
+		} else {
+			echo 'Could not update warning lists';
+		}
+	}
+
+	public function updateNoticeLists() {
+		$result = $this->Noticelist->update();
+		if ($result) {
+			echo 'Notice lists updated';
+		} else {
+			echo 'Could not update notice lists';
+		}
+	}
+
+	# FIXME: Debug and make it work, fails to pass userId/orgId properly
+	public function updateObjectTemplates() {
+		if (empty($this->args[0])) {
+			echo 'Usage: ' . APP . '/cake ' . 'Admin updateNoticeLists [user_id]';
+		} else {
+			$userId = $this->args[0];
+			$user = $this->User->find('first', array(
+				'recursive' => -1,
+				'conditions' => array(
+					'User.id' => $userId,
+				),
+				'fields' => array('User.id', 'User.org_id')
+			));
+			if (empty($user)) {
+				echo 'User not found';
+			} else {
+				$result = $this->ObjectTemplate->update($user, false,false);
+				if ($result) {
+					echo 'Object templates updated';
+				} else {
+					echo 'Could not update object templates';
+				}
+			}
+		}
 	}
 
 	public function jobUpgrade24() {
@@ -78,6 +148,8 @@ class AdminShell extends AppShell
 	public function setSetting() {
 		$setting = !isset($this->args[0]) ? null : $this->args[0];
 		$value = !isset($this->args[1]) ? null : $this->args[1];
+		if ($value === 'false') $value = 0;
+		if ($value === 'true') $value = 1;
 		if (empty($setting) || $value === null) {
 			echo 'Invalid parameters. Usage: ' . APP . 'Console/cake Admin setSetting [setting_name] [setting_value]';
 		} else {

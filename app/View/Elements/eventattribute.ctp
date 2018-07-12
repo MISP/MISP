@@ -173,7 +173,7 @@
 			?>
 			<th class="context hidden"><?php echo $this->Paginator->sort('id');?></th>
 			<th class="context hidden">UUID</th>
-			<th><?php echo $this->Paginator->sort('timestamp', 'Date');?></th>
+			<th><?php echo $this->Paginator->sort('timestamp', 'Date', array('direction' => 'desc'));?></th>
 			<?php
 				if ($extended):
 			?>
@@ -280,7 +280,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
 	var deleted = <?php echo (isset($deleted) && $deleted) ? 'true' : 'false';?>;
 	$(document).ready(function() {
 		$('.addGalaxy').click(function() {
-			addGalaxyListener();
+			addGalaxyListener(this);
 		});
 		<?php
 			if ($focusedRow !== false):

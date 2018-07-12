@@ -28,7 +28,7 @@ class AttributesController extends AppController {
 
 		// permit reuse of CSRF tokens on the search page.
 		if ('search' == $this->request->params['action']) {
-			$this->Security->csrfUseOnce = false;
+			$this->Security->csrfCheck = false;
 		}
 		if ($this->action == 'add_attachment') {
 			$this->Security->disabledFields = array('values');
@@ -73,7 +73,6 @@ class AttributesController extends AppController {
 		if ($this->_isRest()) {
 			return $this->RestResponse->viewData($attributes, $this->response->type());
 		}
-		$attributes = $this->paginate();
 		$org_ids = array();
 		$tag_ids = array();
 		foreach ($attributes as $k => $attribute) {
@@ -1132,7 +1131,7 @@ class AttributesController extends AppController {
 			if ($this->request->is('ajax')) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Attribute')), 'type' => 'json', 'status'=>200));
 			else throw new MethodNotAllowedException('Invalid Attribute');
 		}
-		if (!$this->_isRest()) $this->Event->insertLock($this->Auth->user(), $attribute['Attribute']['event_id']);
+		if (!$this->_isRest()) $this->Attribute->Event->insertLock($this->Auth->user(), $attribute['Attribute']['event_id']);
 		if ($this->request->is('ajax')) {
 			if ($this->request->is('post')) {
 				$result = $this->Attribute->restore($id, $this->Auth->user());
@@ -1983,11 +1982,11 @@ class AttributesController extends AppController {
 		if ($tags) $conditions = $this->Attribute->setTagConditions($tags, $conditions, 'attribute');
 		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
-		if ($publish_timestamp) $conditions = $this->Attribute->setPublishTimestampConditions($publish_timestamp, $conditions);
+		if ($publish_timestamp) $conditions = $this->Attribute->setTimestampConditions($publish_timestamp, $conditions, 'Event.publish_timestamp');
 		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
 		if ($published) $conditions['AND'][] = array('Event.published' => $published);
-		if ($timestamp) $conditions['AND'][] = array('Attribute.timestamp >=' => $timestamp);
-		if ($event_timestamp) $conditions['AND'][] = array('Event.timestamp >=' => $event_timestamp);
+		if ($timestamp) $conditions = $this->Attribute->setTimestampConditions($timestamp, $conditions, 'Attribute.timestamp');
+		if ($event_timestamp) $conditions = $this->Attribute->setTimestampConditions($event_timestamp, $conditions, 'Event.timestamp');
 		if ($threat_level_id) {
 			if (!is_array($threat_level_id)) {
 				$threat_level_id = array($threat_level_id);

@@ -46,8 +46,8 @@ class AppController extends Controller {
 
 	public $helpers = array('Utility', 'OrgImg');
 
-	private $__queryVersion = '40';
-	public $pyMispVersion = '2.4.92';
+	private $__queryVersion = '42';
+	public $pyMispVersion = '2.4.93';
 	public $phpmin = '5.6.5';
 	public $phprec = '7.0.16';
 
@@ -178,10 +178,18 @@ class AppController extends Controller {
 				// disable CSRF for REST access
 				if (array_key_exists('Security', $this->components))
 					$this->Security->csrfCheck = false;
+				// If enabled, allow passing the API key via a named parameter (for crappy legacy systems only)
+				$namedParamAuthkey = false;
+				if (Configure::read('Security.allow_unsafe_apikey_named_param') && !empty($this->params['named']['apikey'])) {
+					$namedParamAuthkey = $this->params['named']['apikey'];
+				}
 				// Authenticate user with authkey in Authorization HTTP header
-				if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
+				if (!empty($_SERVER['HTTP_AUTHORIZATION']) || !empty($namedParamAuthkey)) {
 					$found_misp_auth_key = false;
 					$authentication = explode(',', $_SERVER['HTTP_AUTHORIZATION']);
+					if (!empty($namedParamAuthkey)) {
+						$authentication[] = $namedParamAuthkey;
+					}
 					$user = false;
 					foreach ($authentication as $auth_key) {
 						if (preg_match('/^[a-zA-Z0-9]{40}$/', trim($auth_key))) {
@@ -438,7 +446,16 @@ class AppController extends Controller {
 
 	protected function _isRest() {
 		$api = $this->__isApiFunction($this->request->params['controller'], $this->request->params['action']);
-		return (isset($this->RequestHandler) && ($api || $this->RequestHandler->isXml() || $this->_isJson()));
+		if (isset($this->RequestHandler) && ($api || $this->RequestHandler->isXml() || $this->_isJson())) {
+			if ($this->_isJson()) {
+				if (!empty($this->request->input()) && empty($this->request->input('json_decode'))) {
+					throw new MethodNotAllowedException('Invalid JSON input. Make sure that the JSON input is a correctly formatted JSON string. This request has been blocked to avoid an unfiltered request.');
+				}
+			}
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	protected function _isAutomation() {
