@@ -117,6 +117,8 @@ class AppController extends Controller {
 		$language = Configure::read('MISP.language');
 		if (!empty($language) && $language !== 'eng') {
 			Configure::write('Config.language', $language);
+		} else {
+			Configure::write('Config.language', 'eng');
 		}
 
 		//if fresh installation (salt empty) generate a new salt
