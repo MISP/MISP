@@ -3892,9 +3892,18 @@ class Server extends AppModel {
 
 	public function update($status) {
 		$final = '';
+		$cleanup_commands = array(
+			// (>^-^)> [hacky]
+			'git checkout app/composer.json 2>&1'
+		);
+		foreach ($cleanup_commands as $cleanup_command) {
+			$final .= $cleanup_command . "\n\n";
+			exec($cleanup_command, $output);
+			$final .= implode("\n", $output) . "\n\n";
+		}
 		$command1 = 'git pull origin ' . $status['branch'] . ' 2>&1';
 		$command2 = 'git submodule update --init --recursive 2>&1';
-		$final = $command1 . "\n\n";
+		$final .= $command1 . "\n\n";
 		exec($command1, $output);
 		$final .= implode("\n", $output) . "\n\n=================================\n\n";
 		$output = array();

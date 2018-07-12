@@ -46,7 +46,7 @@ class AppController extends Controller {
 
 	public $helpers = array('Utility', 'OrgImg');
 
-	private $__queryVersion = '42';
+	private $__queryVersion = '43';
 	public $pyMispVersion = '2.4.93';
 	public $phpmin = '5.6.5';
 	public $phprec = '7.0.16';
@@ -117,6 +117,8 @@ class AppController extends Controller {
 		$language = Configure::read('MISP.language');
 		if (!empty($language) && $language !== 'eng') {
 			Configure::write('Config.language', $language);
+		} else {
+			Configure::write('Config.language', 'eng');
 		}
 
 		//if fresh installation (salt empty) generate a new salt

@@ -960,8 +960,25 @@ class AppModel extends Model {
 					INDEX `timestamp` (`timestamp`)
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 				break;
-			case 13:
+			case 12:
 				$sqlArray[] = "ALTER TABLE `servers` ADD `skip_proxy` tinyint(1) NOT NULL DEFAULT 0;";
+				break;
+			case 13:
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS event_graph (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`event_id` int(11) NOT NULL,
+					`user_id` int(11) NOT NULL,
+					`org_id` int(11) NOT NULL,
+					`timestamp` int(11) NOT NULL DEFAULT 0,
+					`network_name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+					`network_json` MEDIUMTEXT NOT NULL,
+					`preview_img` MEDIUMTEXT,
+					PRIMARY KEY (id),
+					INDEX `event_id` (`event_id`),
+					INDEX `user_id` (`user_id`),
+					INDEX `org_id` (`org_id`)
+					INDEX `timestamp` (`timestamp`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
