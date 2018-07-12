@@ -27,7 +27,7 @@
 				}
 				echo $this->Form->input('distribution', array(
 					'options' => array($distributionLevels),
-					'label' => 'Distribution',
+					'label' => __('Distribution'),
 					'selected' => $initialDistribution,
 				));
 
@@ -39,7 +39,7 @@
 				));
 				echo $this->Form->input('comment', array(
 						'type' => 'text',
-						'label' => 'Contextual Comment',
+						'label' => __('Contextual Comment'),
 						'error' => array('escape' => false),
 						'div' => 'input clear',
 						'class' => 'input-xxlarge'
@@ -50,11 +50,11 @@
 				echo $this->Form->input('to_ids', array(
 							'checked' => false,
 							'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
-							'label' => 'for Intrusion Detection System',
+							'label' => __('for Intrusion Detection System'),
 				));
 				echo $this->Form->input('batch_import', array(
 						'type' => 'checkbox',
-						'data-content' => 'Create multiple attributes one per line',
+						'data-content' => __('Create multiple attributes one per line'),
 				));
 				// link an onchange event to the form elements
 				$this->Js->get('#AttributeCategory')->event('change', 'formCategoryChanged("#AttributeCategory")');
@@ -83,10 +83,10 @@
 					?>
 				</td>
 				<td style="width:540px;">
-					<p style="color:red;font-weight:bold;display:none;text-align:center" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
+					<p style="color:red;font-weight:bold;display:none;text-align:center" id="warning-message"><?php echo __('Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.');?></p>
 				</td>
 				<td style="vertical-align:top;">
-					<span class="btn btn-inverse" id="cancel_attribute_add">Cancel</span>
+					<span class="btn btn-inverse" id="cancel_attribute_add"><?php echo __('Cancel');?></span>
 				</td>
 				</tr>
 			</table>

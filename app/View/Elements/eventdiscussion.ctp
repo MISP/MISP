@@ -31,7 +31,7 @@
 									<tr>
 										<td>
 			<?php
-											echo 'Date: ' . h($post['date_created']);
+											echo __('Date: ') . h($post['date_created']);
 			?>
 										</td>
 										<td style="text-align:right">
@@ -49,7 +49,7 @@
 								if (isset($post['org_name'])) {
 									echo $this->OrgImg->getOrgImg(array('name' => $post['org_name'], 'size' => 48));
 								} else {
-									echo 'Deactivated user';
+									echo __('Deactivated user');
 								}
 								?>
 							</td>
@@ -86,18 +86,18 @@
 			<?php
 										if (!$isSiteAdmin) {
 											if ($post['user_id'] == $myuserid) {
-												echo $this->Html->link('', array('controller' => 'posts', 'action' => 'edit', h($post['id']), h($context)), array('class' => 'icon-edit', 'title' => 'Edit'));
-												echo $this->Form->postLink('', array('controller' => 'posts', 'action' => 'delete', h($post['id']), h($context)), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this post?'));
+												echo $this->Html->link('', array('controller' => 'posts', 'action' => 'edit', h($post['id']), h($context)), array('class' => 'icon-edit', 'title' => __('Edit')));
+												echo $this->Form->postLink('', array('controller' => 'posts', 'action' => 'delete', h($post['id']), h($context)), array('class' => 'icon-trash', 'title' => __('Delete')), __('Are you sure you want to delete this post?'));
 											} else {
 			?>
-												<a href="<?php echo $baseurl.'/posts/add/post/'.h($post['id']); ?>" class="icon-comment" title = "Reply"></a>
+												<a href="<?php echo $baseurl.'/posts/add/post/'.h($post['id']); ?>" class="icon-comment" title = "<?php echo __('Reply');?>"></a>
 			<?php
 											}
 										} else {
-											echo $this->Html->link('', array('controller' => 'posts', 'action' => 'edit', h($post['id']), h($context)), array('class' => 'icon-edit', 'title' => 'Edit'));
+											echo $this->Html->link('', array('controller' => 'posts', 'action' => 'edit', h($post['id']), h($context)), array('class' => 'icon-edit', 'title' => __('Edit')));
 											echo $this->Form->postLink('', array('controller' => 'posts', 'action' => 'delete', h($post['id']), h($context)), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this post?'));
 			?>
-												<a href = "<?php echo $baseurl.'/posts/add/post/'.h($post['id']); ?>" class="icon-comment" title = "Reply"></a>
+												<a href = "<?php echo $baseurl.'/posts/add/post/'.h($post['id']); ?>" class="icon-comment" title = "<?php echo __('Reply');?>"></a>
 			<?php
 
 										}
@@ -138,11 +138,11 @@
 	?>
 		<fieldset>
 		<div class="input clear">
-			<button type="button" title="Insert a quote - just paste your quote between the [quote][/quote] tags." class="toggle-left btn btn-inverse qet" id = "quote"  onclick="insertQuote()">Quote</button>
-			<button type="button" title="Insert a link to an event - just enter the event ID between the [event][/event] tags." class="toggle btn btn-inverse qet" id = "event"  onclick="insertEvent()">Event</button>
-			<button type="button" title="Insert a link to a discussion thread - enter the thread's ID between the [thread][/thread] tags." class="toggle-right btn btn-inverse qet" id = "thread"  onclick="insertThread()">Thread</button>
-			<button type="button" title="Insert a link [link][/link] tags." class="toggle-right btn btn-inverse qet" id = "link"  onclick="insertLink()">Link</button>
-			<button type="button" title="Insert a code [code][/code] tags." class="toggle-right btn btn-inverse qet" id = "code"  onclick="insertCode()">Code</button>
+			<button type="button" title=<?php echo __('"Insert a quote - just paste your quote between the [quote][/quote] tags.');?>" class="toggle-left btn btn-inverse qet" id = "quote"  onclick="insertQuote()"><?php echo __('Quote');?></button>
+			<button type="button" title="<?php echo __('Insert a link to an event - just enter the event ID between the [event][/event] tags.');?>" class="toggle btn btn-inverse qet" id = "event"  onclick="insertEvent()"><?php echo __('Event');?></button>
+			<button type="button" title="<?php echo __('Insert a link to a discussion thread - enter the thread\'s ID between the [thread][/thread] tags.');?>" class="toggle-right btn btn-inverse qet" id = "thread"  onclick="insertThread()"><?php echo __('Thread');?></button>
+			<button type="button" title="<?php echo __('Insert a link [link][/link] tags.');?>" class="toggle-right btn btn-inverse qet" id = "link"  onclick="insertLink()"><?php echo __('Link');?></button>
+			<button type="button" title="<?php echo __('Insert a code [code][/code] tags.');?>" class="toggle-right btn btn-inverse qet" id = "code"  onclick="insertCode()"><?php echo __('Code');?></button>
 		</div>
 		<?php
 			echo $this->Form->input('message', array(
@@ -153,7 +153,7 @@
 			));
 		?>
 		</fieldset>
-		<button class="btn btn-primary" onClick="submitMessageForm('<?php echo h($url);?>', 'PostViewForm', 'top'); return false;">Send</button>
+		<button class="btn btn-primary" onClick="submitMessageForm('<?php echo h($url);?>', 'PostViewForm', 'top'); return false;"><?php echo __('Send');?></button>
 	<?php
 		echo $this->Form->end();
 	?>

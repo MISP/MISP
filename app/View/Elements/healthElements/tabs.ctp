@@ -1,6 +1,6 @@
 <div class="tabMenuFixedContainer">
 	<span class="tabMenuFixed tabMenuFixedLeft tabMenuSides">
-	<a href="<?php echo $baseurl;?>/servers/serverSettings/" id="create-button" title="<?php echo __('Modify filters');?>" class="discrete">Overview</a>
+  <a href="<?php echo $baseurl;?>/servers/serverSettings/" id="create-button" title="<?php echo __('Modify filters');?>" class="discrete"><?php __('Overview'); ?></a>
 	</span>
 <?php
 	$i = 0;
@@ -24,8 +24,8 @@
 	endforeach;
 ?>
 	<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides" style="margin-left:50px;">
-	<a href="<?php echo $baseurl;?>/servers/serverSettings/diagnostics" id="create-button" title="Modify filters" class="discrete">
-		Diagnostics
+		<a href="<?php echo $baseurl;?>/servers/serverSettings/diagnostics" id="create-button" title="<?php __('Modify filters'); ?>" class="discrete">
+		<?php __('Diagnostics'); ?>
 		<?php
 			if ($diagnostic_errors > 0) echo '<span style="color:red;"> (' . $diagnostic_errors . ')</span>';
 		?>
@@ -33,8 +33,8 @@
 	</span>
 	<?php if (!empty($worker_array)): ?>
 	<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides" style="margin-left:10px;">
-		<a href="<?php echo $baseurl;?>/servers/serverSettings/workers" id="create-button" title="Modify filters" class="discrete">
-			Workers
+			<a href="<?php echo $baseurl;?>/servers/serverSettings/workers" id="create-button" title="<?php __('Modify filters'); ?>" class="discrete">
+			<?php __('Workers'); ?>
 			<?php
 				if ($workerIssueCount > 0) echo '<span style="color:red;"> (' . $workerIssueCount . ')</span>';
 			?>
@@ -42,9 +42,9 @@
 	</span>
 	<?php endif; ?>
 	<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides" style="margin-left:10px;">
-		<a href="<?php echo $baseurl;?>/servers/serverSettings/files" id="download-button" title="Manage files" class="discrete">Manage files</a>
+		<a href="<?php echo $baseurl;?>/servers/serverSettings/files" id="download-button" title="<?php __('Manage files'); ?>" class="discrete"><?php __('Manage files'); ?></a>
 	</span>
 	<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides" style="margin-left:10px;">
-		<a href="<?php echo $baseurl;?>/servers/serverSettings/download" id="download-button" title="Download report" role="button" tabindex="0" aria-label="Download report" class="useCursorPointer discrete icon-download-alt"></a>
+		<a href="<?php echo $baseurl;?>/servers/serverSettings/download" id="download-button" title="<?php __('Download report'); ?>" role="button" tabindex="0" aria-label="Download report" class="useCursorPointer discrete icon-download-alt"></a>
 	</span>
 </div>

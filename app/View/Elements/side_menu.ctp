@@ -14,68 +14,68 @@
 						echo $this->element('/side_menu_link', array(
 							'element_id' => 'template_populate_results',
 							'url' => '/templates/index',
-							'text' => 'Populate From Template'
+							'text' => __('Populate From Template')
 						));
 					}
 					if ($menuItem === 'freetextResults') {
 						echo $this->element('/side_menu_link', array(
 							'element_id' => 'freetextResults',
 							'url' => '#',
-							'text' => 'Freetext Import Result'
+							'text' => __('Freetext Import Result')
 						));
 						echo $this->element('/side_menu_divider');
 					}
 					echo $this->element('/side_menu_link', array(
 						'element_id' => 'viewEvent',
 						'url' => '/events/view/' .  $event['Event']['id'],
-						'text' => 'View Event'
+						'text' => __('View Event')
 					));
 					echo $this->element('/side_menu_link', array(
 						'element_id' => 'viewGraph',
 						'url' => '/events/viewGraph/' .  $event['Event']['id'],
-						'text' => 'View Correlation Graph'
+						'text' => __('View Correlation Graph')
 					));
 					echo $this->element('/side_menu_link', array(
 						'element_id' => 'eventLog',
 						'url' => '/logs/event_index/' .  $event['Event']['id'],
-						'text' => 'View Event History'
+						'text' => __('View Event History')
 					));
 					echo $this->element('/side_menu_divider');
 					if ($isSiteAdmin || (isset($mayModify) && $mayModify)) {
 						echo $this->element('/side_menu_link', array(
 							'element_id' => 'editEvent',
 							'url' => '/events/edit/' .  $event['Event']['id'],
-							'text' => 'Edit Event'
+							'text' => __('Edit Event')
 						));
 						echo '<li>' . $this->Form->postLink(__('Delete Event'), array('controller' => 'events', 'action' => 'delete', h($event['Event']['id'])), null, __('Are you sure you want to delete # %s?', h($event['Event']['id']))) . '</li>';
 						echo $this->element('/side_menu_link', array(
 							'element_id' => 'addAttribute',
 							'url' => '/attributes/add/' .  $event['Event']['id'],
-							'text' => 'Add Attribute'
+							'text' => __('Add Attribute')
 						));
 						echo $this->element('/side_menu_link', array(
 							'onClick' => array(
 								'function' => 'getPopup',
 								'params' => array($event['Event']['id'], 'objectTemplates', 'objectChoice')
 							),
-							'text' => 'Add Object'
+							'text' => __('Add Object')
 						));
 						echo $this->element('/side_menu_link', array(
 							'element_id' => 'addAttachment',
 							'url' => '/attributes/add_attachment/' .  $event['Event']['id'],
-							'text' => 'Add Attachment'
+							'text' => __('Add Attachment')
 						));
 						echo $this->element('/side_menu_link', array(
 							'onClick' => array(
 								'function' => 'getPopup',
 								'params' => array($event['Event']['id'], 'events', 'importChoice')
 							),
-							'text' => 'Populate from...'
+							'text' => _('Populate from...')
 						));
 						if ($menuItem === 'populateFromtemplate') {
 							echo $this->element('/side_menu_link', array(
 								'url' => '/templates/populateEventFromTemplate/' . $template_id . '/' .  $event['Event']['id'],
-								'text' => 'Populate From Template'
+								'text' => __('Populate From Template')
 							));
 						}
 						echo $this->element('/side_menu_link', array(
@@ -83,24 +83,24 @@
 								'function' => 'genericPopup',
 								'params' => array($baseurl . '/events/enrichEvent/' . $event['Event']['id'], '#confirmation_box')
 							),
-							'text' => 'Enrich Event'
+							'text' => __('Enrich Event')
 						));
 						echo $this->element('/side_menu_link', array(
 							'element_id' => 'merge',
 							'url' => '/events/merge/' . $event['Event']['id'],
-							'text' => 'Merge attributes from...'
+							'text' => __('Merge attributes from...')
 						));
 					}
 					if (($isSiteAdmin && (!isset($mayModify) || !$mayModify)) || (!isset($mayModify) || !$mayModify)) {
 						echo $this->element('/side_menu_link', array(
 							'element_id' => 'proposeAttribute',
 							'url' => '/shadow_attributes/add/' . $event['Event']['id'],
-							'text' => 'Propose Attribute'
+							'text' => __('Propose Attribute')
 						));
 						echo $this->element('/side_menu_link', array(
 							'element_id' => 'proposeAttachment',
 							'url' => '/shadow_attributes/add_attachment/' . $event['Event']['id'],
-							'text' => 'Propose Attachment'
+							'text' => __('Propose Attachment')
 						));
 					}
 					echo $this->element('/side_menu_divider');
@@ -112,7 +112,7 @@
 							'params' => array($event['Event']['id'], 'alert')
 						),
 						'class' => 'publishButtons not-published ' . $publishButtons,
-						'text' => 'Publish Event'
+						'text' => __('Publish Event')
 					));
 					echo $this->element('/side_menu_link', array(
 						'onClick' => array(
@@ -120,7 +120,7 @@
 							'params' => array($event['Event']['id'], 'publish')
 						),
 						'class' => 'publishButtons not-published ' . $publishButtons,
-						'text' => 'Publish (no email)'
+						'text' => __('Publish (no email)')
 					));
 					if (Configure::read('MISP.delegation')) {
 						if ((Configure::read('MISP.unpublishedprivate') || (isset($event['Event']['distribution']) && $event['Event']['distribution'] == 0)) && (!isset($delegationRequest) || !$delegationRequest) && ($isSiteAdmin || (isset($isAclDelegate) && $isAclDelegate))) {
@@ -129,7 +129,7 @@
 									'function' => 'delegatePopup',
 									'params' => array($event['Event']['id'])
 								),
-								'text' => 'Delegate Publishing'
+								'text' => __('Delegate Publishing')
 							));
 						}
 						if (isset($delegationRequest) && $delegationRequest && ($isSiteAdmin || ($isAclPublish && ($me['org_id'] == $delegationRequest['EventDelegation']['org_id'] || $me['org_id'] == $delegationRequest['EventDelegation']['requester_org_id'])))) {
@@ -140,7 +140,7 @@
 										'function' => 'genericPopup',
 										'params' => array($baseurl . '/event_delegations/acceptDelegation/' . $delegationRequest['EventDelegation']['id'], '#confirmation_box')
 									),
-									'text' => 'Accept Delegation Request'
+									'text' => __('Accept Delegation Request')
 								));
 							}
 							echo $this->element('/side_menu_link', array(
@@ -148,7 +148,7 @@
 									'function' => 'genericPopup',
 									'params' => array($baseurl . '/event_delegations/deleteDelegation/' . $delegationRequest['EventDelegation']['id'], '#confirmation_box')
 								),
-								'text' => 'Discard Delegation Request'
+								'text' => __('Discard Delegation Request')
 							));
 							echo $this->element('/side_menu_divider');
 						}
@@ -159,24 +159,24 @@
 					echo $this->element('/side_menu_link', array(
 						'element_id' => 'contact',
 						'url' => '/events/contact/' . $event['Event']['id'],
-						'text' => 'Contact Reporter'
+						'text' => __('Contact Reporter')
 					));
 					echo $this->element('/side_menu_link', array(
 						'onClick' => array(
 							'function' => 'getPopup',
 							'params' => array($event['Event']['id'], 'events', 'exportChoice')
 						),
-						'text' => 'Download as...'
+						'text' => __('Download as...')
 					));
 					echo $this->element('/side_menu_divider');
 					echo $this->element('/side_menu_link', array(
 						'url' => '/events/index',
-						'text' => 'List Events'
+						'text' => __('List Events')
 					));
 					if ($isAclAdd) {
 						echo $this->element('/side_menu_link', array(
 							'url' => '/events/add',
-							'text' => 'Add Event'
+							'text' => __('Add Event')
 						));
 					}
 				break;
@@ -185,80 +185,80 @@
 					echo $this->element('/side_menu_link', array(
 						'element_id' => 'index',
 						'url' => '/events/index',
-						'text' => 'List Events'
+						'text' => __('List Events')
 					));
 					if ($isAclAdd) {
 						echo $this->element('/side_menu_link', array(
 							'element_id' => 'add',
 							'url' => '/events/add',
-							'text' => 'Add Event'
+							'text' => __('Add Event')
 						));
 						echo $this->element('/side_menu_link', array(
 							'onClick' => array(
 								'function' => 'getPopup',
 								'params' => array('0', 'events', 'importChoice/event-collection')
 							),
-							'text' => 'Import from…'
+							'text' => __('Import from…')
 						));
 					}
 					echo $this->element('/side_menu_divider');
 					echo $this->element('/side_menu_link', array(
 						'element_id' => 'index',
 						'url' => '/attributes/index',
-						'text' => 'List Attributes'
+						'text' => __('List Attributes')
 					));
 					echo $this->element('/side_menu_link', array(
 						'element_id' => 'search',
 						'url' => '/attributes/search',
-						'text' => 'Search Attributes'
+						'text' => __('Search Attributes')
 					));
 					if ($menuItem == 'searchAttributes2') {
 						echo $this->element('/side_menu_divider');
 						echo $this->element('/side_menu_link', array(
 							'url' => '/events/downloadSearchResult.json',
-							'text' => 'Download results as JSON'
+							'text' => __('Download results as JSON'))
 						));
 						echo $this->element('/side_menu_link', array(
 							'url' => '/events/downloadSearchResult.xml',
-							'text' => 'Download results as XML'
+							'text' => __('Download results as XML')
 						));
 						echo $this->element('/side_menu_link', array(
 							'url' => '/events/csv/download/search',
-							'text' => 'Download results as CSV'
+							'text' => __('Download results as CSV')
 						));
 					}
 					echo $this->element('/side_menu_divider');
 					echo $this->element('/side_menu_link', array(
 						'url' => '/shadow_attributes/index',
-						'text' => 'View Proposals'
+						'text' => __('View Proposals')
 					));
 					echo $this->element('/side_menu_link', array(
 						'url' => '/events/proposalEventIndex',
-						'text' => 'Events with proposals'
+						'text' => __('Events with proposals')
 					));
 					echo $this->element('/side_menu_divider');
 					echo $this->element('/side_menu_link', array(
 						'url' => '/events/export',
-						'text' => 'Export'
+						'text' => __('Export')
 					));
 					if ($isAclAuth) {
 						echo $this->element('/side_menu_link', array(
 							'element_id' => 'automation',
 							'url' => '/events/automation',
-							'text' => 'Automation'
+							'text' => __('Automation')
 						));
 					}
 				break;
 
 				case 'regexp': ?>
-					<li id='liindex'><?php echo $this->Html->link('List Regexp', array('admin' => $isSiteAdmin, 'action' => 'index'));?></li>
+					<li id='liindex'><?php echo $this->Html->link(__('List Regexp'), array('admin' => $isSiteAdmin, 'action' => 'index'));?></li>
 					<?php if ($isSiteAdmin): ?>
-					<li id='liadd'><?php echo $this->Html->link('New Regexp', array('admin' => true, 'action' => 'add'));?></li>
+					<li id='liadd'><?php echo $this->Html->link(__('New Regexp'), array('admin' => true, 'action' => 'add'));?></li>
 					<li><?php echo $this->Form->postLink(__('Perform on existing'), array('admin' => true, 'action' => 'clean'));?></li>
 					<?php endif;
 					if ($menuItem == 'edit'):?>
 					<li class="divider"></li>
-					<li class="active"><?php echo $this->Html->link('Edit Regexp', array('admin' => true, 'action' => 'edit', h($id)));?></li>
+					<li class="active"><?php echo $this->Html->link(__('Edit Regexp'), array('admin' => true, 'action' => 'edit', h($id)));?></li>
 					<li><?php echo $this->Form->postLink(__('Delete Regexp'), array('admin' => true, 'action' => 'delete', h($id)), null, __('Are you sure you want to delete # %s?', h($id)));?></li>
 					<?php
 					endif;
