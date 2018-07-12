@@ -5,6 +5,8 @@
         "kamisama/cake-resque": "@stable",
         "pear/crypt_gpg": "@stable",
         "pear/net_geoip": "@dev"
+    },
+    "suggest": {
+        "elasticsearch/elasticsearch": "For logging to elasticsearch"
     }
 }
-

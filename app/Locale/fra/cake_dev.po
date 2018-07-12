@@ -1,0 +1,22 @@
+# LANGUAGE translation of CakePHP Application
+# Copyright 2018 truckydev <EMAIL@ADDRESS>
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: 1\n"
+"PO-Revision-Date: 2018-01-29 18:34\n"
+"Last-Translator: truckydev\n"
+"Language-Team: FR_fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: Controller/AppController.php:398
+msgid "The request has been black-holed"
+msgstr "La requête a été bloquée"
+
+#: View/Layouts/error.ctp:19
+msgid "CakePHP: the rapid development php framework"
+msgstr "CakePHP: cadriciel php de développement rapide"
