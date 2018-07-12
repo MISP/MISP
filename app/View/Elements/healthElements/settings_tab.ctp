@@ -6,15 +6,15 @@
 		<table class="table table-hover table-condensed settingsTableContainer">
 			<?php if ($subGroup != 'general'): ?>
 				<tr>
-					<th class="useCursorPointer" role="button" tabindex="0" aria-label="Toggle subgroup <?php echo h($subGroup); ?>" title="<?php __('Toggle subgroup'); ?>" style="border-right: 1px solid #dddddd;color: #0088cc;" onClick="toggleSettingSubGroup('<?php echo h($subGroup);?>')"><?php echo h($subGroup);?></th>
+					<th class="useCursorPointer" role="button" tabindex="0" aria-label="Toggle subgroup <?php echo h($subGroup); ?>" title="<?php echo __('Toggle subgroup'); ?>" style="border-right: 1px solid #dddddd;color: #0088cc;" onClick="toggleSettingSubGroup('<?php echo h($subGroup);?>')"><?php echo h($subGroup);?></th>
 				</tr>
 			<?php endif;?>
 			<tr class="subGroup_<?php echo h($subGroup);?> hidden">
-					<th><?php __('Priority'); ?></th>
-					<th><?php __('Setting'); ?></th>
-					<th><?php __('Value'); ?></th>
-					<th><?php __('Description'); ?></th>
-					<th><?php __('Error Message'); ?></th>
+					<th><?php echo __('Priority'); ?></th>
+					<th><?php echo __('Setting'); ?></th>
+					<th><?php echo __('Value'); ?></th>
+					<th><?php echo __('Description'); ?></th>
+					<th><?php echo __('Error Message'); ?></th>
 			</tr>
 			<?php
 				foreach ($settings as $k => $setting):
