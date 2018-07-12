@@ -146,9 +146,9 @@ class StixBuilder():
                 galaxy_type = galaxy.get('type')
                 if 'attack-pattern' in galaxy_type:
                     self.add_attack_pattern(galaxy)
-                elif 'course' in galaxy_type:
+                elif 'course-of-action' in galaxy_type:
                     self.add_course_of_action(galaxy)
-                elif 'intrusion' in galaxy_type:
+                elif 'intrusion-set' in galaxy_type:
                     self.add_intrusion_set(galaxy)
                 elif 'ware' in galaxy_type:
                     self.add_malware(galaxy)
