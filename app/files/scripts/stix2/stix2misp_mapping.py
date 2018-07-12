@@ -284,6 +284,12 @@ x509_mapping = {'issuer': issuer_attribute_mapping,
                 "x509-certificate:hashes.'md5'": x509_md5_attribute_mapping,
                 }
 
+def parse_custom_property(p_type):
+    d_type = p_type.split("_")
+    attribute_type = d_type[2]
+    relation = "".join("{}-".format(t) for t in d_type[3:])
+    return attribute_type, relation
+
 def fill_observable_attributes(attributes, stix_object, object_mapping):
     for o_key, o_value in stix_object.items():
         try:
@@ -292,9 +298,14 @@ def fill_observable_attributes(attributes, stix_object, object_mapping):
                                'value': o_value, 'to_ids': False})
         except:
             if "x_misp_" in o_key:
-                attribute_type, relation = o_key.split("x_misp_")[1].split("_")
-                attributes.append({'type': attribute_type, 'object_relation': relation,
-                                   'value': o_value, 'to_ids': False})
+                attribute_type, relation = parse_custom_property(o_key)
+                if isinstance(o_value, list):
+                    for v in o_value:
+                        attributes.append({'type': attribute_type, 'object_relation': relation[:-1],
+                                           'value': v, 'to_ids': False})
+                else:
+                    attributes.append({'type': attribute_type, 'object_relation': relation[:-1],
+                                       'value': o_value, 'to_ids': False})
             else:
                 continue
 
@@ -308,8 +319,8 @@ def fill_pattern_attributes(pattern, object_mapping):
                                'value': p_value[1:-1], 'to_ids': True})
         except KeyError:
             if "x_misp_" in p_type:
-                attribute_type, relation = p_type.split("x_misp_")[1][:-1].split("_")
-                attributes.append({'type': attribute_type, 'object_relation': relation,
+                attribute_type, relation = parse_custom_property(p_type)
+                attributes.append({'type': attribute_type, 'object_relation': relation[:-2],
                                    'value': p_value[1:-1], 'to_ids': True})
             else:
                 continue
