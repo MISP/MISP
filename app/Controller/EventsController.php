@@ -2555,7 +2555,7 @@ class EventsController extends AppController {
 					if ($includeContext) {
 						foreach ($this->Event->csv_event_context_fields_to_fetch as $header => $field) {
 							if ($field['object']) $line .= ',' . $attribute['Event'][$field['object']][$field['var']];
-							else $line .= ',' . $attribute['Event'][$field['var']];
+							else $line .= ',' . str_replace(array("\n","\t","\r")," ",$attribute['Event'][$field['var']]);
 						}
 					}
 					$final[] = $line;

@@ -446,7 +446,16 @@ class AppController extends Controller {
 
 	protected function _isRest() {
 		$api = $this->__isApiFunction($this->request->params['controller'], $this->request->params['action']);
-		return (isset($this->RequestHandler) && ($api || $this->RequestHandler->isXml() || $this->_isJson()));
+		if (isset($this->RequestHandler) && ($api || $this->RequestHandler->isXml() || $this->_isJson())) {
+			if ($this->_isJson()) {
+				if (!empty($this->request->input()) && empty($this->request->input('json_decode'))) {
+					throw new MethodNotAllowedException('Invalid JSON input. Make sure that the JSON input is a correctly formatted JSON string. This request has been blocked to avoid an unfiltered request.');
+				}
+			}
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	protected function _isAutomation() {

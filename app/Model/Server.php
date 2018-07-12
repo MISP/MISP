@@ -398,7 +398,7 @@ class Server extends AppModel {
 					'attachments_dir' => array(
 							'level' => 2,
 							'description' => 'Directory where attachments are stored. MISP will NOT migrate the existing data if you change this setting. The only safe way to change this setting is in config.php, when MISP is not running, and after having moved/copied the existing data to the new location. This directory must already exist and be writable and readable by the MISP application.',
-							'value' =>  'app/files', # GUI display purpose only. Default value defined in func getDefaultAttachments_dir()
+							'value' =>  '', # GUI display purpose only. Default value defined in func getDefaultAttachments_dir()
 							'errorMessage' => '',
 							'null' => false,
 							'test' => 'testForWritableDir',
@@ -1364,6 +1364,30 @@ class Server extends AppModel {
 						'test' => 'testBool',
 						'type' => 'boolean'
 					),
+                    'ElasticSearch_logging_enable' => array (
+                        'level' => 2,
+                        'description' => 'Enabled logging to an ElasticSearch instance',
+                        'value' => false,
+                        'errorMessage' => '',
+                        'test' => 'testBool',
+                        'type' => 'boolean'
+                    ),
+                    'ElasticSearch_connection_string' => array(
+                        'level' => 2,
+                        'description' => 'The URL(s) at which to access ElasticSearch - comma seperate if you want to have more than one.',
+                        'value' => '',
+                        'errorMessage' => '',
+                        'test' => 'testForEmpty',
+                        'type' => 'string'
+                    ),
+                    'ElasticSearch_log_index' => array(
+                        'level' => 2,
+                        'description' => 'The index in which to place logs',
+                        'value' => '',
+                        'errorMessage' => '',
+                        'test' => 'testForEmpty',
+                        'type' => 'string'
+                    ),
 					'Sightings_policy' => array(
 						'level' => 1,
 						'description' => 'This setting defines who will have access to seeing the reported sightings. The default setting is the event owner alone (in addition to everyone seeing their own contribution) with the other options being Sighting reporters (meaning the event owner and anyone that provided sighting data about the event) and Everyone (meaning anyone that has access to seeing the event / attribute).',
@@ -1696,6 +1720,11 @@ class Server extends AppModel {
 			'Security' => 'Security',
 			'Session' => 'Security'
 	);
+
+	public function __construct($id = false, $table = null, $ds = null) {
+		parent::__construct($id, $table, $ds);
+		$this->serverSettings['MISP']['attachments_dir']['value'] = APP . '/files';
+	}
 
 	public $validEventIndexFilters = array('searchall', 'searchpublished', 'searchorg', 'searchtag', 'searcheventid', 'searchdate', 'searcheventinfo', 'searchthreatlevel', 'searchdistribution', 'searchanalysis', 'searchattribute');
 
@@ -3247,7 +3276,7 @@ class Server extends AppModel {
 
 	public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion, &$maecVersion, &$pymispVersion) {
 		$result = array();
-		$expected = array('stix' => '1.2.0.6', 'cybox' => '2.1.0.18.dev0', 'mixbox' => '1.0.3', 'maec' => '4.1.0.13', 'pymisp' => '>2.4.93');
+		$expected = array('stix' => '1.2.0.6', 'cybox' => '2.1.0.17', 'mixbox' => '1.0.3', 'maec' => '4.1.0.13', 'pymisp' => '>2.4.93');
 		// check if the STIX and Cybox libraries are working using the test script stixtest.py
 		$scriptResult = shell_exec('python3 ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
 		$scriptResult = json_decode($scriptResult, true);
