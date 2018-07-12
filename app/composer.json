@@ -4,10 +4,9 @@
     "require": {
         "kamisama/cake-resque": "@stable",
         "pear/crypt_gpg": "@stable",
-        "pear/net_geoip": "@dev",
-        "elasticsearch/elasticsearch": "~6.0"
+        "pear/net_geoip": "@dev"
     },
-    "config": {
-        "vendor-dir": "Vendor"
+    "suggest": {
+        "elasticsearch/elasticsearch": "For logging to elasticsearch"
     }
 }
