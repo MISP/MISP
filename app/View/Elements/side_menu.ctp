@@ -216,7 +216,7 @@
 						echo $this->element('/side_menu_divider');
 						echo $this->element('/side_menu_link', array(
 							'url' => '/events/downloadSearchResult.json',
-							'text' => __('Download results as JSON'))
+							'text' => __('Download results as JSON')
 						));
 						echo $this->element('/side_menu_link', array(
 							'url' => '/events/downloadSearchResult.xml',
