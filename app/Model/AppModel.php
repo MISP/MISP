@@ -36,7 +36,7 @@ class AppModel extends Model {
 
 	private $__profiler = array();
 
-    public $elasticSearchClient = false;
+	public $elasticSearchClient = false;
 
 	public function __construct($id = false, $table = null, $ds = null) {
 		parent::__construct($id, $table, $ds);
