@@ -72,7 +72,7 @@ function installMISPonKali() {
   export DEBIAN_FRONTEND=noninteractive
 
   # sudo config to run $LUSER commands
-  SUDO="sudo -E -u ${MISP_USER}"
+  SUDO="sudo -u ${MISP_USER}"
   SUDO_WWW="sudo -u www-data"
 
   echo "Admin (${DBUSER_ADMIN}) DB Password: ${DBPASSWORD_ADMIN}"
@@ -161,7 +161,7 @@ function installMISPonKali() {
   chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
 
   if [ ! -e /var/lib/mysql/misp/users.ibd ]; then
-    expect -f - <<-EOF
+    expect -f - << EOF
       set timeout 10
       spawn mysql_secure_installation
       expect "Enter current password for root (enter for none):"
@@ -189,6 +189,23 @@ function installMISPonKali() {
     mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "flush privileges;"
 
     $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
+
+    echo "<?php
+  class DATABASE_CONFIG {
+          public \$default = array(
+                  'datasource' => 'Database/Mysql',
+                  //'datasource' => 'Database/Postgres',
+                  'persistent' => false,
+                  'host' => '$DBHOST',
+                  'login' => '$DBUSER_MISP',
+                  'port' => 3306, // MySQL & MariaDB
+                  //'port' => 5432, // PostgreSQL
+                  'password' => '$DBPASSWORD_MISP',
+                  'database' => '$DBNAME',
+                  'prefix' => '',
+                  'encoding' => 'utf8',
+          );
+  }" | $SUDO_WWW tee $PATH_TO_MISP/app/Config/database.php
   else
     echo "There might be a database already existing here: /var/lib/mysql/misp/users.ibd"
     echo "Skipping any creations…"
@@ -246,7 +263,6 @@ function installMISPonKali() {
           CustomLog /var/log/apache2/misp.local_access.log combined
           ServerSignature Off
   </VirtualHost>" | tee /etc/apache2/sites-available/misp-ssl.conf
-  EOF
 
   echo "127.0.0.1 misp.local" | tee -a /etc/hosts
 
@@ -309,23 +325,6 @@ function installMISPonKali() {
   $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/database.default.php $PATH_TO_MISP/app/Config/database.php
   $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/core.default.php $PATH_TO_MISP/app/Config/core.php
   $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/config.default.php $PATH_TO_MISP/app/Config/config.php
-
-  echo "<?php
-  class DATABASE_CONFIG {
-          public \$default = array(
-                  'datasource' => 'Database/Mysql',
-                  //'datasource' => 'Database/Postgres',
-                  'persistent' => false,
-                  'host' => '$DBHOST',
-                  'login' => '$DBUSER_MISP',
-                  'port' => 3306, // MySQL & MariaDB
-                  //'port' => 5432, // PostgreSQL
-                  'password' => '$DBPASSWORD_MISP',
-                  'database' => '$DBNAME',
-                  'prefix' => '',
-                  'encoding' => 'utf8',
-          );
-  }" | $SUDO_WWW tee $PATH_TO_MISP/app/Config/database.php
 
   chown -R www-data:www-data $PATH_TO_MISP/app/Config
   chmod -R 750 $PATH_TO_MISP/app/Config
@@ -499,8 +498,8 @@ function installMISPonKali() {
   $SUDO /usr/local/src/viper/viper-cli -h
   $SUDO /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 &
   echo 'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/src/viper:/var/www/MISP/app/Console"' |tee /etc/environment
-  $SUDO sed -i "s/^misp_url\ =/misp_url\ =\ http:\/\/localhost/g" ~/.viper/viper.conf
-  $SUDO sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" ~/.viper/viper.conf
+  $SUDO sed -i "s/^misp_url\ =/misp_url\ =\ http:\/\/localhost/g" /home/${MISP_USER}/.viper/viper.conf
+  $SUDO sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" /home/${MISP_USER}/.viper/viper.conf
 
   while [ "$(sqlite3 /home/${MISP_USER}/.viper/admin.db 'UPDATE auth_user SET password="pbkdf2_sha256$100000$iXgEJh8hz7Cf$vfdDAwLX8tko1t0M1TLTtGlxERkNnltUnMhbv56wK/U="'; echo $?)" -ne "0" ]; do
     echo "Updating viper-web admin password, giving process time to start-up, sleeping 5, 4, 3,…"
