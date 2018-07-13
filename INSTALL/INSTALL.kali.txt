@@ -94,6 +94,8 @@ function installMISPonKali() {
   libxml2-dev libxslt1-dev zlib1g-dev python3-setuptools
 
   apt install -qy rng-tools # This might fail on TPM grounds, enable the security chip in your BIOS
+  modprobe tpm-rng
+  echo tpm-rng >> /etc/modules
   service rng-tools start
 
   systemctl restart mariadb.service
