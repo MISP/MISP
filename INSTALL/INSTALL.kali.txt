@@ -161,27 +161,26 @@ function installMISPonKali() {
   chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
 
   if [ ! -e /var/lib/mysql/misp/users.ibd ]; then
-    expect -f - << EOF
+    echo "
       set timeout 10
       spawn mysql_secure_installation
-      expect "Enter current password for root (enter for none):"
-      send -- "\r"
-      expect "Set root password?"
-      send -- "y\r"
-      expect "New password:"
-      send -- "${DBPASSWORD_ADMIN}\r"
-      expect "Re-enter new password:"
-      send -- "${DBPASSWORD_ADMIN}\r"
-      expect "Remove anonymous users?"
-      send -- "y\r"
-      expect "Disallow root login remotely?"
-      send -- "y\r"
-      expect "Remove test database and access to it?"
-      send -- "y\r"
-      expect "Reload privilege tables now?"
-      send -- "y\r"
-      expect eof
-    EOF
+      expect 'Enter current password for root (enter for none):'
+      send -- '\r'
+      expect 'Set root password?'
+      send -- 'y\r'
+      expect 'New password:'
+      send -- '${DBPASSWORD_ADMIN}\r'
+      expect 'Re-enter new password:'
+      send -- '${DBPASSWORD_ADMIN}\r'
+      expect 'Remove anonymous users?'
+      send -- 'y\r'
+      expect 'Disallow root login remotely?'
+      send -- 'y\r'
+      expect 'Remove test database and access to it?'
+      send -- 'y\r'
+      expect 'Reload privilege tables now?'
+      send -- 'y\r'
+      expect eof" | expect -f -
 
     mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "create database $DBNAME;"
     mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant usage on *.* to $DBNAME@localhost identified by '$DBPASSWORD_MISP';"
