@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2018-07-11 12:37\n"
+"PO-Revision-Date: 2018-07-13 10:37\n"
 "Last-Translator: SteveClement <steve@localhost.lu>\n"
 "Language-Team: Japanese\n"
 "MIME-Version: 1.0\n"
@@ -137,7 +137,7 @@ msgstr "SITX ドキュメントがインポートされました。"
 
 #: Controller/EventsController.php:1610
 msgid "Could not import STIX document: "
-msgstr "SITX ドキュメントがインポートできませんでした: "
+msgstr "SITX ドキュメントをインポートできませんでした: "
 
 #: Controller/EventsController.php:1615
 msgid "File upload failed. Make sure that you select a stix file to be uploaded and that the file doesn't exceed the maximum file size of "
@@ -305,7 +305,7 @@ msgstr "無効なサーバー"
 
 #: Controller/ServersController.php:415
 msgid "Couldn't save the new organisation, are you sure that the uuid is in the correct format?."
-msgstr "新しい組織を作成できませんでした。uuidが正しいフォーマットであることを確認してください。"
+msgstr "新しい組織を作成できませんでした。uuid が正しいフォーマットであることを確認してください。"
 
 #: Controller/ServersController.php:525
 msgid "Server deleted"
@@ -601,7 +601,7 @@ msgstr "このディレクトリにアップロードされた画像ファイル
 
 #: Model/Server.php:2897
 msgid "text/html if served inline, anything that conveys the terms of use if served as download"
-msgstr ""
+msgstr "インラインで提供する場合は text/html、ダウンロードで提供する場合は利用規約を伝えるもの"
 
 #: Model/Template.php:24
 msgid "Invalid template."
@@ -807,7 +807,7 @@ msgstr "添付ファイルを追加"
 
 #: View/Attributes/add_attachment.ctp:64
 msgid "Is a malware sample (encrypt and hash)"
-msgstr ""
+msgstr "マルウェアのサンプル(暗号化されて、ハッシュ)"
 
 #: View/Attributes/add_attachment.ctp:73
 msgid "Advanced extraction (if installed)"
@@ -1192,7 +1192,7 @@ msgstr "アトリビュートの削除"
 
 #: View/Attributes/ajax/attributeConfirmationForm.ctp:9
 msgid "Are you sure you want to hard-delete Attribute #%s? The Attribute will be permanently deleted and unrecoverable. Also, this will prevent the deletion to be propagated to other instances."
-msgstr ""
+msgstr "アトリビュート%sを削除していいですか？このアトリビュートは完全に削除され、回復不能になります。また、この削除が他のインスタンスに影響を与える場合は禁止されます。"
 
 #: View/Attributes/ajax/attributeConfirmationForm.ctp:10
 msgid "Are you sure you want to soft-delete Attribute #%s? The Attribute will only be soft deleted, meaning that it is not completely purged. Click on Include deleted attributes and delete the soft deleted attribute if you want to permanently remove it."
@@ -1872,7 +1872,7 @@ msgstr "ギャラクシーを強制的に更新"
 
 #: View/Elements/side_menu.ctp:529
 msgid "Are you sure you want to drop and reimport all galaxies from the submodule?"
-msgstr ""
+msgstr "本当にすべてのギャラクシーをドロップし、サブモジュールから再インポートしますか?"
 
 #: View/Elements/side_menu.ctp:533;541
 msgid "View Galaxy"
@@ -1910,7 +1910,7 @@ msgstr "イベントのディストリビューション"
 
 #: View/Elements/view_event_distribution_graph.ctp:19
 msgid "Inconsistent distribution level, fallback on the event distribution"
-msgstr ""
+msgstr "ディストリビューションレベルが矛盾しています、イベントのディストリビューションにフォールバックします"
 
 #: View/Elements/view_event_distribution_graph.ctp:23
 msgid "Sharing group"
@@ -2730,7 +2730,7 @@ msgstr "上書きされたオブジェクト"
 
 #: View/Elements/healthElements/diagnostics.ctp:334
 msgid "Prior to 2.4.89, due to a bug a situation could occur where objects got overwritten on a sync pull. This tool allows you to inspect whether you are affected and if yes, remedy the issue."
-msgstr ""
+msgstr "2.4.89 より前は、バグのために同期のプルでオブジェクトが上書きされる状況が発生する可能性がありました。このツールを使用すると、その影響を受けているかどうかを調べることができます。問題がある場合は、問題を修正します。"
 
 #: View/Elements/healthElements/diagnostics.ctp:336;339
 msgid "Orphaned attributes"
@@ -2845,7 +2845,7 @@ msgstr "権限"
 #: View/Roles/admin_index.ctp:67
 #: View/SharingGroups/index.ctp:68
 msgid "Are you sure you want to delete %s?"
-msgstr "本当に「%s」を削除しますか?"
+msgstr "本当に %s を削除しますか?"
 
 #: View/Elements/healthElements/overview.ctp:8
 msgid "Critical, your MISP instance requires immediate attention."
@@ -3385,7 +3385,7 @@ msgstr "委譲リクエストを削除"
 
 #: View/EventDelegations/ajax/delete_delegation.ctp:4
 msgid "Are you sure you would like to discard the request by %s to take ownership of Event #%s"
-msgstr ""
+msgstr "%s が、イベント #%s の所有権を取得するリクエストを破棄しますか?"
 
 #: View/EventDelegations/ajax/view.ctp:2
 msgid "Event Delegation"
@@ -3446,15 +3446,15 @@ msgstr "破棄"
 
 #: View/Events/add.ctp:3
 msgid "The event created %s, but not synchronised to other MISP instances until it is published."
-msgstr ""
+msgstr "イベントが作成されました %s。しかし、公開されるまで他の MISP インスタンスには同期されません。"
 
 #: View/Events/add.ctp:3
 msgid "will be restricted to your organisation"
-msgstr ""
+msgstr "所蔵組織のみに制限されます。"
 
 #: View/Events/add.ctp:3
 msgid "will be visible to the organisations having an account on this platform"
-msgstr ""
+msgstr "このプラットフォーム上にアカウントを持つ組織に表示されます。"
 
 #: View/Events/add.ctp:8
 #: View/Events/export_alternate.ctp:89
@@ -3565,7 +3565,7 @@ msgstr "自動化"
 msgid "Automation functionality is designed to automatically generate signatures for intrusion detection systems. To enable signature generation for a given attribute, Signature field of this attribute must be set to Yes.\n"
 "\tNote that not all attribute types are applicable for signature generation, currently we only support NIDS signature generation for IP, domains, host names, user agents etc., and hash list generation for MD5/SHA1 values of file artefacts. Support for more attribute types is planned.\n"
 "\tTo to make this functionality available for automated tools an authentication key is used. This makes it easier for your tools to access the data without further form-based-authentication."
-msgstr ""
+msgstr "自動化機能は、侵入検知システムのシグネチャーを自動的に生成するように設計されています。特定のアトリビュートのシグネチャー生成を有効にするには、このアトリビュートのシグネチャー項目を Yes に設定する必要があります。すべてのアトリビュートタイプがシグネチャー生成に適用できるわけではないことに注意してください。現在、IP、ドメイン、ホスト名、ユーザエージェントなどの NIDS シグネチャー生成と、ファイルアーティファクトのMD5/SHA1 値のハッシュリスト生成のみがサポートされています。より多くのアトリビュートタイプのサポートが計画されています。この機能を自動化ツールで利用できるようにするために、認証キーが使用されます。これにより、フォームベースの認証を行わなくても、ツールがデータに簡単にアクセスできるようになります。"
 
 #: View/Events/automation.ctp:6
 msgid "Make sure you keep that key secret as it gives access to the entire database !"
@@ -3574,7 +3574,8 @@ msgstr "そのキーでデータベース全体にアクセスできてしまう
 #: View/Events/automation.ctp:7
 msgid "Your current key is: <code>%s</code>.\n"
 "\tYou can %s this key."
-msgstr ""
+msgstr "あなたの現在のキーは: <code>%s</code> です。\n"
+"あなたはこのキーを %s できます。"
 
 #: View/Events/automation.ctp:8
 msgid "reset"
@@ -3628,7 +3629,9 @@ msgstr "添付ファイルをエンコードするかどうかを決定する真
 msgid "To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.\n"
 "\tYou can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.\n"
 "\tUse semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use"
-msgstr ""
+msgstr "結果にタグを含めるには、このパラメーターにその名前を書き込んでください。タグを除外するには、先頭に'!'を追加してください。\n"
+"また、いくつかのタグコマンドを '&amp;&amp;' オペレーターでまとめることができます。タグ検索ではコロン (:) が使えないことに注意してください。\n"
+"代わりにセミコロンを使用してください (検索ではコロンが自動的に検索されます)。例えば、tag1 と tag2 のタグが付いているが、tag3 のタグが付いているものは除外したい場合"
 
 #: View/Events/automation.ctp:37;64;91;117;140;203;254;279
 msgid "Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event."
@@ -3689,7 +3692,8 @@ msgstr "最後の x 時間内に発行されたイベント。x は日、時、�
 #: View/Events/automation.ctp:67
 msgid "The CSV created when this setting is set to true will not contain the header row.\n"
 "\t<b>enforceWarninglist</b>: All attributes that have a hit on a warninglist will be excluded."
-msgstr ""
+msgstr "この設定を true にした際に作成される CSV には、ヘッダー行は含まれません。\n"
+"<b>enforceWarninglist</b>: 警告リストに該当したすべてのアトリビュートは除外されます。"
 
 #: View/Events/automation.ctp:71
 msgid "To export the attributes of all events that are of the type \"domain\", use the following syntax"
@@ -3823,7 +3827,8 @@ msgstr "次のフィルターを使用して、エクスポートされた値を
 msgid "To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.\n"
 "\t        You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search when passed through the url.\n"
 "\t    "
-msgstr ""
+msgstr "結果にタグを含めるには、このパラメーターにその名前を書き込んでください。タグを除外するには、先頭に'!'を追加してください。\n"
+"また、いくつかのタグコマンドを '&amp;&amp;' オペレーターでまとめることができます。url経由で渡させる場合、タグ検索ではコロン (:) が使えないことに注意してください。    "
 
 #: View/Events/automation.ctp:170
 msgid "Use semicolons instead (the search will automatically search for colons instead)"
@@ -3884,7 +3889,8 @@ msgstr "公開されないイベントも含む"
 #: View/Events/automation.ctp:208;275
 msgid "You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.\n"
 "\tUse semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use"
-msgstr ""
+msgstr "また、いくつかのタグコマンドを '&amp;&amp;' オペレーターでまとめることができます。タグ検索ではコロン (:) が使えないことに注意してください。\n"
+"代わりにセミコロンを使用してください (検索ではコロンが自動的に検索されます)。例えば、tag1 と tag2 のタグが付いているが、tag3 のタグが付いているものは除外したい場合"
 
 #: View/Events/automation.ctp:211
 msgid "Bro IDS export"
@@ -3918,7 +3924,9 @@ msgstr "Bro タイプ、任意の有効な Bro タイプが受け入れられま
 msgid "To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.\n"
 "\tYou can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.\n"
 "\tUse semicolons instead (the search will automatically search for colons instead)."
-msgstr ""
+msgstr "結果にタグを含めるには、このパラメーターにその名前を書き込んでください。タグを除外するには、先頭に'!'を追加してください。\n"
+"また、いくつかのタグコマンドを '&amp;&amp;' オペレーターでまとめることができます。タグ検索ではコロン (:) が使えないことに注意してください。\n"
+"代わりにセミコロンを使用してください (検索ではコロンが自動的に検索されます)。"
 
 #: View/Events/automation.ctp:252
 msgid "Restrict the results to the given event IDs."
@@ -3959,7 +3967,8 @@ msgstr "組織の識別子を指定し、作成者組織を検索します。"
 #: View/Events/automation.ctp:272
 msgid "To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.\n"
 "\tTo filter on several values for the same parameter, simply use arrays, such as in the following example"
-msgstr ""
+msgstr "タグを結果に含めるためには、その名前をパラメーターに書き込みます。タグを除外するためには '!' を追加します。\n"
+"同じパラメーターの複数の値をフィルターするためには、次の例のように配列を使用します"
 
 #: View/Events/automation.ctp:278
 msgid "Enabling this (by passing \"1\" as the argument) will make the search ignore all of the other arguments, except for the auth key and value. MISP will return an xml / json (depending on the header sent) of all events that have a sub-string match on value in the event info, event orgc, or any of the attribute value1 / value2 fields, or in the attribute comment."
@@ -3987,7 +3996,7 @@ msgstr "最新の公開タイムスタンプ(より新しいもののみ)に結�
 
 #: View/Events/automation.ctp:287
 msgid "Restrict the results by the timestamp (last edit). Any event with a timestamp newer than the given timestamp will be returned. In case you are dealing with /attributes as scope, the attribute's timestamp will be used for the lookup."
-msgstr ""
+msgstr "結果を (最終編集の) タイムスタンプ で制限します。指定されたタイムスタンプより新しいタイムスタンプのイベントが返されます。スコープとして /attributes を扱っている場合、アトリビュートのタイムスタンプがルックアップに使用されます。"
 
 #: View/Events/automation.ctp:288;311
 msgid "Set whether published or unpublished events should be returned. Do not set the parameter if you want both."
@@ -4023,19 +4032,19 @@ msgstr "結果を(アトリビュートの)タイムスタンプで制限しま�
 
 #: View/Events/automation.ctp:314
 msgid "By default (0) all attributes are returned that match the other filter parameters, irregardless of their to_ids setting. To restrict the returned data set to to_ids only attributes set this parameter to 1. You can only use the special \"exclude\" setting to only return attributes that have the to_ids flag disabled."
-msgstr ""
+msgstr "デフォルトの (0) では、to_ids の設定に関係なく、他のフィルターのパラメーターと一致するすべてのアトリビュートが返されます。返されるデータを to_ids が設定されたアトリビュートのみに制限するには、このパラメータを 1 に設定します。特殊な \"exclude\" 設定を使用すると、to_ids フラグが無効なアトリビュートのみを返すことができます。"
 
 #: View/Events/automation.ctp:315
 msgid "If this parameter is set to 1, it will return soft-deleted attributes along with active ones. By using \"only\" as a parameter it will limit the returned data set to soft-deleted data only."
-msgstr ""
+msgstr "このパラメーターを 1 に設定すると、ソフト削除されたアトリビュートがアクティなアトリビュートと共に返されます。\"only\"をパラメーターとして使用すると、返されるデータはソフト削除されたデータのみに制限されます。"
 
 #: View/Events/automation.ctp:316
 msgid "Instead of just including the event ID, also include the event UUID in each of the attributes."
-msgstr ""
+msgstr "イベントIDだけではなく、それぞれのアトリビュートにイベント UUID を含めます。"
 
 #: View/Events/automation.ctp:317
 msgid "Only return attributes from events that have received a modification after the given timestamp."
-msgstr ""
+msgstr "指定されたタイムスタンプより後に変更を受けたイベントのアトリビュートのみを返します。"
 
 #: View/Events/automation.ctp:322
 msgid "The keywords false or null should be used for optional empty parameters in the URL. Keep in mind, this is only needed if you use the deprecated URL parameters."
@@ -4044,7 +4053,8 @@ msgstr "false または null キーワードは、URL 中のオプションの�
 #: View/Events/automation.ctp:324
 msgid "value, type, category and org are optional. It is possible to search for several terms in each category by joining them with the '&amp;&amp;' operator. It is also possible to negate a term with the '!' operator. Please be aware the colons (:) cannot be used in the tag search. Use semicolons instead (the search will automatically search for colons instead).\n"
 "\tFor example, in order to search for all attributes created by your organisation that contain 192.168 or 127.0 but not 0.1 and are of the type ip-src, excluding the events that were tagged tag1 use the following syntax"
-msgstr ""
+msgstr "value、type、category と org はオプションです。各カテゴリーのいくつかの用語を、'&amp;&amp;'演算子でまとめて検索することができます。'!'演算子で否定することもできます。タグ検索ではコロン (:) が使えないことに注意してください。\n"
+"代わりにセミコロンを使用してください (検索ではコロンが自動的に検索されます)。例えば、所属組織で作られたすべてのアトリビュートで、ip-src タイプに 192.168 と 127.0 を持っており、かつ tag1 とタグ付けされたイベントを除外したものを検索したい場合、次を使用します"
 
 #: View/Events/automation.ctp:327
 msgid "You can also use search for IP addresses using CIDR. Make sure that you use '|' (pipe) instead of '/' (slashes). Please be aware the colons (:) cannot be used in the tag search. Use semicolons instead (the search will automatically search for colons instead). See below for an example"
@@ -4062,7 +4072,8 @@ msgstr "イベントに属する事前定義されたタイプのすべてのア
 msgid "sigOnly is an optional flag that will block all attributes from being exported that don't have the IDS flag turned on.\n"
 "\tIt is possible to search for several types with the '&amp;&amp;' operator and to exclude values with the '!' operator.\n"
 "\tFor example, to get all IDS signature attributes of type md5 and sha256, but not filename|md5 and filename|sha256 from event 25, use the following"
-msgstr ""
+msgstr "sigOnly は IDS フラグがオンになっていないすべてのアトリビュートがエクスポートされるのをブロックするオプションのフラグです。'&amp;&amp;' 演算子でいくつかのタイプを検索し、'!' 演算子で値を除外することができます。\n"
+"例えば、イベント25から、すべての md5 と sha256 タイプの IDS シグネチャーのアトリビュートで、しかし filename | md5 and filename | sha256 ではないものを取得するには、次を使用します"
 
 #: View/Events/automation.ctp:337
 msgid "Download attachment or malware sample"
@@ -4273,7 +4284,8 @@ msgstr "REST のセクションで説明したように、/events API に GET �
 #: View/Events/automation.ctp:461
 msgid "POST a JSON object with the desired lookup fields and values to receive a JSON back.<br />\n"
 "\tAn example for a valid lookup"
-msgstr ""
+msgstr "JSON で結果を受け取るために、希望する検索項目と値を含む JSON オブジェクトをPOSTします。<br />\n"
+"有効な検索の例"
 
 #: View/Events/automation.ctp:472
 msgid "The above would return any event that is published, not restricted to your organisation only that has the term \"Locky\" in its event description. You can use exclamation marks to negate a value wherever appropriate."
@@ -4632,7 +4644,7 @@ msgstr "一致するイベントは見つかりませんでした。"
 
 #: View/Events/get_event_info_by_id.ctp:6
 msgid "This will still allow you to store the UUID. It will extend the assigned event as soon as it is created / becomes visible."
-msgstr ""
+msgstr "これにより、UUID を保存することができます。作成 / 表示可能になるとすぐに、割り当てられたイベントを継承します。"
 
 #: View/Events/import_module.ctp:89
 msgid "Input File"
@@ -4751,7 +4763,7 @@ msgstr "下に作成しようとしてる %s が表示されます。カテゴ�
 
 #: View/Events/resolved_attributes.ctp:8
 msgid "Warning: You are missing warninglist(s) that are used to recognise TLDs. Make sure your MISP has the warninglist submodule enabled and updated or else this tool might end up missing valid domains/hostnames/urls. The missing lists are: %s"
-msgstr ""
+msgstr "警告: TLD を認識するために使用される警告リストが見つかりません。MISP で警告リストのサブモジュールが有効化され、更新されていることを確認してください。そうしないと有効なドメイン/ホスト名/url をツールが見つけられない可能性があります。見つからないリストは次のとおりです: %s"
 
 #: View/Events/resolved_attributes.ctp:26
 msgid "Proposals instead of attributes"
@@ -5069,7 +5081,7 @@ msgstr "イベントをエンリッチ"
 
 #: View/Events/ajax/enrich_event.ctp:4
 msgid "Select the enrichments you wish to run"
-msgstr ""
+msgstr "実行したいエンリッチメントを選択してください"
 
 #: View/Events/ajax/enrichmentChoice.ctp:7
 msgid "Choose the enrichment module that you wish to use for the expansion"
@@ -5174,12 +5186,12 @@ msgstr "ソースフォーマット"
 #: View/Feeds/add.ctp:55
 #: View/Feeds/edit.ctp:32
 msgid "Any headers to be passed with requests (for example: Authorization)"
-msgstr ""
+msgstr "リクエストに渡される任意のヘッダー (例: Authorization)"
 
 #: View/Feeds/add.ctp:59
 #: View/Feeds/edit.ctp:36
 msgid "Line break separated list of headers in the \"headername: value\" format"
-msgstr ""
+msgstr "\"headername: value\" フォーマットで改行で区切られたヘッダーのリスト"
 
 #: View/Feeds/add.ctp:63
 #: View/Feeds/edit.ctp:40
@@ -5348,7 +5360,7 @@ msgstr "正規表現パターン、例えば: \"/^https://myfeedurl/i\""
 
 #: View/Feeds/edit.ctp:206
 msgid "The base-url to the external server you want to sync with. Example: https://misppriv.circl.lu"
-msgstr ""
+msgstr "同期したい外部サーバーのベース url。例: https://misppriv.circl.lu"
 
 #: View/Feeds/edit.ctp:207
 #: View/Servers/add.ctp:143
@@ -5642,11 +5654,11 @@ msgstr "すべてのネームスペース"
 
 #: View/Jobs/index.ctp:12
 msgid "Are you sure you want to purge all completed job entries? Job entries are considered as log entries and have no impact on actual job execution."
-msgstr ""
+msgstr "本当に完了したすべてのジョブエントリーをパージしますか? ジョブエントリーはログエントリーと見なされ、実際のジョブの実行には影響しません。"
 
 #: View/Jobs/index.ctp:18
 msgid "Are you sure you want to purge all job entries? Job entries are considered as log entries and have no impact on actual job execution."
-msgstr ""
+msgstr "本当にすべてのジョブエントリーをパージしますか? ジョブエントリーはログエントリーと見なされ、実際のジョブの実行には影響しません。"
 
 #: View/Jobs/index.ctp:52
 msgid "Completed."
@@ -5873,11 +5885,11 @@ msgstr "オブジェクト参照の削除"
 
 #: View/ObjectReferences/ajax/delete.ctp:14
 msgid "Are you sure you want to soft delete Object reference #%s?%s"
-msgstr ""
+msgstr "本当にオブジェクト参照 #%s をソフト削除しますか? %s"
 
 #: View/ObjectReferences/ajax/delete.ctp:17
 msgid "Are you sure you want to hard delete Object reference #%s?%s"
-msgstr ""
+msgstr "本当にオブジェクト参照 #%s をハード削除しますか? %s"
 
 #: View/ObjectReferences/ajax/delete.ctp:25
 msgid " The Attribute will be permanently deleted and unrecoverable. Also, this will prevent the deletion to be propagated to other instances."
@@ -5984,11 +5996,11 @@ msgstr "オブジェクトの再構成"
 
 #: View/Objects/orphaned_object_diagnostics.ctp:5
 msgid "Due to a bug prior to version 2.4.89, a condition could cause objects to be overwritten on a pull, leading to orphaned object attributes. This script reconstructs the missing objects if any exist."
-msgstr ""
+msgstr "バージョン 2.4.89 より前のバグにより、ある条件によってはオブジェクトがプルで上書きされ、孤立したオブジェクトアトリビュートになる可能性があります。このスクリプトは、欠落しているオブジェクトがあれば再構成します。"
 
 #: View/Objects/orphaned_object_diagnostics.ctp:6
 msgid " Please create a backup of your mysql database before executing the script."
-msgstr ""
+msgstr " このスクリプトを実行する前に、mysql データーベースのバックアップを作成してください。"
 
 #: View/Objects/orphaned_object_diagnostics.ctp:9
 msgid "No unmapped data found, everything is working as expected."
@@ -6000,7 +6012,7 @@ msgstr "マップされていないアトリビュート"
 
 #: View/Objects/orphaned_object_diagnostics.ctp:17
 msgid "Keep in mind that some of the unmapped attributes can get reconstructed on a second pass of this script."
-msgstr ""
+msgstr "マップされていない、いくつかのアトリビュートは、このスクリプトの2回目の実行で再構築できます。"
 
 #: View/Objects/orphaned_object_diagnostics.ctp:30
 msgid "Reconstructable objects"
@@ -6033,11 +6045,11 @@ msgstr "オブジェクトの削除"
 
 #: View/Objects/ajax/delete.ctp:12
 msgid "The Object will be permanently deleted and unrecoverable. Also, this will prevent the deletion to be propagated to other instances."
-msgstr ""
+msgstr "オブジェクトは完全に削除され、回復不能になります。また、他のインスタンスに影響を与える削除は禁止されます。"
 
 #: View/Objects/ajax/delete.ctp:15
 msgid "Are you sure you want to %sdelete Object #%s? %s"
-msgstr ""
+msgstr "本当に %s削除をオブジェクト #%s にしますか? %s"
 
 #: View/OrgBlacklists/add.ctp:4
 msgid "Add Organisation Blacklist Entries"
@@ -6061,7 +6073,7 @@ msgstr "組織のブラック リスト"
 
 #: View/OrgBlacklists/index.ctp:37
 msgid "Are you sure you want to delete the blacklist entry for the organisation UUID %s?"
-msgstr ""
+msgstr "本当に組織 UUID %s を、ブラックリストのエントリーから削除しますか?"
 
 #: View/Organisations/admin_add.ctp:4
 msgid "New Organisation"
@@ -6709,7 +6721,7 @@ msgstr "管理者は、リストのアクションメニューの適切な機能
 
 #: View/Pages/doc/administration.ctp:65
 msgid "The system allows administrators to set up rules for regular expressions that will automatically alter newly entered or imported events."
-msgstr ""
+msgstr "このシステムでは、管理者は新しく入力またはインポートされたイベントを自動的に変更する正規表現のルールを設定できます。"
 
 #: View/Pages/doc/administration.ctp:66
 msgid "The purpose of Import Regexp entries"
@@ -6904,7 +6916,7 @@ msgstr "ユーザーが、ユーザーの組織に向けたレーポーターへ
 
 #: View/Pages/doc/administration.ctp:107
 msgid "Shows whether the user has entered a GnuPGkey yet."
-msgstr ""
+msgstr "ユーザーが GnuPG キーを既に入力したかどうかを示します。"
 
 #: View/Pages/doc/administration.ctp:108
 msgid "Shows the currently assigned NIDS ID."
@@ -7942,7 +7954,7 @@ msgstr "GnuPG キーの設定"
 
 #: View/Pages/doc/user_management.ctp:27
 msgid "In order for the system to be able to encrypt the messages that you send through it, it needs to know your GnuPG key. Navigate to the Edit profile view (My Profile on the left -&gt; Edit profile in the top right corner). Paste the key into the GnuPG field and click submit."
-msgstr ""
+msgstr "システムが送信するメッセージを暗号化するためには、GnuPG キーを知る必要があります。プロフィールを編集ビューに移動 (左側のマイプロフィール &gt; 右上隅のプロフィールを編集) します。GnuPG 項目にキーを貼り付け、送信をクリックします。"
 
 #: View/Pages/doc/user_management.ctp:28;42
 msgid "Subscribing to Auto-alerts"
@@ -8006,7 +8018,7 @@ msgstr "この機能をオンにすると、所属組織のユーザーが投稿
 
 #: View/Pages/doc/user_management.ctp:44
 msgid "In order for the system to be able to encrypt the messages that you send through it, it needs to know your GnuPG key. You can acquire this by clicking on the GnuPG key link at the bottom left of the screen. Copy the entirety of the key and navigate to the Edit profile view (My Profile on the left -&gt; Edit profile in the top right corner). Paste the key into the GnuPG field and click submit."
-msgstr ""
+msgstr "システムが送信するメッセージを暗号化するためには、GnuPG キーを知る必要があります。画面の左下にある GnuPG キーのリンクをクリックすることでこれを取得することができます。キー全体をコピーし、プロフィールを編集ビューに移動 (左側のマイプロフィール &gt; 右上隅のプロフィールを編集) します。GnuPG 項目にキーを貼り付け、送信をクリックします。"
 
 #: View/Pages/doc/user_management.ctp:45
 msgid "Requesting a new authentication key"
@@ -10309,7 +10321,7 @@ msgstr "お気に入り"
 #: View/Tags/index.ctp:125
 #: View/Whitelists/admin_index.ctp:32
 msgid "Are you sure you want to delete \"%s\"?"
-msgstr "本当に「%s」を削除しますか?"
+msgstr "本当に \"%s\" を削除しますか?"
 
 #: View/Tags/ajax/select_tag.ctp:2
 msgid "Select Tag"
@@ -10363,7 +10375,7 @@ msgstr "ここでは、x 時間毎に実行される事前定義されたタス�
 
 #: View/Tasks/index.ctp:5
 msgid "Warning: Scheduled tasks come with a lot of caveats and little in regards of customisations / granularity. You can instead simply create cron jobs out of the console commands as described here: "
-msgstr ""
+msgstr "警告：スケジュールされたタスクには多くの注意事項があり、カスタマイズ / 精度はほとんどありません。ここで説明するように、代わりにコンソールコマンドから cron ジョブを作成することもできます: "
 
 #: View/Tasks/index.ctp:6
 msgid "Automating certain console tasks"
@@ -11118,12 +11130,12 @@ msgstr "オプション: Options : Payload delivery, Antivirus detection, Payloa
 #: Model/Attribute.php:validation for field value
 #: Model/ShadowAttribute.php:validation for field value
 msgid "stringNotEmpty"
-msgstr ""
+msgstr "stringNotEmpty"
 
 #: Model/Attribute.php:validation for field value
 #: Model/ShadowAttribute.php:validation for field value
 msgid "Value not in the right type/format. Please double check the value or select type \"other\"."
-msgstr ""
+msgstr "正しいタイプ / フォーマットの値ではありません。値を再確認するか、\"other\" タイプを選択してください。"
 
 #: Model/Attribute.php:validation for field value
 msgid "A similar attribute already exists for this event."
@@ -11131,11 +11143,11 @@ msgstr "このイベントには類似のアトリビュートが既に存在し
 
 #: Model/Attribute.php:validation for field value
 msgid "Composite type found but the value not in the composite (value1|value2) format."
-msgstr ""
+msgstr "コンポジット タイプが見つかりましたが、値がコンポジット (value1 | value2) フォーマットではありません。"
 
 #: Model/Attribute.php:validation for field value
 msgid "maxTextLength"
-msgstr ""
+msgstr "maxTextLength"
 
 #: Model/Attribute.php:validation for field to_ids
 #: Model/Event.php:validation for field published
@@ -11181,7 +11193,7 @@ msgstr "オプション: あなたの組織のみ、このコミュニティの�
 #: Model/User.php:validation for field org_id;validation for field authkey
 #: Model/Whitelist.php:validation for field name
 msgid "valueNotEmpty"
-msgstr ""
+msgstr "valueNotEmpty"
 
 #: Model/Event.php:validation for field date
 msgid "Expected date format: YYYY-MM-DD"
@@ -11343,7 +11355,7 @@ msgstr "SID は整数でなければいけません。"
 
 #: Model/Whitelist.php:validation for field name
 msgid "Name not in the right format. Whitelist entries have to be enclosed by a valid php delimiter (which can be most non-alphanumeric / non-whitespace character). Format: \"/8.8.8.8/\" Please double check the name."
-msgstr ""
+msgstr "正しいフォーマットの名前でありません。ホワイトリストのエントリーは、有効な Php のデミリター (英数字以外の文字 / 非空白文字のほとんどが使用可能) である必要があります。フォーマット: \"/8.8.8.8/\"、名前を再度確認してください。"
 
 #: Controller/AppController.php:437
 msgid "The request has been black-holed"
@@ -11363,7 +11375,7 @@ msgstr "キューの名前。もし複数のキューがある場合、コンマ
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:102;139
 msgid "Pause time in seconds between each works"
-msgstr ""
+msgstr "各作業間の一時停止時間 (秒)"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:106
 msgid "Number of workers to fork"
@@ -11391,7 +11403,7 @@ msgstr "デバッグ情報の表示"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:163
 msgid "Force workers shutdown, forcing all the current jobs to finish (and fail)"
-msgstr ""
+msgstr "強制的にワーカーをシャットダウンし、現在のすべてのジョブを終了・失敗させます。"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:168
 msgid "Shutdown all workers"
@@ -11399,19 +11411,19 @@ msgstr "すべてのワーカーをシャットダウン"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:173
 msgid "Stop one or all workers"
-msgstr "1つまたはすべてのワーカーを停止"
+msgstr "Stop one or all workers"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:174
 msgid "Unless you force the stop with the --force option,"
-msgstr ""
+msgstr "Unless you force the stop with the --force option,"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:175
 msgid "the worker will wait for all jobs to complete"
-msgstr ""
+msgstr "the worker will wait for all jobs to complete"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:176
 msgid "before shutting down"
-msgstr ""
+msgstr "before shutting down"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:184;726
 msgid "Pause all workers"
@@ -11419,15 +11431,15 @@ msgstr "すべてのワーカーを一時停止"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:194
 msgid "Pause one or all workers"
-msgstr "1つまたはすべてのワーカーを一時停止"
+msgstr "Pause one or all workers"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:195
 msgid "Pausing is only supported on Unix system,"
-msgstr "一時停止は Unix システムのみでサポートされています。"
+msgstr "Pausing is only supported on Unix system,"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:196;216;238
 msgid "with PHP pcntl extension installed"
-msgstr ""
+msgstr "with PHP pcntl extension installed"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:204
 msgid "Resume all paused workers"
@@ -11435,11 +11447,11 @@ msgstr "一時停止したすべてのワーカーを再開"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:214
 msgid "Resume one or all paused workers"
-msgstr "一時停止した1つまたはすべてのワーカーを再開"
+msgstr "Resume one or all paused workers"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:215;237
 msgid "Resuming is only supported on Unix system,"
-msgstr "再開は Unix システムのみでサポートされています。"
+msgstr "Resuming is only supported on Unix system,"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:224;676
 msgid "Clean up all workers"
@@ -11447,15 +11459,15 @@ msgstr "すべてのワーカーをクリーンアップ"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:234
 msgid "Cleaning Up one or all paused workers"
-msgstr "1つまたはすべての一時停止したワーカーをクリーンアップ"
+msgstr "Cleaning Up one or all paused workers"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:235
 msgid "Cleaning Up will immedately terminate the job"
-msgstr "クリーンアップは、即座にジョブを終了させます。"
+msgstr "Cleaning Up will immedately terminate the job"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:236
 msgid "the worker is currently working on."
-msgstr "ワーカーは現在動作中です。"
+msgstr "the worker is currently working on."
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:246;1155
 msgid "Clear all queues"
@@ -11467,7 +11479,7 @@ msgstr "1つまたはすべてのキューをクリア"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:257
 msgid "Clearing a queue will remove all its jobs"
-msgstr "キューをクリアすると、すべてのジョブが削除されます。"
+msgstr "Clearing a queue will remove all its jobs"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:263
 msgid "A Shell to manage PHP Resque"
@@ -11511,39 +11523,39 @@ msgstr "キューの中のすべてのジョブをクリア"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:300
 msgid "Reset CakeResque internal worker's saved status"
-msgstr ""
+msgstr "CakeResque 内部のワーカーの保存状態をリセットする"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:304
 msgid "View stats about processed/failed jobs."
-msgstr ""
+msgstr "処理された / 失敗したジョブに関する統計を表示します。"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:307
 msgid "Tail the workers logs."
-msgstr ""
+msgstr "ワーカーのログを tail する。"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:310
 msgid "Track a job status."
-msgstr ""
+msgstr "ジョブのステータスをトラックする。"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:313
 msgid "Load a set of predefined workers."
-msgstr ""
+msgstr "事前定義されたワーカーを読み込む。"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:323
 msgid "Adding a job to worker"
-msgstr ""
+msgstr "ワーカーにジョブを追加"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:325;348;372
 msgid "Wrong number of arguments"
-msgstr ""
+msgstr "Wrong number of arguments"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:326
 msgid "Usage : enqueue <queue> <jobclass> <comma-separated-args>"
-msgstr ""
+msgstr "Usage : enqueue <queue> <jobclass> <comma-separated-args>"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:334
 msgid "Succesfully enqueued Job #%s"
-msgstr ""
+msgstr "正常にキューに追加されたジョブ #%s"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:346;370
 msgid "Scheduling a job"
@@ -11551,7 +11563,7 @@ msgstr "ジョブのスケジューリング"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:349
 msgid "Usage : enqueueIn <seconds> <queue> <jobclass> <comma-separated-args>"
-msgstr ""
+msgstr "Usage : enqueueIn <seconds> <queue> <jobclass> <comma-separated-args>"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:358;381
 msgid "Succesfully scheduled Job #%s"
@@ -11559,23 +11571,23 @@ msgstr "正常にスケジュールされたジョブ #%s"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:373
 msgid "Usage : enqueue <timestamp> <queue> <jobclass> <comma-separated-args>"
-msgstr ""
+msgstr "Usage : enqueue <timestamp> <queue> <jobclass> <comma-separated-args>"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:417
 msgid "Tailing log file"
-msgstr ""
+msgstr "ログファイルの tailing"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:419
 msgid "No log file to tail"
-msgstr ""
+msgstr "tail するログファイルがありません"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:428
 msgid "Choose a log file to tail"
-msgstr ""
+msgstr "tail するログファイルを選択してください"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:431
 msgid "Tailing %s"
-msgstr ""
+msgstr "Tailing %s"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:462
 msgid "Creating the scheduler workers"
@@ -11591,15 +11603,15 @@ msgstr "スケジューラーワーカーは有効化されていません。"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:477
 msgid "The scheduler worker is already running"
-msgstr ""
+msgstr "スケジューラーワーカーは既に動作しています"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:544
 msgid "Will start "
-msgstr ""
+msgstr "Will start "
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:547
 msgid "Starting worker ("
-msgstr ""
+msgstr "Starting worker ("
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:548
 msgid "Running command : \n"
@@ -11612,19 +11624,19 @@ msgstr "スケジューラーワーカーの開始 "
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:555
 msgid "Starting worker "
-msgstr ""
+msgstr "Starting worker "
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:565;862;1180
 msgid "Done"
-msgstr ""
+msgstr "完了"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:567
 msgid "Registering worker #"
-msgstr ""
+msgstr "Registering worker #"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:585;1182
 msgid "Fail"
-msgstr ""
+msgstr "失敗"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:614
 msgid "Stopping %s ... "
@@ -11632,11 +11644,11 @@ msgstr "停止中 %s ... "
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:636
 msgid "Stopping workers"
-msgstr ""
+msgstr "ワーカーの停止"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:636
 msgid "force"
-msgstr ""
+msgstr "強制"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:638
 msgid "There is no workers to stop ..."
@@ -11652,7 +11664,7 @@ msgstr "すべてのワーカーを停止"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:641
 msgid "Worker to stop"
-msgstr ""
+msgstr "停止するワーカー"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:642
 msgid "Stopping the Scheduler Worker ... "
@@ -11752,11 +11764,11 @@ msgstr "ワーカーの再起動"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:920
 msgid "Found "
-msgstr ""
+msgstr "Found "
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:932
 msgid "No active workers found, will start brand new worker"
-msgstr ""
+msgstr "アクティブなワーカーが見つかりません、新しいワーカーを開始します"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:962
 msgid "Resque Statistics"
@@ -11796,7 +11808,7 @@ msgstr "ワーカー カウント: %s"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:998
 msgid "regular workers"
-msgstr ""
+msgstr "レギュラーワーカー"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1004;1016
 msgid "paused"
@@ -11804,11 +11816,11 @@ msgstr "一時停止"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1005;1020
 msgid "Started on"
-msgstr ""
+msgstr "開始日時"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1006
 msgid "Processed Jobs"
-msgstr ""
+msgstr "処理されたジョブ"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1008;1009
 msgid "Failed Jobs"
@@ -11820,11 +11832,11 @@ msgstr "スケジューラーワーカー"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1021
 msgid "Delayed Jobs"
-msgstr ""
+msgstr "遅延ジョブ"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1024
 msgid "Next Job on"
-msgstr ""
+msgstr "次回ジョブの日時"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1031
 msgid "Alert"
@@ -11836,7 +11848,7 @@ msgstr "スケジューラーワーカーは動作していません"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1033
 msgid "But there is still <bold>%d</bold> scheduled jobs left in its queue"
-msgstr ""
+msgstr "しかし、<bold>%d</bold>のスケジュールされたジョブがキューの中に残っています"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1048
 msgid "Tracking job status"
@@ -11848,23 +11860,23 @@ msgstr "有効なジョブ ID を入力してください"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1063
 msgid "waiting"
-msgstr ""
+msgstr "待機中"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1064
 msgid "running"
-msgstr ""
+msgstr "実行中"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1065
 msgid "failed"
-msgstr ""
+msgstr "失敗"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1066
 msgid "complete"
-msgstr ""
+msgstr "完了"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1078
 msgid "scheduled"
-msgstr ""
+msgstr "スケジュール済み"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1093
 msgid "Failed job details"
@@ -11892,7 +11904,7 @@ msgstr "クリア中 %s ... "
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1202
 msgid "Emptying the worker database"
-msgstr ""
+msgstr "ワーカーのデータベースを空にします"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1204
 msgid "Unregistering the scheduler worker"
@@ -11904,15 +11916,15 @@ msgstr "CakeResque の状態がリセットされました"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1252
 msgid "Interval time [%s] is not valid. Please enter a valid number"
-msgstr ""
+msgstr "インターバルタイム [%s] が有効でありません。有効な数字を入力してください"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1260
 msgid "Workers number [%s] is not valid. Please enter a valid number"
-msgstr ""
+msgstr "ワーカーの数 [%s] が有効ではありません。有効な数字を入力してください"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:1282
 msgid "User [%s] does not exists. Please enter a valid system user"
-msgstr ""
+msgstr "ユーザー [%s] は存在しません。有効なシステムユーザーを入力してください"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:987
 msgid "pending job"
