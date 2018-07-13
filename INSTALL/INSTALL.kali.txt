@@ -8,9 +8,12 @@
 #1/ Prepare Kali with a MISP User
 #--------------------------------
 # To install MISP on Kali copy paste this in your r00t shell:
-# bash -c "$(curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.kali.txt)"
+# wget -O /tmp/misp-kali.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.kali.txt && bash /tmp/misp-kali.sh
 # /!\ Please read the installer script before randomly doing the above.
 # The script is tested on a plain vanilla Kali Linux Boot CD and installs quite a few dependencies.
+
+MISP_USER='misp'
+MISP_PASSWORD='Password1234'
 
 function kaliOnRootR0ckz() {
   if [[ $EUID -ne 0 ]]; then
@@ -18,13 +21,11 @@ function kaliOnRootR0ckz() {
    exit 1
   elif [[ $(id misp; echo $?) -ne 0 ]]; then
     useradd -s /bin/bash -m -G adm,cdrom,sudo,dip,plugdev,www-data misp
-    passwd misp
-    su -m misp
-    cd ~misp
+    echo $MISP_PASSWORD | passwd $MISP_USER --stdin
+    cd ~$MISP_USER
   else
-    echo "User misp exists, skipping creation"
-    su -m misp
-    cd ~misp
+    echo "User ${MISP_USER} exists, skipping creation"
+    cd ~$MISP_USER
   fi
 }
 
@@ -73,8 +74,11 @@ PHP_INI=/etc/php/7.2/apache2/php.ini
 # apt config
 export DEBIAN_FRONTEND=noninteractive
 
-echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
-echo "User  (misp) DB Password: $DBPASSWORD_MISP"
+# sudo config to run $LUSER commands
+SUDO="sudo -E -u ${MISP_USER}"
+
+echo "Admin (${DBUSER_ADMIN}) DB Password: ${DBPASSWORD_ADMIN}"
+echo "User  (${DBUSER_MISP}) DB Password: ${DBPASSWORD_MISP}"
 
 sudo apt update
 sudo apt install -qy etckeeper
@@ -511,7 +515,7 @@ cd /usr/local/src/
 sudo apt-get install -y cmake
 sudo git clone https://github.com/MISP/mail_to_misp.git
 sudo git clone git://github.com/stricaud/faup.git faup
-sudo chown -R misp:misp faup mail_to_misp
+sudo chown -R ${MISP_USER}:${MISP_USER} faup mail_to_misp
 cd faup
 git checkout 96f2a9a51428869cac2473422b70ace890d5d95d
 mkdir -p build
@@ -539,12 +543,13 @@ echo "MISP Dashboard, access here: http://127.0.0.1:8001"
 echo "User: admin@admin.test"
 echo "Password: admin"
 echo "-------------------------------------------------------------------------"
+echo "The LOCAL user created is called ${MISP_USER} and has password: ${MISP_PASSWORD}"
+echo "-------------------------------------------------------------------------"
 echo "Viper installed, access here: http://127.0.0.1:8888"
 ewcho "viper-cli configured with your MISP Site Admin Auth Key"
 echo "User: admin"
 echo "Password: Password1234"
 echo "-------------------------------------------------------------------------"
-# postfix config
 echo "To enable outgoing mails via postfix set a permissive SMTP server for the domains you want to contact:"
 echo "sudo postconf -e 'relayhost = example.com'"
 echo "sudo postfix reload"
