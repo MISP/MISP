@@ -21,7 +21,7 @@ function kaliOnRootR0ckz() {
    exit 1
   elif [[ $(id misp >/dev/null; echo $?) -ne 0 ]]; then
     useradd -s /bin/bash -m -G adm,cdrom,sudo,dip,plugdev,www-data misp
-    echo $MISP_PASSWORD | passwd $MISP_USER --stdin
+    echo $MISP_USER:$MISP_PASSWORD | chpasswd
   else
     echo "User ${MISP_USER} exists, skipping creation"
   fi
