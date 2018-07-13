@@ -52,6 +52,7 @@ max_execution_time=300
 memory_limit=512M
 PHP_INI=/etc/php/7.2/apache2/php.ini
 
+# apt config
 export DEBIAN_FRONTEND=noninteractive
 
 echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
@@ -487,31 +488,47 @@ sudo chmod -R g+ws $PATH_TO_MISP/app/tmp
 sudo chmod -R g+ws $PATH_TO_MISP/app/files
 sudo chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
 
-# TODO: mail-to-misp
+# TODO: fix faup
 cd /usr/local/src/
 sudo apt-get install -y cmake
 sudo git clone https://github.com/MISP/mail_to_misp.git
-sudo git clone git://github.com/stricaud/faup.git
+sudo git clone git://github.com/stricaud/faup.git faup
+sudo chown -R misp:misp faup mail_to_misp
 cd faup
-sudo mkdir -p build
+git checkout 96f2a9a51428869cac2473422b70ace890d5d95d
+mkdir -p build
 cd build
-sudo cmake .. && sudo make
+cmake .. && make
 sudo make install
 sudo ldconfig
 cd ../../
 cd mail_to_misp
 sudo pip3 install -r requirements.txt
-sudo cp mail_to_misp_config.py-example mail_to_misp_config.py
-sudo sed -i "s/^misp_url\ =\ 'YOUR_MISP_URL'/misp_url\ =\ 'http:\/\/localhost'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
-sudo sed -i "s/^misp_key\ =\ 'YOUR_KEY_HERE'/misp_key\ =\ '$AUTH_KEY'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
-
+cp mail_to_misp_config.py-example mail_to_misp_config.py
+sed -i "s/^misp_url\ =\ 'YOUR_MISP_URL'/misp_url\ =\ 'http:\/\/localhost'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
+sed -i "s/^misp_key\ =\ 'YOUR_KEY_HERE'/misp_key\ =\ '$AUTH_KEY'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
+echo ""
 echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" > ~/mysql.txt
 echo "User  (misp) DB Password: $DBPASSWORD_MISP" >> ~/mysql.txt
 echo "Authkey: $AUTH_KEY" > ~/MISP-authkey.txt
-
+echo "-------------------------------------------------------------------------"
 cat ~/mysql.txt
 cat ~/MISP-authkey.txt
 
+echo "-------------------------------------------------------------------------"
 echo "MISP Installed, access here: https://127.0.0.1"
+echo "MISP Dashboard, access here: http://127.0.0.1:8001"
 echo "User: admin@admin.test"
 echo "Password: admin"
+echo "-------------------------------------------------------------------------"
+echo "Viper installed, access here: http://127.0.0.1:8888"
+ewcho "viper-cli configured with your MISP Site Admin Auth Key"
+echo "User: admin"
+echo "Password: Password1234"
+echo "-------------------------------------------------------------------------"
+# postfix config
+echo "To enable outgoing mails via postfix set a permissive SMTP server for the domains you want to contact:"
+echo "sudo postconf -e 'relayhost = example.com'"
+echo "sudo postfix reload"
+echo "-------------------------------------------------------------------------"
+echo "Enjoy using MISP. For any issues see here: https://github.com/MISP/MISP/issues"
