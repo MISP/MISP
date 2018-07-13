@@ -537,13 +537,13 @@ function installMISPonKali() {
 
   clear
   echo "-------------------------------------------------------------------------"
-  cat /home/${MISP_USER}/mysql.txt
-  cat /home/${MISP_USER}/MISP-authkey.txt
-  echo "-------------------------------------------------------------------------"
   echo "MISP Installed, access here: https://misp.local"
   echo "User: admin@admin.test"
   echo "Password: admin"
   echo "MISP Dashboard, access here: http://misp.local:8001"
+  echo "-------------------------------------------------------------------------"
+  cat /home/${MISP_USER}/mysql.txt
+  cat /home/${MISP_USER}/MISP-authkey.txt
   echo "-------------------------------------------------------------------------"
   echo "The LOCAL system credentials:"
   echo "User: ${MISP_USER}"
