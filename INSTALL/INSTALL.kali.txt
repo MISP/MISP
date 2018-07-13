@@ -166,22 +166,22 @@ function installMISPonKali() {
     echo "
       set timeout 10
       spawn mysql_secure_installation
-      expect 'Enter current password for root (enter for none):'
-      send -- '\r'
-      expect 'Set root password?'
-      send -- 'y\r'
-      expect 'New password:'
-      send -- '${DBPASSWORD_ADMIN}\r'
-      expect 'Re-enter new password:'
-      send -- '${DBPASSWORD_ADMIN}\r'
-      expect 'Remove anonymous users?'
-      send -- 'y\r'
-      expect 'Disallow root login remotely?'
-      send -- 'y\r'
-      expect 'Remove test database and access to it?'
-      send -- 'y\r'
-      expect 'Reload privilege tables now?'
-      send -- 'y\r'
+      expect \"Enter current password for root (enter for none):\"
+      send -- \"\r\"
+      expect \"Set root password?\"
+      send -- \"y\r\"
+      expect \"New password:\"
+      send -- \"${DBPASSWORD_ADMIN}\r\"
+      expect \"Re-enter new password:\"
+      send -- \"${DBPASSWORD_ADMIN}\r\"
+      expect \"Remove anonymous users?\"
+      send -- \"y\r\"
+      expect \"Disallow root login remotely?\"
+      send -- \"y\r\"
+      expect \"Remove test database and access to it?\"
+      send -- \"y\r\"
+      expect \"Reload privilege tables now?\"
+      send -- \"y\r\"
       expect eof" | expect -f -
 
     mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "create database $DBNAME;"
@@ -496,13 +496,16 @@ function installMISPonKali() {
   $SUDO git submodule update
   pip3 install -r requirements.txt
   pip3 uninstall yara -y
-  $SUDO /usr/local/src/viper/viper-cli -h
+  $SUDO /usr/local/src/viper/viper-cli -h > /dev/null
   $SUDO /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 &
   echo 'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/src/viper:/var/www/MISP/app/Console"' |tee /etc/environment
+  echo ". /etc/environment" >> /home/${MISP_USER}/.profile
   $SUDO sed -i "s/^misp_url\ =/misp_url\ =\ http:\/\/localhost/g" /home/${MISP_USER}/.viper/viper.conf
   $SUDO sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" /home/${MISP_USER}/.viper/viper.conf
 
   while [ "$(sqlite3 /home/${MISP_USER}/.viper/admin.db 'UPDATE auth_user SET password="pbkdf2_sha256$100000$iXgEJh8hz7Cf$vfdDAwLX8tko1t0M1TLTtGlxERkNnltUnMhbv56wK/U="'; echo $?)" -ne "0" ]; do
+    # FIXME This might lead to a race condition, the while loop is sub-par
+    chown $MISP_USER:$MISP_USER /home/${MISP_USER}/.viper/admin.db
     echo "Updating viper-web admin password, giving process time to start-up, sleeping 5, 4, 3,…"
     sleep 6
   done
