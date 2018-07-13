@@ -141,3 +141,7 @@ label.center-in-network-header {
 .flushright {
 	float: right;
 }
+
+.btn[disabled] {
+	cursor: not-allowed;
+}

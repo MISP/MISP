@@ -1123,6 +1123,7 @@ class StixBuilder():
     def resolve_x509_observable(attributes):
         observable = {'type': 'x509-certificate'}
         hashes = {}
+        attributes2parse = defaultdict(list)
         for attribute in attributes:
             relation = attribute.object_relation
             if relation in ("x509-fingerprint-md5", "x509-fingerprint-sha1", "x509-fingerprint-sha256"):
@@ -1131,9 +1132,12 @@ class StixBuilder():
                 try:
                     observable[x509mapping[relation]] = attribute.value
                 except:
-                    pass
+                    value = bool(attribute.value) if attribute.type == 'boolean' else attribute.value
+                    attributes2parse["x_misp_{}_{}".format(attribute.type, relation)].append(value)
         if hashes:
             observable['hashes'] = hashes
+        for stix_type, value in attributes2parse.items():
+            observable[stix_type] = value if len(value) > 1 else value[0]
         return {'0': observable}
 
     @staticmethod
@@ -1148,8 +1152,9 @@ class StixBuilder():
                 try:
                     stix_type = x509mapping[relation]
                 except:
-                    continue
-            pattern += mapping.format(stix_type, attribute.value)
+                    stix_type = "'x_misp_{}_{}'".format(attribute.type, relation)
+            value = bool(attribute.value) if attribute.type == 'boolean' else attribute.value
+            pattern += mapping.format(stix_type, value)
         return "[{}]".format(pattern[:-5])
 
     @staticmethod
