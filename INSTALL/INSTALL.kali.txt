@@ -556,6 +556,7 @@ function installMISPonKali() {
   echo "sudo postfix reload"
   echo "-------------------------------------------------------------------------"
   echo "Enjoy using MISP. For any issues see here: https://github.com/MISP/MISP/issues"
+  su - misp
 }
 
 kaliOnRootR0ckz
