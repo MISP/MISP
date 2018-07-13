@@ -52,16 +52,18 @@ max_execution_time=300
 memory_limit=512M
 PHP_INI=/etc/php/7.2/apache2/php.ini
 
+export DEBIAN_FRONTEND=noninteractive
+
 echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
 echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 
-sudo apt install -y etckeeper
 sudo apt update
+sudo apt install -qy etckeeper
 # Skip dist-upgrade for now, pulls in 500+ updated packages
 #sudo apt -y dist-upgrade
-sudo apt install -y postfix
+sudo -E apt install -qy postfix
 
-sudo apt install -y \
+sudo -E apt install -qy \
 curl gcc git gnupg-agent make openssl redis-server neovim zip libyara-dev python3-yara python3-redis python3-zmq \
 mariadb-client \
 mariadb-server \
@@ -70,7 +72,7 @@ libapache2-mod-php7.2 php7.2 php7.2-cli  php7.2-mbstring php-pear php7.2-dev php
 python3-dev python3-pip libpq5 libjpeg-dev libfuzzy-dev ruby asciidoctor \
 libxml2-dev libxslt1-dev zlib1g-dev python3-setuptools
 
-sudo apt install rng-tools -y # This might fail on TPM grounds, enable the security chip in your BIOS
+sudo -E apt install -qy rng-tools # This might fail on TPM grounds, enable the security chip in your BIOS
 sudo service rng-tools start
 
 sudo systemctl restart mariadb.service
@@ -226,7 +228,7 @@ echo "<VirtualHost *:8001>
     ServerName misp.local
 
     DocumentRoot /var/www/misp-dashboard
-    
+
     WSGIDaemonProcess misp-dashboard \
        user=misp group=misp \
        python-home=/var/www/misp-dashboard/DASHENV \
@@ -473,7 +475,11 @@ sudo pip3 uninstall yara -y
 echo 'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/src/viper:/var/www/MISP/app/Console"' |sudo tee /etc/environment
 sed -i "s/^misp_url\ =/misp_url\ =\ http:\/\/localhost/g" ~/.viper/viper.conf
 sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" ~/.viper/viper.conf
-sqlite3 ~/.viper/admin.db 'UPDATE auth_user SET password="pbkdf2_sha256$100000$iXgEJh8hz7Cf$vfdDAwLX8tko1t0M1TLTtGlxERkNnltUnMhbv56wK/U="'
+
+while [ ! -e  ~/.viper/admin.db ]; do
+  sleep 3
+  sqlite3 ~/.viper/admin.db 'UPDATE auth_user SET password="pbkdf2_sha256$100000$iXgEJh8hz7Cf$vfdDAwLX8tko1t0M1TLTtGlxERkNnltUnMhbv56wK/U="'
+done
 
 sudo chown -R www-data:www-data $PATH_TO_MISP
 sudo chmod -R 750 $PATH_TO_MISP
@@ -481,25 +487,31 @@ sudo chmod -R g+ws $PATH_TO_MISP/app/tmp
 sudo chmod -R g+ws $PATH_TO_MISP/app/files
 sudo chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
 
+# TODO: mail-to-misp
+cd /usr/local/src/
+sudo apt-get install -y cmake
+sudo git clone https://github.com/MISP/mail_to_misp.git
+sudo git clone git://github.com/stricaud/faup.git
+cd faup
+sudo mkdir -p build
+cd build
+sudo cmake .. && sudo make
+sudo make install
+sudo ldconfig
+cd ../../
+cd mail_to_misp
+sudo pip3 install -r requirements.txt
+sudo cp mail_to_misp_config.py-example mail_to_misp_config.py
+sudo sed -i "s/^misp_url\ =\ 'YOUR_MISP_URL'/misp_url\ =\ 'http:\/\/localhost'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
+sudo sed -i "s/^misp_key\ =\ 'YOUR_KEY_HERE'/misp_key\ =\ '$AUTH_KEY'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
+
 echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" > ~/mysql.txt
 echo "User  (misp) DB Password: $DBPASSWORD_MISP" >> ~/mysql.txt
 echo "Authkey: $AUTH_KEY" > ~/MISP-authkey.txt
-# TODO: mail-to-misp
-#cd /usr/local/src/
-#sudo apt-get install -y cmake
-#sudo git clone https://github.com/MISP/mail_to_misp.git
-#sudo git clone git://github.com/stricaud/faup.git
-#cd faup
-#sudo mkdir -p build
-#cd build
-#sudo cmake .. && sudo make
-#sudo make install
-#sudo ldconfig
-#cd ../../
-#cd mail_to_misp
-#sudo pip3 install -r requirements.txt
-#sudo cp mail_to_misp_config.py-example mail_to_misp_config.py
-#
-#sudo sed -i "s/^misp_url\ =\ 'YOUR_MISP_URL'/misp_url\ =\ 'http:\/\/localhost'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
-#sudo sed -i "s/^misp_key\ =\ 'YOUR_KEY_HERE'/misp_key\ =\ '$AUTH_KEY'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
 
+cat ~/mysql.txt
+cat ~/MISP-authkey.txt
+
+echo "MISP Installed, access here: https://127.0.0.1"
+echo "User: admin@admin.test"
+echo "Password: admin"
