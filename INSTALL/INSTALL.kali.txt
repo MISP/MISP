@@ -30,7 +30,7 @@ function kaliOnRootR0ckz() {
 function installMISPonKali() {
   # MISP configuration variables
   PATH_TO_MISP='/var/www/MISP'
-  MISP_BASEURL='https://127.0.0.1'
+  MISP_BASEURL='https://misp.local'
   MISP_LIVE='1'
   CAKE="$PATH_TO_MISP/app/Console/cake"
 
@@ -43,7 +43,7 @@ function installMISPonKali() {
   DBPASSWORD_MISP="$(openssl rand -hex 32)"
 
   # Webserver configuration
-  FQDN='127.0.0.1'
+  FQDN='misp.local'
 
   # OpenSSL configuration
   OPENSSL_CN=$FQDN
@@ -97,28 +97,6 @@ function installMISPonKali() {
   service rng-tools start
 
   systemctl restart mariadb.service
-
-  expect -f - <<-EOF
-    set timeout 10
-    spawn mysql_secure_installation
-    expect "Enter current password for root (enter for none):"
-    send -- "\r"
-    expect "Set root password?"
-    send -- "y\r"
-    expect "New password:"
-    send -- "${DBPASSWORD_ADMIN}\r"
-    expect "Re-enter new password:"
-    send -- "${DBPASSWORD_ADMIN}\r"
-    expect "Remove anonymous users?"
-    send -- "y\r"
-    expect "Disallow root login remotely?"
-    send -- "y\r"
-    expect "Remove test database and access to it?"
-    send -- "y\r"
-    expect "Reload privilege tables now?"
-    send -- "y\r"
-    expect eof
-  EOF
 
   a2dismod status
   a2enmod ssl rewrite
@@ -182,12 +160,40 @@ function installMISPonKali() {
   chmod -R g+ws $PATH_TO_MISP/app/files
   chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
 
-  mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "create database $DBNAME;"
-  mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant usage on *.* to $DBNAME@localhost identified by '$DBPASSWORD_MISP';"
-  mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant all privileges on $DBNAME.* to '$DBUSER_MISP'@'localhost';"
-  mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "flush privileges;"
+  if [ ! -e /var/lib/mysql/misp/users.ibd ]; then
+    expect -f - <<-EOF
+      set timeout 10
+      spawn mysql_secure_installation
+      expect "Enter current password for root (enter for none):"
+      send -- "\r"
+      expect "Set root password?"
+      send -- "y\r"
+      expect "New password:"
+      send -- "${DBPASSWORD_ADMIN}\r"
+      expect "Re-enter new password:"
+      send -- "${DBPASSWORD_ADMIN}\r"
+      expect "Remove anonymous users?"
+      send -- "y\r"
+      expect "Disallow root login remotely?"
+      send -- "y\r"
+      expect "Remove test database and access to it?"
+      send -- "y\r"
+      expect "Reload privilege tables now?"
+      send -- "y\r"
+      expect eof
+    EOF
 
-  $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
+    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "create database $DBNAME;"
+    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant usage on *.* to $DBNAME@localhost identified by '$DBPASSWORD_MISP';"
+    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant all privileges on $DBNAME.* to '$DBUSER_MISP'@'localhost';"
+    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "flush privileges;"
+
+    $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
+  else
+    echo "There might be a database already existing here: /var/lib/mysql/misp/users.ibd"
+    echo "Skipping any creations…"
+    sleep 3
+  fi
 
   openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
   -subj "/C=${OPENSSL_C}/ST=${OPENSSL_ST}/L=${OPENSSL_L}/O=${OPENSSL_O}/OU=${OPENSSL_OU}/CN=${OPENSSL_CN}/emailAddress=${OPENSSL_EMAILADDRESS}" \
@@ -209,7 +215,7 @@ function installMISPonKali() {
           ServerAdmin admin@localhost.lu
           ServerName misp.local
 
-          Redirect permanent / https://localhost
+          Redirect permanent / https://misp.local
 
           LogLevel warn
           ErrorLog /var/log/apache2/misp.local_error.log
@@ -536,16 +542,16 @@ function installMISPonKali() {
   cat /home/${MISP_USER}/mysql.txt
   cat /home/${MISP_USER}/MISP-authkey.txt
   echo "-------------------------------------------------------------------------"
-  echo "MISP Installed, access here: https://127.0.0.1"
+  echo "MISP Installed, access here: https://misp.local"
   echo "User: admin@admin.test"
   echo "Password: admin"
-  echo "MISP Dashboard, access here: http://127.0.0.1:8001"
+  echo "MISP Dashboard, access here: http://misp.local:8001"
   echo "-------------------------------------------------------------------------"
   echo "The LOCAL system credentials:"
   echo "User: ${MISP_USER}"
   echo "Password: ${MISP_PASSWORD}"
   echo "-------------------------------------------------------------------------"
-  echo "viper-web installed, access here: http://127.0.0.1:8888"
+  echo "viper-web installed, access here: http://misp.local:8888"
   echo "viper-cli configured with your MISP Site Admin Auth Key"
   echo "User: admin"
   echo "Password: Password1234"
