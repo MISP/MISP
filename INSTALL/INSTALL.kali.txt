@@ -16,7 +16,7 @@ function kaliOnRootR0ckz() {
   if [[ $EUID -ne 0 ]]; then
    echo "This script must be run as root"
    exit 1
-  elif [[ $(id misp; echo $?) -ne 0 ]]
+  elif [[ $(id misp; echo $?) -ne 0 ]]; then
     useradd -s /bin/bash -m -G adm,cdrom,sudo,dip,plugdev,www-data misp
     passwd misp
     su -m misp
