@@ -1,6 +1,6 @@
 <div class="tabMenuFixedContainer">
 	<span class="tabMenuFixed tabMenuFixedLeft tabMenuSides">
-  <a href="<?php echo $baseurl;?>/servers/serverSettings/" id="create-button" title="<?php echo __('Modify filters');?>" class="discrete"><?php echo __('Overview'); ?></a>
+	<a href="<?php echo $baseurl;?>/servers/serverSettings/" id="create-button" title="<?php echo __('Modify filters');?>" class="discrete"><?php echo __('Overview'); ?></a>
 	</span>
 <?php
 	$i = 0;
