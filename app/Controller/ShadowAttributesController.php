@@ -420,7 +420,7 @@ class ShadowAttributesController extends AppController {
 						foreach ($this->ShadowAttribute->validationErrors as $k => $v) {
 							$message .= '[' . $k . ']: ' . $v[0] . PHP_EOL;
 						}
-						throw new NotFoundException(__('Could not save the proposal. Errors: ', $message));
+						throw new NotFoundException(__('Could not save the proposal. Errors: %s', $message));
 					} else {
 						$this->Flash->error(__('The proposal could not be saved. Please, try again.'));
 					}
@@ -697,7 +697,7 @@ class ShadowAttributesController extends AppController {
 					foreach ($this->ShadowAttribute->validationErrors as $k => $v) {
 						$message .= '[' . $k . ']: ' . $v[0] . PHP_EOL;
 					}
-					throw new NotFoundException(__('Could not save the proposal. Errors: ', $message));
+					throw new NotFoundException(__('Could not save the proposal. Errors: %s', $message));
 				} else {
 					$this->Flash->error(__('The ShadowAttribute could not be saved. Please, try again.'));
 				}
