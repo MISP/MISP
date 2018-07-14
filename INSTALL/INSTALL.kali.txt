@@ -78,6 +78,14 @@ function installMISPonKali() {
   echo "Admin (${DBUSER_ADMIN}) DB Password: ${DBPASSWORD_ADMIN}"
   echo "User  (${DBUSER_MISP}) DB Password: ${DBPASSWORD_MISP}"
 
+  echo "-----------------------------------------------------------------------"
+  echo "Disabling sleep etc…"
+  gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 0
+  gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 0
+  gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'nothing'
+  xset s 0 0
+  xset dpms 0 0
+  xset s off
   apt update
   apt install -qy etckeeper
   # Skip dist-upgrade for now, pulls in 500+ updated packages
@@ -323,7 +331,6 @@ function installMISPonKali() {
   cp $PATH_TO_MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
 
   $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/bootstrap.default.php $PATH_TO_MISP/app/Config/bootstrap.php
-  $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/database.default.php $PATH_TO_MISP/app/Config/database.php
   $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/core.default.php $PATH_TO_MISP/app/Config/core.php
   $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/config.default.php $PATH_TO_MISP/app/Config/config.php
 
