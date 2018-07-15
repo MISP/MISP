@@ -57,6 +57,7 @@ class Noticelist extends AppModel{
 				}
 			}
 		}
+		if (empty($updated)) return 'All noticelists are up to date already.';
 		return $updated;
 	}
 

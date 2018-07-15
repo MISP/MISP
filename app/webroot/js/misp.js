@@ -85,8 +85,13 @@ function submitDeletion(context_id, action, type, id) {
 		},
 		data: formData,
 		success:function (data, textStatus) {
-			updateIndex(context_id, context);
-			handleGenericAjaxResponse(data);
+			if (type == 'eventGraph') {
+				showMessage('success', 'Network has been deleted');
+				reset_graph_history();
+			} else {
+				updateIndex(context_id, context);
+				handleGenericAjaxResponse(data);
+			}
 		},
 		complete:function() {
 			$(".loading").hide();
@@ -1049,6 +1054,7 @@ function showMessage(success, message, context) {
 function cancelPopoverForm(id) {
 	$("#gray_out").fadeOut();
 	$("#popover_form").fadeOut();
+	$("#popover_form_large").fadeOut();
 	$("#screenshot_box").fadeOut();
 	$("#confirmation_box").fadeOut();
 	$('#gray_out').fadeOut();
@@ -3118,6 +3124,7 @@ $(document).keyup(function(e){
     if (e.keyCode === 27) {
     $("#gray_out").fadeOut();
 		$("#popover_form").fadeOut();
+		$("#popover_form_large").fadeOut();
 		$("#screenshot_box").fadeOut();
 		$("#confirmation_box").fadeOut();
 		$(".loading").hide();

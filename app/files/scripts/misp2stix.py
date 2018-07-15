@@ -73,7 +73,11 @@ not_implemented_attributes = ['yara', 'snort', 'pattern-in-traffic', 'pattern-in
 
 non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', 'target-email', 'target-machine', 'target-org', 'target-location', 'target-external', 'vulnerability']
 
-hash_type_attributes = {"single":["md5", "sha1", "sha224", "sha256", "sha384", "sha512", "sha512/224", "sha512/256", "ssdeep", "imphash", "authentihash", "pehash", "tlsh", "x509-fingerprint-sha1"], "composite": ["filename|md5", "filename|sha1", "filename|sha224", "filename|sha256", "filename|sha384", "filename|sha512", "filename|sha512/224", "filename|sha512/256", "filename|authentihash", "filename|ssdeep", "filename|tlsh", "filename|imphash", "filename|pehash"]}
+hash_type_attributes = {"single": ["md5", "sha1", "sha224", "sha256", "sha384", "sha512", "sha512/224", "sha512/256", "ssdeep",
+                                   "imphash", "authentihash", "pehash", "tlsh", "x509-fingerprint-sha1"],
+                        "composite": ["filename|md5", "filename|sha1", "filename|sha224", "filename|sha256", "filename|sha384",
+                                      "filename|sha512", "filename|sha512/224", "filename|sha512/256", "filename|authentihash",
+                                      "filename|ssdeep", "filename|tlsh", "filename|imphash", "filename|pehash"]}
 
 # mapping for the attributes that can go through the simpleobservable script
 misp_cybox_name = {"domain" : "DomainName", "hostname" : "Hostname", "url" : "URI", "AS" : "AutonomousSystem", "mutex" : "Mutex",
@@ -1108,7 +1112,7 @@ class StixBuilder(object):
         fuzzy = False
         f, h = [""] * 2
         attribute_type = attribute.type
-        if attribute_type in (hash_type_attributes['composite'], "malware-sample"):
+        if attribute_type in hash_type_attributes['composite'] or attribute_type == "malware-sample":
             f, h = attribute.value.split('|')
             composite = attribute_type.split('|')
             if len(composite) > 1 and composite[1] == "ssdeep":

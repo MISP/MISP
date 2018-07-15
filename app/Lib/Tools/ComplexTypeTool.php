@@ -270,8 +270,10 @@ class ComplexTypeTool {
 	private function __checkForSimpleRegex($input) {
 		// CVE numbers
 		if (preg_match("#^cve-[0-9]{4}-[0-9]{4,9}$#i", $input['raw'])) return array('types' => array('vulnerability'), 'categories' => array('External analysis'), 'to_ids' => false, 'default_type' => 'vulnerability', 'value' => $input['raw']);
-		// Phone numbers
-		if (preg_match("#^(\+)?([0-9]{1,3}(\(0\))?)?[0-9\/\-]{5,}[0-9]$#i", $input['raw'])) return array('types' => array('phone-number', 'prtn', 'whois-registrant-phone'), 'categories' => array('Other'), 'to_ids' => false, 'default_type' => 'phone-number', 'value' => $input['raw']);
+		// Phone numbers - for automatic recognition, needs to start with + or include dashes
+		if ($input['raw'][0] === '+' || strpos($input['raw'], '-')) {
+			if (preg_match("#^(\+)?([0-9]{1,3}(\(0\))?)?[0-9\/\-]{5,}[0-9]$#i", $input['raw'])) return array('types' => array('phone-number', 'prtn', 'whois-registrant-phone'), 'categories' => array('Other'), 'to_ids' => false, 'default_type' => 'phone-number', 'value' => $input['raw']);
+		}
 	}
 
 	private function __checkForIP($input) {

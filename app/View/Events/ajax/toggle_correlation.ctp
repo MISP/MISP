@@ -3,7 +3,7 @@
 	echo $this->Form->create('Event', array('style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => '/events/toggleCorrelation/' . $event['Event']['id']));
 	$extraTitle = "";
 	?>
-	<legend><?php echo __('Toggle Corruelation %s', $event['Event']['disable_correlation'] ? __('on') : __('off'));?></legend>
+	<legend><?php echo __('Toggle Correlation %s', $event['Event']['disable_correlation'] ? __('on') : __('off'));?></legend>
 	<div style="padding-left:5px;padding-right:5px;padding-bottom:5px;">
 		<p>
 	<?php

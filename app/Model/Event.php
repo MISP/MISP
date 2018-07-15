@@ -3279,14 +3279,20 @@ class Event extends AppModel {
 		$scriptFile = APP . "files" . DS . "scripts" . DS . "stix2" . DS . "misp2stix2.py";
 		$result = shell_exec('python3 ' . $scriptFile . ' ' . $tempFile->path . ' json ' . ' ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' 2>' . APP . 'tmp/logs/exec-errors.log');
 		$tempFile->delete();
+		$resultFile = new File($tmpDir . DS . $randomFileName . ".stix2");
+		$resultFile->write("{\"type\": \"bundle\", \"spec_version\": \"2.0\", \"id\": \"bundle--" . CakeText::uuid() . "\", \"objects\": [");
 		if (trim($result) == 1) {
-			$resultFile = new File($tmpDir . DS . $randomFileName . '.out', true, 0644);
-			$result = $resultFile->read();
-			$resultFile->delete();
-			return $result;
+			$file = new File($tmpDir . DS . $randomFileName . '.out', true, 0644);
+			$result = substr($file->read(), 1, -1);
+			$file->delete();
+			$resultFile->append($result);
 		} else {
 			return false;
 		}
+		$resultFile->append("]}\n");
+		$data2return = $resultFile->read();
+		$resultFile->delete();
+		return $data2return;
 	}
 
 	public function stix($id, $tags, $attachments, $user, $returnType = 'xml', $from = false, $to = false, $last = false, $jobId = false, $returnFile = false) {

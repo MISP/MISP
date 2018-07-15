@@ -69,12 +69,12 @@ class RestResponseComponent extends Component {
 			'admin_add' => array(
 				'description' => "POST an Organisation object in JSON format to this API to create a new organsiation.",
 				'mandatory' => array('name'),
-				'optional' => array('anonymise', 'description', 'type', 'nationality', 'sector', 'uuid', 'contacts', 'local')
+				'optional' => array('description', 'type', 'nationality', 'sector', 'uuid', 'contacts', 'local')
 			),
 			'admin_edit' => array(
 				'description' => "POST an Organisation object in JSON format to this API to create a new organsiation.",
 				'mandatory' => array('name'),
-				'optional' => array('anonymise', 'description', 'type', 'nationality', 'sector', 'uuid', 'contacts', 'local')
+				'optional' => array('description', 'type', 'nationality', 'sector', 'uuid', 'contacts', 'local')
 			)
 		),
 		'Role' => array(
@@ -179,6 +179,13 @@ class RestResponseComponent extends Component {
 			'admin_quickEmail' => array(
 				'description' => "POST a body and a subject in a JSON to send an e-mail through MISP to the user ID given in the URL",
 				'mandatory' => array('subject', 'body')
+			)
+		),
+		'EventGraph' => array(
+			'add' => array(
+				'description' => "POST a network in JSON format to this API to to keep an history of it",
+				'mandatory' => array('event_id', 'network_json'),
+				'optional' => array('network_name')
 			)
 		)
 	);

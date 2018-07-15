@@ -12,16 +12,16 @@
 				<?php
 				$gpgpath = ROOT.DS.APP_DIR.DS.WEBROOT_DIR.DS.'gpg.asc';
 				if (file_exists($gpgpath) && (is_file($gpgpath) || is_link($gpgpath))){ ?>
-					<span>Download: <?php echo $this->Html->link('GnuPG key', $this->webroot.'gpg.asc');?></span>
+					<span>Download: <?php echo $this->Html->link(__('GnuPG key'), $this->webroot.'gpg.asc');?></span>
 				<?php } else { ?>
-					<span>Could not locate the GnuPG public key.</span>
+					<span><?php echo __('Could not locate the GnuPG public key.');?></span>
 				<?php }
 				if (Configure::read('SMIME.enabled')):
 					$smimepath = ROOT.DS.APP_DIR.DS.WEBROOT_DIR.DS.'public_certificate.pem';
 					if (file_exists($smimepath) && (is_file($smimepath) || is_link($gpgpath))){ ?>
 						<span>Download: <?php echo $this->Html->link('SMIME certificate', $this->webroot.'public_certificate.pem');?></span>
 					<?php } else { ?>
-						<span>Could not locate SMIME certificate.</span>
+						<span><?php echo __('Could not locate SMIME certificate.');?></span>
 					<?php }
 				endif;
 				?>

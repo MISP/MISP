@@ -443,6 +443,7 @@ class Feed extends AppModel {
 		}
 		if (isset($actions['edit']) && !empty($actions['edit'])) {
 			foreach ($actions['edit'] as $editTarget) {
+				$uuid = $editTarget['uuid'];
 				if ($result === 'blocked') continue;
 				$result = $this->__updateEventFromFeed($HttpSocket, $feed, $editTarget['uuid'], $editTarget['id'], $user, $filterRules);
 				$this->__cleanupFile($feed, '/' . $uuid . '.json');
