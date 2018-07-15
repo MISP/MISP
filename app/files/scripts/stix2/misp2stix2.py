@@ -49,7 +49,6 @@ class StixBuilder():
         self.read_attributes()
         report = self.eventReport()
         self.SDOs.insert(1, report)
-        self.stix_package = self.generate_package()
 
     def eventReport(self):
         report_args = {'type': 'report', 'id': 'report--{}'.format(self.misp_event.uuid),
@@ -70,15 +69,10 @@ class StixBuilder():
             report_args['external_references'] = self.external_refs
         return Report(**report_args)
 
-    def generate_package(self):
-        bundle_args = {"type": "bundle", "spec_version": "2.0", "objects": self.SDOs,
-                       "id": "bundle--{}".format(self.misp_event.uuid)}
-        return Bundle(**bundle_args)
-
     def saveFile(self):
         outputfile = "{}.out".format(self.filename)
         with open(outputfile, 'w') as f:
-            f.write(json.dumps(self.stix_package, cls=base.STIXJSONEncoder))
+            f.write(json.dumps(self.SDOs, cls=base.STIXJSONEncoder))
 
     def __set_identity(self):
         org = self.misp_event.Orgc
