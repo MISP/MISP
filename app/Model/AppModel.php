@@ -66,7 +66,7 @@ class AppModel extends Model {
 	public $db_changes = array(
 		1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
 		7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
-		13 => false
+		13 => false, 14 => false
 	);
 
 	function afterSave($created, $options = array()) {
@@ -978,6 +978,17 @@ class AppModel extends Model {
 					INDEX `user_id` (`user_id`),
 					INDEX `org_id` (`org_id`)
 					INDEX `timestamp` (`timestamp`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+				break;
+			case 14:
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `user_settings` (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`setting` varchar(255) COLLATE utf8_bin NOT NULL,
+					`value` text COLLATE utf8_bin NOT NULL,
+					`user_id` int(11) NOT NULL,
+					INDEX `setting` (`setting`),
+					INDEX `user_id` (`user_id`),
+					PRIMARY KEY (`id`)
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 				break;
 			case 'fixNonEmptySharingGroupID':
