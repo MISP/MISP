@@ -6,7 +6,7 @@
 					'extra' => __(', both local and remote')
 			),
 			'external' => array(
-					'text' => ('Known remote organisations'),
+					'text' => __('Known remote organisations'),
 					'extra' => __(' on other instances')
 			),
 			'local' => array(

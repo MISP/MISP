@@ -66,8 +66,8 @@
 				<span class="bold blue expandable useCursorPointer" data-toggle="popover" data-content="<?php echo h($popover_data); ?>">
 					<?php echo h($cluster['value']); ?>
 				</span>&nbsp;
-				<a href="<?php echo $baseurl; ?>/galaxy_clusters/view/<?php echo h($cluster['id']); ?>" class="icon-search" title="View details about this cluster"></a>&nbsp;
-				<a href="<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($cluster['tag_id']); ?>" class="icon-th-list" title="View all events containing this cluster."></a>
+				<a href="<?php echo $baseurl; ?>/galaxy_clusters/view/<?php echo h($cluster['id']); ?>" class="icon-search" title="<?php echo __('View details about this cluster');?>"></a>&nbsp;
+				<a href="<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($cluster['tag_id']); ?>" class="icon-th-list" title="<?php echo __('View all events containing this cluster.');?>"></a>
 				<?php
 					if ($isSiteAdmin || ($mayModify && $isAclTagger)) {
 						echo $this->Form->postLink('',
@@ -88,7 +88,7 @@
 <?php
 	if ($isSiteAdmin || ($mayModify && $isAclTagger)):
 ?>
-		<span class="btn btn-inverse noPrint addGalaxy" data-target-type="<?php echo h($target_type);?>" data-target-id="<?php echo h($target_id); ?>" role="button" tabindex="0" aria-label="Add new cluster" style="padding: 1px 5px !important;font-size: 12px !important;">Add</span>
+		<span class="btn btn-inverse noPrint addGalaxy" data-target-type="<?php echo h($target_type);?>" data-target-id="<?php echo h($target_id); ?>" role="button" tabindex="0" aria-label="<?php echo __('Add new cluster');?>" style="padding: 1px 5px !important;font-size: 12px !important;"><?php echo __('Add');?></span>
 <?php
 	endif;
 ?>

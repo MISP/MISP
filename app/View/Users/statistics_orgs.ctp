@@ -8,9 +8,9 @@
 	<?php
 		echo $this->element('Users/statisticsMenu');
 		$types = array(
-				'local' => array('selected' => false, 'text' => 'Local organisations'),
-				'external' => array('selected' => false, 'text' => 'Known remote organisations'),
-				'all' => array('selected' => false, 'text' => 'All organisations')
+				'local' => array('selected' => false, 'text' => __('Local organisations')),
+				'external' => array('selected' => false, 'text' => __('Known remote organisations')),
+				'all' => array('selected' => false, 'text' => __('All organisations'))
 		);
 		$types[$scope]['selected'] = true;
 	?>

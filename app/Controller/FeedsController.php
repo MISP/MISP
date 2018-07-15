@@ -22,7 +22,7 @@ class FeedsController extends AppController {
 	public function beforeFilter() {
 		parent::beforeFilter();
 		$this->Security->unlockedActions = array('previewIndex');
-		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException('You don\'t have the required privileges to do that.');
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException(__('You don\'t have the required privileges to do that.'));
 	}
 
 	public function index() {
@@ -205,7 +205,7 @@ class FeedsController extends AppController {
 
 	public function edit($feedId) {
 		$this->Feed->id = $feedId;
-		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
+		if (!$this->Feed->exists()) throw new NotFoundException(__('Invalid feed.'));
 		$this->Feed->read();
 		$this->loadModel('Event');
 		$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
@@ -292,9 +292,9 @@ class FeedsController extends AppController {
 	}
 
 	public function delete($feedId) {
-		if (!$this->request->is('post')) throw new MethodNotAllowedException('This action requires a post request.');
+		if (!$this->request->is('post')) throw new MethodNotAllowedException(__('This action requires a post request.'));
 		$this->Feed->id = $feedId;
-		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
+		if (!$this->Feed->exists()) throw new NotFoundException(__('Invalid feed.'));
 		if ($this->Feed->delete($feedId)) {
 			$message = 'Feed deleted.';
 			if ($this->_isRest()) {
@@ -313,13 +313,13 @@ class FeedsController extends AppController {
 
 	public function fetchFromFeed($feedId) {
 		$this->Feed->id = $feedId;
-		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
+		if (!$this->Feed->exists()) throw new NotFoundException(__('Invalid feed.'));
 		$this->Feed->read();
 		if (!empty($this->Feed->data['Feed']['settings'])) {
 			$this->Feed->data['Feed']['settings'] = json_decode($this->Feed->data['Feed']['settings'], true);
 		}
 		if (!$this->Feed->data['Feed']['enabled']) {
-			$this->Flash->info('Feed is currently not enabled. Make sure you enable it.');
+			$this->Flash->info(__('Feed is currently not enabled. Make sure you enable it.'));
 			$this->redirect(array('action' => 'index'));
 		}
 		if (Configure::read('MISP.background_jobs')) {
@@ -332,7 +332,7 @@ class FeedsController extends AppController {
 					'status' => 0,
 					'retries' => 0,
 					'org' => $this->Auth->user('Organisation')['name'],
-					'message' => 'Starting fetch from Feed.',
+					'message' => __('Starting fetch from Feed.'),
 			);
 			$this->Job->save($data);
 			$jobId = $this->Job->id;
@@ -343,18 +343,18 @@ class FeedsController extends AppController {
 					true
 			);
 			$this->Job->saveField('process_id', $process_id);
-			$message = 'Pull queued for background execution.';
+			$message = __('Pull queued for background execution.');
 		} else {
 			$result = $this->Feed->downloadFromFeedInitiator($feedId, $this->Auth->user());
 			if (!$result) {
 				if ($this->_isRest()) {
-					return $this->RestResponse->viewData(array('result' => 'Fetching the feed has failed.'), $this->response->type());
+					return $this->RestResponse->viewData(array('result' => __('Fetching the feed has failed.')), $this->response->type());
 				} else {
-					$this->Flash->error('Fetching the feed has failed.');
+					$this->Flash->error(__('Fetching the feed has failed.'));
 					$this->redirect(array('action' => 'index'));
 				}
 			}
-			$message = 'Fetching the feed has successfuly completed.';
+			$message = __('Fetching the feed has successfuly completed.');
 			if ($this->Feed->data['Feed']['source_format'] == 'misp') {
 				if (isset($result['add'])) $message['result'] .= ' Downloaded ' . count($result['add']) . ' new event(s).';
 				if (isset($result['edit'])) $message['result'] .= ' Updated ' . count($result['edit']) . ' event(s).';
@@ -393,7 +393,7 @@ class FeedsController extends AppController {
                     'status' => 0,
                     'retries' => 0,
                     'org' => $this->Auth->user('Organisation')['name'],
-                    'message' => 'Starting fetch from Feed.',
+                    'message' => __('Starting fetch from Feed.'),
                 );
                 $this->Job->save($data);
                 $jobId = $this->Job->id;
@@ -410,7 +410,7 @@ class FeedsController extends AppController {
                 if (!$result) {
                     continue;
                 }
-                $message = 'Fetching the feed has successfuly completed.';
+                $message = __('Fetching the feed has successfully completed.');
                 if ($this->Feed->data['Feed']['source_format'] == 'misp') {
                     if (isset($result['add'])) $message['result'] .= ' Downloaded ' . count($result['add']) . ' new event(s).';
                     if (isset($result['edit'])) $message['result'] .= ' Updated ' . count($result['edit']) . ' event(s).';
@@ -423,30 +423,30 @@ class FeedsController extends AppController {
 
 	public function getEvent($feedId, $eventUuid, $all = false) {
 		$this->Feed->id = $feedId;
-		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
+		if (!$this->Feed->exists()) throw new NotFoundException(__('Invalid feed.'));
 		$this->Feed->read();
 		if (!$this->Feed->data['Feed']['enabled']) {
-			$this->Flash->info('Feed is currently not enabled. Make sure you enable it.');
+			$this->Flash->info(__('Feed is currently not enabled. Make sure you enable it.'));
 			$this->redirect(array('action' => 'previewIndex', $feedId));
 		}
 		$result = $this->Feed->downloadAndSaveEventFromFeed($this->Feed->data, $eventUuid, $this->Auth->user());
 		if (isset($result['action'])) {
 			if ($result['result']) {
-				if ($result['action'] == 'add') $this->Flash->success('Event added.');
+				if ($result['action'] == 'add') $this->Flash->success(__('Event added.'));
 				else {
-					if ($result['result'] === 'No change') $this->Flash->info('Event already up to date.');
-					else $this->Flash->success('Event updated.');
+					if ($result['result'] === 'No change') $this->Flash->info(__('Event already up to date.'));
+					else $this->Flash->success(__('Event updated.'));
 				}
 			} else {
-				$this->Flash->error('Could not ' . $result['action'] . ' event.');
+				$this->Flash->error(__('Could not %s event.', $result['action']));
 			}
-		} else $this->Flash->error('Download failed.');
+		} else $this->Flash->error(__('Download failed.'));
 		$this->redirect(array('action' => 'previewIndex', $feedId));
 	}
 
 	public function previewIndex($feedId) {
 		$this->Feed->id = $feedId;
-		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
+		if (!$this->Feed->exists()) throw new NotFoundException(__('Invalid feed.'));
 		$this->Feed->read();
 		if (!empty($this->Feed->data['Feed']['settings'])) {
 			$this->Feed->data['Feed']['settings'] = json_decode($this->Feed->data['Feed']['settings'], true);
@@ -497,7 +497,7 @@ class FeedsController extends AppController {
 		if ($this->_isRest()) {
 				return $this->RestResponse->viewData($events, $this->response->type());
 		}
-		if (isset($events['code'])) throw new NotFoundException('Feed could not be fetched. The HTTP error code returned was: ' .$events['code']);
+		if (isset($events['code'])) throw new NotFoundException(__('Feed could not be fetched. The HTTP error code returned was: ', $events['code']));
 		$pageCount = count($events);
 		App::uses('CustomPaginationTool', 'Tools');
 		$customPagination = new CustomPaginationTool();
@@ -529,7 +529,7 @@ class FeedsController extends AppController {
 		$urlparams = '';
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
-		if (!in_array($feed['Feed']['source_format'], array('freetext', 'csv'))) throw new MethodNotAllowedException('Invalid feed type.');
+		if (!in_array($feed['Feed']['source_format'], array('freetext', 'csv'))) throw new MethodNotAllowedException(__('Invalid feed type.'));
 		$HttpSocket = $syncTool->setupHttpSocketFeed($feed);
 		$params = array();
 		// params is passed as reference here, the pagination happens in the method, which isn't ideal but considering the performance gains here it's worth it
@@ -574,7 +574,7 @@ class FeedsController extends AppController {
 		else $currentPage = 1;
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
-		if ($feed['Feed']['source_format'] != 'csv') throw new MethodNotAllowedException('Invalid feed type.');
+		if ($feed['Feed']['source_format'] != 'csv') throw new MethodNotAllowedException(__('Invalid feed type.'));
 		$HttpSocket = $syncTool->setupHttpSocketFeed($feed);
 		$resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], $currentPage);
 		// we want false as a valid option for the split fetch, but we don't want it for the preview
@@ -600,7 +600,7 @@ class FeedsController extends AppController {
 
 	public function previewEvent($feedId, $eventUuid, $all = false) {
 		$this->Feed->id = $feedId;
-		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
+		if (!$this->Feed->exists()) throw new NotFoundException(__('Invalid feed.'));
 		$this->Feed->read();
 		$event = $this->Feed->downloadEventFromFeed($this->Feed->data, $eventUuid, $this->Auth->user());
 		if ($this->_isRest()) {
@@ -627,8 +627,8 @@ class FeedsController extends AppController {
 			$threat_levels = $this->Event->ThreatLevel->find('all');
 			$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
 		} else {
-			if ($event === 'blocked') throw new MethodNotAllowedException('This event is blocked by the Feed filters.');
-			else throw new NotFoundException('Could not download the selected Event');
+			if ($event === 'blocked') throw new MethodNotAllowedException(__('This event is blocked by the Feed filters.'));
+			else throw new NotFoundException(__('Could not download the selected Event'));
 		}
 	}
 
@@ -659,9 +659,9 @@ class FeedsController extends AppController {
 	}
 
 	private function __toggleEnable($id, $enable = true) {
-		if (!is_numeric($id)) throw new MethodNotAllowedException('Invalid Feed.');
+		if (!is_numeric($id)) throw new MethodNotAllowedException(__('Invalid Feed.'));
 		$this->Feed->id = $id;
-		if (!$this->Feed->exists()) throw new MethodNotAllowedException('Invalid Feed.');
+		if (!$this->Feed->exists()) throw new MethodNotAllowedException(__('Invalid Feed.'));
 		$feed = $this->Feed->find('first', array(
 				'conditions' => array('Feed.id' => $id),
 				'recursive' => -1
@@ -680,11 +680,11 @@ class FeedsController extends AppController {
 
 	public function fetchSelectedFromFreetextIndex($id) {
 		if (!$this->request->is('Post')) {
-			throw new MethodNotAllowedException('Only POST requests are allowed.');
+			throw new MethodNotAllowedException(__('Only POST requests are allowed.'));
 		}
 		$this->Feed->id = $id;
 		if (!$this->Feed->exists()) {
-			throw new NotFoundException('Feed not found.');
+			throw new NotFoundException(__('Feed not found.'));
 		}
 		$feed = $this->Feed->read();
 		if (!empty($feed['Feed']['settings'])) {
@@ -693,9 +693,9 @@ class FeedsController extends AppController {
 		$data = json_decode($this->request->data['Feed']['data'], true);
 		$result = $this->Feed->saveFreetextFeedData($feed, $data, $this->Auth->user());
 		if ($result === true) {
-			$this->Flash->success('Data pulled.');
+			$this->Flash->success(__('Data pulled.'));
 		} else {
-			$this->Flash->error('Could not pull the selected data. Reason: ' . $result);
+			$this->Flash->error(__('Could not pull the selected data. Reason: %s', $result));
 		}
 		$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
 	}
@@ -711,7 +711,7 @@ class FeedsController extends AppController {
 					'status' => 0,
 					'retries' => 0,
 					'org' => $this->Auth->user('Organisation')['name'],
-					'message' => 'Starting feed caching.',
+					'message' => __('Starting feed caching.'),
 			);
 			$this->Job->save($data);
 			$jobId = $this->Job->id;
@@ -726,10 +726,10 @@ class FeedsController extends AppController {
 		} else {
 			$result = $this->Feed->cacheFeedInitiator($this->Auth->user(), false, $scope);
 			if (!$result) {
-				$this->Flash->error('Caching the feeds has failed.');
+				$this->Flash->error(__('Caching the feeds has failed.'));
 				$this->redirect(array('action' => 'index'));
 			}
-			$message = 'Caching the feeds has successfuly completed.';
+			$message = __('Caching the feeds has successfully completed.');
 		}
 		if ($this->_isRest()) {
 			return $this->RestResponse->saveSuccessResponse('Feed', 'cacheFeed', false, $this->response->type(), $message);
@@ -755,7 +755,7 @@ class FeedsController extends AppController {
 		try {
 			$feedIds = json_decode($feedList, true);
 		} catch (Exception $e) {
-			$this->Flash->error('Invalid feed list received.');
+			$this->Flash->error(__('Invalid feed list received.'));
 			$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
 		}
 		if ($this->request->is('post')) {

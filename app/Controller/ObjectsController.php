@@ -23,7 +23,7 @@ class ObjectsController extends AppController {
 
 	public function revise_object($action, $event_id, $template_id, $object_id = false) {
 		if (!$this->request->is('post') && !$this->request->is('put')) {
-			throw new MethodNotAllowedException('This action can only be reached via POST requests');
+			throw new MethodNotAllowedException(__('This action can only be reached via POST requests'));
 		}
 		$this->request->data = $this->MispObject->attributeCleanup($this->request->data);
 		$eventFindParams = array(
@@ -40,7 +40,7 @@ class ObjectsController extends AppController {
 		));
 		$event = $this->MispObject->Event->find('first', $eventFindParams);
 		if (empty($event) || (!$this->_isSiteAdmin() &&	$event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
-			throw new NotFoundException('Invalid event.');
+			throw new NotFoundException(__('Invalid event.'));
 		}
 		$sharing_groups = array();
 		if ($this->request->data['Object']['distribution'] == 4) {
@@ -62,7 +62,7 @@ class ObjectsController extends AppController {
 				$sharing_groups[$sg['SharingGroup']['id']] = $sg;
 			}
 			foreach ($sharing_groups as $k => $sg) {
-				if (empty($sg)) throw new NotFoundException('Invalid sharing group.');
+				if (empty($sg)) throw new NotFoundException(__('Invalid sharing group.'));
 			}
 			$this->set('sharing_groups', $sharing_groups);
 		}
@@ -73,7 +73,7 @@ class ObjectsController extends AppController {
 				'fields' => array('SharingGroup.id', 'SharingGroup.name'),
 				'order' => false
 			));
-			if (empty($sg)) throw new NotFoundException('Invalid sharing group.');
+			if (empty($sg)) throw new NotFoundException(__('Invalid sharing group.'));
 			$this->set('sg', $sg);
 		}
 		$this->set('distributionLevels', $this->MispObject->Attribute->distributionLevels);
@@ -92,7 +92,7 @@ class ObjectsController extends AppController {
 	 */
   public function add($eventId, $templateId = false, $version = false) {
 		if (!$this->userRole['perm_modify']) {
-			throw new MethodNotAllowedException('You don\'t have permissions to create objects.');
+			throw new MethodNotAllowedException(__('You don\'t have permissions to create objects.'));
 		}
 		$eventFindParams = array(
 			'recursive' => -1,
@@ -120,7 +120,7 @@ class ObjectsController extends AppController {
 				}
 				unset($temp);
 			} else {
-				throw new NotFoundException('Invalid template.');
+				throw new NotFoundException(__('Invalid template.'));
 			}
 		}
 		// Find the event that is to be updated
@@ -129,11 +129,11 @@ class ObjectsController extends AppController {
 		} else if (is_numeric($eventId)) {
 			$eventFindParams['conditions']['Event.id'] = $eventId;
 		} else {
-			throw new NotFoundException('Invalid event.');
+			throw new NotFoundException(__('Invalid event.'));
 		}
 		$event = $this->MispObject->Event->find('first', $eventFindParams);
 		if (empty($event) || (!$this->_isSiteAdmin() &&	$event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
-			throw new NotFoundException('Invalid event.');
+			throw new NotFoundException(__('Invalid event.'));
 		}
 		$eventId = $event['Event']['id'];
 		if (!$this->_isRest()) $this->MispObject->Event->insertLock($this->Auth->user(), $eventId);
@@ -286,7 +286,7 @@ class ObjectsController extends AppController {
 			$conditions = array('Object.id' => $id);
 		}
 		if (!$this->userRole['perm_modify']) {
-			throw new MethodNotAllowedException('You don\'t have permissions to edit objects.');
+			throw new MethodNotAllowedException(__('You don\'t have permissions to edit objects.'));
 		}
 		$object = $this->MispObject->find('first', array(
 			'conditions' => $conditions,
@@ -300,7 +300,7 @@ class ObjectsController extends AppController {
 			)
 		));
 		if (empty($object)) {
-			throw new NotFoundException('Invalid object.');
+			throw new NotFoundException(__('Invalid object.'));
 		}
 		$id = $object['Object']['id'];
 		$eventFindParams = array(
@@ -311,7 +311,7 @@ class ObjectsController extends AppController {
 
 		$event = $this->MispObject->Event->find('first', $eventFindParams);
 		if (empty($event) || (!$this->_isSiteAdmin() &&	$event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
-			throw new NotFoundException('Invalid object.');
+			throw new NotFoundException(__('Invalid object.'));
 		}
 		if (!$this->_isRest()) $this->MispObject->Event->insertLock($this->Auth->user(), $event['Event']['id']);
 		$template = $this->MispObject->ObjectTemplate->find('first', array(
@@ -402,13 +402,13 @@ class ObjectsController extends AppController {
 
   public function delete($id, $hard = false) {
 		if (!$this->userRole['perm_modify']) {
-			throw new MethodNotAllowedException('You don\'t have permissions to delete objects.');
+			throw new MethodNotAllowedException(__('You don\'t have permissions to delete objects.'));
 		}
 		$lookupField = 'id';
 		if (Validation::uuid($id)) {
 			$lookupField = 'uuid';
 		} else if (!is_numeric($id)) {
-			throw new NotFoundException('Invalid object.');
+			throw new NotFoundException(__('Invalid object.'));
 		}
 		$object = $this->MispObject->find('first', array(
 			'recursive' => -1,
@@ -419,11 +419,11 @@ class ObjectsController extends AppController {
 			)
 		));
 		if (empty($object)) {
-			throw new NotFoundException('Invalid event.');
+			throw new NotFoundException(__('Invalid event.'));
 		}
 		$eventId = $object['Event']['id'];
 		if (!$this->_isSiteAdmin() && ($object['Event']['orgc_id'] != $this->Auth->user('org_id') || !$this->userRole['perm_modify'])) {
-			throw new UnauthorizedException('You do not have permission to do that.');
+			throw new UnauthorizedException(__('You do not have permission to do that.'));
 		}
 		if (!$this->_isRest()) $this->MispObject->Event->insertLock($this->Auth->user(), $eventId);
 		if ($this->request->is('post')) {
@@ -508,17 +508,17 @@ class ObjectsController extends AppController {
 				)
 			),
 		));
-		if (empty($object)) throw new MethodNotAllowedException('Object not found or not authorised.');
+		if (empty($object)) throw new MethodNotAllowedException(__('Object not found or not authorised.'));
 
 		// check for permissions
 		if (!$this->_isSiteAdmin()) {
 			if ($object['Event']['locked']) {
 				if ($this->Auth->user('org_id') != $object['Event']['org_id'] || !$this->userRole['perm_sync']) {
-					throw new MethodNotAllowedException('Object not found or not authorised.');
+					throw new MethodNotAllowedException(__('Object not found or not authorised.'));
 				}
 			} else {
 				if ($this->Auth->user('org_id') != $object['Event']['orgc_id']) {
-					throw new MethodNotAllowedException('Object not found or not authorised.');
+					throw new MethodNotAllowedException(__('Object not found or not authorised.'));
 				}
 			}
 		}

@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2018-07-11 12:37\n"
+"PO-Revision-Date: 2018-07-13 10:38\n"
 "Last-Translator: SteveClement <steve@localhost.lu>\n"
 "Language-Team: French\n"
 "MIME-Version: 1.0\n"
@@ -56,7 +56,7 @@ msgstr "%s entrée(s) importées."
 
 #: Controller/AttributesController.php:742
 msgid "%s entries could not be imported."
-msgstr ""
+msgstr "%s entrées n'ont pas pu être importées."
 
 #: Controller/AttributesController.php:785;822
 msgid "Invalid attribute."
@@ -101,19 +101,19 @@ msgstr "La mise en liste noire d'événement n'est actuellement pas activée dan
 
 #: Controller/EventsController.php:705
 msgid "No x509 certificate or GnuPG key set in your profile. To receive emails, submit your public certificate or GnuPG key in your profile."
-msgstr ""
+msgstr "Il n'y a pas de certificat x509 ou clé GnuPG dans votre profil. Pour recevoir des courriels, renseignez votre certificat public ou votre clé GnuPG dans votre profil."
 
 #: Controller/EventsController.php:707
 msgid "No GnuPG key set in your profile. To receive emails, submit your public key in your profile."
-msgstr ""
+msgstr "Il n'y a pas de clé GnuPG définie dans votre profil. Pour recevoir des courriels, renseignez votre clé public dans votre profil."
 
 #: Controller/EventsController.php:713
 msgid "No x509 certificate or GnuPG key set in your profile. To receive attributes in emails, submit your public certificate or GnuPG key in your profile."
-msgstr ""
+msgstr "Aucun certificat x509 ou clé GnuPG dans votre profil. Pour recevoir des attributs par courriels, renseignez votre certificat public ou votre clé GnuPG dans votre profil."
 
 #: Controller/EventsController.php:715
 msgid "No GnuPG key set in your profile. To receive attributes in emails, submit your public key in your profile."
-msgstr ""
+msgstr "Il n'y a pas de clé GnuPG définie dans votre profil. Pour recevoir des attributs par courriels, renseignez votre clé publique dans votre profil."
 
 #: Controller/EventsController.php:1459;1532;1779
 msgid "The event has been saved"
@@ -129,7 +129,7 @@ msgstr "Vous ne pouvez envoyer que des fichiers au format MISP XML ou MISP JSON.
 
 #: Controller/EventsController.php:1604
 msgid "STIX document imported, event's created: "
-msgstr ""
+msgstr "STIX document importé, événement créé : "
 
 #: Controller/EventsController.php:1607
 msgid "STIX document imported."
@@ -137,11 +137,11 @@ msgstr "Document STIX importé."
 
 #: Controller/EventsController.php:1610
 msgid "Could not import STIX document: "
-msgstr ""
+msgstr "Impossible d’importer le document STIX : "
 
 #: Controller/EventsController.php:1615
 msgid "File upload failed. Make sure that you select a stix file to be uploaded and that the file doesn't exceed the maximum file size of "
-msgstr ""
+msgstr "Téléversement de fichier a échoué. Assurez-vous que vous sélectionnez un fichier STIX et que le fichier ne dépasse pas la taille de fichier maximale "
 
 #: Controller/EventsController.php:1638;1720
 msgid "You are not authorised to do that. Please consider using the 'propose attribute' feature."
@@ -177,27 +177,27 @@ msgstr "Événement invalide ou affichage non autorisé."
 
 #: Controller/EventsController.php:4850
 msgid "Enrichment task queued for background processing. Check back later to see the results."
-msgstr ""
+msgstr "Tâche d’enrichissement en attente de traitement en arrière-plan. Revenez plus tard pour voir les résultats."
 
 #: Controller/FeedsController.php:178;266
 msgid "Feed added."
-msgstr ""
+msgstr "Flux ajouté."
 
 #: Controller/FeedsController.php:186
 msgid "Feed could not be added. Invalid field: %s"
-msgstr ""
+msgstr "Flux n’a pas pu être ajouté. Champ invalide: %s"
 
 #: Controller/FeedsController.php:274
 msgid "Feed could not be updated. Invalid fields: %s"
-msgstr ""
+msgstr "Flux n’a pas pu être mis à jour. Champs invalides: %s"
 
 #: Controller/JobsController.php:138
 msgid "All completed jobs have been purged"
-msgstr ""
+msgstr "Toutes les tâches terminées ont été purgés"
 
 #: Controller/JobsController.php:141
 msgid "All jobs have been purged"
-msgstr ""
+msgstr "Toutes les tâches ont été purgés"
 
 #: Controller/ObjectReferencesController.php:34
 msgid "Invalid object"
@@ -213,7 +213,7 @@ msgstr "Le modèle de l'objet a été supprimé"
 
 #: Controller/ObjectsController.php:767
 msgid "%s objects successfully reconstructed."
-msgstr ""
+msgstr "%s objets reconstituées avec succès."
 
 #: Controller/OrgBlacklistsController.php:11
 msgid "Organisation Blacklisting is not currently enabled on this instance."
@@ -289,7 +289,7 @@ msgstr "Cette organisation n' a pas pu être créée car l'UUID est déjà utili
 
 #: Controller/ServersController.php:254
 msgid "Couldn't save the new organisation, are you sure that the uuid is in the correct format? Also, make sure the organisation's name doesn't clash with an existing one."
-msgstr ""
+msgstr "Impossible d'enregistrer la nouvelle organisation, vous êtes sûr que l’uuid est dans le bon format ? Aussi, assurez-vous que le nom de l’organisation n’est pas en conflit avec un nom existant."
 
 #: Controller/ServersController.php:283;450
 msgid "The server has been saved"
@@ -357,7 +357,7 @@ msgstr "La proposition a été sauvegardée"
 
 #: Controller/ShadowAttributesController.php:425
 msgid "The proposal could not be saved. Please, try again."
-msgstr ""
+msgstr "La propose n’a pas pu être enrégistrer. Veuillez réessayer."
 
 #: Controller/ShadowAttributesController.php:461
 msgid "Invalid Proposal"
@@ -501,7 +501,7 @@ msgstr "Courriels envoyés."
 
 #: Controller/Component/AdminCrudComponent.php:18
 msgid "The %s has been saved."
-msgstr ""
+msgstr "%s a été enregistré."
 
 #: Controller/Component/AdminCrudComponent.php:22;57
 msgid "The %s could not be saved. Please, try again."
@@ -509,15 +509,15 @@ msgstr ""
 
 #: Controller/Component/AdminCrudComponent.php:48;80
 msgid "Invalid %s"
-msgstr ""
+msgstr "Invalide %s"
 
 #: Controller/Component/AdminCrudComponent.php:53
 msgid "The %s has been saved"
-msgstr ""
+msgstr "%s a été enregistré"
 
 #: Controller/Component/AdminCrudComponent.php:83
 msgid "%s deleted"
-msgstr ""
+msgstr "%s supprimé"
 
 #: Controller/Component/AdminCrudComponent.php:86
 msgid "%s was not deleted"
@@ -565,7 +565,7 @@ msgstr "S'il vous plait "
 
 #: Model/Event.php:4191
 msgid "check whether the dependencies for STIX are met via the diagnostic tool."
-msgstr ""
+msgstr "vérifier si les dépendances pour STIX sont réunis par l’intermédiaire de l’outil de diagnostic."
 
 #: Model/Event.php:4230
 msgid "#"
@@ -597,7 +597,7 @@ msgstr ""
 
 #: Model/Server.php:2890
 msgid "Image files uploaded into this directory can be used for various purposes, such as for the login page logos"
-msgstr ""
+msgstr "Les fichiers d’images envoyés vers ce répertoire peuvent être utilisés à des fins diverses, comme p. ex. logos de page login"
 
 #: Model/Server.php:2897
 msgid "text/html if served inline, anything that conveys the terms of use if served as download"
@@ -2808,7 +2808,7 @@ msgstr "Vérifier les mauvais liens sur les pièces jointes"
 
 #: View/Elements/healthElements/files.ctp:2
 msgid "Below you will find a list of the uploaded files based on type."
-msgstr "Voici une liste des fichiers téléchargés selon le type."
+msgstr "Voici une liste des fichiers téléversés selon le type."
 
 #: View/Elements/healthElements/files.ctp:9
 msgid "Expected Format"
@@ -3500,7 +3500,7 @@ msgstr ""
 #: View/Events/add_misp_export.ctp:27
 #: View/Events/upload_stix.ctp:22
 msgid "Upload"
-msgstr "Télécharger"
+msgstr "Téléverser"
 
 #: View/Events/add_misp_export.ctp:4
 msgid "Import from MISP Export File"
@@ -4834,7 +4834,7 @@ msgstr ""
 
 #: View/Events/upload_stix.ctp:9
 msgid "%s file"
-msgstr ""
+msgstr "%s fichiers"
 
 #: View/Events/view.ctp:49
 msgid "Extended view"
@@ -10606,15 +10606,15 @@ msgstr ""
 
 #: View/Templates/upload_file.ctp:3
 msgid "Upload Files"
-msgstr ""
+msgstr "Envoyer des fichiers"
 
 #: View/Templates/upload_file.ctp:8
 msgid "Replace File"
-msgstr ""
+msgstr "Remplacer fichier"
 
 #: View/Templates/upload_file.ctp:10
 msgid "Upload File"
-msgstr ""
+msgstr "Transférer le fichier"
 
 #: View/Templates/view.ctp:38
 msgid "Shareable"
