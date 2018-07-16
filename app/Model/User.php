@@ -3,7 +3,7 @@ App::uses('AppModel', 'Model');
 App::uses('AuthComponent', 'Controller/Component');
 App::uses('RandomTool', 'Tools');
 
- class User extends AppModel {
+class User extends AppModel {
 
 	public $displayField = 'email';
 
@@ -111,8 +111,8 @@ App::uses('RandomTool', 'Tools');
 			),
 		),
 		'change_pw' => array(
-			'numeric' => array(
-				'rule' => array('numeric'),
+			'boolean' => array(
+				'rule' => array('boolean'),
 				//'message' => 'Your custom message here',
 				'allowEmpty' => true,
 				'required' => false,
@@ -123,7 +123,7 @@ App::uses('RandomTool', 'Tools');
 		'gpgkey' => array(
 			'gpgvalidation' => array(
 				'rule' => array('validateGpgkey'),
-				'message' => 'GPG key not valid, please enter a valid key.',
+				'message' => 'GnuPG key not valid, please enter a valid key.',
 			),
 		),
 		'certif_public' => array(
@@ -245,18 +245,52 @@ App::uses('RandomTool', 'Tools');
 		if (!isset($this->data['User']['certif_public']) || empty($this->data['User']['certif_public'])) $this->data['User']['certif_public'] = '';
 		if (!isset($this->data['User']['authkey']) || empty($this->data['User']['authkey'])) $this->data['User']['authkey'] = $this->generateAuthKey();
 		if (!isset($this->data['User']['nids_sid']) || empty($this->data['User']['nids_sid'])) $this->data['User']['nids_sid'] = mt_rand(1000000, 9999999);
-		return true;
-	}
-
-	public function beforeSave($options = array()) {
-    $this->data[$this->alias]['date_modified'] = time();
-		if (isset($this->data[$this->alias]['password'])) {
-			$this->data[$this->alias]['password'] = AuthComponent::password($this->data[$this->alias]['password']);
+		if (isset($this->data['User']['newsread']) && $this->data['User']['newsread'] === null) {
+			$this->data['User']['newsread'] = 0;
 		}
 		return true;
 	}
 
-	// Checks if the GPG key is a valid key, but also import it in the keychain.
+	public function beforeSave($options = array()) {
+		$this->data[$this->alias]['date_modified'] = time();
+		if (isset($this->data[$this->alias]['password'])) {
+			$passwordHasher = new BlowfishPasswordHasher();
+			$this->data[$this->alias]['password'] = $passwordHasher->hash($this->data[$this->alias]['password']);
+		}
+		return true;
+	}
+
+	public function afterSave($created, $options = array()) {
+		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_user_notifications_enable')) {
+			$pubSubTool = $this->getPubSubTool();
+			$user = $this->data;
+			if (!isset($user['User'])) {
+				$user['User'] = $user;
+			}
+			$action = $created ? 'edit' : 'add';
+			if (isset($user['User']['action'])) $action = $user['User']['action'];
+			if (isset($user['User']['id'])) {
+				$user = $this->find('first', array(
+					'recursive' => -1,
+					'conditons' => array('User.id' => $user['User']['id']),
+					'fields' => array('id', 'email', 'last_login', 'org_id', 'termsaccepted', 'autoalert', 'newsread', 'disabled'),
+					'contain' => array(
+						'Organisation' => array(
+							'fields' => array('Organisation.id', 'Organisation.name', 'Organisation.description', 'Organisation.uuid', 'Organisation.nationality', 'Organisation.sector', 'Organisation.type', 'Organisation.local')
+						)
+					)
+				));
+			}
+			if (isset($user['User']['password'])) {
+				unset($user['User']['password']);
+				unset($user['User']['confirm_password']);
+			}
+			$pubSubTool->modified($user, 'user', $action);
+		}
+		return true;
+	}
+
+	// Checks if the GnuPG key is a valid key, but also import it in the keychain.
 	// TODO: this will NOT fail on keys that can only be used for signing but not encryption!
 	// the method in verifyUsers will fail in that case.
 	public function validateGpgkey($check) {
@@ -270,9 +304,9 @@ App::uses('RandomTool', 'Tools');
 		// we have a clean, hopefully public, key here
 
 		// key is entered
-		require_once 'Crypt/GPG.php';
 		try {
-			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
+			require_once 'Crypt/GPG.php';
+			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'gpgconf' => Configure::read('GnuPG.gpgconf'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
 			try {
 				$keyImportOutput = $gpg->importKey($check['gpgkey']);
 				if (!empty($keyImportOutput['fingerprint'])) {
@@ -435,47 +469,53 @@ App::uses('RandomTool', 'Tools');
 				)));
 	}
 
-  public function verifySingleGPG($user, $gpg = false) {
-    if (!$gpg) {
-      require_once 'Crypt/GPG.php';
-      $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
-    }
-    $result = array();
-    try {
-      $currentTimestamp = time();
-      $temp = $gpg->importKey($user['User']['gpgkey']);
-      $key = $gpg->getKeys($temp['fingerprint']);
-      $subKeys = $key[0]->getSubKeys();
-      $sortedKeys = array('valid' => 0, 'expired' => 0, 'noEncrypt' => 0);
-      foreach ($subKeys as $subKey) {
-        $expiration = $subKey->getExpirationDate();
-        if ($expiration != 0 && $currentTimestamp > $expiration) {
-          $sortedKeys['expired']++;
-          continue;
-        }
-        if (!$subKey->canEncrypt()) {
-          $sortedKeys['noEncrypt']++;
-          continue;
-        }
-        $sortedKeys['valid']++;
-      }
-      if (!$sortedKeys['valid']) {
-        $result[2] = 'The user\'s PGP key does not include a valid subkey that could be used for encryption.';
-        if ($sortedKeys['expired']) $result[2] .= ' Found ' . $sortedKeys['expired'] . ' subkey(s) that have expired.';
-        if ($sortedKeys['noEncrypt']) $result[2] .= ' Found ' . $sortedKeys['noEncrypt'] . ' subkey(s) that are sign only.';
-        $result[0] = true;
-      }
-    } catch (Exception $e) {
-      $result[2] = $e->getMessage();
-      $result[0] = true;
-    }
-    $result[1] = $user['User']['email'];
-    $result[4] = $temp['fingerprint'];
-    return $result;
-  }
+	public function verifySingleGPG($user, $gpg = false) {
+		if (!$gpg) {
+			try {
+				require_once 'Crypt/GPG.php';
+				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'gpgconf' => Configure::read('GnuPG.gpgconf'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
+			} catch (Exception $e) {
+				$result[2] ='GnuPG is not configured on this system.';
+				$result[0] = true;
+				return $result;
+			}
+		}
+		$result = array();
+		try {
+			$currentTimestamp = time();
+			$temp = $gpg->importKey($user['User']['gpgkey']);
+			$key = $gpg->getKeys($temp['fingerprint']);
+			$subKeys = $key[0]->getSubKeys();
+			$sortedKeys = array('valid' => 0, 'expired' => 0, 'noEncrypt' => 0);
+			foreach ($subKeys as $subKey) {
+				$expiration = $subKey->getExpirationDate();
+				if ($expiration != 0 && $currentTimestamp > $expiration) {
+					$sortedKeys['expired']++;
+					continue;
+				}
+				if (!$subKey->canEncrypt()) {
+					$sortedKeys['noEncrypt']++;
+					continue;
+				}
+				$sortedKeys['valid']++;
+			}
+			if (!$sortedKeys['valid']) {
+				$result[2] = 'The user\'s GnuPG key does not include a valid subkey that could be used for encryption.';
+				if ($sortedKeys['expired']) $result[2] .= ' Found ' . $sortedKeys['expired'] . ' subkey(s) that have expired.';
+				if ($sortedKeys['noEncrypt']) $result[2] .= ' Found ' . $sortedKeys['noEncrypt'] . ' subkey(s) that are sign only.';
+				$result[0] = true;
+			}
+		} catch (Exception $e) {
+			$result[2] = $e->getMessage();
+			$result[0] = true;
+		}
+		$result[1] = $user['User']['email'];
+		$result[4] = $temp['fingerprint'];
+		return $result;
+	}
 
 	public function verifyGPG($id = false) {
-    require_once 'Crypt/GPG.php';
+		require_once 'Crypt/GPG.php';
 		$this->Behaviors->detach('Trim');
 		$results = array();
 		$conditions = array('not' => array('gpgkey' => ''));
@@ -485,9 +525,9 @@ App::uses('RandomTool', 'Tools');
 			'recursive' => -1,
 		));
 		if (empty($users)) return $results;
-		$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
+		$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'gpgconf' => Configure::read('GnuPG.gpgconf'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
 		foreach ($users as $k => $user) {
-      $results[$user['User']['id']] = $this->verifySingleGPG($user, $gpg);
+			$results[$user['User']['id']] = $this->verifySingleGPG($user, $gpg);
 
 		}
 		return $results;
@@ -566,6 +606,7 @@ App::uses('RandomTool', 'Tools');
 
 	// get the current user and rearrange it to be in the same format as in the auth component
 	public function getAuthUser($id) {
+		if (empty($id)) throw new Exception('Invalid user ID.');
 		$conditions = array('User.id' => $id);
 		$user = $this->find('first', array('conditions' => $conditions, 'recursive' => -1,'contain' => array('Organisation', 'Role', 'Server')));
 		if (empty($user)) return $user;
@@ -578,7 +619,7 @@ App::uses('RandomTool', 'Tools');
 	}
 
 	// get the current user and rearrange it to be in the same format as in the auth component
-	public function getAuthUserByUuid($id) {
+	public function getAuthUserByAuthkey($id) {
 		$conditions = array('User.authkey' => $id);
 		$user = $this->find('first', array('conditions' => $conditions, 'recursive' => -1,'contain' => array('Organisation', 'Role', 'Server')));
 		if (empty($user)) return $user;
@@ -586,13 +627,23 @@ App::uses('RandomTool', 'Tools');
 		$user['User']['Role'] = $user['Role'];
 		$user['User']['Organisation'] = $user['Organisation'];
 		$user['User']['Server'] = $user['Server'];
-		unset($user['Organisation'], $user['Role'], $user['Server']);
 		return $user['User'];
 	}
 
-	public function getAuthUserByExternalAuth($id) {
-		$conditions = array('User.external_auth_key' => $id, 'User.external_auth_required' => true);
-		$user = $this->find('first', array('conditions' => $conditions, 'recursive' => -1,'contain' => array('Organisation', 'Role', 'Server')));
+	public function getAuthUserByExternalAuth($auth_key) {
+		$conditions = array(
+			'User.external_auth_key' => $auth_key,
+			'User.external_auth_required' => true
+		);
+		$user = $this->find('first', array(
+			'conditions' => $conditions,
+			'recursive' => -1,
+			'contain' => array(
+				'Organisation',
+				'Role',
+				'Server'
+			)
+		));
 		if (empty($user)) return $user;
 		// Rearrange it a bit to match the Auth object created during the login
 		$user['User']['Role'] = $user['Role'];
@@ -678,7 +729,7 @@ App::uses('RandomTool', 'Tools');
 		$canEncryptSMIME = false;
 		if (isset($user['User']['certif_public']) && !empty($user['User']['certif_public']) && Configure::read('SMIME.enabled')) $canEncryptSMIME = true;
 
-		// If bodyonlencrypted is enabled and the user has no encryption key, use the alternate body (if it exists)
+		// If bodyonlyencrypted is enabled and the user has no encryption key, use the alternate body (if it exists)
 		if (Configure::read('GnuPG.bodyonlyencrypted') && !$canEncryptSMIME && !$canEncryptGPG && $bodyNoEnc) {
 			$body = $bodyNoEnc;
 		}
@@ -688,9 +739,11 @@ App::uses('RandomTool', 'Tools');
 			// Sign the body
 			require_once 'Crypt/GPG.php';
 			try {
-				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg'), 'debug'));	// , 'debug' => true
-				$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-				$body = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
+				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'gpgconf' => Configure::read('GnuPG.gpgconf'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg'), 'debug'));	// , 'debug' => true
+                if (Configure::read('GnuPG.sign')) {
+                    $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+                    $body = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
+                }
 			} catch (Exception $e) {
 				$failureReason = " the message could not be signed. The following error message was returned by gpg: " . $e->getMessage();
 				$this->log($e->getMessage());
@@ -723,8 +776,8 @@ App::uses('RandomTool', 'Tools');
 					$failureReason = " the message could not be encrypted because the provided key is either expired or cannot be used for encryption.";
 				}
 			} catch (Exception $e) {
-				// despite the user having a PGP key and the signing already succeeding earlier, we get an exception. This must mean that there is an issue with the user's key.
-				$failureReason = " the message could not be encrypted because there was an issue with the user's PGP key. The following error message was returned by gpg: " . $e->getMessage();
+				// despite the user having a GnuPG key and the signing already succeeding earlier, we get an exception. This must mean that there is an issue with the user's key.
+				$failureReason = " the message could not be encrypted because there was an issue with the user's GnuPG key. The following error message was returned by gpg: " . $e->getMessage();
 				$this->log($e->getMessage());
 				$failed = true;
 			}
@@ -849,7 +902,7 @@ App::uses('RandomTool', 'Tools');
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
 		$HttpSocket = $syncTool->setupHttpSocket();
-		$response = $HttpSocket->get('https://pgp.mit.edu/pks/lookup?search=' . $email . '&op=index&fingerprint=on');
+		$response = $HttpSocket->get('https://pgp.circl.lu/pks/lookup?search=' . $email . '&op=index&fingerprint=on');
 		if ($response->code != 200) return $response->code;
 		$string = str_replace(array("\r", "\n"), "", $response->body);
 		$result = preg_match_all('/<pre>pub(.*?)<\/pre>/', $string, $matches);
@@ -912,9 +965,9 @@ App::uses('RandomTool', 'Tools');
 				'conditions' => $conditions
 		);
 		$orgs = $this->find($findType, $params);
-    if (empty($orgs)) {
-      return 0;
-    }
+		if (empty($orgs)) {
+			return 0;
+		}
 		if ($org_id !== false) {
 			return $orgs[0]['num_members'];
 		} else {
@@ -991,26 +1044,62 @@ App::uses('RandomTool', 'Tools');
 		}
 	}
 
-  public function getOrgAdminsForOrg($org_id, $excludeUserId = false) {
-    $adminRoles = $this->Role->find('list', array(
-      'recursive' => -1,
-      'conditions' => array('perm_admin' => 1),
-      'fields' => array('Role.id', 'Role.id')
-    ));
-    $conditions = array(
-      'User.org_id' => $org_id,
-      'User.disabled' => 0,
-      'User.role_id' => $adminRoles
-    );
-    if ($excludeUserId) {
-      $conditions['User.id !='] = $excludeUserId;
-    }
-    return $this->find('list', array(
-      'recursive' => -1,
-      'conditions' => $conditions,
-      'fields' => array(
-        'User.id', 'User.email'
-      )
-    ));
-  }
+	public function getOrgAdminsForOrg($org_id, $excludeUserId = false) {
+		$adminRoles = $this->Role->find('list', array(
+			'recursive' => -1,
+			'conditions' => array('perm_admin' => 1),
+			'fields' => array('Role.id', 'Role.id')
+		));
+		$conditions = array(
+			'User.org_id' => $org_id,
+			'User.disabled' => 0,
+			'User.role_id' => $adminRoles
+		);
+		if ($excludeUserId) {
+			$conditions['User.id !='] = $excludeUserId;
+		}
+		return $this->find('list', array(
+			'recursive' => -1,
+			'conditions' => $conditions,
+			'fields' => array(
+				'User.id', 'User.email'
+			)
+		));
+	}
+
+	public function verifyPassword($user_id, $password) {
+		$currentUser = $this->find('first', array(
+				'conditions' => array('User.id' => $user_id),
+				'recursive' => -1,
+				'fields' => array('User.password')
+		));
+		if (empty($currentUser)) return false;
+		if (strlen($currentUser['User']['password']) == 40) {
+			App::uses('SimplePasswordHasher', 'Controller/Component/Auth');
+			$passwordHasher = new SimplePasswordHasher();
+		} else {
+			$passwordHasher = new BlowfishPasswordHasher();
+		}
+		$hashed = $passwordHasher->check($password, $currentUser['User']['password']);
+		return $hashed;
+	}
+
+	public function createInitialUser($org_id) {
+		$authKey = $this->generateAuthKey();
+		$admin = array('User' => array(
+			'id' => 1,
+			'email' => 'admin@admin.test',
+			'org_id' => $org_id,
+			'password' => 'admin',
+			'confirm_password' => 'admin',
+			'authkey' => $authKey,
+			'nids_sid' => 4000000,
+			'newsread' => 0,
+			'role_id' => 1,
+			'change_pw' => 1
+		));
+		$this->validator()->remove('password'); // password is too simple, remove validation
+		$this->save($admin);
+		return $authKey;
+	}
 }

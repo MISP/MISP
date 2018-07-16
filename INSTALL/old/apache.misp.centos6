@@ -1,0 +1,24 @@
+<VirtualHost *:80>
+	ServerAdmin me@me.local
+	ServerName misp.local
+	DocumentRoot /var/www/MISP/app/webroot
+	<Directory /var/www/MISP/app/webroot>
+		Options -Indexes
+		AllowOverride all
+		Order allow,deny
+		allow from all
+	</Directory>
+
+	<IfModule !mod_php5.c>
+		SetEnvIfNoCase Authorization "(.*)" HTTP_AUTHORIZATION=$1
+		DirectoryIndex /index.php index.php
+		ProxyPassMatch ^/(.*\.php(/.*)?)$ fcgi://127.0.0.1:9000/var/www/MISP/app/webroot/$1
+	</IfModule>
+
+	LogLevel warn
+	ErrorLog /var/log/httpd/misp.local_error.log
+	CustomLog /var/log/httpd/misp.local_access.log combined
+	ServerSignature Off
+        Header set X-Content-Type-Options nosniff
+        Header set X-Frame-Options DENY
+</VirtualHost>

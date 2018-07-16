@@ -20,6 +20,13 @@ class PostsController extends AppController {
 			'limit' => 60,
 	);
 
+	function pushMessageToZMQ($message = null) {
+		if (Configure::read("Plugin.ZeroMQ_enable")) {
+			$pubSubTool = $this->Post->getPubSubTool();
+			$pubSubTool->publishConversation($message);
+		}
+	}
+
 	// Find the thread_id and post_id in advance. If a user clicks post comment on the event view, send the event's related thread's ID
 	// Usage:
 	// /posts/add : Creates new thread with the added post as the first post. Title set by user
@@ -93,6 +100,7 @@ class PostsController extends AppController {
 				$event_id = $previousPost['Thread']['event_id'];
 				$post_id = $target_id;
 				$target_thread_id = $previousPost['Thread']['id'];
+
 			break;
 			default:
 				$target_thread_id = null;
@@ -126,7 +134,11 @@ class PostsController extends AppController {
 						'post_count' => 1,
 						'org_id' => $this->Auth->user('org_id')
 				);
-				$this->Thread->save($newThread);
+				if ($this->Thread->save($newThread)) {
+					$newThread['org_name'] = $this->Auth->user('Organisation')['name'];
+					$newThread['user_email'] = $this->Auth->user('email');
+					$this->pushMessageToZMQ(Array("Thread" => $newThread));
+				}
 				$target_thread_id = $this->Thread->getId();
 			} else {
 				// In this case, we have a post that was posted in an already existing thread. Update the thread!
@@ -144,12 +156,17 @@ class PostsController extends AppController {
 					'post_id' => $post_id,
 					'thread_id' => $target_thread_id,
 			);
+
 			if ($this->Post->save($newPost)) {
+				$newPost['user_email'] = $this->Auth->user('email');
+				$newPost['org_id'] = $this->Auth->user('org_id');
+				$newPost['org_name'] = $this->Auth->user('Organisation')['name'];
+				$this->pushMessageToZMQ(Array("Post" => $newPost));
 				$this->Thread->recursive = 0;
 				$this->Thread->contain('Post');
 				$thread = $this->Thread->read(null, $target_thread_id);
 				$this->Thread->updateAfterPostChange($thread, true);
-				if (!$this->request->is('ajax')) $this->Session->setFlash(__('Post added'));
+				if (!$this->request->is('ajax')) $this->Flash->success(__('Post added'));
 				$post_id = $this->Post->getId();
 				$this->Post->sendPostsEmailRouter($this->Auth->user('id'), $post_id, $event_id, $title, $this->request->data['Post']['message']);
 
@@ -159,7 +176,7 @@ class PostsController extends AppController {
 				$this->redirect(array('controller' => 'threads', 'action' => 'view', $target_id, $target_type == 'event', 'page:' . $pageNr, 'post_id:' . $this->Post->id));
 				return true;
 			} else {
-				$this->Session->setFlash('The post could not be added.');
+				$this->Flash->error('The post could not be added.');
 			}
 		} else {
 			if ($target_type === 'post') {
@@ -184,7 +201,7 @@ class PostsController extends AppController {
 			$fieldList = array('date_modified', 'contents');
 			$post['Post']['contents'] = $this->request->data['Post']['contents'];
 			if ($this->Post->save($post['Post'], true, $fieldList)) {
-				$this->Session->setFlash('Post edited');
+				$this->Flash->success('Post edited');
 				$thread = $this->Post->Thread->find('first', array(
 						'recursive' => -1,
 						'contain' => array(
@@ -202,7 +219,7 @@ class PostsController extends AppController {
 				$this->redirect(array('controller' => 'threads', 'action' => 'view', $target_id, $context, 'page:' . $pageNr, 'post_id:' . $post_id));
 				return true;
 			} else {
-				$this->Session->setFlash('The Post could not be edited. Please, try again.');
+				$this->Flash->error('The Post could not be edited. Please, try again.');
 			}
 		}
 		$this->set('title', $post['Thread']['title']);
@@ -235,7 +252,7 @@ class PostsController extends AppController {
 						'conditions' => array('Thread.id' => $temp['Post']['thread_id'])
 				));
 				if (!$this->Post->Thread->updateAfterPostChange($thread)) {
-					$this->Session->setFlash('Post and thread deleted');
+					$this->Flash->success('Post and thread deleted');
 					if ($context == 'event') {
 						$this->redirect(array('controller' => 'events', 'action' => 'view', $thread['Thread']['event_id']));
 						return true;
@@ -244,7 +261,7 @@ class PostsController extends AppController {
 						return true;
 					}
 				} else {
-					$this->Session->setFlash('Post deleted');
+					$this->Flash->success('Post deleted');
 					if ($context == 'event') {
 						$this->redirect(array('controller' => 'events', 'action' => 'view', $thread['Thread']['event_id']));
 						return true;

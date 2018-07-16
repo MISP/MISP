@@ -3,7 +3,7 @@
 	echo $this->Form->create('News');
 ?>
 	<fieldset>
-		<legend><?php echo 'Add News Item'; ?></legend>
+		<legend><?php echo __('Add News Item'); ?></legend>
 		<?php
 			echo $this->Form->input('title', array(
 					'type' => 'text',
@@ -25,7 +25,7 @@
 			<?php
 			echo $this->Form->input('anonymise', array(
 						'checked' => false,
-						'label' => 'Create anonymously',
+						'label' => __('Create anonymously'),
 			));
 		?>
 	</fieldset>

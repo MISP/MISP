@@ -40,6 +40,10 @@ class Warninglist extends AppModel{
 		return true;
 	}
 
+	public function getTldLists() {
+		return $this->__tlds;
+	}
+
 	public function update() {
 		$directories = glob(APP . 'files' . DS . 'warninglists' . DS . 'lists' . DS . '*', GLOB_ONLYDIR);
 		$updated = array();
@@ -68,7 +72,23 @@ class Warninglist extends AppModel{
 				}
 			}
 		}
+		$this->regenerateWarninglistCaches();
 		return $updated;
+	}
+
+	public function quickDelete($id) {
+		$result = $this->WarninglistEntry->deleteAll(
+			array('WarninglistEntry.warninglist_id' => $id)
+		);
+		if ($result) {
+			$result = $this->WarninglistType->deleteAll(
+				array('WarninglistType.warninglist_id' => $id)
+			);
+		}
+		if ($result) {
+			$result = $this->delete($id, false);
+		}
+		return $result;
 	}
 
 	private function __updateList($list, $current) {
@@ -76,7 +96,7 @@ class Warninglist extends AppModel{
 		$warninglist = array();
 		if (!empty($current)) {
 			if ($current['Warninglist']['enabled']) $list['enabled'] = 1;
-			$this->deleteAll(array('Warninglist.id' => $current['Warninglist']['id']));
+			$this->quickDelete($current['Warninglist']['id']);
 		}
 		$fieldsToSave = array('name', 'version', 'description', 'type', 'enabled');
 		foreach ($fieldsToSave as $fieldToSave) {
@@ -88,13 +108,17 @@ class Warninglist extends AppModel{
 			$values = array();
 			foreach ($list['list'] as $value) {
 				if (!empty($value)) {
-					$values[] = array($value, $this->id);
+					$values[] = array('value' => $value, 'warninglist_id' => $this->id);
 				}
 			}
 			unset($list['list']);
-			$result = $db->insertMulti('warninglist_entries', array('value', 'warninglist_id'), $values);
+			$count = count($values);
+			$values = array_chunk($values, 100);
+			foreach ($values as $chunk) {
+				$result = $db->insertMulti('warninglist_entries', array('value', 'warninglist_id'), $chunk);
+			}
 			if ($result) {
-				$this->saveField('warninglist_entry_count', count($values));
+				$this->saveField('warninglist_entry_count', $count);
 			} else {
 				return 'Could not insert values.';
 			}
@@ -114,22 +138,146 @@ class Warninglist extends AppModel{
 		}
 	}
 
-	public function fetchForEventView() {
+	// regenerate the warninglist caches, but if an ID is passed along, only regen the entries for the given ID.
+	// This allows us to enable/disable a single warninglist without regenerating all caches
+	public function regenerateWarninglistCaches($id = false) {
+		$redis = $this->setupRedis();
+		if ($redis === false) {
+			return false;
+		}
 		$warninglists = $this->find('all', array('contain' => array('WarninglistType'), 'conditions' => array('enabled' => 1)));
-		if (empty($warninglists)) return array();
-		foreach ($warninglists as $k => &$t) {
-			$t['values'] = $this->WarninglistEntry->find('list', array(
+		$this->cacheWarninglists($warninglists);
+		foreach ($warninglists as $warninglist) {
+			if ($id && $warninglist['Warninglist']['id'] != $id) {
+				continue;
+			}
+			$entries = $this->WarninglistEntry->find('list', array(
 					'recursive' => -1,
-					'conditions' => array('warninglist_id' => $t['Warninglist']['id']),
+					'conditions' => array('warninglist_id' => $warninglist['Warninglist']['id']),
 					'fields' => array('value')
 			));
+			$this->cacheWarninglistEntries($entries, $warninglist['Warninglist']['id']);
+		}
+		return true;
+	}
+
+	public function cacheWarninglists($warninglists) {
+		$redis = $this->setupRedis();
+		if ($redis !== false) {
+			$redis->del('misp:warninglist_cache');
+			foreach ($warninglists as $warninglist) {
+				$redis->sAdd('misp:warninglist_cache', json_encode($warninglist));
+			}
+			return true;
+		}
+		return false;
+	}
+
+	public function cacheWarninglistEntries($warninglistEntries, $id) {
+		$redis = $this->setupRedis();
+		if ($redis !== false) {
+			$redis->del('misp:warninglist_entries_cache:');
+			foreach ($warninglistEntries as $entry) {
+				$redis->sAdd('misp:warninglist_entries_cache:' . $id, $entry);
+			}
+			return true;
+		}
+		return false;
+	}
+
+	public function getWarninglists($conditions) {
+		$redis = $this->setupRedis();
+		if ($redis !== false) {
+			if (!$redis->exists('misp:warninglist_cache') || $redis->sCard('misp:warninglist_cache') == 0) {
+				if (!empty($conditions)) {
+					$warninglists = $this->find('all', array('contain' => array('WarninglistType'), 'conditions' => $conditions));
+				} else {
+					$warninglists = $this->find('all', array('contain' => array('WarninglistType'), 'conditions' => array('enabled' => 1)));
+				}
+				if (empty($conditions)) {
+					$this->cacheWarninglists($warninglists);
+				}
+				return $warninglists;
+			} else {
+				$warninglists = $redis->sMembers('misp:warninglist_cache');
+				foreach ($warninglists as $k => $v) {
+					$warninglists[$k] = json_decode($v, true);
+				}
+				if (!empty($conditions)) {
+					foreach ($warninglists as $k => $v) {
+						foreach ($conditions as $k2 => $v2) {
+							if ($v['Warninglist'][$k2] != $v2) {
+								unset($warninglists[$k]);
+								continue 2;
+							}
+						}
+					}
+				}
+				return $warninglists;
+			}
+		}
+	}
+
+	public function getWarninglistEntries($id) {
+		$redis = $this->setupRedis();
+		if ($redis !== false) {
+			if (!$redis->exists('misp:warninglist_entries_cache:' . $id) || $redis->sCard('misp:warninglist_entries_cache:' . $id) == 0) {
+				$entries = $this->WarninglistEntry->find('list', array(
+						'recursive' => -1,
+						'conditions' => array('warninglist_id' => $id),
+						'fields' => array('value')
+				));
+				$this->cacheWarninglistEntries($entries, $id);
+			} else {
+				$entries = $redis->sMembers('misp:warninglist_entries_cache:' . $id);
+			}
+		} else {
+			$entries = $this->WarninglistEntry->find('list', array(
+					'recursive' => -1,
+					'conditions' => array('warninglist_id' => $id),
+					'fields' => array('value')
+			));
+		}
+		return $entries;
+	}
+
+	public function fetchForEventView() {
+		$warninglists = $this->getWarninglists(array('enabled' => 1));
+		if (empty($warninglists)) return array();
+		foreach ($warninglists as $k => &$t) {
+			$t['values'] = $this->getWarninglistEntries($t['Warninglist']['id']);
 			$t['values'] = array_values($t['values']);
+			if ($t['Warninglist']['type'] == 'hostname') {
+				foreach ($t['values'] as $vk => $v) {
+					$t['values'][$vk] = rtrim($v, '.');
+				}
+			}
+			if ($t['Warninglist']['type'] == 'string' || $t['Warninglist']['type'] == 'hostname') {
+				$t['values'] = array_combine($t['values'], $t['values']);
+			}
 			foreach ($t['WarninglistType'] as &$wt) {
 				$t['types'][] = $wt['type'];
 			}
 			unset($warninglists[$k]['WarninglistType']);
 		}
 		return $warninglists;
+	}
+
+	public function checkForWarning($object, &$eventWarnings, $warningLists) {
+		if ($object['to_ids']) {
+			foreach ($warningLists as $list) {
+				if (in_array('ALL', $list['types']) || in_array($object['type'], $list['types'])) {
+					$result = $this->__checkValue($list['values'], $object['value'], $object['type'], $list['Warninglist']['type']);
+					if (!empty($result)) {
+						$object['warnings'][$result][] = $list['Warninglist']['name'];
+						if (!in_array($list['Warninglist']['name'], $eventWarnings)) {
+							$eventWarnings[$list['Warninglist']['id']] = $list['Warninglist']['name'];
+						}
+					}
+				}
+			}
+		}
+		return $object;
 	}
 
 	public function setWarnings(&$event, &$warninglists) {
@@ -168,8 +316,10 @@ class Warninglist extends AppModel{
 				$result = $this->__evalSubString($listValues, $value[$component]);
 			} else if ($listType === 'hostname') {
 				$result = $this->__evalHostname($listValues, $value[$component]);
+			} else if ($listType === 'regex') {
+				$result = $this->__evalRegex($listValues, $value[$component]);
 			}
-			if ($result) return ($component + 1);
+			if (!empty($result)) return ($component + 1);
 		}
 		return false;
 	}
@@ -243,7 +393,7 @@ class Warninglist extends AppModel{
 	}
 
 	private function __evalString($listValues, $value) {
-		if (in_array($value, $listValues)) return true;
+		if (isset($listValues[$value])) return true;
 		return false;
 	}
 
@@ -259,27 +409,32 @@ class Warninglist extends AppModel{
 	private function __evalHostname($listValues, $value) {
 		// php's parse_url is dumb, so let's use some hacky workarounds
 		if (strpos($value, '//') == false) {
-			$value = 'http://' . $value;
+			$value = explode('/', $value);
+			$hostname = $value[0];
+		} else {
+			$value = explode('/', $value);
+			$hostname = $value[2];
 		}
-		$hostname = parse_url($value, PHP_URL_HOST);
 		// If the hostname is not found, just return false
 		if (!isset($hostname)) {
 			return false;
 		}
-		$value = explode('.', $hostname);
-		$pieces = count($value);
-		foreach ($listValues as $listValue) {
-			$listValue = explode('.', $listValue);
-			if (count($listValue) > $pieces) {
-				continue;
-			}
-			$piecesListValue = count($listValue);
-			$listValue = implode('.', $listValue);
-			$temp = array_slice($value, -$piecesListValue, $piecesListValue);
-			$temp = implode('.', $temp);
-			if ($listValue == $temp) {
+		$hostname = rtrim($hostname, '.');
+		$hostname = explode('.', $hostname);
+		$rebuilt = '';
+		foreach (array_reverse($hostname) as $k => $piece) {
+			if (empty($rebuilt)) $rebuilt = $piece;
+			else $rebuilt = $piece . '.' . $rebuilt;
+			if (isset($listValues[$rebuilt])) {
 				return true;
 			}
+		}
+		return false;
+	}
+
+	private function __evalRegex($listValues, $value) {
+		foreach ($listValues as $listValue) {
+			if (preg_match($listValue, $value)) return true;
 		}
 		return false;
 	}
@@ -296,20 +451,16 @@ class Warninglist extends AppModel{
 				}
 			}
 		}
+		if (!in_array('onion', $tlds)) $tlds[] = 'onion';
 		return $tlds;
 	}
 
-	public function filterWarninglistAttributes($warninglists, $attribute, $warninglistModel) {
+	public function filterWarninglistAttributes($warninglists, $attribute) {
 		foreach ($warninglists as $warninglist) {
-			if (in_array($attribute['type'], $warninglist['types']) || in_array('ALL', $warninglist['types'])) {
-				if ($warninglist['Warninglist']['type'] == 'cidr') {
-					return !$warninglistModel->__evalCIDRList($warninglist['values'], $attribute['value']);
-				} else {
-					foreach ($warninglist['values'] as $entry) {
-						if (strpos($attribute['value'], $entry) !== false) {
-							return false;
-						}
-					}
+			if (in_array('ALL', $warninglist['types']) || in_array($attribute['type'], $warninglist['types'])) {
+				$result = $this->__checkValue($warninglist['values'], $attribute['value'], $attribute['type'], $warninglist['Warninglist']['type']);
+				if ($result !== false) {
+					return false;
 				}
 			}
 		}

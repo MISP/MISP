@@ -57,7 +57,7 @@ class EventDelegationsController extends AppController {
 					'title' => 'Requested event delegation',
 					'change' => 'Requested the delegation of event ' . $event['Event']['id'] . ' to organisation ' . $org['Org']['name'],
 			));
-			$this->Session->setFlash('Delegation request created.');
+			$this->Flash->success('Delegation request created.');
 			$this->redirect('/events/view/' . $id);
 		} else {
 			$orgs = $this->EventDelegation->Event->Org->find('list', array(
@@ -101,6 +101,7 @@ class EventDelegationsController extends AppController {
 					'change' => 'Starting the transfer of event ' . $delegation['Event']['id'] . ' to organisation ' . $this->Auth->user('Organisation')['name'],
 			));
 			$result = $this->EventDelegation->transferEvent($delegation, $this->Auth->user());
+			$this->EventDelegation->delete($delegation['EventDelegation']['id']);
 			if ($result) {
 				$this->Log->create();
 				$this->Log->save(array(
@@ -113,10 +114,10 @@ class EventDelegationsController extends AppController {
 						'title' => 'Completed event delegation',
 						'change' => 'Event ' . $delegation['Event']['id'] . ' successfully transferred to organisation ' . $this->Auth->user('Organisation')['name'],
 				));
-				$this->Session->setFlash('Event ownership transferred.');
+				$this->Flash->success('Event ownership transferred.');
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $result));
 			} else {
-				$this->Session->setFlash('Something went wrong and the event could not be transferred.');
+				$this->Flash->error('Something went wrong and the event could not be transferred.');
 				$this->redirect(array('controller' => 'Event', 'action' => 'view', $delegation['EventDelegation']['event_id']));
 			}
 		} else {
@@ -134,7 +135,7 @@ class EventDelegationsController extends AppController {
 		if (empty($delegation) || (!$this->_isSiteAdmin() && !in_array($this->Auth->user('org_id'), array($delegation['EventDelegation']['requester_org_id'], $delegation['EventDelegation']['org_id'])))) throw new MethodNotAllowedException('You are not authorised to do that.');
 		if ($this->request->is('post')) {
 			$this->EventDelegation->delete($delegation['EventDelegation']['id']);
-			$this->Session->setFlash('Delegation request deleted.');
+			$this->Flash->success('Delegation request deleted.');
 			$this->redirect(array('controller' => 'events', 'action' => 'index'));
 		} else {
 			$this->set('delegationRequest', $delegation);

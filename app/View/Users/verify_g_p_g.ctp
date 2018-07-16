@@ -1,5 +1,5 @@
 <div class="index">
-	<h3>GPG key validation</h3>
+	<h3><?php echo __('GnuPG key validation');?></h3>
 	<ul>
 	<?php foreach ($users as $k => $user) {
 		echo '<a href="'.$baseurl.'/admin/users/view/' . $k . '">' . $k . ' (' . h($user[1]) . ')</a>:';

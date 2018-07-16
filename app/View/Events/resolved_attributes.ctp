@@ -1,6 +1,15 @@
 <div class="index">
-	<h2><?php echo h($title);?></h2>
-	<p>Below you can see the attributes that are to be created. Make sure that the categories and the types are correct, often several options will be offered based on an inconclusive automatic resolution. </p>
+	<h2><?php echo h($title); ?></h2>
+	<?php $scope = !empty($proposals) ? 'proposals' : 'attributes'; ?>
+	<p><?php echo __('Below you can see the %s that are to be created. Make sure that the categories and the types are correct, often several options will be offered based on an inconclusive automatic resolution.', $scope);?></p>
+	<?php
+		if (!empty($missingTldLists)) {
+			$missingTldLists = implode(', ', $missingTldLists);
+			$missingTldLists = __('Warning: You are missing warninglist(s) that are used to recognise TLDs. Make sure your MISP has the warninglist submodule enabled and updated or else this tool might end up missing valid domains/hostnames/urls. The missing lists are: %s', $missingTldLists);
+			echo sprintf('<p class="bold red">%s</p>', $missingTldLists);
+		}
+	?>
+	<p></p>
 	<?php
 		$instanceDefault = 5;
 		if (!empty(Configure::read('MISP.default_attribute_distribution'))) {
@@ -14,7 +23,7 @@
 		if ($isSiteAdmin) {
 			echo $this->Form->input('force', array(
 					'checked' => false,
-					'label' => 'Proposals instead of attributes',
+					'label' => __('Proposals instead of attributes'),
 			));
 		}
 		echo $this->Form->input('JsonObject', array(
@@ -33,14 +42,15 @@
 	?>
 	<table class="table table-striped table-hover table-condensed">
 		<tr>
-				<th>Value</th>
-				<th>Similar Attributes</th>
-				<th>Category</th>
-				<th>Type</th>
-				<th>IDS<input type="checkbox" id="checkAll" style="margin:0px;margin-left:3px;"/></th>
-				<th>Distribution</th>
-				<th>Comment</th>
-				<th>Actions</th>
+				<th><?php echo __('Value');?></th>
+				<th><?php echo __('Similar Attributes');?></th>
+				<th><?php echo __('Category');?></th>
+				<th><?php echo __('Type');?></th>
+				<th><?php echo __('IDS');?><input type="checkbox" id="checkAll" style="margin:0px;margin-left:3px;"/></th>
+				<th><?php echo __('Distribution');?></th>
+				<th><?php echo __('Comment');?></th>
+				<th><?php echo __('Tags');?></th>
+				<th><?php echo __('Actions');?></th>
 		</tr>
 		<?php
 			$options = array();
@@ -69,7 +79,7 @@
 					echo $this->Form->input('Attribute' . $k . 'Value', array(
 							'label' => false,
 							'value' => $item['value'],
-							'style' => 'padding:0px;height:20px;margin-bottom:0px;width:90%;min-width:200px;',
+							'style' => 'padding:0px;height:20px;margin-bottom:0px;width:90%;min-width:400px;',
 							'div' => false
 					));
 				?>
@@ -112,7 +122,7 @@
 
 					}
 				?>
-				<select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style='padding:0px;height:20px;margin-bottom:0px;'>
+				<select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style='padding:0px;height:20px;margin-bottom:0px;' class="categoryToggle">
 					<?php
 						foreach ($typeCategoryMapping[$item['default_type']] as $category) {
 							if (isset($item['categories']) && !in_array($category, $item['categories'])) {
@@ -139,9 +149,11 @@
 				<div id = "<?php echo 'Attribute' . $k . 'TypeStatic'; ?>" <?php echo $divVisibility; ?> ><?php echo h($item['default_type']); ?></div>
 				<select id = "<?php echo 'Attribute' . $k . 'Type'; ?>" class='typeToggle' style='padding:0px;height:20px;margin-bottom:0px;<?php echo $selectVisibility; ?>'>
 					<?php
-						foreach ($item['types'] as $type) {
-							echo '<option value="' . $type . '" ';
-							echo ($type == $item['default_type'] ? 'selected="selected"' : '') . '>' . $type . '</option>';
+						if (!empty($item['types'])) {
+							foreach ($item['types'] as $type) {
+								echo '<option value="' . h($type) . '" ';
+								echo ($type == $item['default_type'] ? 'selected="selected"' : '') . '>' . h($type) . '</option>';
+							}
 						}
 					?>
 				</select>
@@ -163,17 +175,20 @@
 					<select id = "<?php echo 'Attribute' . $k . 'SharingGroupId'; ?>" class='sgToggle' style='padding:0px;height:20px;margin-top:3px;margin-bottom:0px;'>
 						<?php
 							foreach ($sgs as $sgKey => $sgValue) {
-								echo '<option value="' . $sgKey . '">' . $sgValue . '</option>';
+								echo '<option value="' . h($sgKey) . '">' . h($sgValue) . '</option>';
 							}
 						?>
 					</select>
 				</div>
 			</td>
 			<td class="short">
-				<input type="text" class="freetextCommentField" id="<?php echo 'Attribute' . $k . 'Comment'; ?>" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="<?php echo h($importComment); ?>" <?php if (isset($item['comment']) && $item['comment'] !== false) echo 'value="' . $item['comment'] . '"'?>/>
+				<input type="text" class="freetextCommentField" id="<?php echo 'Attribute' . $k . 'Comment'; ?>" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="<?php echo h($importComment); ?>" <?php if (isset($item['comment']) && $item['comment'] !== false) echo 'value="' . h($item['comment']) . '"'?>/>
+			</td>
+			<td class="short">
+				<input type="text" class="freetextTagField" id="<?php echo 'Attribute' . $k . 'Tags'; ?>" style="padding:0px;height:20px;margin-bottom:0px;"<?php if (isset($item['tags']) && $item['tags'] !== false) echo 'value="' . h(implode(",",$item['tags'])) . '"'?>/>
 			</td>
 			<td class="action short">
-				<span class="icon-remove pointer" title="Remove resolved attribute" role="button" tabindex="0" aria-label="Remove resolved attribute" onClick="freetextRemoveRow('<?php echo $k; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
+				<span class="icon-remove pointer" title="<?php echo __('Remove resolved attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove resolved attribute');?>" onClick="freetextRemoveRow('<?php echo $k; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
 			</td>
 		</tr>
 	<?php
@@ -190,7 +205,7 @@
 	?>
 	</table>
 	<span>
-		<button class="btn btn-primary" style="float:left;" onClick="freetextImportResultsSubmit('<?php echo h($event['Event']['id']); ?>', '<?php echo count($resultArray); ?>');">Submit</button>
+		<button class="btn btn-primary" style="float:left;" onClick="freetextImportResultsSubmit('<?php echo h($event['Event']['id']); ?>', '<?php echo count($resultArray); ?>');"><?php echo __('Submit %s', $scope);?></button>
 		<span style="float:right">
 			<?php
 				if (!empty($optionsRearranged)):
@@ -199,7 +214,7 @@
 					<?php
 						foreach (array_keys($optionsRearranged) as $fromElement):
 					?>
-							<option><?php echo $fromElement; ?></option>
+							<option><?php echo h($fromElement); ?></option>
 					<?php
 						endforeach;
 					?>
@@ -215,17 +230,43 @@
 						endforeach;
 					?>
 				</select>
-				<span role="button" tabindex="0" aria-label="Apply changes to all applicable resolved attributes" title="Apply changes to all applicable resolved attributes" class="btn btn-inverse" onClick="changeFreetextImportExecute();">Change all</span><br />
+				<span role="button" tabindex="0" aria-label="<?php echo __('Apply changes to all applicable resolved attributes');?>" title="<?php echo __('Apply changes to all applicable resolved attributes');?>" class="btn btn-inverse" onClick="changeFreetextImportExecute();"><?php echo __('Change all');?></span><br />
 			<?php endif; ?>
-			<input type="text" id="changeComments" style="margin-left:50px;margin-top:10px;width:446px;" placeholder="Update all comment fields">
-			<span role="button" tabindex="0" aria-label="Change all" title="Change all" class="btn btn-inverse" onClick="changeFreetextImportCommentExecute();">Change all</span>
+			<input type="text" id="changeComments" style="margin-left:50px;margin-top:10px;width:446px;" placeholder="<?php echo __('Update all comment fields');?>">
+			<span role="button" tabindex="0" aria-label="<?php echo __('Change all');?>" title="<?php echo __('Change all');?>" class="btn btn-inverse" onClick="changeFreetextImportCommentExecute();"><?php echo __('Change all');?></span>
 		</span>
 	</span>
 </div>
 	<script>
 		var options = <?php echo json_encode($optionsRearranged);?>;
+		var typeCategoryMapping = <?php echo json_encode($typeCategoryMapping); ?>;
 		$(document).ready(function() {
 			popoverStartup();
+			$('.typeToggle').on('change', function() {
+				var currentId = $(this).attr('id');
+				var selected = $(this).val();
+				currentId = currentId.replace('Type', 'Category');
+				var currentOptions = typeCategoryMapping[selected];
+				/*
+				// Coming soon - restrict further if a list of categories is passed by the modules / freetext import tool
+				if ($('#' + currentId)).data('category-restrictions') {
+					var category_restrictions = $('#' + currentId)).data('category-restrictions');
+					currentOptions.forEach(function(category) {
+						var found = False;
+						category_restrictions.forEach(function(restricted_category) {
+
+						});
+					});
+					currentOptions.forEach() {
+
+					}
+				}
+				*/
+				$('#' + currentId).empty();
+				for (var category in currentOptions) {
+					$('#' + currentId).append($("<option></option>").attr("value", category).text(category));
+				}
+			});
 		<?php
 			if (!empty($optionsRearranged)):
 		?>

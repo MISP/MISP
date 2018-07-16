@@ -9,12 +9,12 @@
 		echo ($this->Form->input('tags', array('id' => 'hiddenTags','div' => 'clear', 'label' => false, 'type' => 'text', 'value' => '[]', 'style' => 'display:none;')));
 		?>
 			<div id ="tagList">
-				<label>Tags</label>
+				<label><?php echo __('Tags');?></label>
 				<table>
 					<tr>
 						<td><table><tr id = "tags"></tr></table></td>
 						<td id = "addTagButtonTD">
-							<button onClick="activateTagField()" id="addTagButton" title="Add tag" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;">+</button>
+							<button onClick="activateTagField()" id="addTagButton" title="<?php echo __('Add tag');?>" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;">+</button>
 						</td>
 						<td id = "addTagFieldTD">
 							<?php
@@ -25,7 +25,7 @@
 									'label' => false,
 									'onChange' => 'tagFieldChange()',
 									'style' => "height:22px;padding:0px;margin-bottom:0px;display:none;",
-									'empty' => 'Add a tag',
+									'empty' => __('Add a tag'),
 								));
 							?>
 						</td>
@@ -34,14 +34,14 @@
 			</div><br />
 	<?php
 		echo $this->Form->input('description', array(
-			'label' => 'Template Description',
+			'label' => __('Template Description'),
 			'div' => 'clear',
 			'type' => 'textarea',
 			'class' => 'form-control span6',
-			'placeholder' => 'A description of the template'
+			'placeholder' => __('A description of the template')
 		));
 		echo $this->Form->input('share', array(
-			'label' => 'Share this template with others',
+			'label' => __('Share this template with others'),
 			'type' => 'checkbox'
 		));
 	?>

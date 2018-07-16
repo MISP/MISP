@@ -1,7 +1,7 @@
-<h2>Attribute Types Histogram</h2>
+<h2><?php echo __('Attribute Types Histogram');?></h2>
 <table>
 	<tr>
-		<td colspan="2"><h4 class="histogram-legendH4">Attributes</h4> (you can also choose specific histogram items by clicking on attributes below)</td>
+		<td colspan="2"><h4 class="histogram-legendH4"><?php echo __('Attributes');?></h4> (<?php echo __('you can also choose specific histogram items by clicking on attributes below');?>)</td>
 	</tr>
 	<tr>
 		<td class="attributehistogram-legend">
@@ -12,7 +12,7 @@
 	?>
 				<div class="attributehistogram-legend-line">
 					<div class="attributehistogram-legend-box" style="display: block;float: left;margin: 4px 6px 0 0;background-color:<?php echo $colour; ?>">&nbsp;</div>
-					<div style="display: inline-block;cursor: pointer;<?php if (in_array($type, $selectedTypes)) echo 'font-weight:bold';?>" role="button" tabindex="0" aria-label="Toggle histogram" tite="Toggle histogram" onClick='toggleHistogramType("<?php echo $type; ?>", [<?php foreach ($selectedTypes as $t) echo '"' . $t . '", ' ?>]);'><?php echo $type;?></div>
+					<div style="display: inline-block;cursor: pointer;<?php if (in_array($type, $selectedTypes)) echo 'font-weight:bold';?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle histogram');?>" tite="<?php echo __('Toggle histogram');?>" onClick='toggleHistogramType("<?php echo h($type); ?>", [<?php foreach ($selectedTypes as $t) echo '"' . $t . '", ' ?>]);'><?php echo h($type);?></div>
 				</div>
 	<?php
 		if ($cnt % 12 == 11):
@@ -28,7 +28,7 @@
 		</td>
 	</tr>
 	<tr>
-		<td colspan="2"><h4 >Attributes per organization</h4></td>
+		<td colspan="2"><h4 ><?php echo __('Attributes per organization');?></h4></td>
 	</tr>
 	<tr>
 		<td class="attributehistogram-left-table">
@@ -37,9 +37,10 @@
 				end($data);
 				$lastElement = key($data);
 				foreach ($data as $k => $org):
+					if ($k == 0) continue;
 			?>
 				<tr>
-					<td style="text-align:right"><?php echo h($k);?></td>
+					<td style="text-align:right"><?php echo h($org['org_name']);?></td>
 					<td <?php echo ($k == $lastElement ? 'class="attributehistogram-last"' : '');?> style="border-left:1px solid;padding-left:0px;width:500px;border-spacing:0px !important;">
 						<ul style="width:<?php echo 600 * $org['total'] / $max;?>px;" class="attributehistogramBar">
 					<?php

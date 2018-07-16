@@ -3,48 +3,58 @@
 App::uses('AppModel', 'Model');
 
 class Log extends AppModel {
-
+	public $warningActions = array(
+		'warning',
+		'change_pw',
+		'login_fail',
+		'version_warning',
+		'auth_fail'
+	);
+	public $errorActions = array(
+		'error'
+	);
 	public $validate = array(
 			'action' => array(
 			'rule' => array('inList', array(
+							'accept',
+							'accept_delegation',
+							'add',
+							'admin_email',
+							'auth',
+							'auth_fail',
+							'blacklisted',
+							'change_pw',
+							'delete',
+							'disable',
+							'discard',
+							'edit',
+							'email',
+							'enable',
+							'error',
+							'export',
+							'file_upload',
+							'galaxy',
 							'login',
 							'login_fail',
 							'logout',
-							'add',
-							'edit',
-							'change_pw',
-							'delete',
+							'merge',
+							'pruneUpdateLogs',
 							'publish',
-							'accept',
-							'discard',
+							'publish alert',
 							'pull',
 							'push',
-							'blacklisted',
-							'admin_email',
-							'tag',
-							'publish alert',
-							'warning',
-							'error',
-							'email',
-							'serverSettingsEdit',
 							'remove_dead_workers',
-							'upload_sample',
+							'request_delegation',
+							'reset_auth_key',
+							'serverSettingsEdit',
+							'tag',
+							'undelete',
+							'update',
 							'update_database',
 							'upgrade_24',
+							'upload_sample',
 							'version_warning',
-							'auth',
-							'auth_fail',
-							'reset_auth_key',
-							'update',
-							'enable',
-							'disable',
-							'accept_delegation',
-							'request_delegation',
-							'merge',
-							'undelete',
-							'file_upload',
-							'export',
-							'pruneUpdateLogs'
+							'warning'
 						)),
 			'message' => 'Options : ...'
 		)
@@ -87,12 +97,13 @@ class Log extends AppModel {
 		}
 		if (!isset($this->data['Log']['created'])) $this->data['Log']['created'] = date('Y-m-d H:i:s');
 		if (!isset($this->data['Log']['org'])) $this->data['Log']['org'] = 'SYSTEM';
-		if (isset($this->data['Log']['title'])) {
-			if (strlen($this->data['Log']['title']) >= 65535) {
-				$this->data['Log']['title'] = substr($this->data['Log']['title'], 0, 65532) . '...';
+		$truncate_fields = array('title', 'change', 'description');
+		foreach ($truncate_fields as $tf) {
+			if (isset($this->data['Log'][$tf]) && strlen($this->data['Log'][$tf]) >= 65535) {
+				$this->data['Log'][$tf] = substr($this->data['Log'][$tf], 0, 65532) . '...';
 			}
 		}
-
+		$this->logData($this->data);
 		return true;
 	}
 
@@ -221,5 +232,40 @@ class Log extends AppModel {
 			$result = $this->pruneUpdateLogs(false, $user);
 			return $result;
 		}
+	}
+
+	function logData($data) {
+		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_user_notifications_enable')) {
+			$pubSubTool = $this->getPubSubTool();
+			$pubSubTool->publish($data, 'audit', 'log');
+		}
+
+		if (Configure::read('Plugin.ElasticSearch_logging_enable')) {
+			// send off our logs to distributed /dev/null
+			$logIndex = Configure::read("Plugin.ElasticSearch_log_index");
+			$elasticSearchClient = $this->getElasticSearchTool();
+			$elasticSearchClient->pushDocument($logIndex, "log", $data);
+        	}
+
+		if (Configure::read('Security.syslog')) {
+			// write to syslogd as well
+			$syslog = new SysLog();
+			$action = 'info';
+			if (isset($data['Log']['action'])) {
+				if (in_array($data['Log']['action'], $this->errorActions)) {
+					$action = 'err';
+				}
+				if (in_array($data['Log']['action'], $this->warningActions)) {
+					$action = 'warning';
+				}
+			}
+
+			$entry = $data['Log']['action'];
+			if (!empty($data['Log']['description'])) {
+				$entry .= sprintf(' -- %s', $data['Log']['description']);
+			}
+			$syslog->write($action, $entry);
+		}
+		return true;
 	}
 }

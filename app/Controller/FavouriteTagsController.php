@@ -29,9 +29,9 @@ class FavouriteTagsController extends AppController {
 			if ($this->FavouriteTag->deleteAll($data, false)) $success = true;
 		}
 		if ($success) {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message . ' was successful.')), 'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message . ' was successful.')), 'status'=>200, 'type' => 'json'));
 		} else {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'fails' => $message . ' has failed.')), 'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'fails' => $message . ' has failed.')), 'status'=>200, 'type' => 'json'));
 		}
 	}
 

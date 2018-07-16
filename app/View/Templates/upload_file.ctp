@@ -1,13 +1,13 @@
 <?php
 if ($batch == 'yes') {
-	$buttonText = 'Upload Files';
+	$buttonText = __('Upload Files');
 	$multiple = true;
 } else {
 	$multiple = false;
 	if (isset($filenames)) {
-		$buttonText = 'Replace File';
+		$buttonText = __('Replace File');
 	} else {
-		$buttonText = 'Upload File';
+		$buttonText = __('Upload File');
 	}
 }
 ?>

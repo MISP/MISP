@@ -37,6 +37,9 @@ class EventBlacklist extends AppModel{
 		if (empty($this->data['EventBlacklist']['id'])) {
 			$this->data['EventBlacklist']['date_created'] = $date;
 		}
+		if (empty($this->data['EventBlacklist']['comment'])) {
+			$this->data['EventBlacklist']['comment'] = '';
+		}
 		return true;
 	}
 }

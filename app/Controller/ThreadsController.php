@@ -16,7 +16,8 @@ class ThreadsController extends AppController {
 			'limit' => 60,
 	);
 
-	public function viewEvent($id) {
+	public function viewEvent($id = false) {
+		if (empty($id)) throw new MethodNotAllowedException('No Event ID set.');
 		$this->loadModel('Event');
 		$result = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
 		$thread_id = false;
@@ -132,14 +133,12 @@ class ThreadsController extends AppController {
 				$posts = $this->paginate('Post');
 			}
 			foreach ($posts as $k => $post) {
-				if (!empty($post['User'])) {
-					$posts[$k]['Post']['org_name'] = $post['User']['Organisation']['name'];
-					if ($this->_isSiteAdmin() || $this->Auth->user('org_id') == $post['User']['org_id']) {
-						$posts[$k]['Post']['user_email'] = $post['User']['email'];
-					}
-					$posts[$k]['Post']['user_id'] = $post['User']['id'];
-					$posts[$k] = $posts[$k]['Post'];
+				$posts[$k]['Post']['org_name'] = empty($post['User']['id']) ? 'Deactivated user' : $post['User']['Organisation']['name'];
+				if ($this->_isSiteAdmin() || $this->Auth->user('org_id') == $post['User']['org_id']) {
+					$posts[$k]['Post']['user_email'] = empty($post['User']['id']) ? 'Unavailable' : $post['User']['email'];
 				}
+				$posts[$k]['Post']['user_id'] = empty($post['User']['id']) ? null : $post['User']['id'];
+				$posts[$k] = $posts[$k]['Post'];
 			}
 			if ($this->_isRest()) {
 				if (!empty($posts)) {

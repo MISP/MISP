@@ -1,5 +1,5 @@
 <div class="templates view">
-<h2>News</h2>
+<h2><?php echo __('News');?></h2>
 	<div>
 		<?php
 			if (!empty($newsItems)):
@@ -19,7 +19,7 @@
 								echo nl2br(preg_replace('#https?:\/\/[^\s]*#i', '<a href="$0">$0</a>', $message));
 								if ($isSiteAdmin):
 							?>
-									<br /><a href="<?php echo $baseurl; ?>/news/edit/<?php echo h($newsItem['News']['id']);?>" class="icon-edit" title="Edit news message"></a>
+									<br /><a href="<?php echo $baseurl; ?>/news/edit/<?php echo h($newsItem['News']['id']);?>" class="icon-edit" title="<?php echo __('Edit news message');?>"></a>
 							<?php
 									echo $this->Form->postLink('', array('action' => 'delete', $newsItem['News']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete news item # %s?', $newsItem['News']['id']));
 								endif;
@@ -44,7 +44,7 @@
 		    </div>
 		<?php
 			else:
-				echo 'There are currently no news messages.';
+				echo __('There are currently no news messages.');
 			endif;
 		?>
 	</div>

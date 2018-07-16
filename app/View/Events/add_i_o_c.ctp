@@ -10,7 +10,7 @@ echo $this->Form->input('Event.submittedioc', array(
 ?>
 	</fieldset>
 <?php
-echo $this->Form->button('Upload', array('class' => 'btn btn-primary'));
+echo $this->Form->button(__('Upload'), array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>

@@ -1,0 +1,23 @@
+<VirtualHost *:443>
+        ServerAdmin me@me.local
+        ServerName misp.local
+        DocumentRoot /var/www/MISP/app/webroot
+        <Directory /var/www/MISP/app/webroot>
+                Options -Indexes
+                AllowOverride all
+                Order allow,deny
+                allow from all
+        </Directory>
+
+        SSLEngine On
+        SSLCertificateFile /etc/ssl/private/misp.local.crt
+        SSLCertificateKeyFile /etc/ssl/private/misp.local.key
+        SSLCertificateChainFile /etc/ssl/private/misp-chain.crt
+
+        LogLevel warn
+        ErrorLog /var/log/apache2/misp.local_error.log
+        CustomLog /var/log/apache2/misp.local_access.log combined
+        ServerSignature Off
+        Header set X-Content-Type-Options nosniff
+        Header set X-Frame-Options DENY
+</VirtualHost>

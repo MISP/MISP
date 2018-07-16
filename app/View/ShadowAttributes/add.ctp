@@ -7,13 +7,13 @@
 		<?php
 			echo $this->Form->hidden('event_id');
 			echo $this->Form->input('category', array(
-				'empty' => '(choose one)',
+				'empty' => __('(choose one)'),
 				'div' => 'input',
-				'label' => 'Category ' . $this->element('formInfo', array('type' => 'category')),
+				'label' => __('Category ') . $this->element('formInfo', array('type' => 'category')),
 			));
 			echo $this->Form->input('type', array(
-				'empty' => '(first choose category)',
-				'label' => 'Type ' . $this->element('formInfo', array('type' => 'type')),
+				'empty' => __('(first choose category)'),
+				'label' => __('Type ') . $this->element('formInfo', array('type' => 'type')),
 			));
 		?>
 		<div class="input clear"></div>
@@ -25,7 +25,7 @@
 			));
 			echo $this->Form->input('comment', array(
 					'type' => 'text',
-					'label' => 'Contextual Comment',
+					'label' => __('Contextual Comment'),
 					'error' => array('escape' => false),
 					'div' => 'input clear',
 					'class' => 'input-xxlarge'
@@ -35,7 +35,7 @@
 		<?php
 			echo $this->Form->input('to_ids', array(
 					'checked' => true,
-					'label' => 'for Intrusion Detection System',
+					'label' => __('for Intrusion Detection System'),
 			));
 			echo $this->Form->input('batch_import', array(
 					'type' => 'checkbox',
@@ -43,26 +43,26 @@
 		?>
 	</div>
 	</fieldset>
-	<p style="color:red;font-weight:bold;display:none;<?php if ($ajax) echo 'text-align:center;'; ?>" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
+	<p style="color:red;font-weight:bold;display:none;<?php if ($ajax) echo 'text-align:center;'; ?>" id="warning-message"><?php echo __('Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.');?></p>
 	<?php if (isset($ajax) && $ajax): ?>
 		<div class="overlay_spacing">
 			<table>
 				<tr>
 				<td style="vertical-align:top">
-					<span tite="Propose" role="button" tabindex="0" aria-label="Propose" id="submitButton" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $event_id;?>', 'propose')">Propose</span>
+					<span tite="<?php echo __('Propose');?>" role="button" tabindex="0" aria-label="<?php echo __('Propose');?>" id="submitButton" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $event_id;?>', 'propose')"><?php echo __('Propose');?></span>
 				</td>
 				<td style="width:540px;">
-					<p style="color:red;font-weight:bold;display:none;<?php if (isset($ajax) && $ajax) echo "text-align:center;"?>" id="warning-message">Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
+					<p style="color:red;font-weight:bold;display:none;<?php if (isset($ajax) && $ajax) echo "text-align:center;"?>" id="warning-message"><?php echo __('Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this.');?></p>
 				</td>
 				<td style="vertical-align:top;">
-					<span class="btn btn-inverse" id="cancel_attribute_add">Cancel</span>
+					<span class="btn btn-inverse" id="cancel_attribute_add"><?php echo __('Cancel');?></span>
 				</td>
 				</tr>
 			</table>
 		</div>
 	<?php
 		else:
-			echo $this->Form->button('Propose', array('class' => 'btn btn-primary'));
+			echo $this->Form->button(__('Propose'), array('class' => 'btn btn-primary'));
 		endif;
 		echo $this->Form->end();
 	?>

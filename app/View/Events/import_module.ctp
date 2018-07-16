@@ -15,6 +15,11 @@
 					if (isset($configTypes[$config['type']]['field'])) {
 						$settings['type'] = $configTypes[$config['type']]['field'];
 					}
+					if ($settings['type'] == 'select') {
+						if (isset($config['options'])) {
+							$settings['options'] = $config['options'];
+						}
+					}
 					?>
 					<span class="bold">
 						<?php
@@ -81,7 +86,7 @@
 					<div class="input clear"></div>
 					<div id="fileDiv">
 					<p class="bold">
-						Input File
+						<?php echo __('Input File');?>
 					</p>
 				<?php
 						if (in_array('file', $module['mispattributes']['inputSource'])) {
@@ -94,7 +99,7 @@
 				?>
 					</div>
 					<div class="input clear"></div>
-		<?php 
+		<?php
 			endif;
 		?>
 	</fieldset>

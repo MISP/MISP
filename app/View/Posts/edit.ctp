@@ -1,9 +1,9 @@
 <div class="posts form">
 <?php echo $this->Form->create('Post');?>
 	<fieldset>
-		<legend>Edit Post</legend>
+		<legend><?php echo __('Edit Post');?></legend>
 		<div class="input text">
-			<label for="PostTitle">Thread Subject</label>
+			<label for="PostTitle"><?php echo __('Thread Subject');?></label>
 			<input class = "input-xxlarge" disabled="disabled" value="<?php echo h($title);?>" id="PostTitle" type="text">
 		</div>
 	<?php

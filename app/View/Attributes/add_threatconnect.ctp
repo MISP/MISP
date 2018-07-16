@@ -1,7 +1,7 @@
 <div class="attributes form">
 <?php echo $this->Form->create('Attribute', array('enctype' => 'multipart/form-data'));?>
 	<fieldset>
-		<legend>Import ThreatConnect CSV file</legend>
+		<legend><?php echo __('Import ThreatConnect CSV file'); ?></legend>
 		<?php
 		echo $this->Form->hidden('event_id');
 		?>

@@ -48,6 +48,17 @@ class Taxonomy extends AppModel {
 			}
 			$file = new File(APP . 'files' . DS . 'taxonomies' . DS . $dir . DS . 'machinetag.json');
 			$vocab = json_decode($file->read(), true);
+			if (isset($vocab['type'])) {
+				if (is_array($vocab['type'])) {
+					if (!in_array('event', $vocab['type'])) {
+						continue;
+					}
+				} else {
+					if ($vocab['type'] !== 'event') {
+						continue;
+					}
+				}
+			}
 			$file->close();
 			if (!isset($vocab['version'])) $vocab['version'] = 1;
 			$current = $this->find('first', array(
@@ -151,6 +162,7 @@ class Taxonomy extends AppModel {
 		if ($user) {
 			if (!$user['Role']['perm_site_admin']) {
 				$conditions = array('Tag.org_id' => array(0, $user['org_id']));
+				$conditions = array('Tag.user_id' => array(0, $user['id']));
 			}
 		}
 		if (Configure::read('MISP.incoming_tags_disabled_by_default')) {
@@ -233,7 +245,6 @@ class Taxonomy extends AppModel {
 		$this->Tag = ClassRegistry::init('Tag');
 		App::uses('ColourPaletteTool', 'Tools');
 		$paletteTool = new ColourPaletteTool();
-		App::uses('ColourPaletteTool', 'Tools');
 		$taxonomy = $this->__getTaxonomy($id, array('full' => true));
 		$tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace']);
 		$colours = $paletteTool->generatePaletteFromString($taxonomy['Taxonomy']['namespace'], count($taxonomy['entries']));
@@ -246,7 +257,7 @@ class Taxonomy extends AppModel {
 				foreach ($tagList as $tagName) {
 					if ($tagName === $entry['tag']) {
 						if (isset($tags[strtoupper($entry['tag'])])) {
-							$this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $tagName, $colour);
+							$this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $tagName, $colour, 0);
 						} else {
 							$this->Tag->quickAdd($tagName, $colour);
 						}
@@ -254,12 +265,38 @@ class Taxonomy extends AppModel {
 				}
 			} else {
 				if (isset($tags[strtoupper($entry['tag'])])) {
-					$this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $entry['tag'], $colour);
+					$this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $entry['tag'], $colour, 0);
 				} else {
 					$this->Tag->quickAdd($entry['tag'], $colour);
 				}
 			}
 		}
+		return true;
+	}
+
+	public function disableTags($id, $tagList = false) {
+		if ($tagList && !is_array($tagList)) $tagList = array($tagList);
+		$this->Tag = ClassRegistry::init('Tag');
+		$tags = array();
+		if ($tagList) {
+			$tags = $tagList;
+		} else {
+			$taxonomy = $this->__getTaxonomy($id, array('full' => true));
+			foreach ($taxonomy['entries'] as $entry) {
+				$tags[] = $entry['tag'];
+			}
+		}
+		if (empty($tags)) {
+			return true;
+		}
+		$tags = $this->Tag->find('all', array(
+			'conditions' => array('Tag.name' => $tags, 'Tag.hide_tag' => 0),
+			'recursive' => -1
+		));
+		if (empty($tags)) {
+			return true;
+		}
+		$this->Tag->disableTags($tags);
 		return true;
 	}
 
@@ -277,5 +314,46 @@ class Taxonomy extends AppModel {
 			$taxonomies[$t['Taxonomy']['namespace']] = $t['Taxonomy'];
 		}
 		return $taxonomies;
+	}
+
+	public function getTaxonomyForTag($tagName) {
+		if (preg_match('/^[^:="]+:[^:="]+="[^:="]+"$/i', $tagName)) {
+			$temp = explode(':', $tagName);
+			$pieces = array_merge(array($temp[0]), explode('=', $temp[1]));
+			$pieces[2] = trim($pieces[2], '"');
+			$taxonomy = $this->find('first', array(
+				'recursive' => -1,
+				'conditions' => array('LOWER(Taxonomy.namespace)' => strtolower($pieces[0])),
+				'contain' => array(
+					'TaxonomyPredicate' => array(
+						'conditions' => array(
+							'LOWER(TaxonomyPredicate.value)' => strtolower($pieces[1])
+						),
+						'TaxonomyEntry' => array(
+							'conditions' => array(
+								'LOWER(TaxonomyEntry.value)' => strtolower($pieces[2])
+							)
+						)
+					)
+				)
+			));
+			return $taxonomy;
+		} else if (preg_match('/^[^:="]+:[^:="]+$/i', $tagName)) {
+			$pieces = explode(':', $tagName);
+			$taxonomy = $this->find('first', array(
+				'recursive' => -1,
+				'conditions' => array('LOWER(Taxonomy.namespace)' => strtolower($pieces[0])),
+				'contain' => array(
+					'TaxonomyPredicate' => array(
+						'conditions' => array(
+							'LOWER(TaxonomyPredicate.value)' => strtolower($pieces[1])
+						)
+					)
+				)
+			));
+			return $taxonomy;
+		} else {
+			return false;
+		}
 	}
 }

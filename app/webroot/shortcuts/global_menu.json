@@ -1,0 +1,14 @@
+{
+	"shortcuts": [
+		{
+			"key": "l",
+			"description": "Go to event list",
+			"action": "document.location.href = '/events/index'"
+		},
+		{
+			"key": "e",
+			"description": "Go to add event page",
+			"action": "document.location.href = '/events/add'"
+		}
+	]
+}

@@ -6,7 +6,6 @@ class SightingsController extends AppController {
 
 	public function beforeFilter() {
 		parent::beforeFilter();
-		if (Configure::read('Plugin.Sightings_enable') === false) throw new MethodNotAllowedException('This feature is not enabled on this instance.');
 	}
 
 	public $paginate = array(
@@ -46,6 +45,7 @@ class SightingsController extends AppController {
 				}
 				if (isset($this->request->data['value'])) $this->request->data['values'] = array($this->request->data['value']);
 				$values = isset($this->request->data['values']) ? $this->request->data['values'] : false;
+				if (!$id && isset($this->request->data['uuid'])) $id = $this->request->data['uuid'];
 				if (!$id && isset($this->request->data['id'])) $id = $this->request->data['id'];
 				$type = isset($this->request->data['type']) ? $this->request->data['type'] : '0';
 				$source = isset($this->request->data['source']) ? trim($this->request->data['source']) : '';
@@ -59,9 +59,9 @@ class SightingsController extends AppController {
 			if ($this->request->is('ajax')) {
 				if ($error) {
 					$error_message = 'Could not add the Sighting. Reason: ' . $error;
-					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $error_message)), 'status' => 200));
+					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $error_message)), 'status' => 200, 'type' => 'json'));
 				} else {
-					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $result . ' ' . $this->Sighting->type[$type] . (($result == 1) ? '' : 's') . '  added.')), 'status' => 200));
+					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $result . ' ' . $this->Sighting->type[$type] . (($result == 1) ? '' : 's') . '  added.')), 'status' => 200, 'type' => 'json'));
 				}
 			} else {
 				if ($error) {
@@ -71,12 +71,15 @@ class SightingsController extends AppController {
 				}
 			}
 		} else {
+			if ($this->_isRest()) {
+				return $this->RestResponse->describe('Sightings', 'add', false, $this->response->type());
+			}
 			if (!$this->request->is('ajax')) {
 				throw new MethodNotAllowedException('This method is only accessible via POST requests and ajax GET requests.');
 			} else {
 				$this->layout = false;
 				$this->loadModel('Attribute');
-				$attributes = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id)));
+				$attributes = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'flatten' => 1));
 				if (empty($attributes)) {
 					throw new MethodNotAllowedExeption('Invalid Attribute.');
 				}
@@ -95,7 +98,7 @@ class SightingsController extends AppController {
 		$id = $this->Sighting->explodeIdList($id);
 		if ($context == 'attribute') {
 			$this->loadModel('Attribute');
-			$attributes = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id)));
+			$attributes = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'flatten' => 1));
 			if (empty($attributes)) {
 				throw new MethodNotAllowedException('Invalid attribute.');
 			}
@@ -121,20 +124,20 @@ class SightingsController extends AppController {
 			$this->render('ajax/quickDeleteConfirmationForm');
 		} else {
 			if (!isset($id)) {
-				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => 'Invalid request.')), 'status' => 200));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => 'Invalid request.')), 'status' => 200, 'type' => 'json'));
 			} else {
 				$sighting = $this->Sighting->find('first', array('conditions' => array('Sighting.id' => $id), 'recursive' => -1));
 				if (empty($sighting)) {
-					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => 'Invalid sighting.')), 'status' => 200));
+					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => 'Invalid sighting.')), 'status' => 200, 'type' => 'json'));
 				}
 				if (!$this->_isSiteAdmin() && $sighting['Sighting']['org_id'] != $this->Auth->user('org_id')) {
-					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => 'Invalid sighting.')), 'status' => 200));
+					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => 'Invalid sighting.')), 'status' => 200, 'type' => 'json'));
 				}
 				$result = $this->Sighting->delete($id);
 				if ($result) {
-					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Sighting deleted.')), 'status' => 200));
+					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Sighting deleted.')), 'status' => 200, 'type' => 'json'));
 				} else {
-					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => 'Sighting could not be deleted')), 'status' => 200));
+					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => 'Sighting could not be deleted')), 'status' => 200, 'type' => 'json'));
 				}
 			}
 		}
@@ -190,7 +193,7 @@ class SightingsController extends AppController {
 		$rawId = $id;
 		$id = $this->Sighting->explodeIdList($id);
 		if ($context === 'attribute') {
-			$object = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id, 'Attribute.deleted' => 0)));
+			$object = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id, 'Attribute.deleted' => 0), 'flatten' => 1));
 		} else {
 			// let's set the context to event here, since we reuse the variable later on for some additional lookups.
 			// Passing $context = 'org' could have interesting results otherwise...
@@ -216,6 +219,17 @@ class SightingsController extends AppController {
 		$this->set('rawId', $rawId);
 		$this->set('context', $context);
 		$this->set('types', array('Sighting', 'False-positive', 'Expiration'));
+		if (Configure::read('Plugin.Sightings_anonymise') && !$this->_isSiteAdmin()) {
+			foreach ($sightings as $k => $v) {
+				if ($v['Sighting']['org_id'] != $this->Auth->user('org_id')) {
+					$sightings[$k]['Organisation']['name'] = '';
+					$sightings[$k]['Sighting']['org_id'] = 0;
+				}
+			}
+		}
+		if ($this->_isRest()) {
+			return $this->RestResponse->viewData($sightings, $this->response->type());
+		}
 		$this->set('sightings', $sightings);
 		$this->layout = false;
 		$this->render('ajax/list_sightings');
@@ -226,7 +240,7 @@ class SightingsController extends AppController {
 		$id = $this->Sighting->explodeIdList($id);
 		if ($context === 'attribute') {
 			$attribute_id = $id;
-			$object = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id, 'Attribute.deleted' => 0)));
+			$object = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id, 'Attribute.deleted' => 0), 'flatten' => 1));
 			if (empty($object)) {
 				throw new MethodNotAllowedException('Invalid object.');
 			}

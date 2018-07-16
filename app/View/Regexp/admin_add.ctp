@@ -1,13 +1,13 @@
 <div class="regexp form">
 <?php echo $this->Form->create('Regexp');?>
 	<fieldset>
-		<legend>Add Import Regexp</legend>
+		<legend><?php echo __('Add Import Regexp');?></legend>
 	<?php
 		echo $this->Form->input('regexp');
 		echo $this->Form->input('replacement');
 	?>
 	<div class = "clear">
-			Types to be affected by the filter (Setting 'all' will override the other settings)
+			<?php echo __('Types to be affected by the filter (Setting \'all\' will override the other settings)');?>
 	</div>
 				<br />
 	<div class="input clear">
@@ -29,7 +29,7 @@
 	?>
 	</fieldset>
 <?php
-echo $this->Form->button('Add', array('class' => 'btn btn-primary'));
+echo $this->Form->button(__('Add'), array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>

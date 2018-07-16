@@ -30,13 +30,13 @@ if ($message !== 'csrf'):
 
 else:
 ?>
-	<h2>You have tripped the cross-site request forgery protection of MISP</h2>
+	<h2><?php echo __('You have tripped the cross-site request forgery protection of MISP');?></h2>
 	<p class="error">
-		<strong>CSRF error:</strong>
-		This happens usually when you try to resubmit the same form with invalidated CSRF tokens or you had a form open too long and the CSRF tokens simply expired. Just go back to the previous page and refresh the form (by reloading the same url) so that the tokens get refreshed.
+		<strong><?php echo __('CSRF error');?>:</strong>
+		<?php echo __('This happens usually when you try to resubmit the same form with invalidated CSRF tokens or you had a form open too long and the CSRF tokens simply expired. Just go back to the previous page and refresh the form (by reloading the same url) so that the tokens get refreshed.');?>
 	</p>
 	<p>
-		Alternatively, click <a href="<?php echo $baseurl;?>">here</a> to continue to the start page.
+		<?php echo __('Alternatively, click <a href="%s">here</a> to continue to the start page.', $baseurl);?>
 	</p>
 	<?php
 	if (Configure::read('debug') > 0):

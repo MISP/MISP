@@ -8,12 +8,18 @@ class SyncTool {
 		if (!empty($server)) {
 			if ($server['Server']['cert_file']) $params['ssl_cafile'] = APP . "files" . DS . "certs" . DS . $server['Server']['id'] . '.pem';
 			if ($server['Server']['client_cert_file']) $params['ssl_local_cert'] = APP . "files" . DS . "certs" . DS . $server['Server']['id'] . '_client.pem';
-			if ($server['Server']['self_signed']) $params['ssl_allow_self_signed'] = $server['Server']['self_signed'];
+			if ($server['Server']['self_signed']) {
+				$params['ssl_allow_self_signed'] = true;
+				$params['ssl_verify_peer_name'] = false;
+				if (!isset($server['Server']['cert_file']))
+					$params['ssl_verify_peer'] = false;
+			}
 		}
 		$HttpSocket = new HttpSocket($params);
-
-		$proxy = Configure::read('Proxy');
-		if (isset($proxy['host']) && !empty($proxy['host'])) $HttpSocket->configProxy($proxy['host'], $proxy['port'], $proxy['method'], $proxy['user'], $proxy['password']);
+		if (empty($server['Server']['skip_proxy'])) {
+			$proxy = Configure::read('Proxy');
+			if (isset($proxy['host']) && !empty($proxy['host'])) $HttpSocket->configProxy($proxy['host'], $proxy['port'], $proxy['method'], $proxy['user'], $proxy['password']);
+		}
 		return $HttpSocket;
 	}
 

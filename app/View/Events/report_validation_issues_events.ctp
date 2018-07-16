@@ -1,12 +1,12 @@
 <div class="event index">
-	<h2>Listing invalid event validations</h2>
-	Events analysed: <?php echo $count; ?><br />
+	<h2><?php echo __('Listing invalid event validations');?></h2>
+	<?php echo __('Events analysed: %s', $count);?><br />
 	<?php
 		foreach ($result as $r) {
 			?>
-			<h3>Validation errors for event: <?php echo h($r['id']); ?></h3>
+			<h3>V<?php echo __('alidation errors for event: %s', h($r['id']));?></h3>
 			<?php print_r($r['error']); ?><br />
-			Attribute details:<br />
+			<?php echo __('Attribute details');?>:<br />
 				<?php print_r(h($r['details'])); ?>
 			<br/>
 	<?php

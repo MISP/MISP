@@ -14,7 +14,7 @@ git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
 # 3. Update CakePHP to the latest supported version
 cd /var/www/MISP
 rm -rf app/Lib/cakephp/
-git submodule update --init --force
+git submodule update --init --recursive
 
 # 4. delete everything from MISP's cache directory to get rid of the cached models
 find /var/www/MISP/app/tmp/cache/ -type f -not -name 'empty' -delete

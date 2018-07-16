@@ -25,7 +25,7 @@ class TemplateElement extends AppModel {
 			'fields' => array('MAX(position) AS pos', 'id', 'template_id'),
 			'conditions' => array('template_id' => $template_id),
 			'order' => array('id'),
-			'group' => array('id')
+			'group' => array('id', 'template_id')
 		));
 		if (empty($result)) {
 			return 0;

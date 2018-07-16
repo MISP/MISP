@@ -1,0 +1,9 @@
+{
+	"shortcuts": [
+		{
+			"key": "s",
+			"description": "Focus the filter events bar",
+			"action": "$('#quickFilterField').focus()"
+		}
+	]
+}

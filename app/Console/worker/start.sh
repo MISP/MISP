@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Check if run as root
 if [ "$EUID" -eq 0 ]; then
@@ -14,3 +14,5 @@ cd "${0%/*}"
 ../cake CakeResque.CakeResque start --interval 5 --queue cache
 ../cake CakeResque.CakeResque start --interval 5 --queue email
 ../cake CakeResque.CakeResque startscheduler --interval 5
+
+exit 0

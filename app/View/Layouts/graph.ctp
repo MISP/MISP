@@ -10,7 +10,7 @@
 	</title>
 	<?php
 		echo $this->Html->meta('icon');
-		echo $this->Html->css('roboto');
+		//echo $this->Html->css('roboto');
 		echo $this->Html->css('bootstrap'); // see http://twitter.github.io/bootstrap/base-css.html
 		echo $this->Html->css('bootstrap-datepicker');
 		echo $this->Html->css('bootstrap-timepicker');
@@ -71,6 +71,7 @@
 	echo $this->Html->script('bootstrap-datepicker');
 	echo $this->Html->script('bootstrap-colorpicker');
 	echo $this->Html->script('misp.js?' . $queryVersion);
+	echo $this->Html->script('keyboard-shortcuts.js?' . $queryVersion);
 	?>
 	<div id = "ajax_success_container" class="ajax_container">
 		<div id="ajax_success" class="ajax_result ajax_success"></div>
@@ -80,7 +81,7 @@
 	</div>
 	<div class="loading">
 		<div class="spinner"></div>
-		<div class="loadingText">Loading</div>
+		<div class="loadingText"><?php echo __('Loading');?></div>
 	</div>
 	<?php
 		if ($debugMode == 'debugOff'):

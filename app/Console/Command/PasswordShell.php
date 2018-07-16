@@ -14,12 +14,16 @@ class PasswordShell extends AppShell {
 		else {
 			// get the users that need their password hashed
 			$results = $this->User->find('first', array('conditions' => array('email' => $this->args[0]), 'recursive' => -1));
+			if (empty($results)) {
+				echo 'User not found. Make sure you use the correct syntax: /var/www/MISP/app/Console/cake Password [email] [password]' . PHP_EOL;
+				exit;
+			}
 			$results['User']['password'] = $this->args[1];
 			$results['User']['confirm_password'] = $this->args[1];
 			$results['User']['change_pw'] = 1;
 			if (!$this->User->save($results)) {
 				echo 'Could not update account for User.id = ', $results['User']['id'], PHP_EOL;
-				debug($this->User->validationErrors);
+				echo json_encode($this->User->validationErrors) . PHP_EOL;
 				$this->out(print_r($this->User->invalidFields(), true));
 			}
 			echo 'Updated ', PHP_EOL;

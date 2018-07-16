@@ -86,21 +86,30 @@ class WarninglistsController extends AppController {
 					'change' => 'Executed an update of the warning lists, but there was nothing to update.',
 			));
 		}
-		if ($successes == 0 && $fails == 0) $this->Session->setFlash('All warninglists are up to date already.');
-		else if ($successes == 0) $this->Session->setFlash('Could not update any of the warning lists');
-		else {
+		if ($successes == 0 && $fails == 0) {
+			$flashType = 'info';
+			$message = 'All warninglists are up to date already.';
+		}	else if ($successes == 0) {
+			$flashType = 'error';
+			$message = 'Could not update any of the warning lists';
+		} else {
+			$flashType = 'success';
 			$message = 'Successfully updated ' . $successes . ' warninglists.';
 			if ($fails != 0) $message . ' However, could not update ' . $fails . ' warning list.';
-			$this->Session->setFlash($message);
 		}
-		$this->redirect(array('controller' => 'warninglists', 'action' => 'index'));
+		if ($this->_isRest()) {
+			return $this->RestResponse->saveSuccessResponse('Warninglist', 'update', false, $this->response->type(), $message);
+		} else {
+			$this->Flash->{$flashType}($message);
+			$this->redirect(array('controller' => 'warninglists', 'action' => 'index'));
+		}
 	}
 
 	public function toggleEnable() {
 		$id = $this->request->data['Warninglist']['data'];
-		if (!is_numeric($id)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist not found.')), 'status' => 200));
+		if (!is_numeric($id)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist not found.')), 'status' => 200, 'type' => 'json'));
 		$currentState = $this->Warninglist->find('first', array('conditions' => array('id' => $id), 'recursive' => -1));
-		if (empty($currentState)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist not found.')), 'status' => 200));
+		if (empty($currentState)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist not found.')), 'status' => 200, 'type' => 'json'));
 		if ($currentState['Warninglist']['enabled']) {
 			$currentState['Warninglist']['enabled'] = 0;
 			$message = 'disabled';
@@ -109,9 +118,10 @@ class WarninglistsController extends AppController {
 			$message = 'enabled';
 		}
 		if ($this->Warninglist->save($currentState)) {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Warninglist ' . $message)), 'status' => 200));
+			$this->Warninglist->regenerateWarninglistCaches($id);
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Warninglist ' . $message)), 'status' => 200, 'type' => 'json'));
 		} else {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist could not be enabled.')), 'status' => 200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist could not be enabled.')), 'status' => 200, 'type' => 'json'));
 		}
 	}
 
@@ -121,7 +131,8 @@ class WarninglistsController extends AppController {
 		// DBMS interoperability: convert boolean false to integer 0 so cakephp doesn't try to insert an empty string into the database
 		if ($enable === false) $enable = 0;
 		$this->Warninglist->saveField('enabled', $enable);
-		$this->Session->setFlash('Warninglist enabled');
+		$this->Warninglist->regenerateWarninglistCaches($id);
+		$this->Flash->success('Warninglist enabled');
 		$this->redirect(array('controller' => 'warninglists', 'action' => 'view', $id));
 	}
 
@@ -144,4 +155,26 @@ class WarninglistsController extends AppController {
 			$this->set('warninglist', $warninglist);
 		}
 	}
+
+	public function delete($id) {
+		if ($this->request->is('post')) {
+			$id = intval($id);
+			$result = $this->Warninglist->quickDelete($id);
+			if ($result) {
+				$this->Flash->success('Warninglist successfuly deleted.');
+				$this->redirect(array('controller' => 'warninglists', 'action' => 'index'));
+			} else {
+				$this->Flash->error('Warninglists could not be deleted.');
+				$this->redirect(array('controller' => 'warninglists', 'action' => 'index'));
+			}
+		} else {
+			if ($this->request->is('ajax')) {
+				$this->set('id', $id);
+				$this->render('ajax/delete_confirmation');
+			} else {
+				throw new MethodNotAllowedException('This function can only be reached via AJAX.');
+			}
+		}
+	}
+
 }

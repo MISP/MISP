@@ -1,32 +1,32 @@
 <div class="warninglist view">
 <h2><?php echo h(strtoupper($warninglist['Warninglist']['name'])); ?></h2>
 	<dl>
-		<dt>Id</dt>
+		<dt><?php echo __('Id');?></dt>
 		<dd>
 			<?php echo h($warninglist['Warninglist']['id']); ?>
 			&nbsp;
 		</dd>
-		<dt>Name</dt>
+		<dt><?php echo __('Name');?></dt>
 		<dd>
 			<?php echo h($warninglist['Warninglist']['name']); ?>
 			&nbsp;
 		</dd>
-		<dt>Description</dt>
+		<dt><?php echo __('Description');?></dt>
 		<dd>
 			<?php echo h($warninglist['Warninglist']['description']); ?>
 			&nbsp;
 		</dd>
-		<dt>Version</dt>
+		<dt><?php echo __('Version');?></dt>
 		<dd>
 			<?php echo h($warninglist['Warninglist']['version']); ?>
 			&nbsp;
 		</dd>
-		<dt>Type</dt>
+		<dt><?php echo __('Type');?></dt>
 		<dd>
 			<?php echo h($warninglist['Warninglist']['type']); ?>
 			&nbsp;
 		</dd>
-		<dt>Accepted attribute types</dt>
+		<dt><?php echo __('Accepted attribute types');?></dt>
 		<dd>
 			<?php
 				$text = array();
@@ -35,7 +35,7 @@
 				echo h($text);
 			?>
 		</dd>
-		<dt>Enabled</dt>
+		<dt><?php echo __('Enabled');?></dt>
 		<dd>
 			<?php echo $warninglist['Warninglist']['enabled'] ? '<span class="green">Yes</span>&nbsp;&nbsp;' : '<span class="red">No</span>&nbsp;&nbsp;';
 				if ($isSiteAdmin) {
@@ -51,7 +51,7 @@
 		</dd>
 	</dl>
 	<br />
-	<h3>Values</h3>
+	<h3><?php echo __('Values');?></h3>
 	<div><?php
 		foreach ($warninglist['WarninglistEntry'] as $entry) echo h($entry['value']) . '<br />';
 	?></div>

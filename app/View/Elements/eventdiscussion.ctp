@@ -1,24 +1,24 @@
 <div id="top">
 	<div class="pagination">
-        <?php
-        if (!empty($posts)):
-        ?>
+		<?php
+		if (!empty($posts)):
+		?>
 			<ul>
-        <?php
-	        $this->Paginator->options(array(
-	            'update' => '#top',
-	            'evalScripts' => true,
-	            'before' => '$(".loading").show()',
-	            'complete' => '$(".loading").hide()',
-	        ));
+		<?php
+			$this->Paginator->options(array(
+				'update' => '#top',
+				'evalScripts' => true,
+				'before' => '$(".loading").show()',
+				'complete' => '$(".loading").hide()',
+			));
 
-	            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-	            echo $this->Paginator->numbers(array('modulus' => 10, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
-	            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-	        ?>
-	        </ul>
-	    </div>
-	    <div id = "posts">
+				echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+				echo $this->Paginator->numbers(array('modulus' => 10, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
+				echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+			?>
+			</ul>
+		</div>
+		<div id = "posts">
 			<?php
 				foreach ($posts as $post) {
 			?>
@@ -31,7 +31,7 @@
 									<tr>
 										<td>
 			<?php
-											echo 'Date: ' . h($post['date_created']);
+											echo __('Date: ') . h($post['date_created']);
 			?>
 										</td>
 										<td style="text-align:right">
@@ -47,11 +47,9 @@
 							<td class="discussionBoxTD discussionBoxTDMid discussionBoxTDMidLeft">
 								<?php
 								if (isset($post['org_name'])) {
-									$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . 'orgs' . DS . h($post['org_name']) . '.png';
-									if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($post['org_name']) . '.png', array('alt' => h($post['org_name']), 'title' => h($post['org_name']), 'style' => 'width:48px; height:48px'));
-									else echo $this->Html->tag('span', h($post['org_name']), array('class' => 'welcome', 'style' => 'float:center;'));
+									echo $this->OrgImg->getOrgImg(array('name' => $post['org_name'], 'size' => 48));
 								} else {
-									echo 'Deactivated user';
+									echo __('Deactivated user');
 								}
 								?>
 							</td>
@@ -88,18 +86,18 @@
 			<?php
 										if (!$isSiteAdmin) {
 											if ($post['user_id'] == $myuserid) {
-												echo $this->Html->link('', array('controller' => 'posts', 'action' => 'edit', h($post['id']), h($context)), array('class' => 'icon-edit', 'title' => 'Edit'));
-												echo $this->Form->postLink('', array('controller' => 'posts', 'action' => 'delete', h($post['id']), h($context)), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this post?'));
+												echo $this->Html->link('', array('controller' => 'posts', 'action' => 'edit', h($post['id']), h($context)), array('class' => 'icon-edit', 'title' => __('Edit')));
+												echo $this->Form->postLink('', array('controller' => 'posts', 'action' => 'delete', h($post['id']), h($context)), array('class' => 'icon-trash', 'title' => __('Delete')), __('Are you sure you want to delete this post?'));
 											} else {
 			?>
-												<a href="<?php echo $baseurl.'/posts/add/post/'.h($post['id']); ?>" class="icon-comment" title = "Reply"></a>
+												<a href="<?php echo $baseurl.'/posts/add/post/'.h($post['id']); ?>" class="icon-comment" title = "<?php echo __('Reply');?>"></a>
 			<?php
 											}
 										} else {
-											echo $this->Html->link('', array('controller' => 'posts', 'action' => 'edit', h($post['id']), h($context)), array('class' => 'icon-edit', 'title' => 'Edit'));
+											echo $this->Html->link('', array('controller' => 'posts', 'action' => 'edit', h($post['id']), h($context)), array('class' => 'icon-edit', 'title' => __('Edit')));
 											echo $this->Form->postLink('', array('controller' => 'posts', 'action' => 'delete', h($post['id']), h($context)), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this post?'));
 			?>
-												<a href = "<?php echo $baseurl.'/posts/add/post/'.h($post['id']); ?>" class="icon-comment" title = "Reply"></a>
+												<a href = "<?php echo $baseurl.'/posts/add/post/'.h($post['id']); ?>" class="icon-comment" title = "<?php echo __('Reply');?>"></a>
 			<?php
 
 										}
@@ -116,22 +114,22 @@
 			?>
 			</div>
 			<p>
-	    <?php
-	    echo $this->Paginator->counter(array(
-	    'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
-	    ));
-	    ?>
-	    </p>
-	    <div class="pagination">
-	        <ul>
-	        <?php
-	            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-	            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
-	            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-	        ?>
-	        </ul>
-	    </div>
-    <?php endif; ?>
+		<?php
+		echo $this->Paginator->counter(array(
+		'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
+		));
+		?>
+		</p>
+		<div class="pagination">
+			<ul>
+			<?php
+				echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+				echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
+				echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+			?>
+			</ul>
+		</div>
+	<?php endif; ?>
 	<div class="comment">
 	<?php
 		if (isset($currentEvent)) $url = '/posts/add/event/' . $currentEvent;
@@ -140,11 +138,11 @@
 	?>
 		<fieldset>
 		<div class="input clear">
-			<button type="button" title="Insert a quote - just paste your quote between the [quote][/quote] tags." class="toggle-left btn btn-inverse qet" id = "quote"  onclick="insertQuote()">Quote</button>
-			<button type="button" title="Insert a link to an event - just enter the event ID between the [event][/event] tags." class="toggle btn btn-inverse qet" id = "event"  onclick="insertEvent()">Event</button>
-			<button type="button" title="Insert a link to a discussion thread - enter the thread's ID between the [thread][/thread] tags." class="toggle-right btn btn-inverse qet" id = "thread"  onclick="insertThread()">Thread</button>
-			<button type="button" title="Insert a link [link][/link] tags." class="toggle-right btn btn-inverse qet" id = "link"  onclick="insertLink()">Link</button>
-			<button type="button" title="Insert a code [code][/code] tags." class="toggle-right btn btn-inverse qet" id = "code"  onclick="insertCode()">Code</button>
+			<button type="button" title="<?php echo __('Insert a quote - just paste your quote between the [quote][/quote] tags.');?>" class="toggle-left btn btn-inverse qet" id = "quote"  onclick="insertQuote()"><?php echo __('Quote');?></button>
+			<button type="button" title="<?php echo __('Insert a link to an event - just enter the event ID between the [event][/event] tags.');?>" class="toggle btn btn-inverse qet" id = "event"  onclick="insertEvent()"><?php echo __('Event');?></button>
+			<button type="button" title="<?php echo __('Insert a link to a discussion thread - enter the thread\'s ID between the [thread][/thread] tags.');?>" class="toggle-right btn btn-inverse qet" id = "thread"  onclick="insertThread()"><?php echo __('Thread');?></button>
+			<button type="button" title="<?php echo __('Insert a link [link][/link] tags.');?>" class="toggle-right btn btn-inverse qet" id = "link"  onclick="insertLink()"><?php echo __('Link');?></button>
+			<button type="button" title="<?php echo __('Insert a code [code][/code] tags.');?>" class="toggle-right btn btn-inverse qet" id = "code"  onclick="insertCode()"><?php echo __('Code');?></button>
 		</div>
 		<?php
 			echo $this->Form->input('message', array(
@@ -155,7 +153,7 @@
 			));
 		?>
 		</fieldset>
-		<button class="btn btn-primary" onClick="submitMessageForm('<?php echo h($url);?>', 'PostViewForm', 'top'); return false;">Send</button>
+		<button class="btn btn-primary" onClick="submitMessageForm('<?php echo h($url);?>', 'PostViewForm', 'top'); return false;"><?php echo __('Send');?></button>
 	<?php
 		echo $this->Form->end();
 	?>
@@ -183,4 +181,4 @@
 		});
 	<?php endif; ?>
 </script>
-<?php echo $this->Js->writeBuffer();?>
+<?php echo $this->Js->writeBuffer();

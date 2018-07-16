@@ -1,21 +1,21 @@
 <div class="regexp form">
 <?php echo $this->Form->create('Regexp');?>
 	<fieldset>
-		<legend>Edit Import Regexp</legend>
+		<legend><?php echo __('Edit Import Regexp');?></legend>
 	<?php
 		echo $this->Form->input('id');
 		echo $this->Form->input('regexp');
 		echo $this->Form->input('replacement');
 	?>
 	<div class = "clear">
-			Types to be affected by the filter (Setting 'all' will override the other settings)
+			<?php echo __('Types to be affected by the filter (Setting \'all\' will override the other settings)');?>
 	</div>
 				<br />
 	<div class="input clear">
 	<?php
 		echo $this->Form->input('all', array(
 			'checked' => $all,
-			'label' => 'All',
+			'label' => __('All'),
 		));
 	?>
 	</div>
@@ -39,7 +39,7 @@
 	?>
 	</fieldset>
 <?php
-echo $this->Form->button('Add', array('class' => 'btn btn-primary'));
+echo $this->Form->button(__('Add'), array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>

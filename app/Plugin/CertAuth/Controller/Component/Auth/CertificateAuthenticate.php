@@ -74,8 +74,23 @@ class CertificateAuthenticate extends BaseAuthenticate
 			unset($CA, $ca);
 		}
 
-		if (self::$ca && isset($_SERVER['SSL_CLIENT_S_DN'])) {
-			self::$client = self::parse($_SERVER['SSL_CLIENT_S_DN'], Configure::read('CertAuth.map'));
+		if (self::$ca) {
+			$map = Configure::read('CertAuth.map');
+			if(isset($_SERVER['SSL_CLIENT_S_DN'])) {
+				self::$client = self::parse($_SERVER['SSL_CLIENT_S_DN'], $map);
+			} else {
+				self::$client = array();
+			}
+			foreach($map as $n=>$d) {
+				if(isset($_SERVER[$n])) {
+					self::$client[$d] = $_SERVER[$n];
+				}
+				unset($map[$n], $n, $d);
+			}
+			unset($map);
+			if(!self::$client) {
+				self::$client = false;
+			}
 		}
 	}
 
@@ -112,91 +127,75 @@ class CertificateAuthenticate extends BaseAuthenticate
 	// to enable stateless authentication
 	public function getUser(CakeRequest $request)
 	{
-		if (is_null(self::$user)) {
+		if (empty(self::$user)) {
 			if (self::$client) {
 				self::$user = self::$client;
-
+				// If $sync is true, allow the creation of the user from the certificate
 				$sync = Configure::read('CertAuth.syncUser');
-
-				if ($sync) {
-					self::getRestUser();
+				$url = Configure::read('CertAuth.restApi.url');
+				if ($sync && $url) {
+					if (!self::getRestUser()) return false;
 				}
 
 				// find and fill user with model
-				$cn = Configure::read('CertAuth.userModel');
-				if ($cn) {
-					$k = Configure::read('CertAuth.userModelKey');
-					if ($k) {
-						$q = array($k=>self::$user[$k]);
-					} else {
-						$q = self::$user;
-					}
-					$User = ClassRegistry::init($cn);
-					$U = $User->find('first', array(
-						'conditions' => $q,
+				$userModelKey = empty(Configure::read('CertAuth.userModelKey')) ? 'email' : Configure::read('CertAuth.userModelKey');
+				$userDefaults = Configure::read('CertAuth.userDefaults');
+				$this->User = ClassRegistry::init('User');
+				if (!empty(self::$user[$userModelKey])) {
+					$existingUser = $this->User->find('first', array(
+						'conditions' => array($userModelKey => self::$user[$userModelKey]),
 						'recursive' => false
 					));
-					if ($U) {
-						if ($sync) {
-							$write = array();
-
-							if (!isset(self::$user['org_id']) && isset(self::$user['org'])) {
-								self::$user['org_id']=$User->Organisation->createOrgFromName(self::$user['org'], $User->id, true);
-								unset(self::$user['org']);
-							}
-
-							foreach (self::$user as $k=>$v) {
-								if (array_key_exists($k, $U[$cn]) && trim($U[$cn][$k])!=trim($v)) {
-									$write[] = $k;
-									$U[$cn][$k] = trim($v);
-								}
-								unset($k, $v);
-							}
-							if ($write && !$User->save($U[$cn], true)) {
-								CakeLog::write('alert', 'Could not update model at database with RestAPI data.');
-							}
-							unset($write);
-						}
-						self::$user = $User->getAuthUser($U[$cn]['id']);
-						if (isset(self::$user['gpgkey'])) unset(self::$user['gpgkey']);
-					} else if ($sync) {
-						$User->create();
-						$org=null;
+				}
+				if ($existingUser) {
+					if ($sync) {
 						if (!isset(self::$user['org_id']) && isset(self::$user['org'])) {
-							$org = self::$user['org'];
+							self::$user['org_id'] = $this->User->Organisation->createOrgFromName(self::$user['org'], $existingUser['User']['id'], true);
+							// reset user defaults in case it's a different org_id
+							if (self::$user['org_id'] && $existingUser['User']['org_id'] != self::$user['org_id']) {
+								if ($userDefaults && is_array($userDefaults)) {
+									self::$user = array_merge($userDefaults + self::$user);
+								}
+							}
 							unset(self::$user['org']);
 						}
-
-						$d = Configure::read('CertAuth.userDefaults');
-						if ($d && is_array($d)) {
-							self::$user += $d;
-						}
-						unset($d);
-
-						if ($User->save(self::$user, true)) {
-							$id = $User->id;
-							if ($org) {
-								self::$user['org_id']=$User->Organisation->createOrgFromName($org, $User->id, true);
-								$User->save(self::$user, true, array('org_id'));
+						$write = array();
+						foreach (self::$user as $k => $v) {
+							if (isset($existingUser['User'][$k]) && trim($existingUser['User'][$k]) != trim($v)) {
+								$write[] = $k;
+								$existingUser['User'][$k] = trim($v);
 							}
-
-							self::$user = $User->getAuthUser($id);
-							unset($id);
-							if (isset(self::$user['gpgkey'])) unset(self::$user['gpgkey']);
-						} else {
-							CakeLog::write('alert', 'Could not insert model at database from RestAPI data.');
 						}
-						unset($org);
+						if (!empty($write) && !$this->User->save($existingUser['User'], true, $write)) {
+							CakeLog::write('alert', 'Could not update model at database with RestAPI data.');
+						}
+					}
+					self::$user = $this->User->getAuthUser($existingUser['User']['id']);
+					if (isset(self::$user['gpgkey'])) unset(self::$user['gpgkey']);
+				} else if ($sync && !empty(self::$user)) {
+					$org = isset(self::$client['org']) ? self::$client['org'] : null;
+					if ($org == null) return false;
+					if (!isset(self::$user['org_id']) && isset(self::$user['org'])) {
+						self::$user['org_id'] = $this->User->Organisation->createOrgFromName($org, 0, true);
+						unset(self::$user['org']);
+					}
+					if ($userDefaults && is_array($userDefaults)) {
+						self::$user = array_merge(self::$user, $userDefaults);
+					}
+					$this->User->create();
+					if ($this->User->save(self::$user)) {
+						$id = $this->User->id;
+						self::$user = $this->User->getAuthUser($id);
+						if (isset(self::$user['gpgkey'])) unset(self::$user['gpgkey']);
 					} else {
-                        // No match -- User doesn't exist !!!
-                        self::$user = false;
-                    }
-					unset($U, $User, $q, $k);
+						CakeLog::write('alert', 'Could not insert model at database from RestAPI data. Reason: ' . json_encode($this->User->validationErrors));
+					}
+				} else {
+					// No match -- User doesn't exist !!!
+					self::$user = false;
 				}
-				unset($cn);
 			}
 		}
-
 		return self::$user;
 	}
 
@@ -264,8 +263,9 @@ class CertificateAuthenticate extends BaseAuthenticate
 		if (!$a) return null;
 
 		$A = json_decode($a, true);
-		if (!isset($A['data'][0])) return false;
-		if (isset($options['map'])) {
+		if (!isset($A['data'][0])) {
+			self::$user = false;
+		} else if (isset($options['map'])) {
 			foreach ($options['map'] as $k=>$v) {
 				if (isset($A['data'][0][$k])) {
 					self::$user[$v] = $A['data'][0][$k];

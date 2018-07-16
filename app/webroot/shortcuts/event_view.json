@@ -1,0 +1,24 @@
+{
+	"shortcuts": [
+		{
+			"key": "t",
+			"description": "Open the tag selection modal",
+			"action": "$('#addTagButton').click()"
+		},
+		{
+			"key": "f",
+			"description": "Open the freetext import modal",
+			"action": "$('#freetext-button').click()"
+		},
+		{
+			"key": "a",
+			"description": "Add an attribute",
+			"action": "$('#create-button').click()"
+		},
+		{
+			"key": "s",
+			"description": "Focus the filter attribute bar",
+			"action": "$('#attributesFilterField').focus()"
+		}
+	]
+}

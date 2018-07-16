@@ -1,17 +1,17 @@
 <div style="border:1px solid #dddddd; margin-top:1px; width:100%; padding:10px">
-	<p>Below you will find a list of the uploaded files based on type.</p>
+	<p><?php echo __('Below you will find a list of the uploaded files based on type.');?></p>
 	<?php
 		foreach ($files as $k => $file):
 	?>
 		<h3><?php echo h($file['name']); ?></h3>
 		<div>
-			<b>Description</b>: <?php echo $file['description']; ?><br />
-			<b>Expected Format</b>: <?php echo h($file['valid_format']);?><br />
-			<b>Path</b>:  <?php echo h($file['path']);?><br />
+			<b><?php echo __('Description');?></b>: <?php echo $file['description']; ?><br />
+			<b><?php echo __('Expected Format');?></b>: <?php echo h($file['valid_format']);?><br />
+			<b><?php echo __('Path');?></b>:  <?php echo h($file['path']);?><br />
 			<?php
 				if (!empty($file['expected'])):
 			?>
-				<b>Files set for each relevant setting:</b>:<br />
+				<b><?php echo __('Files set for each relevant setting');?>:</b>:<br />
 				<ul>
 					<?php foreach ($file['expected'] as $expectedKey => $expectedValue):
 						$colour = 'red';
@@ -26,11 +26,11 @@
 		</div>
 		<table class="table table-striped table-hover table-condensed" style="width:600px;">
 			<tr>
-				<th>Filename</th>
-				<th>Used by</th>
-				<th>Size</th>
-				<th>Permissions</th>
-				<th>Actions</th>
+				<th><?php echo __('Filename');?></th>
+				<th><?php echo __('Used by');?></th>
+				<th><?php echo __('Size');?></th>
+				<th><?php echo __('Permissions');?></th>
+				<th><?php echo __('Actions');?></th>
 			</tr>
 				<?php
 					foreach ($file['files'] as $f):
@@ -58,7 +58,7 @@
 										if ($f['filename'] == $ev) echo h($ek) . "<br />";
 									endforeach;
 								else:
-									echo 'N/A';
+									echo __('N/A');
 								endif;
 							?>
 						</td>
@@ -70,7 +70,7 @@
 						</td>
 						<td class="short">
 							<?php
-								echo $this->Form->postLink('', array('controller' => 'servers', 'action' => 'deleteFile' , $k , $f['filename']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete %s?', $f['filename']));
+								echo $this->Form->postLink('', array('controller' => 'servers', 'action' => 'deleteFile' , $k , $f['filename']), array('class' => 'icon-trash', 'title' => __('Delete')), __('Are you sure you want to delete %s?', $f['filename']));
 							?>
 						</td>
 					</tr>

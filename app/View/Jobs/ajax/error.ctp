@@ -1,5 +1,5 @@
 <div class="confirmation">
-	<legend>Background Job Error Browser</legend>
+	<legend><?php echo __('Background Job Error Browser');?></legend>
 	<div style="padding-left:5px;padding-right:5px;padding-bottom:5px;">
 		<div>
 			<?php
@@ -18,20 +18,20 @@
 						endif;
 					endforeach;
 			?>
-					<a href="#" id="show_stacktrace">(Click to show stack trace)</a>
-					<a href="#" id="hide_stacktrace" class="hidden">(Click to hide stack trace)</a>
+					<a href="#" id="show_stacktrace">(<?php echo __('Click to show stack trace');?>)</a>
+					<a href="#" id="hide_stacktrace" class="hidden">(<?php echo __('Click to hide stack trace');?>)</a>
 					<div id="stacktrace" class="hidden">
 						<?php echo $stackTrace; ?>
 					</div>
 			<?php
 				else:
 			?>
-				<p>No error data found. Generally job error data is purged from Redis after 24 hours, however, you can still view the errors in the log files in "/app/tmp/logs".</p>
+				<p><?php echo __('No error data found. Generally job error data is purged from Redis after 24 hours, however, you can still view the errors in the log files in "/app/tmp/logs".');?></p>
 			<?php
 				endif;
 			?>
 		</div>
-		<span role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="btn btn-inverse" id="PromptNoButton" onClick="cancelPopoverForm();">Close</span>
+		<span role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="btn btn-inverse" id="PromptNoButton" onClick="cancelPopoverForm();"><?php echo __('Close');?></span>
 	</div>
 </div>
 <script type="text/javascript">

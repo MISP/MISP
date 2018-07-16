@@ -14,7 +14,7 @@
 	?>
 	</ul>
 </div>
-    <div class="tabMenu tabMenuFiltersBlock noPrint" style="padding-right:0px !important;">
+	<div class="tabMenu tabMenuFiltersBlock noPrint" style="padding-right:0px !important;">
 	<span id="filter_header" class="attribute_filter_header">Filters: </span>AAA
 </div>
 <table class="table table-striped table-hover table-condensed">
@@ -47,4 +47,4 @@
 	?>
 	</ul>
 </div>
-<?php echo $this->Js->writeBuffer(); ?>
+<?php echo $this->Js->writeBuffer();

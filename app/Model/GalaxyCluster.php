@@ -38,6 +38,15 @@ class GalaxyCluster extends AppModel{
 		return true;
 	}
 
+	public function afterFind($results, $primary = false) {
+		foreach ($results as $k => $result) {
+			if (isset($results[$k]['GalaxyCluster']['authors'])) {
+				$results[$k]['GalaxyCluster']['authors'] = json_decode($results[$k]['GalaxyCluster']['authors'], true);
+			}
+		}
+		return $results;
+	}
+
 	public function beforeDelete($cascade = true) {
 		$this->GalaxyElement->deleteAll(array('GalaxyElement.galaxy_cluster_id' => $this->id));
 	}
@@ -125,13 +134,16 @@ class GalaxyCluster extends AppModel{
 	 *   - maybe in the future remove the galaxy itself once we have logos with each galaxy
 	*/
 	public function getCluster($name) {
+		$conditions = array('GalaxyCluster.tag_name ' => $name);
+		if (is_numeric($name)) {
+			$conditions = array('GalaxyCluster.id' => $name);
+		}
 		$objects = array('Galaxy', 'GalaxyElement');
 		$cluster = $this->find('first', array(
-			'conditions' => array('GalaxyCluster.tag_name' => $name),
+			'conditions' => $conditions,
 			'contain' => array('Galaxy', 'GalaxyElement')
 		));
 		if (!empty($cluster)) {
-			$cluster['GalaxyCluster']['authors'] = json_decode($cluster['GalaxyCluster']['authors'], true);
 			if (isset($cluster['Galaxy'])) {
 				$cluster['GalaxyCluster']['Galaxy'] = $cluster['Galaxy'];
 				unset($cluster['Galaxy']);

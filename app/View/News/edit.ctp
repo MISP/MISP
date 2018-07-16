@@ -3,7 +3,7 @@
 	echo $this->Form->create('News');
 ?>
 	<fieldset>
-		<legend><?php echo 'Edit News Item'; ?></legend>
+		<legend><?php echo __('Edit News Item'); ?></legend>
 		<?php
 			echo $this->Form->input('title', array(
 					'type' => 'text',
@@ -26,12 +26,12 @@
 			echo $this->Form->input('anonymise', array(
 						'type' => 'checkbox',
 						'checked' => $newsItem['News']['user_id'] == 0,
-						'label' => 'Create anonymously',
+						'label' => __('Create anonymously'),
 			));
 		?>
 	</fieldset>
 	<?php
-		echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
+		echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
 		echo $this->Form->end();
 	?>
 </div>

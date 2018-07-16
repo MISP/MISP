@@ -82,4 +82,18 @@ git clean -f -x app/webroot/img/orgs
 git clean -f -x app/tmp/logs/
 git clean -f -d -x app/files
 
+echo "Updating taxonomies"
+baseurl=$(grep -o -P "(?<='baseurl' => ').*(?=')" $MISPPath/app/Config/config.php)
+AuthKey=$(echo 'select authkey from users where role_id = 1 order by id limit 1;' | mysql -u $MySQLRUser -p$MySQLRPass $MISPDB 2>/dev/null | tail -1)
+curl --header "Authorization: $AuthKey" --header "Accept: application/json" --header "Content-Type: application/json" -o /dev/null -s -X POST ${baseurl}/taxonomies/update
+
+echo "Updating warninglists"
+curl --header "Authorization: $AuthKey" --header "Accept: application/json" --header "Content-Type: application/json" -o /dev/null -s -X POST ${baseurl}/warninglists/update
+
+echo "Updating galaxies"
+curl --header "Authorization: $AuthKey" --header "Accept: application/json" --header "Content-Type: application/json" -o /dev/null -s -X POST ${baseurl}/galaxies/update
+
+echo "Updating objectTemplates"
+curl --header "Authorization: $AuthKey" --header "Accept: application/json" --header "Content-Type: application/json" -o /dev/null -s -X POST ${baseurl}/objectTemplates/update
+
 echo 'MISP Wipe Complete!!!'
