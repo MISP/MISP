@@ -1854,7 +1854,10 @@ function download_file(data, type) {
 	var a = document.createElement('a');
 	a.setAttribute('href', dataUri);
 	a.setAttribute('download', filename);
-	a.click();
+	var aj = $(a);
+	aj.appendTo('body');
+	aj[0].click();
+	aj.remove();
 }
 
 function reset_graph_history() {
