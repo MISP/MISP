@@ -27,9 +27,11 @@ from copy import deepcopy
 non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', 'target-email',
                             'target-machine', 'target-org', 'target-location', 'target-external',
                             'vulnerability']
-
 misp_hash_types = ["authentihash", "ssdeep", "imphash", "md5", "sha1", "sha224",
                    "sha256", "sha384", "sha512", "sha512/224","sha512/256","tlsh"]
+malware_galaxies_list = ['android', 'banker', 'stealer', 'backdoor']
+threat_actor_galaxies_list = ['threat-actor', 'microsoft-activity-group']
+tool_galaxies_list = ['botnet', 'rat', 'exploit-kit', 'tds']
 
 class StixBuilder():
     def __init__(self):
@@ -328,11 +330,11 @@ class StixBuilder():
                 self.add_course_of_action(galaxy)
             elif 'intrusion-set' in galaxy_type:
                 self.add_intrusion_set(galaxy)
-            elif 'ware' in galaxy_type:
+            elif galaxy_type in malware_galaxies_list or 'ware' in galaxy_type:
                 self.add_malware(galaxy)
-            elif galaxy_type in ['threat-actor', 'microsoft-activity-group']:
+            elif galaxy_type in threat_actor_galaxies_list:
                 self.add_threat_actor(galaxy)
-            elif galaxy_type in ['rat', 'exploit-kit'] or 'tool' in galaxy_type:
+            elif galaxy_type in tool_galaxies_list or 'tool' in galaxy_type:
                 self.add_tool(galaxy)
             else:
                 return
