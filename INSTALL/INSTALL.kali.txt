@@ -201,6 +201,7 @@ function installMISPonKali() {
 
     update-rc.d mysql enable
     update-rc.d apache2 enable
+    update-rc.d redis-server enable
 
     $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
 
