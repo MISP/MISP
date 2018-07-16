@@ -2722,7 +2722,7 @@ class Event extends AppModel {
 		}
 	}
 
-	public function _edit(&$data, $user, $id, $jobId = null) {
+	public function _edit(&$data, $user, $id, $jobId = null, $passAlong = null) {
 		$data = $this->cleanupEventArrayFromXML($data);
 		unset($this->Attribute->validate['event_id']);
 		unset($this->Attribute->validate['value']['unique']); // otherwise gives bugs because event_id is not set
@@ -2849,7 +2849,22 @@ class Event extends AppModel {
 				}
 			}
 			// if published -> do the actual publishing
-			if ((!empty($data['Event']['published']) && 1 == $data['Event']['published'])) {
+            if ((!empty($data['Event']['published']) && 1 == $data['Event']['published'])) {
+				// The edited event is from a remote server ?
+				if ($passAlong) {
+						$this->Server = ClassRegistry::init('Server');
+						$server = $this->Server->find('first', array(
+								'conditions' => array(
+										'Server.id' => $passAlong
+						),
+								'recursive' => -1,
+								'fields' => array(
+										'Server.name',
+										'Server.id',
+										'Server.unpublish_event',
+										'Server.publish_without_email'
+								)
+						));
 				// do the necessary actions to publish the event (email, upload,...)
 				if (true != Configure::read('MISP.disablerestalert')) {
 					$this->sendAlertEmailRouter($id, $user, $existingEvent['Event']['publish_timestamp']);
