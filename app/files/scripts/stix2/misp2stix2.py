@@ -274,7 +274,7 @@ class StixBuilder():
             try:
                 extension[peMapping[attribute.object_relation]] = attribute.value
             except KeyError:
-                continue
+                extension["x_misp_{}_{}".format(attribute.type, attribute.object_relation.replace('-', '_'))] = attribute.value
         for section in sections:
             d_section = defaultdict(dict)
             for attribute in section.attributes:
@@ -296,9 +296,9 @@ class StixBuilder():
         for attribute in pe_object.attributes:
             try:
                 stix_type = "{}.{}".format(pe_mapping, peMapping[attribute.object_relation])
-                pattern += mapping.format(stix_type, attribute.value)
             except KeyError:
-                continue
+                stix_type = "{}.{}'".format(pe_mapping[:-1], "x_misp_{}_{}".format(attribute.type, attribute.object_relation.replace('-', '_')))
+            pattern += mapping.format(stix_type, attribute.value)
         n_section = 0
         for section in sections:
             section_mapping = "{}.sections[{}]".format(pe_mapping, str(n_section))
@@ -1146,7 +1146,7 @@ class StixBuilder():
             else:
                 try:
                     observable[x509mapping[relation]] = attribute.value
-                except:
+                except KeyError:
                     value = bool(attribute.value) if attribute.type == 'boolean' else attribute.value
                     attributes2parse["x_misp_{}_{}".format(attribute.type, relation)].append(value)
         if hashes:
@@ -1166,7 +1166,7 @@ class StixBuilder():
             else:
                 try:
                     stix_type = x509mapping[relation]
-                except:
+                except KeyError:
                     stix_type = "'x_misp_{}_{}'".format(attribute.type, relation)
             value = bool(attribute.value) if attribute.type == 'boolean' else attribute.value
             pattern += mapping.format(stix_type, value)
