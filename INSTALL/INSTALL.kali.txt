@@ -90,6 +90,8 @@ function installMISPonKali() {
   apt install -qy etckeeper
   # Skip dist-upgrade for now, pulls in 500+ updated packages
   #sudo apt -y dist-upgrade
+  git conif --global user.email "root@kali.lan"
+  git conif --global user.name "Root User"
   apt install -qy postfix
 
   apt install -qy \
@@ -99,7 +101,7 @@ function installMISPonKali() {
   apache2 apache2-doc apache2-utils \
   libapache2-mod-php7.2 php7.2 php7.2-cli  php7.2-mbstring php-pear php7.2-dev php7.2-json php7.2-xml php7.2-mysql php7.2-opcache php7.2-readline \
   python3-dev python3-pip libpq5 libjpeg-dev libfuzzy-dev ruby asciidoctor \
-  libxml2-dev libxslt1-dev zlib1g-dev python3-setuptools
+  libxml2-dev libxslt1-dev zlib1g-dev python3-setuptools expect
 
   modprobe tpm-rng
   echo tpm-rng >> /etc/modules
@@ -109,7 +111,7 @@ function installMISPonKali() {
   systemctl restart mariadb.service
 
   a2dismod status
-  a2enmod ssl rewrite
+  a2enmod ssl rewrite headers
   a2dissite 000-default
   a2ensite default-ssl
 
@@ -197,6 +199,10 @@ function installMISPonKali() {
     mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant all privileges on $DBNAME.* to '$DBUSER_MISP'@'localhost';"
     mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "flush privileges;"
 
+    update-rc.d mysql enable
+    update-rc.d apache2 enable
+    update-rc.d redis-server enable
+
     $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
 
     echo "<?php
@@ -225,6 +231,13 @@ function installMISPonKali() {
   -subj "/C=${OPENSSL_C}/ST=${OPENSSL_ST}/L=${OPENSSL_L}/O=${OPENSSL_O}/OU=${OPENSSL_OU}/CN=${OPENSSL_CN}/emailAddress=${OPENSSL_EMAILADDRESS}" \
   -keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt
 
+  if [ ! -e /etc/rc.local ]
+  then
+      echo '#!/bin/sh -e' | tee -a /etc/rc.local
+      echo 'exit 0' | tee -a /etc/rc.local
+      chmod u+x /etc/rc.local
+  fi
+
   cd /var/www
   mkdir misp-dashboard
   chown www-data:www-data misp-dashboard
@@ -232,7 +245,13 @@ function installMISPonKali() {
   cd misp-dashboard
   /var/www/misp-dashboard/install_dependencies.sh
   sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/config/config.cfg
-  sed -i -e '$i \$SUDO_WWW bash /var/www/misp-dashboard/start_all.sh\n' /etc/rc.local
+  sed -i -e '$i \sudo -u www-data bash /var/www/misp-dashboard/start_all.sh\n' /etc/rc.local
+  sed -i -e '$i \sudo -u misp /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 &\n' /etc/rc.local
+  sed -i -e '$i \git_dirs="/usr/local/src/misp-modules/ /var/www/misp-dashboard /usr/local/src/faup /usr/local/src/mail_to_misp /usr/local/src/misp-modules /usr/local/src/viper /var/www/misp-dashboard"\n' /etc/rc.local
+  sed -i -e '$i \for d in $git_dirs; do\n' /etc/rc.local
+  sed -i -e '$i \    echo "Updating ${d}"\n' /etc/rc.local
+  sed -i -e '$i \    cd $d && sudo git pull &\n' /etc/rc.local
+  sed -i -e '$i \done\n' /etc/rc.local
   $SUDO_WWW bash /var/www/misp-dashboard/start_all.sh
 
   apt install libapache2-mod-wsgi-py3 -y
@@ -271,6 +290,8 @@ function installMISPonKali() {
           ErrorLog /var/log/apache2/misp.local_error.log
           CustomLog /var/log/apache2/misp.local_access.log combined
           ServerSignature Off
+          Header set X-Content-Type-Options nosniff
+          Header set X-Frame-Options DENY
   </VirtualHost>" | tee /etc/apache2/sites-available/misp-ssl.conf
 
   echo "127.0.0.1 misp.local" | tee -a /etc/hosts
@@ -357,13 +378,6 @@ function installMISPonKali() {
   $SUDO_WWW sh -c "gpg --homedir $PATH_TO_MISP/.gnupg --export --armor $GPG_EMAIL_ADDRESS" | $SUDO_WWW tee $PATH_TO_MISP/app/webroot/gpg.asc
 
   chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
-
-  if [ ! -e /etc/rc.local ]
-  then
-      echo '#!/bin/sh -e' | tee -a /etc/rc.local
-      echo 'exit 0' | tee -a /etc/rc.local
-      chmod u+x /etc/rc.local
-  fi
 
   $CAKE userInit -q
 
@@ -472,14 +486,15 @@ function installMISPonKali() {
   $CAKE Live $MISP_LIVE
   $CAKE Admin updateGalaxies
   $CAKE Admin updateTaxonomies
-  $CAKE Admin updateWarningLists
+  #$CAKE Admin updateWarningLists
+  curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/warninglists/update
   curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/noticelists/update
   curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/objectTemplates/update
   sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
   sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
   sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
-  sed -i -e '$i \$SUDO_WWW bash /var/www/MISP/app/Console/worker/start.sh\n' /etc/rc.local
-  sed -i -e '$i \$SUDO_WWW misp-modules -l 0.0.0.0 -s &\n' /etc/rc.local
+  sed -i -e '$i \sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh\n' /etc/rc.local
+  sed -i -e '$i \sudo -u www-data misp-modules -l 0.0.0.0 -s &\n' /etc/rc.local
   $SUDO_WWW bash $PATH_TO_MISP/app/Console/worker/start.sh
   cd /usr/local/src/
   git clone https://github.com/MISP/misp-modules.git

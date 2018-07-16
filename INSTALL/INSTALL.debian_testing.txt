@@ -63,6 +63,16 @@ echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 - Web server, apache FTW!
 - This guide assumes a user name of 'misp'
 
+# Make sure you can sudo
+```
+misp@debian:~$ sudo ls
+[sudo] password for misp:
+misp is not in the sudoers file.  This incident will be reported.
+```
+
+su -
+adduser misp sudo
+
 # install etckeeper (optional)
 sudo apt install -y etckeeper
 
@@ -549,7 +559,7 @@ cd misp-modules
 # pip3 install
 sudo pip3 install -I -r REQUIREMENTS
 sudo pip3 install -I .
-sudo pip3 install maec lief python-magic wand yara
+sudo pip3 install maec lief python-magic wand
 sudo pip3 install git+https://github.com/kbandla/pydeep.git
 # install STIX2.0 library to support STIX 2.0 export:
 sudo pip3 install stix2
@@ -589,6 +599,16 @@ Recommended actions
 
 Optional features
 -------------------
+# set PATH so it includes viper if it exists
+if [ -d "/usr/local/src/viper" ] ; then
+    PATH="$PATH:/usr/local/src/viper"
+fi
+
+# set PATH so it includes viper if it exists
+if [ -d "/var/www/MISP/app/Console" ] ; then
+    PATH="$PATH:/var/www/MISP/app/Console"
+fi
+
 # MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following commands
 
 # ZeroMQ depends on the Python client for Redis
