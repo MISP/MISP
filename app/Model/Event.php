@@ -2850,49 +2850,49 @@ class Event extends AppModel {
 			}
 			// if published -> do the actual publishing
             if ((!empty($data['Event']['published']) && 1 == $data['Event']['published'])) {
-				// The edited event is from a remote server ?
+			    // The edited event is from a remote server ?
 				if ($passAlong) {
-						$this->Server = ClassRegistry::init('Server');
-						$server = $this->Server->find('first', array(
-								'conditions' => array(
-										'Server.id' => $passAlong
+					$this->Server = ClassRegistry::init('Server');
+					$server = $this->Server->find('first', array(
+					    'conditions' => array(
+						    'Server.id' => $passAlong
 						),
-								'recursive' => -1,
-								'fields' => array(
-										'Server.name',
-										'Server.id',
-										'Server.unpublish_event',
-										'Server.publish_without_email'
-								)
-						));
-						if ($server['Server']['publish_without_email'] == 0) {
-						    $st = "enabled";
-						} else {
-						    $st = "disabled";
-						}
-						$this->Log->create();
-						$this->Log->save(array(
-								'org' => $user['Organisation']['name'],
-								'model' => 'Event',
-								'model_id' => $saveResult['Event']['id'],
-								'email' => $user['email'],
-								'action' => 'add',
-								'user_id' => $user['id'],
-								'title' => 'Event edited from Server(' . $server['Server']['id'] . ') - "' . $server['Server']['name'] . '" - Notification by mail ' . $st,
-								'change' => ''
-                        ));
+						'recursive' => -1,
+						'fields' => array(
+						    'Server.name',
+							'Server.id',
+							'Server.unpublish_event',
+							'Server.publish_without_email'
+						)
+					));
+					if ($server['Server']['publish_without_email'] == 0) {
+					    $st = "enabled";
+					} else {
+					    $st = "disabled";
+					}
+					$this->Log->create();
+					$this->Log->save(array(
+					    'org' => $user['Organisation']['name'],
+						'model' => 'Event',
+						'model_id' => $saveResult['Event']['id'],
+						'email' => $user['email'],
+						'action' => 'add',
+						'user_id' => $user['id'],
+						'title' => 'Event edited from Server(' . $server['Server']['id'] . ') - "' . $server['Server']['name'] . '" - Notification by mail ' . $st,
+						'change' => ''
+                    ));
 				} else {
-				        $this->Log->create();
-						$this->Log->save(array(
-								'org' => $user['Organisation']['name'],
-								'model' => 'Event',
-								'model_id' => $saveResult['Event']['id'],
-								'email' => $user['email'],
-								'action' => 'add',
-								'user_id' => $user['id'],
-								'title' => 'Event edited (locally)',
-								'change' => ''
-						));
+				    $this->Log->create();
+					$this->Log->save(array(
+						'org' => $user['Organisation']['name'],
+						'model' => 'Event',
+					    'model_id' => $saveResult['Event']['id'],
+						'email' => $user['email'],
+						'action' => 'add',
+						'user_id' => $user['id'],
+						'title' => 'Event edited (locally)',
+						'change' => ''
+					));
                 }
 				// do the necessary actions to publish the event (email, upload,...)
 				if ((true != Configure::read('MISP.disablerestalert')) && (empty($server) || $server['Server']['publish_without_email'] == 0)) {
