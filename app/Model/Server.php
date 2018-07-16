@@ -1844,10 +1844,10 @@ class Server extends AppModel {
 						$event['Event']['user_id'] = $user['id'];
 						// check if the event already exist (using the uuid)
 						$existingEvent = null;
-						$existingEvent = $eventModel->find('first', array('conditions' => array('Event.uuid' => $event['Event']['uuid'])));
+                        $existingEvent = $eventModel->find('first', array('conditions' => array('Event.uuid' => $event['Event']['uuid'])));
+                        $passAlong = $server['Server']['id'];
 						if (!$existingEvent) {
 							// add data for newly imported events
-							$passAlong = $server['Server']['id'];
 							$result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
 							if ($result) $successes[] = $eventId;
 							else {
@@ -1857,7 +1857,7 @@ class Server extends AppModel {
 						} else {
 							$tempUser = $user;
 							$tempUser['Role']['perm_site_admin'] = 0;
-							$result = $eventModel->_edit($event, $tempUser, $existingEvent['Event']['id'], $jobId);
+							$result = $eventModel->_edit($event, $tempUser, $existingEvent['Event']['id'], $jobId, $passAlong);
 							if ($result === true) $successes[] = $eventId;
 							else if (isset($result['error'])) $fails[$eventId] = $result['error'];
 							else $fails[$eventId] = json_encode($result);
