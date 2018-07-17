@@ -5,7 +5,7 @@
 		<div style="margin-left:10px;">
 			<span title="<?php echo isset($galaxy['description']) ? h($galaxy['description']) : h($galaxy['name']);?>" class="bold blue" style="font-size:14px;">
 				<?php echo h($galaxy['name']); ?>&nbsp;
-				<a href="<?php echo $baseurl; ?>/galaxies/view/<?php echo h($galaxy['id']); ?>" class="icon-search" title="View details about this galaxy"></a>
+				<a href="<?php echo $baseurl; ?>/galaxies/view/<?php echo h($galaxy['id']); ?>" class="icon-search" title="<?php echo __('View details about this galaxy');?>"></a>
 			</span>
 	<?php
 		foreach ($galaxy['GalaxyCluster'] as $cluster):
@@ -14,13 +14,13 @@
 				<span class="bold blue expandContainer useCursorPointer">
 					<span class="collapse-status" style="font-size: 16px;">+</span>
 					<span><?php echo h($cluster['value']); ?></span>
-					<a href="<?php echo $baseurl; ?>/galaxy_clusters/view/<?php echo h($cluster['id']); ?>" class="icon-search" title="View details about this cluster"></a>&nbsp;
-					<a href="<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($cluster['tag_id']); ?>" class="icon-th-list" title="View all events containing this cluster."></a>
+					<a href="<?php echo $baseurl; ?>/galaxy_clusters/view/<?php echo h($cluster['id']); ?>" class="icon-search" title="<?php echo __('View details about this cluster');?>"></a>&nbsp;
+					<a href="<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($cluster['tag_id']); ?>" class="icon-th-list" title="<?php echo __('View all events containing this cluster.');?>"></a>
 					<?php
 						if ($isSiteAdmin || ($mayModify && $isAclTagger)) {
 							echo $this->Form->postLink('',
 								$baseurl . '/galaxy_clusters/detach/' . ucfirst(h($target_id)) . '/' . h($target_type) . '/' . $cluster['tag_id'],
-								array('class' => 'icon-trash', 'title' => 'Delete', 'div' => false),
+								array('class' => 'icon-trash', 'title' => __('Delete'), 'div' => false),
 								__('Are you sure you want to detach %s from this event?', h($cluster['value']))
 							);
 						}

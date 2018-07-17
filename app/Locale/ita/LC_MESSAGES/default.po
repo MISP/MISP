@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2018-07-11 12:37\n"
+"PO-Revision-Date: 2018-07-13 10:39\n"
 "Last-Translator: SteveClement <steve@localhost.lu>\n"
 "Language-Team: Italian\n"
 "MIME-Version: 1.0\n"
@@ -4343,7 +4343,7 @@ msgstr "Filtri basati su data, qualsiasi cosa è precedente a tale data in forma
 
 #: View/Events/contact.ctp:8
 msgid "Contact organization reporting event "
-msgstr ""
+msgstr "Contatta l'organizzazione che ha generato l'evento "
 
 #: View/Events/contact.ctp:9
 msgid "You are about to contact the organization that reported event %s.<br/>\n"
@@ -4379,16 +4379,16 @@ msgstr ""
 #: View/Events/export.ctp:26
 #: View/Pages/doc/using_the_system.ctp:378
 msgid "Last Update"
-msgstr ""
+msgstr "Ultimo aggiornamento"
 
 #: View/Events/export.ctp:28
 #: View/Pages/doc/using_the_system.ctp:380
 msgid "Outdated"
-msgstr ""
+msgstr "Non aggiornato"
 
 #: View/Events/export.ctp:29
 msgid "Filesize"
-msgstr ""
+msgstr "Dimensione del file"
 
 #: View/Events/export.ctp:30
 #: View/Pages/doc/administration.ctp:230
@@ -4406,7 +4406,7 @@ msgstr ""
 
 #: View/Events/export.ctp:81
 msgid "Loading…"
-msgstr ""
+msgstr "Caricamento in corso…"
 
 #: View/Events/export.ctp:100;104
 msgid "Generate"
@@ -4418,11 +4418,11 @@ msgstr ""
 
 #: View/Events/export.ctp:172
 msgid "0 seconds ago"
-msgstr ""
+msgstr "0 secondi fa"
 
 #: View/Events/export_alternate.ctp:10
 msgid "Download all as XML"
-msgstr ""
+msgstr "Scarica tutto in formato XML"
 
 #: View/Events/export_alternate.ctp:12
 msgid "Click this to download all events and attributes that you have access to <small>(except file attachments)</small> in a custom XML format."
@@ -4430,7 +4430,7 @@ msgstr ""
 
 #: View/Events/export_alternate.ctp:17
 msgid "Download all signatures as CSV"
-msgstr ""
+msgstr "Scarica tutte le firme in formato CSV"
 
 #: View/Events/export_alternate.ctp:19
 msgid "Click this to download all attributes that are indicators and that you have access to <small>(except file attachments)</small> in CSV format."
@@ -4438,7 +4438,7 @@ msgstr ""
 
 #: View/Events/export_alternate.ctp:24
 msgid "Download all as CSV"
-msgstr ""
+msgstr "Scarica tutto in formato CSV"
 
 #: View/Events/export_alternate.ctp:26
 msgid "Click this to download all attributes that you have access to <small>(except file attachments)</small> in CSV format."
@@ -4744,7 +4744,7 @@ msgstr ""
 
 #: View/Events/report_validation_issues_events.ctp:3
 msgid "Events analysed: %s"
-msgstr ""
+msgstr "Eventi analizzati: %s"
 
 #: View/Events/report_validation_issues_events.ctp:7
 msgid "alidation errors for event: %s"
@@ -4764,7 +4764,7 @@ msgstr ""
 
 #: View/Events/resolved_attributes.ctp:26
 msgid "Proposals instead of attributes"
-msgstr ""
+msgstr "Proposte invece di attributi"
 
 #: View/Events/resolved_attributes.ctp:46
 msgid "Similar Attributes"
@@ -4781,11 +4781,11 @@ msgstr "Commento"
 
 #: View/Events/resolved_attributes.ctp:191
 msgid "Remove resolved attribute"
-msgstr ""
+msgstr "Rimuovi attributi orfani"
 
 #: View/Events/resolved_attributes.ctp:208
 msgid "Submit %s"
-msgstr ""
+msgstr "Inviare %s"
 
 #: View/Events/resolved_attributes.ctp:233
 msgid "Apply changes to all applicable resolved attributes"
@@ -4801,11 +4801,11 @@ msgstr "Aggiorna tutti i campi di commento"
 
 #: View/Events/show_i_o_c_results.ctp:2
 msgid ">Results of the import"
-msgstr ""
+msgstr ">Risultati importazione"
 
 #: View/Events/show_i_o_c_results.ctp:3
 msgid "%s attributes created successfully, %s  indicators could not be mapped and saved."
-msgstr ""
+msgstr "%s attributi creati correttamente, %s indicatori potrebbe non essere mappati e salvati."
 
 #: View/Events/show_i_o_c_results.ctp:7
 msgid "Successfully added attributes"
@@ -4821,11 +4821,11 @@ msgstr "Attributi aggiunti con successo"
 #: View/Pages/doc/using_the_system.ctp:204
 #: View/Servers/preview_event.ctp:17
 msgid "Uuid"
-msgstr ""
+msgstr "Uuid"
 
 #: View/Events/show_i_o_c_results.ctp:29
 msgid "Failed indicators"
-msgstr ""
+msgstr "Indicatori falliti"
 
 #: View/Events/show_i_o_c_results.ctp:33
 msgid "Search term"
@@ -4837,7 +4837,7 @@ msgstr "Contenuto"
 
 #: View/Events/show_i_o_c_results.ctp:45
 msgid "Visualisation"
-msgstr ""
+msgstr "Visualizzazione"
 
 #: View/Events/upload_stix.ctp:6
 msgid "Import %s file"
@@ -4845,7 +4845,7 @@ msgstr "Importa file %s"
 
 #: View/Events/upload_stix.ctp:9
 msgid "%s file"
-msgstr ""
+msgstr "%s file"
 
 #: View/Events/view.ctp:49
 msgid "Extended view"
@@ -4863,7 +4863,7 @@ msgstr "Organizzazione sorgente"
 
 #: View/Events/view.ctp:68
 msgid "Member Organisation"
-msgstr ""
+msgstr "Membro organizzazione"
 
 #: View/Events/view.ctp:83
 msgid "Owner org"
@@ -4997,7 +4997,7 @@ msgstr "Mostra altri %s"
 
 #: View/Events/view.ctp:335
 msgid "This event has "
-msgstr ""
+msgstr "Questo evento ha "
 
 #: View/Events/view.ctp:336
 msgid "correlations with data contained within the various feeds, however, due to the large number of attributes the actual feed correlations are not shown. Click (<a href=\"%s\\/overrideLimit:1\">here</a> to refresh the page with the feed data loaded."
@@ -5005,19 +5005,19 @@ msgstr ""
 
 #: View/Events/view.ctp:344
 msgid "Warning: Potential false positives"
-msgstr ""
+msgstr "Attenzione: Potenziali falsi positivi"
 
 #: View/Events/view.ctp:360
 msgid "Toggle pivot graph"
-msgstr ""
+msgstr "Attiva/disattiva il grafico pivot"
 
 #: View/Events/view.ctp:360
 msgid "Pivots"
-msgstr ""
+msgstr "Pivots"
 
 #: View/Events/view.ctp:363
 msgid "Toggle galaxies"
-msgstr ""
+msgstr "Attiva/disattiva galaxies"
 
 #: View/Events/view.ctp:363
 msgid "Galaxy"
@@ -5025,11 +5025,11 @@ msgstr "Galaxy"
 
 #: View/Events/view.ctp:366
 msgid "Toggle Event graph"
-msgstr ""
+msgstr "Attiva/disattiva il grafico dell'evento"
 
 #: View/Events/view.ctp:369
 msgid "Toggle Correlation graph"
-msgstr ""
+msgstr "Attiva/disattiva il grafica delle correlazioni"
 
 #: View/Events/view.ctp:369
 msgid "Correlation graph"
@@ -5037,7 +5037,7 @@ msgstr "Visualizza Grafico di Correlazione"
 
 #: View/Events/view.ctp:372
 msgid "Toggle ATT&CK matrix"
-msgstr ""
+msgstr "Attiva/disattiva la matrice ATT&CK"
 
 #: View/Events/view.ctp:372
 msgid "ATT&CK matrix"
@@ -5045,11 +5045,11 @@ msgstr "Matrice ATT&CK"
 
 #: View/Events/view.ctp:375
 msgid "Toggle attributes"
-msgstr ""
+msgstr "Attiva/disattiva attributi"
 
 #: View/Events/view.ctp:378
 msgid "Toggle discussions"
-msgstr ""
+msgstr "Attiva/disattiva discussioni"
 
 #: View/Events/view.ctp:378
 msgid "Discussion"
@@ -5058,7 +5058,7 @@ msgstr "Discussione"
 #: View/Events/view.ctp:387
 #: View/Galaxies/index.ctp:2
 msgid "Galaxies"
-msgstr ""
+msgstr "Galaxies"
 
 #: View/Events/view_graph.ctp:19
 msgid "Hover target"
@@ -5074,11 +5074,11 @@ msgstr "Espandere"
 
 #: View/Events/ajax/enrich_event.ctp:2
 msgid "Enrich Event"
-msgstr ""
+msgstr "Arricchisci evento"
 
 #: View/Events/ajax/enrich_event.ctp:4
 msgid "Select the enrichments you wish to run"
-msgstr ""
+msgstr "Seleziona l'arricchimento che vuoi lanciare"
 
 #: View/Events/ajax/enrichmentChoice.ctp:7
 msgid "Choose the enrichment module that you wish to use for the expansion"
@@ -5090,7 +5090,7 @@ msgstr "Delega Evento"
 
 #: View/Events/ajax/eventDeleteConfirmationForm.ctp:9
 msgid "Are you sure you want to delete "
-msgstr ""
+msgstr "Sicuro di voler cancellare "
 
 #: View/Events/ajax/eventDeleteConfirmationForm.ctp:13
 msgid " Event #"
@@ -5113,7 +5113,7 @@ msgstr "Pubblica"
 
 #: View/Events/ajax/exportChoice.ctp:2
 msgid "Choose the format that you wish to download the event in"
-msgstr ""
+msgstr "Scegli il formato con cui scaricare l'evento"
 
 #: View/Events/ajax/exportChoice.ctp:17;18;27;28
 msgid "Export as %s"
@@ -5121,7 +5121,7 @@ msgstr "Esporta come %s"
 
 #: View/Events/ajax/importChoice.ctp:2
 msgid "Choose the format that you would like to use for the import"
-msgstr ""
+msgstr "Scegli il formato che vorresti usare per l'importazione"
 
 #: View/Events/ajax/importChoice.ctp:7
 msgid "Import %s"
@@ -5129,7 +5129,7 @@ msgstr "Importa %s"
 
 #: View/Events/ajax/toggle_correlation.ctp:6
 msgid "Toggle Correlation %s"
-msgstr ""
+msgstr "Attiva/disattiva correlazione %s"
 
 #: View/Events/ajax/toggle_correlation.ctp:11
 msgid "Re-enable the correlation for this event. This will automatically re-correlate all contained attributes."
@@ -5137,24 +5137,24 @@ msgstr ""
 
 #: View/Events/ajax/toggle_correlation.ctp:13
 msgid "This will remove all correlations that already exist for the event and prevent any events to be related via correlations as long as this setting is disabled. Make sure you understand the downsides of disabling correlations."
-msgstr ""
+msgstr "Questa operazione cancella tutte le correlazioni esistenti per questo attributo e evita che altri attributi vengano ad esso collegati. Fai attenzione ad aver capito bene cosa significa disabilitare le correlazioni."
 
 #: View/Events/ajax/toggle_correlation.ctp:20
 msgid "Toggle correlation"
-msgstr ""
+msgstr "Attiva/disattiva correlazioni"
 
 #: View/Feeds/add.ctp:4
 msgid "Add MISP Feed"
-msgstr ""
+msgstr "Aggiungi MISP feed"
 
 #: View/Feeds/add.ctp:5
 msgid "Add a new MISP feed source."
-msgstr ""
+msgstr "Agiungi una nuova sorgente feed."
 
 #: View/Feeds/add.ctp:15
 #: View/Feeds/edit.ctp:15
 msgid "Feed name"
-msgstr ""
+msgstr "Nome feed"
 
 #: View/Feeds/add.ctp:20
 #: View/Feeds/edit.ctp:20
@@ -5163,7 +5163,7 @@ msgstr ""
 
 #: View/Feeds/add.ctp:24
 msgid "Input Source"
-msgstr ""
+msgstr "Sorgente di input"
 
 #: View/Feeds/add.ctp:34
 #: View/Feeds/edit.ctp:60
@@ -5173,12 +5173,12 @@ msgstr ""
 #: View/Feeds/add.ctp:42
 #: View/Feeds/edit.ctp:68
 msgid "URL of the feed"
-msgstr ""
+msgstr "URL del feed"
 
 #: View/Feeds/add.ctp:46
 #: View/Feeds/edit.ctp:72
 msgid "Source Format"
-msgstr ""
+msgstr "Formato sorgente"
 
 #: View/Feeds/add.ctp:55
 #: View/Feeds/edit.ctp:32
@@ -5198,7 +5198,7 @@ msgstr ""
 #: View/Feeds/add.ctp:67
 #: View/Feeds/edit.ctp:44
 msgid "Username"
-msgstr ""
+msgstr "Username"
 
 #: View/Feeds/add.ctp:71
 #: View/Feeds/edit.ctp:48
@@ -5207,7 +5207,7 @@ msgstr ""
 #: View/Users/admin_edit.ctp:40
 #: View/Users/change_pw.ctp:9
 msgid "Password"
-msgstr ""
+msgstr "Password"
 
 #: View/Feeds/add.ctp:75
 #: View/Feeds/edit.ctp:52
@@ -5247,7 +5247,7 @@ msgstr ""
 #: View/Feeds/add.ctp:113
 #: View/Feeds/edit.ctp:112
 msgid "Delimiter"
-msgstr ""
+msgstr "Separatore"
 
 #: View/Feeds/add.ctp:114
 #: View/Feeds/edit.ctp:113
@@ -5345,7 +5345,7 @@ msgstr ""
 
 #: View/Feeds/edit.ctp:4
 msgid "Edit MISP Feed"
-msgstr ""
+msgstr "Modifica feed del MISP"
 
 #: View/Feeds/edit.ctp:5
 msgid "Edit a new MISP feed source."
@@ -5424,7 +5424,7 @@ msgstr "Correlazioni"
 
 #: View/Feeds/import_feeds.ctp:4
 msgid "Paste feed data"
-msgstr ""
+msgstr "Incolla i dati del feed"
 
 #: View/Feeds/import_feeds.ctp:5
 msgid "Paste a MISP feed metadata JSON below to add feeds."
@@ -5456,7 +5456,7 @@ msgstr ""
 
 #: View/Feeds/index.ctp:8
 msgid "Fetch and store all feed data"
-msgstr ""
+msgstr "Recuperare e archiviare i dati di tutti i feed"
 
 #: View/Feeds/index.ctp:27
 msgid "Enable selected"
@@ -5480,11 +5480,11 @@ msgstr ""
 
 #: View/Feeds/index.ctp:29
 msgid "Enable Caching for Selected"
-msgstr ""
+msgstr "Attivare la cache per selezionato"
 
 #: View/Feeds/index.ctp:30
 msgid "Disable caching for selected"
-msgstr ""
+msgstr "Disattivare la cache per selezionato"
 
 #: View/Feeds/index.ctp:30
 msgid "Disable Caching for  Selected"
@@ -5496,35 +5496,35 @@ msgstr ""
 
 #: View/Feeds/index.ctp:30
 msgid "Default feeds"
-msgstr ""
+msgstr "Feeds predefiniti"
 
 #: View/Feeds/index.ctp:31
 msgid "Custom feeds filter"
-msgstr ""
+msgstr "Filtro feeds personalizzato"
 
 #: View/Feeds/index.ctp:31
 msgid "Custom feeds"
-msgstr ""
+msgstr "Feed personalizzati"
 
 #: View/Feeds/index.ctp:31
 msgid "Custom Feeds"
-msgstr ""
+msgstr "Feed personalizzati"
 
 #: View/Feeds/index.ctp:32
 msgid "All feeds"
-msgstr ""
+msgstr "Tutti i feeds"
 
 #: View/Feeds/index.ctp:32
 msgid "All Feeds"
-msgstr ""
+msgstr "Tutti i feeds"
 
 #: View/Feeds/index.ctp:33
 msgid "Enabled feeds"
-msgstr ""
+msgstr "Abilita feeds"
 
 #: View/Feeds/index.ctp:33
 msgid "Enabled Feeds"
-msgstr ""
+msgstr "Abilita feeds"
 
 #: View/Feeds/index.ctp:39
 msgid "Select all eventson current page"
@@ -5532,7 +5532,7 @@ msgstr ""
 
 #: View/Feeds/index.ctp:48
 msgid "Feed Format"
-msgstr ""
+msgstr "Formato feed"
 
 #: View/Feeds/index.ctp:50
 #: View/Jobs/index.ctp:76
@@ -5542,7 +5542,7 @@ msgstr "Input"
 
 #: View/Feeds/index.ctp:56
 msgid "Override IDS"
-msgstr ""
+msgstr "Sovrascrivere IDS"
 
 #: View/Feeds/index.ctp:60
 msgid "Caching"
@@ -5559,7 +5559,7 @@ msgstr "Errore: Evento non valido!"
 
 #: View/Feeds/index.ctp:140
 msgid "Fixed event %s"
-msgstr ""
+msgstr "Eventi corretti %s"
 
 #: View/Feeds/index.ctp:143
 msgid "New fixed event"
@@ -5575,15 +5575,15 @@ msgstr ""
 
 #: View/Feeds/index.ctp:208
 msgid "Explore the events remotely"
-msgstr ""
+msgstr "Esplorare gli eventi in modalità remota"
 
 #: View/Feeds/index.ctp:210
 msgid "Fetch all events"
-msgstr ""
+msgstr "Tutti gli eventi"
 
 #: View/Feeds/index.ctp:214
 msgid "Are you sure you want to permanently remove the feed (%s)?"
-msgstr ""
+msgstr "Sei sicuro di voler rimuovere in modo permanente questo feed (%s)?"
 
 #: View/Feeds/index.ctp:215
 msgid "Download feed metadata as JSON"
@@ -5604,7 +5604,7 @@ msgstr "Galaxy ID"
 #: View/Galaxies/view.ctp:16
 #: View/Taxonomies/view.ctp:9
 msgid "Namespace"
-msgstr ""
+msgstr "Namespace"
 
 #: View/Galaxies/view.ctp:22
 #: View/ObjectTemplates/view.ctp:17
@@ -5663,11 +5663,11 @@ msgstr "Completato."
 
 #: View/Jobs/index.ctp:63
 msgid "Show all queues"
-msgstr ""
+msgstr "Visualizza tutte le code"
 
 #: View/Jobs/index.ctp:64
 msgid "Show default queue"
-msgstr ""
+msgstr "Visualizza la coda predefinita"
 
 #: View/Jobs/index.ctp:64
 #: View/Roles/admin_index.ctp:22
@@ -5746,7 +5746,7 @@ msgstr ""
 
 #: View/Logs/admin_index.ctp:13
 msgid "with the title"
-msgstr ""
+msgstr "con il titolo"
 
 #: View/Logs/admin_index.ctp:14
 msgid "including the change"
@@ -5754,11 +5754,11 @@ msgstr ""
 
 #: View/Logs/admin_index.ctp:15
 msgid "from IP"
-msgstr ""
+msgstr "dall'IP"
 
 #: View/Logs/admin_index.ctp:20;21
 msgid "Search"
-msgstr ""
+msgstr "Cerca"
 
 #: View/Logs/admin_index.ctp:59
 #: View/Logs/admin_search.ctp:14
@@ -5773,19 +5773,19 @@ msgstr ""
 #: View/Users/admin_add.ctp:51
 #: View/Users/admin_edit.ctp:51
 msgid "Organisation"
-msgstr ""
+msgstr "Organizzazione"
 
 #: View/Logs/admin_search.ctp:19
 #: View/Pages/doc/administration.ctp:185;198
 #: View/Pages/doc/using_the_system.ctp:271
 #: View/Threads/index.ctp:22
 msgid "Title"
-msgstr ""
+msgstr "Titolo"
 
 #: View/Logs/admin_search.ctp:21
 #: View/Pages/doc/administration.ctp:186;199
 msgid "Change"
-msgstr ""
+msgstr "Cambia"
 
 #: View/Logs/event_index.ctp:44
 msgid "Proposal"
@@ -5797,38 +5797,38 @@ msgstr ""
 
 #: View/Logs/test_for_stolen_attributes.ctp:6
 msgid "Nothing to see here, move along."
-msgstr ""
+msgstr "Ancora nulla da mostrare qui, passa oltre."
 
 #: View/Logs/test_for_stolen_attributes.ctp:9
 msgid "Attribute (%s) associated to events: %s"
-msgstr ""
+msgstr "%s attributi associati agli eventi: %s"
 
 #: View/News/add.ctp:28
 #: View/News/edit.ctp:29
 msgid "Create anonymously"
-msgstr ""
+msgstr "Invia come anonimo"
 
 #: View/News/index.ctp:2
 #: View/Pages/doc/general.ctp:56
 #: View/Pages/doc/user_management.ctp:51
 msgid "News"
-msgstr ""
+msgstr "Notizie"
 
 #: View/News/index.ctp:22
 msgid "Edit news message"
-msgstr ""
+msgstr "Modifica news"
 
 #: View/News/index.ctp:24
 msgid "Are you sure you want to delete news item # %s?"
-msgstr ""
+msgstr "Sei sicuro di voler eliminare questo elemento dalla notizia # %s?"
 
 #: View/News/index.ctp:47
 msgid "There are currently no news messages."
-msgstr ""
+msgstr "Non ci sono nuove notizie."
 
 #: View/Noticelists/index.ctp:2
 msgid "Noticelists"
-msgstr ""
+msgstr "Noticelists"
 
 #: View/Noticelists/index.ctp:33
 msgid "ref"
@@ -5836,7 +5836,7 @@ msgstr "ref"
 
 #: View/Noticelists/index.ctp:34
 msgid "geographical_area"
-msgstr ""
+msgstr "area geografica"
 
 #: View/Noticelists/index.ctp:35
 msgid "version"
@@ -5849,7 +5849,7 @@ msgstr "abilitato"
 
 #: View/Noticelists/ajax/delete_confirmation.ctp:9
 msgid "Noticelist Deletion"
-msgstr ""
+msgstr "Eliminazione Noticelists"
 
 #: View/Noticelists/ajax/delete_confirmation.ctp:11
 msgid "Are you sure you want to delete Noticelist #%s?"
@@ -5861,11 +5861,11 @@ msgstr ""
 
 #: View/ObjectReferences/ajax/add.ctp:10;17
 msgid "Relationship type"
-msgstr ""
+msgstr "Tipo di relazione"
 
 #: View/ObjectReferences/ajax/add.ctp:42
 msgid "Target UUID"
-msgstr ""
+msgstr "UUID Destinazione"
 
 #: View/ObjectReferences/ajax/add.ctp:53
 #: View/Objects/orphaned_object_diagnostics.ctp:38
@@ -5874,7 +5874,7 @@ msgstr "Oggetto"
 
 #: View/ObjectReferences/ajax/add.ctp:68
 msgid "Target Details"
-msgstr ""
+msgstr "Dettaglli Destinazione"
 
 #: View/ObjectReferences/ajax/delete.ctp:10
 msgid "Object reference Deletion"
@@ -5908,7 +5908,7 @@ msgstr "Lista di valori corretti"
 
 #: View/ObjectTemplateElements/ajax/view_elements.ctp:27
 msgid "Disable correlation"
-msgstr ""
+msgstr "Disattiva correlazioni"
 
 #: View/ObjectTemplates/index.ctp:2
 msgid "Object Template index"
@@ -5945,19 +5945,19 @@ msgstr ""
 
 #: View/ObjectTemplates/ajax/object_choice.ctp:6
 msgid "All Objects"
-msgstr ""
+msgstr "Tutti gli oggetti"
 
 #: View/ObjectTemplates/ajax/object_choice.ctp:50
 msgid "Back to categories"
-msgstr ""
+msgstr "Torna alle categorie"
 
 #: View/Objects/add.ctp:6
 msgid " Object"
-msgstr ""
+msgstr " Oggetto"
 
 #: View/Objects/add.ctp:9
 msgid "Object Template"
-msgstr ""
+msgstr "Modello Oggetto"
 
 #: View/Objects/add.ctp:37
 msgid "Meta category"
@@ -5969,7 +5969,7 @@ msgstr ""
 
 #: View/Objects/add.ctp:92
 msgid "Save"
-msgstr ""
+msgstr "Salva"
 
 #: View/Objects/add.ctp:93
 msgid "Name :: type"
@@ -5977,7 +5977,7 @@ msgstr ""
 
 #: View/Objects/add.ctp:98
 msgid "Disable Correlation"
-msgstr ""
+msgstr "Disattiva correlazione"
 
 #: View/Objects/add.ctp:150;161
 msgid "Warning: You are about to share data that is of a classified nature. Make sure that you are authorised to share this."
@@ -5985,7 +5985,7 @@ msgstr "Attenzione: stai per condividere dati di natura classificata. Assicurati
 
 #: View/Objects/add.ctp:178;188
 msgid "Enter value manually"
-msgstr ""
+msgstr "Inserisci manualmente il valore"
 
 #: View/Objects/orphaned_object_diagnostics.ctp:3
 msgid "Object reconstruction"
@@ -6025,7 +6025,7 @@ msgstr ""
 
 #: View/Objects/revise_object.ctp:47
 msgid "To IDS"
-msgstr ""
+msgstr "Imposta IDS"
 
 #: View/Objects/revise_object.ctp:49
 #: View/Organisations/admin_add.ctp:22
@@ -6034,7 +6034,7 @@ msgstr ""
 #: View/SharingGroups/add.ctp:32
 #: View/SharingGroups/edit.ctp:32
 msgid "UUID"
-msgstr ""
+msgstr "UUID"
 
 #: View/Objects/ajax/delete.ctp:6
 msgid "Object Deletion"
@@ -6107,22 +6107,22 @@ msgstr ""
 #: View/Organisations/admin_add.ctp:22
 #: View/Organisations/admin_edit.ctp:21
 msgid "Paste UUID or click generate"
-msgstr ""
+msgstr "Incolla l'UUID o clicca \"genera\""
 
 #: View/Organisations/admin_add.ctp:25
 #: View/Organisations/admin_edit.ctp:24
 msgid "Generate UUID"
-msgstr ""
+msgstr "Genera l'UUID"
 
 #: View/Organisations/admin_add.ctp:25
 #: View/Organisations/admin_edit.ctp:24
 msgid "Generate a new UUID for the organisation"
-msgstr ""
+msgstr "Genera un nuovo UUID per l'organizzazione"
 
 #: View/Organisations/admin_add.ctp:27
 #: View/Organisations/admin_edit.ctp:38
 msgid "A brief description of the organisation"
-msgstr ""
+msgstr "Una breve descrizione dell'organizzazione"
 
 #: View/Organisations/admin_add.ctp:27
 #: View/Organisations/admin_edit.ctp:38
@@ -6147,22 +6147,22 @@ msgstr ""
 #: View/Organisations/admin_add.ctp:38
 #: View/Organisations/admin_edit.ctp:49
 msgid "Logo (48x48 png)"
-msgstr ""
+msgstr "Logo (48x48 png)"
 
 #: View/Organisations/admin_add.ctp:44
 #: View/Organisations/admin_edit.ctp:55
 msgid "For example \"financial\"."
-msgstr ""
+msgstr "Per esempio: \"finanziario\"."
 
 #: View/Organisations/admin_add.ctp:45
 #: View/Organisations/admin_edit.ctp:56
 msgid "Type of organisation"
-msgstr ""
+msgstr "Tipologia di organizzazione"
 
 #: View/Organisations/admin_add.ctp:45
 #: View/Organisations/admin_edit.ctp:56
 msgid "Freetext description of the org."
-msgstr ""
+msgstr "Descrizione testo libero dell'organizzazione"
 
 #: View/Organisations/admin_add.ctp:46
 #: View/Organisations/admin_edit.ctp:57
@@ -6179,13 +6179,13 @@ msgstr ""
 
 #: View/Organisations/admin_edit.ctp:32
 msgid "Click here"
-msgstr ""
+msgstr "Clicca qui"
 
 #: View/Organisations/index.ctp:5
 #: View/Users/statistics.ctp:46
 #: View/Users/statistics_data.ctp:51
 msgid "All organisations"
-msgstr ""
+msgstr "Tutte le organizzazioni"
 
 #: View/Organisations/index.ctp:6
 msgid ", both local and remote"
@@ -6197,7 +6197,7 @@ msgstr ""
 
 #: View/Organisations/index.ctp:13
 msgid "Local organisations"
-msgstr ""
+msgstr "Organizzazioni locali"
 
 #: View/Organisations/index.ctp:14
 msgid " having a presence on this instance"
@@ -6209,17 +6209,17 @@ msgstr ""
 
 #: View/Organisations/index.ctp:27
 msgid "View all"
-msgstr ""
+msgstr "Mostra tutto"
 
 #: View/Organisations/index.ctp:65
 #: View/Users/login.ctp:8
 #: View/Users/statistics_orgs.ctp:29
 msgid "Logo"
-msgstr ""
+msgstr "Logo"
 
 #: View/Organisations/index.ctp:76
 msgid "Added by"
-msgstr ""
+msgstr "Aggiunto da"
 
 #: View/Organisations/index.ctp:117
 #: View/Posts/add.ctp:33
@@ -6229,7 +6229,7 @@ msgstr ""
 
 #: View/Organisations/view.ctp:3
 msgid "Organisation "
-msgstr ""
+msgstr "Organizzazione "
 
 #: View/Organisations/view.ctp:7
 #: View/Pages/doc/administration.ctp:180;221;236
@@ -6240,45 +6240,45 @@ msgstr ""
 #: View/Users/view.ctp:4
 #: View/Warninglists/view.ctp:4
 msgid "Id"
-msgstr ""
+msgstr "Id"
 
 #: View/Organisations/view.ctp:17
 msgid "Local or remote"
-msgstr ""
+msgstr "Locale o remoto"
 
 #: View/Organisations/view.ctp:22
 #: View/SharingGroups/view.ctp:43
 msgid "Local"
-msgstr ""
+msgstr "Locale"
 
 #: View/Organisations/view.ctp:26
 msgid "Remote"
-msgstr ""
+msgstr "Remoto"
 
 #: View/Organisations/view.ctp:40
 msgid "E-mail domain restrictions"
-msgstr ""
+msgstr "Restrizioni su dominio email"
 
 #: View/Organisations/view.ctp:93;94
 msgid "Members"
-msgstr ""
+msgstr "Membri"
 
 #: View/Organisations/ajax/fetch_orgs_for_sg.ctp:2
 msgid "Select organisations to add"
-msgstr ""
+msgstr "Seleziona organizzazione da aggiungere"
 
 #: View/Organisations/ajax/fetch_orgs_for_sg.ctp:7
 msgid "Available Organisations"
-msgstr ""
+msgstr "Organizzazioni disponibili"
 
 #: View/Organisations/ajax/fetch_orgs_for_sg.ctp:21
 #: View/Servers/ajax/fetch_servers_for_sg.ctp:21
 msgid "Added Organisations"
-msgstr ""
+msgstr "Organizzazioni inserite"
 
 #: View/Organisations/ajax/fetch_orgs_for_sg.ctp:26
 msgid "Submit organisations"
-msgstr ""
+msgstr "Inserisci organizzazioni"
 
 #: View/Organisations/ajax/landingpage.ctp:2
 msgid "Landing page for %s"
@@ -6294,32 +6294,32 @@ msgstr ""
 
 #: View/Organisations/ajax/merge.ctp:19
 msgid "Organisation type"
-msgstr ""
+msgstr "Tipologia organizzazione"
 
 #: View/Organisations/ajax/merge.ctp:33
 msgid "Target Local Organisation"
-msgstr ""
+msgstr "Destinazione organizzazione locale"
 
 #: View/Organisations/ajax/merge.ctp:45
 msgid "Target External Organisation"
-msgstr ""
+msgstr "Destinazione organizzazione esterna"
 
 #: View/Organisations/ajax/merge.ctp:55
 msgid "Organisation to be merged"
-msgstr ""
+msgstr "Organizzazione da unire"
 
 #: View/Organisations/ajax/merge.ctp:56;63
 #: View/Pages/doc/using_the_system.ctp:163;203
 msgid "ID"
-msgstr ""
+msgstr "ID"
 
 #: View/Organisations/ajax/merge.ctp:62
 msgid "Organisation to be merged into"
-msgstr ""
+msgstr "Organizzazione da unitre all'interno"
 
 #: View/Organisations/ajax/merge.ctp:70
 msgid "Merge"
-msgstr ""
+msgstr "Unisci"
 
 #: View/Organisations/ajax/sg_org_row_empty.ctp:10
 msgid "Mark organisation as sharing group extender"
@@ -6327,11 +6327,11 @@ msgstr ""
 
 #: View/Pages/administration.ctp:10
 msgid "Administrative actions"
-msgstr ""
+msgstr "Opzioni amministratore"
 
 #: View/Pages/administration.ctp:14
 msgid "Reset the attribute counts"
-msgstr ""
+msgstr "Azzera il contatore attributi"
 
 #: View/Pages/administration.ctp:14
 msgid "Events need to have no validation issues"
@@ -6339,7 +6339,7 @@ msgstr ""
 
 #: View/Pages/administration.ctp:18
 msgid "Verify Certificates"
-msgstr ""
+msgstr "Verifica certificati"
 
 #: View/Pages/administration.ctp:18
 msgid "Check whether every user's certificate is usable"
@@ -6415,7 +6415,7 @@ msgstr ""
 
 #: View/Pages/administration.ctp:33
 msgid "Upgrade to 2.4"
-msgstr ""
+msgstr "Aggiorna alla versione 2.4"
 
 #: View/Pages/administration.ctp:34
 msgid "If it completes successful, run the %s to remove the fields that are specific to 2.3. Make sure that the migration of the data to the 2.4 format was successful (you can check the result in the audit logs). If you have run the 2.4 upgrade script previously but are running into SQL errors on the column 'org', run this script."
@@ -6487,7 +6487,7 @@ msgstr ""
 #: View/Pages/doc/user_management.ctp:14
 #: View/Pages/doc/using_the_system.ctp:21
 msgid "Administration"
-msgstr ""
+msgstr "Amministrazione"
 
 #: View/Pages/doc/administration.ctp:10
 msgid "Settings and Diagnostics"
@@ -6515,11 +6515,11 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:14
 msgid "User Management"
-msgstr ""
+msgstr "Gestione utenti"
 
 #: View/Pages/doc/administration.ctp:15
 msgid "Role Management"
-msgstr ""
+msgstr "Gestione ruoli"
 
 #: View/Pages/doc/administration.ctp:16
 msgid "Logging"
@@ -6528,7 +6528,7 @@ msgstr ""
 #: View/Pages/doc/administration.ctp:17;202
 #: View/Pages/doc/general.ctp:78
 msgid "Administrative Tools"
-msgstr ""
+msgstr "Strumenti amministrativi"
 
 #: View/Pages/doc/administration.ctp:18;205
 msgid "Background Processing"
@@ -6536,7 +6536,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:19
 msgid "FAQ"
-msgstr ""
+msgstr "Domande frequenti"
 
 #: View/Pages/doc/administration.ctp:22
 #: View/Pages/doc/categories_and_types.ctp:9
@@ -6546,7 +6546,7 @@ msgstr ""
 #: View/Pages/doc/user_management.ctp:15
 #: View/Pages/doc/using_the_system.ctp:22
 msgid "Categories and Types"
-msgstr ""
+msgstr "Categorie e tipi"
 
 #: View/Pages/doc/administration.ctp:27
 msgid "Server settings and diagnostics"
@@ -6594,7 +6594,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:36
 msgid "Security settings"
-msgstr ""
+msgstr "Impostazioni di sicurezza"
 
 #: View/Pages/doc/administration.ctp:36
 msgid "Settings controlling the brute-force protection and the application's salt key."
@@ -6602,7 +6602,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:37
 msgid "Misc settings"
-msgstr ""
+msgstr "Impostazioni varie"
 
 #: View/Pages/doc/administration.ctp:37
 msgid "You change the debug options here, but make sure that debug is always disabled on a production system."
@@ -6610,7 +6610,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:38
 msgid "Diagnostics"
-msgstr ""
+msgstr "Diagnostica"
 
 #: View/Pages/doc/administration.ctp:38
 msgid "The diagnostics tool checks if all directories that MISP uses to store data are writeable by the apache user. Also, the tool checks whether the STIX libraries and GnuPG are working as intended."
@@ -6626,7 +6626,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:40
 msgid "Download report"
-msgstr ""
+msgstr "Scarica il rapporto"
 
 #: View/Pages/doc/administration.ctp:40
 msgid "Download a report in JSON format, compiled of all of the settings visible in the tool."
@@ -6767,7 +6767,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:81
 msgid "Managing the users"
-msgstr ""
+msgstr "Gestisci gli utenti"
 
 #: View/Pages/doc/administration.ctp:82
 msgid "As an admin, you can set up new accounts for users, edit the profiles of users, delete them, or just have a look at all the viewers' profiles. Organisation admins are restricted to executing the same actions on their organisation's users only."
@@ -6775,7 +6775,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:83
 msgid "Adding a new user"
-msgstr ""
+msgstr "Aggiungi un nuovo utente"
 
 #: View/Pages/doc/administration.ctp:84;114
 msgid "To add a new user, click on the New User button in the administration menu to the left and fill out the following fields in the view that is loaded"
@@ -6783,7 +6783,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:85
 msgid "Add user"
-msgstr ""
+msgstr "Aggiungi utente"
 
 #: View/Pages/doc/administration.ctp:85
 msgid "Fill this form out to add a new user. Keep in mind that the drop-down menu titled Role controls the privileges the user will have."
@@ -6862,7 +6862,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:96;127
 msgid "GnuPGkey"
-msgstr ""
+msgstr "Chiave GnuPG"
 
 #: View/Pages/doc/administration.ctp:96;127
 msgid "The key used for encrypting e-mails sent through the system."
@@ -6870,7 +6870,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:98
 msgid "Listing all users"
-msgstr ""
+msgstr "Elenca tutti gli utenti"
 
 #: View/Pages/doc/administration.ctp:99
 msgid "To list all current users of the system, just click on List Users under the administration menu to the left. A view will be loaded with a list of all users and the following columns of information"
@@ -6878,7 +6878,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:100
 msgid "List users"
-msgstr ""
+msgstr "Elenco utenti"
 
 #: View/Pages/doc/administration.ctp:100
 msgid "View, Edit or Delete a user using the action buttons to the right."
@@ -7183,11 +7183,11 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:172
 msgid "Whitelist"
-msgstr ""
+msgstr "Whitelist"
 
 #: View/Pages/doc/administration.ctp:173
 msgid "Regexp"
-msgstr ""
+msgstr "Regexp (espressioni regolari)"
 
 #: View/Pages/doc/administration.ctp:176
 msgid "Browsing the logs"
@@ -7317,7 +7317,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:215
 msgid "stats"
-msgstr ""
+msgstr "statistiche"
 
 #: View/Pages/doc/administration.ctp:215
 msgid "shows some statistics about your workers including the count of successful and failed jobs."
@@ -10721,7 +10721,7 @@ msgstr ""
 
 #: View/Users/admin_edit.ctp:74
 msgid "Reset Auth Key"
-msgstr ""
+msgstr "Reimposta la chiave di autorizzazione AuthKey"
 
 #: View/Users/admin_edit.ctp:86
 #: View/Users/change_pw.ctp:18
@@ -10731,7 +10731,7 @@ msgstr ""
 
 #: View/Users/admin_email.ctp:2
 msgid "Contact User(s)"
-msgstr ""
+msgstr "Contatta utente/i"
 
 #: View/Users/admin_email.ctp:6
 msgid "Messaging - here's a quick guide on how this feature works"
@@ -10792,7 +10792,7 @@ msgstr ""
 
 #: View/Users/admin_email.ctp:69
 msgid "Password reset"
-msgstr ""
+msgstr "Reimposta la password"
 
 #: View/Users/admin_filter_user_index.ctp:4
 msgid "Filter User Index"
@@ -10800,11 +10800,11 @@ msgstr ""
 
 #: View/Users/admin_filter_user_index.ctp:81
 msgid "Remove filter"
-msgstr ""
+msgstr "Rimuovi filtri"
 
 #: View/Users/admin_filter_user_index.ctp:106
 msgid "Apply filters"
-msgstr ""
+msgstr "Applica filtri"
 
 #: View/Users/admin_index.ctp:2
 #: View/Users/statistics.ctp:25
@@ -10812,11 +10812,11 @@ msgstr ""
 #: View/Users/statistics_orgs.ctp:31
 #: View/Users/ajax/admin_index.ctp:3
 msgid "Users"
-msgstr ""
+msgstr "Utenti"
 
 #: View/Users/admin_index.ctp:40
 msgid "Filter user index"
-msgstr ""
+msgstr "Filtra indice utente"
 
 #: View/Users/admin_quick_email.ctp:2
 msgid "Contact %s"
@@ -10942,7 +10942,7 @@ msgstr ""
 
 #: View/Users/statistics_orgs.ctp:33
 msgid "Nationality"
-msgstr ""
+msgstr "Nazionalità"
 
 #: View/Users/statistics_orgs.ctp:35
 msgid "Sector"
@@ -11197,7 +11197,7 @@ msgstr ""
 
 #: Model/EventBlacklist.php:validation for field event_uuid
 msgid "Event already blacklisted."
-msgstr ""
+msgstr "Evento già presente nella blacklist."
 
 #: Model/Feed.php:validation for field url
 #: Model/Noticelist.php:validation for field name;validation for field version
@@ -11211,7 +11211,7 @@ msgstr ""
 #: Model/WarninglistEntry.php:validation for field value
 #: Model/WarninglistType.php:validation for field type
 msgid "rule"
-msgstr ""
+msgstr "regola"
 
 #: Model/Feed.php:validation for field event_id
 msgid "Please enter a numeric event ID or leave this field blank."
@@ -11219,7 +11219,7 @@ msgstr ""
 
 #: Model/Log.php:validation for field action
 msgid "Options : ..."
-msgstr ""
+msgstr "Opzioni : ..."
 
 #: Model/ObjectRelationship.php:validation for field name
 msgid "A relationship with this name already exists."
@@ -11227,7 +11227,7 @@ msgstr ""
 
 #: Model/OrgBlacklist.php:validation for field org_uuid
 msgid "Organisation already blacklisted."
-msgstr ""
+msgstr "Organizzazione già presente nella blacklist."
 
 #: Model/Organisation.php:validation for field name
 msgid "An organisation with this name already exists."
@@ -11235,7 +11235,7 @@ msgstr ""
 
 #: Model/Organisation.php:validation for field uuid
 msgid "An organisation with this UUID already exists."
-msgstr ""
+msgstr "Organizzazione con questo UUID già esistente."
 
 #: Model/Regexp.php:validation for field regexp
 msgid "This is not a valid regular expression. Don't forget the delimiters!"
@@ -11264,7 +11264,7 @@ msgstr ""
 
 #: Model/Tag.php:validation for field name
 msgid "This field is required."
-msgstr ""
+msgstr "Questo campo è obbligatorio."
 
 #: Model/Tag.php:validation for field name
 #: Model/Whitelist.php:validation for field name
@@ -11278,7 +11278,7 @@ msgstr ""
 #: Model/TemplateElementAttribute.php:validation for field category
 #: Model/TemplateElementFile.php:validation for field category
 msgid "Please choose a category."
-msgstr ""
+msgstr "Seleziona una categoria."
 
 #: Model/TemplateElementAttribute.php:validation for field type
 msgid "Please choose a type."
@@ -11287,7 +11287,7 @@ msgstr ""
 #: Model/TemplateElementFile.php:validation for field name
 #: Model/TemplateElementText.php:validation for field name
 msgid "Please enter a Name"
-msgstr ""
+msgstr "Inserisci un Nome"
 
 #: Model/TemplateElementFile.php:validation for field description
 msgid "Please enter a Description"
@@ -11331,7 +11331,7 @@ msgstr ""
 
 #: Model/User.php:validation for field nids_sid
 msgid "A SID should be an integer."
-msgstr ""
+msgstr "Il codice SID dovrebbe essere un numero intero."
 
 #: Model/Whitelist.php:validation for field name
 msgid "Name not in the right format. Whitelist entries have to be enclosed by a valid php delimiter (which can be most non-alphanumeric / non-whitespace character). Format: \"/8.8.8.8/\" Please double check the name."
@@ -11363,7 +11363,7 @@ msgstr ""
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:110;143
 msgid "Log path"
-msgstr ""
+msgstr "Percorso dei log"
 
 #: Plugin/CakeResque/Console/Command/CakeResqueShell.php:113;146
 msgid "Log Handler to use for logging."

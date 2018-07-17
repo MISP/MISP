@@ -27,9 +27,11 @@ from copy import deepcopy
 non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', 'target-email',
                             'target-machine', 'target-org', 'target-location', 'target-external',
                             'vulnerability']
-
 misp_hash_types = ["authentihash", "ssdeep", "imphash", "md5", "sha1", "sha224",
                    "sha256", "sha384", "sha512", "sha512/224","sha512/256","tlsh"]
+malware_galaxies_list = ['android', 'banker', 'stealer', 'backdoor']
+threat_actor_galaxies_list = ['threat-actor', 'microsoft-activity-group']
+tool_galaxies_list = ['botnet', 'rat', 'exploit-kit', 'tds']
 
 class StixBuilder():
     def __init__(self):
@@ -37,6 +39,7 @@ class StixBuilder():
         self.SDOs = []
         self.object_refs = []
         self.external_refs = []
+        self.galaxies = []
 
     def loadEvent(self, args):
         pathname = os.path.dirname(args[0])
@@ -137,19 +140,7 @@ class StixBuilder():
             if objects_to_parse: self.resolve_objects2parse(objects_to_parse)
         if hasattr(self.misp_event, 'Galaxy') and self.misp_event.Galaxy:
             for galaxy in self.misp_event.Galaxy:
-                galaxy_type = galaxy.get('type')
-                if 'attack-pattern' in galaxy_type:
-                    self.add_attack_pattern(galaxy)
-                elif 'course-of-action' in galaxy_type:
-                    self.add_course_of_action(galaxy)
-                elif 'intrusion-set' in galaxy_type:
-                    self.add_intrusion_set(galaxy)
-                elif 'ware' in galaxy_type:
-                    self.add_malware(galaxy)
-                elif galaxy_type in ['threat-actor', 'microsoft-activity-group']:
-                    self.add_threat_actor(galaxy)
-                elif galaxy_type in ['rat', 'exploit-kit'] or 'tool' in galaxy_type:
-                    self.add_tool(galaxy)
+                self.parse_galaxy(galaxy)
 
     def load_objects_mapping(self):
         self.objects_mapping = {
@@ -325,6 +316,30 @@ class StixBuilder():
             n_section += 1
         return pattern[:-5]
 
+    def parse_galaxies(self, galaxies):
+        for galaxy in galaxies:
+            self.parse_galaxy(galaxy)
+
+    def parse_galaxy(self, galaxy):
+        galaxy_type = galaxy.get('type')
+        galaxy_uuid = galaxy['uuid']
+        if galaxy_uuid not in self.galaxies:
+            if 'attack-pattern' in galaxy_type:
+                self.add_attack_pattern(galaxy)
+            elif 'course-of-action' in galaxy_type:
+                self.add_course_of_action(galaxy)
+            elif 'intrusion-set' in galaxy_type:
+                self.add_intrusion_set(galaxy)
+            elif galaxy_type in malware_galaxies_list or 'ware' in galaxy_type:
+                self.add_malware(galaxy)
+            elif galaxy_type in threat_actor_galaxies_list:
+                self.add_threat_actor(galaxy)
+            elif galaxy_type in tool_galaxies_list or 'tool' in galaxy_type:
+                self.add_tool(galaxy)
+            else:
+                return
+            self.galaxies.append(galaxy_uuid)
+
     @staticmethod
     def generate_galaxy_args(galaxy, b_killchain, b_alias, sdo_type):
         galaxy_type = galaxy.get('type')
@@ -360,6 +375,7 @@ class StixBuilder():
             coa_id = 'course-of-action--{}'.format(misp_object.uuid)
             coa_args = {'id': coa_id, 'type': 'course-of-action'}
             for attribute in misp_object.attributes:
+                self.parse_galaxies(attribute.Galaxy)
                 relation = attribute.object_relation
                 if relation == 'name':
                     coa_args['name'] = attribute.value
@@ -408,6 +424,7 @@ class StixBuilder():
         self.append_object(identity, identity_id)
 
     def add_indicator(self, attribute):
+        self.parse_galaxies(attribute.Galaxy)
         attribute_type = attribute.type
         indicator_id = "indicator--{}".format(attribute.uuid)
         category = attribute.category
@@ -435,6 +452,7 @@ class StixBuilder():
         self.append_object(malware, malware_id)
 
     def add_observed_data(self, attribute):
+        self.parse_galaxies(attribute.Galaxy)
         attribute_type = attribute.type
         observed_data_id = "observed-data--{}".format(attribute.uuid)
         timestamp = attribute.timestamp
@@ -606,10 +624,10 @@ class StixBuilder():
             return mispTypesMapping[attribute_type]['pattern']('filename|md5', attribute_value)
         return mispTypesMapping[attribute_type]['pattern'](attribute_type, attribute_value)
 
-    @staticmethod
-    def fetch_custom_values(attributes):
+    def fetch_custom_values(self, attributes):
         values = {}
         for attribute in attributes:
+            self.parse_galaxies(attribute.Galaxy)
             attribute_type = '{}_{}'.format(attribute.type, attribute.object_relation)
             values[attribute_type] = attribute.value
         return values
@@ -632,12 +650,12 @@ class StixBuilder():
     def get_date_from_timestamp(timestamp):
         return datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=timestamp)
 
-    @staticmethod
-    def resolve_asn_observable(attributes):
+    def resolve_asn_observable(self, attributes):
         asn = objectsMapping['asn']['observable']
         observable = {}
         object_num = 0
         for attribute in attributes:
+            self.parse_galaxies(attribute.Galaxy)
             relation = attribute.object_relation
             try:
                 stix_type = asnObjectMapping[relation]
@@ -654,11 +672,11 @@ class StixBuilder():
             observable[str(n)]['belongs_to_refs'] = [str(object_num)]
         return observable
 
-    @staticmethod
-    def resolve_asn_pattern(attributes):
+    def resolve_asn_pattern(self, attributes):
         mapping = objectsMapping['asn']['pattern']
         pattern = ""
         for attribute in attributes:
+            self.parse_galaxies(attribute.Galaxy)
             relation = attribute.object_relation
             try:
                 stix_type = asnObjectMapping[relation]
@@ -671,9 +689,9 @@ class StixBuilder():
                 pattern += mapping.format(stix_type, attribute_value)
         return "[{}]".format(pattern[:-5])
 
-    @staticmethod
-    def resolve_domain_ip_observable(attributes):
+    def resolve_domain_ip_observable(self, attributes):
         for attribute in attributes:
+            self.parse_galaxies(attribute.Galaxy)
             if attribute.type == 'ip-dst':
                 ip_value = attribute.value
             elif attribute.type == 'domain':
@@ -681,11 +699,11 @@ class StixBuilder():
         domain_ip_value = "{}|{}".format(domain_value, ip_value)
         return mispTypesMapping['domain|ip']['observable']('', domain_ip_value)
 
-    @staticmethod
-    def resolve_domain_ip_pattern(attributes):
+    def resolve_domain_ip_pattern(self, attributes):
         mapping = objectsMapping['domain-ip']['pattern']
         pattern = ""
         for attribute in attributes:
+            self.parse_galaxies(attribute.Galaxy)
             try:
                 stix_type = domainIpObjectMapping[attribute.type]
             except:
@@ -693,13 +711,13 @@ class StixBuilder():
             pattern += mapping.format(stix_type, attribute.value)
         return "[{}]".format(pattern[:-5])
 
-    @staticmethod
-    def resolve_email_object_observable(attributes):
+    def resolve_email_object_observable(self, attributes):
         observable = {}
         message = defaultdict(list)
         reply_to = []
         object_num = 0
         for attribute in attributes:
+            self.parse_galaxies(attribute.Galaxy)
             relation = attribute.object_relation
             attribute_value = attribute.value
             try:
@@ -744,11 +762,11 @@ class StixBuilder():
         observable[str(object_num)] = dict(message)
         return observable
 
-    @staticmethod
-    def resolve_email_object_pattern(attributes):
+    def resolve_email_object_pattern(self, attributes):
         pattern_mapping = objectsMapping['email']['pattern']
         pattern = ""
         for attribute in attributes:
+            self.parse_galaxies(attribute.Galaxy)
             relation = attribute.object_relation
             try:
                 mapping = emailObjectMapping[relation]
@@ -764,8 +782,7 @@ class StixBuilder():
             pattern += pattern_mapping.format(email_type, stix_type, attribute.value)
         return "[{}]".format(pattern[:-5])
 
-    @staticmethod
-    def resolve_file_observable(attributes):
+    def resolve_file_observable(self, attributes):
         observable = {}
         observable_file = defaultdict(dict)
         observable_file['type'] = 'file'
@@ -773,6 +790,7 @@ class StixBuilder():
         d_observable = {}
         n_object = 0
         for attribute in attributes:
+            self.parse_galaxies(attribute.Galaxy)
             attribute_type = attribute.type
             if attribute_type == 'malware-sample':
                 filename, md5 = attribute.value.split('|')
@@ -799,13 +817,13 @@ class StixBuilder():
         observable[str(n_object)] = observable_file
         return observable
 
-    @staticmethod
-    def resolve_file_pattern(attributes):
+    def resolve_file_pattern(self, attributes):
         pattern = ""
         d_pattern = {}
         s_pattern = objectsMapping['file']['pattern']
         malware_sample = {}
         for attribute in attributes:
+            self.parse_galaxies(attribute.Galaxy)
             attribute_type = attribute.type
             if attribute_type == "malware-sample":
                 filename, md5 = attribute.value.split('|')
@@ -834,6 +852,7 @@ class StixBuilder():
         ip_address = {}
         domain = {}
         for attribute in attributes:
+            self.parse_galaxies(attribute.Galaxy)
             relation = attribute.object_relation
             attribute_value = attribute.value
             if relation == 'ip':
@@ -882,10 +901,10 @@ class StixBuilder():
             observable[str(o_id)] = domain
         return observable
 
-    @staticmethod
-    def resolve_ip_port_pattern(attributes):
+    def resolve_ip_port_pattern(self, attributes):
         pattern = ""
         for attribute in attributes:
+            self.parse_galaxies(attribute.Galaxy)
             relation = attribute.object_relation
             attribute_value = attribute.value
             if relation == 'domain':
@@ -903,14 +922,14 @@ class StixBuilder():
             pattern += objectsMapping[mapping_type]['pattern'].format(stix_type, attribute_value)
         return "[{}]".format(pattern[:-5])
 
-    @staticmethod
-    def resolve_network_socket_observable(attributes):
+    def resolve_network_socket_observable(self, attributes):
         observable, socket_extension = {}, {}
         network_object = defaultdict(list)
         network_object['type'] = 'network-traffic'
         n = 0
         ip_src, ip_dst, domain_src, domain_dst = [None] * 4
         for attribute in attributes:
+            self.parse_galaxies(attribute.Galaxy)
             relation = attribute.object_relation
             if relation in ('address-family', 'domain-family'):
                 socket_extension[networkSocketMapping[relation]] = attribute.value
@@ -958,6 +977,7 @@ class StixBuilder():
         stix_type = "extensions.'socket-ext'.{}"
         ip_src, ip_dst, domain_src, domain_dst = [None] * 4
         for attribute in attributes:
+            self.parse_galaxies(attribute.Galaxy)
             relation = attribute.object_relation
             attribute_value = attribute.value
             if relation in ('address-family', 'domain-family'):
@@ -992,6 +1012,7 @@ class StixBuilder():
         current_process['type'] = 'process'
         n = 0
         for attribute in attributes:
+            self.parse_galaxies(attribute.Galaxy)
             relation = attribute.object_relation
             if relation == 'parent-pid':
                 str_n = str(n)
@@ -1017,12 +1038,12 @@ class StixBuilder():
         observable[str(n)] = current_process
         return observable
 
-    @staticmethod
-    def resolve_process_pattern(attributes):
+    def resolve_process_pattern(self, attributes):
         mapping = objectsMapping['process']['pattern']
         pattern = ""
         child_refs = []
         for attribute in attributes:
+            self.parse_galaxies(attribute.Galaxy)
             relation = attribute.object_relation
             if relation == 'parent-pid':
                 pattern += mapping.format('parent_ref', attribute.value)
@@ -1036,11 +1057,11 @@ class StixBuilder():
         if child_refs: pattern += mapping.format('child_refs', child_refs)
         return "[{}]".format(pattern[:-5])
 
-    @staticmethod
-    def resolve_regkey_observable(attributes):
+    def resolve_regkey_observable(self, attributes):
         observable = {'0': {'type': 'windows-registry-key'}}
         values = {}
         for attribute in attributes:
+            self.parse_galaxies(attribute.Galaxy)
             if attribute.type == 'text':
                 values[regkeyMapping[attribute.object_relation]] = attribute.value
             else:
@@ -1052,11 +1073,11 @@ class StixBuilder():
             observable['0']['values'] = [values]
         return observable
 
-    @staticmethod
-    def resolve_regkey_pattern(attributes):
+    def resolve_regkey_pattern(self, attributes):
         mapping = objectsMapping['registry-key']['pattern']
         pattern = ""
         for attribute in attributes:
+            self.parse_galaxies(attribute.Galaxy)
             try:
                 stix_type = regkeyMapping[attribute.object_relation]
             except:
@@ -1070,10 +1091,10 @@ class StixBuilder():
             if attribute.object_relation == 'stix2-pattern':
                 return attribute.value
 
-    @staticmethod
-    def resolve_url_observable(attributes):
+    def resolve_url_observable(self, attributes):
         url_args = {}
         for attribute in attributes:
+            self.parse_galaxies(attribute.Galaxy)
             if attribute.type == 'url':
                 # If we have the url (WE SHOULD), we return the observable supported atm with the url value
                 observable = {'0': {'type': 'url', 'value': attribute.value}}
@@ -1095,10 +1116,10 @@ class StixBuilder():
                 observable['1'] = port
         return observable
 
-    @staticmethod
-    def resolve_url_pattern(attributes):
+    def resolve_url_pattern(self, attributes):
         pattern = ""
         for attribute in attributes:
+            self.parse_galaxies(attribute.Galaxy)
             attribute_type = attribute.type
             try:
                 stix_type = urlMapping[attribute_type]
@@ -1113,12 +1134,12 @@ class StixBuilder():
             pattern += objectsMapping[mapping]['pattern'].format(stix_type, attribute.value)
         return "[{}]".format(pattern[:-5])
 
-    @staticmethod
-    def resolve_x509_observable(attributes):
+    def resolve_x509_observable(self, attributes):
         observable = {'type': 'x509-certificate'}
         hashes = {}
         attributes2parse = defaultdict(list)
         for attribute in attributes:
+            self.parse_galaxies(attribute.Galaxy)
             relation = attribute.object_relation
             if relation in ("x509-fingerprint-md5", "x509-fingerprint-sha1", "x509-fingerprint-sha256"):
                 hashes[relation.split('-')[2]] = attribute.value
@@ -1134,11 +1155,11 @@ class StixBuilder():
             observable[stix_type] = value if len(value) > 1 else value[0]
         return {'0': observable}
 
-    @staticmethod
-    def resolve_x509_pattern(attributes):
+    def resolve_x509_pattern(self, attributes):
         mapping = objectsMapping['x509']['pattern']
         pattern = ""
         for attribute in attributes:
+            self.parse_galaxies(attribute.Galaxy)
             relation = attribute.object_relation
             if relation in ("x509-fingerprint-md5", "x509-fingerprint-sha1", "x509-fingerprint-sha256"):
                 stix_type = fileMapping['hashes'].format(relation.split('-')[2])

@@ -127,14 +127,14 @@ class AttributesController extends AppController {
 		if ($this->request->is('get') && $this->_isRest()) {
 			return $this->RestResponse->describe('Attributes', 'add', false, $this->response->type());
 		}
-		if ($eventId === false) throw new MethodNotAllowedException('No event ID set.');
+		if ($eventId === false) throw new MethodNotAllowedException(__('No event ID set.'));
 		if (!$this->userRole['perm_add']) {
-			throw new MethodNotAllowedException('You don\'t have permissions to create attributes');
+			throw new MethodNotAllowedException(__('You don\'t have permissions to create attributes'));
 		}
 		$this->loadModel('Event');
 		if (Validation::uuid($eventId)) {
 			$temp = $this->Event->find('first', array('recursive' => -1, 'fields' => array('Event.id'), 'conditions' => array('Event.uuid' => $eventId)));
-			if (empty($temp)) throw new NotFoundException('Invalid event');
+			if (empty($temp)) throw new NotFoundException(__('Invalid event'));
 			$eventId = $temp['Event']['id'];
 		} else if (!is_numeric($eventId)) {
 			throw new NotFoundException(__('Invalid event'));
@@ -147,7 +147,7 @@ class AttributesController extends AppController {
 		$this->Event->recursive = -1;
 		$this->Event->read(null, $eventId);
 		if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
-			throw new UnauthorizedException('You do not have permission to do that.');
+			throw new UnauthorizedException(__('You do not have permission to do that.'));
 		}
 		if (!$this->_isRest()) $this->Event->insertLock($this->Auth->user(), $this->Event->data['Event']['id']);
 		if ($this->request->is('ajax'))	{
@@ -393,7 +393,7 @@ class AttributesController extends AppController {
 			($this->Attribute->data['Event']['distribution'] == 0 ||
 				$this->Attribute->data['Attribute']['distribution'] == 0
 			)) {
-			throw new UnauthorizedException('You do not have the permission to view this event.');
+			throw new UnauthorizedException(__('You do not have the permission to view this event.'));
 		}
 		$this->__downloadAttachment($this->Attribute->data['Attribute']);
 	}
@@ -431,7 +431,7 @@ class AttributesController extends AppController {
 			$this->Event->recursive = -1;
 			$this->Event->read();
 			if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
-				throw new UnauthorizedException('You do not have permission to do that.');
+				throw new UnauthorizedException(__('You do not have permission to do that.'));
 			}
 			$partialFails = array();
 			$fails = array();
@@ -446,7 +446,7 @@ class AttributesController extends AppController {
 					(!empty($value['tmp_name']) && $value['tmp_name'] != 'none')
 				) {
 					if (!is_uploaded_file($tmpfile->path))
-						throw new InternalErrorException('PHP says file was not uploaded. Are you attacking me?');
+						throw new InternalErrorException(__('PHP says file was not uploaded. Are you attacking me?'));
 				} else {
 					$fails[] = $filename;
 					continue;
@@ -583,7 +583,7 @@ class AttributesController extends AppController {
 			$this->Event->recursive = -1;
 			$this->Event->read();
 			if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
-				throw new UnauthorizedException('You do not have permission to do that.');
+				throw new UnauthorizedException(__('You do not have permission to do that.'));
 			}
 			//
 			// File upload
@@ -594,7 +594,7 @@ class AttributesController extends AppController {
 					(!empty( $this->request->data['Attribute']['value']['tmp_name']) && $this->request->data['Attribute']['value']['tmp_name'] != 'none')
 			) {
 				if (!is_uploaded_file($tmpfile->path))
-					throw new InternalErrorException('PHP says file was not uploaded. Are you attacking me?');
+					throw new InternalErrorException(__('PHP says file was not uploaded. Are you attacking me?'));
 			} else {
 				$this->Flash->error(__('There was a problem to upload the file.', true), 'default', array(), 'error');
 				$this->redirect(array('controller' => 'attributes', 'action' => 'add_threatconnect', $this->request->data['Attribute']['event_id']));
@@ -622,6 +622,7 @@ class AttributesController extends AppController {
 			// verify header of the file (first row)
 			$required_headers = array('Type', 'Value', 'Confidence', 'Description', 'Source');
 
+			// TODO i18n
 			if (count(array_intersect($header, $required_headers)) != count($required_headers)) {
 				$this->Flash->error('Incorrect ThreatConnect headers. The minimum required headers are: '.implode(',', $required_headers), 'default', array(), 'error');
 				$this->redirect(array('controller' => 'attributes', 'action' => 'add_threatconnect', $this->request->data['Attribute']['event_id']));
@@ -816,11 +817,11 @@ class AttributesController extends AppController {
 					// carry on with adding this attribute - Don't forget! if orgc!=user org, create shadow attribute, not attribute!
 				} else {
 					// the old one is newer or the same, replace the request's attribute with the old one
-					throw new MethodNotAllowedException('Attribute could not be saved: Attribute in the request not newer than the local copy.');
+					throw new MethodNotAllowedException(__('Attribute could not be saved: Attribute in the request not newer than the local copy.'));
 				}
 			} else {
 				if ($this->_isRest() || $this->response->type() === 'application/json') {
-					throw new NotFoundException('Invalid attribute.');
+					throw new NotFoundException(__('Invalid attribute.'));
 				} else {
 					$this->Flash->error(__('Invalid attribute.'));
 					$this->redirect(array('controller' => 'events', 'action' => 'index'));
@@ -832,7 +833,7 @@ class AttributesController extends AppController {
 				'conditions' => array('Event.id' => $eventId)
 			));
 			if (empty($event)) {
-				throw new NotFoundException('Invalid Event.');
+				throw new NotFoundException(__('Invalid Event.'));
 			}
 			if ($existingAttribute['Attribute']['object_id']) {
 				$result = $this->Attribute->save($this->request->data, array('Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.comment', 'Attribute.distribution', 'Attribute.sharing_group_id'));
@@ -961,7 +962,7 @@ class AttributesController extends AppController {
 		if (Validation::uuid($id)) {
 			$this->Attribute->recursive = -1;
 			$temp = $this->Attribute->findByUuid($id);
-			if ($temp == null) throw new NotFoundException('Invalid attribute');
+			if ($temp == null) throw new NotFoundException(__('Invalid attribute'));
 			$id = $temp['Attribute']['id'];
 		} else if (!is_numeric($id)) {
 			throw new NotFoundException(__('Invalid event id.'));
@@ -990,12 +991,12 @@ class AttributesController extends AppController {
 		if (empty($this->request->data['Attribute'])) {
 			$this->request->data = array('Attribute' => $this->request->data);
 			if (empty($this->request->data['Attribute'])) {
-				throw new MethodNotAllowedException('Invalid input.');
+				throw new MethodNotAllowedException(__('Invalid input.'));
 			}
 		}
 		foreach ($this->request->data['Attribute'] as $changedKey => $changedField) {
 			if (!in_array($changedKey, $validFields)) {
-				throw new MethodNotAllowedException('Invalid field.');
+				throw new MethodNotAllowedException(__('Invalid field.'));
 			}
 			if ($attribute['Attribute'][$changedKey] == $changedField) {
 				$this->autoRender = false;
@@ -1034,7 +1035,7 @@ class AttributesController extends AppController {
 				'conditions' => array('Attribute.uuid' => $id),
 				'fields' => array('Attribute.id', 'Attribute.uuid')
 			));
-			if (empty($temp)) throw new NotFoundException('Invalid attribute');
+			if (empty($temp)) throw new NotFoundException(__('Invalid attribute'));
 			$id = $temp['Attribute']['id'];
 		} else if (!is_numeric($id)) {
 			throw new NotFoundException(__('Invalid attribute id.'));
@@ -1108,7 +1109,7 @@ class AttributesController extends AppController {
 				}
 			} else {
 				if ($this->_isRest() || $this->response->type() === 'application/json') {
-					throw new Exception('Attribute was not deleted');
+					throw new Exception(__('Attribute was not deleted'));
 				} else {
 					$this->Flash->error(__('Attribute was not deleted'));
 					$this->redirect(array('action' => 'index'));
@@ -1132,7 +1133,7 @@ class AttributesController extends AppController {
 		));
 		if (empty($attribute) || !$this->userRole['perm_site_admin'] && $this->Auth->user('org_id') != $attribute['Event']['orgc_id']) {
 			if ($this->request->is('ajax')) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Attribute')), 'type' => 'json', 'status'=>200));
-			else throw new MethodNotAllowedException('Invalid Attribute');
+			else throw new MethodNotAllowedException(__('Invalid Attribute'));
 		}
 		if (!$this->_isRest()) $this->Attribute->Event->insertLock($this->Auth->user(), $attribute['Attribute']['event_id']);
 		if ($this->request->is('ajax')) {
@@ -1150,7 +1151,7 @@ class AttributesController extends AppController {
 			if ($this->Attribute->restore($id, $this->Auth->user())) {
 				$this->Attribute->__alterAttributeCount($this->data['Attribute']['event_id']);
 				$this->redirect(array('action' => 'view', $id));
-			}	else throw new NotFoundException('Could not restore the attribute');
+			}	else throw new NotFoundException(__('Could not restore the attribute'));
 		}
 	}
 
@@ -1168,17 +1169,17 @@ class AttributesController extends AppController {
 				'fields' => array('Event.*')
 			)),
 		));
-		if (empty($result)) throw new MethodNotAllowedException('Attribute not found or not authorised.');
+		if (empty($result)) throw new MethodNotAllowedException(__('Attribute not found or not authorised.'));
 
 		// check for permissions
 		if (!$this->_isSiteAdmin()) {
 			if ($result['Event']['locked']) {
 				if ($this->Auth->user('org_id') != $result['Event']['org_id'] || !$this->userRole['perm_sync']) {
-					throw new MethodNotAllowedException('Attribute not found or not authorised.');
+					throw new MethodNotAllowedException(__('Attribute not found or not authorised.'));
 				}
 			} else {
 				if ($this->Auth->user('org_id') != $result['Event']['orgc_id']) {
-					throw new MethodNotAllowedException('Attribute not found or not authorised.');
+					throw new MethodNotAllowedException(__('Attribute not found or not authorised.'));
 				}
 			}
 		}
@@ -1227,7 +1228,7 @@ class AttributesController extends AppController {
 			if ($this->request->is('get')) {
 				return $this->RestResponse->describe('Attributes', 'deleteSelected', false, $this->response->type());
 			}
-			throw new MethodNotAllowedException('This function is only accessible via POST requests.');
+			throw new MethodNotAllowedException(__('This function is only accessible via POST requests.'));
 		}
 		// get a json object with a list of attribute IDs to be deleted
 		// check each of them and return a json object with the successful deletes and the failed ones.
@@ -1244,7 +1245,7 @@ class AttributesController extends AppController {
 			$ids = json_decode($this->request->data['Attribute']['ids_delete']);
 		}
 		if (empty($id)) {
-			throw new MethodNotAllowedException('No event ID set.');
+			throw new MethodNotAllowedException(__('No event ID set.'));
 		}
 		if (!$this->_isSiteAdmin()) {
 			$event = $this->Attribute->Event->find('first', array(
@@ -1253,7 +1254,7 @@ class AttributesController extends AppController {
 					'fields' => array('id', 'orgc_id', 'user_id')
 			));
 			if ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user('id')))) {
-				throw new MethodNotAllowedException('Invalid Event.');
+				throw new MethodNotAllowedException(__('Invalid Event.'));
 			}
 		}
 		if (empty($ids)) $ids = -1;
@@ -1275,7 +1276,7 @@ class AttributesController extends AppController {
 			}
 		}
 		if (empty($attributes)) {
-			throw new NotFoundException('No matching attributes found.');
+			throw new NotFoundException(__('No matching attributes found.'));
 		}
 		$successes = array();
 		foreach ($attributes as $a) {
@@ -1304,7 +1305,7 @@ class AttributesController extends AppController {
 	}
 
 	public function editSelected($id) {
-		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This method can only be accessed via AJAX.');
+		if (!$this->request->is('ajax')) throw new MethodNotAllowedException(__('This method can only be accessed via AJAX.'));
 
 		if ($this->request->is('post')) {
 			$event = $this->Attribute->Event->find('first', array(
@@ -1314,7 +1315,7 @@ class AttributesController extends AppController {
 			));
 			if (!$this->_isSiteAdmin()) {
 				if ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['user_id'] == $this->Auth->user('id')))) {
-					throw new MethodNotAllowedException('You are not authorized to edit this event.');
+					throw new MethodNotAllowedException(__('You are not authorized to edit this event.'));
 				}
 			}
 			$attribute_ids = json_decode($this->request->data['Attribute']['attribute_ids']);
@@ -1376,7 +1377,7 @@ class AttributesController extends AppController {
 				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'validationErrors' => $this->Attribute->validationErrors)), 'status' => 200, 'type' => 'json'));
 			}
 		} else {
-			if (!isset($id)) throw new MethodNotAllowedException('No event ID provided.');
+			if (!isset($id)) throw new MethodNotAllowedException(__('No event ID provided.'));
 			$this->layout = 'ajax';
 			$this->set('id', $id);
 			$this->set('sgs', $this->Attribute->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true));
@@ -1928,11 +1929,11 @@ class AttributesController extends AppController {
 		if ($key != null && strlen($key) == 40) {
 			$user = $this->checkAuthUser($key);
 			if (!$user) {
-				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+				throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
 			}
 		} else {
 			$key = strtolower($key);
-			if (!$this->Auth->user()) throw new UnauthorizedException('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.');
+			if (!$this->Auth->user()) throw new UnauthorizedException(__('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.'));
 		}
 		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
 		// The correct format for both is a "request" root element, as shown by the examples below:
@@ -1942,16 +1943,16 @@ class AttributesController extends AppController {
 		if ($this->request->is('post')) {
 			if ($this->response->type() === 'application/json') {
 				if ($key == 'xml') {
-					throw new MethodNotAllowedException('Content type and parameter mismatch. Expecting JSON.');
+					throw new MethodNotAllowedException(__('Content type and parameter mismatch. Expecting JSON.'));
 				}
 				$data = $this->request->input('json_decode', true);
 			} else if ($this->response->type() === 'application/xml' && !empty($this->request->data)) {
 				if ($key == 'json') {
-					throw new MethodNotAllowedException('Content type and parameter mismatch. Expecting XML.');
+					throw new MethodNotAllowedException(__('Content type and parameter mismatch. Expecting XML.'));
 				}
 				$data = $this->request->data;
 			} else {
-				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers.');
+				throw new BadRequestException(__('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers.'));
 			}
 			if (!isset($data['request'])) {
 				$data['request'] = $data;
@@ -2065,11 +2066,11 @@ class AttributesController extends AppController {
 		if ($key != null && $key != 'download') {
 			$user = $this->checkAuthUser($key);
 		} else {
-			if (!$this->Auth->user()) throw new UnauthorizedException('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.');
+			if (!$this->Auth->user()) throw new UnauthorizedException(__('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.'));
 			$user = $this->checkAuthUser($this->Auth->user('authkey'));
 		}
 		if (!$user) {
-			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+			throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
 		}
 		if ($this->request->is('post')) {
 			if ($this->response->type() === 'application/json') {
@@ -2077,7 +2078,7 @@ class AttributesController extends AppController {
 			} else if ($this->response->type() === 'application/xml' && !empty($this->request->data)) {
 				$data = $this->request->data;
 			} else {
-				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers.');
+				throw new BadRequestException(__('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers.'));
 			}
 			$paramArray = array('type', 'sigOnly');
 			foreach ($paramArray as $p) {
@@ -2094,7 +2095,7 @@ class AttributesController extends AppController {
 
 		if (!$myEventOrAdmin) {
 			if ($this->Event->data['Event']['distribution'] == 0) {
-				throw new UnauthorizedException('You don\'t have access to that event.');
+				throw new UnauthorizedException(__('You don\'t have access to that event.'));
 			}
 		}
 		$this->response->type('xml');	// set the content type
@@ -2154,7 +2155,7 @@ class AttributesController extends AppController {
 			// If after all of this $contained is still true, let's add the attribute to the array
 			if ($contained) $attributes[] = $attribute;
 		}
-		if (empty($attributes)) throw new NotFoundException('No matches.');
+		if (empty($attributes)) throw new NotFoundException(__('No matches.'));
 		$this->set('results', $attributes);
 	}
 
@@ -2162,17 +2163,17 @@ class AttributesController extends AppController {
 		if ($key != null && $key != 'download') {
 			$user = $this->checkAuthUser($key);
 		} else {
-			if (!$this->Auth->user()) throw new UnauthorizedException('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.');
+			if (!$this->Auth->user()) throw new UnauthorizedException(__('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.'));
 			$user = $this->checkAuthUser($this->Auth->user('authkey'));
 		}
 		// if the user is authorised to use the api key then user will be populated with the user's account
 		// in addition we also set a flag indicating whether the user is a site admin or not.
 		if (!$user) {
-			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+			throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
 		}
 		$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) {
-			throw new NotFoundException('Invalid attribute or no authorisation to view it.');
+			throw new NotFoundException(__('Invalid attribute or no authorisation to view it.'));
 		}
 		$this->Attribute->read(null, $id);
 		if (!$user['User']['siteAdmin'] &&
@@ -2180,7 +2181,7 @@ class AttributesController extends AppController {
 			($this->Attribute->data['Event']['distribution'] == 0 ||
 				$this->Attribute->data['Attribute']['distribution'] == 0
 			)) {
-			throw new NotFoundException('Invalid attribute or no authorisation to view it.');
+			throw new NotFoundException(__('Invalid attribute or no authorisation to view it.'));
 		}
 		$this->__downloadAttachment($this->Attribute->data['Attribute']);
 	}
@@ -2206,11 +2207,11 @@ class AttributesController extends AppController {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
 			if (!$user) {
-				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+				throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
 			}
 		} else {
 			if (!$this->Auth->user('id')) {
-				throw new UnauthorizedException('You have to be logged in to do that.');
+				throw new UnauthorizedException(__('You have to be logged in to do that.'));
 			}
 		}
 		$this->response->type('txt');	// set the content type
@@ -2235,7 +2236,7 @@ class AttributesController extends AppController {
 			} else {
 				$data = $this->request->data;
 			}
-			if (empty($data)) throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.');
+			if (empty($data)) throw new BadRequestException(__('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.'));
 			$paramArray = array('eventId', 'tags', 'from', 'to', 'policy', 'walled_garden', 'ns', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl', 'enforceWarninglist', 'ns_alt');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
@@ -2269,16 +2270,16 @@ class AttributesController extends AppController {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
 			if (!$user) {
-				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+				throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
 			}
 		} else {
 			if (!$this->Auth->user('id')) {
-				throw new UnauthorizedException('You have to be logged in to do that.');
+				throw new UnauthorizedException(__('You have to be logged in to do that.'));
 			}
 		}
 		if (false === $eventId) $eventIds = $this->Attribute->Event->fetchEventIds($this->Auth->user(), false, false, false, true);
 		else if (is_numeric($eventId)) $eventIds = array($eventId);
-		else throw new MethodNotAllowedException('Invalid event ID format.');
+		else throw new MethodNotAllowedException(__('Invalid event ID format.'));
 		$values = array();
 		foreach ($eventIds as $k => $eventId) {
 			$values = array_merge_recursive($values, $this->Attribute->rpz($this->Auth->user(), $tags, $eventId, $from, $to, $enforceWarninglist));
@@ -2328,11 +2329,11 @@ class AttributesController extends AppController {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
 			if (!$user) {
-				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+				throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
 			}
 		} else {
 			if (!$this->Auth->user('id')) {
-				throw new UnauthorizedException('You have to be logged in to do that.');
+				throw new UnauthorizedException(__('You have to be logged in to do that.'));
 			}
 		}
 		$filename = 'misp.' . $type . '.intel';
@@ -2387,8 +2388,8 @@ class AttributesController extends AppController {
 
 	public function fetchViewValue($id, $field = null) {
 		$validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution', 'timestamp');
-		if (!isset($field) || !in_array($field, $validFields)) throw new MethodNotAllowedException('Invalid field requested.');
-		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
+		if (!isset($field) || !in_array($field, $validFields)) throw new MethodNotAllowedException(__('Invalid field requested.'));
+		if (!$this->request->is('ajax')) throw new MethodNotAllowedException(__('This function can only be accessed via AJAX.'));
 		$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) {
 			throw new NotFoundException(__('Invalid attribute'));
@@ -2420,8 +2421,8 @@ class AttributesController extends AppController {
 
 	public function fetchEditForm($id, $field = null) {
 		$validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution');
-		if (!isset($field) || !in_array($field, $validFields)) throw new MethodNotAllowedException('Invalid field requested.');
-		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
+		if (!isset($field) || !in_array($field, $validFields)) throw new MethodNotAllowedException(__('Invalid field requested.'));
+		if (!$this->request->is('ajax')) throw new MethodNotAllowedException(__('This function can only be accessed via AJAX.'));
 		$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) {
 			throw new NotFoundException(__('Invalid attribute'));
@@ -2482,14 +2483,14 @@ class AttributesController extends AppController {
 
 	public function attributeReplace($id) {
 		if (!$this->userRole['perm_add']) {
-			throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
+			throw new MethodNotAllowedException(__('Event not found or you don\'t have permissions to create attributes'));
 		}
 		$event = $this->Attribute->Event->find('first', array(
 				'conditions' => array('Event.id' => $id),
 				'fields' => array('id', 'orgc_id', 'distribution'),
 				'recursive' => -1
 		));
-		if (empty($event) || (!$this->_isSiteAdmin() && ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || !$this->userRole['perm_add']))) throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
+		if (empty($event) || (!$this->_isSiteAdmin() && ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || !$this->userRole['perm_add']))) throw new MethodNotAllowedException(__('Event not found or you don\'t have permissions to create attributes'));
 		$this->set('event_id', $id);
 		if ($this->request->is('get')) {
 			$this->layout = 'ajax';
@@ -2508,14 +2509,14 @@ class AttributesController extends AppController {
 			$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 		}
 		if ($this->request->is('post')) {
-			if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This action can only be accessed via AJAX.');
+			if (!$this->request->is('ajax')) throw new MethodNotAllowedException(__('This action can only be accessed via AJAX.'));
 
 			$newValues = explode(PHP_EOL, $this->request->data['Attribute']['value']);
 			$category = $this->request->data['Attribute']['category'];
 			$type = $this->request->data['Attribute']['type'];
 			$to_ids = $this->request->data['Attribute']['to_ids'];
 
-			if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != $event['Event']['orgc_id'] && !$this->userRole['perm_add']) throw new MethodNotAllowedException('You are not authorised to do that.');
+			if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != $event['Event']['orgc_id'] && !$this->userRole['perm_add']) throw new MethodNotAllowedException(__('You are not authorised to do that.'));
 
 			$oldAttributes = $this->Attribute->find('all', array(
 					'conditions' => array(
@@ -2603,19 +2604,19 @@ class AttributesController extends AppController {
 
 	// download a sample by passing along an md5
 	public function downloadSample($hash=false, $allSamples=false, $eventID=false) {
-		if (!$this->userRole['perm_auth']) throw new MethodNotAllowedException('This functionality requires API key access.');
+		if (!$this->userRole['perm_auth']) throw new MethodNotAllowedException(__('This functionality requires API key access.'));
 		$error = false;
 		if ($this->response->type() === 'application/json') {
 			$data = $this->request->input('json_decode', true);
 		} else if ($this->response->type() === 'application/xml') {
 			$data = $this->request->data;
 		} else {
-			throw new BadRequestException('This action is for the API only. Please refer to the automation page for information on how to use it.');
+			throw new BadRequestException(__('This action is for the API only. Please refer to the automation page for information on how to use it.'));
 		}
 		if (!$hash && isset($data['request']['hash'])) $hash = $data['request']['hash'];
 		if (!$allSamples && isset($data['request']['allSamples'])) $allSamples = $data['request']['allSamples'];
 		if (!$eventID && isset($data['request']['eventID'])) $eventID = $data['request']['eventID'];
-		if (!$eventID && !$hash) throw new MethodNotAllowedException('No hash or event ID received. You need to set at least one of the two.');
+		if (!$eventID && !$hash) throw new MethodNotAllowedException(__('No hash or event ID received. You need to set at least one of the two.'));
 		if (!$hash) $allSamples = true;
 
 
@@ -2721,7 +2722,7 @@ class AttributesController extends AppController {
 	}
 
 	public function pruneOrphanedAttributes() {
-		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException('You are not authorised to do that.');
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException(__('You are not authorised to do that.'));
 		$events = array_keys($this->Attribute->Event->find('list'));
 		$orphans = $this->Attribute->find('list', array('conditions' => array('Attribute.event_id !=' => $events)));
 		if (count($orphans) > 0) $this->Attribute->deleteAll(array('Attribute.event_id !=' => $events), false, true);
@@ -2730,7 +2731,7 @@ class AttributesController extends AppController {
 	}
 
 	public function checkOrphanedAttributes() {
-		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException('You are not authorised to do that.');
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException(__('You are not authorised to do that.'));
 		$this->loadModel('Attribute');
 		$events = array_keys($this->Attribute->Event->find('list'));
 		$orphans = $this->Attribute->find('list', array('conditions' => array('Attribute.event_id !=' => $events)));
@@ -2738,7 +2739,7 @@ class AttributesController extends AppController {
 	}
 
 	public function updateAttributeValues($script) {
-		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException('You are not authorised to do that.');
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException(__('You are not authorised to do that.'));
 		switch ($script) {
 			case 'urlSanitisation':
 				$replaceConditions = array(
@@ -2747,7 +2748,7 @@ class AttributesController extends AppController {
 				);
 				break;
 			default:
-				throw new Exception('Invalid script.');
+				throw new Exception(__('Invalid script.'));
 		}
 		$counter = 0;
 		foreach ($replaceConditions as $rC) {
@@ -2774,7 +2775,7 @@ class AttributesController extends AppController {
 
 	public function hoverEnrichment($id) {
 		$attribute = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'flatten' => 1));
-		if (empty($attribute)) throw new NotFoundException('Invalid Attribute');
+		if (empty($attribute)) throw new NotFoundException(__('Invalid Attribute'));
 		$this->loadModel('Server');
 		$this->loadModel('Module');
 		$modules = $this->Module->getEnabledModules($this->Auth->user());
@@ -2796,7 +2797,7 @@ class AttributesController extends AppController {
 					}
 				}
 			}
-			if (!$found) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
+			if (!$found) throw new MethodNotAllowedException(__('No valid enrichment options found for this attribute.'));
 			$data = array('module' => $type, $attribute[0]['Attribute']['type'] => $attribute[0]['Attribute']['value']);
 			if (!empty($options)) $data['config'] = $options;
 			$data = json_encode($data);
@@ -2806,6 +2807,7 @@ class AttributesController extends AppController {
 					$resultArray[] = array($type => $result);
 				}
 			} else {
+				// TODO: i18n?
 				$resultArray[] = array($type => 'Enrichment service not reachable.');
 				continue;
 			}
@@ -2848,7 +2850,7 @@ class AttributesController extends AppController {
 
 	public function attributeStatistics($type = 'type', $percentage = false) {
 		$validTypes = array('type', 'category');
-		if (!in_array($type, $validTypes)) throw new MethodNotAllowedException('Invalid type requested.');
+		if (!in_array($type, $validTypes)) throw new MethodNotAllowedException(__('Invalid type requested.'));
 		$totalAttributes = $this->Attribute->find('count', array());
 		$attributes = $this->Attribute->find('all', array(
 				'recursive' => -1,
@@ -3047,14 +3049,14 @@ class AttributesController extends AppController {
 
 	public function toggleCorrelation($id) {
 		if (!$this->_isSiteAdmin() && Configure.read('MISP.allow_disabling_correlation')) {
-			throw new MethodNotAllowedException('Disabling the correlation is not permitted on this instance.');
+			throw new MethodNotAllowedException(__('Disabling the correlation is not permitted on this instance.'));
 		}
 		$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) {
-			throw new NotFoundException('Invalid Attribute.');
+			throw new NotFoundException(__('Invalid Attribute.'));
 		}
 		if (!$this->Auth->user('Role')['perm_modify']) {
-			throw new MethodNotAllowedException('You don\'t have permission to do that.');
+			throw new MethodNotAllowedException(__('You don\'t have permission to do that.'));
 		}
 		$conditions = array('Attribute.id' => $id);
 		if (!$this->_isSiteAdmin()) {
@@ -3066,10 +3068,10 @@ class AttributesController extends AppController {
 			'contain' => array('Event')
 		));
 		if (empty($attribute)) {
-			throw new NotFoundException('Invalid Attribute.');
+			throw new NotFoundException(__('Invalid Attribute.'));
 		}
 		if (!$this->Auth->user('Role')['perm_modify_org'] && $this->Auth->user('id') != $attribute['Event']['user_id']) {
-			throw new MethodNotAllowedException('You don\'t have permission to do that.');
+			throw new MethodNotAllowedException(__('You don\'t have permission to do that.'));
 		}
 		if (!$this->_isRest()) $this->Attribute->Event->insertLock($this->Auth->user(), $attribute['Event']['id']);
 		if ($this->request->is('post')) {

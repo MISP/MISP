@@ -261,6 +261,7 @@ class Attribute extends AppModel {
 			//'url-regex' => array('desc' => '', 'default_category' => 'Person', 'to_ids' => 0),
 	);
 
+	// TODO i18n?
 	// definitions of categories
 	public $categoryDefinitions = array(
 			'Internal reference' => array(
@@ -541,7 +542,7 @@ class Attribute extends AppModel {
 			if (in_array($this->data['Attribute']['type'], $compositeTypes)) {
 				$pieces = explode('|', $this->data['Attribute']['value']);
 				if (2 != count($pieces)) {
-					throw new InternalErrorException('Composite type, but value not explodable');
+					throw new InternalErrorException(__('Composite type, but value not explodable'));
 				}
 				$this->data['Attribute']['value1'] = $pieces[0];
 				$this->data['Attribute']['value2'] = $pieces[1];
@@ -630,7 +631,7 @@ class Attribute extends AppModel {
 			$file = new File($filepath);
 			if ($file->exists()) {
 				if (!$file->delete()) {
-					throw new InternalErrorException('Delete of file attachment failed. Please report to administrator.');
+					throw new InternalErrorException(__('Delete of file attachment failed. Please report to administrator.'));
 				}
 			}
 		}
@@ -699,6 +700,7 @@ class Attribute extends AppModel {
 			$this->data['Attribute']['timestamp'] = $date->getTimestamp();
 		}
 		// TODO: add explanatory comment
+		// TODO: i18n?
 		$result = $this->runRegexp($this->data['Attribute']['type'], $this->data['Attribute']['value']);
 		if ($result === false) {
 			$this->invalidate('value', 'This value is blocked by a regular expression in the import filters.');
@@ -743,7 +745,7 @@ class Attribute extends AppModel {
 
 	public function maxTextLength($fields) {
 		if (strlen($fields['value']) > 65535) {
-			return 'The entered string is too long and would get truncated. Please consider adding the data as an attachment instead';
+			return __('The entered string is too long and would get truncated. Please consider adding the data as an attachment instead');
 		}
 		return true;
 	}
@@ -853,21 +855,21 @@ class Attribute extends AppModel {
 				if (preg_match("#^[0-9a-f]{" . $length . "}$#", $value)) {
 					$returnValue = true;
 				} else {
-					$returnValue = 'Checksum has an invalid length or format (expected: ' . $length . ' hexadecimal characters). Please double check the value or select type "other".';
+					$returnValue = __('Checksum has an invalid length or format (expected: %s hexadecimal characters). Please double check the value or select type "other".', $length);
 				}
 				break;
 			case 'tlsh':
 				if (preg_match("#^[0-9a-f]{35,}$#", $value)) {
 					$returnValue = true;
 				} else {
-					$returnValue = 'Checksum has an invalid length or format (expected: at least 35 hexadecimal characters). Please double check the value or select type "other".';
+					$returnValue = __('Checksum has an invalid length or format (expected: at least 35 hexadecimal characters). Please double check the value or select type "other".');
 				}
 				break;
 			case 'pehash':
 				if (preg_match("#^[0-9a-f]{40}$#", $value)) {
 					$returnValue = true;
 				} else {
-					$returnValue = 'The input doesn\'t match the expected sha1 format (expected: 40 hexadecimal characters). Keep in mind that MISP currently only supports SHA1 for PEhashes, if you would like to get the support extended to other hash types, make sure to create a github ticket about it at https://github.com/MISP/MISP!';
+					$returnValue = __('The input doesn\'t match the expected sha1 format (expected: 40 hexadecimal characters). Keep in mind that MISP currently only supports SHA1 for PEhashes, if you would like to get the support extended to other hash types, make sure to create a github ticket about it at https://github.com/MISP/MISP!');
 				}
 				break;
 			case 'ssdeep':
@@ -875,14 +877,14 @@ class Attribute extends AppModel {
 					$parts = explode(':', $value);
 					if (is_numeric($parts[0])) $returnValue = true;
 				}
-				if (!$returnValue) $returnValue = 'Invalid SSDeep hash. The format has to be blocksize:hash:hash';
+				if (!$returnValue) $returnValue = __('Invalid SSDeep hash. The format has to be blocksize:hash:hash');
 				break;
 			case 'impfuzzy':
 				if (substr_count($value, ':') == 2) {
 					$parts = explode(':', $value);
 					if (is_numeric($parts[0])) $returnValue = true;
 				}
-				if (!$returnValue) $returnValue = 'Invalid impfuzzy format. The format has to be imports:hash:hash';
+				if (!$returnValue) $returnValue = __('Invalid impfuzzy format. The format has to be imports:hash:hash');
 				break;
 			case 'http-method':
 				if (preg_match("#(OPTIONS|GET|HEAD|POST|PUT|DELETE|TRACE|CONNECT|PROPFIND|PROPPATCH|MKCOL|COPY|MOVE|LOCK|UNLOCK|VERSION-CONTROL|REPORT|CHECKOUT|CHECKIN|UNCHECKOUT|MKWORKSPACE|UPDATE|LABEL|MERGE|BASELINE-CONTROL|MKACTIVITY|ORDERPATCH|ACL|PATCH|SEARCH)#", $value)) {
@@ -896,7 +898,7 @@ class Attribute extends AppModel {
 				if (preg_match("#^.+\|[0-9a-f]{40}$#", $value)) {
 					$returnValue = true;
 				} else {
-					$returnValue = 'The input doesn\'t match the expected filename|sha1 format (expected: filename|40 hexadecimal characters). Keep in mind that MISP currently only supports SHA1 for PEhashes, if you would like to get the support extended to other hash types, make sure to create a github ticket about it at https://github.com/MISP/MISP!';
+					$returnValue = __('The input doesn\'t match the expected filename|sha1 format (expected: filename|40 hexadecimal characters). Keep in mind that MISP currently only supports SHA1 for PEhashes, if you would like to get the support extended to other hash types, make sure to create a github ticket about it at https://github.com/MISP/MISP!');
 				}
 				break;
 			case 'filename|md5':
@@ -914,12 +916,12 @@ class Attribute extends AppModel {
 				if (preg_match("#^.+\|[0-9a-f]{" . $length . "}$#", $value)) {
 					$returnValue = true;
 				} else {
-					$returnValue = 'Checksum has an invalid length or format (expected: filename|' . $length . ' hexadecimal characters). Please double check the value or select type "other".';
+					$returnValue = __('Checksum has an invalid length or format (expected: filename|%s hexadecimal characters). Please double check the value or select type "other".', $length);
 				}
 				break;
 			case 'filename|ssdeep':
 				if (substr_count($value, '|') != 1 || !preg_match("#^.+\|.+$#", $value)) {
-					$returnValue = 'Invalid composite type. The format has to be ' . $type . '.';
+					$returnValue = __('Invalid composite type. The format has to be %s.', $type);
 				} else {
 					$composite = explode('|', $value);
 					$value = $composite[1];
@@ -927,14 +929,14 @@ class Attribute extends AppModel {
 						$parts = explode(':', $value);
 						if (is_numeric($parts[0])) $returnValue = true;
 					}
-					if (!$returnValue) $returnValue = 'Invalid SSDeep hash (expected: blocksize:hash:hash).';
+					if (!$returnValue) $returnValue = __('Invalid SSDeep hash (expected: blocksize:hash:hash).');
 				}
 				break;
 			case 'filename|tlsh':
 				if (preg_match("#^.+\|[0-9a-f]{35,}$#", $value)) {
 					$returnValue = true;
 				} else {
-					$returnValue = 'Checksum has an invalid length or format (expected: filename|at least 35 hexadecimal characters). Please double check the value or select type "other".';
+					$returnValue = __('Checksum has an invalid length or format (expected: filename|at least 35 hexadecimal characters). Please double check the value or select type "other".');
 				}
 				break;
 			case 'ip-src':
@@ -945,19 +947,19 @@ class Attribute extends AppModel {
 					// [0] = the IP
 					// [1] = the network address
 					if (count($parts) != 2 || (!is_numeric($parts[1]) || !($parts[1] < 129 && $parts[1] > 0))) {
-							$returnValue = 'Invalid CIDR notation value found.';
+							$returnValue = __('Invalid CIDR notation value found.');
 					}
 					$ip = $parts[0];
 				} else {
 					$ip = $value;
 				}
 				if (!filter_var($ip, FILTER_VALIDATE_IP)) {
-					$returnValue = 'IP address has an invalid format.';
+					$returnValue = __('IP address has an invalid format.');
 				}
 				break;
 			case 'port':
 				if (!is_numeric($value) || $value < 1 || $value > 65535) {
-					$returnValue = 'Port numbers have to be positive integers between 1 and 65535.';
+					$returnValue = __('Port numbers have to be positive integers between 1 and 65535.');
 				} else {
 					$returnValue = true;
 				}
@@ -986,7 +988,7 @@ class Attribute extends AppModel {
 				if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z0-9\-]{2,}[\.]?$#i", $value)) {
 					$returnValue = true;
 				} else {
-					$returnValue = ucfirst($type) . ' name has an invalid format. Please double check the value or select type "other".';
+					$returnValue = ucfirst($type) . __(' name has an invalid format. Please double check the value or select type "other".');
 				}
 				break;
 			case 'hostname|port':
@@ -1003,10 +1005,10 @@ class Attribute extends AppModel {
 					if (filter_var($parts[1], FILTER_VALIDATE_IP)) {
 						$returnValue = true;
 					} else {
-						$returnValue = 'IP address has an invalid format.';
+						$returnValue = __('IP address has an invalid format.');
 					}
 				} else {
-					$returnValue = 'Domain name has an invalid format.';
+					$returnValue = __('Domain name has an invalid format.');
 				}
 				break;
 			case 'email-src':
@@ -1019,7 +1021,7 @@ class Attribute extends AppModel {
 				if (preg_match("#^.*\@.*\..*$#i", $value)) {
 					$returnValue = true;
 				} else {
-					$returnValue = 'Email address has an invalid format. Please double check the value or select type "other".';
+					$returnValue = __('Email address has an invalid format. Please double check the value or select type "other".');
 				}
 				break;
 			case 'vulnerability':
@@ -1027,7 +1029,7 @@ class Attribute extends AppModel {
 				if (preg_match("#^(CVE-)[0-9]{4}(-)[0-9]{4,}$#", $value)) {
 					$returnValue = true;
 				} else {
-					$returnValue = 'Invalid format. Expected: CVE-xxxx-xxxx...';
+					$returnValue = __('Invalid format. Expected: CVE-xxxx-xxxx...');
 				}
 				break;
 			case 'named pipe':
@@ -1038,7 +1040,7 @@ class Attribute extends AppModel {
 			case 'windows-service-name':
 			case 'windows-service-displayname':
 				if (strlen($value) > 256 || preg_match('#[\\\/]#', $value)) {
-					$returnValue = 'Invalid format. Only values shorter than 256 characters that don\'t include any forward or backward slashes are allowed.';
+					$returnValue = __('Invalid format. Only values shorter than 256 characters that don\'t include any forward or backward slashes are allowed.');
 				} else {
 					$returnValue = true;
 				}
@@ -1150,20 +1152,20 @@ class Attribute extends AppModel {
 					new DateTime($value);
 					$returnValue = true;
 				} catch (Exception $e) {
-					$returnValue = 'Datetime has to be in the ISO 8601 format.';
+					$returnValue = __('Datetime has to be in the ISO 8601 format.');
 				}
 				break;
 			case 'size-in-bytes':
 			case 'counter':
 				if (!is_numeric($value) || $value < 0) {
-					$returnValue = 'The value has to be a number greater or equal 0.';
+					$returnValue = __('The value has to be a number greater or equal 0.');
 				} else {
 					$returnValue = true;
 				}
 				break;
 			case 'targeted-threat-index':
 				if (!is_numeric($value) || $value < 0 || $value > 10) {
-					$returnValue = 'The value has to be a number between 0 and 10.';
+					$returnValue = __('The value has to be a number between 0 and 10.');
 				} else {
 					$returnValue = true;
 				}
@@ -1780,10 +1782,10 @@ class Attribute extends AppModel {
 
 
 	public function hids($user, $type, $tags = '', $from = false, $to = false, $last = false, $jobId = false, $enforceWarninglist = false) {
-		if (empty($user)) throw new MethodNotAllowedException('Could not read user.');
+		if (empty($user)) throw new MethodNotAllowedException(__('Could not read user.'));
 		// check if it's a valid type
 		if ($type != 'md5' && $type != 'sha1' && $type != 'sha256') {
-			throw new UnauthorizedException('Invalid hash type.');
+			throw new UnauthorizedException(__('Invalid hash type.'));
 		}
 		$conditions = array();
 		$typeArray = array($type, 'filename|' . $type);
@@ -1835,7 +1837,7 @@ class Attribute extends AppModel {
 
 
 	public function nids($user, $format, $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false, $type = false, $enforceWarninglist = false, $includeAllTags = false) {
-		if (empty($user)) throw new MethodNotAllowedException('Could not read user.');
+		if (empty($user)) throw new MethodNotAllowedException(__('Could not read user.'));
 		$eventIds = $this->Event->fetchEventIds($user, $from, $to, $last);
 
 		// If we sent any tags along, load the associated tag names for each attribute
@@ -2273,7 +2275,7 @@ class Attribute extends AppModel {
 				}
 			}
 		} else {
-			if ($element['mandatory']) $errors = 'This field is mandatory.';
+			if ($element['mandatory']) $errors = __('This field is mandatory.');
 		}
 		return array('attributes' => $results, 'errors' => $errors);
 	}
@@ -2604,7 +2606,7 @@ class Attribute extends AppModel {
 	// The archive is password protected using the "infected" password
 	// The contents of the archive will be the actual sample, named <md5> and the original filename in a text file named <md5>.filename.txt
 	public function handleMaliciousBase64($event_id, $original_filename, $base64, $hash_types, $proposal = false) {
-		if (!is_numeric($event_id)) throw new Exception('Something went wrong. Received a non-numeric event ID while trying to create a zip archive of an uploaded malware sample.');
+		if (!is_numeric($event_id)) throw new Exception(__('Something went wrong. Received a non-numeric event ID while trying to create a zip archive of an uploaded malware sample.'));
 		$attachments_dir = Configure::read('MISP.attachments_dir');
 		if (empty($attachments_dir)) {
 			$my_server = ClassRegistry::init('Server');
