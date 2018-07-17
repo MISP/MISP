@@ -90,8 +90,8 @@ function installMISPonKali() {
   apt install -qy etckeeper
   # Skip dist-upgrade for now, pulls in 500+ updated packages
   #sudo apt -y dist-upgrade
-  git conif --global user.email "root@kali.lan"
-  git conif --global user.name "Root User"
+  git config --global user.email "root@kali.lan"
+  git config --global user.name "Root User"
   apt install -qy postfix
 
   apt install -qy \
