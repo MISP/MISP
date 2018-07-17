@@ -114,7 +114,7 @@ msgstr "Eventen er gemt"
 
 #: Controller/EventsController.php:1279;1356
 msgid "The event has been saved. "
-msgstr Eventen er gemt. "
+msgstr "Eventen er gemt. "
 
 #: Controller/EventsController.php:1300;1549
 msgid "The event could not be saved. Please, try again."
@@ -126,7 +126,7 @@ msgstr "Du kan kun uploade MISP XML eller MISP JSON filer."
 
 #: Controller/EventsController.php:1408;1486
 msgid "You are not authorised to do that. Please consider using the 'propose attribute' feature."
-msgstr "Du har ikke tilladelse til at udfører dette. Overvej venligst at bruge funktionen "foreslå attribut" funktionen."
+msgstr "Du har ikke tilladelse til at udfører dette. Overvej venligst at bruge funktionen 'foreslå attribut' funktionen."
 
 #: Controller/EventsController.php:1415
 msgid "Invalid event ID entered."
@@ -298,7 +298,7 @@ msgstr "Flytning af filen som denne vedhæftelse reference mislykkedes."
 
 #: Controller/ShadowAttributesController.php:309
 msgid "Attribute has not been added: attachments are added by \"Add attachment\" button"
-msgstr "Attributten blev ikke tilføjet: Vedhæftelse sker via "\Tilføj vedhæftelse\" knappen"
+msgstr "Attributten blev ikke tilføjet: Vedhæftelse sker via 'Tilføj vedhæftelse' knappen"
 
 #: Controller/ShadowAttributesController.php:356;359;368
 msgid "The lines"
