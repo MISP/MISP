@@ -508,14 +508,21 @@ class StixBuilder():
             else:
                 vulnerability_data = [mispTypesMapping['vulnerability'](name)]
             labels = ['misp:type=\"{}\"'.format(attribute.get('type'))]
+            if cluster['tag_name']:
+                labels.append(cluster['tag_name'])
+            description = "{} | {}".format(attribute.get('description'), cluster.get('description'))
+            vulnerability_args = {'id': vulnerability_id, 'type': 'vulnerability',
+                                  'name': name, 'external_references': vulnerability_data,
+                                  'created_by_ref': self.identity_id, 'labels': labels,
+                                  'description': description}
         else:
             vulnerability_id = "vulnerability--{}".format(attribute.uuid)
             name = attribute.value
             vulnerability_data = [mispTypesMapping['vulnerability'](name)]
             labels = self.create_labels(attribute)
-        vulnerability_args = {'id': vulnerability_id, 'type': 'vulnerability',
-                              'name': name, 'external_references': vulnerability_data,
-                              'created_by_ref': self.identity_id, 'labels': labels}
+            vulnerability_args = {'id': vulnerability_id, 'type': 'vulnerability',
+                                  'name': name, 'external_references': vulnerability_data,
+                                  'created_by_ref': self.identity_id, 'labels': labels}
         vulnerability = Vulnerability(**vulnerability_args)
         self.append_object(vulnerability, vulnerability_id)
 
