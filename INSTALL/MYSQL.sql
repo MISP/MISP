@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS `attribute_tags` (
   `attribute_id` int(11) NOT NULL,
   `event_id` int(11) NOT NULL,
   `tag_id` int(11) NOT NULL,
+  `deleted` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   INDEX `attribute_id` (`attribute_id`),
   INDEX `event_id` (`event_id`),
@@ -219,6 +220,7 @@ CREATE TABLE IF NOT EXISTS `event_tags` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `event_id` int(11) NOT NULL,
   `tag_id` int(11) NOT NULL,
+  `deleted` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   INDEX `event_id` (`event_id`),
   INDEX `tag_id` (`tag_id`)
