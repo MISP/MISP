@@ -343,7 +343,7 @@ relationshipsSpecifications = {'attack-pattern': {'vulnerability': 'targets', 'i
                                            'tool': 'uses'},
                               'course-of-action':{'attack-pattern': 'mitigates', 'malware': 'mitigates',
                                                   'tool': 'mitigates', 'vulnerability': 'mitigates'},
-                              'indicator': {'attack-pattern': 'indicates', 'cacmpaign': 'indicates',
+                              'indicator': {'attack-pattern': 'indicates', 'campaign': 'indicates',
                                             'intrusion-set': 'indicates', 'malware': 'indicates',
                                             'threat-actor': 'indicates', 'tool': 'indicates'},
                               'intrusion-set': {'threat-actor': 'attributed-to', 'identity': 'targets',
