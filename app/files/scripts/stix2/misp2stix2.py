@@ -337,7 +337,7 @@ class StixBuilder():
 
     def parse_galaxy(self, galaxy):
         galaxy_type = galaxy.get('type')
-        galaxy_uuid = galaxy['uuid']
+        galaxy_uuid = galaxy['GalaxyCluster'][0]['uuid']
         try:
             stix_type, to_call = self.galaxies_mapping[galaxy_type]
         except:
