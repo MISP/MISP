@@ -547,7 +547,7 @@ class StixBuilder():
                           'labels': labels, 'description': misp_object.description,
                           'pattern': pattern, 'kill_chain_phases': killchain,
                           'created_by_ref': self.identity_id}
-        indicator = Indicator(**indicator_args)
+        indicator = Indicator(**indicator_args, allow_custom=True)
         self.append_object(indicator, indicator_id)
 
     def add_object_observable(self, misp_object, observable_arg=None):
@@ -582,16 +582,16 @@ class StixBuilder():
             for field in ('address_family', 'protocol_family'):
                 enumeration_fails[field] = current_dict.pop(field)
                 try:
-                    return ObservedData(**ns_args)
+                    return ObservedData(**ns_args, allow_custom=True)
                 except exceptions.InvalidValueError:
                     current_dict[field] = enumeration_fails[field]
             for field in enumeration_fails:
                 current_dict.pop(field)
             try:
-                return ObservedData(**ns_args)
+                return ObservedData(**ns_args, allow_custom=True)
             except:
                 pass
-        return ObservedData(**args)
+        return ObservedData(**args, allow_custom=True)
 
     def add_object_vulnerability(self, misp_object, to_ids):
         vulnerability_id = 'vulnerability--{}'.format(misp_object.uuid)
