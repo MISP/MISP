@@ -1074,20 +1074,22 @@ class StixBuilder():
         return "[{}]".format(pattern[:-5])
 
     def resolve_regkey_observable(self, attributes):
-        observable = {'0': {'type': 'windows-registry-key'}}
+        observable = {'type': 'windows-registry-key'}
         values = {}
         for attribute in attributes:
             self.parse_galaxies(attribute.Galaxy)
-            if attribute.type == 'text':
-                values[regkeyMapping[attribute.object_relation]] = attribute.value
+            relation = attribute.object_relation
+            try:
+                stix_type = regkeyMapping[relation]
+            except KeyError:
+                stix_type = "x_misp_{}_{}".format(attribute.type, relation)
+            if relation in ('data', 'data-type', 'name'):
+                values[stix_type] = attribute.value
             else:
-                try:
-                    observable['0'][regkeyMapping[attribute.object_relation]] = attribute.value.replace('\\\\', '\\')
-                except:
-                    pass
+                observable[stix_type] = attribute.value
         if values:
-            observable['0']['values'] = [values]
-        return observable
+            observable['values'] = [values]
+        return {'0': observable}
 
     def resolve_regkey_pattern(self, attributes):
         mapping = objectsMapping['registry-key']['pattern']
@@ -1097,7 +1099,7 @@ class StixBuilder():
             try:
                 stix_type = regkeyMapping[attribute.object_relation]
             except:
-                continue
+                stix_type = "'x_misp_{}_{}'".format(attribute.type, attribute.object_relation)
             pattern += mapping.format(stix_type, attribute.value)
         return "[{}]".format(pattern[:-5])
 
