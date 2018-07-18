@@ -172,9 +172,10 @@ def pattern_regkey(_, attribute_value):
     return "[windows-registry-key:key = '{}']".format(attribute_value.strip())
 
 def observable_regkey_value(_, attribute_value):
+    from stix2 import WindowsRegistryValueType
     key, value = attribute_value.split('|')
     regkey = observable_regkey(_, key)
-    regkey['0']['values'] = {'name': value.strip()}
+    regkey['0']['values'] = WindowsRegistryValueType(**{'name': value.strip()})
     return regkey
 
 def pattern_regkey_value(_, attribute_value):
