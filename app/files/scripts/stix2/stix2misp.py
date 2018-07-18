@@ -139,6 +139,7 @@ class StixParser():
                 object_type = o._type
             except:
                 object_type = o['type']
+            if object_type == 'relationship': continue
             labels = o.get('labels')
             if object_type == 'vulnerability':
                 if len(labels) > 2:
