@@ -52,7 +52,7 @@ class TaxonomiesController extends AppController {
 		$taxonomy = $this->Taxonomy->getTaxonomy($id, array('full' => true, 'filter' => $filter));
 		if (empty($taxonomy)) throw new NotFoundException('Taxonomy not found.');
 		foreach ($taxonomy['entries'] as $key => $value) {
-			$taxonomy['entries'][$key]['events'] = count($value['existing_tag']['EventTag']);
+			$taxonomy['entries'][$key]['events'] = empty($value['existing_tag']) ? 0 : count($value['existing_tag']['EventTag']);
 		}
 		$this->set('filter', $filter);
 		$customPagination = new CustomPaginationTool();
