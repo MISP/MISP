@@ -1029,7 +1029,7 @@ class Event extends AppModel {
 		// cleanup the array from things we do not want to expose
 		foreach (array('Org', 'org_id', 'orgc_id', 'proposal_email_lock', 'org', 'orgc') as $field) unset($event['Event'][$field]);
 		foreach ($event['Event']['EventTag'] as $kt => $tag) {
-			if ((!$tag['Tag']['exportable']) && (!$server['Server']['internal'])) {
+			if (!$tag['Tag']['exportable']) {
 				unset($event['Event']['EventTag'][$kt]);
 			} else {
 				unset($tag['org_id']);
@@ -1128,7 +1128,7 @@ class Event extends AppModel {
 				}
 			}
 			foreach ($attribute['AttributeTag'] as $kt => $tag) {
-				if ((!$tag['Tag']['exportable']) && (!$server['Server']['internal'])) {
+				if (!$tag['Tag']['exportable']) {
 					unset($attribute['AttributeTag'][$kt]);
 				} else {
 					unset($tag['Tag']['org_id']);
@@ -1406,6 +1406,7 @@ class Event extends AppModel {
 					'fields' => array('Orgc.id', 'Orgc.uuid', 'Orgc.name')
 				),
 				'EventTag' => array(
+					'conditions' => array('deleted' => 0), // tag softdeletion -lm
 					'Tag' => array('fields' => array('Tag.id', 'Tag.name', 'Tag.colour', 'Tag.exportable'))
 				)
 			)
@@ -1623,6 +1624,7 @@ class Event extends AppModel {
 					'conditions' => $conditionsAttributes,
 					'order' => false,
 					'AttributeTag' => array(
+						'conditions' => array('deleted' => 0), // tag softdeletion -lm
 						'Tag' => array('conditions' => $tagConditions, 'order' => false),
 						'order' => false
 					),
@@ -1643,6 +1645,7 @@ class Event extends AppModel {
 					'order' => false
 				),
 				'EventTag' => array(
+					'conditions' => array('deleted' => 0), // tag softdeletion -lm
 					'Tag' => array('conditions' => $tagConditions, 'order' => false),
 					'order' => false
 				)
@@ -1979,6 +1982,7 @@ class Event extends AppModel {
 								'fields' => array('id', 'name'),
 						),
 						'EventTag' => array(
+								'conditions' => array('deleted' => 0), // tag softdeletion -lm
 								'Tag' => array(
 										'fields' => array('id', 'name')
 								)
@@ -2819,7 +2823,7 @@ class Event extends AppModel {
 					}
 				}
 			}
-			// tag remover only for "internal instance" -lm
+			// tag remover, only for "internal instance" -lm
 			if (isset($data['Event']['Tag']) && $user['Server']['internal']) {
 				$tags_list = $this->EventTag->Tag->findEventTags($this->id);
 				// $tag_list is array of array
@@ -2844,7 +2848,8 @@ class Event extends AppModel {
 					'change' => 'User '.$user['email'].' is "'.$user['Role']['name'].'" for server ('.$user['Server']['id'].') '.$user['Server']['url'].', this server is an "Internal Instance"',
 					));
 				}
-				$this->EventTag->deleteAll(array('event_id' => $this->id));
+				//$this->EventTag->deleteAll(array('event_id' => $this->id));
+				// todo: implement tag checking -lm
 			}
 
 			if (isset($data['Event']['EventTag'])) {

@@ -437,7 +437,10 @@ class EventsController extends AppController {
 									continue;
 								}
 								$block = $this->Event->EventTag->find('all', array(
-										'conditions' => array('EventTag.tag_id' => $tagName['Tag']['id']),
+										'conditions' => array(
+											'EventTag.tag_id' => $tagName['Tag']['id'],
+											'EventTag.deleted' => 0 // tag softdelete -lm
+										),
 										'fields' => 'event_id',
 										'recursive' => -1,
 								));
@@ -471,7 +474,10 @@ class EventsController extends AppController {
 								}
 
 								$allow = $this->Event->EventTag->find('all', array(
-										'conditions' => array('EventTag.tag_id' => $tagName['Tag']['id']),
+										'conditions' => array(
+											'EventTag.tag_id' => $tagName['Tag']['id'],
+											'EventTag.deleted' => 0 // tag softdelete -lm 
+										),
 										'fields' => 'event_id',
 										'recursive' => -1,
 								));
@@ -685,6 +691,15 @@ class EventsController extends AppController {
 				if (empty($event['SharingGroup']['name'])) {
 					unset($events[$k]['SharingGroup']);
 				}
+				// hide softdeteletd tags patch start -lm
+				foreach ($event['EventTag'] as $k2 => $et) {
+					if ($et['deleted'] == 1) {
+//						print_r($events[$k]['EventTag'][$k2]);
+						unset($events[$k]['EventTag'][$k2]);
+					}
+				}
+				// hide softdeteletd tags patch end -lm
+
 			}
 			if (count($events) == 1 && isset($this->passedArgs['searchall'])) {
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $events[0]['Event']['id']));
@@ -1118,6 +1133,7 @@ class EventsController extends AppController {
 				unset($event['EventTag'][$k]);
 			}
 		}
+
 		foreach ($event['Attribute'] as $k => $attribute) {
 			foreach ($attribute['AttributeTag'] as $k2 => $attributeTag) {
 				if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
