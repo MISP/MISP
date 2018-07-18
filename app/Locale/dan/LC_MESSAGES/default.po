@@ -114,7 +114,7 @@ msgstr "Eventen er gemt"
 
 #: Controller/EventsController.php:1279;1356
 msgid "The event has been saved. "
-msgstr Eventen er gemt. "
+msgstr "Eventen er gemt. "
 
 #: Controller/EventsController.php:1300;1549
 msgid "The event could not be saved. Please, try again."
@@ -126,7 +126,7 @@ msgstr "Du kan kun uploade MISP XML eller MISP JSON filer."
 
 #: Controller/EventsController.php:1408;1486
 msgid "You are not authorised to do that. Please consider using the 'propose attribute' feature."
-msgstr "Du har ikke tilladelse til at udfører dette. Overvej venligst at bruge funktionen "foreslå attribut" funktionen."
+msgstr "Du har ikke tilladelse til at udfører dette. Overvej venligst at bruge funktionen 'foreslå attribut' funktionen."
 
 #: Controller/EventsController.php:1415
 msgid "Invalid event ID entered."
@@ -298,7 +298,7 @@ msgstr "Flytning af filen som denne vedhæftelse reference mislykkedes."
 
 #: Controller/ShadowAttributesController.php:309
 msgid "Attribute has not been added: attachments are added by \"Add attachment\" button"
-msgstr "Attributten blev ikke tilføjet: Vedhæftelse sker via "\Tilføj vedhæftelse\" knappen"
+msgstr "Attributten blev ikke tilføjet: Vedhæftelse sker via 'Tilføj vedhæftelse' knappen"
 
 #: Controller/ShadowAttributesController.php:356;359;368
 msgid "The lines"
@@ -2703,8 +2703,7 @@ msgstr "Legacy Administrative Værktøjer"
 
 #: View/Elements/healthElements/diagnostics.ctp:351
 msgid "Click the following button to go to the legacy administrative tools page. There should in general be no need to do this unless you are upgrading a very old MISP instance (<2.4), all updates are done automatically with more current versions."
-msgstr "
-Klik på den følgende knap for at gå til siden med de gamle administrative værktøjer. Dette burde ikke være nødvendigt at gøre dette, med mindre du opgraderer fra en meget gammelt MISP instans (<2.4), foretages alle opdateringer automatisk med mere aktuelle versioner."
+msgstr "Klik på den følgende knap for at gå til siden med de gamle administrative værktøjer. Dette burde ikke være nødvendigt at gøre dette, med mindre du opgraderer fra en meget gammelt MISP instans (<2.4), foretages alle opdateringer automatisk med mere aktuelle versioner."
 
 #: View/Elements/healthElements/diagnostics.ctp:353
 msgid "Verify bad link on attachments"
@@ -2769,7 +2768,7 @@ msgstr "Kritisk, din MISP installation har brug for øjeblikkelig opmærksomhed"
 
 #: View/Elements/healthElements/overview.ctp:8
 msgid "Issues found, it is recommended that you resolve them."
-msgstr "Der er identificeret problemer, det anbefales løst. ""
+msgstr "Der er identificeret problemer, det anbefales løst. "
 
 #: View/Elements/healthElements/overview.ctp:8
 msgid "Good, but there are some optional settings that are incorrect / not set."
@@ -3566,7 +3565,7 @@ msgstr "CSV Eksport"
 
 #: View/Events/automation.ctp:46
 msgid "An automatic export of attributes is available as CSV. Only attributes that are flagged \"to_ids\" will get exported."
-msgstr "Automatisk exportering af attributter er tilgængelig som CSV. Kun attributter der er markeret med "\to_ids\" eksporteres."
+msgstr "Automatisk exportering af attributter er tilgængelig som CSV. Kun attributter der er markeret med \"to_ids\" eksporteres."
 
 #: View/Events/automation.ctp:49
 msgid "You can specify additional flags for CSV exports as follows"
@@ -6423,7 +6422,6 @@ msgstr "Kategori og Typer"
 
 #: View/Pages/doc/administration.ctp:27
 msgid "Server settings and diagnostics"
-msgstr "Server indstillinger og diagnosticering"
 msgstr "Server indstillinger og diagnosticering"
 
 #: View/Pages/doc/administration.ctp:28
@@ -9495,7 +9493,7 @@ msgstr "Instans navn"
 
 #: View/Servers/add.ctp:16
 msgid "You can set this instance up as an internal instance by checking the checkbox below. This means that any synchronisation between this instance and the remote will not be automatically degraded as it would in a normal synchronisation scenario. Please make sure that you own both instances and that you are OK with this otherwise dangerous change."
-msgstr "Du kan indstille denne MISP instans som en intern instans ved at markere afkrydsningsfeltet nedenfor. Det betyder, at enhver synkronisering mellem denne instans og remote instansen ikke automatisk "degrades" som den ville i et normalt synkroniserings scenarie. Sørg for, at du ejer begge MISP instanser, og at du er okay med denne ellers risikofyldte ændring."
+msgstr "Du kan indstille denne MISP instans som en intern instans ved at markere afkrydsningsfeltet nedenfor. Det betyder, at enhver synkronisering mellem denne instans og remote instansen ikke automatisk \"degrades\" som den ville i et normalt synkroniserings scenarie. Sørg for, at du ejer begge MISP instanser, og at du er okay med denne ellers risikofyldte ændring."
 
 #: View/Servers/add.ctp:19
 #: View/Servers/edit.ctp:19
@@ -11041,7 +11039,7 @@ msgstr "Valgmuligheder: Kun din organisation, Kun dette fællesskab, Forbundne f
 
 #: Model/Event.php:validation for field sharing_group_id
 msgid "If the distribution is set to \"Sharing Group\", a sharing group has to be selected."
-msgstr "Hvis fordelingen er sat til \ "Delings Gruppe \", skal en delings gruppe vælges."
+msgstr "Hvis fordelingen er sat til \"Delings Gruppe \", skal en delings gruppe vælges."
 
 #: Model/Event.php:validation for field analysis
 msgid "Options : 0, 1, 2 (for Initial, Ongoing, Completed)"
