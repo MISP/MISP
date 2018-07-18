@@ -29,9 +29,17 @@ non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', '
                             'vulnerability']
 misp_hash_types = ["authentihash", "ssdeep", "imphash", "md5", "sha1", "sha224",
                    "sha256", "sha384", "sha512", "sha512/224","sha512/256","tlsh"]
-malware_galaxies_list = ['android', 'banker', 'stealer', 'backdoor']
+attack_pattern_galaxies_list = ['mitre-attack-pattern', 'mitre-enterprise-attack-attack-pattern',
+                                'mitre-mobile-attack-attack-pattern', 'mitre-pre-attack-attack-pattern']
+course_of_action_galaxies_list = ['mitre-course-of-action', 'mitre-enterprise-attack-course-of-action',
+                                  'mitre-mobile-attack-course-of-action']
+intrusion_set_galaxies_list = ['mitre-enterprise-attack-intrusion-set', 'mitre-mobile-attack-intrusion-set',
+                               'mitre-pre-attack-intrusion-set', 'mitre-intrusion-set']
+malware_galaxies_list = ['android', 'banker', 'stealer', 'backdoor', 'ransomware', 'mitre-malware',
+                         'mitre-enterprise-attack-malware', 'mitre-mobile-attack-malware']
 threat_actor_galaxies_list = ['threat-actor', 'microsoft-activity-group']
-tool_galaxies_list = ['botnet', 'rat', 'exploit-kit', 'tds']
+tool_galaxies_list = ['botnet', 'rat', 'exploit-kit', 'tds', 'tool', 'mitre-tool',
+                      'mitre-enterprise-attack-tool', 'mitre-mobile-attack-tool']
 
 class StixBuilder():
     def __init__(self):
@@ -166,6 +174,13 @@ class StixBuilder():
             'x509': {'observable': self.resolve_x509_observable,
                      'pattern': self.resolve_x509_pattern}
         }
+        self.galaxies_mapping = {'branded-vulnerability': ['vulnerability', self.add_vulnerability]}
+        self.galaxies_mapping.update(dict.fromkeys(attack_pattern_galaxies_list, ['attack-pattern', self.add_attack_pattern]))
+        self.galaxies_mapping.update(dict.fromkeys(course_of_action_galaxies_list, ['course-of-action', self.add_course_of_action]))
+        self.galaxies_mapping.update(dict.fromkeys(intrusion_set_galaxies_list, ['intrusion-set', self.add_intrusion_set]))
+        self.galaxies_mapping.update(dict.fromkeys(malware_galaxies_list, ['malware', self.add_malware]))
+        self.galaxies_mapping.update(dict.fromkeys(threat_actor_galaxies_list, ['threat-actor', self.add_threat_actor]))
+        self.galaxies_mapping.update(dict.fromkeys(tool_galaxies_list, ['tool', self.add_tool]))
 
     def fetch_object_references(self, misp_objects):
         object_references, processes = {}, {}
@@ -212,7 +227,7 @@ class StixBuilder():
 
     def handle_non_indicator_attribute(self, attribute, attribute_type):
         if attribute_type == "vulnerability":
-            self.add_vulnerability(attribute)
+            self.add_vulnerability(attribute, from_galaxy=False)
         else:
             self.add_observed_data(attribute)
 
@@ -323,21 +338,12 @@ class StixBuilder():
     def parse_galaxy(self, galaxy):
         galaxy_type = galaxy.get('type')
         galaxy_uuid = galaxy['uuid']
+        try:
+            stix_type, to_call = self.galaxies_mapping[galaxy_type]
+        except:
+            return
         if galaxy_uuid not in self.galaxies:
-            if 'attack-pattern' in galaxy_type:
-                self.add_attack_pattern(galaxy)
-            elif 'course-of-action' in galaxy_type:
-                self.add_course_of_action(galaxy)
-            elif 'intrusion-set' in galaxy_type:
-                self.add_intrusion_set(galaxy)
-            elif galaxy_type in malware_galaxies_list or 'ware' in galaxy_type:
-                self.add_malware(galaxy)
-            elif galaxy_type in threat_actor_galaxies_list:
-                self.add_threat_actor(galaxy)
-            elif galaxy_type in tool_galaxies_list or 'tool' in galaxy_type:
-                self.add_tool(galaxy)
-            else:
-                return
+            to_call(galaxy)
             self.galaxies.append(galaxy_uuid)
 
     @staticmethod
@@ -477,13 +483,23 @@ class StixBuilder():
         tool = Tool(**tool_args)
         self.append_object(tool, tool_id)
 
-    def add_vulnerability(self, attribute):
-        vulnerability_id = "vulnerability--{}".format(attribute.uuid)
-        name = attribute.value
-        vulnerability_data = mispTypesMapping['vulnerability'](name)
-        labels = self.create_labels(attribute)
+    def add_vulnerability(self, attribute, from_galaxy=True):
+        if from_galaxy:
+            vulnerability_id = "vulnerability--{}".format(attribute['uuid'])
+            cluster = attribute['GalaxyCluster'][0]
+            name = cluster['value']
+            if cluster['meta'] and cluster['meta']['aliases']:
+                vulnerability_data = [mispTypesMapping['vulnerability'](alias) for alias in cluster['meta']['aliases']]
+            else:
+                vulnerability_data = [mispTypesMapping['vulnerability'](name)]
+            labels = ['misp:type=\"{}\"'.format(attribute.get('type'))]
+        else:
+            vulnerability_id = "vulnerability--{}".format(attribute.uuid)
+            name = attribute.value
+            vulnerability_data = [mispTypesMapping['vulnerability'](name)]
+            labels = self.create_labels(attribute)
         vulnerability_args = {'id': vulnerability_id, 'type': 'vulnerability',
-                              'name': name, 'external_references': [vulnerability_data],
+                              'name': name, 'external_references': vulnerability_data,
                               'created_by_ref': self.identity_id, 'labels': labels}
         vulnerability = Vulnerability(**vulnerability_args)
         self.append_object(vulnerability, vulnerability_id)
