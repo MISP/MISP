@@ -140,7 +140,12 @@ class StixParser():
             except:
                 object_type = o['type']
             labels = o.get('labels')
-            if object_type in galaxy_types:
+            if object_type == 'vulnerability':
+                if len(labels) > 2:
+                    self.parse_usual_object(o, labels)
+                else:
+                    self.parse_galaxy(o, labels)
+            elif object_type in galaxy_types:
                 self.parse_galaxy(o, labels)
             elif object_type == 'course-of-action':
                 self.parse_course_of_action(o)
@@ -150,10 +155,13 @@ class StixParser():
                 else:
                     self.parse_custom_attribute(o, labels)
             else:
-                if 'from_object' in labels:
-                    self.parse_object(o, labels)
-                else:
-                    self.parse_attribute(o, labels)
+                self.parse_usual_object(o, labels)
+
+    def parse_usual_object(self, o, labels):
+        if 'from_object' in labels:
+            self.parse_object(o, labels)
+        else:
+            self.parse_attribute(o, labels)
 
     def parse_identity(self):
         identity = self.event.pop(0)
