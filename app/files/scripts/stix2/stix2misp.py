@@ -139,8 +139,14 @@ class StixParser():
                 object_type = o._type
             except:
                 object_type = o['type']
+            if object_type == 'relationship': continue
             labels = o.get('labels')
-            if object_type in galaxy_types:
+            if object_type == 'vulnerability':
+                if len(labels) > 2:
+                    self.parse_usual_object(o, labels)
+                else:
+                    self.parse_galaxy(o, labels)
+            elif object_type in galaxy_types:
                 self.parse_galaxy(o, labels)
             elif object_type == 'course-of-action':
                 self.parse_course_of_action(o)
@@ -150,10 +156,13 @@ class StixParser():
                 else:
                     self.parse_custom_attribute(o, labels)
             else:
-                if 'from_object' in labels:
-                    self.parse_object(o, labels)
-                else:
-                    self.parse_attribute(o, labels)
+                self.parse_usual_object(o, labels)
+
+    def parse_usual_object(self, o, labels):
+        if 'from_object' in labels:
+            self.parse_object(o, labels)
+        else:
+            self.parse_attribute(o, labels)
 
     def parse_identity(self):
         identity = self.event.pop(0)
@@ -429,10 +438,13 @@ class StixParser():
         for stix_type, value in stix_object.items():
             try:
                 mapping = mapping_dict[stix_type]
+                misp_object.add_attribute(**{'type': mapping['type'], 'object_relation': mapping['relation'],
+                                             'value': value, 'to_ids': False})
             except KeyError:
-                continue
-            misp_object.add_attribute(**{'type': mapping['type'], 'object_relation': mapping['relation'],
-                                         'value': value, 'to_ids': False})
+                if stix_type.startswith("x_misp_"):
+                    attribute_type, relation = parse_custom_property(stix_type)
+                    misp_object.add_attribute(**{'type': attribute_type, 'object_relation': relation[:-1],
+                                                 'value': value, 'to_ids': False})
 
     def pattern_pe(self, pattern):
         attributes = []
@@ -450,9 +462,15 @@ class StixParser():
                     sections[p_type_list[2]][stix_type] = p_value
                 else:
                     stix_type = p_type.split('.')[-1]
-                    mapping = pe_mapping[stix_type]
-                    pe.add_attribute(**{'type': mapping['type'], 'object_relation': mapping['relation'],
-                                        'value': p_value, 'to_ids': True})
+                    try:
+                        mapping = pe_mapping[stix_type]
+                        pe.add_attribute(**{'type': mapping['type'], 'object_relation': mapping['relation'],
+                                            'value': p_value, 'to_ids': True})
+                    except KeyError:
+                        if stix_type.startswith("x_misp_"):
+                            attribute_type, relation = parse_custom_property(stix_type)
+                            pe.add_attribute(**{'type': attribute_type, 'object_relation': relation[:-2],
+                                                'value': p_value, 'to_ids': False})
             else:
                 if 'file:hashes.' in p_type :
                     _, h = p_type.split('.')

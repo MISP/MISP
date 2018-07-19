@@ -10,7 +10,7 @@ class Role extends AppModel {
 		'name' => array(
 			'unique' => array(
 				'rule' => 'isUnique',
-				'message' => 'A role with this name already exists.'
+				'message' => 'A role with this name already exists.' // TODO i18n?
 			),
 			'valueNotEmpty' => array(
 				'rule' => array('valueNotEmpty'),
@@ -54,6 +54,7 @@ class Role extends AppModel {
 		'publish' => 3
 	);
 
+	// #TODO i18n?
 	public $permFlags = array(
 		'perm_site_admin' => array(
 			'id' => 'RolePermSiteAdmin',

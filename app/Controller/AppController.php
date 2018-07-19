@@ -46,7 +46,7 @@ class AppController extends Controller {
 
 	public $helpers = array('Utility', 'OrgImg');
 
-	private $__queryVersion = '42';
+	private $__queryVersion = '43';
 	public $pyMispVersion = '2.4.93';
 	public $phpmin = '5.6.5';
 	public $phprec = '7.0.16';
@@ -117,6 +117,8 @@ class AppController extends Controller {
 		$language = Configure::read('MISP.language');
 		if (!empty($language) && $language !== 'eng') {
 			Configure::write('Config.language', $language);
+		} else {
+			Configure::write('Config.language', 'eng');
 		}
 
 		//if fresh installation (salt empty) generate a new salt
@@ -446,7 +448,16 @@ class AppController extends Controller {
 
 	protected function _isRest() {
 		$api = $this->__isApiFunction($this->request->params['controller'], $this->request->params['action']);
-		return (isset($this->RequestHandler) && ($api || $this->RequestHandler->isXml() || $this->_isJson()));
+		if (isset($this->RequestHandler) && ($api || $this->RequestHandler->isXml() || $this->_isJson())) {
+			if ($this->_isJson()) {
+				if (!empty($this->request->input()) && empty($this->request->input('json_decode'))) {
+					throw new MethodNotAllowedException('Invalid JSON input. Make sure that the JSON input is a correctly formatted JSON string. This request has been blocked to avoid an unfiltered request.');
+				}
+			}
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	protected function _isAutomation() {

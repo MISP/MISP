@@ -45,32 +45,9 @@ class EventDelegation extends AppModel {
 	}
 
 	public function transferEvent($delegation, $user) {
-		$this->Event->Attribute->bindModel(
-			array(
-				'hasMany' => array(
-					'ShadowAttribute' => array(
-							'className' => 'ShadowAttribute',
-							'foreignKey' => 'old_id'
-					)
-				)
-			)
-		);
-		$event = $this->Event->find('first', array(
-				'conditions' => array('Event.id' => $delegation['EventDelegation']['event_id']),
-				'recursive' => -1,
-				'contain' => array(
-						'ShadowAttribute' => array(
-							'conditions' => array(
-								'ShadowAttribute.old_id' => 0,
-								'ShadowAttribute.event_id' => $delegation['EventDelegation']['event_id']
-							)
-						),
-						'EventTag',
-						'Attribute' => array(
-							'ShadowAttribute'
-						)
-				),
-		));
+		$event = $this->Event->fetchEvent($user, array('eventid' => $delegation['EventDelegation']['event_id']));
+		if (empty($event)) throw new MethodNotFoundException('Invalid event.');
+		$event = $event[0];
 		$event['Event']['user_id'] = $user['id'];
 		$event['Event']['orgc_id'] = $delegation['EventDelegation']['org_id'];
 		$event['Event']['org_id'] = $delegation['EventDelegation']['org_id'];

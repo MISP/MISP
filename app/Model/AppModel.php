@@ -36,6 +36,8 @@ class AppModel extends Model {
 
 	private $__profiler = array();
 
+	public $elasticSearchClient = false;
+
 	public function __construct($id = false, $table = null, $ds = null) {
 		parent::__construct($id, $table, $ds);
 
@@ -63,12 +65,8 @@ class AppModel extends Model {
 
 	public $db_changes = array(
 		1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
-<<<<<<< HEAD
-		7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false
-=======
 		7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
-		13 => false
->>>>>>> upstream/2.4
+		13 => false, 14 => false, 15 => false, 16 => false, 17 => false, 18 => false
 	);
 
 	function afterSave($created, $options = array()) {
@@ -963,10 +961,55 @@ class AppModel extends Model {
 					INDEX `timestamp` (`timestamp`)
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 				break;
-			case 13:
+			case 12:
 				$sqlArray[] = "ALTER TABLE `servers` ADD `skip_proxy` tinyint(1) NOT NULL DEFAULT 0;";
 				break;
+			case 13:
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS event_graph (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`event_id` int(11) NOT NULL,
+					`user_id` int(11) NOT NULL,
+					`org_id` int(11) NOT NULL,
+					`timestamp` int(11) NOT NULL DEFAULT 0,
+					`network_name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+					`network_json` MEDIUMTEXT NOT NULL,
+					`preview_img` MEDIUMTEXT,
+					PRIMARY KEY (id),
+					INDEX `event_id` (`event_id`),
+					INDEX `user_id` (`user_id`),
+					INDEX `org_id` (`org_id`),
+					INDEX `timestamp` (`timestamp`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+				break;
 			case 14:
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `user_settings` (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`setting` varchar(255) COLLATE utf8_bin NOT NULL,
+					`value` text COLLATE utf8_bin NOT NULL,
+					`user_id` int(11) NOT NULL,
+					INDEX `setting` (`setting`),
+					INDEX `user_id` (`user_id`),
+					PRIMARY KEY (`id`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+				break;
+			case 15:
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS event_graph (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`event_id` int(11) NOT NULL,
+					`user_id` int(11) NOT NULL,
+					`org_id` int(11) NOT NULL,
+					`timestamp` int(11) NOT NULL DEFAULT 0,
+					`network_name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+					`network_json` MEDIUMTEXT NOT NULL,
+					`preview_img` MEDIUMTEXT,
+					PRIMARY KEY (id),
+					INDEX `event_id` (`event_id`),
+					INDEX `user_id` (`user_id`),
+					INDEX `org_id` (`org_id`),
+					INDEX `timestamp` (`timestamp`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+				break;
+			case 16:
 				$sqlArray[] =
 					"ALTER TABLE `attributes`
 						DROP INDEX uuid,
@@ -981,7 +1024,7 @@ class AppModel extends Model {
 						DROP INDEX deleted
 					";
 				break;
-			case 15:
+			case 17:
 				$sqlArray[] =
 					"ALTER TABLE `attributes`
 						ADD COLUMN `first_seen` DATETIME(6) NULL DEFAULT NULL,
@@ -989,7 +1032,7 @@ class AppModel extends Model {
 						MODIFY comment TEXT COLLATE utf8_unicode_ci
 					;";
 				break;
-			case 16:
+			case 18:
 				$sqlArray[] = "
 					ALTER TABLE `attributes`
 						ADD INDEX `uuid` (`uuid`),
@@ -1373,6 +1416,20 @@ class AppModel extends Model {
 		$pubSubTool->initTool();
 		$this->loadedPubSubTool = $pubSubTool;
 		return true;
+	}
+
+	public function getElasticSearchTool() {
+		if (!$this->elasticSearchClient) {
+			$this->loadElasticSearchTool();
+		}
+		return $this->elasticSearchClient;
+	}
+
+	public function loadElasticSearchTool() {
+		App::uses('ElasticSearchClient', 'Tools');
+		$client = new ElasticSearchClient();
+		$client->initTool();
+		$this->elasticSearchClient = $client;
 	}
 
 	public function checkVersionRequirements($versionString, $minVersion) {

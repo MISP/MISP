@@ -1353,7 +1353,7 @@ class UsersController extends AppController {
 	// shows some statistics about the instance
 	public function statistics($page = 'data') {
 		$this->set('page', $page);
-		$pages = array('data' => 'Usage data', 'orgs' => 'Organisations', 'tags' => 'Tags', 'attributehistogram' => 'Attribute histogram', 'sightings' => 'Sightings toplists', 'attackMatrix' => 'ATT&CK Matrix');
+		$pages = array('data' => 'Usage data', 'orgs' => 'Organisations', 'users' => 'User and Organisation statistics', 'tags' => 'Tags', 'attributehistogram' => 'Attribute histogram', 'sightings' => 'Sightings toplists', 'attackMatrix' => 'ATT&CK Matrix');
 		if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
 			unset($pages['orgs']);
 		}
@@ -1366,6 +1366,8 @@ class UsersController extends AppController {
 				throw new MethodNotAllowedException('This feature is currently disabled.');
 			}
 			$result = $this->__statisticsOrgs($this->params['named']);
+		} else if ($page == 'users') {
+			$result = $this->__statisticsUsers($this->params['named']);
 		} else if ($page == 'tags') {
 			$result = $this->__statisticsTags($this->params['named']);
 		} else if ($page == 'attributehistogram') {
@@ -1547,6 +1549,52 @@ class UsersController extends AppController {
 			$this->set('orgs', $orgs);
 			$this->render('statistics_orgs');
 		}
+	}
+
+	private function __statisticsUsers($params = array()) {
+		$this->loadModel('Organisation');
+		$this->loadModel('User');
+		$this_month = strtotime(date('Y/m') . '/01');
+		$this_year = strtotime(date('Y') . '/01/01');
+		$ranges = array(
+			'total' => null,
+			'month' => $this_month,
+			'year' => $this_year
+		);
+		$scopes = array(
+			'user' => array(
+				'conditions' => null,
+				'model' => 'User',
+				'date_created' => 'timestamp'
+			),
+			'org_local' => array(
+				'conditions' => array('Organisation.local' => 1),
+				'model' => 'Organisation',
+				'date_created' => 'datetime'
+			),
+			'org_external' => array(
+				'conditions' => array('Organisation.local' => 0),
+				'model' => 'Organisation',
+				'date_created' => 'datetime'
+			)
+		);
+		$statistics = array();
+		foreach ($scopes as $scope => $scope_data) {
+			foreach ($ranges as $range => $condition) {
+				$params = array(
+					'recursive' => -1
+				);
+				if (!empty($condition)) {
+					if ($scope_data['date_created'] === 'datetime') {
+						$condition = date('Y-m-d H:i:s', $condition);
+					}
+					$params['conditions'] = array($scope_data['model'] . '.date_created >=' => $condition);
+				}
+				$statistics[$scope]['data'][$range] = $this->{$scope_data['model']}->find('count', $params);
+			}
+		}
+		$this->set('statistics', $statistics);
+		$this->render('statistics_users');
 	}
 
 	public function tagStatisticsGraph() {

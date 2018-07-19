@@ -8,9 +8,12 @@ var nodes = new vis.DataSet();
 var edges = new vis.DataSet();
 
 var typeaheadDataSearch;
+var event_last_change = $('#eventgraph_network').data('event-timestamp');
 var scope_id = $('#eventgraph_network').data('event-id');
+var user_email = $('#eventgraph_network').data('user-email'); 
 var container = document.getElementById('eventgraph_network');
 var user_manipulation = $('#eventgraph_network').data('user-manipulation');
+var is_siteadmin = $('#eventgraph_network').data('is-site-admin');
 var root_id_attr = "rootNode:attribute";
 var root_id_object = "rootNode:object";
 var root_id_tag = "rootNode:tag";
@@ -51,6 +54,8 @@ class EventGraph {
 		this.menu_display = this.init_display_menu();
 		this.menu_filter = this.init_filter_menu();
 		this.menu_canvas = this.init_canvas_menu();
+		this.menu_import = this.init_import_menu();
+		this.menu_history = this.init_history_menu();
 		this.new_edges_for_unreferenced_nodes = [];
 		this.layout = 'default';
 		this.solver = 'barnesHut';
@@ -61,7 +66,9 @@ class EventGraph {
 			nodes: this.nodes,
 			edges: this.edges
 		};
+		this.hiddenNode = new vis.DataSet();
 		this.object_templates = {};
+		this.canvasContext;
 
 		this.cluster_index = 0; // use to get uniq cluster ID
 		this.clusters = [];
@@ -89,8 +96,10 @@ class EventGraph {
 
 		this.network.on("dragStart", function (params) {
 			eventGraph.physics_state(false);
+			eventGraph.physics_activate_physics_for_nodes(params.nodes);
 		});
 		this.network.on("dragEnd", function (params) {
+			eventGraph.physics_disable_physics_for_nodes(params.nodes);
 			eventGraph.physics_state($('#checkbox_physics_enable').prop("checked"));
 		});
 
@@ -111,6 +120,17 @@ class EventGraph {
 				        return [value];
 				});
 				drawExtendedEventHull(ctx, nodes, chosen_color, "Event "+event_id);
+			}
+		});
+
+		this.network.on("afterDrawing", function (ctx) {
+			that.canvasContext = ctx;
+		});
+
+		this.network.on("oncontext", function (event) {
+			var node = that.network.getNodeAt({x: event.pointer.DOM.x, y: event.pointer.DOM.y});
+			if (node !== undefined) {
+				that.network.selectNodes([node]);
 			}
 		});
 	}
@@ -149,7 +169,7 @@ class EventGraph {
 			trigger_container: document.getElementById("network-scope"),
 			bootstrap_popover: true,
 			style: "z-index: 1",
-			container: document.getElementById("eventgraph_div")
+			container: document.getElementById("eventgraph_div"),
 		});
 		menu_scope.add_select({
 			id: "select_graph_scope",
@@ -334,7 +354,7 @@ class EventGraph {
 				{
 					DOMType: "select",
 					item_options: {
-						options: ["Contains", "Do not contain"]
+						options: ["Contains", "Do not contain"],
 					}
 				},
 				{
@@ -438,7 +458,7 @@ class EventGraph {
 				if (selected_id === undefined) { // A node is selected
 					return;
 				}
-				eventGraph.nodes.remove(selected_id);
+				eventGraph.hideNode([selected_id]);
 			}
 		});
 		menu_canvas.add_button({
@@ -463,6 +483,151 @@ class EventGraph {
 				eventGraph.collapse_node(selected_id);
 			}
 		});
+		return menu_canvas;
+	}
+
+	init_import_menu() {
+		var menu_import = new ContextualMenu({
+			trigger_container: document.getElementById("network-import"),
+			bootstrap_popover: true,
+			style: "z-index: 1",
+			container: document.getElementById("eventgraph_div")
+		});
+		menu_import.add_select_button({
+			id: "select_button_graph_import_export",
+			label: "Export",
+			tooltip: "Export graph",
+			textButton: "Export",
+			event: function(selected_value) {
+				if (selected_value == 'json') {
+					var jsonData = eventGraph.toJSON();
+					download_file(jsonData, 'json');
+				} else if (selected_value == 'png' || selected_value == 'jpeg') {
+					var dataURL = eventGraph.canvasContext.canvas.toDataURL('image/'+selected_value);
+					download_file(dataURL, selected_value);
+				} else if (selected_value == 'DOT Language') {
+					var hiddenNodeIds = [];
+					eventGraph.hiddenNode.forEach(function(node) {
+						hiddenNodeIds.push(node.id);
+					});
+
+					var nodePositions = eventGraph.network.getPositions();
+					var validNodes = eventGraph.nodes.get({ filter: function (nodeD) {
+						var nodeP = nodePositions[nodeD.id];
+						if (nodeP !== undefined) {
+							return true;
+						}
+						return false;
+					}});
+
+
+					var dotData = convert_to_dot_lang(validNodes, eventGraph.edges, hiddenNodeIds);
+					download_file(dotData, 'dot');
+				}
+			},
+			options: ["json", "png", "jpeg", "DOT Language"],
+			default: "json"
+		});
+		return menu_import;
+	}
+
+	init_history_menu() {
+		var menu_history= new ContextualMenu({
+			trigger_container: document.getElementById("network-history"),
+			bootstrap_popover: true,
+			style: "z-index: 1",
+			container: document.getElementById("eventgraph_div")
+		});
+		menu_history.add_action_table({
+			id: "table_graph_history_actiontable",
+			container: menu_history.menu,
+			title: "Network history",
+			header: ["Id", "Name", "Owner", "Date"],
+			control_items: [
+				{
+					DOMType: "input",
+					colspan: 4,
+					item_options: {
+						style: "width: 98%;",
+						placeholder: "Network's name",
+						id: "networkHistory_input_name_save",
+						disabled: !user_manipulation
+					}
+				}
+			],
+			header_action_button: {
+				additionEnabled: false,
+				style: {
+					type: "success",
+					icon: "fa-save",
+					tooltip: "Save network"
+				},
+				disabled: !user_manipulation
+			},
+			row_action_button: {
+				removalEnabled: false,
+				style: {
+					tooltip: "Delete saved network"
+				},
+				others: [
+					{
+						style: {
+							type: "success",
+							icon: "fa-share ",
+							tooltip: "Load saved network"
+						},
+						event: function(data) {
+							var network_id = data[0];
+							dataHandler.fetch_and_import_graph(network_id);
+						}
+					}
+				]
+			},
+			data: [],
+			onAddition: function(network_name, selfTable) {
+				var network_json = eventGraph.toJSON();
+				var preview = eventGraph.canvasContext.canvas.toDataURL('image/png', 0.1);
+
+				mispInteraction.save_network(network_json, network_name, preview);
+				$('#networkHistory_input_name_save').val('');
+			},
+			onRemove: function(data, selfTable) {
+				mispInteraction.delete_saved_network(data);
+			}
+		});
+		menu_history.items["table_graph_history_actiontable"].table.style.minWidth = "450px";
+
+		// fill history table
+		// has to do it manually here (not using reset_graph_history) because menu_history still not constructed yet
+		dataHandler.fetch_graph_history(function(history_formatted, network_previews) {
+			menu_history.items["table_graph_history_actiontable"].set_table_data(history_formatted);
+			for(var i=0; i<history_formatted.length; i++) {
+				var history = history_formatted[i];
+				var cur_email = history[2];
+				var tr = eventGraph.menu_history.items.table_graph_history_actiontable.get_DOM_row(i);
+				if (!(cur_email == user_email || is_siteadmin)) {
+					// disable delete button
+					var btn_del = $(tr).find('.btn-danger');
+					btn_del.prop('disabled', true);
+				}
+				// set tooltip preview
+				var preview = network_previews[i];
+				if (typeof preview == 'string') {
+					var btn_plot = $(tr).find('.btn-success');
+					btn_plot.data('network-preview', preview);
+					btn_plot.popover({
+						container: 'body',
+						content: function() { return '<img style="width: 500px; height: 150px;" src="' + $(this).data('network-preview') + '" />'; },
+						placement: 'right',
+						trigger: 'hover',
+						template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content" style="width: 500px; height: 150px;"></div></div>',
+						html: true,
+					});
+				}
+			}
+		});
+
+		return menu_history;
 	}
 
 	get_filtering_rules() {
@@ -737,6 +902,25 @@ class EventGraph {
 		that.solver = solver;
 	}
 
+	physics_disable_physics_for_nodes(nodes) {
+		var update = [];
+		nodes.forEach(function(nodeId) {
+			if (!eventGraph.network.isCluster(nodeId)) {
+				update.push({id: nodeId, fixed: {x: true, y: true}});
+			}
+		});
+		eventGraph.nodes.update(update);
+	}
+	physics_activate_physics_for_nodes(nodes) {
+		var update = [];
+		nodes.forEach(function(nodeId) {
+			if (!eventGraph.network.isCluster(nodeId)) {
+				update.push({id: nodeId, fixed: {x: false, y: false}});
+			}
+		});
+		eventGraph.nodes.update(update);
+	}
+
 	// state true: loading
 	// state false: finished
 	network_loading(state, message) {
@@ -755,10 +939,12 @@ class EventGraph {
 		if(parent_id === undefined) { return; }
 
 		if (!(parent_id == root_id_attr || parent_id == root_id_object || parent_id == root_id_tag || parent_id == root_id_keyType)) { // Is not a root node
-			var node_group = this.nodes.get(parent_id).group;
+			var parent_node = this.nodes.get(parent_id);
+			var node_group = parent_node.group;
 			if (parent_id === undefined || node_group != 'object') { //  No node selected  or collapse not permitted
 				return
 			}
+			parent_node.expanded = false;
 			var connected_nodes_ids = this.network.getConnectedNodes(parent_id);
 			var connected_nodes = this.nodes.get(connected_nodes_ids);
 			for (var node of connected_nodes) {
@@ -771,6 +957,7 @@ class EventGraph {
 					this.nodes.remove(node.id);
 				}
 			}
+			this.nodes.update(parent_node);
 		} else { // Is a root node
 			this.clusterize(parent_id);
 		}
@@ -784,6 +971,7 @@ class EventGraph {
 			    || parent_node.group != "object") { //  Cannot expand attribute
 				return;
 			}
+			parent_node.expanded = true;
 
 			var objAttributes = parent_node.Attribute;
 			var newNodes = [];
@@ -831,6 +1019,7 @@ class EventGraph {
 
 			this.nodes.add(newNodes);
 			this.edges.add(newRelations);
+			this.nodes.update(parent_node);
 
 		} else { // is a cluster
 			if(this.network.getNodesInCluster(parent_id).length > cluster_expand_threshold) {
@@ -841,6 +1030,26 @@ class EventGraph {
 			// expand cluster
 			this.network.openCluster(parent_id);
 		}
+	}
+
+	expand_previous_expansion(nodes) {
+		var that = this;
+		for (var id in nodes) {
+			if (nodes.hasOwnProperty(id)) {
+				var node = nodes[id];
+				if (node.expanded) {
+					eventGraph.expand_node(node.id);
+				}
+			}
+		}
+	}
+
+	hideNode(nodeIds) {
+		nodeIds.forEach(function(nodeId) {
+			var node = eventGraph.nodes.get(nodeId);
+			eventGraph.hiddenNode.add(node);
+			eventGraph.nodes.remove(nodeId);
+		});
 	}
 
 	link_not_referenced_nodes() {
@@ -881,7 +1090,6 @@ class EventGraph {
 					new_edge.from = root_id_tag;
 					that.nodes.update({id: nodeData.id, unreferenced: 'tag'});
 				}
-			} else if (that.scope_name == 'Correlation') {
 			} else {  // specified key
 				if (cur_group == 'attribute' || cur_group == 'object') {
 					new_edge.from = root_id_keyType;
@@ -1046,7 +1254,7 @@ class EventGraph {
 		that.network_loading(false, "");
 	}
 
-	destroy_and_redraw() {
+	destroy_and_redraw(callback) {
 		var that = eventGraph;
 		that.network.destroy();
 		that.network = null;
@@ -1054,6 +1262,58 @@ class EventGraph {
 		that.network = new vis.Network(container, data, that.network_options);
 		that.init_clusterize();
 		that.bind_listener();
+		if (callback !== undefined) {
+			callback();
+		}
+	}
+
+	toJSON() {
+		var nodeData = [];
+		var nodePositions = eventGraph.network.getPositions();
+		eventGraph.nodes.get().forEach(function(nodeD) {
+			var nodeP = nodePositions[nodeD.id];
+			if (nodeP !== undefined && nodeD.group != 'obj_relation') {
+				var temp = { 
+					id: nodeD.id,
+					x: nodeP.x,
+					y: nodeP.y,
+				};
+				if (nodeD.fixed !== undefined) {
+					temp.fixed = nodeD.fixed;
+				}
+				if (nodeD.expanded !== undefined) {
+					temp.expanded = nodeD.expanded;
+				}
+				nodeData.push(temp);
+			}
+		});
+		var hiddenNodeData = [];
+		eventGraph.hiddenNode.forEach(function(node) {
+			hiddenNodeData.push(node.id);
+		});
+		
+		var data = { 
+			eventId: scope_id,
+			eventLastChange: event_last_change,
+			nodes: nodeData,
+			hiddenNodes: hiddenNodeData,
+			scope: {
+				scope: eventGraph.scope_name,
+				keyType: eventGraph.scope_keyType
+			},
+			physics: { 
+				solver: eventGraph.solver,
+				repulsion: parseInt($('#slider_physic_node_repulsion').val()),
+				enabled: $('#checkbox_physics_enable').prop("checked")
+			},
+			display: {
+				layout: eventGraph.layout,
+				label: dataHandler.selected_type_to_display,
+				charLength: parseInt($("#slider_display_max_char_num").val())
+			}
+		};
+		var jsonData = JSON.stringify(data);
+		return jsonData;
 	}
 
 }
@@ -1066,6 +1326,7 @@ class DataHandler {
 		this.mapping_uuid_to_template = new Map();
 		this.selected_type_to_display = "";
 		this.extended_event = $('#eventgraph_network').data('extended') == 1 ? true : false;
+		this.networkHistoryJsonData = new Map();
 		this.scope_name;
 	}
 
@@ -1117,7 +1378,7 @@ class DataHandler {
 		eventGraph.menu_filter.items["table_attr_value"].add_options("table_control_select_attr_value", available_object_references);
 	}
 
-	fetch_data_and_update(stabilize) {
+	fetch_data_and_update(stabilize, callback) {
 		eventGraph.network_loading(true, loadingText_fetching);
 		$.when(this.fetch_objects_template()).done(function() {
 			var filtering_rules = eventGraph.get_filtering_rules();
@@ -1159,6 +1420,9 @@ class DataHandler {
 					if ( stabilize === undefined || stabilize) {
 						eventGraph.reset_view_on_stabilized();
 					}
+					if (callback !== undefined) {
+						callback();
+					}
 				},
 				error: function( jqXhr, textStatus, errorThrown ){
 					console.log( errorThrown );
@@ -1180,6 +1444,46 @@ class DataHandler {
 				dataHandler.mapping_uuid_to_template.set(template.uuid, template.requirements.requiredOneOf);
 			}
 		});
+	}
+
+	// same event, same timestamp
+	validateImportedFile(data) {
+		if (scope_id != data.eventId) {
+			showMessage('fail', '<b>Failed</b> to import file: Event '+data.eventId+' not compatible with event '+scope_id);
+			return false;
+		}
+		if (parseInt(event_last_change) < parseInt(data.eventLastChange)) {
+			showMessage('fail', '<b>Fail</b>: Imported graph is newer than current event');
+			return false;
+		}
+		if (parseInt(event_last_change) > parseInt(data.eventLastChange)) {
+			showMessage('success', '<b>Warning</b>: Imported graph is not the latest version');
+		}
+		return true;
+	}
+
+	fetch_graph_history(callback) {
+		$.getJSON( "/eventGraph/view/"+scope_id, function( history ) {
+			var history_formatted = [];
+			var network_previews = [];
+			history.forEach(function(item) {
+				history_formatted.push([
+					item['EventGraph']['id'],
+					item['EventGraph']['network_name'],
+					item['User']['email'],
+					new Date(parseInt(item['EventGraph']['timestamp'])*1000).toLocaleString()
+				]);
+				dataHandler.networkHistoryJsonData.set(item['EventGraph']['id'], item['EventGraph']['network_json']);
+				network_previews.push(item['EventGraph']['preview_img']);
+			});
+			callback(history_formatted, network_previews);
+		});
+	}
+
+	fetch_and_import_graph(network_id) {
+		var data = dataHandler.networkHistoryJsonData.get(network_id);
+		var json = JSON.parse(data);
+		import_graph_from_json(json);
 	}
 
 	get_typeaheadData_search() {
@@ -1320,6 +1624,92 @@ class MispInteraction {
 			window.location = '/objects/edit/'+id;
 		}
 	}
+
+	save_network(network_json, network_name, network_preview) {
+		var network_json = eventGraph.toJSON();
+		this.quickSaveNetworkHistory(scope_id, network_json, network_name, network_preview, reset_graph_history);
+	}
+
+	delete_saved_network(data) {
+		var network_id = data[0];
+		var url = "/" + "eventGraph" + "/" + "delete" + "/" + network_id;
+		$.get(url, function(data) {
+			openPopup("#confirmation_box");
+			$("#confirmation_box").html(data);
+		});
+	}
+
+	quickSaveNetworkHistory(event_id, network_json, network_name, network_preview, callback) {
+		this.networkFetchForm('add', event_id, undefined, function(form) {
+			var container = $('#eventgraph_network');
+			// append the form somewhere
+			container.append(form);
+
+			var url = form.attr('action');
+
+			// locate wanted field and set the value
+			var field_network_json = form.find('#' + 'EventGraph' + 'NetworkJson');
+			field_network_json.val(network_json);
+			var field_network_name = form.find('#' + 'EventGraph' + 'NetworkName');
+			field_network_name.val(network_name);
+			var field_network_preview = form.find('#' + 'EventGraph' + 'PreviewImg');
+			field_network_preview.val(network_preview);
+
+
+			// submit the form
+			$.ajax({
+				data: form.serialize(),
+				cache: false,
+				beforeSend: function(XMLHttpRequest) {
+					$('.loading').show();
+				},
+				success: function(data, textStatus) {
+					showMessage('success', 'Network has been saved');
+					if (callback !== undefined) {
+						callback();
+					}
+				},
+				error: function( jqXhr, textStatus, errorThrown ){
+					showMessage('fail', 'Could not save network');
+					console.log( errorThrown );
+				},
+				complete: function() {
+					$(".loading").hide();
+					form.remove();
+				},
+				type: 'post',
+				url: url
+			});
+		});
+	}
+
+	networkFetchForm(type, event_id, network_id, callback) {
+		var url = '/' + 'EventGraph' + '/' + 'add' + '/' + event_id;
+		$.ajax({
+			beforeSend: function(XMLHttpRequest) {
+				$('.loading').show();
+			},
+			dataType: 'html',
+			cache: false,
+			success: function(data, textStatus) {
+				var form = $(data);
+				form.css('display', 'none');
+				if (callback !== undefined) {
+					callback(form);
+				} else {
+					return form;
+				}
+			},
+			error: function( jqXhr, textStatus, errorThrown ){
+				console.log( errorThrown );
+			},
+			complete: function() {
+				$(".loading").hide();
+			},
+			type: 'get',
+			url: url
+		});
+	}
 }
 
 
@@ -1454,6 +1844,197 @@ function genericPopupCallback(result) {
 }
 
 
+function download_file(data, type) {
+	var dataUri;
+	var filename = 'graphExport_'+ parseInt(new Date().getTime()/1000);
+	if (type == 'json') {
+		dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(data);
+		filename +=  '.json';
+
+	} else if (type == 'png' || type == 'jpeg') {
+		dataUri = data;
+		filename +=  type;
+	} else if (type == 'dot') {
+		dataUri = 'data:text/x-graphviz;charset=utf-8,' + encodeURIComponent(data);
+		filename +=  '.dot';
+	}
+	var a = document.createElement('a');
+	a.setAttribute('href', dataUri);
+	a.setAttribute('download', filename);
+	var aj = $(a);
+	aj.appendTo('body');
+	aj[0].click();
+	aj.remove();
+}
+
+function reset_graph_history() {
+	var table = eventGraph.menu_history.items["table_graph_history_actiontable"];
+	dataHandler.fetch_graph_history(function(history_formatted, network_previews) {
+		table.set_table_data(history_formatted);
+		for(var i=0; i<history_formatted.length; i++) {
+			var history = history_formatted[i];
+			var cur_email = history[2];
+			var tr = eventGraph.menu_history.items.table_graph_history_actiontable.get_DOM_row(i);
+			if (!(cur_email == user_email || is_siteadmin)) {
+				// disable delete button
+				var btn_del = $(tr).find('.btn-danger');
+				btn_del.prop('disabled', true);
+			}
+			// set tooltip preview
+			var preview = network_previews[i];
+			if (typeof preview == 'string') {
+				var btn_plot = $(tr).find('.btn-success');
+				btn_plot.data('network-preview', preview);
+				btn_plot.popover({
+					container: 'body',
+					content: function() { return '<img style="width: 500px; height: 150px;" src="' + $(this).data('network-preview') + '" />'; },
+					placement: 'right',
+					trigger: 'hover',
+					template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content" style="width: 500px; height: 150px;"></div></div>',
+					html: true,
+				});
+			}
+		}
+	});
+}
+
+function import_graph_from_json(data) {
+	if (dataHandler.validateImportedFile(data)) {
+		// set options
+		eventGraph.scope_name = data.scope;
+		eventGraph.scope_keyType = data.scope.keyType;
+		eventGraph.update_scope(data.scope.scope)
+
+		var layoutVal;
+		switch(data.display.layout) {
+			case "default":
+				layoutVal = 'default';
+				break;
+			case "directed":
+				layoutVal = 'hierarchical.directed';
+				break;
+			case "hubsize":
+				layoutVal = 'hierarchical.hubsize';
+				break;
+			default:
+				layoutVal = 'default';
+		}
+		$('#select_display_layout').val(layoutVal);
+		eventGraph.change_layout_type(data.display.layout);
+		dataHandler.selected_type_to_display = data.display.label;
+		$('#select_display_object_field').val(data.display.label);
+		$("#slider_display_max_char_num").val(data.display.charLength);
+		$('#slider_display_max_char_num').trigger('reflectOnSpan');
+
+		eventGraph.solver = data.physics.solver;
+		eventGraph.physics_change_solver(data.physics.solver)
+		$('#select_physic_solver').val(data.physics.solver);
+		$('#slider_physic_node_repulsion').val(data.physics.repulsion);
+		$('#slider_physic_node_repulsion').trigger('reflectOnSpan');
+		eventGraph.physics_change_repulsion(data.physics.repulsion)
+		eventGraph.physics_state(data.physics.enabled)
+		$('#checkbox_physics_enable').prop('checked', data.physics.enabled);
+
+		// update data
+		dataHandler.fetch_data_and_update(false, function() {
+			eventGraph.nodes.update(data.nodes);
+			eventGraph.expand_previous_expansion(data.nodes);
+			eventGraph.hiddenNode.clear();
+			eventGraph.hideNode(data.hiddenNodes);
+		});
+	}
+}
+
+function escapeQuote(str) {
+	return str.replace(/"/g, '\\\"');
+}
+
+function convert_to_dot_lang(nodes, edges, hiddenNodeIds) {
+	var mappingStringDic = new Map(); // in case the id is not an int, map it to a letter
+
+	var dotNodes = [];
+	var validNodeId = {};
+	nodes.forEach(function(node) {
+		if (hiddenNodeIds.indexOf(node.id) != -1) return;
+		var nodeId = node.id;
+		if (node.id != parseInt(node.id, 10)) {
+			nodeId = 'autgenerated_id_'+mappingStringDic.size;
+			mappingStringDic.set(node.id, nodeId);
+		}
+		var dnode = {
+			id: nodeId,
+			shape: node.group == 'object' ? 'box' : 'ellipse',
+			label: escapeQuote(node.label),
+			style: 'filled',
+		};
+		switch(node.group) {
+			case 'object':
+				dnode.fillcolor = node.icon.color;
+				break;
+			case 'tag':
+				dnode.fillcolor = node.color.background;
+				break;
+			case 'keyType':
+				dnode.fillcolor = node.color.background;
+				break;
+			default:
+				dnode.fillcolor = '#f3a500';
+				break;
+		}
+		validNodeId[nodeId] = true;
+		dotNodes.push(dnode);
+	});
+	var dotNodesStr = "";
+	dotNodes.forEach(function(node) {
+		var nodeAttr = "";
+		for (var attr in node) {
+			if (!node.hasOwnProperty(attr)) continue;
+			if (attr=='id') continue;
+			nodeAttr += attr + "=\"" + node[attr] + "\" ";
+		}
+		dotNodesStr += node.id + " ["+nodeAttr+"];\n";
+	});
+
+	var dotEdges = [];
+	edges.forEach(function(edge) {
+		if (edge.to.includes("rootNode:")) return; // drop root nodes
+		if (edge.from.includes("rootNode:")) return; // drop root nodes
+		var from = edge.from;
+		if (edge.from != parseInt(edge.from, 10)) {
+			from = mappingStringDic.get(edge.from);
+		}
+		var to = edge.to;
+		if (edge.to != parseInt(edge.to, 10)) {
+			to = mappingStringDic.get(edge.to);
+		}
+		var dedge = {
+			from: from,
+			to: to,
+			label: edge.label !== undefined ? escapeQuote(edge.label) : "",
+			color: edge.color.color !== undefined ? edge.color.color : "#597ce9",
+			dirType: edge.label !== undefined ? "forward" : "none",
+		};
+		dotEdges.push(dedge);
+	});
+	var dotEdgesStr = "";
+	dotEdges.forEach(function(edge) {
+		if (hiddenNodeIds.indexOf(edge.from) != -1 || hiddenNodeIds.indexOf(edge.to) != -1) return;
+		var edgeAttr = "";
+		for (var attr in edge) {
+			if (!edge.hasOwnProperty(attr)) continue;
+			if (attr=='id' || attr=='from' || attr=='to') continue;
+			edgeAttr += attr + "=\"" + edge[attr] + "\" ";
+		}
+		dotEdgesStr += edge.from + " -> " + edge.to + " ["+edgeAttr+"];\n";
+	});
+
+	var dotLang = "digraph network_event_"+scope_id+" {\n";
+	dotLang += dotNodesStr;
+	dotLang += "\n";
+	dotLang += dotEdgesStr;
+	dotLang += "}";
+	return dotLang;
+}
 
 // Called when the user click on the 'Event graph' toggle
 function enable_interactive_graph() {
@@ -1495,6 +2076,9 @@ function enable_interactive_graph() {
 				if (evt.keyCode == 27) { // <ESC>
 					$('#network-typeahead').blur();
 				}
+				return;
+			}
+			if (evt.target !== undefined && $(evt.target).is('input')) {
 				return;
 			}
 			switch(evt.keyCode) {
@@ -1617,7 +2201,7 @@ var network_options = {
 		addNode: mispInteraction.add_item,
 		editNode: mispInteraction.edit_item,
 		deleteNode: mispInteraction.delete_item,
-		deleteEdge: mispInteraction.remove_reference
+		deleteEdge: mispInteraction.remove_reference,
 	},
 	physics: {
 		enabled: true,
@@ -1708,7 +2292,6 @@ var network_options = {
 				color: 'white'
 			},
 			mass: 25
-
 		},
 		rootNodeObject: {
 			shape: 'icon',
@@ -1720,7 +2303,8 @@ var network_options = {
 				size: 18, // px
 				background: 'rgba(255, 255, 255, 0.7)'
 			},
-			mass: 5
+			mass: 5,
+			physics: false
 		},
 		rootNodeAttribute: {
 			shape: 'icon',
@@ -1732,7 +2316,8 @@ var network_options = {
 				size: 18, // px
 				background: 'rgba(255, 255, 255, 0.7)'
 			},
-			mass: 5
+			mass: 5,
+			physics: false
 		},
 		rootNodeKeyType: {
 			shape: 'icon',
@@ -1744,7 +2329,8 @@ var network_options = {
 				size: 22, // px
 				background: 'rgba(255, 255, 255, 0.7)'
 			},
-			mass: 5
+			mass: 5,
+			physics: false
 		},
 		rootNodeTag: {
 			shape: 'icon',
@@ -1756,7 +2342,8 @@ var network_options = {
 				size: 22, // px
 				background: 'rgba(255, 255, 255, 0.7)'
 			},
-			mass: 5
+			mass: 5,
+			physics: false
 		},
 		clustered_object: {
 			shape: 'icon',
@@ -1768,7 +2355,8 @@ var network_options = {
 				size: 18, // px
 				background: 'rgba(255, 255, 255, 0.7)'
 			},
-			mass: 5
+			mass: 5,
+			physics: false
 		}
 	},
 	locales: {

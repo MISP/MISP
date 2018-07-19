@@ -8,12 +8,13 @@
 	<?php
 		echo $this->element('Users/statisticsMenu');
 		$types = array(
-				'local' => array('selected' => false, 'text' => 'Local organisations'),
-				'external' => array('selected' => false, 'text' => 'Known remote organisations'),
-				'all' => array('selected' => false, 'text' => 'All organisations')
+				'local' => array('selected' => false, 'text' => __('Local organisations')),
+				'external' => array('selected' => false, 'text' => __('Known remote organisations')),
+				'all' => array('selected' => false, 'text' => __('All organisations'))
 		);
 		$types[$scope]['selected'] = true;
 	?>
+	<h4><?php echo __('Organisation list');?></h4>
 	<p><?php echo __('Quick overview over the organisations residing on or known by this instance.');?></p>
 	<div class="tabMenuFixedContainer" style="display:inline-block;">
 			<?php
