@@ -415,6 +415,7 @@ class TagsController extends AppController {
 		$tags = $this->EventTag->find('all', array(
 				'conditions' => array(
 						'event_id' => $id,
+						'deleted' => 0, // tag softdeletion -lm
 						'Tag.name !=' => $cluster_names
 				),
 				'contain' => array('Tag'),
@@ -424,7 +425,7 @@ class TagsController extends AppController {
 		$event = $this->Tag->EventTag->Event->find('first', array(
 				'recursive' => -1,
 				'fields' => array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.user_id'),
-				'conditions' => array('Event.id' => $id)
+			 	'conditions' => array('Event.id' => $id)
 		));
 		$this->set('event', $event);
 		$this->layout = 'ajax';
@@ -786,6 +787,7 @@ class TagsController extends AppController {
 		if (empty($existingAssociation)) {
 			throw new MethodNotAllowedException('Could not remove tag as it is not attached to the target ' . $objectType);
 		}
+
 		$result = $this->$objectType->$connectorObject->delete($existingAssociation[$connectorObject]['id']);
 		if ($result) {
 			$message = 'Tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully removed from ' . $objectType . '(' . $object[$objectType]['id'] . ').';

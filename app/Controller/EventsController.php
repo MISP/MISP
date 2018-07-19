@@ -3252,22 +3252,37 @@ class EventsController extends AppController {
 			'recursive' => -1,
 		));
 		$this->autoRender = false;
-		if (!empty($found)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag is already attached to this event.')), 'status'=>200, 'type' => 'json'));
-		$this->Event->EventTag->create();
-		if ($this->Event->EventTag->save(array('event_id' => $id, 'tag_id' => $tag_id))) {
-			$event['Event']['published'] = 0;
-			$date = new DateTime();
-			$event['Event']['timestamp'] = $date->getTimestamp();
-			$this->Event->save($event);
-			$log = ClassRegistry::init('Log');
-			$log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to event (' . $id . ')', 'Event (' . $id . ') tagged as Tag (' . $tag_id . ')');
-			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag added.', 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+		if (!empty($found)) { // implementing tag hard and soft deletion -lm
+			$found['EventTag']['deleted'] = 0;
+			if ($this->Event->EventTag->save($found['EventTag'])) {
+				$event['Event']['published'] = 0;
+				$date = new DateTime();
+				$event['Event']['timestamp'] = $date->getTimestamp();
+				$this->Event->save($event);
+				$log = ClassRegistry::init('Log');
+				$log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to event (' . $id . ')', 'Event (' . $id . ') tagged as Tag (' . $tag_id . ')');
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag is already attached to this event but hidden, restoring it.')), 'status'=>200, 'type' => 'json'));
+			} else {
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag is already attached to this event but unable to restore it.')), 'status'=>200, 'type' => 'json'));
+			}
 		} else {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be added.')), 'status'=>200, 'type' => 'json'));
-		}
+			$this->Event->EventTag->create();
+			if ($this->Event->EventTag->save(array('event_id' => $id, 'tag_id' => $tag_id))) {
+				$event['Event']['published'] = 0;
+				$date = new DateTime();
+				$event['Event']['timestamp'] = $date->getTimestamp();
+				$this->Event->save($event);
+				$log = ClassRegistry::init('Log');
+				$log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to event (' . $id . ')', 'Event (' . $id . ') tagged as Tag (' . $tag_id . ')');
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag added.', 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+			} else {
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be added.')), 'status'=>200, 'type' => 'json'));
+			}
+		} // end -lm
+
 	}
 
-	public function removeTag($id = false, $tag_id = false, $galaxy = false) {
+	public function removeTag($id = false, $tag_id = false, $galaxy = false, $hard = false) {
 		if (!$this->request->is('post')) {
 			$this->set('id', $id);
 			$this->set('tag_id', $tag_id);
@@ -3313,17 +3328,32 @@ class EventsController extends AppController {
 				'recursive' => -1,
 				'fields' => array('Tag.name')
 			));
-			if ($this->Event->EventTag->delete($eventTag['EventTag']['id'])) {
-				$event['Event']['published'] = 0;
-				$date = new DateTime();
-				$event['Event']['timestamp'] = $date->getTimestamp();
-				$this->Event->save($event);
-				$log = ClassRegistry::init('Log');
-				$log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from event (' . $id . ')', 'Event (' . $id . ') untagged of Tag (' . $tag_id . ')');
-				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => ($galaxy ? 'Galaxy' : 'Tag') . ' removed.', 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+			if ($hard) { // implementing tag hard and soft deletion -lm
+				if ($this->Event->EventTag->delete($eventTag['EventTag']['id'])) {
+					$event['Event']['published'] = 0;
+					$date = new DateTime();
+					$event['Event']['timestamp'] = $date->getTimestamp();
+					$this->Event->save($event);
+					$log = ClassRegistry::init('Log');
+					$log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from event (' . $id . ')', 'Event (' . $id . ') untagged of Tag (' . $tag_id . ')');
+					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => ($galaxy ? 'Galaxy' : 'Tag') . ' removed.', 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+				} else {
+					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => ($galaxy ? 'Galaxy' : 'Tag') . ' could not be removed.')), 'status'=>200, 'type' => 'json'));
+				}
 			} else {
-				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => ($galaxy ? 'Galaxy' : 'Tag') . ' could not be removed.')), 'status'=>200, 'type' => 'json'));
-			}
+				$eventTag['EventTag']['deleted'] = 1;
+				if ($this->Event->EventTag->save($eventTag['EventTag'])) {
+					$event['Event']['published'] = 0;
+					$date = new DateTime();
+					$event['Event']['timestamp'] = $date->getTimestamp();
+					$this->Event->save($event);
+					$log = ClassRegistry::init('Log');
+					$log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Soft removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from event (' . $id . ')', 'Event (' . $id . ') untagged of Tag (' . $tag_id . ')');
+					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => ($galaxy ? 'Galaxy' : 'Tag') . ' removed.', 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+				} else {
+					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => ($galaxy ? 'Galaxy' : 'Tag') . ' could not be removed.')), 'status'=>200, 'type' => 'json'));
+				}
+			} // end -lm
 		}
 	}
 
