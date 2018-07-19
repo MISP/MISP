@@ -78,7 +78,10 @@ class AttributeTag extends AppModel {
 	public function countForTag($tag_id, $user) {
 		return $this->find('count', array(
 			'recursive' => -1,
-			'conditions' => array('AttributeTag.tag_id' => $tag_id)
+			'conditions' => array(
+				'AttributeTag.tag_id' => $tag_id,
+				'AttributeTag.deleted' => 0 // tag soft delete patch -lm
+				)
 		));
 	}
 

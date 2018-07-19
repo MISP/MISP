@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS attribute_tags (
   attribute_id bigint NOT NULL,
   event_id bigint NOT NULL,
   tag_id bigint NOT NULL,
+  deleted smallint NOT NULL DEFAULT 0,
   PRIMARY KEY (id)
 );
 CREATE INDEX idx_attribute_tags_attribute_id ON attribute_tags (attribute_id);
@@ -189,6 +190,7 @@ CREATE TABLE IF NOT EXISTS event_tags (
   id bigserial NOT NULL,
   event_id bigint NOT NULL,
   tag_id bigint NOT NULL,
+  deleted smallint NOT NULL DEFAULT 0,
   PRIMARY KEY (id)
 );
 CREATE INDEX idx_event_tags_event_id ON event_tags (event_id);

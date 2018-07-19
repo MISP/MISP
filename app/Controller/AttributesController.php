@@ -86,7 +86,12 @@ class AttributesController extends AppController {
 			if (!in_array($attribute['Event']['orgc_id'], $org_ids)) $org_ids[] = $attribute['Event']['orgc_id'];
 			if (!in_array($attribute['Event']['org_id'], $org_ids)) $org_ids[] = $attribute['Event']['org_id'];
 			if (!empty($attribute['AttributeTag'])) {
-				foreach ($attribute['AttributeTag'] as $k => $v) {
+				// hide soft deleted tags patch start -lm
+				foreach ($attribute['AttributeTag'] as $k2 => $v) {
+					if ($v['deleted'] == 1) {
+						unset($attributes[$k]['AttributeTag'][$k2]);
+					}
+				// hide soft deleted tags patch stop -lm
 					if (!in_array($v['tag_id'], $tag_ids)) $tag_ids[] = $v['tag_id'];
 				}
 			}
@@ -1804,6 +1809,14 @@ class AttributesController extends AppController {
 							unset($attribute[$k]);
 							continue;
 						}
+						// remove softdelated tag patch start -lm
+						foreach ($attribute['AttributeTag'] as $k2 => $at) {
+							if ($at['deleted'] == 1 ) {
+								//print_r($at);
+								unset($attributes[$k]['AttributeTag'][$k2]);
+							}
+						}
+						// remove softdelated tag patch stop -lm
 						if ($attribute['Attribute']['type'] == 'attachment' && preg_match('/.*\.(jpg|png|jpeg|gif)$/i', $attribute['Attribute']['value'])) {
 							$attributes[$k]['Attribute']['image'] = $this->Attribute->base64EncodeAttachment($attribute['Attribute']);
 						}

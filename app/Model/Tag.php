@@ -182,8 +182,14 @@ class Tag extends AppModel {
 		}
 		$params = array(
 				'recursive' => 1,
-				'contain' => 'AttributeTag',
-				'conditions' => $conditions
+				'conditions' => $conditions,
+				// tag softdeletion patch start -lm
+				'contain' => array(
+					'AttributeTag' => array(
+                                        	'conditions' => array('deleted' => 0) // tag softdeletion -lm
+					)
+				)
+				// tag softdeletion patch stop -lm
 		);
 		$result = $this->find('all', $params);
 		foreach ($result as $tag) {

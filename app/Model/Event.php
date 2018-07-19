@@ -1406,6 +1406,7 @@ class Event extends AppModel {
 					'fields' => array('Orgc.id', 'Orgc.uuid', 'Orgc.name')
 				),
 				'EventTag' => array(
+					'conditions' => array('deleted' => 0), // tag softdeletion -lm
 					'Tag' => array('fields' => array('Tag.id', 'Tag.name', 'Tag.colour', 'Tag.exportable'))
 				)
 			)
@@ -1623,6 +1624,7 @@ class Event extends AppModel {
 					'conditions' => $conditionsAttributes,
 					'order' => false,
 					'AttributeTag' => array(
+						'conditions' => array('deleted' => 0), // tag softdeletion -lm
 						'Tag' => array('conditions' => $tagConditions, 'order' => false),
 						'order' => false
 					),
@@ -1643,6 +1645,7 @@ class Event extends AppModel {
 					'order' => false
 				),
 				'EventTag' => array(
+					'conditions' => array('deleted' => 0), // tag softdeletion -lm
 					'Tag' => array('conditions' => $tagConditions, 'order' => false),
 					'order' => false
 				)
@@ -1979,6 +1982,7 @@ class Event extends AppModel {
 								'fields' => array('id', 'name'),
 						),
 						'EventTag' => array(
+								'conditions' => array('deleted' => 0), // tag softdeletion -lm
 								'Tag' => array(
 										'fields' => array('id', 'name')
 								)
@@ -2819,6 +2823,35 @@ class Event extends AppModel {
 					}
 				}
 			}
+			// tag remover, only for "internal instance" -lm
+			if (isset($data['Event']['Tag']) && $user['Server']['internal']) {
+				$tags_list = $this->EventTag->Tag->findEventTags($this->id);
+				// $tag_list is array of array
+				// index of inside array contains:
+				// id		- db tag id
+				// name		- displayed name of tag
+				// colour	- color of tag (html format)
+				// exportable	- flag
+				// org_id	- organization id (to use tag)
+				// user_id	- user id (to use tag)
+				// hide_tag	- flag
+				foreach($tags_list as $t) {
+					$this->Log->create();
+					$this->Log->save(array(
+					'org' => $user['Organisation']['name'],
+					'model' => 'Event',
+					'model_id' => $this->id,
+					'email' => $user['email'],
+					'action' => 'edit',
+					'user_id' => $user['id'],
+					'title' => 'Auto-Removed tag ('.$t['id'].') "'.$t['name'].'" from event ('.$this->id.')',
+					'change' => 'User '.$user['email'].' is "'.$user['Role']['name'].'" for server ('.$user['Server']['id'].') '.$user['Server']['url'].', this server is an "Internal Instance"',
+					));
+				}
+				//$this->EventTag->deleteAll(array('event_id' => $this->id));
+				// todo: implement tag checking -lm
+			}
+
 			if (isset($data['Event']['EventTag'])) {
 				$data['Event']['Tag'] = $data['Event']['EventTag']['Tag'];
 				unset($data['Event']['EventTag']);
