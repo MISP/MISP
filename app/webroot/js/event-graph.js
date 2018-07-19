@@ -316,13 +316,8 @@ class EventGraph {
 		});
 		menu_display.add_slider({
 			id: 'slider_display_max_char_num',
-<<<<<<< HEAD
-			label: "Character to show",
-			title: "Maximum number of charater to display in the label",
-=======
 			label: "Characters to show",
 			tooltip: "Maximum number of characters to display in the label",
->>>>>>> upstream/2.4
 			min: 8,
 			max: 1024,
 			value: max_displayed_char,
