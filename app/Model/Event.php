@@ -2868,24 +2868,73 @@ class Event extends AppModel {
 		$this->create();
 		$this->save($event['Event']);
 		$event['Event']['id'] = $this->id;
-		$objects = array('Attribute', 'ShadowAttribute', 'EventTag');
+		$objects = array('Attribute', 'ShadowAttribute', 'EventTag', 'Object');
 		foreach ($objects as $object_type) {
 			if (!empty($event[$object_type])) {
 				$saveMethod = '__savePrepared' . $object_type;
 				foreach ($event[$object_type] as $object) $this->$saveMethod($object, $event);
 			}
 		}
+		if (!empty($event['Object'])) {
+			$objectRefTypes = array('Attribute', 'Object');
+			foreach ($event['Object'] as $k => $object) {
+				foreach ($object['ObjectReference'] as $k2 => $objectRef) {
+					$savedObjectRef = $this->Object->ObjectReference->find('first', array(
+						'recursive' => -1,
+						'conditions' => array('ObjectReference.uuid' => $objectRef['uuid'])
+					));
+					$objectRefType = intval($savedObjectRef['ObjectReference']['referenced_type']);
+					$element = $this->{$objectRefTypes[$objectRefType]}->find('first', array(
+						'conditions' => array($objectRefTypes[$objectRefType] . '.uuid' => $objectRef['referenced_uuid']),
+						'recursive' => -1,
+						'fields' => array($objectRefTypes[$objectRefType] . '.id')
+					));
+					$savedObjectRef['ObjectReference']['referenced_id'] = $element[$objectRefTypes[$objectRefType]]['id'];
+					$result = $this->Object->ObjectReference->save($savedObjectRef);
+				}
+			}
+		}
 		return $event['Event']['id'];
 	}
 
-	private function __savePreparedAttribute(&$attribute, $event) {
+	private function __savePreparedAttribute(&$attribute, $event, $object_id = 0) {
 		unset($attribute['id']);
 		$attribute['event_id'] = $event['Event']['id'];
+		$attribute['object_id'] = $object_id;
 		$this->Attribute->create();
 		$this->Attribute->save($attribute);
 		foreach ($attribute['ShadowAttribute'] as $k => $sa) {
 			$this->__savePreparedShadowAttribute($sa, $event, $this->Attribute->id);
 		}
+		foreach ($attribute['AttributeTag'] as $k => $at) {
+			$this->__savePreparedAttributeTag($at, $event, $this->Attribute->id);
+		}
+		return true;
+	}
+
+	private function __savePreparedObject(&$object, $event) {
+		unset($object['id']);
+		$object['event_id'] = $event['Event']['id'];
+		$this->Object->create();
+		$this->Object->save($object);
+		foreach ($object['Attribute'] as $k => $a) {
+			$this->__savePreparedAttribute($a, $event, $this->Object->id);
+		}
+		foreach ($object['ObjectReference'] as $objectRef) {
+			$this->__savePreparedObjectReference($objectRef, $event, $this->Object->id, $object['uuid']);
+		}
+		return true;
+	}
+
+	#referenced IDs have to be updated after everything else is done!
+	private function __savePreparedObjectReference($objectRef, $event, $object_id, $object_uuid) {
+		unset($objectRef['id']);
+		$objectRef['event_id'] = $event['Event']['id'];
+		$objectRef['object_id'] = $object_id;
+		$objectRef['object_uuid'] = $object_uuid;
+		$this->Object->ObjectReference->create();
+		$this->Object->ObjectReference->save($objectRef);
+		return true;
 	}
 
 	private function __savePreparedShadowAttribute($shadow_attribute, $event, $old_id = 0) {
@@ -2894,6 +2943,7 @@ class Event extends AppModel {
 		$shadow_attribute['old_id'] = $old_id;
 		$this->ShadowAttribute->create();
 		$this->ShadowAttribute->save($shadow_attribute);
+		return true;
 	}
 
 	private function __savePreparedEventTag($event_tag, $event) {
@@ -2901,6 +2951,16 @@ class Event extends AppModel {
 		$event_tag['event_id'] = $event['Event']['id'];
 		$this->EventTag->create();
 		$this->EventTag->save($event_tag);
+		return true;
+	}
+
+	private function __savePreparedAttributeTag($attribute_tag, $event, $attribute_id) {
+		unset($attribute_tag['id']);
+		$attribute_tag['event_id'] = $event['Event']['id'];
+		$attribute_tag['attribute_id'] = $attribute_id;
+		$this->Attribute->AttributeTag->create();
+		$this->Attribute->AttributeTag->save($attribute_tag);
+		return true;
 	}
 
 	// pass an event or an attribute together with the server id.
