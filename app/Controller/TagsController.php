@@ -443,6 +443,7 @@ class TagsController extends AppController {
 
 		$attributeTags = $this->AttributeTag->find('all', array(
 			'conditions' => array(
+				'deleted' => 0, // tag softdeletion -lm
 				'attribute_id' => $id
 			),
 			'contain' => array('Tag'),
