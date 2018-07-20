@@ -1,12 +1,12 @@
 <div class="users form">
-<?php echo $this->Form->create('User');?>
+    <?php echo $this->Form->create('User');?>
     <fieldset>
         <legend><?php echo __('Change Password'); ?></legend>
     <?php
         $passwordPopover = '<span class=\"blue bold\">Length</span>: ' . h($length) . '<br />';
         $passwordPopover .= '<span class=\"blue bold\">Complexity</span>: ' . h($complexity);
         echo $this->Form->input('password', array(
-            'label' => __('Password') . ' <span id = "PasswordPopover" class="icon-info-sign" ></span>'
+            'label' => __('Password') . ' <span id = "PasswordPopover" class="icon-info-sign" ></span>', 'autofocus'
         ));
         echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
     ?>
