@@ -956,6 +956,7 @@ class AppModel extends Model
 					) ENGINE=InnoDB DEFAULT CHARSET=utf8;';
 
                 break;
+>>>>>>> upstream/2.4
             case 9:
                 $sqlArray[] = 'ALTER TABLE galaxies ADD namespace varchar(255) COLLATE utf8_unicode_ci NOT NULL DEFAULT "misp";';
                 $indexArray[] = array('galaxies', 'namespace');

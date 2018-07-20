@@ -1,3 +1,3 @@
 <?php
-	echo $this->element('ajaxTemplateTag', array('editable' => 'yes'));
+    echo $this->element('ajaxTemplateTag', array('editable' => 'yes'));
 ?>

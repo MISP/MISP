@@ -1,5 +1,5 @@
 <div class="index">
-	<?php
+    <?php
     echo '<h2>' . __('Object reconstruction') . '</h2>';
     echo '<p>';
     echo __('Due to a bug prior to version 2.4.89, a condition could cause objects to be overwritten on a pull, leading to orphaned object attributes. This script reconstructs the missing objects if any exist.');
@@ -70,8 +70,8 @@
         echo '<br /><br />';
       }
     }
-	?>
+    ?>
 </div>
 <?php
-	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'adminTools'));
+    echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'adminTools'));
 ?>

@@ -1,7 +1,7 @@
 <?php
 $xmlArray = array();
 foreach ($results as $result) {
-	$xmlArray['MISP']['Attribute'][] = $result['Attribute'];
+    $xmlArray['MISP']['Attribute'][] = $result['Attribute'];
 }
 
 $xmlObject = Xml::fromArray($xmlArray, array('format' => 'tags'));

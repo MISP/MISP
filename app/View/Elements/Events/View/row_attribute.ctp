@@ -282,7 +282,7 @@
             if ($isSiteAdmin):
       ?>
               <span class="verticalSeparator">&nbsp;</span>
-      <?php		endif;
+      <?php     endif;
           endif;
           if ($isSiteAdmin || $mayModify):
             if (isset($modules) && isset($modules['types'][$object['type']])):

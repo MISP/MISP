@@ -184,7 +184,7 @@ class MispObject extends AppModel
         return $result;
     }
 
-    public function buildEventConditions($user, $sgids = false)
+    public function buildeventconditions($user, $sgids = false)
     {
         if ($user['Role']['perm_site_admin']) {
             return array();
@@ -245,7 +245,6 @@ class MispObject extends AppModel
         }
         return $conditions;
     }
-
 
     // Method that fetches all objects
     // very flexible, it's basically a replacement for find, with the addition that it restricts access based on user
