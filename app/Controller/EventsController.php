@@ -3981,7 +3981,7 @@ class EventsController extends AppController
         }
     }
 
-    public function stix2($key, $id)
+    public function stix2($key, $id = false, $withAttachments = false, $tags = false, $from = false, $to = false, $last = false)
     {
         if ($key != 'download') {
             // check if the key is valid -> search for users based on key
@@ -3994,9 +3994,53 @@ class EventsController extends AppController
                 throw new UnauthorizedException(__('You have to be logged in to do that.'));
             }
         }
-        $result = $this->Event->stix2($id, $this->Auth->user());
-        $this->header('Content-Disposition: download; filename="misp.stix2.event' . $id . '.json"');
-        return $this->RestResponse->viewData($result, 'application/json', false, true, "misp.stix2.event" . $id . ".json");
+        if ($this->request->is('post')) {
+            if (empty($this->request->data)) {
+                throw new BadRequestException(__('Either specify the search terms in the url, or POST an xml (with the root element being "request".'));
+            } else {
+                $data = $this->request->data;
+            }
+            $paramArray = array('id', 'withAttachment', 'tags', 'from', 'to', 'last');
+            foreach ($paramArray as $p) {
+                if (isset($data['request'][$p])) {
+                    ${$p} = $data['request'][$p];
+                } else {
+                    ${$p} = null;
+                }
+            }
+        }
+        $simpleFalse = array('id', 'withAttachments', 'tags', 'from', 'to', 'last');
+        foreach ($simpleFalse as $sF) {
+            if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) {
+                ${$sF} = false;
+            }
+        }
+        if ($from) {
+            $from = $this->Event->dateFieldCheck($from);
+        }
+        if ($to) {
+            $to = $this->Event->dateFieldCheck($to);
+        }
+        if ($last) {
+            $last = $this->Event->resolveTimeDelta($last);
+        }
+
+        // set null if a null string is passed
+        $numeric = false;
+        if (is_numeric($id)) {
+            $numeric = true;
+        }
+        $result = $this->Event->stix2($id, $tags, $withAttachments, $this->Auth->user(), 'json', $from, $to, $last);
+        if ($result['success'] == 1) {
+            if ($numeric) {
+                $this->header('Content-Disposition: download; filename="misp.stix2.event' . $id . '.json"');
+            } else {
+                $this->header('Content-Disposition: download; filename="misp.stix2.event.collection.json"');
+            }
+            $this->set('data', $result['data']);
+        } else {
+            throw new Exception(h($result['message']));
+        }
     }
 
     public function stix($key, $id = false, $withAttachments = false, $tags = false, $from = false, $to = false, $last = false)

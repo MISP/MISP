@@ -3648,33 +3648,73 @@ class Event extends AppModel
         }
     }
 
-    public function stix2($id, $user)
+    public function stix2($id, $tags, $attachments, $user, $returnType = 'json', $from = false, $to = false, $last = false, $jobId = false, $returnFile = false)
     {
-        $event = $this->fetchEvent($user, array('eventid' => $id, 'includeAttachments' => 1));
-        App::uses('JSONConverterTool', 'Tools');
-        $converter = new JSONConverterTool();
-        $event = $converter->convert($event[0]);
+        $eventIDs = $this->Attribute->dissectArgs($id);
+        $tagIDs = $this->Attribute->dissectArgs($tags);
+        $idList = $this->getAccessibleEventIds($eventIDs[0], $eventIDs[1], $tagIDs[0], $tagIDs[1]);
+        if (!empty($idList)) {
+            $event_ids = $this->fetchEventIds($user, $from, $to, $last, true);
+            $event_ids = array_intersect($event_ids, $idList);
+        }
         $randomFileName = $this->generateRandomFileName();
         $tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
-        $tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
-        $tempFile->write($event);
-        $scriptFile = APP . "files" . DS . "scripts" . DS . "stix2" . DS . "misp2stix2.py";
-        $result = shell_exec('python3 ' . $scriptFile . ' ' . $tempFile->path . ' json ' . ' ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' 2>' . APP . 'tmp/logs/exec-errors.log');
-        $tempFile->delete();
-        $resultFile = new File($tmpDir . DS . $randomFileName . ".stix2");
-        $resultFile->write("{\"type\": \"bundle\", \"spec_version\": \"2.0\", \"id\": \"bundle--" . CakeText::uuid() . "\", \"objects\": [");
-        if (trim($result) == 1) {
-            $file = new File($tmpDir . DS . $randomFileName . '.out', true, 0644);
-            $result = substr($file->read(), 1, -1);
-            $file->delete();
-            $resultFile->append($result);
-        } else {
-            return false;
+        $stixFile = new File($tmpDir . DS . $randomFileName . ".stix");
+        $stixFile->write("{\"type\": \"bundle\", \"spec_version\": \"2.0\", \"id\": \"bundle--" . CakeText::uuid() . "\", \"objects\": [");
+        if ($jobId) {
+            $this->Job = ClassRegistry::init('Job');
+            $this->Job->id = $jobId;
+            if (!$this->Job->exists()) {
+                $jobId = false;
+            }
         }
-        $resultFile->append("]}\n");
-        $data2return = $resultFile->read();
-        $resultFile->delete();
-        return $data2return;
+        $i = 0;
+        $eventCount = count($event_ids);
+        if ($event_ids) {
+            foreach ($event_ids as $event_id) {
+                $tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
+                $event = $this->fetchEvent($user, array('eventid' => $id, 'includeAttachments' => 1));
+                if (empty($event)) {
+                    continue;
+                }
+                $event[0]['Tag'] = array();
+                foreach ($event[0]['EventTag'] as $tag) {
+                    $event[0]['Tag'][] = $tag['Tag'];
+                }
+                App::uses('JSONConverterTool', 'Tools');
+                $converter = new JSONConverterTool();
+                $event = $converter->convert($event[0]);
+                $tempFile->write($event);
+                unset($event);
+                $scriptFile = APP . "files" . DS . "scripts" . DS . "stix2" . DS . "misp2stix2.py";
+                $result = shell_exec('python3 ' . $scriptFile . ' ' . $tempFile->path . ' json ' . ' ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' 2>' . APP . 'tmp/logs/exec-errors.log');
+                if (trim($result) == 1) {
+                    $file = new File($tmpDir . DS . $randomFileName . '.out', true, 0644);
+                    $result = substr($file->read(), 1, -1);
+                    $file->delete();
+                    $stixFile->append($result . (($i + 1) != $eventCount ? ',' : ''));
+                } else {
+                    return false;
+                }
+                $i++;
+                if ($jobId) {
+                    $this->Job->saveField('message', 'Event ' . $i . '/' . $eventCount);
+                    if ($i % 10 == 0) {
+                        $this->Job->saveField('progress', $i * 80 / $eventCount);
+                    }
+                }
+                $tempFile->close();
+            }
+        }
+        $stixFile->append("]}\n");
+        if ($tempFile) {
+            $tempFile->delete();
+        }
+        if (!$returnFile) {
+            $data2return = $stixFile->read();
+            $stixFile->delete();
+        }
+        return array('success' => 1, 'data' => $returnFile ? $stixFile->path : $data2return);
     }
 
     public function stix($id, $tags, $attachments, $user, $returnType = 'xml', $from = false, $to = false, $last = false, $jobId = false, $returnFile = false)
