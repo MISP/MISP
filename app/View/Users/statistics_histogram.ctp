@@ -1,7 +1,7 @@
 <?php
-	echo $this->Html->script('d3');
-	echo $this->Html->script('cal-heatmap');
-	echo $this->Html->css('cal-heatmap');
+    echo $this->Html->script('d3');
+    echo $this->Html->script('cal-heatmap');
+    echo $this->Html->css('cal-heatmap');
 ?>
 <div class = "index">
 <h2>Statistics</h2>
@@ -9,10 +9,10 @@
 <div id = "histogram"></div>
 </div>
 <?php
-	echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'statistics'));
+    echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'statistics'));
 ?>
 <script type="text/javascript">
 $(document).ready(function () {
-	updateHistogram('');
+    updateHistogram('');
 });
 </script>
