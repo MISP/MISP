@@ -246,8 +246,7 @@ sudo -u www-data vim /var/www/MISP/app/Config/database.php
 # delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
 
 # Change base url in config.php
-sudo -u www-data vim /var/www/MISP/app/Config/config.php
-# example: 'baseurl' => 'https://<your.FQDN.here>',
+/var/www/MISP/app/Console/cake Baseurl https://<your.FQDN.here>
 # alternatively, you can leave this field empty if you would like to use relative pathing in MISP
 # 'baseurl' => '',
 
