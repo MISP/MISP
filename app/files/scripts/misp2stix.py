@@ -1177,6 +1177,7 @@ class StixBuilder(object):
 
     def resolve_malware_sample(self, attribute):
         if 'data' in attribute and attribute.data:
+            attribute_uuid = attribute.uuid
             filename, h_value = attribute.value.split('|')
             artifact_object = self.create_artifact_object(attribute.to_dict()['data'])
             artifact_object.hashes = HashList(Hash(hash_value=h_value, exact=True))
