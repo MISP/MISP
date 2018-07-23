@@ -160,6 +160,36 @@
     <p><?php echo __('The same search could be accomplished using the following POSTed XML object (note that ampersands need to be escaped, or alternatively separate id and tag elements can be used)');?>: </p>
     <code>&lt;request&gt;&lt;id&gt;!51&lt;/id&gt;&lt;id&gt;!62&lt;/id&gt;&lt;tags&gt;APT1&lt;/tags&gt;&lt;tags&gt;!OSINT&lt;/tags&gt;&lt;from&gt;2015-02-15&lt;/from&gt;&lt;/request&gt;</code>
 
+    <h3><?php echo __('STIX 2.0 export');?></h3>
+    <p><?php echo __('You can export MISP events in STIX 2.0 format (to read more about STIX, click <a href="https://stix2.readthedocs.io/">here</a>). ');?>:</p>
+    <pre><?php echo $baseurl;?>/events/stix2/download.json</pre>
+    <p><?php echo __('Search parameters can be passed to the function via URL parameters or by POSTing a JSON object. The following parameters can be passed to the STIX 2.0 export tool: <code>id</code>, <code>withAttachments</code>, <code>tags</code>. Both <code>id</code> and <code>tags</code> can use the <code>&amp;&amp;</code> (and) and <code>!</code> (not) operators to build queries. Using the URL parameters, the syntax is as follows');?>:</p>
+    <pre><?php echo $baseurl;?>/events/stix2/download/[id]/[withAttachments]/[tags]/[from]/[to]/[last]</pre>
+    <p>
+    <b>id</b>: <?php echo __('The event\'s ID');?><br />
+    <b>withAttachments</b>: <?php echo __('Encode attachments where applicable');?><br />
+    <b>tags</b>: <?php echo __('To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a \'!\'.
+    You can also chain several tag commands together with the \'&amp;&amp;\' operator. Please be aware the colons (:) cannot be used in the tag search.
+    Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use');?>:<br />
+    </p>
+    <pre><?php echo $baseurl;?>/events/stix2/download/false/true/tag1&amp;&amp;tag2&amp;&amp;!tag3</pre>
+    <p>
+    <b>from</b>: <?php echo __('Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.');?><br />
+    <b>to</b>: <?php echo __('Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.');?><br />
+    <b>last</b>: <?php echo __('Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m). This filter will use the published timestamp of the event.');?><br />
+    </p>
+    <p><?php echo __('You can post a JSON object containing additional parameters in the following formats');?>:</p>
+    <p>JSON:</p>
+    <pre><?php echo $baseurl;?>/events/stix2/download.json</pre>
+    <code>{"request": {"id":["!51","!62"],"withAttachment":false,"tags":["APT1","!OSINT"],"from":false,"to":"2015-02-15"}}</code><br /><br />
+    <h4><?php echo __('Various ways to narrow down the search results of the STIX 2.0 export');?></h4>
+    <p><?php echo __('For example, to retrieve all events tagged "APT1" but excluding events tagged "OSINT" and excluding events #51 and #62 without any attachments');?>:
+    <pre><?php echo $baseurl;?>/events/stix2/download/!51&amp;&amp;!62/false/APT1&amp;&amp;!OSINT/2015-02-15</pre>
+    <p><?php echo __('To export the same events using a POST request use');?>:</p>
+    <pre><?php echo $baseurl;?>/events/stix2/download.json</pre>
+    <p><?php echo __('Together with this JSON object in the POST message');?>:</p>
+    <code>{"request": {"id":["!51","!62"],"tags":["APT1","!OSINT"],"from":"2015-02-15"}}</code><br /><br />
+
     <h3><?php echo __('RPZ export');?></h3>
     <p<?php echo __('>You can export RPZ zone files for DNS level firewalling by using the RPZ export functionality of MISP. The file generated will include all of the IDS flagged domain, hostname and IP-src/IP-dst attribute values that you have access to.');?></p>
     <p><?php echo __('It is possible to further restrict the exported values using the following filters');?>:</p>
