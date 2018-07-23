@@ -3673,7 +3673,7 @@ class Event extends AppModel
         if ($event_ids) {
             foreach ($event_ids as $event_id) {
                 $tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
-                $event = $this->fetchEvent($user, array('eventid' => $id, 'includeAttachments' => 1));
+                $event = $this->fetchEvent($user, array('eventid' => $event_id, 'includeAttachments' => 1));
                 if (empty($event)) {
                     continue;
                 }
