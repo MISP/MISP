@@ -166,6 +166,8 @@ class StixParser():
             self.misp_event.publish_timestamp = self.getTimestampfromDate(report_attributes['published'][0])
         if len(report_attributes['name']) == 1:
             self.misp_event.info = report_attributes['name'][0]
+        else:
+            self.misp_event.info = "Imported from MISP import for STIX 2.0 script."
         for l in report_attributes['labels']:
             self.misp_event.add_tag(l)
 
