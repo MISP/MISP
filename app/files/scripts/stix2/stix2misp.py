@@ -155,6 +155,7 @@ class StixParser():
                     self.add_link(e)
             for ref in report['object_refs']:
                 object_type, uuid = ref.split('--')
+                if object_type == 'relationship': continue
                 object2parse = self.event[object_type][uuid]
                 labels = object2parse.get('labels')
                 self.object_from_refs[object_type](object2parse, labels)
