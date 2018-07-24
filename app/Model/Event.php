@@ -4073,13 +4073,6 @@ class Event extends AppModel
                 if (!$this->__fTool->validateRouter($object['type'], $object['value'])) {
                     $object['validationIssue'] = true;
                 }
-            } else {
-                if (!$this->__wTool) {
-                    $this->__wTool = new ValidationWarningTool();
-                }
-                if (!$this->__wTool->validateRouter($object['type'], $object['value'])) {
-                    $object['validationIssue'] = true;
-                }
             }
         }
         $object = $this->Warninglist->checkForWarning($object, $eventWarnings, $warningLists);
