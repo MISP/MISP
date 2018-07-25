@@ -2644,13 +2644,18 @@ class Event extends AppModel
             $data['Event']['orgc_id'] = $user['org_id'];
         }
 
+        $event_tag_ids = array();
         if (isset($data['Event']['EventTag'])) {
             if (isset($data['Event']['EventTag']['id'])) {
                 $data['Event']['EventTag'] = array($data['Event']['EventTag']);
             }
             $eventTags = array();
             foreach ($data['Event']['EventTag'] as $k => $tag) {
-                $eventTags[] = array('tag_id' => $this->EventTag->Tag->captureTag($data['Event']['EventTag'][$k]['Tag'], $user));
+                $temp = $this->EventTag->Tag->captureTag($data['Event']['EventTag'][$k]['Tag'], $user);
+                if ($temp && !in_array($temp, $event_tag_ids)) {
+                    $eventTags[] = array('tag_id' => $temp);
+                    $event_tag_ids[] = $temp;
+                }
                 unset($data['Event']['EventTag'][$k]);
             }
             $data['Event']['EventTag'] = $eventTags;
@@ -2663,8 +2668,9 @@ class Event extends AppModel
             }
             foreach ($data['Event']['Tag'] as $tag) {
                 $tag_id = $this->EventTag->Tag->captureTag($tag, $user);
-                if ($tag_id) {
+                if ($tag_id && !in_array($tag_id, $event_tag_ids)) {
                     $data['Event']['EventTag'][] = array('tag_id' => $tag_id);
+                    $event_tag_ids[] = $tag_id;
                 }
             }
             unset($data['Event']['Tag']);

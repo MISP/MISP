@@ -30,24 +30,29 @@ with open(os.path.join(__path__[0], 'data/describeTypes.json'), 'r') as f:
 class StixParser():
     def __init__(self):
         self.misp_event = MISPEvent()
-        self.event = []
+        self.event = defaultdict(dict)
         self.misp_event['Galaxy'] = []
 
     def loadEvent(self, args):
         try:
             filename = os.path.join(os.path.dirname(args[0]), args[1])
-            tempFile = open(filename, 'r', encoding='utf-8')
+            with open(filename, 'r', encoding='utf-8') as f:
+                event = json.loads(f.read())
             self.filename = filename
-            event = json.loads(tempFile.read())
             self.stix_version = 'stix {}'.format(event.get('spec_version'))
             for o in event.get('objects'):
                 try:
                     try:
-                        self.event.append(stix2.parse(o, allow_custom=True))
+                        parsed_object = stix2.parse(o, allow_custom=True)
+                        object_type = parsed_object._type
                     except:
-                        self.parse_custom(o)
+                        parsed_object = self.parse_custom_stix(o)
+                        object_type = parsed_object['type']
                 except:
                     pass
+                object_uuid = parsed_object['id'].split('--')[1]
+                if object_type.startswith('x-misp-object'): object_type = 'x-misp-object'
+                self.event[object_type][object_uuid] = parsed_object
             if not self.event:
                 print(json.dumps({'success': 0, 'message': 'There is no valid STIX object to import'}))
                 sys.exit(1)
@@ -70,7 +75,7 @@ class StixParser():
             print(json.dumps({'success': 0, 'message': 'The STIX file could not be read'}))
             sys.exit(1)
 
-    def parse_custom(self, obj):
+    def parse_custom_stix(self, obj):
         custom_object_type = obj.pop('type')
         labels = obj['labels']
         try:
@@ -99,7 +104,7 @@ class StixParser():
                 def __init__(self, **kwargs):
                     return
             custom = Custom(**obj)
-        self.event.append(stix2.parse(custom))
+        return stix2.parse(custom)
 
     def load_mapping(self):
         self.objects_mapping = {'asn': {'observable': observable_asn, 'pattern': pattern_asn},
@@ -113,6 +118,10 @@ class StixParser():
                                 'url': {'observable': observable_url, 'pattern': pattern_url},
                                 'WindowsPEBinaryFile': {'observable': self.observable_pe, 'pattern': self.pattern_pe},
                                 'x509': {'observable': observable_x509, 'pattern': pattern_x509}}
+        self.object_from_refs = {'course-of-action': self.parse_course_of_action, 'vulnerability': self.parse_vulnerability,
+                                 'x-misp-object': self.parse_custom}
+        self.object_from_refs.update(dict.fromkeys(list(galaxy_types.keys()), self.parse_galaxy))
+        self.object_from_refs.update(dict.fromkeys(['indicator', 'observed-data'], self.parse_usual_object))
 
     def handler(self):
         self.outputname = '{}.stix2'.format(self.filename)
@@ -124,73 +133,61 @@ class StixParser():
         self.set_distribution()
 
     def from_misp(self):
-        for o in self.event:
+        for _, o in self.event['report'].items():
             if o._type == 'report' and 'misp:tool="misp2stix2"' in o.get('labels'):
-                index = self.event.index(o)
-                self.report = self.event.pop(index)
                 return True
         return False
 
     def buildMispDict(self):
-        self.parse_identity()
-        self.parse_report()
-        for o in self.event:
-            try:
-                object_type = o._type
-            except:
-                object_type = o['type']
-            if object_type == 'relationship': continue
-            labels = o.get('labels')
-            if object_type == 'vulnerability':
-                if len(labels) > 2:
-                    self.parse_usual_object(o, labels)
-                else:
-                    self.parse_galaxy(o, labels)
-            elif object_type in galaxy_types:
-                self.parse_galaxy(o, labels)
-            elif object_type == 'course-of-action':
-                self.parse_course_of_action(o)
-            elif 'x-misp-object' in object_type:
-                if 'from_object' in labels:
-                    self.parse_custom_object(o)
-                else:
-                    self.parse_custom_attribute(o, labels)
-            else:
-                self.parse_usual_object(o, labels)
+        report_attributes = defaultdict(list)
+        orgs = []
+        for _, report in self.event['report'].items():
+            org_uuid = report['created_by_ref'].split('--')[1]
+            if org_uuid not in orgs: orgs.append(org_uuid)
+            report_name = report['name']
+            if report_name not in orgs: report_attributes['name'].append(report_name)
+            if report.get('published'): report_attributes['published'].append(report['published'])
+            if hasattr(report, 'labels'):
+                for l in report['labels']:
+                    if l not in report_attributes['labels']: report_attributes['labels'].append(l)
+            if hasattr(report, 'external_references'):
+                for e in report['external_references']:
+                    self.add_link(e)
+            for ref in report['object_refs']:
+                object_type, uuid = ref.split('--')
+                if object_type == 'relationship': continue
+                object2parse = self.event[object_type][uuid]
+                labels = object2parse.get('labels')
+                self.object_from_refs[object_type](object2parse, labels)
+        if len(orgs) == 1:
+            identity = self.event['identity'][orgs[0]]
+            self.misp_event['Org'] = {'name': identity['name']}
+        if len(report_attributes['published']) == 1:
+            self.misp_event.publish_timestamp = self.getTimestampfromDate(report_attributes['published'][0])
+        if len(report_attributes['name']) == 1:
+            self.misp_event.info = report_attributes['name'][0]
+        else:
+            self.misp_event.info = "Imported from MISP import for STIX 2.0 script."
+        for l in report_attributes['labels']:
+            self.misp_event.add_tag(l)
+
+    def add_link(self, e):
+        link = {"type": "link"}
+        comment = e.get('source_name')
+        try:
+            comment = comment.split('url - ')[1]
+        except:
+            pass
+        if comment:
+            link['comment'] = comment
+        link['value'] = e.get('url')
+        self.misp_event.add_attribute(**link)
 
     def parse_usual_object(self, o, labels):
         if 'from_object' in labels:
             self.parse_object(o, labels)
         else:
             self.parse_attribute(o, labels)
-
-    def parse_identity(self):
-        identity = self.event.pop(0)
-        org = {'name': identity.get('name')}
-        self.misp_event['Org'] = org
-
-    def parse_report(self):
-        report = self.report
-        self.misp_event.info = report.get('name')
-        if report.get('published'):
-            self.misp_event.publish_timestamp = self.getTimestampfromDate(report.get('published'))
-        if hasattr(report, 'labels'):
-            labels = report['labels']
-            for l in labels:
-                self.misp_event.add_tag(l)
-        if hasattr(report, 'external_references'):
-            ext_refs = report['external_references']
-            for e in ext_refs:
-                link = {"type": "link"}
-                comment = e.get('source_name')
-                try:
-                    comment = comment.split('url - ')[1]
-                except:
-                    pass
-                if comment:
-                    link['comment'] = comment
-                link['value'] = e.get('url')
-                self.misp_event.add_attribute(**link)
 
     def parse_galaxy(self, o, labels):
         galaxy_type = self.get_misp_type(labels)
@@ -202,7 +199,7 @@ class StixParser():
                                      'description': cluster_description}]}
         self.misp_event['Galaxy'].append(galaxy)
 
-    def parse_course_of_action(self, o):
+    def parse_course_of_action(self, o, _):
         misp_object = MISPObject('course-of-action')
         if 'name' in o:
             attribute = {'type': 'text', 'object_relation': 'name', 'value': o.get('name')}
@@ -213,6 +210,12 @@ class StixParser():
             attribute = {'type': 'text', 'object_relation': 'description', 'value': o.get('description')}
             misp_object.add_attribute(**attribute)
         self.misp_event.add_object(**misp_object)
+
+    def parse_custom(self, o, labels):
+        if 'from_object' in labels:
+            self.parse_custom_object(o)
+        else:
+            self.parse_custom_attribute(o, labels)
 
     def parse_custom_object(self, o):
         name = o.get('type').split('x-misp-object-')[1]
@@ -293,6 +296,12 @@ class StixParser():
             attribute['data'] = io.BytesIO(data.encode())
         attribute['value'] = value
         self.misp_event.add_attribute(**attribute)
+
+    def parse_vulnerability(self, o, labels):
+        if len(labels) > 2:
+            self.parse_usual_object(o, labels)
+        else:
+            self.parse_galaxy(o, labels)
 
     @staticmethod
     def observable_email(observable):

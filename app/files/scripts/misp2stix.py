@@ -191,12 +191,12 @@ class StixBuilder(object):
     def saveFile(self):
         outputfile = "{}.out".format(self.filename)
         if self.args[2] == 'json':
-          with open(outputfile, 'w') as f:
-            f.write('{"package": %s}' % self.stix_package.to_json())
+            with open(outputfile, 'w') as f:
+                f.write('{"package": %s}' % self.stix_package.to_json())
         else:
-          with open(outputfile, 'wb') as f:
-            f.write(self.stix_package.to_xml(include_namespaces=False, include_schemalocs=False,
-                                             encoding='utf8'))
+            with open(outputfile, 'wb') as f:
+                f.write(self.stix_package.to_xml(include_namespaces=False, include_schemalocs=False,
+                                                 encoding='utf8'))
 
     def generate_stix_objects(self):
         incident_id = "{}:incident-{}".format(namespace[1], self.misp_event.uuid)
