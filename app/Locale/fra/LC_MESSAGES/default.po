@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2018-07-18 11:42\n"
-"Last-Translator: SteveClement <steve@localhost.lu>\n"
+"PO-Revision-Date: 2018-07-25 09:32\n"
+"Last-Translator: ater49 <contact@at49.info>\n"
 "Language-Team: French\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -2162,11 +2162,11 @@ msgstr "Envoyer"
 #: View/Users/ajax/passwordResetConfirmationForm.ctp:32
 #: View/Warninglists/ajax/delete_confirmation.ctp:25
 msgid "Cancel"
-msgstr "Annulé"
+msgstr "Annuler"
 
 #: View/Attributes/add_attachment.ctp:4
 msgid "Add Attachment(s)"
-msgstr ""
+msgstr "Ajouter une pièce jointe"
 
 #: View/Attributes/add_attachment.ctp:64
 msgid "Is a malware sample (encrypt and hash)"
@@ -2178,7 +2178,7 @@ msgstr "Extraction avancée (si installée)"
 
 #: View/Attributes/add_threatconnect.ctp:4
 msgid "Import ThreatConnect CSV file"
-msgstr "Importer le fichier ThreatConnect CSV"
+msgstr "Importer le fichier CSV ThreatConnect"
 
 #: View/Attributes/alternate_search_result.ctp:2
 msgid "Alternate Search Results"
@@ -2223,7 +2223,7 @@ msgstr "Correspond"
 #: View/Attributes/alternate_search_result.ctp:12
 #: View/Elements/Events/eventIndexTable.ctp:39
 msgid "Attribute Count"
-msgstr "Attribute_count"
+msgstr "Nombre d'attributs"
 
 #: View/Attributes/attribute_replace.ctp:6
 #: View/Pages/doc/using_the_system.ctp:117;119
@@ -2236,7 +2236,7 @@ msgstr "Sélectionnez une catégorie et un type, puis copiez une liste de IOC qu
 
 #: View/Attributes/attribute_replace.ctp:19
 msgid "Mark all new attributes as to IDS"
-msgstr "Marquer les nouveaux attributs en IDS"
+msgstr "Marquer les nouveaux attributs en to_ids"
 
 #: View/Attributes/attribute_replace.ctp:26
 #: View/Noticelists/view.ctp:36
@@ -12995,7 +12995,7 @@ msgstr ""
 
 #: Model/Tag.php:validation for field name
 msgid "This field is required."
-msgstr ""
+msgstr "Ce champ est requis."
 
 #: Model/Tag.php:validation for field name
 #: Model/Whitelist.php:validation for field name
@@ -13004,67 +13004,67 @@ msgstr ""
 
 #: Model/Tag.php:validation for field colour
 msgid "Colour has to be in the RGB format (#FFFFFF)"
-msgstr ""
+msgstr "La couleur doit être dans un format RGB (#FFFFFF)"
 
 #: Model/TemplateElementAttribute.php:validation for field category
 #: Model/TemplateElementFile.php:validation for field category
 msgid "Please choose a category."
-msgstr ""
+msgstr "Merci de choisir une catégorie."
 
 #: Model/TemplateElementAttribute.php:validation for field type
 msgid "Please choose a type."
-msgstr ""
+msgstr "Merci de choisir un type"
 
 #: Model/TemplateElementFile.php:validation for field name
 #: Model/TemplateElementText.php:validation for field name
 msgid "Please enter a Name"
-msgstr ""
+msgstr "Merci d'entrer un nom."
 
 #: Model/TemplateElementFile.php:validation for field description
 msgid "Please enter a Description"
-msgstr ""
+msgstr "Merci d'entrer une description."
 
 #: Model/TemplateElementText.php:validation for field text
 msgid "Please fill out the text field"
-msgstr ""
+msgstr "Merci de remplir le champ texte."
 
 #: Model/User.php:validation for field password
 msgid "Password length requirement not met."
-msgstr ""
+msgstr "La longueur du mot de passe est trop faible."
 
 #: Model/User.php:validation for field password
 msgid "Password complexity requirement not met."
-msgstr ""
+msgstr "Le mot de passe ne respecte pas les règles de complexité."
 
 #: Model/User.php:validation for field password
 msgid "Please re-enter your password twice so that the values match."
-msgstr ""
+msgstr "Merci de réentrer votre mot de passe deux fois afin que les valeurs coîncident."
 
 #: Model/User.php:validation for field org_id
 msgid "The organisation ID has to be a numeric value."
-msgstr ""
+msgstr "L'ID de l'organisation doit être une valeur numérique"
 
 #: Model/User.php:validation for field email
 msgid "Please enter a valid email address."
-msgstr ""
+msgstr "Merci d'entrer une adresse email valide"
 
 #: Model/User.php:validation for field email
 msgid "An account with this email address already exists."
-msgstr ""
+msgstr "Un compte ayant cette adresse e-mail est déjà existant."
 
 #: Model/User.php:validation for field gpgkey
 msgid "GnuPG key not valid, please enter a valid key."
-msgstr ""
+msgstr "La clé GnuPG n'est pas valide, merci d'entrer une clé valide"
 
 #: Model/User.php:validation for field certif_public
 msgid "Certificate not valid, please enter a valid certificate (x509)."
-msgstr ""
+msgstr "Le certificat n'est pas valide, merci d'entrer un certificat valide (x509)"
 
 #: Model/User.php:validation for field nids_sid
 msgid "A SID should be an integer."
-msgstr ""
+msgstr "Un SID doit être un entier"
 
 #: Model/Whitelist.php:validation for field name
 msgid "Name not in the right format. Whitelist entries have to be enclosed by a valid php delimiter (which can be most non-alphanumeric / non-whitespace character). Format: \"/8.8.8.8/\" Please double check the name."
-msgstr ""
+msgstr "Le nom n'est pas dans le bon format. Les entrées de la liste blanche doivent être délimité avec un délimiteur PHP valide (pouvant être non un caractère non alphanumérique ou un espace. Format: \"/8.8.8.8/\". Merci de vérifier le nom"
 
