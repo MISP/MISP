@@ -39,14 +39,14 @@ msgstr ""
 
 #: Controller/AttributesController.php:132
 msgid "You don't have permissions to create attributes"
-msgstr ""
+msgstr "Vous n'avez pas la permission de créer des attributs."
 
 #: Controller/AttributesController.php:150;434;586
 #: Controller/EventGraphController.php:76
 #: Controller/EventsController.php:1526;1544;1577
 #: Controller/ObjectsController.php:426
 msgid "You do not have permission to do that."
-msgstr ""
+msgstr "Vous n'avez pas la permission d'effectuer cette action."
 
 #: Controller/AttributesController.php:387;774;779;782;965;1038;2395;2408;2428;2449;2457;2910;2912;2999;3001
 #: Controller/ShadowAttributesController.php:759;976;1000;1028;1038
@@ -57,7 +57,7 @@ msgstr "Attribut invalide"
 #: Controller/AttributesController.php:396
 #: Controller/ShadowAttributesController.php:468
 msgid "You do not have the permission to view this event."
-msgstr ""
+msgstr "Vous n'avez pas la permission de visualiser cet événement."
 
 #: Controller/AttributesController.php:418
 msgid "Attribute not an attachment or malware-sample"
@@ -66,7 +66,7 @@ msgstr "L'attribut n'est pas une pièce jointe ou un échantillon de maliciel"
 #: Controller/AttributesController.php:449;597
 #: Controller/ShadowAttributesController.php:506
 msgid "PHP says file was not uploaded. Are you attacking me?"
-msgstr ""
+msgstr "PHP indique que le fichier n'a pas été téléversé. M'attaqueriez vous ?"
 
 #: Controller/AttributesController.php:599
 #: Controller/ShadowAttributesController.php:508;518
@@ -92,12 +92,12 @@ msgstr "Attribut invalide."
 
 #: Controller/AttributesController.php:820
 msgid "Attribute could not be saved: Attribute in the request not newer than the local copy."
-msgstr ""
+msgstr "L'attribut ne peut être sauvegardé. L'attribut présent dans la requête n'est pas plus récent que l'attribut présent localement."
 
 #: Controller/AttributesController.php:836;1257
 #: Controller/EventsController.php:4190;4200;4709;4723
 msgid "Invalid Event."
-msgstr ""
+msgstr "Evenement invalide"
 
 #: Controller/AttributesController.php:853
 msgid "The attribute has been saved"
@@ -119,7 +119,7 @@ msgstr "Saisie incorrecte."
 
 #: Controller/AttributesController.php:999
 msgid "Invalid field."
-msgstr ""
+msgstr "Champ invalide."
 
 #: Controller/AttributesController.php:1041
 msgid "Invalid attribute id."
@@ -140,31 +140,31 @@ msgstr "Attribut invalide"
 
 #: Controller/AttributesController.php:1154
 msgid "Could not restore the attribute"
-msgstr ""
+msgstr "Restauration de l'attribut impossible."
 
 #: Controller/AttributesController.php:1172;1178;1182
 msgid "Attribute not found or not authorised."
-msgstr ""
+msgstr "L'attribut est introuvable ou non autorisé."
 
 #: Controller/AttributesController.php:1231
 msgid "This function is only accessible via POST requests."
-msgstr ""
+msgstr "Cette fonction est disponible uniquement via une requête POST."
 
 #: Controller/AttributesController.php:1279
 msgid "No matching attributes found."
-msgstr ""
+msgstr "Aucun attribut correspondant trouvé."
 
 #: Controller/AttributesController.php:1308
 msgid "This method can only be accessed via AJAX."
-msgstr ""
+msgstr "Cette méthode n'est utilisable que via AJAX."
 
 #: Controller/AttributesController.php:1318
 msgid "You are not authorized to edit this event."
-msgstr ""
+msgstr "Vous n'êtes pas autorisé à modifier cet événément."
 
 #: Controller/AttributesController.php:1380
 msgid "No event ID provided."
-msgstr ""
+msgstr "Aucun ID d'évenement fourni."
 
 #: Controller/AttributesController.php:1479
 msgid "Invalid tag"
@@ -173,20 +173,20 @@ msgstr "Étiquette invalide"
 #: Controller/AttributesController.php:1932;2073;2172;2210;2273;2332
 #: Controller/EventsController.php:2272;2367;2420;2467;2795;2980;3618;3635
 msgid "This authentication key is not authorized to be used for exports. Contact your administrator."
-msgstr ""
+msgstr "Cette clé d'authentification n'est pas autorisée à effectuer des exports. Merci de contacter votre administrateur."
 
 #: Controller/AttributesController.php:1936;2069;2166
 #: Controller/EventsController.php:2799
 msgid "You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml."
-msgstr ""
+msgstr "Requête non authorisée. Merci d'envoyer l'en-tête Authorization avec votre clé en paramètre ainsi que l'en-tête Accept pour application/xml"
 
 #: Controller/AttributesController.php:1946
 msgid "Content type and parameter mismatch. Expecting JSON."
-msgstr ""
+msgstr "Le Content-type et les paramètres fournis ne correspondent pas. Format JSON attendu."
 
 #: Controller/AttributesController.php:1951
 msgid "Content type and parameter mismatch. Expecting XML."
-msgstr ""
+msgstr "Le Content-type et les paramètres fournis ne correspondent pas. Format XML attendu."
 
 #: Controller/AttributesController.php:1955;2081
 msgid "Either specify the search terms in the url, or POST a json array / xml (with the root element being \"request\" and specify the correct accept and content type headers."
@@ -194,20 +194,20 @@ msgstr ""
 
 #: Controller/AttributesController.php:2098
 msgid "You don't have access to that event."
-msgstr ""
+msgstr "Vous n'avez pas les accès requis pour accéder à cet événement."
 
 #: Controller/AttributesController.php:2158
 msgid "No matches."
-msgstr ""
+msgstr "Aucun résultat."
 
 #: Controller/AttributesController.php:2176;2184
 msgid "Invalid attribute or no authorisation to view it."
-msgstr ""
+msgstr "Attribut invalide ou vous n'êtes pas autorisé à le voir."
 
 #: Controller/AttributesController.php:2214;2277;2336
 #: Controller/EventsController.php:2276;2372;2425;2471;2984;3622;3639
 msgid "You have to be logged in to do that."
-msgstr ""
+msgstr "Vous devez vous identifier pour effectuer cette action."
 
 #: Controller/AttributesController.php:2239
 #: Controller/EventsController.php:2813
@@ -216,7 +216,7 @@ msgstr ""
 
 #: Controller/AttributesController.php:2282
 msgid "Invalid event ID format."
-msgstr ""
+msgstr "Format d'ID d'événément invalide."
 
 #: Controller/AttributesController.php:2361
 #: Controller/ShadowAttributesController.php:1145
@@ -226,64 +226,64 @@ msgstr "Terminé. "
 #: Controller/AttributesController.php:2391;2424
 #: Controller/ShadowAttributesController.php:972
 msgid "Invalid field requested."
-msgstr ""
+msgstr "Champ requêté invalide."
 
 #: Controller/AttributesController.php:2392;2425
 msgid "This function can only be accessed via AJAX."
-msgstr ""
+msgstr "Cette fonction n'est accessible qu'avec AJAX."
 
 #: Controller/AttributesController.php:2486;2493
 #: Controller/EventsController.php:3327;3593
 msgid "Event not found or you don't have permissions to create attributes"
-msgstr ""
+msgstr "Evenement non trouvés ou vous n'avez pas la permission de créer des attributs."
 
 #: Controller/AttributesController.php:2512
 msgid "This action can only be accessed via AJAX."
-msgstr ""
+msgstr "Cette action n'est accessible que via AJAX"
 
 #: Controller/AttributesController.php:2519;2725;2734;2742
 msgid "You are not authorised to do that."
-msgstr ""
+msgstr "Vous n'êtes pas autorisé à effectuer cette action."
 
 #: Controller/AttributesController.php:2607
 #: Controller/EventsController.php:4015
 msgid "This functionality requires API key access."
-msgstr ""
+msgstr "Cette fonctionnalité requiert son accès via une clé API"
 
 #: Controller/AttributesController.php:2614
 msgid "This action is for the API only. Please refer to the automation page for information on how to use it."
-msgstr ""
+msgstr "Cette action n'est disponible que via l'API. Merci de se réferrer au guide sur l'automatisation pour plus d'information sur comment l'utiliser."
 
 #: Controller/AttributesController.php:2619
 msgid "No hash or event ID received. You need to set at least one of the two."
-msgstr ""
+msgstr "Aucun hash ou ID d'évenement reçu. Vous devez spécifier au moins un de ses deux paramètres."
 
 #: Controller/AttributesController.php:2751
 msgid "Invalid script."
-msgstr ""
+msgstr "Script invalide."
 
 #: Controller/AttributesController.php:2800
 msgid "No valid enrichment options found for this attribute."
-msgstr ""
+msgstr "Aucune option d'enrichissement valide n'a été trouvé pour cet attribut."
 
 #: Controller/AttributesController.php:2853
 msgid "Invalid type requested."
-msgstr ""
+msgstr "Type requêté invalide."
 
 #: Controller/AttributesController.php:3052
 #: Controller/EventsController.php:4705
 msgid "Disabling the correlation is not permitted on this instance."
-msgstr ""
+msgstr "La désactivation de la corrélation n'est pas permise sur cette instance."
 
 #: Controller/AttributesController.php:3056;3071
 #: Controller/ShadowAttributesController.php:627
 msgid "Invalid Attribute."
-msgstr ""
+msgstr "Attribut invalide"
 
 #: Controller/AttributesController.php:3059;3074
 #: Controller/EventsController.php:4712;4726
 msgid "You don't have permission to do that."
-msgstr ""
+msgstr "Vous n'avez pas la permission d'effectuer cette action."
 
 #: Controller/EventBlacklistsController.php:11
 msgid "Event Blacklisting is not currently enabled on this instance."
@@ -307,23 +307,23 @@ msgstr "Il n'y a pas de clé GnuPG définie dans votre profil. Pour recevoir des
 
 #: Controller/EventsController.php:1381
 msgid "You don't have permissions to create events"
-msgstr ""
+msgstr "Vous n'avez pas la permission de créer d'événements."
 
 #: Controller/EventsController.php:1387
 msgid "No valid event data received."
-msgstr ""
+msgstr "Aucune données valides reçues."
 
 #: Controller/EventsController.php:1416
 msgid "Invalid Sharing Group or not authorised (Sync user is not contained in the Sharing group)."
-msgstr ""
+msgstr "Groupe de partage invalide ou non autorisé (les utilisateurs de type Sync ne sont pas dans le groupe de partage)."
 
 #: Controller/EventsController.php:1420;1423
 msgid "Invalid Sharing Group or not authorised."
-msgstr ""
+msgstr "Groupe de partage invalide ou non autorisé"
 
 #: Controller/EventsController.php:1446
 msgid "Event blocked by local blacklist."
-msgstr ""
+msgstr "Evenement bloqué par la liste noire locale."
 
 #: Controller/EventsController.php:1459;1533;1781
 msgid "The event has been saved"
@@ -331,11 +331,11 @@ msgstr "L'événement a été sauvegardé"
 
 #: Controller/EventsController.php:1467
 msgid "Event already exists, if you would like to edit it, use the url in the location header."
-msgstr ""
+msgstr "L'évenement existe déjà. Si vous souhaitez l'éditer, merci d'utiliser l'url dans l'en-tête de localisation."
 
 #: Controller/EventsController.php:1478
 msgid "A blacklist entry is blocking you from creating any events. Please contact the administration team of this instance"
-msgstr ""
+msgstr "Un entrée de la liste noire vous bloque dans la création de l'ensemble des événements. Merci de contacter l'équipe d'administration de l'instance."
 
 #: Controller/EventsController.php:1480;1784
 msgid "The event could not be saved. Please, try again."
@@ -347,11 +347,11 @@ msgstr "Vous ne pouvez envoyer que des fichiers au format MISP XML ou MISP JSON.
 
 #: Controller/EventsController.php:1559
 msgid "File upload failed or file does not have the expected extension (.xml / .json)."
-msgstr ""
+msgstr "Téléversement du fichier échouée ou l'extension de fichier n'est pas celle attendue (.xml/.json)"
 
 #: Controller/EventsController.php:1606
 msgid "STIX document imported, event's created: "
-msgstr "STIX document importé, événement créé : "
+msgstr "Document STIX importé, événement créé : "
 
 #: Controller/EventsController.php:1609
 msgid "STIX document imported."
@@ -379,7 +379,7 @@ msgstr "Vous n'êtes pas autorisé à lire l'événement sélectionné."
 
 #: Controller/EventsController.php:1924;1986
 msgid "You don't have the permission to do that."
-msgstr ""
+msgstr "Vous n'avez pas la permission d'effectuer cette action."
 
 #: Controller/EventsController.php:2069
 msgid "Email sent to the reporter."
@@ -391,7 +391,7 @@ msgstr "L'envoi de courriels a échoué"
 
 #: Controller/EventsController.php:2202
 msgid "This feature is currently disabled"
-msgstr ""
+msgstr "Cette fonctionnalité est actuellement désactivée."
 
 #: Controller/EventsController.php:2237;3649
 msgid "Either specify the search terms in the url, or POST an xml (with the root element being \"request\"."
@@ -399,11 +399,11 @@ msgstr ""
 
 #: Controller/EventsController.php:2264
 msgid "Invalid Event ID."
-msgstr ""
+msgstr "ID d'événement invalide."
 
 #: Controller/EventsController.php:2305
 msgid "No events found that match the passed parameters."
-msgstr ""
+msgstr "Aucun événement correspondant aux paramètres indiqués n'a été trouvé."
 
 #: Controller/EventsController.php:2327
 msgid "Either specify the search terms in the url, or POST a json or xml with the filter parameters. Valid filters: id (event ID), tags (list of tags), from (from date in YYYY-MM-DD format), to (to date in YYYY-MM-DD format), last (events with a published timestamp newer than - valid options are in time + unit format such as 6d or 2w, etc)"
@@ -416,11 +416,11 @@ msgstr ""
 #: Controller/EventsController.php:2407
 #: Model/Attribute.php:1788
 msgid "Invalid hash type."
-msgstr ""
+msgstr "Type de hash invalide."
 
 #: Controller/EventsController.php:2596
 msgid "Filename not allowed."
-msgstr ""
+msgstr "Nom de fichier non autorisé."
 
 #: Controller/EventsController.php:2616
 msgid "Problem with writing the ioc file. Please report to administrator."
@@ -428,11 +428,11 @@ msgstr "Le fichier ioc n’a pas pu être créé. Veuillez-vous adresser à un a
 
 #: Controller/EventsController.php:2708
 msgid "This is not a valid MISP XML file."
-msgstr ""
+msgstr "Ce fichier n'est pas un fichier MISP XML valide."
 
 #: Controller/EventsController.php:2973
 msgid "Not yet implemented"
-msgstr ""
+msgstr "Cette fonction n'a pas encore été implémentée."
 
 #: Controller/EventsController.php:2991;2994
 msgid "Invalid event or not authorised."
@@ -440,44 +440,40 @@ msgstr "Événement invalide ou affichage non autorisé."
 
 #: Controller/EventsController.php:3011;3078
 msgid "You don't have the privileges to access this."
-msgstr ""
+msgstr "Vous n'avez pas les privilèges suffisants pour accéder à cette ressource."
 
 #: Controller/EventsController.php:3547
 msgid "Could not add tags."
-msgstr ""
+msgstr "Ajout de tag impossible."
 
 #: Controller/EventsController.php:3597;4564
 #: Controller/ObjectsController.php:43;132;136;422
 msgid "Invalid event."
-msgstr ""
+msgstr "Evenement invalide."
 
 #: Controller/EventsController.php:3696;3723;3736
 msgid "You do not have the permission to do that."
-msgstr ""
+msgstr "Vous n'avez pas la permission d'effectuer cette action."
 
 #: Controller/EventsController.php:3794;3925
 msgid "Invalid ID"
-msgstr ""
+msgstr "ID invalide."
 
 #: Controller/EventsController.php:3796;3927
 msgid "Event not found or you are not authorised to view it."
-msgstr ""
+msgstr "Evenement non trouvé ou vous n'êtes pas autorisé à le voir."
 
 #: Controller/EventsController.php:4016;4022
 msgid "Please POST the samples as described on the automation page."
-msgstr ""
+msgstr "Merci d'effectuer une requête POST des samples comme décrit dans la page des automatisations."
 
 #: Controller/EventsController.php:4049
 msgid "No samples received, or samples not in the correct format. Please refer to the API documentation on the automation page."
 msgstr ""
 
-#: Controller/EventsController.php:4054
+#: Controller/EventsController.php:4054;4073
 msgid "Event not found"
-msgstr ""
-
-#: Controller/EventsController.php:4073
-msgid "Event not found."
-msgstr ""
+msgstr "Evenement non trouvé."
 
 #: Controller/EventsController.php:4081
 msgid "Distribution level 5 is not supported when uploading a sample without passing an event ID. Distribution level 5 is meant to take on the distribution level of an existing event."
@@ -485,52 +481,52 @@ msgstr ""
 
 #: Controller/EventsController.php:4105
 msgid "The creation of a new event with the supplied information has failed."
-msgstr ""
+msgstr "La création d'un événement avec les informations fournies à échouée."
 
 #: Controller/EventsController.php:4220;4239;4265;4287;4309;4336;4354
 msgid "Invalid type."
-msgstr ""
+msgstr "Type invalide."
 
 #: Controller/EventsController.php:4395
 msgid "Invalid method."
-msgstr ""
+msgstr "Méthode invalide."
 
 #: Controller/EventsController.php:4472
 msgid "%s services are not enabled."
-msgstr ""
+msgstr "Le %s service n'est pas activé."
 
 #: Controller/EventsController.php:4474
 msgid "Attribute not found or you are not authorised to see it."
-msgstr ""
+msgstr "Attribut introuvable ou vous n'êtes pas autorisé à le voir."
 
 #: Controller/EventsController.php:4478
 msgid "No valid %s options found for this attribute."
-msgstr ""
+msgstr "Aucune option %s n'a été trouvée pour cet attribut."
 
 #: Controller/EventsController.php:4491
 msgid "no valid %s options found for this attribute."
-msgstr ""
+msgstr "Aucune option %s n'a été trouvée pour cet attribut."
 
 #: Controller/EventsController.php:4509
 msgid "%s service not reachable."
-msgstr ""
+msgstr "Le service %s est indisponible."
 
 #: Controller/EventsController.php:4517
 msgid ": Enriched via the %s"
-msgstr ""
+msgstr ": Enrichi via %s"
 
 #: Controller/EventsController.php:4638
 msgid "Import service not reachable."
-msgstr ""
+msgstr "Le service d'import est indisponible."
 
 #: Controller/EventsController.php:4792
 msgid "Invalid ID."
-msgstr ""
+msgstr "ID invalide."
 
 #: Controller/EventsController.php:4838
 #: Controller/ShadowAttributesController.php:289;292;493
 msgid "Invalid Event"
-msgstr ""
+msgstr "Evenement invalide."
 
 #: Controller/EventsController.php:4855
 msgid "Enrichment task queued for background processing. Check back later to see the results."
@@ -538,7 +534,7 @@ msgstr "Tâche d’enrichissement en attente de traitement en arrière-plan. Rev
 
 #: Controller/FeedsController.php:25
 msgid "You don't have the required privileges to do that."
-msgstr ""
+msgstr "Vous n'avez pas de droits suffisants pour effectuer cette action."
 
 #: Controller/FeedsController.php:178;266
 msgid "Feed added."
@@ -550,7 +546,7 @@ msgstr "Flux n’a pas pu être ajouté. Champ invalide: %s"
 
 #: Controller/FeedsController.php:208;297;316;426;449;603
 msgid "Invalid feed."
-msgstr ""
+msgstr "Flux invalide."
 
 #: Controller/FeedsController.php:274
 msgid "Feed could not be updated. Invalid fields: %s"
@@ -558,15 +554,15 @@ msgstr "Flux n’a pas pu être mis à jour. Champs invalides: %s"
 
 #: Controller/FeedsController.php:295
 msgid "This action requires a post request."
-msgstr ""
+msgstr "Cette action nécessite une requête POST."
 
 #: Controller/FeedsController.php:322;429
 msgid "Feed is currently not enabled. Make sure you enable it."
-msgstr ""
+msgstr "Le flux n'es actuellement pas activé. Soyez sûr de l'avoir activé."
 
 #: Controller/FeedsController.php:335;396
 msgid "Starting fetch from Feed."
-msgstr ""
+msgstr "Début de la récupération du flux"
 
 #: Controller/FeedsController.php:346
 msgid "Pull queued for background execution."
@@ -574,27 +570,23 @@ msgstr ""
 
 #: Controller/FeedsController.php:351;353
 msgid "Fetching the feed has failed."
-msgstr ""
+msgstr "La récupération du flux a échouée."
 
 #: Controller/FeedsController.php:357
 msgid "Fetching the feed has successfuly completed."
-msgstr ""
-
-#: Controller/FeedsController.php:413
-msgid "Fetching the feed has successfully completed."
-msgstr ""
+msgstr "La récupération du flux a eu lieu avec succès."
 
 #: Controller/FeedsController.php:435
 msgid "Event added."
-msgstr ""
+msgstr "Evenement ajouté."
 
 #: Controller/FeedsController.php:437
 msgid "Event already up to date."
-msgstr ""
+msgstr "Evenement déjà à jour"
 
 #: Controller/FeedsController.php:438
 msgid "Event updated."
-msgstr ""
+msgstr "Evenement mis à jour."
 
 #: Controller/FeedsController.php:441
 msgid "Could not %s event."
@@ -602,27 +594,27 @@ msgstr ""
 
 #: Controller/FeedsController.php:443
 msgid "Download failed."
-msgstr ""
+msgstr "Téléchargement échoué."
 
 #: Controller/FeedsController.php:500
 msgid "Feed could not be fetched. The HTTP error code returned was: "
-msgstr ""
+msgstr "Le flux n'a pu être récupéré. L'erreur HTTP retourné est: "
 
 #: Controller/FeedsController.php:532;577
 msgid "Invalid feed type."
-msgstr ""
+msgstr "Type de flux invalide"
 
 #: Controller/FeedsController.php:630
 msgid "This event is blocked by the Feed filters."
-msgstr ""
+msgstr "Cet événement est bloqué par de filtres de flux."
 
 #: Controller/FeedsController.php:631
 msgid "Could not download the selected Event"
-msgstr ""
+msgstr " Le téléchargement de l'événement sélectionné est impossible."
 
 #: Controller/FeedsController.php:662;664
 msgid "Invalid Feed."
-msgstr ""
+msgstr "Flux invalide."
 
 #: Controller/FeedsController.php:683
 msgid "Only POST requests are allowed."
@@ -630,11 +622,11 @@ msgstr ""
 
 #: Controller/FeedsController.php:687
 msgid "Feed not found."
-msgstr ""
+msgstr "Flux non trouvé."
 
 #: Controller/FeedsController.php:696
 msgid "Data pulled."
-msgstr ""
+msgstr "Données transférés."
 
 #: Controller/FeedsController.php:698
 msgid "Could not pull the selected data. Reason: %s"
