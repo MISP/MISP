@@ -194,9 +194,10 @@ class StixParser():
         tag = labels[1]
         value = tag.split(':')[1].split('=')[1]
         galaxy_description, cluster_description = o.get('description').split('|')
+        _, uuid = o.get('id').split('--')
         galaxy = {'type': galaxy_type, 'name': o.get('name'), 'description': galaxy_description,
                   'GalaxyCluster': [{'type': galaxy_type, 'value':value, 'tag_name': tag,
-                                     'description': cluster_description}]}
+                                     'description': cluster_description, 'uuid': uuid}]}
         self.misp_event['Galaxy'].append(galaxy)
 
     def parse_course_of_action(self, o, _):
