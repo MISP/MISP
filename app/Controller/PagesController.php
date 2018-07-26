@@ -28,6 +28,7 @@ class PagesController extends AppController {
 
 	// displays a view based on the page to display passed as parameters
 	public function display() {
+		
 		$path = func_get_args();
 
 		$count = count($path);
