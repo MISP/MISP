@@ -1,29 +1,13 @@
 #!/usr/bin/env python3
 
-import sys, json, uuid, os, time, datetime, re
-from dateutil.tz import tzutc
-from stix.indicator import Indicator
-from stix.indicator.valid_time import ValidTime
-from stix.ttp import TTP, Behavior
-from stix.ttp.malware_instance import MalwareInstance
-from stix.incident import Incident, Time, ImpactAssessment, ExternalID, AffectedAsset
-from stix.exploit_target import ExploitTarget, Vulnerability
-from stix.incident.history import JournalEntry, History, HistoryItem
-from stix.threat_actor import ThreatActor
+import sys, datetime, re
 from stix.core import STIXPackage, STIXHeader
-from stix.common import InformationSource, Identity, Confidence
-from stix.data_marking import Marking, MarkingSpecification
-from stix.extensions.marking.tlp import TLPMarkingStructure
-from stix.common.related import *
-from stix.common.confidence import Confidence
-from stix.common.vocabs import IncidentStatus
 from cybox.utils import Namespace
 # if you rely on old idgen from previous stix libraries, mixbox is not installed
 try:
     from stix.utils import idgen
 except ImportError:
     from mixbox import idgen
-
 from stix import __version__ as STIXVER
 
 NS_DICT = {
