@@ -3,11 +3,8 @@
 import sys, datetime, re
 from stix.core import STIXPackage, STIXHeader
 from cybox.utils import Namespace
-# if you rely on old idgen from previous stix libraries, mixbox is not installed
-try:
-    from stix.utils import idgen
-except ImportError:
-    from mixbox import idgen
+# As python3 is forced anyway, mixbox is used and we don't need to try to import idgen from stix.utils
+from mixbox import idgen
 from stix import __version__ as STIXVER
 
 NS_DICT = {
@@ -108,18 +105,9 @@ def main(args):
     orgname = re.sub('[\W]+', '', orgname.replace(" ", "_"))
     NS_DICT[baseURL] = orgname
     try:
-        idgen.set_id_namespace({baseURL: namespace[1]})
-    except ValueError:
-        # Some weird stix error that sometimes occurs if the stars
-        # align and Mixbox is being mean to us
-        # Glory to STIX, peace and good xmlns be upon it
-        try:
-            idgen.set_id_namespace(Namespace(baseURL, namespace[1]))
-        except TypeError:
-            # Ok this only occurs if the script is being run under py3
-            # and if we're running a REALLY weird version of stix
-            # May as well catch it
-            idgen.set_id_namespace(Namespace(baseURL, namespace[1], "MISP"))
+        idgen.set_id_namespace(Namespace(baseURL, orgname))
+    except TypeError:
+        idgen.set_id_namespace(Namespace(baseURL, orgname, "MISP"))
     stix_package = STIXPackage()
     stix_header = STIXHeader()
     stix_header.title="Export from {} MISP".format(orgname)
