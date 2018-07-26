@@ -3979,6 +3979,11 @@ class EventsController extends AppController {
 						'url' => '/events/upload_stix/2',
 						'text' => 'STIX 2.0 format (lossy)',
 						'ajax' => false,
+				),
+				'Forensic analysis' => array(
+						'url' => '/events/upload_analysis_file',
+						'text' => 'Forensic analysis upload',
+						'ajax' => false,
 				)
 			);
 		}
@@ -4937,5 +4942,31 @@ class EventsController extends AppController {
 			$response['extensions'][] = $extendedEvent['Event'];
 		}
 		return $this->RestResponse->viewData($response, $this->response->type());
+	}
+	public function upload_analysis_file()
+	{
+		$this->set('file_uploaded',"0");
+		if (!$this->userRole['perm_modify']) {
+			throw new UnauthorizedException('You do not have permission to do that.');
+		}
+		if ($this->request->is('post'))
+		{
+				$this->set('file_uploaded',"1");
+			// if ($this->_isRest()) {
+				//print_r($_FILES);
+				$this->set('file_content',file_get_contents($this->request['data']['Event']['analysis_file']['tmp_name']));
+				if(isset($_FILES['data']['name']['event']['analysis_file']))
+         		{
+					 echo 2;
+					
+				}
+				// $randomFileName = $this->Event->generateRandomFileName();
+				// $tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
+				// $tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
+				// $tempFile->write($this->request->input());
+				// $tempFile->close();
+				// $result = $this->Event->upload_stix($this->Auth->user(), $randomFileName, $stix_version);
+			// }
+		}
 	}
 }
