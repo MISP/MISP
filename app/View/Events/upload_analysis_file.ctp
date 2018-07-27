@@ -22,21 +22,28 @@
 	echo $this->Form->button(__('Upload'), array('class' => 'btn btn-primary'));
 	echo $this->Form->end();
 ?>
+
 <div id="afterUpload" style="display:none;">
-	<button id="graspSelectedText" class="actions" style="display:none;">Add Selected Text</button>
-	<button id="clearSelectedText" class="actions" style="display:none;">Clear Selected Text</button>
+	
 	<div style="clear:both;"></div>
-	<div id="textToSelect" class="raisedbox" onmouseup="GetSelectedText ()" style="width:40%; height:100%;float:left;">	
-			<?php
-				if($file_uploaded == "1")
-				{
-					echo nl2br($file_content);
-				}
-			?>
+	<div id="accordion1" style="width:50%;float:left;">
+		<h3>Select text for further analysis <button id="graspSelectedText" class="btn btn-primary" style="display:none;margin-left:5px;">Add Selected Text</button></h3>
+		<div id="textToSelect" class="raisedbox" onmouseup="GetSelectedText ()">
+			<p>	
+				<?php
+					if($file_uploaded == "1")
+					{
+						echo nl2br($file_content);
+					}
+				?>
+			</p>
+		</div>
 	</div>
-	<div id="selectedText" class="raisedbox" style="width:45%; height:100%;float:right;">
-		
+	<div id="accordion2" style="width:50%;float:right;">
+		<h3>Selected Text<button id="clearSelectedText" class="btn btn-primary" style="display:none;margin-left:5px;">Clear Selected Text</button><button id="saveText" class="btn btn-primary" style="display:none;margin-left:5px;">Process Selected Text</button></h3>
+		<div id="selectedText" class="raisedbox" ></div>
 	</div>
+	
 	<div style="clear:both;"></div>
 	</div>
 </div>
@@ -48,6 +55,12 @@
 <script>
 var afterUpload = "<?php echo $file_uploaded; ?>";
 var selText = '';
+$("#accordion1").accordion({
+	heightStyle: "content" 
+    })
+$("#accordion2").accordion({
+	  heightStyle: "content" 
+    })
 if(afterUpload == 1)
 {
 	$('#afterUpload').show();
@@ -77,11 +90,13 @@ function GetSelectedText () {
 	if (selText !== "") {
 		$('#graspSelectedText').show();
 		$('#clearSelectedText').show();
+		$('#saveText').show();
 	}
 	else
 	{
 		$('#graspSelectedText').hide();
 		$('#clearSelectedText').hide();
+		$('#saveText').hide()
 	}
 }
 $('#graspSelectedText').on('click',function(){
@@ -92,15 +107,3 @@ $('#clearSelectedText').on('click',function(){
 	$('#selectedText').empty();
 })
 </script>
-<style>
-	.raisedbox { 
-	padding: 10px;
-    border: 1px solid #77aaff;
-	box-shadow:  -1px 1px #77aaff,
-		 -2px 2px #77aaff,
-		 -3px 3px #77aaff,
-		 -4px 4px #77aaff,
-		 -5px 5px #77aaff;
-	}
-
-</style>
