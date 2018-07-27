@@ -2961,9 +2961,8 @@ class Event extends AppModel
             // zeroq: check if sightings are attached and add to event
             if (isset($data['Sighting']) && !empty($data['Sighting'])) {
                 $this->Sighting = ClassRegistry::init('Sighting');
-                // TODO: check that existing sightings are not added again
                 foreach ($data['Sighting'] as $s) {
-                    $result = $this->Sighting->saveSightings($s['attribute_uuid'], false, $s['date_sighting'], $user, $s['type'], $s['source']);
+                    $result = $this->Sighting->saveSightings($s['attribute_uuid'], false, $s['date_sighting'], $user, $s['type'], $s['source'], $s['uuid']);
                 }
             }
             if ($fromXml) {
@@ -3131,7 +3130,7 @@ class Event extends AppModel
             if (isset($data['Sighting']) && !empty($data['Sighting'])) {
                 $this->Sighting = ClassRegistry::init('Sighting');
                 foreach ($data['Sighting'] as $s) {
-                    $result = $this->Sighting->saveSightings($s['attribute_uuid'], false, $s['date_sighting'], $user, $s['type'], $s['source']);
+                    $result = $this->Sighting->saveSightings($s['attribute_uuid'], false, $s['date_sighting'], $user, $s['type'], $s['source'], $s['uuid']);
                 }
             }
             // if published -> do the actual publishing
