@@ -25,6 +25,7 @@
 			echo $this->Html->css($css);
 		}
 		echo $this->Html->css('print', 'stylesheet', array('media' => 'print'));
+		echo $this->Html->css('jquery-ui');
 
 		echo $this->fetch('meta');
 		echo $this->fetch('css');
@@ -32,6 +33,7 @@
 
 		echo $this->Html->script('jquery'); // Include jQuery library
 		echo $this->Html->script('misp-touch'); // touch interface support
+		echo $this->Html->script('jquery-ui'); // UI support
 	?>
 
 </head>
