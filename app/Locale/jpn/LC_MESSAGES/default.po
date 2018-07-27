@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2018-07-18 11:43\n"
+"PO-Revision-Date: 2018-07-27 14:08\n"
 "Last-Translator: SteveClement <steve@localhost.lu>\n"
 "Language-Team: Japanese\n"
 "MIME-Version: 1.0\n"
@@ -35,18 +35,18 @@ msgstr "ジョブはキューに入れられました。アクティブなジョ
 #: Controller/AttributesController.php:130;1248
 #: Controller/EventGraphController.php:16;68
 msgid "No event ID set."
-msgstr ""
+msgstr "イベント ID が設定されていません。"
 
 #: Controller/AttributesController.php:132
 msgid "You don't have permissions to create attributes"
-msgstr ""
+msgstr "アトリビュートを作成する権限がありません。"
 
 #: Controller/AttributesController.php:150;434;586
 #: Controller/EventGraphController.php:76
 #: Controller/EventsController.php:1526;1544;1577
 #: Controller/ObjectsController.php:426
 msgid "You do not have permission to do that."
-msgstr ""
+msgstr "実行する権限がありません。"
 
 #: Controller/AttributesController.php:387;774;779;782;965;1038;2395;2408;2428;2449;2457;2910;2912;2999;3001
 #: Controller/ShadowAttributesController.php:759;976;1000;1028;1038
@@ -57,7 +57,7 @@ msgstr "無効なアトリビュート"
 #: Controller/AttributesController.php:396
 #: Controller/ShadowAttributesController.php:468
 msgid "You do not have the permission to view this event."
-msgstr ""
+msgstr "このイベントを見る権限がありません。"
 
 #: Controller/AttributesController.php:418
 msgid "Attribute not an attachment or malware-sample"
@@ -66,7 +66,7 @@ msgstr "添付ファイルもしくはマルウェアサンプルにも合致し
 #: Controller/AttributesController.php:449;597
 #: Controller/ShadowAttributesController.php:506
 msgid "PHP says file was not uploaded. Are you attacking me?"
-msgstr ""
+msgstr "PHP曰く、ファイルがアップロードされていない。攻撃じゃないよね？"
 
 #: Controller/AttributesController.php:599
 #: Controller/ShadowAttributesController.php:508;518
@@ -92,12 +92,12 @@ msgstr "無効なアトリビュート"
 
 #: Controller/AttributesController.php:820
 msgid "Attribute could not be saved: Attribute in the request not newer than the local copy."
-msgstr ""
+msgstr "アトリビュートが保存されませんでした: リクエストされたアトリビュートがローカルコピーより新しくありません。"
 
 #: Controller/AttributesController.php:836;1257
 #: Controller/EventsController.php:4190;4200;4709;4723
 msgid "Invalid Event."
-msgstr ""
+msgstr "無効なイベント"
 
 #: Controller/AttributesController.php:853
 msgid "The attribute has been saved"
@@ -119,7 +119,7 @@ msgstr "無効な入力です。"
 
 #: Controller/AttributesController.php:999
 msgid "Invalid field."
-msgstr ""
+msgstr "無効な項目"
 
 #: Controller/AttributesController.php:1041
 msgid "Invalid attribute id."
@@ -140,31 +140,31 @@ msgstr "無効なアトリビュート"
 
 #: Controller/AttributesController.php:1154
 msgid "Could not restore the attribute"
-msgstr ""
+msgstr "アトリビュートを復元できませんでした"
 
 #: Controller/AttributesController.php:1172;1178;1182
 msgid "Attribute not found or not authorised."
-msgstr ""
+msgstr "アトリビュートが見つからない、または権限がありません。"
 
 #: Controller/AttributesController.php:1231
 msgid "This function is only accessible via POST requests."
-msgstr ""
+msgstr "このファンクションは POST リクエストからのみアクセス可能です。"
 
 #: Controller/AttributesController.php:1279
 msgid "No matching attributes found."
-msgstr ""
+msgstr "一致するアトリビュートが見つかりません。"
 
 #: Controller/AttributesController.php:1308
 msgid "This method can only be accessed via AJAX."
-msgstr ""
+msgstr "このアメソッドは AJAX からのみアクセス可能です。"
 
 #: Controller/AttributesController.php:1318
 msgid "You are not authorized to edit this event."
-msgstr ""
+msgstr "このイベントを編集する権限がありません。"
 
 #: Controller/AttributesController.php:1380
 msgid "No event ID provided."
-msgstr ""
+msgstr "イベント ID が与えられていません。"
 
 #: Controller/AttributesController.php:1479
 msgid "Invalid tag"
@@ -173,7 +173,7 @@ msgstr "無効なタグ"
 #: Controller/AttributesController.php:1932;2073;2172;2210;2273;2332
 #: Controller/EventsController.php:2272;2367;2420;2467;2795;2980;3618;3635
 msgid "This authentication key is not authorized to be used for exports. Contact your administrator."
-msgstr ""
+msgstr "この認証キーには、エクスポートに使用する権限がありません。管理者に問い合わせてください。"
 
 #: Controller/AttributesController.php:1936;2069;2166
 #: Controller/EventsController.php:2799
@@ -194,20 +194,20 @@ msgstr ""
 
 #: Controller/AttributesController.php:2098
 msgid "You don't have access to that event."
-msgstr ""
+msgstr "イベントを閲覧する権限がありません。"
 
 #: Controller/AttributesController.php:2158
 msgid "No matches."
-msgstr ""
+msgstr "該当なし"
 
 #: Controller/AttributesController.php:2176;2184
 msgid "Invalid attribute or no authorisation to view it."
-msgstr ""
+msgstr "無効なアトリビュートか、閲覧権限がありません。"
 
 #: Controller/AttributesController.php:2214;2277;2336
 #: Controller/EventsController.php:2276;2372;2425;2471;2984;3622;3639
 msgid "You have to be logged in to do that."
-msgstr ""
+msgstr "ログインする必要があります。"
 
 #: Controller/AttributesController.php:2239
 #: Controller/EventsController.php:2813
@@ -216,7 +216,7 @@ msgstr ""
 
 #: Controller/AttributesController.php:2282
 msgid "Invalid event ID format."
-msgstr ""
+msgstr "無効なイベント ID のフォーマットです。"
 
 #: Controller/AttributesController.php:2361
 #: Controller/ShadowAttributesController.php:1145
@@ -226,29 +226,29 @@ msgstr "すべて完了しました。 "
 #: Controller/AttributesController.php:2391;2424
 #: Controller/ShadowAttributesController.php:972
 msgid "Invalid field requested."
-msgstr ""
+msgstr "無効な項目がリクエストされました。"
 
 #: Controller/AttributesController.php:2392;2425
 msgid "This function can only be accessed via AJAX."
-msgstr ""
+msgstr "この機能は AJAX からのみアクセス可能です。"
 
 #: Controller/AttributesController.php:2486;2493
 #: Controller/EventsController.php:3327;3593
 msgid "Event not found or you don't have permissions to create attributes"
-msgstr ""
+msgstr "イベントが見つからないか、アトリビュートを作成する権限がありません"
 
 #: Controller/AttributesController.php:2512
 msgid "This action can only be accessed via AJAX."
-msgstr ""
+msgstr "このアクションは AJAX からのみアクセス可能です。"
 
 #: Controller/AttributesController.php:2519;2725;2734;2742
 msgid "You are not authorised to do that."
-msgstr ""
+msgstr "それをする権限がありません。"
 
 #: Controller/AttributesController.php:2607
 #: Controller/EventsController.php:4015
 msgid "This functionality requires API key access."
-msgstr ""
+msgstr "この機能にはAPIキーが必要です。"
 
 #: Controller/AttributesController.php:2614
 msgid "This action is for the API only. Please refer to the automation page for information on how to use it."
@@ -260,30 +260,30 @@ msgstr ""
 
 #: Controller/AttributesController.php:2751
 msgid "Invalid script."
-msgstr ""
+msgstr "無効なスクリプトです。"
 
 #: Controller/AttributesController.php:2800
 msgid "No valid enrichment options found for this attribute."
-msgstr ""
+msgstr "このアトリビュートに対する有効なエンリッチメントオプションが見つかりません。"
 
 #: Controller/AttributesController.php:2853
 msgid "Invalid type requested."
-msgstr ""
+msgstr "無効なタイプがリクエストされました。"
 
 #: Controller/AttributesController.php:3052
 #: Controller/EventsController.php:4705
 msgid "Disabling the correlation is not permitted on this instance."
-msgstr ""
+msgstr "このインスタンスでは相関の無効化が許可されていません。"
 
 #: Controller/AttributesController.php:3056;3071
 #: Controller/ShadowAttributesController.php:627
 msgid "Invalid Attribute."
-msgstr ""
+msgstr "無効なアトリビュート"
 
 #: Controller/AttributesController.php:3059;3074
 #: Controller/EventsController.php:4712;4726
 msgid "You don't have permission to do that."
-msgstr ""
+msgstr "実行する権限がありません。"
 
 #: Controller/EventBlacklistsController.php:11
 msgid "Event Blacklisting is not currently enabled on this instance."
@@ -307,11 +307,11 @@ msgstr "GnuPG キーがプロフィールで設定されていません。アト
 
 #: Controller/EventsController.php:1381
 msgid "You don't have permissions to create events"
-msgstr ""
+msgstr "イベントを作成する権限がありません"
 
 #: Controller/EventsController.php:1387
 msgid "No valid event data received."
-msgstr ""
+msgstr "有効なイベントデータを受け取っていません。"
 
 #: Controller/EventsController.php:1416
 msgid "Invalid Sharing Group or not authorised (Sync user is not contained in the Sharing group)."
@@ -319,11 +319,11 @@ msgstr ""
 
 #: Controller/EventsController.php:1420;1423
 msgid "Invalid Sharing Group or not authorised."
-msgstr ""
+msgstr "無効な共有グループ、もしくは権限がありません。"
 
 #: Controller/EventsController.php:1446
 msgid "Event blocked by local blacklist."
-msgstr ""
+msgstr "ローカルブラックリストによりイベントがブロックされています。"
 
 #: Controller/EventsController.php:1459;1533;1781
 msgid "The event has been saved"
@@ -347,7 +347,7 @@ msgstr "MISP XML または MISP JSON ファイルのみアップロードでき�
 
 #: Controller/EventsController.php:1559
 msgid "File upload failed or file does not have the expected extension (.xml / .json)."
-msgstr ""
+msgstr "ファイルのアップロードに失敗したか、ファイルの拡張子が予期されたもの (.xml / .json) ではありません。"
 
 #: Controller/EventsController.php:1606
 msgid "STIX document imported, event's created: "
@@ -379,7 +379,7 @@ msgstr "選択したイベントを読む権限がありません。"
 
 #: Controller/EventsController.php:1924;1986
 msgid "You don't have the permission to do that."
-msgstr ""
+msgstr "実行する権限がありません。"
 
 #: Controller/EventsController.php:2069
 msgid "Email sent to the reporter."
@@ -391,7 +391,7 @@ msgstr "Eメールの送信に失敗"
 
 #: Controller/EventsController.php:2202
 msgid "This feature is currently disabled"
-msgstr ""
+msgstr "この機能は無効になっています"
 
 #: Controller/EventsController.php:2237;3649
 msgid "Either specify the search terms in the url, or POST an xml (with the root element being \"request\"."
@@ -399,7 +399,7 @@ msgstr ""
 
 #: Controller/EventsController.php:2264
 msgid "Invalid Event ID."
-msgstr ""
+msgstr "無効なイベント ID です。"
 
 #: Controller/EventsController.php:2305
 msgid "No events found that match the passed parameters."
@@ -416,11 +416,11 @@ msgstr ""
 #: Controller/EventsController.php:2407
 #: Model/Attribute.php:1788
 msgid "Invalid hash type."
-msgstr ""
+msgstr "無効なハッシュのタイプです。"
 
 #: Controller/EventsController.php:2596
 msgid "Filename not allowed."
-msgstr ""
+msgstr "許可されていないファイル名です。"
 
 #: Controller/EventsController.php:2616
 msgid "Problem with writing the ioc file. Please report to administrator."
@@ -428,11 +428,11 @@ msgstr "Iocファイルの作成に問題が生じました。管理者に連絡
 
 #: Controller/EventsController.php:2708
 msgid "This is not a valid MISP XML file."
-msgstr ""
+msgstr "有効な MISP XML ファイルではありません。"
 
 #: Controller/EventsController.php:2973
 msgid "Not yet implemented"
-msgstr ""
+msgstr "実装されていません"
 
 #: Controller/EventsController.php:2991;2994
 msgid "Invalid event or not authorised."
@@ -444,12 +444,12 @@ msgstr ""
 
 #: Controller/EventsController.php:3547
 msgid "Could not add tags."
-msgstr ""
+msgstr "タグを追加できませんでした。"
 
 #: Controller/EventsController.php:3597;4564
 #: Controller/ObjectsController.php:43;132;136;422
 msgid "Invalid event."
-msgstr ""
+msgstr "無効なイベントです。"
 
 #: Controller/EventsController.php:3696;3723;3736
 msgid "You do not have the permission to do that."
@@ -457,7 +457,7 @@ msgstr ""
 
 #: Controller/EventsController.php:3794;3925
 msgid "Invalid ID"
-msgstr ""
+msgstr "無効な ID"
 
 #: Controller/EventsController.php:3796;3927
 msgid "Event not found or you are not authorised to view it."
@@ -473,11 +473,11 @@ msgstr ""
 
 #: Controller/EventsController.php:4054
 msgid "Event not found"
-msgstr ""
+msgstr "イベントが見つかりません"
 
 #: Controller/EventsController.php:4073
 msgid "Event not found."
-msgstr ""
+msgstr "イベントが見つかりません。"
 
 #: Controller/EventsController.php:4081
 msgid "Distribution level 5 is not supported when uploading a sample without passing an event ID. Distribution level 5 is meant to take on the distribution level of an existing event."
@@ -489,15 +489,15 @@ msgstr ""
 
 #: Controller/EventsController.php:4220;4239;4265;4287;4309;4336;4354
 msgid "Invalid type."
-msgstr ""
+msgstr "無効なタイプです。"
 
 #: Controller/EventsController.php:4395
 msgid "Invalid method."
-msgstr ""
+msgstr "無効なメソッドです。"
 
 #: Controller/EventsController.php:4472
 msgid "%s services are not enabled."
-msgstr ""
+msgstr "%s サービスが有効化されていません。"
 
 #: Controller/EventsController.php:4474
 msgid "Attribute not found or you are not authorised to see it."
@@ -513,7 +513,7 @@ msgstr ""
 
 #: Controller/EventsController.php:4509
 msgid "%s service not reachable."
-msgstr ""
+msgstr "%s サービスにリーチできません。"
 
 #: Controller/EventsController.php:4517
 msgid ": Enriched via the %s"
@@ -521,16 +521,16 @@ msgstr ""
 
 #: Controller/EventsController.php:4638
 msgid "Import service not reachable."
-msgstr ""
+msgstr "インポート サービスにリーチできません。"
 
 #: Controller/EventsController.php:4792
 msgid "Invalid ID."
-msgstr ""
+msgstr "無効な ID です。"
 
 #: Controller/EventsController.php:4838
 #: Controller/ShadowAttributesController.php:289;292;493
 msgid "Invalid Event"
-msgstr ""
+msgstr "無効なイベント"
 
 #: Controller/EventsController.php:4855
 msgid "Enrichment task queued for background processing. Check back later to see the results."
@@ -538,7 +538,7 @@ msgstr "エンリッチメントタスクはバックグラウンド処理用の
 
 #: Controller/FeedsController.php:25
 msgid "You don't have the required privileges to do that."
-msgstr ""
+msgstr "それを実行するために必要な権限がありません。"
 
 #: Controller/FeedsController.php:178;266
 msgid "Feed added."
@@ -550,7 +550,7 @@ msgstr "フィードを追加できませんでした。無効な項目: %s"
 
 #: Controller/FeedsController.php:208;297;316;426;449;603
 msgid "Invalid feed."
-msgstr ""
+msgstr "無効なフィードです。"
 
 #: Controller/FeedsController.php:274
 msgid "Feed could not be updated. Invalid fields: %s"
@@ -558,7 +558,7 @@ msgstr "フィードを更新できませんでした。無効な項目: %s"
 
 #: Controller/FeedsController.php:295
 msgid "This action requires a post request."
-msgstr ""
+msgstr "このアクションには post リクエストが必要です。"
 
 #: Controller/FeedsController.php:322;429
 msgid "Feed is currently not enabled. Make sure you enable it."
@@ -566,7 +566,7 @@ msgstr ""
 
 #: Controller/FeedsController.php:335;396
 msgid "Starting fetch from Feed."
-msgstr ""
+msgstr "フィードから取得を開始します。"
 
 #: Controller/FeedsController.php:346
 msgid "Pull queued for background execution."
@@ -574,35 +574,35 @@ msgstr ""
 
 #: Controller/FeedsController.php:351;353
 msgid "Fetching the feed has failed."
-msgstr ""
+msgstr "フィードの取得に失敗しました。"
 
 #: Controller/FeedsController.php:357
 msgid "Fetching the feed has successfuly completed."
-msgstr ""
+msgstr "フィードの取得が正常に完了しました。"
 
 #: Controller/FeedsController.php:413
 msgid "Fetching the feed has successfully completed."
-msgstr ""
+msgstr "フィードの取得が正常に完了しました。"
 
 #: Controller/FeedsController.php:435
 msgid "Event added."
-msgstr ""
+msgstr "イベントが追加されました。"
 
 #: Controller/FeedsController.php:437
 msgid "Event already up to date."
-msgstr ""
+msgstr "イベントは既に最新です。"
 
 #: Controller/FeedsController.php:438
 msgid "Event updated."
-msgstr ""
+msgstr "イベントが更新されました。"
 
 #: Controller/FeedsController.php:441
 msgid "Could not %s event."
-msgstr ""
+msgstr "イベントを %s できませんでした。"
 
 #: Controller/FeedsController.php:443
 msgid "Download failed."
-msgstr ""
+msgstr "ダウンロードに失敗しました。"
 
 #: Controller/FeedsController.php:500
 msgid "Feed could not be fetched. The HTTP error code returned was: "
@@ -610,7 +610,7 @@ msgstr ""
 
 #: Controller/FeedsController.php:532;577
 msgid "Invalid feed type."
-msgstr ""
+msgstr "無効なフィードのタイプです。"
 
 #: Controller/FeedsController.php:630
 msgid "This event is blocked by the Feed filters."
@@ -622,39 +622,39 @@ msgstr ""
 
 #: Controller/FeedsController.php:662;664
 msgid "Invalid Feed."
-msgstr ""
+msgstr "無効なフィードです。"
 
 #: Controller/FeedsController.php:683
 msgid "Only POST requests are allowed."
-msgstr ""
+msgstr "POST リクエストのみが許可されています。"
 
 #: Controller/FeedsController.php:687
 msgid "Feed not found."
-msgstr ""
+msgstr "フィードが見つかりません。"
 
 #: Controller/FeedsController.php:696
 msgid "Data pulled."
-msgstr ""
+msgstr "データがプルされました。"
 
 #: Controller/FeedsController.php:698
 msgid "Could not pull the selected data. Reason: %s"
-msgstr ""
+msgstr "選択したデータをプルできませんでした。理由: %s"
 
 #: Controller/FeedsController.php:714
 msgid "Starting feed caching."
-msgstr ""
+msgstr "フィードのキャッシングを開始しています。"
 
 #: Controller/FeedsController.php:729
 msgid "Caching the feeds has failed."
-msgstr ""
+msgstr "フィードのキャッシングに失敗しました。"
 
 #: Controller/FeedsController.php:732
 msgid "Caching the feeds has successfully completed."
-msgstr ""
+msgstr "フィードのキャッシングが正常に完了しました。"
 
 #: Controller/FeedsController.php:758
 msgid "Invalid feed list received."
-msgstr ""
+msgstr "無効なフィードのリストを受け取りました。"
 
 #: Controller/JobsController.php:138
 msgid "All completed jobs have been purged"
@@ -682,11 +682,11 @@ msgstr ""
 
 #: Controller/ObjectsController.php:65;76
 msgid "Invalid sharing group."
-msgstr ""
+msgstr "無効な共有グループです。"
 
 #: Controller/ObjectsController.php:95
 msgid "You don't have permissions to create objects."
-msgstr ""
+msgstr "オブジェクトを作成する権限がありません."
 
 #: Controller/ObjectsController.php:123
 #: Model/Template.php:24
@@ -695,15 +695,15 @@ msgstr "無効なテンプレート"
 
 #: Controller/ObjectsController.php:289
 msgid "You don't have permissions to edit objects."
-msgstr ""
+msgstr "オブジェクトを編集する権限がありません."
 
 #: Controller/ObjectsController.php:303;314;411
 msgid "Invalid object."
-msgstr ""
+msgstr "無効なオブジェクトです。"
 
 #: Controller/ObjectsController.php:405
 msgid "You don't have permissions to delete objects."
-msgstr ""
+msgstr "オブジェクトを削除する権限がありません."
 
 #: Controller/ObjectsController.php:511;517;521
 msgid "Object not found or not authorised."
@@ -843,7 +843,7 @@ msgstr "この添付ファイルが参照しているファイルの移動に失
 
 #: Controller/ShadowAttributesController.php:259
 msgid "Could not discard proposal."
-msgstr ""
+msgstr "提案を破棄できませんでした。"
 
 #: Controller/ShadowAttributesController.php:311
 msgid "Attribute has not been added: attachments are added by \"Add attachment\" button"
@@ -859,7 +859,7 @@ msgstr "提案が保存されました"
 
 #: Controller/ShadowAttributesController.php:423;700
 msgid "Could not save the proposal. Errors: %s"
-msgstr ""
+msgstr "提案を保存できませんでした。エラー: %s"
 
 #: Controller/ShadowAttributesController.php:425
 msgid "The proposal could not be saved. Please, try again."
@@ -895,11 +895,11 @@ msgstr "シャドウアトリビュートを保存できませんでした。も
 
 #: Controller/ShadowAttributesController.php:820;828
 msgid "Invalid proposal."
-msgstr ""
+msgstr "無効な提案です。"
 
 #: Controller/ShadowAttributesController.php:867
 msgid "No proposals found or invalid event."
-msgstr ""
+msgstr "提案が見つからない、または無効なイベントです。"
 
 #: Controller/ShadowAttributesController.php:897;932
 msgid "This feature is only available using the API to Sync users"
@@ -911,7 +911,7 @@ msgstr "無効なUUID"
 
 #: Controller/ShadowAttributesController.php:934
 msgid "This feature is only available using POST requests"
-msgstr ""
+msgstr "この機能は POST リクエスト経由でのみ利用可能"
 
 #: Controller/SharingGroupsController.php:204
 msgid "Sharing Group deleted"
@@ -1103,7 +1103,7 @@ msgstr ""
 
 #: Model/Attribute.php:932
 msgid "Invalid SSDeep hash (expected: blocksize:hash:hash)."
-msgstr ""
+msgstr "無効な SSDeep ハッシュ (期待されるフォーマット: blocksize:hash:hash)。"
 
 #: Model/Attribute.php:939
 msgid "Checksum has an invalid length or format (expected: filename|at least 35 hexadecimal characters). Please double check the value or select type \"other\"."
@@ -1111,11 +1111,11 @@ msgstr ""
 
 #: Model/Attribute.php:950
 msgid "Invalid CIDR notation value found."
-msgstr ""
+msgstr "無効な CIDR ノーテーション値が見つかりました。"
 
 #: Model/Attribute.php:957;1008
 msgid "IP address has an invalid format."
-msgstr ""
+msgstr "IP アドレスのフォーマットが無効です。"
 
 #: Model/Attribute.php:962
 msgid "Port numbers have to be positive integers between 1 and 65535."
@@ -1127,7 +1127,7 @@ msgstr ""
 
 #: Model/Attribute.php:1011
 msgid "Domain name has an invalid format."
-msgstr ""
+msgstr "ドメイン名のフォーマットが無効です。"
 
 #: Model/Attribute.php:1024
 msgid "Email address has an invalid format. Please double check the value or select type \"other\"."
@@ -1135,7 +1135,7 @@ msgstr ""
 
 #: Model/Attribute.php:1032
 msgid "Invalid format. Expected: CVE-xxxx-xxxx..."
-msgstr ""
+msgstr "無効なフォーマットです。期待されるフォーマット: CVE-xxxx-xxxx..."
 
 #: Model/Attribute.php:1043
 msgid "Invalid format. Only values shorter than 256 characters that don't include any forward or backward slashes are allowed."
@@ -1159,7 +1159,7 @@ msgstr ""
 
 #: Model/Attribute.php:2278
 msgid "This field is mandatory."
-msgstr ""
+msgstr "この項目は必須です。"
 
 #: Model/Attribute.php:2609
 msgid "Something went wrong. Received a non-numeric event ID while trying to create a zip archive of an uploaded malware sample."
@@ -1203,7 +1203,7 @@ msgstr ""
 
 #: Model/Server.php:120
 msgid "Administering MISP via the CLI"
-msgstr ""
+msgstr "CLI 経由での MISP の管理"
 
 #: Model/Server.php:130
 msgid "If you would like to automate tasks such as caching feeds or pulling from server instances, you can do it using the following command line tools. Simply execute the given commands via the command line / create cron jobs easily out of them."
@@ -1292,7 +1292,7 @@ msgstr ""
 
 #: Model/Server.php:326
 msgid "No valid UUID set"
-msgstr ""
+msgstr "有効な UUID が設定されていない"
 
 #: Model/Server.php:340
 msgid "Setting this setting to 'false' will hide all organisation names / logos."
@@ -1316,7 +1316,7 @@ msgstr ""
 
 #: Model/Server.php:396
 msgid "Enables the use of MISP's background processing."
-msgstr ""
+msgstr "MISP のバックグラウンド処理を有効化します。"
 
 #: Model/Server.php:404
 msgid "Directory where attachments are stored. MISP will NOT migrate the existing data if you change this setting. The only safe way to change this setting is in config.php, when MISP is not running, and after having moved/copied the existing data to the new location. This directory must already exist and be writable and readable by the MISP application."
@@ -1356,7 +1356,7 @@ msgstr ""
 
 #: Model/Server.php:486
 msgid "The default distribution setting for events (0-3)."
-msgstr ""
+msgstr "イベント用のデフォルトのディストリビューション設定 (0-3)。"
 
 #: Model/Server.php:495
 msgid "The default distribution setting for attributes, set it to 'event' if you would like the attributes to default to the event distribution level. (0-3 or \"event\")"
@@ -1368,11 +1368,11 @@ msgstr ""
 
 #: Model/Server.php:513
 msgid "Enable the tagging feature of MISP. This is highly recommended."
-msgstr ""
+msgstr "MISP のタグ付け機能を有効化します。これを強くお勧めします。"
 
 #: Model/Server.php:521
 msgid "Show the full tag names on the event index."
-msgstr ""
+msgstr "イベントインデックスですべてのタグ名を表示する。"
 
 #: Model/Server.php:530
 msgid "Used on the login page, before the MISP logo"
@@ -1484,7 +1484,7 @@ msgstr ""
 
 #: Model/Server.php:759
 msgid "If you would like to customise the css, simply drop a css file in the /var/www/MISP/webroot/css directory and enter the name here."
-msgstr ""
+msgstr "CSS をカスタマイズしたい場合、css ファイルを /var/www/MISP/webroot/css に配置し、ここにその名前を入力してください。"
 
 #: Model/Server.php:768
 msgid "Enable this setting to allow blocking attributes from to_ids sensitive exports if a proposal has been made to it to remove the IDS flag or to remove the attribute altogether. This is a powerful tool to deal with false-positives efficiently."
@@ -1544,15 +1544,15 @@ msgstr ""
 
 #: Model/Server.php:890
 msgid "The e-mail address that the instance's GnuPG key is tied to."
-msgstr ""
+msgstr "このインスタンスの GnuPG キーと紐づいているEメールアドレス。"
 
 #: Model/Server.php:898
 msgid "The password (if it is set) of the GnuPG key of the instance."
-msgstr ""
+msgstr "このインスタンスの GnuPG キーのパスワード (設定されている場合)。"
 
 #: Model/Server.php:907
 msgid "The location of the GnuPG homedir."
-msgstr ""
+msgstr "GnuPG ホームディレクトリの場所。"
 
 #: Model/Server.php:918
 msgid "Enable SMIME encryption. The encryption posture of the GnuPG.onlyencrypted and GnuPG.bodyonlyencrypted settings are inherited if SMIME is enabled."
@@ -1560,7 +1560,7 @@ msgstr ""
 
 #: Model/Server.php:926
 msgid "The e-mail address that the instance's SMIME key is tied to."
-msgstr ""
+msgstr "このインスタンスの SMIME キーと紐づいているEメールアドレス。"
 
 #: Model/Server.php:934
 msgid "The location of the public half of the signing certificate."
@@ -1580,7 +1580,7 @@ msgstr ""
 
 #: Model/Server.php:970
 msgid "The TCP port for the HTTP proxy."
-msgstr ""
+msgstr "HTTP プロキシ用の TCP ポート。"
 
 #: Model/Server.php:978
 msgid "The authentication method for the HTTP proxy. Currently supported are Basic or Digest. Leave empty for no proxy authentication."
@@ -1616,7 +1616,7 @@ msgstr ""
 
 #: Model/Server.php:1048
 msgid "Enabling this setting will sanitise the contents of an attribute on a soft delete"
-msgstr ""
+msgstr "この設定を有効にすると、ソフト削除時にアトリビュートの内容がサニタイズされます"
 
 #: Model/Server.php:1057
 msgid "Enabling this setting will block the organisation index from being visible to anyone besides site administrators on the current instance. Keep in mind that users can still see organisations that produce data via events, proposals, event history log entries, etc."
@@ -1652,7 +1652,7 @@ msgstr ""
 
 #: Model/Server.php:1122
 msgid "The timeout duration of sessions (in MINUTES)."
-msgstr ""
+msgstr "セッションのタイムアウト時間 (分単位)。"
 
 #: Model/Server.php:1130
 msgid "The expiration of the cookie (in MINUTES). The session timeout gets refreshed frequently, however the cookies do not. Generally it is recommended to have a much higher cookie_timeout than timeout."
@@ -1704,19 +1704,19 @@ msgstr ""
 
 #: Model/Server.php:1239
 msgid "The port that the pub/sub feature will use."
-msgstr ""
+msgstr "pub/sub 機能が使用するポート。"
 
 #: Model/Server.php:1248
 msgid "Location of the Redis db used by MISP and the Python PUB script to queue data to be published."
-msgstr ""
+msgstr "MISP に使用される Redis db のロケーションと、公開するデータをキューに入れる Python PUB スクリプト。"
 
 #: Model/Server.php:1257
 msgid "The port that Redis is listening on."
-msgstr ""
+msgstr "Redis がリッスンしているポート。"
 
 #: Model/Server.php:1266
 msgid "The password, if set for Redis."
-msgstr ""
+msgstr "パスワード、Redis に設定されている場合。"
 
 #: Model/Server.php:1275
 msgid "The database to be used for queuing messages for the pub/sub functionality."
@@ -1776,7 +1776,7 @@ msgstr ""
 
 #: Model/Server.php:1389
 msgid "The index in which to place logs"
-msgstr ""
+msgstr "ログを配置するインデックス"
 
 #: Model/Server.php:1397
 msgid "This setting defines who will have access to seeing the reported sightings. The default setting is the event owner alone (in addition to everyone seeing their own contribution) with the other options being Sighting reporters (meaning the event owner and anyone that provided sighting data about the event) and Everyone (meaning anyone that has access to seeing the event / attribute)."
@@ -1820,47 +1820,47 @@ msgstr ""
 
 #: Model/Server.php:1486
 msgid "Disable the logout button for users authenticate with the external auth mechanism."
-msgstr ""
+msgstr "外部認証メカニズムを使用して認証するユーザー用のログアウトボタンを無効化します。"
 
 #: Model/Server.php:1494
 msgid "Enable/disable the enrichment services"
-msgstr ""
+msgstr "エンリッチメント サービスの有効化/無効化"
 
 #: Model/Server.php:1502
 msgid "Set a timeout for the enrichment services"
-msgstr ""
+msgstr "エンリッチメント サービスのタイムアウトを設定"
 
 #: Model/Server.php:1510;1622
 msgid "Enable/disable the import services"
-msgstr ""
+msgstr "インポート サービスの有効化/無効化"
 
 #: Model/Server.php:1518;1639
 msgid "Set a timeout for the import services"
-msgstr ""
+msgstr "インポート サービスのタイムアウトを設定"
 
 #: Model/Server.php:1526
 msgid "The url used to access the import services. By default, it is accessible at http://127.0.0.1:6666"
-msgstr ""
+msgstr "インポートサービスへのアクセスに使用される url。デフォルトでは、 http://127.0.0.1:6666 でアクセス可能"
 
 #: Model/Server.php:1534
 msgid "The port used to access the import services. By default, it is accessible at 127.0.0.1:6666"
-msgstr ""
+msgstr "インポートサービスへのアクセスに使用されるポート。デフォルトでは、 127.0.0.1:6666 でアクセス可能"
 
 #: Model/Server.php:1542
 msgid "The url used to access the export services. By default, it is accessible at http://127.0.0.1:6666"
-msgstr ""
+msgstr "エクスポート サービスへのアクセスに使用される url。デフォルトでは、http://127.0.0.1:6666 でアクセス可能"
 
 #: Model/Server.php:1550
 msgid "The port used to access the export services. By default, it is accessible at 127.0.0.1:6666"
-msgstr ""
+msgstr "エクスポートサービスへのアクセスに使用されるポート。デフォルトでは、127.0.0.1:6666 でアクセス可能"
 
 #: Model/Server.php:1558
 msgid "Enable/disable the export services"
-msgstr ""
+msgstr "エクスポート サービスの有効化/無効化"
 
 #: Model/Server.php:1566
 msgid "Set a timeout for the export services"
-msgstr ""
+msgstr "エクスポート サービスのタイムアウトを設定"
 
 #: Model/Server.php:1574
 msgid "Enable/disable the hover over information retrieved from the enrichment modules"
@@ -1872,27 +1872,27 @@ msgstr ""
 
 #: Model/Server.php:1590
 msgid "The url used to access the enrichment services. By default, it is accessible at http://127.0.0.1:6666"
-msgstr ""
+msgstr "エンリッチメントサービスへのアクセスに使用される url。デフォルトでは、 http://127.0.0.1:6666 でアクセス可能"
 
 #: Model/Server.php:1598
 msgid "The port used to access the enrichment services. By default, it is accessible at 127.0.0.1:6666"
-msgstr ""
+msgstr "エンリッチメントサービスへのアクセスに使用されるポート。デフォルトでは、 127.0.0.1:6666 でアクセス可能"
 
 #: Model/Server.php:1606
 msgid "The url used to access Cortex. By default, it is accessible at http://cortex-url"
-msgstr ""
+msgstr "Crotex へのアクセスに使用される url。デフォルトでは、http://cortex-url でアクセス可能"
 
 #: Model/Server.php:1614
 msgid "The port used to access Cortex. By default, this is port 9000"
-msgstr ""
+msgstr "Cortex へのアクセスに使用されるポート。デフォルトでは、9000 ポート"
 
 #: Model/Server.php:1630
 msgid "Set an authentication key to be passed to Cortex"
-msgstr ""
+msgstr "Cortex に受け渡される認証キーを設定"
 
 #: Model/Server.php:1647
 msgid "Set to false to disable SSL verification. This is not recommended."
-msgstr ""
+msgstr "SSL 検証を無効にするには、false に設定します。これは推奨されません。"
 
 #: Model/Server.php:1656
 msgid "Set to false if you wish to ignore hostname match errors when validating certificates."
@@ -1924,7 +1924,7 @@ msgstr ""
 
 #: Model/Server.php:2342;2377
 msgid "Enable or disable the %s module."
-msgstr ""
+msgstr "%s モジュールを有効化または無効化"
 
 #: Model/Server.php:2345;2380
 msgid "Restrict the %s module to the given organisation."
@@ -1936,7 +1936,7 @@ msgstr ""
 
 #: Model/Server.php:2458
 msgid "Value not set."
-msgstr ""
+msgstr "値が設定されていません。"
 
 #: Model/Server.php:2911
 msgid "Organisation logos"
@@ -2791,23 +2791,23 @@ msgstr "アトリビュートを追加"
 
 #: View/Elements/eventattribute.ctp:118
 msgid "Edit selected Attributes"
-msgstr ""
+msgstr "選択したアトリビュートを編集"
 
 #: View/Elements/eventattribute.ctp:119
 msgid "Tag selected Attributes"
-msgstr ""
+msgstr "選択したアトリビュートにタグ付け"
 
 #: View/Elements/eventattribute.ctp:120
 msgid "Delete selected Attributes"
-msgstr ""
+msgstr "選択したアトリビュートを削除"
 
 #: View/Elements/eventattribute.ctp:121
 msgid "Accept selected Proposals"
-msgstr ""
+msgstr "選択した提案を承認"
 
 #: View/Elements/eventattribute.ctp:122
 msgid "Discard selected Proposals"
-msgstr ""
+msgstr "選択した提案を破棄"
 
 #: View/Elements/eventattribute.ctp:123
 msgid "Sightings display for selected attributes"
@@ -2815,11 +2815,11 @@ msgstr ""
 
 #: View/Elements/eventattribute.ctp:127
 msgid "Populate using a template"
-msgstr ""
+msgstr "テンプレートを使用して追加"
 
 #: View/Elements/eventattribute.ctp:129
 msgid "Populate using the freetext import tool"
-msgstr ""
+msgstr "フリーテキストインポートツールを使用して追加"
 
 #: View/Elements/eventattribute.ctp:131
 msgid "Replace all attributes of a category/type combination within the event"
@@ -2827,15 +2827,15 @@ msgstr ""
 
 #: View/Elements/eventattribute.ctp:140;159
 msgid "Show all attributes"
-msgstr ""
+msgstr "すべてのアトリビュートを表示"
 
 #: View/Elements/eventattribute.ctp:144
 msgid "Only show %s related attributes"
-msgstr ""
+msgstr "%s に関連するアトリビュートのみを表示"
 
 #: View/Elements/eventattribute.ctp:148
 msgid "Only show proposals"
-msgstr ""
+msgstr "提案のみを表示"
 
 #: View/Elements/eventattribute.ctp:148
 #: View/Logs/event_index.ctp:44
@@ -2844,15 +2844,15 @@ msgstr "提案"
 
 #: View/Elements/eventattribute.ctp:149
 msgid "Only show correlating attributes"
-msgstr ""
+msgstr "相関するアトリビュートのみを表示"
 
 #: View/Elements/eventattribute.ctp:150
 msgid "Only show potentially false positive attributes"
-msgstr ""
+msgstr "偽陽性の可能性があるアトリビュートのみを表示"
 
 #: View/Elements/eventattribute.ctp:150
 msgid "Warnings"
-msgstr ""
+msgstr "警告"
 
 #: View/Elements/eventattribute.ctp:152
 msgid "Include deleted attributes"
@@ -2860,15 +2860,15 @@ msgstr ""
 
 #: View/Elements/eventattribute.ctp:154
 msgid "Show attribute context fields"
-msgstr ""
+msgstr "アトリビュートのコンテキスト項目を表示"
 
 #: View/Elements/eventattribute.ctp:154
 msgid "Show context fields"
-msgstr ""
+msgstr "コンテキスト項目を表示"
 
 #: View/Elements/eventattribute.ctp:157
 msgid "Filter on attributes value"
-msgstr ""
+msgstr "アトリビュート値をフィルター"
 
 #: View/Elements/eventattribute.ctp:159
 #: View/Events/index.ctp:41
@@ -2886,7 +2886,7 @@ msgstr "すべて選択"
 
 #: View/Elements/eventattribute.ctp:170
 msgid "Select all attributes/proposals on current page"
-msgstr ""
+msgstr "現在のページ上のすべてのアトリビュート/提案を選択"
 
 #: View/Elements/eventattribute.ctp:188
 #: View/Elements/Events/eventIndexTable.ctp:37
@@ -2915,7 +2915,7 @@ msgstr "ギャラクシー"
 
 #: View/Elements/eventattribute.ctp:191
 msgid "Correlate"
-msgstr ""
+msgstr "相関"
 
 #: View/Elements/eventattribute.ctp:192
 #: View/Elements/Feeds/eventattribute.ctp:47
@@ -2996,11 +2996,11 @@ msgstr ""
 
 #: View/Elements/eventdiscussion.ctp:34
 msgid "Date: "
-msgstr ""
+msgstr "日付: "
 
 #: View/Elements/eventdiscussion.ctp:52
 msgid "Deactivated user"
-msgstr ""
+msgstr "無効化されたユーザー"
 
 #: View/Elements/eventdiscussion.ctp:89;97
 #: View/Elements/Events/eventIndexTable.ctp:223
@@ -3021,7 +3021,7 @@ msgstr "本当にこのポストを削除しますか?"
 
 #: View/Elements/eventdiscussion.ctp:93;100
 msgid "Reply"
-msgstr ""
+msgstr "返信"
 
 #: View/Elements/eventdiscussion.ctp:141
 #: View/Posts/add.ctp:32
@@ -3079,7 +3079,7 @@ msgstr "コード"
 
 #: View/Elements/eventdiscussion.ctp:156
 msgid "Send"
-msgstr ""
+msgstr "送信"
 
 #: View/Elements/footer.ctp:5
 msgid "Keyboard shortcuts for this page"
@@ -3099,25 +3099,25 @@ msgstr "GnuPGキー"
 
 #: View/Elements/footer.ctp:17
 msgid "Could not locate the GnuPG public key."
-msgstr ""
+msgstr "GnuPG 公開キーを見つけることができませんでした。"
 
 #: View/Elements/footer.ctp:24
 msgid "Could not locate SMIME certificate."
-msgstr ""
+msgstr "SMIME 証明書を見つけることができませんでした。"
 
 #: View/Elements/galaxyQuickView.ctp:8
 msgid "View details about this galaxy"
-msgstr ""
+msgstr "このギャラクシーの詳細を表示"
 
 #: View/Elements/galaxyQuickView.ctp:17
 #: View/Elements/galaxyQuickViewMini.ctp:69
 msgid "View details about this cluster"
-msgstr ""
+msgstr "このクラスターの詳細を表示"
 
 #: View/Elements/galaxyQuickView.ctp:18
 #: View/Elements/galaxyQuickViewMini.ctp:70
 msgid "View all events containing this cluster."
-msgstr ""
+msgstr "このクラスターを含むすべてのイベントを表示します。"
 
 #: View/Elements/galaxyQuickView.ctp:24
 msgid "Are you sure you want to detach %s from this event?"
@@ -3129,7 +3129,7 @@ msgstr "本当に %s を %s から切り離しましすか?"
 
 #: View/Elements/galaxyQuickViewMini.ctp:91
 msgid "Add new cluster"
-msgstr ""
+msgstr "新しいクラスターを追加"
 
 #: View/Elements/galaxyQuickViewMini.ctp:91
 #: View/EventBlacklists/add.ctp:35
@@ -3421,7 +3421,7 @@ msgstr "ロールを追加"
 
 #: View/Elements/global_menu.ctp:154
 msgid "Maintenance"
-msgstr ""
+msgstr "メンテナンス"
 
 #: View/Elements/global_menu.ctp:157
 #: View/Elements/side_menu.ctp:396
@@ -3445,7 +3445,7 @@ msgstr "イベントのブラック リストを管理"
 
 #: View/Elements/global_menu.ctp:168
 msgid "Blacklist Organisation"
-msgstr ""
+msgstr "組織のブラックリスト"
 
 #: View/Elements/global_menu.ctp:169
 #: View/Elements/side_menu.ctp:406
@@ -3493,15 +3493,15 @@ msgstr "組織ごとのアトリビュート"
 
 #: View/Elements/side_menu.ctp:17;78
 msgid "Populate From Template"
-msgstr ""
+msgstr "テンプレートから追加"
 
 #: View/Elements/side_menu.ctp:24
 msgid "Freetext Import Result"
-msgstr ""
+msgstr "フリーテキスト インポートの結果"
 
 #: View/Elements/side_menu.ctp:31
 msgid "View Event"
-msgstr ""
+msgstr "イベントを表示"
 
 #: View/Elements/side_menu.ctp:36;460;535
 msgid "View Correlation Graph"
@@ -3509,7 +3509,7 @@ msgstr "相関グラフを表示"
 
 #: View/Elements/side_menu.ctp:41
 msgid "View Event History"
-msgstr ""
+msgstr "イベント履歴を表示"
 
 #: View/Elements/side_menu.ctp:48
 #: View/Events/edit.ctp:8
@@ -3528,15 +3528,15 @@ msgstr "本当に # %s を削除しますか?"
 
 #: View/Elements/side_menu.ctp:61
 msgid "Add Object"
-msgstr ""
+msgstr "オブジェクトを追加"
 
 #: View/Elements/side_menu.ctp:66
 msgid "Add Attachment"
-msgstr ""
+msgstr "添付ファイルを追加"
 
 #: View/Elements/side_menu.ctp:73
 msgid "Populate from..."
-msgstr ""
+msgstr "... から追加"
 
 #: View/Elements/side_menu.ctp:86
 #: View/Events/ajax/enrich_event.ctp:2
@@ -3545,11 +3545,11 @@ msgstr "イベントをエンリッチ"
 
 #: View/Elements/side_menu.ctp:91
 msgid "Merge attributes from..."
-msgstr ""
+msgstr "... からアトリビュートを結合"
 
 #: View/Elements/side_menu.ctp:98
 msgid "Propose Attribute"
-msgstr ""
+msgstr "アトリビュートを提案"
 
 #: View/Elements/side_menu.ctp:103
 #: View/ShadowAttributes/add_attachment.ctp:4
@@ -3563,11 +3563,11 @@ msgstr "イベントを公開"
 
 #: View/Elements/side_menu.ctp:123
 msgid "Publish (no email)"
-msgstr ""
+msgstr "公開 (Eメールなし)"
 
 #: View/Elements/side_menu.ctp:132
 msgid "Delegate Publishing"
-msgstr ""
+msgstr "公開を委任"
 
 #: View/Elements/side_menu.ctp:143
 #: View/EventDelegations/ajax/accept_delegation.ctp:2
@@ -3576,7 +3576,7 @@ msgstr "委譲リクエストを承認"
 
 #: View/Elements/side_menu.ctp:151
 msgid "Discard Delegation Request"
-msgstr ""
+msgstr "委譲リクエストを破棄"
 
 #: View/Elements/side_menu.ctp:157
 msgid "Publish event to ZMQ"
@@ -3584,11 +3584,11 @@ msgstr "ZeroMQにイベントを発行"
 
 #: View/Elements/side_menu.ctp:162
 msgid "Contact Reporter"
-msgstr ""
+msgstr "レポーターに連絡"
 
 #: View/Elements/side_menu.ctp:169
 msgid "Download as..."
-msgstr ""
+msgstr "... としてダウンロード"
 
 #: View/Elements/side_menu.ctp:201
 msgid "Import from…"
@@ -3596,15 +3596,15 @@ msgstr ""
 
 #: View/Elements/side_menu.ctp:219
 msgid "Download results as JSON"
-msgstr ""
+msgstr "JSONとして結果をダウンロード"
 
 #: View/Elements/side_menu.ctp:223
 msgid "Download results as XML"
-msgstr ""
+msgstr "XMLとして結果をダウンロード"
 
 #: View/Elements/side_menu.ctp:227
 msgid "Download results as CSV"
-msgstr ""
+msgstr "CSVとして結果をダウンロード"
 
 #: View/Elements/side_menu.ctp:237
 #: View/Pages/doc/general.ctp:39
@@ -3613,11 +3613,11 @@ msgstr "提案のあるイベント"
 
 #: View/Elements/side_menu.ctp:254
 msgid "List Regexp"
-msgstr ""
+msgstr "正規表現の一覧"
 
 #: View/Elements/side_menu.ctp:256
 msgid "New Regexp"
-msgstr ""
+msgstr "新しい正規表現"
 
 #: View/Elements/side_menu.ctp:257
 msgid "Perform on existing"
@@ -3625,7 +3625,7 @@ msgstr "存在するものを実行"
 
 #: View/Elements/side_menu.ctp:261
 msgid "Edit Regexp"
-msgstr ""
+msgstr "正規表現を編集"
 
 #: View/Elements/side_menu.ctp:262
 msgid "Delete Regexp"
@@ -3933,7 +3933,7 @@ msgstr "フィルター"
 
 #: View/Elements/view_event_graph.ctp:16
 msgid "History"
-msgstr ""
+msgstr "履歴"
 
 #: View/Elements/view_event_graph.ctp:22
 #: View/Events/view_graph.ctp:16
@@ -3942,7 +3942,7 @@ msgstr "全画面表示に切り替え"
 
 #: View/Elements/view_mitre_attack_matrix.ctp:27
 msgid "Show all"
-msgstr ""
+msgstr "すべてを表示"
 
 #: View/Elements/Events/eventIndexTable.ctp:5
 msgid "Select all events on current page"
@@ -4809,7 +4809,7 @@ msgstr "ここで明らかになった問題は、正しくないディレクト
 
 #: View/Elements/healthElements/settings_tab.ctp:9
 msgid "Toggle subgroup"
-msgstr ""
+msgstr "サブグループの切り替え"
 
 #: View/Elements/healthElements/settings_tab.ctp:13
 #: View/Pages/doc/administration.ctp:45
@@ -4866,7 +4866,7 @@ msgstr "ワーカー"
 
 #: View/Elements/healthElements/tabs.ctp:45
 msgid "Manage files"
-msgstr ""
+msgstr "ファイルの管理"
 
 #: View/Elements/healthElements/tabs.ctp:48
 #: View/Pages/doc/administration.ctp:40
@@ -5398,15 +5398,15 @@ msgstr "破棄"
 
 #: View/EventGraph/ajax/eventGraph_add_form.ctp:6
 msgid "Add EventGraph"
-msgstr ""
+msgstr "イベントグラフの追加"
 
 #: View/EventGraph/ajax/eventGraph_add_form.ctp:6
 msgid "Edit EventGraph"
-msgstr ""
+msgstr "イベントグラフを編集"
 
 #: View/EventGraph/ajax/eventGraph_delete_form.ctp:5
 msgid "EventGraph Deletion"
-msgstr ""
+msgstr "イベントグラフの削除"
 
 #: View/EventGraph/ajax/eventGraph_delete_form.ctp:8
 msgid "Are you sure you want to delete eventGraph #%s? The eventGraph will be permanently deleted and unrecoverable."
@@ -8070,7 +8070,7 @@ msgstr ", ローカルとリモート両方"
 #: View/Organisations/index.ctp:9
 #: View/Users/statistics_orgs.ctp:12
 msgid "Known remote organisations"
-msgstr ""
+msgstr "既知のリモート組織"
 
 #: View/Organisations/index.ctp:10
 msgid " on other instances"
@@ -12688,7 +12688,7 @@ msgstr "ATT&CK Tactic の使用方法を示すヒートマップ"
 
 #: View/Users/statistics_orgs.ctp:17
 msgid "Organisation list"
-msgstr ""
+msgstr "組織のリスト"
 
 #: View/Users/statistics_orgs.ctp:18
 msgid "Quick overview over the organisations residing on or known by this instance."
@@ -12728,7 +12728,7 @@ msgstr "現在使用されているイベントタグのツリーマップ。い
 
 #: View/Users/statistics_users.ctp:6
 msgid "User and Organisation Statistics"
-msgstr ""
+msgstr "ユーザーと組織の統計"
 
 #: View/Users/terms.ctp:2
 msgid "MISP Terms and Conditions"

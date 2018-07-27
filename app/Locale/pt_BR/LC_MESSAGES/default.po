@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2018-07-18 11:44\n"
+"PO-Revision-Date: 2018-07-27 14:08\n"
 "Last-Translator: SteveClement <steve@localhost.lu>\n"
 "Language-Team: Portuguese, Brazilian\n"
 "MIME-Version: 1.0\n"
@@ -35,18 +35,18 @@ msgstr "Jobs na fila. Você pode acompanhar o progresso se você navegar no modo
 #: Controller/AttributesController.php:130;1248
 #: Controller/EventGraphController.php:16;68
 msgid "No event ID set."
-msgstr ""
+msgstr "Nenhum ID de evento selecionado."
 
 #: Controller/AttributesController.php:132
 msgid "You don't have permissions to create attributes"
-msgstr ""
+msgstr "Você não tem direito de criar atributos"
 
 #: Controller/AttributesController.php:150;434;586
 #: Controller/EventGraphController.php:76
 #: Controller/EventsController.php:1526;1544;1577
 #: Controller/ObjectsController.php:426
 msgid "You do not have permission to do that."
-msgstr ""
+msgstr "Você não tem permissão para fazer isso."
 
 #: Controller/AttributesController.php:387;774;779;782;965;1038;2395;2408;2428;2449;2457;2910;2912;2999;3001
 #: Controller/ShadowAttributesController.php:759;976;1000;1028;1038
@@ -57,7 +57,7 @@ msgstr "Atributo inválido % s"
 #: Controller/AttributesController.php:396
 #: Controller/ShadowAttributesController.php:468
 msgid "You do not have the permission to view this event."
-msgstr ""
+msgstr "Você não tem permissão para visualizar este evento."
 
 #: Controller/AttributesController.php:418
 msgid "Attribute not an attachment or malware-sample"
