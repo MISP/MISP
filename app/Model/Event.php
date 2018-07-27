@@ -2126,7 +2126,7 @@ class Event extends AppModel
         }
         $params = array(
                 'conditions' => $conditions, //array of conditions
-                'fields' => array('Attribute.event_id', 'Attribute.distribution', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.comment', 'Attribute.uuid', 'Attribute.to_ids', 'Attribute.timestamp', 'Attribute.id'),
+                'fields' => array('Attribute.event_id', 'Attribute.distribution', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.comment', 'Attribute.uuid', 'Attribute.to_ids', 'Attribute.timestamp', 'Attribute.id', 'Attribute.object_relation'),
                 'order' => array('Attribute.uuid ASC'),
                 'enforceWarninglist' => $enforceWarninglist,
                 'flatten' => true
