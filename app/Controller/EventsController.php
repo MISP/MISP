@@ -2775,7 +2775,7 @@ class EventsController extends AppController
             }
         }
         $requested_attributes = array('uuid', 'event_id', 'category', 'type',
-                                'value', 'comment', 'to_ids', 'timestamp');
+                                'value', 'comment', 'to_ids', 'timestamp', 'object_relation');
         $requested_obj_attributes = array('uuid', 'name', 'meta-category');
         if ($includeContext) {
             $requested_attributes[] = 'attribute_tag';
