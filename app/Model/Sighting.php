@@ -232,6 +232,10 @@ class Sighting extends AppModel
             if (isset($sightings[$k]['Organisation'])) {
                 $sightings[$k]['Sighting']['Organisation'] = $sightings[$k]['Organisation'];
             }
+            // zeroq: add attribute UUID to sighting to make synchronization easier
+            $attribute = $this->Attribute->fetchAttribute($sighting['Sighting']['attribute_id']);
+            $sightings[$k]['Sighting']['attribute_uuid'] = $attribute['Attribute']['uuid'];
+
             $sightings[$k] = $sightings[$k]['Sighting'] ;
         }
         return $sightings;
