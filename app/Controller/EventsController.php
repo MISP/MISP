@@ -4033,9 +4033,9 @@ class EventsController extends AppController
         $result = $this->Event->stix2($id, $tags, $withAttachments, $this->Auth->user(), 'json', $from, $to, $last);
         if ($result['success'] == 1) {
             if ($numeric) {
-                $filename = 'misp.stix2.event' . $id . '.json'
+                $filename = 'misp.stix2.event' . $id . '.json';
             } else {
-                $filename = 'misp.stix2.event.collection.json'
+                $filename = 'misp.stix2.event.collection.json';
             }
             $this->header('Content-Disposition: download; filename="' . $filename . '"');
             return $this->RestResponse->viewData($result['data'], 'application/json', false, true, $filename);
