@@ -2126,7 +2126,7 @@ class Event extends AppModel
         }
         $params = array(
                 'conditions' => $conditions, //array of conditions
-                'fields' => array('Attribute.event_id', 'Attribute.distribution', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.comment', 'Attribute.uuid', 'Attribute.to_ids', 'Attribute.timestamp', 'Attribute.id'),
+                'fields' => array('Attribute.event_id', 'Attribute.distribution', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.comment', 'Attribute.uuid', 'Attribute.to_ids', 'Attribute.timestamp', 'Attribute.id', 'Attribute.object_relation'),
                 'order' => array('Attribute.uuid ASC'),
                 'enforceWarninglist' => $enforceWarninglist,
                 'flatten' => true
@@ -2158,6 +2158,10 @@ class Event extends AppModel
         foreach ($attributes as &$attribute) {
             $this->__escapeCSVField($attribute['Attribute']['value']);
             $this->__escapeCSVField($attribute['Attribute']['comment']);
+            $this->__escapeCSVField($attribute['Attribute']['object_relation']);
+            $this->__escapeCSVField($attribute['Attribute']['uuid']);
+            $this->__escapeCSVField($attribute['Attribute']['category']);
+            $this->__escapeCSVField($attribute['Attribute']['type']);
             $attribute['Attribute']['timestamp'] = date('Ymd', $attribute['Attribute']['timestamp']);
             if (empty($attribute['Object'])) {
                 $attribute['Object']['uuid'] = '""';
@@ -2165,9 +2169,11 @@ class Event extends AppModel
                 $attribute['Object']['meta-category'] = '';
             }
             $this->__escapeCSVField($attribute['Object']['name']);
+            $this->__escapeCSVField($attribute['Object']['uuid']);
             $this->__escapeCSVField($attribute['Object']['meta-category']);
             if ($includeContext) {
                 $this->__escapeCSVField($attribute['Event']['info']);
+                $this->__escapeCSVField($attribute['Event']['uuid']);
                 $this->__escapeCSVField($attribute['Org']['name']);
                 $this->__escapeCSVField($attribute['Orgc']['name']);
                 $attribute['Event']['Tag']['name'] = '';

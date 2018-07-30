@@ -68,7 +68,7 @@ class AppModel extends Model
     public $db_changes = array(
         1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
         7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
-        13 => false, 14 => false, 15 => false, 16 => false
+        13 => false, 14 => false, 15 => false, 16 => false, 17 => false
     );
 
     public function afterSave($created, $options = array())
@@ -1023,11 +1023,12 @@ class AppModel extends Model
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 break;
             case '16':
-                $sqlArray[] = "ALTER TABLE `logs` MODIFY `description` text CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL;";
                 $sqlArray[] = 'ALTER TABLE `taxonomy_predicates` ADD COLUMN description text CHARACTER SET UTF8 collate utf8_bin;';
                 $sqlArray[] = 'ALTER TABLE `taxonomy_entries` ADD COLUMN description text CHARACTER SET UTF8 collate utf8_bin;';
-                $sqlArray[] = 'ALTER TABLE `exclusive` ADD COLUMN exclusive tinyint(1) DEFAULT 0;';
                 $sqlArray[] = 'ALTER TABLE `taxonomy_predicates` ADD COLUMN exclusive tinyint(1) DEFAULT 0;';
+                break;
+            case '17':
+                $sqlArray[] = 'ALTER TABLE `taxonomies` ADD COLUMN exclusive tinyint(1) DEFAULT 0;';
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

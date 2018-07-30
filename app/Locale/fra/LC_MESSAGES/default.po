@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2018-07-25 09:32\n"
-"Last-Translator: ater49 <contact@at49.info>\n"
+"PO-Revision-Date: 2018-07-27 14:06\n"
+"Last-Translator: SteveClement <steve@localhost.lu>\n"
 "Language-Team: French\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -35,7 +35,7 @@ msgstr "Tâche mise en attente. Vous pouvez visualiser sa progression en accéda
 #: Controller/AttributesController.php:130;1248
 #: Controller/EventGraphController.php:16;68
 msgid "No event ID set."
-msgstr ""
+msgstr "Aucun ID défini pour cet événement."
 
 #: Controller/AttributesController.php:132
 msgid "You don't have permissions to create attributes"
@@ -235,7 +235,7 @@ msgstr "Cette fonction n'est accessible qu'avec AJAX."
 #: Controller/AttributesController.php:2486;2493
 #: Controller/EventsController.php:3327;3593
 msgid "Event not found or you don't have permissions to create attributes"
-msgstr "Evenement non trouvés ou vous n'avez pas la permission de créer des attributs."
+msgstr "Événement introuvable ou vous n'avez pas la permission de créer des attributs"
 
 #: Controller/AttributesController.php:2512
 msgid "This action can only be accessed via AJAX."
@@ -351,7 +351,7 @@ msgstr "Téléversement du fichier échouée ou l'extension de fichier n'est pas
 
 #: Controller/EventsController.php:1606
 msgid "STIX document imported, event's created: "
-msgstr "Document STIX importé, événement créé : "
+msgstr "STIX document importé, événement créé : "
 
 #: Controller/EventsController.php:1609
 msgid "STIX document imported."
@@ -461,7 +461,7 @@ msgstr "ID invalide."
 
 #: Controller/EventsController.php:3796;3927
 msgid "Event not found or you are not authorised to view it."
-msgstr "Evenement non trouvé ou vous n'êtes pas autorisé à le voir."
+msgstr "Événement introuvable ou vous n'êtes pas autorisé à le voir."
 
 #: Controller/EventsController.php:4016;4022
 msgid "Please POST the samples as described on the automation page."
@@ -471,9 +471,13 @@ msgstr "Merci d'effectuer une requête POST des samples comme décrit dans la pa
 msgid "No samples received, or samples not in the correct format. Please refer to the API documentation on the automation page."
 msgstr ""
 
-#: Controller/EventsController.php:4054;4073
+#: Controller/EventsController.php:4054
 msgid "Event not found"
 msgstr "Evenement non trouvé."
+
+#: Controller/EventsController.php:4073
+msgid "Event not found."
+msgstr "Événement introuvable."
 
 #: Controller/EventsController.php:4081
 msgid "Distribution level 5 is not supported when uploading a sample without passing an event ID. Distribution level 5 is meant to take on the distribution level of an existing event."
@@ -576,6 +580,10 @@ msgstr "La récupération du flux a échouée."
 msgid "Fetching the feed has successfuly completed."
 msgstr "La récupération du flux a eu lieu avec succès."
 
+#: Controller/FeedsController.php:413
+msgid "Fetching the feed has successfully completed."
+msgstr ""
+
 #: Controller/FeedsController.php:435
 msgid "Event added."
 msgstr "Evenement ajouté."
@@ -590,7 +598,7 @@ msgstr "Evenement mis à jour."
 
 #: Controller/FeedsController.php:441
 msgid "Could not %s event."
-msgstr ""
+msgstr "Pouvait pas %s événement."
 
 #: Controller/FeedsController.php:443
 msgid "Download failed."
@@ -618,7 +626,7 @@ msgstr "Flux invalide."
 
 #: Controller/FeedsController.php:683
 msgid "Only POST requests are allowed."
-msgstr ""
+msgstr "Seulement les requêtes POST sont autorisés."
 
 #: Controller/FeedsController.php:687
 msgid "Feed not found."
@@ -638,15 +646,15 @@ msgstr ""
 
 #: Controller/FeedsController.php:729
 msgid "Caching the feeds has failed."
-msgstr ""
+msgstr "La récupération des flux a échoué."
 
 #: Controller/FeedsController.php:732
 msgid "Caching the feeds has successfully completed."
-msgstr ""
+msgstr "La récupération des flux a eu lieu avec succès."
 
 #: Controller/FeedsController.php:758
 msgid "Invalid feed list received."
-msgstr ""
+msgstr "Liste de flux reçu est invalide."
 
 #: Controller/JobsController.php:138
 msgid "All completed jobs have been purged"
@@ -670,15 +678,15 @@ msgstr "Le modèle de l'objet a été supprimé"
 
 #: Controller/ObjectsController.php:26
 msgid "This action can only be reached via POST requests"
-msgstr ""
+msgstr "Cette action est seulement joignable par requêtes POST"
 
 #: Controller/ObjectsController.php:65;76
 msgid "Invalid sharing group."
-msgstr ""
+msgstr "Groupe de partage non valide."
 
 #: Controller/ObjectsController.php:95
 msgid "You don't have permissions to create objects."
-msgstr ""
+msgstr "Vous n'avez pas la permission de créer des objets."
 
 #: Controller/ObjectsController.php:123
 #: Model/Template.php:24
@@ -687,19 +695,19 @@ msgstr "Événement invalide."
 
 #: Controller/ObjectsController.php:289
 msgid "You don't have permissions to edit objects."
-msgstr ""
+msgstr "Vous n'avez pas la permission de modifier des objets."
 
 #: Controller/ObjectsController.php:303;314;411
 msgid "Invalid object."
-msgstr ""
+msgstr "Objet invalide."
 
 #: Controller/ObjectsController.php:405
 msgid "You don't have permissions to delete objects."
-msgstr ""
+msgstr "Vous n'avez pas la permission de supprimer des objets."
 
 #: Controller/ObjectsController.php:511;517;521
 msgid "Object not found or not authorised."
-msgstr ""
+msgstr "L'objet est introuvable ou non autorisé."
 
 #: Controller/ObjectsController.php:767
 msgid "%s objects successfully reconstructed."
@@ -759,7 +767,7 @@ msgstr "Rôle invalide"
 
 #: Controller/RolesController.php:63;101
 msgid "The Role could not be saved. Please, try again."
-msgstr ""
+msgstr "Le role n'a pas été sauvegardé. Veuillez réessayer."
 
 #: Controller/RolesController.php:146
 msgid "Role deleted"
@@ -835,7 +843,7 @@ msgstr "Le déplacement de ce fichier faisant référence à cet attachement à 
 
 #: Controller/ShadowAttributesController.php:259
 msgid "Could not discard proposal."
-msgstr ""
+msgstr "Impossible d’écarter la proposition."
 
 #: Controller/ShadowAttributesController.php:311
 msgid "Attribute has not been added: attachments are added by \"Add attachment\" button"
@@ -851,7 +859,7 @@ msgstr "La proposition a été sauvegardée"
 
 #: Controller/ShadowAttributesController.php:423;700
 msgid "Could not save the proposal. Errors: %s"
-msgstr ""
+msgstr "Impossible de sauvegarder la proposition. Erreurs: %s"
 
 #: Controller/ShadowAttributesController.php:425
 msgid "The proposal could not be saved. Please, try again."
@@ -887,11 +895,11 @@ msgstr "Le \"ShadowAttribute\" n'a pas été sauvegardé. Veuillez réessayer."
 
 #: Controller/ShadowAttributesController.php:820;828
 msgid "Invalid proposal."
-msgstr ""
+msgstr "Proposition invalide."
 
 #: Controller/ShadowAttributesController.php:867
 msgid "No proposals found or invalid event."
-msgstr ""
+msgstr "Aucune proposition trouvée ou événement invalide."
 
 #: Controller/ShadowAttributesController.php:897;932
 msgid "This feature is only available using the API to Sync users"
@@ -903,7 +911,7 @@ msgstr "UUID invalide"
 
 #: Controller/ShadowAttributesController.php:934
 msgid "This feature is only available using POST requests"
-msgstr ""
+msgstr "Cette fonctionnalité n'est disponible qu'en utilisant une requête POST"
 
 #: Controller/SharingGroupsController.php:204
 msgid "Sharing Group deleted"
@@ -1011,7 +1019,7 @@ msgstr "%s a été enregistré."
 
 #: Controller/Component/AdminCrudComponent.php:22;57
 msgid "The %s could not be saved. Please, try again."
-msgstr ""
+msgstr "Le %s n’a pas été sauvegardé. Veuillez réessayer."
 
 #: Controller/Component/AdminCrudComponent.php:48;80
 msgid "Invalid %s"
@@ -1027,7 +1035,7 @@ msgstr "%s supprimé"
 
 #: Controller/Component/AdminCrudComponent.php:86
 msgid "%s was not deleted"
-msgstr ""
+msgstr "%s n'a pas été supprimé"
 
 #: Controller/Component/BlackListComponent.php:62
 msgid "Done. Added %d new entries to the blacklist. %d entries could not be saved."
@@ -1103,11 +1111,11 @@ msgstr ""
 
 #: Model/Attribute.php:950
 msgid "Invalid CIDR notation value found."
-msgstr ""
+msgstr "Notation CIDR invalide, valeur introuvable."
 
 #: Model/Attribute.php:957;1008
 msgid "IP address has an invalid format."
-msgstr ""
+msgstr "Adresse IP a un format non valide."
 
 #: Model/Attribute.php:962
 msgid "Port numbers have to be positive integers between 1 and 65535."
@@ -1119,7 +1127,7 @@ msgstr ""
 
 #: Model/Attribute.php:1011
 msgid "Domain name has an invalid format."
-msgstr ""
+msgstr "Nom de domaine a un format non valide."
 
 #: Model/Attribute.php:1024
 msgid "Email address has an invalid format. Please double check the value or select type \"other\"."
@@ -1147,11 +1155,11 @@ msgstr ""
 
 #: Model/Attribute.php:1785;1840
 msgid "Could not read user."
-msgstr ""
+msgstr "Impossible de lire l'utilisateur."
 
 #: Model/Attribute.php:2278
 msgid "This field is mandatory."
-msgstr ""
+msgstr "Ce champ est obligatoire."
 
 #: Model/Attribute.php:2609
 msgid "Something went wrong. Received a non-numeric event ID while trying to create a zip archive of an uploaded malware sample."
@@ -1159,15 +1167,15 @@ msgstr ""
 
 #: Model/Event.php:4186
 msgid "Issues while loading the stix file. "
-msgstr ""
+msgstr "Problèmes lors du chargement du fichier stix. "
 
 #: Model/Event.php:4188
 msgid "Issues with the maec library. "
-msgstr ""
+msgstr "Problèmes avec la bibliothèque maec. "
 
 #: Model/Event.php:4190
 msgid "Issues executing the ingestion script or invalid input. "
-msgstr ""
+msgstr "Problèmes en exécutant le script de l’ingestion ou l’entrée est invalide. "
 
 #: Model/Event.php:4193
 msgid "Please ask your administrator to "
@@ -1187,7 +1195,7 @@ msgstr ""
 
 #: Model/Event.php:4244
 msgid "%s not set"
-msgstr ""
+msgstr "%s pas défini"
 
 #: Model/Server.php:119
 msgid "Certain administrative tasks are exposed to the API, these help with maintaining and configuring MISP in an automated way / via external tools."
@@ -1195,7 +1203,7 @@ msgstr ""
 
 #: Model/Server.php:120
 msgid "Administering MISP via the CLI"
-msgstr ""
+msgstr "Administration de MISP via la commande ligne"
 
 #: Model/Server.php:130
 msgid "If you would like to automate tasks such as caching feeds or pulling from server instances, you can do it using the following command line tools. Simply execute the given commands via the command line / create cron jobs easily out of them."
@@ -1284,7 +1292,7 @@ msgstr ""
 
 #: Model/Server.php:326
 msgid "No valid UUID set"
-msgstr ""
+msgstr "Aucune UUID valide établi"
 
 #: Model/Server.php:340
 msgid "Setting this setting to 'false' will hide all organisation names / logos."
@@ -1348,7 +1356,7 @@ msgstr ""
 
 #: Model/Server.php:486
 msgid "The default distribution setting for events (0-3)."
-msgstr ""
+msgstr "Le paramètre de la distribution par défaut pour les événements (0-3)."
 
 #: Model/Server.php:495
 msgid "The default distribution setting for attributes, set it to 'event' if you would like the attributes to default to the event distribution level. (0-3 or \"event\")"
@@ -1416,7 +1424,7 @@ msgstr ""
 
 #: Model/Server.php:628
 msgid "Since version 2.3.107 you can start blacklisting event UUIDs to prevent them from being pushed to your instance. This functionality will also happen silently whenever an event is deleted, preventing a deleted event from being pushed back from another instance."
-msgstr ""
+msgstr "Depuis la version 2.3.107 vous pouvez mettre des UUIDs d'événements sur une liste noire pour éviter que celle-ci soit poussée sur votre instance. Cette fonctionnalité va aussi s'activer en arrière-plan si un événement est supprimé, ce qui évite un événement d'être poussé en retour d'une autre instance."
 
 #: Model/Server.php:635
 msgid "Blacklisting organisation UUIDs to prevent the creation of any event created by the blacklisted organisation."
@@ -4509,7 +4517,7 @@ msgstr "Bibliothèques STIX et CyBox"
 
 #: View/Elements/healthElements/diagnostics.ctp:202
 msgid "Mitre's STIX and Cybox python libraries have to be installed in order for MISP's STIX export to work. Make sure that you install them (as described in the MISP installation instructions) if you receive an error below."
-msgstr "Les bibliothèques Mitre STIX et CyBox python doivent être installées pour que l’exportation de STIX fonctionne sur MISP. Assurez-vous de les installer (comme décrits dans les instructions d’installation de MISP si vous recevez une erreur."
+msgstr "Les bibliothèques Mitre STIX et CyBox python doivent être installées pour que l’exportation de STIX fonctionne sur MISP. Assurez-vous de les installer (comme décrits dans les instructions d’installation de MISP) si vous recevez une erreur."
 
 #: View/Elements/healthElements/diagnostics.ctp:203
 msgid "If you run into any issues here, make sure that both STIX and CyBox are installed as described in the INSTALL.txt file. The required versions are"
@@ -4525,7 +4533,7 @@ msgstr "STIX et CyBox"
 
 #: View/Elements/healthElements/diagnostics.ctp:218
 msgid "Could not read test script (stixtest.py)."
-msgstr "Ne peut pas lire le test script (stixtext.py)."
+msgstr "Lecture impossible du script de test (stixtext.py)."
 
 #: View/Elements/healthElements/diagnostics.ctp:232
 msgid " library version"
