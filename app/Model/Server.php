@@ -114,6 +114,7 @@ class Server extends AppModel
                 'data' => array(
                     'getSettings' => 'MISP/app/Console/cake Admin getSetting [setting]',
                     'setSettings' => 'MISP/app/Console/cake Admin getSetting [setting] [value]',
+                    'getAuthkey' => 'MISP/app/Console/cake Admin [email]',
                     'setBaseurl' => 'MISP/app/Console/cake Baseurl [baseurl]',
                     'changePassword' => 'MISP/app/Console/cake Password [email] [new_password]'
                 ),
