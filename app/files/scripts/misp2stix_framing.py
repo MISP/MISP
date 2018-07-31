@@ -110,7 +110,7 @@ def main(args):
         idgen.set_id_namespace(Namespace(baseURL, orgname, "MISP"))
     stix_package = STIXPackage()
     stix_header = STIXHeader()
-    stix_header.title="Export from {} MISP".format(orgname)
+    stix_header.title="Export from {} MISP".format(args[2])
     stix_header.package_intents="Threat Report"
     stix_package.stix_header = stix_header
     stix_package.version = "1.1.1"
