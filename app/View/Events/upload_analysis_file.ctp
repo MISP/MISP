@@ -28,7 +28,7 @@
 	<div style="clear:both;"></div>
 	<div id="accordion1" style="width:40%;float:left;padding:5px;">
 		<h3>Select text for further analysis <button id="graspSelectedText" class="btn btn-primary" style="display:none;margin-left:5px;">Add Selected Text</button></h3>
-		<div id="textToSelect" class="raisedbox">
+		<div id="textToSelect" class="raisedbox noselect">
 			<div id="fileContent" style="display:none;">
 				<p>	
 				<?php
@@ -45,7 +45,7 @@
 	</div>
 	
 	<div id="accordion2" style="width:55%;float:right;">
-		<h3>Selected Text<button id="clearSelectedText" class="btn btn-primary" style="display:none;margin-left:5px;">Clear Selected Text</button><button id="saveText" class="btn btn-primary" style="display:none;margin-left:5px;">Process Selected Text</button></h3>
+		<h3><button id="clearSelectedText" class="btn btn-primary" style="display:none;margin-left:5px;">Clear Table</button><button id="saveText" class="btn btn-primary" style="display:none;margin-left:5px;">Process Selected Text</button></h3>
 		<div id="selectedText" class="" >
 		<table id="individualSelectedLines" class="selectedLines">
 			<tbody>
@@ -79,6 +79,15 @@
 	{
 		width: 100%;
 	}
+	.noselect {
+    cursor: default;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
 </style>
 <script>
 var afterUpload = "<?php echo $file_uploaded; ?>";
@@ -105,8 +114,8 @@ $('#individualLines tr').click(function(e){
         var cell = $(e.target).get(0);
         rowSelected = $(this);
         selText = rowSelected.text();
+		unhighlight();
 		if(!this.hilite){
-			//unhighlight();
 			this.origColor=this.style.backgroundColor;
 			this.style.backgroundColor='#BCD4EC';
 			this.hilite = true;
@@ -135,7 +144,7 @@ $('#graspSelectedText').on('click',function(){
 	// $('#selectedText').append('<br>')
 })
 $('#clearSelectedText').on('click',function(){
-	$('#selectedText').empty();
+	$("#individualSelectedLines > tbody").html("");
 })
 function encodeHTML(s) {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
@@ -185,9 +194,19 @@ function processString(text)
 	{
 		filepath += seperate_analysis[7];
 	}
-	$('#individualSelectedLines').append('<tr><td>'+filepath+'</td><td>'+size+'</td><td>'+activity+'</td><td>'+time_accessed+'</td><td>'+permissions+'</td><td><span class="icon-trash clearRow" style="cursor:pointer;"></span></td></tr>');		
+	$('#individualSelectedLines').append('<tr><td>'+encodeHTML(filepath)+'</td><td>'+encodeHTML(size)+'</td><td>'+encodeHTML(activity)+'</td><td>'+encodeHTML(time_accessed)+'</td><td>'+encodeHTML(permissions)+'</td><td><span class="icon-trash clearRow" style="cursor:pointer;"></span></td></tr>');		
 }
+function unhighlight(){
+ var fileTable = document.getElementById('individualLines');
+ for (var i=0;i < fileTable.rows.length;i++){
+   var row = fileTable.rows[i];
+   row.style.backgroundColor='transparent';
+   row.hilite = false;
+ }
+}
+
 $(document).on('click', '.clearRow' ,function(e) { 
 	$(this).closest('tr').remove() 
 });
+
 </script>
