@@ -3670,9 +3670,16 @@ class Event extends AppModel
             $event_ids = array_intersect($event_ids, $idList);
         }
         $randomFileName = $this->generateRandomFileName();
-        $tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
+        $tmpDir = APP . "files" . DS . "scripts";
+        $stix2_framing_cmd = 'python3 ' . $tmpDir . DS . 'misp_framing.py stix2 ' . escapeshellarg(CakeText::uuid()) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
+        $stix2_framing = json_decode(shell_exec($stix2_framing_cmd), true);
+        if (empty($stix2_framing)) {
+            return array('success' => 0, 'message' => 'There was an issue generating the STIX 2.0 export.');
+        }
+        $separator = $stix2_framing['separator'];
+        $tmpDir = $tmpDir . DS . "tmp";
         $stixFile = new File($tmpDir . DS . $randomFileName . ".stix");
-        $stixFile->write("{\"type\": \"bundle\", \"spec_version\": \"2.0\", \"id\": \"bundle--" . CakeText::uuid() . "\", \"objects\": [");
+        $stixFile->write($stix2_framing['header']);
         if ($jobId) {
             $this->Job = ClassRegistry::init('Job');
             $this->Job->id = $jobId;
@@ -3709,7 +3716,7 @@ class Event extends AppModel
                     $file = new File($tmpDir . DS . $randomFileName . '.out', true, 0644);
                     $result = substr($file->read(), 1, -1);
                     $file->delete();
-                    $stixFile->append($result . (($i + 1) != $eventCount ? ',' : ''));
+                    $stixFile->append($result . (($i + 1) != $eventCount ? $separator : ''));
                 } else {
                     return false;
                 }
@@ -3723,7 +3730,7 @@ class Event extends AppModel
                 $tempFile->close();
             }
         }
-        $stixFile->append("]}\n");
+        $stixFile->append($stix2_framing['footer']);
         if ($tempFile) {
             $tempFile->delete();
         }
@@ -3744,14 +3751,16 @@ class Event extends AppModel
             $event_ids = array_intersect($event_ids, $idList);
         }
         $randomFileName = $this->generateRandomFileName();
-        $tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
-        $stixFile = new File($tmpDir . DS . $randomFileName . ".stix");
-        $stix_framing = shell_exec('python3 ' . APP . "files" . DS . "scripts" . DS . 'misp2stix_framing.py ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' ' . escapeshellarg($returnType) . ' 2>' . APP . 'tmp/logs/exec-errors.log');
+        $tmpDir = APP . "files" . DS . "scripts";
+        $stix_framing_cmd = 'python3 ' . $tmpDir . DS . 'misp2stix_framing.py ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' ' . escapeshellarg($returnType) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
+        $stix_framing = json_decode(shell_exec($stix_framing_cmd), true);
         if (empty($stix_framing)) {
-            $stixFile->delete();
             return array('success' => 0, 'message' => 'There was an issue generating the STIX export.');
         }
-        $stixFile->write(substr($stix_framing, 0, -1));
+        $separator = $stix_framing['separator'];
+        $tmpDir = $tmpDir . DS . "tmp";
+        $stixFile = new File($tmpDir . DS . $randomFileName . ".stix");
+        $stixFile->write($stix_framing['header']);
         if ($returnType === 'xml') {
             $stixFile->append("    <stix:Related_Packages>\n");
         }
@@ -3809,7 +3818,7 @@ class Event extends AppModel
                     $stix_event = str_replace("\n", "\n            ", $stix_event) . "\n";
                     $stix_event = "        <stix:Related_Package>\n" . $stix_event . "        </stix:Related_Package>\n";
                 } else {
-                    $stix_event = $file->read() . (($i + 1) != $eventCount ? ',' : '');
+                    $stix_event = $file->read() . (($i + 1) != $eventCount ? $separator : '');
                 }
                 $stixFile->append($stix_event);
                 $file->close();
@@ -3824,11 +3833,7 @@ class Event extends AppModel
                 $tempFile->close();
             }
         }
-        if ($returnType == 'xml') {
-            $stixFile->append("    </stix:Related_Packages>\n</stix:STIX_Package>\n\n");
-        } else {
-            $stixFile->append("]}\n");
-        }
+        $stixFile->append($stix_framing['footer']);
         if ($tempFile) {
             $tempFile->delete();
         }
