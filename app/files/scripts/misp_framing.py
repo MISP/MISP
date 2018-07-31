@@ -102,7 +102,7 @@ def stix_framing(*args):
     baseurl, orgname, return_type = args
     if not baseurl:
         baseurl = 'https://www.misp-project.org'
-    orgname = args[2]
+    orgname = real_orgname = args[2]
     orgname = re.sub('[\W]+', '', orgname.replace(" ", "_"))
     NS_DICT[baseurl] = orgname
     try:
@@ -111,7 +111,7 @@ def stix_framing(*args):
         idgen.set_id_namespace(Namespace(baseurl, orgname, "MISP"))
     stix_package = STIXPackage()
     stix_header = STIXHeader()
-    stix_header.title="Export from {} MISP".format(orgname)
+    stix_header.title="Export from {} MISP".format(real_orgname)
     stix_header.package_intents="Threat Report"
     stix_package.stix_header = stix_header
     stix_package.version = "1.1.1"
