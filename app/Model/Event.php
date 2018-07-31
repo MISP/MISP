@@ -3752,7 +3752,7 @@ class Event extends AppModel
         }
         $randomFileName = $this->generateRandomFileName();
         $tmpDir = APP . "files" . DS . "scripts";
-        $stix_framing_cmd = 'python3 ' . $tmpDir . DS . 'misp2stix_framing.py ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' ' . escapeshellarg($returnType) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
+        $stix_framing_cmd = 'python3 ' . $tmpDir . DS . 'misp_framing.py stix ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' ' . escapeshellarg($returnType) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
         $stix_framing = json_decode(shell_exec($stix_framing_cmd), true);
         if (empty($stix_framing)) {
             return array('success' => 0, 'message' => 'There was an issue generating the STIX export.');
