@@ -2712,7 +2712,7 @@ class Server extends AppModel
             return $this->testForEmpty($value);
         }
         if ($value != strtolower($this->getProto()) . '://' . $this->getHost()) {
-            return 'critical_error##COMMA##block';
+            return 'Invalid baseurl, it has to be in the "https://FQDN" format.';
         }
         return true;
     }
