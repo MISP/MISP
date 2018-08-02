@@ -173,4 +173,21 @@ class AdminShell extends AppShell
 		}
 	}
 
+    public function getAuthkey() {
+        if (empty($this->args[0])) {
+            echo 'Invalid parameters. Usage: ' . APP . 'Console/cake Admin getAuthkey [user_email]' . PHP_EOL;
+        } else {
+            $user = $this->User->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('User.email' => strtolower($this->args[0])),
+                'fields' => array('User.authkey')
+            ));
+            if (empty($user)) {
+                echo 'Invalid user.' . PHP_EOL;
+            } else {
+                echo $user['User']['authkey'] . PHP_EOL;
+            }
+        }
+    }
+
 }
