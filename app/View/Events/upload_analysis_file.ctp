@@ -22,50 +22,39 @@
 	echo $this->Form->button(__('Upload'), array('class' => 'btn btn-primary'));
 	echo $this->Form->end();
 ?>
-
-<div id="afterUpload" style="display:none;">
-	
-	<div style="clear:both;"></div>
-	<div id="accordion1" style="width:40%;float:left;padding:5px;">
-		<h3>Select text for further analysis <button id="graspSelectedText" class="btn btn-primary" style="display:none;margin-left:5px;">Add Selected Text</button></h3>
-		<div id="textToSelect" class="raisedbox noselect">
-			<div id="fileContent" style="display:none;">
-				<p>	
-				<?php
-					if($file_uploaded == "1")
-					{
-						echo h(nl2br($file_content));
-					}
-				?>
-			</p>
-			</div>
-			
-			<table id="individualLines"><tbody></tbody></table>
-		</div>
-	</div>
-	
-	<div id="accordion2" style="width:55%;float:right;">
-		<h3><button id="clearSelectedText" class="btn btn-primary" style="display:none;margin-left:5px;">Clear Table</button><button id="saveText" class="btn btn-primary" style="display:none;margin-left:5px;">Process Selected Text</button></h3>
-		<div id="selectedText" class="" >
-		<table id="individualSelectedLines" class="selectedLines">
-			<tbody>
+	<div id="afterUpload" style="display:none;">
+		
+		<div style="clear:both;"></div>
+		<div id="accordion1" style="">
+			<h3>Select text for further analysis <button id="graspSelectedText" class="btn btn-primary" style="margin-left:5px;">Process Selected Entries</button></h3>
+			<div id="textToSelect" class="raisedbox noselect">
+				<div id="fileContent" style="display:none;">
+					<p>	
+					<?php
+						if($file_uploaded == "1")
+						{
+							echo h(nl2br($file_content));
+						}
+					?>
+				</p>
+				</div>
+				<table id="individualLines" class="selectedLines">
 					<thead>
+						<th>Select</th>
 						<th>Filepath</th>
 						<th>File Size</th>
 						<th>Activity Type</th>
 						<th>Time Accessed</th>
 						<th>Permissions</th>
-						<th>Clear</th>
+						
 					</thead>
-			</tbody>
-		</table>
+					<tbody></tbody>
+				</table>
+			</div>
 		</div>
-	</div>
-	
-	<div style="clear:both;"></div>
+		<div style="clear:both;"></div>
 	</div>
 </div>
-
 
 <?php
 	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'addSTIX'));
@@ -107,50 +96,27 @@ if(afterUpload == 1)
 	$("#fileContent").empty();
 	for(var i=0; i<linesArray.length;i++)
 	{
-		$('#individualLines').append('<tr><td>'+encodeHTML(linesArray[i])+'</td></tr>');
+		processString(linesArray[i]);
+		
 	}
 }
-$('#individualLines tr').click(function(e){
-        var cell = $(e.target).get(0);
-        rowSelected = $(this);
-        selText = rowSelected.text();
-		unhighlight();
-		if(!this.hilite){
-			this.origColor=this.style.backgroundColor;
-			this.style.backgroundColor='#BCD4EC';
-			this.hilite = true;
-		   }
-		   else{
-			this.style.backgroundColor=this.origColor;
-			this.hilite = false;
-		   }
-		   if (selText !== "") {
-				$('#graspSelectedText').show();
-				$('#clearSelectedText').show();
-				$('#saveText').show();
-			}
-			else
-			{
-				$('#graspSelectedText').hide();
-				$('#clearSelectedText').hide();
-				$('#saveText').hide()
-			}
-    });
 
 $('#graspSelectedText').on('click',function(){
-	
-	processString(selText)
-	// $('#selectedText').append(selText.replace(/(?:\r\n|\r|\n)/g, '<br>'));
-	// $('#selectedText').append('<br>')
+	$('#individualLines').find('tr').each(function () {
+        var row = $(this);
+			if (row.find('input[type="checkbox"]').is(':checked')) {
+			row.find("td:first").remove();
+            $('#individualSelectedLines').append(row);	
+        }
+		$(this).remove();
+    });
+		processString(selText)
 })
-$('#clearSelectedText').on('click',function(){
-	$("#individualSelectedLines > tbody").html("");
-})
-function encodeHTML(s) {
-    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-}
+
+
 function processString(text)
 {
+	console.log(text)
 	var time_accessed = "";
 	var size =activity_type = permissions = file_path = activity = time_accessed = "";
 	//full date and time expression
@@ -158,43 +124,58 @@ function processString(text)
 	//time expressions
 	var Regx2 = new RegExp("([01]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]");
 	var arr = Regx1.exec(text);
-	if(arr != null)
+	if(Regx2.exec(text) != null)
 	{
-		time_accessed = arr[0];
-		text = text.replace(arr[0],'').trim();
+		if(arr != null)
+		{
+			time_accessed = arr[0];
+			text = text.replace(arr[0],'').trim();
+		}
+		
+		text = text.replace(/[\n\r]/g, '').trim();
+		seperate_analysis = text.split(/[  ]+/);
+		size = seperate_analysis[0];
+		activity_type = seperate_analysis[1];
+		if(activity_type.includes('a'))
+		{
+			activity = "Accessed";
+		}
+		if(activity_type.includes('b'))
+		{
+			activity += (activity != '')?',':'';
+			activity += "Created";
+		}
+		if(activity_type.includes('c'))
+		{
+			activity += (activity != '')?',':'';
+			activity += "Changed";
+		}
+		if(activity_type.includes('m'))
+		{
+			activity += (activity != '')?',':'';
+			activity += "Modified";
+		}
+		
+		permissions = seperate_analysis[2];
+		filepath = seperate_analysis[6]
+		if(seperate_analysis[7])
+		{
+			filepath += seperate_analysis[7];
+		}
+		$("#individualLines").find('tbody')
+			.append($('<tr>')
+				.append($('<td>').html('<input type="checkbox" class="select"></input>'))
+				.append($('<td>').text(filepath))
+				.append($('<td>').text(size))
+				.append($('<td>').text(activity))
+				.append($('<td>').text(time_accessed))
+				.append($('<td>').text(permissions))
+				
+				
+		);
 	}
 	
-	text = text.replace(/[\n\r]/g, '').trim();
-	seperate_analysis = text.split(/[  ]+/);
-	size = seperate_analysis[0];
-	activity_type = seperate_analysis[1];
-	if(activity_type.includes('a'))
-	{
-		activity = "Accessed";
-	}
-	if(activity_type.includes('b'))
-	{
-		activity += (activity != '')?',':'';
-		activity += "Created";
-	}
-	if(activity_type.includes('c'))
-	{
-		activity += (activity != '')?',':'';
-		activity += "Changed";
-	}
-	if(activity_type.includes('m'))
-	{
-		activity += (activity != '')?',':'';
-		activity += "Modified";
-	}
-	
-	permissions = seperate_analysis[2];
-	filepath = seperate_analysis[6]
-	if(seperate_analysis[7])
-	{
-		filepath += seperate_analysis[7];
-	}
-	$('#individualSelectedLines').append('<tr><td>'+encodeHTML(filepath)+'</td><td>'+encodeHTML(size)+'</td><td>'+encodeHTML(activity)+'</td><td>'+encodeHTML(time_accessed)+'</td><td>'+encodeHTML(permissions)+'</td><td><span class="icon-trash clearRow" style="cursor:pointer;"></span></td></tr>');		
+		
 }
 function unhighlight(){
  var fileTable = document.getElementById('individualLines');
@@ -205,8 +186,5 @@ function unhighlight(){
  }
 }
 
-$(document).on('click', '.clearRow' ,function(e) { 
-	$(this).closest('tr').remove() 
-});
 
 </script>
