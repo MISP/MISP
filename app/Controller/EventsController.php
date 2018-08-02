@@ -4953,19 +4953,8 @@ class EventsController extends AppController {
 		{
 				$this->set('file_uploaded',"1");
 			// if ($this->_isRest()) {
-				//print_r($_FILES);
 				$this->set('file_content',file_get_contents($this->request['data']['Event']['analysis_file']['tmp_name']));
-				if(isset($_FILES['data']['name']['event']['analysis_file']))
-         		{
-					 echo 2;
-					
-				}
-				// $randomFileName = $this->Event->generateRandomFileName();
-				// $tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
-				// $tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
-				// $tempFile->write($this->request->input());
-				// $tempFile->close();
-				// $result = $this->Event->upload_stix($this->Auth->user(), $randomFileName, $stix_version);
+				
 			// }
 		}
 	}
