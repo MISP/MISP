@@ -2823,34 +2823,48 @@ class Event extends AppModel {
 					}
 				}
 			}
-			// tag remover, only for "internal instance" -lm
-			if (isset($data['Event']['Tag']) && $user['Server']['internal']) {
-				$tags_list = $this->EventTag->Tag->findEventTags($this->id);
-				// $tag_list is array of array
-				// index of inside array contains:
-				// id		- db tag id
-				// name		- displayed name of tag
-				// colour	- color of tag (html format)
-				// exportable	- flag
-				// org_id	- organization id (to use tag)
-				// user_id	- user id (to use tag)
-				// hide_tag	- flag
-				foreach($tags_list as $t) {
-					$this->Log->create();
-					$this->Log->save(array(
-					'org' => $user['Organisation']['name'],
-					'model' => 'Event',
-					'model_id' => $this->id,
-					'email' => $user['email'],
-					'action' => 'edit',
-					'user_id' => $user['id'],
-					'title' => 'Auto-Removed tag ('.$t['id'].') "'.$t['name'].'" from event ('.$this->id.')',
-					'change' => 'User '.$user['email'].' is "'.$user['Role']['name'].'" for server ('.$user['Server']['id'].') '.$user['Server']['url'].', this server is an "Internal Instance"',
-					));
+			// tag soft remover patch , only for "internal instance" -lm
+			//if (isset($data['Event']['Tag']) && $user['Server']['internal']) {
+			if ($user['Server']['internal']) {
+		                $tagsList = $this->EventTag->find('all', array(
+	                                'conditions' => array(
+	                                                'event_id' => $id,
+	                                                'deleted' => 0, // tag softdeletion -lm
+	                                                'Tag.name !=' => $cluster_names
+		                                ),
+		                                'contain' => array('Tag'),
+		                                //'fields' => array('Tag.id', 'Tag.colour', 'Tag.name'),
+		                ));
+				foreach($tagsList as $t) {
+					$t['EventTag']['deleted'] = 1;
+					if ($this->EventTag->save($t['EventTag'])) {
+						$this->Log->create();
+						$this->Log->save(array(
+						'org' => $user['Organisation']['name'],
+						'model' => 'Event',
+						'model_id' => $this->id,
+						'email' => $user['email'],
+						'action' => 'edit',
+						'user_id' => $user['id'],
+						'title' => 'Auto-SoftRemoved tag ('.$t['Tag']['id'].') "'.$t['Tag']['name'].'" from event ('.$this->id.')',
+						'change' => 'Server "'.$user['Server']['name'].'" (Id: '.$user['Server']['id'].') '.$user['Server']['url'].' is an "Internal Instance"',
+						));
+					} else {
+						$this->Log->create();
+						$this->Log->save(array(
+						'org' => $user['Organisation']['name'],
+						'model' => 'Event',
+						'model_id' => $this->id,
+						'email' => $user['email'],
+						'action' => 'edit',
+						'user_id' => $user['id'],
+						'title' => 'FAILED Auto-SoftRemoved tag ('.$t['Tag']['id'].') "'.$t['Tag']['name'].'" from event ('.$this->id.')',
+						'change' => 'Server "'.$user['Server']['name'].'" (Id: '.$user['Server']['id'].') '.$user['Server']['url'].' is an "Internal Instance"',
+						));
+					}
 				}
-				//$this->EventTag->deleteAll(array('event_id' => $this->id));
-				// todo: implement tag checking -lm
 			}
+			// tag soft remover patch end -lm
 
 			if (isset($data['Event']['EventTag'])) {
 				$data['Event']['Tag'] = $data['Event']['EventTag']['Tag'];

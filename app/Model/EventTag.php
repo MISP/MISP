@@ -91,6 +91,11 @@ class EventTag extends AppModel {
 		if (empty($existingAssociation)) {
 			$this->create();
 			if (!$this->save(array('event_id' => $event_id, 'tag_id' => $tag_id))) return false;
+		// tag softdelateion patch -lm
+		} else if ($existingAssociation['EventTag']['deleted'] = 1) {
+			$existingAssociation['EventTag']['deleted'] = 0;
+			if (!$this->save($existingAssociation)) return false;
+		// tag softdelateion patch end -lm
 		}
 		return true;
 	}

@@ -1364,6 +1364,30 @@ class Server extends AppModel {
 						'test' => 'testBool',
 						'type' => 'boolean'
 					),
+                    'ElasticSearch_logging_enable' => array (
+                        'level' => 2,
+                        'description' => 'Enabled logging to an ElasticSearch instance',
+                        'value' => false,
+                        'errorMessage' => '',
+                        'test' => 'testBool',
+                        'type' => 'boolean'
+                    ),
+                    'ElasticSearch_connection_string' => array(
+                        'level' => 2,
+                        'description' => 'The URL(s) at which to access ElasticSearch - comma seperate if you want to have more than one.',
+                        'value' => '',
+                        'errorMessage' => '',
+                        'test' => 'testForEmpty',
+                        'type' => 'string'
+                    ),
+                    'ElasticSearch_log_index' => array(
+                        'level' => 2,
+                        'description' => 'The index in which to place logs',
+                        'value' => '',
+                        'errorMessage' => '',
+                        'test' => 'testForEmpty',
+                        'type' => 'string'
+                    ),
 					'Sightings_policy' => array(
 						'level' => 1,
 						'description' => 'This setting defines who will have access to seeing the reported sightings. The default setting is the event owner alone (in addition to everyone seeing their own contribution) with the other options being Sighting reporters (meaning the event owner and anyone that provided sighting data about the event) and Everyone (meaning anyone that has access to seeing the event / attribute).',
@@ -1832,6 +1856,7 @@ class Server extends AppModel {
 						} else {
 							$tempUser = $user;
 							$tempUser['Role']['perm_site_admin'] = 0;
+							$tempUser['Server'] = $server['Server']; // tag soft removed patch -lm
 							$result = $eventModel->_edit($event, $tempUser, $existingEvent['Event']['id'], $jobId);
 							if ($result === true) $successes[] = $eventId;
 							else if (isset($result['error'])) $fails[$eventId] = $result['error'];
@@ -3868,9 +3893,18 @@ class Server extends AppModel {
 
 	public function update($status) {
 		$final = '';
+		$cleanup_commands = array(
+			// (>^-^)> [hacky]
+			'git checkout app/composer.json 2>&1'
+		);
+		foreach ($cleanup_commands as $cleanup_command) {
+			$final .= $cleanup_command . "\n\n";
+			exec($cleanup_command, $output);
+			$final .= implode("\n", $output) . "\n\n";
+		}
 		$command1 = 'git pull origin ' . $status['branch'] . ' 2>&1';
 		$command2 = 'git submodule update --init --recursive 2>&1';
-		$final = $command1 . "\n\n";
+		$final .= $command1 . "\n\n";
 		exec($command1, $output);
 		$final .= implode("\n", $output) . "\n\n=================================\n\n";
 		$output = array();
