@@ -2043,17 +2043,53 @@ class Attribute extends AppModel
             // If we sent any tags along, load the associated tag names for each attribute
             $tag = ClassRegistry::init('Tag');
             $args = $this->dissectArgs($tags);
-            $tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
+            $tagArray = $tag->fetchTagIds($args[0], $args[1]);
             $temp = array();
-            foreach ($tagArray[0] as $accepted) {
-                $temp['OR'][] = array('Event.id' => $accepted);
+            if (!empty($tagArray[0])) {
+                $options = array(
+                    'conditions' => array(
+                        'tag_id' => $tagArray[0]
+                    ),
+                    'fields' => array(
+                        'event_id'
+                    )
+                );
+                $temp = array_merge($temp, $this->subQueryGenerator($tag->EventTag, $options, 'Attribute.event_id'));
+                $options = array(
+                    'conditions' => array(
+                        'tag_id' => $tagArray[0]
+                    ),
+                    'fields' => array(
+                        'attribute_id'
+                    )
+                );
+                $temp = array_merge($temp, $this->subQueryGenerator($tag->AttributeTag, $options, 'Attribute.id'));
+                $temp2 = array('OR' => $temp);
+                $conditions['AND'][] = $temp2;
             }
-            $conditions['AND'][] = $temp;
             $temp = array();
-            foreach ($tagArray[1] as $rejected) {
-                $temp['AND'][] = array('Event.id !=' => $rejected);
+            if (!empty($tagArray[1])) {
+                $options = array(
+                    'conditions' => array(
+                        'tag_id' => $tagArray[1]
+                    ),
+                    'fields' => array(
+                        'event_id'
+                    )
+                );
+                $temp = array_merge($temp, $this->subQueryGenerator($tag->EventTag, $options, 'Attribute.event_id', 1));
+                $options = array(
+                    'conditions' => array(
+                        'tag_id' => $tagArray[1]
+                    ),
+                    'fields' => array(
+                        'attribute_id'
+                    )
+                );
+                $temp = array_merge($temp, $this->subQueryGenerator($tag->AttributeTag, $options, 'Attribute.id', 1));
+                $temp2 = array('AND' => $temp);
+                $conditions['AND'][] = $temp2;
             }
-            $conditions['AND'][] = $temp;
         }
         $attributes = $this->fetchAttributes($user, array(
                 'conditions' => $conditions,
@@ -2751,20 +2787,25 @@ class Attribute extends AppModel
         }
 
         if (empty($params['limit'])) {
-            $pagesToFetch = $this->find('count', array('conditions' => $params['conditions']));
             $loopLimit = 100000;
-            $pagesToFetch = ceil($pagesToFetch / $loopLimit);
             $loop = true;
+            $params['limit'] = $loopLimit;
+            $params['page'] = 0;
         } else {
             $loop = false;
             $pagesToFetch = 1;
         }
-
         $attributes = array();
-        for ($i = 0; $i < $pagesToFetch; $i++) {
+        $continue = true;
+        while ($continue) {
             if ($loop) {
-                $params['limit'] = $loopLimit;
-                $params['page'] = $i+1;
+                $params['page'] = $params['page'] + 1;
+                if (isset($results) && count($results) < $loopLimit) {
+                    $continue = false;
+                    continue;
+                }
+            } else {
+                $continue = false;
             }
             $results = $this->find('all', $params);
             // return false if we're paginating
