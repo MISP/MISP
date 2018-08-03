@@ -853,7 +853,6 @@ class Event extends AppModel
         switch ($code) {
             case 403:
                 return 'The distribution level of this event blocks it from being pushed.';
-                break;
             case 405:
                 $error = 'The sync user on the remote instance does not have the required privileges to handle this event.';
                 break;
