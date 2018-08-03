@@ -991,7 +991,7 @@ class Event extends AppModel
             return 403;
         }
         $server = $server[0];
-        if ($this->checkDistributionForPush($event, $server, $context = 'Event')) {
+        if ($this->checkDistributionForPush($event, $server, 'Event')) {
             $event = $this->__updateEventForSync($event, $server);
         } else {
             return 403;
@@ -4795,5 +4795,4 @@ class Event extends AppModel
         $request = $this->addHeaders($request);
         return $request;
     }
-
 }
