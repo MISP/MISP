@@ -80,6 +80,25 @@ class Attribute extends AppModel
         'ip-dst|port'
     );
 
+    public $captureFields = array(
+        'event_id',
+        'category',
+        'type',
+        'value',
+        'value1',
+        'value2',
+        'to_ids',
+        'uuid',
+        'timestamp',
+        'distribution',
+        'comment',
+        'sharing_group_id',
+        'deleted',
+        'disable_correlation',
+        'object_id',
+        'object_relation'
+    );
+
     public $searchResponseTypes = array(
         'xml' => array(
             'type' => 'xml',
@@ -3081,78 +3100,6 @@ class Attribute extends AppModel
         return $conditions;
     }
 
-    public function setSimpleConditions($parameterKey, $parameterValue, $conditions)
-    {
-        $subcondition = array();
-        App::uses('CIDRTool', 'Tools');
-        $cidr = new CIDRTool();
-        if (is_array($parameterValue)) {
-            $elements = $parameterValue;
-        } else {
-            $elements = explode('&&', $parameterValue);
-        }
-        foreach ($elements as $v) {
-            if (empty($v)) {
-                continue;
-            }
-            if (substr($v, 0, 1) == '!') {
-                // check for an IPv4 address and subnet in CIDR notation (e.g. 127.0.0.1/8)
-                if ($parameterKey === 'value' && $cidr->checkCIDR(substr($v, 1), 4)) {
-                    $cidrresults = $cidr->CIDR(substr($v, 1));
-                    foreach ($cidrresults as $result) {
-                        $subcondition['AND'][] = array('Attribute.value NOT LIKE' => $result);
-                    }
-                } elseif ($parameterKey === 'org') {
-                    // from here
-                    $found_orgs = $this->Event->Org->find('all', array(
-                                'recursive' => -1,
-                                'conditions' => array('LOWER(name) LIKE' => '%' . strtolower(substr($v, 1)) . '%'),
-                        ));
-                    foreach ($found_orgs as $o) {
-                        $subcondition['AND'][] = array('Event.orgc_id !=' => $o['Org']['id']);
-                    }
-                } elseif ($parameterKey === 'eventid') {
-                    $subcondition['AND'][] = array('Attribute.event_id !=' => substr($v, 1));
-                } elseif ($parameterKey === 'uuid') {
-                    $subcondition['AND'][] = array('Event.uuid !=' => substr($v, 1));
-                    $subcondition['AND'][] = array('Attribute.uuid !=' => substr($v, 1));
-                } else {
-                    $subcondition['AND'][] = array('Attribute.' . $parameterKey . ' NOT LIKE' => '%'.substr($v, 1).'%');
-                }
-            } else {
-                // check for an IPv4 address and subnet in CIDR notation (e.g. 127.0.0.1/8)
-                if ($parameterKey === 'value' && $cidr->checkCIDR($v, 4)) {
-                    $cidrresults = $cidr->CIDR($v);
-                    foreach ($cidrresults as $result) {
-                        $subcondition['OR'][] = array('Attribute.value LIKE' => $result);
-                    }
-                } elseif ($parameterKey === 'org') {
-                    // from here
-                    $found_orgs = $this->Event->Org->find('all', array(
-                            'recursive' => -1,
-                            'conditions' => array('LOWER(name) LIKE' => '%' . strtolower($v) . '%'),
-                    ));
-                    foreach ($found_orgs as $o) {
-                        $subcondition['OR'][] = array('Event.orgc_id' => $o['Org']['id']);
-                    }
-                } elseif ($parameterKey === 'eventid') {
-                    if (!empty($v)) {
-                        $subcondition['OR'][] = array('Attribute.event_id' => $v);
-                    }
-                } elseif ($parameterKey === 'uuid') {
-                    $subcondition['OR'][] = array('Attribute.uuid' => $v);
-                    $subcondition['OR'][] = array('Event.uuid' => $v);
-                } else {
-                    if (!empty($v)) {
-                        $subcondition['OR'][] = array('Attribute.' . $parameterKey . ' LIKE' => '%'.$v.'%');
-                    }
-                }
-            }
-        }
-        array_push($conditions['AND'], $subcondition);
-        return $conditions;
-    }
-
     private function __getCIDRList()
     {
         return $this->find('list', array(
@@ -3347,24 +3294,7 @@ class Attribute extends AppModel
         if (isset($attribute['encrypt'])) {
             $result = $this->handleMaliciousBase64($eventId, $attribute['value'], $attribute['data'], array('md5'));
         }
-        $fieldList = array(
-            'event_id',
-            'category',
-            'type',
-            'value',
-            'value1',
-            'value2',
-            'to_ids',
-            'uuid',
-            'timestamp',
-            'distribution',
-            'comment',
-            'sharing_group_id',
-            'deleted',
-            'disable_correlation',
-            'object_id',
-            'object_relation'
-        );
+        $fieldList = $this->captureFields;
         $this->create();
         if (!isset($attribute['distribution'])) {
             $attribute['distribution'] = Configure::read('MISP.default_attribute_distribution');

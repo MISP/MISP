@@ -13,10 +13,10 @@ from stix.exploit_target import ExploitTarget, Vulnerability
 from stix.incident.history import JournalEntry, History, HistoryItem
 from stix.threat_actor import ThreatActor
 from stix.core import STIXPackage, STIXHeader
-from stix.common import InformationSource, Identity, Confidence
+from stix.common import InformationSource, Identity
 from stix.data_marking import Marking, MarkingSpecification
 from stix.extensions.marking.tlp import TLPMarkingStructure
-from stix.common.related import *
+from stix.common.related import RelatedIndicator, RelatedObservable, RelatedThreatActor, RelatedTTP
 from stix.common.confidence import Confidence
 from stix.common.vocabs import IncidentStatus
 from cybox.utils import Namespace
@@ -34,7 +34,7 @@ from cybox.objects.email_message_object import EmailMessage, EmailHeader, EmailR
 from cybox.objects.domain_name_object import DomainName
 from cybox.objects.win_registry_key_object import *
 from cybox.objects.system_object import System, NetworkInterface, NetworkInterfaceList
-from cybox.objects.http_session_object import *
+from cybox.objects.http_session_object import RegistryValue, RegistryValues, WinRegistryKey
 from cybox.objects.as_object import AutonomousSystem
 from cybox.objects.socket_address_object import SocketAddress
 from cybox.objects.network_connection_object import NetworkConnection
@@ -48,7 +48,7 @@ from cybox.objects.account_object import Account, Authentication, StructuredAuth
 from cybox.objects.custom_object import Custom
 from cybox.common import Hash, HashList, ByteRun, ByteRuns
 from cybox.common.object_properties import CustomProperties,  Property
-from stix.extensions.test_mechanism.snort_test_mechanism import *
+from stix.extensions.test_mechanism.snort_test_mechanism import SnortTestMechanism
 from stix.extensions.identity.ciq_identity_3_0 import CIQIdentity3_0Instance, STIXCIQIdentity3_0, PartyName, ElectronicAddressIdentifier, FreeTextAddress
 from stix.extensions.identity.ciq_identity_3_0 import Address as ciq_Address
 from collections import defaultdict

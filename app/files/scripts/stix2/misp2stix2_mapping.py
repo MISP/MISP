@@ -7,8 +7,7 @@ def attribute_data_pattern(data):
 def define_address_type(address):
     if ':' in address:
         return 'ipv6-addr'
-    else:
-        return 'ipv4-addr'
+    return 'ipv4-addr'
 
 def observable_as(_, attribute_value):
     return {'0': {'type': 'autonomous-system', 'number': attribute_value}}
