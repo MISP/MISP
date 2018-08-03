@@ -980,8 +980,8 @@ class Event extends AppModel
             return 403;
         }
         $url = $server['Server']['url'];
-        $HttpSocket = $this->__setupHttpSocket($server, $HttpSocket);
-        $request = $this->__setupSyncRequest($server);
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
         $uri = $url . '/events';
         if (isset($urlPath)) {
             $pieces = explode('/', $urlPath);
@@ -1178,8 +1178,8 @@ class Event extends AppModel
     public function downloadEventFromServer($eventId, $server, $HttpSocket=null)
     {
         $url = $server['Server']['url'];
-        $HttpSocket = $this->__setupHttpSocket($server, $HttpSocket);
-        $request = $this->__setupSyncRequest($server);
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
         $uri = $url . '/events/view/' . $eventId . '/deleted:1/excludeGalaxy:1';
         $response = $HttpSocket->get($uri, $data = '', $request);
         if ($response->isOk()) {
@@ -1289,7 +1289,7 @@ class Event extends AppModel
         }
     }
 
-    private function __createEventConditions($user)
+    public function createEventConditions($user)
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
@@ -1317,7 +1317,7 @@ class Event extends AppModel
 
     public function fetchSimpleEventIds($user, $params = array())
     {
-        $conditions = $this->__createEventConditions($user);
+        $conditions = $this->createEventConditions($user);
         $conditions['AND'][] = $params['conditions'];
         $results = array_values($this->find('list', array(
             'conditions' => $conditions,
@@ -1329,7 +1329,7 @@ class Event extends AppModel
 
     public function fetchSimpleEvents($user, $params, $includeOrgc = false)
     {
-        $conditions = $this->__createEventConditions($user);
+        $conditions = $this->createEventConditions($user);
         $conditions['AND'][] = $params['conditions'];
         $params = array(
             'conditions' => $conditions,
@@ -1345,7 +1345,7 @@ class Event extends AppModel
     public function fetchEventIds($user, $from = false, $to = false, $last = false, $list = false, $timestamp = false, $publish_timestamp = false, $eventIdList = false)
     {
         // restricting to non-private or same org if the user is not a site-admin.
-        $conditions = $this->__createEventConditions($user);
+        $conditions = $this->createEventConditions($user);
         $fields = array('Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id');
 
         if ($from) {
@@ -1450,7 +1450,7 @@ class Event extends AppModel
                 $options[$opt] = false;
             }
         }
-        $conditions = $this->__createEventConditions($user);
+        $conditions = $this->createEventConditions($user);
         if ($options['eventid']) {
             $conditions['AND'][] = array("Event.id" => $options['eventid']);
         }
@@ -4749,28 +4749,5 @@ class Event extends AppModel
                 'change' => 'Returned message: ', $newTextBody,
         ));
         return false;
-    }
-
-    private function __setupHttpSocket($server, $HttpSocket)
-    {
-        if (null == $HttpSocket) {
-            App::uses('SyncTool', 'Tools');
-            $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
-        }
-        return $HttpSocket;
-    }
-
-    private function __setupSyncRequest($server)
-    {
-        $request = array(
-                'header' => array(
-                        'Authorization' => $server['Server']['authkey'],
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json'
-                )
-        );
-        $request = $this->addHeaders($request);
-        return $request;
     }
 }
