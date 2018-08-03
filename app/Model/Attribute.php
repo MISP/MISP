@@ -80,6 +80,25 @@ class Attribute extends AppModel
         'ip-dst|port'
     );
 
+    public $captureFields = array(
+        'event_id',
+        'category',
+        'type',
+        'value',
+        'value1',
+        'value2',
+        'to_ids',
+        'uuid',
+        'timestamp',
+        'distribution',
+        'comment',
+        'sharing_group_id',
+        'deleted',
+        'disable_correlation',
+        'object_id',
+        'object_relation'
+    );
+
     public $searchResponseTypes = array(
         'xml' => array(
             'type' => 'xml',
@@ -3275,24 +3294,7 @@ class Attribute extends AppModel
         if (isset($attribute['encrypt'])) {
             $result = $this->handleMaliciousBase64($eventId, $attribute['value'], $attribute['data'], array('md5'));
         }
-        $fieldList = array(
-            'event_id',
-            'category',
-            'type',
-            'value',
-            'value1',
-            'value2',
-            'to_ids',
-            'uuid',
-            'timestamp',
-            'distribution',
-            'comment',
-            'sharing_group_id',
-            'deleted',
-            'disable_correlation',
-            'object_id',
-            'object_relation'
-        );
+        $fieldList = $this->captureFields;
         $this->create();
         if (!isset($attribute['distribution'])) {
             $attribute['distribution'] = Configure::read('MISP.default_attribute_distribution');

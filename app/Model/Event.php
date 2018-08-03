@@ -2690,22 +2690,7 @@ class Event extends AppModel
                     'disable_correlation',
                     'extends_uuid'
                 ),
-                'Attribute' => array(
-                    'event_id',
-                    'category',
-                    'type',
-                    'value',
-                    'to_ids',
-                    'uuid',
-                    'timestamp',
-                    'distribution',
-                    'comment',
-                    'sharing_group_id',
-                    'deleted',
-                    'disable_correlation',
-                    'object_id',
-                    'object_relation'
-                ),
+                'Attribute' => $this->Attribute->captureFields,
                 'Object' => array(
                     'name',
                     'meta-category',
