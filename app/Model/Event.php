@@ -3356,21 +3356,25 @@ class Event extends AppModel
         }
     }
 
+    private function __getPrioWorkerIfPossible() {
+        $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
+        $workers = $this->ResqueStatus->getWorkers();
+        $workerType = 'default';
+        foreach ($workers as $worker) {
+            if ($worker['queue'] === 'prio') {
+                $workerType = 'prio';
+            }
+        }
+        return $workerType;
+    }
+
     public function publishRouter($id, $passAlong = null, $user)
     {
         if (Configure::read('MISP.background_jobs')) {
             $job = ClassRegistry::init('Job');
             $job->create();
-            $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
-            $workers = $this->ResqueStatus->getWorkers();
-            $workerType = 'default';
-            foreach ($workers as $worker) {
-                if ($worker['queue'] === 'prio') {
-                    $workerType = 'prio';
-                }
-            }
             $data = array(
-                    'worker' => $workerType,
+                    'worker' => $this->__getPrioWorkerIfPossible(),
                     'job_type' => 'publish_event',
                     'job_input' => 'Event ID: ' . $id,
                     'status' => 0,
@@ -4720,16 +4724,8 @@ class Event extends AppModel
         if (Configure::read('MISP.background_jobs')) {
             $job = ClassRegistry::init('Job');
             $job->create();
-            $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
-            $workers = $this->ResqueStatus->getWorkers();
-            $workerType = 'default';
-            foreach ($workers as $worker) {
-                if ($worker['queue'] === 'prio') {
-                    $workerType = 'prio';
-                }
-            }
             $data = array(
-                    'worker' => $workerType,
+                    'worker' => $this->__getPrioWorkerIfPossible(),
                     'job_type' => 'enrichment',
                     'job_input' => 'Event ID: ' . $options['event_id'] . ' modules: ' . json_encode($options['modules']),
                     'status' => 0,
