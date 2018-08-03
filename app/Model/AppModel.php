@@ -1585,4 +1585,27 @@ class AppModel extends Model
         }
         return true;
     }
+
+    public function setupHttpSocket($server, $HttpSocket = null)
+    {
+        if (empty($HttpSocket)) {
+            App::uses('SyncTool', 'Tools');
+            $syncTool = new SyncTool();
+            $HttpSocket = $syncTool->setupHttpSocket($server);
+        }
+        return $HttpSocket;
+    }
+
+    public function setupSyncRequest($server)
+    {
+        $request = array(
+                'header' => array(
+                        'Authorization' => $server['Server']['authkey'],
+                        'Accept' => 'application/json',
+                        'Content-Type' => 'application/json'
+                )
+        );
+        $request = $this->addHeaders($request);
+        return $request;
+    }
 }
