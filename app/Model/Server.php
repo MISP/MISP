@@ -5,7 +5,7 @@ class Server extends AppModel
 {
     public $name = 'Server';
 
-    public $actsAs = array('SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable, check: 'userModel' and 'userKey' can be removed given default
+    public $actsAs = array('SysLogLogable.SysLogLogable' => array(
             'userModel' => 'User',
             'userKey' => 'user_id',
             'change' => 'full'
@@ -40,7 +40,7 @@ class Server extends AppModel
     public $displayField = 'url';
 
     public $validate = array(
-        'url' => array( // TODO add extra validation to refuse multiple time the same url from the same org
+        'url' => array(
             'url' => array(
                 'rule' => array('url'),
                 'message' => 'Please enter a valid base-url.'
@@ -134,7 +134,6 @@ class Server extends AppModel
             )
         );
 
-        // TODO i18n
         $this->serverSettings = array(
                 'MISP' => array(
                         'branch' => 1,
@@ -1781,9 +1780,6 @@ class Server extends AppModel
                     'recursive' => -1,
             ));
             $eventIds = array_intersect($eventIds, $local_event_ids);
-        } elseif ("incremental" === $technique) {
-            // TODO incremental pull
-            return array(3, null);
         } elseif (is_numeric($technique)) {
             $eventIds[] = intval($technique);
             // if we are downloading a single event, don't fetch all proposals
@@ -2378,7 +2374,6 @@ class Server extends AppModel
         return $serverSettings;
     }
 
-    # TODO [i18n] think about it
     public function serverSettingsRead($unsorted = false)
     {
         $this->Module = ClassRegistry::init('Module');
