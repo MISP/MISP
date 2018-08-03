@@ -1024,23 +1024,18 @@ class Event extends AppModel
                         return $jsonArray['name'];
                     }
                 }
-                break;
             case '302': // Found
                 $newLocation = $response->headers['Location'];
                 $newTextBody = $response->body();
                 return true;
-                break;
             case '404': // Not Found
                 $newLocation = $response->headers['Location'];
                 $newTextBody = $response->body();
                 return 404;
-                break;
             case '405':
                 return 405;
-                break;
             case '403': // Not authorised
                 return 403;
-                break;
         }
     }
 
