@@ -997,22 +997,8 @@ class Event extends AppModel
             return 403;
         }
         $url = $server['Server']['url'];
-        $authkey = $server['Server']['authkey'];
-        if (null == $HttpSocket) {
-            App::uses('SyncTool', 'Tools');
-            $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
-        }
-        $request = array(
-                'header' => array(
-                        'Authorization' => $authkey,
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
-
-                        //'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
-                )
-        );
-        $request = $this->addHeaders($request);
+        $HttpSocket = $this->__setupHttpSocket($server, $HttpSocket);
+        $request = $this->__setupSyncRequest($server);
         $uri = $url . '/events';
         if (isset($urlPath)) {
             $pieces = explode('/', $urlPath);
@@ -1214,24 +1200,8 @@ class Event extends AppModel
     public function downloadEventFromServer($eventId, $server, $HttpSocket=null)
     {
         $url = $server['Server']['url'];
-        $authkey = $server['Server']['authkey'];
-        if (null == $HttpSocket) {
-            //$HttpSocket = new HttpSocket(array(
-            //		'ssl_verify_peer' => false
-            //		));
-            App::uses('SyncTool', 'Tools');
-            $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
-        }
-        $request = array(
-                'header' => array(
-                        'Authorization' => $authkey,
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
-                        //'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
-                )
-        );
-        $request = $this->addHeaders($request);
+        $HttpSocket = $this->__setupHttpSocket($server, $HttpSocket);
+        $request = $this->__setupSyncRequest($server);
         $uri = $url . '/events/view/' . $eventId . '/deleted:1/excludeGalaxy:1';
         $response = $HttpSocket->get($uri, $data = '', $request);
         if ($response->isOk()) {
@@ -1330,21 +1300,8 @@ class Event extends AppModel
     public function downloadProposalsFromServer($uuidList, $server, $HttpSocket = null)
     {
         $url = $server['Server']['url'];
-        $authkey = $server['Server']['authkey'];
-        if (null == $HttpSocket) {
-            App::uses('SyncTool', 'Tools');
-            $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
-        }
-        $request = array(
-                'header' => array(
-                        'Authorization' => $authkey,
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
-                        //'Connection' => 'keep-alive' // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
-                )
-        );
-        $request = $this->addHeaders($request);
+        $HttpSocket = $this->__setupHttpSocket($server, $HttpSocket);
+        $request = $this->__setupPushRequest($server);
         $uri = $url . '/shadow_attributes/getProposalsByUuidList';
         $response = $HttpSocket->post($uri, json_encode($uuidList), $request);
         if ($response->isOk()) {
@@ -4814,6 +4771,29 @@ class Event extends AppModel
                 'change' => 'Returned message: ', $newTextBody,
         ));
         return false;
+    }
+
+    private function __setupHttpSocket($server, $HttpSocket)
+    {
+        if (null == $HttpSocket) {
+            App::uses('SyncTool', 'Tools');
+            $syncTool = new SyncTool();
+            $HttpSocket = $syncTool->setupHttpSocket($server);
+        }
+        return $HttpSocket;
+    }
+
+    private function __setupSyncRequest($server)
+    {
+        $request = array(
+                'header' => array(
+                        'Authorization' => $server['Server']['authkey'],
+                        'Accept' => 'application/json',
+                        'Content-Type' => 'application/json'
+                )
+        );
+        $request = $this->addHeaders($request);
+        return $request;
     }
 
 }
