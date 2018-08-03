@@ -257,13 +257,7 @@ class Event extends AppModel
         )
     );
 
-    public function __construct($id = false, $table = null, $ds = null)
-    {
-        parent::__construct($id, $table, $ds);
-    }
-
     // The Associations below have been created with all possible keys, those that are not needed can be removed
-
     public $belongsTo = array(
         'User' => array(
             'className' => 'User',
@@ -853,64 +847,19 @@ class Event extends AppModel
         switch ($code) {
             case 403:
                 return 'The distribution level of this event blocks it from being pushed.';
-                break;
             case 405:
                 $error = 'The sync user on the remote instance does not have the required privileges to handle this event.';
                 break;
         }
         if ($error) {
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
-            $this->Log->save(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => $server['Server']['id'],
-                    'email' => 'SYSTEM',
-                    'action' => 'warning',
-                    'user_id' => 0,
-                    'title' => 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')',
-                    'change' => 'Remote instance returned an error, with error code: ' . $code,
-            ));
+            $newTextBody = 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')';
+            $this->__logUploadResult($server, $event, $newTextBody);
         }
         return $error;
     }
 
-    public function uploadEventToServer($event, $server, $HttpSocket = null)
+    private function __executeRestfulEventToServer($event, $server, $resourceId, &$newLocation, &$newTextBody, $HttpSocket)
     {
-        $this->Server = ClassRegistry::init('Server');
-        $push = $this->Server->checkVersionCompatibility($server['Server']['id'], false, $HttpSocket);
-        if (!isset($push['canPush'])) {
-            $test = $this->Server->checkLegacyServerSyncPrivilege($server['Server']['id'], $HttpSocket);
-        } else {
-            if (!$push['canPush']) {
-                return 'The remote user is not a sync user - the upload of the event has been blocked.';
-            }
-        }
-        $deletedAttributes = false;
-        if (($push['version'][0] > 2) ||
-            ($push['version'][0] == 2 && $push['version'][1] > 4) ||
-            ($push['version'][0] == 2 && $push['version'][1] == 4 && $push['version'][2] > 42)) {
-            $deletedAttributes = true;
-        }
-        if (isset($event['Attribute']) && !$deletedAttributes) {
-            foreach ($event['Attribute'] as $k => $v) {
-                if ($v['deleted']) {
-                    unset($event['Attribute'][$k]);
-                }
-            }
-            $event['Attribute'] = array_values($event['Attribute']);
-        }
-        if (!isset($push['canPush']) || !$push['canPush']) {
-            return 'Trying to push to an outdated instance.';
-        }
-        if (isset($server['Server']['unpublish_event'])) {
-            $unpublish_event = $server['Server']['unpublish_event'];
-            if ($unpublish_event) {
-                $event['Event']['published'] = 0;
-            }
-        }
-        $updated = null;
-        $newLocation = $newTextBody = '';
         $result = $this->restfulEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket);
         if (is_numeric($result)) {
             $error = $this->__resolveErrorCode($result, $event, $server);
@@ -918,84 +867,44 @@ class Event extends AppModel
                 return $error . ' Error code: ' . $result;
             }
         }
-        if (strlen($newLocation) || $result) { // HTTP/1.1 200 OK or 302 Found and Location: http://<newLocation>
-            if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
-                $result = $this->restfulEventToServer($event, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket);
-                if (is_numeric($result)) {
-                    $error = $this->__resolveErrorCode($result, $event, $server);
-                    if ($error) {
-                        return $error . ' Error code: ' . $result;
-                    }
-                }
+        return true;
+    }
+
+    public function uploadEventToServer($event, $server, $HttpSocket = null)
+    {
+        $this->Server = ClassRegistry::init('Server');
+        $push = $this->Server->checkVersionCompatibility($server['Server']['id'], false, $HttpSocket);
+        if (empty($push['canPush'])) {
+            return 'The remote user is not a sync user - the upload of the event has been blocked.';
+        }
+        if (!empty($server['Server']['unpublish_event'])) {
+            $event['Event']['published'] = 0;
+        }
+        $updated = null;
+        $newLocation = $newTextBody = '';
+        $result = $this->__executeRestfulEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket);
+        if ($result !== true) {
+            return $result;
+        }
+        if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
+            $result = $this->__executeRestfulEventToServer($event, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket);
+            if ($result !== true) {
+                return $result;
             }
-            $uploadFailed = false;
-            try {
-                $json = json_decode($newTextBody, true);
-            } catch (Exception $e) {
-                $uploadFailed = true;
-            }
-            if (!is_array($json) || $uploadFailed) {
-                $this->Log = ClassRegistry::init('Log');
-                $this->Log->create();
-                $this->Log->save(array(
-                        'org' => 'SYSTEM',
-                        'model' => 'Server',
-                        'model_id' => $server['Server']['id'],
-                        'email' => 'SYSTEM',
-                        'action' => 'warning',
-                        'user_id' => 0,
-                        'title' => 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')',
-                        'change' => 'Returned message: ', $newTextBody,
-                ));
-                return false;
-            }
-            // get the remote event_id
-            foreach ($json as $jsonEvent) {
-                if (is_array($jsonEvent)) {
-                    foreach ($jsonEvent as $key => $value) {
-                        if ($key == 'id') {
-                            break;
-                        }
-                    }
-                } else {
-                    $this->Log = ClassRegistry::init('Log');
-                    $this->Log->create();
-                    $this->Log->save(array(
-                            'org' => 'SYSTEM',
-                            'model' => 'Server',
-                            'model_id' => $server['Server']['id'],
-                            'email' => 'SYSTEM',
-                            'action' => 'warning',
-                            'user_id' => 0,
-                            'title' => 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')',
-                            'change' => 'Returned message: ', $newTextBody,
-                    ));
-                    return false;
-                }
-            }
+        }
+        $uploadFailed = false;
+        try {
+            $json = json_decode($newTextBody, true);
+        } catch (Exception $e) {
+            $uploadFailed = true;
+        }
+        if (!is_array($json) || $uploadFailed) {
+            return $this->__logUploadResult($server, $event, $newTextBody);
         }
         return 'Success';
     }
 
-    public function addHeaders($request)
-    {
-        $version = $this->checkMISPVersion();
-        $version = implode('.', $version);
-        try {
-            $commit = trim(shell_exec('git log --pretty="%H" -n1 HEAD'));
-        } catch (Exception $e) {
-            $commit = false;
-        }
-        $request['header']['MISP-version'] = $version;
-        if ($commit) {
-            $request['header']['commit'] = $commit;
-        }
-        return $request;
-    }
-
-    // Uploads the event and the associated Attributes to another Server
-    public function restfulEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null)
-    {
+    private function __prepareForPushToServer($event, $server) {
         if ($event['Event']['distribution'] == 4) {
             if (!empty($event['SharingGroup']['SharingGroupServer'])) {
                 $found = false;
@@ -1015,75 +924,68 @@ class Event extends AppModel
             return 403;
         }
         $server = $server[0];
-        if ($this->checkDistributionForPush($event, $server, $context = 'Event')) {
+        if ($this->checkDistributionForPush($event, $server, 'Event')) {
             $event = $this->__updateEventForSync($event, $server);
         } else {
             return 403;
         }
-        $url = $server['Server']['url'];
-        $authkey = $server['Server']['authkey'];
-        if (null == $HttpSocket) {
-            App::uses('SyncTool', 'Tools');
-            $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
-        }
-        $request = array(
-                'header' => array(
-                        'Authorization' => $authkey,
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
+        return $event;
+    }
 
-                        //'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
-                )
-        );
-        $request = $this->addHeaders($request);
-        $uri = $url . '/events';
-        if (isset($urlPath)) {
+    private function __getLastUrlPathComponent($urlPath)
+    {
+        if (!empty($urlPath)) {
             $pieces = explode('/', $urlPath);
-            $uri .= '/' . end($pieces);
+            return '/' . end($pieces);
         }
-        $data = json_encode($event);
-        // LATER validate HTTPS SSL certificate
-        $response = $HttpSocket->post($uri, $data, $request);
+        return '';
+    }
+
+    private function __handleRestfulEventToServerResponse($response, &$newLocation, &$newTextBody)
+    {
         switch ($response->code) {
             case '200':	// 200 (OK) + entity-action-result
                 if ($response->isOk()) {
                     $newTextBody = $response->body();
-                    $newLocation = null;
                     return true;
                 } else {
                     try {
                         $jsonArray = json_decode($response->body, true);
                     } catch (Exception $e) {
-                        return true; // TODO should be false
-                    }
-                    if (strpos($jsonArray['name'], "Event already exists")) {	// strpos, so i can piggyback some value if needed.
                         return true;
-                    } else {
-                        return $jsonArray['name'];
                     }
+                    return $jsonArray['name'];
                 }
-                break;
             case '302': // Found
                 $newLocation = $response->headers['Location'];
                 $newTextBody = $response->body();
                 return true;
-                break;
             case '404': // Not Found
                 $newLocation = $response->headers['Location'];
                 $newTextBody = $response->body();
                 return 404;
-                break;
             case '405':
                 return 405;
-                break;
             case '403': // Not authorised
                 return 403;
-                break;
         }
     }
 
-    private function __updateEventForSync($event, $server)
+    // Uploads the event and the associated Attributes to another Server
+    public function restfulEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null)
+    {
+        $event = $this->__prepareForPushToServer($event, $server);
+        if (is_numeric($event)) return $event;
+        $url = $server['Server']['url'];
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
+        $uri = $url . '/events' . $this->__getLastUrlPathComponent($urlPath);
+        $data = json_encode($event);
+        $response = $HttpSocket->post($uri, $data, $request);
+        return $this->__handleRestfulEventToServerResponse($response, $newLocation, $newTextBody);
+    }
+
+    private function __rearrangeEventStructureForSync($event)
     {
         // rearrange things to be compatible with the Xml::fromArray()
         $objectsToRearrange = array('Attribute', 'Object', 'Orgc', 'SharingGroup', 'EventTag', 'Org', 'ShadowAttribute');
@@ -1093,21 +995,66 @@ class Event extends AppModel
                 unset($event[$o]);
             }
         }
-
         // cleanup the array from things we do not want to expose
         foreach (array('Org', 'org_id', 'orgc_id', 'proposal_email_lock', 'org', 'orgc') as $field) {
             unset($event['Event'][$field]);
         }
-        foreach ($event['Event']['EventTag'] as $kt => $tag) {
-            if (!$tag['Tag']['exportable']) {
-                unset($event['Event']['EventTag'][$kt]);
-            } else {
-                unset($tag['org_id']);
-                $event['Event']['Tag'][] = $tag['Tag'];
-            }
-        }
-        unset($event['Event']['EventTag']);
+        return $event;
+    }
 
+    // since we fetch the event and filter on tags after / server, we need to cull all of the non exportable tags
+    private function __removeNonExportableTags($data, $dataType)
+    {
+        if (!empty($data[$dataType . 'Tag'])) {
+            foreach ($data[$dataType . 'Tag'] as $k => $tag) {
+                if (!$tag['Tag']['exportable']) {
+                    unset($data[$dataType . 'Tag'][$k]);
+                } else {
+                    unset($tag['org_id']);
+                    $data['Tag'][] = $tag['Tag'];
+                }
+            }
+            unset($data[$dataType . 'Tag']);
+        }
+        return $data;
+    }
+
+    private function __prepareAttributesForSync($data, $server) {
+        // prepare attribute for sync
+        if (!empty($data['Attribute'])) {
+            foreach ($data['Attribute'] as $key => $attribute) {
+                $data['Attribute'][$key] = $this->__updateAttributeForSync($attribute, $server);
+                if (empty($data['Attribute'][$key])) {
+                    unset($data['Attribute'][$key]);
+                } else {
+                    $data['Attribute'][$key] = $this->__removeNonExportableTags($data['Attribute'][$key], 'Attribute');
+                }
+            }
+            $data['Attribute'] = array_values($data['Attribute']);
+        }
+        return $data;
+    }
+
+    private function __prepareObjectsForSync($data, $server) {
+        // prepare Object for sync
+        if (!empty($data['Object'])) {
+            foreach ($data['Object'] as $key => $object) {
+                $data['Object'][$key] = $this->__updateObjectForSync($object, $server);
+                if (empty($data['Object'][$key])) {
+                    unset($data['Object'][$key]);
+                } else {
+                    $data['Object'][$key]['Attribute'] = $this->__prepareAttributesForSync($data['Object'][$key]['Attribute'], $server);
+                }
+            }
+            $data['Object'] = array_values($data['Object']);
+        }
+        return $data;
+    }
+
+    private function __updateEventForSync($event, $server)
+    {
+        $event = $this->__rearrangeEventStructureForSync($event);
+        $event['Event'] = $this->__removeNonExportableTags($event['Event'], 'Event');
         // Add the local server to the list of instances in the SG
         if (isset($event['Event']['SharingGroup']) && isset($event['Event']['SharingGroup']['SharingGroupServer'])) {
             foreach ($event['Event']['SharingGroup']['SharingGroupServer'] as &$s) {
@@ -1116,36 +1063,12 @@ class Event extends AppModel
                 }
             }
         }
-
-        // prepare attribute for sync
-        if (!empty($event['Event']['Attribute'])) {
-            foreach ($event['Event']['Attribute'] as $key => $attribute) {
-                $event['Event']['Attribute'][$key] = $this->__updateAttributeForSync($attribute, $server);
-                if (empty($event['Event']['Attribute'][$key])) {
-                    unset($event['Event']['Attribute'][$key]);
-                }
-            }
-        }
-
-        // prepare Object for sync
-        if (!empty($event['Event']['Object'])) {
-            foreach ($event['Event']['Object'] as $key => $object) {
-                $event['Event']['Object'][$key] = $this->__updateObjectForSync($object, $server);
-                if (empty($event['Event']['Object'][$key])) {
-                    unset($event['Event']['Object'][$key]);
-                }
-            }
-        }
+        $event['Event'] = $this->__prepareAttributesForSync($event['Event'], $server);
+        $event['Event'] = $this->__prepareObjectsForSync($event['Event'], $server);
 
         // Downgrade the event from connected communities to community only
         if (!$server['Server']['internal'] && $event['Event']['distribution'] == 2) {
             $event['Event']['distribution'] = 1;
-        }
-        if (!empty($event['Event']['Attribute'])) {
-            $event['Event']['Attribute'] = array_values($event['Event']['Attribute']);
-        }
-        if (!empty($event['Event']['Object'])) {
-            $event['Event']['Object'] = array_values($event['Event']['Object']);
         }
         return $event;
     }
@@ -1173,14 +1096,6 @@ class Event extends AppModel
                 }
             }
         }
-        if (!empty($object['Attribute'])) {
-            foreach ($object['Attribute'] as $key => $attribute) {
-                $object['Attribute'][$key] = $this->__updateAttributeForSync($attribute, $server);
-                if (empty($object['Attribute'][$key])) {
-                    unset($object['Attribute'][$key]);
-                }
-            }
-        }
         return $object;
     }
 
@@ -1201,7 +1116,7 @@ class Event extends AppModel
                 return false;
             }
             // Add the local server to the list of instances in the SG
-            if (isset($attribute['SharingGroup']['SharingGroupServer'])) {
+            if (!empty($attribute['SharingGroup']['SharingGroupServer'])) {
                 foreach ($attribute['SharingGroup']['SharingGroupServer'] as &$s) {
                     if ($s['server_id'] == 0) {
                         $s['Server'] = array('id' => 0, 'url' => Configure::read('MISP.baseurl'));
@@ -1209,53 +1124,26 @@ class Event extends AppModel
                 }
             }
         }
-        foreach ($attribute['AttributeTag'] as $kt => $tag) {
-            if (!$tag['Tag']['exportable']) {
-                unset($attribute['AttributeTag'][$kt]);
-            } else {
-                unset($tag['Tag']['org_id']);
-                $attribute['Tag'][] = $tag['Tag'];
-            }
-        }
-        unset($attribute['AttributeTag']);
-
-        // remove value1 and value2 from the output
-        unset($attribute['value1']);
-        unset($attribute['value2']);
         // also add the encoded attachment
         if ($this->Attribute->typeIsAttachment($attribute['type'])) {
-            $encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
-            $attribute['data'] = $encodedFile;
+            $attribute['data'] = $this->Attribute->base64EncodeAttachment($attribute);
         }
         // Passing the attribute ID together with the attribute could cause the deletion of attributes after a publish/push
         // Basically, if the attribute count differed between two instances, and the instance with the lower attribute
         // count pushed, the old attributes with the same ID got overwritten. Unsetting the ID before pushing it
         // solves the issue and a new attribute is always created.
         unset($attribute['id']);
+        // remove value1 and value2 from the output
+        unset($attribute['value1']);
+        unset($attribute['value2']);
         return $attribute;
     }
 
     public function downloadEventFromServer($eventId, $server, $HttpSocket=null)
     {
         $url = $server['Server']['url'];
-        $authkey = $server['Server']['authkey'];
-        if (null == $HttpSocket) {
-            //$HttpSocket = new HttpSocket(array(
-            //		'ssl_verify_peer' => false
-            //		));
-            App::uses('SyncTool', 'Tools');
-            $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
-        }
-        $request = array(
-                'header' => array(
-                        'Authorization' => $authkey,
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
-                        //'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
-                )
-        );
-        $request = $this->addHeaders($request);
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
         $uri = $url . '/events/view/' . $eventId . '/deleted:1/excludeGalaxy:1';
         $response = $HttpSocket->get($uri, $data = '', $request);
         if ($response->isOk()) {
@@ -1354,21 +1242,8 @@ class Event extends AppModel
     public function downloadProposalsFromServer($uuidList, $server, $HttpSocket = null)
     {
         $url = $server['Server']['url'];
-        $authkey = $server['Server']['authkey'];
-        if (null == $HttpSocket) {
-            App::uses('SyncTool', 'Tools');
-            $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
-        }
-        $request = array(
-                'header' => array(
-                        'Authorization' => $authkey,
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
-                        //'Connection' => 'keep-alive' // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
-                )
-        );
-        $request = $this->addHeaders($request);
+        $HttpSocket = $this->__setupHttpSocket($server, $HttpSocket);
+        $request = $this->__setupPushRequest($server);
         $uri = $url . '/shadow_attributes/getProposalsByUuidList';
         $response = $HttpSocket->post($uri, json_encode($uuidList), $request);
         if ($response->isOk()) {
@@ -1378,7 +1253,7 @@ class Event extends AppModel
         }
     }
 
-    private function __createEventConditions($user)
+    public function createEventConditions($user)
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
@@ -1406,7 +1281,7 @@ class Event extends AppModel
 
     public function fetchSimpleEventIds($user, $params = array())
     {
-        $conditions = $this->__createEventConditions($user);
+        $conditions = $this->createEventConditions($user);
         $conditions['AND'][] = $params['conditions'];
         $results = array_values($this->find('list', array(
             'conditions' => $conditions,
@@ -1418,7 +1293,7 @@ class Event extends AppModel
 
     public function fetchSimpleEvents($user, $params, $includeOrgc = false)
     {
-        $conditions = $this->__createEventConditions($user);
+        $conditions = $this->createEventConditions($user);
         $conditions['AND'][] = $params['conditions'];
         $params = array(
             'conditions' => $conditions,
@@ -1433,31 +1308,8 @@ class Event extends AppModel
 
     public function fetchEventIds($user, $from = false, $to = false, $last = false, $list = false, $timestamp = false, $publish_timestamp = false, $eventIdList = false)
     {
-        $conditions = array();
         // restricting to non-private or same org if the user is not a site-admin.
-        if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->SharingGroup->fetchAllAuthorised($user);
-            if (empty($sgids)) {
-                $sgids = -1;
-            }
-            $conditions['AND']['OR'] = array(
-                'Event.org_id' => $user['org_id'],
-                array(
-                    'AND' => array(
-                        'Event.distribution >' => 0,
-                        'Event.distribution <' => 4,
-                        Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-                    ),
-                ),
-                array(
-                    'AND' => array(
-                        'Event.sharing_group_id' => $sgids,
-                        'Event.distribution' => 4,
-                        Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-                    )
-                )
-            );
-        }
+        $conditions = $this->createEventConditions($user);
         $fields = array('Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id');
 
         if ($from) {
@@ -1562,10 +1414,9 @@ class Event extends AppModel
                 $options[$opt] = false;
             }
         }
+        $conditions = $this->createEventConditions($user);
         if ($options['eventid']) {
             $conditions['AND'][] = array("Event.id" => $options['eventid']);
-        } else {
-            $conditions = array();
         }
         if ($options['eventsExtendingUuid']) {
             if (!is_array($options['eventsExtendingUuid'])) {
@@ -1613,23 +1464,6 @@ class Event extends AppModel
         $sgids = $this->cacheSgids($user, $useCache);
         // restricting to non-private or same org if the user is not a site-admin.
         if (!$isSiteAdmin) {
-            $conditions['AND']['OR'] = array(
-                'Event.org_id' => $user['org_id'],
-                array(
-                    'AND' => array(
-                        'Event.distribution >' => 0,
-                        'Event.distribution <' => 4,
-                        Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-                    ),
-                ),
-                array(
-                    'AND' => array(
-                        'Event.sharing_group_id' => $sgids,
-                        'Event.distribution' => 4,
-                        Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array()
-                    )
-                )
-            );
             // if delegations are enabled, check if there is an event that the current user might see because of the request itself
             if (Configure::read('MISP.delegation')) {
                 $delegatedEventIDs = $this->__cachedelegatedEventIDs($user, $useCache);
@@ -2856,22 +2690,7 @@ class Event extends AppModel
                     'disable_correlation',
                     'extends_uuid'
                 ),
-                'Attribute' => array(
-                    'event_id',
-                    'category',
-                    'type',
-                    'value',
-                    'to_ids',
-                    'uuid',
-                    'timestamp',
-                    'distribution',
-                    'comment',
-                    'sharing_group_id',
-                    'deleted',
-                    'disable_correlation',
-                    'object_id',
-                    'object_relation'
-                ),
+                'Attribute' => $this->Attribute->captureFields,
                 'Object' => array(
                     'name',
                     'meta-category',
@@ -3356,21 +3175,25 @@ class Event extends AppModel
         }
     }
 
+    private function __getPrioWorkerIfPossible() {
+        $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
+        $workers = $this->ResqueStatus->getWorkers();
+        $workerType = 'default';
+        foreach ($workers as $worker) {
+            if ($worker['queue'] === 'prio') {
+                $workerType = 'prio';
+            }
+        }
+        return $workerType;
+    }
+
     public function publishRouter($id, $passAlong = null, $user)
     {
         if (Configure::read('MISP.background_jobs')) {
             $job = ClassRegistry::init('Job');
             $job->create();
-            $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
-            $workers = $this->ResqueStatus->getWorkers();
-            $workerType = 'default';
-            foreach ($workers as $worker) {
-                if ($worker['queue'] === 'prio') {
-                    $workerType = 'prio';
-                }
-            }
             $data = array(
-                    'worker' => $workerType,
+                    'worker' => $this->__getPrioWorkerIfPossible(),
                     'job_type' => 'publish_event',
                     'job_input' => 'Event ID: ' . $id,
                     'status' => 0,
@@ -3514,9 +3337,7 @@ class Event extends AppModel
         $i = 0;
         foreach ($events as $k => $event) {
             $this->set($event);
-            if ($this->validates()) {
-                // validates
-            } else {
+            if (!$this->validates()) {
                 $errors = $this->validationErrors;
                 $result[$i]['id'] = $event['Event']['id'];
                 $result[$i]['error'] = $errors;
@@ -3671,7 +3492,7 @@ class Event extends AppModel
         $tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
         $tempFile->write($event);
         $scriptFile = APP . "files" . DS . "scripts" . DS . "stix2" . DS . "misp2stix2.py";
-        $result = shell_exec('python3 ' . $scriptFile . ' ' . $tempFile->path . ' json ' . ' ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' 2>' . APP . 'tmp/logs/exec-errors.log');
+        $result = shell_exec('python3 ' . $scriptFile . ' ' . $tempFile->path . ' json  ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' 2>' . APP . 'tmp/logs/exec-errors.log');
         $tempFile->delete();
         $resultFile = new File($tmpDir . DS . $randomFileName . ".stix2");
         $resultFile->write("{\"type\": \"bundle\", \"spec_version\": \"2.0\", \"id\": \"bundle--" . CakeText::uuid() . "\", \"objects\": [");
@@ -4447,10 +4268,10 @@ class Event extends AppModel
         $cidr = new CIDRTool();
         $subcondition = array();
         foreach ($elements as $v) {
-            if ($v == '') {
+            if ($v === '') {
                 continue;
             }
-            if (substr($v, 0, 1) == '!') {
+            if (substr($v, 0, 1) === '!') {
                 // check for an IPv4 address and subnet in CIDR notation (e.g. 127.0.0.1/8)
                 if ($parameterKey === 'value' && $cidr->checkCIDR(substr($v, 1), 4)) {
                     $cidrresults = $cidr->CIDR(substr($v, 1));
@@ -4720,16 +4541,8 @@ class Event extends AppModel
         if (Configure::read('MISP.background_jobs')) {
             $job = ClassRegistry::init('Job');
             $job->create();
-            $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
-            $workers = $this->ResqueStatus->getWorkers();
-            $workerType = 'default';
-            foreach ($workers as $worker) {
-                if ($worker['queue'] === 'prio') {
-                    $workerType = 'prio';
-                }
-            }
             $data = array(
-                    'worker' => $workerType,
+                    'worker' => $this->__getPrioWorkerIfPossible(),
                     'job_type' => 'enrichment',
                     'job_input' => 'Event ID: ' . $options['event_id'] . ' modules: ' . json_encode($options['modules']),
                     'status' => 0,
@@ -4866,5 +4679,22 @@ class Event extends AppModel
     {
         $eventLock = ClassRegistry::init('EventLock');
         $eventLock->insertLock($user, $id);
+    }
+
+    private function __logUploadResult($server, $event, $newTextBody)
+    {
+        $this->Log = ClassRegistry::init('Log');
+        $this->Log->create();
+        $this->Log->save(array(
+                'org' => 'SYSTEM',
+                'model' => 'Server',
+                'model_id' => $server['Server']['id'],
+                'email' => 'SYSTEM',
+                'action' => 'warning',
+                'user_id' => 0,
+                'title' => 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')',
+                'change' => 'Returned message: ', $newTextBody,
+        ));
+        return false;
     }
 }
