@@ -4283,10 +4283,10 @@ class Event extends AppModel
         $cidr = new CIDRTool();
         $subcondition = array();
         foreach ($elements as $v) {
-            if ($v == '') {
+            if ($v === '') {
                 continue;
             }
-            if (substr($v, 0, 1) == '!') {
+            if (substr($v, 0, 1) === '!') {
                 // check for an IPv4 address and subnet in CIDR notation (e.g. 127.0.0.1/8)
                 if ($parameterKey === 'value' && $cidr->checkCIDR(substr($v, 1), 4)) {
                     $cidrresults = $cidr->CIDR(substr($v, 1));
