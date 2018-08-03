@@ -5114,6 +5114,11 @@ class EventsController extends AppController
                     $modulePayload['config'][$conf] = Configure::read('Plugin.Import_' . $moduleName . '_' . $conf);
                 }
             }
+            if ($moduleName === 'csvimport') {
+                if (empty($this->request->data['Event']['config']['header']) && $this->request->data['Event']['config']['has_header'] === '1') {
+                    $this->request->data['Event']['config']['header'] = ' ';
+                }
+            }
             foreach ($module['mispattributes']['userConfig'] as $configName => $config) {
                 if (!$fail) {
                     if (isset($config['validation'])) {
