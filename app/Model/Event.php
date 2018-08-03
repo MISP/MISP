@@ -852,18 +852,8 @@ class Event extends AppModel
                 break;
         }
         if ($error) {
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
-            $this->Log->save(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => $server['Server']['id'],
-                    'email' => 'SYSTEM',
-                    'action' => 'warning',
-                    'user_id' => 0,
-                    'title' => 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')',
-                    'change' => 'Remote instance returned an error, with error code: ' . $code,
-            ));
+            $newTextBody = 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')';
+            $this->__logUploadResult($server, $event, $newTextBody);
         }
         return $error;
     }
