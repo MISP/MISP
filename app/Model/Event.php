@@ -257,13 +257,7 @@ class Event extends AppModel
         )
     );
 
-    public function __construct($id = false, $table = null, $ds = null)
-    {
-        parent::__construct($id, $table, $ds);
-    }
-
     // The Associations below have been created with all possible keys, those that are not needed can be removed
-
     public $belongsTo = array(
         'User' => array(
             'className' => 'User',
@@ -853,64 +847,19 @@ class Event extends AppModel
         switch ($code) {
             case 403:
                 return 'The distribution level of this event blocks it from being pushed.';
-                break;
             case 405:
                 $error = 'The sync user on the remote instance does not have the required privileges to handle this event.';
                 break;
         }
         if ($error) {
-            $this->Log = ClassRegistry::init('Log');
-            $this->Log->create();
-            $this->Log->save(array(
-                    'org' => 'SYSTEM',
-                    'model' => 'Server',
-                    'model_id' => $server['Server']['id'],
-                    'email' => 'SYSTEM',
-                    'action' => 'warning',
-                    'user_id' => 0,
-                    'title' => 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')',
-                    'change' => 'Remote instance returned an error, with error code: ' . $code,
-            ));
+            $newTextBody = 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')';
+            $this->__logUploadResult($server, $event, $newTextBody);
         }
         return $error;
     }
 
-    public function uploadEventToServer($event, $server, $HttpSocket = null)
+    private function __executeRestfulEventToServer($event, $server, $resourceId, &$newLocation, &$newTextBody, $HttpSocket)
     {
-        $this->Server = ClassRegistry::init('Server');
-        $push = $this->Server->checkVersionCompatibility($server['Server']['id'], false, $HttpSocket);
-        if (!isset($push['canPush'])) {
-            $test = $this->Server->checkLegacyServerSyncPrivilege($server['Server']['id'], $HttpSocket);
-        } else {
-            if (!$push['canPush']) {
-                return 'The remote user is not a sync user - the upload of the event has been blocked.';
-            }
-        }
-        $deletedAttributes = false;
-        if (($push['version'][0] > 2) ||
-            ($push['version'][0] == 2 && $push['version'][1] > 4) ||
-            ($push['version'][0] == 2 && $push['version'][1] == 4 && $push['version'][2] > 42)) {
-            $deletedAttributes = true;
-        }
-        if (isset($event['Attribute']) && !$deletedAttributes) {
-            foreach ($event['Attribute'] as $k => $v) {
-                if ($v['deleted']) {
-                    unset($event['Attribute'][$k]);
-                }
-            }
-            $event['Attribute'] = array_values($event['Attribute']);
-        }
-        if (!isset($push['canPush']) || !$push['canPush']) {
-            return 'Trying to push to an outdated instance.';
-        }
-        if (isset($server['Server']['unpublish_event'])) {
-            $unpublish_event = $server['Server']['unpublish_event'];
-            if ($unpublish_event) {
-                $event['Event']['published'] = 0;
-            }
-        }
-        $updated = null;
-        $newLocation = $newTextBody = '';
         $result = $this->restfulEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket);
         if (is_numeric($result)) {
             $error = $this->__resolveErrorCode($result, $event, $server);
@@ -918,84 +867,47 @@ class Event extends AppModel
                 return $error . ' Error code: ' . $result;
             }
         }
-        if (strlen($newLocation) || $result) { // HTTP/1.1 200 OK or 302 Found and Location: http://<newLocation>
-            if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
-                $result = $this->restfulEventToServer($event, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket);
-                if (is_numeric($result)) {
-                    $error = $this->__resolveErrorCode($result, $event, $server);
-                    if ($error) {
-                        return $error . ' Error code: ' . $result;
-                    }
+        return true;
+    }
+
+    public function uploadEventToServer($event, $server, $HttpSocket = null)
+    {
+        $this->Server = ClassRegistry::init('Server');
+        $push = $this->Server->checkVersionCompatibility($server['Server']['id'], false, $HttpSocket);
+        if (empty($push['canPush'])) {
+            return 'The remote user is not a sync user - the upload of the event has been blocked.';
+        }
+        if (!empty($server['Server']['unpublish_event'])) {
+            $event['Event']['published'] = 0;
+        }
+        $updated = null;
+        $newLocation = $newTextBody = '';
+        $result = $this->__executeRestfulEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket);
+        if ($result !== true) {
+            return $result;
+        }
+        if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
+            $result = $this->restfulEventToServer($event, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket);
+            if (is_numeric($result)) {
+                $error = $this->__resolveErrorCode($result, $event, $server);
+                if ($error) {
+                    return $error . ' Error code: ' . $result;
                 }
             }
-            $uploadFailed = false;
-            try {
-                $json = json_decode($newTextBody, true);
-            } catch (Exception $e) {
-                $uploadFailed = true;
-            }
-            if (!is_array($json) || $uploadFailed) {
-                $this->Log = ClassRegistry::init('Log');
-                $this->Log->create();
-                $this->Log->save(array(
-                        'org' => 'SYSTEM',
-                        'model' => 'Server',
-                        'model_id' => $server['Server']['id'],
-                        'email' => 'SYSTEM',
-                        'action' => 'warning',
-                        'user_id' => 0,
-                        'title' => 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')',
-                        'change' => 'Returned message: ', $newTextBody,
-                ));
-                return false;
-            }
-            // get the remote event_id
-            foreach ($json as $jsonEvent) {
-                if (is_array($jsonEvent)) {
-                    foreach ($jsonEvent as $key => $value) {
-                        if ($key == 'id') {
-                            break;
-                        }
-                    }
-                } else {
-                    $this->Log = ClassRegistry::init('Log');
-                    $this->Log->create();
-                    $this->Log->save(array(
-                            'org' => 'SYSTEM',
-                            'model' => 'Server',
-                            'model_id' => $server['Server']['id'],
-                            'email' => 'SYSTEM',
-                            'action' => 'warning',
-                            'user_id' => 0,
-                            'title' => 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')',
-                            'change' => 'Returned message: ', $newTextBody,
-                    ));
-                    return false;
-                }
-            }
+        }
+        $uploadFailed = false;
+        try {
+            $json = json_decode($newTextBody, true);
+        } catch (Exception $e) {
+            $uploadFailed = true;
+        }
+        if (!is_array($json) || $uploadFailed) {
+            return $this->__logUploadResult($server, $event, $newTextBody);
         }
         return 'Success';
     }
 
-    public function addHeaders($request)
-    {
-        $version = $this->checkMISPVersion();
-        $version = implode('.', $version);
-        try {
-            $commit = trim(shell_exec('git log --pretty="%H" -n1 HEAD'));
-        } catch (Exception $e) {
-            $commit = false;
-        }
-        $request['header']['MISP-version'] = $version;
-        if ($commit) {
-            $request['header']['commit'] = $commit;
-        }
-        return $request;
-    }
-
-    // Uploads the event and the associated Attributes to another Server
-    public function restfulEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null)
-    {
+    private function __prepareForPushToServer($event, $server) {
         if ($event['Event']['distribution'] == 4) {
             if (!empty($event['SharingGroup']['SharingGroupServer'])) {
                 $found = false;
@@ -1015,36 +927,25 @@ class Event extends AppModel
             return 403;
         }
         $server = $server[0];
-        if ($this->checkDistributionForPush($event, $server, $context = 'Event')) {
+        if ($this->checkDistributionForPush($event, $server, 'Event')) {
             $event = $this->__updateEventForSync($event, $server);
         } else {
             return 403;
         }
-        $url = $server['Server']['url'];
-        $authkey = $server['Server']['authkey'];
-        if (null == $HttpSocket) {
-            App::uses('SyncTool', 'Tools');
-            $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
-        }
-        $request = array(
-                'header' => array(
-                        'Authorization' => $authkey,
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
+        return $event;
+    }
 
-                        //'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
-                )
-        );
-        $request = $this->addHeaders($request);
-        $uri = $url . '/events';
-        if (isset($urlPath)) {
+    private function __getLastUrlPathComponent($urlPath)
+    {
+        if (!empty($urlPath)) {
             $pieces = explode('/', $urlPath);
-            $uri .= '/' . end($pieces);
+            return '/' . end($pieces);
         }
-        $data = json_encode($event);
-        // LATER validate HTTPS SSL certificate
-        $response = $HttpSocket->post($uri, $data, $request);
+        return '';
+    }
+
+    private function __handleRestfulEventToServerResponse($response, &$newLocation, &$newTextBody)
+    {
         switch ($response->code) {
             case '200':	// 200 (OK) + entity-action-result
                 if ($response->isOk()) {
@@ -1055,32 +956,37 @@ class Event extends AppModel
                     try {
                         $jsonArray = json_decode($response->body, true);
                     } catch (Exception $e) {
-                        return true; // TODO should be false
-                    }
-                    if (strpos($jsonArray['name'], "Event already exists")) {	// strpos, so i can piggyback some value if needed.
                         return true;
-                    } else {
-                        return $jsonArray['name'];
                     }
+                    return $jsonArray['name'];
                 }
-                break;
             case '302': // Found
                 $newLocation = $response->headers['Location'];
                 $newTextBody = $response->body();
                 return true;
-                break;
             case '404': // Not Found
                 $newLocation = $response->headers['Location'];
                 $newTextBody = $response->body();
                 return 404;
-                break;
             case '405':
                 return 405;
-                break;
             case '403': // Not authorised
                 return 403;
-                break;
         }
+    }
+
+    // Uploads the event and the associated Attributes to another Server
+    public function restfulEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null)
+    {
+        $event = $this->__prepareForPushToServer($event, $server);
+        if (is_numeric($event)) return $event;
+        $url = $server['Server']['url'];
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
+        $uri = $url . '/events' . $this->__getLastUrlPathComponent($urlPath);
+        $data = json_encode($event);
+        $response = $HttpSocket->post($uri, $data, $request);
+        return $this->__handleRestfulEventToServerResponse($response, $newLocation, $newTextBody);
     }
 
     private function __updateEventForSync($event, $server)
@@ -1238,24 +1144,8 @@ class Event extends AppModel
     public function downloadEventFromServer($eventId, $server, $HttpSocket=null)
     {
         $url = $server['Server']['url'];
-        $authkey = $server['Server']['authkey'];
-        if (null == $HttpSocket) {
-            //$HttpSocket = new HttpSocket(array(
-            //		'ssl_verify_peer' => false
-            //		));
-            App::uses('SyncTool', 'Tools');
-            $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
-        }
-        $request = array(
-                'header' => array(
-                        'Authorization' => $authkey,
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
-                        //'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
-                )
-        );
-        $request = $this->addHeaders($request);
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
         $uri = $url . '/events/view/' . $eventId . '/deleted:1/excludeGalaxy:1';
         $response = $HttpSocket->get($uri, $data = '', $request);
         if ($response->isOk()) {
@@ -1354,21 +1244,8 @@ class Event extends AppModel
     public function downloadProposalsFromServer($uuidList, $server, $HttpSocket = null)
     {
         $url = $server['Server']['url'];
-        $authkey = $server['Server']['authkey'];
-        if (null == $HttpSocket) {
-            App::uses('SyncTool', 'Tools');
-            $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
-        }
-        $request = array(
-                'header' => array(
-                        'Authorization' => $authkey,
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
-                        //'Connection' => 'keep-alive' // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
-                )
-        );
-        $request = $this->addHeaders($request);
+        $HttpSocket = $this->__setupHttpSocket($server, $HttpSocket);
+        $request = $this->__setupPushRequest($server);
         $uri = $url . '/shadow_attributes/getProposalsByUuidList';
         $response = $HttpSocket->post($uri, json_encode($uuidList), $request);
         if ($response->isOk()) {
@@ -1378,7 +1255,7 @@ class Event extends AppModel
         }
     }
 
-    private function __createEventConditions($user)
+    public function createEventConditions($user)
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
@@ -1406,7 +1283,7 @@ class Event extends AppModel
 
     public function fetchSimpleEventIds($user, $params = array())
     {
-        $conditions = $this->__createEventConditions($user);
+        $conditions = $this->createEventConditions($user);
         $conditions['AND'][] = $params['conditions'];
         $results = array_values($this->find('list', array(
             'conditions' => $conditions,
@@ -1418,7 +1295,7 @@ class Event extends AppModel
 
     public function fetchSimpleEvents($user, $params, $includeOrgc = false)
     {
-        $conditions = $this->__createEventConditions($user);
+        $conditions = $this->createEventConditions($user);
         $conditions['AND'][] = $params['conditions'];
         $params = array(
             'conditions' => $conditions,
@@ -1433,31 +1310,8 @@ class Event extends AppModel
 
     public function fetchEventIds($user, $from = false, $to = false, $last = false, $list = false, $timestamp = false, $publish_timestamp = false, $eventIdList = false)
     {
-        $conditions = array();
         // restricting to non-private or same org if the user is not a site-admin.
-        if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->SharingGroup->fetchAllAuthorised($user);
-            if (empty($sgids)) {
-                $sgids = -1;
-            }
-            $conditions['AND']['OR'] = array(
-                'Event.org_id' => $user['org_id'],
-                array(
-                    'AND' => array(
-                        'Event.distribution >' => 0,
-                        'Event.distribution <' => 4,
-                        Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-                    ),
-                ),
-                array(
-                    'AND' => array(
-                        'Event.sharing_group_id' => $sgids,
-                        'Event.distribution' => 4,
-                        Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-                    )
-                )
-            );
-        }
+        $conditions = $this->createEventConditions($user);
         $fields = array('Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id');
 
         if ($from) {
@@ -1562,10 +1416,9 @@ class Event extends AppModel
                 $options[$opt] = false;
             }
         }
+        $conditions = $this->createEventConditions($user);
         if ($options['eventid']) {
             $conditions['AND'][] = array("Event.id" => $options['eventid']);
-        } else {
-            $conditions = array();
         }
         if ($options['eventsExtendingUuid']) {
             if (!is_array($options['eventsExtendingUuid'])) {
@@ -1613,23 +1466,6 @@ class Event extends AppModel
         $sgids = $this->cacheSgids($user, $useCache);
         // restricting to non-private or same org if the user is not a site-admin.
         if (!$isSiteAdmin) {
-            $conditions['AND']['OR'] = array(
-                'Event.org_id' => $user['org_id'],
-                array(
-                    'AND' => array(
-                        'Event.distribution >' => 0,
-                        'Event.distribution <' => 4,
-                        Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-                    ),
-                ),
-                array(
-                    'AND' => array(
-                        'Event.sharing_group_id' => $sgids,
-                        'Event.distribution' => 4,
-                        Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array()
-                    )
-                )
-            );
             // if delegations are enabled, check if there is an event that the current user might see because of the request itself
             if (Configure::read('MISP.delegation')) {
                 $delegatedEventIDs = $this->__cachedelegatedEventIDs($user, $useCache);
@@ -3356,21 +3192,25 @@ class Event extends AppModel
         }
     }
 
+    private function __getPrioWorkerIfPossible() {
+        $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
+        $workers = $this->ResqueStatus->getWorkers();
+        $workerType = 'default';
+        foreach ($workers as $worker) {
+            if ($worker['queue'] === 'prio') {
+                $workerType = 'prio';
+            }
+        }
+        return $workerType;
+    }
+
     public function publishRouter($id, $passAlong = null, $user)
     {
         if (Configure::read('MISP.background_jobs')) {
             $job = ClassRegistry::init('Job');
             $job->create();
-            $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
-            $workers = $this->ResqueStatus->getWorkers();
-            $workerType = 'default';
-            foreach ($workers as $worker) {
-                if ($worker['queue'] === 'prio') {
-                    $workerType = 'prio';
-                }
-            }
             $data = array(
-                    'worker' => $workerType,
+                    'worker' => $this->__getPrioWorkerIfPossible(),
                     'job_type' => 'publish_event',
                     'job_input' => 'Event ID: ' . $id,
                     'status' => 0,
@@ -3514,9 +3354,7 @@ class Event extends AppModel
         $i = 0;
         foreach ($events as $k => $event) {
             $this->set($event);
-            if ($this->validates()) {
-                // validates
-            } else {
+            if (!$this->validates()) {
                 $errors = $this->validationErrors;
                 $result[$i]['id'] = $event['Event']['id'];
                 $result[$i]['error'] = $errors;
@@ -3670,6 +3508,7 @@ class Event extends AppModel
             $event_ids = array_intersect($event_ids, $idList);
         }
         $randomFileName = $this->generateRandomFileName();
+<<<<<<< HEAD
         $tmpDir = APP . "files" . DS . "scripts";
         $stix2_framing_cmd = 'python3 ' . $tmpDir . DS . 'misp_framing.py stix2 ' . escapeshellarg(CakeText::uuid()) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
         $stix2_framing = json_decode(shell_exec($stix2_framing_cmd), true);
@@ -3686,6 +3525,23 @@ class Event extends AppModel
             if (!$this->Job->exists()) {
                 $jobId = false;
             }
+=======
+        $tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
+        $tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
+        $tempFile->write($event);
+        $scriptFile = APP . "files" . DS . "scripts" . DS . "stix2" . DS . "misp2stix2.py";
+        $result = shell_exec('python3 ' . $scriptFile . ' ' . $tempFile->path . ' json  ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' 2>' . APP . 'tmp/logs/exec-errors.log');
+        $tempFile->delete();
+        $resultFile = new File($tmpDir . DS . $randomFileName . ".stix2");
+        $resultFile->write("{\"type\": \"bundle\", \"spec_version\": \"2.0\", \"id\": \"bundle--" . CakeText::uuid() . "\", \"objects\": [");
+        if (trim($result) == 1) {
+            $file = new File($tmpDir . DS . $randomFileName . '.out', true, 0644);
+            $result = substr($file->read(), 1, -1);
+            $file->delete();
+            $resultFile->append($result);
+        } else {
+            return false;
+>>>>>>> aba4c90e0c9627ef1e70e6da71dc2f3c5c7dd8c5
         }
         $i = 0;
         $eventCount = count($event_ids);
@@ -4770,16 +4626,8 @@ class Event extends AppModel
         if (Configure::read('MISP.background_jobs')) {
             $job = ClassRegistry::init('Job');
             $job->create();
-            $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
-            $workers = $this->ResqueStatus->getWorkers();
-            $workerType = 'default';
-            foreach ($workers as $worker) {
-                if ($worker['queue'] === 'prio') {
-                    $workerType = 'prio';
-                }
-            }
             $data = array(
-                    'worker' => $workerType,
+                    'worker' => $this->__getPrioWorkerIfPossible(),
                     'job_type' => 'enrichment',
                     'job_input' => 'Event ID: ' . $options['event_id'] . ' modules: ' . json_encode($options['modules']),
                     'status' => 0,
@@ -4916,5 +4764,22 @@ class Event extends AppModel
     {
         $eventLock = ClassRegistry::init('EventLock');
         $eventLock->insertLock($user, $id);
+    }
+
+    private function __logUploadResult($server, $event, $newTextBody)
+    {
+        $this->Log = ClassRegistry::init('Log');
+        $this->Log->create();
+        $this->Log->save(array(
+                'org' => 'SYSTEM',
+                'model' => 'Server',
+                'model_id' => $server['Server']['id'],
+                'email' => 'SYSTEM',
+                'action' => 'warning',
+                'user_id' => 0,
+                'title' => 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')',
+                'change' => 'Returned message: ', $newTextBody,
+        ));
+        return false;
     }
 }

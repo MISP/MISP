@@ -2433,7 +2433,7 @@ class EventsController extends AppController
         // For XML: <request><value>7.7.7.7&amp;&amp;1.1.1.1</value><type>ip-src</type></request>
         if ($this->request->is('post')) {
             if (empty($this->request->data)) {
-                throw new BadRequestException(__('Either specify the search terms in the url, or POST an xml (with the root element being "request".'));
+                throw new BadRequestException(__('Either specify the search terms in the url, or POST an xml (with the root element being "request").'));
             } else {
                 $data = $this->request->data;
             }
@@ -4064,7 +4064,7 @@ class EventsController extends AppController
         // This would return all OSINT tagged events except for event #3 and #4
         if ($this->request->is('post')) {
             if (empty($this->request->data)) {
-                throw new BadRequestException(__('Either specify the search terms in the url, or POST an xml (with the root element being "request".'));
+                throw new BadRequestException(__('Either specify the search terms in the url, or POST an xml (with the root element being "request").'));
             } else {
                 $data = $this->request->data;
             }
