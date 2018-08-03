@@ -1193,6 +1193,16 @@ class AppModel extends Model
         return $version_array;
     }
 
+    public function validateAuthkey($value) {
+        if (empty($value['authkey'])) {
+            return 'Empty authkey found. Make sure you set the 40 character long authkey.';
+        }
+        if (!preg_match('/[a-z0-9]{40}/i', $value['authkey'])) {
+            return 'The authkey has to be exactly 40 characters long and consist of alphanumeric characters.';
+        }
+        return true;
+    }
+
     // alternative to the build in notempty/notblank validation functions, compatible with cakephp <= 2.6 and cakephp and cakephp >= 2.7
     public function valueNotEmpty($value)
     {

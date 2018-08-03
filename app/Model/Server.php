@@ -47,14 +47,7 @@ class Server extends AppModel
             )
         ),
         'authkey' => array(
-            'minlength' => array(
-                'rule' => array('minlength', 40),
-                'message' => 'A authkey of a minimum length of 40 is required.',
-                'required' => true,
-            ),
-            'valueNotEmpty' => array(
-                'rule' => array('valueNotEmpty'),
-            ),
+            'rule' => array('validateAuthkey')
         ),
         'org_id' => array(
             'numeric' => array(
@@ -1757,7 +1750,6 @@ class Server extends AppModel
         if ("full" === $technique) {
             // get a list of the event_ids on the server
             $eventIds = $this->getEventIdsFromServer($server);
-            // FIXME this is not clean at all ! needs to be refactored with try catch error handling/communication
             if ($eventIds === 403) {
                 return array(1, null);
             } elseif (is_string($eventIds)) {
@@ -2910,8 +2902,6 @@ class Server extends AppModel
                 $k = $this->Attribute->generateCorrelation();
             }
         } else {
-            $job = ClassRegistry::init('Job');
-            $job->create();
             if ($value == true) {
                 $jobType = 'jobPurgeCorrelation';
                 $jobTypeText = 'purge correlations';
@@ -2919,6 +2909,8 @@ class Server extends AppModel
                 $jobType = 'jobGenerateCorrelation';
                 $jobTypeText = 'generate correlation';
             }
+            $job = ClassRegistry::init('Job');
+            $job->create();
             $data = array(
                     'worker' => 'default',
                     'job_type' => $jobTypeText,
