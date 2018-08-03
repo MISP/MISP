@@ -1242,8 +1242,8 @@ class Event extends AppModel
     public function downloadProposalsFromServer($uuidList, $server, $HttpSocket = null)
     {
         $url = $server['Server']['url'];
-        $HttpSocket = $this->__setupHttpSocket($server, $HttpSocket);
-        $request = $this->__setupPushRequest($server);
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
         $uri = $url . '/shadow_attributes/getProposalsByUuidList';
         $response = $HttpSocket->post($uri, json_encode($uuidList), $request);
         if ($response->isOk()) {
