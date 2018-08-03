@@ -996,12 +996,12 @@ class User extends AppModel
     {
         $fields = array();
         $fields = array_merge($fields, array_keys($this->getColumnTypes()));
-        if (($key = array_search('gpgkey', $fields)) !== false) {
-            unset($fields[$key]);
+        foreach ($fields as $k => $field) {
+            if (in_array($field, array('gpgkey', 'certif_public'))) {
+                unset($fields[$k]);
+            }
         }
-        if (($key = array_search('certif_public', $fields)) !== false) {
-            unset($fields[$key]);
-        }
+        $fields = array_values($fields);
         $relatedModels = array_keys($this->belongsTo);
         foreach ($relatedModels as $relatedModel) {
             $fields[] = $relatedModel . '.*';
