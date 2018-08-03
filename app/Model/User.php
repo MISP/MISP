@@ -7,7 +7,7 @@ class User extends AppModel
 {
     public $displayField = 'email';
 
-    public $orgField = array('Organisation', 'name');	// TODO Audit, LogableBehaviour + org
+    public $orgField = array('Organisation', 'name');
 
     public $validate = array(
         'role_id' => array(
@@ -206,7 +206,7 @@ class User extends AppModel
     );
 
     public $actsAs = array(
-        'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+        'SysLogLogable.SysLogLogable' => array(
             'userModel' => 'User',
             'userKey' => 'user_id',
             'change' => 'full',
@@ -303,20 +303,17 @@ class User extends AppModel
     }
 
     // Checks if the GnuPG key is a valid key, but also import it in the keychain.
-    // TODO: this will NOT fail on keys that can only be used for signing but not encryption!
+    // this will NOT fail on keys that can only be used for signing but not encryption!
     // the method in verifyUsers will fail in that case.
     public function validateGpgkey($check)
     {
         // LATER first remove the old gpgkey from the keychain
-
         // empty value
         if (empty($check['gpgkey'])) {
             return true;
         }
 
         // we have a clean, hopefully public, key here
-
-        // key is entered
         try {
             require_once 'Crypt/GPG.php';
             $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'gpgconf' => Configure::read('GnuPG.gpgconf'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
@@ -331,12 +328,12 @@ class User extends AppModel
             }
         } catch (Exception $e) {
             $this->log($e->getMessage());
-            return true; // TODO was false
+            return true;
         }
     }
 
     // Checks if the certificate is a valid x509 certificate, but also import it in the keychain.
-    // TODO: this will NOT fail on keys that can only be used for signing but not encryption!
+    // this will NOT fail on keys that can only be used for signing but not encryption!
     // the method in verifyUsers will fail in that case.
     public function validateCertificate($check)
     {
