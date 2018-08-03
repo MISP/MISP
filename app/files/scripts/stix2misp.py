@@ -66,10 +66,7 @@ class StixParser():
                 print(3)
             sys.exit(0)
         title = event.stix_header.title
-        if title is not None and "Export from " in title and "MISP" in title:
-            fromMISP = True
-        else:
-            fromMISP = False
+        fromMisp = (title is not None and "Export from " in title and "MISP" in title)
         if fromMISP:
             package = event.related_packages.related_package[0].item
             self.event = package.incidents[0]
@@ -80,13 +77,13 @@ class StixParser():
             event_distribution = args[2]
             if not isinstance(event_distribution, int):
                 event_distribution = int(event_distribution) if event_distribution.isdigit() else 5
-        except:
+        except IndexError:
             event_distribution = 5
         try:
             attribute_distribution = args[3]
             if attribute_distribution != 'event' and not isinstance(attribute_distribution, int):
                 attribute_distribution = int(attribute_distribution) if attribute_distribution.isdigit() else 5
-        except:
+        except IndexError:
             attribute_distribution = 5
         self.misp_event.distribution = event_distribution
         self.__attribute_distribution = event_distribution if attribute_distribution == 'event' else attribute_distribution
@@ -273,11 +270,11 @@ class StixParser():
         try:
             try:
                 title = self.event.stix_header.title
-            except:
+            except AttributeError:
                 title = self.event.title
             if title:
                 info = title
-        except:
+        except AttributeError:
             pass
         self.misp_event.info = str(info)
 
@@ -314,7 +311,7 @@ class StixParser():
             properties = observable.object_.properties
             if properties:
                 attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
-                if type(attribute_value) in (str, int):
+                if isinstance(attribute_value, (str, int)):
                     self.handle_attribute_case(attribute_type, attribute_value, compl_data, misp_attribute)
                 else:
                     self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=to_ids)
@@ -397,13 +394,16 @@ class StixParser():
             for authentication in properties.authentication:
                 if authentication.authentication_type:
                     auth_type = authentication.authentication_type.value
-                    if auth_type not in l_type: l_type.append(auth_type)
+                    if auth_type not in l_type:
+                        l_type.append(auth_type)
                 if authentication.authentication_data:
                     auth_data = authentication.authentication_data.value
-                    if auth_data not in l_password: l_password.append(auth_data)
+                    if auth_data not in l_password:
+                        l_password.append(auth_data)
                 if authentication.structured_authentication_mechanism:
                     auth_format = authentication.structured_authentication_mechanism.description.value
-                    if auth_format not in l_format: l_format.append(auth_format)
+                    if auth_format not in l_format:
+                        l_format.append(auth_format)
             if l_type:
                 # auth_type = l_type[0] if len(l_type) == 1 else "".join(["{}, ".format(t) for t in l_type])[:-2]
                 for auth_type in l_type:
@@ -416,9 +416,9 @@ class StixParser():
                 for password in l_password:
                     attributes.append(["text", password, "password"])
         if properties.custom_properties:
-            for property in properties.custom_properties:
-                if property.name in ("username", "origin", "notification"):
-                    attributes.append(["text", property.value, property.name])
+            for prop in properties.custom_properties:
+                if prop.name in ("username", "origin", "notification"):
+                    attributes.append(["text", prop.value, prop.name])
         if len(attributes) == 1:
             return attributes[0]
         return "credential", self.return_attributes(attributes), ""
@@ -429,18 +429,18 @@ class StixParser():
         # if the stix file is coming from MISP, we import a MISP object from it
         if self.fromMISP:
             attributes = []
-            for property in custom_properties:
-                attribute_type, relation = property.name.split(': ')
+            for prop in custom_properties:
+                attribute_type, relation = prop.name.split(': ')
                 attribute_type = attribute_type.split(' ')[1]
-                attributes.append([attribute_type, property.value, relation])
+                attributes.append([attribute_type, prop.value, relation])
             if len(attributes) > 1:
                 name = custom_properties[0].name.split(' ')[0]
                 return name, self.return_attributes(attributes), ""
             return attributes[0]
         # otherwise, each property is imported as text
         if len(custom_properties) > 1:
-            for property in custom_properties[:-1]:
-                misp_attribute = {'type': 'text', 'value': property.value, 'comment': property.name}
+            for prop in custom_properties[:-1]:
+                misp_attribute = {'type': 'text', 'value': prop.value, 'comment': prop.name}
                 self.misp_event.add_attribute(MISPAttribute(**misp_attribute))
 
 
@@ -569,9 +569,8 @@ class StixParser():
             # file object attributes cannot be filename|hash, so it is malware-sample
             attr_type = "malware-sample"
             return attr_type, value, attr_type
-        else:
-            # it could be malware-sample as well, but STIX is losing this information
-            return "filename|{}".format(hash_type), value, ""
+        # it could be malware-sample as well, but STIX is losing this information
+        return "filename|{}".format(hash_type), value, ""
 
     # Return type & value of a hash attribute
     @staticmethod
@@ -958,7 +957,7 @@ class StixParser():
     # Create a MISP attribute and add it in its MISP object
     def parse_observable(self, properties, to_ids):
         attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
-        if type(attribute_value) in (str, int):
+        if isinstance(attribute_value, (str, int)):
             attribute = {'to_ids': to_ids}
             self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
         else:
@@ -969,7 +968,7 @@ class StixParser():
         for indicator in indicators:
             try:
                 properties = indicator.observable.object_.properties
-            except:
+            except AttributeError:
                 self.parse_description(indicator)
                 continue
             if properties:
@@ -991,7 +990,7 @@ class StixParser():
             observable_object = observable.object_
             try:
                 properties = observable_object.properties
-            except:
+            except AttributeError:
                 self.parse_description(observable)
                 continue
             if properties:
@@ -1052,7 +1051,7 @@ class StixParser():
         for attribute in attribute_value:
             attribute['to_ids'] = to_ids
             misp_object.add_attribute(**attribute)
-        if type(compl_data) is dict:
+        if isinstance(compl_data, dict):
             # if some complementary data is a dictionary containing an uuid,
             # it means we are using it to add an object reference
             if "pe_uuid" in compl_data:
