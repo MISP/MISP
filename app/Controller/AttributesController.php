@@ -1808,7 +1808,6 @@ class AttributesController extends AppController {
 						// remove softdelated tag patch start -lm
 						foreach ($attribute['AttributeTag'] as $k2 => $at) {
 							if ($at['deleted'] == 1 ) {
-								//print_r($at);
 								unset($attributes[$k]['AttributeTag'][$k2]);
 							}
 						}
@@ -2960,9 +2959,8 @@ class AttributesController extends AppController {
 					$success++;
 				} else {
 					$fails++;
+					continue;
 				}
-				//$fails++;
-				//continue;
 			} else {
 				$this->Attribute->AttributeTag->create();
 				if ($this->Attribute->AttributeTag->save(array('attribute_id' => $id, 'tag_id' => $tag_id, 'event_id' => $eventId))) {
