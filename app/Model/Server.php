@@ -1798,9 +1798,7 @@ class Server extends AppModel
         if (!empty($eventIds)) {
             // download each event
             if (null != $eventIds) {
-                App::uses('SyncTool', 'Tools');
-                $syncTool = new SyncTool();
-                $HttpSocket = $syncTool->setupHttpSocket($server);
+                $HttpSocket = $this->setupHttpSocket($server);
                 foreach ($eventIds as $k => $eventId) {
                     $event = $eventModel->downloadEventFromServer(
                             $eventId,
@@ -2008,25 +2006,13 @@ class Server extends AppModel
     public function getEventIdsFromServer($server, $all = false, $HttpSocket=null, $force_uuid=false, $ignoreFilterRules = false)
     {
         $url = $server['Server']['url'];
-        $authkey = $server['Server']['authkey'];
         if ($ignoreFilterRules) {
             $filter_rules = array();
         } else {
             $filter_rules = $this->filterRuleToParameter($server['Server']['pull_rules']);
         }
-        if (null == $HttpSocket) {
-            App::uses('SyncTool', 'Tools');
-            $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
-        }
-        $request = array(
-                'header' => array(
-                        'Authorization' => $authkey,
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
-                        //'Connection' => 'keep-alive' // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
-                )
-        );
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
         $uri = $url . '/events/index';
         $filter_rules['minimal'] = 1;
         try {
@@ -2259,19 +2245,9 @@ class Server extends AppModel
             }
             unset($eventIds[$k]['Event']['id']);
         }
-        if (null == $HttpSocket) {
-            App::uses('SyncTool', 'Tools');
-            $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
-        }
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
         $data = json_encode($eventIds);
-        $request = array(
-                'header' => array(
-                        'Authorization' => $server['Server']['authkey'],
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
-                )
-        );
         $uri = $server['Server']['url'] . '/events/filterEventIdsForPush';
         $response = $HttpSocket->post($uri, $data, $request);
         if ($response->code == '200') {
@@ -2285,11 +2261,7 @@ class Server extends AppModel
     public function syncProposals($HttpSocket, $server, $sa_id = null, $event_id = null, $eventModel)
     {
         $saModel = ClassRegistry::init('ShadowAttribute');
-        if (null == $HttpSocket) {
-            App::uses('SyncTool', 'Tools');
-            $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
-        }
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         if ($sa_id == null) {
             if ($event_id == null) {
                 // event_id is null when we are doing a push
@@ -2323,13 +2295,7 @@ class Server extends AppModel
                     }
 
                     $data = json_encode($event['ShadowAttribute']);
-                    $request = array(
-                            'header' => array(
-                                    'Authorization' => $server['Server']['authkey'],
-                                    'Accept' => 'application/json',
-                                    'Content-Type' => 'application/json',
-                            )
-                    );
+                    $request = $this->setupSyncRequest($server);
                     $uri = $server['Server']['url'] . '/events/pushProposals/' . $event['Event']['uuid'];
                     $response = $HttpSocket->post($uri, $data, $request);
                     if ($response->code == '200') {
@@ -2351,13 +2317,7 @@ class Server extends AppModel
             }
         } else {
             // connect to checkuuid($uuid)
-            $request = array(
-                    'header' => array(
-                            'Authorization' => $server['Server']['authkey'],
-                            'Accept' => 'application/json',
-                            'Content-Type' => 'application/json',
-                    )
-            );
+            $request = $this->setupSyncRequest($server);
             $uri = $server['Server']['url'] . '/events/checkuuid/' . $sa_id;
             $response = $HttpSocket->get($uri, '', $request);
             if ($response->code != '200') {
@@ -3181,16 +3141,8 @@ class Server extends AppModel
     public function runConnectionTest($id)
     {
         $server = $this->find('first', array('conditions' => array('Server.id' => $id)));
-        App::uses('SyncTool', 'Tools');
-        $syncTool = new SyncTool();
-        $HttpSocket = $syncTool->setupHttpSocket($server);
-        $request = array(
-            'header' => array(
-                'Authorization' => $server['Server']['authkey'],
-                'Accept' => 'application/json',
-                'Content-Type' => 'application/json',
-            )
-        );
+        $HttpSocket = $this->setupHttpSocket($server);
+        $request = $this->setupSyncRequest($server);
         $uri = $server['Server']['url'] . '/servers/getVersion';
         try {
             $response = $HttpSocket->get($uri, false, $request);
@@ -3233,16 +3185,8 @@ class Server extends AppModel
     public function runPOSTtest($id)
     {
         $server = $this->find('first', array('conditions' => array('Server.id' => $id)));
-        App::uses('SyncTool', 'Tools');
-        $syncTool = new SyncTool();
-        $HttpSocket = $syncTool->setupHttpSocket($server);
-        $request = array(
-            'header' => array(
-                'Authorization' => $server['Server']['authkey'],
-                'Accept' => 'application/json',
-                'Content-Type' => 'application/json',
-            )
-        );
+        $HttpSocket = $this->setupHttpSocket($server);
+        $request = $this->setupSyncRequest($server);
         $testFile = file_get_contents(APP . 'files/scripts/test_payload.txt');
         $uri = $server['Server']['url'] . '/servers/postTest';
         $this->Log = ClassRegistry::init('Log');
@@ -3307,19 +3251,9 @@ class Server extends AppModel
         $localVersion = json_decode($file->read(), true);
         $file->close();
         $server = $this->find('first', array('conditions' => array('Server.id' => $id)));
-        if (!$HttpSocket) {
-            App::uses('SyncTool', 'Tools');
-            $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
-        }
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
         $uri = $server['Server']['url'] . '/servers/getVersion';
-        $request = array(
-                'header' => array(
-                        'Authorization' => $server['Server']['authkey'],
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
-                )
-        );
         try {
             $response = $HttpSocket->get($uri, '', $request);
         } catch (Exception $e) {
@@ -3418,19 +3352,9 @@ class Server extends AppModel
     public function checkLegacyServerSyncPrivilege($id, $HttpSocket = false)
     {
         $server = $this->find('first', array('conditions' => array('Server.id' => $id)));
-        if (!$HttpSocket) {
-            App::uses('SyncTool', 'Tools');
-            $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
-        }
         $uri = $server['Server']['url'] . '/servers/testConnection';
-        $request = array(
-                'header' => array(
-                        'Authorization' => $server['Server']['authkey'],
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
-                )
-        );
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
         try {
             $response = $HttpSocket->get($uri, '', $request);
         } catch (Exception $e) {
@@ -4055,17 +3979,8 @@ class Server extends AppModel
         if (empty($server)) {
             return 2;
         }
-        App::uses('SyncTool', 'Tools');
-        $syncTool = new SyncTool();
-        $HttpSocket = $syncTool->setupHttpSocket($server);
-        $request = array(
-                'header' => array(
-                        'Authorization' => $server['Server']['authkey'],
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
-                        //'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
-                )
-        );
+        $HttpSocket = $this->setupHttpSocket($server);
+        $request = $this->setupSyncRequest($server);
         $validArgs = array_merge(array('sort', 'direction'), $this->validEventIndexFilters);
         $urlParams = '';
         foreach ($validArgs as $v) {
@@ -4115,17 +4030,8 @@ class Server extends AppModel
         if (empty($server)) {
             return 2;
         }
-        App::uses('SyncTool', 'Tools');
-        $syncTool = new SyncTool();
-        $HttpSocket = $syncTool->setupHttpSocket($server);
-        $request = array(
-                'header' => array(
-                        'Authorization' => $server['Server']['authkey'],
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
-                        //'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
-                )
-        );
+        $HttpSocket = $this->setupHttpSocket($server);
+        $request = $this->setupSyncRequest($server);
         $uri = $server['Server']['url'] . '/events/' . $eventId;
         $response = $HttpSocket->get($uri, $data = '', $request);
         if ($response->code == 200) {
