@@ -51,7 +51,8 @@ class StixParser():
                 except:
                     pass
                 object_uuid = parsed_object['id'].split('--')[1]
-                if object_type.startswith('x-misp-object'): object_type = 'x-misp-object'
+                if object_type.startswith('x-misp-object'):
+                    object_type = 'x-misp-object'
                 self.event[object_type][object_uuid] = parsed_object
             if not self.event:
                 print(json.dumps({'success': 0, 'message': 'There is no valid STIX object to import'}))
@@ -60,13 +61,13 @@ class StixParser():
                 event_distribution = args[2]
                 if not isinstance(event_distribution, int):
                     event_distribution = int(event_distribution) if event_distribution.isdigit() else 5
-            except:
+            except IndexError:
                 event_distribution = 5
             try:
                 attribute_distribution = args[3]
                 if attribute_distribution != 'event' and not isinstance(attribute_distribution, int):
                     attribute_distribution = int(attribute_distribution) if attribute_distribution.isdigit() else 5
-            except:
+            except IndexError:
                 attribute_distribution = 5
             self.misp_event.distribution = event_distribution
             self.__attribute_distribution = event_distribution if attribute_distribution == 'event' else attribute_distribution
@@ -143,19 +144,24 @@ class StixParser():
         orgs = []
         for _, report in self.event['report'].items():
             org_uuid = report['created_by_ref'].split('--')[1]
-            if org_uuid not in orgs: orgs.append(org_uuid)
+            if org_uuid not in orgs:
+                orgs.append(org_uuid)
             report_name = report['name']
-            if report_name not in orgs: report_attributes['name'].append(report_name)
-            if report.get('published'): report_attributes['published'].append(report['published'])
+            if report_name not in orgs:
+                report_attributes['name'].append(report_name)
+            if report.get('published'):
+                report_attributes['published'].append(report['published'])
             if hasattr(report, 'labels'):
                 for l in report['labels']:
-                    if l not in report_attributes['labels']: report_attributes['labels'].append(l)
+                    if l not in report_attributes['labels']:
+                        report_attributes['labels'].append(l)
             if hasattr(report, 'external_references'):
                 for e in report['external_references']:
                     self.add_link(e)
             for ref in report['object_refs']:
                 object_type, uuid = ref.split('--')
-                if object_type == 'relationship': continue
+                if object_type == 'relationship':
+                    continue
                 object2parse = self.event[object_type][uuid]
                 labels = object2parse.get('labels')
                 self.object_from_refs[object_type](object2parse, labels)
@@ -176,7 +182,7 @@ class StixParser():
         comment = e.get('source_name')
         try:
             comment = comment.split('url - ')[1]
-        except:
+        except IndexError:
             pass
         if comment:
             link['comment'] = comment
@@ -347,7 +353,7 @@ class StixParser():
                     mapping = email_mapping[m_key]
                     attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
                                        'value': m_value, 'to_ids': False})
-                except:
+                except KeyError:
                     if m_key.startswith("x_misp_attachment_"):
                         attribute_type, relation = m_key.split("x_misp_")[1].split("_")
                         attributes.append({'type': attribute_type, 'object_relation': relation, 'to_ids': False,
@@ -587,9 +593,8 @@ class StixParser():
         if 'hashes' in value_type and 'x509' not in stix_type:
             h_type = value_type.split('.')[1]
             return {'type': h_type, 'value': pattern_value}
-        else:
-            # Might cause some issues, need more examples to test
-            return {'type': external_pattern_mapping[stix_type][value_type].get('type'), 'value': pattern_value}
+        # Might cause some issues, need more examples to test
+        return {'type': external_pattern_mapping[stix_type][value_type].get('type'), 'value': pattern_value}
 
     def set_distribution(self):
         for attribute in self.misp_event.attributes:
@@ -609,7 +614,7 @@ class StixParser():
     def getTimestampfromDate(stix_date):
         try:
             return int(stix_date.timestamp())
-        except:
+        except AttributeError:
             return int(time.mktime(time.strptime(stix_date.split('+')[0], "%Y-%m-%d %H:%M:%S")))
 
     @staticmethod
@@ -649,8 +654,7 @@ class StixParser():
             filename = pattern_parts[0].split(' = ')[1]
             md5 = pattern_parts[1].split(' = ')[1]
             return "{}|{}".format(filename[1:-1], md5[1:-1]), pattern_parts[2].split(' = ')[1][1:-2]
-        else:
-            return pattern_parts[0].split(' = ')[1][1:-1], pattern_parts[1].split(' = ')[1][1:-2]
+        return pattern_parts[0].split(' = ')[1][1:-1], pattern_parts[1].split(' = ')[1][1:-2]
 
 def main(args):
     stix_parser = StixParser()
