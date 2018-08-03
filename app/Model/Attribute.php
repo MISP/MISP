@@ -2560,28 +2560,11 @@ class Attribute extends AppModel
     {
         $conditions = array();
         if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->SharingGroup->fetchAllAuthorised($user);
+            $sgids = $this->Event->cacheSgids($user, true);
+            $eventConditions = $this->Event->createEventConditions($user);
             $conditions = array(
                 'AND' => array(
-                    array(
-                        'OR' => array(
-                            'Event.org_id' => $user['org_id'],
-                            array(
-                                'AND' => array(
-                                    'Event.distribution >' => 0,
-                                    'Event.distribution <' => 4,
-                                    Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-                                ),
-                            ),
-                            array(
-                                'AND' => array(
-                                    'Event.sharing_group_id' => $sgids,
-                                    'Event.distribution' => 4,
-                                    Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-                                )
-                            )
-                        )
-                    ),
+                    $eventConditions['AND'],
                     array(
                         'OR' => array(
                             'Event.org_id' => $user['org_id'],
