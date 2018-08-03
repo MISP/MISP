@@ -3683,30 +3683,10 @@ class Server extends AppModel
             $worker = $workers[$pid];
             if (substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0 ? true : false) {
                 shell_exec('kill ' . $pid . ' > /dev/null 2>&1 &');
-                $this->Log->create();
-                $this->Log->save(array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'User',
-                        'model_id' => $user['id'],
-                        'email' => $user['email'],
-                        'action' => 'stop_worker',
-                        'user_id' => $user['id'],
-                        'title' => 'Stopping a worker.',
-                        'change' => 'Stopping a worker. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
-                ));
+                $this->__logRemoveWorker($user, $pid, $worker['queue'], false);
             } else {
                 $this->ResqueStatus->removeWorker($pid);
-                $this->Log->create();
-                $this->Log->save(array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'User',
-                        'model_id' => $user['id'],
-                        'email' => $user['email'],
-                        'action' => 'remove_dead_workers',
-                        'user_id' => $user['id'],
-                        'title' => 'Removing a dead worker.',
-                        'change' => 'Removing dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
-                ));
+                $this->__logRemoveWorker($user, $pid, $worker['queue'], true);
             }
             $this->ResqueStatus->removeWorker($pid);
         }
@@ -3716,7 +3696,6 @@ class Server extends AppModel
     {
         $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
         $workers = $this->ResqueStatus->getWorkers();
-        $this->Log = ClassRegistry::init('Log');
         if (function_exists('posix_getpwuid')) {
             $currentUser = posix_getpwuid(posix_geteuid());
             $currentUser = $currentUser['name'];
@@ -3730,32 +3709,47 @@ class Server extends AppModel
             $pidTest = substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0 ? true : false;
             if ($worker['user'] == $currentUser && !$pidTest) {
                 $this->ResqueStatus->removeWorker($pid);
-                $this->Log->create();
-                if (!empty($user)) {
-                    $this->Log->save(array(
-                            'org' => $user['Organisation']['name'],
-                            'model' => 'User',
-                            'model_id' => $user['id'],
-                            'email' => $user['email'],
-                            'action' => 'remove_dead_workers',
-                            'user_id' => $user['id'],
-                            'title' => 'Removing a dead worker.',
-                            'change' => 'Removing dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
-                    ));
-                } else {
-                    $this->Log->save(array(
-                            'org' => 'SYSTEM',
-                            'model' => 'User',
-                            'model_id' => 0,
-                            'email' => 'SYSTEM',
-                            'action' => 'remove_dead_workers',
-                            'user_id' => 0,
-                            'title' => 'Removing a dead worker.',
-                            'change' => 'Removing dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
-                    ));
-                }
+                $this->__logRemoveWorker($user, $pid, $worker['queue'], true);
             }
         }
+    }
+
+    private function __logRemoveWorker($user, $pid, $queue, $dead = false)
+    {
+        $this->Log = ClassRegistry::init('Log');
+        $this->Log->create();
+        if (empty($user)) {
+            $user = array(
+                'id' => 0,
+                'Organisation' => array(
+                    'name' => 'SYSTEM'
+                ),
+                'email' => 'SYSTEM'
+            );
+        }
+        $type = $dead ? 'dead' : 'kill';
+        $text = array(
+            'dead' => array(
+                'action' => 'remove_dead_workers',
+                'title' => __('Removing a dead worker.'),
+                'change' => sprintf(__('Removing dead worker data. Worker was of type %s with pid %s'), $queue, $pid)
+            ),
+            'kill' => array(
+                'action' => 'stop_worker',
+                'title' => __('Stopping a worker.'),
+                'change' => sprintf(__('Stopping a worker. Worker was of type %s with pid %s'), $queue, $pid)
+            )
+        );
+        $this->Log->save(array(
+            'org' => $user['Organisation']['name'],
+            'model' => 'User',
+            'model_id' => $user['id'],
+            'email' => $user['email'],
+            'action' => $text[$type]['action'],
+            'user_id' => $user['id'],
+            'title' => $text[$type]['title'],
+            'change' => $text[$type]['change']
+        ));
     }
 
     public function upgrade2324($user_id, $jobId = false)
