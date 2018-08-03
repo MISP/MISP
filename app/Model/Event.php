@@ -1409,31 +1409,8 @@ class Event extends AppModel
 
     public function fetchEventIds($user, $from = false, $to = false, $last = false, $list = false, $timestamp = false, $publish_timestamp = false, $eventIdList = false)
     {
-        $conditions = array();
         // restricting to non-private or same org if the user is not a site-admin.
-        if (!$user['Role']['perm_site_admin']) {
-            $sgids = $this->SharingGroup->fetchAllAuthorised($user);
-            if (empty($sgids)) {
-                $sgids = -1;
-            }
-            $conditions['AND']['OR'] = array(
-                'Event.org_id' => $user['org_id'],
-                array(
-                    'AND' => array(
-                        'Event.distribution >' => 0,
-                        'Event.distribution <' => 4,
-                        Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-                    ),
-                ),
-                array(
-                    'AND' => array(
-                        'Event.sharing_group_id' => $sgids,
-                        'Event.distribution' => 4,
-                        Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-                    )
-                )
-            );
-        }
+        $conditions = $this->__createEventConditions($user);
         $fields = array('Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id');
 
         if ($from) {
@@ -1538,10 +1515,9 @@ class Event extends AppModel
                 $options[$opt] = false;
             }
         }
+        $conditions = $this->__createEventConditions($user);
         if ($options['eventid']) {
             $conditions['AND'][] = array("Event.id" => $options['eventid']);
-        } else {
-            $conditions = array();
         }
         if ($options['eventsExtendingUuid']) {
             if (!is_array($options['eventsExtendingUuid'])) {
@@ -1589,23 +1565,6 @@ class Event extends AppModel
         $sgids = $this->cacheSgids($user, $useCache);
         // restricting to non-private or same org if the user is not a site-admin.
         if (!$isSiteAdmin) {
-            $conditions['AND']['OR'] = array(
-                'Event.org_id' => $user['org_id'],
-                array(
-                    'AND' => array(
-                        'Event.distribution >' => 0,
-                        'Event.distribution <' => 4,
-                        Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-                    ),
-                ),
-                array(
-                    'AND' => array(
-                        'Event.sharing_group_id' => $sgids,
-                        'Event.distribution' => 4,
-                        Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array()
-                    )
-                )
-            );
             // if delegations are enabled, check if there is an event that the current user might see because of the request itself
             if (Configure::read('MISP.delegation')) {
                 $delegatedEventIDs = $this->__cachedelegatedEventIDs($user, $useCache);
