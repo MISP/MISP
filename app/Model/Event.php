@@ -257,13 +257,7 @@ class Event extends AppModel
         )
     );
 
-    public function __construct($id = false, $table = null, $ds = null)
-    {
-        parent::__construct($id, $table, $ds);
-    }
-
     // The Associations below have been created with all possible keys, those that are not needed can be removed
-
     public $belongsTo = array(
         'User' => array(
             'className' => 'User',
@@ -1016,7 +1010,7 @@ class Event extends AppModel
                     try {
                         $jsonArray = json_decode($response->body, true);
                     } catch (Exception $e) {
-                        return true; // TODO should be false
+                        return true;
                     }
                     if (strpos($jsonArray['name'], "Event already exists")) {	// strpos, so i can piggyback some value if needed.
                         return true;
