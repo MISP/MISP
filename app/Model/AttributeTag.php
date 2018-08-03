@@ -71,7 +71,13 @@ class AttributeTag extends AppModel {
 		if (empty($existingAssociation)) {
 			$this->create();
 			if (!$this->save(array('attribute_id' => $attribute_id, 'event_id' => $event_id, 'tag_id' => $tag_id))) return false;
+                // tag softdelateion patch -lm
+                } else if ($existingAssociation['AttributeTag']['deleted'] = 1) {
+                        $existingAssociation['AttributeTag']['deleted'] = 0;
+                        if (!$this->save($existingAssociation)) return false;
+                // tag softdelateion patch end -lm
 		}
+
 		return true;
 	}
 

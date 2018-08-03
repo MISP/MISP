@@ -2824,16 +2824,15 @@ class Event extends AppModel {
 				}
 			}
 			// tag soft remover patch , only for "internal instance" -lm
-			//if (isset($data['Event']['Tag']) && $user['Server']['internal']) {
 			if ($user['Server']['internal']) {
+
 		                $tagsList = $this->EventTag->find('all', array(
 	                                'conditions' => array(
 	                                                'event_id' => $id,
 	                                                'deleted' => 0, // tag softdeletion -lm
-	                                                'Tag.name !=' => $cluster_names
+	                                                'Tag.name NOT LIKE ' => 'misp-galaxy:%', // ugly!!!
 		                                ),
 		                                'contain' => array('Tag'),
-		                                //'fields' => array('Tag.id', 'Tag.colour', 'Tag.name'),
 		                ));
 				foreach($tagsList as $t) {
 					$t['EventTag']['deleted'] = 1;
@@ -2846,20 +2845,8 @@ class Event extends AppModel {
 						'email' => $user['email'],
 						'action' => 'edit',
 						'user_id' => $user['id'],
-						'title' => 'Auto-SoftRemoved tag ('.$t['Tag']['id'].') "'.$t['Tag']['name'].'" from event ('.$this->id.')',
-						'change' => 'Server "'.$user['Server']['name'].'" (Id: '.$user['Server']['id'].') '.$user['Server']['url'].' is an "Internal Instance"',
-						));
-					} else {
-						$this->Log->create();
-						$this->Log->save(array(
-						'org' => $user['Organisation']['name'],
-						'model' => 'Event',
-						'model_id' => $this->id,
-						'email' => $user['email'],
-						'action' => 'edit',
-						'user_id' => $user['id'],
-						'title' => 'FAILED Auto-SoftRemoved tag ('.$t['Tag']['id'].') "'.$t['Tag']['name'].'" from event ('.$this->id.')',
-						'change' => 'Server "'.$user['Server']['name'].'" (Id: '.$user['Server']['id'].') '.$user['Server']['url'].' is an "Internal Instance"',
+						'title' => 'Auto-SoftRemoved Event tag ('.$t['Tag']['id'].') "'.$t['Tag']['name'].'" from event ('.$this->id.')',
+						'change' => 'Server Id: '.$user['Server']['id'].' ('.$user['Server']['url'].') is an "Internal Instance"',
 						));
 					}
 				}
