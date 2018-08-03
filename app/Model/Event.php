@@ -3508,7 +3508,6 @@ class Event extends AppModel
             $event_ids = array_intersect($event_ids, $idList);
         }
         $randomFileName = $this->generateRandomFileName();
-<<<<<<< HEAD
         $tmpDir = APP . "files" . DS . "scripts";
         $stix2_framing_cmd = 'python3 ' . $tmpDir . DS . 'misp_framing.py stix2 ' . escapeshellarg(CakeText::uuid()) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
         $stix2_framing = json_decode(shell_exec($stix2_framing_cmd), true);
@@ -3525,23 +3524,6 @@ class Event extends AppModel
             if (!$this->Job->exists()) {
                 $jobId = false;
             }
-=======
-        $tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
-        $tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
-        $tempFile->write($event);
-        $scriptFile = APP . "files" . DS . "scripts" . DS . "stix2" . DS . "misp2stix2.py";
-        $result = shell_exec('python3 ' . $scriptFile . ' ' . $tempFile->path . ' json  ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' 2>' . APP . 'tmp/logs/exec-errors.log');
-        $tempFile->delete();
-        $resultFile = new File($tmpDir . DS . $randomFileName . ".stix2");
-        $resultFile->write("{\"type\": \"bundle\", \"spec_version\": \"2.0\", \"id\": \"bundle--" . CakeText::uuid() . "\", \"objects\": [");
-        if (trim($result) == 1) {
-            $file = new File($tmpDir . DS . $randomFileName . '.out', true, 0644);
-            $result = substr($file->read(), 1, -1);
-            $file->delete();
-            $resultFile->append($result);
-        } else {
-            return false;
->>>>>>> aba4c90e0c9627ef1e70e6da71dc2f3c5c7dd8c5
         }
         $i = 0;
         $eventCount = count($event_ids);
