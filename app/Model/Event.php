@@ -858,42 +858,8 @@ class Event extends AppModel
         return $error;
     }
 
-    public function uploadEventToServer($event, $server, $HttpSocket = null)
+    private function __executeRestfulEventToServer($event, $server, $resourceId, &$newLocation, &$newTextBody, $HttpSocket)
     {
-        $this->Server = ClassRegistry::init('Server');
-        $push = $this->Server->checkVersionCompatibility($server['Server']['id'], false, $HttpSocket);
-        if (!isset($push['canPush'])) {
-            $test = $this->Server->checkLegacyServerSyncPrivilege($server['Server']['id'], $HttpSocket);
-        } else {
-            if (!$push['canPush']) {
-                return 'The remote user is not a sync user - the upload of the event has been blocked.';
-            }
-        }
-        $deletedAttributes = false;
-        if (($push['version'][0] > 2) ||
-            ($push['version'][0] == 2 && $push['version'][1] > 4) ||
-            ($push['version'][0] == 2 && $push['version'][1] == 4 && $push['version'][2] > 42)) {
-            $deletedAttributes = true;
-        }
-        if (isset($event['Attribute']) && !$deletedAttributes) {
-            foreach ($event['Attribute'] as $k => $v) {
-                if ($v['deleted']) {
-                    unset($event['Attribute'][$k]);
-                }
-            }
-            $event['Attribute'] = array_values($event['Attribute']);
-        }
-        if (!isset($push['canPush']) || !$push['canPush']) {
-            return 'Trying to push to an outdated instance.';
-        }
-        if (isset($server['Server']['unpublish_event'])) {
-            $unpublish_event = $server['Server']['unpublish_event'];
-            if ($unpublish_event) {
-                $event['Event']['published'] = 0;
-            }
-        }
-        $updated = null;
-        $newLocation = $newTextBody = '';
         $result = $this->restfulEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket);
         if (is_numeric($result)) {
             $error = $this->__resolveErrorCode($result, $event, $server);
@@ -901,60 +867,47 @@ class Event extends AppModel
                 return $error . ' Error code: ' . $result;
             }
         }
-        if (strlen($newLocation) || $result) { // HTTP/1.1 200 OK or 302 Found and Location: http://<newLocation>
-            if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
-                $result = $this->restfulEventToServer($event, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket);
-                if (is_numeric($result)) {
-                    $error = $this->__resolveErrorCode($result, $event, $server);
-                    if ($error) {
-                        return $error . ' Error code: ' . $result;
-                    }
+        return true;
+    }
+
+    public function uploadEventToServer($event, $server, $HttpSocket = null)
+    {
+        $this->Server = ClassRegistry::init('Server');
+        $push = $this->Server->checkVersionCompatibility($server['Server']['id'], false, $HttpSocket);
+        if (empty($push['canPush'])) {
+            return 'The remote user is not a sync user - the upload of the event has been blocked.';
+        }
+        if (!empty($server['Server']['unpublish_event'])) {
+            $event['Event']['published'] = 0;
+        }
+        $updated = null;
+        $newLocation = $newTextBody = '';
+        $result = $this->__executeRestfulEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket);
+        if ($result !== true) {
+            return $result;
+        }
+        if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
+            $result = $this->restfulEventToServer($event, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket);
+            if (is_numeric($result)) {
+                $error = $this->__resolveErrorCode($result, $event, $server);
+                if ($error) {
+                    return $error . ' Error code: ' . $result;
                 }
             }
-            $uploadFailed = false;
-            try {
-                $json = json_decode($newTextBody, true);
-            } catch (Exception $e) {
-                $uploadFailed = true;
-            }
-            if (!is_array($json) || $uploadFailed) {
-                return $this->__logUploadResult($server, $event, $newTextBody);
-            }
-            // get the remote event_id
-            foreach ($json as $jsonEvent) {
-                if (is_array($jsonEvent)) {
-                    foreach ($jsonEvent as $key => $value) {
-                        if ($key == 'id') {
-                            break;
-                        }
-                    }
-                } else {
-                    return $this->__logUploadResult($server, $event, $newTextBody);
-                }
-            }
+        }
+        $uploadFailed = false;
+        try {
+            $json = json_decode($newTextBody, true);
+        } catch (Exception $e) {
+            $uploadFailed = true;
+        }
+        if (!is_array($json) || $uploadFailed) {
+            return $this->__logUploadResult($server, $event, $newTextBody);
         }
         return 'Success';
     }
 
-    public function addHeaders($request)
-    {
-        $version = $this->checkMISPVersion();
-        $version = implode('.', $version);
-        try {
-            $commit = trim(shell_exec('git log --pretty="%H" -n1 HEAD'));
-        } catch (Exception $e) {
-            $commit = false;
-        }
-        $request['header']['MISP-version'] = $version;
-        if ($commit) {
-            $request['header']['commit'] = $commit;
-        }
-        return $request;
-    }
-
-    // Uploads the event and the associated Attributes to another Server
-    public function restfulEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null)
-    {
+    private function __prepareForPushToServer($event, $server) {
         if ($event['Event']['distribution'] == 4) {
             if (!empty($event['SharingGroup']['SharingGroupServer'])) {
                 $found = false;
@@ -979,17 +932,20 @@ class Event extends AppModel
         } else {
             return 403;
         }
-        $url = $server['Server']['url'];
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $request = $this->setupSyncRequest($server);
-        $uri = $url . '/events';
-        if (isset($urlPath)) {
+        return $event;
+    }
+
+    private function __getLastUrlPathComponent($urlPath)
+    {
+        if (!empty($urlPath)) {
             $pieces = explode('/', $urlPath);
-            $uri .= '/' . end($pieces);
+            return '/' . end($pieces);
         }
-        $data = json_encode($event);
-        // LATER validate HTTPS SSL certificate
-        $response = $HttpSocket->post($uri, $data, $request);
+        return '';
+    }
+
+    private function __handleRestfulEventToServerResponse($response, &$newLocation, &$newTextBody)
+    {
         switch ($response->code) {
             case '200':	// 200 (OK) + entity-action-result
                 if ($response->isOk()) {
@@ -1002,11 +958,7 @@ class Event extends AppModel
                     } catch (Exception $e) {
                         return true;
                     }
-                    if (strpos($jsonArray['name'], "Event already exists")) {	// strpos, so i can piggyback some value if needed.
-                        return true;
-                    } else {
-                        return $jsonArray['name'];
-                    }
+                    return $jsonArray['name'];
                 }
             case '302': // Found
                 $newLocation = $response->headers['Location'];
@@ -1021,6 +973,20 @@ class Event extends AppModel
             case '403': // Not authorised
                 return 403;
         }
+    }
+
+    // Uploads the event and the associated Attributes to another Server
+    public function restfulEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null)
+    {
+        $event = $this->__prepareForPushToServer($event, $server);
+        if (is_numeric($event)) return $event;
+        $url = $server['Server']['url'];
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
+        $uri = $url . '/events' . $this->__getLastUrlPathComponent($urlPath);
+        $data = json_encode($event);
+        $response = $HttpSocket->post($uri, $data, $request);
+        return $this->__handleRestfulEventToServerResponse($response, $newLocation, $newTextBody);
     }
 
     private function __updateEventForSync($event, $server)

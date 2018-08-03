@@ -1608,4 +1608,20 @@ class AppModel extends Model
         $request = $this->addHeaders($request);
         return $request;
     }
+
+    public function addHeaders($request)
+    {
+        $version = $this->checkMISPVersion();
+        $version = implode('.', $version);
+        try {
+            $commit = trim(shell_exec('git log --pretty="%H" -n1 HEAD'));
+        } catch (Exception $e) {
+            $commit = false;
+        }
+        $request['header']['MISP-version'] = $version;
+        if ($commit) {
+            $request['header']['commit'] = $commit;
+        }
+        return $request;
+    }
 }
