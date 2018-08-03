@@ -1734,6 +1734,42 @@ class Server extends AppModel
         return true;
     }
 
+    private function __getEventIdListBasedOnPullTechnique($technique, $server) {
+        if ("full" === $technique) {
+            // get a list of the event_ids on the server
+            $eventIds = $this->getEventIdsFromServer($server);
+            if ($eventIds === 403) {
+                return array('error' => array(1, null));
+            } elseif (is_string($eventIds)) {
+                return array('error' => array(2, $eventIds));
+            }
+
+            // reverse array of events, to first get the old ones, and then the new ones
+            if (!empty($eventIds)) {
+                $eventIds = array_reverse($eventIds);
+            }
+        } elseif ("update" === $technique) {
+            $eventIds = $this->getEventIdsFromServer($server, false, null, true, true);
+            if ($eventIds === 403) {
+                return array('error' => array(1, null));
+            } elseif (is_string($eventIds)) {
+                return array('error' => array(2, $eventIds));
+            }
+            $local_event_ids = $eventModel->find('list', array(
+                    'fields' => array('uuid'),
+                    'recursive' => -1,
+            ));
+            $eventIds = array_intersect($eventIds, $local_event_ids);
+        } elseif (is_numeric($technique)) {
+            $eventIds[] = intval($technique);
+            // if we are downloading a single event, don't fetch all proposals
+            $conditions = array('Event.id' => $technique);
+        } else {
+            return array('error' => array(4, null));
+        }
+        return $eventIds;
+    }
+
     public function pull($user, $id = null, $technique=false, $server, $jobId = false, $percent = 100, $current = 0)
     {
         if ($jobId) {
@@ -1747,38 +1783,7 @@ class Server extends AppModel
         App::uses('HttpSocket', 'Network/Http');
         $eventIds = array();
         $conditions = array();
-        if ("full" === $technique) {
-            // get a list of the event_ids on the server
-            $eventIds = $this->getEventIdsFromServer($server);
-            if ($eventIds === 403) {
-                return array(1, null);
-            } elseif (is_string($eventIds)) {
-                return array(2, $eventIds);
-            }
-
-            // reverse array of events, to first get the old ones, and then the new ones
-            if (!empty($eventIds)) {
-                $eventIds = array_reverse($eventIds);
-            }
-        } elseif ("update" === $technique) {
-            $eventIds = $this->getEventIdsFromServer($server, false, null, true, true);
-            if ($eventIds === 403) {
-                return array(1, null);
-            } elseif (is_string($eventIds)) {
-                return array(2, $eventIds);
-            }
-            $local_event_ids = $eventModel->find('list', array(
-                    'fields' => array('uuid'),
-                    'recursive' => -1,
-            ));
-            $eventIds = array_intersect($eventIds, $local_event_ids);
-        } elseif (is_numeric($technique)) {
-            $eventIds[] = intval($technique);
-            // if we are downloading a single event, don't fetch all proposals
-            $conditions = array('Event.id' => $technique);
-        } else {
-            return array(4, null);
-        }
+        $eventIds = $this->__getEventIdListBasedOnPullTechnique($technique, $server);
         $successes = array();
         $fails = array();
         $pulledProposals = array();
