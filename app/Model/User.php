@@ -351,48 +351,7 @@ class User extends AppModel
 
         // Check if $check is a x509 certificate
         if (openssl_x509_read($check['certif_public'])) {
-            try {
-                App::uses('Folder', 'Utility');
-                App::uses('FileAccessTool', 'Tools');
-                $fileAccessTool = new FileAccessTool();
-                $dir = APP . 'tmp' . DS . 'SMIME';
-                if (!file_exists($dir)) {
-                    if (!mkdir($dir, 0750, true)) {
-                        throw new MethodNotAllowedException('The SMIME temp directory is not writeable (app/tmp/SMIME).');
-                    }
-                }
-                $tempFile = $fileAccessTool->createTempFile($dir, 'SMIME');
-                $msg_test = $fileAccessTool->writeToFile($tempFile, 'test');
-                $msg_test_encrypted = $fileAccessTool->createTempFile($dir, 'SMIME');
-                // encrypt it
-                if (openssl_pkcs7_encrypt($msg_test, $msg_test_encrypted, $check['certif_public'], null, 0, OPENSSL_CIPHER_AES_256_CBC)) {
-                    unlink($msg_test);
-                    unlink($msg_test_encrypted);
-                    $parse = openssl_x509_parse($check['certif_public']);
-                    // Valid certificate ?
-                    $now = new DateTime("now");
-                    $validTo_time_t_epoch = $parse['validTo_time_t'];
-                    $validTo_time_t = new DateTime("@$validTo_time_t_epoch");
-                    if ($validTo_time_t > $now) {
-                        // purposes smimeencrypt ?
-                        if (($parse['purposes'][5][0] == 1) and ($parse['purposes'][5][2] == 'smimeencrypt')) {
-                            return true;
-                        } else {
-                            return 'This certificate cannot be used to encrypt email';
-                        }
-                    } else {
-                        return 'This certificate is expired';
-                    }
-                } else {
-                    unlink($msg_test);
-                    unlink($msg_test_encrypted);
-                    return false;
-                }
-            } catch (Exception $e) {
-                unlink($msg_test);
-                unlink($msg_test_encrypted);
-                $this->log($e->getMessage());
-            }
+            return $this->testSmimeCertificate($check['certif_public']);
         } else {
             return false;
         }
@@ -572,58 +531,65 @@ class User extends AppModel
         return $results;
     }
 
+    private function testSmimeCertificate($certif_public) {
+        $result = array();
+        try {
+            App::uses('Folder', 'Utility');
+            App::uses('FileAccessTool', 'Tools');
+            $fileAccessTool = new FileAccessTool();
+            $dir = APP . 'tmp' . DS . 'SMIME';
+            if (!file_exists($dir)) {
+                if (!mkdir($dir, 0750, true)) {
+                    throw new MethodNotAllowedException('The SMIME temp directory is not writeable (app/tmp/SMIME).');
+                }
+            }
+            $tempFile = $fileAccessTool->createTempFile($dir, 'SMIME');
+            $msg_test = $fileAccessTool->writeToFile($tempFile, 'test');
+            $msg_test_encrypted = $fileAccessTool->createTempFile($dir, 'SMIME');
+            // encrypt it
+            if (openssl_pkcs7_encrypt($msg_test, $msg_test_encrypted, $certif_public, null, 0, OPENSSL_CIPHER_AES_256_CBC)) {
+                $parse = openssl_x509_parse($certif_public);
+                // Valid certificate ?
+                $now = new DateTime("now");
+                $validTo_time_t_epoch = $parse['validTo_time_t'];
+                $validTo_time_t = new DateTime("@$validTo_time_t_epoch");
+                if ($validTo_time_t > $now) {
+                    // purposes smimeencrypt ?
+                    if (($parse['purposes'][5][0] == 1) && ($parse['purposes'][5][2] == 'smimeencrypt')) {
+                        $result = true;
+                    } else {
+                        // openssl_pkcs7_encrypt good -- Model/User purposes is NOT GOOD'
+                        $result = 'This certificate cannot be used to encrypt email';
+                    }
+                } else {
+                    // openssl_pkcs7_encrypt good -- Model/User expired;
+                    $result = 'This certificate is expired';
+                }
+            } else {
+                // openssl_pkcs7_encrypt NOT good -- Model/User
+                $result = 'This certificate cannot be used to encrypt email';
+            }
+        } catch (Exception $e) {
+            $this->log($e->getMessage());
+        }
+        unlink($msg_test);
+        unlink($msg_test_encrypted);
+        return $result;
+    }
+
     public function verifyCertificate()
     {
         $this->Behaviors->detach('Trim');
         $results = array();
         $users = $this->find('all', array(
             'conditions' => array('not' => array('certif_public' => '')),
-            //'fields' => array('id', 'email', 'gpgkey'),
             'recursive' => -1,
         ));
         foreach ($users as $k => $user) {
-            $certif_public = $user['User']['certif_public'];
-            try {
-                App::uses('Folder', 'Utility');
-                App::uses('FileAccessTool', 'Tools');
-                $fileAccessTool = new FileAccessTool();
-                $dir = APP . 'tmp' . DS . 'SMIME';
-                if (!file_exists($dir)) {
-                    if (!mkdir($dir, 0750, true)) {
-                        throw new MethodNotAllowedException('The SMIME temp directory is not writeable (app/tmp/SMIME).');
-                    }
-                }
-                $tempFile = $fileAccessTool->createTempFile($dir, 'SMIME');
-                $msg_test = $fileAccessTool->writeToFile($tempFile, 'test');
-                $msg_test_encrypted = $fileAccessTool->createTempFile($dir, 'SMIME');
-                // encrypt it
-                if (openssl_pkcs7_encrypt($msg_test, $msg_test_encrypted, $certif_public, null, 0, OPENSSL_CIPHER_AES_256_CBC)) {
-                    $parse = openssl_x509_parse($certif_public);
-                    // Valid certificate ?
-                    $now = new DateTime("now");
-                    $validTo_time_t_epoch = $parse['validTo_time_t'];
-                    $validTo_time_t = new DateTime("@$validTo_time_t_epoch");
-                    if ($validTo_time_t > $now) {
-                        // purposes smimeencrypt ?
-                        if (($parse['purposes'][5][0] == 1) && ($parse['purposes'][5][2] == 'smimeencrypt')) {
-                        } else {
-                            // openssl_pkcs7_encrypt good -- Model/User purposes is NOT GOOD'
-                            $results[$user['User']['id']][0] = true;
-                        }
-                    } else {
-                        // openssl_pkcs7_encrypt good -- Model/User expired;
-                        $results[$user['User']['id']][0] = true;
-                    }
-                } else {
-                    // openssl_pkcs7_encrypt NOT good -- Model/User
-                    $results[$user['User']['id']][0] = true;
-                }
-                $results[$user['User']['id']][1] = $user['User']['email'];
-            } catch (Exception $e) {
-                $this->log($e->getMessage());
+            $result = $this->testSmimeCertificate($user['User']['certif_public']);
+            if ($result !== true) {
+                $results[$user['User']['id']] = array(0 => true, 1 => $user['User']['email']);
             }
-            unlink($msg_test);
-            unlink($msg_test_encrypted);
         }
         return $results;
     }
