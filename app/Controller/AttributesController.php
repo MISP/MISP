@@ -2139,7 +2139,7 @@ class AttributesController extends AppController
         $parameters = array('value', 'type', 'category', 'org', 'eventid', 'uuid');
         foreach ($parameters as $k => $param) {
             if (isset(${$parameters[$k]}) && ${$parameters[$k]} !== false) {
-                $conditions = $this->Attribute->setSimpleConditions($parameters[$k], ${$parameters[$k]}, $conditions);
+                $conditions = $this->Attribute->Event->setSimpleConditions($parameters[$k], ${$parameters[$k]}, $conditions);
             }
         }
 

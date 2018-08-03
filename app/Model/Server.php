@@ -5,7 +5,7 @@ class Server extends AppModel
 {
     public $name = 'Server';
 
-    public $actsAs = array('SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable, check: 'userModel' and 'userKey' can be removed given default
+    public $actsAs = array('SysLogLogable.SysLogLogable' => array(
             'userModel' => 'User',
             'userKey' => 'user_id',
             'change' => 'full'
@@ -40,7 +40,7 @@ class Server extends AppModel
     public $displayField = 'url';
 
     public $validate = array(
-        'url' => array( // TODO add extra validation to refuse multiple time the same url from the same org
+        'url' => array(
             'url' => array(
                 'rule' => array('url'),
                 'message' => 'Please enter a valid base-url.'
@@ -134,7 +134,6 @@ class Server extends AppModel
             )
         );
 
-        // TODO i18n
         $this->serverSettings = array(
                 'MISP' => array(
                         'branch' => 1,
@@ -1781,9 +1780,6 @@ class Server extends AppModel
                     'recursive' => -1,
             ));
             $eventIds = array_intersect($eventIds, $local_event_ids);
-        } elseif ("incremental" === $technique) {
-            // TODO incremental pull
-            return array(3, null);
         } elseif (is_numeric($technique)) {
             $eventIds[] = intval($technique);
             // if we are downloading a single event, don't fetch all proposals
@@ -2072,7 +2068,6 @@ class Server extends AppModel
                 return 403;
             }
         } catch (SocketException $e) {
-            // FIXME refactor this with clean try catch over all http functions
             return $e->getMessage();
         }
         // error, so return error message, since that is handled and everything is expecting an array
@@ -2332,6 +2327,13 @@ class Server extends AppModel
         $this->Module = ClassRegistry::init('Module');
         $serverSettings = $this->serverSettings;
         $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex');
+        $serverSettings = $this->readModuleSettings($serverSettings, $moduleTypes);
+        return $serverSettings;
+    }
+
+    private function readModuleSettings($serverSettings, $moduleTypes)
+    {
+        $this->Module = ClassRegistry::init('Module');
         $orgs = $this->Organisation->find('list', array(
             'conditions' => array(
                 'Organisation.local' => 1
@@ -2350,7 +2352,6 @@ class Server extends AppModel
                         if ($result['type'] == 'boolean') {
                             $setting['test'] = 'testBool';
                             $setting['type'] = 'boolean';
-
                             $setting['description'] = __('Enable or disable the %s module.', $module);
                             $setting['value'] = false;
                         } elseif ($result['type'] == 'orgs') {
@@ -2373,37 +2374,13 @@ class Server extends AppModel
         return $serverSettings;
     }
 
-    # TODO [i18n] think about it
     public function serverSettingsRead($unsorted = false)
     {
         $this->Module = ClassRegistry::init('Module');
         $serverSettings = $this->getCurrentServerSettings();
         $currentSettings = Configure::read();
         if (Configure::read('Plugin.Enrichment_services_enable')) {
-            $results = $this->Module->getModuleSettings();
-            foreach ($results as $module => $data) {
-                foreach ($data as $result) {
-                    $setting = array('level' => 1, 'errorMessage' => '');
-                    if ($result['type'] == 'boolean') {
-                        $setting['test'] = 'testBool';
-                        $setting['type'] = 'boolean';
-                        $setting['description'] = __('Enable or disable the %s module.', $module);
-                        $setting['value'] = false;
-                    } elseif ($result['type'] == 'orgs') {
-                        $setting['description'] = __('Restrict the %s module to the given organisation.', $module);
-                        $setting['value'] = 0;
-                        $setting['test'] = 'testLocalOrg';
-                        $setting['type'] = 'numeric';
-                        $setting['optionsSource'] = 'LocalOrgs';
-                    } else {
-                        $setting['test'] = 'testForEmpty';
-                        $setting['type'] = 'string';
-                        $setting['description'] = __('Set this required module specific setting.');
-                        $setting['value'] = '';
-                    }
-                    $serverSettings['Plugin']['Enrichment_' . $module . '_' .  $result['name']] = $setting;
-                }
-            }
+            $this->readModuleSettings($serverSettings, array('Enrichment'));
         }
         $finalSettingsUnsorted = array();
         foreach ($serverSettings as $branchKey => &$branchValue) {
@@ -3341,31 +3318,6 @@ class Server extends AppModel
         return array('success' => $success, 'response' => $response, 'canPush' => $canPush, 'version' => $remoteVersion);
     }
 
-    /* This is a fallback for legacy remote instances that don't report back the current user's sync permission.
-     *
-     * The idea is simple: If we have no way of determining the perm_sync flag from the remote instance, request
-     * /servers/testConnection from the remote. This API is used to check the remote connectivity and expects an ID to be passed
-     * In this case however we are not passing an ID so ideally it will return 404, meaning that the instance is invalid.
-     * We are abusing the fact that only sync users can use this functionality, if we don't have sync permission we'll get a 403
-     * instead of the 404. It's hacky but it works fine and serves the purpose.
-     */
-    public function checkLegacyServerSyncPrivilege($id, $HttpSocket = false)
-    {
-        $server = $this->find('first', array('conditions' => array('Server.id' => $id)));
-        $uri = $server['Server']['url'] . '/servers/testConnection';
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $request = $this->setupSyncRequest($server);
-        try {
-            $response = $HttpSocket->get($uri, '', $request);
-        } catch (Exception $e) {
-            return false;
-        }
-        if ($response->code == '404') {
-            return true;
-        }
-        return false;
-    }
-
     public function isJson($string)
     {
         return (json_last_error() == JSON_ERROR_NONE);
@@ -3706,30 +3658,10 @@ class Server extends AppModel
             $worker = $workers[$pid];
             if (substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0 ? true : false) {
                 shell_exec('kill ' . $pid . ' > /dev/null 2>&1 &');
-                $this->Log->create();
-                $this->Log->save(array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'User',
-                        'model_id' => $user['id'],
-                        'email' => $user['email'],
-                        'action' => 'stop_worker',
-                        'user_id' => $user['id'],
-                        'title' => 'Stopping a worker.',
-                        'change' => 'Stopping a worker. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
-                ));
+                $this->__logRemoveWorker($user, $pid, $worker['queue'], false);
             } else {
                 $this->ResqueStatus->removeWorker($pid);
-                $this->Log->create();
-                $this->Log->save(array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'User',
-                        'model_id' => $user['id'],
-                        'email' => $user['email'],
-                        'action' => 'remove_dead_workers',
-                        'user_id' => $user['id'],
-                        'title' => 'Removing a dead worker.',
-                        'change' => 'Removing dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
-                ));
+                $this->__logRemoveWorker($user, $pid, $worker['queue'], true);
             }
             $this->ResqueStatus->removeWorker($pid);
         }
@@ -3739,7 +3671,6 @@ class Server extends AppModel
     {
         $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
         $workers = $this->ResqueStatus->getWorkers();
-        $this->Log = ClassRegistry::init('Log');
         if (function_exists('posix_getpwuid')) {
             $currentUser = posix_getpwuid(posix_geteuid());
             $currentUser = $currentUser['name'];
@@ -3753,32 +3684,47 @@ class Server extends AppModel
             $pidTest = substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0 ? true : false;
             if ($worker['user'] == $currentUser && !$pidTest) {
                 $this->ResqueStatus->removeWorker($pid);
-                $this->Log->create();
-                if (!empty($user)) {
-                    $this->Log->save(array(
-                            'org' => $user['Organisation']['name'],
-                            'model' => 'User',
-                            'model_id' => $user['id'],
-                            'email' => $user['email'],
-                            'action' => 'remove_dead_workers',
-                            'user_id' => $user['id'],
-                            'title' => 'Removing a dead worker.',
-                            'change' => 'Removing dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
-                    ));
-                } else {
-                    $this->Log->save(array(
-                            'org' => 'SYSTEM',
-                            'model' => 'User',
-                            'model_id' => 0,
-                            'email' => 'SYSTEM',
-                            'action' => 'remove_dead_workers',
-                            'user_id' => 0,
-                            'title' => 'Removing a dead worker.',
-                            'change' => 'Removing dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
-                    ));
-                }
+                $this->__logRemoveWorker($user, $pid, $worker['queue'], true);
             }
         }
+    }
+
+    private function __logRemoveWorker($user, $pid, $queue, $dead = false)
+    {
+        $this->Log = ClassRegistry::init('Log');
+        $this->Log->create();
+        if (empty($user)) {
+            $user = array(
+                'id' => 0,
+                'Organisation' => array(
+                    'name' => 'SYSTEM'
+                ),
+                'email' => 'SYSTEM'
+            );
+        }
+        $type = $dead ? 'dead' : 'kill';
+        $text = array(
+            'dead' => array(
+                'action' => 'remove_dead_workers',
+                'title' => __('Removing a dead worker.'),
+                'change' => sprintf(__('Removing dead worker data. Worker was of type %s with pid %s'), $queue, $pid)
+            ),
+            'kill' => array(
+                'action' => 'stop_worker',
+                'title' => __('Stopping a worker.'),
+                'change' => sprintf(__('Stopping a worker. Worker was of type %s with pid %s'), $queue, $pid)
+            )
+        );
+        $this->Log->save(array(
+            'org' => $user['Organisation']['name'],
+            'model' => 'User',
+            'model_id' => $user['id'],
+            'email' => $user['email'],
+            'action' => $text[$type]['action'],
+            'user_id' => $user['id'],
+            'title' => $text[$type]['title'],
+            'change' => $text[$type]['change']
+        ));
     }
 
     public function upgrade2324($user_id, $jobId = false)

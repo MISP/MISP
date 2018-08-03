@@ -858,42 +858,8 @@ class Event extends AppModel
         return $error;
     }
 
-    public function uploadEventToServer($event, $server, $HttpSocket = null)
+    private function __executeRestfulEventToServer($event, $server, $resourceId, &$newLocation, &$newTextBody, $HttpSocket)
     {
-        $this->Server = ClassRegistry::init('Server');
-        $push = $this->Server->checkVersionCompatibility($server['Server']['id'], false, $HttpSocket);
-        if (!isset($push['canPush'])) {
-            $test = $this->Server->checkLegacyServerSyncPrivilege($server['Server']['id'], $HttpSocket);
-        } else {
-            if (!$push['canPush']) {
-                return 'The remote user is not a sync user - the upload of the event has been blocked.';
-            }
-        }
-        $deletedAttributes = false;
-        if (($push['version'][0] > 2) ||
-            ($push['version'][0] == 2 && $push['version'][1] > 4) ||
-            ($push['version'][0] == 2 && $push['version'][1] == 4 && $push['version'][2] > 42)) {
-            $deletedAttributes = true;
-        }
-        if (isset($event['Attribute']) && !$deletedAttributes) {
-            foreach ($event['Attribute'] as $k => $v) {
-                if ($v['deleted']) {
-                    unset($event['Attribute'][$k]);
-                }
-            }
-            $event['Attribute'] = array_values($event['Attribute']);
-        }
-        if (!isset($push['canPush']) || !$push['canPush']) {
-            return 'Trying to push to an outdated instance.';
-        }
-        if (isset($server['Server']['unpublish_event'])) {
-            $unpublish_event = $server['Server']['unpublish_event'];
-            if ($unpublish_event) {
-                $event['Event']['published'] = 0;
-            }
-        }
-        $updated = null;
-        $newLocation = $newTextBody = '';
         $result = $this->restfulEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket);
         if (is_numeric($result)) {
             $error = $this->__resolveErrorCode($result, $event, $server);
@@ -901,60 +867,44 @@ class Event extends AppModel
                 return $error . ' Error code: ' . $result;
             }
         }
-        if (strlen($newLocation) || $result) { // HTTP/1.1 200 OK or 302 Found and Location: http://<newLocation>
-            if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
-                $result = $this->restfulEventToServer($event, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket);
-                if (is_numeric($result)) {
-                    $error = $this->__resolveErrorCode($result, $event, $server);
-                    if ($error) {
-                        return $error . ' Error code: ' . $result;
-                    }
-                }
+        return true;
+    }
+
+    public function uploadEventToServer($event, $server, $HttpSocket = null)
+    {
+        $this->Server = ClassRegistry::init('Server');
+        $push = $this->Server->checkVersionCompatibility($server['Server']['id'], false, $HttpSocket);
+        if (empty($push['canPush'])) {
+            return 'The remote user is not a sync user - the upload of the event has been blocked.';
+        }
+        if (!empty($server['Server']['unpublish_event'])) {
+            $event['Event']['published'] = 0;
+        }
+        $updated = null;
+        $newLocation = $newTextBody = '';
+        $result = $this->__executeRestfulEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket);
+        if ($result !== true) {
+            return $result;
+        }
+        if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
+            $result = $this->__executeRestfulEventToServer($event, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket);
+            if ($result !== true) {
+                return $result;
             }
-            $uploadFailed = false;
-            try {
-                $json = json_decode($newTextBody, true);
-            } catch (Exception $e) {
-                $uploadFailed = true;
-            }
-            if (!is_array($json) || $uploadFailed) {
-                return $this->__logUploadResult($server, $event, $newTextBody);
-            }
-            // get the remote event_id
-            foreach ($json as $jsonEvent) {
-                if (is_array($jsonEvent)) {
-                    foreach ($jsonEvent as $key => $value) {
-                        if ($key == 'id') {
-                            break;
-                        }
-                    }
-                } else {
-                    return $this->__logUploadResult($server, $event, $newTextBody);
-                }
-            }
+        }
+        $uploadFailed = false;
+        try {
+            $json = json_decode($newTextBody, true);
+        } catch (Exception $e) {
+            $uploadFailed = true;
+        }
+        if (!is_array($json) || $uploadFailed) {
+            return $this->__logUploadResult($server, $event, $newTextBody);
         }
         return 'Success';
     }
 
-    public function addHeaders($request)
-    {
-        $version = $this->checkMISPVersion();
-        $version = implode('.', $version);
-        try {
-            $commit = trim(shell_exec('git log --pretty="%H" -n1 HEAD'));
-        } catch (Exception $e) {
-            $commit = false;
-        }
-        $request['header']['MISP-version'] = $version;
-        if ($commit) {
-            $request['header']['commit'] = $commit;
-        }
-        return $request;
-    }
-
-    // Uploads the event and the associated Attributes to another Server
-    public function restfulEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null)
-    {
+    private function __prepareForPushToServer($event, $server) {
         if ($event['Event']['distribution'] == 4) {
             if (!empty($event['SharingGroup']['SharingGroupServer'])) {
                 $found = false;
@@ -979,22 +929,24 @@ class Event extends AppModel
         } else {
             return 403;
         }
-        $url = $server['Server']['url'];
-        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
-        $request = $this->setupSyncRequest($server);
-        $uri = $url . '/events';
-        if (isset($urlPath)) {
+        return $event;
+    }
+
+    private function __getLastUrlPathComponent($urlPath)
+    {
+        if (!empty($urlPath)) {
             $pieces = explode('/', $urlPath);
-            $uri .= '/' . end($pieces);
+            return '/' . end($pieces);
         }
-        $data = json_encode($event);
-        // LATER validate HTTPS SSL certificate
-        $response = $HttpSocket->post($uri, $data, $request);
+        return '';
+    }
+
+    private function __handleRestfulEventToServerResponse($response, &$newLocation, &$newTextBody)
+    {
         switch ($response->code) {
             case '200':	// 200 (OK) + entity-action-result
                 if ($response->isOk()) {
                     $newTextBody = $response->body();
-                    $newLocation = null;
                     return true;
                 } else {
                     try {
@@ -1002,11 +954,7 @@ class Event extends AppModel
                     } catch (Exception $e) {
                         return true;
                     }
-                    if (strpos($jsonArray['name'], "Event already exists")) {	// strpos, so i can piggyback some value if needed.
-                        return true;
-                    } else {
-                        return $jsonArray['name'];
-                    }
+                    return $jsonArray['name'];
                 }
             case '302': // Found
                 $newLocation = $response->headers['Location'];
@@ -1023,7 +971,21 @@ class Event extends AppModel
         }
     }
 
-    private function __updateEventForSync($event, $server)
+    // Uploads the event and the associated Attributes to another Server
+    public function restfulEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null)
+    {
+        $event = $this->__prepareForPushToServer($event, $server);
+        if (is_numeric($event)) return $event;
+        $url = $server['Server']['url'];
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
+        $uri = $url . '/events' . $this->__getLastUrlPathComponent($urlPath);
+        $data = json_encode($event);
+        $response = $HttpSocket->post($uri, $data, $request);
+        return $this->__handleRestfulEventToServerResponse($response, $newLocation, $newTextBody);
+    }
+
+    private function __rearrangeEventStructureForSync($event)
     {
         // rearrange things to be compatible with the Xml::fromArray()
         $objectsToRearrange = array('Attribute', 'Object', 'Orgc', 'SharingGroup', 'EventTag', 'Org', 'ShadowAttribute');
@@ -1033,21 +995,66 @@ class Event extends AppModel
                 unset($event[$o]);
             }
         }
-
         // cleanup the array from things we do not want to expose
         foreach (array('Org', 'org_id', 'orgc_id', 'proposal_email_lock', 'org', 'orgc') as $field) {
             unset($event['Event'][$field]);
         }
-        foreach ($event['Event']['EventTag'] as $kt => $tag) {
-            if (!$tag['Tag']['exportable']) {
-                unset($event['Event']['EventTag'][$kt]);
-            } else {
-                unset($tag['org_id']);
-                $event['Event']['Tag'][] = $tag['Tag'];
-            }
-        }
-        unset($event['Event']['EventTag']);
+        return $event;
+    }
 
+    // since we fetch the event and filter on tags after / server, we need to cull all of the non exportable tags
+    private function __removeNonExportableTags($data, $dataType)
+    {
+        if (!empty($data[$dataType . 'Tag'])) {
+            foreach ($data[$dataType . 'Tag'] as $k => $tag) {
+                if (!$tag['Tag']['exportable']) {
+                    unset($data[$dataType . 'Tag'][$k]);
+                } else {
+                    unset($tag['org_id']);
+                    $data['Tag'][] = $tag['Tag'];
+                }
+            }
+            unset($data[$dataType . 'Tag']);
+        }
+        return $data;
+    }
+
+    private function __prepareAttributesForSync($data, $server) {
+        // prepare attribute for sync
+        if (!empty($data['Attribute'])) {
+            foreach ($data['Attribute'] as $key => $attribute) {
+                $data['Attribute'][$key] = $this->__updateAttributeForSync($attribute, $server);
+                if (empty($data['Attribute'][$key])) {
+                    unset($data['Attribute'][$key]);
+                } else {
+                    $data['Attribute'][$key] = $this->__removeNonExportableTags($data['Attribute'][$key], 'Attribute');
+                }
+            }
+            $data['Attribute'] = array_values($data['Attribute']);
+        }
+        return $data;
+    }
+
+    private function __prepareObjectsForSync($data, $server) {
+        // prepare Object for sync
+        if (!empty($data['Object'])) {
+            foreach ($data['Object'] as $key => $object) {
+                $data['Object'][$key] = $this->__updateObjectForSync($object, $server);
+                if (empty($data['Object'][$key])) {
+                    unset($data['Object'][$key]);
+                } else {
+                    $data['Object'][$key]['Attribute'] = $this->__prepareAttributesForSync($data['Object'][$key]['Attribute'], $server);
+                }
+            }
+            $data['Object'] = array_values($data['Object']);
+        }
+        return $data;
+    }
+
+    private function __updateEventForSync($event, $server)
+    {
+        $event = $this->__rearrangeEventStructureForSync($event);
+        $event['Event'] = $this->__removeNonExportableTags($event['Event'], 'Event');
         // Add the local server to the list of instances in the SG
         if (isset($event['Event']['SharingGroup']) && isset($event['Event']['SharingGroup']['SharingGroupServer'])) {
             foreach ($event['Event']['SharingGroup']['SharingGroupServer'] as &$s) {
@@ -1056,36 +1063,12 @@ class Event extends AppModel
                 }
             }
         }
-
-        // prepare attribute for sync
-        if (!empty($event['Event']['Attribute'])) {
-            foreach ($event['Event']['Attribute'] as $key => $attribute) {
-                $event['Event']['Attribute'][$key] = $this->__updateAttributeForSync($attribute, $server);
-                if (empty($event['Event']['Attribute'][$key])) {
-                    unset($event['Event']['Attribute'][$key]);
-                }
-            }
-        }
-
-        // prepare Object for sync
-        if (!empty($event['Event']['Object'])) {
-            foreach ($event['Event']['Object'] as $key => $object) {
-                $event['Event']['Object'][$key] = $this->__updateObjectForSync($object, $server);
-                if (empty($event['Event']['Object'][$key])) {
-                    unset($event['Event']['Object'][$key]);
-                }
-            }
-        }
+        $event['Event'] = $this->__prepareAttributesForSync($event['Event'], $server);
+        $event['Event'] = $this->__prepareObjectsForSync($event['Event'], $server);
 
         // Downgrade the event from connected communities to community only
         if (!$server['Server']['internal'] && $event['Event']['distribution'] == 2) {
             $event['Event']['distribution'] = 1;
-        }
-        if (!empty($event['Event']['Attribute'])) {
-            $event['Event']['Attribute'] = array_values($event['Event']['Attribute']);
-        }
-        if (!empty($event['Event']['Object'])) {
-            $event['Event']['Object'] = array_values($event['Event']['Object']);
         }
         return $event;
     }
@@ -1113,14 +1096,6 @@ class Event extends AppModel
                 }
             }
         }
-        if (!empty($object['Attribute'])) {
-            foreach ($object['Attribute'] as $key => $attribute) {
-                $object['Attribute'][$key] = $this->__updateAttributeForSync($attribute, $server);
-                if (empty($object['Attribute'][$key])) {
-                    unset($object['Attribute'][$key]);
-                }
-            }
-        }
         return $object;
     }
 
@@ -1141,7 +1116,7 @@ class Event extends AppModel
                 return false;
             }
             // Add the local server to the list of instances in the SG
-            if (isset($attribute['SharingGroup']['SharingGroupServer'])) {
+            if (!empty($attribute['SharingGroup']['SharingGroupServer'])) {
                 foreach ($attribute['SharingGroup']['SharingGroupServer'] as &$s) {
                     if ($s['server_id'] == 0) {
                         $s['Server'] = array('id' => 0, 'url' => Configure::read('MISP.baseurl'));
@@ -1149,29 +1124,18 @@ class Event extends AppModel
                 }
             }
         }
-        foreach ($attribute['AttributeTag'] as $kt => $tag) {
-            if (!$tag['Tag']['exportable']) {
-                unset($attribute['AttributeTag'][$kt]);
-            } else {
-                unset($tag['Tag']['org_id']);
-                $attribute['Tag'][] = $tag['Tag'];
-            }
-        }
-        unset($attribute['AttributeTag']);
-
-        // remove value1 and value2 from the output
-        unset($attribute['value1']);
-        unset($attribute['value2']);
         // also add the encoded attachment
         if ($this->Attribute->typeIsAttachment($attribute['type'])) {
-            $encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
-            $attribute['data'] = $encodedFile;
+            $attribute['data'] = $this->Attribute->base64EncodeAttachment($attribute);
         }
         // Passing the attribute ID together with the attribute could cause the deletion of attributes after a publish/push
         // Basically, if the attribute count differed between two instances, and the instance with the lower attribute
         // count pushed, the old attributes with the same ID got overwritten. Unsetting the ID before pushing it
         // solves the issue and a new attribute is always created.
         unset($attribute['id']);
+        // remove value1 and value2 from the output
+        unset($attribute['value1']);
+        unset($attribute['value2']);
         return $attribute;
     }
 
@@ -2726,22 +2690,7 @@ class Event extends AppModel
                     'disable_correlation',
                     'extends_uuid'
                 ),
-                'Attribute' => array(
-                    'event_id',
-                    'category',
-                    'type',
-                    'value',
-                    'to_ids',
-                    'uuid',
-                    'timestamp',
-                    'distribution',
-                    'comment',
-                    'sharing_group_id',
-                    'deleted',
-                    'disable_correlation',
-                    'object_id',
-                    'object_relation'
-                ),
+                'Attribute' => $this->Attribute->captureFields,
                 'Object' => array(
                     'name',
                     'meta-category',
@@ -3388,9 +3337,7 @@ class Event extends AppModel
         $i = 0;
         foreach ($events as $k => $event) {
             $this->set($event);
-            if ($this->validates()) {
-                // validates
-            } else {
+            if (!$this->validates()) {
                 $errors = $this->validationErrors;
                 $result[$i]['id'] = $event['Event']['id'];
                 $result[$i]['error'] = $errors;
@@ -4321,10 +4268,10 @@ class Event extends AppModel
         $cidr = new CIDRTool();
         $subcondition = array();
         foreach ($elements as $v) {
-            if ($v == '') {
+            if ($v === '') {
                 continue;
             }
-            if (substr($v, 0, 1) == '!') {
+            if (substr($v, 0, 1) === '!') {
                 // check for an IPv4 address and subnet in CIDR notation (e.g. 127.0.0.1/8)
                 if ($parameterKey === 'value' && $cidr->checkCIDR(substr($v, 1), 4)) {
                     $cidrresults = $cidr->CIDR(substr($v, 1));
