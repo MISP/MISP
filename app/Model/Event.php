@@ -3388,9 +3388,7 @@ class Event extends AppModel
         $i = 0;
         foreach ($events as $k => $event) {
             $this->set($event);
-            if ($this->validates()) {
-                // validates
-            } else {
+            if (!$this->validates()) {
                 $errors = $this->validationErrors;
                 $result[$i]['id'] = $event['Event']['id'];
                 $result[$i]['error'] = $errors;
