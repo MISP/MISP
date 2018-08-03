@@ -2072,7 +2072,6 @@ class Server extends AppModel
                 return 403;
             }
         } catch (SocketException $e) {
-            // FIXME refactor this with clean try catch over all http functions
             return $e->getMessage();
         }
         // error, so return error message, since that is handled and everything is expecting an array
@@ -2332,6 +2331,13 @@ class Server extends AppModel
         $this->Module = ClassRegistry::init('Module');
         $serverSettings = $this->serverSettings;
         $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex');
+        $serverSettings = $this->readModuleSettings($serverSettings, $moduleTypes);
+        return $serverSettings;
+    }
+
+    private function readModuleSettings($serverSettings, $moduleTypes)
+    {
+        $this->Module = ClassRegistry::init('Module');
         $orgs = $this->Organisation->find('list', array(
             'conditions' => array(
                 'Organisation.local' => 1
@@ -2350,7 +2356,6 @@ class Server extends AppModel
                         if ($result['type'] == 'boolean') {
                             $setting['test'] = 'testBool';
                             $setting['type'] = 'boolean';
-
                             $setting['description'] = __('Enable or disable the %s module.', $module);
                             $setting['value'] = false;
                         } elseif ($result['type'] == 'orgs') {
@@ -2380,30 +2385,7 @@ class Server extends AppModel
         $serverSettings = $this->getCurrentServerSettings();
         $currentSettings = Configure::read();
         if (Configure::read('Plugin.Enrichment_services_enable')) {
-            $results = $this->Module->getModuleSettings();
-            foreach ($results as $module => $data) {
-                foreach ($data as $result) {
-                    $setting = array('level' => 1, 'errorMessage' => '');
-                    if ($result['type'] == 'boolean') {
-                        $setting['test'] = 'testBool';
-                        $setting['type'] = 'boolean';
-                        $setting['description'] = __('Enable or disable the %s module.', $module);
-                        $setting['value'] = false;
-                    } elseif ($result['type'] == 'orgs') {
-                        $setting['description'] = __('Restrict the %s module to the given organisation.', $module);
-                        $setting['value'] = 0;
-                        $setting['test'] = 'testLocalOrg';
-                        $setting['type'] = 'numeric';
-                        $setting['optionsSource'] = 'LocalOrgs';
-                    } else {
-                        $setting['test'] = 'testForEmpty';
-                        $setting['type'] = 'string';
-                        $setting['description'] = __('Set this required module specific setting.');
-                        $setting['value'] = '';
-                    }
-                    $serverSettings['Plugin']['Enrichment_' . $module . '_' .  $result['name']] = $setting;
-                }
-            }
+            $this->readModuleSettings($serverSettings, array('Enrichment'));
         }
         $finalSettingsUnsorted = array();
         foreach ($serverSettings as $branchKey => &$branchValue) {
