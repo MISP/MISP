@@ -747,7 +747,6 @@ class UsersController extends AppController
                         array_push($fields, $field);
                     }
                 }
-                // TODO Audit, __extralog, fields get orig
                 $fieldsOldValues = array();
                 foreach ($fields as $field) {
                     if ($field == 'enable_password') {
@@ -759,7 +758,6 @@ class UsersController extends AppController
                         array_push($fieldsOldValues, $this->User->field('password'));
                     }
                 }
-                // TODO Audit, __extralog, fields get orig END
                 if (
                     isset($this->request->data['User']['enable_password']) && $this->request->data['User']['enable_password'] != '0' &&
                     isset($this->request->data['User']['password']) && "" != $this->request->data['User']['password']
@@ -782,7 +780,6 @@ class UsersController extends AppController
                     }
                 }
                 if ($this->User->save($this->request->data, true, $fields)) {
-                    // TODO Audit, __extralog, fields compare
                     // newValues to array
                     $fieldsNewValues = array();
                     foreach ($fields as $field) {
@@ -819,8 +816,7 @@ class UsersController extends AppController
                         $c++;
                     }
                     $fieldsResultStr = substr($fieldsResultStr, 2);
-                    $this->__extralog("edit", "user", $fieldsResultStr);	// TODO Audit, check: modify User
-                    // TODO Audit, __extralog, fields compare END
+                    $this->__extralog("edit", "user", $fieldsResultStr);
                     if ($this->_isRest()) {
                         $user = $this->User->find('first', array(
                                 'conditions' => array('User.id' => $this->User->id),
@@ -850,7 +846,7 @@ class UsersController extends AppController
                 $this->redirect(array('controller' => 'users', 'action' => 'index', 'admin' => true));
             }
             $this->User->set('password', '');
-            $this->request->data = $this->User->data; // TODO CHECK
+            $this->request->data = $this->User->data;
         }
         if ($this->_isSiteAdmin()) {
             $orgs = $this->User->Organisation->find('list', array(
@@ -961,7 +957,7 @@ class UsersController extends AppController
             }
         }
         if ($this->Auth->login()) {
-            $this->__extralog("login");	// TODO Audit, __extralog, check: customLog i.s.o. __extralog, no auth user?: $this->User->customLog('login', $this->Auth->user('id'), array('title' => '','user_id' => $this->Auth->user('id'),'email' => $this->Auth->user('email'),'org' => 'IN2'));
+            $this->__extralog("login");
             $this->User->Behaviors->disable('SysLogLogable.SysLogLogable');
             $this->User->id = $this->Auth->user('id');
             $user = $this->User->find('first', array(
@@ -1071,8 +1067,8 @@ class UsersController extends AppController
 
     public function logout()
     {
-        if ($this->Session->check('Auth.User')) { // TODO session, user is logged in, so ..
-            $this->__extralog("logout");	// TODO Audit, __extralog, check: customLog i.s.o. __extralog, $this->User->customLog('logout', $this->Auth->user('id'), array());
+        if ($this->Session->check('Auth.User')) {
+            $this->__extralog("logout");
         }
         $this->Flash->info(__('Good-Bye'));
         $user = $this->User->find('first', array(
@@ -1242,7 +1238,7 @@ class UsersController extends AppController
     }
 
     private function __extralog($action = null, $description = null, $fieldsResult = null)
-    {	// TODO move audit to AuditsController?
+    {
         // new data
         $model = 'User';
         $modelId = $this->Auth->user('id');
