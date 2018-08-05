@@ -2393,6 +2393,19 @@ class Event extends AppModel
         if (empty($orgMembers)) {
             return false;
         }
+        $temp = $this->__buildContactEventEmailBody($user, $message, $event, $targetUser, $id);
+        $bodyevent = $temp[0];
+        $body = $temp[1];
+        $result = true;
+        $tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
+        foreach ($orgMembers as &$reporter) {
+            $subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - ".$tplColorString;
+            $result = $this->User->sendEmail($reporter, $bodyevent, $body, $subject, $user) && $result;
+        }
+        return $result;
+    }
+
+    private function __buildContactEventEmailBody($user, $message, $event, $targetUser, $id) {
         // The mail body, h() is NOT needed as we are sending plain-text mails.
         $body = "";
         $body .= "Hello, \n";
@@ -2454,13 +2467,7 @@ class Event extends AppModel
         }
         $bodyevent .= "\n";
         $bodyevent .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
-        $result = true;
-        $tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
-        foreach ($orgMembers as &$reporter) {
-            $subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - ".$tplColorString;
-            $result = $this->User->sendEmail($reporter, $bodyevent, $body, $subject, $user) && $result;
-        }
-        return $result;
+        return array($bodyevent, $body);
     }
 
     private function __captureSGForElement($element, $user)
