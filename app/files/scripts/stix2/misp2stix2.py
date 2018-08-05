@@ -461,7 +461,7 @@ class StixBuilder():
         killchain = self.create_killchain(category)
         labels = self.create_labels(attribute)
         attribute_value = attribute.value if attribute_type != "AS" else self.define_attribute_value(attribute.value, attribute.comment)
-        pattern = mispTypesMapping[attribute_type]['pattern'](attribute_type, attribute_value, b64encode(attribute.data.getbuffer()).decode()[1:-1]) if 'data' in attribute else self.define_pattern(attribute_type, attribute_value)
+        pattern = mispTypesMapping[attribute_type]['pattern'](attribute_type, attribute_value, b64encode(attribute.data.getbuffer()).decode()[1:-1]) if ('data' in attribute and attribute.data) else self.define_pattern(attribute_type, attribute_value)
         indicator_args = {'id': indicator_id, 'type': 'indicator', 'labels': labels, 'kill_chain_phases': killchain,
                            'valid_from': attribute.timestamp, 'created_by_ref': self.identity_id, 'pattern': pattern}
         if hasattr(attribute, 'comment') and attribute.comment:
@@ -644,9 +644,11 @@ class StixBuilder():
 
     @staticmethod
     def create_labels(attribute):
-        return ['misp:type="{}"'.format(attribute.type),
-                'misp:category="{}"'.format(attribute.category),
-                'misp:to_ids="{}"'.format(attribute.to_ids)]
+        labels = ['misp:type="{}"'.format(attribute.type),
+                  'misp:category="{}"'.format(attribute.category),
+                  'misp:to_ids="{}"'.format(attribute.to_ids)]
+        labels += [tag.name for tag in attribute.Tag]
+        return labels
 
     @staticmethod
     def create_object_labels(name, category, to_ids):

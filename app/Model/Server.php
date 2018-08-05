@@ -47,14 +47,7 @@ class Server extends AppModel
             )
         ),
         'authkey' => array(
-            'minlength' => array(
-                'rule' => array('minlength', 40),
-                'message' => 'A authkey of a minimum length of 40 is required.',
-                'required' => true,
-            ),
-            'valueNotEmpty' => array(
-                'rule' => array('valueNotEmpty'),
-            ),
+            'rule' => array('validateAuthkey')
         ),
         'org_id' => array(
             'numeric' => array(
@@ -1741,6 +1734,42 @@ class Server extends AppModel
         return true;
     }
 
+    private function __getEventIdListBasedOnPullTechnique($technique, $server) {
+        if ("full" === $technique) {
+            // get a list of the event_ids on the server
+            $eventIds = $this->getEventIdsFromServer($server);
+            if ($eventIds === 403) {
+                return array('error' => array(1, null));
+            } elseif (is_string($eventIds)) {
+                return array('error' => array(2, $eventIds));
+            }
+
+            // reverse array of events, to first get the old ones, and then the new ones
+            if (!empty($eventIds)) {
+                $eventIds = array_reverse($eventIds);
+            }
+        } elseif ("update" === $technique) {
+            $eventIds = $this->getEventIdsFromServer($server, false, null, true, true);
+            if ($eventIds === 403) {
+                return array('error' => array(1, null));
+            } elseif (is_string($eventIds)) {
+                return array('error' => array(2, $eventIds));
+            }
+            $local_event_ids = $eventModel->find('list', array(
+                    'fields' => array('uuid'),
+                    'recursive' => -1,
+            ));
+            $eventIds = array_intersect($eventIds, $local_event_ids);
+        } elseif (is_numeric($technique)) {
+            $eventIds[] = intval($technique);
+            // if we are downloading a single event, don't fetch all proposals
+            $conditions = array('Event.id' => $technique);
+        } else {
+            return array('error' => array(4, null));
+        }
+        return $eventIds;
+    }
+
     public function pull($user, $id = null, $technique=false, $server, $jobId = false, $percent = 100, $current = 0)
     {
         if ($jobId) {
@@ -1754,39 +1783,7 @@ class Server extends AppModel
         App::uses('HttpSocket', 'Network/Http');
         $eventIds = array();
         $conditions = array();
-        if ("full" === $technique) {
-            // get a list of the event_ids on the server
-            $eventIds = $this->getEventIdsFromServer($server);
-            // FIXME this is not clean at all ! needs to be refactored with try catch error handling/communication
-            if ($eventIds === 403) {
-                return array(1, null);
-            } elseif (is_string($eventIds)) {
-                return array(2, $eventIds);
-            }
-
-            // reverse array of events, to first get the old ones, and then the new ones
-            if (!empty($eventIds)) {
-                $eventIds = array_reverse($eventIds);
-            }
-        } elseif ("update" === $technique) {
-            $eventIds = $this->getEventIdsFromServer($server, false, null, true, true);
-            if ($eventIds === 403) {
-                return array(1, null);
-            } elseif (is_string($eventIds)) {
-                return array(2, $eventIds);
-            }
-            $local_event_ids = $eventModel->find('list', array(
-                    'fields' => array('uuid'),
-                    'recursive' => -1,
-            ));
-            $eventIds = array_intersect($eventIds, $local_event_ids);
-        } elseif (is_numeric($technique)) {
-            $eventIds[] = intval($technique);
-            // if we are downloading a single event, don't fetch all proposals
-            $conditions = array('Event.id' => $technique);
-        } else {
-            return array(4, null);
-        }
+        $eventIds = $this->__getEventIdListBasedOnPullTechnique($technique, $server);
         $successes = array();
         $fails = array();
         $pulledProposals = array();
@@ -2374,15 +2371,8 @@ class Server extends AppModel
         return $serverSettings;
     }
 
-    public function serverSettingsRead($unsorted = false)
+    private function __serverSettingsRead($serverSettings, $currentSettings)
     {
-        $this->Module = ClassRegistry::init('Module');
-        $serverSettings = $this->getCurrentServerSettings();
-        $currentSettings = Configure::read();
-        if (Configure::read('Plugin.Enrichment_services_enable')) {
-            $this->readModuleSettings($serverSettings, array('Enrichment'));
-        }
-        $finalSettingsUnsorted = array();
         foreach ($serverSettings as $branchKey => &$branchValue) {
             if (isset($branchValue['branch'])) {
                 foreach ($branchValue as $leafKey => &$leafValue) {
@@ -2417,14 +2407,11 @@ class Server extends AppModel
                 $finalSettingsUnsorted[$branchKey] = $branchValue;
             }
         }
-        foreach ($finalSettingsUnsorted as $key => $temp) {
-            if (in_array($temp['tab'], array_keys($this->__settingTabMergeRules))) {
-                $finalSettingsUnsorted[$key]['tab'] = $this->__settingTabMergeRules[$temp['tab']];
-            }
-        }
-        if ($unsorted) {
-            return $finalSettingsUnsorted;
-        }
+        return $finalSettingsUnsorted;
+    }
+
+    private function __sortFinalSettings($finalSettingsUnsorted)
+    {
         $finalSettings = array();
         for ($i = 0; $i < 4; $i++) {
             foreach ($finalSettingsUnsorted as $k => $s) {
@@ -2435,6 +2422,26 @@ class Server extends AppModel
             }
         }
         return $finalSettings;
+    }
+
+    public function serverSettingsRead($unsorted = false)
+    {
+        $this->Module = ClassRegistry::init('Module');
+        $serverSettings = $this->getCurrentServerSettings();
+        $currentSettings = Configure::read();
+        if (Configure::read('Plugin.Enrichment_services_enable')) {
+            $this->readModuleSettings($serverSettings, array('Enrichment'));
+        }
+        $finalSettingsUnsorted = $this->__serverSettingsRead($serverSettings, $currentSettings);
+        foreach ($finalSettingsUnsorted as $key => $temp) {
+            if (in_array($temp['tab'], array_keys($this->__settingTabMergeRules))) {
+                $finalSettingsUnsorted[$key]['tab'] = $this->__settingTabMergeRules[$temp['tab']];
+            }
+        }
+        if ($unsorted) {
+            return $finalSettingsUnsorted;
+        }
+        return $this->__sortFinalSettings($finalSettingsUnsorted);
     }
 
     public function serverSettingReadSingle($settingObject, $settingName, $leafKey)
@@ -2910,8 +2917,6 @@ class Server extends AppModel
                 $k = $this->Attribute->generateCorrelation();
             }
         } else {
-            $job = ClassRegistry::init('Job');
-            $job->create();
             if ($value == true) {
                 $jobType = 'jobPurgeCorrelation';
                 $jobTypeText = 'purge correlations';
@@ -2919,6 +2924,8 @@ class Server extends AppModel
                 $jobType = 'jobGenerateCorrelation';
                 $jobTypeText = 'generate correlation';
             }
+            $job = ClassRegistry::init('Job');
+            $job->create();
             $data = array(
                     'worker' => 'default',
                     'job_type' => $jobTypeText,
@@ -3725,156 +3732,6 @@ class Server extends AppModel
             'title' => $text[$type]['title'],
             'change' => $text[$type]['change']
         ));
-    }
-
-    public function upgrade2324($user_id, $jobId = false)
-    {
-        $this->cleanCacheFiles();
-        if (Configure::read('MISP.background_jobs') && $jobId) {
-            $this->Job = ClassRegistry::init('Job');
-            $this->Job->id = $jobId;
-        }
-        $this->Log = ClassRegistry::init('Log');
-        $this->Organisation = ClassRegistry::init('Organisation');
-        $this->Attribute = ClassRegistry::init('Attribute');
-        $this->Log->create();
-        $this->Log->save(array(
-                'org' => 'SYSTEM',
-                'model' => 'Server',
-                'model_id' => 0,
-                'email' => 'SYSTEM',
-                'action' => 'upgrade_24',
-                'user_id' => 0,
-                'title' => 'Upgrade initiated',
-                'change' => 'Starting the migration of the database to 2.4',
-        ));
-        if (Configure::read('MISP.background_jobs') && $jobId) {
-            $this->Job->saveField('progress', 10);
-            $this->Job->saveField('message', 'Starting the migration of the database to 2.4');
-        }
-        $this->query('UPDATE roles SET perm_template = 1 WHERE perm_site_admin = 1 OR perm_admin = 1');
-        $this->query('UPDATE roles SET perm_sharing_group = 1 WHERE perm_site_admin = 1 OR perm_sync = 1');
-        $orgs = array('local' => array(), 'external' => array());
-        $captureRules = array(
-                'events_org' => array('table' => 'events', 'old' => 'org', 'new' => 'org_id'),
-                'events_orgc' => array('table' => 'events', 'old' => 'orgc', 'new' => 'orgc_id'),
-                'jobs_org' => array('table' => 'jobs', 'old' => 'org', 'new' => 'org_id'),
-                'servers_org' => array('table' => 'servers', 'old' => 'org', 'new' => 'org_id'),
-                'servers_organization' => array('table' => 'servers', 'old' => 'organization', 'new' => 'remote_org_id'),
-                'shadow_attributes_org' => array('table' => 'shadow_attributes', 'old' => 'org', 'new' => 'org_id'),
-                'shadow_attributes_event_org' => array('table' => 'shadow_attributes', 'old' => 'event_org', 'new' => 'event_org_id'),
-                'threads_org' => array('table' => 'threads', 'old' => 'org', 'new' => 'org_id'),
-                'users_org' => array('table' => 'users', 'old' => 'org', 'new' => 'org_id'),
-        );
-        $rules = array(
-                'local' => array(
-                        $captureRules['users_org'],
-                ),
-                'external' => array(
-                        $captureRules['events_org'],
-                        $captureRules['events_orgc'],
-                        $captureRules['shadow_attributes_event_org'],
-                        $captureRules['shadow_attributes_org'],
-                        $captureRules['servers_organization'],
-                        $captureRules['threads_org'],
-                        $captureRules['jobs_org'],
-                        $captureRules['servers_org'],
-                )
-        );
-        foreach ($rules as $k => $type) {
-            foreach ($type as $rule) {
-                $temp = ($this->query('SELECT DISTINCT(`' . $rule['old'] . '`) from `' . $rule['table'] . '` WHERE ' . $rule['new'] . '= "";'));
-                foreach ($temp as $t) {
-                    // in case we have something in the db with a missing org, let's hop over that
-                    if ($t[$rule['table']][$rule['old']] !== '') {
-                        if ($k == 'local' && !in_array($t[$rule['table']][$rule['old']], $orgs[$k])) {
-                            $orgs[$k][] = $t[$rule['table']][$rule['old']];
-                        } elseif ($k == 'external' && !in_array($t[$rule['table']][$rule['old']], $orgs['local']) && !in_array($t[$rule['table']][$rule['old']], $orgs[$k])) {
-                            $orgs[$k][] = $t[$rule['table']][$rule['old']];
-                        }
-                    } else {
-                        $this->Log->create();
-                        $this->Log->save(array(
-                                'org' => 'SYSTEM',
-                                'model' => 'Server',
-                                'model_id' => 0,
-                                'email' => 'SYSTEM',
-                                'action' => 'upgrade_24',
-                                'user_id' => 0,
-                                'title' => '[ERROR] - Detected empty string organisation identifier during the upgrade',
-                                'change' => 'Detected entries in table `' . $rule['table'] . '` where `' . $rule['old'] . '` was blank. This has to be resolved manually!',
-                        ));
-                    }
-                }
-            }
-        }
-        $this->Log->create();
-        $this->Log->save(array(
-                'org' => 'SYSTEM',
-                'model' => 'Server',
-                'model_id' => 0,
-                'email' => 'SYSTEM',
-                'action' => 'upgrade_24',
-                'user_id' => 0,
-                'title' => 'Organisation creation',
-                'change' => 'Detected ' . count($orgs['local']) . ' local organisations and ' . count($orgs['external']) . ' external organisations. Starting organisation creation.',
-        ));
-        if (Configure::read('MISP.background_jobs') && $jobId) {
-            $this->Job->saveField('progress', 20);
-            $this->Job->saveField('message', 'Starting organisation creation');
-        }
-        $orgMapping = array();
-        foreach ($orgs as $k => $orgArray) {
-            foreach ($orgArray as $org) {
-                $orgMapping[$org] = $this->Organisation->createOrgFromName($org, $user_id, $k == 'local' ? true : false);
-            }
-        }
-        $this->Log->create();
-        $this->Log->save(array(
-                'org' => 'SYSTEM',
-                'model' => 'Server',
-                'model_id' => 0,
-                'email' => 'SYSTEM',
-                'action' => 'upgrade_24',
-                'user_id' => 0,
-                'title' => 'Organisations created and / or mapped',
-                'change' => 'Captured all missing organisations and created a mapping between the old organisation tag and the organisation IDs. ',
-        ));
-        if (Configure::read('MISP.background_jobs') && $jobId) {
-            $this->Job->saveField('progress', 30);
-            $this->Job->saveField('message', 'Updating all current entries');
-        }
-        foreach ($orgMapping as $old => $new) {
-            foreach ($captureRules as $rule) {
-                $this->query('UPDATE `' . $rule['table'] . '` SET `' . $rule['new'] . '`="' . $new . '" WHERE (`' . $rule['old'] . '`="' . $old . '" AND `' . $rule['new'] . '`="");');
-            }
-        }
-        if (Configure::read('MISP.background_jobs') && $jobId) {
-            $this->Job->saveField('progress', 40);
-            $this->Job->saveField('message', 'Rebuilding all correlations.');
-        }
-        //$this->Attribute->generateCorrelation($jobId, 40);
-        // upgrade correlations. No need to recorrelate, we can be a bit trickier here
-        // Private = 0 attributes become distribution 1 for both the event and attribute.
-        // For all intents and purposes, this oversimplification works fine when upgrading from 2.3
-        // Even though the distribution values stored in the correlation won't be correct, they will provide the exact same realeasability
-        // Event1 = distribution 0 and Attribute1 distribution 3 would lead to private = 1, so setting distribution = 0 and a_distribution = 0
-        // will result in the same visibility, etc. Once events / attributes get put into a sharing group this will get recorrelated anyway
-        // Also by unsetting the org field after the move the changes we ensure that these correlations won't get hit again by the script if we rerun it
-        // and that we don't accidentally "upgrade" a 2.4 correlation
-        $this->query('UPDATE correlations SET distribution = 1, a_distribution = 1 WHERE org != "" AND private = 0');
-        foreach ($orgMapping as $old => $new) {
-            $this->query('UPDATE correlations SET org_id = "' . $new . '", org = "" WHERE org = "' . $old . '";');
-        }
-        if (Configure::read('MISP.background_jobs') && $jobId) {
-            $this->Job->saveField('progress', 60);
-            $this->Job->saveField('message', 'Correlations rebuilt. Indexing all tables.');
-        }
-        $this->updateDatabase('indexTables');
-        if (Configure::read('MISP.background_jobs') && $jobId) {
-            $this->Job->saveField('progress', 100);
-            $this->Job->saveField('message', 'Upgrade complete.');
-        }
     }
 
     /* returns the version string of a connected instance

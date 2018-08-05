@@ -278,6 +278,9 @@ class StixParser():
         attribute_type = self.get_misp_type(labels)
         attribute_category = self.get_misp_category(labels)
         attribute = {'type': attribute_type, 'category': attribute_category}
+        tags = [{'name': label} for label in labels[3:]]
+        if tags:
+            attribute['Tag'] = tags
         stix_type = o._type
         if stix_type == 'vulnerability':
             value = o.get('name')

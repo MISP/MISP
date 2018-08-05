@@ -1415,6 +1415,10 @@ class ServersController extends AppController
         if ($result['status'] == 1) {
             $version = json_decode($result['message'], true);
             if (isset($version['version']) && preg_match('/^[0-9]+\.+[0-9]+\.[0-9]+$/', $version['version'])) {
+                $perm_sync = false;
+                if (isset($version['perm_sync'])) {
+                    $perm_sync = $version['perm_sync'];
+                }
                 App::uses('Folder', 'Utility');
                 $file = new File(ROOT . DS . 'VERSION.json', true);
                 $local_version = json_decode($file->read(), true);
@@ -1438,16 +1442,9 @@ class ServersController extends AppController
                         }
                     }
                 }
-                if (!isset($version['perm_sync'])) {
-                    if (!$this->Server->checkLegacyServerSyncPrivilege($id)) {
-                        $result['status'] = 7;
-                        return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
-                    }
-                } else {
-                    if (!$version['perm_sync']) {
-                        $result['status'] = 7;
-                        return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
-                    }
+                if (!$perm_sync) {
+                    $result['status'] = 7;
+                    return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
                 }
                 return new CakeResponse(
                         array(
