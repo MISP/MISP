@@ -635,9 +635,11 @@ class StixBuilder():
 
     @staticmethod
     def create_labels(attribute):
-        return ['misp:type="{}"'.format(attribute.type),
-                'misp:category="{}"'.format(attribute.category),
-                'misp:to_ids="{}"'.format(attribute.to_ids)]
+        labels = ['misp:type="{}"'.format(attribute.type),
+                  'misp:category="{}"'.format(attribute.category),
+                  'misp:to_ids="{}"'.format(attribute.to_ids)]
+        labels += [tag.name for tag in attribute.Tag]
+        return labels
 
     @staticmethod
     def create_object_labels(name, category, to_ids):
