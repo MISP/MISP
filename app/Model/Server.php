@@ -2371,39 +2371,41 @@ class Server extends AppModel
         return $serverSettings;
     }
 
-    private function __serverSettingsReadBranch($branchKey, &$branchValue, $finalSettingsUnsorted)
+    private function __serverSettingsRead($serverSettings, $currentSettings)
     {
-        if (isset($branchValue['branch'])) {
-            foreach ($branchValue as $leafKey => &$leafValue) {
-                if ($leafValue['level'] == 3 && !(isset($currentSettings[$branchKey][$leafKey]))) {
-                    continue;
+        foreach ($serverSettings as $branchKey => &$branchValue) {
+            if (isset($branchValue['branch'])) {
+                foreach ($branchValue as $leafKey => &$leafValue) {
+                    if ($leafValue['level'] == 3 && !(isset($currentSettings[$branchKey][$leafKey]))) {
+                        continue;
+                    }
+                    $setting = null;
+                    if (isset($currentSettings[$branchKey][$leafKey])) {
+                        $setting = $currentSettings[$branchKey][$leafKey];
+                    }
+                    $leafValue = $this->__evaluateLeaf($leafValue, $leafKey, $setting);
+                    if ($leafKey != 'branch') {
+                        if ($branchKey == 'Plugin') {
+                            $pluginData = explode('_', $leafKey);
+                            $leafValue['subGroup'] = $pluginData[0];
+                        }
+                        if (strpos($branchKey, 'Secur') === 0) {
+                            $leafValue['tab'] = 'Security';
+                        } else {
+                            $leafValue['tab'] = $branchKey;
+                        }
+                        $finalSettingsUnsorted[$branchKey . '.' . $leafKey] = $leafValue;
+                    }
                 }
+            } else {
                 $setting = null;
-                if (isset($currentSettings[$branchKey][$leafKey])) {
-                    $setting = $currentSettings[$branchKey][$leafKey];
+                if (isset($currentSettings[$branchKey])) {
+                    $setting = $currentSettings[$branchKey];
                 }
-                $leafValue = $this->__evaluateLeaf($leafValue, $leafKey, $setting);
-                if ($leafKey != 'branch') {
-                    if ($branchKey == 'Plugin') {
-                        $pluginData = explode('_', $leafKey);
-                        $leafValue['subGroup'] = $pluginData[0];
-                    }
-                    if (strpos($branchKey, 'Secur') === 0) {
-                        $leafValue['tab'] = 'Security';
-                    } else {
-                        $leafValue['tab'] = $branchKey;
-                    }
-                    $finalSettingsUnsorted[$branchKey . '.' . $leafKey] = $leafValue;
-                }
+                $branchValue = $this->__evaluateLeaf($branchValue, $branchKey, $setting);
+                $branchValue['tab'] = 'misc';
+                $finalSettingsUnsorted[$branchKey] = $branchValue;
             }
-        } else {
-            $setting = null;
-            if (isset($currentSettings[$branchKey])) {
-                $setting = $currentSettings[$branchKey];
-            }
-            $branchValue = $this->__evaluateLeaf($branchValue, $branchKey, $setting);
-            $branchValue['tab'] = 'misc';
-            $finalSettingsUnsorted[$branchKey] = $branchValue;
         }
         return $finalSettingsUnsorted;
     }
@@ -2430,10 +2432,7 @@ class Server extends AppModel
         if (Configure::read('Plugin.Enrichment_services_enable')) {
             $this->readModuleSettings($serverSettings, array('Enrichment'));
         }
-        $finalSettingsUnsorted = array();
-        foreach ($serverSettings as $branchKey => &$branchValue) {
-            $finalSettingsUnsorted = $this->__serverSettingsReadBranch($branchKey, $branchValue, $finalSettingsUnsorted);
-        }
+        $finalSettingsUnsorted = $this->__serverSettingsRead($serverSettings, $currentSettings);
         foreach ($finalSettingsUnsorted as $key => $temp) {
             if (in_array($temp['tab'], array_keys($this->__settingTabMergeRules))) {
                 $finalSettingsUnsorted[$key]['tab'] = $this->__settingTabMergeRules[$temp['tab']];
