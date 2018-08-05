@@ -2697,17 +2697,8 @@ class EventsController extends AppController
             }
         }
         $exportType = $eventid;
-        if ($from) {
-            $from = $this->Event->dateFieldCheck($from);
-        }
-        if ($to) {
-            $to = $this->Event->dateFieldCheck($to);
-        }
         if ($tags) {
             $tags = str_replace(';', ':', $tags);
-        }
-        if ($last) {
-            $last = $this->Event->resolveTimeDelta($last);
         }
         $list = array();
         if ($key != 'download') {
@@ -2750,30 +2741,10 @@ class EventsController extends AppController
                 $list[] = $attribute['Attribute']['id'];
             }
             $events = array($eventid);
-        } elseif ($eventid === false) {
-            $events = $this->Event->fetchEventIds($this->Auth->user(), $from, $to, $last, true);
-            if (empty($events)) {
-                $events = array(0 => -1);
-            }
-        } else {
-            $events = array($eventid);
+        } else if ($eventid !== 'all') {
+            $events = $eventid;
         }
         $final = array();
-        $this->loadModel('Whitelist');
-        if ($tags) {
-            $args = $this->Event->Attribute->dissectArgs($tags);
-            $tagArray = $this->Event->EventTag->Tag->fetchEventTagIds($args[0], $args[1]);
-            if (!empty($tagArray[0])) {
-                $events = array_intersect($events, $tagArray[0]);
-            }
-            if (!empty($tagArray[1])) {
-                foreach ($events as $k => $eventid) {
-                    if (in_array($eventid, $tagArray[1])) {
-                        unset($events[$k]);
-                    }
-                }
-            }
-        }
         $requested_attributes = array('uuid', 'event_id', 'category', 'type',
                                 'value', 'comment', 'to_ids', 'timestamp', 'object_relation');
         $requested_obj_attributes = array('uuid', 'name', 'meta-category');
@@ -2798,46 +2769,52 @@ class EventsController extends AppController
         if (isset($data['request']['obj_attributes'])) {
             $requested_obj_attributes = $data['request']['obj_attributes'];
         }
-        if (isset($events)) {
-            $events = array_chunk($events, 100);
-            foreach ($events as $k => $eventid) {
-                $attributes = $this->Event->csv($user, $eventid, $ignore, $list, false, $category, $type, $includeContext, false, false, false, $enforceWarninglist, $value, $timestamp);
-                $attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
-                foreach ($attributes as $attribute) {
-                    $line1 = '';
-                    $line2 = '';
-                    foreach ($requested_attributes as $requested_attribute) {
-                        $line1 .= $attribute['Attribute'][$requested_attribute] . ',';
-                    }
-                    $line1 = rtrim($line1, ",");
-                    foreach ($requested_obj_attributes as $requested_obj_attribute) {
-                        $line2 .= $attribute['Object'][$requested_obj_attribute] . ',';
-                    }
-                    $line2 = rtrim($line2, ",");
-                    $line = $line1 . ',' . $line2;
-                    $line = rtrim($line, ",");
-                    if ($includeContext) {
-                        foreach ($this->Event->csv_event_context_fields_to_fetch as $header => $field) {
-                            if ($field['object']) {
-                                $line .= ',' . $attribute['Event'][$field['object']][$field['var']];
-                            } else {
-                                $line .= ',' . str_replace(array("\n","\t","\r"), " ", $attribute['Event'][$field['var']]);
-                            }
+        $possibleParams = array(
+            'ignore', 'list', 'category', 'type', 'includeContext',
+            'enforceWarninglist', 'value', 'timestamp', 'tags',
+            'last', 'from', 'to'
+        );
+        $params = array();
+        if (!empty($events)) {
+            $params = array(
+                'eventid' => $events
+            );
+        }
+        foreach ($possibleParams as $possibleParam) {
+            $params[$possibleParam] = ${$possibleParam};
+        }
+        $params['limit'] = 1000;
+        $params['page'] = 1;
+        $i = 0;
+        $continue = true;
+        while ($continue) {
+            $attributes = $this->Event->csv($user, $params, false, $continue);
+            $params['page'] += 1;
+            foreach ($attributes as $attribute) {
+                $line1 = '';
+                $line2 = '';
+                foreach ($requested_attributes as $requested_attribute) {
+                    $line1 .= $attribute['Attribute'][$requested_attribute] . ',';
+                }
+                $line1 = rtrim($line1, ",");
+                foreach ($requested_obj_attributes as $requested_obj_attribute) {
+                    $line2 .= $attribute['Object'][$requested_obj_attribute] . ',';
+                }
+                $line2 = rtrim($line2, ",");
+                $line = $line1 . ',' . $line2;
+                $line = rtrim($line, ",");
+                if ($includeContext) {
+                    foreach ($this->Event->csv_event_context_fields_to_fetch as $header => $field) {
+                        if ($field['object']) {
+                            $line .= ',' . $attribute['Event'][$field['object']][$field['var']];
+                        } else {
+                            $line .= ',' . str_replace(array("\n","\t","\r"), " ", $attribute['Event'][$field['var']]);
                         }
                     }
-                    $final[] = $line;
                 }
+                $final[] = $line;
             }
         }
-        $this->response->type('csv');	// set the content type
-        if (!$exportType) {
-            $filename = "misp.all_attributes.csv";
-        } elseif ($exportType === 'search') {
-            $filename = "misp.search_result.csv";
-        } else {
-            $filename = "misp.event_" . $exportType . ".csv";
-        }
-        $this->layout = 'text/default';
         if (!empty($requested_obj_attributes)) {
             array_walk($requested_obj_attributes, function (&$value, $key) {
                 $value = 'object-'.$value;
@@ -2857,6 +2834,15 @@ class EventsController extends AppController
         $final = array_merge(array($headers), $final);
         $final = implode(PHP_EOL, $final);
         $final .= PHP_EOL;
+        $this->response->type('csv');	// set the content type
+        if (!$exportType) {
+            $filename = "misp.all_attributes.csv";
+        } elseif ($exportType === 'search') {
+            $filename = "misp.search_result.csv";
+        } else {
+            $filename = "misp.event_" . $exportType . ".csv";
+        }
+        $this->layout = 'text/default';
         return $this->RestResponse->viewData($final, 'csv', false, true, $filename);
     }
 

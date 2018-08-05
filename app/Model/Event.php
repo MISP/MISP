@@ -1242,8 +1242,8 @@ class Event extends AppModel
     public function downloadProposalsFromServer($uuidList, $server, $HttpSocket = null)
     {
         $url = $server['Server']['url'];
-        $HttpSocket = $this->__setupHttpSocket($server, $HttpSocket);
-        $request = $this->__setupPushRequest($server);
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
         $uri = $url . '/shadow_attributes/getProposalsByUuidList';
         $response = $HttpSocket->post($uri, json_encode($uuidList), $request);
         if ($response->isOk()) {
@@ -1882,90 +1882,133 @@ class Event extends AppModel
         $field = '"' . $field . '"';
     }
 
-    public function csv($user, $eventid=false, $ignore=false, $attributeIDList = array(), $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false, $last = false, $enforceWarninglist = false, $value = false, $timestamp = false)
+    public function set_filter_eventid($params, $conditions, $filter) {
+        if (!empty($params['eventid']) && $params['eventid'] !== 'all') {
+            $conditions['AND'][] = array('Event.id' => $params['eventid']);
+        }
+        return $conditions;
+    }
+
+    public function set_filter_ignore($params, $conditions, $filter) {
+        if (empty($params['ignore'])) {
+            $conditions['AND']['Event.published'] = 1;
+            $conditions['AND']['Attribute.to_ids'] = 1;
+        }
+        return $conditions;
+    }
+
+    public function set_filter_tags($params, $conditions, $filter) {
+        if (!empty($params['tags'])) {
+            $conditions = $this->Attribute->set_filter_tags($params, $conditions, 'Event');
+        }
+        return $conditions;
+    }
+
+    public function set_filter_simple_attribute($params, $conditions, $filter) {
+        if (!empty($params[$filter])) {
+            $conditions['AND']['Attribute.' . $filter] = $params[$filter];
+        }
+        return $conditions;
+    }
+
+    public function set_filter_attribute_id($params, $conditions, $filter) {
+        if (!empty($params[$filter])) {
+            $conditions['AND']['Attribute.id'] = $params[$filter];
+        }
+        return $conditions;
+    }
+
+    public function set_filter_value($params, $conditions, $filter)
     {
-        $this->recursive = -1;
-        $conditions = array();
-        // If we are not in the search result csv download function then we need to check what can be downloaded. CSV downloads are already filtered by the search function.
-        if ($eventid !== 'search') {
-            if ($from) {
-                $conditions['AND']['Event.date >='] = $from;
-            }
-            if ($to) {
-                $conditions['AND']['Event.date <='] = $to;
-            }
-            if ($last) {
-                $conditions['AND']['Event.publish_timestamp >='] = $last;
-            }
-            if ($timestamp) {
-                $conditions['AND']['Attribute.timestamp >='] = $timestamp;
-                $conditions['AND']['Event.timestamp >='] = $timestamp;
-            }
-            // This is for both single event downloads and for full downloads. Org has to be the same as the user's or distribution not org only - if the user is no siteadmin
-            if ($ignore == false) {
-                $conditions['AND']['Event.published'] = 1;
-            }
+        if (!empty($params['value'])) {
+            $temp = array(
+                'OR' => array(
+                    'Attribute.value1' => $value,
+                    'Attribute.value2' => $value
+                )
+            );
+            $conditions['AND'][] = $temp;
+        }
+        return $conditions;
+    }
 
-            // If we sent any tags along, load the associated tag names for each attribute
-            if ($tags) {
-                $tag = ClassRegistry::init('Tag');
-                $args = $this->Attribute->dissectArgs($tags);
-                $tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
-                $temp = array();
-                foreach ($tagArray[0] as $accepted) {
-                    $temp['OR'][] = array('Event.id' => $accepted);
-                }
-                if (!empty($temp)) {
-                    $conditions['AND'][] = $temp;
-                }
-                $temp = array();
-                foreach ($tagArray[1] as $rejected) {
-                    $temp['AND'][] = array('Event.id !=' => $rejected);
-                }
-                if (!empty($temp)) {
-                    $conditions['AND'][] = $temp;
-                }
-            }
-            // if we're downloading a single event, set it as a condition
-            if ($eventid) {
-                $conditions['AND'][] = array('Event.id' => $eventid);
-            }
-
-            //restricting to non-private or same org if the user is not a site-admin.
-            if (!$ignore) {
-                $conditions['AND']['Attribute.to_ids'] = 1;
-            }
-            if ($type) {
-                $conditions['AND']['Attribute.type'] = $type;
-            }
-            if ($category) {
-                $conditions['AND']['Attribute.category'] = $category;
-            }
-            if ($value) {
-                $temp = array(
-                    'OR' => array(
-                        'Attribute.value1' => $value,
-                        'Attribute.value2' => $value
-                    )
-                );
-
-                $conditions['AND'][] = $temp;
+    public function set_filter_timestamp($params, $conditions, $filter)
+    {
+        if ($filter == 'from') {
+            $conditions['AND']['Event.date >='] = $from;
+        } else if ($filter == 'to') {
+            $conditions['AND']['Event.date <='] = $from;
+        } else {
+            $filters = array(
+                'timestamp' => array(
+                    'Event.timestamp',
+                    'Attribute.timestamp'
+                ),
+                'publish_timestamp' => array(
+                    'Event.publish_timestamp'
+                ),
+                'last' => array(
+                    'Event.publish_timestamp'
+                )
+            );
+            foreach ($filters[$filter] as $f) {
+                $conditions = $this->Attribute->setTimestampConditions($params[$filter], $conditions, $f);
             }
         }
+        return $conditions;
+    }
 
-        if ($eventid === 'search') {
-            foreach ($attributeIDList as $aID) {
+    public function csv($user, $params, $search = false, &$continue = true)
+    {
+        $conditions = array();
+        $simple_params = array(
+            'eventid' => array('function' => 'set_filter_eventid'),
+            'ignore' => array('function' => 'set_filter_ignore'),
+            'tags' => array('function' => 'set_filter_tags'),
+            'category' => array('function' => 'set_filter_simple_attribute'),
+            'type' => array('function' => 'set_filter_simple_attribute'),
+            'from' => array('function' => 'set_filter_timestamp'),
+            'to' => array('function' => 'set_filter_timestamp'),
+            'last' => array('function' => 'set_filter_timestamp'),
+            'value' => array('function' => 'set_filter_value'),
+            'timestamp' => array('function' => 'set_filter_timestamp'),
+            'attributeIDList' => array('functon' => 'set_filter_attribute_id')
+        );
+        foreach ($params as $param => $paramData) {
+            if (isset($simple_params[$param]) && $params[$param] !== false) {
+                $conditions = $this->{$simple_params[$param]['function']}($params, $conditions, $param);
+            }
+        }
+        //$attributeIDList = array(), $includeContext = false, $enforceWarninglist = false
+        $this->recursive = -1;
+        if (!empty($params['eventid']) && $params['eventid'] === 'search') {
+            foreach ($params['attributeIDList'] as $aID) {
                 $conditions['AND']['OR'][] = array('Attribute.id' => $aID);
             }
         }
-        $params = array(
+        $csv_params = array(
                 'conditions' => $conditions, //array of conditions
                 'fields' => array('Attribute.event_id', 'Attribute.distribution', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.comment', 'Attribute.uuid', 'Attribute.to_ids', 'Attribute.timestamp', 'Attribute.id', 'Attribute.object_relation'),
                 'order' => array('Attribute.uuid ASC'),
-                'enforceWarninglist' => $enforceWarninglist,
                 'flatten' => true
         );
 
+        // copy over the parameters that have to deal with pagination or additional functionality to be executed
+        $control_params = array(
+            'limit', 'page', 'enforceWarninglist'
+        );
+        foreach ($control_params as $control_param) {
+            if (!empty($params[$control_param])) {
+                $csv_params[$control_param] = $params[$control_param];
+            }
+        }
+        $csv_params = $this->__appendIncludesCSV($csv_params, !empty($params['includeContext']));
+        $attributes = $this->Attribute->fetchAttributes($user, $csv_params, $continue);
+        $attributes = $this->__sanitiseCSVAttributes($attributes, !empty($params['includeContext']), !empty($params['ignore']));
+        return $attributes;
+    }
+
+    private function __appendIncludesCSV($params, $includeContext) {
         if ($includeContext) {
             $params['contain'] = array(
                 'Event' => array(
@@ -1985,9 +2028,14 @@ class Event extends AppModel
             );
         }
         $params['contain']['Object'] = array('fields' => array('id', 'uuid', 'name', 'meta-category'));
-        $attributes = $this->Attribute->fetchAttributes($user, $params);
-        if (empty($attributes)) {
-            return array();
+        return $params;
+    }
+
+    private function __sanitiseCSVAttributes($attributes, $includeContext, $ignore)
+    {
+        if (!empty($ignore)) {
+            $this->Log = ClassRegistry::init('Log');
+            $attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
         }
         foreach ($attributes as &$attribute) {
             $this->__escapeCSVField($attribute['Attribute']['value']);
