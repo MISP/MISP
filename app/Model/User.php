@@ -788,7 +788,7 @@ class User extends AppModel
         }
         $replyToLog = '';
         if (!$failed) {
-            $this->__finaliseAndSendEmail($replyToUser, $Email, $replyToLog, $user, $subject, $body);
+            $result = $this->__finaliseAndSendEmail($replyToUser, $Email, $replyToLog, $user, $subject, $body);
         }
         $this->Log = ClassRegistry::init('Log');
         $this->Log->create();
@@ -840,7 +840,7 @@ class User extends AppModel
         $Email->emailFormat('text');
         $result = $Email->send($body);
         $Email->reset();
-        return true;
+        return $result;
     }
 
     private function __encryptUsingGPG(&$Email, &$body, $subject, $user)
