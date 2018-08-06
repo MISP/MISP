@@ -1838,12 +1838,12 @@ class UsersController extends AppController
         }
     }
 
-    public function verifyGPG()
+    public function verifyGPG($full = false)
     {
         if (!self::_isSiteAdmin()) {
             throw new NotFoundException();
         }
-        $user_results = $this->User->verifyGPG();
+        $user_results = $this->User->verifyGPG($full);
         $this->set('users', $user_results);
     }
 
