@@ -2798,7 +2798,7 @@ class Attribute extends AppModel
             $warninglists = $this->Warninglist->fetchForEventView();
         }
         if (empty($params['limit'])) {
-            $loopLimit = 100000;
+            $loopLimit = 50000;
             $loop = true;
             $params['limit'] = $loopLimit;
             $params['page'] = 0;
