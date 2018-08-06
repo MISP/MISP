@@ -2676,47 +2676,26 @@ class EventsController extends AppController
     public function csv($key, $eventid = false, $ignore = false, $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false, $last = false, $headerless = false, $enforceWarninglist = false, $value = false, $timestamp = false)
     {
         $paramArray = array('eventid', 'ignore', 'tags', 'category', 'type', 'includeContext', 'from', 'to', 'last', 'headerless', 'enforceWarninglist', 'value', 'timestamp');
-        if ($this->request->is('post')) {
-            if (empty($this->request->data)) {
-                return $this->RestResponse->throwException(400, __('Either specify the search terms in the url, or POST a json or xml with the filter parameters.'), 'csv', true);
-            } else {
-                $data = $this->request->data;
-            }
-            if (!isset($data['request'])) {
-                $data = array('request' => $data);
-            }
-            foreach ($paramArray as $p) {
-                if (isset($data['request'][$p])) {
-                    ${$p} = $data['request'][$p];
-                }
-            }
-        }
-        foreach ($paramArray as $p) {
-            if (!is_array(${$p}) && (${$p} === 'null' || ${$p} == '0' || ${$p} === false || strtolower(${$p}) === 'false')) {
-                ${$p} = false;
-            }
-        }
-        $exportType = $eventid;
-        if ($tags) {
-            $tags = str_replace(';', ':', $tags);
+        $filterData = array(
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'paramArray' => $paramArray,
+            'ordered_url_params' => compact($paramArray)
+        );
+        $exception = false;
+        $filters = $this->_harvestParameters($filterData, $exception);
+        if ($filters === false) {
+            return $exception;
         }
         $list = array();
-        if ($key != 'download') {
-            // check if the key is valid -> search for users based on key
-            $user = $this->checkAuthUser($key);
-            if (!$user) {
-                return $this->RestResponse->throwException(401, __('This authentication key is not authorized to be used for exports. Contact your administrator.'), 'csv', true);
-            }
-        } else {
-            if (!$this->Auth->user('id')) {
-                return $this->RestResponse->throwException(401, __('You have to be logged in to do that.'), 'csv', true);
-            }
-            $user = $this->Auth->user();
+        $user = $this->_getApiAuthUser($key, $exception);
+        if ($user === false) {
+            return $exception;
         }
         // if it's a search, grab the attributeIDList from the session and get the IDs from it. Use those as the condition
         // We don't need to look out for permissions since that's filtered by the search itself
         // We just want all the attributes found by the search
-        if ($eventid === 'search') {
+        if (!empty($filters['eventid']) && $filters['eventid'] === 'search') {
             $ioc = $this->Session->read('paginate_conditions_ioc');
             $paginateConditions = $this->Session->read('paginate_conditions');
             unset($paginateConditions['contain']['Event']['Orgc']);
@@ -2740,9 +2719,8 @@ class EventsController extends AppController
                 );
                 $list[] = $attribute['Attribute']['id'];
             }
-            $events = array($eventid);
-        } else if ($eventid !== 'all') {
-            $events = $eventid;
+        } else if (!empty($filters['eventid']) && $filters['eventid'] !== 'all') {
+            $events = $filters['eventid'];
         }
         $final = array();
         $requested_attributes = array('uuid', 'event_id', 'category', 'type',
@@ -2776,12 +2754,12 @@ class EventsController extends AppController
         );
         $params = array();
         if (!empty($events)) {
-            $params = array(
-                'eventid' => $events
-            );
+            $filters['eventid'] = $events;
         }
         foreach ($possibleParams as $possibleParam) {
-            $params[$possibleParam] = ${$possibleParam};
+            if (isset($filters[$possibleParam])) {
+                $params[$possibleParam] = $filters[$possibleParam];
+            }
         }
         $params['limit'] = 1000;
         $params['page'] = 1;
@@ -2835,14 +2813,16 @@ class EventsController extends AppController
         $final = implode(PHP_EOL, $final);
         $final .= PHP_EOL;
         $this->response->type('csv');	// set the content type
-        if (!$exportType) {
-            $filename = "misp.all_attributes.csv";
-        } elseif ($exportType === 'search') {
+        if (empty($filters['eventid'])) {
+            $filename = "misp.filtered_attributes.csv";
+        } elseif ($filters['eventid'] === 'search') {
             $filename = "misp.search_result.csv";
         } else {
-            $filename = "misp.event_" . $exportType . ".csv";
+            if (is_array($filters['eventid'])) {
+                $filters['eventid'] = 'list';
+            }
+            $filename = "misp.event_" . $filters['eventid'] . ".csv";
         }
-        $this->layout = 'text/default';
         return $this->RestResponse->viewData($final, 'csv', false, true, $filename);
     }
 
