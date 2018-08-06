@@ -1935,9 +1935,9 @@ class Event extends AppModel
     public function set_filter_timestamp($params, $conditions, $filter)
     {
         if ($filter == 'from') {
-            $conditions['AND']['Event.date >='] = $from;
+            $conditions['AND']['Event.date >='] = $params['from'];
         } else if ($filter == 'to') {
-            $conditions['AND']['Event.date <='] = $from;
+            $conditions['AND']['Event.date <='] = $params['to'];
         } else {
             $filters = array(
                 'timestamp' => array(
