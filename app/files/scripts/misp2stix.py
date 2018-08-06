@@ -136,6 +136,7 @@ class StixBuilder(object):
             except TypeError:
                 idgen.set_id_namespace(Namespace(namespace[0], namespace[1], "MISP"))
         self.namespace_prefix = idgen.get_id_namespace_alias()
+        self.objects_to_parse = defaultdict(dict)
         ## MAPPING FOR ATTRIBUTES
         self.simple_type_to_method = {"port": self.generate_port_observable, "domain|ip": self.generate_domain_ip_observable}
         self.simple_type_to_method.update(dict.fromkeys(hash_type_attributes["single"] + hash_type_attributes["composite"] + ["filename"], self.resolve_file_observable))
@@ -159,6 +160,8 @@ class StixBuilder(object):
                                 "ip-port": self.parse_ip_port_object,
                                 "network-connection": self.parse_network_connection_object,
                                 "network-socket": self.parse_network_socket_object,
+                                "pe": self.store_pe,
+                                "pe-section": self.store_pe,
                                 "process": self.parse_process_object,
                                 "registry-key": self.parse_regkey_object,
                                 "url": self.parse_url_object,
@@ -269,41 +272,15 @@ class StixBuilder(object):
                 self.handle_attribute(incident, attribute, tags)
 
     def resolve_objects(self, incident, tags):
-        objects_to_parse = defaultdict(dict)
         for misp_object in self.misp_event.objects:
             category = misp_object.get('meta-category')
             name = misp_object.name
-            if name in ('pe', 'pe-section'):
-                objects_to_parse[name][misp_object.uuid] = misp_object
-                continue
-            elif name == 'file':
-                if misp_object.references:
-                    to_parse = False
-                    for reference in misp_object.references:
-                        if reference.relationship_type == 'included-in' and reference.Object['name'] == "pe":
-                            objects_to_parse[name][misp_object.uuid] = misp_object
-                            to_parse = True
-                            break
-                    if to_parse:
-                        continue
             try:
-                to_ids, observable = self.objects_mapping[name](misp_object.attributes, misp_object.uuid)
+                to_ids, observable = self.objects_mapping[name](misp_object)
             except KeyError:
-                try:
-                    to_ids, observable = self.create_custom_observable(misp_object.name, misp_object.attributes, misp_object.uuid)
-                except:
-                    continue
-            if name == "process" and misp_object.references:
-                for reference in misp_object.references:
-                    if reference.relationship_type == "connected-to":
-                        related_object = RelatedObject()
-                        try:
-                            referenced_attribute_type = reference.Object['name']
-                        except AttributeError:
-                            references_attribute_type = reference.Attribute['type']
-                        related_object.idref = "{}:{}-{}".format(self.namespace_prefix, referenced_attribute_type, reference.referenced_uuid)
-                        related_object.relationship = "Connected_To"
-                        observable.object_.related_objects.append(related_object)
+                to_ids, observable = self.create_custom_observable(name, misp_object.attributes, misp_object.uuid)
+            except TypeError:
+                continue
             if to_ids:
                 indicator = self.create_indicator(misp_object, observable, tags)
                 related_indicator = RelatedIndicator(indicator, relationship=category)
@@ -311,11 +288,12 @@ class StixBuilder(object):
             else:
                 related_observable = RelatedObservable(observable, relationship=category)
                 incident.related_observables.append(related_observable)
-        if objects_to_parse: self.resolve_objects2parse(objects_to_parse, incident, tags)
+        if self.objects_to_parse:
+            self.resolve_objects2parse(incident, tags)
 
 
-    def resolve_objects2parse(self, objects2parse, incident, tags):
-        for uuid, file_object in objects2parse['file'].items():
+    def resolve_objects2parse(self, incident, tags):
+        for uuid, file_object in self.objects_to_parse['file'].items():
             category = file_object.get('meta-category')
             to_ids_file, file_dict = self.create_attributes_dict(file_object.attributes)
             to_ids_list = [to_ids_file]
@@ -325,7 +303,7 @@ class StixBuilder(object):
                 if reference.relationship_type == "included-in" and reference.Object['name'] == "pe":
                     pe_uuid = reference.referenced_uuid
                     break
-            pe_object = objects2parse['pe'][pe_uuid]
+            pe_object = self.objects_to_parse['pe'][pe_uuid]
             pe_headers = PEHeaders()
             pe_file_header = PEFileHeader()
             pe_sections = PESectionList()
@@ -333,7 +311,7 @@ class StixBuilder(object):
             to_ids_list.append(to_ids_pe)
             for reference in pe_object.references:
                 if reference.Object['name'] == "pe-section":
-                    pe_section_object = objects2parse['pe-section'][reference.referenced_uuid]
+                    pe_section_object = self.objects_to_parse['pe-section'][reference.referenced_uuid]
                     to_ids_section, section_dict = self.create_attributes_dict(pe_section_object.attributes)
                     to_ids_list.append(to_ids_section)
                     if reference.relationship_type == "included-in":
@@ -659,8 +637,8 @@ class StixBuilder(object):
         ttp.exploit_targets.append(ET)
         return ttp
 
-    def parse_asn_object(self, attributes, uuid):
-        to_ids, attributes_dict = self.create_attributes_dict(attributes)
+    def parse_asn_object(self, misp_object):
+        to_ids, attributes_dict = self.create_attributes_dict(misp_object.attributes)
         auto_sys = AutonomousSystem()
         if 'asn' in attributes_dict:
             asn = attributes_dict['asn']
@@ -670,13 +648,14 @@ class StixBuilder(object):
                 auto_sys.number = asn
         if 'description' in attributes_dict:
             auto_sys.name = attributes_dict['description']
+        uuid = misp_object.uuid
         auto_sys.parent.id_ = "{}:AutonomousSystemObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(auto_sys)
         observable.id_ = "{}:AutonomousSystem-{}".format(self.namespace_prefix, uuid)
         return to_ids, observable
 
-    def parse_credential_object(self, attributes, uuid):
-        to_ids, attributes_dict = self.create_attributes_dict_multiple(attributes)
+    def parse_credential_object(self, misp_object):
+        to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object.attributes)
         account = Account()
         if 'text' in attributes_dict:
             account.description = attributes_dict.pop('text')[0]
@@ -697,9 +676,9 @@ class StixBuilder(object):
                 struct_auth_meca.description = attributes_dict['format'][0]
                 authentication.structured_authentication_mechanism = struct_auth_meca
             if 'type' in attributes_dict and 'password' in attributes_dict and len(attributes_dict['type']) == len(attributes_dict['password']):
-                for type, password in zip(attributes_dict['type'], attributes_dict['password']):
+                for p_type, password in zip(attributes_dict['type'], attributes_dict['password']):
                     auth = deepcopy(authentication)
-                    auth.authentication_type = type
+                    auth.authentication_type = p_type
                     auth.authentication_data = password
                     account.authentication.append(auth)
             else:
@@ -730,13 +709,14 @@ class StixBuilder(object):
                             account.authentication.append(authentication)
                 except:
                     pass
+        uuid = misp_object.uuid
         account.parent.id_ = "{}:AccountObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(account)
         observable.id_ = "{}:Account-{}".format(self.namespace_prefix, uuid)
         return to_ids, observable
 
-    def parse_domain_ip_object(self, attributes, uuid):
-        to_ids, attributes_dict = self.create_attributes_dict_multiple(attributes, with_uuid=True)
+    def parse_domain_ip_object(self, misp_object):
+        to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object.attributes, with_uuid=True)
         composition = []
         if 'domain' in attributes_dict:
             domain = attributes_dict['domain'][0]
@@ -746,10 +726,10 @@ class StixBuilder(object):
                 composition.append(self.create_ip_observable(ip['value'], ip['uuid']))
         if len(composition) == 1:
             return to_ids, composition[0]
-        return to_ids, self.create_observable_composition(composition, uuid, "domain-ip")
+        return to_ids, self.create_observable_composition(composition, misp_object.uuid, "domain-ip")
 
-    def parse_email_object(self, attributes, uuid):
-        to_ids, attributes_dict = self.create_attributes_dict_multiple(attributes, with_uuid=True)
+    def parse_email_object(self, misp_object):
+        to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object.attributes, with_uuid=True)
         email_object = EmailMessage()
         email_header = EmailHeader()
         if 'from' in attributes_dict:
@@ -786,14 +766,25 @@ class StixBuilder(object):
                 attachment_file = self.create_file_attachment(attachment['value'], attachment['uuid'])
                 email_object.add_related(attachment_file, "Contains", inline=True)
                 email_object.attachments.append(attachment_file.parent.id_)
+        uuid = misp_object.uuid
         email_object.header = email_header
         email_object.parent.id_ = "{}:EmailMessageObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(email_object)
         observable.id_ = "{}:EmailMessage-{}".format(self.namespace_prefix, uuid)
         return to_ids, observable
 
-    def parse_file_object(self, attributes, uuid):
-        to_ids, attributes_dict = self.create_attributes_dict(attributes)
+    def parse_file_object(self, misp_object):
+        uuid = misp_object.uuid
+        if misp_object.references:
+            to_parse = False
+            for reference in misp_object.references:
+                if reference.relationship_type == 'included-in' and reference.Object['name'] == "pe":
+                    self.objects_to_parse[misp_object.name][uuid] = misp_object
+                    to_parse = True
+                    break
+            if to_parse:
+                return
+        to_ids, attributes_dict = self.create_attributes_dict(misp_object.attributes)
         file_object = File()
         self.fill_file_object(file_object, attributes_dict)
         file_object.parent.id_ = "{}:FileObject-{}".format(self.namespace_prefix, uuid)
@@ -801,8 +792,8 @@ class StixBuilder(object):
         file_observable.id_ = "{}:File-{}".format(self.namespace_prefix, uuid)
         return to_ids, file_observable
 
-    def parse_ip_port_object(self, attributes, uuid):
-        to_ids, attributes_dict = self.create_attributes_dict_multiple(attributes, with_uuid=True)
+    def parse_ip_port_object(self, misp_object):
+        to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object.attributes, with_uuid=True)
         composition = []
         if 'domain' in attributes_dict:
             for domain in attributes_dict['domain']:
@@ -821,10 +812,10 @@ class StixBuilder(object):
                 composition.append(self.create_ip_observable(ip['value'], ip['uuid']))
         if len(composition) == 1:
             return to_ids, composition[0]
-        return to_ids, self.create_observable_composition(composition, uuid, "ip-port")
+        return to_ids, self.create_observable_composition(composition, misp_object.uuid, "ip-port")
 
-    def parse_network_connection_object(self, attributes, uuid):
-        to_ids, attributes_dict = self.create_attributes_dict(attributes)
+    def parse_network_connection_object(self, misp_object):
+        to_ids, attributes_dict = self.create_attributes_dict(misp_object.attributes)
         network_connection_object = NetworkConnection()
         src_args, dst_args = self.parse_src_dst_args(attributes_dict)
         if src_args: network_connection_object.source_socket_address = self.create_socket_address_object('src', **src_args)
@@ -835,13 +826,15 @@ class StixBuilder(object):
             network_connection_object.layer4_protocol = attributes_dict['layer4-protocol']
         if 'layer7-protocol' in attributes_dict:
             network_connection_object.layer7_protocol = attributes_dict['layer7-protocol']
+        uuid = misp_object.uuid
         network_connection_object.parent.id_ = "{}:NetworkConnectionObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(network_connection_object)
         observable.id_ = "{}:NetworkConnection-{}".format(self.namespace_prefix, uuid)
         return to_ids, observable
 
-    def parse_network_socket_object(self, attributes, uuid):
+    def parse_network_socket_object(self, misp_object):
         listening, blocking = [False] * 2
+        attributes = misp_object.attributes
         for attribute in attributes:
             if attribute.object_relation == "state":
                 if attribute.value == "listening":
@@ -861,12 +854,14 @@ class StixBuilder(object):
             network_socket_object.address_family = attributes_dict['address-family']
         if 'domain-family' in attributes_dict:
             network_socket_object.domain = attributes_dict['domain-family']
+        uuid = misp_object.uuid
         network_socket_object.parent.id_ = "{}:NetworkSocketObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(network_socket_object)
         observable.id_ = "{}:NetworkSocket-{}".format(self.namespace_prefix, uuid)
         return to_ids, observable
 
-    def parse_process_object(self, attributes, uuid):
+    def parse_process_object(self, misp_object):
+        attributes = misp_object.attributes
         to_ids, attributes_dict = self.create_attributes_dict_multiple(attributes)
         process_object = Process()
         if 'creation-time' in attributes_dict:
@@ -886,13 +881,25 @@ class StixBuilder(object):
         # if 'port' in attributes_dict:
         #     for port in attributes['port']:
         #         process_object.port_list.append(self.create_port_object(port['value']))
+        uuid = misp_object.uuid
         process_object.parent.id_ = "{}:ProcessObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(process_object)
         observable.id_ = "{}:Process-{}".format(self.namespace_prefix, uuid)
+        if misp_object.references:
+            for reference in misp_object.references:
+                if reference.relationship_type == "connected-to":
+                    related_object = RelatedObject()
+                    try:
+                        referenced_attribute_type = reference.Object['name']
+                    except AttributeError:
+                        references_attribute_type = reference.Attribute['type']
+                    related_object.idref = "{}:{}-{}".format(self.namespace_prefix, referenced_attribute_type, reference.referenced_uuid)
+                    related_object.relationship = "Connected_To"
+                    observable.object_.related_objects.append(related_object)
         return to_ids, observable
 
-    def parse_regkey_object(self, attributes, uuid):
-        to_ids, attributes_dict = self.create_attributes_dict(attributes)
+    def parse_regkey_object(self, misp_object):
+        to_ids, attributes_dict = self.create_attributes_dict(misp_object.attributes)
         reg_object = WinRegistryKey()
         registry_values = False
         reg_value_object = RegistryValue()
@@ -920,14 +927,15 @@ class StixBuilder(object):
             registry_values = True
         if registry_values:
             reg_object.values = RegistryValues(reg_value_object)
+        uuid = misp_object.uuid
         reg_object.parent.id_ = "{}:WinRegistryKeyObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(reg_object)
         observable.id_ = "{}:WinRegistryKey-{}".format(self.namespace_prefix, uuid)
         return to_ids, observable
 
-    def parse_url_object(self, attributes, uuid):
+    def parse_url_object(self, misp_object):
         observables = []
-        to_ids, attributes_dict = self.create_attributes_dict(attributes, with_uuid=True)
+        to_ids, attributes_dict = self.create_attributes_dict(misp_object.attributes, with_uuid=True)
         if 'url' in attributes_dict:
             url = attributes_dict['url']
             observables.append(self.create_url_observable(url['value'], url['uuid']))
@@ -939,10 +947,10 @@ class StixBuilder(object):
             observables.append(self.create_hostname_observable(hostname['value'], hostname['uuid']))
         if len(observables) == 1:
             return observables[0]
-        return to_ids, self.create_observable_composition(observables, uuid, "url")
+        return to_ids, self.create_observable_composition(observables, misp_object.uuid, "url")
 
-    def parse_whois(self, attributes, uuid):
-        to_ids, attributes_dict = self.create_attributes_dict_multiple(attributes)
+    def parse_whois(self, misp_object):
+        to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object.attributes)
         n_attribute = len(attributes_dict)
         whois_object = WhoisEntry()
         for attribute in attributes_dict:
@@ -972,10 +980,14 @@ class StixBuilder(object):
             whois_object.remarks = attributes_dict['comment']
         elif 'text' in attributes_dict:
             whois_object.remarks = attributes_dict['text']
+        uuid = misp_object.uuid
         whois_object.parent.id_ = "{}:WhoisObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(whois_object)
         observable.id_ = "{}:Whois-{}".format(self.namespace_prefix, uuid)
         return to_ids, observable
+
+    def store_pe(self, misp_object):
+        self.objects_to_parse[misp_object.name][misp_object.uuid] = misp_object
 
     @staticmethod
     def fill_whois_registrants(attributes):
@@ -992,8 +1004,8 @@ class StixBuilder(object):
         registrants.append(registrant)
         return registrants
 
-    def parse_x509_object(self, attributes, uuid):
-        to_ids, attributes_dict = self.create_x509_attributes_dict(attributes)
+    def parse_x509_object(self, misp_object):
+        to_ids, attributes_dict = self.create_x509_attributes_dict(misp_object.attributes)
         x509_object = X509Certificate()
         if 'raw_certificate' in attributes_dict:
             raw_certificate = attributes_dict.pop('raw_certificate')
@@ -1016,6 +1028,7 @@ class StixBuilder(object):
             if attributes_dict:
                 x509_cert.subject_public_key = self.fill_x509_pubkey(**attributes_dict)
             x509_object.certificate = x509_cert
+        uuid = misp_object.uuid
         x509_object.parent.id_ = "{}:x509CertificateObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(x509_object)
         observable.id_ = "{}:x509Certificate-{}".format(self.namespace_prefix, uuid)
