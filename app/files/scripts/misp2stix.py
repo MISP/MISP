@@ -664,10 +664,10 @@ class StixBuilder(object):
             for attribute_relation in ('username', 'origin', 'notification'):
                 if attribute_relation in attributes_dict:
                     for attribute in attributes_dict.pop(attribute_relation):
-                        property = Property()
-                        property.name = attribute_relation
-                        property.value = attribute
-                        custom_properties.append(property)
+                        prop = Property()
+                        prop.name = attribute_relation
+                        prop.value = attribute
+                        custom_properties.append(prop)
             account.custom_properties = custom_properties
         if attributes_dict:
             authentication = Authentication()
@@ -818,8 +818,10 @@ class StixBuilder(object):
         to_ids, attributes_dict = self.create_attributes_dict(misp_object.attributes)
         network_connection_object = NetworkConnection()
         src_args, dst_args = self.parse_src_dst_args(attributes_dict)
-        if src_args: network_connection_object.source_socket_address = self.create_socket_address_object('src', **src_args)
-        if dst_args: network_connection_object.destination_socket_address = self.create_socket_address_object('dst', **dst_args)
+        if src_args:
+            network_connection_object.source_socket_address = self.create_socket_address_object('src', **src_args)
+        if dst_args:
+            network_connection_object.destination_socket_address = self.create_socket_address_object('dst', **dst_args)
         if 'layer3-protocol' in attributes_dict:
             network_connection_object.layer3_protocol = attributes_dict['layer3-protocol']
         if 'layer4-protocol' in attributes_dict:
@@ -844,8 +846,10 @@ class StixBuilder(object):
         to_ids, attributes_dict = self.create_attributes_dict(attributes)
         network_socket_object = NetworkSocket()
         src_args, dst_args = self.parse_src_dst_args(attributes_dict)
-        if src_args: network_socket_object.local_address = self.create_socket_address_object('src', **src_args)
-        if dst_args: network_socket_object.remote_address = self.create_socket_address_object('dst', **dst_args)
+        if src_args:
+            network_socket_object.local_address = self.create_socket_address_object('src', **src_args)
+        if dst_args:
+            network_socket_object.remote_address = self.create_socket_address_object('dst', **dst_args)
         if 'protocol' in attributes_dict:
             network_socket_object.protocol = attributes_dict['protocol']
         network_socket_object.is_listening = True if listening else False
@@ -1397,11 +1401,12 @@ class StixBuilder(object):
         custom_object = Custom()
         custom_object.custom_properties = CustomProperties()
         for attribute in attributes:
-            property = Property()
-            property.name = "{} {}: {}".format(name, attribute.type, attribute.object_relation)
-            property.value = attribute.value
-            custom_object.custom_properties.append(property)
-            if attribute.to_ids: to_ids = True
+            prop = Property()
+            prop.name = "{} {}: {}".format(name, attribute.type, attribute.object_relation)
+            prop.value = attribute.value
+            custom_object.custom_properties.append(prop)
+            if attribute.to_ids:
+                to_ids = True
         return to_ids, custom_object
 
     @staticmethod
