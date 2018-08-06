@@ -32,9 +32,9 @@ from cybox.objects.artifact_object import Artifact, RawArtifact
 from cybox.objects.memory_object import Memory
 from cybox.objects.email_message_object import EmailMessage, EmailHeader, EmailRecipients, Attachments
 from cybox.objects.domain_name_object import DomainName
-from cybox.objects.win_registry_key_object import *
+from cybox.objects.win_registry_key_object import RegistryValue, RegistryValues, WinRegistryKey
 from cybox.objects.system_object import System, NetworkInterface, NetworkInterfaceList
-from cybox.objects.http_session_object import RegistryValue, RegistryValues, WinRegistryKey
+from cybox.objects.http_session_object import HTTPClientRequest, HTTPRequestHeader, HTTPRequestHeaderFields, HTTPRequestLine, HTTPRequestResponse, HTTPSession
 from cybox.objects.as_object import AutonomousSystem
 from cybox.objects.socket_address_object import SocketAddress
 from cybox.objects.network_connection_object import NetworkConnection
