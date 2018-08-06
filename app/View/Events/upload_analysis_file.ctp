@@ -106,11 +106,9 @@ $('#graspSelectedText').on('click',function(){
         var row = $(this);
 			if (row.find('input[type="checkbox"]').is(':checked')) {
 			row.find("td:first").remove();
-            $('#individualSelectedLines').append(row);	
         }
 		$(this).remove();
     });
-		processString(selText)
 })
 
 
@@ -124,6 +122,7 @@ function processString(text)
 	//time expressions
 	var Regx2 = new RegExp("([01]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]");
 	var arr = Regx1.exec(text);
+	
 	if(Regx2.exec(text) != null)
 	{
 		if(arr != null)
