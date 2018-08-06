@@ -34,43 +34,39 @@ class StixParser():
         self.misp_event['Galaxy'] = []
 
     def loadEvent(self, args):
-        try:
-            filename = os.path.join(os.path.dirname(args[0]), args[1])
-            with open(filename, 'r', encoding='utf-8') as f:
-                event = json.loads(f.read())
-            self.filename = filename
-            self.stix_version = 'stix {}'.format(event.get('spec_version'))
-            for o in event.get('objects'):
-                parsed_object = stix2.parse(o, allow_custom=True)
-                try:
-                    object_type = parsed_object._type
-                except AttributeError:
-                    object_type = parsed_object['type']
-                object_uuid = parsed_object['id'].split('--')[1]
-                if object_type.startswith('x-misp-object'):
-                    object_type = 'x-misp-object'
-                self.event[object_type][object_uuid] = parsed_object
-            if not self.event:
-                print(json.dumps({'success': 0, 'message': 'There is no valid STIX object to import'}))
-                sys.exit(1)
+        filename = os.path.join(os.path.dirname(args[0]), args[1])
+        with open(filename, 'r', encoding='utf-8') as f:
+            event = json.loads(f.read())
+        self.filename = filename
+        self.stix_version = 'stix {}'.format(event.get('spec_version'))
+        for o in event.get('objects'):
+            parsed_object = stix2.parse(o, allow_custom=True)
             try:
-                event_distribution = args[2]
-                if not isinstance(event_distribution, int):
-                    event_distribution = int(event_distribution) if event_distribution.isdigit() else 5
-            except IndexError:
-                event_distribution = 5
-            try:
-                attribute_distribution = args[3]
-                if attribute_distribution != 'event' and not isinstance(attribute_distribution, int):
-                    attribute_distribution = int(attribute_distribution) if attribute_distribution.isdigit() else 5
-            except IndexError:
-                attribute_distribution = 5
-            self.misp_event.distribution = event_distribution
-            self.__attribute_distribution = event_distribution if attribute_distribution == 'event' else attribute_distribution
-            self.load_mapping()
-        except:
-            print(json.dumps({'success': 0, 'message': 'The STIX file could not be read'}))
+                object_type = parsed_object._type
+            except AttributeError:
+                object_type = parsed_object['type']
+            object_uuid = parsed_object['id'].split('--')[1]
+            if object_type.startswith('x-misp-object'):
+                object_type = 'x-misp-object'
+            self.event[object_type][object_uuid] = parsed_object
+        if not self.event:
+            print(json.dumps({'success': 0, 'message': 'There is no valid STIX object to import'}))
             sys.exit(1)
+        try:
+            event_distribution = args[2]
+            if not isinstance(event_distribution, int):
+                event_distribution = int(event_distribution) if event_distribution.isdigit() else 5
+        except IndexError:
+            event_distribution = 5
+        try:
+            attribute_distribution = args[3]
+            if attribute_distribution != 'event' and not isinstance(attribute_distribution, int):
+                attribute_distribution = int(attribute_distribution) if attribute_distribution.isdigit() else 5
+        except IndexError:
+            attribute_distribution = 5
+        self.misp_event.distribution = event_distribution
+        self.__attribute_distribution = event_distribution if attribute_distribution == 'event' else attribute_distribution
+        self.load_mapping()
 
     def load_mapping(self):
         self.objects_mapping = {'asn': {'observable': observable_asn, 'pattern': pattern_asn},
