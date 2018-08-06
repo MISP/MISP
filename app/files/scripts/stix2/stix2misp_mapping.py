@@ -499,7 +499,7 @@ def parse_socket_extension(extension):
         if element in ('is_listening', 'is_blocking'):
             attribute_value = element.split('_')[1]
         else:
-            attribute_value = extension['element']
+            attribute_value = extension[element]
         attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
                            'value': attribute_value})
     return attributes
