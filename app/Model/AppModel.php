@@ -1643,10 +1643,10 @@ class AppModel extends Model
             if (empty($options['request_data'])) {
                 return $this->RestResponse->throwException(400, __('Either specify the search terms in the url, or POST a json with the filter parameters.'), 'csv', true);
             } else {
-                if (isset($options['request_request']['request'])) {
-                    $data = $options['request_request']['request'];
+                if (isset($options['request_data']['request'])) {
+                    $data = $options['request_data']['request'];
                 } else {
-                    $data = $options['request_request'];
+                    $data = $options['request_data'];
                 }
             }
         }
