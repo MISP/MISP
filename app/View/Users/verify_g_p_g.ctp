@@ -4,11 +4,13 @@
     <?php foreach ($users as $k => $user) {
         echo '<a href="'.$baseurl.'/admin/users/view/' . $k . '">' . $k . ' (' . h($user[1]) . ')</a>:';
         if (isset($user[0])) {
-            echo '-> <span style="color:red;"><span style="font-weight:bold">Invalid.</span> (' . h($user[2]) . ')</span><br />';
+            echo '-> <span style="color:red;"><span style="font-weight:bold">Invalid.</span> (' . h($user[2]) . ')</span>';
         } else {
-            echo '-> <span style="color:green;">OK</span><br />';
+            echo '-> <span style="color:green;">OK</span>';
         }
-        echo '------------------------------------------------------------------------------<br />';
+        echo ' (' . $user[5] . ')';
+
+        echo '<br />------------------------------------------------------------------------------<br />';
     }
     ?>
     </ul>
