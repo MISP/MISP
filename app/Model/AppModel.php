@@ -1634,35 +1634,4 @@ class AppModel extends Model
         }
         return $request;
     }
-
-    // generic function to standardise on the collection of parameters. Accepts posted request objects, url params, named url params
-    public function harvestParameters($options)
-    {
-        $data = array();
-        if (!empty($options['is_post'])) {
-            if (empty($options['request_data'])) {
-                return $this->RestResponse->throwException(400, __('Either specify the search terms in the url, or POST a json with the filter parameters.'), 'csv', true);
-            } else {
-                if (isset($options['request_data']['request'])) {
-                    $data = $options['request_data']['request'];
-                } else {
-                    $data = $options['request_data'];
-                }
-            }
-        }
-        if (!empty($options['paramArray'])) {
-            foreach ($options['paramArray'] as $p) {
-                if (
-                    isset($options['ordered_url_params'][$p]) &&
-                    (!in_array(strtolower($options['ordered_url_params'][$p]), array('null', '0', false, 'false', null)))
-                ) {
-                    $data[$p] = $options['ordered_url_params'][$p];
-                }
-                if (isset($options['named_params'][$p])) {
-                    $data[$p] = $options['named_params'][$p];
-                }
-            }
-        }
-        return $data;
-    }
 }
