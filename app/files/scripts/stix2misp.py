@@ -66,7 +66,7 @@ class StixParser():
                 print(3)
             sys.exit(0)
         title = event.stix_header.title
-        fromMisp = (title is not None and "Export from " in title and "MISP" in title)
+        fromMISP = (title is not None and "Export from " in title and "MISP" in title)
         if fromMISP:
             package = event.related_packages.related_package[0].item
             self.event = package.incidents[0]
