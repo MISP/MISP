@@ -1,6 +1,6 @@
 INSTALLATION INSTRUCTIONS
 -------------------------
-# For Ubuntu 16.04-server with Webmin preinstalled
+# For Ubuntu 18.04.1 server with Webmin
 
 # Assuming you created the subdomanin misp.yourserver.tld to where MISP will be installed
 # and that the user "misp" is in the sudoers group
@@ -9,12 +9,18 @@ INSTALLATION INSTRUCTIONS
 
 1/ Minimal Ubuntu install
 -------------------------
-
-# Login as misp
-
 # Make sure your system is up2date:
 sudo apt-get update
 sudo apt-get upgrade
+
+# Get Virtualmin
+wget http://software.virtualmin.com/gpl/scripts/install.sh
+
+# Install it
+chmod +x install.sh
+./install.sh
+
+# Grab a coffee while it does its magic
 
 
 2/ Install LAMP & dependencies
@@ -27,11 +33,18 @@ sudo apt-get install curl gcc git gnupg-agent make python openssl redis-server s
 # Stop MySQL and install MariaDB (a MySQL fork/alternative)
 # MariaDB will replace MySQL and it will work with the latests versions of Webmin without modifications
 # WARNING: Databases and data may be lost! It is assumed you are installing on a new server with no existing DBs
+# NOTE: at present a simple...
+# sudo service mysql stop
+# sudo apt-get install mariadb-client mariadb-server
+# doesn't work well so with 18.04.1 you should do the following:
+sudo apt-get install software-properties-common
+sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8
+sudo add-apt-repository 'deb [arch=amd64,arm64,ppc64el] http://mariadb.mirrors.ovh.net/MariaDB/repo/10.3/ubuntu bionic main'
+sudo apt update
+sudo apt install mariadb-server
 
-sudo service mysql stop
-sudo apt-get install mariadb-client mariadb-server
 
-# Secure the MariaDB installation (especially by setting a strong root password)
+# Secure the MariaDB installation (especially by setting a strong root password) if it hasn't been asked during the setup process.
 sudo mysql_secure_installation
 
 

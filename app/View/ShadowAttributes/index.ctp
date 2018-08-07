@@ -51,7 +51,7 @@
                 <?php echo $this->Paginator->sort('type', __('Type'));?>
             </th>
             <th>
-                <?php echo $this->Paginator->sort('timestamp', __('Created'));?>
+                <?php echo $this->Paginator->sort('timestamp', __('Created'), array('direction' => 'desc'));?>
             </th>
         </tr>
         <?php foreach ($shadowAttributes as $event):?>
