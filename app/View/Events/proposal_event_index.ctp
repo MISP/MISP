@@ -20,7 +20,7 @@
             <th class="filter">
                 <?php echo $this->Paginator->sort('published');?>
             </th>
-            <th><?php echo $this->Paginator->sort('id', 'ID', array('direction' => 'desc'));?></th>
+            <th><?php echo $this->Paginator->sort('id', 'Id', array('direction' => 'desc'));?></th>
             <th><?php echo $this->Paginator->sort('attribute_count', __('Proposals'));?></th>
             <th><?php echo __('Contributors');?></th>
             <?php if ($isSiteAdmin): ?>
