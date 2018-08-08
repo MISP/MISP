@@ -163,14 +163,17 @@ class StixParser():
     def parse_journal_entries(self):
         for entry in self.event.history.history_items:
             journal_entry = entry.journal_entry.value
-            entry_type, entry_value = journal_entry.split(': ')
-            if entry_type == "MISP Tag":
-                self.parse_tag(entry_value)
-            elif entry_type.startswith('attribute['):
-                _, category, attribute_type = entry_type.split('[')
-                self.misp_event.add_attribute(**{'type': attribute_type[:-1], 'category': category[:-1], 'value': entry_value})
-            elif entry_type == "Event Threat Level":
-                self.misp_event.threat_level_id = threat_level_mapping[entry_value]
+            try:
+                entry_type, entry_value = journal_entry.split(': ')
+                if entry_type == "MISP Tag":
+                    self.parse_tag(entry_value)
+                elif entry_type.startswith('attribute['):
+                    _, category, attribute_type = entry_type.split('[')
+                    self.misp_event.add_attribute(**{'type': attribute_type[:-1], 'category': category[:-1], 'value': entry_value})
+                elif entry_type == "Event Threat Level":
+                    self.misp_event.threat_level_id = threat_level_mapping[entry_value]
+            except ValueError:
+                continue
 
     def parse_tag(self, entry):
         if entry.startswith('misp-galaxy:'):

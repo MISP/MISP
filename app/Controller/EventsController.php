@@ -1536,8 +1536,11 @@ class EventsController extends AppController
                 if (isset($this->request->data['response'])) {
                     $this->request->data = $this->request->data['response'];
                 }
+                if (isset($this->request->data['request'])) {
+                    $this->request->data = $this->request->data['request'];
+                }
                 if (!isset($this->request->data['Event'])) {
-                    $this->request->data['Event'] = $this->request->data;
+                    $this->request->data = array('Event' => $this->request->data);
                 }
 
                 // Distribution, reporter for the events pushed will be the owner of the authentication key
