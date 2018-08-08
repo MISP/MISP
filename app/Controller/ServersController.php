@@ -1647,7 +1647,7 @@ class ServersController extends AppController
             return false;
         }
         $view_data['duration'] = microtime(true) - $start;
-        $view_data['duration'] = round($view_data['duration'] * 100, 2) . 'ms';
+        $view_data['duration'] = round($view_data['duration'] * 1000, 2) . 'ms';
         $view_data['code'] =  $response->code;
         $view_data['headers'] = $response->headers;
         if (!empty($request['show_result'])) {
