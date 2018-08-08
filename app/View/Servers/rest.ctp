@@ -1,7 +1,7 @@
 <div class="servers form">
 <?php echo $this->Form->create('Server');?>
     <fieldset>
-        <legend><?php echo __('REST query tool');?></legend>
+        <legend><?php echo __('REST client');?></legend>
     <?php
         echo $this->Form->input('method', array(
             'label' => __('Relative path to query'),
