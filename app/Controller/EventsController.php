@@ -3035,8 +3035,7 @@ class EventsController extends AppController
     // the last 4 fields accept the following operators:
     // && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
     // ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-    public function restSearch($returnFormat = 'json', $value = false, $type = false, $category = false, $org = false, $tags = false, $searchall = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $metadata = false, $uuid = false, $publish_timestamp = false, $timestamp = false, $published = false, $enforceWarninglist = false, $sgReferenceOnly = false)
-    {
+    public function restSearch($returnFormat = 'json', $value = false, $type = false, $category = false, $org = false, $tags = false, $searchall = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $metadata = false, $uuid = false, $publish_timestamp = false, $timestamp = false, $published = false, $enforceWarninglist = false, $sgReferenceOnly = false) {
         $paramArray = array('value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly');
         $filterData = array(
             'request' => $this->request,
@@ -3058,12 +3057,8 @@ class EventsController extends AppController
         if (isset($filters['returnFormat'])) {
             $returnFormat = $filters['returnFormat'];
         }
-        if ($searchall === 'true') {
-            $filters['AND']['eventid'] = $eventIds;
-        } else {
-            $filters['AND']['eventid'] = $this->Event->filterEventIds($user, $filters);
-        }
-        $responseType = 'xml';
+        $eventid = $this->Event->filterEventIds($user, $filters);
+        $responseType = 'json';
         $converters = array(
             'xml' => 'XMLConverterTool',
             'json' => 'JSONConverterTool',
@@ -3079,9 +3074,10 @@ class EventsController extends AppController
         App::uses($converters[$responseType], 'Tools');
         $converter = new $converters[$responseType]();
         $final = $converter->generateTop($this->Auth->user());
-        $eventCount = count($filters['AND']['eventid']);
+        $eventCount = count($eventid);
         $i = 0;
-        foreach ($filters['AND']['eventid'] as $k => $currentEventId) {
+        foreach ($eventid as $k => $currentEventId) {
+            $filters['eventid'] = $currentEventId;
             $result = $this->Event->fetchEvent(
                 $this->Auth->user(),
                 $filters,

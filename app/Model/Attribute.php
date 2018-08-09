@@ -2033,16 +2033,19 @@ class Attribute extends AppModel
         return $rules;
     }
 
-    public function set_filter_tags(&$params, $conditions, $scope = 'Event') {
+    public function set_filter_tags(&$params, $conditions, $options) {
         if (empty($params['tags'])) {
             return $conditions;
         }
         $tag = ClassRegistry::init('Tag');
-        $args = $this->dissectArgs($params['tags']);
-        $tagArray = $tag->fetchTagIds($args[0], $args[1]);
+        $params['tags'] = $this->dissectArgs($params['tags']);
+        $tagArray = $tag->fetchTagIds($params['tags'][0], $params['tags'][1]);
+        if (!empty($params['tags'][0]) && empty($tagArray[0])) {
+            $tagArray[0] = array(-1);
+        }
         $temp = array();
         if (!empty($tagArray[0])) {
-            $options = array(
+            $subquery_options = array(
                 'conditions' => array(
                     'tag_id' => $tagArray[0]
                 ),
@@ -2050,31 +2053,31 @@ class Attribute extends AppModel
                     'event_id'
                 )
             );
-            $lookup_field = ($scope === 'Event') ? 'Event.id' : 'Attribute.event_id';
+            $lookup_field = ($options['scope'] === 'Event') ? 'Event.id' : 'Attribute.event_id';
             $temp = array_merge(
                 $temp,
-                $this->subQueryGenerator($tag->EventTag, $options, $lookup_field)
+                $this->subQueryGenerator($tag->EventTag, $subquery_options, $lookup_field)
             );
 
-            $options = array(
+            $subquery_options = array(
                 'conditions' => array(
                     'tag_id' => $tagArray[0]
                 ),
                 'fields' => array(
-                    $scope === 'Event' ? 'Event.id' : 'attribute_id'
+                    $options['scope'] === 'Event' ? 'Event.id' : 'attribute_id'
                 )
             );
-            $lookup_field = $scope === 'Event' ? 'Event.id' : 'Attribute.id';
+            $lookup_field = $options['scope'] === 'Event' ? 'Event.id' : 'Attribute.id';
             $temp = array_merge(
                 $temp,
-                $this->subQueryGenerator($tag->AttributeTag, $options, $lookup_field)
+                $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field)
             );
             $conditions['AND'][] = array('OR' => $temp);
         }
         $temp = array();
         if (!empty($tagArray[1])) {
-            if ($scope == 'all' || $scope == 'Event') {
-                $options = array(
+            if ($options['scope'] == 'all' || $options['scope'] == 'Event') {
+                $subquery_options = array(
                     'conditions' => array(
                         'tag_id' => $tagArray[1]
                     ),
@@ -2082,25 +2085,30 @@ class Attribute extends AppModel
                         'event_id'
                     )
                 );
-                $lookup_field = ($scope === 'Event') ? 'Event.id' : 'Attribute.event_id';
-                $conditions['AND'][] = array_merge($temp, $this->subQueryGenerator($tag->EventTag, $options, $lookup_field, 1));
+                $lookup_field = ($options['scope'] === 'Event') ? 'Event.id' : 'Attribute.event_id';
+                $conditions['AND'][] = array_merge($temp, $this->subQueryGenerator($tag->EventTag, $subquery_options, $lookup_field, 1));
             }
-            if ($scope == 'all' || $scope == 'Attribute') {
-                $options = array(
+            if ($options['scope'] == 'all' || $options['scope'] == 'Attribute') {
+                $subquery_options = array(
                     'conditions' => array(
                         'tag_id' => $tagArray[1]
                     ),
                     'fields' => array(
-                        $scope === 'Event' ? 'event.id' : 'attribute_id'
+                        $options['scope'] === 'Event' ? 'event.id' : 'attribute_id'
                     )
                 );
-                $lookup_field = $scope === 'Event' ? 'Event.id' : 'Attribute.id';
-                $conditions['AND'][] = array_merge($temp, $this->subQueryGenerator($tag->AttributeTag, $options, $lookup_field, 1));
+                $lookup_field = $options['scope'] === 'Event' ? 'Event.id' : 'Attribute.id';
+                $conditions['AND'][] = array_merge($temp, $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field, 1));
             }
         }
+        $params['tags'] = array();
+        if (!empty($tagArray[0]) && empty($options['pop'])) {
+            $params['tags']['OR'] = $tagArray[0];
+        }
         if (!empty($tagArray[1])) {
-            $params['tags'] = array('NOT' => $tagArray[1]);
-        } else {
+            $params['tags']['NOT'] = $tagArray[1];
+        }
+        if (empty($params['tags'])) {
             unset($params['tags']);
         }
         return $conditions;

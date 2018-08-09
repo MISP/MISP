@@ -1279,7 +1279,7 @@ class Event extends AppModel
         return $conditions;
     }
 
-    public function filterEventIds($user, $params = array())
+    public function filterEventIds($user, &$params = array())
     {
         $conditions = $this->createEventConditions($user);
         $paramArray = array('searchall', 'withAttachments', 'metadata', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly');
@@ -1287,43 +1287,50 @@ class Event extends AppModel
         $object_conditions = array();
         $simple_params = array(
             'Event' => array(
-                'eventid' => array('function' => 'set_filter_eventid'),
+                'eventid' => array('function' => 'set_filter_eventid', 'pop' => true),
                 'ignore' => array('function' => 'set_filter_ignore'),
                 'tags' => array('function' => 'set_filter_tags'),
                 'tag' => array('function' => 'set_filter_tags'),
-                'from' => array('function' => 'set_filter_timestamp'),
-                'to' => array('function' => 'set_filter_timestamp'),
-                'last' => array('function' => 'set_filter_timestamp'),
-                'timestamp' => array('function' => 'set_filter_timestamp'),
-                'org' => array('function' => 'set_filter_org'),
-                'eventid' => array('function' => 'set_filter_uuid'),
+                'from' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                'to' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                'last' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                'org' => array('function' => 'set_filter_org', 'pop' => true),
+                'uuid' => array('function' => 'set_filter_uuid', 'pop' => true),
             ),
             'Object' => array(
                 'type' => array('function' => 'set_filter_object_type')
             ),
             'Attribute' => array(
-                'value' => array('function' => 'set_filter_value'),
+                'value' => array('function' => 'set_filter_value', 'pop' => true),
                 'category' => array('function' => 'set_filter_simple_attribute'),
                 'type' => array('function' => 'set_filter_simple_attribute'),
-                'tags' => array('function' => 'set_filter_tags'),
+                'tags' => array('function' => 'set_filter_tags', 'pop' => true),
                 'uuid' => array('function' => 'set_filter_uuid')
             )
         );
         foreach ($params as $param => $paramData) {
             foreach ($simple_params as $scope => $simple_param_scoped) {
                 if (isset($simple_param_scoped[$param]) && $params[$param] !== false) {
+                    $options = array(
+                        'filter' => $param,
+                        'scope' => $scope,
+                        'pop' => !empty($simple_param_scoped[$param]['pop'])
+                    );
                     if ($scope === 'Event') {
-                        $conditions = $this->{$simple_param_scoped[$param]['function']}($params, $conditions, $param, $scope);
+                        $conditions = $this->{$simple_param_scoped[$param]['function']}($params, $conditions, $options);
                     } else {
                         $temp = array();
-                        $temp = $this->{$simple_param_scoped[$param]['function']}($params, $temp, $param, $scope);
-                        $subQueryOptions = array(
-                            'conditions' => $temp,
-                            'fields' => array(
-                                'event_id'
-                            )
-                        );
-                        $conditions['AND'][] = $this->subQueryGenerator($this->{$scope}, $subQueryOptions, 'Event.id');
+                        $temp = $this->{$simple_param_scoped[$param]['function']}($params, $temp, $options);
+                        if (!empty($temp)) {
+                            $subQueryOptions = array(
+                                'conditions' => $temp,
+                                'fields' => array(
+                                    'event_id'
+                                )
+                            );
+                            $conditions['AND'][] = $this->subQueryGenerator($this->{$scope}, $subQueryOptions, 'Event.id');
+                        }
                     }
                 }
             }
@@ -1939,7 +1946,7 @@ class Event extends AppModel
         $field = '"' . $field . '"';
     }
 
-    public function set_filter_org(&$params, $conditions, $filter, $scope = false)
+    public function set_filter_org(&$params, $conditions, $options)
     {
         if (!empty($params['org'])) {
             $params['org'] = $this->convert_filters($params['org']);
@@ -1948,7 +1955,7 @@ class Event extends AppModel
         return $conditions;
     }
 
-    public function set_filter_eventid(&$params, $conditions, $filter, $scope = false) {
+    public function set_filter_eventid(&$params, $conditions, $options) {
         if (!empty($params['eventid']) && $params['eventid'] !== 'all') {
             $params['eventid'] = $this->convert_filters($params['eventid']);
             $conditions = $this->generic_add_filter($conditions, $params['eventid'], 'Event.id');
@@ -1956,13 +1963,13 @@ class Event extends AppModel
         return $conditions;
     }
 
-    public function set_filter_uuid(&$params, $conditions, $filter, $scope = false) {
+    public function set_filter_uuid(&$params, $conditions, $options) {
         if (!empty($params['uuid'])) {
             $params['uuid'] = $this->convert_filters($params['uuid']);
-            if (!empty($scope) || $scope === 'Event') {
+            if (!empty($options['scope']) || $options['scope'] === 'Event') {
                 $conditions = $this->generic_add_filter($conditions, $params['eventid'], 'Event.uuid');
             }
-            if (!empty($scope) || $scope === 'Attribute') {
+            if (!empty($options['scope']) || $options['scope'] === 'Attribute') {
                 $conditions = $this->generic_add_filter($conditions, $params['eventid'], 'Attribute.uuid');
             }
 
@@ -1970,7 +1977,7 @@ class Event extends AppModel
         return $conditions;
     }
 
-    public function set_filter_ignore(&$params, $conditions, $filter, $scope = false) {
+    public function set_filter_ignore(&$params, $conditions, $options) {
         if (empty($params['ignore'])) {
             $conditions['AND']['Event.published'] = 1;
             $conditions['AND']['Attribute.to_ids'] = 1;
@@ -1978,43 +1985,43 @@ class Event extends AppModel
         return $conditions;
     }
 
-    public function set_filter_tags(&$params, $conditions, $filter, $scope = false) {
+    public function set_filter_tags(&$params, $conditions, $options) {
         if (!empty($params['tags'])) {
-            $conditions = $this->Attribute->set_filter_tags($params, $conditions, $scope);
+            $conditions = $this->Attribute->set_filter_tags($params, $conditions, $options);
         }
         return $conditions;
     }
 
-    public function set_filter_simple_attribute(&$params, $conditions, $filter, $scope = false) {
-        if (!empty($params[$filter])) {
-            $params[$filter] = $this->convert_filters($params[$filter]);
-            $conditions = $this->generic_add_filter($conditions, $params[$filter], 'Attribute.' . $filter);
+    public function set_filter_simple_attribute(&$params, $conditions, $options) {
+        if (!empty($params[$options['filter']])) {
+            $params[$options['filter']] = $this->convert_filters($params[$options['filter']]);
+            $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], 'Attribute.' . $options['filter']);
         }
         return $conditions;
     }
 
-    public function set_filter_attribute_id(&$params, $conditions, $filter, $scope = false) {
-        if (!empty($params[$filter])) {
-            $params[$filter] = $this->convert_filters($params[$filter]);
-            $conditions = $this->generic_add_filter($conditions, $params[$filter], 'Attribute.' . $filter);
+    public function set_filter_attribute_id(&$params, $conditions, $options) {
+        if (!empty($params[$options['filter']])) {
+            $params[$options['filter']] = $this->convert_filters($params[$options['filter']]);
+            $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], 'Attribute.' . $options['filter']);
         }
         return $conditions;
     }
 
-    public function set_filter_value(&$params, $conditions, $filter, $scope = false)
+    public function set_filter_value(&$params, $conditions, $options)
     {
         if (!empty($params['value'])) {
-            $params[$filter] = $this->convert_filters($params[$filter]);
-            $conditions = $this->generic_add_filter($conditions, $params[$filter], array('Attribute.value1', 'Attribute.value2'));
+            $params[$options['filter']] = $this->convert_filters($params[$options['filter']]);
+            $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], array('Attribute.value1', 'Attribute.value2'));
         }
         return $conditions;
     }
 
-    public function set_filter_timestamp(&$params, $conditions, $filter, $scope = false)
+    public function set_filter_timestamp(&$params, $conditions, $options)
     {
-        if ($filter == 'from') {
+        if ($options['filter'] == 'from') {
             $conditions['AND']['Event.date >='] = $params['from'];
-        } else if ($filter == 'to') {
+        } else if ($options['filter'] == 'to') {
             $conditions['AND']['Event.date <='] = $params['to'];
         } else {
             $filters = array(
@@ -2029,8 +2036,8 @@ class Event extends AppModel
                     'Event.publish_timestamp'
                 )
             );
-            foreach ($filters[$filter] as $f) {
-                $conditions = $this->Attribute->setTimestampConditions($params[$filter], $conditions, $f);
+            foreach ($filters[$options['filter']] as $f) {
+                $conditions = $this->Attribute->setTimestampConditions($params[$options['filter']], $conditions, $f);
             }
         }
         return $conditions;

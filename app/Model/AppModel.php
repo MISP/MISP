@@ -1667,7 +1667,7 @@ class AppModel extends Model
                         if ($operator === 'NOT') {
                             $temp[$key . ' !='][] = $f;
                         } else {
-                            $temp[$key][] = $f;
+                            $temp['OR'][$key][] = $f;
                         }
 
                     }
@@ -1706,8 +1706,8 @@ class AppModel extends Model
         if (!isset($filter['OR']) && !isset($filter['NOT']) && !isset($filter['AND'])) {
             $temp = array();
             foreach ($filter as $param) {
-                if ($filter[0] === '!') {
-                    $temp['NOT'][] = $param;
+                if ($param[0] === '!') {
+                    $temp['NOT'][] = substr($param, 1);
                 } else {
                     $temp['OR'][] = $param;
                 }
