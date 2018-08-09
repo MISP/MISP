@@ -3065,7 +3065,7 @@ class EventsController extends AppController
             'openioc' => 'IOCExportTool'
         );
         if (in_array($returnFormat, array('json', 'xml', 'openioc'))) {
-            $responseType = $key;
+            $responseType = $returnFormat;
         } elseif (((isset($this->request->params['ext']) && $this->request->params['ext'] == 'xml')) || $this->response->type() == 'application/xml') {
             $responseType = 'xml';
         } else {
