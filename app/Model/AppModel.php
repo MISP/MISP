@@ -1634,4 +1634,86 @@ class AppModel extends Model
         }
         return $request;
     }
+
+    // take filters in the {"OR" => [foo], "NOT" => [bar]} format along with conditions and set the conditions
+    public function generic_add_filter($conditions, &$filter, $keys)
+    {
+        $operator_composition = array(
+            'NOT' => 'AND',
+            'OR' => 'OR',
+            'AND' => 'AND'
+        );
+        if (!is_array($keys)) {
+            $keys = array($keys);
+        }
+        if (!isset($filter['OR']) && !isset($filter['AND']) && !isset($filter['OR'])) {
+            return $conditions;
+        }
+        foreach ($filter as $operator => $filters) {
+            $temp = array();
+            foreach ($filters as $f) {
+                // split the filter params into two lists, one for substring searches one for exact ones
+                if ($f[strlen($f) - 1] === '%' || $f[0] === '%') {
+                    foreach ($keys as $key) {
+                        if ($operator === 'NOT') {
+                            $temp[] = array($key . ' NOT LIKE' => $f);
+                        } else {
+                            $temp[] = array($key . ' LIKE' => $f);
+                        }
+
+                    }
+                } else {
+                    foreach ($keys as $key) {
+                        if ($operator === 'NOT') {
+                            $temp[$key . ' !='][] = $f;
+                        } else {
+                            $temp[$key][] = $f;
+                        }
+
+                    }
+                }
+            }
+            $conditions['AND'][] = array($operator_composition[$operator] => $temp);
+            if ($operator !== 'NOT') {
+                unset($filter[$operator]);
+            }
+        }
+        return $conditions;
+    }
+
+    /*
+     * Get filters in one of the following formats:
+     * [foo, bar]
+     * ["OR" => [foo, bar], "NOT" => [baz]]
+     * "foo"
+     * "foo&&bar&&!baz"
+     * and convert it into the same format ["OR" => [foo, bar], "NOT" => [baz]]
+     */
+    public function convert_filters($filter)
+    {
+        if (!is_array($filter)) {
+            $temp = explode('&&', $filter);
+            $filter = array();
+            foreach ($temp as $f) {
+                if ($f[0] === '!') {
+                    $filter['NOT'][] = $f;
+                } else {
+                    $filter['OR'][] = $f;
+                }
+            }
+            return $filter;
+        }
+        if (!isset($filter['OR']) && !isset($filter['NOT']) && !isset($filter['AND'])) {
+            $temp = array();
+            foreach ($filter as $param) {
+                if ($filter[0] === '!') {
+                    $temp['NOT'][] = $param;
+                } else {
+                    $temp['OR'][] = $param;
+                }
+            }
+            $filter = $temp;
+        }
+        return $filter;
+    }
 }
