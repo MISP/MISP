@@ -3035,167 +3035,41 @@ class EventsController extends AppController
     // the last 4 fields accept the following operators:
     // && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
     // ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-    public function restSearch($key = 'download', $value = false, $type = false, $category = false, $org = false, $tags = false, $searchall = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $metadata = false, $uuid = false, $publish_timestamp = false, $timestamp = false, $published = false, $enforceWarninglist = false, $sgReferenceOnly = false)
+    public function restSearch($returnFormat = 'json', $value = false, $type = false, $category = false, $org = false, $tags = false, $searchall = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $metadata = false, $uuid = false, $publish_timestamp = false, $timestamp = false, $published = false, $enforceWarninglist = false, $sgReferenceOnly = false)
     {
-        if ($key != null && strlen($key) == 40) {
-            if (!$this->checkAuthUser($key)) {
-                throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
-            }
-        } else {
-            $key = strtolower($key);
-            if (!$this->Auth->user()) {
-                throw new UnauthorizedException(__('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.'));
-            }
+        $paramArray = array('value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly');
+        $filterData = array(
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'paramArray' => $paramArray,
+            'ordered_url_params' => compact($paramArray)
+        );
+        $exception = false;
+        $filters = $this->_harvestParameters($filterData, $exception);
+        unset($filterData);
+        if ($filters === false) {
+            return $exception;
         }
-        if (!is_array($value) && $value !== false) {
-            $value = str_replace('|', '/', $value);
+        $list = array();
+        $user = $this->_getApiAuthUser($returnFormat, $exception);
+        if ($user === false) {
+            return $exception;
         }
-        // request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
-        // The correct format for both is a "request" root element, as shown by the examples below:
-        // For Json: {"request":{"value": "7.7.7.7&&1.1.1.1","type":"ip-src"}}
-        // For XML: <request><value>7.7.7.7&amp;&amp;1.1.1.1</value><type>ip-src</type></request>
-        // the response type is used to determine the parsing method (xml/json)
-        if ($this->request->is('post')) {
-            if ($this->response->type() === 'application/json') {
-                $data = $this->request->input('json_decode', true);
-            } elseif ($this->response->type() === 'application/xml') {
-                $data = $this->request->data;
-            } else {
-                throw new BadRequestException(__('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.'));
-            }
-            if (!isset($data['request'])) {
-                $data['request'] = $data;
-            }
-            $paramArray = array('value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly');
-            foreach ($paramArray as $p) {
-                if (isset($data['request'][$p])) {
-                    ${$p} = $data['request'][$p];
-                } else {
-                    ${$p} = null;
-                }
-            }
-        }
-        $simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly');
-        foreach ($simpleFalse as $sF) {
-            if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) {
-                ${$sF} = false;
-            }
-        }
-        if ($from) {
-            $from = $this->Event->dateFieldCheck($from);
-        }
-        if ($to) {
-            $to = $this->Event->dateFieldCheck($to);
-        }
-        if (!empty($tag) && !$tags) {
-            $tags = $tag;
-        }
-        if ($tags) {
-            $tags = str_replace(';', ':', $tags);
-        }
-        if ($last) {
-            $last = $this->Event->resolveTimeDelta($last);
+        if (isset($filters['returnFormat'])) {
+            $returnFormat = $filters['returnFormat'];
         }
         if ($searchall === 'true') {
-            $searchall = "1";
-        }
-        $conditions['AND'] = array();
-        $subcondition = array();
-        $this->loadModel('Attribute');
-        // add the values as specified in the 2nd parameter to the conditions
-        if (isset($searchall) && ($searchall == 1 || $searchall === true || $searchall == 'true')) {
-            $eventIds = $this->__quickFilter($value);
+            $filters['AND']['eventid'] = $eventIds;
         } else {
-            $parameters = array('value', 'type', 'category', 'org', 'uuid', 'eventid');
-            $attributeLevelFilters = array('value', 'type', 'category', 'uuid');
-            $preFilterLevel = 'event';
-            foreach ($parameters as $k => $param) {
-                if (${$parameters[$k]} !== null && ${$parameters[$k]} !== false) {
-                    if (in_array($param, $attributeLevelFilters)) {
-                        $preFilterLevel = 'attribute';
-                    }
-                    if ($param == 'eventid') {
-                        $restrictScopeToEvents = true;
-                    }
-                    $conditions = $this->Event->setSimpleConditions($parameters[$k], ${$parameters[$k]}, $conditions, !empty($restrictScopeToEvents));
-                }
-            }
-            // If we sent any tags along, load the associated tag names for each attribute
-            if ($tags) {
-                $conditions = $this->Event->Attribute->setTagConditions($tags, $conditions);
-            }
-            $blockedAttributeTags = array();
-            if (!empty($tags)) {
-                if (!is_array($tags)) {
-                    $tags = explode('&&', $tags);
-                }
-                foreach ($tags as $tag) {
-                    if ($tag[0] == '!') {
-                        $blockedAttributeTags[] = ltrim($tag, '!');
-                    }
-                }
-                $preFilterLevel = 'attribute';
-            }
-            if ($from) {
-                $conditions['AND'][] = array('Event.date >=' => $from);
-            }
-            if ($to) {
-                $conditions['AND'][] = array('Event.date <=' => $to);
-            }
-            if ($publish_timestamp) {
-                $conditions = $this->Event->Attribute->setTimestampConditions($publish_timestamp, $conditions, 'Event.publish_timestamp');
-            }
-            if ($timestamp) {
-                $conditions = $this->Event->Attribute->setTimestampConditions($timestamp, $conditions, 'Event.timestamp');
-            }
-            if ($last) {
-                $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
-            }
-            if ($published !== null && $published !== false) {
-                $conditions['AND'][] = array('Event.published' => $published);
-            }
-            if ($preFilterLevel == 'event') {
-                $params = array(
-                    'conditions' => $conditions
-                );
-                $eventIds = $this->Event->fetchSimpleEventIds($this->Auth->user(), $params);
-            } else {
-                $params = array(
-                        'conditions' => $conditions,
-                        'fields' => array('DISTINCT(Attribute.event_id)'),
-                        'contain' => array(),
-                        'recursive' => -1,
-                        'list' => true,
-                        'event_ids' => true,
-                        'flatten' => 1
-                );
-                $attributes = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $params);
-                $eventIds = array();
-                if (!empty($attributes)) {
-                    $eventIds = array_values($attributes);
-                }
-                if (is_array($eventid)) {
-                    foreach ($eventid as $temp_id) {
-                        if (!in_array($temp_id, $eventIds)) {
-                            $eventIds[] = $temp_id;
-                        }
-                    }
-                } else {
-                    if ($eventid && !in_array($eventid, $eventIds)) {
-                        $eventIds[] = $eventid;
-                    }
-                }
-                unset($attributes);
-            }
+            $filters['AND']['eventid'] = $this->Event->filterEventIds($user, $filters);
         }
-        $this->loadModel('Whitelist');
         $responseType = 'xml';
         $converters = array(
             'xml' => 'XMLConverterTool',
             'json' => 'JSONConverterTool',
             'openioc' => 'IOCExportTool'
         );
-        if (in_array($key, array('json', 'xml', 'openioc'))) {
+        if (in_array($returnFormat, array('json', 'xml', 'openioc'))) {
             $responseType = $key;
         } elseif (((isset($this->request->params['ext']) && $this->request->params['ext'] == 'xml')) || $this->response->type() == 'application/xml') {
             $responseType = 'xml';
@@ -3205,22 +3079,16 @@ class EventsController extends AppController
         App::uses($converters[$responseType], 'Tools');
         $converter = new $converters[$responseType]();
         $final = $converter->generateTop($this->Auth->user());
-        $eventCount = count($eventIds);
+        $eventCount = count($filters['AND']['eventid']);
         $i = 0;
-        foreach ($eventIds as $k => $currentEventId) {
+        foreach ($filters['AND']['eventid'] as $k => $currentEventId) {
             $result = $this->Event->fetchEvent(
                 $this->Auth->user(),
-                array(
-                    'blockedAttributeTags' => $blockedAttributeTags,
-                    'eventid' => $currentEventId,
-                    'includeAttachments' => $withAttachments,
-                    'metadata' => $metadata,
-                    'enforceWarninglist' => $enforceWarninglist,
-                    'sgReferenceOnly' => $sgReferenceOnly
-                ),
+                $filters,
                 true
             );
             if (!empty($result)) {
+                $this->loadModel('Whitelist');
                 $result = $this->Whitelist->removeWhitelistedFromArray($result, false);
                 if ($i != 0) {
                     $final .= ',' . PHP_EOL;
@@ -3234,7 +3102,7 @@ class EventsController extends AppController
         }
         $final .= $converter->generateBottom($responseType, $final);
         $extension = $responseType;
-        if ($key == 'openioc') {
+        if ($returnFormat == 'openioc') {
             $extension = '.ioc';
         }
         if (isset($eventid) && $eventid) {
