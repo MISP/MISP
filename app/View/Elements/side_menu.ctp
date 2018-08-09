@@ -200,6 +200,11 @@
                             ),
                             'text' => __('Import from…')
                         ));
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'rest',
+                            'url' => '/servers/rest',
+                            'text' => __('REST client')
+                        ));
                     }
                     echo $this->element('/side_menu_divider');
                     echo $this->element('/side_menu_link', array(

@@ -472,6 +472,7 @@ class User extends AppModel
             $currentTimestamp = time();
             $temp = $gpg->importKey($user['User']['gpgkey']);
             $key = $gpg->getKeys($temp['fingerprint']);
+            $result[5] = $temp['fingerprint'];
             $subKeys = $key[0]->getSubKeys();
             $sortedKeys = array('valid' => 0, 'expired' => 0, 'noEncrypt' => 0);
             foreach ($subKeys as $subKey) {

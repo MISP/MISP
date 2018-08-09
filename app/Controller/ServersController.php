@@ -1579,4 +1579,85 @@ class ServersController extends AppController
     {
         return $this->RestResponse->viewData(array('uuid' => Configure::read('MISP.uuid')), $this->response->type());
     }
+
+    public function rest() {
+        if ($this->request->is('post')) {
+            $request = $this->request->data;
+            if (!empty($request['Server'])) {
+                $request = $this->request->data['Server'];
+            }
+            $result = $this->__doRestQuery($request);
+            if (!$result) {
+                $this->Flash->error('Something went wrong. Make sure you set the http method, body (when sending POST requests) and URL correctly.');
+            } else {
+                $this->set('data', $result);
+            }
+        }
+        $header =
+            'Authorization: ' . $this->Auth->user('authkey') . PHP_EOL .
+            'Accept: application/json' . PHP_EOL .
+            'Content-Type: application/json';
+        $this->set('header', $header);
+    }
+
+    private function __doRestQuery($request) {
+        App::uses('SyncTool', 'Tools');
+        $params = array(
+
+        );
+        if (!empty($request['url'])) {
+            $path = parse_url($request['url'], PHP_URL_PATH);
+            $query = parse_url($request['url'], PHP_URL_QUERY);
+            if (!empty($query)) {
+                $path .= '?' . $query;
+            }
+            $url = Configure::read('MISP.baseurl') . '/' . $path;
+        } else {
+            throw new InvalidArgumentException('Url not set.');
+        }
+        App::uses('HttpSocket', 'Network/Http');
+        $HttpSocket = new HttpSocket($params);
+        $view_data = array();
+        $temp_headers = explode("\n", $request['header']);
+        $request['header'] = array(
+            'Authorization' => $this->Auth->user('authkey'),
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/json'
+        );
+        foreach ($temp_headers as $header) {
+            $header = explode(':', $header);
+            $header[0] = trim($header[0]);
+            $header[1] = trim($header[1]);
+            $request['header'][$header[0]] = $header[1];
+        }
+        $start = microtime(true);
+        if (
+            !empty($request['method']) &&
+            $request['method'] === 'GET'
+        ) {
+            $response = $HttpSocket->get($url, false, array('header' => $request['header']));
+        } else if (
+            !empty($request['method']) &&
+            $request['method'] === 'POST' &&
+            !empty($request['body'])
+        ) {
+            $response = $HttpSocket->post($url, $request['body'], array('header' => $request['header']));
+        } else {
+            return false;
+        }
+        $view_data['duration'] = microtime(true) - $start;
+        $view_data['duration'] = round($view_data['duration'] * 1000, 2) . 'ms';
+        $view_data['code'] =  $response->code;
+        $view_data['headers'] = $response->headers;
+        if (!empty($request['show_result'])) {
+            $view_data['data'] = $response->body;
+        } else {
+            if ($response->isOk()) {
+                $view_data['data'] = 'Success.';
+            } else {
+                $view_data['data'] = 'Something went wrong.';
+            }
+        }
+        return $view_data;
+    }
 }

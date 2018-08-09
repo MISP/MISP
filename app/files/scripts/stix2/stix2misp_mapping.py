@@ -390,7 +390,7 @@ def pattern_ip_port(pattern):
 
 def observable_process(observable):
     attributes = []
-    observable_object = observable['0'] if len(observable) == 1 else parse_process_observable(observable)
+    observable_object = dict(observable['0']) if len(observable) == 1 else parse_process_observable(observable)
     try:
         parent_key = observable_object.pop('parent_ref')
         attributes.append({'type': 'text', 'value': observable[parent_key]['pid'], 'object_relation': 'parent-pid'})
@@ -409,7 +409,7 @@ def parse_process_observable(observable):
     for key in observable:
         observable_object = observable[key]
         if observable_object['type'] == 'process' and ('parent_ref' in observable_object or 'child_refs' in observable_object):
-            return observable_object
+            return dict(observable_object)
 
 def pattern_process(pattern):
     attributes = []
@@ -458,7 +458,7 @@ def pattern_regkey(pattern):
     return attributes
 
 def observable_socket(observable):
-    observable_object = observable['0'] if len(observable) == 1 else parse_socket_observable(observable)
+    observable_object = dict(observable['0']) if len(observable) == 1 else parse_socket_observable(observable)
     try:
         extension = observable_object.pop('extensions')
         attributes = parse_socket_extension(extension['socket-ext'])
@@ -487,7 +487,7 @@ def parse_socket_observable(observable):
     for key in observable:
         observable_object = observable[key]
         if observable_object['type'] == 'network-traffic':
-            return observable_object
+            return dict(observable_object)
 
 def parse_socket_extension(extension):
     attributes = []
@@ -499,7 +499,7 @@ def parse_socket_extension(extension):
         if element in ('is_listening', 'is_blocking'):
             attribute_value = element.split('_')[1]
         else:
-            attribute_value = extension['element']
+            attribute_value = extension[element]
         attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
                            'value': attribute_value})
     return attributes
