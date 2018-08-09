@@ -2033,7 +2033,7 @@ class Attribute extends AppModel
         return $rules;
     }
 
-    public function set_filter_tags($params, $conditions, $scope = 'all') {
+    public function set_filter_tags(&$params, $conditions, $scope = 'Event') {
         if (empty($params['tags'])) {
             return $conditions;
         }
@@ -2042,26 +2042,33 @@ class Attribute extends AppModel
         $tagArray = $tag->fetchTagIds($args[0], $args[1]);
         $temp = array();
         if (!empty($tagArray[0])) {
-            if ($scope == 'all' || $scope == 'Event') {
-                $options = array(
-                    'conditions' => array(
-                        'tag_id' => $tagArray[0]
-                    ),
-                    'fields' => array(
-                        'event_id'
-                    )
-                );
-                $temp = array_merge($temp, $this->subQueryGenerator($tag->EventTag, $options, 'Attribute.event_id'));
-            }
             $options = array(
                 'conditions' => array(
                     'tag_id' => $tagArray[0]
                 ),
                 'fields' => array(
-                    'attribute_id'
+                    'event_id'
                 )
             );
-            $temp = array_merge($temp, $this->subQueryGenerator($tag->AttributeTag, $options, 'Attribute.id'));
+            $lookup_field = ($scope === 'Event') ? 'Event.id' : 'Attribute.event_id';
+            $temp = array_merge(
+                $temp,
+                $this->subQueryGenerator($tag->EventTag, $options, $lookup_field)
+            );
+
+            $options = array(
+                'conditions' => array(
+                    'tag_id' => $tagArray[0]
+                ),
+                'fields' => array(
+                    $scope === 'Event' ? 'Event.id' : 'attribute_id'
+                )
+            );
+            $lookup_field = $scope === 'Event' ? 'Event.id' : 'Attribute.id';
+            $temp = array_merge(
+                $temp,
+                $this->subQueryGenerator($tag->AttributeTag, $options, $lookup_field)
+            );
             $conditions['AND'][] = array('OR' => $temp);
         }
         $temp = array();
@@ -2075,7 +2082,8 @@ class Attribute extends AppModel
                         'event_id'
                     )
                 );
-                $conditions['AND'][] = array_merge($temp, $this->subQueryGenerator($tag->EventTag, $options, 'Attribute.event_id', 1));
+                $lookup_field = ($scope === 'Event') ? 'Event.id' : 'Attribute.event_id';
+                $conditions['AND'][] = array_merge($temp, $this->subQueryGenerator($tag->EventTag, $options, $lookup_field, 1));
             }
             if ($scope == 'all' || $scope == 'Attribute') {
                 $options = array(
@@ -2083,11 +2091,17 @@ class Attribute extends AppModel
                         'tag_id' => $tagArray[1]
                     ),
                     'fields' => array(
-                        'attribute_id'
+                        $scope === 'Event' ? 'event.id' : 'attribute_id'
                     )
                 );
-                $conditions['AND'][] = array_merge($temp, $this->subQueryGenerator($tag->AttributeTag, $options, 'Attribute.id', 1));
+                $lookup_field = $scope === 'Event' ? 'Event.id' : 'Attribute.id';
+                $conditions['AND'][] = array_merge($temp, $this->subQueryGenerator($tag->AttributeTag, $options, $lookup_field, 1));
             }
+        }
+        if (!empty($tagArray[1])) {
+            $params['tags'] = array('NOT' => $tagArray[1]);
+        } else {
+            unset($params['tags']);
         }
         return $conditions;
     }
@@ -2394,25 +2408,26 @@ class Attribute extends AppModel
     // array 1 will have all of the non negated terms and array 2 all the negated terms
     public function dissectArgs($args)
     {
-        if (!$args) {
-            return array(null, null);
+        if (!is_array($args)) {
+            $args = explode('&&', $args);
         }
-        if (is_array($args)) {
-            $argArray = $args;
+        $result = array(0 => array(), 1 => array());
+        if (isset($args['OR']) || isset($args['NOT']) || isset($args['AND'])) {
+            if (!empty($args['OR'])) {
+                $result[0] = $args['OR'];
+            }
+            if (!empty($args['NOT'])) {
+                $result[1] = $args['NOT'];
+            }
         } else {
-            $argArray = explode('&&', $args);
-        }
-        $accept = $reject = $result = array();
-        $reject = array();
-        foreach ($argArray as $arg) {
-            if (substr($arg, 0, 1) == '!') {
-                $reject[] = substr($arg, 1);
-            } else {
-                $accept[] = $arg;
+            foreach ($args as $arg) {
+                if (substr($arg, 0, 1) == '!') {
+                    $result[1][] = substr($arg, 1);
+                } else {
+                    $result[0][] = $arg;
+                }
             }
         }
-        $result[0] = $accept;
-        $result[1] = $reject;
         return $result;
     }
 
@@ -3089,11 +3104,11 @@ class Attribute extends AppModel
         if (is_array($timestamp)) {
             $timestamp[0] = $this->Event->resolveTimeDelta($timestamp[0]);
             $timestamp[1] = $this->Event->resolveTimeDelta($timestamp[1]);
-            $conditions['AND'][] = array($scope . ' >=' => $timestamp[0]);
-            $conditions['AND'][] = array($scope . ' <=' => $timestamp[1]);
+            $conditions['AND'][] = array($scope . ' >=' => intval($timestamp[0]));
+            $conditions['AND'][] = array($scope . ' <=' => intval($timestamp[1]));
         } else {
             $timestamp = $this->Event->resolveTimeDelta($timestamp);
-            $conditions['AND'][] = array($scope . ' >=' => $timestamp);
+            $conditions['AND'][] = array($scope . ' >=' => intval($timestamp));
         }
         return $conditions;
     }
