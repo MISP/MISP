@@ -15,24 +15,16 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import sys, json, os, time, uuid
-import mixbox.namespaces as mixbox_ns
+import sys
+import json
+import os
+import time
+import uuid
+import stix2misp_mapping
+from operator import attrgetter
 from pymisp import MISPEvent, MISPObject, MISPAttribute, __path__
 from stix.core import STIXPackage
 from collections import defaultdict
-
-file_object_type = {"type": "filename", "relation": "filename"}
-
-eventTypes = {"ArtifactObjectType": {"type": "attachment", "relation": "attachment"},
-              "DomainNameObjectType": {"type": "domain", "relation": "domain"},
-              "FileObjectType": file_object_type,
-              "HostnameObjectType": {"type": "hostname", "relation": "host"},
-              "MutexObjectType": {"type": "mutex", "relation": "mutex"},
-              "PDFFileObjectType": file_object_type,
-              "PortObjectType": {"type": "port", "relation": "port"},
-              "URIObjectType": {"type": "url", "relation": "url"},
-              "WindowsExecutableFileObjectType": file_object_type,
-              "WindowsRegistryKeyObjectType": {"type": "regkey", "relation": ""}}
 
 cybox_to_misp_object = {"Account": "credential", "AutonomousSystem": "asn",
                         "EmailMessage": "email", "NetworkConnection": "network-connection",
@@ -62,7 +54,7 @@ class StixParser():
             try:
                 import maec
                 print(2)
-            except:
+            except ModuleNotFoundError:
                 print(3)
             sys.exit(0)
         title = event.stix_header.title
@@ -347,17 +339,17 @@ class StixParser():
     # Define type & value of an attribute or object in MISP
     def handle_attribute_type(self, properties, is_object=False, title=None, observable_id=None):
         xsi_type = properties._XSI_TYPE
-        try:
-            args = [properties]
-            if xsi_type in ("FileObjectType", "PDFFileObjectType"):
-                args.append(is_object)
-            elif xsi_type == "ArtifactObjectType":
-                args.append(title)
-            return self.attribute_types_mapping[xsi_type](*args)
-        except AttributeError:
-            # ATM USED TO TEST TYPES
-            print("Unparsed type: {}".format(xsi_type))
-            sys.exit(1)
+        # try:
+        args = [properties]
+        if xsi_type in ("FileObjectType", "PDFFileObjectType"):
+            args.append(is_object)
+        elif xsi_type == "ArtifactObjectType":
+            args.append(title)
+        return self.attribute_types_mapping[xsi_type](*args)
+        # except AttributeError:
+        #     # ATM USED TO TEST TYPES
+        #     print("Unparsed type: {}".format(xsi_type))
+        #     sys.exit(1)
 
     # Return type & value of an ip address attribute
     @staticmethod
@@ -369,62 +361,20 @@ class StixParser():
         return ip_type, properties.address_value.value, "ip"
 
     def handle_as(self, properties):
-        attributes = []
-        if properties.number:
-            attributes.append(['AS', properties.number.value, 'asn'])
-        if properties.handle:
-            attributes.append(['AS', properties.handle.value, 'asn'])
-        if properties.name:
-            attributes.append(['text', properties.name.value, 'description'])
-        if len(attributes) == 1:
-            return attributes[0]
-        return 'asn', self.return_attributes(attributes), ''
+        attributes = stix2misp_mapping.attributes_from_as(properties)
+        return attributes[0] if len(attributes) == 1 else ('asn', self.return_attributes(attributes), '')
 
     # Return type & value of an attachment attribute
     @staticmethod
     def handle_attachment(properties, title):
         if properties.hashes:
             return "malware-sample", "{}|{}".format(title, properties.hashes[0], properties.raw_artifact.value)
-        return eventTypes[properties._XSI_TYPE]['type'], title, properties.raw_artifact.value
+        return stix2misp_mapping.eventTypes[properties._XSI_TYPE]['type'], title, properties.raw_artifact.value
 
     # Return type & attributes of a credential object
     def handle_credential(self, properties):
-        attributes = []
-        if properties.description:
-            attributes.append(["text", properties.description.value, "text"])
-        if properties.authentication:
-            l_password, l_type, l_format = [], [], []
-            for authentication in properties.authentication:
-                if authentication.authentication_type:
-                    auth_type = authentication.authentication_type.value
-                    if auth_type not in l_type:
-                        l_type.append(auth_type)
-                if authentication.authentication_data:
-                    auth_data = authentication.authentication_data.value
-                    if auth_data not in l_password:
-                        l_password.append(auth_data)
-                if authentication.structured_authentication_mechanism:
-                    auth_format = authentication.structured_authentication_mechanism.description.value
-                    if auth_format not in l_format:
-                        l_format.append(auth_format)
-            if l_type:
-                # auth_type = l_type[0] if len(l_type) == 1 else "".join(["{}, ".format(t) for t in l_type])[:-2]
-                for auth_type in l_type:
-                    attributes.append(["text", auth_type, "type"])
-            if l_format:
-                # auth_format = l_format[0] if len(l_format) == 1 else "".join(["{}, ".format(f) for f in l_format])[:-2]
-                for auth_format in l_format:
-                    attributes.append(["text", auth_format, "format"])
-            if l_password:
-                for password in l_password:
-                    attributes.append(["text", password, "password"])
-        if properties.custom_properties:
-            for prop in properties.custom_properties:
-                if prop.name in ("username", "origin", "notification"):
-                    attributes.append(["text", prop.value, prop.name])
-        if len(attributes) == 1:
-            return attributes[0]
-        return "credential", self.return_attributes(attributes), ""
+        attributes = stix2misp_mapping.attributes_from_credential(properties)
+        return attributes[0] if len(attributes) == 1 else ("credential", self.return_attributes(attributes), "")
 
     # Return type & attributes (or value) of a Custom Object
     def handle_custom(self, properties):
@@ -467,37 +417,13 @@ class StixParser():
     # Return type & value of a domain or url attribute
     @staticmethod
     def handle_domain_or_url(properties):
-        event_types = eventTypes[properties._XSI_TYPE]
+        event_types = stix2misp_mapping.eventTypes[properties._XSI_TYPE]
         return event_types['type'], properties.value.value, event_types['relation']
 
     # Return type & value of an email attribute
     def handle_email_attribute(self, properties):
-        attributes = []
-        if properties.header:
-            header = properties.header
-            if header.from_:
-                attributes.append(["email-src", header.from_.address_value.value, "from"])
-            if header.to:
-                for to in header.to:
-                    attributes.append(["email-dst", to.address_value.value, "to"])
-            if header.cc:
-                for cc in header.cc:
-                    attributes.append(["email-dst", cc.address_value.value, "cc"])
-            if header.reply_to:
-                attributes.append(["email-reply-to", header.reply_to.address_value.value, "reply-to"])
-            if header.subject:
-                attributes.append(["email-subject", header.subject.value, "subject"])
-            if header.x_mailer:
-                attributes.append(["email-x-mailer", header.x_mailer.value, "x-mailer"])
-            if header.boundary:
-                attributes.append(["email-mime-boundary", header.boundary.value, "mime-boundary"])
-            if header.user_agent:
-                attributes.append(["text", header.user_agent.value, "user-agent"])
-        if properties.attachments:
-            attributes.append([self.handle_email_attachment(properties.parent)])
-        if len(attributes) == 1:
-            return attributes[0]
-        return "email", self.return_attributes(attributes), ""
+        attributes = stix2misp_mapping.attributes_from_email(properties)
+        return attributes[0] if len(attributes) == 1 else ("email", self.return_attributes(attributes), "")
 
     # Return type & value of an email attachment
     @staticmethod
@@ -513,26 +439,13 @@ class StixParser():
             b_hash = True
             for h in properties.hashes:
                 attributes.append(self.handle_hashes_attribute(h))
-        if properties.file_format and properties.file_format.value:
-            attributes.append(["mime-type", properties.file_format.value, "mimetype"])
         if properties.file_name:
             value = properties.file_name.value
             if value:
                 b_file = True
-                event_types = eventTypes[properties._XSI_TYPE]
-                attributes.append([event_types['type'], value, event_types['relation']])
-        if properties.file_path:
-            value = properties.file_path.value
-            if value:
-                attributes.append(['text', value, 'path'])
-        if properties.byte_runs:
-            attribute_type = "pattern-in-file"
-            attributes.append([attribute_type, properties.byte_runs[0].byte_run_data, attribute_type])
-        if properties.size_in_bytes and properties.size_in_bytes.value:
-            attribute_type = "size-in-bytes"
-            attributes.append([attribute_type, properties.size_in_bytes.value, attribute_type])
-        if properties.peak_entropy and properties.peak_entropy.value:
-            attributes.append(["float", properties.peak_entropy.value, "entropy"])
+                attribute_type, relation = stix2misp_mapping.eventTypes[properties._XSI_TYPE]
+                attributes.append([attribute_type, value, relation])
+        attributes += stix2misp_mapping.attributes_from_file(properties)
         if len(attributes) == 1:
             return attributes[0]
         if len(attributes) == 2:
@@ -588,7 +501,7 @@ class StixParser():
     # Return type & value of a hostname attribute
     @staticmethod
     def handle_hostname(properties):
-        event_types = eventTypes[properties._XSI_TYPE]
+        event_types = stix2misp_mapping.eventTypes[properties._XSI_TYPE]
         return event_types['type'], properties.hostname_value.value, event_types['relation']
 
     # Return type & value of a http request attribute
@@ -610,42 +523,24 @@ class StixParser():
     # Return type & value of a mutex attribute
     @staticmethod
     def handle_mutex(properties):
-        event_types = eventTypes[properties._XSI_TYPE]
+        event_types = stix2misp_mapping.eventTypes[properties._XSI_TYPE]
         return event_types['type'], properties.name.value, event_types['relation']
 
     # Return type & attributes of a network connection object
     def handle_network_connection(self, properties):
-        attributes = []
-        if properties.source_socket_address:
-            self.handle_socket(attributes, properties.source_socket_address, "src")
-        if properties.destination_socket_address:
-            self.handle_socket(attributes, properties.destination_socket_address, "dst")
-        if properties.layer3_protocol:
-            attributes.append(["text", properties.layer3_protocol.value, "layer3-protocol"])
-        if properties.layer4_protocol:
-            attributes.append(["text", properties.layer4_protocol.value, "layer4-protocol"])
-        if properties.layer7_protocol:
-            attributes.append(["text", properties.layer7_protocol.value, "layer7-protocol"])
+        attributes = stix2misp_mapping.attributes_from_network_connection(properties)
+        for prop in ('layer3_protocol', 'layer4_protocol', 'layer7_protocol'):
+            if getattr(properties, prop):
+                attributes.append(['text', attrgetter("{}.value".format(prop))(properties), prop.replace('_', '-')])
         if attributes:
             return "network-connection", self.return_attributes(attributes), ""
 
     # Return type & attributes of a network socket objet
     def handle_network_socket(self, properties):
-        attributes = []
-        if properties.local_address:
-            self.handle_socket(attributes, properties.local_address, "src")
-        if properties.remote_address:
-            self.handle_socket(attributes, properties.remote_address, "dst")
-        if properties.protocol:
-            attributes.append(["text", properties.protocol.value, "protocol"])
-        if properties.is_listening:
-            attributes.append(["text", "listening", "state"])
-        if properties.is_blocking:
-            attributes.append(["text", "blocking", "state"])
-        if properties.address_family:
-            attributes.append(["text", properties.address_family.value, "address-family"])
-        if properties.domain:
-            attributes.append(["text", properties.domain.value, "domain-family"])
+        attributes = stix2misp_mapping.attributes_from_network_socket(properties)
+        for prop in ('is_listening', 'is_blocking'):
+            if getattr(properties, prop):
+                attributes.append(["text", prop.split('_')[1], "state"])
         if attributes:
             return "network-socket", self.return_attributes(attributes), ""
 
@@ -653,7 +548,7 @@ class StixParser():
     @staticmethod
     def handle_port(*kwargs):
         properties = kwargs[0]
-        event_types = eventTypes[properties._XSI_TYPE]
+        event_types = stix2misp_mapping.eventTypes[properties._XSI_TYPE]
         relation = event_types['relation']
         if len(kwargs) > 1:
             observable_id = kwargs[1]
@@ -665,21 +560,10 @@ class StixParser():
 
     # Return type & attributes of a process object
     def handle_process(self, properties):
-        attributes = []
-        if properties.creation_time:
-            attributes.append(["datetime", properties.creation_time.value, "creation-time"])
-        if properties.start_time:
-            attributes.append(["datetime", properties.creation_time.value, "start-time"])
-        attribute_type = "text"
-        if properties.name:
-            attributes.append([attribute_type, properties.name.value, "name"])
-        if properties.pid:
-            attributes.append([attribute_type, properties.pid.value, "pid"])
-        if properties.parent_pid:
-            attributes.append([attribute_type, properties.parent_pid.value, "parent-pid"])
+        attributes = stix2misp_mapping.attributes_from_process(properties)
         if properties.child_pid_list:
             for child in properties.child_pid_list:
-                attributes.append([attribute_type, child.value, "child-pid"])
+                attributes.append(["text", child.value, "child-pid"])
         # if properties.port_list:
         #     for port in properties.port_list:
         #         attributes.append(["src-port", port.port_value.value, "port"])
@@ -698,33 +582,12 @@ class StixParser():
 
     # Return type & value of a regkey attribute
     def handle_regkey(self, properties):
-        attributes = []
-        if properties.hive:
-            attributes.append(["text", properties.hive.value, "hive"])
-        if properties.key:
-            attributes.append(["regkey", properties.key.value, "key"])
+        attributes = stix2misp_mapping.attributes_from_regkey(properties)
         if properties.values:
             values = properties.values
             value = values[0]
-            if value.data:
-                attributes.append(["text", value.data.value, "data"])
-            if value.datatype:
-                attributes.append(["text", value.datatype.value, "data-type"])
-            if value.name:
-                attributes.append(["text", value.name.value, "name"])
+            attributes += stix2misp_mapping.attributes_from_regkey_value(value)
         return "registry-key", self.return_attributes(attributes), ""
-
-    # Parse a socket address object into a network connection or socket object,
-    # in order to add its attributes
-    @staticmethod
-    def handle_socket(attributes, socket, s_type):
-        if socket.ip_address:
-            ip_type = "ip-{}".format(s_type)
-            attributes.append([ip_type, socket.ip_address.address_value.value, ip_type])
-        if socket.port:
-            attributes.append(["port", socket.port.port_value.value, "{}-port".format(s_type)])
-        if socket.hostname:
-            attributes.append(["hostname", socket.hostname.hostname_value.value, "hostname-{}".format(s_type)])
 
     # Parse a socket address object in order to return type & value
     # of a composite attribute ip|port or hostname|port
@@ -746,22 +609,11 @@ class StixParser():
     # Return type & attributes of a whois object if we have the required fields
     # Otherwise create attributes and return type & value of the last attribute to avoid crashing the parent function
     def handle_whois(self, properties):
-        required_one_of = False
-        attributes = []
-        if properties.registrar_info:
-            attribute_type = "whois-registrar"
-            attributes.append([attribute_type, properties.registrar_info.value, attribute_type])
-            required_one_of = True
+        attributes = stix2misp_mapping.attributes_from_whois(properties)
+        required_one_of = True if attributes else False
         if properties.registrants:
             registrant = properties.registrants[0]
-            if registrant.email_address:
-                attributes.append(["whois-registrant-email", registrant.email_address.address_value.value, "registrant-email"])
-            if registrant.name:
-                attributes.append(["whois-registrant-name", registrant.name.value, "registrant-name"])
-            if registrant.phone_number:
-                attributes.append(["whois-registrant-phone", registrant.phone_number.value, "registrant-phone"])
-            if registrant.organization:
-                attributes.append(["whois-registrant-org", registrant.organization.value, "registrant-org"])
+            attributes += stix2misp_mapping.attributes_from_whois_registrant(registrant)
         if properties.creation_date:
             attributes.append(["datetime", properties.creation_date.value.strftime('%Y-%m-%d'), "creation-date"])
             required_one_of = True
@@ -772,13 +624,6 @@ class StixParser():
         if properties.nameservers:
             for nameserver in properties.nameservers:
                 attributes.append(["hostname", nameserver.value.value, "nameserver"])
-        if properties.ip_address:
-            attributes.append(["ip-src", properties.ip_address.address_value.value, "ip-address"])
-            required_one_of = True
-        if properties.domain_name:
-            attribute_type = "domain"
-            attributes.append([attribute_type, properties.domain_name.value.value, attribute_type])
-            required_one_of = True
         if properties.remarks:
             attribute_type = "text"
             relation = "comment" if attributes else attribute_type
@@ -788,16 +633,15 @@ class StixParser():
         if required_one_of:
             # if yes, we return the object type and the attributes
             return "whois", self.return_attributes(attributes), ""
-        else:
-            # otherwise, attributes are added in the event, and one attribute is returned to not make the function crash
-            if len(attributes) == 1:
-                return attributes[0]
-            last_attribute = attributes.pop(-1)
-            for attribute in attributes:
-                attribute_type, attribute_value, attribute_relation = attribute
-                misp_attributes = {"comment": "Whois {}".format(attribute_relation)}
-                self.misp_event.add_attribute(attribute_type, attribute_value, **misp_attributes)
-            return last_attribute
+        # otherwise, attributes are added in the event, and one attribute is returned to not make the function crash
+        if len(attributes) == 1:
+            return attributes[0]
+        last_attribute = attributes.pop(-1)
+        for attribute in attributes:
+            attribute_type, attribute_value, attribute_relation = attribute
+            misp_attributes = {"comment": "Whois {}".format(attribute_relation)}
+            self.misp_event.add_attribute(attribute_type, attribute_value, **misp_attributes)
+        return last_attribute
 
     # Return type & value of a windows service object
     @staticmethod
@@ -806,33 +650,11 @@ class StixParser():
             return "windows-service-name", properties.name.value, ""
 
     def handle_x509(self, properties):
-        attributes = []
         if properties.certificate:
             certificate = properties.certificate
-            if certificate.validity:
-                validity = certificate.validity
-                if validity.not_before:
-                    attributes.append(["datetime", validity.not_before.value, "validity-not-before"])
-                if validity.not_after:
-                    attributes.append(["datetime", validity.not_after.value, "validity-not-after"])
-            if certificate.subject_public_key:
-                subject_pubkey = certificate.subject_public_key
-                if subject_pubkey.rsa_public_key:
-                    rsa_pubkey = subject_pubkey.rsa_public_key
-                    if rsa_pubkey.exponent:
-                        attributes.append(["text", rsa_pubkey.exponent.value, "pubkey-info-exponent"])
-                    if rsa_pubkey.modulus:
-                        attributes.append(["text", rsa_pubkey.modulus.value, "pubkey-info-modulus"])
-                if subject_pubkey.public_key_algorithm:
-                    attributes.append(["text", subject_pubkey.public_key_algorithm.value, "pubkey-info-algorithm"])
-            if certificate.version:
-                attributes.append(["text", certificate.version.value, "version"])
-            if certificate.serial_number:
-                attributes.append(["text", certificate.serial_number.value, "serial-number"])
-            if certificate.issuer:
-                attributes.append(["text", certificate.issuer.value, "issuer"])
-            if certificate.subject:
-                attributes.append(["text", certificate.subject.value, "subject"])
+            attributes = stix2misp_mapping.attributes_from_x509_certificate(certificate)
+        else:
+            attributes = []
         if properties.raw_certificate:
             raw = properties.raw_certificate.value
             try:
