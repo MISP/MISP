@@ -1279,6 +1279,63 @@ class Event extends AppModel
         return $conditions;
     }
 
+    public function filterEventIds($user, $params = array())
+    {
+        $conditions = $this->createEventConditions($user);
+        $paramArray = array('searchall', 'withAttachments', 'metadata', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly');
+        $attribute_conditions = array();
+        $object_conditions = array();
+        $simple_params = array(
+            'Event' => array(
+                'eventid' => array('function' => 'set_filter_eventid'),
+                'ignore' => array('function' => 'set_filter_ignore'),
+                'tags' => array('function' => 'set_filter_tags'),
+                'tag' => array('function' => 'set_filter_tags'),
+                'from' => array('function' => 'set_filter_timestamp'),
+                'to' => array('function' => 'set_filter_timestamp'),
+                'last' => array('function' => 'set_filter_timestamp'),
+                'timestamp' => array('function' => 'set_filter_timestamp'),
+                'org' => array('function' => 'set_filter_org'),
+                'eventid' => array('function' => 'set_filter_uuid'),
+            ),
+            'Object' => array(
+                'type' => array('function' => 'set_filter_object_type')
+            ),
+            'Attribute' => array(
+                'value' => array('function' => 'set_filter_value'),
+                'category' => array('function' => 'set_filter_simple_attribute'),
+                'type' => array('function' => 'set_filter_simple_attribute'),
+                'tags' => array('function' => 'set_filter_tags'),
+                'uuid' => array('function' => 'set_filter_uuid')
+            )
+        );
+        foreach ($params as $param => $paramData) {
+            foreach ($simple_params as $scope => $simple_param_scoped) {
+                if (isset($simple_param_scoped[$param]) && $params[$param] !== false) {
+                    if ($scope === 'Event') {
+                        $conditions = $this->{$simple_param_scoped[$param]['function']}($params, $conditions, $param, $scope);
+                    } else {
+                        $temp = array();
+                        $temp = $this->{$simple_param_scoped[$param]['function']}($params, $temp, $param, $scope);
+                        $subQueryOptions = array(
+                            'conditions' => $temp,
+                            'fields' => array(
+                                'event_id'
+                            )
+                        );
+                        $conditions['AND'][] = $this->subQueryGenerator($this->{$scope}, $subQueryOptions, 'Event.id');
+                    }
+                }
+            }
+        }
+        $results = array_values($this->find('list', array(
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'fields' => array('Event.id')
+        )));
+        return $results;
+    }
+
     public function fetchSimpleEventIds($user, $params = array())
     {
         $conditions = $this->createEventConditions($user);
@@ -1882,14 +1939,38 @@ class Event extends AppModel
         $field = '"' . $field . '"';
     }
 
-    public function set_filter_eventid($params, $conditions, $filter) {
-        if (!empty($params['eventid']) && $params['eventid'] !== 'all') {
-            $conditions['AND'][] = array('Event.id' => $params['eventid']);
+    public function set_filter_org(&$params, $conditions, $filter, $scope = false)
+    {
+        if (!empty($params['org'])) {
+            $params['org'] = $this->convert_filters($params['org']);
+            $conditions = $this->generic_add_filter($conditions, $params['org'], 'Event.orgc_id');
         }
         return $conditions;
     }
 
-    public function set_filter_ignore($params, $conditions, $filter) {
+    public function set_filter_eventid(&$params, $conditions, $filter, $scope = false) {
+        if (!empty($params['eventid']) && $params['eventid'] !== 'all') {
+            $params['eventid'] = $this->convert_filters($params['eventid']);
+            $conditions = $this->generic_add_filter($conditions, $params['eventid'], 'Event.id');
+        }
+        return $conditions;
+    }
+
+    public function set_filter_uuid(&$params, $conditions, $filter, $scope = false) {
+        if (!empty($params['uuid'])) {
+            $params['uuid'] = $this->convert_filters($params['uuid']);
+            if (!empty($scope) || $scope === 'Event') {
+                $conditions = $this->generic_add_filter($conditions, $params['eventid'], 'Event.uuid');
+            }
+            if (!empty($scope) || $scope === 'Attribute') {
+                $conditions = $this->generic_add_filter($conditions, $params['eventid'], 'Attribute.uuid');
+            }
+
+        }
+        return $conditions;
+    }
+
+    public function set_filter_ignore(&$params, $conditions, $filter, $scope = false) {
         if (empty($params['ignore'])) {
             $conditions['AND']['Event.published'] = 1;
             $conditions['AND']['Attribute.to_ids'] = 1;
@@ -1897,42 +1978,39 @@ class Event extends AppModel
         return $conditions;
     }
 
-    public function set_filter_tags($params, $conditions, $filter) {
+    public function set_filter_tags(&$params, $conditions, $filter, $scope = false) {
         if (!empty($params['tags'])) {
-            $conditions = $this->Attribute->set_filter_tags($params, $conditions, 'Event');
+            $conditions = $this->Attribute->set_filter_tags($params, $conditions, $scope);
         }
         return $conditions;
     }
 
-    public function set_filter_simple_attribute($params, $conditions, $filter) {
+    public function set_filter_simple_attribute(&$params, $conditions, $filter, $scope = false) {
         if (!empty($params[$filter])) {
-            $conditions['AND']['Attribute.' . $filter] = $params[$filter];
+            $params[$filter] = $this->convert_filters($params[$filter]);
+            $conditions = $this->generic_add_filter($conditions, $params[$filter], 'Attribute.' . $filter);
         }
         return $conditions;
     }
 
-    public function set_filter_attribute_id($params, $conditions, $filter) {
+    public function set_filter_attribute_id(&$params, $conditions, $filter, $scope = false) {
         if (!empty($params[$filter])) {
-            $conditions['AND']['Attribute.id'] = $params[$filter];
+            $params[$filter] = $this->convert_filters($params[$filter]);
+            $conditions = $this->generic_add_filter($conditions, $params[$filter], 'Attribute.' . $filter);
         }
         return $conditions;
     }
 
-    public function set_filter_value($params, $conditions, $filter)
+    public function set_filter_value(&$params, $conditions, $filter, $scope = false)
     {
         if (!empty($params['value'])) {
-            $temp = array(
-                'OR' => array(
-                    'Attribute.value1' => $value,
-                    'Attribute.value2' => $value
-                )
-            );
-            $conditions['AND'][] = $temp;
+            $params[$filter] = $this->convert_filters($params[$filter]);
+            $conditions = $this->generic_add_filter($conditions, $params[$filter], array('Attribute.value1', 'Attribute.value2'));
         }
         return $conditions;
     }
 
-    public function set_filter_timestamp($params, $conditions, $filter)
+    public function set_filter_timestamp(&$params, $conditions, $filter, $scope = false)
     {
         if ($filter == 'from') {
             $conditions['AND']['Event.date >='] = $params['from'];
