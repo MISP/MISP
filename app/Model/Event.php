@@ -2035,6 +2035,8 @@ class Event extends AppModel
                     'Event.publish_timestamp'
                 )
             );
+            debug(1);
+            throw new Exception();
             foreach ($filters[$options['filter']] as $f) {
                 $conditions = $this->Attribute->setTimestampConditions($params[$options['filter']], $conditions, $f);
             }
