@@ -40,7 +40,12 @@ before_install:
     - git config --global user.name "TravisCI"
 
 install:
+    - sudo add-apt-repository -y ppa:deadsnakes/ppa
+    - sudo apt-get -y update
+    - sudo apt-get -y install python3.6
+    - sudo aot-get -y dist-upgrade
     - sudo pip3 install --upgrade pip setuptools requests
+    - hash -r
     - pip3 install --user --upgrade -r requirements.txt
     - phpenv rehash
     - pushd app
