@@ -3949,7 +3949,7 @@ class EventsController extends AppController {
 					),
 				    'Forensic analysis' => array(
 						'url' => '/events/upload_analysis_file/'.$id,
-						'text' => 'Forensic analysis upload',
+						'text' => 'Forensic analysis - Mactime',
 						'ajax' => false,
 				)
 			);
@@ -4983,87 +4983,67 @@ class EventsController extends AppController {
 		{
 			$object = array();
 			$data = json_decode($this->request['data']['SelectedData']['mactime_data'],true);
-			foreach($data as $objectData) { 
+			foreach($data as $objectData) 
+			{ 
 				$object['Object'] = array(
 					'name' => 'mactime-analysis',
 					'meta-category' => 'file',
 					'description' => 'Mactime template, used in forensic investigations esscribe the timeline of a file activity',
 					'template_version' => 1,
-					'template_uuid' => '9297982e-be62-4772-a665-c91f5a8d639',
-					'Attribute'=> [
-						"filepath"=> [
-							"description" => "Location of the file on the disc",
-							"ui-priority" => 0,
-							"misp-attribute" => "text",
-							"value" => $objectData['filepath']
-						],
-						"datetime"=> [
-							"description" => "Describes datetime of the activity conducted on the file",
-							"ui-priority" => 0,
-							"misp-attribute"  => "datetime",
-							"value" => $objectData['time_accessed']
-						],
-						  "file_size" => [
-							"description" => "Determines the file size in bytes",
-							"ui-priority" => 0,
-							"misp-attribute" => "number",
-							"value" => $objectData['file_size']
-						  ],
-						  "file_activity"=> [
-							"description" => "Determines the type of activity for the given time",
-							"ui-priority" => 0,
-							"misp-attribute" => "text",
-							"value" => $objectData['activity_type']
-						  ],
-						  "file_permissions"=> [
-							"description" => "Describes permissions of the file",
-							"ui-priority" => 0,
-							"misp-attribute" =>"text",
-							"value" => $objectData['permissions']
-						  ]
-					]
+					'template_uuid' => '9297982e-be62-4772-a665-c91f5a8d639'
 				);
+							
 				$object['Attribute'] = array(
-					'Attribute'=> [
-						"filepath"=> [
-							"description" => "Location of the file on the disc",
-							"ui-priority" => 0,
-							"misp-attribute" => "text",
-							"value" => $objectData['filepath']
-						],
-						"datetime"=> [
-							"description" => "Describes datetime of the activity conducted on the file",
-							"ui-priority" => 0,
-							"misp-attribute"  => "datetime",
-							"value" => $objectData['time_accessed']
-						],
-						"file_size" => [
-							"description" => "Determines the file size in bytes",
-							"ui-priority" => 0,
-							"misp-attribute" => "number",
-							"value" => $objectData['file_size']
-						],
-						"file_activity"=> [
-							"description" => "Determines the type of activity for the given time",
-							"ui-priority" => 0,
-							"misp-attribute" => "text",
-							"value" => $objectData['activity_type']
-						],
-						"file_permissions"=> [
-							"description" => "Describes permissions of the file",
-							"ui-priority" => 0,
-							"misp-attribute" =>"text",
-							"value" => $objectData['permissions']
-						]
+					[
+						"event_id" => $eventId,
+						"category"=> "Other",
+						"type" => "text",
+						"to_ids" => false,
+						"distribution" => "5",
+						"object_relation" => "filepath",
+						"value" => $objectData['filepath']
+					],
+					[
+						"event_id" => $eventId,
+						"category" => "Other",
+						"type" => "datetime",
+						"to_ids" => false,
+						"distribution" => "5",
+						"object_relation" => "datetime",
+						"value" => $objectData['time_accessed']
+					],
+					[
+						"event_id" => $eventId,
+						"category" => "Other",
+						"type" => "text",
+						"to_ids" => false,
+						"distribution" => "5",
+						"object_relation" => "fileSize",
+						"value" => $objectData['file_size']
+					],
+					[
+						"event_id" => $eventId,
+						"category" => "Other",
+						"type" => "text",
+						"to_ids" => false,
+						"distribution" => "5",
+						"object_relation" => "activityType",
+						"value" => $objectData['activity_type']
+					],
+					[
+						"event_id" => $eventId,
+						"category" => "Other",
+						"type" => "text",
+						"to_ids" => false,
+						"distribution" => "5",
+						"object_relation" => "filePermissions",
+						"value" => $objectData['permissions']
 					]
 				);
 				$this->loadModel('MispObject');
-				$result = $this->MispObject->saveObject($object,$eventId,"","");
-				$this->redirect('/events/view/' . $eventId);
+				$this->MispObject->saveObject($object,$eventId,"","");
 			}
-			
-			  
-
+			$this->redirect('/events/view/' . $eventId);	  
 		}
 		
 	}
