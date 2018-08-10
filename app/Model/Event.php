@@ -1298,6 +1298,7 @@ class Event extends AppModel
                 'publish_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                 'org' => array('function' => 'set_filter_org', 'pop' => true),
                 'uuid' => array('function' => 'set_filter_uuid', 'pop' => true),
+                'published' => array('function' => 'set_filter_published', 'pop' => true)
             ),
             'Object' => array(
                 'type' => array('function' => 'set_filter_object_type')
@@ -1982,6 +1983,13 @@ class Event extends AppModel
         if (empty($params['ignore'])) {
             $conditions['AND']['Event.published'] = 1;
             $conditions['AND']['Attribute.to_ids'] = 1;
+        }
+        return $conditions;
+    }
+
+    public function set_filter_published(&$params, $conditions, $options) {
+        if (isset($params['published'])) {
+            $conditions['AND']['Event.published'] = $params['published'];
         }
         return $conditions;
     }
@@ -3847,7 +3855,7 @@ class Event extends AppModel
             $delta = substr($delta, 0, -1);
         } else {
             // invalid filter, make sure we don't return anything
-            return time() + 1;
+            return time();
         }
         if (!is_numeric($delta)) {
             return false;
