@@ -2026,8 +2026,7 @@ class Event extends AppModel
         } else {
             $filters = array(
                 'timestamp' => array(
-                    'Event.timestamp',
-                    'Attribute.timestamp'
+                    'Event.timestamp'
                 ),
                 'publish_timestamp' => array(
                     'Event.publish_timestamp'
