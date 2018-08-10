@@ -1295,6 +1295,7 @@ class Event extends AppModel
                 'to' => array('function' => 'set_filter_timestamp', 'pop' => true),
                 'last' => array('function' => 'set_filter_timestamp', 'pop' => true),
                 'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                'publish_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                 'org' => array('function' => 'set_filter_org', 'pop' => true),
                 'uuid' => array('function' => 'set_filter_uuid', 'pop' => true),
             ),
@@ -2035,8 +2036,6 @@ class Event extends AppModel
                     'Event.publish_timestamp'
                 )
             );
-            debug(1);
-            throw new Exception();
             foreach ($filters[$options['filter']] as $f) {
                 $conditions = $this->Attribute->setTimestampConditions($params[$options['filter']], $conditions, $f);
             }
