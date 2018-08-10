@@ -3835,7 +3835,7 @@ class Event extends AppModel
 
     public function resolveTimeDelta($delta)
     {
-        if (is_int($delta)) {
+        if (is_numeric($delta)) {
             return $delta;
         }
         $multiplierArray = array('d' => 86400, 'h' => 3600, 'm' => 60);
