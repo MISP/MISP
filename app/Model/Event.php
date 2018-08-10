@@ -1957,7 +1957,8 @@ class Event extends AppModel
         return $conditions;
     }
 
-    public function set_filter_eventid(&$params, $conditions, $options) {
+    public function set_filter_eventid(&$params, $conditions, $options)
+    {
         if (!empty($params['eventid']) && $params['eventid'] !== 'all') {
             $params['eventid'] = $this->convert_filters($params['eventid']);
             $conditions = $this->generic_add_filter($conditions, $params['eventid'], 'Event.id');
@@ -1965,7 +1966,8 @@ class Event extends AppModel
         return $conditions;
     }
 
-    public function set_filter_uuid(&$params, $conditions, $options) {
+    public function set_filter_uuid(&$params, $conditions, $options)
+    {
         if (!empty($params['uuid'])) {
             $params['uuid'] = $this->convert_filters($params['uuid']);
             if (!empty($options['scope']) || $options['scope'] === 'Event') {
@@ -1974,12 +1976,12 @@ class Event extends AppModel
             if (!empty($options['scope']) || $options['scope'] === 'Attribute') {
                 $conditions = $this->generic_add_filter($conditions, $params['uuid'], 'Attribute.uuid');
             }
-
         }
         return $conditions;
     }
 
-    public function set_filter_ignore(&$params, $conditions, $options) {
+    public function set_filter_ignore(&$params, $conditions, $options)
+    {
         if (empty($params['ignore'])) {
             $conditions['AND']['Event.published'] = 1;
             $conditions['AND']['Attribute.to_ids'] = 1;
@@ -1994,14 +1996,16 @@ class Event extends AppModel
         return $conditions;
     }
 
-    public function set_filter_tags(&$params, $conditions, $options) {
+    public function set_filter_tags(&$params, $conditions, $options)
+    {
         if (!empty($params['tags'])) {
             $conditions = $this->Attribute->set_filter_tags($params, $conditions, $options);
         }
         return $conditions;
     }
 
-    public function set_filter_simple_attribute(&$params, $conditions, $options) {
+    public function set_filter_simple_attribute(&$params, $conditions, $options)
+    {
         if (!empty($params[$options['filter']])) {
             $params[$options['filter']] = $this->convert_filters($params[$options['filter']]);
             $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], 'Attribute.' . $options['filter']);
@@ -2009,7 +2013,8 @@ class Event extends AppModel
         return $conditions;
     }
 
-    public function set_filter_attribute_id(&$params, $conditions, $options) {
+    public function set_filter_attribute_id(&$params, $conditions, $options)
+    {
         if (!empty($params[$options['filter']])) {
             $params[$options['filter']] = $this->convert_filters($params[$options['filter']]);
             $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], 'Attribute.' . $options['filter']);
