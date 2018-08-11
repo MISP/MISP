@@ -2695,6 +2695,8 @@ class EventsController extends AppController
         if ($user === false) {
             return $exception;
         }
+        App::uses('CsvExport', 'Export');
+        $export = new CsvExport();
         // if it's a search, grab the attributeIDList from the session and get the IDs from it. Use those as the condition
         // We don't need to look out for permissions since that's filtered by the search itself
         // We just want all the attributes found by the search
@@ -2768,53 +2770,19 @@ class EventsController extends AppController
         $params['page'] = 1;
         $i = 0;
         $continue = true;
+        $options = array(
+            'requested_obj_attributes' => $requested_obj_attributes,
+            'requested_attributes' => $requested_attributes,
+            'includeContext' => $includeContext
+        );
+        $final = $export->header($options);
         while ($continue) {
             $attributes = $this->Event->csv($user, $params, false, $continue);
             $params['page'] += 1;
-            foreach ($attributes as $attribute) {
-                $line1 = '';
-                $line2 = '';
-                foreach ($requested_attributes as $requested_attribute) {
-                    $line1 .= $attribute['Attribute'][$requested_attribute] . ',';
-                }
-                $line1 = rtrim($line1, ",");
-                foreach ($requested_obj_attributes as $requested_obj_attribute) {
-                    $line2 .= $attribute['Object'][$requested_obj_attribute] . ',';
-                }
-                $line2 = rtrim($line2, ",");
-                $line = $line1 . ',' . $line2;
-                $line = rtrim($line, ",");
-                if ($includeContext) {
-                    foreach ($this->Event->csv_event_context_fields_to_fetch as $header => $field) {
-                        if ($field['object']) {
-                            $line .= ',' . $attribute['Event'][$field['object']][$field['var']];
-                        } else {
-                            $line .= ',' . str_replace(array("\n","\t","\r"), " ", $attribute['Event'][$field['var']]);
-                        }
-                    }
-                }
-                $final[] = $line;
-            }
+            $final .= $export->handler($attributes, $final);
+            $final .= $export->separator($attributes, $final);
         }
-        if (!empty($requested_obj_attributes)) {
-            array_walk($requested_obj_attributes, function (&$value, $key) {
-                $value = 'object-'.$value;
-            });
-        }
-        $headers = array_merge($requested_attributes, $requested_obj_attributes);
-        if ($includeContext) {
-            $headers = array_merge($headers, array_keys($this->Event->csv_event_context_fields_to_fetch));
-        }
-        foreach ($headers as $k => $v) {
-            $headers[$k] = str_replace('-', '_', $v);
-            if ($v == 'timestamp') {
-                $headers[$k] = 'date';
-            }
-        }
-        $headers = implode(',', $headers);
-        $final = array_merge(array($headers), $final);
-        $final = implode(PHP_EOL, $final);
-        $final .= PHP_EOL;
+        $export->footer();
         $this->response->type('csv');	// set the content type
         if (empty($filters['eventid'])) {
             $filename = "misp.filtered_attributes.csv";
