@@ -196,10 +196,9 @@ class StixParser():
 
     # Parse a DNS object
     def resolve_dns_objects(self):
-        for domain in self.dns_objects['domain']:
-            domain_object = self.dns_objects['domain'][domain]
-            ip_reference = domain_object['related']
-            domain_attribute = domain_object['data']
+        for domain, domain_dict in self.dns_objects['domain'].items():
+            ip_reference = domain_dict['related']
+            domain_attribute = domain_dict['data']
             if ip_reference in self.dns_objects['ip']:
                 misp_object = MISPObject('passive-dns')
                 domain_attribute['object_relation'] = "rrname"
@@ -213,10 +212,9 @@ class StixParser():
                 self.misp_event.add_object(**misp_object)
             else:
                 self.misp_event.add_attribute(**domain_attribute)
-        for ip in self.dns_objects['ip']:
+        for ip, ip_dict in self.dns_objects['ip'].items():
             if ip not in self.dns_ips:
-                # print(ip)
-                self.misp_event.add_attribute(**self.dns_objects['ip'][ip])
+                self.misp_event.add_attribute(**ip_dict)
 
     def set_distribution(self):
         for attribute in self.misp_event.attributes:
