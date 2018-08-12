@@ -886,7 +886,9 @@ class StixParser():
                                 self.dns_ips.append(related_ip)
                             continue
                     if attribute_type in ('ip-src', 'ip-dst'):
-                        self.dns_objects['ip'][object_uuid] = {"type": attribute_type, "value": attribute_value}
+                        attribute['type'] = attribute_type
+                        attribute['value'] = attribute_value
+                        self.dns_objects['ip'][object_uuid] = attribute
                         continue
                     self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
                 else:
