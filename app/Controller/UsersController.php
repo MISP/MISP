@@ -164,6 +164,9 @@ class UsersController extends AppController
 
     public function change_pw()
     {
+        if (!$this->_isAdmin() && Configure::read('MISP.disableUserSelfManagement')) {
+            throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
+        }
         $id = $this->Auth->user('id');
         $user = $this->User->find('first', array(
             'conditions' => array('User.id' => $id),
