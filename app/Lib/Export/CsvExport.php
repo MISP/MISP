@@ -1,6 +1,6 @@
 <?php
 
-class HidsExport
+class CsvExport
 {
 
     public $csv_event_context_fields_to_fetch = array(
