@@ -3860,10 +3860,11 @@ class Event extends AppModel
             $delta = substr($delta, 0, -1);
         } else {
             // invalid filter, make sure we don't return anything
-            return time();
+            return time() + 1;
         }
         if (!is_numeric($delta)) {
-            return false;
+            // Same here. (returning false dumps the whole database)
+            return time() + 1;
         }
         return time() - ($delta * $multiplier);
     }
