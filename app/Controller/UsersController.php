@@ -1731,8 +1731,12 @@ class UsersController extends AppController
                 $statistics[$scope]['data'][$range] = $this->{$scope_data['model']}->find('count', $params);
             }
         }
-        $this->set('statistics', $statistics);
-        $this->render('statistics_users');
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($statistics, $this->response->type());
+        } else {
+            $this->set('statistics', $statistics);
+            $this->render('statistics_users');
+        }
     }
 
     public function tagStatisticsGraph()
