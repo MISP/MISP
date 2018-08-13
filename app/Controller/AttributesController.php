@@ -2102,7 +2102,7 @@ class AttributesController extends AppController
                 }
                 $data = $this->request->data;
             } else {
-                throw new BadRequestException(__('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers.'));
+                throw new BadRequestException(__('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers).'));
             }
             if (!isset($data['request'])) {
                 $data['request'] = $data;
@@ -2260,7 +2260,7 @@ class AttributesController extends AppController
             } elseif ($this->response->type() === 'application/xml' && !empty($this->request->data)) {
                 $data = $this->request->data;
             } else {
-                throw new BadRequestException(__('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers.'));
+                throw new BadRequestException(__('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers).'));
             }
             $paramArray = array('type', 'sigOnly');
             foreach ($paramArray as $p) {
