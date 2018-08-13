@@ -5,7 +5,7 @@ class Server extends AppModel
 {
     public $name = 'Server';
 
-    public $actsAs = array('SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable, check: 'userModel' and 'userKey' can be removed given default
+    public $actsAs = array('SysLogLogable.SysLogLogable' => array(
             'userModel' => 'User',
             'userKey' => 'user_id',
             'change' => 'full'
@@ -40,21 +40,14 @@ class Server extends AppModel
     public $displayField = 'url';
 
     public $validate = array(
-        'url' => array( // TODO add extra validation to refuse multiple time the same url from the same org
+        'url' => array(
             'url' => array(
                 'rule' => array('url'),
                 'message' => 'Please enter a valid base-url.'
             )
         ),
         'authkey' => array(
-            'minlength' => array(
-                'rule' => array('minlength', 40),
-                'message' => 'A authkey of a minimum length of 40 is required.',
-                'required' => true,
-            ),
-            'valueNotEmpty' => array(
-                'rule' => array('valueNotEmpty'),
-            ),
+            'rule' => array('validateAuthkey')
         ),
         'org_id' => array(
             'numeric' => array(
@@ -114,6 +107,7 @@ class Server extends AppModel
                 'data' => array(
                     'getSettings' => 'MISP/app/Console/cake Admin getSetting [setting]',
                     'setSettings' => 'MISP/app/Console/cake Admin getSetting [setting] [value]',
+                    'getAuthkey' => 'MISP/app/Console/cake Admin [email]',
                     'setBaseurl' => 'MISP/app/Console/cake Baseurl [baseurl]',
                     'changePassword' => 'MISP/app/Console/cake Password [email] [new_password]'
                 ),
@@ -133,7 +127,6 @@ class Server extends AppModel
             )
         );
 
-        // TODO i18n
         $this->serverSettings = array(
                 'MISP' => array(
                         'branch' => 1,
@@ -1741,6 +1734,42 @@ class Server extends AppModel
         return true;
     }
 
+    private function __getEventIdListBasedOnPullTechnique($technique, $server) {
+        if ("full" === $technique) {
+            // get a list of the event_ids on the server
+            $eventIds = $this->getEventIdsFromServer($server);
+            if ($eventIds === 403) {
+                return array('error' => array(1, null));
+            } elseif (is_string($eventIds)) {
+                return array('error' => array(2, $eventIds));
+            }
+
+            // reverse array of events, to first get the old ones, and then the new ones
+            if (!empty($eventIds)) {
+                $eventIds = array_reverse($eventIds);
+            }
+        } elseif ("update" === $technique) {
+            $eventIds = $this->getEventIdsFromServer($server, false, null, true, true);
+            if ($eventIds === 403) {
+                return array('error' => array(1, null));
+            } elseif (is_string($eventIds)) {
+                return array('error' => array(2, $eventIds));
+            }
+            $local_event_ids = $eventModel->find('list', array(
+                    'fields' => array('uuid'),
+                    'recursive' => -1,
+            ));
+            $eventIds = array_intersect($eventIds, $local_event_ids);
+        } elseif (is_numeric($technique)) {
+            $eventIds[] = intval($technique);
+            // if we are downloading a single event, don't fetch all proposals
+            $conditions = array('Event.id' => $technique);
+        } else {
+            return array('error' => array(4, null));
+        }
+        return $eventIds;
+    }
+
     public function pull($user, $id = null, $technique=false, $server, $jobId = false, $percent = 100, $current = 0)
     {
         if ($jobId) {
@@ -1754,42 +1783,7 @@ class Server extends AppModel
         App::uses('HttpSocket', 'Network/Http');
         $eventIds = array();
         $conditions = array();
-        if ("full" === $technique) {
-            // get a list of the event_ids on the server
-            $eventIds = $this->getEventIdsFromServer($server);
-            // FIXME this is not clean at all ! needs to be refactored with try catch error handling/communication
-            if ($eventIds === 403) {
-                return array(1, null);
-            } elseif (is_string($eventIds)) {
-                return array(2, $eventIds);
-            }
-
-            // reverse array of events, to first get the old ones, and then the new ones
-            if (!empty($eventIds)) {
-                $eventIds = array_reverse($eventIds);
-            }
-        } elseif ("update" === $technique) {
-            $eventIds = $this->getEventIdsFromServer($server, false, null, true, true);
-            if ($eventIds === 403) {
-                return array(1, null);
-            } elseif (is_string($eventIds)) {
-                return array(2, $eventIds);
-            }
-            $local_event_ids = $eventModel->find('list', array(
-                    'fields' => array('uuid'),
-                    'recursive' => -1,
-            ));
-            $eventIds = array_intersect($eventIds, $local_event_ids);
-        } elseif ("incremental" === $technique) {
-            // TODO incremental pull
-            return array(3, null);
-        } elseif (is_numeric($technique)) {
-            $eventIds[] = intval($technique);
-            // if we are downloading a single event, don't fetch all proposals
-            $conditions = array('Event.id' => $technique);
-        } else {
-            return array(4, null);
-        }
+        $eventIds = $this->__getEventIdListBasedOnPullTechnique($technique, $server);
         $successes = array();
         $fails = array();
         $pulledProposals = array();
@@ -1797,9 +1791,7 @@ class Server extends AppModel
         if (!empty($eventIds)) {
             // download each event
             if (null != $eventIds) {
-                App::uses('SyncTool', 'Tools');
-                $syncTool = new SyncTool();
-                $HttpSocket = $syncTool->setupHttpSocket($server);
+                $HttpSocket = $this->setupHttpSocket($server);
                 foreach ($eventIds as $k => $eventId) {
                     $event = $eventModel->downloadEventFromServer(
                             $eventId,
@@ -2007,25 +1999,13 @@ class Server extends AppModel
     public function getEventIdsFromServer($server, $all = false, $HttpSocket=null, $force_uuid=false, $ignoreFilterRules = false)
     {
         $url = $server['Server']['url'];
-        $authkey = $server['Server']['authkey'];
         if ($ignoreFilterRules) {
             $filter_rules = array();
         } else {
             $filter_rules = $this->filterRuleToParameter($server['Server']['pull_rules']);
         }
-        if (null == $HttpSocket) {
-            App::uses('SyncTool', 'Tools');
-            $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
-        }
-        $request = array(
-                'header' => array(
-                        'Authorization' => $authkey,
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
-                        //'Connection' => 'keep-alive' // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
-                )
-        );
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
         $uri = $url . '/events/index';
         $filter_rules['minimal'] = 1;
         try {
@@ -2085,7 +2065,6 @@ class Server extends AppModel
                 return 403;
             }
         } catch (SocketException $e) {
-            // FIXME refactor this with clean try catch over all http functions
             return $e->getMessage();
         }
         // error, so return error message, since that is handled and everything is expecting an array
@@ -2258,19 +2237,9 @@ class Server extends AppModel
             }
             unset($eventIds[$k]['Event']['id']);
         }
-        if (null == $HttpSocket) {
-            App::uses('SyncTool', 'Tools');
-            $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
-        }
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
         $data = json_encode($eventIds);
-        $request = array(
-                'header' => array(
-                        'Authorization' => $server['Server']['authkey'],
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
-                )
-        );
         $uri = $server['Server']['url'] . '/events/filterEventIdsForPush';
         $response = $HttpSocket->post($uri, $data, $request);
         if ($response->code == '200') {
@@ -2284,11 +2253,7 @@ class Server extends AppModel
     public function syncProposals($HttpSocket, $server, $sa_id = null, $event_id = null, $eventModel)
     {
         $saModel = ClassRegistry::init('ShadowAttribute');
-        if (null == $HttpSocket) {
-            App::uses('SyncTool', 'Tools');
-            $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
-        }
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         if ($sa_id == null) {
             if ($event_id == null) {
                 // event_id is null when we are doing a push
@@ -2322,13 +2287,7 @@ class Server extends AppModel
                     }
 
                     $data = json_encode($event['ShadowAttribute']);
-                    $request = array(
-                            'header' => array(
-                                    'Authorization' => $server['Server']['authkey'],
-                                    'Accept' => 'application/json',
-                                    'Content-Type' => 'application/json',
-                            )
-                    );
+                    $request = $this->setupSyncRequest($server);
                     $uri = $server['Server']['url'] . '/events/pushProposals/' . $event['Event']['uuid'];
                     $response = $HttpSocket->post($uri, $data, $request);
                     if ($response->code == '200') {
@@ -2350,13 +2309,7 @@ class Server extends AppModel
             }
         } else {
             // connect to checkuuid($uuid)
-            $request = array(
-                    'header' => array(
-                            'Authorization' => $server['Server']['authkey'],
-                            'Accept' => 'application/json',
-                            'Content-Type' => 'application/json',
-                    )
-            );
+            $request = $this->setupSyncRequest($server);
             $uri = $server['Server']['url'] . '/events/checkuuid/' . $sa_id;
             $response = $HttpSocket->get($uri, '', $request);
             if ($response->code != '200') {
@@ -2371,6 +2324,13 @@ class Server extends AppModel
         $this->Module = ClassRegistry::init('Module');
         $serverSettings = $this->serverSettings;
         $moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex');
+        $serverSettings = $this->readModuleSettings($serverSettings, $moduleTypes);
+        return $serverSettings;
+    }
+
+    private function readModuleSettings($serverSettings, $moduleTypes)
+    {
+        $this->Module = ClassRegistry::init('Module');
         $orgs = $this->Organisation->find('list', array(
             'conditions' => array(
                 'Organisation.local' => 1
@@ -2389,7 +2349,6 @@ class Server extends AppModel
                         if ($result['type'] == 'boolean') {
                             $setting['test'] = 'testBool';
                             $setting['type'] = 'boolean';
-
                             $setting['description'] = __('Enable or disable the %s module.', $module);
                             $setting['value'] = false;
                         } elseif ($result['type'] == 'orgs') {
@@ -2412,39 +2371,8 @@ class Server extends AppModel
         return $serverSettings;
     }
 
-    # TODO [i18n] think about it
-    public function serverSettingsRead($unsorted = false)
+    private function __serverSettingsRead($serverSettings, $currentSettings)
     {
-        $this->Module = ClassRegistry::init('Module');
-        $serverSettings = $this->getCurrentServerSettings();
-        $currentSettings = Configure::read();
-        if (Configure::read('Plugin.Enrichment_services_enable')) {
-            $results = $this->Module->getModuleSettings();
-            foreach ($results as $module => $data) {
-                foreach ($data as $result) {
-                    $setting = array('level' => 1, 'errorMessage' => '');
-                    if ($result['type'] == 'boolean') {
-                        $setting['test'] = 'testBool';
-                        $setting['type'] = 'boolean';
-                        $setting['description'] = __('Enable or disable the %s module.', $module);
-                        $setting['value'] = false;
-                    } elseif ($result['type'] == 'orgs') {
-                        $setting['description'] = __('Restrict the %s module to the given organisation.', $module);
-                        $setting['value'] = 0;
-                        $setting['test'] = 'testLocalOrg';
-                        $setting['type'] = 'numeric';
-                        $setting['optionsSource'] = 'LocalOrgs';
-                    } else {
-                        $setting['test'] = 'testForEmpty';
-                        $setting['type'] = 'string';
-                        $setting['description'] = __('Set this required module specific setting.');
-                        $setting['value'] = '';
-                    }
-                    $serverSettings['Plugin']['Enrichment_' . $module . '_' .  $result['name']] = $setting;
-                }
-            }
-        }
-        $finalSettingsUnsorted = array();
         foreach ($serverSettings as $branchKey => &$branchValue) {
             if (isset($branchValue['branch'])) {
                 foreach ($branchValue as $leafKey => &$leafValue) {
@@ -2479,14 +2407,11 @@ class Server extends AppModel
                 $finalSettingsUnsorted[$branchKey] = $branchValue;
             }
         }
-        foreach ($finalSettingsUnsorted as $key => $temp) {
-            if (in_array($temp['tab'], array_keys($this->__settingTabMergeRules))) {
-                $finalSettingsUnsorted[$key]['tab'] = $this->__settingTabMergeRules[$temp['tab']];
-            }
-        }
-        if ($unsorted) {
-            return $finalSettingsUnsorted;
-        }
+        return $finalSettingsUnsorted;
+    }
+
+    private function __sortFinalSettings($finalSettingsUnsorted)
+    {
         $finalSettings = array();
         for ($i = 0; $i < 4; $i++) {
             foreach ($finalSettingsUnsorted as $k => $s) {
@@ -2497,6 +2422,26 @@ class Server extends AppModel
             }
         }
         return $finalSettings;
+    }
+
+    public function serverSettingsRead($unsorted = false)
+    {
+        $this->Module = ClassRegistry::init('Module');
+        $serverSettings = $this->getCurrentServerSettings();
+        $currentSettings = Configure::read();
+        if (Configure::read('Plugin.Enrichment_services_enable')) {
+            $this->readModuleSettings($serverSettings, array('Enrichment'));
+        }
+        $finalSettingsUnsorted = $this->__serverSettingsRead($serverSettings, $currentSettings);
+        foreach ($finalSettingsUnsorted as $key => $temp) {
+            if (in_array($temp['tab'], array_keys($this->__settingTabMergeRules))) {
+                $finalSettingsUnsorted[$key]['tab'] = $this->__settingTabMergeRules[$temp['tab']];
+            }
+        }
+        if ($unsorted) {
+            return $finalSettingsUnsorted;
+        }
+        return $this->__sortFinalSettings($finalSettingsUnsorted);
     }
 
     public function serverSettingReadSingle($settingObject, $settingName, $leafKey)
@@ -2711,7 +2656,7 @@ class Server extends AppModel
             return $this->testForEmpty($value);
         }
         if ($value != strtolower($this->getProto()) . '://' . $this->getHost()) {
-            return 'critical_error##COMMA##block';
+            return 'Invalid baseurl, it has to be in the "https://FQDN" format.';
         }
         return true;
     }
@@ -2972,8 +2917,6 @@ class Server extends AppModel
                 $k = $this->Attribute->generateCorrelation();
             }
         } else {
-            $job = ClassRegistry::init('Job');
-            $job->create();
             if ($value == true) {
                 $jobType = 'jobPurgeCorrelation';
                 $jobTypeText = 'purge correlations';
@@ -2981,6 +2924,8 @@ class Server extends AppModel
                 $jobType = 'jobGenerateCorrelation';
                 $jobTypeText = 'generate correlation';
             }
+            $job = ClassRegistry::init('Job');
+            $job->create();
             $data = array(
                     'worker' => 'default',
                     'job_type' => $jobTypeText,
@@ -3180,16 +3125,8 @@ class Server extends AppModel
     public function runConnectionTest($id)
     {
         $server = $this->find('first', array('conditions' => array('Server.id' => $id)));
-        App::uses('SyncTool', 'Tools');
-        $syncTool = new SyncTool();
-        $HttpSocket = $syncTool->setupHttpSocket($server);
-        $request = array(
-            'header' => array(
-                'Authorization' => $server['Server']['authkey'],
-                'Accept' => 'application/json',
-                'Content-Type' => 'application/json',
-            )
-        );
+        $HttpSocket = $this->setupHttpSocket($server);
+        $request = $this->setupSyncRequest($server);
         $uri = $server['Server']['url'] . '/servers/getVersion';
         try {
             $response = $HttpSocket->get($uri, false, $request);
@@ -3232,16 +3169,8 @@ class Server extends AppModel
     public function runPOSTtest($id)
     {
         $server = $this->find('first', array('conditions' => array('Server.id' => $id)));
-        App::uses('SyncTool', 'Tools');
-        $syncTool = new SyncTool();
-        $HttpSocket = $syncTool->setupHttpSocket($server);
-        $request = array(
-            'header' => array(
-                'Authorization' => $server['Server']['authkey'],
-                'Accept' => 'application/json',
-                'Content-Type' => 'application/json',
-            )
-        );
+        $HttpSocket = $this->setupHttpSocket($server);
+        $request = $this->setupSyncRequest($server);
         $testFile = file_get_contents(APP . 'files/scripts/test_payload.txt');
         $uri = $server['Server']['url'] . '/servers/postTest';
         $this->Log = ClassRegistry::init('Log');
@@ -3306,19 +3235,9 @@ class Server extends AppModel
         $localVersion = json_decode($file->read(), true);
         $file->close();
         $server = $this->find('first', array('conditions' => array('Server.id' => $id)));
-        if (!$HttpSocket) {
-            App::uses('SyncTool', 'Tools');
-            $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
-        }
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        $request = $this->setupSyncRequest($server);
         $uri = $server['Server']['url'] . '/servers/getVersion';
-        $request = array(
-                'header' => array(
-                        'Authorization' => $server['Server']['authkey'],
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
-                )
-        );
         try {
             $response = $HttpSocket->get($uri, '', $request);
         } catch (Exception $e) {
@@ -3404,41 +3323,6 @@ class Server extends AppModel
             ));
         }
         return array('success' => $success, 'response' => $response, 'canPush' => $canPush, 'version' => $remoteVersion);
-    }
-
-    /* This is a fallback for legacy remote instances that don't report back the current user's sync permission.
-     *
-     * The idea is simple: If we have no way of determining the perm_sync flag from the remote instance, request
-     * /servers/testConnection from the remote. This API is used to check the remote connectivity and expects an ID to be passed
-     * In this case however we are not passing an ID so ideally it will return 404, meaning that the instance is invalid.
-     * We are abusing the fact that only sync users can use this functionality, if we don't have sync permission we'll get a 403
-     * instead of the 404. It's hacky but it works fine and serves the purpose.
-     */
-    public function checkLegacyServerSyncPrivilege($id, $HttpSocket = false)
-    {
-        $server = $this->find('first', array('conditions' => array('Server.id' => $id)));
-        if (!$HttpSocket) {
-            App::uses('SyncTool', 'Tools');
-            $syncTool = new SyncTool();
-            $HttpSocket = $syncTool->setupHttpSocket($server);
-        }
-        $uri = $server['Server']['url'] . '/servers/testConnection';
-        $request = array(
-                'header' => array(
-                        'Authorization' => $server['Server']['authkey'],
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
-                )
-        );
-        try {
-            $response = $HttpSocket->get($uri, '', $request);
-        } catch (Exception $e) {
-            return false;
-        }
-        if ($response->code == '404') {
-            return true;
-        }
-        return false;
     }
 
     public function isJson($string)
@@ -3781,30 +3665,10 @@ class Server extends AppModel
             $worker = $workers[$pid];
             if (substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0 ? true : false) {
                 shell_exec('kill ' . $pid . ' > /dev/null 2>&1 &');
-                $this->Log->create();
-                $this->Log->save(array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'User',
-                        'model_id' => $user['id'],
-                        'email' => $user['email'],
-                        'action' => 'stop_worker',
-                        'user_id' => $user['id'],
-                        'title' => 'Stopping a worker.',
-                        'change' => 'Stopping a worker. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
-                ));
+                $this->__logRemoveWorker($user, $pid, $worker['queue'], false);
             } else {
                 $this->ResqueStatus->removeWorker($pid);
-                $this->Log->create();
-                $this->Log->save(array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'User',
-                        'model_id' => $user['id'],
-                        'email' => $user['email'],
-                        'action' => 'remove_dead_workers',
-                        'user_id' => $user['id'],
-                        'title' => 'Removing a dead worker.',
-                        'change' => 'Removing dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
-                ));
+                $this->__logRemoveWorker($user, $pid, $worker['queue'], true);
             }
             $this->ResqueStatus->removeWorker($pid);
         }
@@ -3814,7 +3678,6 @@ class Server extends AppModel
     {
         $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
         $workers = $this->ResqueStatus->getWorkers();
-        $this->Log = ClassRegistry::init('Log');
         if (function_exists('posix_getpwuid')) {
             $currentUser = posix_getpwuid(posix_geteuid());
             $currentUser = $currentUser['name'];
@@ -3828,182 +3691,47 @@ class Server extends AppModel
             $pidTest = substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0 ? true : false;
             if ($worker['user'] == $currentUser && !$pidTest) {
                 $this->ResqueStatus->removeWorker($pid);
-                $this->Log->create();
-                if (!empty($user)) {
-                    $this->Log->save(array(
-                            'org' => $user['Organisation']['name'],
-                            'model' => 'User',
-                            'model_id' => $user['id'],
-                            'email' => $user['email'],
-                            'action' => 'remove_dead_workers',
-                            'user_id' => $user['id'],
-                            'title' => 'Removing a dead worker.',
-                            'change' => 'Removing dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
-                    ));
-                } else {
-                    $this->Log->save(array(
-                            'org' => 'SYSTEM',
-                            'model' => 'User',
-                            'model_id' => 0,
-                            'email' => 'SYSTEM',
-                            'action' => 'remove_dead_workers',
-                            'user_id' => 0,
-                            'title' => 'Removing a dead worker.',
-                            'change' => 'Removing dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
-                    ));
-                }
+                $this->__logRemoveWorker($user, $pid, $worker['queue'], true);
             }
         }
     }
 
-    public function upgrade2324($user_id, $jobId = false)
+    private function __logRemoveWorker($user, $pid, $queue, $dead = false)
     {
-        $this->cleanCacheFiles();
-        if (Configure::read('MISP.background_jobs') && $jobId) {
-            $this->Job = ClassRegistry::init('Job');
-            $this->Job->id = $jobId;
-        }
         $this->Log = ClassRegistry::init('Log');
-        $this->Organisation = ClassRegistry::init('Organisation');
-        $this->Attribute = ClassRegistry::init('Attribute');
         $this->Log->create();
-        $this->Log->save(array(
-                'org' => 'SYSTEM',
-                'model' => 'Server',
-                'model_id' => 0,
-                'email' => 'SYSTEM',
-                'action' => 'upgrade_24',
-                'user_id' => 0,
-                'title' => 'Upgrade initiated',
-                'change' => 'Starting the migration of the database to 2.4',
-        ));
-        if (Configure::read('MISP.background_jobs') && $jobId) {
-            $this->Job->saveField('progress', 10);
-            $this->Job->saveField('message', 'Starting the migration of the database to 2.4');
-        }
-        $this->query('UPDATE roles SET perm_template = 1 WHERE perm_site_admin = 1 OR perm_admin = 1');
-        $this->query('UPDATE roles SET perm_sharing_group = 1 WHERE perm_site_admin = 1 OR perm_sync = 1');
-        $orgs = array('local' => array(), 'external' => array());
-        $captureRules = array(
-                'events_org' => array('table' => 'events', 'old' => 'org', 'new' => 'org_id'),
-                'events_orgc' => array('table' => 'events', 'old' => 'orgc', 'new' => 'orgc_id'),
-                'jobs_org' => array('table' => 'jobs', 'old' => 'org', 'new' => 'org_id'),
-                'servers_org' => array('table' => 'servers', 'old' => 'org', 'new' => 'org_id'),
-                'servers_organization' => array('table' => 'servers', 'old' => 'organization', 'new' => 'remote_org_id'),
-                'shadow_attributes_org' => array('table' => 'shadow_attributes', 'old' => 'org', 'new' => 'org_id'),
-                'shadow_attributes_event_org' => array('table' => 'shadow_attributes', 'old' => 'event_org', 'new' => 'event_org_id'),
-                'threads_org' => array('table' => 'threads', 'old' => 'org', 'new' => 'org_id'),
-                'users_org' => array('table' => 'users', 'old' => 'org', 'new' => 'org_id'),
-        );
-        $rules = array(
-                'local' => array(
-                        $captureRules['users_org'],
+        if (empty($user)) {
+            $user = array(
+                'id' => 0,
+                'Organisation' => array(
+                    'name' => 'SYSTEM'
                 ),
-                'external' => array(
-                        $captureRules['events_org'],
-                        $captureRules['events_orgc'],
-                        $captureRules['shadow_attributes_event_org'],
-                        $captureRules['shadow_attributes_org'],
-                        $captureRules['servers_organization'],
-                        $captureRules['threads_org'],
-                        $captureRules['jobs_org'],
-                        $captureRules['servers_org'],
-                )
+                'email' => 'SYSTEM'
+            );
+        }
+        $type = $dead ? 'dead' : 'kill';
+        $text = array(
+            'dead' => array(
+                'action' => 'remove_dead_workers',
+                'title' => __('Removing a dead worker.'),
+                'change' => sprintf(__('Removing dead worker data. Worker was of type %s with pid %s'), $queue, $pid)
+            ),
+            'kill' => array(
+                'action' => 'stop_worker',
+                'title' => __('Stopping a worker.'),
+                'change' => sprintf(__('Stopping a worker. Worker was of type %s with pid %s'), $queue, $pid)
+            )
         );
-        foreach ($rules as $k => $type) {
-            foreach ($type as $rule) {
-                $temp = ($this->query('SELECT DISTINCT(`' . $rule['old'] . '`) from `' . $rule['table'] . '` WHERE ' . $rule['new'] . '= "";'));
-                foreach ($temp as $t) {
-                    // in case we have something in the db with a missing org, let's hop over that
-                    if ($t[$rule['table']][$rule['old']] !== '') {
-                        if ($k == 'local' && !in_array($t[$rule['table']][$rule['old']], $orgs[$k])) {
-                            $orgs[$k][] = $t[$rule['table']][$rule['old']];
-                        } elseif ($k == 'external' && !in_array($t[$rule['table']][$rule['old']], $orgs['local']) && !in_array($t[$rule['table']][$rule['old']], $orgs[$k])) {
-                            $orgs[$k][] = $t[$rule['table']][$rule['old']];
-                        }
-                    } else {
-                        $this->Log->create();
-                        $this->Log->save(array(
-                                'org' => 'SYSTEM',
-                                'model' => 'Server',
-                                'model_id' => 0,
-                                'email' => 'SYSTEM',
-                                'action' => 'upgrade_24',
-                                'user_id' => 0,
-                                'title' => '[ERROR] - Detected empty string organisation identifier during the upgrade',
-                                'change' => 'Detected entries in table `' . $rule['table'] . '` where `' . $rule['old'] . '` was blank. This has to be resolved manually!',
-                        ));
-                    }
-                }
-            }
-        }
-        $this->Log->create();
         $this->Log->save(array(
-                'org' => 'SYSTEM',
-                'model' => 'Server',
-                'model_id' => 0,
-                'email' => 'SYSTEM',
-                'action' => 'upgrade_24',
-                'user_id' => 0,
-                'title' => 'Organisation creation',
-                'change' => 'Detected ' . count($orgs['local']) . ' local organisations and ' . count($orgs['external']) . ' external organisations. Starting organisation creation.',
+            'org' => $user['Organisation']['name'],
+            'model' => 'User',
+            'model_id' => $user['id'],
+            'email' => $user['email'],
+            'action' => $text[$type]['action'],
+            'user_id' => $user['id'],
+            'title' => $text[$type]['title'],
+            'change' => $text[$type]['change']
         ));
-        if (Configure::read('MISP.background_jobs') && $jobId) {
-            $this->Job->saveField('progress', 20);
-            $this->Job->saveField('message', 'Starting organisation creation');
-        }
-        $orgMapping = array();
-        foreach ($orgs as $k => $orgArray) {
-            foreach ($orgArray as $org) {
-                $orgMapping[$org] = $this->Organisation->createOrgFromName($org, $user_id, $k == 'local' ? true : false);
-            }
-        }
-        $this->Log->create();
-        $this->Log->save(array(
-                'org' => 'SYSTEM',
-                'model' => 'Server',
-                'model_id' => 0,
-                'email' => 'SYSTEM',
-                'action' => 'upgrade_24',
-                'user_id' => 0,
-                'title' => 'Organisations created and / or mapped',
-                'change' => 'Captured all missing organisations and created a mapping between the old organisation tag and the organisation IDs. ',
-        ));
-        if (Configure::read('MISP.background_jobs') && $jobId) {
-            $this->Job->saveField('progress', 30);
-            $this->Job->saveField('message', 'Updating all current entries');
-        }
-        foreach ($orgMapping as $old => $new) {
-            foreach ($captureRules as $rule) {
-                $this->query('UPDATE `' . $rule['table'] . '` SET `' . $rule['new'] . '`="' . $new . '" WHERE (`' . $rule['old'] . '`="' . $old . '" AND `' . $rule['new'] . '`="");');
-            }
-        }
-        if (Configure::read('MISP.background_jobs') && $jobId) {
-            $this->Job->saveField('progress', 40);
-            $this->Job->saveField('message', 'Rebuilding all correlations.');
-        }
-        //$this->Attribute->generateCorrelation($jobId, 40);
-        // upgrade correlations. No need to recorrelate, we can be a bit trickier here
-        // Private = 0 attributes become distribution 1 for both the event and attribute.
-        // For all intents and purposes, this oversimplification works fine when upgrading from 2.3
-        // Even though the distribution values stored in the correlation won't be correct, they will provide the exact same realeasability
-        // Event1 = distribution 0 and Attribute1 distribution 3 would lead to private = 1, so setting distribution = 0 and a_distribution = 0
-        // will result in the same visibility, etc. Once events / attributes get put into a sharing group this will get recorrelated anyway
-        // Also by unsetting the org field after the move the changes we ensure that these correlations won't get hit again by the script if we rerun it
-        // and that we don't accidentally "upgrade" a 2.4 correlation
-        $this->query('UPDATE correlations SET distribution = 1, a_distribution = 1 WHERE org != "" AND private = 0');
-        foreach ($orgMapping as $old => $new) {
-            $this->query('UPDATE correlations SET org_id = "' . $new . '", org = "" WHERE org = "' . $old . '";');
-        }
-        if (Configure::read('MISP.background_jobs') && $jobId) {
-            $this->Job->saveField('progress', 60);
-            $this->Job->saveField('message', 'Correlations rebuilt. Indexing all tables.');
-        }
-        $this->updateDatabase('indexTables');
-        if (Configure::read('MISP.background_jobs') && $jobId) {
-            $this->Job->saveField('progress', 100);
-            $this->Job->saveField('message', 'Upgrade complete.');
-        }
     }
 
     /* returns the version string of a connected instance
@@ -4054,17 +3782,8 @@ class Server extends AppModel
         if (empty($server)) {
             return 2;
         }
-        App::uses('SyncTool', 'Tools');
-        $syncTool = new SyncTool();
-        $HttpSocket = $syncTool->setupHttpSocket($server);
-        $request = array(
-                'header' => array(
-                        'Authorization' => $server['Server']['authkey'],
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
-                        //'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
-                )
-        );
+        $HttpSocket = $this->setupHttpSocket($server);
+        $request = $this->setupSyncRequest($server);
         $validArgs = array_merge(array('sort', 'direction'), $this->validEventIndexFilters);
         $urlParams = '';
         foreach ($validArgs as $v) {
@@ -4114,17 +3833,8 @@ class Server extends AppModel
         if (empty($server)) {
             return 2;
         }
-        App::uses('SyncTool', 'Tools');
-        $syncTool = new SyncTool();
-        $HttpSocket = $syncTool->setupHttpSocket($server);
-        $request = array(
-                'header' => array(
-                        'Authorization' => $server['Server']['authkey'],
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
-                        //'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
-                )
-        );
+        $HttpSocket = $this->setupHttpSocket($server);
+        $request = $this->setupSyncRequest($server);
         $uri = $server['Server']['url'] . '/events/' . $eventId;
         $response = $HttpSocket->get($uri, $data = '', $request);
         if ($response->code == 200) {

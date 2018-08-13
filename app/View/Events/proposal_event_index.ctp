@@ -20,14 +20,14 @@
             <th class="filter">
                 <?php echo $this->Paginator->sort('published');?>
             </th>
-            <th><?php echo $this->Paginator->sort('id');?></th>
+            <th><?php echo $this->Paginator->sort('id', 'Id', array('direction' => 'desc'));?></th>
             <th><?php echo $this->Paginator->sort('attribute_count', __('Proposals'));?></th>
             <th><?php echo __('Contributors');?></th>
             <?php if ($isSiteAdmin): ?>
             <th><?php echo $this->Paginator->sort('user_id', __('Email'));?></th>
             <?php endif; ?>
             <th class="filter">
-                <?php echo $this->Paginator->sort('date');?>
+                <?php echo $this->Paginator->sort('date', 'Date', array('direction' => 'desc'));?>
             </th>
             <th class="filter">
                 <?php echo $this->Paginator->sort('info');?>

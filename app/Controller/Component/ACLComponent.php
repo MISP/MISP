@@ -327,6 +327,7 @@ class ACLComponent extends Component
                     'pull' => array(),
                     'purgeSessions' => array(),
                     'push' => array(),
+                    'rest' => array('perm_auth'),
                     'restartWorkers' => array(),
                     'serverSettings' => array(),
                     'serverSettingsEdit' => array(),

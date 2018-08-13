@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2018-07-18 11:44\n"
+"PO-Revision-Date: 2018-07-27 14:09\n"
 "Last-Translator: SteveClement <steve@localhost.lu>\n"
 "Language-Team: Spanish\n"
 "MIME-Version: 1.0\n"
@@ -39,7 +39,7 @@ msgstr ""
 
 #: Controller/AttributesController.php:132
 msgid "You don't have permissions to create attributes"
-msgstr ""
+msgstr "No tienes permisos para crear atributos"
 
 #: Controller/AttributesController.php:150;434;586
 #: Controller/EventGraphController.php:76
@@ -278,7 +278,7 @@ msgstr ""
 #: Controller/AttributesController.php:3056;3071
 #: Controller/ShadowAttributesController.php:627
 msgid "Invalid Attribute."
-msgstr ""
+msgstr "Atributo Inválido."
 
 #: Controller/AttributesController.php:3059;3074
 #: Controller/EventsController.php:4712;4726
@@ -420,7 +420,7 @@ msgstr ""
 
 #: Controller/EventsController.php:2596
 msgid "Filename not allowed."
-msgstr ""
+msgstr "Nombre de fichero no permitido."
 
 #: Controller/EventsController.php:2616
 msgid "Problem with writing the ioc file. Please report to administrator."
@@ -449,7 +449,7 @@ msgstr ""
 #: Controller/EventsController.php:3597;4564
 #: Controller/ObjectsController.php:43;132;136;422
 msgid "Invalid event."
-msgstr ""
+msgstr "Evento invalido."
 
 #: Controller/EventsController.php:3696;3723;3736
 msgid "You do not have the permission to do that."
@@ -473,11 +473,11 @@ msgstr ""
 
 #: Controller/EventsController.php:4054
 msgid "Event not found"
-msgstr ""
+msgstr "No se ha encontrado el evento"
 
 #: Controller/EventsController.php:4073
 msgid "Event not found."
-msgstr ""
+msgstr "No se ha encontrado el evento."
 
 #: Controller/EventsController.php:4081
 msgid "Distribution level 5 is not supported when uploading a sample without passing an event ID. Distribution level 5 is meant to take on the distribution level of an existing event."
@@ -2097,7 +2097,7 @@ msgstr ""
 #: View/Users/edit.ctp:41
 #: View/Whitelists/admin_edit.ctp:12
 msgid "Submit"
-msgstr ""
+msgstr "Enviar"
 
 #: View/Attributes/add.ctp:88
 #: View/Attributes/attribute_replace.ctp:44
@@ -2162,7 +2162,7 @@ msgstr ""
 #: View/Users/ajax/passwordResetConfirmationForm.ctp:32
 #: View/Warninglists/ajax/delete_confirmation.ctp:25
 msgid "Cancel"
-msgstr ""
+msgstr "Cancelar"
 
 #: View/Attributes/add_attachment.ctp:4
 msgid "Add Attachment(s)"
@@ -2277,7 +2277,7 @@ msgstr ""
 #: View/Attributes/edit.ctp:16
 #: View/Pages/doc/using_the_system.ctp:368
 msgid "disabled"
-msgstr ""
+msgstr "desactivado"
 
 #: View/Attributes/edit.ctp:64
 #: View/ShadowAttributes/add.ctp:55
@@ -2367,7 +2367,7 @@ msgstr ""
 #: View/Whitelists/admin_index.ctp:14;47
 #: View/Whitelists/index.ctp:14;42
 msgid "previous"
-msgstr ""
+msgstr "anterior"
 
 #: View/Attributes/index.ctp:30;175
 #: View/Elements/eventattribute.ctp:62;260
@@ -2413,7 +2413,7 @@ msgstr ""
 #: View/Whitelists/admin_index.ctp:16;49
 #: View/Whitelists/index.ctp:16;44
 msgid "next"
-msgstr ""
+msgstr "siguiente"
 
 #: View/Attributes/index.ctp:148
 msgid "Are you sure you want to delete this attribute?"
@@ -2498,7 +2498,7 @@ msgstr ""
 #: View/Elements/templateElements/populateTemplateFile.ctp:21
 #: View/Errors/error403.ctp:3
 msgid "Error"
-msgstr ""
+msgstr "Error"
 
 #: View/Attributes/report_validation_issues_attributes.ctp:13
 msgid "[Attribute details]"
@@ -2506,7 +2506,7 @@ msgstr ""
 
 #: View/Attributes/search.ctp:4
 msgid "Search Attribute"
-msgstr ""
+msgstr "Buscar atributo"
 
 #: View/Attributes/search.ctp:5
 msgid "You can search for attributes based on contained expression within the value, event ID, submitting organisation, category and type. <br />For the value, event ID and organisation, you can enter several search terms by entering each term as a new line. To exclude things from a result, use the NOT operator (!) in front of the term."
@@ -2615,7 +2615,7 @@ msgstr ""
 #: View/Users/view.ctp:57
 #: View/Users/ajax/passwordResetConfirmationForm.ctp:27
 msgid "Yes"
-msgstr ""
+msgstr "Si"
 
 #: View/Attributes/ajax/attributeConfirmationForm.ctp:21
 #: View/Attributes/ajax/attributeEditMassForm.ctp:31
@@ -2658,7 +2658,7 @@ msgstr ""
 #: View/Users/ajax/passwordResetConfirmationForm.ctp:32
 #: View/Warninglists/ajax/delete_confirmation.ctp:25
 msgid "No"
-msgstr ""
+msgstr "No"
 
 #: View/Attributes/ajax/attributeEditCategoryForm.ctp:5
 #: View/Attributes/ajax/attributeEditCommentForm.ctp:5
@@ -2667,7 +2667,7 @@ msgstr ""
 #: View/Attributes/ajax/attributeEditTypeForm.ctp:5
 #: View/Attributes/ajax/attributeEditValueForm.ctp:6
 msgid "Accept change"
-msgstr ""
+msgstr "Aceptar cambio"
 
 #: View/Attributes/ajax/attributeEditCategoryForm.ctp:6
 #: View/Attributes/ajax/attributeEditCommentForm.ctp:6
@@ -2676,7 +2676,7 @@ msgstr ""
 #: View/Attributes/ajax/attributeEditTypeForm.ctp:6
 #: View/Attributes/ajax/attributeEditValueForm.ctp:7
 msgid "Discard change"
-msgstr ""
+msgstr "Descartar cambio"
 
 #: View/Attributes/ajax/attributeEditMassForm.ctp:6
 msgid "Mass Edit Attributes"
@@ -2776,7 +2776,7 @@ msgstr ""
 #: View/Templates/add.ctp:28
 #: View/Templates/edit.ctp:28
 msgid "Add a tag"
-msgstr ""
+msgstr "Añadir una etiqueta"
 
 #: View/Elements/eventattribute.ctp:71;269
 #: View/Elements/Feeds/eventattribute.ctp:28;31;94;97
@@ -2787,7 +2787,7 @@ msgstr ""
 #: View/Elements/eventattribute.ctp:117
 #: View/Pages/doc/using_the_system.ctp:86
 msgid "Add attribute"
-msgstr ""
+msgstr "Añadir atributo"
 
 #: View/Elements/eventattribute.ctp:118
 msgid "Edit selected Attributes"
@@ -2827,7 +2827,7 @@ msgstr ""
 
 #: View/Elements/eventattribute.ctp:140;159
 msgid "Show all attributes"
-msgstr ""
+msgstr "Mostrar todos los atributos"
 
 #: View/Elements/eventattribute.ctp:144
 msgid "Only show %s related attributes"

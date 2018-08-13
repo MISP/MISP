@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2018-07-18 11:43\n"
+"PO-Revision-Date: 2018-07-27 14:07\n"
 "Last-Translator: SteveClement <steve@localhost.lu>\n"
 "Language-Team: Italian\n"
 "MIME-Version: 1.0\n"
@@ -35,18 +35,18 @@ msgstr "Job in coda. Puoi visualizzarne il progresso alla pagina dei job attivi 
 #: Controller/AttributesController.php:130;1248
 #: Controller/EventGraphController.php:16;68
 msgid "No event ID set."
-msgstr ""
+msgstr "ID evento non specificato."
 
 #: Controller/AttributesController.php:132
 msgid "You don't have permissions to create attributes"
-msgstr ""
+msgstr "Non hai i permessi per creare attributi"
 
 #: Controller/AttributesController.php:150;434;586
 #: Controller/EventGraphController.php:76
 #: Controller/EventsController.php:1526;1544;1577
 #: Controller/ObjectsController.php:426
 msgid "You do not have permission to do that."
-msgstr ""
+msgstr "Non hai il permesso di farlo."
 
 #: Controller/AttributesController.php:387;774;779;782;965;1038;2395;2408;2428;2449;2457;2910;2912;2999;3001
 #: Controller/ShadowAttributesController.php:759;976;1000;1028;1038
@@ -57,7 +57,7 @@ msgstr "Attributo non valido"
 #: Controller/AttributesController.php:396
 #: Controller/ShadowAttributesController.php:468
 msgid "You do not have the permission to view this event."
-msgstr ""
+msgstr "Non hai i permessi per visualizzare questo evento."
 
 #: Controller/AttributesController.php:418
 msgid "Attribute not an attachment or malware-sample"
@@ -66,7 +66,7 @@ msgstr "L'attributo non è un allegato o un campione malware"
 #: Controller/AttributesController.php:449;597
 #: Controller/ShadowAttributesController.php:506
 msgid "PHP says file was not uploaded. Are you attacking me?"
-msgstr ""
+msgstr "Il PHP dice che il file non è stato caricato. Mi stai attaccando?"
 
 #: Controller/AttributesController.php:599
 #: Controller/ShadowAttributesController.php:508;518
@@ -92,12 +92,12 @@ msgstr "Attributo non valido."
 
 #: Controller/AttributesController.php:820
 msgid "Attribute could not be saved: Attribute in the request not newer than the local copy."
-msgstr ""
+msgstr "L'attributo non può essere salvato: quello incluso nella richiesta non è più aggiornato della copia locale."
 
 #: Controller/AttributesController.php:836;1257
 #: Controller/EventsController.php:4190;4200;4709;4723
 msgid "Invalid Event."
-msgstr ""
+msgstr "Evento non valido."
 
 #: Controller/AttributesController.php:853
 msgid "The attribute has been saved"
@@ -119,7 +119,7 @@ msgstr "Inserimento non valido."
 
 #: Controller/AttributesController.php:999
 msgid "Invalid field."
-msgstr ""
+msgstr "Campo non valido."
 
 #: Controller/AttributesController.php:1041
 msgid "Invalid attribute id."
@@ -140,31 +140,31 @@ msgstr "Attributo non valido"
 
 #: Controller/AttributesController.php:1154
 msgid "Could not restore the attribute"
-msgstr ""
+msgstr "Impossibile ripristinare l'attributo"
 
 #: Controller/AttributesController.php:1172;1178;1182
 msgid "Attribute not found or not authorised."
-msgstr ""
+msgstr "Attributo non trovato o utente non autorizzato."
 
 #: Controller/AttributesController.php:1231
 msgid "This function is only accessible via POST requests."
-msgstr ""
+msgstr "Questa funzione è accessibile solo via richieste POST."
 
 #: Controller/AttributesController.php:1279
 msgid "No matching attributes found."
-msgstr ""
+msgstr "Nessun attributo corrispondente trovato."
 
 #: Controller/AttributesController.php:1308
 msgid "This method can only be accessed via AJAX."
-msgstr ""
+msgstr "Questo metodo è accessibile solo via richiesta AJAX."
 
 #: Controller/AttributesController.php:1318
 msgid "You are not authorized to edit this event."
-msgstr ""
+msgstr "Non sei autorizzato a modificare questo evento."
 
 #: Controller/AttributesController.php:1380
 msgid "No event ID provided."
-msgstr ""
+msgstr "Nessun ID evento fornito."
 
 #: Controller/AttributesController.php:1479
 msgid "Invalid tag"

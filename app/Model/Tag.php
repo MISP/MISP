@@ -174,6 +174,39 @@ class Tag extends AppModel
         return array($acceptIds, $rejectIds);
     }
 
+    // find all of the tag Ids that belong to the accepted tags and the rejected tags
+    public function fetchTagIds($accept = array(), $reject = array())
+    {
+        $acceptIds = array();
+        $rejectIds = array();
+        if (!empty($accept)) {
+            $acceptIds = $this->findTagIdsByTagNames($accept);
+            if (empty($acceptIds)) {
+                $acceptIds[] = -1;
+            }
+        }
+        if (!empty($reject)) {
+            $rejectIds = $this->findTagIdsByTagNames($reject);
+        }
+        return array($acceptIds, $rejectIds);
+    }
+
+    // pass a list of tag names to receive a list of matched tag IDs
+    public function findTagIdsByTagNames($array)
+    {
+        $ids = array();
+        foreach ($array as $a) {
+            $conditions['OR'][] = array('LOWER(Tag.name) like' => strtolower($a));
+        }
+        $params = array(
+                'recursive' => 1,
+                'conditions' => $conditions,
+                'fields' => array('Tag.id', 'Tag.id')
+        );
+        $result = $this->find('list', $params);
+        return array_values($result);
+    }
+
     public function findEventIdsByTagNames($array)
     {
         $ids = array();

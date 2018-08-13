@@ -11,7 +11,7 @@ foreach($attackTactic as $tactic):
 </div>
 
 <div class="attack-matrix-options matrix-div-submit">
-    <span class="btn btn-inverse btn-matrix-submit" role="button" style="padding: 1px 5px !important;font-size: 12px !important;font-weight: bold;"><?php echo _('Submit'); ?></span>
+    <span class="btn btn-inverse btn-matrix-submit" role="button" style="padding: 1px 5px !important;font-size: 12px !important;font-weight: bold;"><?php echo __('Submit'); ?></span>
 </div>
 
 <div class="attack-matrix-options">

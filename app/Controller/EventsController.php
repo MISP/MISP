@@ -1536,8 +1536,11 @@ class EventsController extends AppController
                 if (isset($this->request->data['response'])) {
                     $this->request->data = $this->request->data['response'];
                 }
+                if (isset($this->request->data['request'])) {
+                    $this->request->data = $this->request->data['request'];
+                }
                 if (!isset($this->request->data['Event'])) {
-                    $this->request->data['Event'] = $this->request->data;
+                    $this->request->data = array('Event' => $this->request->data);
                 }
 
                 // Distribution, reporter for the events pushed will be the owner of the authentication key
@@ -2433,7 +2436,7 @@ class EventsController extends AppController
         // For XML: <request><value>7.7.7.7&amp;&amp;1.1.1.1</value><type>ip-src</type></request>
         if ($this->request->is('post')) {
             if (empty($this->request->data)) {
-                throw new BadRequestException(__('Either specify the search terms in the url, or POST an xml (with the root element being "request".'));
+                throw new BadRequestException(__('Either specify the search terms in the url, or POST an xml (with the root element being "request").'));
             } else {
                 $data = $this->request->data;
             }
@@ -2775,7 +2778,7 @@ class EventsController extends AppController
             }
         }
         $requested_attributes = array('uuid', 'event_id', 'category', 'type',
-                                'value', 'comment', 'to_ids', 'timestamp');
+                                'value', 'comment', 'to_ids', 'timestamp', 'object_relation');
         $requested_obj_attributes = array('uuid', 'name', 'meta-category');
         if ($includeContext) {
             $requested_attributes[] = 'attribute_tag';
@@ -4019,7 +4022,7 @@ class EventsController extends AppController
         // This would return all OSINT tagged events except for event #3 and #4
         if ($this->request->is('post')) {
             if (empty($this->request->data)) {
-                throw new BadRequestException(__('Either specify the search terms in the url, or POST an xml (with the root element being "request".'));
+                throw new BadRequestException(__('Either specify the search terms in the url, or POST an xml (with the root element being "request").'));
             } else {
                 $data = $this->request->data;
             }

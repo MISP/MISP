@@ -1023,7 +1023,15 @@ class AppModel extends Model
 					INDEX `timestamp` (`timestamp`)
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 break;
-            case 16:
+            case '16':
+                $sqlArray[] = 'ALTER TABLE `taxonomy_predicates` ADD COLUMN description text CHARACTER SET UTF8 collate utf8_bin;';
+                $sqlArray[] = 'ALTER TABLE `taxonomy_entries` ADD COLUMN description text CHARACTER SET UTF8 collate utf8_bin;';
+                $sqlArray[] = 'ALTER TABLE `taxonomy_predicates` ADD COLUMN exclusive tinyint(1) DEFAULT 0;';
+                break;
+            case '17':
+                $sqlArray[] = 'ALTER TABLE `taxonomies` ADD COLUMN exclusive tinyint(1) DEFAULT 0;';
+                break;
+            case 18:
                 $sqlArray[] =
                     "ALTER TABLE `attributes`
 						DROP INDEX uuid,
@@ -1038,7 +1046,7 @@ class AppModel extends Model
 						DROP INDEX deleted
 					";
                 break;
-            case 17:
+            case 19:
                 $sqlArray[] =
                     "ALTER TABLE `attributes`
 						ADD COLUMN `first_seen` DATETIME(6) NULL DEFAULT NULL,
@@ -1046,7 +1054,7 @@ class AppModel extends Model
 						MODIFY comment TEXT COLLATE utf8_unicode_ci
 					;";
                 break;
-            case 18:
+            case 20:
                 $sqlArray[] = "
 					ALTER TABLE `attributes`
 						ADD INDEX `uuid` (`uuid`),
@@ -1071,7 +1079,7 @@ class AppModel extends Model
                 $indexArray[] = array('objects', 'first_seen');
                 $indexArray[] = array('objects', 'last_seen');
                 $sqlArray[] = "ALTER TABLE `roles` ADD `perm_publish_zmq` tinyint(1) NOT NULL DEFAULT 0;";
-                break;
+		break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1233,6 +1241,16 @@ class AppModel extends Model
         $version_array = json_decode($file->read(), true);
         $file->close();
         return $version_array;
+    }
+
+    public function validateAuthkey($value) {
+        if (empty($value['authkey'])) {
+            return 'Empty authkey found. Make sure you set the 40 character long authkey.';
+        }
+        if (!preg_match('/[a-z0-9]{40}/i', $value['authkey'])) {
+            return 'The authkey has to be exactly 40 characters long and consist of alphanumeric characters.';
+        }
+        return true;
     }
 
     // alternative to the build in notempty/notblank validation functions, compatible with cakephp <= 2.6 and cakephp and cakephp >= 2.7
@@ -1504,12 +1522,12 @@ class AppModel extends Model
     }
 
     // generate a generic subquery - options needs to include conditions
-    public function subQueryGenerator($model, $options, $lookupKey)
+    public function subQueryGenerator($model, $options, $lookupKey, $negation = false)
     {
         $db = $model->getDataSource();
         $defaults = array(
             'fields' => array('*'),
-            'table' => $model->alias,
+            'table' => $model->table,
             'alias' => $model->alias,
             'limit' => null,
             'offset' => null,
@@ -1519,17 +1537,21 @@ class AppModel extends Model
         );
         $params = array();
         foreach (array_keys($defaults) as $key) {
-            if (isset($conditions[$key])) {
-                $params[$key] = $conditions[$key];
+            if (isset($options[$key])) {
+                $params[$key] = $options[$key];
             } else {
-                $params[$key] = $conditions[$key];
+                $params[$key] = $defaults[$key];
             }
         }
         $subQuery = $db->buildStatement(
             $params,
             $model
         );
-        $subQuery = $lookupKey . ' IN (' . $subQuery . ') ';
+        if ($negation) {
+            $subQuery = $lookupKey . ' NOT IN (' . $subQuery . ') ';
+        } else {
+            $subQuery = $lookupKey . ' IN (' . $subQuery . ') ';
+        }
         $conditions = array(
             $db->expression($subQuery)->value
         );
@@ -1623,5 +1645,44 @@ class AppModel extends Model
             $server->serverSettingsSaveValue($setting, $value);
         }
         return true;
+    }
+
+    public function setupHttpSocket($server, $HttpSocket = null)
+    {
+        if (empty($HttpSocket)) {
+            App::uses('SyncTool', 'Tools');
+            $syncTool = new SyncTool();
+            $HttpSocket = $syncTool->setupHttpSocket($server);
+        }
+        return $HttpSocket;
+    }
+
+    public function setupSyncRequest($server)
+    {
+        $request = array(
+                'header' => array(
+                        'Authorization' => $server['Server']['authkey'],
+                        'Accept' => 'application/json',
+                        'Content-Type' => 'application/json'
+                )
+        );
+        $request = $this->addHeaders($request);
+        return $request;
+    }
+
+    public function addHeaders($request)
+    {
+        $version = $this->checkMISPVersion();
+        $version = implode('.', $version);
+        try {
+            $commit = trim(shell_exec('git log --pretty="%H" -n1 HEAD'));
+        } catch (Exception $e) {
+            $commit = false;
+        }
+        $request['header']['MISP-version'] = $version;
+        if ($commit) {
+            $request['header']['commit'] = $commit;
+        }
+        return $request;
     }
 }
