@@ -16,6 +16,7 @@ class CsvExport
 
     public function handler($attributes, $final, $options = array())
     {
+        $result = array();
         foreach ($attributes as $attribute) {
             $line1 = '';
             $line2 = '';
@@ -29,7 +30,7 @@ class CsvExport
             $line2 = rtrim($line2, ",");
             $line = $line1 . ',' . $line2;
             $line = rtrim($line, ",");
-            if ($includeContext) {
+            if (!empty($options['includeContext'])) {
                 foreach ($this->Event->csv_event_context_fields_to_fetch as $header => $field) {
                     if ($field['object']) {
                         $line .= ',' . $attribute['Event'][$field['object']][$field['var']];
@@ -38,9 +39,10 @@ class CsvExport
                     }
                 }
             }
-            $final .= $line;
+            $result[] = $line;
         }
-        return $final;
+        $result = implode(PHP_EOL, $result);
+        return $result;
     }
 
     public function header($options = array())
@@ -60,7 +62,7 @@ class CsvExport
                 $headers[$k] = 'date';
             }
         }
-        $headers = implode(',', $headers);
+        $headers = implode(',', $headers) . PHP_EOL;
         return $headers;
     }
 

@@ -2695,8 +2695,6 @@ class EventsController extends AppController
         if ($user === false) {
             return $exception;
         }
-        App::uses('CsvExport', 'Export');
-        $export = new CsvExport();
         // if it's a search, grab the attributeIDList from the session and get the IDs from it. Use those as the condition
         // We don't need to look out for permissions since that's filtered by the search itself
         // We just want all the attributes found by the search
@@ -2775,11 +2773,13 @@ class EventsController extends AppController
             'requested_attributes' => $requested_attributes,
             'includeContext' => $includeContext
         );
+        App::uses('CsvExport', 'Export');
+        $export = new CsvExport();
         $final = $export->header($options);
         while ($continue) {
             $attributes = $this->Event->csv($user, $params, false, $continue);
             $params['page'] += 1;
-            $final .= $export->handler($attributes, $final);
+            $final .= $export->handler($attributes, $final, $options);
             $final .= $export->separator($attributes, $final);
         }
         $export->footer();

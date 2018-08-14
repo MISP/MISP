@@ -2837,10 +2837,14 @@ class Attribute extends AppModel
                     $continue = false;
                     continue;
                 }
-            } else {
-                $continue = false;
             }
             $results = $this->find('all', $params);
+            if (!$loop) {
+               if (!empty($params['limit']) && count($results) < $params['limit']) {
+                   $continue = false;
+               }
+               $break = true;
+           }
             // return false if we're paginating
             if (isset($options['limit']) && empty($results)) {
                 return array();
@@ -2868,6 +2872,9 @@ class Attribute extends AppModel
                     }
                 }
                 $attributes[] = $results[$key];
+            }
+            if ($break) {
+                break;
             }
         }
         return $attributes;
