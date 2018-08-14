@@ -2074,7 +2074,12 @@ class Event extends AppModel
         );
         foreach ($params as $param => $paramData) {
             if (isset($simple_params[$param]) && $params[$param] !== false) {
-                $conditions = $this->{$simple_params[$param]['function']}($params, $conditions, $param);
+                $options = array(
+                    'filter' => $param,
+                    'scope' => 'Event',
+                    'pop' => !empty($simple_param_scoped[$param]['pop'])
+                );
+                $conditions = $this->{$simple_params[$param]['function']}($params, $conditions, $options);
             }
         }
         //$attributeIDList = array(), $includeContext = false, $enforceWarninglist = false
