@@ -16,6 +16,17 @@ There's a massive caveat here so let me make this incredibly clear
 #      THEIR EXPLICIT PERMISSION             #
 ##############################################      
 
+0. Installing Dependencies
+--------------------------
+
+Install the AWS PHP SDK
+
+```bash
+cd /var/www/MISP/app
+sudo -u www-data php composer.phar config vendor-dir Vendor
+sudo -u www-data php composer.phar require aws/aws-sdk-php
+```
+
 1. Creating an S3 bucket
 -------------------------
 
