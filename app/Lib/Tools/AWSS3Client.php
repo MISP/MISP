@@ -46,25 +46,49 @@ class AWSS3Client
 
         $this->__client = $s3;
         $this->__settings = $settings;
-        return $client;
+        return $s3;
     }
 
     public function upload($key, $data)
     {
-        $this->__client.putObject([
-            'Bucket' => $this.__settings['bucket_name'],
+        $this->__client->putObject([
+            'Bucket' => $this->__settings['bucket_name'],
             'Key' => $key,
             'Body' => $data
-        ]);
+       ]);
     }
 
     public function download($key)
     {
-        $result = $this->__client.getObject([
-            'Bucket' => $this.__settings['bucket_name'],
+        $result = $this->__client->getObject([
+            'Bucket' => $this->__settings['bucket_name'],
             'Key' => $key
         ]);
 
         return $result['Body'];
+    }
+
+    public function delete($key)
+    {
+        $this->__client->deleteObject([
+            'Bucket' => $this->__settings['bucket_name'],
+            'Key' => $key
+        ]);
+    }
+
+    public function deleteDirectory($prefix) {
+        $keys = $s3->listObjects([
+            'Bucket' => $this->__settings['bucket_name'],
+            'Prefix' => $prefix
+        ]) ->getPath('Contents/*/Key');
+
+        $s3->deleteObjects([
+            'Bucket'  => $bucket,
+            'Delete' => [
+                'Objects' => array_map(function ($key) {
+                    return ['Key' => $key];
+                }, $keys)
+            ],
+        ]);
     }
 }

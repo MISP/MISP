@@ -38,6 +38,7 @@ class AppModel extends Model
     private $__profiler = array();
 
     public $elasticSearchClient = false;
+    public $s3Client = false;
 
     public function __construct($id = false, $table = null, $ds = null)
     {
@@ -1455,6 +1456,26 @@ class AppModel extends Model
         $client = new ElasticSearchClient();
         $client->initTool();
         $this->elasticSearchClient = $client;
+    }
+
+    public function getS3Client() {
+        if (!$this->s3Client) {
+            $this->s3Client = $this->loadS3Client();
+        }
+
+        return $this->s3Client;
+    }
+
+    public function loadS3Client() {
+        App::uses('AWSS3Client', 'Tools');
+        $client = new AWSS3Client();
+        $client->initTool();
+        return $client;
+    }
+
+    public function attachmentDirIsS3() {
+        // Naive way to detect if we're working in S3
+        return substr(Configure::read('MISP.attachments_dir'), 0, 2) === "s3";
     }
 
     public function checkVersionRequirements($versionString, $minVersion)
