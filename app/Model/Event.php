@@ -359,11 +359,20 @@ class Event extends AppModel
             $my_server = ClassRegistry::init('Server');
             $attachments_dir = $my_server->getDefaultAttachments_dir();
         }
-        $filepath = $attachments_dir . DS . $this->id;
-        App::uses('Folder', 'Utility');
-        if (is_dir($filepath)) {
-            if (!$this->destroyDir($filepath)) {
-                throw new InternalErrorException('Delete of event file directory failed. Please report to administrator.');
+
+        // Things get a little funky here
+        if ($this->attachmentDirIsS3()) {
+            // S3 doesn't have folders
+            // So we have to basically `ls` them to look for a prefix
+            $s3 = $this->getS3Client();
+            $s3.deleteDirectory($this->id);
+        } else {
+            $filepath = $attachments_dir . DS . $this->id;
+            App::uses('Folder', 'Utility');
+            if (is_dir($filepath)) {
+                if (!$this->destroyDir($filepath)) {
+                    throw new InternalErrorException('Delete of event file directory failed. Please report to administrator.');
+                }
             }
         }
     }

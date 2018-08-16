@@ -1386,6 +1386,46 @@ class Server extends AppModel
                             'test' => 'testForEmpty',
                             'type' => 'string'
                         ),
+                        'S3_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables uploading of malware samples to S3 rather than to disk (WARNING: Get permission from amazon first!)'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'S3_bucket_name' => array(
+                            'level' => 2,
+                            'description' => __('Bucket name to upload to'),
+                            'value' => '',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'S3_region' => array(
+                            'level' => 2,
+                            'description' => __('Region in which your S3 bucket resides'),
+                            'value' => '',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'S3_aws_access_key' => array(
+                            'level' => 2,
+                            'description' => __('AWS key to use when uploading samples (WARNING: It\' highly recommended that you use EC2 IAM roles if at all possible)'),
+                            'value' => '',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'S3_aws_secret_key' => array(
+                            'level' => 2,
+                            'description' => __('AWS secret key to use when uploading samples'),
+                            'value' => '',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
                         'Sightings_policy' => array(
                             'level' => 1,
                             'description' => __('This setting defines who will have access to seeing the reported sightings. The default setting is the event owner alone (in addition to everyone seeing their own contribution) with the other options being Sighting reporters (meaning the event owner and anyone that provided sighting data about the event) and Everyone (meaning anyone that has access to seeing the event / attribute).'),
@@ -3979,6 +4019,11 @@ class Server extends AppModel
     public function getDefaultAttachments_dir()
     {
         return APP . 'files';
+    }
+
+    public function getDefaultTmp_dir() 
+    {
+        return sys_get_temp_dir();
     }
 
     public function fetchServer($id)
