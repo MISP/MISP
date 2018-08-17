@@ -128,7 +128,7 @@ cp -fa /home/misp/public_html/MISP/INSTALL/setup/config.php /home/misp/public_ht
 ----------------------
 
 # Check if the permissions are set correctly using the following commands:
-sudo chmod -R 750 /home/misp/public_html/MISP
+sudo chmod -R 770 /home/misp/public_html/MISP
 sudo chmod -R g+ws /home/misp/public_html/MISP/app/tmp
 sudo chmod -R g+ws /home/misp/public_html/MISP/app/files
 sudo chmod -R g+ws /home/misp/public_html/MISP/app/files/scripts/tmp
@@ -193,7 +193,7 @@ cp -a /home/misp/public_html/MISP/app/Config/core.default.php /home/misp/public_
 cp -a /home/misp/public_html/MISP/app/Config/config.default.php /home/misp/public_html/MISP/app/Config/config.php
 
 # Configure the fields in the newly created files:
-vim /home/misp/public_html/MISP/app/Config/database.php
+vi /home/misp/public_html/MISP/app/Config/database.php
 # DATABASE_CONFIG has to be filled
 # With the default values provided in section 6, this would look like:
 # class DATABASE_CONFIG {
@@ -219,7 +219,7 @@ vim /home/misp/public_html/MISP/app/Config/database.php
 # delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
 
 # Change base url in config.php
-vim /home/misp/public_html/MISP/app/Config/config.php
+vi /home/misp/public_html/MISP/app/Config/config.php
 # example: 'baseurl' => 'https://<your.FQDN.here>',
 # alternatively, you can leave this field empty if you would like to use relative pathing in MISP
 # 'baseurl' => '',
@@ -253,9 +253,49 @@ gpg --homedir /home/misp/public_html/MISP/.gnupg --export --armor YOUR-KEYS-EMAI
 
 # To make the background workers start on boot
 chmod +x /home/misp/public_html/MISP/app/Console/worker/start.sh
-sudo vim /etc/rc.local
-# Add the following line before the last line (exit 0). Make sure that you replace www-data with your apache user:
-sudo -u www-data bash /home/misp/public_html/MISP/app/Console/worker/start.sh
+
+# Activate rc.local in systemd
+# Systemd developers, in their wisdom, decided to complicate things a bit so you'll have to
+# create the rc-local.service
+sudo vi /etc/systemd/system/rc-local.service
+# and paste the following in it
+[Unit]
+ Description=/etc/rc.local Compatibility
+ ConditionPathExists=/etc/rc.local
+
+[Service]
+ Type=forking
+ ExecStart=/etc/rc.local start
+ TimeoutSec=0
+ StandardOutput=tty
+ RemainAfterExit=yes
+ SysVStartPriority=99
+
+[Install]
+ WantedBy=multi-user.target
+
+# Hit the "esc" button then type :wq! to write the file and exit vi
+
+# Create/edit /etc/rc.local
+sudo vi /etc/rc.local
+# If the file is empty add the following including the #
+#!/bin/bash
+
+# Then add this
+sudo -u misp bash /home/misp/public_html/MISP/app/Console/worker/start.sh
+
+# If the file was empty add this as the last line
+exit 0
+
+# save, quit vi and set permissions
+sudo chmod +x /etc/rc.local
+
+# Enable it in systemd
+sudo systemctl enable rc-local
+
+#Start the rc-local compatibility layer and check if AOK
+sudo systemctl start rc-local.service
+sudo systemctl status rc-local.service
 
 # Now log in using the webinterface:
 # The default user/pass = admin@admin.test/admin
@@ -271,8 +311,8 @@ sudo -u www-data bash /home/misp/public_html/MISP/app/Console/worker/start.sh
 # If any of the directories that MISP uses to store files is not writeable to the apache user, change the permissions
 # you can do this by running the following commands:
 
-sudo chmod -R 750 /home/misp/public_html/MISP/<directory path with an indicated issue>
-sudo chown -R misp:misp /home/misp/public_html/MISP/<directory path with an indicated issue>
+sudo chmod -R 770 /home/misp/public_html/MISP/<directory path with an indicated issue>
+sudo chown -R misp:www-data /home/misp/public_html/MISP/<directory path with an indicated issue>
 
 # Make sure that the STIX libraries and GnuPG work as intended, if not, refer to INSTALL.txt's paragraphs dealing with these two items
 
