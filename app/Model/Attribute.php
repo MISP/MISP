@@ -661,11 +661,21 @@ class Attribute extends AppModel
                 $my_server = ClassRegistry::init('Server');
                 $attachments_dir = $my_server->getDefaultAttachments_dir();
             }
-            $filepath = $attachments_dir . DS . $this->data['Attribute']['event_id'] . DS . $this->data['Attribute']['id'];
-            $file = new File($filepath);
-            if ($file->exists()) {
-                if (!$file->delete()) {
-                    throw new InternalErrorException(__('Delete of file attachment failed. Please report to administrator.'));
+
+            // Special case - If using S3, we have to delete from there
+            if ($this->attachmentDirIsS3()) {
+                // We're working in S3
+                $s3 = $this->getS3Client();
+                $s3->delete($this->data['Attribute']['event_id'] . DS . $this->data['Attribute']['id']);
+            }
+            else {
+                // Standard delete
+                $filepath = $attachments_dir . DS . $this->data['Attribute']['event_id'] . DS . $this->data['Attribute']['id'];
+                $file = new File($filepath);
+                if ($file->exists()) {
+                    if (!$file->delete()) {
+                        throw new InternalErrorException(__('Delete of file attachment failed. Please report to administrator.'));
+                    }
                 }
             }
         }
@@ -1507,12 +1517,22 @@ class Attribute extends AppModel
             $my_server = ClassRegistry::init('Server');
             $attachments_dir = $my_server->getDefaultAttachments_dir();
         }
-        $filepath = $attachments_dir . DS . $attribute['event_id'] . DS . $attribute['id'];
-        $file = new File($filepath);
-        if (!$file->readable()) {
-            return '';
+
+        if ($this->attachmentDirIsS3()) {
+            // S3 - we have to first get the object then we can encode it
+            $s3 = $this->getS3Client();
+            // This will return the content of the object
+            $content = $s3->download($attribute['event_id'] . DS . $attribute['id']);
+        } else {
+            // Standard filesystem
+            $filepath = $attachments_dir . DS . $attribute['event_id'] . DS . $attribute['id'];
+            $file = new File($filepath);
+            if (!$file->readable()) {
+                return '';
+            }
+            $content = $file->read();
         }
-        $content = $file->read();
+
         return base64_encode($content);
     }
 
@@ -1523,16 +1543,29 @@ class Attribute extends AppModel
             $my_server = ClassRegistry::init('Server');
             $attachments_dir = $my_server->getDefaultAttachments_dir();
         }
-        $rootDir = $attachments_dir . DS . $attribute['event_id'];
-        $dir = new Folder($rootDir, true);						// create directory structure
-        $destpath = $rootDir . DS . $attribute['id'];
-        $file = new File($destpath, true);						// create the file
-        $decodedData = base64_decode($attribute['data']);		// decode
-        if ($file->write($decodedData)) {						// save the data
+
+        if ($this->attachmentDirIsS3()) {
+            // This is the cloud!
+            // We don't need your fancy directory structures and
+            // PEE AICH PEE meddling
+            $s3 = $this->getS3Client();
+            $data = base64_decode($attribute['data']);
+            $key = $attribute['event_id'] . DS . $attribute['id'];
+            $s3->upload($key, $data);
             return true;
         } else {
-            // error
-            return false;
+            // Plebian filesystem operations
+            $rootDir = $attachments_dir . DS . $attribute['event_id'];
+            $dir = new Folder($rootDir, true);						// create directory structure
+            $destpath = $rootDir . DS . $attribute['id'];
+            $file = new File($destpath, true);						// create the file
+            $decodedData = base64_decode($attribute['data']);		// decode
+            if ($file->write($decodedData)) {						// save the data
+                return true;
+            } else {
+                // error
+                return false;
+            }
         }
     }
 
@@ -2856,6 +2889,18 @@ class Attribute extends AppModel
             $my_server = ClassRegistry::init('Server');
             $attachments_dir = $my_server->getDefaultAttachments_dir();
         }
+
+        // If we've set attachments to S3, we can't write there
+        if ($this->attachmentDirIsS3()) {
+            $attachments_dir = Configure::read('MISP.tmpdir');
+            // Sometimes it's not set?
+            if (empty($attachments_dir)) {
+                // Get a default tmpdir
+                $my_server = ClassRegistry::init('Server');
+                $attachments_dir = $my_server->getDefaultTmp_dir();
+            }
+        }
+
         if ($proposal) {
             $dir = new Folder($attachments_dir . DS . $event_id . DS . 'shadow', true);
         } else {
