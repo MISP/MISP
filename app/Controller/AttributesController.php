@@ -877,10 +877,12 @@ class AttributesController extends AppController
             if (count($existingAttribute) && !$existingAttribute['Attribute']['deleted']) {
                 $this->request->data['Attribute']['id'] = $existingAttribute['Attribute']['id'];
                 $dateObj = new DateTime();
+                $skipTimeCheck = false;
                 if (!isset($this->request->data['Attribute']['timestamp'])) {
                     $this->request->data['Attribute']['timestamp'] = $dateObj->getTimestamp();
+                    $skipTimeCheck = true;
                 }
-                if ($this->request->data['Attribute']['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
+                if ($skipTimeCheck || $this->request->data['Attribute']['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
                     $recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment');
                     foreach ($recoverFields as $rF) {
                         if (!isset($this->request->data['Attribute'][$rF])) {
