@@ -365,7 +365,7 @@ class Event extends AppModel
             // S3 doesn't have folders
             // So we have to basically `ls` them to look for a prefix
             $s3 = $this->getS3Client();
-            $s3.deleteDirectory($this->id);
+            $s3->deleteDirectory($this->id);
         } else {
             $filepath = $attachments_dir . DS . $this->id;
             App::uses('Folder', 'Utility');
