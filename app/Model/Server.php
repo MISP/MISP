@@ -165,6 +165,15 @@ class Server extends AppModel
                                 'type' => 'boolean',
                                 'null' => true
                         ),
+                        'disable_auto_logout' => array(
+                                'level' => 1,
+                                'description' => __('In some cases, a heavily used MISP instance can generate unwanted blackhole errors due to a high number of requests hitting the server. Disable the auto logout functionality to ease the burden on the system.'),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'test' => 'testBool',
+                                'type' => 'boolean',
+                                'null' => true
+                        ),
                         'ssdeep_correlation_threshold' => array(
                             'level' => 1,
                             'description' => __('Set the ssdeep score at which to consider two ssdeep hashes as correlating [1-100]'),
