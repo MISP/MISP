@@ -199,8 +199,13 @@ class ShadowAttributesController extends AppController
     // If we accept a proposed attachment, then the attachment itself needs to be moved from files/eventId/shadow/shadowId to files/eventId/attributeId
     private function _moveFile($shadowId, $newId, $eventId)
     {
-        $pathOld = APP . "files" . DS . $eventId . DS . "shadow" . DS . $shadowId;
-        $pathNew = APP . "files" . DS . $eventId . DS . $newId;
+        $attachments_dir = Configure::read('MISP.attachments_dir');
+        if (empty($attachments_dir)) {
+            $my_server = ClassRegistry::init('Server');
+            $attachments_dir = $my_server->getDefaultAttachments_dir();
+        }
+        $pathOld = $attachments_dir . DS . 'shadow' . DS . $shadowId;
+        $pathNew = $attachments_dir . DS . $newId;
         if (rename($pathOld, $pathNew)) {
             return true;
         } else {
@@ -499,7 +504,12 @@ class ShadowAttributesController extends AppController
 
     private function __downloadAttachment($shadowAttribute)
     {
-        $path = "files" . DS . 'shadow' . DS . $shadowAttribute['event_id'] . DS;
+        $attachments_dir = Configure::read('MISP.attachments_dir');
+        if (empty($attachments_dir)) {
+            $my_server = ClassRegistry::init('Server');
+            $attachments_dir = $my_server->getDefaultAttachments_dir();
+        }
+        $path = $attachments_dir . DS . 'shadow' . DS . $shadowAttribute['event_id'] . DS;
         $file = $shadowAttribute['id'];
         if ('attachment' == $shadowAttribute['type']) {
             $filename = $shadowAttribute['value'];
