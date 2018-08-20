@@ -913,7 +913,8 @@ class Event extends AppModel
         return 'Success';
     }
 
-    private function __prepareForPushToServer($event, $server) {
+    private function __prepareForPushToServer($event, $server)
+    {
         if ($event['Event']['distribution'] == 4) {
             if (!empty($event['SharingGroup']['SharingGroupServer'])) {
                 $found = false;
@@ -965,6 +966,7 @@ class Event extends AppModel
                     }
                     return $jsonArray['name'];
                 }
+                // no break
             case '302': // Found
                 $newLocation = $response->headers['Location'];
                 $newTextBody = $response->body();
@@ -984,7 +986,9 @@ class Event extends AppModel
     public function restfulEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null)
     {
         $event = $this->__prepareForPushToServer($event, $server);
-        if (is_numeric($event)) return $event;
+        if (is_numeric($event)) {
+            return $event;
+        }
         $url = $server['Server']['url'];
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
@@ -1028,7 +1032,8 @@ class Event extends AppModel
         return $data;
     }
 
-    private function __prepareAttributesForSync($data, $server) {
+    private function __prepareAttributesForSync($data, $server)
+    {
         // prepare attribute for sync
         if (!empty($data['Attribute'])) {
             foreach ($data['Attribute'] as $key => $attribute) {
@@ -1044,7 +1049,8 @@ class Event extends AppModel
         return $data;
     }
 
-    private function __prepareObjectsForSync($data, $server) {
+    private function __prepareObjectsForSync($data, $server)
+    {
         // prepare Object for sync
         if (!empty($data['Object'])) {
             foreach ($data['Object'] as $key => $object) {
@@ -1998,7 +2004,8 @@ class Event extends AppModel
         return $conditions;
     }
 
-    public function set_filter_published(&$params, $conditions, $options) {
+    public function set_filter_published(&$params, $conditions, $options)
+    {
         if (isset($params['published'])) {
             $conditions['AND']['Event.published'] = $params['published'];
         }
@@ -2044,7 +2051,7 @@ class Event extends AppModel
     {
         if ($options['filter'] == 'from') {
             $conditions['AND']['Event.date >='] = $params['from'];
-        } else if ($options['filter'] == 'to') {
+        } elseif ($options['filter'] == 'to') {
             $conditions['AND']['Event.date <='] = $params['to'];
         } else {
             $filters = array(
@@ -2120,7 +2127,8 @@ class Event extends AppModel
         return $attributes;
     }
 
-    private function __appendIncludesCSV($params, $includeContext) {
+    private function __appendIncludesCSV($params, $includeContext)
+    {
         if ($includeContext) {
             $params['contain'] = array(
                 'Event' => array(
@@ -2517,7 +2525,8 @@ class Event extends AppModel
         return $result;
     }
 
-    private function __buildContactEventEmailBody($user, $message, $event, $targetUser, $id) {
+    private function __buildContactEventEmailBody($user, $message, $event, $targetUser, $id)
+    {
         // The mail body, h() is NOT needed as we are sending plain-text mails.
         $body = "";
         $body .= "Hello, \n";
@@ -3342,7 +3351,8 @@ class Event extends AppModel
         }
     }
 
-    private function __getPrioWorkerIfPossible() {
+    private function __getPrioWorkerIfPossible()
+    {
         $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
         $workers = $this->ResqueStatus->getWorkers();
         $workerType = 'default';
@@ -4453,7 +4463,7 @@ class Event extends AppModel
                     if ($parameterKey === 'org') {
                         $found_orgs = $this->Org->find('all', array(
                             'recursive' => -1,
-                            'conditions' => array('LOWER(name) LIKE' => '%' . strtolower(substr($v, 1)) . '%'),
+                            'conditions' => array('name' => substr($v, 1)),
                         ));
                         foreach ($found_orgs as $o) {
                             $subcondition['AND'][] = array('Event.orgc_id !=' => $o['Org']['id']);
@@ -4468,7 +4478,12 @@ class Event extends AppModel
                         $subcondition['AND'][] = array('Event.uuid !=' => substr($v, 1));
                         $subcondition['AND'][] = array('Attribute.uuid !=' => substr($v, 1));
                     } else {
-                        $subcondition['AND'][] = array('Attribute.' . $parameterKey . ' NOT LIKE' => '%'.substr($v, 1).'%');
+                        $lookup = substr($v, 1);
+                        if (strlen($lookup) != strlen(trim($lookup, '%'))) {
+                            $subcondition['AND'][] = array('Attribute.' . $parameterKey . ' NOT LIKE' => $lookup);
+                        } else {
+                            $subcondition['AND'][] = array('NOT' => array('Attribute.' . $parameterKey => $lookup));
+                        }
                     }
                 }
             } else {
@@ -4484,7 +4499,7 @@ class Event extends AppModel
                     if ($parameterKey === 'org') {
                         $found_orgs = $this->Org->find('all', array(
                                 'recursive' => -1,
-                                'conditions' => array('LOWER(name) LIKE' => '%' . strtolower($v) . '%'),
+                                'conditions' => array('name' => $v),
                         ));
                         foreach ($found_orgs as $o) {
                             $subcondition['OR'][] = array('Event.orgc_id' => $o['Org']['id']);
@@ -4500,7 +4515,11 @@ class Event extends AppModel
                         $subcondition['OR'][] = array('Event.uuid' => $v);
                     } else {
                         if (!empty($v)) {
-                            $subcondition['OR'][] = array('Attribute.' . $parameterKey . ' LIKE' => '%'.$v.'%');
+                            if (strlen($v) != strlen(trim($v, '%'))) {
+                                $subcondition['AND'][] = array('Attribute.' . $parameterKey . ' LIKE' => $v);
+                            } else {
+                                $subcondition['AND'][] = array('Attribute.' . $parameterKey => $v);
+                            }
                         }
                     }
                 }

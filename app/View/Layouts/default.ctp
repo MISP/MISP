@@ -103,7 +103,13 @@
             $(window).focus(function() {
                 tabIsActive = true;
             });
-            checkIfLoggedIn();
+        <?php
+            if (!Configure::read('MISP.disable_auto_logout')):  
+        ?>
+                checkIfLoggedIn();
+        <?php
+            endif;
+        ?>
         });
     </script>
 </body>

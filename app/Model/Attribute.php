@@ -667,8 +667,7 @@ class Attribute extends AppModel
                 // We're working in S3
                 $s3 = $this->getS3Client();
                 $s3->delete($this->data['Attribute']['event_id'] . DS . $this->data['Attribute']['id']);
-            }
-            else {
+            } else {
                 // Standard delete
                 $filepath = $attachments_dir . DS . $this->data['Attribute']['event_id'] . DS . $this->data['Attribute']['id'];
                 $file = new File($filepath);
@@ -2066,7 +2065,8 @@ class Attribute extends AppModel
         return $rules;
     }
 
-    public function set_filter_tags(&$params, $conditions, $options) {
+    public function set_filter_tags(&$params, $conditions, $options)
+    {
         if (empty($params['tags'])) {
             return $conditions;
         }
@@ -2873,11 +2873,11 @@ class Attribute extends AppModel
             }
             $results = $this->find('all', $params);
             if (!$loop) {
-               if (!empty($params['limit']) && count($results) < $params['limit']) {
-                   $continue = false;
-               }
-               $break = true;
-           }
+                if (!empty($params['limit']) && count($results) < $params['limit']) {
+                    $continue = false;
+                }
+                $break = true;
+            }
             // return false if we're paginating
             if (isset($options['limit']) && empty($results)) {
                 return array();
@@ -2906,7 +2906,7 @@ class Attribute extends AppModel
                 }
                 $attributes[] = $results[$key];
             }
-            if ($break) {
+            if (!empty($break)) {
                 break;
             }
         }

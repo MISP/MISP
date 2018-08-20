@@ -529,7 +529,8 @@ class User extends AppModel
         return $results;
     }
 
-    private function testSmimeCertificate($certif_public) {
+    private function testSmimeCertificate($certif_public)
+    {
         $result = array();
         try {
             App::uses('Folder', 'Utility');
