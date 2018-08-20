@@ -4303,8 +4303,16 @@ class Event extends AppModel
                             $subcondition['AND'][] = array('Attribute.event_id !=' => substr($v, 1));
                         }
                     } elseif ($parameterKey === 'uuid') {
+
                         $subcondition['AND'][] = array('Event.uuid !=' => substr($v, 1));
                         $subcondition['AND'][] = array('Attribute.uuid !=' => substr($v, 1));
+                    } else if ($parameterKey === 'value_exact') {
+                        // value* fields are indexed, so bypassing the virtualField
+                        // Value (generates "CONCAT") + avoiding leading '%'
+                        // wildcard leads to great performance improvements (8s ->
+                        // 0.01s)
+                        $subcondition['OR'][] = array('Attribute.value1 LIKE' => $v);
+                        $subcondition['OR'][] = array('Attribute.value2 LIKE' => $v);
                     } else {
                         $subcondition['AND'][] = array('Attribute.' . $parameterKey . ' NOT LIKE' => '%'.substr($v, 1).'%');
                     }
@@ -4336,6 +4344,13 @@ class Event extends AppModel
                     } elseif ($parameterKey === 'uuid') {
                         $subcondition['OR'][] = array('Attribute.uuid' => $v);
                         $subcondition['OR'][] = array('Event.uuid' => $v);
+                    } else if ($parameterKey === 'value_exact') {
+                        // value* fields are indexed, so bypassing the virtualField
+                        // Value (generates "CONCAT") + avoiding leading '%'
+                        // wildcard leads to great performance improvements (8s ->
+                        // 0.01s)
+                        $subcondition['OR'][] = array('Attribute.value1 LIKE' => $v);
+                        $subcondition['OR'][] = array('Attribute.value2 LIKE' => $v);
                     } else {
                         if (!empty($v)) {
                             $subcondition['OR'][] = array('Attribute.' . $parameterKey . ' LIKE' => '%'.$v.'%');
