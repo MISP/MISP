@@ -89,7 +89,6 @@ sudo pip3 install stix2
 
 4/ CakePHP
 -----------
-cd /var/www/MISP
 
 # Once done, install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd /var/www/MISP/app
@@ -242,7 +241,6 @@ sudo -u www-data vim /var/www/MISP/app/Config/database.php
 # Change base url in config.php
 /var/www/MISP/app/Console/cake Baseurl https://<your.FQDN.here>
 # alternatively, you can leave this field empty if you would like to use relative pathing in MISP
-# 'baseurl' => '',
 
 # and make sure the file permissions are still OK
 sudo chown -R www-data:www-data /var/www/MISP/app/Config
@@ -305,9 +303,9 @@ Recommended actions
 Optional features
 -----------------
 # MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
-sudo pip install pyzmq
+sudo pip3 install pyzmq
 # ZeroMQ depends on the Python client for Redis
-sudo pip install redis
+sudo pip3 install redis
 
 # For the experimental ssdeep correlations, run the following installation:
 # installing ssdeep
