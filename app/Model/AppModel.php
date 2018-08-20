@@ -1194,7 +1194,8 @@ class AppModel extends Model
         return $version_array;
     }
 
-    public function validateAuthkey($value) {
+    public function validateAuthkey($value)
+    {
         if (empty($value['authkey'])) {
             return 'Empty authkey found. Make sure you set the 40 character long authkey.';
         }
@@ -1458,7 +1459,8 @@ class AppModel extends Model
         $this->elasticSearchClient = $client;
     }
 
-    public function getS3Client() {
+    public function getS3Client()
+    {
         if (!$this->s3Client) {
             $this->s3Client = $this->loadS3Client();
         }
@@ -1466,14 +1468,16 @@ class AppModel extends Model
         return $this->s3Client;
     }
 
-    public function loadS3Client() {
+    public function loadS3Client()
+    {
         App::uses('AWSS3Client', 'Tools');
         $client = new AWSS3Client();
         $client->initTool();
         return $client;
     }
 
-    public function attachmentDirIsS3() {
+    public function attachmentDirIsS3()
+    {
         // Naive way to detect if we're working in S3
         return substr(Configure::read('MISP.attachments_dir'), 0, 2) === "s3";
     }
@@ -1681,7 +1685,6 @@ class AppModel extends Model
                         } else {
                             $temp[] = array($key . ' LIKE' => $f);
                         }
-
                     }
                 } else {
                     foreach ($keys as $key) {
@@ -1690,7 +1693,6 @@ class AppModel extends Model
                         } else {
                             $temp['OR'][$key][] = $f;
                         }
-
                     }
                 }
             }

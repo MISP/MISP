@@ -223,7 +223,7 @@ class Tag extends AppModel
         $ids = array();
         foreach ($array as $a) {
             if (is_numeric($a)) {
-                $conditions['OR'][] = array('id' => $a);    
+                $conditions['OR'][] = array('id' => $a);
             } else {
                 $conditions['OR'][] = array('LOWER(name) like' => strtolower($a));
             }

@@ -4050,7 +4050,7 @@ class Server extends AppModel
         return APP . 'files';
     }
 
-    public function getDefaultTmp_dir() 
+    public function getDefaultTmp_dir()
     {
         return sys_get_temp_dir();
     }

@@ -2722,7 +2722,7 @@ class EventsController extends AppController
                 );
                 $list[] = $attribute['Attribute']['id'];
             }
-        } else if (!empty($filters['eventid']) && $filters['eventid'] !== 'all') {
+        } elseif (!empty($filters['eventid']) && $filters['eventid'] !== 'all') {
             $events = $filters['eventid'];
         }
         $final = array();
@@ -3006,7 +3006,8 @@ class EventsController extends AppController
     // the last 4 fields accept the following operators:
     // && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
     // ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-    public function restSearch($returnFormat = 'json', $value = false, $type = false, $category = false, $org = false, $tags = false, $searchall = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $metadata = false, $uuid = false, $publish_timestamp = false, $timestamp = false, $published = false, $enforceWarninglist = false, $sgReferenceOnly = false) {
+    public function restSearch($returnFormat = 'json', $value = false, $type = false, $category = false, $org = false, $tags = false, $searchall = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $metadata = false, $uuid = false, $publish_timestamp = false, $timestamp = false, $published = false, $enforceWarninglist = false, $sgReferenceOnly = false)
+    {
         $paramArray = array('value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly');
         $filterData = array(
             'request' => $this->request,
