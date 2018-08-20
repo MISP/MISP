@@ -2906,7 +2906,7 @@ class Attribute extends AppModel
                 }
                 $attributes[] = $results[$key];
             }
-            if ($break) {
+            if (!empty($break)) {
                 break;
             }
         }

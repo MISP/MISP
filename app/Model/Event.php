@@ -4453,7 +4453,7 @@ class Event extends AppModel
                     if ($parameterKey === 'org') {
                         $found_orgs = $this->Org->find('all', array(
                             'recursive' => -1,
-                            'conditions' => array('LOWER(name) LIKE' => '%' . strtolower(substr($v, 1)) . '%'),
+                            'conditions' => array('name' => substr($v, 1)),
                         ));
                         foreach ($found_orgs as $o) {
                             $subcondition['AND'][] = array('Event.orgc_id !=' => $o['Org']['id']);
@@ -4468,7 +4468,12 @@ class Event extends AppModel
                         $subcondition['AND'][] = array('Event.uuid !=' => substr($v, 1));
                         $subcondition['AND'][] = array('Attribute.uuid !=' => substr($v, 1));
                     } else {
-                        $subcondition['AND'][] = array('Attribute.' . $parameterKey . ' NOT LIKE' => '%'.substr($v, 1).'%');
+                        $lookup = substr($v, 1);
+                        if (strlen($lookup) != strlen(trim($lookup, '%'))) {
+                            $subcondition['AND'][] = array('Attribute.' . $parameterKey . ' NOT LIKE' => $lookup);
+                        } else {
+                            $subcondition['AND'][] = array('NOT' => array('Attribute.' . $parameterKey => $lookup));
+                        }
                     }
                 }
             } else {
@@ -4484,7 +4489,7 @@ class Event extends AppModel
                     if ($parameterKey === 'org') {
                         $found_orgs = $this->Org->find('all', array(
                                 'recursive' => -1,
-                                'conditions' => array('LOWER(name) LIKE' => '%' . strtolower($v) . '%'),
+                                'conditions' => array('name' => $v),
                         ));
                         foreach ($found_orgs as $o) {
                             $subcondition['OR'][] = array('Event.orgc_id' => $o['Org']['id']);
@@ -4500,7 +4505,11 @@ class Event extends AppModel
                         $subcondition['OR'][] = array('Event.uuid' => $v);
                     } else {
                         if (!empty($v)) {
-                            $subcondition['OR'][] = array('Attribute.' . $parameterKey . ' LIKE' => '%'.$v.'%');
+                            if (strlen($v) != strlen(trim($v, '%'))) {
+                                $subcondition['AND'][] = array('Attribute.' . $parameterKey . ' LIKE' => $v);
+                            } else {
+                                $subcondition['AND'][] = array('Attribute.' . $parameterKey => $v);
+                            }
                         }
                     }
                 }
