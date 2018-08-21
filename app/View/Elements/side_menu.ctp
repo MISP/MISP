@@ -390,9 +390,9 @@
                     <?php endif;?>
                     <li id='liindexOrg'><a href="<?php echo $baseurl;?>/organisations/index"><?php echo __('List Organisations');?></a></li>
                     <li class="divider"></li>
-                    <li id='liaddRole'><?php echo $this->Html->link('Add Role', array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
+                    <li id='liaddRole'><?php echo $this->Html->link(__('Add Role'), array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
                     <?php endif; ?>
-                    <li id='liindexRole'><?php echo $this->Html->link('List Roles', array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
+                    <li id='liindexRole'><?php echo $this->Html->link(__('List Roles'), array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
                     <?php if ($isSiteAdmin): ?>
                         <li class="divider"></li>
                         <li id='liserverSettings'><a href="<?php echo $baseurl;?>/servers/serverSettings"><?php echo __('Server Settings & Maintenance');?></a></li>
