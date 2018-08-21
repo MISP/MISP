@@ -3050,6 +3050,9 @@ class EventsController extends AppController
         $i = 0;
         foreach ($eventid as $k => $currentEventId) {
             $filters['eventid'] = $currentEventId;
+            if (!empty($filters['tags']['NOT'])) {
+              $filters['blockedAttributeTags'] = $filters['tags']['NOT'];
+            }
             $result = $this->Event->fetchEvent(
                 $this->Auth->user(),
                 $filters,
