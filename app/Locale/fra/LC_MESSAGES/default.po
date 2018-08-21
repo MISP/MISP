@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2018-07-31 11:48\n"
-"Last-Translator: ater49 <contact@at49.info>\n"
+"PO-Revision-Date: 2018-08-21 10:39\n"
+"Last-Translator: SteveClement <steve@localhost.lu>\n"
 "Language-Team: French\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1191,7 +1191,7 @@ msgstr "vérifier si les dépendances pour STIX sont réunis par l’intermédia
 
 #: Model/Event.php:4236
 msgid "#"
-msgstr ""
+msgstr "#"
 
 #: Model/Event.php:4244
 msgid "%s not set"
@@ -1364,7 +1364,7 @@ msgstr ""
 
 #: Model/Server.php:504
 msgid "The default threat level setting when creating events."
-msgstr ""
+msgstr "Le réglage du niveau de menace par défaut lors de la création d'événements."
 
 #: Model/Server.php:513
 msgid "Enable the tagging feature of MISP. This is highly recommended."
@@ -1712,11 +1712,11 @@ msgstr ""
 
 #: Model/Server.php:1257
 msgid "The port that Redis is listening on."
-msgstr ""
+msgstr "Le port sur lequel Redis écoute."
 
 #: Model/Server.php:1266
 msgid "The password, if set for Redis."
-msgstr ""
+msgstr "Le mot de passe de Redis."
 
 #: Model/Server.php:1275
 msgid "The database to be used for queuing messages for the pub/sub functionality."
@@ -1832,7 +1832,7 @@ msgstr ""
 
 #: Model/Server.php:1510;1622
 msgid "Enable/disable the import services"
-msgstr ""
+msgstr "Activer/Désactiver le service d'import"
 
 #: Model/Server.php:1518;1639
 msgid "Set a timeout for the import services"
@@ -1856,7 +1856,7 @@ msgstr ""
 
 #: Model/Server.php:1558
 msgid "Enable/disable the export services"
-msgstr ""
+msgstr "Activer/Désactiver le service d'export"
 
 #: Model/Server.php:1566
 msgid "Set a timeout for the export services"
@@ -1936,7 +1936,7 @@ msgstr ""
 
 #: Model/Server.php:2458
 msgid "Value not set."
-msgstr ""
+msgstr "Valeur non définie."
 
 #: Model/Server.php:2911
 msgid "Organisation logos"
@@ -2807,7 +2807,7 @@ msgstr "Accepter les propositions sélectionnées"
 
 #: View/Elements/eventattribute.ctp:122
 msgid "Discard selected Proposals"
-msgstr ""
+msgstr "Supprimer les propositions sélectionnées"
 
 #: View/Elements/eventattribute.ctp:123
 msgid "Sightings display for selected attributes"
@@ -2860,11 +2860,11 @@ msgstr "Inclure les attributs supprimés"
 
 #: View/Elements/eventattribute.ctp:154
 msgid "Show attribute context fields"
-msgstr ""
+msgstr "Afficher le champ contextuel de l'attribut"
 
 #: View/Elements/eventattribute.ctp:154
 msgid "Show context fields"
-msgstr ""
+msgstr "Afficher le champ contextuel"
 
 #: View/Elements/eventattribute.ctp:157
 msgid "Filter on attributes value"
@@ -2936,7 +2936,7 @@ msgstr "Hits de Flux"
 #: View/Elements/eventattribute.ctp:196
 #: View/Events/view.ctp:198
 msgid "Sightings"
-msgstr ""
+msgstr "Observations"
 
 #: View/Elements/eventattribute.ctp:197
 #: View/Events/view.ctp:205
@@ -2996,11 +2996,11 @@ msgstr ""
 
 #: View/Elements/eventdiscussion.ctp:34
 msgid "Date: "
-msgstr ""
+msgstr "Date: "
 
 #: View/Elements/eventdiscussion.ctp:52
 msgid "Deactivated user"
-msgstr ""
+msgstr "Désactiver l'utilisateur"
 
 #: View/Elements/eventdiscussion.ctp:89;97
 #: View/Elements/Events/eventIndexTable.ctp:223
@@ -3021,7 +3021,7 @@ msgstr "Etes-vous certain de vouloir supprimer cette entrée?"
 
 #: View/Elements/eventdiscussion.ctp:93;100
 msgid "Reply"
-msgstr ""
+msgstr "Répondre"
 
 #: View/Elements/eventdiscussion.ctp:141
 #: View/Posts/add.ctp:32
@@ -3031,7 +3031,7 @@ msgstr ""
 #: View/Elements/eventdiscussion.ctp:141
 #: View/Posts/add.ctp:32
 msgid "Quote"
-msgstr ""
+msgstr "Citer"
 
 #: View/Elements/eventdiscussion.ctp:142
 msgid "Insert a link to an event - just enter the event ID between the [event][/event] tags."
@@ -3045,7 +3045,7 @@ msgstr ""
 #: View/Posts/add.ctp:33
 #: View/ShadowAttributes/index.ctp:31
 msgid "Event"
-msgstr ""
+msgstr "Évènement"
 
 #: View/Elements/eventdiscussion.ctp:143
 #: View/Posts/add.ctp:34
@@ -3055,7 +3055,7 @@ msgstr ""
 #: View/Elements/eventdiscussion.ctp:143
 #: View/Posts/add.ctp:34
 msgid "Thread"
-msgstr ""
+msgstr "Fil de discussion"
 
 #: View/Elements/eventdiscussion.ctp:144
 #: View/Posts/add.ctp:35
@@ -3065,7 +3065,7 @@ msgstr ""
 #: View/Elements/eventdiscussion.ctp:144
 #: View/Posts/add.ctp:35
 msgid "Link"
-msgstr ""
+msgstr "Lien"
 
 #: View/Elements/eventdiscussion.ctp:145
 #: View/Posts/add.ctp:36
@@ -3079,11 +3079,11 @@ msgstr ""
 
 #: View/Elements/eventdiscussion.ctp:156
 msgid "Send"
-msgstr ""
+msgstr "Envoyer"
 
 #: View/Elements/footer.ctp:5
 msgid "Keyboard shortcuts for this page"
-msgstr ""
+msgstr "Raccourcis clavier pour cette page"
 
 #: View/Elements/footer.ctp:6
 msgid "none"
@@ -3095,11 +3095,11 @@ msgstr ""
 #: View/Users/admin_view.ctp:67
 #: View/Users/view.ctp:60
 msgid "GnuPG key"
-msgstr ""
+msgstr "Clé GnuPG"
 
 #: View/Elements/footer.ctp:17
 msgid "Could not locate the GnuPG public key."
-msgstr ""
+msgstr "Clé publique GnuPG non localisable."
 
 #: View/Elements/footer.ctp:24
 msgid "Could not locate SMIME certificate."
@@ -3107,17 +3107,17 @@ msgstr ""
 
 #: View/Elements/galaxyQuickView.ctp:8
 msgid "View details about this galaxy"
-msgstr ""
+msgstr "Voir les détails de cette galaxie"
 
 #: View/Elements/galaxyQuickView.ctp:17
 #: View/Elements/galaxyQuickViewMini.ctp:69
 msgid "View details about this cluster"
-msgstr ""
+msgstr "Voir les détails de ce cluster"
 
 #: View/Elements/galaxyQuickView.ctp:18
 #: View/Elements/galaxyQuickViewMini.ctp:70
 msgid "View all events containing this cluster."
-msgstr ""
+msgstr "Voir tout les événements contenant ce cluster."
 
 #: View/Elements/galaxyQuickView.ctp:24
 msgid "Are you sure you want to detach %s from this event?"
@@ -3129,7 +3129,7 @@ msgstr ""
 
 #: View/Elements/galaxyQuickViewMini.ctp:91
 msgid "Add new cluster"
-msgstr ""
+msgstr "Ajouter un nouveau cluster"
 
 #: View/Elements/galaxyQuickViewMini.ctp:91
 #: View/EventBlacklists/add.ctp:35
@@ -3242,7 +3242,7 @@ msgstr "Lister les Galaxies"
 #: View/Elements/global_menu.ctp:66
 #: View/Pages/doc/general.ctp:21
 msgid "Input Filters"
-msgstr ""
+msgstr "Filtrage d'entrées"
 
 #: View/Elements/global_menu.ctp:71;75
 #: View/Pages/doc/administration.ctp:12;64
@@ -3251,7 +3251,7 @@ msgstr ""
 #: View/Regexp/admin_index.ctp:2
 #: View/Regexp/index.ctp:2
 msgid "Import Regexp"
-msgstr ""
+msgstr "Importer une expression régulière"
 
 #: View/Elements/global_menu.ctp:72;76
 #: View/Pages/doc/administration.ctp:13
@@ -3260,7 +3260,7 @@ msgstr ""
 #: View/Whitelists/admin_index.ctp:2
 #: View/Whitelists/index.ctp:2
 msgid "Signature Whitelist"
-msgstr ""
+msgstr "Liste blanche des signatures"
 
 #: View/Elements/global_menu.ctp:78
 #: View/Elements/side_menu.ctp:269
@@ -3584,7 +3584,7 @@ msgstr "Publier l’événement sur ZMQ"
 
 #: View/Elements/side_menu.ctp:162
 msgid "Contact Reporter"
-msgstr ""
+msgstr "Contacter l'auteur"
 
 #: View/Elements/side_menu.ctp:169
 msgid "Download as..."
@@ -3641,11 +3641,11 @@ msgstr "Mettre à jour les listes d’avertissements"
 
 #: View/Elements/side_menu.ctp:277
 msgid "View Noticelist"
-msgstr ""
+msgstr "Voir la liste d'avis"
 
 #: View/Elements/side_menu.ctp:280
 msgid "Update Noticelists"
-msgstr ""
+msgstr "Mettre à jour les listes d'avis"
 
 #: View/Elements/side_menu.ctp:286
 msgid "List Whitelist"
@@ -3872,7 +3872,7 @@ msgstr "Forcer la mise à jour des galaxies"
 
 #: View/Elements/side_menu.ctp:529
 msgid "Are you sure you want to drop and reimport all galaxies from the submodule?"
-msgstr ""
+msgstr "Êtes-vous certain de vouloir supprimer et réimporter toutes les galaxies du sous-module ?"
 
 #: View/Elements/side_menu.ctp:533;541
 msgid "View Galaxy"
@@ -3898,11 +3898,11 @@ msgstr "Chargement"
 
 #: View/Elements/view_event_distribution_graph.ctp:17
 msgid "Elements having lower distribution level than the event"
-msgstr ""
+msgstr "Les éléments ont un niveau de distribution plus faible que l'événement"
 
 #: View/Elements/view_event_distribution_graph.ctp:18
 msgid "Distribution of the event"
-msgstr ""
+msgstr "Distribution de l'événement"
 
 #: View/Elements/view_event_distribution_graph.ctp:19
 msgid "Inconsistent distribution level, fallback on the event distribution"
@@ -3915,7 +3915,7 @@ msgstr "Groupe de partage"
 #: View/Elements/view_event_graph.ctp:9
 #: View/Noticelists/view.ctp:40
 msgid "Scope"
-msgstr ""
+msgstr "Champ"
 
 #: View/Elements/view_event_graph.ctp:12
 msgid "Physics"
@@ -4068,7 +4068,7 @@ msgstr "Ajouter enrichissement via Cortex"
 
 #: View/Elements/Events/View/row_attribute.ctp:307
 msgid "Soft-delete attribute"
-msgstr ""
+msgstr "Supprimer l'attribut"
 
 #: View/Elements/Events/View/row_object.ctp:65
 #: View/Elements/Feeds/View/row_object.ctp:16
@@ -4107,7 +4107,7 @@ msgstr "Supprimer définitivement l’objet"
 
 #: View/Elements/Events/View/row_object.ctp:124
 msgid "Soft delete object"
-msgstr ""
+msgstr "Supprimer l'objet"
 
 #: View/Elements/Events/View/row_object_reference.ctp:1
 #: View/Elements/Feeds/View/row_object_reference.ctp:1
@@ -4862,7 +4862,7 @@ msgstr "Diagnostics"
 #: View/Elements/healthElements/tabs.ctp:37
 #: View/Pages/doc/administration.ctp:39
 msgid "Workers"
-msgstr ""
+msgstr "Travailleurs"
 
 #: View/Elements/healthElements/tabs.ctp:45
 msgid "Manage files"
@@ -5244,7 +5244,7 @@ msgstr "Alternativement, cliquez <a href=“%s”>ici</a> pour continuer à la p
 
 #: View/Errors/error403.ctp:4
 msgid "%s"
-msgstr ""
+msgstr "%s"
 
 #: View/Errors/missing_connection.ctp:1
 #: View/Errors/missing_datasource_config.ctp:1
@@ -5397,15 +5397,15 @@ msgstr "Annuler"
 
 #: View/EventGraph/ajax/eventGraph_add_form.ctp:6
 msgid "Add EventGraph"
-msgstr ""
+msgstr "Ajouter un graphe d'événement"
 
 #: View/EventGraph/ajax/eventGraph_add_form.ctp:6
 msgid "Edit EventGraph"
-msgstr ""
+msgstr "Éditer un graphe d'événement"
 
 #: View/EventGraph/ajax/eventGraph_delete_form.ctp:5
 msgid "EventGraph Deletion"
-msgstr ""
+msgstr "Supprimer le graphe d'événement"
 
 #: View/EventGraph/ajax/eventGraph_delete_form.ctp:8
 msgid "Are you sure you want to delete eventGraph #%s? The eventGraph will be permanently deleted and unrecoverable."
@@ -5417,11 +5417,11 @@ msgstr ""
 
 #: View/Events/add.ctp:3
 msgid "will be restricted to your organisation"
-msgstr ""
+msgstr "sera restreint à votre organisation"
 
 #: View/Events/add.ctp:3
 msgid "will be visible to the organisations having an account on this platform"
-msgstr ""
+msgstr "sera visible pour les organisations ayant un compte sur cette instance"
 
 #: View/Events/add.ctp:48
 #: View/Events/edit.ctp:35
@@ -5442,21 +5442,21 @@ msgstr "Information de l'événement"
 #: View/Events/add.ctp:60
 #: View/Events/edit.ctp:47
 msgid "Quick Event Description or Tracking Info"
-msgstr ""
+msgstr "Rapide description de l'événement ou information de suivi"
 
 #: View/Events/add.ctp:63
 #: View/Events/edit.ctp:50
 msgid "Extends event"
-msgstr ""
+msgstr "Étendre l'événement"
 
 #: View/Events/add.ctp:66
 #: View/Events/edit.ctp:53
 msgid "Event UUID or ID. Leave blank if not applicable."
-msgstr ""
+msgstr "UUID ou ID de l'événement. Laisser vide si non applicable."
 
 #: View/Events/add_i_o_c.ctp:4
 msgid "Import OpenIOC"
-msgstr ""
+msgstr "Importer un fichier OpenIOC"
 
 #: View/Events/add_i_o_c.ctp:13
 #: View/Events/add_misp_export.ctp:27
@@ -5466,15 +5466,15 @@ msgstr "Téléverser"
 
 #: View/Events/add_misp_export.ctp:4
 msgid "Import from MISP Export File"
-msgstr ""
+msgstr "Importer un fichier MISP exporté"
 
 #: View/Events/add_misp_export.ctp:7
 msgid "MISP XML or JSON file"
-msgstr ""
+msgstr "Fichier MISP au format XML ou JSON"
 
 #: View/Events/add_misp_export.ctp:16
 msgid "Take ownership of the event"
-msgstr ""
+msgstr "Devenir propriétaire de l'événement"
 
 #: View/Events/add_misp_export.ctp:17
 msgid "Warning: This will change the creator organisation of the event, tampering with the event's ownership and releasability and can lead to unexpected behaviour when synchronising the event with instances that have another creator for the same event.)"
@@ -5483,15 +5483,15 @@ msgstr ""
 #: View/Events/add_misp_export.ctp:22
 #: View/Events/upload_stix.ctp:17
 msgid "Publish imported events"
-msgstr ""
+msgstr "Publier les événements importés"
 
 #: View/Events/add_misp_export_result.ctp:2
 msgid "Add From MISP Export Result"
-msgstr ""
+msgstr "Ajouter depuis le résultat de l'export MISP"
 
 #: View/Events/add_misp_export_result.ctp:6
 msgid "Result"
-msgstr ""
+msgstr "Résultat"
 
 #: View/Events/add_misp_export_result.ctp:7
 msgid "Details"
@@ -5508,7 +5508,7 @@ msgstr "Événement créé."
 
 #: View/Events/add_misp_export_result.ctp:26
 msgid "Event with this UUID already exists."
-msgstr ""
+msgstr "Un événement avec cet UUID existe déjà."
 
 #: View/Events/add_misp_export_result.ctp:38
 #: View/Servers/preview_index.ctp:86
@@ -5523,7 +5523,7 @@ msgstr ""
 
 #: View/Events/automation.ctp:6
 msgid "Make sure you keep that key secret as it gives access to the entire database !"
-msgstr ""
+msgstr "Soyez sûr de garder cette clé secrète car elle donne un accès complet à la base de donnée !"
 
 #: View/Events/automation.ctp:7
 msgid "Your current key is: <code>%s</code>.\n"
@@ -5532,7 +5532,7 @@ msgstr ""
 
 #: View/Events/automation.ctp:8
 msgid "reset"
-msgstr ""
+msgstr "réinitialiser"
 
 #: View/Events/automation.ctp:10
 msgid "Since version 2.2 the usage of the authentication key in the URL is deprecated. Instead, pass the auth key in an Authorization header in the request. The legacy option of having the auth key in the URL is temporarily still supported but not recommended."
@@ -5540,7 +5540,7 @@ msgstr ""
 
 #: View/Events/automation.ctp:11
 msgid "Please use the use the following header"
-msgstr ""
+msgstr "Merci d'utiliser l'en-tête suivant"
 
 #: View/Events/automation.ctp:12
 msgid "Authorization"
@@ -5572,7 +5572,7 @@ msgstr ""
 
 #: View/Events/automation.ctp:29;52;85
 msgid "Restrict the download to a single event"
-msgstr ""
+msgstr "Restreindre le téléchargement à un seul événement"
 
 #: View/Events/automation.ctp:30
 msgid "A boolean field that determines whether attachments should be encoded and a second parameter that controls the eligible tags."
@@ -5610,7 +5610,7 @@ msgstr "Export CSV"
 
 #: View/Events/automation.ctp:46
 msgid "An automatic export of attributes is available as CSV. Only attributes that are flagged \"to_ids\" will get exported."
-msgstr ""
+msgstr "Un export automatique des attributs est disponible en CSV. Seuls les attributs flagués \"to_ids\" seront exportés."
 
 #: View/Events/automation.ctp:49
 msgid "You can specify additional flags for CSV exports as follows"
@@ -5647,7 +5647,7 @@ msgstr ""
 
 #: View/Events/automation.ctp:71
 msgid "To export the attributes of all events that are of the type \"domain\", use the following syntax"
-msgstr ""
+msgstr "Pour exporter les attributs de l'ensemble des événements qui sont de type \"domain\", utilisez la syntaxe suivante"
 
 #: View/Events/automation.ctp:74
 msgid "NIDS rules export"
@@ -5663,7 +5663,7 @@ msgstr ""
 
 #: View/Events/automation.ctp:84
 msgid "The export format, can be \"suricata\" or \"snort\""
-msgstr ""
+msgstr "Le format d'export, peut être \"suricata\" ou \"snort\""
 
 #: View/Events/automation.ctp:86
 msgid "Some commented out explanation framing the data. The reason to disable this would be if you would like to concatenate a list of exports from various select events in order to avoid unnecessary duplication of the comments."
@@ -5679,11 +5679,11 @@ msgstr ""
 
 #: View/Events/automation.ctp:95;120;174;206;257
 msgid "All attributes that have a hit on a warninglist will be excluded."
-msgstr ""
+msgstr "Tout les attributs qui sont dans une liste d'avertissement seront exclus."
 
 #: View/Events/automation.ctp:96
 msgid "All tags will be included even if not exportable."
-msgstr ""
+msgstr "Tout les tags seront inclus sauf si ils ne sont pas exportables."
 
 #: View/Events/automation.ctp:98
 msgid "An example for a suricata export for all events excluding those tagged tag1, without all of the commented information at the start of the file would look like this:"
@@ -5695,7 +5695,7 @@ msgstr ""
 
 #: View/Events/automation.ctp:102
 msgid "Hash database export"
-msgstr ""
+msgstr "Export de la base de données des hash"
 
 #: View/Events/automation.ctp:103
 msgid "Automatic export of MD5/SHA1 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for suspicious files. Only <em>published</em> events and attributes marked as <em>IDS Signature</em> are exported."
@@ -5719,7 +5719,7 @@ msgstr ""
 
 #: View/Events/automation.ctp:126
 msgid "STIX export"
-msgstr ""
+msgstr "Export STIX"
 
 #: View/Events/automation.ctp:127
 msgid "You can export MISP events in Mitre's STIX format (to read more about STIX, click <a href=\"https://stix.mitre.org/\">here</a>). The STIX XML export is currently very slow and can lead to timeouts with larger events or collections of events. The JSON return format does not suffer from this issue. Usage"
@@ -5731,7 +5731,7 @@ msgstr ""
 
 #: View/Events/automation.ctp:132;171
 msgid "The event's ID"
-msgstr ""
+msgstr "L'ID de l'événement"
 
 #: View/Events/automation.ctp:133
 msgid "Encode attachments where applicable"
@@ -5763,7 +5763,7 @@ msgstr ""
 
 #: View/Events/automation.ctp:163
 msgid "RPZ export"
-msgstr ""
+msgstr "Export RPZ"
 
 #: View/Events/automation.ctp:164
 msgid ">You can export RPZ zone files for DNS level firewalling by using the RPZ export functionality of MISP. The file generated will include all of the IDS flagged domain, hostname and IP-src/IP-dst attribute values that you have access to."
@@ -5842,7 +5842,7 @@ msgstr ""
 
 #: View/Events/automation.ctp:211
 msgid "Bro IDS export"
-msgstr ""
+msgstr "Export pour IDS BRO"
 
 #: View/Events/automation.ctp:212
 msgid "An export of all attributes of a specific bro type to a formatted plain text file. By default only published and IDS flagged attributes are exported."
@@ -5876,11 +5876,11 @@ msgstr ""
 
 #: View/Events/automation.ctp:252
 msgid "Restrict the results to the given event IDs."
-msgstr ""
+msgstr "Restreindre les résultats à l'ID d'événement indiqué."
 
 #: View/Events/automation.ctp:253
 msgid "Allow attributes to be exported that are not marked as \"to_ids\"."
-msgstr ""
+msgstr "Autoriser les attributs n'étant pas marqués en \"to_ids\"à être exportés."
 
 #: View/Events/automation.ctp:260
 msgid "For example, to retrieve all attributes for event #5, including non IDS marked attributes too, use the following line"
@@ -5888,11 +5888,11 @@ msgstr ""
 
 #: View/Events/automation.ctp:263
 msgid "Searches with JSON/XML/OpenIOC results"
-msgstr ""
+msgstr "Rechercher avec les résultats JSON/XML/OpenIOC"
 
 #: View/Events/automation.ctp:264
 msgid "It is possible to search the database for attributes based on a list of criteria."
-msgstr ""
+msgstr "Il est possible de rechercher dans la base de données en se basant sur une liste de cirtères."
 
 #: View/Events/automation.ctp:265
 msgid "To return an event or a list of events in a desired format, use the following syntax"
@@ -5961,7 +5961,7 @@ msgstr ""
 
 #: View/Events/automation.ctp:296
 msgid "To just return a list of attributes, use the following syntax"
-msgstr ""
+msgstr "Pour ne retourner qu'une liste d'attributs, utiliser la syntaxe suivante"
 
 #: View/Events/automation.ctp:304
 msgid "Events with the date set to a date after the one specified in the from field (format: 2015-02-15)"
@@ -6028,7 +6028,7 @@ msgstr ""
 
 #: View/Events/automation.ctp:340
 msgid "Download malware sample by hash"
-msgstr ""
+msgstr "Télécharger un fichier malveillant par hash"
 
 #: View/Events/automation.ctp:341
 msgid "You can also download samples by knowing its MD5 hash. Simply pass the hash along as a JSON/XML object or in the URL (with the URL having overruling the passed objects) to receive a JSON/XML object back with the zipped sample base64 encoded along with some contextual information."
@@ -6048,7 +6048,7 @@ msgstr ""
 
 #: View/Events/automation.ctp:353
 msgid "A quick description of all the parameters in the passed object"
-msgstr ""
+msgstr "Une rapide description de l'ensemble des paramètres de l'objet transmis"
 
 #: View/Events/automation.ctp:354
 msgid "A hash in MD5 format. If allSamples is set, this can be any one of the following: %s"
@@ -6120,11 +6120,11 @@ msgstr ""
 
 #: View/Events/automation.ctp:380
 msgid "Add or remove tags from events"
-msgstr ""
+msgstr "Ajouter ou supprimer des tags des événements"
 
 #: View/Events/automation.ctp:381
 msgid "You can add or remove an existing tag from an event in the following way"
-msgstr ""
+msgstr "Vous pouvez ajouter ou supprimer un tag existant depuis un événement de la manièe suivante"
 
 #: View/Events/automation.ctp:384
 msgid "Just POST a json object in the following format (to the appropriate API depending on whether you want to add or delete a tag from an event)"
@@ -6159,7 +6159,7 @@ msgstr "Explication"
 
 #: View/Events/automation.ctp:396
 msgid "Expected Payload"
-msgstr ""
+msgstr "Charge attendue"
 
 #: View/Events/automation.ctp:397
 msgid "Response"
@@ -6175,7 +6175,7 @@ msgstr ""
 
 #: View/Events/automation.ctp:409
 msgid "View all proposal of my org's events"
-msgstr ""
+msgstr "Voir toutes les propositions des événements de mon organisation"
 
 #: View/Events/automation.ctp:411;418
 msgid "ShadowAttribute objects"
@@ -6313,78 +6313,78 @@ msgstr ""
 #: View/Events/export.ctp:26
 #: View/Pages/doc/using_the_system.ctp:378
 msgid "Last Update"
-msgstr ""
+msgstr "Dernière mise à jour"
 
 #: View/Events/export.ctp:28
 #: View/Pages/doc/using_the_system.ctp:380
 msgid "Outdated"
-msgstr ""
+msgstr "Potentiellement obsolète"
 
 #: View/Events/export.ctp:29
 msgid "Filesize"
-msgstr ""
+msgstr "Taille du fichier"
 
 #: View/Events/export.ctp:30
 #: View/Pages/doc/administration.ctp:230
 #: View/Pages/doc/using_the_system.ctp:381
 msgid "Progress"
-msgstr ""
+msgstr "Progression"
 
 #: View/Events/export.ctp:43
 msgid "Attachments are enabled on this instance"
-msgstr ""
+msgstr "Les pièces jointes sont autorisées sur cette instance"
 
 #: View/Events/export.ctp:47
 msgid "Attachments are disabled on this instance"
-msgstr ""
+msgstr "Les pièces jointes ne sont pas autorisées sur cette instance"
 
 #: View/Events/export.ctp:81
 msgid "Loading…"
-msgstr ""
+msgstr "Chargement en cours…"
 
 #: View/Events/export.ctp:100;104
 msgid "Generate"
-msgstr ""
+msgstr "Générer"
 
 #: View/Events/export.ctp:158
 msgid "Warning, the background worker is not responding!"
-msgstr ""
+msgstr "Attention, les jobs en arrière plan ne répondent pas!"
 
 #: View/Events/export.ctp:172
 msgid "0 seconds ago"
-msgstr ""
+msgstr "Il y a 0 secondes"
 
 #: View/Events/export_alternate.ctp:10
 msgid "Download all as XML"
-msgstr ""
+msgstr "Tout télécharger au format XML"
 
 #: View/Events/export_alternate.ctp:12
 msgid "Click this to download all events and attributes that you have access to <small>(except file attachments)</small> in a custom XML format."
-msgstr ""
+msgstr "Cliquer ici pour télécharger tout les événements et les attributs auquel vous avez accès <small>(excepté les pièces jointes)</small> dans un fichier personnalisable au format XML."
 
 #: View/Events/export_alternate.ctp:17
 msgid "Download all signatures as CSV"
-msgstr ""
+msgstr "Télécharger tout les signatures en CSV"
 
 #: View/Events/export_alternate.ctp:19
 msgid "Click this to download all attributes that are indicators and that you have access to <small>(except file attachments)</small> in CSV format."
-msgstr ""
+msgstr "Cliquer ici pour télécharger tout les attributs étant des indicateurs auquel vous avez accès <small>(excepté les pièces jointes)</small> dans un fichier au format CSV."
 
 #: View/Events/export_alternate.ctp:24
 msgid "Download all as CSV"
-msgstr ""
+msgstr "Tout télécharger au format CSV"
 
 #: View/Events/export_alternate.ctp:26
 msgid "Click this to download all attributes that you have access to <small>(except file attachments)</small> in CSV format."
-msgstr ""
+msgstr "Cliquer ici pour télécharger tout les attributs auquel vous avez accès <small>(excepté les pièces jointes)</small> dans un fichier au format CSV."
 
 #: View/Events/export_alternate.ctp:31
 msgid "Download Suricata signatures"
-msgstr ""
+msgstr "Télécharger les signatures Suricata"
 
 #: View/Events/export_alternate.ctp:32
 msgid "Download Snort signatures"
-msgstr ""
+msgstr "Télécharger les signatures Snort"
 
 #: View/Events/export_alternate.ctp:34
 msgid "Click these to download all network related attributes that you\n"
@@ -6396,7 +6396,7 @@ msgstr ""
 
 #: View/Events/export_alternate.ctp:43
 msgid "Download Bro signatures"
-msgstr ""
+msgstr "Télécharger les signatures Bro"
 
 #: View/Events/export_alternate.ctp:45
 msgid "Click these to download all network related attributes that you\n"
@@ -6416,11 +6416,11 @@ msgstr ""
 
 #: View/Events/export_alternate.ctp:61
 msgid "Download all MD5 hashes"
-msgstr ""
+msgstr "Télécharger tout les hashs MD5"
 
 #: View/Events/export_alternate.ctp:62
 msgid "Download all SHA1 hashes"
-msgstr ""
+msgstr "Télécharger tout les hashs SHA1"
 
 #: View/Events/export_alternate.ctp:64
 msgid "Click on one of these two buttons to download all MD5 or SHA1\n"
@@ -6437,24 +6437,24 @@ msgstr ""
 #: View/Events/filter_event_index.ctp:4
 #: View/Servers/filter_event_index.ctp:4
 msgid "Filter Event Index"
-msgstr ""
+msgstr "Filtrer l'index de l'événement"
 
 #: View/Events/filter_event_index.ctp:17;211
 msgid "OR"
-msgstr ""
+msgstr "OU"
 
 #: View/Events/filter_event_index.ctp:17;211
 msgid "NOT"
-msgstr ""
+msgstr "NON"
 
 #: View/Events/filter_event_index.ctp:25;112;179;180;205;207
 msgid "Any"
-msgstr ""
+msgstr "Tout"
 
 #: View/Events/filter_event_index.ctp:32;188
 #: View/Pages/doc/using_the_system.ctp:68;173
 msgid "High"
-msgstr ""
+msgstr "HauteHaut"
 
 #: View/Events/filter_event_index.ctp:32;189
 #: View/Pages/doc/using_the_system.ctp:67;172
@@ -6465,7 +6465,7 @@ msgstr ""
 #: View/Pages/doc/using_the_system.ctp:174
 #: View/Users/statistics_sightings.ctp:21
 msgid "Undefined"
-msgstr ""
+msgstr "Non défini"
 
 #: View/Events/filter_event_index.ctp:39;194
 #: View/Pages/doc/using_the_system.ctp:72;180
@@ -6675,39 +6675,39 @@ msgstr "Attributs similaires"
 #: View/Pages/doc/using_the_system.ctp:234;284
 #: View/Templates/populate_event_from_template_attributes.ctp:9
 msgid "Comment"
-msgstr ""
+msgstr "Commentaire"
 
 #: View/Events/resolved_attributes.ctp:191
 msgid "Remove resolved attribute"
-msgstr ""
+msgstr "Supprimer les attributs résolus"
 
 #: View/Events/resolved_attributes.ctp:208
 msgid "Submit %s"
-msgstr ""
+msgstr "Soumettre %s"
 
 #: View/Events/resolved_attributes.ctp:233
 msgid "Apply changes to all applicable resolved attributes"
-msgstr ""
+msgstr "Appliquer les changement pour l'ensemble des attributs résolus"
 
 #: View/Events/resolved_attributes.ctp:233;236
 msgid "Change all"
-msgstr ""
+msgstr "Changer tout"
 
 #: View/Events/resolved_attributes.ctp:235
 msgid "Update all comment fields"
-msgstr ""
+msgstr "Mettre à jour l'ensemble des commentaires"
 
 #: View/Events/show_i_o_c_results.ctp:2
 msgid ">Results of the import"
-msgstr ""
+msgstr ">Résultats de l'import"
 
 #: View/Events/show_i_o_c_results.ctp:3
 msgid "%s attributes created successfully, %s  indicators could not be mapped and saved."
-msgstr ""
+msgstr "%s attributs créer avec succès, %s indicateurs ne peuvent être interprétés et sauvegardés."
 
 #: View/Events/show_i_o_c_results.ctp:7
 msgid "Successfully added attributes"
-msgstr ""
+msgstr "Attributs ajoutés avec succès"
 
 #: View/Events/show_i_o_c_results.ctp:10;32
 #: View/Events/view.ctp:56
@@ -6719,7 +6719,7 @@ msgstr ""
 #: View/Pages/doc/using_the_system.ctp:204
 #: View/Servers/preview_event.ctp:17
 msgid "Uuid"
-msgstr ""
+msgstr "Uuid"
 
 #: View/Events/show_i_o_c_results.ctp:29
 msgid "Failed indicators"
@@ -6727,19 +6727,19 @@ msgstr ""
 
 #: View/Events/show_i_o_c_results.ctp:33
 msgid "Search term"
-msgstr ""
+msgstr "Terme de recherche"
 
 #: View/Events/show_i_o_c_results.ctp:34
 msgid "Content"
-msgstr ""
+msgstr "Contenu"
 
 #: View/Events/show_i_o_c_results.ctp:45
 msgid "Visualisation"
-msgstr ""
+msgstr "Visualisation"
 
 #: View/Events/upload_stix.ctp:6
 msgid "Import %s file"
-msgstr ""
+msgstr "Importer %s fichier(s)"
 
 #: View/Events/upload_stix.ctp:9
 msgid "%s file"
@@ -6747,45 +6747,45 @@ msgstr "%s fichiers"
 
 #: View/Events/view.ctp:49
 msgid "Extended view"
-msgstr ""
+msgstr "Vue étendue"
 
 #: View/Events/view.ctp:51
 #: View/Servers/preview_event.ctp:12
 #: View/Sightings/ajax/list_sightings.ctp:9
 msgid "Event ID"
-msgstr ""
+msgstr "ID de l'événement"
 
 #: View/Events/view.ctp:63
 msgid "Source Organisation"
-msgstr ""
+msgstr "Organisation source"
 
 #: View/Events/view.ctp:68
 msgid "Member Organisation"
-msgstr ""
+msgstr "Organisation membre"
 
 #: View/Events/view.ctp:83
 msgid "Owner org"
-msgstr ""
+msgstr "Organisation du propriétaire"
 
 #: View/Events/view.ctp:131
 #: View/Feeds/preview_event.ctp:30
 #: View/Pages/doc/using_the_system.ctp:64;168;209
 #: View/Servers/preview_event.ctp:41
 msgid "Threat Level"
-msgstr ""
+msgstr "Niveau de menace"
 
 #: View/Events/view.ctp:139
 #: View/Feeds/preview_event.ctp:37
 #: View/Pages/doc/using_the_system.ctp:70;177;210
 #: View/Servers/preview_event.ctp:48
 msgid "Analysis"
-msgstr ""
+msgstr "Analyse"
 
 #: View/Events/view.ctp:159
 #: View/Feeds/preview_event.ctp:42
 #: View/Pages/doc/using_the_system.ctp:185;212
 msgid "Info"
-msgstr ""
+msgstr "Information"
 
 #: View/Events/view.ctp:165;167
 #: View/Feeds/preview_event.ctp:55;60;65
@@ -6793,27 +6793,27 @@ msgstr ""
 #: View/Servers/preview_event.ctp:78;88
 #: View/Servers/preview_index.ctp:86
 msgid "Published"
-msgstr ""
+msgstr "Publié"
 
 #: View/Events/view.ctp:169
 msgid "#Attributes"
-msgstr ""
+msgstr "#Attributs"
 
 #: View/Events/view.ctp:171
 msgid "Last change"
-msgstr ""
+msgstr "Dernière modification"
 
 #: View/Events/view.ctp:176
 msgid "Extends"
-msgstr ""
+msgstr "Étendre"
 
 #: View/Events/view.ctp:187
 msgid "Extended by"
-msgstr ""
+msgstr "Étendu par"
 
 #: View/Events/view.ctp:194
 msgid "Currently in "
-msgstr ""
+msgstr "Actuellement dans "
 
 #: View/Events/view.ctp:202
 msgid "- restricted to own organisation only."
@@ -6893,7 +6893,7 @@ msgstr ""
 
 #: View/Events/view.ctp:360
 msgid "Pivots"
-msgstr ""
+msgstr "Pivots"
 
 #: View/Events/view.ctp:363
 msgid "Toggle galaxies"
@@ -6921,7 +6921,7 @@ msgstr ""
 
 #: View/Events/view.ctp:372
 msgid "ATT&CK matrix"
-msgstr ""
+msgstr "Matrice ATT&CK"
 
 #: View/Events/view.ctp:375
 msgid "Toggle attributes"
@@ -7291,7 +7291,7 @@ msgstr ""
 
 #: View/Feeds/freetext_index.ctp:35
 msgid "Correlations"
-msgstr ""
+msgstr "Corrélations"
 
 #: View/Feeds/import_feeds.ctp:4
 msgid "Paste feed data"
@@ -7307,7 +7307,7 @@ msgstr ""
 
 #: View/Feeds/index.ctp:2
 msgid "Feeds"
-msgstr ""
+msgstr "Flux"
 
 #: View/Feeds/index.ctp:3
 msgid "Generate feed lookup caches or fetch feed data (enabled feeds only)"
@@ -7315,7 +7315,7 @@ msgstr ""
 
 #: View/Feeds/index.ctp:5
 msgid "Cache all feeds"
-msgstr ""
+msgstr "Mettre en cache tous les flux"
 
 #: View/Feeds/index.ctp:6
 msgid "Cache freetext/CSV feeds"
@@ -7367,7 +7367,7 @@ msgstr ""
 
 #: View/Feeds/index.ctp:30
 msgid "Default feeds"
-msgstr ""
+msgstr "Flux par défaut"
 
 #: View/Feeds/index.ctp:31
 msgid "Custom feeds filter"
@@ -7375,27 +7375,27 @@ msgstr ""
 
 #: View/Feeds/index.ctp:31
 msgid "Custom feeds"
-msgstr ""
+msgstr "Flux personnalisés"
 
 #: View/Feeds/index.ctp:31
 msgid "Custom Feeds"
-msgstr ""
+msgstr "Flux personnalisés"
 
 #: View/Feeds/index.ctp:32
 msgid "All feeds"
-msgstr ""
+msgstr "Tout les flux"
 
 #: View/Feeds/index.ctp:32
 msgid "All Feeds"
-msgstr ""
+msgstr "Tout les flux"
 
 #: View/Feeds/index.ctp:33
 msgid "Enabled feeds"
-msgstr ""
+msgstr "Flux activés"
 
 #: View/Feeds/index.ctp:33
 msgid "Enabled Feeds"
-msgstr ""
+msgstr "Flux activés"
 
 #: View/Feeds/index.ctp:39
 msgid "Select all eventson current page"
@@ -7403,13 +7403,13 @@ msgstr ""
 
 #: View/Feeds/index.ctp:48
 msgid "Feed Format"
-msgstr ""
+msgstr "Format du flux"
 
 #: View/Feeds/index.ctp:50
 #: View/Jobs/index.ctp:76
 #: View/Pages/doc/administration.ctp:225
 msgid "Input"
-msgstr ""
+msgstr "Entrant"
 
 #: View/Feeds/index.ctp:56
 msgid "Override IDS"
@@ -7417,7 +7417,7 @@ msgstr ""
 
 #: View/Feeds/index.ctp:60
 msgid "Caching"
-msgstr ""
+msgstr "Mettre en cache"
 
 #: View/Feeds/index.ctp:108
 #: View/Servers/index.ctp:73;74
@@ -7544,11 +7544,11 @@ msgstr "Voir la file par défaut"
 #: View/Roles/admin_index.ctp:22
 #: View/Roles/index.ctp:22
 msgid "Default"
-msgstr ""
+msgstr "Par défaut"
 
 #: View/Jobs/index.ctp:65
 msgid "Show email queue"
-msgstr ""
+msgstr "Voir la file des e-mail"
 
 #: View/Jobs/index.ctp:66
 msgid "Show cache queue"
@@ -7584,12 +7584,12 @@ msgstr ""
 
 #: View/Jobs/ajax/error.ctp:34
 msgid "Close"
-msgstr ""
+msgstr "FermerFermer"
 
 #: View/Logs/admin_index.ctp:2
 #: View/Logs/event_index.ctp:6
 msgid "Logs"
-msgstr ""
+msgstr "Journaux"
 
 #: View/Logs/admin_index.ctp:5
 msgid "Results for all log entries"
@@ -7625,16 +7625,16 @@ msgstr ""
 
 #: View/Logs/admin_index.ctp:15
 msgid "from IP"
-msgstr ""
+msgstr "depuis l'IP"
 
 #: View/Logs/admin_index.ctp:20;21
 msgid "Search"
-msgstr ""
+msgstr "Rechercher"
 
 #: View/Logs/admin_index.ctp:59
 #: View/Logs/admin_search.ctp:14
 msgid "Model ID"
-msgstr ""
+msgstr "ID du modèle"
 
 #: View/Logs/admin_search.ctp:8
 #: View/ObjectTemplates/index.ctp:50
@@ -7644,19 +7644,19 @@ msgstr ""
 #: View/Users/admin_add.ctp:51
 #: View/Users/admin_edit.ctp:51
 msgid "Organisation"
-msgstr ""
+msgstr "Organisation"
 
 #: View/Logs/admin_search.ctp:19
 #: View/Pages/doc/administration.ctp:185;198
 #: View/Pages/doc/using_the_system.ctp:271
 #: View/Threads/index.ctp:22
 msgid "Title"
-msgstr ""
+msgstr "Title"
 
 #: View/Logs/admin_search.ctp:21
 #: View/Pages/doc/administration.ctp:186;199
 msgid "Change"
-msgstr ""
+msgstr "Modifier"
 
 #: View/Logs/test_for_stolen_attributes.ctp:2
 msgid "Stolen attribute validation"
@@ -7701,12 +7701,12 @@ msgstr ""
 
 #: View/Noticelists/index.ctp:35
 msgid "version"
-msgstr ""
+msgstr "version"
 
 #: View/Noticelists/index.ctp:36
 #: View/Pages/doc/using_the_system.ctp:371
 msgid "enabled"
-msgstr ""
+msgstr "activé"
 
 #: View/Noticelists/ajax/delete_confirmation.ctp:9
 msgid "Noticelist Deletion"
@@ -7726,12 +7726,12 @@ msgstr ""
 
 #: View/ObjectReferences/ajax/add.ctp:42
 msgid "Target UUID"
-msgstr ""
+msgstr "UUID Cible"
 
 #: View/ObjectReferences/ajax/add.ctp:53
 #: View/Objects/orphaned_object_diagnostics.ctp:38
 msgid "Object"
-msgstr ""
+msgstr "Objet"
 
 #: View/ObjectReferences/ajax/add.ctp:68
 msgid "Target Details"
@@ -7895,7 +7895,7 @@ msgstr ""
 #: View/SharingGroups/add.ctp:32
 #: View/SharingGroups/edit.ctp:32
 msgid "UUID"
-msgstr ""
+msgstr "UUID"
 
 #: View/Objects/ajax/delete.ctp:6
 msgid "Object Deletion"
@@ -7973,7 +7973,7 @@ msgstr ""
 #: View/Organisations/admin_add.ctp:25
 #: View/Organisations/admin_edit.ctp:24
 msgid "Generate UUID"
-msgstr ""
+msgstr "Générer l’UUID"
 
 #: View/Organisations/admin_add.ctp:25
 #: View/Organisations/admin_edit.ctp:24
@@ -8008,7 +8008,7 @@ msgstr ""
 #: View/Organisations/admin_add.ctp:38
 #: View/Organisations/admin_edit.ctp:49
 msgid "Logo (48x48 png)"
-msgstr ""
+msgstr "Logo (png 48 x 48)"
 
 #: View/Organisations/admin_add.ctp:44
 #: View/Organisations/admin_edit.ctp:55
@@ -8040,7 +8040,7 @@ msgstr ""
 
 #: View/Organisations/admin_edit.ctp:32
 msgid "Click here"
-msgstr ""
+msgstr "Cliquer ici"
 
 #: View/Organisations/index.ctp:5
 #: View/Users/statistics.ctp:46
@@ -8077,17 +8077,17 @@ msgstr ""
 
 #: View/Organisations/index.ctp:27
 msgid "View all"
-msgstr ""
+msgstr "Tout voir"
 
 #: View/Organisations/index.ctp:65
 #: View/Users/login.ctp:8
 #: View/Users/statistics_orgs.ctp:30
 msgid "Logo"
-msgstr ""
+msgstr "Logo"
 
 #: View/Organisations/index.ctp:76
 msgid "Added by"
-msgstr ""
+msgstr "Ajouté par"
 
 #: View/Organisations/index.ctp:117
 #: View/Posts/add.ctp:33
@@ -8097,7 +8097,7 @@ msgstr ""
 
 #: View/Organisations/view.ctp:3
 msgid "Organisation "
-msgstr ""
+msgstr "Organisation "
 
 #: View/Organisations/view.ctp:7
 #: View/Pages/doc/administration.ctp:180;221;236
@@ -8108,20 +8108,20 @@ msgstr ""
 #: View/Users/view.ctp:4
 #: View/Warninglists/view.ctp:4
 msgid "Id"
-msgstr ""
+msgstr "Id"
 
 #: View/Organisations/view.ctp:17
 msgid "Local or remote"
-msgstr ""
+msgstr "Local ou distant"
 
 #: View/Organisations/view.ctp:22
 #: View/SharingGroups/view.ctp:43
 msgid "Local"
-msgstr ""
+msgstr "Local"
 
 #: View/Organisations/view.ctp:26
 msgid "Remote"
-msgstr ""
+msgstr "Distant"
 
 #: View/Organisations/view.ctp:40
 msgid "E-mail domain restrictions"
@@ -8129,7 +8129,7 @@ msgstr ""
 
 #: View/Organisations/view.ctp:93;94
 msgid "Members"
-msgstr ""
+msgstr "Membres"
 
 #: View/Organisations/ajax/fetch_orgs_for_sg.ctp:2
 msgid "Select organisations to add"
@@ -8251,7 +8251,7 @@ msgstr ""
 
 #: View/Pages/administration.ctp:26
 msgid "Index tables"
-msgstr ""
+msgstr "Tables d’index"
 
 #: View/Pages/administration.ctp:26
 msgid "This script will create indeces for all of the tables in MISP (other than primary keys)"
@@ -8305,7 +8305,7 @@ msgstr ""
 #: View/Pages/doc/user_management.ctp:3
 #: View/Pages/doc/using_the_system.ctp:3
 msgid "Quick Start"
-msgstr ""
+msgstr "Démarrage rapide"
 
 #: View/Pages/doc/administration.ctp:4
 #: View/Pages/doc/categories_and_types.ctp:4
@@ -8325,7 +8325,7 @@ msgstr ""
 #: View/Pages/doc/user_management.ctp:5
 #: View/Pages/doc/using_the_system.ctp:5
 msgid "General Concepts"
-msgstr ""
+msgstr "Concepts généraux"
 
 #: View/Pages/doc/administration.ctp:6
 #: View/Pages/doc/categories_and_types.ctp:6
@@ -8353,19 +8353,19 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:11;171
 msgid "Blacklist"
-msgstr ""
+msgstr "Liste noire"
 
 #: View/Pages/doc/administration.ctp:14
 msgid "User Management"
-msgstr ""
+msgstr "Gestion des Utilisateurs"
 
 #: View/Pages/doc/administration.ctp:15
 msgid "Role Management"
-msgstr ""
+msgstr "Gestion des rôles"
 
 #: View/Pages/doc/administration.ctp:16
 msgid "Logging"
-msgstr ""
+msgstr "Journal des connexions"
 
 #: View/Pages/doc/administration.ctp:17;202
 #: View/Pages/doc/general.ctp:78
@@ -8378,7 +8378,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:19
 msgid "FAQ"
-msgstr ""
+msgstr "FAQ"
 
 #: View/Pages/doc/administration.ctp:22
 #: View/Pages/doc/categories_and_types.ctp:9
@@ -8412,7 +8412,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:33
 msgid "MISP settings"
-msgstr ""
+msgstr "Paramètres de MISP"
 
 #: View/Pages/doc/administration.ctp:33
 msgid "Basic MISP settings. This includes the way MISP handles the default settings for distribution settings, whether background jobs are enabled, etc"
@@ -8440,7 +8440,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:37
 msgid "Misc settings"
-msgstr ""
+msgstr "Paramètres divers"
 
 #: View/Pages/doc/administration.ctp:37
 msgid "You change the debug options here, but make sure that debug is always disabled on a production system."
@@ -8516,7 +8516,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:59
 msgid "Import Blacklist"
-msgstr ""
+msgstr "Importer une liste noire"
 
 #: View/Pages/doc/administration.ctp:60
 msgid "It is possible to ban certain values from ever being entered into the system via an event info field or an attribute value. This is done by blacklisting the value in this section."
@@ -8597,7 +8597,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:85
 msgid "Add user"
-msgstr ""
+msgstr "Ajouter utilisateur"
 
 #: View/Pages/doc/administration.ctp:85
 msgid "Fill this form out to add a new user. Keep in mind that the drop-down menu titled Role controls the privileges the user will have."
@@ -8613,7 +8613,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:89;118
 msgid "Confirm Password"
-msgstr ""
+msgstr "Confirmer le mot de passe"
 
 #: View/Pages/doc/administration.ctp:89;118
 msgid "This should be an exact copy of the Password field."
@@ -8627,7 +8627,7 @@ msgstr ""
 #: View/Roles/admin_index.ctp:2
 #: View/Roles/index.ctp:2
 msgid "Roles"
-msgstr ""
+msgstr "Rôles"
 
 #: View/Pages/doc/administration.ctp:91;120
 msgid "A drop-down list allows you to choose a role-group that the user should belong to. Roles define the privileges of the user. To learn more about roles, <a href=#roles>click here</a>."
@@ -8660,7 +8660,7 @@ msgstr ""
 #: View/Users/admin_view.ctp:40
 #: View/Users/view.ctp:34
 msgid "Authkey"
-msgstr ""
+msgstr "Clé d'authentification"
 
 #: View/Pages/doc/administration.ctp:94
 msgid "This is assigned automatically and is the unique authentication key of the user (he/she will be able to reset this and receive a new key). It is used for exports and for connecting one server to another, but it requires the user to be assigned to a role that has auth permission enabled."
@@ -8714,7 +8714,7 @@ msgstr ""
 #: View/Users/admin_view.ctp:29
 #: View/Users/view.ctp:24
 msgid "Autoalert"
-msgstr ""
+msgstr "Alerter automatiquement"
 
 #: View/Pages/doc/administration.ctp:105
 msgid "Shows whether the user has subscribed to auto-alerts and is always receiving the mass-emails regarding newly published events that he/she is eligible for."
@@ -8797,7 +8797,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:131
 msgid "Contact"
-msgstr ""
+msgstr "Contact"
 
 #: View/Pages/doc/administration.ctp:131
 msgid "Contact your users here."
@@ -8807,7 +8807,7 @@ msgstr ""
 #: View/Pages/doc/using_the_system.ctp:269
 #: View/Taxonomies/view.ctp:78
 msgid "Action"
-msgstr ""
+msgstr "Action"
 
 #: View/Pages/doc/administration.ctp:133
 msgid "This defines the type of the e-mail, which can be a custom message or a password reset. Password resets automatically include a new temporary password at the bottom of the message and will automatically change the user's password accordingly."
@@ -8815,7 +8815,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:134
 msgid "Recipient"
-msgstr ""
+msgstr "Destinataire"
 
 #: View/Pages/doc/administration.ctp:134
 msgid "The recipient toggle lets you contact all your users, a single user (which creates a second drop-down list with all the e-mail addresses of the users) and potential future users (which opens up a text field for the e-mail address and a text area field for a GnuPG public key)."
@@ -8825,7 +8825,7 @@ msgstr ""
 #: View/Users/admin_email.ctp:24
 #: View/Users/admin_quick_email.ctp:15
 msgid "Subject"
-msgstr ""
+msgstr "Sujet"
 
 #: View/Pages/doc/administration.ctp:135;136
 msgid "In the case of a custom e-mail, you can enter a subject line here."
@@ -8853,7 +8853,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:144
 msgid "Read Only"
-msgstr ""
+msgstr "Lecture seule"
 
 #: View/Pages/doc/administration.ctp:144
 msgid "This allows the user to browse events that his organisation has access to, but doesn't allow any changes to be made to the database."
@@ -8885,7 +8885,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:148
 msgid "Perm sync"
-msgstr ""
+msgstr "Permissions de synchronisation"
 
 #: View/Pages/doc/administration.ctp:148
 msgid "This setting allows the users of the role to be used as a synchronisation user. The authentication key of this user can be handed out to the administrator of a remote MISP instance to allow the synchronisation features to work."
@@ -8997,11 +8997,11 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:172
 msgid "Whitelist"
-msgstr ""
+msgstr "Liste blanche"
 
 #: View/Pages/doc/administration.ctp:173
 msgid "Regexp"
-msgstr ""
+msgstr "Expression régulière"
 
 #: View/Pages/doc/administration.ctp:176
 msgid "Browsing the logs"
@@ -9013,7 +9013,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:178
 msgid "List logs"
-msgstr ""
+msgstr "Lister les jounaux"
 
 #: View/Pages/doc/administration.ctp:178
 msgid "Here you can view a list of all logged actions."
@@ -9115,7 +9115,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:213
 msgid "cleanup"
-msgstr ""
+msgstr "nettoyage"
 
 #: View/Pages/doc/administration.ctp:213
 msgid "terminate the job that a worker is working on immediately. You will be presented with a choice of workers to choose from when executing this command."
@@ -9123,7 +9123,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:214
 msgid "clear"
-msgstr ""
+msgstr "effacer"
 
 #: View/Pages/doc/administration.ctp:214
 msgid "Clear the queue of a worker immediately."
@@ -9131,7 +9131,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:215
 msgid "stats"
-msgstr ""
+msgstr "statistiques"
 
 #: View/Pages/doc/administration.ctp:215
 msgid "shows some statistics about your workers including the count of successful and failed jobs."
@@ -9155,7 +9155,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:222
 msgid "Process"
-msgstr ""
+msgstr "Traiter"
 
 #: View/Pages/doc/administration.ctp:222
 msgid "The process's ID."
@@ -9163,7 +9163,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:223
 msgid "Worker"
-msgstr ""
+msgstr "Travailleur"
 
 #: View/Pages/doc/administration.ctp:223
 msgid "The name of the worker queue. There are 3+1 workers running if background jobs are enabled: default, cache, email, and a special Scheduler (this should never show up in the jobs table)."
@@ -9223,7 +9223,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:238
 msgid "Frequency"
-msgstr ""
+msgstr "Fréquence"
 
 #: View/Pages/doc/administration.ctp:238
 msgid "This number sets how often the job should be executed in hours. Setting this to 168 and picking the next execution on Sunday at 01:00 would execute the task every Sunday at 1 AM. Setting this value to 0 will make the task only run once on the scheduled date / time without rescheduling it afterwards."
@@ -9313,7 +9313,7 @@ msgstr ""
 
 #: View/Pages/doc/concepts.ctp:19
 msgid "MISP Instance"
-msgstr ""
+msgstr "Instance MISP"
 
 #: View/Pages/doc/concepts.ctp:20
 msgid "A MISP instance is an installation of the MISP software and the connected database. All the data visible to the users is stored locally in the database and data that is shareable (based on the distribution settings) can be synchronised with other instances via the Sync actions. The instance that you are reading this manual on will be refered to as \"this instance\" or \"your instance\". The instances that your instance synchronises with will be refered to as \"remote instances\"."
@@ -9358,7 +9358,7 @@ msgstr ""
 #: View/Pages/doc/concepts.ctp:32
 #: View/Pages/doc/using_the_system.ctp:401
 msgid "Pull"
-msgstr ""
+msgstr "Récupérer"
 
 #: View/Pages/doc/concepts.ctp:33
 msgid "Pulling is the process of using the configured sync user on a remote instance to REST GET all of the accessible data (based on the distribution rights) to your instance and store it."
@@ -9367,7 +9367,7 @@ msgstr ""
 #: View/Pages/doc/concepts.ctp:34
 #: View/Pages/doc/using_the_system.ctp:400
 msgid "Push"
-msgstr ""
+msgstr "Pousser"
 
 #: View/Pages/doc/concepts.ctp:35
 msgid "Pushing is the process of using a configured instance link to send an event or all accessible events (limited by the distribution rights) through the REST interface to a remote instance."
@@ -9379,7 +9379,7 @@ msgstr ""
 
 #: View/Pages/doc/concepts.ctp:38
 msgid "Sync User"
-msgstr ""
+msgstr "Utilisateur de synchronisation"
 
 #: View/Pages/doc/concepts.ctp:39
 msgid "A user of a role that grants sync permissions, these users (and their authentication keys) are used to serve as the points of connection between instances. Events pushed to an instance are pushed to a sync user, who then creates the events on the remote instance. Events pulled are added by the sync user that is used to connect the remote instance to your instance. As an administrator, keep in mind that a sync user needs auth key and publish permissions, has to have undergone the mandatory password change and has to have accepted the Terms of Use in order for the sync to work. Please make sure that all of these steps are taken before attempting to push or pull."
@@ -9413,7 +9413,7 @@ msgstr ""
 
 #: View/Pages/doc/general.ctp:15
 msgid "The top bar"
-msgstr ""
+msgstr "La barre supérieure"
 
 #: View/Pages/doc/general.ctp:16
 msgid "This is the main menu that will be accessible from all of the views. In some instances, some additional buttons that will appear on top of these when a view provides it."
@@ -9425,7 +9425,7 @@ msgstr ""
 
 #: View/Pages/doc/general.ctp:19
 msgid "Home button"
-msgstr ""
+msgstr "Bouton d'Accueil"
 
 #: View/Pages/doc/general.ctp:19
 msgid "This button will return you to the start screen of the application, which is the event index page (more about this later)."
@@ -9453,7 +9453,7 @@ msgstr ""
 
 #: View/Pages/doc/general.ctp:23;66
 msgid "Sync Actions"
-msgstr ""
+msgstr "Actions de synchronisation"
 
 #: View/Pages/doc/general.ctp:23
 msgid "With administrator access rights, shows a list of the connected instances and allows the initiation of a push and a pull (more about the synchronisation mechanisms later)."
@@ -9470,7 +9470,7 @@ msgstr ""
 #: View/Pages/doc/general.ctp:26;90
 #: View/Threads/index.ctp:2
 msgid "Discussions"
-msgstr ""
+msgstr "Discussions"
 
 #: View/Pages/doc/general.ctp:26
 msgid "Link to the discussion threads."
@@ -9598,7 +9598,7 @@ msgstr ""
 
 #: View/Pages/doc/general.ctp:73
 msgid "New User"
-msgstr ""
+msgstr "Nouvel utilisateur"
 
 #: View/Pages/doc/general.ctp:73
 msgid "Create an account for a new user for your organisation. Site administrators can create users for any organisation."
@@ -9610,7 +9610,7 @@ msgstr ""
 
 #: View/Pages/doc/general.ctp:75
 msgid "New Role"
-msgstr ""
+msgstr "Nouveau Rôle"
 
 #: View/Pages/doc/general.ctp:75
 msgid "Create a new role group for the users of this instance, controlling their privileges to create, modify, delete and to publish events and to access certain features such as the logs or automation."
@@ -9662,7 +9662,7 @@ msgstr ""
 
 #: View/Pages/doc/general.ctp:95
 msgid "The left bar"
-msgstr ""
+msgstr "La barre de gauche"
 
 #: View/Pages/doc/general.ctp:96
 msgid "This bar changes based on each page-group. The blue selection shows you what page you are on."
@@ -9887,7 +9887,7 @@ msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:16;365
 msgid "Exporting data"
-msgstr ""
+msgstr "Exporter les données"
 
 #: View/Pages/doc/using_the_system.ctp:17
 msgid "Connecting to other servers"
@@ -9895,7 +9895,7 @@ msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:18;422
 msgid "Rest API"
-msgstr ""
+msgstr "API REST"
 
 #: View/Pages/doc/using_the_system.ctp:28
 msgid "The process of entering an event can be split into 3 phases, the creation of the event itself, populating it with attributes\n"
@@ -10074,11 +10074,11 @@ msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:96
 msgid "administration"
-msgstr ""
+msgstr "administration"
 
 #: View/Pages/doc/using_the_system.ctp:97
 msgid "Batch import"
-msgstr ""
+msgstr "Importation en lot"
 
 #: View/Pages/doc/using_the_system.ctp:97
 msgid "If there are several attributes of the same type to enter (such as a list of IP addresses, it is possible to enter them all into the same value-field, separated by a line break between each line. This will allow the system to create separate lines for the each attribute."
@@ -10176,7 +10176,7 @@ msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:123
 msgid "Add attachment"
-msgstr ""
+msgstr "Ajouter une pièce jointe"
 
 #: View/Pages/doc/using_the_system.ctp:123
 msgid "Point the uploader to the file you want to upload. Make sure to mark it as malware if the uploaded file is harmful, that way it will be neutralised."
@@ -10234,7 +10234,7 @@ msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:141
 msgid "OpenIOC1"
-msgstr ""
+msgstr "OpenIOC1"
 
 #: View/Pages/doc/using_the_system.ctp:141
 msgid "The import tool will list the successful and failed entries after the process is done."
@@ -10242,7 +10242,7 @@ msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:142
 msgid "OpenIOC2"
-msgstr ""
+msgstr "OpenIOC2"
 
 #: View/Pages/doc/using_the_system.ctp:142
 msgid "You'll also be able to see a graph of the imported .ioc file and how successful the import was."
@@ -10264,7 +10264,7 @@ msgstr ""
 #: View/Sightings/ajax/list_sightings.ctp:8
 #: View/Users/statistics_sightings.ctp:9
 msgid "Source"
-msgstr ""
+msgstr "Source"
 
 #: View/Pages/doc/using_the_system.ctp:145
 msgid "The result will be a list of attributes that get added to the currently selected event, each of which will be marked with a comment that indicates that its origin being from a ThreatConnect import."
@@ -10272,7 +10272,7 @@ msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:147
 msgid "Publish an event"
-msgstr ""
+msgstr "Publier un événement"
 
 #: View/Pages/doc/using_the_system.ctp:149
 msgid "Once all the attributes and attachments that you want to include with the event are uploaded / set, it is time to finalise its creation by publishing the event (click on publish event in the event view). This will alert the eligible users of it (based on the private-controls of the event and its attributes/attachments and whether they have auto-alert turned on), push the event to instances that your instance connects to and propagate it further based on the distribution rules. It also readies the network related attributes for NIDS signature creation (through the NIDS signature export feature, for more information, go to the export section.)."
@@ -10300,7 +10300,7 @@ msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:158
 msgid "List events"
-msgstr ""
+msgstr "Liste les événements"
 
 #: View/Pages/doc/using_the_system.ctp:158
 msgid "This is the list of events in the system. Use the buttons to the right to alter or view any of the events."
@@ -10316,7 +10316,7 @@ msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:162
 msgid "Owner Org"
-msgstr ""
+msgstr "Propriétaire de l'organisation"
 
 #: View/Pages/doc/using_the_system.ctp:162
 msgid "The organisation that owns the event on this instance. This field is only visible to administrators."
@@ -10332,7 +10332,7 @@ msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:165
 msgid "#Attr."
-msgstr ""
+msgstr "#Attr."
 
 #: View/Pages/doc/using_the_system.ctp:165
 msgid "The number of attributes that the event has."
@@ -10621,7 +10621,7 @@ msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:260
 msgid "Pagination"
-msgstr ""
+msgstr "Mise en page"
 
 #: View/Pages/doc/using_the_system.ctp:260
 msgid "There are 5 posts visible on each event page, if there have been more messages posted, use the previous and next button to navigate through the thread. This will not reload the rest of the page."
@@ -10637,7 +10637,7 @@ msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:262
 msgid "Quick Post"
-msgstr ""
+msgstr "Modification Rapide"
 
 #: View/Pages/doc/using_the_system.ctp:262
 msgid "Adding a post will take the user to a separate add Post page, something that can be a bit of an inconvenience. To avoid this, there is a quick post button, where users can add messages on the fly without having to reload the page. On top of the quick post field, 3 buttons allow users to generate quote, event and thread tags quickly."
@@ -10661,7 +10661,7 @@ msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:270
 msgid "Model"
-msgstr ""
+msgstr "Modèle"
 
 #: View/Pages/doc/using_the_system.ctp:270
 msgid "As described above, a log entry is generated on certain actions. This field shows which type of data was affected that caused the log entry to be created (such as a change to the event, the creation of an attribute, the discarding of a proposal, etc)."
@@ -10729,7 +10729,7 @@ msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:290
 msgid "Search attribute"
-msgstr ""
+msgstr "Rechercher un attribut"
 
 #: View/Pages/doc/using_the_system.ctp:291
 msgid "This will bring up a form that lets you enter one or several search strings (separate search strings with line breaks) that will be compared to the values of all attributes, along with options to narrow down the search based on category and type. The entered search string has to be an exact match with (the sub-string of) a value. A second text field makes it possible to enter event IDs for events that should be excluded from the search (again, each line represents an event ID to be excluded). The third text field allows the user to restrict the results to attributes from certain organisations or to attributes not created by certain other organisations, using the above described syntax."
@@ -10771,7 +10771,7 @@ msgstr ""
 #: View/Templates/add.ctp:17
 #: View/Templates/edit.ctp:17
 msgid "Add tag"
-msgstr ""
+msgstr "Ajouter un tag"
 
 #: View/Pages/doc/using_the_system.ctp:303
 msgid "Enter a name for the tag and click on the color field to be able to pick a colour for it."
@@ -10787,7 +10787,7 @@ msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:307
 msgid "Colour"
-msgstr ""
+msgstr "Couleur"
 
 #: View/Pages/doc/using_the_system.ctp:307
 msgid "You can choose a colour for the tag by clicking on the colour field and using the colour picker tool. Try to avoid having duplicate or similar looking colours to help avoid confusion."
@@ -10999,11 +10999,11 @@ msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:367
 msgid "On"
-msgstr ""
+msgstr "Activé"
 
 #: View/Pages/doc/using_the_system.ctp:367
 msgid "Off"
-msgstr ""
+msgstr "Désactivé"
 
 #: View/Pages/doc/using_the_system.ctp:368;371
 msgid "Export page with background jobs"
@@ -11095,7 +11095,7 @@ msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:395
 msgid "Add server"
-msgstr ""
+msgstr "Ajouter un serveur"
 
 #: View/Pages/doc/using_the_system.ctp:395
 msgid "Make sure that you enter the authentication key that you have been given by the hosting organisation of the remote instance, instead of the one you have gotten from this one."
@@ -11105,7 +11105,7 @@ msgstr ""
 #: View/Servers/add.ctp:7
 #: View/Servers/edit.ctp:7
 msgid "Base URL"
-msgstr ""
+msgstr "URL de base"
 
 #: View/Pages/doc/using_the_system.ctp:397
 msgid "The URL of the remote server."
@@ -11113,7 +11113,7 @@ msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:398
 msgid "Organization"
-msgstr ""
+msgstr "Organisation"
 
 #: View/Pages/doc/using_the_system.ctp:398
 msgid "The organisation that runs the remote server. It is very impoportant that this setting is filled out exactly as the organisation name set up in the bootstrap file of the remote instance."
@@ -11149,7 +11149,7 @@ msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:404
 msgid "Self Signed"
-msgstr ""
+msgstr "Auto signé"
 
 #: View/Pages/doc/using_the_system.ctp:404
 msgid "Ticking this checkbox will allow syncing with instances using self-signed certificates."
@@ -11157,7 +11157,7 @@ msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:405
 msgid "Certificate File"
-msgstr ""
+msgstr "Certificat"
 
 #: View/Pages/doc/using_the_system.ctp:405
 msgid "If the instance that you want to connect to has their entire own certificate chain, you can use this to import a .pem file with it and override CakePHP's standard root CA file."
@@ -11206,7 +11206,7 @@ msgstr ""
 #: View/Pages/doc/using_the_system.ctp:418
 #: View/Servers/index.ctp:92
 msgid "Push all"
-msgstr ""
+msgstr "Tout pousser"
 
 #: View/Pages/doc/using_the_system.ctp:418
 msgid " By clicking this button, all events that are eligible to be pushed on the instance you are on will start to be pushed to the remote instance. Events and attributes that exist on the far end will be updated."
@@ -11215,7 +11215,7 @@ msgstr ""
 #: View/Pages/doc/using_the_system.ctp:419
 #: View/Servers/index.ctp:89
 msgid "Pull all"
-msgstr ""
+msgstr "Tout récupérer"
 
 #: View/Pages/doc/using_the_system.ctp:419
 msgid "By clicking this button, all events that are set to be pull-able or full access on the remote server will be copied to this instance. Existing events will not be updated."
@@ -11227,7 +11227,7 @@ msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:424
 msgid "Requests"
-msgstr ""
+msgstr "Requêtes"
 
 #: View/Pages/doc/using_the_system.ctp:425
 msgid "Use any HTTP compliant library to perform requests."
@@ -11251,7 +11251,7 @@ msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:444
 msgid "HTTP format"
-msgstr ""
+msgstr "Format HTTP"
 
 #: View/Pages/doc/using_the_system.ctp:446
 msgid "Controller action invoked"
@@ -11325,11 +11325,11 @@ msgstr ""
 #: View/Posts/add.ctp:10;16
 #: View/Posts/edit.ctp:6
 msgid "Thread Subject"
-msgstr ""
+msgstr "Sujet du fil"
 
 #: View/Posts/add.ctp:24
 msgid "In response to"
-msgstr ""
+msgstr "En réponse à"
 
 #: View/Regexp/admin_add.ctp:4
 msgid "Add Import Regexp"
@@ -11352,7 +11352,7 @@ msgstr ""
 #: View/Roles/admin_add.ctp:19
 #: View/Roles/admin_edit.ctp:18
 msgid "Memory limit"
-msgstr ""
+msgstr "Limite de mémoire"
 
 #: View/Roles/admin_add.ctp:20
 #: View/Roles/admin_edit.ctp:19
@@ -11361,19 +11361,19 @@ msgstr ""
 
 #: View/Roles/index.ctp:36
 msgid "ok"
-msgstr ""
+msgstr "ok"
 
 #: View/Roles/index.ctp:36
 msgid "remove"
-msgstr ""
+msgstr "supprimer"
 
 #: View/Roles/view.ctp:14
 msgid "Permission level"
-msgstr ""
+msgstr "Niveau de permission"
 
 #: View/Servers/add.ctp:4
 msgid "Add Server"
-msgstr ""
+msgstr "Ajouter un serveur"
 
 #: View/Servers/add.ctp:10
 #: View/Servers/edit.ctp:10
@@ -11428,7 +11428,7 @@ msgstr ""
 #: View/Servers/add.ctp:108
 #: View/Servers/edit.ctp:147
 msgid "Push rules:"
-msgstr ""
+msgstr "Règle d'envoi:"
 
 #: View/Servers/add.ctp:109;115
 #: View/Servers/edit.ctp:148;154
@@ -11506,7 +11506,7 @@ msgstr ""
 
 #: View/Servers/edit.ctp:250;254
 msgid "Not set."
-msgstr ""
+msgstr "Non défini."
 
 #: View/Servers/filter_event_index.ctp:6
 msgid "Please enter the url parameters that are to be used for the request. Valid parameters are: "
@@ -11514,7 +11514,7 @@ msgstr ""
 
 #: View/Servers/filter_event_index.ctp:8
 msgid "Example:"
-msgstr ""
+msgstr "Exemple:"
 
 #: View/Servers/filter_event_index.ctp:21
 msgid "Apply filters to the remote instance"
@@ -11522,11 +11522,11 @@ msgstr ""
 
 #: View/Servers/index.ctp:2
 msgid "Servers"
-msgstr ""
+msgstr "Serveurs"
 
 #: View/Servers/index.ctp:23
 msgid "Connection test"
-msgstr ""
+msgstr "Test de connexion"
 
 #: View/Servers/index.ctp:30
 msgid "Remote Organisation"
@@ -11538,7 +11538,7 @@ msgstr ""
 
 #: View/Servers/index.ctp:71
 msgid "Run"
-msgstr ""
+msgstr "Lancer"
 
 #: View/Servers/index.ctp:72
 msgid "Internal instance that ignores distribution level degradation *WARNING: Only use this setting if you have several internal instances and the sync link is to an internal extension of the current MISP community*"
@@ -11550,7 +11550,7 @@ msgstr ""
 
 #: View/Servers/index.ctp:86
 msgid "Explore"
-msgstr ""
+msgstr "Explorer"
 
 #: View/Servers/index.ctp:88
 msgid "Pull updates to events that already exist locally"
@@ -11578,7 +11578,7 @@ msgstr ""
 
 #: View/Servers/preview_index.ctp:86
 msgid "published"
-msgstr ""
+msgstr "publié"
 
 #: View/Servers/preview_index.ctp:147
 msgid "Fetch the event"
@@ -11675,17 +11675,17 @@ msgstr ""
 #: View/ShadowAttributes/add.ctp:4
 #: View/ShadowAttributes/edit.ctp:4
 msgid "Add Proposal"
-msgstr ""
+msgstr "Ajouter une proposition"
 
 #: View/ShadowAttributes/add.ctp:52;65
 #: View/ShadowAttributes/add_attachment.ctp:35
 #: View/ShadowAttributes/edit.ctp:51
 msgid "Propose"
-msgstr ""
+msgstr "Proposer"
 
 #: View/ShadowAttributes/edit.ctp:41
 msgid "IDS Signature?"
-msgstr ""
+msgstr "Signature de l’IDS ?"
 
 #: View/ShadowAttributes/index.ctp:21
 msgid "Only list proposals of my organisation"
@@ -11701,11 +11701,11 @@ msgstr ""
 
 #: View/ShadowAttributes/index.ctp:26
 msgid "All Events"
-msgstr ""
+msgstr "Tous les événements"
 
 #: View/ShadowAttributes/index.ctp:33
 msgid "Proposal by"
-msgstr ""
+msgstr "Proposé par"
 
 #: View/ShadowAttributes/index.ctp:39
 msgid "Event creator"
@@ -11713,15 +11713,15 @@ msgstr ""
 
 #: View/ShadowAttributes/index.ctp:45
 msgid "Proposed value"
-msgstr ""
+msgstr "Valeur proposée"
 
 #: View/ShadowAttributes/index.ctp:71
 msgid "Attribute edit"
-msgstr ""
+msgstr "Éditer l'attribut"
 
 #: View/ShadowAttributes/index.ctp:73
 msgid "New Attribute"
-msgstr ""
+msgstr "Nouvel attribut"
 
 #: View/ShadowAttributes/ajax/deletionProposalConfirmationForm.ctp:7
 msgid "Are you sure you want to propose to delete Attribute #%s?"
@@ -11750,12 +11750,12 @@ msgstr ""
 #: View/SharingGroups/add.ctp:5
 #: View/SharingGroups/edit.ctp:5
 msgid "General tab"
-msgstr ""
+msgstr "Onglet général"
 
 #: View/SharingGroups/add.ctp:5
 #: View/SharingGroups/edit.ctp:5
 msgid "General"
-msgstr ""
+msgstr "Général"
 
 #: View/SharingGroups/add.ctp:6
 #: View/SharingGroups/edit.ctp:6
@@ -11770,7 +11770,7 @@ msgstr ""
 #: View/SharingGroups/add.ctp:7
 #: View/SharingGroups/edit.ctp:7
 msgid "MISP Instances"
-msgstr ""
+msgstr "Instances MISP"
 
 #: View/SharingGroups/add.ctp:8
 #: View/SharingGroups/edit.ctp:8
@@ -11816,7 +11816,7 @@ msgstr ""
 #: View/SharingGroups/add.ctp:21;38;59
 #: View/SharingGroups/edit.ctp:21;38;67
 msgid "Next page"
-msgstr ""
+msgstr "Page suivante"
 
 #: View/SharingGroups/add.ctp:25
 #: View/SharingGroups/edit.ctp:25
@@ -11842,12 +11842,12 @@ msgstr ""
 #: View/SharingGroups/edit.ctp:33
 #: View/SharingGroups/view.ctp:44
 msgid "Extend"
-msgstr ""
+msgstr "Étendre"
 
 #: View/SharingGroups/add.ctp:37;58;74
 #: View/SharingGroups/edit.ctp:37;66;82
 msgid "Previous page"
-msgstr ""
+msgstr "Page précédente"
 
 #: View/SharingGroups/add.ctp:42
 #: View/SharingGroups/edit.ctp:50
@@ -11862,13 +11862,13 @@ msgstr ""
 #: View/SharingGroups/add.ctp:47
 #: View/SharingGroups/edit.ctp:55
 msgid "Add instance"
-msgstr ""
+msgstr "Ajouter une instance"
 
 #: View/SharingGroups/add.ctp:53
 #: View/SharingGroups/edit.ctp:61
 #: View/SharingGroups/view.ctp:69
 msgid "All orgs"
-msgstr ""
+msgstr "Toutes les organisations"
 
 #: View/SharingGroups/add.ctp:63
 msgid "<span class=\"bold\">General: </span>You are about to create the <span id=\"summarytitle\" class=\"red bold\"></span> sharing group, which is intended to be releasable to <span id=\"summaryreleasable\" class=\"red bold\"></span>."
@@ -11898,7 +11898,7 @@ msgstr ""
 
 #: View/SharingGroups/add.ctp:95
 msgid "Local instance"
-msgstr ""
+msgstr "Instance locale"
 
 #: View/SharingGroups/edit.ctp:71
 msgid "<span class=\"bold\">General: </span>You are about to create the <span id=\"summarytitle\" class=\"red bold\"></span> sharing group, which is intended to be releasable to <span id=\"summaryreleasable\" class=\"red bold\"></span>. </p>\n"
@@ -11912,7 +11912,7 @@ msgstr ""
 
 #: View/SharingGroups/index.ctp:2
 msgid "Sharing Groups"
-msgstr ""
+msgstr "Groupe de partage"
 
 #: View/SharingGroups/index.ctp:20
 msgid "View only active sharing groups"
@@ -11940,11 +11940,11 @@ msgstr ""
 
 #: View/SharingGroups/view.ctp:28
 msgid "Synced by"
-msgstr ""
+msgstr "Synchronisés par"
 
 #: View/SharingGroups/view.ctp:68
 msgid "Url"
-msgstr ""
+msgstr "Url"
 
 #: View/Sightings/ajax/add_sighting.ctp:11
 msgid "honeypot, IDS sensor id, SIEM,…"
@@ -11952,7 +11952,7 @@ msgstr ""
 
 #: View/Sightings/ajax/add_sighting.ctp:15
 msgid "Sighting date"
-msgstr ""
+msgstr "Date de l’observation"
 
 #: View/Sightings/ajax/advanced.ctp:2
 msgid "Sighting details"
@@ -11960,15 +11960,15 @@ msgstr ""
 
 #: View/Sightings/ajax/advanced.ctp:4
 msgid "Graph"
-msgstr ""
+msgstr "Graphe"
 
 #: View/Sightings/ajax/advanced.ctp:6
 msgid "My org"
-msgstr ""
+msgstr "Mon organisation"
 
 #: View/Sightings/ajax/list_sightings.ctp:10
 msgid "Attribute ID"
-msgstr ""
+msgstr "ID de l'attribut"
 
 #: View/Sightings/ajax/list_sightings.ctp:35
 msgid "Delete sighting"
@@ -12014,11 +12014,11 @@ msgstr ""
 
 #: View/Tags/index.ctp:70
 msgid "Taxonomy"
-msgstr ""
+msgstr "Taxonomie"
 
 #: View/Tags/index.ctp:71
 msgid "Tagged events"
-msgstr ""
+msgstr "Événements marqués"
 
 #: View/Tags/index.ctp:72
 msgid "Tagged attributes"
@@ -12026,7 +12026,7 @@ msgstr ""
 
 #: View/Tags/index.ctp:74
 msgid "Favourite"
-msgstr ""
+msgstr "Favori"
 
 #: View/Tags/index.ctp:125
 #: View/Whitelists/admin_index.ctp:32
@@ -12035,12 +12035,12 @@ msgstr ""
 
 #: View/Tags/ajax/select_tag.ctp:2
 msgid "Select Tag"
-msgstr ""
+msgstr "Sélectionner un tag"
 
 #: View/Tags/ajax/select_tag.ctp:16
 #: View/Tags/ajax/taxonomy_choice.ctp:4
 msgid "search tags…"
-msgstr ""
+msgstr "rechercher des tags…"
 
 #: View/Tags/ajax/select_tag.ctp:25
 msgid "Attach tag"
@@ -12064,15 +12064,15 @@ msgstr ""
 
 #: View/Tags/ajax/taxonomy_choice.ctp:10
 msgid "Favourite Tags"
-msgstr ""
+msgstr "Tags favoris"
 
 #: View/Tags/ajax/taxonomy_choice.ctp:14
 msgid "Custom Tags"
-msgstr ""
+msgstr "Tags personnalisés"
 
 #: View/Tags/ajax/taxonomy_choice.ctp:17
 msgid "All Tags"
-msgstr ""
+msgstr "Tout les tags"
 
 #: View/Tags/ajax/taxonomy_choice.ctp:21
 #: View/Taxonomies/view.ctp:2
@@ -12093,19 +12093,19 @@ msgstr ""
 
 #: View/Tasks/index.ctp:96
 msgid "Update all"
-msgstr ""
+msgstr "Tout mettre à jour"
 
 #: View/Taxonomies/index.ctp:2
 msgid "Taxonomies"
-msgstr ""
+msgstr "Taxonomies"
 
 #: View/Taxonomies/index.ctp:26
 msgid "Active Tags"
-msgstr ""
+msgstr "Tags actifs"
 
 #: View/Taxonomies/index.ctp:36
 msgid "enable all"
-msgstr ""
+msgstr "tout activer"
 
 #: View/Taxonomies/index.ctp:36
 msgid "Enable all tags"
@@ -12118,7 +12118,7 @@ msgstr ""
 #: View/Taxonomies/index.ctp:41
 #: View/Taxonomies/view.ctp:29;143
 msgid "Disable"
-msgstr ""
+msgstr "Désactiver"
 
 #: View/Taxonomies/index.ctp:41
 #: View/Taxonomies/view.ctp:29
@@ -12128,7 +12128,7 @@ msgstr ""
 #: View/Taxonomies/index.ctp:43
 #: View/Taxonomies/view.ctp:31;147
 msgid "Enable"
-msgstr ""
+msgstr "Activer"
 
 #: View/Taxonomies/index.ctp:43
 #: View/Taxonomies/view.ctp:31
@@ -12145,15 +12145,15 @@ msgstr ""
 
 #: View/Taxonomies/view.ctp:116
 msgid "Hidden"
-msgstr ""
+msgstr "Cacher"
 
 #: View/Taxonomies/view.ctp:125
 msgid "View graph"
-msgstr ""
+msgstr "Voir le graphe"
 
 #: View/Taxonomies/view.ctp:142
 msgid "Refresh"
-msgstr ""
+msgstr "Rafraîchir"
 
 #: View/Taxonomies/view.ctp:147
 msgid "Refresh or enable"
@@ -12169,7 +12169,7 @@ msgstr ""
 
 #: View/Taxonomies/ajax/taxonomy_mass_confirmation.ctp:13
 msgid "Create Tags"
-msgstr ""
+msgstr "Créer des Tags"
 
 #: View/Taxonomies/ajax/taxonomy_mass_confirmation.ctp:15
 msgid "Are you sure you want to create / update all selected tags?"
@@ -12211,7 +12211,7 @@ msgstr ""
 
 #: View/TemplateElements/ajax/template_element_add_attribute.ctp:37
 msgid "Select Type"
-msgstr ""
+msgstr "Sélectionner le type"
 
 #: View/TemplateElements/ajax/template_element_add_attribute.ctp:43
 #: View/TemplateElements/ajax/template_element_edit_attribute.ctp:42
@@ -12319,11 +12319,11 @@ msgstr ""
 
 #: View/Templates/add.ctp:49
 msgid "Create"
-msgstr ""
+msgstr "Créer"
 
 #: View/Templates/index.ctp:2
 msgid "Templates"
-msgstr ""
+msgstr "Modèles "
 
 #: View/Templates/index.ctp:45
 msgid "Are you sure you want to delete Template #"
@@ -12339,7 +12339,7 @@ msgstr ""
 
 #: View/Templates/populate_event_from_template_attributes.ctp:37
 msgid "Finalise"
-msgstr ""
+msgstr "Finaliser"
 
 #: View/Templates/upload_file.ctp:3
 msgid "Upload Files"
@@ -12355,15 +12355,15 @@ msgstr "Transférer le fichier"
 
 #: View/Templates/view.ctp:38
 msgid "Shareable"
-msgstr ""
+msgstr "Partageable"
 
 #: View/Threads/index.ctp:24
 msgid "Last Post By"
-msgstr ""
+msgstr "Dernier message par"
 
 #: View/Threads/index.ctp:26
 msgid "Posts"
-msgstr ""
+msgstr "Messages"
 
 #: View/Threads/index.ctp:81
 msgid "View Discussion"
@@ -12371,20 +12371,20 @@ msgstr ""
 
 #: View/Users/admin_add.ctp:4
 msgid "Admin Add User"
-msgstr ""
+msgstr "Ajouter un administrateur"
 
 #: View/Users/admin_add.ctp:32
 #: View/Users/admin_edit.ctp:32
 msgid "Set password"
-msgstr ""
+msgstr "Définir le mot de passe"
 
 #: View/Users/admin_add.ctp:37
 msgid "Length"
-msgstr ""
+msgstr "Longueur"
 
 #: View/Users/admin_add.ctp:38
 msgid "Complexity"
-msgstr ""
+msgstr "Complexité"
 
 #: View/Users/admin_add.ctp:52
 msgid "Choose organisation"
@@ -12414,7 +12414,7 @@ msgstr ""
 #: View/Users/admin_add.ctp:74
 #: View/Users/admin_edit.ctp:68
 msgid "SMIME key"
-msgstr ""
+msgstr "Clé SMIME"
 
 #: View/Users/admin_add.ctp:74
 #: View/Users/admin_edit.ctp:68
@@ -12436,11 +12436,11 @@ msgstr ""
 
 #: View/Users/admin_edit.ctp:69
 msgid "Terms accepted"
-msgstr ""
+msgstr "Termes acceptés"
 
 #: View/Users/admin_edit.ctp:74
 msgid "Reset Auth Key"
-msgstr ""
+msgstr "Réinitialiser la clé d'authentification"
 
 #: View/Users/admin_edit.ctp:86
 #: View/Users/change_pw.ctp:18
@@ -12483,7 +12483,7 @@ msgstr ""
 
 #: View/Users/admin_email.ctp:18
 msgid "Custom message"
-msgstr ""
+msgstr "Message personnalisé"
 
 #: View/Users/admin_email.ctp:18
 msgid "Welcome message"
@@ -12491,15 +12491,15 @@ msgstr ""
 
 #: View/Users/admin_email.ctp:18
 msgid "Reset password"
-msgstr ""
+msgstr "Réinitialiser le mot de passe"
 
 #: View/Users/admin_email.ctp:19
 msgid "A single user"
-msgstr ""
+msgstr "Utilisateur unique"
 
 #: View/Users/admin_email.ctp:19
 msgid "All users"
-msgstr ""
+msgstr "Tous les utilisateurs"
 
 #: View/Users/admin_email.ctp:36
 msgid "Enter a custom message"
@@ -12511,7 +12511,7 @@ msgstr ""
 
 #: View/Users/admin_email.ctp:69
 msgid "Password reset"
-msgstr ""
+msgstr "Mot de passe réinitialisé"
 
 #: View/Users/admin_filter_user_index.ctp:4
 msgid "Filter User Index"
@@ -12519,11 +12519,11 @@ msgstr ""
 
 #: View/Users/admin_filter_user_index.ctp:81
 msgid "Remove filter"
-msgstr ""
+msgstr "Enlever le filtre"
 
 #: View/Users/admin_filter_user_index.ctp:106
 msgid "Apply filters"
-msgstr ""
+msgstr "Appliquer les filtres"
 
 #: View/Users/admin_index.ctp:2
 #: View/Users/statistics.ctp:25
@@ -12531,7 +12531,7 @@ msgstr ""
 #: View/Users/statistics_orgs.ctp:32
 #: View/Users/ajax/admin_index.ctp:3
 msgid "Users"
-msgstr ""
+msgstr "Utilisateurs"
 
 #: View/Users/admin_index.ctp:40
 msgid "Filter user index"
@@ -12556,7 +12556,7 @@ msgstr ""
 
 #: View/Users/admin_view.ctp:46
 msgid "Invited By"
-msgstr ""
+msgstr "Invité par"
 
 #: View/Users/admin_view.ctp:51
 msgid "Org admin"
@@ -12599,7 +12599,7 @@ msgstr ""
 
 #: View/Users/login.ctp:37;44
 msgid "Login"
-msgstr ""
+msgstr "S'identifier"
 
 #: View/Users/statistics.ctp:8
 #: View/Users/statistics_data.ctp:11
@@ -12677,7 +12677,7 @@ msgstr ""
 
 #: View/Users/statistics_sightings.ctp:10
 msgid "#Entries"
-msgstr ""
+msgstr "#Entrées"
 
 #: View/Users/statistics_sightings.ctp:11
 msgid "#Sighting"
@@ -12713,7 +12713,7 @@ msgstr ""
 
 #: View/Users/terms.ctp:27
 msgid "Accept Terms"
-msgstr ""
+msgstr "Accepter les conditions"
 
 #: View/Users/verify_certificate.ctp:2
 msgid "Certificates validation"
@@ -12737,7 +12737,7 @@ msgstr ""
 
 #: View/Users/ajax/fetchpgpkey.ctp:6
 msgid "Key ID"
-msgstr ""
+msgstr "ID de la clé"
 
 #: View/Users/ajax/fetchpgpkey.ctp:7
 msgid "Creation date"
@@ -12822,7 +12822,7 @@ msgstr ""
 #: Model/ShadowAttribute.php:validation for field event_id;validation for field org_id;validation for field event_org_id
 #: Model/User.php:validation for field role_id;validation for field invited_by;validation for field newsread
 msgid "numeric"
-msgstr ""
+msgstr "numérique"
 
 #: Model/Attribute.php:validation for field type
 #: Model/ShadowAttribute.php:validation for field type

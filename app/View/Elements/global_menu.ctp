@@ -17,7 +17,7 @@
                     <li><a href="<?php echo !empty($baseurl) ? $baseurl : '/';?>" style="color:white"><?php echo $logo; ?></a></li>
                     <li class="dropdown">
                         <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-                            Event Actions
+                            <?php echo __('Event Actions');?>
                             <b class="caret"></b>
                         </a>
                         <ul class="dropdown-menu">
@@ -30,7 +30,7 @@
                             <li><a href="<?php echo $baseurl;?>/servers/rest"><?php echo __('REST client');?></a></li>
                             <li class="divider"></li>
                             <li><a href="<?php echo $baseurl;?>/shadow_attributes/index"><?php echo __('View Proposals');?></a></li>
-                            <li><a href="<?php echo $baseurl;?>/events/proposalEventIndex">Events with proposals</a></li>
+                            <li><a href="<?php echo $baseurl;?>/events/proposalEventIndex"><?php echo __('Events with proposals');?></a></li>
                             <li class="divider"></li>
                             <li><a href="<?php echo $baseurl;?>/tags/index"><?php echo __('List Tags');?></a></li>
                             <?php if ($isAclTagEditor): ?>
@@ -83,7 +83,7 @@
 
                     <li class="dropdown">
                         <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-                            Global Actions
+                            <?php echo __('Global Actions');?>
                             <b class="caret"></b>
                         </a>
                         <ul class="dropdown-menu">
@@ -118,7 +118,7 @@
                     <?php if ($isAclSync || $isAdmin): ?>
                     <li class="dropdown">
                         <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-                            Sync Actions
+                            <?php echo __('Sync Actions');?>
                             <b class="caret"></b>
                         </a>
                         <ul class="dropdown-menu">
@@ -152,7 +152,7 @@
                             <?php endif; ?>
                             <?php if ($isSiteAdmin): ?>
                                 <li class="divider"></li>
-                                <li><a href="<?php echo $baseurl;?>/servers/serverSettings">Server Settings &<br /><?php echo __('Maintenance');?></a></li>
+                                <li><a href="<?php echo $baseurl;?>/servers/serverSettings"><?php echo __('Server Settings');?> &<br /><?php echo __('Maintenance');?></a></li>
                                 <?php if (Configure::read('MISP.background_jobs')): ?>
                                     <li class="divider"></li>
                                     <li><a href="<?php echo $baseurl;?>/jobs/index"><?php echo __('Jobs');?></a></li>
@@ -161,7 +161,7 @@
                                 <?php endif; ?>
                                 <?php if (Configure::read('MISP.enableEventBlacklisting') !== false && $isSiteAdmin): ?>
                                     <li class="divider"></li>
-                                    <li><a href="<?php echo $baseurl;?>/eventBlacklists/add">Blacklist Event</a></li>
+                                    <li><a href="<?php echo $baseurl;?>/eventBlacklists/add"><?php echo __('Blacklist Event');?></a></li>
                                     <li><a href="<?php echo $baseurl;?>/eventBlacklists"><?php echo __('Manage Event Blacklists');?></a></li>
                                 <?php endif; ?>
                                 <?php if (Configure::read('MISP.enableEventBlacklisting') !== false && $isSiteAdmin): ?>
