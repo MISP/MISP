@@ -1722,12 +1722,14 @@ class UsersController extends AppController
                 $params = array(
                     'recursive' => -1
                 );
+                $filter = array();
                 if (!empty($condition)) {
                     if ($scope_data['date_created'] === 'datetime') {
                         $condition = date('Y-m-d H:i:s', $condition);
                     }
-                    $params['conditions'] = array_merge($scopes[$scope]['conditions'], array($scope_data['model'] . '.date_created >=' => $condition));
+                    $filter = array($scope_data['model'] . '.date_created >=' => $condition);
                 }
+                $params['conditions'] = array_merge($scopes[$scope]['conditions'], $filter);
                 $statistics[$scope]['data'][$range] = $this->{$scope_data['model']}->find('count', $params);
             }
         }
