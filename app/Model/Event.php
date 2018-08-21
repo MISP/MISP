@@ -1316,7 +1316,7 @@ class Event extends AppModel
                 'published' => array('function' => 'set_filter_published', 'pop' => true)
             ),
             'Object' => array(
-                'type' => array('function' => 'set_filter_object_type')
+                'object_name' => array('function' => 'set_filter_object_name')
             ),
             'Attribute' => array(
                 'value' => array('function' => 'set_filter_value', 'pop' => true),
