@@ -99,7 +99,7 @@ class OrphansProtectableBehavior extends ModelBehavior {
 		foreach ($possibleOrphans as $model => $ids) {
 			$count = count($ids);
 			$modelName = $count > 1 ? Inflector::pluralize($model) : $model;
-			$errorParts[] = $count.' '.__($modelName, true).' (ID: '.$Model->createDeletionErrorIds($model, $ids).')';
+			$errorParts[] = $count.' '.$modelName.' (ID: '.$Model->createDeletionErrorIds($model, $ids).')';
 		}
 		return __('it has the following dependent items', true).': '.implode($errorParts, ', ');
 	}
