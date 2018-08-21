@@ -81,6 +81,7 @@
 <script type="text/javascript">
 // tooltips
 $(document).ready(function () {
+  insertRawRestResponse();
   $('.format-toggle-button').bind('click', function() {
     $('#rest-response-container').empty();
     if ($(this).data('toggle-type') == 'Raw') {
