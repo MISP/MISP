@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2018-07-27 14:08\n"
+"PO-Revision-Date: 2018-08-21 10:43\n"
 "Last-Translator: SteveClement <steve@localhost.lu>\n"
 "Language-Team: Korean\n"
 "MIME-Version: 1.0\n"
@@ -416,48 +416,48 @@ msgstr ""
 #: Controller/EventsController.php:2407
 #: Model/Attribute.php:1788
 msgid "Invalid hash type."
-msgstr ""
+msgstr "잘못된 해시 유형입니다."
 
 #: Controller/EventsController.php:2596
 msgid "Filename not allowed."
-msgstr ""
+msgstr "허용되지 않은 파일 이름입니다."
 
 #: Controller/EventsController.php:2616
 msgid "Problem with writing the ioc file. Please report to administrator."
-msgstr ""
+msgstr "Ioc 파일을 만드는 데 문제가 발생했습니다. 관리자에게 문의하십시오."
 
 #: Controller/EventsController.php:2708
 msgid "This is not a valid MISP XML file."
-msgstr ""
+msgstr "유효한 MISP XML 파일이 아닙니다."
 
 #: Controller/EventsController.php:2973
 msgid "Not yet implemented"
-msgstr ""
+msgstr "구현되어 있지 않습니다"
 
 #: Controller/EventsController.php:2991;2994
 msgid "Invalid event or not authorised."
-msgstr ""
+msgstr "잘못된 이벤트 또는 권한이 없습니다."
 
 #: Controller/EventsController.php:3011;3078
 msgid "You don't have the privileges to access this."
-msgstr ""
+msgstr "이것에 접근할 권한이 없습니다."
 
 #: Controller/EventsController.php:3547
 msgid "Could not add tags."
-msgstr ""
+msgstr "태그를 추가 할 수 없습니다."
 
 #: Controller/EventsController.php:3597;4564
 #: Controller/ObjectsController.php:43;132;136;422
 msgid "Invalid event."
-msgstr ""
+msgstr "잘못된 이벤트입니다."
 
 #: Controller/EventsController.php:3696;3723;3736
 msgid "You do not have the permission to do that."
-msgstr ""
+msgstr "실행할 수있는 권한이 없습니다."
 
 #: Controller/EventsController.php:3794;3925
 msgid "Invalid ID"
-msgstr ""
+msgstr "잘못된 ID"
 
 #: Controller/EventsController.php:3796;3927
 msgid "Event not found or you are not authorised to view it."
@@ -473,11 +473,11 @@ msgstr ""
 
 #: Controller/EventsController.php:4054
 msgid "Event not found"
-msgstr ""
+msgstr "이벤트를 찾을 수 없습니다"
 
 #: Controller/EventsController.php:4073
 msgid "Event not found."
-msgstr ""
+msgstr "이벤트를 찾을 수 없습니다."
 
 #: Controller/EventsController.php:4081
 msgid "Distribution level 5 is not supported when uploading a sample without passing an event ID. Distribution level 5 is meant to take on the distribution level of an existing event."
@@ -485,35 +485,35 @@ msgstr ""
 
 #: Controller/EventsController.php:4105
 msgid "The creation of a new event with the supplied information has failed."
-msgstr ""
+msgstr "제공된 정보를 바탕으로 새로운 이벤트를 만들 수 없습니다."
 
 #: Controller/EventsController.php:4220;4239;4265;4287;4309;4336;4354
 msgid "Invalid type."
-msgstr ""
+msgstr "잘못된 형식"
 
 #: Controller/EventsController.php:4395
 msgid "Invalid method."
-msgstr ""
+msgstr "잘못 된 방법입니다."
 
 #: Controller/EventsController.php:4472
 msgid "%s services are not enabled."
-msgstr ""
+msgstr "%s 서비스가 활성화되어 있지 않습니다."
 
 #: Controller/EventsController.php:4474
 msgid "Attribute not found or you are not authorised to see it."
-msgstr ""
+msgstr "속성이 없거나 속성을 볼 수있는 권한이 없습니다."
 
 #: Controller/EventsController.php:4478
 msgid "No valid %s options found for this attribute."
-msgstr ""
+msgstr "이 속성에 대한 유효한 %s 옵션이 없습니다."
 
 #: Controller/EventsController.php:4491
 msgid "no valid %s options found for this attribute."
-msgstr ""
+msgstr "이 속성에 대한 유효한 %s 옵션이 없습니다."
 
 #: Controller/EventsController.php:4509
 msgid "%s service not reachable."
-msgstr ""
+msgstr "%s 서비스에 도달 할 수 없습니다."
 
 #: Controller/EventsController.php:4517
 msgid ": Enriched via the %s"
@@ -521,52 +521,52 @@ msgstr ""
 
 #: Controller/EventsController.php:4638
 msgid "Import service not reachable."
-msgstr ""
+msgstr "Import 서비스에 도달 할 수 없습니다."
 
 #: Controller/EventsController.php:4792
 msgid "Invalid ID."
-msgstr ""
+msgstr "잘못된 ID."
 
 #: Controller/EventsController.php:4838
 #: Controller/ShadowAttributesController.php:289;292;493
 msgid "Invalid Event"
-msgstr ""
+msgstr "잘못 된 이벤트"
 
 #: Controller/EventsController.php:4855
 msgid "Enrichment task queued for background processing. Check back later to see the results."
-msgstr ""
+msgstr "Enrichment 작업은 백그라운드 처리를 위해 큐에 추가되었습니다. 나중에 결과를 확인하십시오."
 
 #: Controller/FeedsController.php:25
 msgid "You don't have the required privileges to do that."
-msgstr ""
+msgstr "그것을 실행하는 데 필요한 권한이 없습니다."
 
 #: Controller/FeedsController.php:178;266
 msgid "Feed added."
-msgstr ""
+msgstr "피드가 추가되었습니다."
 
 #: Controller/FeedsController.php:186
 msgid "Feed could not be added. Invalid field: %s"
-msgstr ""
+msgstr "피드를 추가 할 수 없습니다. 잘못된 항목: %s"
 
 #: Controller/FeedsController.php:208;297;316;426;449;603
 msgid "Invalid feed."
-msgstr ""
+msgstr "잘못 된 피드입니다."
 
 #: Controller/FeedsController.php:274
 msgid "Feed could not be updated. Invalid fields: %s"
-msgstr ""
+msgstr "피드를 업데이트 할 수 없습니다. 잘못된 항목: %s"
 
 #: Controller/FeedsController.php:295
 msgid "This action requires a post request."
-msgstr ""
+msgstr "이 작업은 post 요청이 필요합니다."
 
 #: Controller/FeedsController.php:322;429
 msgid "Feed is currently not enabled. Make sure you enable it."
-msgstr ""
+msgstr "피드는 현재 활성화되어 있지 않습니다. 활성화하십시오."
 
 #: Controller/FeedsController.php:335;396
 msgid "Starting fetch from Feed."
-msgstr ""
+msgstr "피드의를 시작합니다."
 
 #: Controller/FeedsController.php:346
 msgid "Pull queued for background execution."
@@ -574,35 +574,35 @@ msgstr ""
 
 #: Controller/FeedsController.php:351;353
 msgid "Fetching the feed has failed."
-msgstr ""
+msgstr "피드를 가져 오는 데 실패했습니다."
 
 #: Controller/FeedsController.php:357
 msgid "Fetching the feed has successfuly completed."
-msgstr ""
+msgstr "피드 가져 오기가 완료되었습니다."
 
 #: Controller/FeedsController.php:413
 msgid "Fetching the feed has successfully completed."
-msgstr ""
+msgstr "피드 가져 오기가 완료되었습니다."
 
 #: Controller/FeedsController.php:435
 msgid "Event added."
-msgstr ""
+msgstr "이벤트가 추가되었습니다."
 
 #: Controller/FeedsController.php:437
 msgid "Event already up to date."
-msgstr ""
+msgstr "이벤트는 이미 최신입니다."
 
 #: Controller/FeedsController.php:438
 msgid "Event updated."
-msgstr ""
+msgstr "이벤트가 업데이트되었습니다."
 
 #: Controller/FeedsController.php:441
 msgid "Could not %s event."
-msgstr ""
+msgstr "이벤트를 %s 수 없습니다."
 
 #: Controller/FeedsController.php:443
 msgid "Download failed."
-msgstr ""
+msgstr "다운로드에 실패했습니다."
 
 #: Controller/FeedsController.php:500
 msgid "Feed could not be fetched. The HTTP error code returned was: "

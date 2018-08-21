@@ -352,7 +352,7 @@ class AttributesController extends AppController
                     } else {
                         $this->Flash->error($message);
                     }
-                    if (count($successes) > 0) {
+                    if ($successes > 0) {
                         $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
                     }
                 }
@@ -2251,7 +2251,7 @@ class AttributesController extends AppController
                     );
                 }
             } else {
-                $results = array('response' => array());
+                $results = array('response' => array('Attribute' => array()));
             }
         }
         $responseType = $this->response->type();
