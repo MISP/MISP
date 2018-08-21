@@ -2251,7 +2251,7 @@ class AttributesController extends AppController
                     );
                 }
             } else {
-                $results = array('response' => array());
+                $results = array('response' => array('Attribute' => array()));
             }
         }
         $responseType = $this->response->type();
