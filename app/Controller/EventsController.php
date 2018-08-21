@@ -3103,7 +3103,7 @@ class EventsController extends AppController
             if (!isset($data['request'])) {
                 $data['request'] = $data;
             }
-            $paramArray = array('value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly');
+            $paramArray = array('value', 'value_exact', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly');
             foreach ($paramArray as $p) {
                 if (isset($data['request'][$p])) {
                     ${$p} = $data['request'][$p];
@@ -3143,8 +3143,8 @@ class EventsController extends AppController
         if (isset($searchall) && ($searchall == 1 || $searchall === true || $searchall == 'true')) {
             $eventIds = $this->__quickFilter($value);
         } else {
-            $parameters = array('value', 'type', 'category', 'org', 'uuid', 'eventid');
-            $attributeLevelFilters = array('value', 'type', 'category', 'uuid');
+            $parameters = array('value', 'value_exact', 'type', 'category', 'org', 'uuid', 'eventid');
+            $attributeLevelFilters = array('value', 'value_exact', 'type', 'category', 'uuid');
             $preFilterLevel = 'event';
             foreach ($parameters as $k => $param) {
                 if (${$parameters[$k]} !== null && ${$parameters[$k]} !== false) {

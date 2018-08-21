@@ -2134,7 +2134,7 @@ class AttributesController extends AppController
             if (!isset($data['request'])) {
                 $data['request'] = $data;
             }
-            $paramArray = array('value', 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id');
+            $paramArray = array('value', 'value_exact', 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id');
             foreach ($paramArray as $p) {
                 if (isset($data['request'][$p])) {
                     ${$p} = $data['request'][$p];
@@ -2163,7 +2163,7 @@ class AttributesController extends AppController
         $subcondition = array();
         $this->loadModel('Attribute');
         // add the values as specified in the 2nd parameter to the conditions
-        $parameters = array('value', 'type', 'category', 'org', 'eventid', 'uuid');
+        $parameters = array('value', 'value_exact', 'type', 'category', 'org', 'eventid', 'uuid');
         foreach ($parameters as $k => $param) {
             if (isset(${$parameters[$k]}) && ${$parameters[$k]} !== false) {
                 $conditions = $this->Attribute->Event->setSimpleConditions($parameters[$k], ${$parameters[$k]}, $conditions);
