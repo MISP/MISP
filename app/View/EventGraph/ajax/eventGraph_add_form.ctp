@@ -17,7 +17,7 @@
                 'type' => 'textarea'
             ));
 
-            echo $this->Form->button(__($action));
+            echo $this->Form->button($action);
             echo $this->Form->end();
         ?>
         </div>
