@@ -583,7 +583,7 @@ class ServersController extends AppController
      *		incremental - only new events
      *		<int>	- specific id of the event to pull
      */
-    public function pull($id = null, $technique=false)
+    public function pull($id = null, $technique=false, $fromPyMISP=false)
     {
         $this->Server->id = $id;
         if (!$this->Server->exists()) {
@@ -646,11 +646,25 @@ class ServersController extends AppController
                     'ServerShell',
                     array('pull', $this->Auth->user('id'), $id, $technique, $jobId)
             );
-            $this->Job->saveField('process_id', $process_id);
-            $this->Flash->success('Pull queued for background execution.');
-            $this->redirect($this->referer());
+            if ($fromPyMISP === false){
+                $this->Job->saveField('process_id', $process_id);
+                $this->Flash->success('Pull queued for background execution.');
+                $this->redirect($this->referer());
+            }else {
+                $this->layout = false;
+                $this->autoRender = false;
+                $this->set('data', Array('response'=>'Jobs added to queue'));
+                $this->response->type('json');
+                $this->render('/Servers/json/simple');
         }
     }
+    /**
+     * Pull request called from PyMISP
+     */
+    public function batchPull($id = null, $technique=false){
+        $this->pull($id, $technique, $fromPyMSIP=true);
+    }
+
 
     public function push($id = null, $technique=false)
     {
@@ -1660,5 +1674,28 @@ class ServersController extends AppController
             }
         }
         return $view_data;
+    }
+    
+    /*
+    * Returns servers list in JSON format
+    */
+    public function getServersList()
+    {
+        $temp = $this->Server->find('all', array(
+            'conditions' => array(
+                'id !=' => $id_exclusion_list,
+            ),
+            'recursive' => -1,
+            'fields' => array('id', 'name', 'url')
+        ));
+        $servers = array();
+        foreach ($temp as $server) {
+            $servers[] = array('id' => $server['Server']['id'], 'name' => $server['Server']['name'], 'url' => $server['Server']['url']);
+        }
+        $this->layout = false;
+        $this->autoRender = false;
+        $this->set('data', $servers);
+        $this->response->type('json');
+        $this->render('/Servers/json/simple');
     }
 }
