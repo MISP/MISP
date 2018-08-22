@@ -2652,6 +2652,11 @@ class Server extends AppModel
 
     public function testForWritableDir($value)
     {
+        if ($value === "s3://") {
+            // Assume true
+            return true;
+        }
+
         if (!is_dir($value)) {
             return 'Not a valid directory.';
         }
