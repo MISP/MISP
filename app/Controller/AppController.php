@@ -463,9 +463,9 @@ class AppController extends Controller
     public function blackhole($type)
     {
         if ($type === 'csrf') {
-            throw new BadRequestException(__d('cake_dev', $type));
+            throw new BadRequestException($type);
         }
-        throw new BadRequestException(__d('cake_dev', 'The request has been black-holed'));
+        throw new BadRequestException('The request has been black-holed');
     }
 
     public $userRole = null;

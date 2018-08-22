@@ -1994,6 +1994,27 @@ class Server extends AppModel
         $eventIds = array();
         $conditions = array();
         $eventIds = $this->__getEventIdListBasedOnPullTechnique($technique, $server);
+		if (!empty($eventIds['error'])) {
+			$errors = array(
+				'1' => __('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting.'),
+				'2' => $eventIds['error'][1],
+				'3' => __('Sorry, this is not yet implemented'),
+				'4' => __('Something went wrong while trying to pull')
+			);
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			$this->Log->save(array(
+				'org' => $user['Organisation']['name'],
+				'model' => 'Server',
+				'model_id' => $id,
+				'email' => $user['email'],
+				'action' => 'error',
+				'user_id' => $user['id'],
+				'title' => 'Failed pull from ' . $server['Server']['url'] . ' initiated by ' . $email,
+				'change' => !empty($errors[$eventIds['error'][0]]) ? $errors[$eventIds['error'][0]] : __('Unknown issue.')
+			));
+			return !empty($errors[$eventIds['error'][0]]) ? $errors[$eventIds['error'][0]] : __('Unknown issue.');
+		}
         $successes = array();
         $fails = array();
         // now process the $eventIds to pull each of the events sequentially
@@ -2149,16 +2170,32 @@ class Server extends AppModel
         $this->Event = ClassRegistry::init('Event');
         $this->read(null, $id);
         $url = $this->data['Server']['url'];
-        $push = $this->checkVersionCompatibility($id, $user)['canPush'];
-        if (!isset($push) || !$push) {
-            if ($jobId) {
-                $job->id = $jobId;
-                $job->saveField('progress', 100);
-                $job->saveField('message', 'Push to server ' . $id . ' failed. Remote instance is outdated.');
-                $job->saveField('status', 4);
-            }
-            return false;
-        }
+		$push = $this->checkVersionCompatibility($id, $user);
+		if (isset($push['canPush']) && !$push['canPush']) {
+			$push = 'Remote instance is outdated.';
+		}
+		if (!is_array($push)) {
+			$message = sprintf('Push to server %s failed. Reason: %s', $id, $push);
+			$this->Log = ClassRegistry::init('Log');
+	        $this->Log->create();
+	        $this->Log->save(array(
+	                'org' => $user['Organisation']['name'],
+	                'model' => 'Server',
+	                'model_id' => $id,
+	                'email' => $user['email'],
+	                'action' => 'error',
+	                'user_id' => $user['id'],
+	                'title' => 'Failed: Push to ' . $url . ' initiated by ' . $user['email'],
+	                'change' => $message
+	        ));
+			if ($jobId) {
+				$job->id = $jobId;
+				$job->saveField('progress', 100);
+				$job->saveField('message', $message);
+				$job->saveField('status', 4);
+			}
+			return $push;
+		}
         if ("full" == $technique) {
             $eventid_conditions_key = 'Event.id >';
             $eventid_conditions_value = 0;
@@ -2292,6 +2329,7 @@ class Server extends AppModel
         } else {
             return array($successes, $fails);
         }
+		return true;
     }
 
     public function getEventIdsForPush($id, $HttpSocket, $eventIds, $user)
@@ -3310,34 +3348,34 @@ class Server extends AppModel
         try {
             $response = $HttpSocket->get($uri, '', $request);
         } catch (Exception $e) {
-            if (!isset($response) || $response->code != '200') {
-                $this->Log = ClassRegistry::init('Log');
-                $this->Log->create();
-                if (isset($response->code)) {
-                    $title = 'Error: Connection to the server has failed.' . isset($response->code) ? ' Returned response code: ' . $response->code : '';
-                } else {
-                    $title = 'Error: Connection to the server has failed. The returned exception\'s error message was: ' . $e->getMessage();
-                }
-                $this->Log->save(array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'Server',
-                        'model_id' => $id,
-                        'email' => $user['email'],
-                        'action' => 'error',
-                        'user_id' => $user['id'],
-                        'title' => $title,
-                ));
-            }
+			$error = $e->getMessage;
         }
-        if (!isset($response) || $response->code != '200') {
-            return 1;
-        }
+		if (!isset($response) || $response->code != '200') {
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			if (isset($response->code)) {
+				$title = 'Error: Connection to the server has failed.' . (isset($response->code) ? ' Returned response code: ' . $response->code : '');
+			} else {
+				$title = 'Error: Connection to the server has failed. The returned exception\'s error message was: ' . $e->getMessage();
+			}
+			$this->Log->save(array(
+					'org' => $user['Organisation']['name'],
+					'model' => 'Server',
+					'model_id' => $id,
+					'email' => $user['email'],
+					'action' => 'error',
+					'user_id' => $user['id'],
+					'title' => $title
+			));
+			return $title;
+		}
         $remoteVersion = json_decode($response->body, true);
         $canPush = isset($remoteVersion['perm_sync']) ? $remoteVersion['perm_sync'] : false;
         $remoteVersion = explode('.', $remoteVersion['version']);
         if (!isset($remoteVersion[0])) {
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
+			$message = __('Error: Server didn\'t send the expected response. This may be because the remote server version is outdated.');
             $this->Log->save(array(
                     'org' => $user['Organisation']['name'],
                     'model' => 'Server',
@@ -3345,9 +3383,9 @@ class Server extends AppModel
                     'email' => $user['email'],
                     'action' => 'error',
                     'user_id' => $user['id'],
-                    'title' => 'Error: Server didn\'t send the expected response. This may be because the remote server version is outdated.',
+                    'title' => $message,
             ));
-            return 2;
+            return $message;
         }
         $response = false;
         $success = false;
@@ -3494,7 +3532,7 @@ class Server extends AppModel
     public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion, &$maecVersion, &$pymispVersion)
     {
         $result = array();
-        $expected = array('stix' => '1.2.0.6', 'cybox' => '2.1.0.17', 'mixbox' => '1.0.3', 'maec' => '4.1.0.13', 'pymisp' => '>2.4.93');
+        $expected = array('stix' => '1.2.0.6', 'cybox' => '2.1.0.17', 'mixbox' => '1.0.3', 'maec' => '4.1.0.14', 'pymisp' => '>2.4.93');
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptResult = shell_exec('python3 ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
         $scriptResult = json_decode($scriptResult, true);

@@ -3190,6 +3190,11 @@ msgstr ""
 msgid "Add"
 msgstr ""
 
+#: View/Elements/global_menu.ctp:20
+#: View/Pages/doc/general.ctp:20
+msgid "Event Actions"
+msgstr ""
+
 #: View/Elements/global_menu.ctp:24
 #: View/Elements/side_menu.ctp:174;188
 #: View/Events/export_alternate.ctp:87
@@ -3229,6 +3234,12 @@ msgstr ""
 #: View/Elements/side_menu.ctp:238
 #: View/Pages/doc/general.ctp:38
 msgid "View Proposals"
+msgstr ""
+
+#: View/Elements/global_menu.ctp:33
+#: View/Elements/side_menu.ctp:242
+#: View/Pages/doc/general.ctp:39
+msgid "Events with proposals"
 msgstr ""
 
 #: View/Elements/global_menu.ctp:35
@@ -3316,6 +3327,11 @@ msgstr ""
 #: View/Elements/global_menu.ctp:80
 #: View/Elements/side_menu.ctp:283
 msgid "List Noticelists"
+msgstr ""
+
+#: View/Elements/global_menu.ctp:86
+#: View/Pages/doc/general.ctp:22;54
+msgid "Global Actions"
 msgstr ""
 
 #: View/Elements/global_menu.ctp:90
@@ -3406,6 +3422,11 @@ msgstr ""
 msgid "Start Discussion"
 msgstr ""
 
+#: View/Elements/global_menu.ctp:121
+#: View/Pages/doc/general.ctp:23;66
+msgid "Sync Actions"
+msgstr ""
+
 #: View/Elements/global_menu.ctp:125
 #: View/Elements/side_menu.ctp:354
 #: View/Pages/doc/general.ctp:68
@@ -3456,13 +3477,20 @@ msgid "Add Organisation"
 msgstr ""
 
 #: View/Elements/global_menu.ctp:149
+#: View/Elements/side_menu.ctp:395
 #: View/Pages/doc/general.ctp:76
 msgid "List Roles"
 msgstr ""
 
 #: View/Elements/global_menu.ctp:151
+#: View/Elements/side_menu.ctp:393
 #: View/Roles/admin_add.ctp:4
 msgid "Add Role"
+msgstr ""
+
+#: View/Elements/global_menu.ctp:155
+#: View/Pages/doc/general.ctp:79
+msgid "Server Settings"
 msgstr ""
 
 #: View/Elements/global_menu.ctp:155
@@ -3482,6 +3510,10 @@ msgstr ""
 #: View/Pages/doc/general.ctp:81
 #: View/Tasks/index.ctp:3
 msgid "Scheduled Tasks"
+msgstr ""
+
+#: View/Elements/global_menu.ctp:164
+msgid "Blacklist Event"
 msgstr ""
 
 #: View/Elements/global_menu.ctp:165
@@ -3650,11 +3682,6 @@ msgstr ""
 
 #: View/Elements/side_menu.ctp:232
 msgid "Download results as CSV"
-msgstr ""
-
-#: View/Elements/side_menu.ctp:242
-#: View/Pages/doc/general.ctp:39
-msgid "Events with proposals"
 msgstr ""
 
 #: View/Elements/side_menu.ctp:259
@@ -9441,10 +9468,6 @@ msgid "This button will return you to the start screen of the application, which
 msgstr ""
 
 #: View/Pages/doc/general.ctp:20
-msgid "Event Actions"
-msgstr ""
-
-#: View/Pages/doc/general.ctp:20
 msgid "All the malware data entered into MISP is made up of an event object that is described by its connected attributes. The Event actions menu gives access to all the functionality that has to do with the creation, modification, deletion, publishing, searching and listing of events and attributes."
 msgstr ""
 
@@ -9452,16 +9475,8 @@ msgstr ""
 msgid "Input filters alter what and how data can be entered into this instance. Apart from the basic validation of attribute entry by type, it is possible for the site administrators to define regular expression replacements and blacklists for certain values in addition to blocking certain values from being exportable. Users can view these replacement and blacklist rules here whilst administrator can alter them."
 msgstr ""
 
-#: View/Pages/doc/general.ctp:22;54
-msgid "Global Actions"
-msgstr ""
-
 #: View/Pages/doc/general.ctp:22
 msgid "This menu gives you access to information about MISP and this instance. You can view and edit your own profile, view the manual, read the news or the terms of use again, see a list of the active organisations on this instance and a histogram of their contributions by attribute type."
-msgstr ""
-
-#: View/Pages/doc/general.ctp:23;66
-msgid "Sync Actions"
 msgstr ""
 
 #: View/Pages/doc/general.ctp:23
@@ -9635,10 +9650,6 @@ msgstr ""
 
 #: View/Pages/doc/general.ctp:78
 msgid "Various tools, upgrade scripts that can help a site-admin run the instance."
-msgstr ""
-
-#: View/Pages/doc/general.ctp:79
-msgid "Server Settings"
 msgstr ""
 
 #: View/Pages/doc/general.ctp:79
