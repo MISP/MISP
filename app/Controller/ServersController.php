@@ -611,58 +611,6 @@ class ServersController extends AppController
             throw new NotFoundException(__('Invalid server'));
         }
         if (false == $this->Server->data['Server']['pull'] && ($technique == 'full' || $technique == 'incremental')) {
-<<<<<<< HEAD
-            $this->Flash->info(__('Pull setting not enabled for this server.'));
-            $this->redirect(array('action' => 'index'));
-        }
-        if (!Configure::read('MISP.background_jobs')) {
-            $result = $this->Server->pull($this->Auth->user(), $id, $technique, $s);
-            // error codes
-            if (isset($result[0]) && is_numeric($result[0])) {
-                switch ($result[0]) {
-                    case '1':
-                        $this->Flash->error(__('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting.'));
-                        break;
-                    case '2':
-                        $this->Flash->error($result[1]);
-                        break;
-                    case '3':
-                        throw new NotFoundException('Sorry, this is not yet implemented');
-                        break;
-                    case '4':
-                        $this->redirect(array('action' => 'index'));
-                        break;
-                }
-                $this->redirect($this->referer());
-            } else {
-                $this->set('successes', $result[0]);
-                $this->set('fails', $result[1]);
-                $this->set('pulledProposals', $result[2]);
-            }
-        } else {
-            $this->loadModel('Job');
-            $this->Job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'pull',
-                    'job_input' => 'Server: ' . $id,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org' => $this->Auth->user('Organisation')['name'],
-                    'message' => 'Pulling.',
-            );
-            $this->Job->save($data);
-            $jobId = $this->Job->id;
-            $process_id = CakeResque::enqueue(
-                    'default',
-                    'ServerShell',
-                    array('pull', $this->Auth->user('id'), $id, $technique, $jobId)
-            );
-            $this->Job->saveField('process_id', $process_id);
-            $this->Flash->success('Pull queued for background execution.');
-            $this->redirect($this->referer());
-        }
-=======
 			$error = __('Pull setting not enabled for this server.');
         }
 		if (empty($error)) {
@@ -715,7 +663,6 @@ class ServersController extends AppController
 				$this->redirect($this->referer());
 			}
 		}
->>>>>>> 2.4
     }
 
     public function push($id = null, $technique=false)
