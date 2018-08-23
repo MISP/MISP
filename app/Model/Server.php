@@ -1137,6 +1137,51 @@ class Server extends AppModel
                                 'type' => 'numeric'
                         )
                 ),
+
+                'CakeResque' => array(
+                        'branch' => 1,
+                        'Redis.host' => array(
+                            'level' => 2,
+                            'description' => __("Set the host for CakeResque's workers to use"),
+                            'value' => 'localhost',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string',
+                        ),
+                        'Redis.port' => array(
+                            'level' => 2,
+                            'description' => __("Set the port for CakeResque's workers to use"),
+                            'value' => 6379,
+                            'errorMessage' => '',
+                            'test' => 'testForNumeric',
+                            'type' => 'numeric'
+                        ),
+                        'Redis.database' => array(
+                            'level' => 2,
+                            'description' => __("Set the Redis database for workers to use"),                                     
+                            'value' => 0,
+                            'errorMessage' => '',
+                            'test' => 'testForNumeric',
+                            'type' => 'numeric'
+                        ),
+                        'Redis.namespace' => array(
+                            'level' => 2,
+                            'description' => __("Set the namespace for workers to use"),                                     
+                            'value' => 'resque',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'Redis.password' => array(
+                            'level' => 2,
+                            'description' => __("Password used to connect to redis"),                                     
+                            'value' => "",
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        )
+                ),
+
                 'Plugin' => array(
                         'branch' => 1,
                         'RPZ_policy' => array(
@@ -1766,7 +1811,8 @@ class Server extends AppModel
             'SMIME' => 'Encryption',
             'misc' => 'Security',
             'Security' => 'Security',
-            'Session' => 'Security'
+            'Session' => 'Security',
+            'CakeResque' => 'MISP'
     );
 
 
@@ -2511,6 +2557,19 @@ class Server extends AppModel
         return $finalSettings;
     }
 
+    private function flatten($array, $prefix = '') {
+        $result = array();
+        foreach($array as $key=>$value) {
+            if(is_array($value)) {
+                $result = $result + $this->flatten($value, $prefix . $key . '.');
+            }
+            else {
+                $result[$prefix . $key] = $value;
+            }
+        }
+        return $result;
+    }
+
     public function serverSettingsRead($unsorted = false)
     {
         $this->Module = ClassRegistry::init('Module');
@@ -2519,6 +2578,18 @@ class Server extends AppModel
         if (Configure::read('Plugin.Enrichment_services_enable')) {
             $this->readModuleSettings($serverSettings, array('Enrichment'));
         }
+        // Compress some nested arrays
+        $toFlatten = array('CakeResque');
+
+        
+        foreach ($toFlatten as $flattenkey) {
+            // Manipulate to be like CakeResque => rest.of.the.keys
+            $flattenValue = &$currentSettings[$flattenkey];
+            // This will likely be an array of arrays (map of maps? PHP is weird)
+            $flattened = $this->flatten($flattenValue);
+            $currentSettings[$flattenkey] = $flattened;
+        }
+
         $finalSettingsUnsorted = $this->__serverSettingsRead($serverSettings, $currentSettings);
         foreach ($finalSettingsUnsorted as $key => $temp) {
             if (in_array($temp['tab'], array_keys($this->__settingTabMergeRules))) {
@@ -3122,7 +3193,7 @@ class Server extends AppModel
             'debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth',
             'Security', 'Session.defaults', 'Session.timeout', 'Session.cookie_timeout',
             'Session.autoRegenerate', 'Session.checkAgent', 'site_admin_debug',
-            'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth'
+            'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth', 'CakeResque'
         );
         $settingsArray = array();
         foreach ($settingsToSave as $setting) {
