@@ -56,7 +56,10 @@
             echo sprintf('<div><span class="bold">%s</span>: %s</div>', __('Request duration'), h($data['duration']));
             echo sprintf('<div class="bold">%s</div>', __('Headers'));
             foreach ($data['headers'] as $header => $value) {
-                echo sprintf('&nbsp;&nbsp;<span class="bold">%s</span>: %s<br />', h($header), h($value));
+				if (is_array($value)) {
+					$value = implode(',', $value);
+				}
+            	echo sprintf('&nbsp;&nbsp;<span class="bold">%s</span>: %s<br />', h($header), h($value));
             }
             $format_toggles = '';
             foreach ($formats as $k => $format) {
