@@ -51,6 +51,7 @@ class ApacheAuthenticate extends BaseAuthenticate
         $ldaprdn = Configure::read('ApacheSecureAuth.ldapReaderUser');     // DN ou RDN LDAP
         $ldappass = Configure::read('ApacheSecureAuth.ldapReaderPassword');
         $ldapSearchFilter = Configure::read('ApacheSecureAuth.ldapSearchFilter');
+        $ldapEmailField = Configure::read('ApacheSecureAuth.ldapEmailField');
         // LDAP connection
         $ldapconn = ldap_connect(Configure::read('ApacheSecureAuth.ldapServer'))
                 or die('LDAP server connection failed');
@@ -80,12 +81,21 @@ class ApacheAuthenticate extends BaseAuthenticate
                     or die("Error in LDAP search query: " . ldap_error($ldapconn));
 
             $ldapUserData = ldap_get_entries($ldapconn, $result);
-
-            // the request returns only 1 field
-            if (isset($ldapUserData[0]['mail'][0])) {
+		
+            // find the email address in the query's result
+	        // first if the ldapEmailField option is not specified, look for the email address in the default field
+	        if (!isset($ldapEmailField) && isset($ldapUserData[0]['mail'][0])) {
                 // assign the real user for MISP
                 $mispUsername = $ldapUserData[0]['mail'][0];
-            } else {
+            } else if (isset($ldapEmailField)) {
+		        // if the ldapEmailField is set, use it to find the email address
+		        foreach ($ldapEmailField as $field) {
+			        if (isset($ldapUserData[0][$field][0])) {
+				        $mispUsername = $ldapUserData[0][$field][0];
+				        break;
+			        }
+		        }
+	        } else {
                 die("User not found in LDAP");
             }
             // close LDAP connection
