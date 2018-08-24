@@ -310,24 +310,9 @@ class StixBuilder(object):
                     pe_uuid = reference.referenced_uuid
                     break
             pe_object = self.objects_to_parse['pe'][pe_uuid]
-            pe_headers = PEHeaders()
-            pe_file_header = PEFileHeader()
-            pe_sections = PESectionList()
             to_ids_pe, pe_dict = self.create_attributes_dict(pe_object.attributes)
             to_ids_list.append(to_ids_pe)
-            for reference in pe_object.references:
-                if reference.Object['name'] == "pe-section":
-                    pe_section_object = self.objects_to_parse['pe-section'][reference.referenced_uuid]
-                    to_ids_section, section_dict = self.create_attributes_dict(pe_section_object.attributes)
-                    to_ids_list.append(to_ids_section)
-                    if reference.relationship_type == "included-in":
-                        pe_sections.append(self.create_pe_section_object(section_dict))
-                    elif reference.relationship_type == "header-of":
-                        entropy = self.create_pe_file_header(section_dict, pe_file_header)
-                        if entropy:
-                            pe_headers.entropy = Entropy()
-                            pe_headers.entropy.value = entropy
-            pe_headers.file_header = pe_file_header
+            pe_headers, pe_sections = self.parse_pe_references(pe_object, to_ids_list)
             win_exec_file.sections = pe_sections
             if 'number-sections' in pe_dict:
                 pe_headers.file_header.number_of_sections = pe_dict['number-sections']
@@ -348,6 +333,25 @@ class StixBuilder(object):
             else:
                 related_observable = RelatedObservable(observable, relationship=category)
                 incident.related_observables.append(related_observable)
+
+    def parse_pe_references(self, pe_object, to_ids_list):
+        pe_headers = PEHeaders()
+        pe_file_header = PEFileHeader()
+        pe_sections = PESectionList()
+        for reference in pe_object.references:
+            if reference.Object['name'] == "pe-section":
+                pe_section_object = self.objects_to_parse['pe-section'][reference.referenced_uuid]
+                to_ids_section, section_dict = self.create_attributes_dict(pe_section_object.attributes)
+                to_ids_list.append(to_ids_section)
+                if reference.relationship_type == "included-in":
+                    pe_sections.append(self.create_pe_section_object(section_dict))
+                elif reference.relationship_type == "header-of":
+                    entropy = self.create_pe_file_header(section_dict, pe_file_header)
+                    if entropy:
+                        pe_headers.entropy = Entropy()
+                        pe_headers.entropy.value = entropy
+        pe_headers.file_header = pe_file_header
+        return pe_headers, pe_sections
 
     def create_indicator(self, misp_object, observable, tags):
         tlp_tags = deepcopy(tags)
