@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import sys, json, uuid, os, time, datetime, re, ntpath, socket
+import sys
+import json
+import os
+import datetime
+import re
+import ntpath
+import socket
 from pymisp import MISPEvent
 from copy import deepcopy
 from dateutil.tz import tzutc
