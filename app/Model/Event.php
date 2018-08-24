@@ -1297,9 +1297,6 @@ class Event extends AppModel
     public function filterEventIds($user, &$params = array())
     {
         $conditions = $this->createEventConditions($user);
-        $paramArray = array('searchall', 'withAttachments', 'metadata', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly');
-        $attribute_conditions = array();
-        $object_conditions = array();
         $simple_params = array(
             'Event' => array(
                 'eventid' => array('function' => 'set_filter_eventid', 'pop' => true),
@@ -1994,6 +1991,23 @@ class Event extends AppModel
         }
         return $conditions;
     }
+
+	public function set_filter_deleted(&$params, $conditions, $options)
+	{
+		if (!empty($params['deleted'])) {
+			if (empty($options['scope'])) {
+				$scope = 'Attribute';
+			} else {
+				$scope = $options['scope'];
+			}
+			if ($params['deleted'])
+			$conditions = $this->
+			$conditions = $this->generic_add_filter($conditions, $params['deleted'], $scope . '.deleted');
+		}
+		return $conditions;
+	}
+
+
 
     public function set_filter_ignore(&$params, $conditions, $options)
     {

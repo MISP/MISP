@@ -2082,7 +2082,77 @@ class AttributesController extends AppController
         $this->set('fails', $this->Attribute->checkComposites());
     }
 
-
+    public function restSearch($returnFormat = 'json', $value = false, $type = false, $category = false, $org = false, $tags = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $uuid = false, $publish_timestamp = false, $published = false, $timestamp = false, $enforceWarninglist = false, $to_ids = false, $deleted = false, $includeEventUuid = false, $event_timestamp = false, $threat_level_id = false) {
+      $paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id');
+      $filterData = array(
+          'request' => $this->request,
+          'named_params' => $this->params['named'],
+          'paramArray' => $paramArray,
+          'ordered_url_params' => compact($paramArray)
+      );
+      $exception = false;
+      $filters = $this->_harvestParameters($filterData, $exception);
+      unset($filterData);
+      if ($filters === false) {
+          return $exception;
+      }
+      $list = array();
+      $user = $this->_getApiAuthUser($returnFormat, $exception);
+      if ($user === false) {
+          return $exception;
+      }
+      if (isset($filters['returnFormat'])) {
+          $returnFormat = $filters['returnFormat'];
+      }
+	  $conditions = $this->Attribute->buildFilterConditions($this->Auth->user(), $filters);
+	  $params = array(
+			  'conditions' => $conditions,
+			  'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution'),
+			  'withAttachments' => !empty($filters['withAttachments']) ? $filters['withAttachments'] : 0,
+			  'enforceWarninglist' => !empty($filters['enforceWarninglist']) ? $filters['enforceWarninglist'] : 0,
+			  'includeAllTags' => true,
+			  'flatten' => 1,
+			  'includeEventUuid' => !empty($filters['includeEventUuid']) ? $filters['includeEventUuid'] : 0,
+	  );
+	  if (!empty($filtes['deleted'])) {
+		  $params['deleted'] = 1;
+		  if ($params['deleted'] === 'only') {
+			  $params['conditions']['AND'][] = array('Attribute.deleted' => 1);
+			  $params['conditions']['AND'][] = array('Object.deleted' => 1);
+		  }
+	  }
+	  $results = $this->Attribute->fetchAttributes($this->Auth->user(), $params);
+	  $this->loadModel('Whitelist');
+	  $results = $this->Whitelist->removeWhitelistedFromArray($results, true);
+	  if ($returnFormat == 'openioc') {
+		  App::uses('IOCExportTool', 'Tools');
+		  $this->IOCExport = new IOCExportTool();
+		  $results = $this->IOCExport->buildAll($this->Auth->user(), $results, 'attribute');
+	  } else {
+		  if (!empty($results)) {
+			  $results = array('response' => array('Attribute' => $results));
+			  foreach ($results['response']['Attribute'] as $k => $v) {
+				  if (isset($results['response']['Attribute'][$k]['AttributeTag'])) {
+					  foreach ($results['response']['Attribute'][$k]['AttributeTag'] as $tk => $tag) {
+						  $results['response']['Attribute'][$k]['Attribute']['Tag'][$tk] = $tag['Tag'];
+					  }
+				  }
+				  $results['response']['Attribute'][$k] = $results['response']['Attribute'][$k]['Attribute'];
+				  unset(
+						  $results['response']['Attribute'][$k]['value1'],
+						  $results['response']['Attribute'][$k]['value2']
+				  );
+			  }
+		  } else {
+			  $results = array('response' => array('Attribute' => array()));
+		  }
+	  }
+	  $responseType = $this->response->type();
+	  if ($returnFormat == 'openioc') {
+		  $responseType = 'openioc';
+	  }
+	  return $this->RestResponse->viewData($results, $responseType);
+    }
 
     // Use the rest interface to search for attributes. Usage:
     // MISP-base-url/attributes/restSearch/[api-key]/[value]/[type]/[category]/[orgc]
@@ -2090,7 +2160,7 @@ class AttributesController extends AppController
     // the last 4 fields accept the following operators:
     // && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
     // ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-    public function restSearch($key = 'download', $value = false, $type = false, $category = false, $org = false, $tags = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $uuid = false, $publish_timestamp = false, $published = false, $timestamp = false, $enforceWarninglist = false, $to_ids = false, $deleted = false, $includeEventUuid = false, $event_timestamp = false, $threat_level_id = false)
+    public function restSearch2($key = 'download', $value = false, $type = false, $category = false, $org = false, $tags = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $uuid = false, $publish_timestamp = false, $published = false, $timestamp = false, $enforceWarninglist = false, $to_ids = false, $deleted = false, $includeEventUuid = false, $event_timestamp = false, $threat_level_id = false)
     {
         if ($tags) {
             $tags = str_replace(';', ':', $tags);
