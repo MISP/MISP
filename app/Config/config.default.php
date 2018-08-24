@@ -157,6 +157,7 @@ $config = array(
 			//
 			'ldapDefaultOrg'     => '1',      // uses 1st local org in MISP if undefined,
 			'ldapAllowReferrals' => true,   // allow or disallow chasing LDAP referrals
+			//'ldapEmailField' => array('emailAddress, 'mail'), // Optional : fields from which the email address should be retrieved. Default to 'mail' only. If more than one field is set (e.g. 'emailAddress' and 'mail' in this example), only the first one will be used.
 		),
 	*/
 );
