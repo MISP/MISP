@@ -2124,6 +2124,26 @@ class AttributesController extends AppController
 	  $results = $this->Attribute->fetchAttributes($this->Auth->user(), $params);
 	  $this->loadModel('Whitelist');
 	  $results = $this->Whitelist->removeWhitelistedFromArray($results, true);
+	  $validFormats = array(
+		'openioc' => 'OpeniocExport',
+		'json' => 'AttributeExport',
+		'xml' => 'AttributeExport'
+	  );
+	  $final = '';
+	  App::uses($validFormats[$returnFormat], 'Export');
+	  $exportTool = new $validFormats[$returnFormat]();
+	  $exportToolParams = array(
+		  'user' => $this->Auth->user(),
+		  'params' => $params,
+		  'returnFormat' => $returnFormat
+	  );
+	  $final .= $exportTool->header($exportToolParams);
+	  foreach ($results as $attribute) {
+		  $final .= $exportTool->handler($attribute, $exportToolParams);
+		  $final .= $exportTool->separator($exportToolParams);
+	  }
+	  $final .= $exportTool->footer($exportToolParams);
+	  /*
 	  if ($returnFormat == 'openioc') {
 		  App::uses('IOCExportTool', 'Tools');
 		  $this->IOCExport = new IOCExportTool();
@@ -2147,188 +2167,12 @@ class AttributesController extends AppController
 			  $results = array('response' => array('Attribute' => array()));
 		  }
 	  }
+	  */
 	  $responseType = $this->response->type();
 	  if ($returnFormat == 'openioc') {
 		  $responseType = 'openioc';
 	  }
-	  return $this->RestResponse->viewData($results, $responseType);
-    }
-
-    // Use the rest interface to search for attributes. Usage:
-    // MISP-base-url/attributes/restSearch/[api-key]/[value]/[type]/[category]/[orgc]
-    // value, type, category, orgc are optional
-    // the last 4 fields accept the following operators:
-    // && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
-    // ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-    public function restSearch2($key = 'download', $value = false, $type = false, $category = false, $org = false, $tags = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $uuid = false, $publish_timestamp = false, $published = false, $timestamp = false, $enforceWarninglist = false, $to_ids = false, $deleted = false, $includeEventUuid = false, $event_timestamp = false, $threat_level_id = false)
-    {
-        if ($tags) {
-            $tags = str_replace(';', ':', $tags);
-        }
-        $simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id');
-        foreach ($simpleFalse as $sF) {
-            if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') {
-                ${$sF} = false;
-            }
-        }
-        if ($key != null && strlen($key) == 40) {
-            $user = $this->checkAuthUser($key);
-            if (!$user) {
-                throw new UnauthorizedException(__('This authentication key is not authorized to be used for exports. Contact your administrator.'));
-            }
-        } else {
-            $key = strtolower($key);
-            if (!$this->Auth->user()) {
-                throw new UnauthorizedException(__('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.'));
-            }
-        }
-        // request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
-        // The correct format for both is a "request" root element, as shown by the examples below:
-        // For Json: {"request":{"value": "7.7.7.7&&1.1.1.1","type":"ip-src"}}
-        // For XML: <request><value>7.7.7.7&amp;&amp;1.1.1.1</value><type>ip-src</type></request>
-        // the response type is used to determine the parsing method (xml/json)
-        if ($this->request->is('post')) {
-            if ($this->response->type() === 'application/json') {
-                if ($key == 'xml') {
-                    throw new MethodNotAllowedException(__('Content type and parameter mismatch. Expecting JSON.'));
-                }
-                $data = $this->request->input('json_decode', true);
-            } elseif ($this->response->type() === 'application/xml' && !empty($this->request->data)) {
-                if ($key == 'json') {
-                    throw new MethodNotAllowedException(__('Content type and parameter mismatch. Expecting XML.'));
-                }
-                $data = $this->request->data;
-            } else {
-                throw new BadRequestException(__('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers).'));
-            }
-            if (!isset($data['request'])) {
-                $data['request'] = $data;
-            }
-            $paramArray = array('value', 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id');
-            foreach ($paramArray as $p) {
-                if (isset($data['request'][$p])) {
-                    ${$p} = $data['request'][$p];
-                } else {
-                    ${$p} = null;
-                }
-            }
-        }
-        $simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'event_timestamp', 'threat_level_id');
-        foreach ($simpleFalse as $sF) {
-            if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) {
-                ${$sF} = false;
-            }
-        }
-
-        if ($from) {
-            $from = $this->Attribute->Event->dateFieldCheck($from);
-        }
-        if ($to) {
-            $to = $this->Attribute->Event->dateFieldCheck($to);
-        }
-        if ($last) {
-            $last = $this->Attribute->Event->resolveTimeDelta($last);
-        }
-        $conditions['AND'] = array();
-        $subcondition = array();
-        $this->loadModel('Attribute');
-        // add the values as specified in the 2nd parameter to the conditions
-        $parameters = array('value', 'type', 'category', 'org', 'eventid', 'uuid');
-        foreach ($parameters as $k => $param) {
-            if (isset(${$parameters[$k]}) && ${$parameters[$k]} !== false) {
-                $conditions = $this->Attribute->Event->setSimpleConditions($parameters[$k], ${$parameters[$k]}, $conditions);
-            }
-        }
-
-        // If we sent any tags along, load the associated tag names for each attribute
-        if ($tags) {
-            $conditions = $this->Attribute->setTagConditions($tags, $conditions, 'attribute');
-        }
-        if ($from) {
-            $conditions['AND'][] = array('Event.date >=' => $from);
-        }
-        if ($to) {
-            $conditions['AND'][] = array('Event.date <=' => $to);
-        }
-        if ($publish_timestamp) {
-            $conditions = $this->Attribute->setTimestampConditions($publish_timestamp, $conditions, 'Event.publish_timestamp');
-        }
-        if ($last) {
-            $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
-        }
-        if ($published) {
-            $conditions['AND'][] = array('Event.published' => $published);
-        }
-        if ($timestamp) {
-            $conditions = $this->Attribute->setTimestampConditions($timestamp, $conditions, 'Attribute.timestamp');
-        }
-        if ($event_timestamp) {
-            $conditions = $this->Attribute->setTimestampConditions($event_timestamp, $conditions, 'Event.timestamp');
-        }
-        if ($threat_level_id) {
-            if (!is_array($threat_level_id)) {
-                $threat_level_id = array($threat_level_id);
-            }
-            $threat_level_lookup = array('high' => 1, 'medium' => 2, 'low' => 3, 'undefined' => 4);
-            foreach ($threat_level_id as $tldk => $tld) {
-                if (!is_numeric($tld)) {
-                    if (isset($threat_level_lookup[strtolower($tld)])) {
-                        $threat_level_id[$tldk] = $threat_level_lookup[strtolower($tld)];
-                    }
-                }
-            }
-            $conditions['AND'][] = array('Event.threat_level_id' => $threat_level_id);
-        }
-        if ($to_ids) {
-            $conditions = $this->Attribute->setToIDSConditions($to_ids, $conditions);
-        }
-        // change the fields here for the attribute export!!!! Don't forget to check for the permissions, since you are not going through fetchevent. Maybe create fetchattribute?
-        $params = array(
-                'conditions' => $conditions,
-                'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution'),
-                'withAttachments' => $withAttachments,
-                'enforceWarninglist' => $enforceWarninglist,
-                'includeAllTags' => true,
-                'flatten' => 1,
-                'includeEventUuid' => $includeEventUuid
-        );
-        if ($deleted) {
-            $params['deleted'] = 1;
-            if ($deleted === 'only') {
-                $params['conditions']['AND'][] = array('Attribute.deleted' => 1);
-            }
-        }
-        $results = $this->Attribute->fetchAttributes($this->Auth->user(), $params);
-        $this->loadModel('Whitelist');
-        $results = $this->Whitelist->removeWhitelistedFromArray($results, true);
-        if ($key == 'openioc') {
-            App::uses('IOCExportTool', 'Tools');
-            $this->IOCExport = new IOCExportTool();
-            $results = $this->IOCExport->buildAll($this->Auth->user(), $results, 'attribute');
-        } else {
-            if (!empty($results)) {
-                $results = array('response' => array('Attribute' => $results));
-                foreach ($results['response']['Attribute'] as $k => $v) {
-                    if (isset($results['response']['Attribute'][$k]['AttributeTag'])) {
-                        foreach ($results['response']['Attribute'][$k]['AttributeTag'] as $tk => $tag) {
-                            $results['response']['Attribute'][$k]['Attribute']['Tag'][$tk] = $tag['Tag'];
-                        }
-                    }
-                    $results['response']['Attribute'][$k] = $results['response']['Attribute'][$k]['Attribute'];
-                    unset(
-                            $results['response']['Attribute'][$k]['value1'],
-                            $results['response']['Attribute'][$k]['value2']
-                    );
-                }
-            } else {
-                $results = array('response' => array('Attribute' => array()));
-            }
-        }
-        $responseType = $this->response->type();
-        if ($key == 'openioc') {
-            $responseType = 'openioc';
-        }
-        return $this->RestResponse->viewData($results, $responseType);
+	  return $this->RestResponse->viewData($final, $responseType);
     }
 
     // returns an XML with attributes that belong to an event. The type of attributes to be returned can be restricted by type using the 3rd parameter.
