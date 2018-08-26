@@ -16,7 +16,12 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import sys, json, os, time, uuid, io
+import sys
+import json
+import os
+import time
+import uuid
+import io
 import stix2
 from pymisp import MISPEvent, MISPObject, __path__
 from stix2misp_mapping import *
@@ -112,20 +117,16 @@ class StixParser():
                 report_attributes['name'].append(report_name)
             if report.get('published'):
                 report_attributes['published'].append(report['published'])
-            if hasattr(report, 'labels'):
-                for l in report['labels']:
-                    if l not in report_attributes['labels']:
-                        report_attributes['labels'].append(l)
-            if hasattr(report, 'external_references'):
-                for e in report['external_references']:
-                    self.add_link(e)
+            if 'labels' in report:
+                report_attributes['labels'].extend([l for l in report['labels'] if l not in report_attributes['labels']])
+            if 'external_references' in report:
+                self.add_links(report['external_references'])
             for ref in report['object_refs']:
-                object_type, uuid = ref.split('--')
-                if object_type == 'relationship':
-                    continue
-                object2parse = self.event[object_type][uuid]
-                labels = object2parse.get('labels')
-                self.object_from_refs[object_type](object2parse, labels)
+                if 'relationship' not in ref:
+                    object_type, uuid = ref.split('--')
+                    object2parse = self.event[object_type][uuid]
+                    labels = object2parse.get('labels')
+                    self.object_from_refs[object_type](object2parse, labels)
         if len(orgs) == 1:
             identity = self.event['identity'][orgs[0]]
             self.misp_event['Org'] = {'name': identity['name']}
@@ -138,17 +139,18 @@ class StixParser():
         for l in report_attributes['labels']:
             self.misp_event.add_tag(l)
 
-    def add_link(self, e):
-        link = {"type": "link"}
-        comment = e.get('source_name')
-        try:
-            comment = comment.split('url - ')[1]
-        except IndexError:
-            pass
-        if comment:
-            link['comment'] = comment
-        link['value'] = e.get('url')
-        self.misp_event.add_attribute(**link)
+    def add_links(self, refs):
+        for e in refs:
+            link = {"type": "link"}
+            comment = e.get('source_name')
+            try:
+                comment = comment.split('url - ')[1]
+            except IndexError:
+                pass
+            if comment:
+                link['comment'] = comment
+            link['value'] = e.get('url')
+            self.misp_event.add_attribute(**link)
 
     def parse_usual_object(self, o, labels):
         if 'from_object' in labels:
@@ -181,32 +183,31 @@ class StixParser():
 
     def parse_custom(self, o, labels):
         if 'from_object' in labels:
-            self.parse_custom_object(o)
+            self.parse_custom_object(o, labels)
         else:
             self.parse_custom_attribute(o, labels)
 
-    def parse_custom_object(self, o):
-        name = o.get('type').split('x-misp-object-')[1]
-        timestamp = self.getTimestampfromDate(o.get('x_misp_timestamp'))
-        category = o.get('category')
+    def parse_custom_object(self, o, labels):
+        name = o['type'].split('x-misp-object-')[1]
+        timestamp = self.getTimestampfromDate(o['x_misp_timestamp'])
+        try:
+            category = o['category']
+        except KeyError:
+            category = self.get_misp_category(labels)
         attributes = []
-        values = o.get('x_misp_values')
-        for v in values:
-            attribute_type, object_relation = v.split('_')
-            attribute = {'type': attribute_type, 'value': values.get(v),
-                         'object_relation': object_relation}
-            attributes.append(attribute)
-        misp_object = {'name': name, 'timestamp': timestamp, 'meta-category': category,
-                       'Attribute': attributes}
+        for key, value in o['x_misp_values'].items():
+            attribute_type, object_relation = key.split('_')
+            attributes.append({'type': attribute_type, 'value': value, 'object_relation': object_relation})
+        misp_object = {'name': name, 'timestamp': timestamp, 'meta-category': category, 'Attribute': attributes}
         self.misp_event.add_object(**misp_object)
 
     def parse_custom_attribute(self, o, labels):
-        attribute_type = o.get('type').split('x-misp-object-')[1]
+        attribute_type = o['type'].split('x-misp-object-')[1]
         if attribute_type not in misp_types:
             attribute_type = attribute_type.replace('-', '|')
-        timestamp = self.getTimestampfromDate(o.get('x_misp_timestamp'))
+        timestamp = self.getTimestampfromDate(o['x_misp_timestamp'])
         to_ids = bool(labels[1].split('=')[1])
-        value = o.get('x_misp_value')
+        value = o['x_misp_value']
         category = self.get_misp_category(labels)
         attribute = {'type': attribute_type, 'timestamp': timestamp, 'to_ids': to_ids,
                      'value': value, 'category': category}
@@ -256,8 +257,8 @@ class StixParser():
                 observable = o.get('objects')
                 try:
                     value = self.parse_observable(observable, attribute_type)
-                except:
-                    print('{}: {}'.format(attribute_type, observable))
+                except Exception:
+                    print('Error with attribute type {}:\n{}'.format(attribute_type, observable), file=sys.stderr)
                 attribute['to_ids'] = False
             attribute['timestamp'] = self.getTimestampfromDate(o_date)
         if 'description' in o:
@@ -274,49 +275,25 @@ class StixParser():
         else:
             self.parse_galaxy(o, labels)
 
-    @staticmethod
-    def observable_email(observable):
+    def observable_email(self, observable):
         attributes = []
-        addresses = {}
-        files = {}
-        for o_key, o_dict in observable.items():
-            part_type = o_dict._type
-            if part_type == 'email-addr':
-                addresses[o_key] = o_dict.get('value')
-            elif part_type == 'file':
-                files[o_key] = o_dict.get('name')
-            else:
-                message = dict(o_dict)
+        addresses, files, message = self.parse_observable_email(observable)
         attributes.append({'type': 'email-src', 'object_relation': 'from',
                            'value': addresses[message.pop('from_ref')], 'to_ids': False})
         for ref in ('to_refs', 'cc_refs'):
-            if ref in message:
-                for item in message.pop(ref):
-                    mapping = email_mapping[ref]
-                    attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                                       'value': addresses[item], 'to_ids': False})
-        if 'body_multipart' in message:
-            for f in message.pop('body_multipart'):
-                attributes.append({'type': 'email-attachment', 'object_relation': 'attachment',
-                                   'value': files[f.get('body_raw_ref')], 'to_ids': False})
+            attributes.extend([self.append_email_attribute(ref, addresses[item], False) for item in message.pop(ref) if ref in message])
+        body_multipart = 'body_multipart'
+        attributes.extend([self.append_email_attribute(body_multipart, files[f.get('body_raw_ref')], False) for f in message.pop(body_multipart) if body_multipart in message])
         for m_key, m_value in message.items():
             if m_key == 'additional_header_fields':
                 for field_key, field_value in m_value.items():
-                    mapping = email_mapping[field_key]
                     if field_key == 'Reply-To':
-                        for rt in field_value:
-                            attributes.append({'type': mapping['type'],
-                                               'object_relation': mapping['relation'],
-                                               'value': rt, 'to_ids': False})
+                        attributes.extend([self.append_email_attribute(field_key, rt, False) for rt in field_value])
                     else:
-                        attributes.append({'type': mapping['type'],
-                                           'object_relation': mapping['relation'],
-                                           'value': field_value, 'to_ids': False})
+                        attributes.append(self.append_email_attribute(field_key, field_value, False))
             else:
                 try:
-                    mapping = email_mapping[m_key]
-                    attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                                       'value': m_value, 'to_ids': False})
+                    attributes.append(self.append_email_attribute(m_key, m_value, False))
                 except KeyError:
                     if m_key.startswith("x_misp_attachment_"):
                         attribute_type, relation = m_key.split("x_misp_")[1].split("_")
@@ -329,15 +306,26 @@ class StixParser():
         return attributes
 
     @staticmethod
-    def pattern_email(pattern):
+    def parse_observable_email(observable):
+        addresses = {}
+        files = {}
+        for o_key, o_dict in observable.items():
+            part_type = o_dict._type
+            if part_type == 'email-addr':
+                addresses[o_key] = o_dict.get('value')
+            elif part_type == 'file':
+                files[o_key] = o_dict.get('name')
+            else:
+                message = dict(o_dict)
+        return addresses, files, message
+
+    def pattern_email(self, pattern):
         attributes = []
         attachments = defaultdict(dict)
         for p in pattern:
             p_type, p_value = p.split(' = ')
             try:
-                mapping = email_mapping[p_type]
-                attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                                   'value': p_value[1:-1], 'to_ids': True})
+                attributes.append(self.append_email_attribute(p_type, p_value[1:-1], True))
             except KeyError:
                 if p_type.startswith("email-message:'x_misp_attachment_"):
                     relation, field = p_type.split('.')
@@ -352,6 +340,11 @@ class StixParser():
             attributes.append({'type': attribute_type, 'object_relation': relation, 'to_ids': True,
                                'value': a_dict['value'], 'data': io.BytesIO(a_dict['data'].encode())})
         return attributes
+
+    @staticmethod
+    def append_email_attribute(_type, value, to_ids):
+        mapping = email_mapping[_type]
+        return {'type': mapping['type'], 'object_relation': mapping['relation'], 'value': value, 'to_ids': to_ids}
 
     @staticmethod
     def pattern_file(pattern):
