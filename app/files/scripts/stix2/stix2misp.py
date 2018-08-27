@@ -275,49 +275,25 @@ class StixParser():
         else:
             self.parse_galaxy(o, labels)
 
-    @staticmethod
-    def observable_email(observable):
+    def observable_email(self, observable):
         attributes = []
-        addresses = {}
-        files = {}
-        for o_key, o_dict in observable.items():
-            part_type = o_dict._type
-            if part_type == 'email-addr':
-                addresses[o_key] = o_dict.get('value')
-            elif part_type == 'file':
-                files[o_key] = o_dict.get('name')
-            else:
-                message = dict(o_dict)
+        addresses, files, message = self.parse_observable_email(observable)
         attributes.append({'type': 'email-src', 'object_relation': 'from',
                            'value': addresses[message.pop('from_ref')], 'to_ids': False})
         for ref in ('to_refs', 'cc_refs'):
-            if ref in message:
-                for item in message.pop(ref):
-                    mapping = email_mapping[ref]
-                    attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                                       'value': addresses[item], 'to_ids': False})
-        if 'body_multipart' in message:
-            for f in message.pop('body_multipart'):
-                attributes.append({'type': 'email-attachment', 'object_relation': 'attachment',
-                                   'value': files[f.get('body_raw_ref')], 'to_ids': False})
+            attributes.extend([self.append_email_attribute(ref, addresses[item], False) for item in message.pop(ref) if ref in message])
+        body_multipart = 'body_multipart'
+        attributes.extend([self.append_email_attribute(body_multipart, files[f.get('body_raw_ref')], False) for f in message.pop(body_multipart) if body_multipart in message])
         for m_key, m_value in message.items():
             if m_key == 'additional_header_fields':
                 for field_key, field_value in m_value.items():
-                    mapping = email_mapping[field_key]
                     if field_key == 'Reply-To':
-                        for rt in field_value:
-                            attributes.append({'type': mapping['type'],
-                                               'object_relation': mapping['relation'],
-                                               'value': rt, 'to_ids': False})
+                        attributes.extend([self.append_email_attribute(field_key, rt, False) for rt in field_value])
                     else:
-                        attributes.append({'type': mapping['type'],
-                                           'object_relation': mapping['relation'],
-                                           'value': field_value, 'to_ids': False})
+                        attributes.append(self.append_email_attribute(field_key, field_value, False))
             else:
                 try:
-                    mapping = email_mapping[m_key]
-                    attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                                       'value': m_value, 'to_ids': False})
+                    attributes.append(self.append_email_attribute(m_key, m_value, False))
                 except KeyError:
                     if m_key.startswith("x_misp_attachment_"):
                         attribute_type, relation = m_key.split("x_misp_")[1].split("_")
@@ -330,15 +306,26 @@ class StixParser():
         return attributes
 
     @staticmethod
-    def pattern_email(pattern):
+    def parse_observable_email(observable):
+        addresses = {}
+        files = {}
+        for o_key, o_dict in observable.items():
+            part_type = o_dict._type
+            if part_type == 'email-addr':
+                addresses[o_key] = o_dict.get('value')
+            elif part_type == 'file':
+                files[o_key] = o_dict.get('name')
+            else:
+                message = dict(o_dict)
+        return addresses, files, message
+
+    def pattern_email(self, pattern):
         attributes = []
         attachments = defaultdict(dict)
         for p in pattern:
             p_type, p_value = p.split(' = ')
             try:
-                mapping = email_mapping[p_type]
-                attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                                   'value': p_value[1:-1], 'to_ids': True})
+                attributes.append(self.append_email_attribute(p_type, p_value[1:-1], True))
             except KeyError:
                 if p_type.startswith("email-message:'x_misp_attachment_"):
                     relation, field = p_type.split('.')
@@ -353,6 +340,11 @@ class StixParser():
             attributes.append({'type': attribute_type, 'object_relation': relation, 'to_ids': True,
                                'value': a_dict['value'], 'data': io.BytesIO(a_dict['data'].encode())})
         return attributes
+
+    @staticmethod
+    def append_email_attribute(_type, value, to_ids):
+        mapping = email_mapping[_type]
+        return {'type': mapping['type'], 'object_relation': mapping['relation'], 'value': value, 'to_ids': to_ids}
 
     @staticmethod
     def pattern_file(pattern):
