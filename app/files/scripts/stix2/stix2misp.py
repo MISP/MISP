@@ -16,7 +16,12 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import sys, json, os, time, uuid, io
+import sys
+import json
+import os
+import time
+import uuid
+import io
 import stix2
 from pymisp import MISPEvent, MISPObject, __path__
 from stix2misp_mapping import *
