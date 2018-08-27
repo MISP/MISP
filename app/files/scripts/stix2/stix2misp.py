@@ -183,32 +183,31 @@ class StixParser():
 
     def parse_custom(self, o, labels):
         if 'from_object' in labels:
-            self.parse_custom_object(o)
+            self.parse_custom_object(o, labels)
         else:
             self.parse_custom_attribute(o, labels)
 
-    def parse_custom_object(self, o):
-        name = o.get('type').split('x-misp-object-')[1]
-        timestamp = self.getTimestampfromDate(o.get('x_misp_timestamp'))
-        category = o.get('category')
+    def parse_custom_object(self, o, labels):
+        name = o['type'].split('x-misp-object-')[1]
+        timestamp = self.getTimestampfromDate(o['x_misp_timestamp'])
+        try:
+            category = o['category']
+        except KeyError:
+            category = self.get_misp_category(labels)
         attributes = []
-        values = o.get('x_misp_values')
-        for v in values:
-            attribute_type, object_relation = v.split('_')
-            attribute = {'type': attribute_type, 'value': values.get(v),
-                         'object_relation': object_relation}
-            attributes.append(attribute)
-        misp_object = {'name': name, 'timestamp': timestamp, 'meta-category': category,
-                       'Attribute': attributes}
+        for key, value in o['x_misp_values'].items():
+            attribute_type, object_relation = key.split('_')
+            attributes.append({'type': attribute_type, 'value': value, 'object_relation': object_relation})
+        misp_object = {'name': name, 'timestamp': timestamp, 'meta-category': category, 'Attribute': attributes}
         self.misp_event.add_object(**misp_object)
 
     def parse_custom_attribute(self, o, labels):
-        attribute_type = o.get('type').split('x-misp-object-')[1]
+        attribute_type = o['type'].split('x-misp-object-')[1]
         if attribute_type not in misp_types:
             attribute_type = attribute_type.replace('-', '|')
-        timestamp = self.getTimestampfromDate(o.get('x_misp_timestamp'))
+        timestamp = self.getTimestampfromDate(o['x_misp_timestamp'])
         to_ids = bool(labels[1].split('=')[1])
-        value = o.get('x_misp_value')
+        value = o['x_misp_value']
         category = self.get_misp_category(labels)
         attribute = {'type': attribute_type, 'timestamp': timestamp, 'to_ids': to_ids,
                      'value': value, 'category': category}
