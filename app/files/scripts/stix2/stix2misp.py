@@ -257,8 +257,8 @@ class StixParser():
                 observable = o.get('objects')
                 try:
                     value = self.parse_observable(observable, attribute_type)
-                except:
-                    print('{}: {}'.format(attribute_type, observable))
+                except Exception:
+                    print('Error with attribute type {}:\n{}'.format(attribute_type, observable), file=sys.stderr)
                 attribute['to_ids'] = False
             attribute['timestamp'] = self.getTimestampfromDate(o_date)
         if 'description' in o:
