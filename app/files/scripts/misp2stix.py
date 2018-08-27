@@ -671,59 +671,66 @@ class StixBuilder(object):
             account.description = attributes_dict.pop('text')[0]
         if 'username' in attributes_dict or 'origin' in attributes_dict or 'notification' in attributes_dict:
             custom_properties = CustomProperties()
-            for attribute_relation in ('username', 'origin', 'notification'):
-                if attribute_relation in attributes_dict:
-                    for attribute in attributes_dict.pop(attribute_relation):
-                        prop = Property()
-                        prop.name = attribute_relation
-                        prop.value = attribute
-                        custom_properties.append(prop)
-            account.custom_properties = custom_properties
+            for relation in ('username', 'origin', 'notification'):
+                custom_properties.extend([self.add_credential_custom_property(attribute, relation) for attribute in attributes_dict.pop(relation) if relation in attributes_dict])
         if attributes_dict:
             authentication = Authentication()
             if 'format' in attributes_dict:
                 struct_auth_meca = StructuredAuthenticationMechanism()
                 struct_auth_meca.description = attributes_dict['format'][0]
                 authentication.structured_authentication_mechanism = struct_auth_meca
-            if 'type' in attributes_dict and 'password' in attributes_dict and len(attributes_dict['type']) == len(attributes_dict['password']):
-                for p_type, password in zip(attributes_dict['type'], attributes_dict['password']):
-                    auth = deepcopy(authentication)
-                    auth.authentication_type = p_type
-                    auth.authentication_data = password
-                    account.authentication.append(auth)
-            else:
-                if 'type' in attributes_dict:
-                    credential_types = attributes_dict['type']
-                    if len(credential_types) == 1:
-                        authentication.authentication_type = credential_types[0]
-                    else:
-                        auth_type = credential_types[0]
-                        for misp_credential_type in ('password', 'api-key', 'encryption-key', 'unknown'):
-                            if misp_credential_type in credential_types:
-                                auth_type = misp_credential_type
-                                break
-                        authentication.authentication_type = auth_type
-                        credential_types.pop(credential_types.index(auth_type))
-                if 'password' in attributes_dict:
-                    for password in attributes_dict['password']:
-                        auth = deepcopy(authentication)
-                        auth.authentication_data = password
-                        account.authentication.append(auth)
-                else:
-                    account.authentication.append(authentication)
-                try:
-                    if credential_types:
-                        for remaining_credential_type in credential_types:
-                            authentication = Authentication()
-                            authentication.authentication_type = remaining_credential_type
-                            account.authentication.append(authentication)
-                except:
-                    pass
+            account.authentication = self.parse_credential_authentication(authentication, attributes_dict)
         uuid = misp_object.uuid
         account.parent.id_ = "{}:AccountObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(account)
         observable.id_ = "{}:Account-{}".format(self.namespace_prefix, uuid)
         return to_ids, observable
+
+    @staticmethod
+    def add_credential_custom_property(attribute, relation):
+        prop = Property()
+        prop.name = attribute_relation
+        prop.value = attribute
+        return prop
+
+    def parse_credential_authentication(self, authentication, attributes_dict):
+        if len(attributes_dict['type']) == len(attributes_dict['password']):
+            return self.parse_authentication_simple_case(authentication)
+        authentication_list = []
+        if 'type' in attributes_dict:
+            credential_types = attributes_dict['type']
+            authentication.authentication_type = credential_types.pop(0) if len(credential_types) == 1 else self.parse_credential_types(credential_types)
+            if credential_types:
+                for remaining_credential_type in credential_types:
+                    auth = Authentication()
+                    auth.authentication_type = remaining_credential_type
+                    authentication_list.append(auth)
+        if 'password' in attributes_dict:
+            for password in attributes_dict['password']:
+                auth = deepcopy(authentication)
+                auth.authentication_data = password
+                authentication_list.append(auth)
+        else:
+            authentication_list.append(authentication)
+        return authentication_list
+
+    @staticmethod
+    def parse_authentication_simple_case(authentication, attributes_dict):
+        authentication_list = []
+        for p_type, password in zip(attributes_dict['type'], attributes_dict['password']):
+            auth = deepcopy(authentication)
+            auth.authentication_type = p_type
+            auth.authentication_data = password
+            authentication_list.append(auth)
+        return authentication_list
+
+    @staticmethod
+    def parse_credential_types(credential_types):
+        misp_credential_types = ('password', 'api-key', 'encryption-key', 'unknown')
+        for _type in credential_types:
+            if _type in misp_credential_types:
+                return credential_types.pop(credential_types.index(_types))
+        return credential_types.pop(0)
 
     def parse_domain_ip_object(self, misp_object):
         to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object.attributes, with_uuid=True)
