@@ -50,7 +50,7 @@ class StixParser():
         filename = '{}/tmp/{}'.format(os.path.dirname(args[0]), args[1])
         try:
             event = STIXPackage.from_xml(filename)
-        except:
+        except Exception:
             try:
                 import maec
                 print(2)
@@ -250,7 +250,7 @@ class StixParser():
             try:
                 dt = date.split('+')[0]
                 d = int(time.mktime(time.strptime(dt, "%Y-%m-%dT%H:%M:%S")))
-            except:
+            except ValueError:
                 dt = date.split('.')[0]
                 d = int(time.mktime(time.strptime(dt, "%Y-%m-%dT%H:%M:%S")))
         except AttributeError:
@@ -682,11 +682,8 @@ class StixParser():
         if properties.raw_certificate:
             raw = properties.raw_certificate.value
             try:
-                if raw == base64.b64encode(base64.b64decode(raw)).strip():
-                    relation = "raw-base64"
-                else:
-                    relation = "pem"
-            except:
+                relation = "raw-base64" if raw == base64.b64encode(base64.b64decode(raw)).strip() else "pem"
+            except Exception:
                 relation = "pem"
             attributes.append(["text", raw, relation])
         if properties.certificate_signature:
@@ -802,7 +799,7 @@ class StixParser():
             name = cybox_to_misp_object[observable_id.split('-')[0].split(':')[1]]
         try:
             self.fill_misp_object(observable, name)
-        except:
+        except Exception:
             print("Unparsed Object type: {}".format(observable.to_json()))
 
     # Create a MISP object, its attributes, and add it in the MISP event
@@ -975,7 +972,7 @@ class StixParser():
             for part in identifier.split('-')[1:]:
                 return_id += "{}-".format(part)
             return return_id[:-1]
-        except:
+        except Exception:
             return str(uuid.uuid4())
 
     # Parse the ttps field of an external STIX document
