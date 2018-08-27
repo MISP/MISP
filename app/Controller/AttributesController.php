@@ -2103,7 +2103,9 @@ class AttributesController extends AppController
       }
       if (isset($filters['returnFormat'])) {
           $returnFormat = $filters['returnFormat'];
-      }
+      } else {
+		  $returnFormat = 'json';
+	  }
 	  $conditions = $this->Attribute->buildFilterConditions($this->Auth->user(), $filters);
 	  $params = array(
 			  'conditions' => $conditions,
@@ -2138,9 +2140,12 @@ class AttributesController extends AppController
 		  'returnFormat' => $returnFormat
 	  );
 	  $final .= $exportTool->header($exportToolParams);
-	  foreach ($results as $attribute) {
+	  $results = array_values($results);
+	  foreach ($results as $k => $attribute) {
 		  $final .= $exportTool->handler($attribute, $exportToolParams);
-		  $final .= $exportTool->separator($exportToolParams);
+		  if ($k <= count($results)) {
+		  	$final .= $exportTool->separator($exportToolParams);
+		}
 	  }
 	  $final .= $exportTool->footer($exportToolParams);
 	  /*
@@ -2172,7 +2177,7 @@ class AttributesController extends AppController
 	  if ($returnFormat == 'openioc') {
 		  $responseType = 'openioc';
 	  }
-	  return $this->RestResponse->viewData($final, $responseType);
+	  return $this->RestResponse->viewData($final, $responseType, false, true);
     }
 
     // returns an XML with attributes that belong to an event. The type of attributes to be returned can be restricted by type using the 3rd parameter.
