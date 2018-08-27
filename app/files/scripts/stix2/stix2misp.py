@@ -117,20 +117,16 @@ class StixParser():
                 report_attributes['name'].append(report_name)
             if report.get('published'):
                 report_attributes['published'].append(report['published'])
-            if hasattr(report, 'labels'):
-                for l in report['labels']:
-                    if l not in report_attributes['labels']:
-                        report_attributes['labels'].append(l)
-            if hasattr(report, 'external_references'):
-                for e in report['external_references']:
-                    self.add_link(e)
+            if 'labels' in report:
+                report_attributes['labels'].extend([l for l in report['labels'] if l not in report_attributes['labels']])
+            if 'external_references' in report:
+                self.add_links(report['external_references'])
             for ref in report['object_refs']:
-                object_type, uuid = ref.split('--')
-                if object_type == 'relationship':
-                    continue
-                object2parse = self.event[object_type][uuid]
-                labels = object2parse.get('labels')
-                self.object_from_refs[object_type](object2parse, labels)
+                if 'relationship' not in ref:
+                    object_type, uuid = ref.split('--')
+                    object2parse = self.event[object_type][uuid]
+                    labels = object2parse.get('labels')
+                    self.object_from_refs[object_type](object2parse, labels)
         if len(orgs) == 1:
             identity = self.event['identity'][orgs[0]]
             self.misp_event['Org'] = {'name': identity['name']}
@@ -143,17 +139,18 @@ class StixParser():
         for l in report_attributes['labels']:
             self.misp_event.add_tag(l)
 
-    def add_link(self, e):
-        link = {"type": "link"}
-        comment = e.get('source_name')
-        try:
-            comment = comment.split('url - ')[1]
-        except IndexError:
-            pass
-        if comment:
-            link['comment'] = comment
-        link['value'] = e.get('url')
-        self.misp_event.add_attribute(**link)
+    def add_links(self, refs):
+        for e in refs:
+            link = {"type": "link"}
+            comment = e.get('source_name')
+            try:
+                comment = comment.split('url - ')[1]
+            except IndexError:
+                pass
+            if comment:
+                link['comment'] = comment
+            link['value'] = e.get('url')
+            self.misp_event.add_attribute(**link)
 
     def parse_usual_object(self, o, labels):
         if 'from_object' in labels:
