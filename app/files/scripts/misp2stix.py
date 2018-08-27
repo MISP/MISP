@@ -237,7 +237,7 @@ class StixBuilder(object):
             incident.status = IncidentStatus(incident_status_name)
         try:
             incident.handling = self.set_tlp(self.misp_event.distribution, event_tags)
-        except:
+        except Exception:
             pass
         incident.information_source = self.set_src()
         self.orgc_name = self.misp_event.Orgc.get('name')
@@ -362,7 +362,7 @@ class StixBuilder(object):
             tlp_tags = self.merge_tags(tlp_tags, attribute)
         try:
             indicator.handling = self.set_tlp(misp_object.distribution, tlp_tags)
-        except:
+        except Exception:
             pass
         title = "{} (MISP Object #{})".format(misp_object.name, misp_object.id)
         indicator.title = title
@@ -386,7 +386,7 @@ class StixBuilder(object):
                 indicator.add_indicator_type("Malware Artifacts")
                 try:
                     indicator.add_indicator_type(misp_indicator_type[attribute.type])
-                except:
+                except Exception:
                     pass
                 indicator.add_valid_time_position(ValidTime())
                 indicator.add_observable(observable)
@@ -1032,12 +1032,12 @@ class StixBuilder(object):
             try:
                 contents = attributes_dict.pop('contents')
                 self.fill_x509_contents(x509_cert, contents)
-            except:
+            except Exception:
                 pass
             try:
                 validity = attributes_dict.pop('validity')
                 x509_cert.validity = self.fill_x509_validity(validity)
-            except:
+            except Exception:
                 pass
             if attributes_dict:
                 x509_cert.subject_public_key = self.fill_x509_pubkey(**attributes_dict)
@@ -1289,7 +1289,7 @@ class StixBuilder(object):
         ttp.id_ = "{}:ttp-{}".format(namespace[1], attribute.uuid)
         try:
             ttp.handling = self.set_tlp(attribute.distribution, self.merge_tags(tags, attribute))
-        except:
+        except Exception:
             pass
         ttp.title = "{}: {} (MISP Attribute #{})".format(attribute.category, attribute.value, attribute.id)
         return ttp
