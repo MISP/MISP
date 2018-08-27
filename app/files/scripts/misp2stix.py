@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import sys, json, uuid, os, time, datetime, re, ntpath, socket
+import sys
+import json
+import os
+import datetime
+import re
+import ntpath
+import socket
 from pymisp import MISPEvent
 from copy import deepcopy
 from dateutil.tz import tzutc
@@ -231,7 +237,7 @@ class StixBuilder(object):
             incident.status = IncidentStatus(incident_status_name)
         try:
             incident.handling = self.set_tlp(self.misp_event.distribution, event_tags)
-        except:
+        except Exception:
             pass
         incident.information_source = self.set_src()
         self.orgc_name = self.misp_event.Orgc.get('name')
@@ -304,24 +310,9 @@ class StixBuilder(object):
                     pe_uuid = reference.referenced_uuid
                     break
             pe_object = self.objects_to_parse['pe'][pe_uuid]
-            pe_headers = PEHeaders()
-            pe_file_header = PEFileHeader()
-            pe_sections = PESectionList()
             to_ids_pe, pe_dict = self.create_attributes_dict(pe_object.attributes)
             to_ids_list.append(to_ids_pe)
-            for reference in pe_object.references:
-                if reference.Object['name'] == "pe-section":
-                    pe_section_object = self.objects_to_parse['pe-section'][reference.referenced_uuid]
-                    to_ids_section, section_dict = self.create_attributes_dict(pe_section_object.attributes)
-                    to_ids_list.append(to_ids_section)
-                    if reference.relationship_type == "included-in":
-                        pe_sections.append(self.create_pe_section_object(section_dict))
-                    elif reference.relationship_type == "header-of":
-                        entropy = self.create_pe_file_header(section_dict, pe_file_header)
-                        if entropy:
-                            pe_headers.entropy = Entropy()
-                            pe_headers.entropy.value = entropy
-            pe_headers.file_header = pe_file_header
+            pe_headers, pe_sections = self.parse_pe_references(pe_object, to_ids_list)
             win_exec_file.sections = pe_sections
             if 'number-sections' in pe_dict:
                 pe_headers.file_header.number_of_sections = pe_dict['number-sections']
@@ -343,6 +334,25 @@ class StixBuilder(object):
                 related_observable = RelatedObservable(observable, relationship=category)
                 incident.related_observables.append(related_observable)
 
+    def parse_pe_references(self, pe_object, to_ids_list):
+        pe_headers = PEHeaders()
+        pe_file_header = PEFileHeader()
+        pe_sections = PESectionList()
+        for reference in pe_object.references:
+            if reference.Object['name'] == "pe-section":
+                pe_section_object = self.objects_to_parse['pe-section'][reference.referenced_uuid]
+                to_ids_section, section_dict = self.create_attributes_dict(pe_section_object.attributes)
+                to_ids_list.append(to_ids_section)
+                if reference.relationship_type == "included-in":
+                    pe_sections.append(self.create_pe_section_object(section_dict))
+                elif reference.relationship_type == "header-of":
+                    entropy = self.create_pe_file_header(section_dict, pe_file_header)
+                    if entropy:
+                        pe_headers.entropy = Entropy()
+                        pe_headers.entropy.value = entropy
+        pe_headers.file_header = pe_file_header
+        return pe_headers, pe_sections
+
     def create_indicator(self, misp_object, observable, tags):
         tlp_tags = deepcopy(tags)
         indicator = Indicator(timestamp=self.get_date_from_timestamp(int(misp_object.timestamp)))
@@ -352,7 +362,7 @@ class StixBuilder(object):
             tlp_tags = self.merge_tags(tlp_tags, attribute)
         try:
             indicator.handling = self.set_tlp(misp_object.distribution, tlp_tags)
-        except:
+        except Exception:
             pass
         title = "{} (MISP Object #{})".format(misp_object.name, misp_object.id)
         indicator.title = title
@@ -376,7 +386,7 @@ class StixBuilder(object):
                 indicator.add_indicator_type("Malware Artifacts")
                 try:
                     indicator.add_indicator_type(misp_indicator_type[attribute.type])
-                except:
+                except Exception:
                     pass
                 indicator.add_valid_time_position(ValidTime())
                 indicator.add_observable(observable)
@@ -661,59 +671,66 @@ class StixBuilder(object):
             account.description = attributes_dict.pop('text')[0]
         if 'username' in attributes_dict or 'origin' in attributes_dict or 'notification' in attributes_dict:
             custom_properties = CustomProperties()
-            for attribute_relation in ('username', 'origin', 'notification'):
-                if attribute_relation in attributes_dict:
-                    for attribute in attributes_dict.pop(attribute_relation):
-                        prop = Property()
-                        prop.name = attribute_relation
-                        prop.value = attribute
-                        custom_properties.append(prop)
-            account.custom_properties = custom_properties
+            for relation in ('username', 'origin', 'notification'):
+                custom_properties.extend([self.add_credential_custom_property(attribute, relation) for attribute in attributes_dict.pop(relation) if relation in attributes_dict])
         if attributes_dict:
             authentication = Authentication()
             if 'format' in attributes_dict:
                 struct_auth_meca = StructuredAuthenticationMechanism()
                 struct_auth_meca.description = attributes_dict['format'][0]
                 authentication.structured_authentication_mechanism = struct_auth_meca
-            if 'type' in attributes_dict and 'password' in attributes_dict and len(attributes_dict['type']) == len(attributes_dict['password']):
-                for p_type, password in zip(attributes_dict['type'], attributes_dict['password']):
-                    auth = deepcopy(authentication)
-                    auth.authentication_type = p_type
-                    auth.authentication_data = password
-                    account.authentication.append(auth)
-            else:
-                if 'type' in attributes_dict:
-                    credential_types = attributes_dict['type']
-                    if len(credential_types) == 1:
-                        authentication.authentication_type = credential_types[0]
-                    else:
-                        auth_type = credential_types[0]
-                        for misp_credential_type in ('password', 'api-key', 'encryption-key', 'unknown'):
-                            if misp_credential_type in credential_types:
-                                auth_type = misp_credential_type
-                                break
-                        authentication.authentication_type = auth_type
-                        credential_types.pop(credential_types.index(auth_type))
-                if 'password' in attributes_dict:
-                    for password in attributes_dict['password']:
-                        auth = deepcopy(authentication)
-                        auth.authentication_data = password
-                        account.authentication.append(auth)
-                else:
-                    account.authentication.append(authentication)
-                try:
-                    if credential_types:
-                        for remaining_credential_type in credential_types:
-                            authentication = Authentication()
-                            authentication.authentication_type = remaining_credential_type
-                            account.authentication.append(authentication)
-                except:
-                    pass
+            account.authentication = self.parse_credential_authentication(authentication, attributes_dict)
         uuid = misp_object.uuid
         account.parent.id_ = "{}:AccountObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(account)
         observable.id_ = "{}:Account-{}".format(self.namespace_prefix, uuid)
         return to_ids, observable
+
+    @staticmethod
+    def add_credential_custom_property(attribute, relation):
+        prop = Property()
+        prop.name = attribute_relation
+        prop.value = attribute
+        return prop
+
+    def parse_credential_authentication(self, authentication, attributes_dict):
+        if len(attributes_dict['type']) == len(attributes_dict['password']):
+            return self.parse_authentication_simple_case(authentication)
+        authentication_list = []
+        if 'type' in attributes_dict:
+            credential_types = attributes_dict['type']
+            authentication.authentication_type = credential_types.pop(0) if len(credential_types) == 1 else self.parse_credential_types(credential_types)
+            if credential_types:
+                for remaining_credential_type in credential_types:
+                    auth = Authentication()
+                    auth.authentication_type = remaining_credential_type
+                    authentication_list.append(auth)
+        if 'password' in attributes_dict:
+            for password in attributes_dict['password']:
+                auth = deepcopy(authentication)
+                auth.authentication_data = password
+                authentication_list.append(auth)
+        else:
+            authentication_list.append(authentication)
+        return authentication_list
+
+    @staticmethod
+    def parse_authentication_simple_case(authentication, attributes_dict):
+        authentication_list = []
+        for p_type, password in zip(attributes_dict['type'], attributes_dict['password']):
+            auth = deepcopy(authentication)
+            auth.authentication_type = p_type
+            auth.authentication_data = password
+            authentication_list.append(auth)
+        return authentication_list
+
+    @staticmethod
+    def parse_credential_types(credential_types):
+        misp_credential_types = ('password', 'api-key', 'encryption-key', 'unknown')
+        for _type in credential_types:
+            if _type in misp_credential_types:
+                return credential_types.pop(credential_types.index(_types))
+        return credential_types.pop(0)
 
     def parse_domain_ip_object(self, misp_object):
         to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object.attributes, with_uuid=True)
@@ -1022,12 +1039,12 @@ class StixBuilder(object):
             try:
                 contents = attributes_dict.pop('contents')
                 self.fill_x509_contents(x509_cert, contents)
-            except:
+            except Exception:
                 pass
             try:
                 validity = attributes_dict.pop('validity')
                 x509_cert.validity = self.fill_x509_validity(validity)
-            except:
+            except Exception:
                 pass
             if attributes_dict:
                 x509_cert.subject_public_key = self.fill_x509_pubkey(**attributes_dict)
@@ -1279,7 +1296,7 @@ class StixBuilder(object):
         ttp.id_ = "{}:ttp-{}".format(namespace[1], attribute.uuid)
         try:
             ttp.handling = self.set_tlp(attribute.distribution, self.merge_tags(tags, attribute))
-        except:
+        except Exception:
             pass
         ttp.title = "{}: {} (MISP Attribute #{})".format(attribute.category, attribute.value, attribute.id)
         return ttp
