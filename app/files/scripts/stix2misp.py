@@ -1004,35 +1004,11 @@ class StixParser():
                 attribute = {'type': 'text', 'object_relation': 'name',
                              'value': coa.title}
                 misp_object.add_attribute(**attribute)
-            # for prop in stix2misp_mapping.
-            if coa.type_:
-                attribute = {'type': 'text', 'object_relation': 'type',
-                             'value': coa.type_.value}
-                misp_object.add_attribute(**attribute)
-            if coa.stage:
-                attribute = {'type': 'text', 'object_relation': 'stage',
-                             'value': coa.stage.value}
-                misp_object.add_attribute(**attribute)
-            if coa.description:
-                attribute = {'type': 'text', 'object_relation': 'description',
-                             'value': coa.description.value} # POSSIBLE ISSUE HERE, need example to test
-                misp_object.add_attribute(**attribute)
-            if coa.objective:
-                attribute = {'type': 'text', 'object_relation': 'objective',
-                             'value': coa.objective.description.value}
-                misp_object.add_attribute(**attribute)
-            if coa.cost:
-                attribute = {'type': 'text', 'object_relation': 'cost',
-                             'value': coa.cost.value.value}
-                misp_object.add_attribute(**attribute)
-            if coa.efficacy:
-                attribute = {'type': 'text', 'object_relation': 'efficacy',
-                             'value': coa.efficacy.value.value}
-                misp_object.add_attribute(**attribute)
-            if coa.impact:
-                attribute = {'type': 'text', 'object_relation': 'impact',
-                             'value': coa.impact.value.value}
-                misp_object.add_attribute(**attribute)
+            for prop, properties_key in stix2misp_mapping._coa_mapping.items():
+                if getattr(coa, prop):
+                    attribute = {'type': 'text', 'object_relation': prop.replace('_', ''),
+                                 'value': attrgetter('{}.{}'.format(prop, properties_key))(coa)}
+                    misp_object.add_attribute(**attribute)
             if coa.parameter_observables:
                 for observable in coa.parameter_observables.observables:
                     properties = observable.object_.properties
