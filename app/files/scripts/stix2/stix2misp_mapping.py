@@ -121,6 +121,7 @@ address_family_attribute_mapping = {'type': 'text','relation': 'address-family'}
 as_number_attribute_mapping = {'type': 'AS', 'relation': 'asn'}
 asn_description_attribute_mapping = {'type': 'text', 'relation': 'description'}
 asn_subnet_attribute_mapping = {'type': 'ip-src', 'relation': 'subnet-announced'}
+body_multipart_mapping = {'type': 'email-attachment', 'relation': 'attachment'}
 cc_attribute_mapping = {'type': 'email-dst', 'relation': 'cc'}
 data_attribute_mapping = {'type': 'text', 'relation': 'data'}
 data_type_attribute_mapping = {'type': 'text', 'relation': 'data-type'}
@@ -194,8 +195,8 @@ email_mapping = {'date': email_date_attribute_mapping,
                  'Reply-To': reply_to_attribute_mapping,
                  'email-message:additional_header_fields.reply_to': reply_to_attribute_mapping,
                  'email-message:from_ref': {'type': 'email-src', 'relation': 'from'},
-                 'email-message:body_multipart[*].body_raw_ref.name': {'type': 'email-attachment',
-                                                                       'relation': 'attachment'}
+                 'body_multipart': body_multipart_mapping,
+                 'email-message:body_multipart[*].body_raw_ref.name': body_multipart_mapping
                  }
 
 file_mapping = {'mime_type': mime_type_attribute_mapping,

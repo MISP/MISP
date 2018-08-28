@@ -779,7 +779,7 @@ class User extends AppModel
         }
         // SMIME if not GPG key
         if (!$failed && !$canEncryptGPG && $canEncryptSMIME) {
-            $encryptionResult = $this->__encryptUsingSmime($Email, $body, $subject);
+            $encryptionResult = $this->__encryptUsingSmime($Email, $body, $subject, $user);
             if (isset($encryptionResult['failed'])) {
                 $failed = true;
             }
@@ -893,7 +893,7 @@ class User extends AppModel
         return true;
     }
 
-    private function __encryptUsingSmime(&$Email, &$body, $subject)
+    private function __encryptUsingSmime(&$Email, &$body, $subject, $user)
     {
         try {
             $prependedBody = 'Content-Transfer-Encoding: 7bit' . PHP_EOL . 'Content-Type: text/plain;' . PHP_EOL . '    charset=us-ascii' . PHP_EOL . PHP_EOL . $body;

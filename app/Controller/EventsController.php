@@ -3098,7 +3098,7 @@ class EventsController extends AppController
             } elseif ($this->response->type() === 'application/xml') {
                 $data = $this->request->data;
             } else {
-                throw new BadRequestException(__('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.'));
+                throw new BadRequestException(__('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type).'));
             }
             if (!isset($data['request'])) {
                 $data['request'] = $data;

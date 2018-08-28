@@ -16,6 +16,9 @@ eventTypes = {"ArtifactObjectType": {"type": "attachment", "relation": "attachme
 
 _AS_attribute = ('AS', 'asn')
 _as_mapping = {'number': _AS_attribute, 'handle': _AS_attribute, 'name': ('text', 'description')}
+_coa_mapping = {'type_': 'value', 'stage': 'value', 'impact': 'value.value',
+                'description': 'value', 'objective': 'description.value',
+                'cost': 'value.value', 'efficacy': 'value.value'}
 _credential_authentication_mapping = {'authentication_type': ('text', 'value', 'type'),
                                        'authentication_data': ('text', 'value', 'password'),
                                        'structured_authentication_mechanism': ('text', 'description.value', 'format')}

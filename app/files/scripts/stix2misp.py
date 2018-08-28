@@ -50,7 +50,7 @@ class StixParser():
         filename = '{}/tmp/{}'.format(os.path.dirname(args[0]), args[1])
         try:
             event = STIXPackage.from_xml(filename)
-        except:
+        except Exception:
             try:
                 import maec
                 print(2)
@@ -250,7 +250,7 @@ class StixParser():
             try:
                 dt = date.split('+')[0]
                 d = int(time.mktime(time.strptime(dt, "%Y-%m-%dT%H:%M:%S")))
-            except:
+            except ValueError:
                 dt = date.split('.')[0]
                 d = int(time.mktime(time.strptime(dt, "%Y-%m-%dT%H:%M:%S")))
         except AttributeError:
@@ -682,11 +682,8 @@ class StixParser():
         if properties.raw_certificate:
             raw = properties.raw_certificate.value
             try:
-                if raw == base64.b64encode(base64.b64decode(raw)).strip():
-                    relation = "raw-base64"
-                else:
-                    relation = "pem"
-            except:
+                relation = "raw-base64" if raw == base64.b64encode(base64.b64decode(raw)).strip() else "pem"
+            except Exception:
                 relation = "pem"
             attributes.append(["text", raw, relation])
         if properties.certificate_signature:
@@ -802,7 +799,7 @@ class StixParser():
             name = cybox_to_misp_object[observable_id.split('-')[0].split(':')[1]]
         try:
             self.fill_misp_object(observable, name)
-        except:
+        except Exception:
             print("Unparsed Object type: {}".format(observable.to_json()))
 
     # Create a MISP object, its attributes, and add it in the MISP event
@@ -975,7 +972,7 @@ class StixParser():
             for part in identifier.split('-')[1:]:
                 return_id += "{}-".format(part)
             return return_id[:-1]
-        except:
+        except Exception:
             return str(uuid.uuid4())
 
     # Parse the ttps field of an external STIX document
@@ -1007,35 +1004,11 @@ class StixParser():
                 attribute = {'type': 'text', 'object_relation': 'name',
                              'value': coa.title}
                 misp_object.add_attribute(**attribute)
-            # for prop in stix2misp_mapping.
-            if coa.type_:
-                attribute = {'type': 'text', 'object_relation': 'type',
-                             'value': coa.type_.value}
-                misp_object.add_attribute(**attribute)
-            if coa.stage:
-                attribute = {'type': 'text', 'object_relation': 'stage',
-                             'value': coa.stage.value}
-                misp_object.add_attribute(**attribute)
-            if coa.description:
-                attribute = {'type': 'text', 'object_relation': 'description',
-                             'value': coa.description.value} # POSSIBLE ISSUE HERE, need example to test
-                misp_object.add_attribute(**attribute)
-            if coa.objective:
-                attribute = {'type': 'text', 'object_relation': 'objective',
-                             'value': coa.objective.description.value}
-                misp_object.add_attribute(**attribute)
-            if coa.cost:
-                attribute = {'type': 'text', 'object_relation': 'cost',
-                             'value': coa.cost.value.value}
-                misp_object.add_attribute(**attribute)
-            if coa.efficacy:
-                attribute = {'type': 'text', 'object_relation': 'efficacy',
-                             'value': coa.efficacy.value.value}
-                misp_object.add_attribute(**attribute)
-            if coa.impact:
-                attribute = {'type': 'text', 'object_relation': 'impact',
-                             'value': coa.impact.value.value}
-                misp_object.add_attribute(**attribute)
+            for prop, properties_key in stix2misp_mapping._coa_mapping.items():
+                if getattr(coa, prop):
+                    attribute = {'type': 'text', 'object_relation': prop.replace('_', ''),
+                                 'value': attrgetter('{}.{}'.format(prop, properties_key))(coa)}
+                    misp_object.add_attribute(**attribute)
             if coa.parameter_observables:
                 for observable in coa.parameter_observables.observables:
                     properties = observable.object_.properties

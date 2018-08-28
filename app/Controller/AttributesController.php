@@ -352,7 +352,7 @@ class AttributesController extends AppController
                     } else {
                         $this->Flash->error($message);
                     }
-                    if (count($successes) > 0) {
+                    if ($successes > 0) {
                         $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
                     }
                 }
@@ -433,8 +433,33 @@ class AttributesController extends AppController
             $this->loadModel('Server');
             $attachments_dir = $this->Server->getDefaultAttachments_dir();
         }
-        $path = $attachments_dir . DS . $attribute['event_id'] . DS;
-        $file = $attribute['id'];
+
+        $is_s3 = substr($attachments_dir, 0, 2) === "s3";
+
+        if ($is_s3) {
+            // We have to download it!
+            App::uses('AWSS3Client', 'Tools');
+            $client = new AWSS3Client();
+            $client->initTool();
+            // Use tmpdir as opposed to attachments dir since we can't write to s3://
+            $attachments_dir = Configure::read('MISP.tmpdir');
+            if (empty($attachments_dir)) {
+                $this->loadModel('Server');
+                $attachments_dir = $this->Server->getDefaultTmp_dir();
+            }
+            // Now download the file
+            $resp = $client->download($attribute['event_id'] . DS . $attribute['id']);
+            // Save to a tmpfile
+            $tmpFile = new File($attachments_dir . DS . $attribute['uuid'], true, 0600);
+            $tmpFile->write($resp);
+            $tmpFile->close();
+            $path = $attachments_dir . DS;
+            $file = $attribute['uuid'];
+        } else {
+            $path = $attachments_dir . DS . $attribute['event_id'] . DS;
+            $file = $attribute['id'];
+        }
+
         if ('attachment' == $attribute['type']) {
             $filename = $attribute['value'];
             $fileExt = pathinfo($filename, PATHINFO_EXTENSION);
@@ -877,10 +902,12 @@ class AttributesController extends AppController
             if (count($existingAttribute) && !$existingAttribute['Attribute']['deleted']) {
                 $this->request->data['Attribute']['id'] = $existingAttribute['Attribute']['id'];
                 $dateObj = new DateTime();
+                $skipTimeCheck = false;
                 if (!isset($this->request->data['Attribute']['timestamp'])) {
                     $this->request->data['Attribute']['timestamp'] = $dateObj->getTimestamp();
+                    $skipTimeCheck = true;
                 }
-                if ($this->request->data['Attribute']['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
+                if ($skipTimeCheck || $this->request->data['Attribute']['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
                     $recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment');
                     foreach ($recoverFields as $rF) {
                         if (!isset($this->request->data['Attribute'][$rF])) {
@@ -2102,7 +2129,7 @@ class AttributesController extends AppController
                 }
                 $data = $this->request->data;
             } else {
-                throw new BadRequestException(__('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers.'));
+                throw new BadRequestException(__('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers).'));
             }
             if (!isset($data['request'])) {
                 $data['request'] = $data;
@@ -2260,7 +2287,7 @@ class AttributesController extends AppController
             } elseif ($this->response->type() === 'application/xml' && !empty($this->request->data)) {
                 $data = $this->request->data;
             } else {
-                throw new BadRequestException(__('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers.'));
+                throw new BadRequestException(__('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers).'));
             }
             $paramArray = array('type', 'sigOnly');
             foreach ($paramArray as $p) {

@@ -7,6 +7,7 @@
         "pear/net_geoip": "@dev"
     },
     "suggest": {
-        "elasticsearch/elasticsearch": "For logging to elasticsearch"
+        "elasticsearch/elasticsearch": "For logging to elasticsearch",
+        "aws/aws-sdk-php": "To upload samples to S3"
     }
 }

@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2018-07-18 11:42\n"
+"PO-Revision-Date: 2018-08-21 10:42\n"
 "Last-Translator: SteveClement <steve@localhost.lu>\n"
 "Language-Team: Czech\n"
 "MIME-Version: 1.0\n"
@@ -35,18 +35,18 @@ msgstr "Úloha ve frontě. Pokud přejdete do zobrazení aktivních úloh (Sprá
 #: Controller/AttributesController.php:130;1248
 #: Controller/EventGraphController.php:16;68
 msgid "No event ID set."
-msgstr ""
+msgstr "Není nastaveno ID události."
 
 #: Controller/AttributesController.php:132
 msgid "You don't have permissions to create attributes"
-msgstr ""
+msgstr "Nemáte oprávnění k vytvoření atributů"
 
 #: Controller/AttributesController.php:150;434;586
 #: Controller/EventGraphController.php:76
 #: Controller/EventsController.php:1526;1544;1577
 #: Controller/ObjectsController.php:426
 msgid "You do not have permission to do that."
-msgstr ""
+msgstr "K tomu nemáte oprávnění."
 
 #: Controller/AttributesController.php:387;774;779;782;965;1038;2395;2408;2428;2449;2457;2910;2912;2999;3001
 #: Controller/ShadowAttributesController.php:759;976;1000;1028;1038
@@ -57,7 +57,7 @@ msgstr "Neplatný atribut"
 #: Controller/AttributesController.php:396
 #: Controller/ShadowAttributesController.php:468
 msgid "You do not have the permission to view this event."
-msgstr ""
+msgstr "Nemáte oprávnění k zobrazení této události."
 
 #: Controller/AttributesController.php:418
 msgid "Attribute not an attachment or malware-sample"
@@ -66,7 +66,7 @@ msgstr "Atribut není přílohou nebo vzorkem malware"
 #: Controller/AttributesController.php:449;597
 #: Controller/ShadowAttributesController.php:506
 msgid "PHP says file was not uploaded. Are you attacking me?"
-msgstr ""
+msgstr "PHP říká, že soubor nebyl odeslán. Útočíš na mě?"
 
 #: Controller/AttributesController.php:599
 #: Controller/ShadowAttributesController.php:508;518
@@ -92,12 +92,12 @@ msgstr "Neplatný atribut."
 
 #: Controller/AttributesController.php:820
 msgid "Attribute could not be saved: Attribute in the request not newer than the local copy."
-msgstr ""
+msgstr "Atribut nelze uložit: atribut v požadavku není novější než místní kopie."
 
 #: Controller/AttributesController.php:836;1257
 #: Controller/EventsController.php:4190;4200;4709;4723
 msgid "Invalid Event."
-msgstr ""
+msgstr "Neplatná událost."
 
 #: Controller/AttributesController.php:853
 msgid "The attribute has been saved"
@@ -119,7 +119,7 @@ msgstr "Neplatný vstup."
 
 #: Controller/AttributesController.php:999
 msgid "Invalid field."
-msgstr ""
+msgstr "Neplatné pole."
 
 #: Controller/AttributesController.php:1041
 msgid "Invalid attribute id."
@@ -140,31 +140,31 @@ msgstr "Neplatný atribut"
 
 #: Controller/AttributesController.php:1154
 msgid "Could not restore the attribute"
-msgstr ""
+msgstr "Nelze obnovit atribut"
 
 #: Controller/AttributesController.php:1172;1178;1182
 msgid "Attribute not found or not authorised."
-msgstr ""
+msgstr "Atribut nebyl nalezen nebo není povolen."
 
 #: Controller/AttributesController.php:1231
 msgid "This function is only accessible via POST requests."
-msgstr ""
+msgstr "Tato funkce je pouze přístupné prostřednictvím POST požadavku."
 
 #: Controller/AttributesController.php:1279
 msgid "No matching attributes found."
-msgstr ""
+msgstr "Nebyly nalezeny žádné stejné atributy."
 
 #: Controller/AttributesController.php:1308
 msgid "This method can only be accessed via AJAX."
-msgstr ""
+msgstr "Tato metoda je přístupná pouze přes AJAX."
 
 #: Controller/AttributesController.php:1318
 msgid "You are not authorized to edit this event."
-msgstr ""
+msgstr "Nemáte oprávnění k úpravě této události."
 
 #: Controller/AttributesController.php:1380
 msgid "No event ID provided."
-msgstr ""
+msgstr "Žádné ID události není k dispozici."
 
 #: Controller/AttributesController.php:1479
 msgid "Invalid tag"
@@ -173,7 +173,7 @@ msgstr "Neplatná značka"
 #: Controller/AttributesController.php:1932;2073;2172;2210;2273;2332
 #: Controller/EventsController.php:2272;2367;2420;2467;2795;2980;3618;3635
 msgid "This authentication key is not authorized to be used for exports. Contact your administrator."
-msgstr ""
+msgstr "Tento ověřovací klíč nemá oprávnění použítí pro export. Obraťte se na správce."
 
 #: Controller/AttributesController.php:1936;2069;2166
 #: Controller/EventsController.php:2799
@@ -182,11 +182,11 @@ msgstr ""
 
 #: Controller/AttributesController.php:1946
 msgid "Content type and parameter mismatch. Expecting JSON."
-msgstr ""
+msgstr "Neshoda typu obsahu a parametru. Byl očekáván JSON."
 
 #: Controller/AttributesController.php:1951
 msgid "Content type and parameter mismatch. Expecting XML."
-msgstr ""
+msgstr "Neshoda typu obsahu a parametru. Byl očekáván XML."
 
 #: Controller/AttributesController.php:1955;2081
 msgid "Either specify the search terms in the url, or POST a json array / xml (with the root element being \"request\" and specify the correct accept and content type headers."
@@ -194,20 +194,20 @@ msgstr ""
 
 #: Controller/AttributesController.php:2098
 msgid "You don't have access to that event."
-msgstr ""
+msgstr "Nemáte přístup k této události."
 
 #: Controller/AttributesController.php:2158
 msgid "No matches."
-msgstr ""
+msgstr "Žádná shoda."
 
 #: Controller/AttributesController.php:2176;2184
 msgid "Invalid attribute or no authorisation to view it."
-msgstr ""
+msgstr "Neplatný atribut nebo nemáte oprávnění k jeho zobrazení."
 
 #: Controller/AttributesController.php:2214;2277;2336
 #: Controller/EventsController.php:2276;2372;2425;2471;2984;3622;3639
 msgid "You have to be logged in to do that."
-msgstr ""
+msgstr "Pro tuto akci je nutné se přihlásit."
 
 #: Controller/AttributesController.php:2239
 #: Controller/EventsController.php:2813
@@ -216,7 +216,7 @@ msgstr ""
 
 #: Controller/AttributesController.php:2282
 msgid "Invalid event ID format."
-msgstr ""
+msgstr "Neplatný formát ID události."
 
 #: Controller/AttributesController.php:2361
 #: Controller/ShadowAttributesController.php:1145
@@ -226,64 +226,64 @@ msgstr "Vše je hotovo. "
 #: Controller/AttributesController.php:2391;2424
 #: Controller/ShadowAttributesController.php:972
 msgid "Invalid field requested."
-msgstr ""
+msgstr "Požadováno neplatné pole."
 
 #: Controller/AttributesController.php:2392;2425
 msgid "This function can only be accessed via AJAX."
-msgstr ""
+msgstr "Tato funkce je přístupná pouze přes AJAX."
 
 #: Controller/AttributesController.php:2486;2493
 #: Controller/EventsController.php:3327;3593
 msgid "Event not found or you don't have permissions to create attributes"
-msgstr ""
+msgstr "Událost nebyla nalezena nebo nemáte oprávnění k vytvoření atributů"
 
 #: Controller/AttributesController.php:2512
 msgid "This action can only be accessed via AJAX."
-msgstr ""
+msgstr "Tato akce je přístupná pouze přes AJAX."
 
 #: Controller/AttributesController.php:2519;2725;2734;2742
 msgid "You are not authorised to do that."
-msgstr ""
+msgstr "K tomu nemáte oprávnění."
 
 #: Controller/AttributesController.php:2607
 #: Controller/EventsController.php:4015
 msgid "This functionality requires API key access."
-msgstr ""
+msgstr "Tato funkce vyžaduje API klíč."
 
 #: Controller/AttributesController.php:2614
 msgid "This action is for the API only. Please refer to the automation page for information on how to use it."
-msgstr ""
+msgstr "Tato akce je pouze pro API. Na stránce automatizace jsou informace o pouzívání."
 
 #: Controller/AttributesController.php:2619
 msgid "No hash or event ID received. You need to set at least one of the two."
-msgstr ""
+msgstr "Nebyl přiajt žádný hash nebo ID události. Je nutné nastavit alespoň jeden ze dvou."
 
 #: Controller/AttributesController.php:2751
 msgid "Invalid script."
-msgstr ""
+msgstr "Neplatný skript."
 
 #: Controller/AttributesController.php:2800
 msgid "No valid enrichment options found for this attribute."
-msgstr ""
+msgstr "Žádná platná obohacování možnosti pro tento atribut."
 
 #: Controller/AttributesController.php:2853
 msgid "Invalid type requested."
-msgstr ""
+msgstr "Vyžádán neplatný typ."
 
 #: Controller/AttributesController.php:3052
 #: Controller/EventsController.php:4705
 msgid "Disabling the correlation is not permitted on this instance."
-msgstr ""
+msgstr "Zákaz korelace není na tuto instanci možný."
 
 #: Controller/AttributesController.php:3056;3071
 #: Controller/ShadowAttributesController.php:627
 msgid "Invalid Attribute."
-msgstr ""
+msgstr "Neplatný atribut."
 
 #: Controller/AttributesController.php:3059;3074
 #: Controller/EventsController.php:4712;4726
 msgid "You don't have permission to do that."
-msgstr ""
+msgstr "K tomu nemáte oprávnění."
 
 #: Controller/EventBlacklistsController.php:11
 msgid "Event Blacklisting is not currently enabled on this instance."
@@ -307,11 +307,11 @@ msgstr "V profilu chybí klíč GnuPG. Chcete-li zobrazit atributy v e-mailech, 
 
 #: Controller/EventsController.php:1381
 msgid "You don't have permissions to create events"
-msgstr ""
+msgstr "Nemáte oprávnění k vytváření událostí"
 
 #: Controller/EventsController.php:1387
 msgid "No valid event data received."
-msgstr ""
+msgstr "Nebyla přijata žádná platná data událostí."
 
 #: Controller/EventsController.php:1416
 msgid "Invalid Sharing Group or not authorised (Sync user is not contained in the Sharing group)."
@@ -323,7 +323,7 @@ msgstr ""
 
 #: Controller/EventsController.php:1446
 msgid "Event blocked by local blacklist."
-msgstr ""
+msgstr "Událost zablokována místním blacklistem."
 
 #: Controller/EventsController.php:1459;1533;1781
 msgid "The event has been saved"
@@ -331,11 +331,11 @@ msgstr "Událost byla uložena"
 
 #: Controller/EventsController.php:1467
 msgid "Event already exists, if you would like to edit it, use the url in the location header."
-msgstr ""
+msgstr "Událost již existuje, pokud byste chtěli upravit, použijte adresu url v hlavičce umístění."
 
 #: Controller/EventsController.php:1478
 msgid "A blacklist entry is blocking you from creating any events. Please contact the administration team of this instance"
-msgstr ""
+msgstr "Vytvoření události brání vstup na blacklistu. Obraťte se na tým pro správu této instance"
 
 #: Controller/EventsController.php:1480;1784
 msgid "The event could not be saved. Please, try again."
@@ -379,7 +379,7 @@ msgstr "Nemáte oprávnění ke čtení vybrané události."
 
 #: Controller/EventsController.php:1924;1986
 msgid "You don't have the permission to do that."
-msgstr ""
+msgstr "K tomu nemáte oprávnění."
 
 #: Controller/EventsController.php:2069
 msgid "Email sent to the reporter."
@@ -391,7 +391,7 @@ msgstr "Odesílání e-mailu se nezdařilo"
 
 #: Controller/EventsController.php:2202
 msgid "This feature is currently disabled"
-msgstr ""
+msgstr "Tato funkce je vypnuta"
 
 #: Controller/EventsController.php:2237;3649
 msgid "Either specify the search terms in the url, or POST an xml (with the root element being \"request\"."
@@ -399,7 +399,7 @@ msgstr ""
 
 #: Controller/EventsController.php:2264
 msgid "Invalid Event ID."
-msgstr ""
+msgstr "Neplatné ID události."
 
 #: Controller/EventsController.php:2305
 msgid "No events found that match the passed parameters."
@@ -416,11 +416,11 @@ msgstr ""
 #: Controller/EventsController.php:2407
 #: Model/Attribute.php:1788
 msgid "Invalid hash type."
-msgstr ""
+msgstr "Neplatný typ hashe."
 
 #: Controller/EventsController.php:2596
 msgid "Filename not allowed."
-msgstr ""
+msgstr "Tento typ souboru není povolen."
 
 #: Controller/EventsController.php:2616
 msgid "Problem with writing the ioc file. Please report to administrator."
@@ -428,11 +428,11 @@ msgstr "Problém se zapsáním ioc souboru. Kontaktujte administrátora."
 
 #: Controller/EventsController.php:2708
 msgid "This is not a valid MISP XML file."
-msgstr ""
+msgstr "Toto není platný MISP XML soubor."
 
 #: Controller/EventsController.php:2973
 msgid "Not yet implemented"
-msgstr ""
+msgstr "Není implementováno"
 
 #: Controller/EventsController.php:2991;2994
 msgid "Invalid event or not authorised."
@@ -444,24 +444,24 @@ msgstr ""
 
 #: Controller/EventsController.php:3547
 msgid "Could not add tags."
-msgstr ""
+msgstr "Nelze přidat tagy."
 
 #: Controller/EventsController.php:3597;4564
 #: Controller/ObjectsController.php:43;132;136;422
 msgid "Invalid event."
-msgstr ""
+msgstr "Neplatná událost."
 
 #: Controller/EventsController.php:3696;3723;3736
 msgid "You do not have the permission to do that."
-msgstr ""
+msgstr "K tomu nemáte oprávnění."
 
 #: Controller/EventsController.php:3794;3925
 msgid "Invalid ID"
-msgstr ""
+msgstr "Neplatné ID"
 
 #: Controller/EventsController.php:3796;3927
 msgid "Event not found or you are not authorised to view it."
-msgstr ""
+msgstr "Událost nenalezena nebo nemáte oprávnění."
 
 #: Controller/EventsController.php:4016;4022
 msgid "Please POST the samples as described on the automation page."
@@ -473,11 +473,11 @@ msgstr ""
 
 #: Controller/EventsController.php:4054
 msgid "Event not found"
-msgstr ""
+msgstr "Událost nebyla nalezena"
 
 #: Controller/EventsController.php:4073
 msgid "Event not found."
-msgstr ""
+msgstr "Událost nebyla nalezena."
 
 #: Controller/EventsController.php:4081
 msgid "Distribution level 5 is not supported when uploading a sample without passing an event ID. Distribution level 5 is meant to take on the distribution level of an existing event."
@@ -489,11 +489,11 @@ msgstr ""
 
 #: Controller/EventsController.php:4220;4239;4265;4287;4309;4336;4354
 msgid "Invalid type."
-msgstr ""
+msgstr "Neplatný typ."
 
 #: Controller/EventsController.php:4395
 msgid "Invalid method."
-msgstr ""
+msgstr "Neplatná metoda."
 
 #: Controller/EventsController.php:4472
 msgid "%s services are not enabled."
@@ -525,12 +525,12 @@ msgstr ""
 
 #: Controller/EventsController.php:4792
 msgid "Invalid ID."
-msgstr ""
+msgstr "Neplatné ID."
 
 #: Controller/EventsController.php:4838
 #: Controller/ShadowAttributesController.php:289;292;493
 msgid "Invalid Event"
-msgstr ""
+msgstr "Neplatná událost"
 
 #: Controller/EventsController.php:4855
 msgid "Enrichment task queued for background processing. Check back later to see the results."
@@ -550,7 +550,7 @@ msgstr "Nebylo možné přidat informační kanál. Neplatné pole: %s"
 
 #: Controller/FeedsController.php:208;297;316;426;449;603
 msgid "Invalid feed."
-msgstr ""
+msgstr "Neplatný kanál."
 
 #: Controller/FeedsController.php:274
 msgid "Feed could not be updated. Invalid fields: %s"
@@ -586,15 +586,15 @@ msgstr ""
 
 #: Controller/FeedsController.php:435
 msgid "Event added."
-msgstr ""
+msgstr "Událost přidána."
 
 #: Controller/FeedsController.php:437
 msgid "Event already up to date."
-msgstr ""
+msgstr "Událost je již aktuální."
 
 #: Controller/FeedsController.php:438
 msgid "Event updated."
-msgstr ""
+msgstr "Událost byla aktualizována."
 
 #: Controller/FeedsController.php:441
 msgid "Could not %s event."
@@ -602,7 +602,7 @@ msgstr ""
 
 #: Controller/FeedsController.php:443
 msgid "Download failed."
-msgstr ""
+msgstr "Stahování se nezdařilo."
 
 #: Controller/FeedsController.php:500
 msgid "Feed could not be fetched. The HTTP error code returned was: "
@@ -610,7 +610,7 @@ msgstr ""
 
 #: Controller/FeedsController.php:532;577
 msgid "Invalid feed type."
-msgstr ""
+msgstr "Neplatný kanál."
 
 #: Controller/FeedsController.php:630
 msgid "This event is blocked by the Feed filters."
@@ -622,7 +622,7 @@ msgstr ""
 
 #: Controller/FeedsController.php:662;664
 msgid "Invalid Feed."
-msgstr ""
+msgstr "Neplatný kanál."
 
 #: Controller/FeedsController.php:683
 msgid "Only POST requests are allowed."
@@ -630,7 +630,7 @@ msgstr ""
 
 #: Controller/FeedsController.php:687
 msgid "Feed not found."
-msgstr ""
+msgstr "Kanál nebyl nalezen."
 
 #: Controller/FeedsController.php:696
 msgid "Data pulled."
@@ -843,7 +843,7 @@ msgstr "Přesun souboru, na který tato příloha odkazuje se nezdařil."
 
 #: Controller/ShadowAttributesController.php:259
 msgid "Could not discard proposal."
-msgstr ""
+msgstr "Návrh se nepodařilo smazat."
 
 #: Controller/ShadowAttributesController.php:311
 msgid "Attribute has not been added: attachments are added by \"Add attachment\" button"
@@ -895,7 +895,7 @@ msgstr ""
 
 #: Controller/ShadowAttributesController.php:820;828
 msgid "Invalid proposal."
-msgstr ""
+msgstr "Neplatný návrh."
 
 #: Controller/ShadowAttributesController.php:867
 msgid "No proposals found or invalid event."

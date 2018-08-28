@@ -164,6 +164,9 @@ class UsersController extends AppController
 
     public function change_pw()
     {
+        if (!$this->_isAdmin() && Configure::read('MISP.disableUserSelfManagement')) {
+            throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
+        }
         $id = $this->Auth->user('id');
         $user = $this->User->find('first', array(
             'conditions' => array('User.id' => $id),
@@ -1698,7 +1701,7 @@ class UsersController extends AppController
         );
         $scopes = array(
             'user' => array(
-                'conditions' => null,
+                'conditions' => array(),
                 'model' => 'User',
                 'date_created' => 'timestamp'
             ),
@@ -1719,17 +1722,23 @@ class UsersController extends AppController
                 $params = array(
                     'recursive' => -1
                 );
+                $filter = array();
                 if (!empty($condition)) {
                     if ($scope_data['date_created'] === 'datetime') {
                         $condition = date('Y-m-d H:i:s', $condition);
                     }
-                    $params['conditions'] = array($scope_data['model'] . '.date_created >=' => $condition);
+                    $filter = array($scope_data['model'] . '.date_created >=' => $condition);
                 }
+                $params['conditions'] = array_merge($scopes[$scope]['conditions'], $filter);
                 $statistics[$scope]['data'][$range] = $this->{$scope_data['model']}->find('count', $params);
             }
         }
-        $this->set('statistics', $statistics);
-        $this->render('statistics_users');
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($statistics, $this->response->type());
+        } else {
+            $this->set('statistics', $statistics);
+            $this->render('statistics_users');
+        }
     }
 
     public function tagStatisticsGraph()
