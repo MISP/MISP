@@ -752,12 +752,14 @@ class User extends AppModel
         $failed = false;
         $failureReason = "";
         // check if the e-mail can be signed & encrypted
-        $canSignGPG = Configure::read('GnuPG.sign', false);
-        $canEncryptGPG = isset($user['User']['gpgkey']) && !empty($user['User']['gpgkey']);
-        $canEncryptSMIME = isset($user['User']['certif_public']) && !empty($user['User']['certif_public']) && Configure::read('SMIME.enabled');
-
+        $signEncryptOptions = [
+            "GPGSign"       => Configure::read('GnuPG.sign', false),
+            "GPGEncrypt"    => isset($user['User']['gpgkey']) && !empty($user['User']['gpgkey']),
+            "SMIMEEncrypt"  => isset($user['User']['certif_public']) && !empty($user['User']['certif_public']) && Configure::read('SMIME.enabled'),
+        ];
+        
         // If bodyonlyencrypted is enabled and the user has no encryption key, use the alternate body (if it exists)
-        if (Configure::read('GnuPG.bodyonlyencrypted') && !$canEncryptSMIME && !$canEncryptGPG && $bodyNoEnc) {
+        if (Configure::read('GnuPG.bodyonlyencrypted') && !$signEncryptOptions['SMIMEEncrypt'] && !$signEncryptOptions['GPGSign'] && $bodyNoEnc) {
             $body = $bodyNoEnc;
         }
         $body = str_replace('\n', PHP_EOL, $body);
@@ -769,37 +771,13 @@ class User extends AppModel
             $failureReason = " encrypted messages are enforced and the message could not be encrypted for this user as no valid encryption key was found.";
         }
 
-        // Sign the message body if we can
-        if (!$failed && $canSignGPG) {
-            $signResult = $this->__signUsingGPG($body);
-            if (isset($signResult['failed'])) {
-                $failed = true;
-            }
-            if (isset($signResult['failureReason'])) {
-                $failureReason = $signResult['failureReason'];
-            }
+        // split out signing/encryption into its own method
+        if (!$failed) {
+            $signEncryptResult = $this->__handleEncryptionAndSigning($Email, $body, $subject, $user, $signEncryptOptions);
+            $failed = (isset($signEncryptResult['failed'])) ? $signEncryptResult['failed'] : false;
+            $failureReason = (isset($signEncryptResult['failureReason'])) ? $signEncryptResult['failureReason'] : "";
         }
 
-        // Let's encrypt the message if we can
-        if (!$failed && $canEncryptGPG) {
-            $encryptionResult = $this->__encryptUsingGPG($Email, $body, $subject, $user);
-            if (isset($encryptionResult['failed'])) {
-                $failed = true;
-            }
-            if (isset($encryptionResult['failureReason'])) {
-                $failureReason = $encryptionResult['failureReason'];
-            }
-        }
-        // SMIME if not GPG key
-        if (!$failed && !$canEncryptGPG && $canEncryptSMIME) {
-            $encryptionResult = $this->__encryptUsingSmime($Email, $body, $subject, $user);
-            if (isset($encryptionResult['failed'])) {
-                $failed = true;
-            }
-            if (isset($encryptionResult['failureReason'])) {
-                $failureReason = $encryptionResult['failureReason'];
-            }
-        }
         $replyToLog = '';
         if (!$failed) {
             $result = $this->__finaliseAndSendEmail($replyToUser, $Email, $replyToLog, $user, $subject, $body);
@@ -855,6 +833,34 @@ class User extends AppModel
         $result = $Email->send($body);
         $Email->reset();
         return $result;
+    }
+
+    private function __handleEncryptionAndSigning(&$Email, &$body, $subject, $user, $signEncryptOptions) {
+        
+        $failed = false;
+        $failureReason = "";
+        if (!$failed && $signEncryptOptions['GPGSign']) {
+            $signResult = $this->__signUsingGPG($body);
+            $failed = (isset($signResult['failed'])) ? $signResult['failed'] : false;
+            $failureReason = (isset($signResult['failureReason'])) ? $signResult['failureReason'] : "";
+        }
+
+        if (!$failed && $signEncryptOptions['GPGEncrypt']) {
+            $encryptionResult = $this->__encryptUsingGPG($Email, $body, $subject, $user);
+            $failed = (isset($encryptionResult['failed'])) ? $encryptionResult['failed'] : false;
+            $failureReason = (isset($encryptionResult['failureReason'])) ? $encryptionResult['failureReason'] : "";
+        }
+
+        if (!$failed && !$signEncryptOptions['GPGEncrypt'] && $signEncryptOptions['SMIMEEncrypt']) {
+            $encryptionResult = $this->__encryptUsingSmime($Email, $body, $subject, $user);
+            $failed = (isset($encryptionResult['failed'])) ? $encryptionResult['failed'] : false;
+            $failureReason = (isset($encryptionResult['failureReason'])) ? $encryptionResult['failureReason'] : "";
+        }
+
+        if (!empty($failed)) {
+            return array('failed' => $failed, 'failureReason' => $failureReason);
+        }
+        return true;
     }
 
     private function __signUsingGPG(&$body)
