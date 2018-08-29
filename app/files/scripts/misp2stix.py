@@ -208,9 +208,7 @@ class StixBuilder(object):
                                                  encoding='utf8'))
 
     def generate_stix_objects(self):
-        incident_id = "{}:incident-{}".format(namespace[1], self.misp_event.uuid)
-        incident = Incident(id_=incident_id, title=self.misp_event.info)
-        self.set_dates(incident, self.misp_event.date, self.misp_event.publish_timestamp)
+        incident = self.create_incident(namespace[1])
         self.history = History()
         threat_level_name = threat_level_mapping.get(str(self.misp_event.threat_level_id), None)
         if threat_level_name:
@@ -254,13 +252,16 @@ class StixBuilder(object):
         # converts a date (YYYY-mm-dd) to the format used by stix
         return datetime.datetime(date.year, date.month, date.day)
 
-    def set_dates(self, incident, date, published):
-        timestamp = published
+    def create_incident(self, org):
+        incident_id = "{}:incident-{}".format(org, self.misp_event.uuid)
+        incident = Incident(id_=incident_id, title=self.misp_event.info)
+        timestamp = self.misp_event.publish_timestamp
         incident.timestamp = timestamp
         incident_time = Time()
-        incident_time.incident_discovery = self.convert_to_stix_date(date)
+        incident_time.incident_discovery = self.convert_to_stix_date(self.misp_event.date)
         incident_time.incident_reported = timestamp
         incident.time = incident_time
+        return incident
 
     def resolve_attributes(self, incident, tags):
         for attribute in self.misp_event.attributes:
