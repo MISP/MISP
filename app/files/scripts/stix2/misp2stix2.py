@@ -476,11 +476,13 @@ class StixBuilder():
         attribute_type = attribute.type
         observed_data_id = "observed-data--{}".format(attribute.uuid)
         self.parse_galaxies(attribute.Galaxy, observed_data_id)
+        timestamp = attribute.timestamp
         labels = self.create_labels(attribute)
         attribute_value = attribute.value if attribute_type != "AS" else self.define_attribute_value(attribute.value, attribute.comment)
         observable = mispTypesMapping[attribute_type]['observable'](attribute_type, attribute_value, b64encode(attribute.data.getbuffer())) if 'data' in attribute else self.define_observable(attribute_type, attribute_value)
         observed_data_args = {'id': observed_data_id, 'type': 'observed-data', 'number_observed': 1,
-                              'labels': labels, 'created_by_ref': self.identity_id, 'objects': observable}
+                              'first_observed': timestamp, 'last_observed': timestamp, 'labels': labels,
+                              'created_by_ref': self.identity_id, 'objects': observable}
         observed_data = ObservedData(**observed_data_args)
         self.append_object(observed_data, observed_data_id)
 
@@ -578,8 +580,10 @@ class StixBuilder():
             observable_objects = self.objects_mapping[name]['observable'](misp_object.attributes, observed_data_id)
         category = misp_object.get('meta-category')
         labels = self.create_object_labels(name, category, False)
+        timestamp = misp_object.timestamp
         observed_data_args = {'id': observed_data_id, 'type': 'observed-data',
                               'number_observed': 1, 'labels': labels, 'objects': observable_objects,
+                              'first_observed': timestamp, 'last_observed': timestamp,
                               'created_by_ref': self.identity_id}
         try:
             observed_data = ObservedData(**observed_data_args, allow_custom=True)
