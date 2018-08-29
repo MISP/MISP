@@ -607,6 +607,13 @@ class StixParser():
             values = properties.values
             value = values[0]
             attributes += self.fetch_attributes_with_partial_key_parsing(value, stix2misp_mapping._regkey_value_mapping)
+        if len(attributes) in (2,3):
+            d_regkey = {key: value for (_, value, key) in attributes}
+            if 'hive' in d_regkey and 'key' in d_regkey:
+                regkey = "{}\\{}".format(d_regkey['hive'], d_regkey['key'])
+                if 'data' in d_regkey:
+                    return "regkey|value", "{} | {}".format(regkey, d_regkey['data']), ""
+                return "regkey", regkey, ""
         return "registry-key", self.return_attributes(attributes), ""
 
     @staticmethod

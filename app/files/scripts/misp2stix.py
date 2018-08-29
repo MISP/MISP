@@ -546,16 +546,10 @@ class StixBuilder(object):
             regkey, value = attribute.value.split('|')
         else:
             regkey = attribute.value
-        reghive, regkey = self.resolve_reg_hive(regkey)
-        reg_object = WinRegistryKey()
-        reg_object.key = regkey
-        reg_object.key.condition = "Equals"
-        if reghive:
-            reg_object.hive = reghive
-            reg_object.hive.condition = "Equals"
+        reg_object = self.create_regkey_object(regkey)
         if value:
             reg_value_object = RegistryValue()
-            reg_value_object.data = value
+            reg_value_object.data = value.strip()
             reg_value_object.data.condition = "Equals"
             reg_object.values = RegistryValues(reg_value_object)
         reg_object.parent.id_ = "{}:WinRegistryKeyObject-{}".format(self.namespace_prefix, attribute.uuid)
@@ -921,16 +915,9 @@ class StixBuilder(object):
 
     def parse_regkey_object(self, misp_object):
         to_ids, attributes_dict = self.create_attributes_dict(misp_object.attributes)
-        reg_object = WinRegistryKey()
         registry_values = False
         reg_value_object = RegistryValue()
-        if 'key' in attributes_dict:
-            reghive, regkey = self.resolve_reg_hive(attributes_dict['key'])
-            reg_object.key = regkey
-            reg_object.key.condition = "Equals"
-            if reghive:
-                reg_object.hive = reghive
-                reg_object.hive.condition = "Equals"
+        reg_object = self.create_regkey_object(attributes_dict['key']) if 'key' in attributes_dict else WinRegistryKey()
         if 'last-modified' in attributes_dict:
             reg_object.modified_time = attributes_dict['last-modified']
             reg_object.modified_time.condition = "Equals"
@@ -939,7 +926,7 @@ class StixBuilder(object):
             reg_value_object.name.condition = "Equals"
             registry_values = True
         if 'data' in attributes_dict:
-            reg_value_object.data = attributes_dict['data']
+            reg_value_object.data = attributes_dict['data'].strip()
             reg_value_object.data.condition = "Equals"
             registry_values = True
         if 'data-type' in attributes_dict:
@@ -1392,6 +1379,16 @@ class StixBuilder(object):
         port_observable = Observable(port_object)
         port_observable.id_ = "{}:{}Port-{}".format(self.namespace_prefix, port_type, uuid)
         return port_observable
+
+    def create_regkey_object(self, regkey):
+        reghive, regkey = self.resolve_reg_hive(regkey)
+        reg_object = WinRegistryKey()
+        reg_object.key = regkey.strip()
+        reg_object.key.condition = "Equals"
+        if reghive:
+            reg_object.hive = reghive.strip()
+            reg_object.hive.condition = "Equals"
+        return reg_object
 
     def create_socket_address_object(self, sao_type, **kwargs):
         socket_address_object = SocketAddress()
