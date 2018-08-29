@@ -183,7 +183,6 @@ class StixBuilder(object):
 
     def generateEventPackage(self):
         package_name = "{}:STIXPackage-{}".format(namespace[1], self.misp_event.uuid)
-        # timestamp = self.get_date_from_timestamp(int(str(self.misp_event.timestamp)))
         timestamp = self.misp_event.timestamp
         stix_package = STIXPackage(id_=package_name, timestamp=timestamp)
         stix_package.version = "1.1.1"
@@ -356,7 +355,7 @@ class StixBuilder(object):
 
     def create_indicator(self, misp_object, observable, tags):
         tlp_tags = deepcopy(tags)
-        indicator = Indicator(timestamp=self.get_date_from_timestamp(int(misp_object.timestamp)))
+        indicator = Indicator(timestamp=misp_object.timestamp)
         indicator.id_ = "{}:MISPObject-{}".format(namespace[1], misp_object.uuid)
         indicator.producer = self.set_prod(self.orgc_name)
         for attribute in misp_object.attributes:
@@ -1521,11 +1520,6 @@ class StixBuilder(object):
         for key, value in attributes_dict.items():
             if key in hash_type_attributes['single']:
                 file_object.add_hash(Hash(hash_value=value, exact=True))
-
-    @staticmethod
-    def get_date_from_timestamp(timestamp):
-        # converts timestamp to the format used by STIX
-        return "{}+00:00".format(datetime.datetime.fromtimestamp(timestamp).isoformat())
 
     @staticmethod
     def fetch_colors(tags):

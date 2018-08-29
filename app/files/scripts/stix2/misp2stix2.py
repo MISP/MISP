@@ -531,10 +531,9 @@ class StixBuilder():
         category = misp_object.get('meta-category')
         labels = self.create_object_labels(name, category, to_ids)
         values = self.fetch_custom_values(misp_object.attributes, custom_object_id)
-        timestamp = self.get_date_from_timestamp(int(misp_object.timestamp))
         custom_object_args = {'id': custom_object_id, 'x_misp_values': values, 'labels': labels,
                               'x_misp_category': category, 'created_by_ref': self.identity_id,
-                              'x_misp_timestamp': timestamp}
+                              'x_misp_timestamp': misp_object.timestamp}
         if hasattr(misp_object, 'comment') and misp_object.comment:
             custom_object_args['x_misp_comment'] = misp_object.comment
         @CustomObject(custom_object_type, [('id', properties.StringProperty(required=True)),
@@ -680,10 +679,6 @@ class StixBuilder():
             if attribute.type == 'vulnerability':
                 return attribute.value
         return "Undefined name"
-
-    @staticmethod
-    def get_date_from_timestamp(timestamp):
-        return datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=timestamp)
 
     def resolve_asn_observable(self, attributes, object_id):
         asn = objectsMapping['asn']['observable']
