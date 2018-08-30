@@ -8,6 +8,49 @@ class NidsExport
 
     public $format = "";   // suricata (default), snort
 
+	public $checkWhitelist = true;
+
+	public $additional_params = array(
+		'contain' => array(
+			'Event' => array(
+				'fields' => array('threat_level_id')
+			)
+		)
+	);
+
+	public function handler($data, $options = array())
+	{
+		$continue = true;
+		$this->checkWhitelist = false;
+		if (empty($this->rules)) {
+			$continue = false;
+		}
+		if ($options['scope'] === 'Attribute') {
+			$this->export(
+				array($data),
+				$options['user']['nids_sid'],
+				$options['returnFormat'],
+				$continue
+			);
+		}
+		return '';
+	}
+
+	public function header($options = array())
+	{
+		return '';
+	}
+
+	public function footer()
+	{
+		return implode ("\n", $this->rules);
+	}
+
+	public function separator()
+	{
+		return '';
+	}
+
     public function explain()
     {
         $this->rules[] = '# MISP export of IDS rules - optimized for '.$this->format;
@@ -28,8 +71,10 @@ class NidsExport
     public function export($items, $startSid, $format="suricata", $continue = false)
     {
         $this->format = $format;
-        $this->Whitelist = ClassRegistry::init('Whitelist');
-        $this->whitelist = $this->Whitelist->getBlockedValues();
+		if ($this->checkWhitelist && !isset($this->Whitelist)) {
+        	$this->Whitelist = ClassRegistry::init('Whitelist');
+        	$this->whitelist = $this->Whitelist->getBlockedValues();
+		}
 
         // output a short explanation
         if (!$continue) {
@@ -105,7 +150,7 @@ class NidsExport
         }
         return $this->rules;
     }
-    
+
     public function domainIpRule($ruleFormat, $attribute, &$sid)
     {
         $values = explode('|', $attribute['value']);
@@ -558,11 +603,13 @@ class NidsExport
 
     public function checkWhitelist($value)
     {
-        foreach ($this->whitelist as $wlitem) {
-            if (preg_match($wlitem, $value)) {
-                return true;
-            }
-        }
+		if ($this->checkWhitelist) {
+	        foreach ($this->whitelist as $wlitem) {
+	            if (preg_match($wlitem, $value)) {
+	                return true;
+	            }
+	        }
+		}
         return false;
     }
 
