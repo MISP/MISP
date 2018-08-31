@@ -1635,15 +1635,9 @@ class ServersController extends AppController
     private function __doRestQuery($request)
     {
         App::uses('SyncTool', 'Tools');
-        $params = array(
-
-        );
+        $params = array();
         if (!empty($request['url'])) {
-            $path = parse_url($request['url'], PHP_URL_PATH);
-            $query = parse_url($request['url'], PHP_URL_QUERY);
-            if (!empty($query)) {
-                $path .= '?' . $query;
-            }
+			$path = preg_replace('#^(://|[^/?])+#', '', $request['url']);
             $url = Configure::read('MISP.baseurl') . '/' . $path;
         } else {
             throw new InvalidArgumentException('Url not set.');

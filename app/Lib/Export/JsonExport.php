@@ -1,10 +1,23 @@
 <?php
 
-class AttributeExport
+class JsonExport
 {
-
-    public function handler($attribute, $options = array())
+    public function handler($data, $options = array())
     {
+		if ($options['scope'] === 'Attribute') {
+			return $this->__attributeHandler($data, $options);
+		} else {
+			return $this->__eventHandler($data, $options);
+		}
+    }
+
+	private function __attributeHandler($attribute, $options = array())
+	{
+		$attribute = array_merge($attribute['Attribute'], $attribute);
+		unset($attribute['Attribute']);
+		if (isset($attribute['Object']) && empty($attribute['Object']['id'])) {
+			unset($attribute['Object']);
+		}
 		if (isset($attribute['AttributeTag'])) {
 			$attributeTags = array();
 			foreach ($attribute['AttributeTag'] as $tk => $tag) {
@@ -15,7 +28,7 @@ class AttributeExport
 			unset($attribute['value2']);
 		}
 		return json_encode($attribute);
-    }
+	}
 
     public function header($options = array())
     {
@@ -29,7 +42,7 @@ class AttributeExport
 
     public function separator()
     {
-        return ',' . PHP_EOL;
+        return ',';
     }
 
 }
