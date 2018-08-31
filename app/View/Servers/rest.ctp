@@ -23,6 +23,10 @@
         echo $this->Form->input('show_result', array(
             'type' => 'checkbox'
         ));
+		echo $this->Form->input('skip_ssl_validation', array(
+			'type' => 'checkbox',
+			'label' => 'Skip SSL validation'
+		));
     ?>
         <div class="input clear" style="width:100%;">
     <?php
