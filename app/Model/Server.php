@@ -1783,7 +1783,8 @@ class Server extends AppModel
         return true;
     }
 
-    private function __getEventIdListBasedOnPullTechnique($technique, $server) {
+    private function __getEventIdListBasedOnPullTechnique($technique, $server)
+    {
         if ("full" === $technique) {
             // get a list of the event_ids on the server
             $eventIds = $this->getEventIdsFromServer($server);
@@ -1819,6 +1820,165 @@ class Server extends AppModel
         return $eventIds;
     }
 
+    private function __checkIfEventIsBlockedBeforePull($event)
+    {
+        if (Configure::read('MISP.enableEventBlacklisting') !== false) {
+            $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
+            $r = $this->EventBlacklist->find('first', array('conditions' => array('event_uuid' => $event['Event']['uuid'])));
+            if (!empty($r)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private function __updatePulledEventBeforeInsert($event, $server, $user)
+    {
+        // we have an Event array
+        // The event came from a pull, so it should be locked.
+        $event['Event']['locked'] = true;
+        if (!isset($event['Event']['distribution'])) { // version 1
+            $event['Event']['distribution'] = '1';
+        }
+        // Distribution
+        if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id']) {
+            switch ($event['Event']['distribution']) {
+                case 1:
+                    // if community only, downgrade to org only after pull
+                    $event['Event']['distribution'] = '0';
+                    break;
+                case 2:
+                    // if connected communities downgrade to community only
+                    $event['Event']['distribution'] = '1';
+                    break;
+            }
+            if (isset($event['Event']['Attribute']) && !empty($event['Event']['Attribute'])) {
+                foreach ($event['Event']['Attribute'] as $key => $a) {
+                    switch ($a['distribution']) {
+                        case '1':
+                            $event['Event']['Attribute'][$key]['distribution'] = '0';
+                            break;
+                        case '2':
+                            $event['Event']['Attribute'][$key]['distribution'] = '1';
+                            break;
+                    }
+                }
+            }
+        }
+        // Distribution, set reporter of the event, being the admin that initiated the pull
+        $event['Event']['user_id'] = $user['id'];
+        return $event;
+    }
+
+    private function __checkIfPulledEventExistsAndAddOrUpdate($event, &$successes, &$fails, $eventModel, $server, $user, $passAlong, $job, $jobId)
+    {
+        // check if the event already exist (using the uuid)
+        $existingEvent = null;
+        $existingEvent = $eventModel->find('first', array('conditions' => array('Event.uuid' => $event['Event']['uuid'])));
+        if (!$existingEvent) {
+            // add data for newly imported events
+            $passAlong = $server['Server']['id'];
+            $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
+            if ($result) {
+                $successes[] = $eventId;
+            } else {
+                $fails[$eventId] = 'Failed (partially?) because of validation errors: '. json_encode($eventModel->validationErrors, true);
+            }
+        } else {
+            $tempUser = $user;
+            $tempUser['Role']['perm_site_admin'] = 0;
+            $result = $eventModel->_edit($event, $tempUser, $existingEvent['Event']['id'], $jobId);
+            if ($result === true) {
+                $successes[] = $eventId;
+            } elseif (isset($result['error'])) {
+                $fails[$eventId] = $result['error'];
+            } else {
+                $fails[$eventId] = json_encode($result);
+            }
+        }
+    }
+
+    private function __pullEvents($eventId, $successes, $fails, $eventModel, $server, $user, $passAlong, $job, $jobId)
+    {
+        $event = $eventModel->downloadEventFromServer(
+                $eventId,
+                $server
+        );
+        if (!empty($event)) {
+            if ($this->__checkIfEventIsBlockedBeforePull($event)) {
+                return false;
+            }
+            $this->__updatePulledEventBeforeInsert($event, $server, $user);
+            $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $successes, $fails, $eventModel, $server, $user, $passAlong, $job, $jobId);
+        } else {
+            // error
+            $fails[$eventId] = 'failed downloading the event';
+        }
+        if ($jobId) {
+            if ($k % 10 == 0) {
+                $job->id = $jobId;
+                $job->saveField('progress', 50 * (($k + 1) / count($eventIds)));
+            }
+        }
+        return true;
+    }
+
+    private function __handlePulledProposals($proposals, $events, $job, $jobId)
+    {
+        $pulledProposals = array();
+        if (!empty($proposals)) {
+            $shadowAttribute = ClassRegistry::init('ShadowAttribute');
+            $shadowAttribute->recursive = -1;
+            $uuidEvents = array_flip($events);
+            foreach ($proposals as $k => &$proposal) {
+                $proposal = $proposal['ShadowAttribute'];
+                $oldsa = $shadowAttribute->findOldProposal($proposal);
+                $proposal['event_id'] = $uuidEvents[$proposal['event_uuid']];
+                if (!$oldsa || $oldsa['timestamp'] < $proposal['timestamp']) {
+                    if ($oldsa) {
+                        $shadowAttribute->delete($oldsa['id']);
+                    }
+                    if (!isset($pulledProposals[$proposal['event_id']])) {
+                        $pulledProposals[$proposal['event_id']] = 0;
+                    }
+                    $pulledProposals[$proposal['event_id']]++;
+                    if (isset($proposal['old_id'])) {
+                        $oldAttribute = $eventModel->Attribute->find('first', array('recursive' => -1, 'conditions' => array('uuid' => $proposal['uuid'])));
+                        if ($oldAttribute) {
+                            $proposal['old_id'] = $oldAttribute['Attribute']['id'];
+                        } else {
+                            $proposal['old_id'] = 0;
+                        }
+                    }
+                    // check if this is a proposal from an old MISP instance
+                    if (!isset($proposal['Org']) && isset($proposal['org']) && !empty($proposal['org'])) {
+                        $proposal['Org'] = $proposal['org'];
+                        $proposal['EventOrg'] = $proposal['event_org'];
+                    } elseif (!isset($proposal['Org']) && !isset($proposal['EventOrg'])) {
+                        continue;
+                    }
+                    $proposal['org_id'] = $this->Organisation->captureOrg($proposal['Org'], $user);
+                    $proposal['event_org_id'] = $this->Organisation->captureOrg($proposal['EventOrg'], $user);
+                    unset($proposal['Org']);
+                    unset($proposal['EventOrg']);
+                    $shadowAttribute->create();
+                    if (!isset($proposal['deleted']) || !$proposal['deleted']) {
+                        if ($shadowAttribute->save($proposal)) {
+                            $shadowAttribute->sendProposalAlertEmail($proposal['event_id']);
+                        }
+                    }
+                }
+                if ($jobId) {
+                    if ($k % 50 == 0) {
+                        $job->id =  $jobId;
+                        $job->saveField('progress', 50 * (($k + 1) / count($proposals)));
+                    }
+                }
+            }
+        }
+        return $pulledProposals;
+    }
+
     public function pull($user, $id = null, $technique=false, $server, $jobId = false, $percent = 100, $current = 0)
     {
         if ($jobId) {
@@ -1826,6 +1986,7 @@ class Server extends AppModel
             $job->read(null, $jobId);
             $email = "Scheduled job";
         } else {
+            $job = false;
             $email = $user['email'];
         }
         $eventModel = ClassRegistry::init('Event');
@@ -1856,101 +2017,12 @@ class Server extends AppModel
 		}
         $successes = array();
         $fails = array();
-        $pulledProposals = array();
         // now process the $eventIds to pull each of the events sequentially
         if (!empty($eventIds)) {
             // download each event
-            if (null != $eventIds) {
-                $HttpSocket = $this->setupHttpSocket($server);
-                foreach ($eventIds as $k => $eventId) {
-                    $event = $eventModel->downloadEventFromServer(
-                            $eventId,
-                            $server
-                    );
-                    if (null != $event) {
-                        $blocked = false;
-                        if (Configure::read('MISP.enableEventBlacklisting') !== false) {
-                            $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
-                            $r = $this->EventBlacklist->find('first', array('conditions' => array('event_uuid' => $event['Event']['uuid'])));
-                            if (!empty($r)) {
-                                continue;
-                            }
-                        }
-                        // we have an Event array
-                        // The event came from a pull, so it should be locked.
-                        $event['Event']['locked'] = true;
-                        if (!isset($event['Event']['distribution'])) { // version 1
-                            $event['Event']['distribution'] = '1';
-                        }
-                        // Distribution
-                        if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id']) {
-                            switch ($event['Event']['distribution']) {
-                                case 1:
-                                    // if community only, downgrade to org only after pull
-                                    $event['Event']['distribution'] = '0';
-                                    break;
-                                case 2:
-                                    // if connected communities downgrade to community only
-                                    $event['Event']['distribution'] = '1';
-                                    break;
-                            }
-                            if (isset($event['Event']['Attribute']) && !empty($event['Event']['Attribute'])) {
-                                foreach ($event['Event']['Attribute'] as $key => $a) {
-                                    switch ($a['distribution']) {
-                                        case '1':
-                                            $event['Event']['Attribute'][$key]['distribution'] = '0';
-                                            break;
-                                        case '2':
-                                            $event['Event']['Attribute'][$key]['distribution'] = '1';
-                                            break;
-                                    }
-                                }
-                            }
-                        }
-                        // Distribution, set reporter of the event, being the admin that initiated the pull
-                        $event['Event']['user_id'] = $user['id'];
-                        // check if the event already exist (using the uuid)
-                        $existingEvent = null;
-                        $existingEvent = $eventModel->find('first', array('conditions' => array('Event.uuid' => $event['Event']['uuid'])));
-                        if (!$existingEvent) {
-                            // add data for newly imported events
-                            $passAlong = $server['Server']['id'];
-                            $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
-                            if ($result) {
-                                $successes[] = $eventId;
-                            } else {
-                                $fails[$eventId] = 'Failed (partially?) because of validation errors: '. json_encode($eventModel->validationErrors, true);
-                            }
-                        } else {
-                            $tempUser = $user;
-                            $tempUser['Role']['perm_site_admin'] = 0;
-                            $result = $eventModel->_edit($event, $tempUser, $existingEvent['Event']['id'], $jobId);
-                            if ($result === true) {
-                                $successes[] = $eventId;
-                            } elseif (isset($result['error'])) {
-                                $fails[$eventId] = $result['error'];
-                            } else {
-                                $fails[$eventId] = json_encode($result);
-                            }
-                        }
-                    } else {
-                        // error
-                        $fails[$eventId] = 'failed downloading the event';
-                    }
-                    if ($jobId) {
-                        if ($k % 10 == 0) {
-                            $job->id = $jobId;
-                            $job->saveField('progress', 50 * (($k + 1) / count($eventIds)));
-                        }
-                    }
-                }
-                if (count($fails) > 0) {
-                    // there are fails, take the lowest fail
-                    $lastpulledid = min(array_keys($fails));
-                } else {
-                    // no fails, take the highest success
-                    $lastpulledid = count($successes) > 0 ? max($successes) : 0;
-                }
+            $HttpSocket = $this->setupHttpSocket($server);
+            foreach ($eventIds as $k => $eventId) {
+                $this->__pullEvents($eventId, $successes, $fails, $eventModel, $server, $user, $passAlong, $job, $jobId);
             }
         }
         if ($jobId) {
@@ -1961,58 +2033,9 @@ class Server extends AppModel
                 'recursive' => -1,
                 'conditions' => $conditions
         ));
-        $shadowAttribute = ClassRegistry::init('ShadowAttribute');
-        $shadowAttribute->recursive = -1;
         if (!empty($events)) {
             $proposals = $eventModel->downloadProposalsFromServer($events, $server);
-            if (!empty($proposals)) {
-                $uuidEvents = array_flip($events);
-                foreach ($proposals as $k => &$proposal) {
-                    $proposal = $proposal['ShadowAttribute'];
-                    $oldsa = $shadowAttribute->findOldProposal($proposal);
-                    $proposal['event_id'] = $uuidEvents[$proposal['event_uuid']];
-                    if (!$oldsa || $oldsa['timestamp'] < $proposal['timestamp']) {
-                        if ($oldsa) {
-                            $shadowAttribute->delete($oldsa['id']);
-                        }
-                        if (!isset($pulledProposals[$proposal['event_id']])) {
-                            $pulledProposals[$proposal['event_id']] = 0;
-                        }
-                        $pulledProposals[$proposal['event_id']]++;
-                        if (isset($proposal['old_id'])) {
-                            $oldAttribute = $eventModel->Attribute->find('first', array('recursive' => -1, 'conditions' => array('uuid' => $proposal['uuid'])));
-                            if ($oldAttribute) {
-                                $proposal['old_id'] = $oldAttribute['Attribute']['id'];
-                            } else {
-                                $proposal['old_id'] = 0;
-                            }
-                        }
-                        // check if this is a proposal from an old MISP instance
-                        if (!isset($proposal['Org']) && isset($proposal['org']) && !empty($proposal['org'])) {
-                            $proposal['Org'] = $proposal['org'];
-                            $proposal['EventOrg'] = $proposal['event_org'];
-                        } elseif (!isset($proposal['Org']) && !isset($proposal['EventOrg'])) {
-                            continue;
-                        }
-                        $proposal['org_id'] = $this->Organisation->captureOrg($proposal['Org'], $user);
-                        $proposal['event_org_id'] = $this->Organisation->captureOrg($proposal['EventOrg'], $user);
-                        unset($proposal['Org']);
-                        unset($proposal['EventOrg']);
-                        $shadowAttribute->create();
-                        if (!isset($proposal['deleted']) || !$proposal['deleted']) {
-                            if ($shadowAttribute->save($proposal)) {
-                                $shadowAttribute->sendProposalAlertEmail($proposal['event_id']);
-                            }
-                        }
-                    }
-                    if ($jobId) {
-                        if ($k % 50 == 0) {
-                            $job->id =  $jobId;
-                            $job->saveField('progress', 50 * (($k + 1) / count($proposals)));
-                        }
-                    }
-                }
-            }
+            $pulledProposals = $this->__handlePulledProposals($proposals, $events, $job, $jobId);
         }
         if ($jobId) {
             $job->saveField('progress', 100);
@@ -2029,12 +2052,9 @@ class Server extends AppModel
             'action' => 'pull',
             'user_id' => $user['id'],
             'title' => 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email,
-            'change' => count($successes) . ' events and ' . count($pulledProposals) . ' proposals pulled or updated. ' . count($fails) . ' events failed or didn\'t need an update.'
+            'change' => count($successes) . ' events and ' . array_sum($pulledProposals) . ' proposals pulled or updated. ' . count($fails) . ' events failed or didn\'t need an update.'
         ));
-        if (!isset($lastpulledid)) {
-            $lastpulledid = 0;
-        }
-        return array($successes, $fails, $pulledProposals, $lastpulledid);
+        return array($successes, $fails, $pulledProposals);
     }
 
     public function filterRuleToParameter($filter_rules)
