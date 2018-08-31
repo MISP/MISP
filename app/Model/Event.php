@@ -2168,7 +2168,7 @@ class Event extends AppModel
     private function __sanitiseCSVAttributes($attributes, $includeContext, $ignore)
     {
         if (!empty($ignore)) {
-            $this->Log = ClassRegistry::init('Log');
+            $this->Whitelist = ClassRegistry::init('Whitelist');
             $attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
         }
         foreach ($attributes as &$attribute) {
