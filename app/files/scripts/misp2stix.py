@@ -183,7 +183,6 @@ class StixBuilder(object):
 
     def generateEventPackage(self):
         package_name = "{}:STIXPackage-{}".format(namespace[1], self.misp_event.uuid)
-        # timestamp = self.get_date_from_timestamp(int(str(self.misp_event.timestamp)))
         timestamp = self.misp_event.timestamp
         stix_package = STIXPackage(id_=package_name, timestamp=timestamp)
         stix_package.version = "1.1.1"
@@ -208,9 +207,7 @@ class StixBuilder(object):
                                                  encoding='utf8'))
 
     def generate_stix_objects(self):
-        incident_id = "{}:incident-{}".format(namespace[1], self.misp_event.uuid)
-        incident = Incident(id_=incident_id, title=self.misp_event.info)
-        self.set_dates(incident, self.misp_event.date, self.misp_event.publish_timestamp)
+        incident = self.create_incident(namespace[1])
         self.history = History()
         threat_level_name = threat_level_mapping.get(str(self.misp_event.threat_level_id), None)
         if threat_level_name:
@@ -254,13 +251,16 @@ class StixBuilder(object):
         # converts a date (YYYY-mm-dd) to the format used by stix
         return datetime.datetime(date.year, date.month, date.day)
 
-    def set_dates(self, incident, date, published):
-        timestamp = published
+    def create_incident(self, org):
+        incident_id = "{}:incident-{}".format(org, self.misp_event.uuid)
+        incident = Incident(id_=incident_id, title=self.misp_event.info)
+        timestamp = self.misp_event.publish_timestamp
         incident.timestamp = timestamp
         incident_time = Time()
-        incident_time.incident_discovery = self.convert_to_stix_date(date)
+        incident_time.incident_discovery = self.convert_to_stix_date(self.misp_event.date)
         incident_time.incident_reported = timestamp
         incident.time = incident_time
+        return incident
 
     def resolve_attributes(self, incident, tags):
         for attribute in self.misp_event.attributes:
@@ -355,7 +355,7 @@ class StixBuilder(object):
 
     def create_indicator(self, misp_object, observable, tags):
         tlp_tags = deepcopy(tags)
-        indicator = Indicator(timestamp=self.get_date_from_timestamp(int(misp_object.timestamp)))
+        indicator = Indicator(timestamp=misp_object.timestamp)
         indicator.id_ = "{}:MISPObject-{}".format(namespace[1], misp_object.uuid)
         indicator.producer = self.set_prod(self.orgc_name)
         for attribute in misp_object.attributes:
@@ -1520,11 +1520,6 @@ class StixBuilder(object):
         for key, value in attributes_dict.items():
             if key in hash_type_attributes['single']:
                 file_object.add_hash(Hash(hash_value=value, exact=True))
-
-    @staticmethod
-    def get_date_from_timestamp(timestamp):
-        # converts timestamp to the format used by STIX
-        return "{}+00:00".format(datetime.datetime.fromtimestamp(timestamp).isoformat())
 
     @staticmethod
     def fetch_colors(tags):

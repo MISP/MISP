@@ -249,10 +249,10 @@ class StixParser():
         try:
             try:
                 dt = date.split('+')[0]
-                d = int(time.mktime(time.strptime(dt, "%Y-%m-%dT%H:%M:%S")))
+                d = int(time.mktime(time.strptime(dt, "%Y-%m-%d %H:%M:%S")))
             except ValueError:
                 dt = date.split('.')[0]
-                d = int(time.mktime(time.strptime(dt, "%Y-%m-%dT%H:%M:%S")))
+                d = int(time.mktime(time.strptime(dt, "%Y-%m-%d %H:%M:%S")))
         except AttributeError:
             d = int(time.mktime(date.timetuple()))
         return d

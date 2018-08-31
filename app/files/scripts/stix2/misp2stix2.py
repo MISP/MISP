@@ -66,7 +66,7 @@ class StixBuilder():
     def eventReport(self):
         report_args = {'type': 'report', 'id': self.report_id, 'name': self.misp_event.info,
                        'created_by_ref': self.identity_id, 'published': self.misp_event.publish_timestamp,
-                       'object_refs': self.object_refs}
+                       'created': self.misp_event.date, 'object_refs': self.object_refs}
         if self.misp_event.Tag:
             labels = []
             for tag in self.misp_event.Tag:
@@ -454,7 +454,7 @@ class StixBuilder():
         attribute_value = attribute.value if attribute_type != "AS" else self.define_attribute_value(attribute.value, attribute.comment)
         pattern = mispTypesMapping[attribute_type]['pattern'](attribute_type, attribute_value, b64encode(attribute.data.getbuffer()).decode()[1:-1]) if ('data' in attribute and attribute.data) else self.define_pattern(attribute_type, attribute_value)
         indicator_args = {'id': indicator_id, 'type': 'indicator', 'labels': labels, 'kill_chain_phases': killchain,
-                           'valid_from': attribute.timestamp, 'created_by_ref': self.identity_id, 'pattern': pattern}
+                           'valid_from': self.misp_event.date, 'created_by_ref': self.identity_id, 'pattern': pattern}
         if hasattr(attribute, 'comment') and attribute.comment:
             indicator_args['description'] = attribute.comment
         indicator = Indicator(**indicator_args)
@@ -533,10 +533,9 @@ class StixBuilder():
         category = misp_object.get('meta-category')
         labels = self.create_object_labels(name, category, to_ids)
         values = self.fetch_custom_values(misp_object.attributes, custom_object_id)
-        timestamp = self.get_date_from_timestamp(int(misp_object.timestamp))
         custom_object_args = {'id': custom_object_id, 'x_misp_values': values, 'labels': labels,
                               'x_misp_category': category, 'created_by_ref': self.identity_id,
-                              'x_misp_timestamp': timestamp}
+                              'x_misp_timestamp': misp_object.timestamp}
         if hasattr(misp_object, 'comment') and misp_object.comment:
             custom_object_args['x_misp_comment'] = misp_object.comment
         @CustomObject(custom_object_type, [('id', properties.StringProperty(required=True)),
@@ -564,8 +563,7 @@ class StixBuilder():
         category = misp_object.get('meta-category')
         killchain = self.create_killchain(category)
         labels = self.create_object_labels(name, category, True)
-        timestamp = self.get_date_from_timestamp(int(misp_object.timestamp))
-        indicator_args = {'id': indicator_id, 'valid_from': timestamp, 'type': 'indicator',
+        indicator_args = {'id': indicator_id, 'valid_from': self.misp_event.date, 'type': 'indicator',
                           'labels': labels, 'description': misp_object.description,
                           'pattern': pattern, 'kill_chain_phases': killchain,
                           'created_by_ref': self.identity_id}
@@ -582,7 +580,7 @@ class StixBuilder():
             observable_objects = self.objects_mapping[name]['observable'](misp_object.attributes, observed_data_id)
         category = misp_object.get('meta-category')
         labels = self.create_object_labels(name, category, False)
-        timestamp = self.get_date_from_timestamp(int(misp_object.timestamp))
+        timestamp = misp_object.timestamp
         observed_data_args = {'id': observed_data_id, 'type': 'observed-data',
                               'number_observed': 1, 'labels': labels, 'objects': observable_objects,
                               'first_observed': timestamp, 'last_observed': timestamp,
@@ -685,10 +683,6 @@ class StixBuilder():
             if attribute.type == 'vulnerability':
                 return attribute.value
         return "Undefined name"
-
-    @staticmethod
-    def get_date_from_timestamp(timestamp):
-        return datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=timestamp)
 
     def resolve_asn_observable(self, attributes, object_id):
         asn = objectsMapping['asn']['observable']
