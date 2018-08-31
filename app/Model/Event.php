@@ -1964,6 +1964,44 @@ class Event extends AppModel
     {
         if (!empty($params['org'])) {
             $params['org'] = $this->convert_filters($params['org']);
+			if (!empty($params['org']['OR'])) {
+				foreach ($params['org']['OR'] as $k => $org) {
+					if (!is_numeric($org)) {
+						$existingOrg = $this->Orgc->find('first', array(
+							'recursive' => -1,
+							'conditions' => array('Orgc.name' => $org),
+							'fields' => array('Orgc.name', 'Orgc.id')
+						));
+						if (empty($existingOrg)) {
+							$params['org']['OR'][$k] = -1;
+						} else {
+							$params['org']['OR'][$k] = $existingOrg['Orgc']['id'];
+						}
+					}
+				}
+			}
+			if (!empty($params['org']['NOT'])) {
+				$temp = array();
+				foreach ($params['org']['NOT'] as $org) {
+					if (!is_numeric($org)) {
+						$existingOrg = $this->Orgc->find('first', array(
+							'recursive' => -1,
+							'conditions' => array('Orgc.name' => $org),
+							'fields' => array('Orgc.name', 'Orgc.id')
+						));
+						if (!empty($existingOrg)) {
+							$temp[] = $existingOrg['Orgc']['id'];
+						}
+					} else {
+						$temp[] = $org;
+					}
+				}
+				if (!empty($temp)) {
+					$params['org']['NOT'] = $temp;
+				} else {
+					unset($params['org']['NOT']);
+				}
+			}
             $conditions = $this->generic_add_filter($conditions, $params['org'], 'Event.orgc_id');
         }
         return $conditions;
