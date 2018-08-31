@@ -26,6 +26,9 @@ class TaxonomyEntry extends AppModel
 
     public function beforeValidate($options = array())
     {
+		if (empty($this->data['TaxonomyEntry']['expanded'])) {
+			$this->data['TaxonomyEntry']['expanded'] = $this->data['TaxonomyEntry']['value'];
+		}
         parent::beforeValidate();
         return true;
     }
