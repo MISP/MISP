@@ -1611,7 +1611,8 @@ class ServersController extends AppController
         return $this->RestResponse->viewData(array('uuid' => Configure::read('MISP.uuid')), $this->response->type());
     }
 
-    public function rest() {
+    public function rest()
+    {
         if ($this->request->is('post')) {
             $request = $this->request->data;
             if (!empty($request['Server'])) {
@@ -1631,7 +1632,8 @@ class ServersController extends AppController
         $this->set('header', $header);
     }
 
-    private function __doRestQuery($request) {
+    private function __doRestQuery($request)
+    {
         App::uses('SyncTool', 'Tools');
         $params = array(
 
@@ -1667,7 +1669,7 @@ class ServersController extends AppController
             $request['method'] === 'GET'
         ) {
             $response = $HttpSocket->get($url, false, array('header' => $request['header']));
-        } else if (
+        } elseif (
             !empty($request['method']) &&
             $request['method'] === 'POST' &&
             !empty($request['body'])

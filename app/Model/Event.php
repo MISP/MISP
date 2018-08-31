@@ -913,7 +913,8 @@ class Event extends AppModel
         return 'Success';
     }
 
-    private function __prepareForPushToServer($event, $server) {
+    private function __prepareForPushToServer($event, $server)
+    {
         if ($event['Event']['distribution'] == 4) {
             if (!empty($event['SharingGroup']['SharingGroupServer'])) {
                 $found = false;
@@ -965,6 +966,7 @@ class Event extends AppModel
                     }
                     return $jsonArray['name'];
                 }
+                // no break
             case '302': // Found
                 $newLocation = $response->headers['Location'];
                 $newTextBody = $response->body();
@@ -984,7 +986,9 @@ class Event extends AppModel
     public function restfulEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null)
     {
         $event = $this->__prepareForPushToServer($event, $server);
-        if (is_numeric($event)) return $event;
+        if (is_numeric($event)) {
+            return $event;
+        }
         $url = $server['Server']['url'];
         $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
         $request = $this->setupSyncRequest($server);
@@ -1028,7 +1032,8 @@ class Event extends AppModel
         return $data;
     }
 
-    private function __prepareAttributesForSync($data, $server) {
+    private function __prepareAttributesForSync($data, $server)
+    {
         // prepare attribute for sync
         if (!empty($data['Attribute'])) {
             foreach ($data['Attribute'] as $key => $attribute) {
@@ -1044,7 +1049,8 @@ class Event extends AppModel
         return $data;
     }
 
-    private function __prepareObjectsForSync($data, $server) {
+    private function __prepareObjectsForSync($data, $server)
+    {
         // prepare Object for sync
         if (!empty($data['Object'])) {
             foreach ($data['Object'] as $key => $object) {
@@ -1286,6 +1292,69 @@ class Event extends AppModel
             );
         }
         return $conditions;
+    }
+
+    public function filterEventIds($user, &$params = array())
+    {
+        $conditions = $this->createEventConditions($user);
+        $simple_params = array(
+            'Event' => array(
+                'eventid' => array('function' => 'set_filter_eventid', 'pop' => true),
+                'ignore' => array('function' => 'set_filter_ignore'),
+                'tags' => array('function' => 'set_filter_tags'),
+                'tag' => array('function' => 'set_filter_tags'),
+                'from' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                'to' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                'last' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                'publish_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                'org' => array('function' => 'set_filter_org', 'pop' => true),
+                'uuid' => array('function' => 'set_filter_uuid', 'pop' => true),
+                'published' => array('function' => 'set_filter_published', 'pop' => true)
+            ),
+            'Object' => array(
+                'object_name' => array('function' => 'set_filter_object_name')
+            ),
+            'Attribute' => array(
+                'value' => array('function' => 'set_filter_value', 'pop' => true),
+                'category' => array('function' => 'set_filter_simple_attribute'),
+                'type' => array('function' => 'set_filter_simple_attribute'),
+                'tags' => array('function' => 'set_filter_tags', 'pop' => true),
+                'uuid' => array('function' => 'set_filter_uuid')
+            )
+        );
+        foreach ($params as $param => $paramData) {
+            foreach ($simple_params as $scope => $simple_param_scoped) {
+                if (isset($simple_param_scoped[$param]) && $params[$param] !== false) {
+                    $options = array(
+                        'filter' => $param,
+                        'scope' => $scope,
+                        'pop' => !empty($simple_param_scoped[$param]['pop'])
+                    );
+                    if ($scope === 'Event') {
+                        $conditions = $this->{$simple_param_scoped[$param]['function']}($params, $conditions, $options);
+                    } else {
+                        $temp = array();
+                        $temp = $this->{$simple_param_scoped[$param]['function']}($params, $temp, $options);
+                        if (!empty($temp)) {
+                            $subQueryOptions = array(
+                                'conditions' => $temp,
+                                'fields' => array(
+                                    'event_id'
+                                )
+                            );
+                            $conditions['AND'][] = $this->subQueryGenerator($this->{$scope}, $subQueryOptions, 'Event.id');
+                        }
+                    }
+                }
+            }
+        }
+        $results = array_values($this->find('list', array(
+            'conditions' => $conditions,
+            'recursive' => -1,
+            'fields' => array('Event.id')
+        )));
+        return $results;
     }
 
     public function fetchSimpleEventIds($user, $params = array())
@@ -1891,90 +1960,189 @@ class Event extends AppModel
         $field = '"' . $field . '"';
     }
 
-    public function csv($user, $eventid=false, $ignore=false, $attributeIDList = array(), $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false, $last = false, $enforceWarninglist = false, $value = false, $timestamp = false)
+    public function set_filter_org(&$params, $conditions, $options)
     {
-        $this->recursive = -1;
-        $conditions = array();
-        // If we are not in the search result csv download function then we need to check what can be downloaded. CSV downloads are already filtered by the search function.
-        if ($eventid !== 'search') {
-            if ($from) {
-                $conditions['AND']['Event.date >='] = $from;
-            }
-            if ($to) {
-                $conditions['AND']['Event.date <='] = $to;
-            }
-            if ($last) {
-                $conditions['AND']['Event.publish_timestamp >='] = $last;
-            }
-            if ($timestamp) {
-                $conditions['AND']['Attribute.timestamp >='] = $timestamp;
-                $conditions['AND']['Event.timestamp >='] = $timestamp;
-            }
-            // This is for both single event downloads and for full downloads. Org has to be the same as the user's or distribution not org only - if the user is no siteadmin
-            if ($ignore == false) {
-                $conditions['AND']['Event.published'] = 1;
-            }
+        if (!empty($params['org'])) {
+            $params['org'] = $this->convert_filters($params['org']);
+            $conditions = $this->generic_add_filter($conditions, $params['org'], 'Event.orgc_id');
+        }
+        return $conditions;
+    }
 
-            // If we sent any tags along, load the associated tag names for each attribute
-            if ($tags) {
-                $tag = ClassRegistry::init('Tag');
-                $args = $this->Attribute->dissectArgs($tags);
-                $tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
-                $temp = array();
-                foreach ($tagArray[0] as $accepted) {
-                    $temp['OR'][] = array('Event.id' => $accepted);
-                }
-                if (!empty($temp)) {
-                    $conditions['AND'][] = $temp;
-                }
-                $temp = array();
-                foreach ($tagArray[1] as $rejected) {
-                    $temp['AND'][] = array('Event.id !=' => $rejected);
-                }
-                if (!empty($temp)) {
-                    $conditions['AND'][] = $temp;
-                }
-            }
-            // if we're downloading a single event, set it as a condition
-            if ($eventid) {
-                $conditions['AND'][] = array('Event.id' => $eventid);
-            }
+    public function set_filter_eventid(&$params, $conditions, $options)
+    {
+        if (!empty($params['eventid']) && $params['eventid'] !== 'all') {
+            $params['eventid'] = $this->convert_filters($params['eventid']);
+            $conditions = $this->generic_add_filter($conditions, $params['eventid'], 'Event.id');
+        }
+        return $conditions;
+    }
 
-            //restricting to non-private or same org if the user is not a site-admin.
-            if (!$ignore) {
-                $conditions['AND']['Attribute.to_ids'] = 1;
+    public function set_filter_uuid(&$params, $conditions, $options)
+    {
+        if (!empty($params['uuid'])) {
+            $params['uuid'] = $this->convert_filters($params['uuid']);
+            if (!empty($options['scope']) || $options['scope'] === 'Event') {
+                $conditions = $this->generic_add_filter($conditions, $params['uuid'], 'Event.uuid');
             }
-            if ($type) {
-                $conditions['AND']['Attribute.type'] = $type;
-            }
-            if ($category) {
-                $conditions['AND']['Attribute.category'] = $category;
-            }
-            if ($value) {
-                $temp = array(
-                    'OR' => array(
-                        'Attribute.value1' => $value,
-                        'Attribute.value2' => $value
-                    )
-                );
-
-                $conditions['AND'][] = $temp;
+            if (!empty($options['scope']) || $options['scope'] === 'Attribute') {
+                $conditions = $this->generic_add_filter($conditions, $params['uuid'], 'Attribute.uuid');
             }
         }
+        return $conditions;
+    }
 
-        if ($eventid === 'search') {
-            foreach ($attributeIDList as $aID) {
+	public function set_filter_deleted(&$params, $conditions, $options)
+	{
+		if (!empty($params['deleted'])) {
+			if (empty($options['scope'])) {
+				$scope = 'Attribute';
+			} else {
+				$scope = $options['scope'];
+			}
+			if ($params['deleted'])
+			$conditions = $this->
+			$conditions = $this->generic_add_filter($conditions, $params['deleted'], $scope . '.deleted');
+		}
+		return $conditions;
+	}
+
+
+
+    public function set_filter_ignore(&$params, $conditions, $options)
+    {
+        if (empty($params['ignore'])) {
+            $conditions['AND']['Event.published'] = 1;
+            $conditions['AND']['Attribute.to_ids'] = 1;
+        }
+        return $conditions;
+    }
+
+    public function set_filter_published(&$params, $conditions, $options)
+    {
+        if (isset($params['published'])) {
+            $conditions['AND']['Event.published'] = $params['published'];
+        }
+        return $conditions;
+    }
+
+    public function set_filter_tags(&$params, $conditions, $options)
+    {
+        if (!empty($params['tags'])) {
+            $conditions = $this->Attribute->set_filter_tags($params, $conditions, $options);
+        }
+        return $conditions;
+    }
+
+    public function set_filter_simple_attribute(&$params, $conditions, $options)
+    {
+        if (!empty($params[$options['filter']])) {
+            $params[$options['filter']] = $this->convert_filters($params[$options['filter']]);
+            $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], 'Attribute.' . $options['filter']);
+        }
+        return $conditions;
+    }
+
+    public function set_filter_attribute_id(&$params, $conditions, $options)
+    {
+        if (!empty($params[$options['filter']])) {
+            $params[$options['filter']] = $this->convert_filters($params[$options['filter']]);
+            $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], 'Attribute.' . $options['filter']);
+        }
+        return $conditions;
+    }
+
+    public function set_filter_value(&$params, $conditions, $options)
+    {
+        if (!empty($params['value'])) {
+            $params[$options['filter']] = $this->convert_filters($params[$options['filter']]);
+            $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], array('Attribute.value1', 'Attribute.value2'));
+        }
+        return $conditions;
+    }
+
+    public function set_filter_timestamp(&$params, $conditions, $options)
+    {
+        if ($options['filter'] == 'from') {
+            $conditions['AND']['Event.date >='] = $params['from'];
+        } elseif ($options['filter'] == 'to') {
+            $conditions['AND']['Event.date <='] = $params['to'];
+        } else {
+            $filters = array(
+                'timestamp' => array(
+                    'Event.timestamp'
+                ),
+                'publish_timestamp' => array(
+                    'Event.publish_timestamp'
+                ),
+                'last' => array(
+                    'Event.publish_timestamp'
+                )
+            );
+            foreach ($filters[$options['filter']] as $f) {
+                $conditions = $this->Attribute->setTimestampConditions($params[$options['filter']], $conditions, $f);
+            }
+        }
+        return $conditions;
+    }
+
+    public function csv($user, $params, $search = false, &$continue = true)
+    {
+        $conditions = array();
+        $simple_params = array(
+            'eventid' => array('function' => 'set_filter_eventid'),
+            'ignore' => array('function' => 'set_filter_ignore'),
+            'tags' => array('function' => 'set_filter_tags'),
+            'category' => array('function' => 'set_filter_simple_attribute'),
+            'type' => array('function' => 'set_filter_simple_attribute'),
+            'from' => array('function' => 'set_filter_timestamp'),
+            'to' => array('function' => 'set_filter_timestamp'),
+            'last' => array('function' => 'set_filter_timestamp'),
+            'value' => array('function' => 'set_filter_value'),
+            'timestamp' => array('function' => 'set_filter_timestamp'),
+            'attributeIDList' => array('functon' => 'set_filter_attribute_id')
+        );
+        foreach ($params as $param => $paramData) {
+            if (isset($simple_params[$param]) && $params[$param] !== false) {
+                $options = array(
+                    'filter' => $param,
+                    'scope' => 'Event',
+                    'pop' => !empty($simple_param_scoped[$param]['pop'])
+                );
+                $conditions = $this->{$simple_params[$param]['function']}($params, $conditions, $options);
+            }
+        }
+        //$attributeIDList = array(), $includeContext = false, $enforceWarninglist = false
+        $this->recursive = -1;
+        if (!empty($params['eventid']) && $params['eventid'] === 'search') {
+            foreach ($params['attributeIDList'] as $aID) {
                 $conditions['AND']['OR'][] = array('Attribute.id' => $aID);
             }
         }
-        $params = array(
+        $csv_params = array(
                 'conditions' => $conditions, //array of conditions
                 'fields' => array('Attribute.event_id', 'Attribute.distribution', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.comment', 'Attribute.uuid', 'Attribute.to_ids', 'Attribute.timestamp', 'Attribute.id', 'Attribute.object_relation'),
                 'order' => array('Attribute.uuid ASC'),
-                'enforceWarninglist' => $enforceWarninglist,
                 'flatten' => true
         );
 
+        // copy over the parameters that have to deal with pagination or additional functionality to be executed
+        $control_params = array(
+            'limit', 'page', 'enforceWarninglist'
+        );
+        foreach ($control_params as $control_param) {
+            if (!empty($params[$control_param])) {
+                $csv_params[$control_param] = $params[$control_param];
+            }
+        }
+        $csv_params = $this->__appendIncludesCSV($csv_params, !empty($params['includeContext']));
+        $attributes = $this->Attribute->fetchAttributes($user, $csv_params, $continue);
+        $attributes = $this->__sanitiseCSVAttributes($attributes, !empty($params['includeContext']), !empty($params['ignore']));
+        return $attributes;
+    }
+
+    private function __appendIncludesCSV($params, $includeContext)
+    {
         if ($includeContext) {
             $params['contain'] = array(
                 'Event' => array(
@@ -1994,9 +2162,14 @@ class Event extends AppModel
             );
         }
         $params['contain']['Object'] = array('fields' => array('id', 'uuid', 'name', 'meta-category'));
-        $attributes = $this->Attribute->fetchAttributes($user, $params);
-        if (empty($attributes)) {
-            return array();
+        return $params;
+    }
+
+    private function __sanitiseCSVAttributes($attributes, $includeContext, $ignore)
+    {
+        if (!empty($ignore)) {
+            $this->Log = ClassRegistry::init('Log');
+            $attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
         }
         foreach ($attributes as &$attribute) {
             $this->__escapeCSVField($attribute['Attribute']['value']);
@@ -2354,6 +2527,20 @@ class Event extends AppModel
         if (empty($orgMembers)) {
             return false;
         }
+        $temp = $this->__buildContactEventEmailBody($user, $message, $event, $targetUser, $id);
+        $bodyevent = $temp[0];
+        $body = $temp[1];
+        $result = true;
+        $tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
+        foreach ($orgMembers as &$reporter) {
+            $subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - ".$tplColorString;
+            $result = $this->User->sendEmail($reporter, $bodyevent, $body, $subject, $user) && $result;
+        }
+        return $result;
+    }
+
+    private function __buildContactEventEmailBody($user, $message, $event, $targetUser, $id)
+    {
         // The mail body, h() is NOT needed as we are sending plain-text mails.
         $body = "";
         $body .= "Hello, \n";
@@ -2415,13 +2602,7 @@ class Event extends AppModel
         }
         $bodyevent .= "\n";
         $bodyevent .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
-        $result = true;
-        $tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
-        foreach ($orgMembers as &$reporter) {
-            $subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - ".$tplColorString;
-            $result = $this->User->sendEmail($reporter, $bodyevent, $body, $subject, $user) && $result;
-        }
-        return $result;
+        return array($bodyevent, $body);
     }
 
     private function __captureSGForElement($element, $user)
@@ -3184,7 +3365,8 @@ class Event extends AppModel
         }
     }
 
-    private function __getPrioWorkerIfPossible() {
+    private function __getPrioWorkerIfPossible()
+    {
         $this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
         $workers = $this->ResqueStatus->getWorkers();
         $workerType = 'default';
@@ -3705,18 +3887,22 @@ class Event extends AppModel
 
     public function resolveTimeDelta($delta)
     {
-        if (is_int($delta)) {
+        if (is_numeric($delta)) {
             return $delta;
         }
-        $multiplierArray = array('d' => 86400, 'h' => 3600, 'm' => 60);
+        $multiplierArray = array('d' => 86400, 'h' => 3600, 'm' => 60, 's' => 1);
         $multiplier = $multiplierArray['d'];
         $lastChar = strtolower(substr($delta, -1));
         if (!is_numeric($lastChar) && array_key_exists($lastChar, $multiplierArray)) {
             $multiplier = $multiplierArray[$lastChar];
             $delta = substr($delta, 0, -1);
+        } else {
+            // invalid filter, make sure we don't return anything
+            return time() + 1;
         }
         if (!is_numeric($delta)) {
-            return false;
+            // Same here. (returning false dumps the whole database)
+            return time() + 1;
         }
         return time() - ($delta * $multiplier);
     }
@@ -4291,7 +4477,7 @@ class Event extends AppModel
                     if ($parameterKey === 'org') {
                         $found_orgs = $this->Org->find('all', array(
                             'recursive' => -1,
-                            'conditions' => array('LOWER(name) LIKE' => '%' . strtolower(substr($v, 1)) . '%'),
+                            'conditions' => array('name' => substr($v, 1)),
                         ));
                         foreach ($found_orgs as $o) {
                             $subcondition['AND'][] = array('Event.orgc_id !=' => $o['Org']['id']);
@@ -4306,7 +4492,12 @@ class Event extends AppModel
                         $subcondition['AND'][] = array('Event.uuid !=' => substr($v, 1));
                         $subcondition['AND'][] = array('Attribute.uuid !=' => substr($v, 1));
                     } else {
-                        $subcondition['AND'][] = array('Attribute.' . $parameterKey . ' NOT LIKE' => '%'.substr($v, 1).'%');
+                        $lookup = substr($v, 1);
+                        if (strlen($lookup) != strlen(trim($lookup, '%'))) {
+                            $subcondition['AND'][] = array('Attribute.' . $parameterKey . ' NOT LIKE' => $lookup);
+                        } else {
+                            $subcondition['AND'][] = array('NOT' => array('Attribute.' . $parameterKey => $lookup));
+                        }
                     }
                 }
             } else {
@@ -4322,7 +4513,7 @@ class Event extends AppModel
                     if ($parameterKey === 'org') {
                         $found_orgs = $this->Org->find('all', array(
                                 'recursive' => -1,
-                                'conditions' => array('LOWER(name) LIKE' => '%' . strtolower($v) . '%'),
+                                'conditions' => array('name' => $v),
                         ));
                         foreach ($found_orgs as $o) {
                             $subcondition['OR'][] = array('Event.orgc_id' => $o['Org']['id']);
@@ -4338,7 +4529,11 @@ class Event extends AppModel
                         $subcondition['OR'][] = array('Event.uuid' => $v);
                     } else {
                         if (!empty($v)) {
-                            $subcondition['OR'][] = array('Attribute.' . $parameterKey . ' LIKE' => '%'.$v.'%');
+                            if (strlen($v) != strlen(trim($v, '%'))) {
+                                $subcondition['AND'][] = array('Attribute.' . $parameterKey . ' LIKE' => $v);
+                            } else {
+                                $subcondition['AND'][] = array('Attribute.' . $parameterKey => $v);
+                            }
                         }
                     }
                 }

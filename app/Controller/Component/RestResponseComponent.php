@@ -278,8 +278,13 @@ class RestResponseComponent extends Component
         return $this->__sendResponse($data, 200, $format, $raw, $download);
     }
 
-    public function throwException($code, $message, $format, $raw)
+    public function throwException($code, $message, $url = '', $format = false, $raw = false)
     {
+        $message = array(
+            'name' => $message,
+            'message' => $message,
+            'url' => $url
+        );
         return $this->__sendResponse($message, $code, $format, $raw);
     }
 

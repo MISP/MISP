@@ -46,7 +46,7 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg');
 
-    private $__queryVersion = '43';
+    private $__queryVersion = '44';
     public $pyMispVersion = '2.4.93';
     public $phpmin = '5.6.5';
     public $phprec = '7.0.16';
@@ -533,6 +533,68 @@ class AppController extends Controller
     protected function _checkOrg()
     {
         return $this->Auth->user('org_id');
+    }
+
+    protected function _getApiAuthUser($key, &$exception)
+    {
+        if (strlen($key) == 40) {
+            // check if the key is valid -> search for users based on key
+            $user = $this->checkAuthUser($key);
+            if (!$user) {
+                $exception = $this->RestResponse->throwException(
+                    401,
+                    __('This authentication key is not authorized to be used for exports. Contact your administrator.')
+                );
+                return false;
+            }
+        } else {
+            if (!$this->Auth->user('id')) {
+                $exception = $this->RestResponse->throwException(
+                    401,
+                    __('You have to be logged in to do that.')
+                );
+                return false;
+            }
+            $user = $this->Auth->user();
+        }
+        return $user;
+    }
+
+    // generic function to standardise on the collection of parameters. Accepts posted request objects, url params, named url params
+    protected function _harvestParameters($options, &$exception)
+    {
+        $data = array();
+        if (!empty($options['request']->is('post'))) {
+            if (empty($options['request']->data)) {
+                $exception = $this->RestResponse->throwException(
+                    400,
+                    __('Either specify the search terms in the url, or POST a json with the filter parameters.'),
+                    '/' . $this->request->params['controller'] . '/' . $this->action
+                );
+                return false;
+            } else {
+                if (isset($options['request']->data['request'])) {
+                    $data = $options['request']->data['request'];
+                } else {
+                    $data = $options['request']->data;
+                }
+            }
+        }
+        if (!empty($options['paramArray'])) {
+            foreach ($options['paramArray'] as $p) {
+                if (
+                    isset($options['ordered_url_params'][$p]) &&
+                    (!in_array(strtolower($options['ordered_url_params'][$p]), array('null', '0', false, 'false', null)))
+                ) {
+                    $data[$p] = $options['ordered_url_params'][$p];
+                    $data[$p] = str_replace(';', ':', $data[$p]);
+                }
+                if (isset($options['named_params'][$p])) {
+                    $data[$p] = $options['named_params'][$p];
+                }
+            }
+        }
+        return $data;
     }
 
     // pass an action to this method for it to check the active user's access to the action

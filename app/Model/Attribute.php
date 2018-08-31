@@ -668,8 +668,7 @@ class Attribute extends AppModel
                 // We're working in S3
                 $s3 = $this->getS3Client();
                 $s3->delete($this->data['Attribute']['event_id'] . DS . $this->data['Attribute']['id']);
-            }
-            else {
+            } else {
                 // Standard delete
                 $filepath = $attachments_dir . DS . $this->data['Attribute']['event_id'] . DS . $this->data['Attribute']['id'];
                 $file = new File($filepath);
@@ -2068,6 +2067,88 @@ class Attribute extends AppModel
         return $rules;
     }
 
+    public function set_filter_tags(&$params, $conditions, $options)
+    {
+        if (empty($params['tags'])) {
+            return $conditions;
+        }
+        $tag = ClassRegistry::init('Tag');
+        $params['tags'] = $this->dissectArgs($params['tags']);
+        $tagArray = $tag->fetchTagIds($params['tags'][0], $params['tags'][1]);
+        if (!empty($params['tags'][0]) && empty($tagArray[0])) {
+            $tagArray[0] = array(-1);
+        }
+        $temp = array();
+        if (!empty($tagArray[0])) {
+            $subquery_options = array(
+                'conditions' => array(
+                    'tag_id' => $tagArray[0]
+                ),
+                'fields' => array(
+                    'event_id'
+                )
+            );
+            $lookup_field = ($options['scope'] === 'Event') ? 'Event.id' : 'Attribute.event_id';
+            $temp = array_merge(
+                $temp,
+                $this->subQueryGenerator($tag->EventTag, $subquery_options, $lookup_field)
+            );
+
+            $subquery_options = array(
+                'conditions' => array(
+                    'tag_id' => $tagArray[0]
+                ),
+                'fields' => array(
+                    $options['scope'] === 'Event' ? 'Event.id' : 'attribute_id'
+                )
+            );
+            $lookup_field = $options['scope'] === 'Event' ? 'Event.id' : 'Attribute.id';
+            $temp = array_merge(
+                $temp,
+                $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field)
+            );
+            $conditions['AND'][] = array('OR' => $temp);
+        }
+        $temp = array();
+        if (!empty($tagArray[1])) {
+            if ($options['scope'] == 'all' || $options['scope'] == 'Event') {
+                $subquery_options = array(
+                    'conditions' => array(
+                        'tag_id' => $tagArray[1]
+                    ),
+                    'fields' => array(
+                        'event_id'
+                    )
+                );
+                $lookup_field = ($options['scope'] === 'Event') ? 'Event.id' : 'Attribute.event_id';
+                $conditions['AND'][] = array_merge($temp, $this->subQueryGenerator($tag->EventTag, $subquery_options, $lookup_field, 1));
+            }
+            if ($options['scope'] == 'all' || $options['scope'] == 'Attribute') {
+                $subquery_options = array(
+                    'conditions' => array(
+                        'tag_id' => $tagArray[1]
+                    ),
+                    'fields' => array(
+                        $options['scope'] === 'Event' ? 'event.id' : 'attribute_id'
+                    )
+                );
+                $lookup_field = $options['scope'] === 'Event' ? 'Event.id' : 'Attribute.id';
+                $conditions['AND'][] = array_merge($temp, $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field, 1));
+            }
+        }
+        $params['tags'] = array();
+        if (!empty($tagArray[0]) && empty($options['pop'])) {
+            $params['tags']['OR'] = $tagArray[0];
+        }
+        if (!empty($tagArray[1])) {
+            $params['tags']['NOT'] = $tagArray[1];
+        }
+        if (empty($params['tags'])) {
+            unset($params['tags']);
+        }
+        return $conditions;
+    }
+
     public function text($user, $type, $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false, $last = false, $enforceWarninglist = false, $allowNotPublished = false)
     {
         //permissions are taken care of in fetchAttributes()
@@ -2094,56 +2175,7 @@ class Attribute extends AppModel
         if ($eventId !== false) {
             $conditions['AND'][] = array('Event.id' => $eventId);
         } elseif ($tags !== false) {
-            // If we sent any tags along, load the associated tag names for each attribute
-            $tag = ClassRegistry::init('Tag');
-            $args = $this->dissectArgs($tags);
-            $tagArray = $tag->fetchTagIds($args[0], $args[1]);
-            $temp = array();
-            if (!empty($tagArray[0])) {
-                $options = array(
-                    'conditions' => array(
-                        'tag_id' => $tagArray[0]
-                    ),
-                    'fields' => array(
-                        'event_id'
-                    )
-                );
-                $temp = array_merge($temp, $this->subQueryGenerator($tag->EventTag, $options, 'Attribute.event_id'));
-                $options = array(
-                    'conditions' => array(
-                        'tag_id' => $tagArray[0]
-                    ),
-                    'fields' => array(
-                        'attribute_id'
-                    )
-                );
-                $temp = array_merge($temp, $this->subQueryGenerator($tag->AttributeTag, $options, 'Attribute.id'));
-                $temp2 = array('OR' => $temp);
-                $conditions['AND'][] = $temp2;
-            }
-            $temp = array();
-            if (!empty($tagArray[1])) {
-                $options = array(
-                    'conditions' => array(
-                        'tag_id' => $tagArray[1]
-                    ),
-                    'fields' => array(
-                        'event_id'
-                    )
-                );
-                $temp = array_merge($temp, $this->subQueryGenerator($tag->EventTag, $options, 'Attribute.event_id', 1));
-                $options = array(
-                    'conditions' => array(
-                        'tag_id' => $tagArray[1]
-                    ),
-                    'fields' => array(
-                        'attribute_id'
-                    )
-                );
-                $temp = array_merge($temp, $this->subQueryGenerator($tag->AttributeTag, $options, 'Attribute.id', 1));
-                $temp2 = array('AND' => $temp);
-                $conditions['AND'][] = $temp2;
-            }
+            $conditions = $this->set_filter_tags(array('tags' => $tags), $conditions);
         }
         $attributes = $this->fetchAttributes($user, array(
                 'conditions' => $conditions,
@@ -2419,25 +2451,26 @@ class Attribute extends AppModel
     // array 1 will have all of the non negated terms and array 2 all the negated terms
     public function dissectArgs($args)
     {
-        if (!$args) {
-            return array(null, null);
+        if (!is_array($args)) {
+            $args = explode('&&', $args);
         }
-        if (is_array($args)) {
-            $argArray = $args;
+        $result = array(0 => array(), 1 => array());
+        if (isset($args['OR']) || isset($args['NOT']) || isset($args['AND'])) {
+            if (!empty($args['OR'])) {
+                $result[0] = $args['OR'];
+            }
+            if (!empty($args['NOT'])) {
+                $result[1] = $args['NOT'];
+            }
         } else {
-            $argArray = explode('&&', $args);
-        }
-        $accept = $reject = $result = array();
-        $reject = array();
-        foreach ($argArray as $arg) {
-            if (substr($arg, 0, 1) == '!') {
-                $reject[] = substr($arg, 1);
-            } else {
-                $accept[] = $arg;
+            foreach ($args as $arg) {
+                if (substr($arg, 0, 1) == '!') {
+                    $result[1][] = substr($arg, 1);
+                } else {
+                    $result[0][] = $arg;
+                }
             }
         }
-        $result[0] = $accept;
-        $result[1] = $reject;
         return $result;
     }
 
@@ -2725,7 +2758,7 @@ class Attribute extends AppModel
     //     conditions
     //     order
     //     group
-    public function fetchAttributes($user, $options = array())
+    public function fetchAttributes($user, $options = array(), &$continue = true)
     {
         $params = array(
             'conditions' => $this->buildConditions($user),
@@ -2822,9 +2855,8 @@ class Attribute extends AppModel
             $this->Warninglist = ClassRegistry::init('Warninglist');
             $warninglists = $this->Warninglist->fetchForEventView();
         }
-
         if (empty($params['limit'])) {
-            $loopLimit = 100000;
+            $loopLimit = 50000;
             $loop = true;
             $params['limit'] = $loopLimit;
             $params['page'] = 0;
@@ -2833,7 +2865,6 @@ class Attribute extends AppModel
             $pagesToFetch = 1;
         }
         $attributes = array();
-        $continue = true;
         while ($continue) {
             if ($loop) {
                 $params['page'] = $params['page'] + 1;
@@ -2841,13 +2872,17 @@ class Attribute extends AppModel
                     $continue = false;
                     continue;
                 }
-            } else {
-                $continue = false;
             }
             $results = $this->find('all', $params);
+            if (!$loop) {
+                if (!empty($params['limit']) && count($results) < $params['limit']) {
+                    $continue = false;
+                }
+                $break = true;
+            }
             // return false if we're paginating
             if (isset($options['limit']) && empty($results)) {
-                return false;
+                return array();
             }
             $results = array_values($results);
             $proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
@@ -2872,6 +2907,9 @@ class Attribute extends AppModel
                     }
                 }
                 $attributes[] = $results[$key];
+            }
+            if (!empty($break)) {
+                break;
             }
         }
         return $attributes;
@@ -3128,11 +3166,11 @@ class Attribute extends AppModel
         if (is_array($timestamp)) {
             $timestamp[0] = $this->Event->resolveTimeDelta($timestamp[0]);
             $timestamp[1] = $this->Event->resolveTimeDelta($timestamp[1]);
-            $conditions['AND'][] = array($scope . ' >=' => $timestamp[0]);
-            $conditions['AND'][] = array($scope . ' <=' => $timestamp[1]);
+            $conditions['AND'][] = array($scope . ' >=' => intval($timestamp[0]));
+            $conditions['AND'][] = array($scope . ' <=' => intval($timestamp[1]));
         } else {
             $timestamp = $this->Event->resolveTimeDelta($timestamp);
-            $conditions['AND'][] = array($scope . ' >=' => $timestamp);
+            $conditions['AND'][] = array($scope . ' >=' => intval($timestamp));
         }
         return $conditions;
     }
@@ -3545,6 +3583,7 @@ class Attribute extends AppModel
         }
         return true;
     }
+
     public function attachValidationWarnings($adata)
     {
         if (!$this->__fTool) {
@@ -3555,4 +3594,52 @@ class Attribute extends AppModel
         }
         return $adata;
     }
+
+	public function buildFilterConditions($user, &$params)
+	{
+		$conditions = $this->buildConditions($user);
+		$attribute_conditions = array();
+		$object_conditions = array();
+		$simple_params = array(
+			'Attribute' => array(
+				'value' => array('function' => 'set_filter_value'),
+				'category' => array('function' => 'set_filter_simple_attribute'),
+				'type' => array('function' => 'set_filter_simple_attribute'),
+				'tags' => array('function' => 'set_filter_tags'),
+				'uuid' => array('function' => 'set_filter_uuid'),
+				'deleted' => array('function' => 'set_filter_deleted')
+			),
+			'Event' => array(
+				'eventid' => array('function' => 'set_filter_eventid'),
+				'ignore' => array('function' => 'set_filter_ignore'),
+				'tags' => array('function' => 'set_filter_tags'),
+				'tag' => array('function' => 'set_filter_tags'),
+				'from' => array('function' => 'set_filter_timestamp'),
+				'to' => array('function' => 'set_filter_timestamp'),
+				'last' => array('function' => 'set_filter_timestamp'),
+				'timestamp' => array('function' => 'set_filter_timestamp'),
+				'publish_timestamp' => array('function' => 'set_filter_timestamp'),
+				'org' => array('function' => 'set_filter_org'),
+				'uuid' => array('function' => 'set_filter_uuid'),
+				'published' => array('function' => 'set_filter_published')
+			),
+			'Object' => array(
+				'object_name' => array('function' => 'set_filter_object_name'),
+				'deleted' => array('function' => 'set_filter_deleted')
+			)
+		);
+		foreach ($params as $param => $paramData) {
+			foreach ($simple_params as $scope => $simple_param_scoped) {
+				if (isset($simple_param_scoped[$param]) && $params[$param] !== false) {
+					$options = array(
+						'filter' => $param,
+						'scope' => $scope,
+						'pop' => !empty($simple_param_scoped[$param]['pop'])
+					);
+					$conditions = $this->Event->{$simple_param_scoped[$param]['function']}($params, $conditions, $options);
+				}
+			}
+		}
+		return $conditions;
+	}
 }

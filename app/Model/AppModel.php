@@ -1194,7 +1194,8 @@ class AppModel extends Model
         return $version_array;
     }
 
-    public function validateAuthkey($value) {
+    public function validateAuthkey($value)
+    {
         if (empty($value['authkey'])) {
             return 'Empty authkey found. Make sure you set the 40 character long authkey.';
         }
@@ -1458,7 +1459,8 @@ class AppModel extends Model
         $this->elasticSearchClient = $client;
     }
 
-    public function getS3Client() {
+    public function getS3Client()
+    {
         if (!$this->s3Client) {
             $this->s3Client = $this->loadS3Client();
         }
@@ -1466,14 +1468,16 @@ class AppModel extends Model
         return $this->s3Client;
     }
 
-    public function loadS3Client() {
+    public function loadS3Client()
+    {
         App::uses('AWSS3Client', 'Tools');
         $client = new AWSS3Client();
         $client->initTool();
         return $client;
     }
 
-    public function attachmentDirIsS3() {
+    public function attachmentDirIsS3()
+    {
         // Naive way to detect if we're working in S3
         return substr(Configure::read('MISP.attachments_dir'), 0, 2) === "s3";
     }
@@ -1654,5 +1658,85 @@ class AppModel extends Model
             $request['header']['commit'] = $commit;
         }
         return $request;
+    }
+
+    // take filters in the {"OR" => [foo], "NOT" => [bar]} format along with conditions and set the conditions
+    public function generic_add_filter($conditions, &$filter, $keys)
+    {
+        $operator_composition = array(
+            'NOT' => 'AND',
+            'OR' => 'OR',
+            'AND' => 'AND'
+        );
+        if (!is_array($keys)) {
+            $keys = array($keys);
+        }
+        if (!isset($filter['OR']) && !isset($filter['AND']) && !isset($filter['OR'])) {
+            return $conditions;
+        }
+        foreach ($filter as $operator => $filters) {
+            $temp = array();
+            foreach ($filters as $f) {
+                // split the filter params into two lists, one for substring searches one for exact ones
+                if ($f[strlen($f) - 1] === '%' || $f[0] === '%') {
+                    foreach ($keys as $key) {
+                        if ($operator === 'NOT') {
+                            $temp[] = array($key . ' NOT LIKE' => $f);
+                        } else {
+                            $temp[] = array($key . ' LIKE' => $f);
+                        }
+                    }
+                } else {
+                    foreach ($keys as $key) {
+                        if ($operator === 'NOT') {
+                            $temp[$key . ' !='][] = $f;
+                        } else {
+                            $temp['OR'][$key][] = $f;
+                        }
+                    }
+                }
+            }
+            $conditions['AND'][] = array($operator_composition[$operator] => $temp);
+            if ($operator !== 'NOT') {
+                unset($filter[$operator]);
+            }
+        }
+        return $conditions;
+    }
+
+    /*
+     * Get filters in one of the following formats:
+     * [foo, bar]
+     * ["OR" => [foo, bar], "NOT" => [baz]]
+     * "foo"
+     * "foo&&bar&&!baz"
+     * and convert it into the same format ["OR" => [foo, bar], "NOT" => [baz]]
+     */
+    public function convert_filters($filter)
+    {
+        if (!is_array($filter)) {
+            $temp = explode('&&', $filter);
+            $filter = array();
+            foreach ($temp as $f) {
+                if ($f[0] === '!') {
+                    $filter['NOT'][] = $f;
+                } else {
+                    $filter['OR'][] = $f;
+                }
+            }
+            return $filter;
+        }
+        if (!isset($filter['OR']) && !isset($filter['NOT']) && !isset($filter['AND'])) {
+            $temp = array();
+            foreach ($filter as $param) {
+                if ($param[0] === '!') {
+                    $temp['NOT'][] = substr($param, 1);
+                } else {
+                    $temp['OR'][] = $param;
+                }
+            }
+            $filter = $temp;
+        }
+        return $filter;
     }
 }
