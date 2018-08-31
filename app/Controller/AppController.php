@@ -52,6 +52,7 @@ class AppController extends Controller
     public $phprec = '7.0.16';
 
     public $baseurl = '';
+	public $sql_dump = false;
 
     // Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
     // This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
@@ -101,6 +102,9 @@ class AppController extends Controller
 
     public function beforeFilter()
     {
+		if (!empty($this->params['named']['sql'])) {
+			$this->sql_dump = 1;
+		}
         // check for a supported datasource configuration
         $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
         if (!isset($dataSourceConfig['encoding'])) {
@@ -434,6 +438,14 @@ class AppController extends Controller
         $this->set('notifications', $notifications);
         $this->ACL->checkAccess($this->Auth->user(), Inflector::variable($this->request->params['controller']), $this->action);
     }
+
+	public function afterFilter()
+	{
+		if (Configure::read('debug') > 1 && !empty($this->sql_dump) && $this->_isRest()) {
+			$this->Log = ClassRegistry::init('Log');
+			echo json_encode($this->Log->getDataSource()->getLog(false, false), JSON_PRETTY_PRINT);
+		}
+	}
 
     public function queryACL($debugType='findMissingFunctionNames', $content = false)
     {
