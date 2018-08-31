@@ -118,7 +118,7 @@ class AttributesController extends AppController
                 foreach ($attribute['AttributeTag'] as $kat => $at) {
                     foreach ($tags as $ktag => $tag) {
                         if ($tag['Tag']['id'] == $at['tag_id']) {
-                            $attributes[$k]['AttributeTag'][$kat]['Tag'] =	$tag['Tag'];
+                            $attributes[$k]['AttributeTag'][$kat]['Tag'] =    $tag['Tag'];
                         }
                     }
                 }
@@ -775,7 +775,7 @@ class AttributesController extends AppController
             // 1/ iterate over all the sources, unique
             // 2/ add uniques as 'Internal reference'
             // 3/ if url format -> 'link'
-            //	else 'comment'
+            //    else 'comment'
             $references = array();
             foreach ($entries as $entry) {
                 if (empty($entry['Source'])) {
@@ -2083,101 +2083,92 @@ class AttributesController extends AppController
     }
 
     public function restSearch($returnFormat = 'json', $value = false, $type = false, $category = false, $org = false, $tags = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $uuid = false, $publish_timestamp = false, $published = false, $timestamp = false, $enforceWarninglist = false, $to_ids = false, $deleted = false, $includeEventUuid = false, $event_timestamp = false, $threat_level_id = false) {
-      $paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id');
-      $filterData = array(
-          'request' => $this->request,
-          'named_params' => $this->params['named'],
-          'paramArray' => $paramArray,
-          'ordered_url_params' => compact($paramArray)
-      );
-      $exception = false;
-      $filters = $this->_harvestParameters($filterData, $exception);
-      unset($filterData);
-      if ($filters === false) {
+        $paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id');
+        $filterData = array(
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'paramArray' => $paramArray,
+            'ordered_url_params' => compact($paramArray)
+        );
+        $validFormats = array(
+            'openioc' => array('xml', 'OpeniocExport'),
+            'json' => array('json', 'JsonExport'),
+            'xml' => array('xml', 'XmlExport'),
+            'suricata' => array('txt', 'NidsSuricataExport'),
+            'snort' => array('txt', 'NidsSnortExport'),
+			'text' => array('txt', 'TextExport')
+        );
+        $exception = false;
+        $filters = $this->_harvestParameters($filterData, $exception);
+        unset($filterData);
+        if ($filters === false) {
           return $exception;
-      }
-      $list = array();
-      $user = $this->_getApiAuthUser($returnFormat, $exception);
-      if ($user === false) {
+        }
+        $list = array();
+        $user = $this->_getApiAuthUser($returnFormat, $exception);
+        if ($user === false) {
           return $exception;
-      }
-      if (isset($filters['returnFormat'])) {
+        }
+        if (isset($filters['returnFormat'])) {
           $returnFormat = $filters['returnFormat'];
-      } else {
-		  $returnFormat = 'json';
-	  }
-	  $conditions = $this->Attribute->buildFilterConditions($this->Auth->user(), $filters);
-	  $params = array(
-			  'conditions' => $conditions,
-			  'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution'),
-			  'withAttachments' => !empty($filters['withAttachments']) ? $filters['withAttachments'] : 0,
-			  'enforceWarninglist' => !empty($filters['enforceWarninglist']) ? $filters['enforceWarninglist'] : 0,
-			  'includeAllTags' => true,
-			  'flatten' => 1,
-			  'includeEventUuid' => !empty($filters['includeEventUuid']) ? $filters['includeEventUuid'] : 0,
-	  );
-	  if (!empty($filtes['deleted'])) {
-		  $params['deleted'] = 1;
-		  if ($params['deleted'] === 'only') {
-			  $params['conditions']['AND'][] = array('Attribute.deleted' => 1);
-			  $params['conditions']['AND'][] = array('Object.deleted' => 1);
-		  }
-	  }
-	  $results = $this->Attribute->fetchAttributes($this->Auth->user(), $params);
-	  $this->loadModel('Whitelist');
-	  $results = $this->Whitelist->removeWhitelistedFromArray($results, true);
-	  $validFormats = array(
-		'openioc' => 'OpeniocExport',
-		'json' => 'AttributeExport',
-		'xml' => 'AttributeExport'
-	  );
-	  $final = '';
-	  App::uses($validFormats[$returnFormat], 'Export');
-	  $exportTool = new $validFormats[$returnFormat]();
-	  $exportToolParams = array(
-		  'user' => $this->Auth->user(),
-		  'params' => $params,
-		  'returnFormat' => $returnFormat
-	  );
-	  $final .= $exportTool->header($exportToolParams);
-	  $results = array_values($results);
-	  foreach ($results as $k => $attribute) {
-		  $final .= $exportTool->handler($attribute, $exportToolParams);
-		  if ($k <= count($results)) {
-		  	$final .= $exportTool->separator($exportToolParams);
+        }
+        $conditions = $this->Attribute->buildFilterConditions($this->Auth->user(), $filters);
+        $params = array(
+                'conditions' => $conditions,
+                'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution'),
+                'withAttachments' => !empty($filters['withAttachments']) ? $filters['withAttachments'] : 0,
+                'enforceWarninglist' => !empty($filters['enforceWarninglist']) ? $filters['enforceWarninglist'] : 0,
+                'includeAllTags' => true,
+                'flatten' => 1,
+                'includeEventUuid' => !empty($filters['includeEventUuid']) ? $filters['includeEventUuid'] : 0,
+        );
+        if (!empty($filtes['deleted'])) {
+            $params['deleted'] = 1;
+            if ($params['deleted'] === 'only') {
+                $params['conditions']['AND'][] = array('Attribute.deleted' => 1);
+                $params['conditions']['AND'][] = array('Object.deleted' => 1);
+            }
+        }
+		App::uses($validFormats[$returnFormat][1], 'Export');
+		$exportTool = new $validFormats[$returnFormat][1]();
+		$exportToolParams = array(
+			'user' => $this->Auth->user(),
+			'params' => $params,
+			'returnFormat' => $returnFormat,
+			'scope' => 'Attribute'
+		);
+		if (!empty($exportTool->additional_params)) {
+			$params = array_merge($params, $exportTool->additional_params);
 		}
-	  }
-	  $final .= $exportTool->footer($exportToolParams);
-	  /*
-	  if ($returnFormat == 'openioc') {
-		  App::uses('IOCExportTool', 'Tools');
-		  $this->IOCExport = new IOCExportTool();
-		  $results = $this->IOCExport->buildAll($this->Auth->user(), $results, 'attribute');
-	  } else {
-		  if (!empty($results)) {
-			  $results = array('response' => array('Attribute' => $results));
-			  foreach ($results['response']['Attribute'] as $k => $v) {
-				  if (isset($results['response']['Attribute'][$k]['AttributeTag'])) {
-					  foreach ($results['response']['Attribute'][$k]['AttributeTag'] as $tk => $tag) {
-						  $results['response']['Attribute'][$k]['Attribute']['Tag'][$tk] = $tag['Tag'];
-					  }
-				  }
-				  $results['response']['Attribute'][$k] = $results['response']['Attribute'][$k]['Attribute'];
-				  unset(
-						  $results['response']['Attribute'][$k]['value1'],
-						  $results['response']['Attribute'][$k]['value2']
-				  );
-			  }
-		  } else {
-			  $results = array('response' => array('Attribute' => array()));
-		  }
-	  }
-	  */
-	  $responseType = $this->response->type();
-	  if ($returnFormat == 'openioc') {
-		  $responseType = 'openioc';
-	  }
-	  return $this->RestResponse->viewData($final, $responseType, false, true);
+        $final = '';
+        $final .= $exportTool->header($exportToolParams);
+		$continue = false;
+		if (empty($params['limit'])) {
+			$params['limit'] = 10000;
+			$continue = true;
+			$params['page'] = 1;
+		}
+		$this->loadModel('Whitelist');
+		while ($continue) {
+			$results = $this->Attribute->fetchAttributes($this->Auth->user(), $params, $continue);
+			$params['page'] += 1;
+			$results = $this->Whitelist->removeWhitelistedFromArray($results, true);
+			$results = array_values($results);
+	        $i = 0;
+	        foreach ($results as $attribute) {
+				$temp = $exportTool->handler($attribute, $exportToolParams);
+				if ($temp !== '') {
+	            	$final .= $temp;
+	            	if ($i != count($results) -1) {
+	                	$final .= $exportTool->separator($exportToolParams);
+	            	}
+				}
+	            $i++;
+	        }
+		}
+        $final .= $exportTool->footer($exportToolParams);
+        $responseType = $validFormats[$returnFormat][0];
+        return $this->RestResponse->viewData($final, $responseType, false, true);
     }
 
     // returns an XML with attributes that belong to an event. The type of attributes to be returned can be restricted by type using the 3rd parameter.
@@ -2229,7 +2220,7 @@ class AttributesController extends AppController
                 throw new UnauthorizedException(__('You don\'t have access to that event.'));
             }
         }
-        $this->response->type('xml');	// set the content type
+        $this->response->type('xml');    // set the content type
         $this->layout = 'xml/default';
         $this->header('Content-Disposition: download; filename="misp.search.attribute.results.xml"');
         // check if user can see the event!
@@ -2364,7 +2355,7 @@ class AttributesController extends AppController
                 throw new UnauthorizedException(__('You have to be logged in to do that.'));
             }
         }
-        $this->response->type('txt');	// set the content type
+        $this->response->type('txt');    // set the content type
         $this->header('Content-Disposition: download; filename="misp.' . (is_array($type) ? 'multi' : $type) . '.txt"');
         $this->layout = 'text/default';
         $attributes = $this->Attribute->text($this->Auth->user(), $type, $tags, $eventId, $allowNonIDS, $from, $to, $last, $enforceWarninglist, $allowNotPublished);
@@ -2458,7 +2449,7 @@ class AttributesController extends AppController
         foreach ($eventIds as $k => $eventId) {
             $values = array_merge_recursive($values, $this->Attribute->rpz($this->Auth->user(), $tags, $eventId, $from, $to, $enforceWarninglist));
         }
-        $this->response->type('txt');	// set the content type
+        $this->response->type('txt');    // set the content type
         $file = '';
         if ($tags) {
             $file = 'filtered.';
