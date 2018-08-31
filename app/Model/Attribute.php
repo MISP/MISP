@@ -2782,8 +2782,6 @@ class Attribute extends AppModel
         }
         if (isset($options['limit'])) {
             $params['limit'] = $options['limit'];
-        } else {
-            $option['contain']['Event']['fields'] = array('id', 'info', 'org_id', 'orgc_id');
         }
         if (Configure::read('MISP.proposals_block_attributes') && isset($options['conditions']['AND']['Attribute.to_ids']) && $options['conditions']['AND']['Attribute.to_ids'] == 1) {
             $this->bindModel(array('hasMany' => array('ShadowAttribute' => array('foreignKey' => 'old_id'))));
