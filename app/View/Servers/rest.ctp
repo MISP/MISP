@@ -2,6 +2,7 @@
 <?php echo $this->Form->create('Server');?>
     <fieldset>
         <legend><?php echo __('REST client');?></legend>
+		<div style="position:absolute;right:40px;width:300px;" id="apiInfo"></div>
     <?php
         echo $this->Form->input('method', array(
             'label' => __('Relative path to query'),
@@ -47,7 +48,7 @@
         echo $this->Form->end();
     ?>
         <hr />
-    </fieldset>
+	</fieldset>
     <?php
         $formats = array('Raw', 'JSON', 'HTML');
         if (!empty($data['data'])):
@@ -60,7 +61,7 @@
 					$value = implode(',', $value);
 				}
             	echo sprintf('&nbsp;&nbsp;<span class="bold">%s</span>: %s<br />', h($header), h($value));
-            }
+    		}
             $format_toggles = '';
             foreach ($formats as $k => $format) {
               $position = '';
@@ -82,18 +83,43 @@
     echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'rest'));
 ?>
 <script type="text/javascript">
-// tooltips
-$(document).ready(function () {
-  insertRawRestResponse();
-  $('.format-toggle-button').bind('click', function() {
-    $('#rest-response-container').empty();
-    if ($(this).data('toggle-type') == 'Raw') {
-      insertRawRestResponse();
-    } else if ($(this).data('toggle-type') == 'HTML') {
-      insertHTMLRestResponse();
-    } else if ($(this).data('toggle-type') == 'JSON') {
-      insertJSONRestResponse();
-    }
-  });
-});
+	// tooltips
+	$(document).ready(function () {
+		insertRawRestResponse();
+		$('.format-toggle-button').bind('click', function() {
+			$('#rest-response-container').empty();
+			if ($(this).data('toggle-type') == 'Raw') {
+				insertRawRestResponse();
+			} else if ($(this).data('toggle-type') == 'HTML') {
+				insertHTMLRestResponse();
+			} else if ($(this).data('toggle-type') == 'JSON') {
+				insertJSONRestResponse();
+			}
+		});
+		var thread = null;
+		$('#ServerUrl').keyup(function() {
+			clearTimeout(thread);
+			var $this = $(this);
+			var payload = {
+				"url": $('#ServerUrl').val()
+			};
+			if (payload) {
+				thread = setTimeout(
+					function() {
+						$.ajax({
+							type: "POST",
+							url: '/servers/getApiInfo',
+							data: payload,
+							success:function (data, textStatus) {
+								$('#apiInfo').html(data);
+							}
+						});
+					},
+					1000
+				);
+			} else {
+				$('#apiInfo').empty();
+			}
+		});
+	});
 </script>

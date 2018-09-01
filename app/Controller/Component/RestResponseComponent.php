@@ -190,6 +190,35 @@ class RestResponseComponent extends Component
         )
     );
 
+	// use a relative path to check if the current api has a description
+	public function getApiInfo($relative_path)
+	{
+		$relative_path = trim($relative_path, '/');
+		$relative_path = explode('/', $relative_path);
+		$admin = false;
+		if (count($relative_path) >= 2) {
+			if ($relative_path[0] == 'admin') {
+				if (count($relative_path) < 3) {
+					return '[]';
+				}
+				$admin = true;
+				$relative_path = array_slice($relative_path, 1);
+			}
+			$relative_path[0] = Inflector::camelize(Inflector::singularize($relative_path[0]));
+			if ($admin) {
+				$relative_path[1] = 'admin_' . $relative_path[1];
+			}
+			if (isset($this->__descriptions[$relative_path[0]][$relative_path[1]])) {
+				$temp = $this->__descriptions[$relative_path[0]][$relative_path[1]];
+			} else {
+				$temp = array();
+			}
+			if (empty($temp)) return '[]';
+			return json_encode(array('api_info' => $temp));
+		}
+		return '[]';
+	}
+
     public function saveFailResponse($controller, $action, $id = false, $validationErrors, $format = false)
     {
         $this->autoRender = false;
