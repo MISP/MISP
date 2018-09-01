@@ -1642,6 +1642,9 @@ class ServersController extends AppController
         } else {
             throw new InvalidArgumentException('Url not set.');
         }
+		if (!empty($request['skip_ssl_validation'])) {
+			$params['ssl_verify_peer'] = false;
+		}
         App::uses('HttpSocket', 'Network/Http');
         $HttpSocket = new HttpSocket($params);
         $view_data = array();
