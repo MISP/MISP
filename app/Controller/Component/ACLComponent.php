@@ -312,6 +312,7 @@ class ACLComponent extends Component
                     'edit' => array(),
                     'fetchServersForSG' => array('*'),
                     'filterEventIndex' => array(),
+					'getApiInfo' => array('*'),
                     'getGit' => array(),
                     'getInstanceUUID' => array('perm_sync'),
                     'getPyMISPVersion' => array('*'),
