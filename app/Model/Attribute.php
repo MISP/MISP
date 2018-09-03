@@ -2175,7 +2175,8 @@ class Attribute extends AppModel
         if ($eventId !== false) {
             $conditions['AND'][] = array('Event.id' => $eventId);
         } elseif ($tags !== false) {
-            $conditions = $this->set_filter_tags(array('tags' => $tags), $conditions);
+			$passed_param = array('tags' => $tags);
+            $conditions = $this->set_filter_tags($passed_params, $conditions);
         }
         $attributes = $this->fetchAttributes($user, array(
                 'conditions' => $conditions,
