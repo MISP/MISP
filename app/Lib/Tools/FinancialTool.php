@@ -232,7 +232,8 @@ class FinancialTool
 
         $out = array_fill(0, 25, 0);
         for ($i=0;$i<strlen($input);$i++) {
-            if (($p=strpos($alphabet, $input[$i]))===false) {
+            $p = strpos($alphabet, $input[$i]);
+            if ($p === false) {
                 return false;
             }
             $c = $p;

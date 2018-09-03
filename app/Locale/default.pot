@@ -14,1955 +14,1998 @@ msgstr ""
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 
 #: Console/Command/EventShell.php:13
-#: Controller/AttributesController.php:137;140;144
-#: Controller/EventGraphController.php:28;60
-#: Controller/EventsController.php:892;1227;1230;1234;1262;1635;1709;1712;1716;1917;1980;2058;2626;4759;4910;4913;4921
-#: Controller/PostsController.php:52
+#: Controller/AttributesController.php:149;153;157
+#: Controller/EventGraphController.php:34;69
+#: Controller/EventsController.php:1001;1348;1352;1356;1385;1800;1876;1880;1884;2102;2166;2248;2903;5264;5429;5433;5442
+#: Controller/PostsController.php:56
 msgid "Invalid event"
 msgstr ""
 
-#: Controller/AppController.php:547
+#: Controller/AppController.php:607
 msgid "All done. attribute_count generated from scratch for "
 msgstr ""
 
-#: Controller/AppController.php:652
-#: Controller/AttributesController.php:2384
-#: Controller/ShadowAttributesController.php:1167
+#: Controller/AppController.php:726
+#: Controller/AttributesController.php:2668
+#: Controller/ShadowAttributesController.php:1276
 msgid "Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs)."
 msgstr ""
 
-#: Controller/AttributesController.php:130;1248
-#: Controller/EventGraphController.php:16;68
+#: Controller/AttributesController.php:140;1392
+#: Controller/EventGraphController.php:19;77
 msgid "No event ID set."
 msgstr ""
 
-#: Controller/AttributesController.php:132
+#: Controller/AttributesController.php:143
 msgid "You don't have permissions to create attributes"
 msgstr ""
 
-#: Controller/AttributesController.php:150;434;586
-#: Controller/EventGraphController.php:76
-#: Controller/EventsController.php:1526;1544;1577
-#: Controller/ObjectsController.php:426
+#: Controller/AttributesController.php:163;489;666
+#: Controller/EventGraphController.php:88
+#: Controller/EventsController.php:1684;1705;1739
+#: Controller/ObjectsController.php:442
 msgid "You do not have permission to do that."
 msgstr ""
 
-#: Controller/AttributesController.php:387;774;779;782;965;1038;2395;2408;2428;2449;2457;2910;2912;2999;3001
-#: Controller/ShadowAttributesController.php:759;976;1000;1028;1038
-#: Controller/TagsController.php:439
+#: Controller/AttributesController.php:414;864;869;873;1072;1152;2684;2698;2731;2753;2762;3309;3313;3409;3413
+#: Controller/ShadowAttributesController.php:824;1067;1091;1124;1134
+#: Controller/TagsController.php:491
 msgid "Invalid attribute"
 msgstr ""
 
-#: Controller/AttributesController.php:396
-#: Controller/ShadowAttributesController.php:468
+#: Controller/AttributesController.php:424
+#: Controller/ShadowAttributesController.php:500
 msgid "You do not have the permission to view this event."
 msgstr ""
 
-#: Controller/AttributesController.php:418
+#: Controller/AttributesController.php:472
 msgid "Attribute not an attachment or malware-sample"
 msgstr ""
 
-#: Controller/AttributesController.php:449;597
-#: Controller/ShadowAttributesController.php:506
+#: Controller/AttributesController.php:504;677
+#: Controller/ShadowAttributesController.php:548
 msgid "PHP says file was not uploaded. Are you attacking me?"
 msgstr ""
 
-#: Controller/AttributesController.php:599
-#: Controller/ShadowAttributesController.php:508;518
+#: Controller/AttributesController.php:680
+#: Controller/ShadowAttributesController.php:551;561
 msgid "There was a problem to upload the file."
 msgstr ""
 
-#: Controller/AttributesController.php:736
+#: Controller/AttributesController.php:824
 msgid "The ThreatConnect data has been imported."
 msgstr ""
 
-#: Controller/AttributesController.php:739
+#: Controller/AttributesController.php:827
 msgid "%s entries imported."
 msgstr ""
 
-#: Controller/AttributesController.php:743
+#: Controller/AttributesController.php:831
 msgid "%s entries could not be imported."
 msgstr ""
 
-#: Controller/AttributesController.php:789;824;826
-#: Controller/ShadowAttributesController.php:765
+#: Controller/AttributesController.php:881;924;926
+#: Controller/ShadowAttributesController.php:831
 msgid "Invalid attribute."
 msgstr ""
 
-#: Controller/AttributesController.php:820
+#: Controller/AttributesController.php:920
 msgid "Attribute could not be saved: Attribute in the request not newer than the local copy."
 msgstr ""
 
-#: Controller/AttributesController.php:836;1257
-#: Controller/EventsController.php:4190;4200;4709;4723
+#: Controller/AttributesController.php:936;1401
+#: Controller/EventsController.php:4635;4648;5213;5227
 msgid "Invalid Event."
 msgstr ""
 
-#: Controller/AttributesController.php:853
+#: Controller/AttributesController.php:953
 msgid "The attribute has been saved"
 msgstr ""
 
-#: Controller/AttributesController.php:882
+#: Controller/AttributesController.php:985
 msgid "The attribute could not be saved. Please, try again."
 msgstr ""
 
-#: Controller/AttributesController.php:968
+#: Controller/AttributesController.php:1076
 msgid "Invalid event id."
 msgstr ""
 
-#: Controller/AttributesController.php:994
-#: Controller/EventsController.php:1844
-#: Controller/ShadowAttributesController.php:671
+#: Controller/AttributesController.php:1106
+#: Controller/EventsController.php:2023
+#: Controller/ShadowAttributesController.php:731
 msgid "Invalid input."
 msgstr ""
 
-#: Controller/AttributesController.php:999
+#: Controller/AttributesController.php:1111
 msgid "Invalid field."
 msgstr ""
 
-#: Controller/AttributesController.php:1041
+#: Controller/AttributesController.php:1156
 msgid "Invalid attribute id."
 msgstr ""
 
-#: Controller/AttributesController.php:1107;1117
+#: Controller/AttributesController.php:1231;1241
 msgid "Attribute deleted"
 msgstr ""
 
-#: Controller/AttributesController.php:1112;1114
+#: Controller/AttributesController.php:1236;1238
 msgid "Attribute was not deleted"
 msgstr ""
 
-#: Controller/AttributesController.php:1136;2778
-#: Controller/ShadowAttributesController.php:793
+#: Controller/AttributesController.php:1263;3155
+#: Controller/ShadowAttributesController.php:864
 msgid "Invalid Attribute"
 msgstr ""
 
-#: Controller/AttributesController.php:1154
+#: Controller/AttributesController.php:1290
 msgid "Could not restore the attribute"
 msgstr ""
 
-#: Controller/AttributesController.php:1172;1178;1182
+#: Controller/AttributesController.php:1311;1318;1322
 msgid "Attribute not found or not authorised."
 msgstr ""
 
-#: Controller/AttributesController.php:1231
+#: Controller/AttributesController.php:1372
 msgid "This function is only accessible via POST requests."
 msgstr ""
 
-#: Controller/AttributesController.php:1279
+#: Controller/AttributesController.php:1427
 msgid "No matching attributes found."
 msgstr ""
 
-#: Controller/AttributesController.php:1308
+#: Controller/AttributesController.php:1461
 msgid "This method can only be accessed via AJAX."
 msgstr ""
 
-#: Controller/AttributesController.php:1318
+#: Controller/AttributesController.php:1472
 msgid "You are not authorized to edit this event."
 msgstr ""
 
-#: Controller/AttributesController.php:1380
+#: Controller/AttributesController.php:1537
 msgid "No event ID provided."
 msgstr ""
 
-#: Controller/AttributesController.php:1479
+#: Controller/AttributesController.php:1640
 msgid "Invalid tag"
 msgstr ""
 
-#: Controller/AttributesController.php:1932;2073;2172;2210;2273;2332
-#: Controller/EventsController.php:2272;2367;2420;2467;2795;2980;3618;3635
+#: Controller/AttributesController.php:2107;2282;2391;2441;2524;2610
+#: Controller/EventsController.php:2484;2600;2662;2720;3079;3301;3993;4011
 msgid "This authentication key is not authorized to be used for exports. Contact your administrator."
 msgstr ""
 
-#: Controller/AttributesController.php:1936;2069;2166
-#: Controller/EventsController.php:2799
+#: Controller/AttributesController.php:2112;2277;2384
+#: Controller/EventsController.php:3084
 msgid "You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml."
 msgstr ""
 
-#: Controller/AttributesController.php:1946
+#: Controller/AttributesController.php:2123
 msgid "Content type and parameter mismatch. Expecting JSON."
 msgstr ""
 
-#: Controller/AttributesController.php:1951
+#: Controller/AttributesController.php:2128
 msgid "Content type and parameter mismatch. Expecting XML."
 msgstr ""
 
-#: Controller/AttributesController.php:1955;2081
-msgid "Either specify the search terms in the url, or POST a json array / xml (with the root element being \"request\" and specify the correct accept and content type headers."
+#: Controller/AttributesController.php:2132;2290
+msgid "Either specify the search terms in the url, or POST a json array / xml (with the root element being \"request\" and specify the correct accept and content type headers)."
 msgstr ""
 
-#: Controller/AttributesController.php:2098
+#: Controller/AttributesController.php:2310
 msgid "You don't have access to that event."
 msgstr ""
 
-#: Controller/AttributesController.php:2158
+#: Controller/AttributesController.php:2373
 msgid "No matches."
 msgstr ""
 
-#: Controller/AttributesController.php:2176;2184
+#: Controller/AttributesController.php:2395;2404
 msgid "Invalid attribute or no authorisation to view it."
 msgstr ""
 
-#: Controller/AttributesController.php:2214;2277;2336
-#: Controller/EventsController.php:2276;2372;2425;2471;2984;3622;3639
+#: Controller/AttributesController.php:2445;2528;2614
+#: Controller/EventsController.php:2488;2605;2667;2724;3305;3997;4015
 msgid "You have to be logged in to do that."
 msgstr ""
 
-#: Controller/AttributesController.php:2239
-#: Controller/EventsController.php:2813
+#: Controller/AttributesController.php:2472
 msgid "Either specify the search terms in the url, or POST a json array / xml (with the root element being \"request\" and specify the correct headers based on content type."
 msgstr ""
 
-#: Controller/AttributesController.php:2282
+#: Controller/AttributesController.php:2536
 msgid "Invalid event ID format."
 msgstr ""
 
-#: Controller/AttributesController.php:2361
-#: Controller/ShadowAttributesController.php:1145
+#: Controller/AttributesController.php:2645
+#: Controller/ShadowAttributesController.php:1254
 msgid "All done. "
 msgstr ""
 
-#: Controller/AttributesController.php:2391;2424
-#: Controller/ShadowAttributesController.php:972
+#: Controller/AttributesController.php:2677;2724
+#: Controller/ShadowAttributesController.php:1062
 msgid "Invalid field requested."
 msgstr ""
 
-#: Controller/AttributesController.php:2392;2425
+#: Controller/AttributesController.php:2680;2727
 msgid "This function can only be accessed via AJAX."
 msgstr ""
 
-#: Controller/AttributesController.php:2486;2493
-#: Controller/EventsController.php:3327;3593
+#: Controller/AttributesController.php:2792;2800
+#: Controller/EventsController.php:3689;3967
 msgid "Event not found or you don't have permissions to create attributes"
 msgstr ""
 
-#: Controller/AttributesController.php:2512
+#: Controller/AttributesController.php:2821
 msgid "This action can only be accessed via AJAX."
 msgstr ""
 
-#: Controller/AttributesController.php:2519;2725;2734;2742
+#: Controller/AttributesController.php:2830;3081;3095;3106
 msgid "You are not authorised to do that."
 msgstr ""
 
-#: Controller/AttributesController.php:2607
-#: Controller/EventsController.php:4015
+#: Controller/AttributesController.php:2935
+#: Controller/EventsController.php:4431
 msgid "This functionality requires API key access."
 msgstr ""
 
-#: Controller/AttributesController.php:2614
+#: Controller/AttributesController.php:2943
 msgid "This action is for the API only. Please refer to the automation page for information on how to use it."
 msgstr ""
 
-#: Controller/AttributesController.php:2619
+#: Controller/AttributesController.php:2955
 msgid "No hash or event ID received. You need to set at least one of the two."
 msgstr ""
 
-#: Controller/AttributesController.php:2751
+#: Controller/AttributesController.php:3116
 msgid "Invalid script."
 msgstr ""
 
-#: Controller/AttributesController.php:2800
+#: Controller/AttributesController.php:3181
 msgid "No valid enrichment options found for this attribute."
 msgstr ""
 
-#: Controller/AttributesController.php:2853
+#: Controller/AttributesController.php:3245
 msgid "Invalid type requested."
 msgstr ""
 
-#: Controller/AttributesController.php:3052
-#: Controller/EventsController.php:4705
+#: Controller/AttributesController.php:3476
+#: Controller/EventsController.php:5209
 msgid "Disabling the correlation is not permitted on this instance."
 msgstr ""
 
-#: Controller/AttributesController.php:3056;3071
-#: Controller/ShadowAttributesController.php:627
+#: Controller/AttributesController.php:3480;3495
+#: Controller/ShadowAttributesController.php:679
 msgid "Invalid Attribute."
 msgstr ""
 
-#: Controller/AttributesController.php:3059;3074
-#: Controller/EventsController.php:4712;4726
+#: Controller/AttributesController.php:3483;3498
+#: Controller/EventsController.php:5216;5230
 msgid "You don't have permission to do that."
 msgstr ""
 
-#: Controller/EventBlacklistsController.php:11
+#: Controller/EventBlacklistsController.php:15
 msgid "Event Blacklisting is not currently enabled on this instance."
 msgstr ""
 
-#: Controller/EventsController.php:705
+#: Controller/EventsController.php:804
 msgid "No x509 certificate or GnuPG key set in your profile. To receive emails, submit your public certificate or GnuPG key in your profile."
 msgstr ""
 
-#: Controller/EventsController.php:707
+#: Controller/EventsController.php:806
 msgid "No GnuPG key set in your profile. To receive emails, submit your public key in your profile."
 msgstr ""
 
-#: Controller/EventsController.php:713
+#: Controller/EventsController.php:812
 msgid "No x509 certificate or GnuPG key set in your profile. To receive attributes in emails, submit your public certificate or GnuPG key in your profile."
 msgstr ""
 
-#: Controller/EventsController.php:715
+#: Controller/EventsController.php:814
 msgid "No GnuPG key set in your profile. To receive attributes in emails, submit your public key in your profile."
 msgstr ""
 
-#: Controller/EventsController.php:1381
+#: Controller/EventsController.php:1527
 msgid "You don't have permissions to create events"
 msgstr ""
 
-#: Controller/EventsController.php:1387
+#: Controller/EventsController.php:1533
 msgid "No valid event data received."
 msgstr ""
 
-#: Controller/EventsController.php:1416
+#: Controller/EventsController.php:1569
 msgid "Invalid Sharing Group or not authorised (Sync user is not contained in the Sharing group)."
 msgstr ""
 
-#: Controller/EventsController.php:1420;1423
+#: Controller/EventsController.php:1573;1577
 msgid "Invalid Sharing Group or not authorised."
 msgstr ""
 
-#: Controller/EventsController.php:1446
+#: Controller/EventsController.php:1601
 msgid "Event blocked by local blacklist."
 msgstr ""
 
-#: Controller/EventsController.php:1459;1533;1781
+#: Controller/EventsController.php:1614;1693;1955
 msgid "The event has been saved"
 msgstr ""
 
-#: Controller/EventsController.php:1467
+#: Controller/EventsController.php:1622
 msgid "Event already exists, if you would like to edit it, use the url in the location header."
 msgstr ""
 
-#: Controller/EventsController.php:1478
+#: Controller/EventsController.php:1633
 msgid "A blacklist entry is blocking you from creating any events. Please contact the administration team of this instance"
 msgstr ""
 
-#: Controller/EventsController.php:1480;1784
+#: Controller/EventsController.php:1635;1958
 msgid "The event could not be saved. Please, try again."
 msgstr ""
 
-#: Controller/EventsController.php:1558
+#: Controller/EventsController.php:1719
 msgid "You may only upload MISP XML or MISP JSON files."
 msgstr ""
 
-#: Controller/EventsController.php:1559
+#: Controller/EventsController.php:1720
 msgid "File upload failed or file does not have the expected extension (.xml / .json)."
 msgstr ""
 
-#: Controller/EventsController.php:1606
+#: Controller/EventsController.php:1768
 msgid "STIX document imported, event's created: "
 msgstr ""
 
-#: Controller/EventsController.php:1609
+#: Controller/EventsController.php:1771
 msgid "STIX document imported."
 msgstr ""
 
-#: Controller/EventsController.php:1612
+#: Controller/EventsController.php:1774
 msgid "Could not import STIX document: "
 msgstr ""
 
-#: Controller/EventsController.php:1617
+#: Controller/EventsController.php:1781
 msgid "File upload failed. Make sure that you select a stix file to be uploaded and that the file doesn't exceed the maximum file size of "
 msgstr ""
 
-#: Controller/EventsController.php:1640;1722
+#: Controller/EventsController.php:1805;1890
 msgid "You are not authorised to do that. Please consider using the 'propose attribute' feature."
 msgstr ""
 
-#: Controller/EventsController.php:1648
+#: Controller/EventsController.php:1813
 msgid "Invalid event ID entered."
 msgstr ""
 
-#: Controller/EventsController.php:1653
+#: Controller/EventsController.php:1818
 msgid "You are not authorised to read the selected event."
 msgstr ""
 
-#: Controller/EventsController.php:1924;1986
+#: Controller/EventsController.php:2109;2172
 msgid "You don't have the permission to do that."
 msgstr ""
 
-#: Controller/EventsController.php:2069
+#: Controller/EventsController.php:2259
 msgid "Email sent to the reporter."
 msgstr ""
 
-#: Controller/EventsController.php:2071
+#: Controller/EventsController.php:2261
 msgid "Sending of email failed"
 msgstr ""
 
-#: Controller/EventsController.php:2202
+#: Controller/EventsController.php:2397
 msgid "This feature is currently disabled"
 msgstr ""
 
-#: Controller/EventsController.php:2237;3649
-msgid "Either specify the search terms in the url, or POST an xml (with the root element being \"request\"."
+#: Controller/EventsController.php:2439;4025
+msgid "Either specify the search terms in the url, or POST an xml (with the root element being \"request\")."
 msgstr ""
 
-#: Controller/EventsController.php:2264
+#: Controller/EventsController.php:2475
 msgid "Invalid Event ID."
 msgstr ""
 
-#: Controller/EventsController.php:2305
+#: Controller/EventsController.php:2522
 msgid "No events found that match the passed parameters."
 msgstr ""
 
-#: Controller/EventsController.php:2327
+#: Controller/EventsController.php:2547
 msgid "Either specify the search terms in the url, or POST a json or xml with the filter parameters. Valid filters: id (event ID), tags (list of tags), from (from date in YYYY-MM-DD format), to (to date in YYYY-MM-DD format), last (events with a published timestamp newer than - valid options are in time + unit format such as 6d or 2w, etc)"
 msgstr ""
 
-#: Controller/EventsController.php:2388;2441
+#: Controller/EventsController.php:2622;2684
 msgid "Either specify the search terms in the url, or POST a json or xml with the filter parameters."
 msgstr ""
 
-#: Controller/EventsController.php:2407
-#: Model/Attribute.php:1788
+#: Controller/EventsController.php:2641
+#: Model/Attribute.php:1927
 msgid "Invalid hash type."
 msgstr ""
 
-#: Controller/EventsController.php:2596
+#: Controller/EventsController.php:2871
 msgid "Filename not allowed."
 msgstr ""
 
-#: Controller/EventsController.php:2616
+#: Controller/EventsController.php:2892
 msgid "Problem with writing the ioc file. Please report to administrator."
 msgstr ""
 
-#: Controller/EventsController.php:2708
+#: Controller/EventsController.php:2986
 msgid "This is not a valid MISP XML file."
 msgstr ""
 
-#: Controller/EventsController.php:2973
+#: Controller/EventsController.php:3101
+msgid "Either specify the search terms in the url, or POST a json array / xml (with the root element being \"request\" and specify the correct headers based on content type)."
+msgstr ""
+
+#: Controller/EventsController.php:3294
 msgid "Not yet implemented"
 msgstr ""
 
-#: Controller/EventsController.php:2991;2994
+#: Controller/EventsController.php:3312;3316
 msgid "Invalid event or not authorised."
 msgstr ""
 
-#: Controller/EventsController.php:3011;3078
+#: Controller/EventsController.php:3336;3406
 msgid "You don't have the privileges to access this."
 msgstr ""
 
-#: Controller/EventsController.php:3547
+#: Controller/EventsController.php:3920
 msgid "Could not add tags."
 msgstr ""
 
-#: Controller/EventsController.php:3597;4564
-#: Controller/ObjectsController.php:43;132;136;422
+#: Controller/EventsController.php:3971;5055
+#: Controller/ObjectsController.php:46;140;144;438
 msgid "Invalid event."
 msgstr ""
 
-#: Controller/EventsController.php:3696;3723;3736
+#: Controller/EventsController.php:4085;4115;4131
 msgid "You do not have the permission to do that."
 msgstr ""
 
-#: Controller/EventsController.php:3794;3925
+#: Controller/EventsController.php:4196;4334
 msgid "Invalid ID"
 msgstr ""
 
-#: Controller/EventsController.php:3796;3927
+#: Controller/EventsController.php:4200;4338
 msgid "Event not found or you are not authorised to view it."
 msgstr ""
 
-#: Controller/EventsController.php:4016;4022
+#: Controller/EventsController.php:4434;4441
 msgid "Please POST the samples as described on the automation page."
 msgstr ""
 
-#: Controller/EventsController.php:4049
+#: Controller/EventsController.php:4470
 msgid "No samples received, or samples not in the correct format. Please refer to the API documentation on the automation page."
 msgstr ""
 
-#: Controller/EventsController.php:4054
+#: Controller/EventsController.php:4478
 msgid "Event not found"
 msgstr ""
 
-#: Controller/EventsController.php:4073
+#: Controller/EventsController.php:4501
 msgid "Event not found."
 msgstr ""
 
-#: Controller/EventsController.php:4081
+#: Controller/EventsController.php:4511
 msgid "Distribution level 5 is not supported when uploading a sample without passing an event ID. Distribution level 5 is meant to take on the distribution level of an existing event."
 msgstr ""
 
-#: Controller/EventsController.php:4105
+#: Controller/EventsController.php:4536
 msgid "The creation of a new event with the supplied information has failed."
 msgstr ""
 
-#: Controller/EventsController.php:4220;4239;4265;4287;4309;4336;4354
+#: Controller/EventsController.php:4671;4693;4722;4747;4772;4802;4823
 msgid "Invalid type."
 msgstr ""
 
-#: Controller/EventsController.php:4395
+#: Controller/EventsController.php:4866
 msgid "Invalid method."
 msgstr ""
 
-#: Controller/EventsController.php:4472
+#: Controller/EventsController.php:4946
 msgid "%s services are not enabled."
 msgstr ""
 
-#: Controller/EventsController.php:4474
+#: Controller/EventsController.php:4950
 msgid "Attribute not found or you are not authorised to see it."
 msgstr ""
 
-#: Controller/EventsController.php:4478
+#: Controller/EventsController.php:4956
 msgid "No valid %s options found for this attribute."
 msgstr ""
 
-#: Controller/EventsController.php:4491
+#: Controller/EventsController.php:4973
 msgid "no valid %s options found for this attribute."
 msgstr ""
 
-#: Controller/EventsController.php:4509
+#: Controller/EventsController.php:4995
 msgid "%s service not reachable."
 msgstr ""
 
-#: Controller/EventsController.php:4517
+#: Controller/EventsController.php:5007
 msgid ": Enriched via the %s"
 msgstr ""
 
-#: Controller/EventsController.php:4638
+#: Controller/EventsController.php:5136
 msgid "Import service not reachable."
 msgstr ""
 
-#: Controller/EventsController.php:4792
+#: Controller/EventsController.php:5303
 msgid "Invalid ID."
 msgstr ""
 
-#: Controller/EventsController.php:4838
-#: Controller/ShadowAttributesController.php:289;292;493
+#: Controller/EventsController.php:5351
+#: Controller/ShadowAttributesController.php:312;317;534
 msgid "Invalid Event"
 msgstr ""
 
-#: Controller/EventsController.php:4855
+#: Controller/EventsController.php:5369
 msgid "Enrichment task queued for background processing. Check back later to see the results."
 msgstr ""
 
-#: Controller/FeedsController.php:25
+#: Controller/FeedsController.php:27
 msgid "You don't have the required privileges to do that."
 msgstr ""
 
-#: Controller/FeedsController.php:178;266
+#: Controller/FeedsController.php:193;291
 msgid "Feed added."
 msgstr ""
 
-#: Controller/FeedsController.php:186
+#: Controller/FeedsController.php:201
 msgid "Feed could not be added. Invalid field: %s"
 msgstr ""
 
-#: Controller/FeedsController.php:208;297;316;426;449;603
+#: Controller/FeedsController.php:226;326;348;470;502;682
 msgid "Invalid feed."
 msgstr ""
 
-#: Controller/FeedsController.php:274
+#: Controller/FeedsController.php:299
 msgid "Feed could not be updated. Invalid fields: %s"
 msgstr ""
 
-#: Controller/FeedsController.php:295
+#: Controller/FeedsController.php:322
 msgid "This action requires a post request."
 msgstr ""
 
-#: Controller/FeedsController.php:322;429
+#: Controller/FeedsController.php:355;474
 msgid "Feed is currently not enabled. Make sure you enable it."
 msgstr ""
 
-#: Controller/FeedsController.php:335;396
+#: Controller/FeedsController.php:368;434
 msgid "Starting fetch from Feed."
 msgstr ""
 
-#: Controller/FeedsController.php:346
+#: Controller/FeedsController.php:379
 msgid "Pull queued for background execution."
 msgstr ""
 
-#: Controller/FeedsController.php:351;353
+#: Controller/FeedsController.php:384;386
 msgid "Fetching the feed has failed."
 msgstr ""
 
-#: Controller/FeedsController.php:357
+#: Controller/FeedsController.php:390
 msgid "Fetching the feed has successfuly completed."
 msgstr ""
 
-#: Controller/FeedsController.php:413
+#: Controller/FeedsController.php:451
 msgid "Fetching the feed has successfully completed."
 msgstr ""
 
-#: Controller/FeedsController.php:435
+#: Controller/FeedsController.php:481
 msgid "Event added."
 msgstr ""
 
-#: Controller/FeedsController.php:437
+#: Controller/FeedsController.php:484
 msgid "Event already up to date."
 msgstr ""
 
-#: Controller/FeedsController.php:438
+#: Controller/FeedsController.php:486
 msgid "Event updated."
 msgstr ""
 
-#: Controller/FeedsController.php:441
+#: Controller/FeedsController.php:490
 msgid "Could not %s event."
 msgstr ""
 
-#: Controller/FeedsController.php:443
+#: Controller/FeedsController.php:493
 msgid "Download failed."
 msgstr ""
 
-#: Controller/FeedsController.php:500
+#: Controller/FeedsController.php:561
 msgid "Feed could not be fetched. The HTTP error code returned was: "
 msgstr ""
 
-#: Controller/FeedsController.php:532;577
+#: Controller/FeedsController.php:600;651
 msgid "Invalid feed type."
 msgstr ""
 
-#: Controller/FeedsController.php:630
+#: Controller/FeedsController.php:714
 msgid "This event is blocked by the Feed filters."
 msgstr ""
 
-#: Controller/FeedsController.php:631
+#: Controller/FeedsController.php:716
 msgid "Could not download the selected Event"
 msgstr ""
 
-#: Controller/FeedsController.php:662;664
+#: Controller/FeedsController.php:752;756
 msgid "Invalid Feed."
 msgstr ""
 
-#: Controller/FeedsController.php:683
+#: Controller/FeedsController.php:777
 msgid "Only POST requests are allowed."
 msgstr ""
 
-#: Controller/FeedsController.php:687
+#: Controller/FeedsController.php:781
 msgid "Feed not found."
 msgstr ""
 
-#: Controller/FeedsController.php:696
+#: Controller/FeedsController.php:790
 msgid "Data pulled."
 msgstr ""
 
-#: Controller/FeedsController.php:698
+#: Controller/FeedsController.php:792
 msgid "Could not pull the selected data. Reason: %s"
 msgstr ""
 
-#: Controller/FeedsController.php:714
+#: Controller/FeedsController.php:809
 msgid "Starting feed caching."
 msgstr ""
 
-#: Controller/FeedsController.php:729
+#: Controller/FeedsController.php:824
 msgid "Caching the feeds has failed."
 msgstr ""
 
-#: Controller/FeedsController.php:732
+#: Controller/FeedsController.php:827
 msgid "Caching the feeds has successfully completed."
 msgstr ""
 
-#: Controller/FeedsController.php:758
+#: Controller/FeedsController.php:858
 msgid "Invalid feed list received."
 msgstr ""
 
-#: Controller/JobsController.php:138
+#: Controller/JobsController.php:156
 msgid "All completed jobs have been purged"
 msgstr ""
 
-#: Controller/JobsController.php:141
+#: Controller/JobsController.php:159
 msgid "All jobs have been purged"
 msgstr ""
 
-#: Controller/ObjectReferencesController.php:34
+#: Controller/ObjectReferencesController.php:37
 msgid "Invalid object"
 msgstr ""
 
-#: Controller/ObjectReferencesController.php:182
+#: Controller/ObjectReferencesController.php:187
 msgid "Invalid object reference"
 msgstr ""
 
-#: Controller/ObjectTemplatesController.php:84
+#: Controller/ObjectTemplatesController.php:88
 msgid "ObjectTemplate deleted"
 msgstr ""
 
-#: Controller/ObjectsController.php:26
+#: Controller/ObjectsController.php:29
 msgid "This action can only be reached via POST requests"
 msgstr ""
 
-#: Controller/ObjectsController.php:65;76
+#: Controller/ObjectsController.php:69;82
 msgid "Invalid sharing group."
 msgstr ""
 
-#: Controller/ObjectsController.php:95
+#: Controller/ObjectsController.php:103
 msgid "You don't have permissions to create objects."
 msgstr ""
 
-#: Controller/ObjectsController.php:123
-#: Model/Template.php:24
+#: Controller/ObjectsController.php:131
+#: Model/Template.php:25
 msgid "Invalid template."
 msgstr ""
 
-#: Controller/ObjectsController.php:289
+#: Controller/ObjectsController.php:303
 msgid "You don't have permissions to edit objects."
 msgstr ""
 
-#: Controller/ObjectsController.php:303;314;411
+#: Controller/ObjectsController.php:317;328;427
 msgid "Invalid object."
 msgstr ""
 
-#: Controller/ObjectsController.php:405
+#: Controller/ObjectsController.php:421
 msgid "You don't have permissions to delete objects."
 msgstr ""
 
-#: Controller/ObjectsController.php:511;517;521
+#: Controller/ObjectsController.php:531;538;542
 msgid "Object not found or not authorised."
 msgstr ""
 
-#: Controller/ObjectsController.php:767
+#: Controller/ObjectsController.php:799
 msgid "%s objects successfully reconstructed."
 msgstr ""
 
-#: Controller/OrgBlacklistsController.php:11
+#: Controller/OrgBlacklistsController.php:15
 msgid "Organisation Blacklisting is not currently enabled on this instance."
 msgstr ""
 
-#: Controller/OrganisationsController.php:228
+#: Controller/OrganisationsController.php:251
 msgid "Organisation deleted"
 msgstr ""
 
-#: Controller/OrganisationsController.php:235
+#: Controller/OrganisationsController.php:258
 msgid "Organisation could not be deleted. Generally organisations should never be deleted, instead consider moving them to the known remote organisations list. Alternatively, if you are certain that you would like to remove an organisation and are aware of the impact, make sure that there are no users or events still tied to this organisation before deleting it."
 msgstr ""
 
-#: Controller/PostsController.php:76
+#: Controller/PostsController.php:80
 msgid "Invalid thread"
 msgstr ""
 
-#: Controller/PostsController.php:169
+#: Controller/PostsController.php:176
 msgid "Post added"
 msgstr ""
 
-#: Controller/PostsController.php:196;237
+#: Controller/PostsController.php:208;256
 msgid "Invalid post"
 msgstr ""
 
-#: Controller/RegexpController.php:24
+#: Controller/RegexpController.php:27
 msgid "The Regexp has been saved."
 msgstr ""
 
-#: Controller/RegexpController.php:28
+#: Controller/RegexpController.php:31
 msgid "The Regexp could not be saved. Please, try again."
 msgstr ""
 
-#: Controller/RegexpController.php:42;107
+#: Controller/RegexpController.php:45;116
 msgid "The Regular expressions have been saved."
 msgstr ""
 
-#: Controller/RegexpController.php:45;114
+#: Controller/RegexpController.php:48;123
 msgid "Could not create the Regex entry as no types were selected. Either check \"All\" or check the types that you wish the Regex to affect."
 msgstr ""
 
-#: Controller/RegexpController.php:187
+#: Controller/RegexpController.php:211
 msgid "All done! Number of changed attributes: "
 msgstr ""
 
-#: Controller/RegexpController.php:204
+#: Controller/RegexpController.php:231
 msgid "All done! Found and cleaned "
 msgstr ""
 
-#: Controller/RolesController.php:32
+#: Controller/RolesController.php:33
 msgid "Invalid role"
 msgstr ""
 
-#: Controller/RolesController.php:63;101
+#: Controller/RolesController.php:67;108
 msgid "The Role could not be saved. Please, try again."
 msgstr ""
 
-#: Controller/RolesController.php:146
+#: Controller/RolesController.php:157
 msgid "Role deleted"
 msgstr ""
 
-#: Controller/ServersController.php:178;361
+#: Controller/ServersController.php:204;394
 msgid "The pull filter rules must be in valid JSON format."
 msgstr ""
 
-#: Controller/ServersController.php:188;371
+#: Controller/ServersController.php:214;404
 msgid "The push filter rules must be in valid JSON format."
 msgstr ""
 
-#: Controller/ServersController.php:242;398
+#: Controller/ServersController.php:268;434
 msgid "That organisation could not be created as the uuid is in use already."
 msgstr ""
 
-#: Controller/ServersController.php:254
+#: Controller/ServersController.php:280
 msgid "Couldn't save the new organisation, are you sure that the uuid is in the correct format? Also, make sure the organisation's name doesn't clash with an existing one."
 msgstr ""
 
-#: Controller/ServersController.php:283;450
+#: Controller/ServersController.php:309;490
 msgid "The server has been saved"
 msgstr ""
 
-#: Controller/ServersController.php:290;457
+#: Controller/ServersController.php:316;497
 msgid "The server could not be saved. Please, try again."
 msgstr ""
 
-#: Controller/ServersController.php:340;520;542;548;608;1282
+#: Controller/ServersController.php:369;565;590;598;659;1412
 msgid "Invalid server"
 msgstr ""
 
-#: Controller/ServersController.php:415
+#: Controller/ServersController.php:451
 msgid "Couldn't save the new organisation, are you sure that the uuid is in the correct format?."
 msgstr ""
 
-#: Controller/ServersController.php:525
+#: Controller/ServersController.php:572
 msgid "Server deleted"
 msgstr ""
 
-#: Controller/ServersController.php:528
+#: Controller/ServersController.php:575
 msgid "Server was not deleted"
 msgstr ""
 
-#: Controller/ServersController.php:552
+#: Controller/ServersController.php:602
 msgid "Pull setting not enabled for this server."
 msgstr ""
 
-#: Controller/ServersController.php:561
+#: Controller/ServersController.php:611
 msgid "Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting."
 msgstr ""
 
-#: Controller/ServersController.php:1187
+#: Controller/ServersController.php:1309
 msgid "File not found."
 msgstr ""
 
-#: Controller/ServersController.php:1193
+#: Controller/ServersController.php:1315
 msgid "File could not be deleted."
 msgstr ""
 
-#: Controller/ServersController.php:1213;1229
+#: Controller/ServersController.php:1338;1354
 msgid "Upload failed."
 msgstr ""
 
-#: Controller/ServersController.php:1221
+#: Controller/ServersController.php:1346
 msgid "File already exists. If you would like to replace it, remove the old one first."
 msgstr ""
 
-#: Controller/ShadowAttributesController.php:195
+#: Controller/ShadowAttributesController.php:212
 msgid "Moving of the file that this attachment references failed."
 msgstr ""
 
-#: Controller/ShadowAttributesController.php:259
+#: Controller/ShadowAttributesController.php:280
 msgid "Could not discard proposal."
 msgstr ""
 
-#: Controller/ShadowAttributesController.php:311
+#: Controller/ShadowAttributesController.php:341
 msgid "Attribute has not been added: attachments are added by \"Add attachment\" button"
 msgstr ""
 
-#: Controller/ShadowAttributesController.php:358;361;370
+#: Controller/ShadowAttributesController.php:389;392;401
 msgid "The lines"
 msgstr ""
 
-#: Controller/ShadowAttributesController.php:411
+#: Controller/ShadowAttributesController.php:441
 msgid "The proposal has been saved"
 msgstr ""
 
-#: Controller/ShadowAttributesController.php:423;700
+#: Controller/ShadowAttributesController.php:453;763
 msgid "Could not save the proposal. Errors: %s"
 msgstr ""
 
-#: Controller/ShadowAttributesController.php:425
+#: Controller/ShadowAttributesController.php:455
 msgid "The proposal could not be saved. Please, try again."
 msgstr ""
 
-#: Controller/ShadowAttributesController.php:461
+#: Controller/ShadowAttributesController.php:492
 msgid "Invalid Proposal"
 msgstr ""
 
-#: Controller/ShadowAttributesController.php:484
+#: Controller/ShadowAttributesController.php:523
 msgid "Proposal not an attachment or malware-sample"
 msgstr ""
 
-#: Controller/ShadowAttributesController.php:568
+#: Controller/ShadowAttributesController.php:619
 msgid "The attachment has been uploaded"
 msgstr ""
 
-#: Controller/ShadowAttributesController.php:570
+#: Controller/ShadowAttributesController.php:621
 msgid "The attachment has been uploaded, but some of the proposals could not be created. The failed proposals are: "
 msgstr ""
 
-#: Controller/ShadowAttributesController.php:573
+#: Controller/ShadowAttributesController.php:624
 msgid "The attachment could not be saved, please contact your administrator."
 msgstr ""
 
-#: Controller/ShadowAttributesController.php:691
+#: Controller/ShadowAttributesController.php:754
 msgid "The proposed Attribute has been saved"
 msgstr ""
 
-#: Controller/ShadowAttributesController.php:702
+#: Controller/ShadowAttributesController.php:765
 msgid "The ShadowAttribute could not be saved. Please, try again."
 msgstr ""
 
-#: Controller/ShadowAttributesController.php:820;828
+#: Controller/ShadowAttributesController.php:894;904
 msgid "Invalid proposal."
 msgstr ""
 
-#: Controller/ShadowAttributesController.php:867
+#: Controller/ShadowAttributesController.php:948
 msgid "No proposals found or invalid event."
 msgstr ""
 
-#: Controller/ShadowAttributesController.php:897;932
+#: Controller/ShadowAttributesController.php:980;1016
 msgid "This feature is only available using the API to Sync users"
 msgstr ""
 
-#: Controller/ShadowAttributesController.php:900
+#: Controller/ShadowAttributesController.php:983
 msgid "Invalid UUID"
 msgstr ""
 
-#: Controller/ShadowAttributesController.php:934
+#: Controller/ShadowAttributesController.php:1019
 msgid "This feature is only available using POST requests"
 msgstr ""
 
-#: Controller/SharingGroupsController.php:204
+#: Controller/SharingGroupsController.php:237
 msgid "Sharing Group deleted"
 msgstr ""
 
-#: Controller/SharingGroupsController.php:209
+#: Controller/SharingGroupsController.php:242
 msgid "Sharing Group could not be deleted. Make sure that there are no events, attributes or threads belonging to this sharing group."
 msgstr ""
 
-#: Controller/TagsController.php:331
+#: Controller/TagsController.php:367
 msgid "Tag deleted"
 msgstr ""
 
-#: Controller/TagsController.php:334
+#: Controller/TagsController.php:372
 msgid "Tag was not deleted"
 msgstr ""
 
-#: Controller/TemplatesController.php:351
+#: Controller/TemplatesController.php:408
 msgid "Event populated, "
 msgstr ""
 
-#: Controller/TemplatesController.php:352
+#: Controller/TemplatesController.php:410
 msgid "Event populated, but "
 msgstr ""
 
-#: Controller/UsersController.php:38;204
+#: Controller/UsersController.php:42;221
 msgid "Invalid user or not authorised."
 msgstr ""
 
-#: Controller/UsersController.php:50;396;602;828
+#: Controller/UsersController.php:54;430;657;907
 msgid "Invalid user"
 msgstr ""
 
-#: Controller/UsersController.php:110;518;670
+#: Controller/UsersController.php:119;564;728
 msgid "Invalid e-mail domain. Your user is restricted to creating users for the following domain(s): "
 msgstr ""
 
-#: Controller/UsersController.php:135
+#: Controller/UsersController.php:146
 msgid "The profile has been updated"
 msgstr ""
 
-#: Controller/UsersController.php:139
+#: Controller/UsersController.php:150
 msgid "The profile could not be updated. Please, try again."
 msgstr ""
 
-#: Controller/UsersController.php:183
+#: Controller/UsersController.php:198
 msgid "Password Changed."
 msgstr ""
 
-#: Controller/UsersController.php:188
+#: Controller/UsersController.php:203
 msgid "The password could not be updated. Make sure you meet the minimum password length / complexity requirements."
 msgstr ""
 
-#: Controller/UsersController.php:528
+#: Controller/UsersController.php:575
 msgid "The user could not be saved. Invalid organisation."
 msgstr ""
 
-#: Controller/UsersController.php:550
+#: Controller/UsersController.php:597
 msgid "The user has been saved."
 msgstr ""
 
-#: Controller/UsersController.php:559;772
+#: Controller/UsersController.php:606;843
 msgid "The user could not be saved. Please, try again."
 msgstr ""
 
-#: Controller/UsersController.php:764
+#: Controller/UsersController.php:835
 msgid "The user has been saved"
 msgstr ""
 
-#: Controller/UsersController.php:836
+#: Controller/UsersController.php:915
 msgid "User deleted"
 msgstr ""
 
-#: Controller/UsersController.php:840
+#: Controller/UsersController.php:919
 msgid "User was not deleted"
 msgstr ""
 
-#: Controller/UsersController.php:912
+#: Controller/UsersController.php:997
 msgid "Invalid username or password, try again"
 msgstr ""
 
-#: Controller/UsersController.php:992
+#: Controller/UsersController.php:1080
 msgid "Good-Bye"
 msgstr ""
 
-#: Controller/UsersController.php:1032
+#: Controller/UsersController.php:1121
 msgid "New authkey generated."
 msgstr ""
 
-#: Controller/UsersController.php:1127
+#: Controller/UsersController.php:1230
 msgid "You accepted the Terms and Conditions."
 msgstr ""
 
-#: Controller/UsersController.php:1297
+#: Controller/UsersController.php:1419
 msgid "E-mails sent, but failed to deliver the messages to the following recipients: "
 msgstr ""
 
-#: Controller/UsersController.php:1298
+#: Controller/UsersController.php:1421
 msgid "E-mails sent."
 msgstr ""
 
-#: Controller/Component/AdminCrudComponent.php:18
+#: Controller/Component/AdminCrudComponent.php:20
 msgid "The %s has been saved."
 msgstr ""
 
-#: Controller/Component/AdminCrudComponent.php:22;57
+#: Controller/Component/AdminCrudComponent.php:24;61
 msgid "The %s could not be saved. Please, try again."
 msgstr ""
 
-#: Controller/Component/AdminCrudComponent.php:48;80
+#: Controller/Component/AdminCrudComponent.php:52;85
 msgid "Invalid %s"
 msgstr ""
 
-#: Controller/Component/AdminCrudComponent.php:53
+#: Controller/Component/AdminCrudComponent.php:57
 msgid "The %s has been saved"
 msgstr ""
 
-#: Controller/Component/AdminCrudComponent.php:83
+#: Controller/Component/AdminCrudComponent.php:88
 msgid "%s deleted"
 msgstr ""
 
-#: Controller/Component/AdminCrudComponent.php:86
+#: Controller/Component/AdminCrudComponent.php:91
 msgid "%s was not deleted"
 msgstr ""
 
-#: Controller/Component/BlackListComponent.php:62
+#: Controller/Component/BlackListComponent.php:72
 msgid "Done. Added %d new entries to the blacklist. %d entries could not be saved."
 msgstr ""
 
-#: Controller/Component/BlackListComponent.php:104
+#: Controller/Component/BlackListComponent.php:123
 msgid "Blacklist item added."
 msgstr ""
 
-#: Controller/Component/BlackListComponent.php:132
+#: Controller/Component/BlackListComponent.php:152
 msgid "Invalid blacklist entry"
 msgstr ""
 
-#: Controller/Component/BlackListComponent.php:136
+#: Controller/Component/BlackListComponent.php:156
 msgid "Blacklist entry removed"
 msgstr ""
 
-#: Controller/Component/BlackListComponent.php:138
+#: Controller/Component/BlackListComponent.php:158
 msgid "Could not remove the blacklist entry"
 msgstr ""
 
-#: Model/Attribute.php:545
+#: Model/Attribute.php:567
 msgid "Composite type, but value not explodable"
 msgstr ""
 
-#: Model/Attribute.php:634
+#: Model/Attribute.php:677
 msgid "Delete of file attachment failed. Please report to administrator."
 msgstr ""
 
-#: Model/Attribute.php:748
+#: Model/Attribute.php:802
 msgid "The entered string is too long and would get truncated. Please consider adding the data as an attachment instead"
 msgstr ""
 
-#: Model/Attribute.php:858
+#: Model/Attribute.php:921
 msgid "Checksum has an invalid length or format (expected: %s hexadecimal characters). Please double check the value or select type \"other\"."
 msgstr ""
 
-#: Model/Attribute.php:865
+#: Model/Attribute.php:928
 msgid "Checksum has an invalid length or format (expected: at least 35 hexadecimal characters). Please double check the value or select type \"other\"."
 msgstr ""
 
-#: Model/Attribute.php:872
+#: Model/Attribute.php:935
 msgid "The input doesn't match the expected sha1 format (expected: 40 hexadecimal characters). Keep in mind that MISP currently only supports SHA1 for PEhashes, if you would like to get the support extended to other hash types, make sure to create a github ticket about it at https://github.com/MISP/MISP!"
 msgstr ""
 
-#: Model/Attribute.php:880
+#: Model/Attribute.php:946
 msgid "Invalid SSDeep hash. The format has to be blocksize:hash:hash"
 msgstr ""
 
-#: Model/Attribute.php:887
+#: Model/Attribute.php:957
 msgid "Invalid impfuzzy format. The format has to be imports:hash:hash"
 msgstr ""
 
-#: Model/Attribute.php:901
+#: Model/Attribute.php:972
 msgid "The input doesn't match the expected filename|sha1 format (expected: filename|40 hexadecimal characters). Keep in mind that MISP currently only supports SHA1 for PEhashes, if you would like to get the support extended to other hash types, make sure to create a github ticket about it at https://github.com/MISP/MISP!"
 msgstr ""
 
-#: Model/Attribute.php:919
+#: Model/Attribute.php:990
 msgid "Checksum has an invalid length or format (expected: filename|%s hexadecimal characters). Please double check the value or select type \"other\"."
 msgstr ""
 
-#: Model/Attribute.php:924
+#: Model/Attribute.php:995
 msgid "Invalid composite type. The format has to be %s."
 msgstr ""
 
-#: Model/Attribute.php:932
+#: Model/Attribute.php:1006
 msgid "Invalid SSDeep hash (expected: blocksize:hash:hash)."
 msgstr ""
 
-#: Model/Attribute.php:939
+#: Model/Attribute.php:1014
 msgid "Checksum has an invalid length or format (expected: filename|at least 35 hexadecimal characters). Please double check the value or select type \"other\"."
 msgstr ""
 
-#: Model/Attribute.php:950
+#: Model/Attribute.php:1025
 msgid "Invalid CIDR notation value found."
 msgstr ""
 
-#: Model/Attribute.php:957;1008
+#: Model/Attribute.php:1032;1083
 msgid "IP address has an invalid format."
 msgstr ""
 
-#: Model/Attribute.php:962
+#: Model/Attribute.php:1037
 msgid "Port numbers have to be positive integers between 1 and 65535."
 msgstr ""
 
-#: Model/Attribute.php:991
+#: Model/Attribute.php:1066
 msgid " name has an invalid format. Please double check the value or select type \"other\"."
 msgstr ""
 
-#: Model/Attribute.php:1011
+#: Model/Attribute.php:1086
 msgid "Domain name has an invalid format."
 msgstr ""
 
-#: Model/Attribute.php:1024
+#: Model/Attribute.php:1099
 msgid "Email address has an invalid format. Please double check the value or select type \"other\"."
 msgstr ""
 
-#: Model/Attribute.php:1032
+#: Model/Attribute.php:1107
 msgid "Invalid format. Expected: CVE-xxxx-xxxx..."
 msgstr ""
 
-#: Model/Attribute.php:1043
+#: Model/Attribute.php:1118
 msgid "Invalid format. Only values shorter than 256 characters that don't include any forward or backward slashes are allowed."
 msgstr ""
 
-#: Model/Attribute.php:1155
+#: Model/Attribute.php:1230
 msgid "Datetime has to be in the ISO 8601 format."
 msgstr ""
 
-#: Model/Attribute.php:1161
+#: Model/Attribute.php:1236
 msgid "The value has to be a number greater or equal 0."
 msgstr ""
 
-#: Model/Attribute.php:1168
+#: Model/Attribute.php:1243
 msgid "The value has to be a number between 0 and 10."
 msgstr ""
 
-#: Model/Attribute.php:1785;1840
+#: Model/Attribute.php:1923;1991
 msgid "Could not read user."
 msgstr ""
 
-#: Model/Attribute.php:2278
+#: Model/Attribute.php:2527
 msgid "This field is mandatory."
 msgstr ""
 
-#: Model/Attribute.php:2609
+#: Model/Attribute.php:2885
 msgid "Something went wrong. Received a non-numeric event ID while trying to create a zip archive of an uploaded malware sample."
 msgstr ""
 
-#: Model/Event.php:4186
+#: Model/Event.php:4532
 msgid "Issues while loading the stix file. "
 msgstr ""
 
-#: Model/Event.php:4188
+#: Model/Event.php:4534
 msgid "Issues with the maec library. "
 msgstr ""
 
-#: Model/Event.php:4190
+#: Model/Event.php:4536
 msgid "Issues executing the ingestion script or invalid input. "
 msgstr ""
 
-#: Model/Event.php:4193
+#: Model/Event.php:4539
 msgid "Please ask your administrator to "
 msgstr ""
 
-#: Model/Event.php:4195
+#: Model/Event.php:4541
 msgid "Please "
 msgstr ""
 
-#: Model/Event.php:4197
+#: Model/Event.php:4543
 msgid "check whether the dependencies for STIX are met via the diagnostic tool."
 msgstr ""
 
-#: Model/Event.php:4236
+#: Model/Event.php:4575
 msgid "#"
 msgstr ""
 
-#: Model/Event.php:4244
+#: Model/Event.php:4584
 msgid "%s not set"
 msgstr ""
 
-#: Model/Server.php:119
+#: Model/Server.php:114
 msgid "Certain administrative tasks are exposed to the API, these help with maintaining and configuring MISP in an automated way / via external tools."
 msgstr ""
 
-#: Model/Server.php:120
+#: Model/Server.php:115
 msgid "Administering MISP via the CLI"
 msgstr ""
 
-#: Model/Server.php:130
+#: Model/Server.php:125
 msgid "If you would like to automate tasks such as caching feeds or pulling from server instances, you can do it using the following command line tools. Simply execute the given commands via the command line / create cron jobs easily out of them."
 msgstr ""
 
-#: Model/Server.php:131
+#: Model/Server.php:126
 #: View/Tasks/index.ctp:6
 msgid "Automating certain console tasks"
 msgstr ""
 
-#: Model/Server.php:141
+#: Model/Server.php:135
 msgid "The base url of the application (in the format https://www.mymispinstance.com). Several features depend on this setting being correctly set to function."
 msgstr ""
 
-#: Model/Server.php:143
+#: Model/Server.php:137
 msgid "The currenty set baseurl does not match the URL through which you have accessed the page. Disregard this if you are accessing the page via an alternate URL (for example via IP address)."
 msgstr ""
 
-#: Model/Server.php:149
+#: Model/Server.php:143
 msgid "Unless set to true, the instance will only be accessible by site admins."
 msgstr ""
 
-#: Model/Server.php:157
+#: Model/Server.php:151
 msgid "Select the language MISP should use. The default is english."
 msgstr ""
 
-#: Model/Server.php:167
+#: Model/Server.php:161
 msgid "Enable some performance heavy correlations (currently CIDR correlation)"
 msgstr ""
 
-#: Model/Server.php:176
+#: Model/Server.php:170
+msgid "In some cases, a heavily used MISP instance can generate unwanted blackhole errors due to a high number of requests hitting the server. Disable the auto logout functionality to ease the burden on the system."
+msgstr ""
+
+#: Model/Server.php:179
 msgid "Set the ssdeep score at which to consider two ssdeep hashes as correlating [1-100]"
 msgstr ""
 
-#: Model/Server.php:184
+#: Model/Server.php:187
 msgid "Sets the maximum number of correlations that can be fetched with a single event. For extreme edge cases this can prevent memory issues. The default value is 5k."
 msgstr ""
 
-#: Model/Server.php:193
+#: Model/Server.php:196
 msgid "The message that users will see if the instance is not live."
 msgstr ""
 
-#: Model/Server.php:195
+#: Model/Server.php:198
 msgid "If this is not set the default value will be used."
 msgstr ""
 
-#: Model/Server.php:201;209;227;251;259;267;275;332;380;388;454
+#: Model/Server.php:204;212;230;254;262;270;278;335;383;391;457
 msgid "This setting is deprecated and can be safely removed."
 msgstr ""
 
-#: Model/Server.php:217
+#: Model/Server.php:220
 msgid "Cached exports can take up a considerable amount of space and can be disabled instance wide using this setting. Disabling the cached exports is not recommended as it's a valuable feature, however, if your server is having free space issues it might make sense to take this step."
 msgstr ""
 
-#: Model/Server.php:235
+#: Model/Server.php:238
 msgid "Footer text prepending the \"Powered by MISP\" text."
 msgstr ""
 
-#: Model/Server.php:243
+#: Model/Server.php:246
 msgid "Footer text following the \"Powered by MISP\" text."
 msgstr ""
 
-#: Model/Server.php:283
+#: Model/Server.php:286
 msgid "If set, this setting allows you to display a logo on the right side of the footer. Upload it as a custom image in the file management tool."
 msgstr ""
 
-#: Model/Server.php:291
+#: Model/Server.php:294
 msgid "If set, this setting allows you to display a logo as the home icon. Upload it as a custom image in the file management tool."
 msgstr ""
 
-#: Model/Server.php:299
+#: Model/Server.php:302
 msgid "If set, the image specified here will replace the main MISP logo on the login screen. Upload it as a custom image in the file management tool."
 msgstr ""
 
-#: Model/Server.php:307
+#: Model/Server.php:310
 msgid "The organisation tag of the hosting organisation. This is used in the e-mail subjects."
 msgstr ""
 
-#: Model/Server.php:315
+#: Model/Server.php:318
 msgid "The hosting organisation of this instance. If this is not selected then replication instances cannot be added."
 msgstr ""
 
-#: Model/Server.php:324
+#: Model/Server.php:327
 msgid "The MISP instance UUID. This UUID is used to identify this instance."
 msgstr ""
 
-#: Model/Server.php:326
+#: Model/Server.php:329
 msgid "No valid UUID set"
 msgstr ""
 
-#: Model/Server.php:340
+#: Model/Server.php:343
 msgid "Setting this setting to 'false' will hide all organisation names / logos."
 msgstr ""
 
-#: Model/Server.php:348
+#: Model/Server.php:351
 msgid "Put the event threat level in the notification E-mail subject."
 msgstr ""
 
-#: Model/Server.php:356
+#: Model/Server.php:359
 msgid "This is the TLP string for e-mails when email_subject_tag is not found."
 msgstr ""
 
-#: Model/Server.php:364
+#: Model/Server.php:367
 msgid "If this tag is set on an event it's value will be sent in the E-mail subject. If the tag is not set the email_subject_TLP_string will be used."
 msgstr ""
 
-#: Model/Server.php:372
+#: Model/Server.php:375
 msgid "Include in name of the email_subject_tag in the subject. When false only the tag value is used."
 msgstr ""
 
-#: Model/Server.php:396
+#: Model/Server.php:399
 msgid "Enables the use of MISP's background processing."
 msgstr ""
 
-#: Model/Server.php:404
+#: Model/Server.php:407
 msgid "Directory where attachments are stored. MISP will NOT migrate the existing data if you change this setting. The only safe way to change this setting is in config.php, when MISP is not running, and after having moved/copied the existing data to the new location. This directory must already exist and be writable and readable by the MISP application."
 msgstr ""
 
-#: Model/Server.php:413
+#: Model/Server.php:416
 msgid "Allow the XML caches to include the encoded attachments."
 msgstr ""
 
-#: Model/Server.php:421
+#: Model/Server.php:424
 msgid "Always download attachments when loaded by a user in a browser"
 msgstr ""
 
-#: Model/Server.php:429
+#: Model/Server.php:432
 msgid "The e-mail address that MISP should use for all notifications"
 msgstr ""
 
-#: Model/Server.php:437
+#: Model/Server.php:440
 msgid "You can disable all e-mailing using this setting. When enabled, no outgoing e-mails will be sent by MISP."
 msgstr ""
 
-#: Model/Server.php:446
+#: Model/Server.php:449
 msgid "The e-mail address that MISP should include as a contact address for the instance's support team."
 msgstr ""
 
-#: Model/Server.php:462
+#: Model/Server.php:465
 msgid "Turn Vulnerability type attributes into links linking to the provided CVE lookup"
 msgstr ""
 
-#: Model/Server.php:470
+#: Model/Server.php:473
 msgid "This setting controls whether notification e-mails will be sent when an event is created via the REST interface. It might be a good idea to disable this setting when first setting up a link to another instance to avoid spamming your users during the initial pull. Quick recap: True = Emails are NOT sent, False = Emails are sent on events published via sync / REST."
 msgstr ""
 
-#: Model/Server.php:478
+#: Model/Server.php:481
 msgid "enabling this flag will allow the event description to be transmitted in the alert e-mail's subject. Be aware that this is not encrypted by GnuPG, so only enable it if you accept that part of the event description will be sent out in clear-text."
 msgstr ""
 
-#: Model/Server.php:486
+#: Model/Server.php:489
 msgid "The default distribution setting for events (0-3)."
 msgstr ""
 
-#: Model/Server.php:495
+#: Model/Server.php:498
 msgid "The default distribution setting for attributes, set it to 'event' if you would like the attributes to default to the event distribution level. (0-3 or \"event\")"
 msgstr ""
 
-#: Model/Server.php:504
+#: Model/Server.php:507
 msgid "The default threat level setting when creating events."
 msgstr ""
 
-#: Model/Server.php:513
+#: Model/Server.php:516
 msgid "Enable the tagging feature of MISP. This is highly recommended."
 msgstr ""
 
-#: Model/Server.php:521
+#: Model/Server.php:524
 msgid "Show the full tag names on the event index."
 msgstr ""
 
-#: Model/Server.php:530
+#: Model/Server.php:533
 msgid "Used on the login page, before the MISP logo"
 msgstr ""
 
-#: Model/Server.php:538
+#: Model/Server.php:541
 msgid "Used on the login page, after the MISP logo"
 msgstr ""
 
-#: Model/Server.php:546
+#: Model/Server.php:549
 msgid "Used on the login page, to the left of the MISP logo, upload it as a custom image in the file management tool."
 msgstr ""
 
-#: Model/Server.php:554
+#: Model/Server.php:557
 msgid "Used on the login page, to the right of the MISP logo, upload it as a custom image in the file management tool."
 msgstr ""
 
-#: Model/Server.php:562
+#: Model/Server.php:565
 msgid "Used in the page title, after the name of the page"
 msgstr ""
 
-#: Model/Server.php:570
+#: Model/Server.php:573
 msgid "Allows users to take ownership of an event uploaded via the \"Add MISP XML\" button. This allows spoofing the creator of a manually imported event, also breaking possibly breaking the original intended releasability. Synchronising with an instance that has a different creator for the same event can lead to unwanted consequences."
 msgstr ""
 
-#: Model/Server.php:578
+#: Model/Server.php:581
 msgid "Choose whether the terms and conditions should be displayed inline (false) or offered as a download (true)"
 msgstr ""
 
-#: Model/Server.php:586
+#: Model/Server.php:589
 msgid "The filename of the terms and conditions file. Make sure that the file is located in your MISP/app/files/terms directory"
 msgstr ""
 
-#: Model/Server.php:594
+#: Model/Server.php:597
 msgid "True enables the alternate org fields for the event index (source org and member org) instead of the traditional way of showing only an org field. This allows users to see if an event was uploaded by a member organisation on their MISP instance, or if it originated on an interconnected instance."
 msgstr ""
 
-#: Model/Server.php:602
+#: Model/Server.php:605
 msgid "True will deny access to unpublished events to users outside the organization of the submitter except site admins."
 msgstr ""
 
-#: Model/Server.php:611
+#: Model/Server.php:614
 msgid "The message sent to the user after account creation (has to be sent manually from the administration interface). Use \\n for line-breaks. The following variables will be automatically replaced in the text: $password = a new temporary password that MISP generates, $username = the user's e-mail address, $misp = the url of this instance, $org = the organisation that the instance belongs to, as set in MISP.org, $contact = the e-mail address used to contact the support team, as set in MISP.contact. For example, \"the password for $username is $password\" would appear to a user with the e-mail address user@misp.org as \"the password for user@misp.org is hNamJae81\"."
 msgstr ""
 
-#: Model/Server.php:620
+#: Model/Server.php:623
 msgid "The message sent to the users when a password reset is triggered. Use \\n for line-breaks. The following variables will be automatically replaced in the text: $password = a new temporary password that MISP generates, $username = the user's e-mail address, $misp = the url of this instance, $contact = the e-mail address used to contact the support team, as set in MISP.contact. For example, \"the password for $username is $password\" would appear to a user with the e-mail address user@misp.org as \"the password for user@misp.org is hNamJae81\"."
 msgstr ""
 
-#: Model/Server.php:628
+#: Model/Server.php:631
 msgid "Since version 2.3.107 you can start blacklisting event UUIDs to prevent them from being pushed to your instance. This functionality will also happen silently whenever an event is deleted, preventing a deleted event from being pushed back from another instance."
 msgstr ""
 
-#: Model/Server.php:635
+#: Model/Server.php:638
 msgid "Blacklisting organisation UUIDs to prevent the creation of any event created by the blacklisted organisation."
 msgstr ""
 
-#: Model/Server.php:642
+#: Model/Server.php:645
 msgid "If enabled, all log entries will include the IP address of the user."
 msgstr ""
 
-#: Model/Server.php:651
+#: Model/Server.php:654
 msgid "If enabled, MISP will log all successful authentications using API keys. The requested URLs are also logged."
 msgstr ""
 
-#: Model/Server.php:659
+#: Model/Server.php:662
 msgid "This feature allows users to create org only events and ask another organisation to take ownership of the event. This allows organisations to remain anonymous by asking a partner to publish an event for them."
 msgstr ""
 
-#: Model/Server.php:668
+#: Model/Server.php:671
 msgid "When enabled, the number of correlations visible to the currently logged in user will be visible on the event index UI. This comes at a performance cost but can be very useful to see correlating events at a glance."
 msgstr ""
 
-#: Model/Server.php:677
+#: Model/Server.php:680
 msgid "When enabled, the number of proposals for the events are shown on the index."
 msgstr ""
 
-#: Model/Server.php:686
+#: Model/Server.php:689
 msgid "When enabled, the aggregate number of attribute sightings within the event becomes visible to the currently logged in user on the event index UI."
 msgstr ""
 
-#: Model/Server.php:695
+#: Model/Server.php:698
 msgid "When enabled, the aggregate number of discussion posts for the event becomes visible to the currently logged in user on the event index UI."
 msgstr ""
 
-#: Model/Server.php:704
+#: Model/Server.php:707
 msgid "When enabled only Org and Site admins can edit a user's profile."
 msgstr ""
 
-#: Model/Server.php:714
+#: Model/Server.php:717
 msgid "Enable this setting to start blocking alert e-mails for events with a certain tag. Define the tag in MISP.block_event_alert_tag."
 msgstr ""
 
-#: Model/Server.php:723
+#: Model/Server.php:726
 msgid "If the MISP.block_event_alert setting is set, alert e-mails for events tagged with the tag defined by this setting will be blocked."
 msgstr ""
 
-#: Model/Server.php:732
+#: Model/Server.php:735
 msgid "Enable this setting to start blocking alert e-mails for old events. The exact timing of what constitutes an old event is defined by MISP.block_old_event_alert_age."
 msgstr ""
 
-#: Model/Server.php:741
+#: Model/Server.php:744
 msgid "If the MISP.block_old_event_alert setting is set, this setting will control how old an event can be for it to be alerted on. The \"Date\" field of the event is used. Expected format: integer, in days"
 msgstr ""
 
-#: Model/Server.php:750
+#: Model/Server.php:753
 msgid "Please indicate the temp directory you wish to use for certain functionalities in MISP. By default this is set to /tmp and will be used among others to store certain temporary files extracted from imports during the import process."
 msgstr ""
 
-#: Model/Server.php:759
+#: Model/Server.php:762
 msgid "If you would like to customise the css, simply drop a css file in the /var/www/MISP/webroot/css directory and enter the name here."
 msgstr ""
 
-#: Model/Server.php:768
+#: Model/Server.php:771
 msgid "Enable this setting to allow blocking attributes from to_ids sensitive exports if a proposal has been made to it to remove the IDS flag or to remove the attribute altogether. This is a powerful tool to deal with false-positives efficiently."
 msgstr ""
 
-#: Model/Server.php:777
+#: Model/Server.php:780
 msgid "Enable this settings if new tags synced / added via incoming events from any source should not be selectable by users by default."
 msgstr ""
 
-#: Model/Server.php:786
+#: Model/Server.php:789
 msgid "*WARNING* This setting will completely disable the correlation on this instance and remove any existing saved correlations. Enabling this will trigger a full recorrelation of all data which is an extremely long and costly procedure. Only enable this if you know what you're doing."
 msgstr ""
 
-#: Model/Server.php:796
+#: Model/Server.php:799
 msgid "*WARNING* This setting will give event creators the possibility to disable the correlation of individual events / attributes that they have created."
 msgstr ""
 
-#: Model/Server.php:805
+#: Model/Server.php:808
 msgid "The host running the redis server to be used for generic MISP tasks such as caching. This is not to be confused by the redis server used by the background processing."
 msgstr ""
 
-#: Model/Server.php:813
+#: Model/Server.php:816
 msgid "The port used by the redis server to be used for generic MISP tasks such as caching. This is not to be confused by the redis server used by the background processing."
 msgstr ""
 
-#: Model/Server.php:821
+#: Model/Server.php:824
 msgid "The database on the redis server to be used for generic MISP tasks. If you run more than one MISP instance, please make sure to use a different database on each instance."
 msgstr ""
 
-#: Model/Server.php:829
+#: Model/Server.php:832
 msgid "The password on the redis server (if any) to be used for generic MISP tasks."
 msgstr ""
 
-#: Model/Server.php:838
+#: Model/Server.php:841
 msgid "Specify which fields to filter on when you search on the event view. Default values are : \"id, uuid, value, comment, type, category, Tag.name\""
 msgstr ""
 
-#: Model/Server.php:846
+#: Model/Server.php:849
 msgid "Only enable this if you have some tools using MISP with extreme high concurency. General performance will be lower as normal as certain transactional queries are avoided in favour of shorter table locks."
 msgstr ""
 
-#: Model/Server.php:858
+#: Model/Server.php:861
 msgid "The location of the GnuPG executable. If you would like to use a different GnuPG executable than /usr/bin/gpg, you can set it here. If the default is fine, just keep the setting suggested by MISP."
 msgstr ""
 
-#: Model/Server.php:866
+#: Model/Server.php:869
 msgid "Allow (false) unencrypted e-mails to be sent to users that don't have a GnuPG key."
 msgstr ""
 
-#: Model/Server.php:874
+#: Model/Server.php:877
 msgid "Allow (false) the body of unencrypted e-mails to contain details about the event."
 msgstr ""
 
-#: Model/Server.php:882
+#: Model/Server.php:885
 msgid "Enable the signing of GnuPG emails. By default, GnuPG emails are signed"
 msgstr ""
 
-#: Model/Server.php:890
+#: Model/Server.php:893
 msgid "The e-mail address that the instance's GnuPG key is tied to."
 msgstr ""
 
-#: Model/Server.php:898
+#: Model/Server.php:901
 msgid "The password (if it is set) of the GnuPG key of the instance."
 msgstr ""
 
-#: Model/Server.php:907
+#: Model/Server.php:910
 msgid "The location of the GnuPG homedir."
 msgstr ""
 
-#: Model/Server.php:918
+#: Model/Server.php:921
 msgid "Enable SMIME encryption. The encryption posture of the GnuPG.onlyencrypted and GnuPG.bodyonlyencrypted settings are inherited if SMIME is enabled."
 msgstr ""
 
-#: Model/Server.php:926
+#: Model/Server.php:929
 msgid "The e-mail address that the instance's SMIME key is tied to."
 msgstr ""
 
-#: Model/Server.php:934
+#: Model/Server.php:937
 msgid "The location of the public half of the signing certificate."
 msgstr ""
 
-#: Model/Server.php:942
+#: Model/Server.php:945
 msgid "The location of the private half of the signing certificate."
 msgstr ""
 
-#: Model/Server.php:950
+#: Model/Server.php:953
 msgid "The password (if it is set) of the SMIME key of the instance."
 msgstr ""
 
-#: Model/Server.php:962
+#: Model/Server.php:965
 msgid "The hostname of an HTTP proxy for outgoing sync requests. Leave empty to not use a proxy."
 msgstr ""
 
-#: Model/Server.php:970
+#: Model/Server.php:973
 msgid "The TCP port for the HTTP proxy."
 msgstr ""
 
-#: Model/Server.php:978
+#: Model/Server.php:981
 msgid "The authentication method for the HTTP proxy. Currently supported are Basic or Digest. Leave empty for no proxy authentication."
 msgstr ""
 
-#: Model/Server.php:986
+#: Model/Server.php:989
 msgid "The authentication username for the HTTP proxy."
 msgstr ""
 
-#: Model/Server.php:994
+#: Model/Server.php:997
 msgid "The authentication password for the HTTP proxy."
 msgstr ""
 
-#: Model/Server.php:1005
+#: Model/Server.php:1008
 msgid "The salt used for the hashed passwords. You cannot reset this from the GUI, only manually from the settings.php file. Keep in mind, this will invalidate all passwords in the database."
 msgstr ""
 
-#: Model/Server.php:1014
+#: Model/Server.php:1017
 msgid "Enable this setting to pass all audit log entries directly to syslog. Keep in mind, this is verbose and will include user, organisation, event data."
 msgstr ""
 
-#: Model/Server.php:1023
+#: Model/Server.php:1026
 msgid "Password length requirement. If it is not set or it is set to 0, then the default value is assumed (12)."
 msgstr ""
 
-#: Model/Server.php:1031
+#: Model/Server.php:1034
 msgid "Password complexity requirement. Leave it empty for the default setting (3 out of 4, with either a digit or a special char) or enter your own regex. Keep in mind that the length is checked in another key. Default (simple 3 out of 4 or minimum 16 characters): /^((?=.*\\d)|(?=.*\\W+))(?![\\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/"
 msgstr ""
 
-#: Model/Server.php:1039
+#: Model/Server.php:1042
 msgid "Enabling this setting will require users to submit their current password on any edits to their profile (including a triggered password change). For administrators, the confirmation will be required when changing the profile of any user. Could potentially mitigate an attacker trying to change a compromised user's password in order to establish persistance, however, enabling this feature will be highly annoying to users."
 msgstr ""
 
-#: Model/Server.php:1048
+#: Model/Server.php:1051
 msgid "Enabling this setting will sanitise the contents of an attribute on a soft delete"
 msgstr ""
 
-#: Model/Server.php:1057
+#: Model/Server.php:1060
 msgid "Enabling this setting will block the organisation index from being visible to anyone besides site administrators on the current instance. Keep in mind that users can still see organisations that produce data via events, proposals, event history log entries, etc."
 msgstr ""
 
-#: Model/Server.php:1066
+#: Model/Server.php:1069
 msgid "Allows passing the API key via the named url parameter \"apikey\" - highly recommended not to enable this, but if you have some dodgy legacy tools that cannot pass the authorization header it can work as a workaround. Again, only use this as a last resort."
 msgstr ""
 
-#: Model/Server.php:1068
+#: Model/Server.php:1071
 msgid "You have enabled the passing of API keys via URL parameters. This is highly recommended against, do you really want to reveal APIkeys in your logs?..."
 msgstr ""
 
-#: Model/Server.php:1078
+#: Model/Server.php:1081
 msgid "The number of tries a user can try to login and fail before the bruteforce protection kicks in."
 msgstr ""
 
-#: Model/Server.php:1086
+#: Model/Server.php:1089
 msgid "The duration (in seconds) of how long the user will be locked out when the allowed number of login attempts are exhausted."
 msgstr ""
 
-#: Model/Server.php:1097
+#: Model/Server.php:1100
 msgid "Set to true to automatically regenerate sessions after x number of requests. This might lead to the user getting de-authenticated and is frustrating in general, so only enable it if you really need to regenerate sessions. (Not recommended)"
 msgstr ""
 
-#: Model/Server.php:1105
+#: Model/Server.php:1108
 msgid "Set to true to check for the user agent string in each request. This can lead to occasional logouts (not recommended)."
 msgstr ""
 
-#: Model/Server.php:1113
+#: Model/Server.php:1116
 msgid "The session type used by MISP. The default setting is php, which will use the session settings configured in php.ini for the session data (supported options: php, database). The recommended option is php and setting your PHP up to use redis sessions via your php.ini. Just add 'session.save_handler = redis' and \"session.save_path = 'tcp://localhost:6379'\" (replace the latter with your redis connection) to "
 msgstr ""
 
-#: Model/Server.php:1122
+#: Model/Server.php:1125
 msgid "The timeout duration of sessions (in MINUTES)."
 msgstr ""
 
-#: Model/Server.php:1130
+#: Model/Server.php:1133
 msgid "The expiration of the cookie (in MINUTES). The session timeout gets refreshed frequently, however the cookies do not. Generally it is recommended to have a much higher cookie_timeout than timeout."
 msgstr ""
 
-#: Model/Server.php:1141
+#: Model/Server.php:1144
 msgid "The default policy action for the values added to the RPZ."
 msgstr ""
 
-#: Model/Server.php:1150
+#: Model/Server.php:1153
 msgid "The default walled garden used by the RPZ export if the walled garden setting is picked for the export."
 msgstr ""
 
-#: Model/Server.php:1158
+#: Model/Server.php:1161
 msgid "The serial in the SOA portion of the zone file. (numeric, best practice is yyyymmddrr where rr is the two digit sub-revision of the file. $date will automatically get converted to the current yyyymmdd, so $date00 is a valid setting)."
 msgstr ""
 
-#: Model/Server.php:1166
+#: Model/Server.php:1169
 msgid "The refresh specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)"
 msgstr ""
 
-#: Model/Server.php:1174
+#: Model/Server.php:1177
 msgid "The retry specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)"
 msgstr ""
 
-#: Model/Server.php:1182
+#: Model/Server.php:1185
 msgid "The expiry specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)"
 msgstr ""
 
-#: Model/Server.php:1190
+#: Model/Server.php:1193
 msgid "The minimum TTL specified in the SOA portion of the zone file. (in seconds, or shorthand duration such as 15m)"
 msgstr ""
 
-#: Model/Server.php:1198
+#: Model/Server.php:1201
 msgid "The TTL of the zone file. (in seconds, or shorthand duration such as 15m)"
 msgstr ""
 
-#: Model/Server.php:1214
+#: Model/Server.php:1217
 msgid "Alternate nameserver"
 msgstr ""
 
-#: Model/Server.php:1222
+#: Model/Server.php:1225
 msgid "The e-mail address specified in the SOA portion of the zone file."
 msgstr ""
 
-#: Model/Server.php:1230
+#: Model/Server.php:1233
 msgid "Enables or disables the pub/sub feature of MISP. Make sure that you install the requirements for the plugin to work. Refer to the installation instructions for more information."
 msgstr ""
 
-#: Model/Server.php:1239
+#: Model/Server.php:1242
 msgid "The port that the pub/sub feature will use."
 msgstr ""
 
-#: Model/Server.php:1248
+#: Model/Server.php:1251
 msgid "Location of the Redis db used by MISP and the Python PUB script to queue data to be published."
 msgstr ""
 
-#: Model/Server.php:1257
+#: Model/Server.php:1260
 msgid "The port that Redis is listening on."
 msgstr ""
 
-#: Model/Server.php:1266
+#: Model/Server.php:1269
 msgid "The password, if set for Redis."
 msgstr ""
 
-#: Model/Server.php:1275
+#: Model/Server.php:1278
 msgid "The database to be used for queuing messages for the pub/sub functionality."
 msgstr ""
 
-#: Model/Server.php:1284
+#: Model/Server.php:1287
 msgid "The namespace to be used for queuing messages for the pub/sub functionality."
 msgstr ""
 
-#: Model/Server.php:1293
+#: Model/Server.php:1296
 msgid "Enable this setting to include the base64 encoded payloads of malware-samples/attachments in the output."
 msgstr ""
 
-#: Model/Server.php:1301
+#: Model/Server.php:1304
 msgid "Enables or disables the publishing of any event creations/edits/deletions."
 msgstr ""
 
-#: Model/Server.php:1309
+#: Model/Server.php:1312
 msgid "Enables or disables the publishing of any object creations/edits/deletions."
 msgstr ""
 
-#: Model/Server.php:1317
+#: Model/Server.php:1320
 msgid "Enables or disables the publishing of any object reference creations/deletions."
 msgstr ""
 
-#: Model/Server.php:1325
+#: Model/Server.php:1328
 msgid "Enables or disables the publishing of any attribute creations/edits/soft deletions."
 msgstr ""
 
-#: Model/Server.php:1333
+#: Model/Server.php:1336
 msgid "Enables or disables the publishing of any tag creations/edits/deletions as well as tags being attached to / detached from various MISP elements."
 msgstr ""
 
-#: Model/Server.php:1341
+#: Model/Server.php:1344
 msgid "Enables or disables the publishing of new sightings to the ZMQ pubsub feed."
 msgstr ""
 
-#: Model/Server.php:1349
+#: Model/Server.php:1352
 msgid "Enables or disables the publishing of new/modified users to the ZMQ pubsub feed."
 msgstr ""
 
-#: Model/Server.php:1357
+#: Model/Server.php:1360
 msgid "Enables or disables the publishing of new/modified organisations to the ZMQ pubsub feed."
 msgstr ""
 
-#: Model/Server.php:1365
+#: Model/Server.php:1368
 msgid "Enables or disables the publishing of log entries to the ZMQ pubsub feed. Keep in mind, this can get pretty verbose depending on your logging settings."
 msgstr ""
 
-#: Model/Server.php:1373
+#: Model/Server.php:1376
 msgid "Enabled logging to an ElasticSearch instance"
 msgstr ""
 
-#: Model/Server.php:1381
+#: Model/Server.php:1384
 msgid "The URL(s) at which to access ElasticSearch - comma seperate if you want to have more than one."
 msgstr ""
 
-#: Model/Server.php:1389
+#: Model/Server.php:1392
 msgid "The index in which to place logs"
 msgstr ""
 
-#: Model/Server.php:1397
-msgid "This setting defines who will have access to seeing the reported sightings. The default setting is the event owner alone (in addition to everyone seeing their own contribution) with the other options being Sighting reporters (meaning the event owner and anyone that provided sighting data about the event) and Everyone (meaning anyone that has access to seeing the event / attribute)."
+#: Model/Server.php:1400
+msgid "Enables or disables uploading of malware samples to S3 rather than to disk (WARNING: Get permission from amazon first!)"
 msgstr ""
 
-#: Model/Server.php:1406
-msgid "Enabling the anonymisation of sightings will simply aggregate all sightings instead of showing the organisations that have reported a sighting. Users will be able to tell the number of sightings their organisation has submitted and the number of sightings for other organisations"
+#: Model/Server.php:1408
+msgid "Bucket name to upload to"
 msgstr ""
 
-#: Model/Server.php:1414
-msgid "Set the range in which sightings will be taken into account when generating graphs. For example a sighting with a sighted_date of 7 years ago might not be relevant anymore. Setting given in number of days, default is 365 days"
+#: Model/Server.php:1416
+msgid "Region in which your S3 bucket resides"
 msgstr ""
 
-#: Model/Server.php:1422
-msgid "Enable this functionality if you would like to handle the authentication via an external tool and authenticate with MISP using a custom header."
+#: Model/Server.php:1424
+msgid "AWS key to use when uploading samples (WARNING: It' highly recommended that you use EC2 IAM roles if at all possible)"
 msgstr ""
 
 #: Model/Server.php:1432
+msgid "AWS secret key to use when uploading samples"
+msgstr ""
+
+#: Model/Server.php:1440
+msgid "This setting defines who will have access to seeing the reported sightings. The default setting is the event owner alone (in addition to everyone seeing their own contribution) with the other options being Sighting reporters (meaning the event owner and anyone that provided sighting data about the event) and Everyone (meaning anyone that has access to seeing the event / attribute)."
+msgstr ""
+
+#: Model/Server.php:1449
+msgid "Enabling the anonymisation of sightings will simply aggregate all sightings instead of showing the organisations that have reported a sighting. Users will be able to tell the number of sightings their organisation has submitted and the number of sightings for other organisations"
+msgstr ""
+
+#: Model/Server.php:1457
+msgid "Set the range in which sightings will be taken into account when generating graphs. For example a sighting with a sighted_date of 7 years ago might not be relevant anymore. Setting given in number of days, default is 365 days"
+msgstr ""
+
+#: Model/Server.php:1465
+msgid "Enable this functionality if you would like to handle the authentication via an external tool and authenticate with MISP using a custom header."
+msgstr ""
+
+#: Model/Server.php:1475
 msgid "Set the header that MISP should look for here. If left empty it will default to the Authorization header."
 msgstr ""
 
-#: Model/Server.php:1441
+#: Model/Server.php:1484
 msgid "Use a header namespace for the auth header - default setting is enabled"
 msgstr ""
 
-#: Model/Server.php:1450
+#: Model/Server.php:1493
 msgid "The default header namespace for the auth header - default setting is HTTP_"
 msgstr ""
 
-#: Model/Server.php:1459
+#: Model/Server.php:1502
 msgid "If this setting is enabled then the only way to authenticate will be using the custom header. Altnertatively you can run in mixed mode that will log users in via the header if found, otherwise users will be redirected to the normal login page."
 msgstr ""
 
-#: Model/Server.php:1468
+#: Model/Server.php:1511
 msgid "If you are using an external tool to authenticate with MISP and would like to only allow the tool's url as a valid point of entry then set this field. "
 msgstr ""
 
-#: Model/Server.php:1477
+#: Model/Server.php:1520
 msgid "The name of the authentication method, this is cosmetic only and will be shown on the user creation page and logs."
 msgstr ""
 
-#: Model/Server.php:1486
+#: Model/Server.php:1529
 msgid "Disable the logout button for users authenticate with the external auth mechanism."
 msgstr ""
 
-#: Model/Server.php:1494
+#: Model/Server.php:1537
 msgid "Enable/disable the enrichment services"
 msgstr ""
 
-#: Model/Server.php:1502
+#: Model/Server.php:1545
 msgid "Set a timeout for the enrichment services"
 msgstr ""
 
-#: Model/Server.php:1510;1622
+#: Model/Server.php:1553;1665
 msgid "Enable/disable the import services"
 msgstr ""
 
-#: Model/Server.php:1518;1639
+#: Model/Server.php:1561;1682
 msgid "Set a timeout for the import services"
 msgstr ""
 
-#: Model/Server.php:1526
+#: Model/Server.php:1569
 msgid "The url used to access the import services. By default, it is accessible at http://127.0.0.1:6666"
 msgstr ""
 
-#: Model/Server.php:1534
+#: Model/Server.php:1577
 msgid "The port used to access the import services. By default, it is accessible at 127.0.0.1:6666"
 msgstr ""
 
-#: Model/Server.php:1542
+#: Model/Server.php:1585
 msgid "The url used to access the export services. By default, it is accessible at http://127.0.0.1:6666"
 msgstr ""
 
-#: Model/Server.php:1550
+#: Model/Server.php:1593
 msgid "The port used to access the export services. By default, it is accessible at 127.0.0.1:6666"
 msgstr ""
 
-#: Model/Server.php:1558
+#: Model/Server.php:1601
 msgid "Enable/disable the export services"
 msgstr ""
 
-#: Model/Server.php:1566
+#: Model/Server.php:1609
 msgid "Set a timeout for the export services"
 msgstr ""
 
-#: Model/Server.php:1574
+#: Model/Server.php:1617
 msgid "Enable/disable the hover over information retrieved from the enrichment modules"
 msgstr ""
 
-#: Model/Server.php:1582
+#: Model/Server.php:1625
 msgid "Set a timeout for the hover services"
 msgstr ""
 
-#: Model/Server.php:1590
+#: Model/Server.php:1633
 msgid "The url used to access the enrichment services. By default, it is accessible at http://127.0.0.1:6666"
 msgstr ""
 
-#: Model/Server.php:1598
+#: Model/Server.php:1641
 msgid "The port used to access the enrichment services. By default, it is accessible at 127.0.0.1:6666"
 msgstr ""
 
-#: Model/Server.php:1606
+#: Model/Server.php:1649
 msgid "The url used to access Cortex. By default, it is accessible at http://cortex-url"
 msgstr ""
 
-#: Model/Server.php:1614
+#: Model/Server.php:1657
 msgid "The port used to access Cortex. By default, this is port 9000"
 msgstr ""
 
-#: Model/Server.php:1630
+#: Model/Server.php:1673
 msgid "Set an authentication key to be passed to Cortex"
 msgstr ""
 
-#: Model/Server.php:1647
+#: Model/Server.php:1690
 msgid "Set to false to disable SSL verification. This is not recommended."
 msgstr ""
 
-#: Model/Server.php:1656
+#: Model/Server.php:1699
 msgid "Set to false if you wish to ignore hostname match errors when validating certificates."
 msgstr ""
 
-#: Model/Server.php:1665
+#: Model/Server.php:1708
 msgid "Set to true to enable self-signed certificates to be accepted. This requires Cortex_ssl_verify_peer to be enabled."
 msgstr ""
 
-#: Model/Server.php:1674
+#: Model/Server.php:1717
 msgid "Set to the absolute path of the Certificate Authority file that you wish to use for verifying SSL certificates."
 msgstr ""
 
-#: Model/Server.php:1683
+#: Model/Server.php:1726
 msgid "Provide your custom authentication users with an external URL to the authentication system to reset their passwords."
 msgstr ""
 
-#: Model/Server.php:1692
+#: Model/Server.php:1735
 msgid "Provide a custom logout URL for your users that will log them out using the authentication system you use."
 msgstr ""
 
-#: Model/Server.php:1702
+#: Model/Server.php:1745
 msgid "The debug level of the instance, always use 0 for production instances."
 msgstr ""
 
-#: Model/Server.php:1711
+#: Model/Server.php:1754
 msgid "The debug level of the instance for site admins. This feature allows site admins to run debug mode on a live instance without exposing it to other users. The most verbose option of debug and site_admin_debug is used for site admins."
 msgstr ""
 
-#: Model/Server.php:2342;2377
+#: Model/Server.php:2401
 msgid "Enable or disable the %s module."
 msgstr ""
 
-#: Model/Server.php:2345;2380
+#: Model/Server.php:2404
 msgid "Restrict the %s module to the given organisation."
 msgstr ""
 
-#: Model/Server.php:2353;2388
+#: Model/Server.php:2412
 msgid "Set this required module specific setting."
 msgstr ""
 
-#: Model/Server.php:2458
+#: Model/Server.php:2527
 msgid "Value not set."
 msgstr ""
 
-#: Model/Server.php:2911
+#: Model/Server.php:3130
 msgid "Organisation logos"
 msgstr ""
 
-#: Model/Server.php:2912
+#: Model/Server.php:3131
 msgid "The logo used by an organisation on the event index, event view, discussions, proposals, etc. Make sure that the filename is in the org.png format, where org is the case-sensitive organisation name."
 msgstr ""
 
-#: Model/Server.php:2914
+#: Model/Server.php:3133
 msgid "48x48 pixel .png files"
 msgstr ""
 
-#: Model/Server.php:2917;2932
+#: Model/Server.php:3136;3151
 msgid "Filename must be in the following format: *.png"
 msgstr ""
 
-#: Model/Server.php:2921
+#: Model/Server.php:3140
 msgid "Additional image files"
 msgstr ""
 
-#: Model/Server.php:2922
+#: Model/Server.php:3141
 msgid "Image files uploaded into this directory can be used for various purposes, such as for the login page logos"
 msgstr ""
 
-#: Model/Server.php:2929
+#: Model/Server.php:3148
 msgid "text/html if served inline, anything that conveys the terms of use if served as download"
+msgstr ""
+
+#: Model/Server.php:3765
+msgid "Removing a dead worker."
+msgstr ""
+
+#: Model/Server.php:3766
+msgid "Removing dead worker data. Worker was of type %s with pid %s"
+msgstr ""
+
+#: Model/Server.php:3770
+msgid "Stopping a worker."
+msgstr ""
+
+#: Model/Server.php:3771
+msgid "Stopping a worker. Worker was of type %s with pid %s"
 msgstr ""
 
 #: Plugin/Assets/models/behaviors/LogableBehavior.php:361
@@ -2069,7 +2112,7 @@ msgstr ""
 #: View/Attributes/attribute_replace.ctp:38
 #: View/Attributes/ajax/attributeEditMassForm.ctp:58
 #: View/Attributes/ajax/attributeRestorationForm.ctp:11
-#: View/Elements/view_mitre_attack_matrix.ctp:113
+#: View/Elements/view_mitre_attack_matrix.ctp:14;113
 #: View/Events/contact.ctp:29
 #: View/Events/edit.ctp:59
 #: View/Events/free_text_import.ctp:27
@@ -2121,7 +2164,7 @@ msgstr ""
 #: View/Events/ajax/exportChoice.ctp:51
 #: View/Events/ajax/importChoice.ctp:12
 #: View/Events/ajax/quick_edit.ctp:6
-#: View/Galaxies/ajax/cluster_choice.ctp:30
+#: View/Galaxies/ajax/cluster_choice.ctp:32
 #: View/Galaxies/ajax/galaxy_choice.ctp:22
 #: View/Galaxies/ajax/galaxy_namespace_choice.ctp:15
 #: View/Jobs/ajax/error.ctp:34
@@ -2558,7 +2601,7 @@ msgstr ""
 #: View/Attributes/ajax/attributeConfirmationForm.ctp:16
 #: View/Elements/eventdiscussion.ctp:90
 #: View/Elements/galaxyQuickView.ctp:23
-#: View/Elements/side_menu.ctp:346
+#: View/Elements/side_menu.ctp:351
 #: View/Elements/Events/eventIndexTable.ctp:226
 #: View/Elements/Users/userIndexTable.ctp:91
 #: View/Elements/healthElements/files.ctp:73
@@ -2906,7 +2949,7 @@ msgid "Tags"
 msgstr ""
 
 #: View/Elements/eventattribute.ctp:189
-#: View/Elements/global_menu.ctp:55
+#: View/Elements/global_menu.ctp:56
 #: View/Events/view.ctp:387
 #: View/Galaxies/index.ctp:2
 msgid "Galaxies"
@@ -3147,6 +3190,11 @@ msgstr ""
 msgid "Add"
 msgstr ""
 
+#: View/Elements/global_menu.ctp:20
+#: View/Pages/doc/general.ctp:20
+msgid "Event Actions"
+msgstr ""
+
 #: View/Elements/global_menu.ctp:24
 #: View/Elements/side_menu.ctp:174;188
 #: View/Events/export_alternate.ctp:87
@@ -3163,58 +3211,70 @@ msgid "Add Event"
 msgstr ""
 
 #: View/Elements/global_menu.ctp:28
-#: View/Elements/side_menu.ctp:208
+#: View/Elements/side_menu.ctp:213
 #: View/Events/export_alternate.ctp:92
 #: View/Pages/doc/general.ctp:36
 msgid "List Attributes"
 msgstr ""
 
 #: View/Elements/global_menu.ctp:29
-#: View/Elements/side_menu.ctp:213
+#: View/Elements/side_menu.ctp:218
 #: View/Events/export_alternate.ctp:93
 #: View/Pages/doc/general.ctp:37
 msgid "Search Attributes"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:31
-#: View/Elements/side_menu.ctp:233
+#: View/Elements/global_menu.ctp:30
+#: View/Elements/side_menu.ctp:206
+#: View/Servers/rest.ctp:4
+msgid "REST client"
+msgstr ""
+
+#: View/Elements/global_menu.ctp:32
+#: View/Elements/side_menu.ctp:238
 #: View/Pages/doc/general.ctp:38
 msgid "View Proposals"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:34
-#: View/Elements/side_menu.ctp:441
+#: View/Elements/global_menu.ctp:33
+#: View/Elements/side_menu.ctp:242
+#: View/Pages/doc/general.ctp:39
+msgid "Events with proposals"
+msgstr ""
+
+#: View/Elements/global_menu.ctp:35
+#: View/Elements/side_menu.ctp:446
 #: View/Pages/doc/general.ctp:40
 msgid "List Tags"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:36
-#: View/Elements/side_menu.ctp:445
+#: View/Elements/global_menu.ctp:37
+#: View/Elements/side_menu.ctp:450
 #: View/Pages/doc/general.ctp:41
 #: View/Tags/add.ctp:4
 #: View/Tags/edit.ctp:4
 msgid "Add Tag"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:38
-#: View/Elements/side_menu.ctp:466
+#: View/Elements/global_menu.ctp:39
+#: View/Elements/side_menu.ctp:471
 msgid "List Taxonomies"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:40
-#: View/Elements/side_menu.ctp:480
+#: View/Elements/global_menu.ctp:41
+#: View/Elements/side_menu.ctp:485
 #: View/Pages/doc/general.ctp:42
 msgid "List Templates"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:42
-#: View/Elements/side_menu.ctp:482
+#: View/Elements/global_menu.ctp:43
+#: View/Elements/side_menu.ctp:487
 #: View/Pages/doc/general.ctp:43
 msgid "Add Template"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:45
-#: View/Elements/side_menu.ctp:242
+#: View/Elements/global_menu.ctp:46
+#: View/Elements/side_menu.ctp:247
 #: View/Elements/view_event_graph.ctp:15
 #: View/Events/export.ctp:2
 #: View/Events/export_alternate.ctp:2;95
@@ -3222,8 +3282,8 @@ msgstr ""
 msgid "Export"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:47
-#: View/Elements/side_menu.ctp:248
+#: View/Elements/global_menu.ctp:48
+#: View/Elements/side_menu.ctp:253
 #: View/Events/automation.ctp:2
 #: View/Events/export_alternate.ctp:97
 #: View/Pages/doc/general.ctp:45
@@ -3231,17 +3291,17 @@ msgstr ""
 msgid "Automation"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:59
-#: View/Elements/side_menu.ctp:524
+#: View/Elements/global_menu.ctp:60
+#: View/Elements/side_menu.ctp:529
 msgid "List Galaxies"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:66
+#: View/Elements/global_menu.ctp:67
 #: View/Pages/doc/general.ctp:21
 msgid "Input Filters"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:71;75
+#: View/Elements/global_menu.ctp:72;76
 #: View/Pages/doc/administration.ctp:12;64
 #: View/Pages/doc/general.ctp:50
 #: View/Pages/doc/user_management.ctp:69
@@ -3250,7 +3310,7 @@ msgstr ""
 msgid "Import Regexp"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:72;76
+#: View/Elements/global_menu.ctp:73;77
 #: View/Pages/doc/administration.ctp:13
 #: View/Pages/doc/general.ctp:51
 #: View/Pages/doc/user_management.ctp:70
@@ -3259,36 +3319,41 @@ msgstr ""
 msgid "Signature Whitelist"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:78
-#: View/Elements/side_menu.ctp:269
+#: View/Elements/global_menu.ctp:79
+#: View/Elements/side_menu.ctp:274
 msgid "List Warninglists"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:79
-#: View/Elements/side_menu.ctp:278
+#: View/Elements/global_menu.ctp:80
+#: View/Elements/side_menu.ctp:283
 msgid "List Noticelists"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:89
+#: View/Elements/global_menu.ctp:86
+#: View/Pages/doc/general.ctp:22;54
+msgid "Global Actions"
+msgstr ""
+
+#: View/Elements/global_menu.ctp:90
 #: View/News/index.ctp:2
 #: View/Pages/doc/general.ctp:56
 #: View/Pages/doc/user_management.ctp:51
 msgid "News"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:90
-#: View/Elements/side_menu.ctp:306
+#: View/Elements/global_menu.ctp:91
+#: View/Elements/side_menu.ctp:311
 #: View/Pages/doc/general.ctp:57
 msgid "My Profile"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:91;202
-#: View/Elements/side_menu.ctp:307
+#: View/Elements/global_menu.ctp:92;203
+#: View/Elements/side_menu.ctp:312
 #: View/Users/dashboard.ctp:2
 msgid "Dashboard"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:95
+#: View/Elements/global_menu.ctp:96
 #: View/SharingGroups/add.ctp:6
 #: View/SharingGroups/edit.ctp:6
 #: View/SharingGroups/view.ctp:39
@@ -3297,44 +3362,44 @@ msgstr ""
 msgid "Organisations"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:99
-#: View/Elements/side_menu.ctp:320
+#: View/Elements/global_menu.ctp:100
+#: View/Elements/side_menu.ctp:325
 #: View/Pages/doc/general.ctp:59
 msgid "Role Permissions"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:101
-#: View/Elements/side_menu.ctp:547
+#: View/Elements/global_menu.ctp:102
+#: View/Elements/side_menu.ctp:552
 msgid "List Object Templates"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:103
-#: View/Elements/side_menu.ctp:326
+#: View/Elements/global_menu.ctp:104
+#: View/Elements/side_menu.ctp:331
 msgid "List Sharing Groups"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:105
-#: View/Elements/side_menu.ctp:327
+#: View/Elements/global_menu.ctp:106
+#: View/Elements/side_menu.ctp:332
 msgid "Add Sharing Group"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:108
-#: View/Elements/side_menu.ctp:329
+#: View/Elements/global_menu.ctp:109
+#: View/Elements/side_menu.ctp:334
 #: View/Events/automation.ctp:42
 #: View/Pages/doc/general.ctp:60
 #: View/Pages/doc/user_management.ctp:53
 msgid "User Guide"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:109
-#: View/Elements/side_menu.ctp:330
+#: View/Elements/global_menu.ctp:110
+#: View/Elements/side_menu.ctp:335
 #: View/Pages/doc/general.ctp:61
 #: View/Pages/doc/user_management.ctp:54
 msgid "Terms &amp; Conditions"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:110
-#: View/Elements/side_menu.ctp:331
+#: View/Elements/global_menu.ctp:111
+#: View/Elements/side_menu.ctp:336
 #: View/Pages/doc/general.ctp:62
 #: View/Pages/doc/user_management.ctp:55
 #: View/Users/statistics.ctp:7
@@ -3347,28 +3412,33 @@ msgstr ""
 msgid "Statistics"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:112
+#: View/Elements/global_menu.ctp:113
 #: View/Pages/doc/general.ctp:92
 msgid "List Discussions"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:113
+#: View/Elements/global_menu.ctp:114
 #: View/Pages/doc/general.ctp:93
 msgid "Start Discussion"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:124
-#: View/Elements/side_menu.ctp:349
+#: View/Elements/global_menu.ctp:121
+#: View/Pages/doc/general.ctp:23;66
+msgid "Sync Actions"
+msgstr ""
+
+#: View/Elements/global_menu.ctp:125
+#: View/Elements/side_menu.ctp:354
 #: View/Pages/doc/general.ctp:68
 msgid "List Servers"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:126
-#: View/Elements/side_menu.ctp:496
+#: View/Elements/global_menu.ctp:127
+#: View/Elements/side_menu.ctp:501
 msgid "List Feeds"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:135
+#: View/Elements/global_menu.ctp:136
 #: View/Pages/doc/administration.ctp:8
 #: View/Pages/doc/categories_and_types.ctp:8
 #: View/Pages/doc/concepts.ctp:8
@@ -3379,56 +3449,63 @@ msgstr ""
 msgid "Administration"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:139
-#: View/Elements/side_menu.ctp:371
+#: View/Elements/global_menu.ctp:140
+#: View/Elements/side_menu.ctp:376
 #: View/Pages/doc/general.ctp:74
 msgid "List Users"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:140
-#: View/Elements/side_menu.ctp:370
+#: View/Elements/global_menu.ctp:141
+#: View/Elements/side_menu.ctp:375
 msgid "Add User"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:141
-#: View/Elements/side_menu.ctp:374
+#: View/Elements/global_menu.ctp:142
+#: View/Elements/side_menu.ctp:379
 #: View/Pages/doc/general.ctp:77
 msgid "Contact Users"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:143
-#: View/Elements/side_menu.ctp:311;386
+#: View/Elements/global_menu.ctp:144
+#: View/Elements/side_menu.ctp:316;391
 msgid "List Organisations"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:145
-#: View/Elements/side_menu.ctp:378
+#: View/Elements/global_menu.ctp:146
+#: View/Elements/side_menu.ctp:383
 msgid "Add Organisation"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:148
+#: View/Elements/global_menu.ctp:149
+#: View/Elements/side_menu.ctp:395
 #: View/Pages/doc/general.ctp:76
 msgid "List Roles"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:150
+#: View/Elements/global_menu.ctp:151
+#: View/Elements/side_menu.ctp:393
 #: View/Roles/admin_add.ctp:4
 msgid "Add Role"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:154
+#: View/Elements/global_menu.ctp:155
+#: View/Pages/doc/general.ctp:79
+msgid "Server Settings"
+msgstr ""
+
+#: View/Elements/global_menu.ctp:155
 msgid "Maintenance"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:157
-#: View/Elements/side_menu.ctp:396
+#: View/Elements/global_menu.ctp:158
+#: View/Elements/side_menu.ctp:401
 #: View/Jobs/index.ctp:2
 #: View/Pages/doc/general.ctp:80
 msgid "Jobs"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:159
-#: View/Elements/side_menu.ctp:398
+#: View/Elements/global_menu.ctp:160
+#: View/Elements/side_menu.ctp:403
 #: View/Pages/doc/concepts.ctp:36
 #: View/Pages/doc/general.ctp:81
 #: View/Tasks/index.ctp:3
@@ -3436,38 +3513,42 @@ msgid "Scheduled Tasks"
 msgstr ""
 
 #: View/Elements/global_menu.ctp:164
-#: View/Elements/side_menu.ctp:402
+msgid "Blacklist Event"
+msgstr ""
+
+#: View/Elements/global_menu.ctp:165
+#: View/Elements/side_menu.ctp:407
 msgid "Manage Event Blacklists"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:168
+#: View/Elements/global_menu.ctp:169
 msgid "Blacklist Organisation"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:169
-#: View/Elements/side_menu.ctp:406
+#: View/Elements/global_menu.ctp:170
+#: View/Elements/side_menu.ctp:411
 msgid "Manage Org Blacklists"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:179
+#: View/Elements/global_menu.ctp:180
 #: View/Pages/doc/general.ctp:25;84
 msgid "Audit"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:183
-#: View/Elements/side_menu.ctp:412
+#: View/Elements/global_menu.ctp:184
+#: View/Elements/side_menu.ctp:417
 #: View/Pages/doc/general.ctp:86
 msgid "List Logs"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:184
-#: View/Elements/side_menu.ctp:413
+#: View/Elements/global_menu.ctp:185
+#: View/Elements/side_menu.ctp:418
 #: View/Logs/admin_search.ctp:4
 #: View/Pages/doc/general.ctp:87
 msgid "Search Logs"
 msgstr ""
 
-#: View/Elements/global_menu.ctp:206;208
+#: View/Elements/global_menu.ctp:207;209
 #: View/Pages/doc/general.ctp:28;63
 msgid "Log out"
 msgstr ""
@@ -3500,7 +3581,7 @@ msgstr ""
 msgid "View Event"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:36;460;535
+#: View/Elements/side_menu.ctp:36;465;540
 msgid "View Correlation Graph"
 msgstr ""
 
@@ -3517,7 +3598,7 @@ msgstr ""
 msgid "Delete Event"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:50;262;293;346;366
+#: View/Elements/side_menu.ctp:50;267;298;351;371
 #: View/Elements/Events/eventIndexTable.ctp:226
 #: View/Servers/index.ctp:99
 msgid "Are you sure you want to delete # %s?"
@@ -3591,299 +3672,294 @@ msgstr ""
 msgid "Import from…"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:219
+#: View/Elements/side_menu.ctp:224
 msgid "Download results as JSON"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:223
+#: View/Elements/side_menu.ctp:228
 msgid "Download results as XML"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:227
+#: View/Elements/side_menu.ctp:232
 msgid "Download results as CSV"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:237
-#: View/Pages/doc/general.ctp:39
-msgid "Events with proposals"
-msgstr ""
-
-#: View/Elements/side_menu.ctp:254
+#: View/Elements/side_menu.ctp:259
 msgid "List Regexp"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:256
+#: View/Elements/side_menu.ctp:261
 msgid "New Regexp"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:257
+#: View/Elements/side_menu.ctp:262
 msgid "Perform on existing"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:261
+#: View/Elements/side_menu.ctp:266
 msgid "Edit Regexp"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:262
+#: View/Elements/side_menu.ctp:267
 msgid "Delete Regexp"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:268
+#: View/Elements/side_menu.ctp:273
 msgid "View Warninglist"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:271
+#: View/Elements/side_menu.ctp:276
 msgid "Update Warninglists"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:277
+#: View/Elements/side_menu.ctp:282
 msgid "View Noticelist"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:280
+#: View/Elements/side_menu.ctp:285
 msgid "Update Noticelists"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:286
+#: View/Elements/side_menu.ctp:291
 msgid "List Whitelist"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:288
+#: View/Elements/side_menu.ctp:293
 msgid "New Whitelist"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:292
+#: View/Elements/side_menu.ctp:297
 msgid "Edit Whitelist"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:293
+#: View/Elements/side_menu.ctp:298
 msgid "Delete Whitelist"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:300
+#: View/Elements/side_menu.ctp:305
 #: View/Users/edit.ctp:4
 msgid "Edit My Profile"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:301
+#: View/Elements/side_menu.ctp:306
 #: View/Pages/doc/administration.ctp:126
 #: View/Users/admin_edit.ctp:70
 #: View/Users/change_pw.ctp:4
 msgid "Change Password"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:316;384
+#: View/Elements/side_menu.ctp:321;389
 msgid "View Organisation"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:323
+#: View/Elements/side_menu.ctp:328
 #: View/SharingGroups/edit.ctp:3
 msgid "Edit Sharing Group"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:324
+#: View/Elements/side_menu.ctp:329
 msgid "View Sharing Group"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:337
+#: View/Elements/side_menu.ctp:342
 msgid "Explore Remote Event"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:338
+#: View/Elements/side_menu.ctp:343
 msgid "Fetch This Event"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:338
+#: View/Elements/side_menu.ctp:343
 #: View/Feeds/preview_index.ctp:65
 #: View/Servers/preview_index.ctp:147
 msgid "Are you sure you want to fetch and save this event on your instance?"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:339;342
+#: View/Elements/side_menu.ctp:344;347
 msgid "Explore Remote Server"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:345
+#: View/Elements/side_menu.ctp:350
 #: View/Servers/edit.ctp:4
 msgid "Edit Server"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:351
+#: View/Elements/side_menu.ctp:356
 msgid "New Server"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:358
+#: View/Elements/side_menu.ctp:363
 msgid "View User"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:359
+#: View/Elements/side_menu.ctp:364
 msgid "Reset Password"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:360
+#: View/Elements/side_menu.ctp:365
 msgid "Edit User"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:361
+#: View/Elements/side_menu.ctp:366
 msgid "Delete User"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:361
+#: View/Elements/side_menu.ctp:366
 #: View/Elements/Users/userIndexTable.ctp:91
 msgid "Are you sure you want to delete # %s? It is highly recommended to never delete users but to disable them instead."
 msgstr ""
 
-#: View/Elements/side_menu.ctp:365
+#: View/Elements/side_menu.ctp:370
 #: View/Roles/admin_edit.ctp:4
 msgid "Edit Role"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:366
+#: View/Elements/side_menu.ctp:371
 msgid "Delete Role"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:380
+#: View/Elements/side_menu.ctp:385
 #: View/Organisations/admin_edit.ctp:4
 msgid "Edit Organisation"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:381
+#: View/Elements/side_menu.ctp:386
 #: View/Organisations/ajax/merge.ctp:5
 msgid "Merge Organisation"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:393
+#: View/Elements/side_menu.ctp:398
 #: View/Servers/server_settings.ctp:5
 msgid "Server Settings & Maintenance"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:401
+#: View/Elements/side_menu.ctp:406
 msgid "Blacklists Event"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:405
+#: View/Elements/side_menu.ctp:410
 msgid "Blacklists Organisation"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:421;428
+#: View/Elements/side_menu.ctp:426;433
 msgid "View Thread"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:422
+#: View/Elements/side_menu.ctp:427
 #: View/Posts/add.ctp:4
 msgid "Add Post"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:429
+#: View/Elements/side_menu.ctp:434
 #: View/Posts/edit.ctp:4
 msgid "Edit Post"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:434
+#: View/Elements/side_menu.ctp:439
 msgid "List Threads"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:435
+#: View/Elements/side_menu.ctp:440
 msgid "New Thread"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:440
+#: View/Elements/side_menu.ctp:445
 msgid "List Favourite Tags"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:450
+#: View/Elements/side_menu.ctp:455
 msgid "Edit Tag"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:456;468
+#: View/Elements/side_menu.ctp:461;473
 msgid "View Taxonomy"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:469
+#: View/Elements/side_menu.ctp:474
 msgid "Delete Taxonomy"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:487
+#: View/Elements/side_menu.ctp:492
 msgid "View Template"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:489
+#: View/Elements/side_menu.ctp:494
 #: View/Templates/edit.ctp:6
 msgid "Edit Template"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:497
+#: View/Elements/side_menu.ctp:502
 msgid "Add Feed"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:498
+#: View/Elements/side_menu.ctp:503
 msgid "Import Feeds from JSON"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:499
+#: View/Elements/side_menu.ctp:504
 #: View/Feeds/compare_feeds.ctp:7
 msgid "Feed overlap analysis matrix"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:500
+#: View/Elements/side_menu.ctp:505
 msgid "Export Feed settings"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:502
+#: View/Elements/side_menu.ctp:507
 msgid "Edit Feed"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:504
+#: View/Elements/side_menu.ctp:509
 msgid "PreviewIndex"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:506
+#: View/Elements/side_menu.ctp:511
 msgid "PreviewEvent"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:511
+#: View/Elements/side_menu.ctp:516
 msgid "View News"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:515
+#: View/Elements/side_menu.ctp:520
 #: View/News/add.ctp:6
 msgid "Add News Item"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:517
+#: View/Elements/side_menu.ctp:522
 #: View/News/edit.ctp:6
 msgid "Edit News Item"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:528
+#: View/Elements/side_menu.ctp:533
 msgid "Update Galaxies"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:528
+#: View/Elements/side_menu.ctp:533
 msgid "Are you sure you want to reimport all galaxies from the submodule?"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:529
+#: View/Elements/side_menu.ctp:534
 msgid "Force Update Galaxies"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:529
+#: View/Elements/side_menu.ctp:534
 msgid "Are you sure you want to drop and reimport all galaxies from the submodule?"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:533;541
+#: View/Elements/side_menu.ctp:538;546
 msgid "View Galaxy"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:534
+#: View/Elements/side_menu.ctp:539
 msgid "View Cluster"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:551
+#: View/Elements/side_menu.ctp:556
 msgid "Update Objects"
 msgstr ""
 
-#: View/Elements/side_menu.ctp:556
+#: View/Elements/side_menu.ctp:561
 msgid "View Object Template"
 msgstr ""
 
@@ -3942,6 +4018,7 @@ msgid "Show all"
 msgstr ""
 
 #: View/Elements/Events/eventIndexTable.ctp:5
+#: View/Feeds/index.ctp:39
 msgid "Select all events on current page"
 msgstr ""
 
@@ -5513,7 +5590,7 @@ msgid "Event "
 msgstr ""
 
 #: View/Events/automation.ctp:3
-msgid "Automation functionality is designed to automatically generate signatures for intrusion detection systems. To enable signature generation for a given attribute, Signature field of this attribute must be set to Yes.\n\tNote that not all attribute types are applicable for signature generation, currently we only support NIDS signature generation for IP, domains, host names, user agents etc., and hash list generation for MD5/SHA1 values of file artefacts. Support for more attribute types is planned.\n\tTo to make this functionality available for automated tools an authentication key is used. This makes it easier for your tools to access the data without further form-based-authentication."
+msgid "Automation functionality is designed to automatically generate signatures for intrusion detection systems. To enable signature generation for a given attribute, Signature field of this attribute must be set to Yes.\n    Note that not all attribute types are applicable for signature generation, currently we only support NIDS signature generation for IP, domains, host names, user agents etc., and hash list generation for MD5/SHA1 values of file artefacts. Support for more attribute types is planned.\n    To to make this functionality available for automated tools an authentication key is used. This makes it easier for your tools to access the data without further form-based-authentication."
 msgstr ""
 
 #: View/Events/automation.ctp:6
@@ -5521,7 +5598,7 @@ msgid "Make sure you keep that key secret as it gives access to the entire datab
 msgstr ""
 
 #: View/Events/automation.ctp:7
-msgid "Your current key is: <code>%s</code>.\n\tYou can %s this key."
+msgid "Your current key is: <code>%s</code>.\n    You can %s this key."
 msgstr ""
 
 #: View/Events/automation.ctp:8
@@ -5573,7 +5650,7 @@ msgid "A boolean field that determines whether attachments should be encoded and
 msgstr ""
 
 #: View/Events/automation.ctp:31;54;87;112;134
-msgid "To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.\n\tYou can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.\n\tUse semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use"
+msgid "To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.\n    You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.\n    Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use"
 msgstr ""
 
 #: View/Events/automation.ctp:37;64;91;117;140;203;254;279
@@ -5633,7 +5710,7 @@ msgid "Events published within the last x amount of time, where x can be defined
 msgstr ""
 
 #: View/Events/automation.ctp:67
-msgid "The CSV created when this setting is set to true will not contain the header row.\n\t<b>enforceWarninglist</b>: All attributes that have a hit on a warninglist will be excluded."
+msgid "The CSV created when this setting is set to true will not contain the header row.\n    <b>enforceWarninglist</b>: All attributes that have a hit on a warninglist will be excluded."
 msgstr ""
 
 #: View/Events/automation.ctp:71
@@ -5765,7 +5842,7 @@ msgid "It is possible to further restrict the exported values using the followin
 msgstr ""
 
 #: View/Events/automation.ctp:167
-msgid "To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.\n\t        You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search when passed through the url.\n\t    "
+msgid "To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.\n            You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search when passed through the url.\n        "
 msgstr ""
 
 #: View/Events/automation.ctp:170
@@ -5825,7 +5902,7 @@ msgid "Include not published Events."
 msgstr ""
 
 #: View/Events/automation.ctp:208;275
-msgid "You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.\n\tUse semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use"
+msgid "You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.\n    Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use"
 msgstr ""
 
 #: View/Events/automation.ctp:211
@@ -5857,7 +5934,7 @@ msgid "The Bro type, any valid Bro type is accepted. The mapping between Bro and
 msgstr ""
 
 #: View/Events/automation.ctp:249;301
-msgid "To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.\n\tYou can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.\n\tUse semicolons instead (the search will automatically search for colons instead)."
+msgid "To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.\n    You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.\n    Use semicolons instead (the search will automatically search for colons instead)."
 msgstr ""
 
 #: View/Events/automation.ctp:252
@@ -5897,7 +5974,7 @@ msgid "Search by the creator organisation by supplying the organisation identifi
 msgstr ""
 
 #: View/Events/automation.ctp:272
-msgid "To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.\n\tTo filter on several values for the same parameter, simply use arrays, such as in the following example"
+msgid "To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.\n    To filter on several values for the same parameter, simply use arrays, such as in the following example"
 msgstr ""
 
 #: View/Events/automation.ctp:278
@@ -5981,7 +6058,7 @@ msgid "The keywords false or null should be used for optional empty parameters i
 msgstr ""
 
 #: View/Events/automation.ctp:324
-msgid "value, type, category and org are optional. It is possible to search for several terms in each category by joining them with the '&amp;&amp;' operator. It is also possible to negate a term with the '!' operator. Please be aware the colons (:) cannot be used in the tag search. Use semicolons instead (the search will automatically search for colons instead).\n\tFor example, in order to search for all attributes created by your organisation that contain 192.168 or 127.0 but not 0.1 and are of the type ip-src, excluding the events that were tagged tag1 use the following syntax"
+msgid "value, type, category and org are optional. It is possible to search for several terms in each category by joining them with the '&amp;&amp;' operator. It is also possible to negate a term with the '!' operator. Please be aware the colons (:) cannot be used in the tag search. Use semicolons instead (the search will automatically search for colons instead).\n    For example, in order to search for all attributes created by your organisation that contain 192.168 or 127.0 but not 0.1 and are of the type ip-src, excluding the events that were tagged tag1 use the following syntax"
 msgstr ""
 
 #: View/Events/automation.ctp:327
@@ -5997,7 +6074,7 @@ msgid "If you want to export all attributes of a pre-defined type that belong to
 msgstr ""
 
 #: View/Events/automation.ctp:332
-msgid "sigOnly is an optional flag that will block all attributes from being exported that don't have the IDS flag turned on.\n\tIt is possible to search for several types with the '&amp;&amp;' operator and to exclude values with the '!' operator.\n\tFor example, to get all IDS signature attributes of type md5 and sha256, but not filename|md5 and filename|sha256 from event 25, use the following"
+msgid "sigOnly is an optional flag that will block all attributes from being exported that don't have the IDS flag turned on.\n    It is possible to search for several types with the '&amp;&amp;' operator and to exclude values with the '!' operator.\n    For example, to get all IDS signature attributes of type md5 and sha256, but not filename|md5 and filename|sha256 from event 25, use the following"
 msgstr ""
 
 #: View/Events/automation.ctp:337
@@ -6144,6 +6221,7 @@ msgid "Expected Payload"
 msgstr ""
 
 #: View/Events/automation.ctp:397
+#: View/Servers/rest.ctp:53
 msgid "Response"
 msgstr ""
 
@@ -6207,7 +6285,7 @@ msgid "As described in the REST section, it is possible to retrieve a list of ev
 msgstr ""
 
 #: View/Events/automation.ctp:461
-msgid "POST a JSON object with the desired lookup fields and values to receive a JSON back.<br />\n\tAn example for a valid lookup"
+msgid "POST a JSON object with the desired lookup fields and values to receive a JSON back.<br />\n    An example for a valid lookup"
 msgstr ""
 
 #: View/Events/automation.ctp:472
@@ -6271,7 +6349,7 @@ msgid "Contact organization reporting event "
 msgstr ""
 
 #: View/Events/contact.ctp:9
-msgid "You are about to contact the organization that reported event %s.<br/>\n\t\t\t\tFeel free to add a custom message that will be sent to the reporting organization. <br/>\n\t\t\t\tYour email address and details about the event will be added automagically to the message."
+msgid "You are about to contact the organization that reported event %s.<br/>\n                Feel free to add a custom message that will be sent to the reporting organization. <br/>\n                Your email address and details about the event will be added automagically to the message."
 msgstr ""
 
 #: View/Events/contact.ctp:21
@@ -6280,7 +6358,7 @@ msgstr ""
 
 #: View/Events/export.ctp:3
 #: View/Events/export_alternate.ctp:3
-msgid "Export functionality is designed to automatically generate signatures for intrusion detection systems. To enable signature generation for a given attribute, Signature field of this attribute must be set to Yes.\n\t\tNote that not all attribute types are applicable for signature generation, currently we only support NIDS signature generation for IP, domains, host names, user agents etc., and hash list generation for MD5/SHA1 values of file artifacts. Support for more attribute types is planned."
+msgid "Export functionality is designed to automatically generate signatures for intrusion detection systems. To enable signature generation for a given attribute, Signature field of this attribute must be set to Yes.\n        Note that not all attribute types are applicable for signature generation, currently we only support NIDS signature generation for IP, domains, host names, user agents etc., and hash list generation for MD5/SHA1 values of file artifacts. Support for more attribute types is planned."
 msgstr ""
 
 #: View/Events/export.ctp:6
@@ -6365,7 +6443,7 @@ msgid "Download Snort signatures"
 msgstr ""
 
 #: View/Events/export_alternate.ctp:34
-msgid "Click these to download all network related attributes that you\n\t\t\t\t\t\thave access to under the Suricata or Snort rule format. Only <em>published</em>\n\t\t\t\t\t\tevents and attributes marked as <em>IDS Signature</em> are exported.\n\t\t\t\t\t\tAdministration is able to maintain a whitelist containing host,\n\t\t\t\t\t\tdomain name and IP numbers to exclude from the NIDS export."
+msgid "Click these to download all network related attributes that you\n                        have access to under the Suricata or Snort rule format. Only <em>published</em>\n                        events and attributes marked as <em>IDS Signature</em> are exported.\n                        Administration is able to maintain a whitelist containing host,\n                        domain name and IP numbers to exclude from the NIDS export."
 msgstr ""
 
 #: View/Events/export_alternate.ctp:43
@@ -6373,7 +6451,7 @@ msgid "Download Bro signatures"
 msgstr ""
 
 #: View/Events/export_alternate.ctp:45
-msgid "Click these to download all network related attributes that you\n\t\t\t\thave access to under the Bro rule format. Only <em>published</em>\n\t\t\t\tevents and attributes marked as <em>IDS Signature</em> are exported.\n\t\t\t\tAdministration is able to maintain a whitelist containing host,\n\t\t\t\tdomain name and IP numbers to exclude from the NIDS export."
+msgid "Click these to download all network related attributes that you\n                have access to under the Bro rule format. Only <em>published</em>\n                events and attributes marked as <em>IDS Signature</em> are exported.\n                Administration is able to maintain a whitelist containing host,\n                domain name and IP numbers to exclude from the NIDS export."
 msgstr ""
 
 #: View/Events/export_alternate.ctp:54
@@ -6393,7 +6471,7 @@ msgid "Download all SHA1 hashes"
 msgstr ""
 
 #: View/Events/export_alternate.ctp:64
-msgid "Click on one of these two buttons to download all MD5 or SHA1\n\t\t\t\t\t\tchecksums contained in file-related attributes. This list can be\n\t\t\t\t\t\tused to feed forensic software when searching for susipicious files.\n\t\t\t\t\t\tOnly <em>published</em> events and attributes marked as <em>IDS\n\t\t\t\t\t\t\tSignature</em> are exported."
+msgid "Click on one of these two buttons to download all MD5 or SHA1\n                        checksums contained in file-related attributes. This list can be\n                        used to feed forensic software when searching for susipicious files.\n                        Only <em>published</em> events and attributes marked as <em>IDS\n                            Signature</em> are exported."
 msgstr ""
 
 #: View/Events/export_alternate.ctp:72
@@ -6611,7 +6689,7 @@ msgid "Events analysed: %s"
 msgstr ""
 
 #: View/Events/report_validation_issues_events.ctp:7
-msgid "alidation errors for event: %s"
+msgid "Validation errors for event: %s"
 msgstr ""
 
 #: View/Events/report_validation_issues_events.ctp:9
@@ -7363,10 +7441,6 @@ msgstr ""
 msgid "Enabled Feeds"
 msgstr ""
 
-#: View/Feeds/index.ctp:39
-msgid "Select all eventson current page"
-msgstr ""
-
 #: View/Feeds/index.ctp:48
 msgid "Feed Format"
 msgstr ""
@@ -7458,7 +7532,7 @@ msgstr ""
 msgid "search clusters…"
 msgstr ""
 
-#: View/Galaxies/ajax/cluster_choice.ctp:26
+#: View/Galaxies/ajax/cluster_choice.ctp:28
 msgid "Back to Galaxy Selection"
 msgstr ""
 
@@ -8504,7 +8578,7 @@ msgid "The purpose of Import Regexp entries"
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:67
-msgid "They can be used for several things, such as unifying the capitalisation of file paths for more accurate event correlation or to automatically censor the usernames and use system path variable names (changing C:\\Users\\UserName\\Appdata\\Roaming\\file.exe to %APPDATA%\\file.exe).<br />\n\t\tThe second use is blocking, if a regular expression is entered with a blank replacement, any event info or attribute value containing the expression will not be added. Please make sure the entered regexp expression follows the preg_replace pattern rules as described <a href=\"http://php.net/manual/en/function.preg-replace.php\">here</a>."
+msgid "They can be used for several things, such as unifying the capitalisation of file paths for more accurate event correlation or to automatically censor the usernames and use system path variable names (changing C:\\Users\\UserName\\Appdata\\Roaming\\file.exe to %APPDATA%\\file.exe).<br />\n        The second use is blocking, if a regular expression is entered with a blank replacement, any event info or attribute value containing the expression will not be added. Please make sure the entered regexp expression follows the preg_replace pattern rules as described <a href=\"http://php.net/manual/en/function.preg-replace.php\">here</a>."
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:70
@@ -9064,7 +9138,7 @@ msgid "Command Line Tools for the Background Workers"
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:208
-msgid "The background workers are powered by <a href=\"https://github.com/kamisama/Cake-Resque\">CakeResque</a>, so all of the CakeResque commands work.\n\t\tTo start all of the workers needed by MISP go to your <code>/var/www/MISP/app/Console/worker</code> (assuming a standard installation path) and execute start.sh.\n\t\tTo interact with the workers, here is a list of useful commands. Go to your <code>/var/www/MISP/app/Console</code> (assuming a standard installation path) and execute one of the following commands as a parameter to <code>./cake CakeResque.CakeResque</code> (for example: <code>./cake CakeResque.CakeResque tail</code>)"
+msgid "The background workers are powered by <a href=\"https://github.com/kamisama/Cake-Resque\">CakeResque</a>, so all of the CakeResque commands work.\n        To start all of the workers needed by MISP go to your <code>/var/www/MISP/app/Console/worker</code> (assuming a standard installation path) and execute start.sh.\n        To interact with the workers, here is a list of useful commands. Go to your <code>/var/www/MISP/app/Console</code> (assuming a standard installation path) and execute one of the following commands as a parameter to <code>./cake CakeResque.CakeResque</code> (for example: <code>./cake CakeResque.CakeResque tail</code>)"
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:212
@@ -9394,10 +9468,6 @@ msgid "This button will return you to the start screen of the application, which
 msgstr ""
 
 #: View/Pages/doc/general.ctp:20
-msgid "Event Actions"
-msgstr ""
-
-#: View/Pages/doc/general.ctp:20
 msgid "All the malware data entered into MISP is made up of an event object that is described by its connected attributes. The Event actions menu gives access to all the functionality that has to do with the creation, modification, deletion, publishing, searching and listing of events and attributes."
 msgstr ""
 
@@ -9405,16 +9475,8 @@ msgstr ""
 msgid "Input filters alter what and how data can be entered into this instance. Apart from the basic validation of attribute entry by type, it is possible for the site administrators to define regular expression replacements and blacklists for certain values in addition to blocking certain values from being exportable. Users can view these replacement and blacklist rules here whilst administrator can alter them."
 msgstr ""
 
-#: View/Pages/doc/general.ctp:22;54
-msgid "Global Actions"
-msgstr ""
-
 #: View/Pages/doc/general.ctp:22
 msgid "This menu gives you access to information about MISP and this instance. You can view and edit your own profile, view the manual, read the news or the terms of use again, see a list of the active organisations on this instance and a histogram of their contributions by attribute type."
-msgstr ""
-
-#: View/Pages/doc/general.ctp:23;66
-msgid "Sync Actions"
 msgstr ""
 
 #: View/Pages/doc/general.ctp:23
@@ -9588,10 +9650,6 @@ msgstr ""
 
 #: View/Pages/doc/general.ctp:78
 msgid "Various tools, upgrade scripts that can help a site-admin run the instance."
-msgstr ""
-
-#: View/Pages/doc/general.ctp:79
-msgid "Server Settings"
 msgstr ""
 
 #: View/Pages/doc/general.ctp:79
@@ -9873,7 +9931,7 @@ msgid "The date when the incident has happened. Just click this field and a date
 msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:35
-msgid "This setting controls, who will be able to see this event once it becomes published and eventually when it becomes pulled.\n\t\t\t\t\t\tApart from being able to set which users on this server are allowed to see the event, this also controls whether\n\t\t\t\t\t\tthe event will be synchronised to other servers or not. The distribution is inherited by attributes: the most restrictive setting wins.\n\t\t\t\t\t\tThe following options are available"
+msgid "This setting controls, who will be able to see this event once it becomes published and eventually when it becomes pulled.\n                        Apart from being able to set which users on this server are allowed to see the event, this also controls whether\n                        the event will be synchronised to other servers or not. The distribution is inherited by attributes: the most restrictive setting wins.\n                        The following options are available"
 msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:41
@@ -9881,7 +9939,7 @@ msgid "Your organization only"
 msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:41
-msgid "This setting will only allow members of your organisation to see this. It can be pulled to another instance by one of your organisation members where only your organisation will be able to see it.\n\t\t\t\t\t\t\tEvents with this setting will not be synchronised"
+msgid "This setting will only allow members of your organisation to see this. It can be pulled to another instance by one of your organisation members where only your organisation will be able to see it.\n                            Events with this setting will not be synchronised"
 msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:43
@@ -9893,7 +9951,7 @@ msgid "This Community-only"
 msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:45
-msgid "Users that are part of your MISP community will be able to see the event.\n\t\t\t\t\t\t\tThis includes your own organisation, organisations on this MISP server and organisations running MISP\n\t\t\t\t\t\t\tservers that synchronise with this server. Any other organisations connected to such linked servers will\n\t\t\t\t\t\t\tbe restricted from seeing the event"
+msgid "Users that are part of your MISP community will be able to see the event.\n                            This includes your own organisation, organisations on this MISP server and organisations running MISP\n                            servers that synchronise with this server. Any other organisations connected to such linked servers will\n                            be restricted from seeing the event"
 msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:49
@@ -9901,7 +9959,7 @@ msgid "Upon push: do not push. Upon pull: pull and downgrade to Your organizatio
 msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:51
-msgid "Users that are part of your MISP community will be able to see the event.\n\t\t\t\t\t\t\tThis includes all organisations on this MISP server, all organisations on MISP servers synchronising\n\t\t\t\t\t\t\twith this server and the hosting organisations of servers that connect to those afore mentioned servers\n\t\t\t\t\t\t\t(so basically any server that is 2 hops away from this one). Any other organisations connected to linked\n\t\t\t\t\t\t\tservers that are 2 hops away from this own will be restricted from seeing the event."
+msgid "Users that are part of your MISP community will be able to see the event.\n                            This includes all organisations on this MISP server, all organisations on MISP servers synchronising\n                            with this server and the hosting organisations of servers that connect to those afore mentioned servers\n                            (so basically any server that is 2 hops away from this one). Any other organisations connected to linked\n                            servers that are 2 hops away from this own will be restricted from seeing the event."
 msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:56
@@ -9909,7 +9967,7 @@ msgid "Upon push: downgrade to This Community only and push. Upon pull: pull and
 msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:58
-msgid "This will share the event with all MISP communities, allowing the event to be\n\t\t\t\t\t\t\tfreely propagated from one server to the next."
+msgid "This will share the event with all MISP communities, allowing the event to be\n                            freely propagated from one server to the next."
 msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:60
@@ -9997,7 +10055,7 @@ msgid "Whilst categories determine what aspect of an event they are describing, 
 msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:90
-msgid "This drop-down list allows you to control who will be able to see this attribute.\n\t\t\t\tThe distribution is inherited by attributes: the most restrictive setting wins.\n\t\t\t\tFor more info <a href=\"#distribution\">click here</a>."
+msgid "This drop-down list allows you to control who will be able to see this attribute.\n                The distribution is inherited by attributes: the most restrictive setting wins.\n                For more info <a href=\"#distribution\">click here</a>."
 msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:93
@@ -10129,7 +10187,7 @@ msgid "The category is the same as with the attributes, it answers the question 
 msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:126
-msgid "This drop-down list allows you to control who will be able to see this attachment.\n\t\t\tThe distribution is inherited by attributes: the most restrictive setting wins.\n\t\t\tFor more info <a href=\"#distribution\">click here</a>."
+msgid "This drop-down list allows you to control who will be able to see this attachment.\n            The distribution is inherited by attributes: the most restrictive setting wins.\n            For more info <a href=\"#distribution\">click here</a>."
 msgstr ""
 
 #: View/Pages/doc/using_the_system.ctp:129
@@ -11562,6 +11620,22 @@ msgstr ""
 msgid "No succeeded pushes"
 msgstr ""
 
+#: View/Servers/rest.ctp:7;17
+msgid "Relative path to query"
+msgstr ""
+
+#: View/Servers/rest.ctp:54
+msgid "Response code"
+msgstr ""
+
+#: View/Servers/rest.ctp:55
+msgid "Request duration"
+msgstr ""
+
+#: View/Servers/rest.ctp:56
+msgid "Headers"
+msgstr ""
+
 #: View/Servers/server_settings.ctp:3
 msgid "Warning: app/Config/config.php is not writeable. This means that any setting changes made here will NOT be saved."
 msgstr ""
@@ -11839,7 +11913,7 @@ msgid "Local instance"
 msgstr ""
 
 #: View/SharingGroups/edit.ctp:71
-msgid "<span class=\"bold\">General: </span>You are about to create the <span id=\"summarytitle\" class=\"red bold\"></span> sharing group, which is intended to be releasable to <span id=\"summaryreleasable\" class=\"red bold\"></span>. </p>\n\t\t\t\t<p id=\"localText\"><span class=\"bold\">Local organisations: </span>It will be visible to <span id=\"summarylocal\" class=\"red bold\"></span>, from which <span id=\"summarylocalextend\" class=\"red bold\"></span> can extend the sharing group. </p>\n\t\t\t\t<p id=\"externalText\"><span class=\"bold\">External organisations: </span>It will also be visible to <span id=\"summaryexternal\" class=\"red bold\"></span>, out of which <span id=\"summaryexternalextend\" class=\"red bold\"></span> can extend the sharing group."
+msgid "<span class=\"bold\">General: </span>You are about to create the <span id=\"summarytitle\" class=\"red bold\"></span> sharing group, which is intended to be releasable to <span id=\"summaryreleasable\" class=\"red bold\"></span>. </p>\n                <p id=\"localText\"><span class=\"bold\">Local organisations: </span>It will be visible to <span id=\"summarylocal\" class=\"red bold\"></span>, from which <span id=\"summarylocalextend\" class=\"red bold\"></span> can extend the sharing group. </p>\n                <p id=\"externalText\"><span class=\"bold\">External organisations: </span>It will also be visible to <span id=\"summaryexternal\" class=\"red bold\"></span>, out of which <span id=\"summaryexternalextend\" class=\"red bold\"></span> can extend the sharing group."
 msgstr ""
 
 #: View/SharingGroups/edit.ctp:74
@@ -12413,7 +12487,7 @@ msgid "In the case of a new user, you can specify the future user's GnuPG key, t
 msgstr ""
 
 #: View/Users/admin_email.ctp:13
-msgid "The system will automatically generate a message for you, but it is also possible to write a custom message if you tick the check-box,\n\t\t\t\t\t\tbut don't worry about assigning a temporary password manually, the system will do that for you, right after your custom message."
+msgid "The system will automatically generate a message for you, but it is also possible to write a custom message if you tick the check-box,\n                        but don't worry about assigning a temporary password manually, the system will do that for you, right after your custom message."
 msgstr ""
 
 #: View/Users/admin_email.ctp:18
@@ -12826,7 +12900,6 @@ msgstr ""
 #: Model/ObjectRelationship.php:validation for field name
 #: Model/Organisation.php:validation for field name;validation for field uuid
 #: Model/Role.php:validation for field name
-#: Model/Server.php:validation for field authkey
 #: Model/ServerTag.php:validation for field server_id;validation for field tag_id
 #: Model/SharingGroup.php:validation for field name
 #: Model/Tag.php:validation for field name;validation for field colour
@@ -12870,6 +12943,7 @@ msgstr ""
 #: Model/NoticelistEntry.php:validation for field value
 #: Model/Post.php:validation for field contents
 #: Model/Role.php:validation for field valueNotEmpty
+#: Model/Server.php:validation for field authkey
 #: Model/Taxonomy.php:validation for field namespace;validation for field description;validation for field version
 #: Model/TaxonomyEntry.php:validation for field value;validation for field expanded
 #: Model/TaxonomyPredicate.php:validation for field value;validation for field expanded
@@ -12913,11 +12987,6 @@ msgstr ""
 
 #: Model/Server.php:validation for field url
 msgid "Please enter a valid base-url."
-msgstr ""
-
-#: Model/Server.php:validation for field authkey
-#: Model/User.php:validation for field authkey
-msgid "A authkey of a minimum length of 40 is required."
 msgstr ""
 
 #: Model/SharingGroup.php:validation for field name
@@ -12985,6 +13054,10 @@ msgstr ""
 
 #: Model/User.php:validation for field email
 msgid "An account with this email address already exists."
+msgstr ""
+
+#: Model/User.php:validation for field authkey
+msgid "A authkey of a minimum length of 40 is required."
 msgstr ""
 
 #: Model/User.php:validation for field gpgkey

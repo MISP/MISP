@@ -36,7 +36,7 @@
     <tr>
             <?php if ($isSiteAdmin): ?>
                 <th>
-                    <input class="select_all select" type="checkbox" title="<?php echo __('Select all');?>" role="button" tabindex="0" aria-label="<?php echo __('Select all eventson current page');?>" onClick="toggleAllCheckboxes();" />&nbsp;
+                    <input class="select_all select" type="checkbox" title="<?php echo __('Select all');?>" role="button" tabindex="0" aria-label="<?php echo __('Select all events on current page');?>" onClick="toggleAllCheckboxes();" />&nbsp;
                 </th>
             <?php else: ?>
                 <th style="padding-left:0px;padding-right:0px;">&nbsp;</th>

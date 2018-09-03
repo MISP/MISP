@@ -31,7 +31,7 @@ class ServersController extends AppController
     public function beforeFilter()
     {
         parent::beforeFilter();
-
+		$this->Security->unlockedActions[] = 'getApiInfo';
         // permit reuse of CSRF tokens on some pages.
         switch ($this->request->params['action']) {
             case 'push':
@@ -50,16 +50,28 @@ class ServersController extends AppController
             }
             $this->paginate['conditions'] = array('Server.org_id LIKE' => $this->Auth->user('org_id'));
         }
-        $this->set('servers', $this->paginate());
-        $collection = array();
-        $collection['orgs'] = $this->Server->Organisation->find('list', array(
-                'fields' => array('id', 'name'),
-        ));
-        $this->loadModel('Tag');
-        $collection['tags'] = $this->Tag->find('list', array(
-                'fields' => array('id', 'name'),
-        ));
-        $this->set('collection', $collection);
+        if ($this->_isRest()) {
+        	$params = array(
+				'recursive' => -1,
+				'contain' => array(
+					'Organisation' => array('Organisation.id', 'Organisation.name', 'Organisation.uuid', 'Organisation.nationality', 'Organisation.sector', 'Organisation.type'),
+					'RemoteOrg' => array('RemoteOrg.id', 'RemoteOrg.name', 'RemoteOrg.uuid', 'RemoteOrg.nationality', 'RemoteOrg.sector', 'RemoteOrg.type'),
+				)
+			);
+			$servers = $this->Server->find('all', $params);
+			return $this->RestResponse->viewData($servers, $this->response->type());
+		} else {
+			$this->set('servers', $this->paginate());
+			$collection = array();
+			$collection['orgs'] = $this->Server->Organisation->find('list', array(
+			      'fields' => array('id', 'name'),
+			));
+			$this->loadModel('Tag');
+			$collection['tags'] = $this->Tag->find('list', array(
+			      'fields' => array('id', 'name'),
+			));
+			$this->set('collection', $collection);
+		}
     }
 
     public function previewIndex($id)
@@ -583,73 +595,74 @@ class ServersController extends AppController
      *		incremental - only new events
      *		<int>	- specific id of the event to pull
      */
-    public function pull($id = null, $technique=false)
+    public function pull($id = null, $technique='full')
     {
         $this->Server->id = $id;
         if (!$this->Server->exists()) {
             throw new NotFoundException(__('Invalid server'));
         }
         $s = $this->Server->read(null, $id);
+		$error = false;
         if (!$this->_isSiteAdmin() && !($s['Server']['org_id'] == $this->Auth->user('org_id') && $this->_isAdmin())) {
-            $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+			throw new MethodNotAllowedException(__('You are not authorised to do that.'));
         }
         $this->Server->id = $id;
         if (!$this->Server->exists()) {
             throw new NotFoundException(__('Invalid server'));
         }
-
         if (false == $this->Server->data['Server']['pull'] && ($technique == 'full' || $technique == 'incremental')) {
-            $this->Flash->info(__('Pull setting not enabled for this server.'));
-            $this->redirect(array('action' => 'index'));
+			$error = __('Pull setting not enabled for this server.');
         }
-        if (!Configure::read('MISP.background_jobs')) {
-            $result = $this->Server->pull($this->Auth->user(), $id, $technique, $s);
-            // error codes
-            if (isset($result[0]) && is_numeric($result[0])) {
-                switch ($result[0]) {
-                    case '1':
-                        $this->Flash->error(__('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting.'));
-                        break;
-                    case '2':
-                        $this->Flash->error($result[1]);
-                        break;
-                    case '3':
-                        throw new NotFoundException('Sorry, this is not yet implemented');
-                        break;
-                    case '4':
-                        $this->redirect(array('action' => 'index'));
-                        break;
-                }
-                $this->redirect($this->referer());
-            } else {
-                $this->set('successes', $result[0]);
-                $this->set('fails', $result[1]);
-                $this->set('pulledProposals', $result[2]);
-                $this->set('lastpulledid', $result[3]);
-            }
-        } else {
-            $this->loadModel('Job');
-            $this->Job->create();
-            $data = array(
-                    'worker' => 'default',
-                    'job_type' => 'pull',
-                    'job_input' => 'Server: ' . $id,
-                    'status' => 0,
-                    'retries' => 0,
-                    'org' => $this->Auth->user('Organisation')['name'],
-                    'message' => 'Pulling.',
-            );
-            $this->Job->save($data);
-            $jobId = $this->Job->id;
-            $process_id = CakeResque::enqueue(
-                    'default',
-                    'ServerShell',
-                    array('pull', $this->Auth->user('id'), $id, $technique, $jobId)
-            );
-            $this->Job->saveField('process_id', $process_id);
-            $this->Flash->success('Pull queued for background execution.');
-            $this->redirect($this->referer());
-        }
+		if (empty($error)) {
+	        if (!Configure::read('MISP.background_jobs')) {
+	            $result = $this->Server->pull($this->Auth->user(), $id, $technique, $s);
+				if (is_array($result)) {
+					$success = sprintf(__('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled.', count($result[0]), count($result[1]), count($result[2])));
+				} else {
+					$error = $result;
+				}
+	            $this->set('successes', $result[0]);
+	            $this->set('fails', $result[1]);
+	            $this->set('pulledProposals', $result[2]);
+	            $this->set('lastpulledid', $result[3]);
+	        } else {
+	            $this->loadModel('Job');
+	            $this->Job->create();
+	            $data = array(
+	                    'worker' => 'default',
+	                    'job_type' => 'pull',
+	                    'job_input' => 'Server: ' . $id,
+	                    'status' => 0,
+	                    'retries' => 0,
+	                    'org' => $this->Auth->user('Organisation')['name'],
+	                    'message' => 'Pulling.',
+	            );
+	            $this->Job->save($data);
+	            $jobId = $this->Job->id;
+	            $process_id = CakeResque::enqueue(
+	                    'default',
+	                    'ServerShell',
+	                    array('pull', $this->Auth->user('id'), $id, $technique, $jobId)
+	            );
+	            $this->Job->saveField('process_id', $process_id);
+				$success = sprintf(__('Pull queued for background execution. Job ID: %s'), $jobId);
+	        }
+		}
+		if ($this->_isRest()) {
+			if (!empty($error)) {
+				return $this->RestResponse->saveFailResponse('Servers', 'pull', false, $error, $this->response->type());
+			} else {
+				return $this->RestResponse->saveSuccessResponse('Servers', 'pull', $success, $this->response->type());
+			}
+		} else {
+			if (!empty($error)) {
+				$this->Flash->error($error);
+				$this->redirect(array('action' => 'index'));
+			} else {
+				$this->Flash->success($success);
+				$this->redirect($this->referer());
+			}
+		}
     }
 
     public function push($id = null, $technique=false)
@@ -660,7 +673,7 @@ class ServersController extends AppController
         }
         $s = $this->Server->read(null, $id);
         if (!$this->_isSiteAdmin() && !($s['Server']['org_id'] == $this->Auth->user('org_id') && $this->_isAdmin())) {
-            $this->redirect(array('controller' => 'servers', 'action' => 'index'));
+            throw new MethodNotAllowedException(__('You are not authorised to do that.'));
         }
         if (!Configure::read('MISP.background_jobs')) {
             $server = $this->Server->read(null, $id);
@@ -669,11 +682,24 @@ class ServersController extends AppController
             $HttpSocket = $syncTool->setupHttpSocket($server);
             $result = $this->Server->push($id, $technique, false, $HttpSocket, $this->Auth->user());
             if ($result === false) {
-                $this->Flash->info('The remote server is too outdated to initiate a push towards it. Please notify the hosting organisation of the remote instance.');
-                $this->redirect(array('action' => 'index'));
-            }
-            $this->set('successes', $result[0]);
-            $this->set('fails', $result[1]);
+				$error = __('The remote server is too outdated to initiate a push towards it. Please notify the hosting organisation of the remote instance.');
+            } else if (!is_array($result)) {
+				$error = $result;
+			}
+			if (!empty($error)) {
+				if ($this->_isRest()) {
+					return $this->RestResponse->saveFailResponse('Servers', 'push', false, $error, $this->response->type());
+				} else {
+					$this->Flash->info($error);
+					$this->redirect(array('action' => 'index'));
+				}
+			}
+			if ($this->_isRest()) {
+				return $this->RestResponse->saveSuccessResponse('Servers', 'push', array(sprintf(__('Push complete. %s events pushed, %s events could not be pushed.', $result[0], $result[1]))), $this->response->type());
+			} else {
+            	$this->set('successes', $result[0]);
+            	$this->set('fails', $result[1]);
+			}
         } else {
             $this->loadModel('Job');
             $this->Job->create();
@@ -694,7 +720,11 @@ class ServersController extends AppController
                     array('push', $this->Auth->user('id'), $id, $jobId)
             );
             $this->Job->saveField('process_id', $process_id);
-            $this->Flash->success('Push queued for background execution.');
+			$message = sprintf(__('Push queued for background execution. Job ID: %s'), $jobId);
+			if ($this->_isRest()) {
+				return $this->RestResponse->saveSuccessResponse('Servers', 'push', $message, $this->response->type());
+			}
+            $this->Flash->success($message);
             $this->redirect(array('action' => 'index'));
         }
     }
@@ -1415,6 +1445,10 @@ class ServersController extends AppController
         if ($result['status'] == 1) {
             $version = json_decode($result['message'], true);
             if (isset($version['version']) && preg_match('/^[0-9]+\.+[0-9]+\.[0-9]+$/', $version['version'])) {
+                $perm_sync = false;
+                if (isset($version['perm_sync'])) {
+                    $perm_sync = $version['perm_sync'];
+                }
                 App::uses('Folder', 'Utility');
                 $file = new File(ROOT . DS . 'VERSION.json', true);
                 $local_version = json_decode($file->read(), true);
@@ -1438,16 +1472,9 @@ class ServersController extends AppController
                         }
                     }
                 }
-                if (!isset($version['perm_sync'])) {
-                    if (!$this->Server->checkLegacyServerSyncPrivilege($id)) {
-                        $result['status'] = 7;
-                        return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
-                    }
-                } else {
-                    if (!$version['perm_sync']) {
-                        $result['status'] = 7;
-                        return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
-                    }
+                if (!$perm_sync) {
+                    $result['status'] = 7;
+                    return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
                 }
                 return new CakeResponse(
                         array(
@@ -1583,4 +1610,101 @@ class ServersController extends AppController
     {
         return $this->RestResponse->viewData(array('uuid' => Configure::read('MISP.uuid')), $this->response->type());
     }
+
+    public function rest()
+    {
+        if ($this->request->is('post')) {
+            $request = $this->request->data;
+            if (!empty($request['Server'])) {
+                $request = $this->request->data['Server'];
+            }
+            $result = $this->__doRestQuery($request);
+            if (!$result) {
+                $this->Flash->error('Something went wrong. Make sure you set the http method, body (when sending POST requests) and URL correctly.');
+            } else {
+                $this->set('data', $result);
+            }
+        }
+        $header =
+            'Authorization: ' . $this->Auth->user('authkey') . PHP_EOL .
+            'Accept: application/json' . PHP_EOL .
+            'Content-Type: application/json';
+        $this->set('header', $header);
+    }
+
+    private function __doRestQuery($request)
+    {
+        App::uses('SyncTool', 'Tools');
+        $params = array();
+        if (!empty($request['url'])) {
+			$path = preg_replace('#^(://|[^/?])+#', '', $request['url']);
+            $url = Configure::read('MISP.baseurl') . '/' . $path;
+        } else {
+            throw new InvalidArgumentException('Url not set.');
+        }
+		if (!empty($request['skip_ssl_validation'])) {
+			$params['ssl_verify_peer'] = false;
+		}
+        App::uses('HttpSocket', 'Network/Http');
+        $HttpSocket = new HttpSocket($params);
+        $view_data = array();
+        $temp_headers = explode("\n", $request['header']);
+        $request['header'] = array(
+            'Authorization' => $this->Auth->user('authkey'),
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/json'
+        );
+        foreach ($temp_headers as $header) {
+            $header = explode(':', $header);
+            $header[0] = trim($header[0]);
+            $header[1] = trim($header[1]);
+            $request['header'][$header[0]] = $header[1];
+        }
+        $start = microtime(true);
+        if (
+            !empty($request['method']) &&
+            $request['method'] === 'GET'
+        ) {
+            $response = $HttpSocket->get($url, false, array('header' => $request['header']));
+        } elseif (
+            !empty($request['method']) &&
+            $request['method'] === 'POST' &&
+            !empty($request['body'])
+        ) {
+            $response = $HttpSocket->post($url, $request['body'], array('header' => $request['header']));
+        } else {
+            return false;
+        }
+        $view_data['duration'] = microtime(true) - $start;
+        $view_data['duration'] = round($view_data['duration'] * 1000, 2) . 'ms';
+        $view_data['code'] =  $response->code;
+        $view_data['headers'] = $response->headers;
+        if (!empty($request['show_result'])) {
+            $view_data['data'] = $response->body;
+        } else {
+            if ($response->isOk()) {
+                $view_data['data'] = 'Success.';
+            } else {
+                $view_data['data'] = 'Something went wrong.';
+            }
+        }
+        return $view_data;
+    }
+
+	public function getApiInfo() {
+		$relative_path = $this->request->data['url'];
+		$result = $this->RestResponse->getApiInfo($relative_path);
+		if ($this->_isRest()) {
+			return $result;
+		} else {
+			$result = json_decode($result, true);
+			if (empty($result)) {
+				return $this->RestResponse->viewData('&nbsp;', $this->response->type());
+			}
+			$this->layout = false;
+			$this->autoRender = false;
+			$this->set('api_info', $result);
+			$this->render('ajax/get_api_info');
+		}
+	}
 }

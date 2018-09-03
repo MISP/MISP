@@ -164,6 +164,9 @@ class UsersController extends AppController
 
     public function change_pw()
     {
+        if (!$this->_isAdmin() && Configure::read('MISP.disableUserSelfManagement')) {
+            throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
+        }
         $id = $this->Auth->user('id');
         $user = $this->User->find('first', array(
             'conditions' => array('User.id' => $id),
@@ -747,7 +750,6 @@ class UsersController extends AppController
                         array_push($fields, $field);
                     }
                 }
-                // TODO Audit, __extralog, fields get orig
                 $fieldsOldValues = array();
                 foreach ($fields as $field) {
                     if ($field == 'enable_password') {
@@ -759,7 +761,6 @@ class UsersController extends AppController
                         array_push($fieldsOldValues, $this->User->field('password'));
                     }
                 }
-                // TODO Audit, __extralog, fields get orig END
                 if (
                     isset($this->request->data['User']['enable_password']) && $this->request->data['User']['enable_password'] != '0' &&
                     isset($this->request->data['User']['password']) && "" != $this->request->data['User']['password']
@@ -782,7 +783,6 @@ class UsersController extends AppController
                     }
                 }
                 if ($this->User->save($this->request->data, true, $fields)) {
-                    // TODO Audit, __extralog, fields compare
                     // newValues to array
                     $fieldsNewValues = array();
                     foreach ($fields as $field) {
@@ -819,8 +819,7 @@ class UsersController extends AppController
                         $c++;
                     }
                     $fieldsResultStr = substr($fieldsResultStr, 2);
-                    $this->__extralog("edit", "user", $fieldsResultStr);	// TODO Audit, check: modify User
-                    // TODO Audit, __extralog, fields compare END
+                    $this->__extralog("edit", "user", $fieldsResultStr);
                     if ($this->_isRest()) {
                         $user = $this->User->find('first', array(
                                 'conditions' => array('User.id' => $this->User->id),
@@ -850,7 +849,7 @@ class UsersController extends AppController
                 $this->redirect(array('controller' => 'users', 'action' => 'index', 'admin' => true));
             }
             $this->User->set('password', '');
-            $this->request->data = $this->User->data; // TODO CHECK
+            $this->request->data = $this->User->data;
         }
         if ($this->_isSiteAdmin()) {
             $orgs = $this->User->Organisation->find('list', array(
@@ -961,7 +960,7 @@ class UsersController extends AppController
             }
         }
         if ($this->Auth->login()) {
-            $this->__extralog("login");	// TODO Audit, __extralog, check: customLog i.s.o. __extralog, no auth user?: $this->User->customLog('login', $this->Auth->user('id'), array('title' => '','user_id' => $this->Auth->user('id'),'email' => $this->Auth->user('email'),'org' => 'IN2'));
+            $this->__extralog("login");
             $this->User->Behaviors->disable('SysLogLogable.SysLogLogable');
             $this->User->id = $this->Auth->user('id');
             $user = $this->User->find('first', array(
@@ -1071,8 +1070,8 @@ class UsersController extends AppController
 
     public function logout()
     {
-        if ($this->Session->check('Auth.User')) { // TODO session, user is logged in, so ..
-            $this->__extralog("logout");	// TODO Audit, __extralog, check: customLog i.s.o. __extralog, $this->User->customLog('logout', $this->Auth->user('id'), array());
+        if ($this->Session->check('Auth.User')) {
+            $this->__extralog("logout");
         }
         $this->Flash->info(__('Good-Bye'));
         $user = $this->User->find('first', array(
@@ -1242,7 +1241,7 @@ class UsersController extends AppController
     }
 
     private function __extralog($action = null, $description = null, $fieldsResult = null)
-    {	// TODO move audit to AuditsController?
+    {
         // new data
         $model = 'User';
         $modelId = $this->Auth->user('id');
@@ -1698,7 +1697,7 @@ class UsersController extends AppController
         );
         $scopes = array(
             'user' => array(
-                'conditions' => null,
+                'conditions' => array(),
                 'model' => 'User',
                 'date_created' => 'timestamp'
             ),
@@ -1719,17 +1718,23 @@ class UsersController extends AppController
                 $params = array(
                     'recursive' => -1
                 );
+                $filter = array();
                 if (!empty($condition)) {
                     if ($scope_data['date_created'] === 'datetime') {
                         $condition = date('Y-m-d H:i:s', $condition);
                     }
-                    $params['conditions'] = array($scope_data['model'] . '.date_created >=' => $condition);
+                    $filter = array($scope_data['model'] . '.date_created >=' => $condition);
                 }
+                $params['conditions'] = array_merge($scopes[$scope]['conditions'], $filter);
                 $statistics[$scope]['data'][$range] = $this->{$scope_data['model']}->find('count', $params);
             }
         }
-        $this->set('statistics', $statistics);
-        $this->render('statistics_users');
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($statistics, $this->response->type());
+        } else {
+            $this->set('statistics', $statistics);
+            $this->render('statistics_users');
+        }
     }
 
     public function tagStatisticsGraph()
@@ -1838,12 +1843,12 @@ class UsersController extends AppController
         }
     }
 
-    public function verifyGPG()
+    public function verifyGPG($full = false)
     {
         if (!self::_isSiteAdmin()) {
             throw new NotFoundException();
         }
-        $user_results = $this->User->verifyGPG();
+        $user_results = $this->User->verifyGPG($full);
         $this->set('users', $user_results);
     }
 

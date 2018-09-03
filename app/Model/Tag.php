@@ -174,11 +174,62 @@ class Tag extends AppModel
         return array($acceptIds, $rejectIds);
     }
 
+    // find all of the tag Ids that belong to the accepted tags and the rejected tags
+    public function fetchTagIds($accept = array(), $reject = array())
+    {
+        $acceptIds = array();
+        $rejectIds = array();
+        if (!empty($accept)) {
+            $acceptIds = $this->findTagIdsByTagNames($accept);
+            if (empty($acceptIds)) {
+                $acceptIds[] = -1;
+            }
+        }
+        if (!empty($reject)) {
+            $rejectIds = $this->findTagIdsByTagNames($reject);
+        }
+        return array($acceptIds, $rejectIds);
+    }
+
+    // pass a list of tag names to receive a list of matched tag IDs
+    public function findTagIdsByTagNames($array)
+    {
+        $ids = array();
+        $tag_ids = array();
+        if (!is_array($array)) {
+          $array = array($array);
+        }
+        foreach ($array as $k => $tag) {
+            if (is_numeric($tag)) {
+                $tag_ids[] = $tag;
+                unset($array[$k]);
+            }
+        }
+        $array = array_values($array);
+        if (!empty($array)) {
+            foreach ($array as $a) {
+                $conditions['OR'][] = array('LOWER(Tag.name) like' => strtolower($a));
+            }
+            $params = array(
+                    'recursive' => 1,
+                    'conditions' => $conditions,
+                    'fields' => array('Tag.id', 'Tag.id')
+            );
+            $result = $this->find('list', $params);
+            $tag_ids = array_merge($result, $tag_ids);
+        }
+        return array_values($tag_ids);
+    }
+
     public function findEventIdsByTagNames($array)
     {
         $ids = array();
         foreach ($array as $a) {
-            $conditions['OR'][] = array('LOWER(name) like' => strtolower($a));
+            if (is_numeric($a)) {
+                $conditions['OR'][] = array('id' => $a);
+            } else {
+                $conditions['OR'][] = array('LOWER(name) like' => strtolower($a));
+            }
         }
         $params = array(
                 'recursive' => 1,

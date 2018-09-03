@@ -1,7 +1,8 @@
 <?php
 
-class IOCExportTool
+class OpeniocExport
 {
+
     public function buildAll($user, $data, $scope = 'event')
     {
         $final = '';
@@ -20,10 +21,10 @@ class IOCExportTool
         return $final;
     }
 
-    public function convert($data)
+    public function convert($attributes)
     {
         $final = '';
-        foreach ($data['Attribute'] as $attribute) {
+        foreach ($attributes as $attribute) {
             $final .= $this->generateAttribute($attribute);
         }
         return $final;
@@ -32,41 +33,6 @@ class IOCExportTool
     public function getResult()
     {
         return $this->__final;
-    }
-
-    // generates the top with the event information
-    public function generateSingleTop($event)
-    {
-        // We will start adding all the components that will be in the xml file here
-        $temp = '<?xml version="1.0" encoding="utf-8"?>' . PHP_EOL;
-        $temp .= '<ioc xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="' . $event['Event']['uuid'] . '" last-modified="' . $event['Event']['date'] . 'T00:00:00" xmlns="http://schemas.mandiant.com/2010/ioc">' . PHP_EOL;
-        $temp .= '  <short_description>Event #' . h($event['Event']['id']) . '</short_description>' . PHP_EOL;
-        $temp .= '  <description>' . h($event['Event']['info']) . ' (' . h($event['Event']['uuid']) . ')</description>' . PHP_EOL;
-        $temp .= '  <keywords />' . PHP_EOL;
-        $temp .= '  <authored_by>' . h($event['Orgc']['name']) . '</authored_by>' . PHP_EOL;
-        $temp .= '  <authored_date>' . h($event['Event']['date']) . 'T00:00:00</authored_date>' . PHP_EOL;
-        $temp .= '  <links />' . PHP_EOL;
-        $temp .= '  <definition>' . PHP_EOL;
-        $temp .= '    <Indicator operator="OR" id="' . CakeText::uuid() . '">' . PHP_EOL;
-        return $temp;
-    }
-
-    public function generateTop($user)
-    {
-        $temp = '';
-        // We will start adding all the components that will be in the xml file here
-        $date = date("Y-m-d\TH:i:s");
-        $temp .= '<?xml version="1.0" encoding="utf-8"?>' . PHP_EOL;
-        $temp .= '<ioc xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="' . CakeText::uuid() . '" last-modified="' . $date . '" xmlns="http://schemas.mandiant.com/2010/ioc">' . PHP_EOL;
-        $temp .= '  <short_description>Filtered indicator list</short_description>' . PHP_EOL;
-        $temp .= '  <description>Filtered indicator list</description>' . PHP_EOL;
-        $temp .= '  <keywords />' . PHP_EOL;
-        $temp .= '  <authored_by>' . h($user['Organisation']['name']) . '</authored_by>' . PHP_EOL;
-        $temp .= '  <authored_date>' . $date . '</authored_date>' . PHP_EOL;
-        $temp .= '  <links />' . PHP_EOL;
-        $temp .= '  <definition>' . PHP_EOL;
-        $temp .= '    <Indicator operator="OR" id="' . CakeText::uuid() . '">' . PHP_EOL;
-        return $temp;
     }
 
     public $mapping = array(
@@ -128,38 +94,9 @@ class IOCExportTool
     // This method will turn each eligible attribute into an indicator
     public function generateAttribute($attribute)
     {
-        $temp = '';
-        if (isset($attribute['Attribute'])) {
-            $attribute = $attribute['Attribute'];
-        }
-        // Hop over attributes that don't have the to ids flag turned on and check whether the attribute is sent for IOC export based on category/type
-        if (!$this->checkValidTypeForIOC($attribute) || $attribute['to_ids'] == 0) {
-            return false;
-        }
-        if ($attribute['type'] == 'malware-sample') {
-            $attribute['type'] = 'filename|md5';
-        }
-        if (strpos($attribute['type'], '|')) {
-            if ($this->mapping['composite'][$attribute['type']]) {
-                $temp .= $this->frameComposite($attribute);
-            }
-        } else {
-            if (isset($this->mapping['simple'][$attribute['type']])) {
-                $temp .= $this->frameIndicator($this->mapping['simple'][$attribute['type']], $attribute['uuid'], $attribute['value'], false);
-            }
-        }
-        return $temp;
+
     }
 
-    // Just closing some tags at the bottom of the .ioc file
-    public function generateBottom()
-    {
-        $temp = '';
-        $temp .= '    </Indicator>' . PHP_EOL;
-        $temp .= '  </definition>' . PHP_EOL;
-        $temp .= '</ioc>' . PHP_EOL;
-        return $temp;
-    }
 
     // Simple check for valid categories and types for IOC generation
     public function checkValidTypeForIOC($attribute)
@@ -171,4 +108,65 @@ class IOCExportTool
         }
         return true;
     }
+
+
+    public function handler($attribute, $options = array())
+    {
+		$temp = '';
+		if (isset($attribute['Attribute'])) {
+			$attribute = $attribute['Attribute'];
+		}
+		// Hop over attributes that don't have the to ids flag turned on and check whether the attribute is sent for IOC export based on category/type
+		if (!$this->checkValidTypeForIOC($attribute) || $attribute['to_ids'] == 0) {
+			return false;
+		}
+		if ($attribute['type'] == 'malware-sample') {
+			$attribute['type'] = 'filename|md5';
+		}
+		if (strpos($attribute['type'], '|')) {
+			if ($this->mapping['composite'][$attribute['type']]) {
+				$temp .= $this->frameComposite($attribute);
+			}
+		} else {
+			if (isset($this->mapping['simple'][$attribute['type']])) {
+				$temp .= $this->frameIndicator($this->mapping['simple'][$attribute['type']], $attribute['uuid'], $attribute['value'], false);
+			}
+		}
+		return $temp;
+    }
+
+    public function header($options = array())
+    {
+		$user = $options['user'];
+		$temp = '';
+		// We will start adding all the components that will be in the xml file here
+		$date = date("Y-m-d\Th:i:s");
+		$temp .= '<?xml version="1.0" encoding="utf-8"?>' . PHP_EOL;
+		$temp .= '<ioc xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="' . CakeText::uuid() . '" last-modified="' . $date . '" xmlns="http://schemas.mandiant.com/2010/ioc">' . PHP_EOL;
+		$temp .= '  <short_description>Filtered indicator list</short_description>' . PHP_EOL;
+		$temp .= '  <description>Filtered indicator list</description>' . PHP_EOL;
+		$temp .= '  <keywords />' . PHP_EOL;
+		$temp .= '  <authored_by>' . h($user['Organisation']['name']) . '</authored_by>' . PHP_EOL;
+		$temp .= '  <authored_date>' . $date . '</authored_date>' . PHP_EOL;
+		$temp .= '  <links />' . PHP_EOL;
+		$temp .= '  <definition>' . PHP_EOL;
+		$temp .= '    <Indicator operator="OR" id="' . CakeText::uuid() . '">' . PHP_EOL;
+		return $temp;
+
+    }
+
+    public function footer()
+    {
+		$temp = '';
+		$temp .= '    </Indicator>' . PHP_EOL;
+		$temp .= '  </definition>' . PHP_EOL;
+		$temp .= '</ioc>' . PHP_EOL;
+		return $temp;
+    }
+
+    public function separator()
+    {
+        return PHP_EOL;
+    }
+
 }

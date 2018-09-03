@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2018-07-18 11:44\n"
+"PO-Revision-Date: 2018-08-21 10:43\n"
 "Last-Translator: SteveClement <steve@localhost.lu>\n"
 "Language-Team: Portuguese, Brazilian\n"
 "MIME-Version: 1.0\n"
@@ -35,18 +35,18 @@ msgstr "Jobs na fila. Você pode acompanhar o progresso se você navegar no modo
 #: Controller/AttributesController.php:130;1248
 #: Controller/EventGraphController.php:16;68
 msgid "No event ID set."
-msgstr ""
+msgstr "Nenhum ID de evento selecionado."
 
 #: Controller/AttributesController.php:132
 msgid "You don't have permissions to create attributes"
-msgstr ""
+msgstr "Você não tem direito de criar atributos"
 
 #: Controller/AttributesController.php:150;434;586
 #: Controller/EventGraphController.php:76
 #: Controller/EventsController.php:1526;1544;1577
 #: Controller/ObjectsController.php:426
 msgid "You do not have permission to do that."
-msgstr ""
+msgstr "Você não tem permissão para fazer isso."
 
 #: Controller/AttributesController.php:387;774;779;782;965;1038;2395;2408;2428;2449;2457;2910;2912;2999;3001
 #: Controller/ShadowAttributesController.php:759;976;1000;1028;1038
@@ -57,7 +57,7 @@ msgstr "Atributo inválido % s"
 #: Controller/AttributesController.php:396
 #: Controller/ShadowAttributesController.php:468
 msgid "You do not have the permission to view this event."
-msgstr ""
+msgstr "Você não tem permissão para visualizar este evento."
 
 #: Controller/AttributesController.php:418
 msgid "Attribute not an attachment or malware-sample"
@@ -66,7 +66,7 @@ msgstr "Atributo não é um arquivo anexo ou exemplo de malware"
 #: Controller/AttributesController.php:449;597
 #: Controller/ShadowAttributesController.php:506
 msgid "PHP says file was not uploaded. Are you attacking me?"
-msgstr ""
+msgstr "PHP diz que o arquivo não foi carregada. Esta me atacando?"
 
 #: Controller/AttributesController.php:599
 #: Controller/ShadowAttributesController.php:508;518
@@ -88,16 +88,16 @@ msgstr "%s entradas não puderam ser importadas."
 #: Controller/AttributesController.php:789;824;826
 #: Controller/ShadowAttributesController.php:765
 msgid "Invalid attribute."
-msgstr "Configuração inválida."
+msgstr "Atributo inválido."
 
 #: Controller/AttributesController.php:820
 msgid "Attribute could not be saved: Attribute in the request not newer than the local copy."
-msgstr ""
+msgstr "Não foi possível salvar atributo: atributo no pedido não mais recente que a cópia local."
 
 #: Controller/AttributesController.php:836;1257
 #: Controller/EventsController.php:4190;4200;4709;4723
 msgid "Invalid Event."
-msgstr ""
+msgstr "Evento inválido."
 
 #: Controller/AttributesController.php:853
 msgid "The attribute has been saved"
@@ -119,7 +119,7 @@ msgstr "Entrada inválida."
 
 #: Controller/AttributesController.php:999
 msgid "Invalid field."
-msgstr ""
+msgstr "Campo inválido."
 
 #: Controller/AttributesController.php:1041
 msgid "Invalid attribute id."
@@ -140,15 +140,15 @@ msgstr "Atributo inválido"
 
 #: Controller/AttributesController.php:1154
 msgid "Could not restore the attribute"
-msgstr ""
+msgstr "Não foi possível restaurar o atributo"
 
 #: Controller/AttributesController.php:1172;1178;1182
 msgid "Attribute not found or not authorised."
-msgstr ""
+msgstr "Atributo não encontrado ou não autorizado."
 
 #: Controller/AttributesController.php:1231
 msgid "This function is only accessible via POST requests."
-msgstr ""
+msgstr "Esta função só é acessível através de solicitações de POST."
 
 #: Controller/AttributesController.php:1279
 msgid "No matching attributes found."

@@ -13,13 +13,15 @@
     <div class="popover_choice_main" id ="popover_choice_main">
         <table style="width:100%;">
     <?php
-        foreach ($clusters as $k => $cluster):
-            $title = isset($cluster['description']) ? $cluster['description'] : $cluster['value'];
+        foreach ($clusters as $namespace => $cluster_data):
+            foreach ($cluster_data as $k => $cluster):
+                $title = isset($cluster['description']) ? $cluster['description'] : $cluster['value'];
     ?>
-            <tr id="field_<?php echo h($cluster['id']); ?>" style="border-bottom:1px solid black;" class="templateChoiceButton filterableButton">
-                <td class="clusterSelectChoice" data-target-type="<?php echo h($target_type); ?>" data-target-id="<?php echo h($target_id); ?>" data-cluster-id="<?php echo h($cluster['id']); ?>" style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" title="<?php echo 'Synonyms: ' . h($cluster['synonyms_string']); ?>"><?php echo h($cluster['value']); ?></td>
-            </tr>
+                <tr id="field_<?php echo h($cluster['id']); ?>" style="border-bottom:1px solid black;" class="templateChoiceButton filterableButton">
+                    <td class="clusterSelectChoice" data-target-type="<?php echo h($target_type); ?>" data-target-id="<?php echo h($target_id); ?>" data-cluster-id="<?php echo h($cluster['id']); ?>" style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" title="<?php echo 'Synonyms: ' . h($cluster['synonyms_string']); ?>"><?php echo h($cluster['value']) . ' (' . h($cluster['type']) . ')'; ?></td>
+                </tr>
     <?php
+            endforeach;
         endforeach;
     ?>
         <tr style="border-bottom:1px solid black;" class="templateChoiceButton">
@@ -46,13 +48,15 @@
     $('#clusterFilterField').keyup(function() {
         var filterString =  $("#clusterFilterField").val().toLowerCase();
         $('.filterableButton').hide();
-        $.each(lookup_table, function(index, value) {
-            var found = false;
-            if (index.toLowerCase().indexOf(filterString) != -1) {
-                $.each(value, function(k, v) {
-                    $('#field_' + v).show();
-                });
-            }
+        $.each(lookup_table, function(namespace, namespace_data) {
+            $.each(namespace_data, function(index, value) {
+                var found = false;
+                if (index.toLowerCase().indexOf(filterString) != -1) {
+                    $.each(value, function(k, v) {
+                        $('#field_' + v).show();
+                    });
+                }
+            });
         });
     });
     $(window).resize(function() {

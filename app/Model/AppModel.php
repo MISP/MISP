@@ -38,6 +38,7 @@ class AppModel extends Model
     private $__profiler = array();
 
     public $elasticSearchClient = false;
+    public $s3Client = false;
 
     public function __construct($id = false, $table = null, $ds = null)
     {
@@ -68,7 +69,7 @@ class AppModel extends Model
     public $db_changes = array(
         1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
         7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
-        13 => false, 14 => false, 15 => false
+        13 => false, 14 => false, 15 => false, 16 => false, 17 => false
     );
 
     public function afterSave($created, $options = array())
@@ -1022,6 +1023,14 @@ class AppModel extends Model
 					INDEX `timestamp` (`timestamp`)
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 break;
+            case '16':
+                $sqlArray[] = 'ALTER TABLE `taxonomy_predicates` ADD COLUMN description text CHARACTER SET UTF8 collate utf8_bin;';
+                $sqlArray[] = 'ALTER TABLE `taxonomy_entries` ADD COLUMN description text CHARACTER SET UTF8 collate utf8_bin;';
+                $sqlArray[] = 'ALTER TABLE `taxonomy_predicates` ADD COLUMN exclusive tinyint(1) DEFAULT 0;';
+                break;
+            case '17':
+                $sqlArray[] = 'ALTER TABLE `taxonomies` ADD COLUMN exclusive tinyint(1) DEFAULT 0;';
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1183,6 +1192,17 @@ class AppModel extends Model
         $version_array = json_decode($file->read(), true);
         $file->close();
         return $version_array;
+    }
+
+    public function validateAuthkey($value)
+    {
+        if (empty($value['authkey'])) {
+            return 'Empty authkey found. Make sure you set the 40 character long authkey.';
+        }
+        if (!preg_match('/[a-z0-9]{40}/i', $value['authkey'])) {
+            return 'The authkey has to be exactly 40 characters long and consist of alphanumeric characters.';
+        }
+        return true;
     }
 
     // alternative to the build in notempty/notblank validation functions, compatible with cakephp <= 2.6 and cakephp and cakephp >= 2.7
@@ -1439,6 +1459,29 @@ class AppModel extends Model
         $this->elasticSearchClient = $client;
     }
 
+    public function getS3Client()
+    {
+        if (!$this->s3Client) {
+            $this->s3Client = $this->loadS3Client();
+        }
+
+        return $this->s3Client;
+    }
+
+    public function loadS3Client()
+    {
+        App::uses('AWSS3Client', 'Tools');
+        $client = new AWSS3Client();
+        $client->initTool();
+        return $client;
+    }
+
+    public function attachmentDirIsS3()
+    {
+        // Naive way to detect if we're working in S3
+        return substr(Configure::read('MISP.attachments_dir'), 0, 2) === "s3";
+    }
+
     public function checkVersionRequirements($versionString, $minVersion)
     {
         $version = explode('.', $versionString);
@@ -1453,12 +1496,12 @@ class AppModel extends Model
     }
 
     // generate a generic subquery - options needs to include conditions
-    public function subQueryGenerator($model, $options, $lookupKey)
+    public function subQueryGenerator($model, $options, $lookupKey, $negation = false)
     {
         $db = $model->getDataSource();
         $defaults = array(
             'fields' => array('*'),
-            'table' => $model->alias,
+            'table' => $model->table,
             'alias' => $model->alias,
             'limit' => null,
             'offset' => null,
@@ -1468,17 +1511,21 @@ class AppModel extends Model
         );
         $params = array();
         foreach (array_keys($defaults) as $key) {
-            if (isset($conditions[$key])) {
-                $params[$key] = $conditions[$key];
+            if (isset($options[$key])) {
+                $params[$key] = $options[$key];
             } else {
-                $params[$key] = $conditions[$key];
+                $params[$key] = $defaults[$key];
             }
         }
         $subQuery = $db->buildStatement(
             $params,
             $model
         );
-        $subQuery = $lookupKey . ' IN (' . $subQuery . ') ';
+        if ($negation) {
+            $subQuery = $lookupKey . ' NOT IN (' . $subQuery . ') ';
+        } else {
+            $subQuery = $lookupKey . ' IN (' . $subQuery . ') ';
+        }
         $conditions = array(
             $db->expression($subQuery)->value
         );
@@ -1572,5 +1619,124 @@ class AppModel extends Model
             $server->serverSettingsSaveValue($setting, $value);
         }
         return true;
+    }
+
+    public function setupHttpSocket($server, $HttpSocket = null)
+    {
+        if (empty($HttpSocket)) {
+            App::uses('SyncTool', 'Tools');
+            $syncTool = new SyncTool();
+            $HttpSocket = $syncTool->setupHttpSocket($server);
+        }
+        return $HttpSocket;
+    }
+
+    public function setupSyncRequest($server)
+    {
+        $request = array(
+                'header' => array(
+                        'Authorization' => $server['Server']['authkey'],
+                        'Accept' => 'application/json',
+                        'Content-Type' => 'application/json'
+                )
+        );
+        $request = $this->addHeaders($request);
+        return $request;
+    }
+
+    public function addHeaders($request)
+    {
+        $version = $this->checkMISPVersion();
+        $version = implode('.', $version);
+        try {
+            $commit = trim(shell_exec('git log --pretty="%H" -n1 HEAD'));
+        } catch (Exception $e) {
+            $commit = false;
+        }
+        $request['header']['MISP-version'] = $version;
+        if ($commit) {
+            $request['header']['commit'] = $commit;
+        }
+        return $request;
+    }
+
+    // take filters in the {"OR" => [foo], "NOT" => [bar]} format along with conditions and set the conditions
+    public function generic_add_filter($conditions, &$filter, $keys)
+    {
+        $operator_composition = array(
+            'NOT' => 'AND',
+            'OR' => 'OR',
+            'AND' => 'AND'
+        );
+        if (!is_array($keys)) {
+            $keys = array($keys);
+        }
+        if (!isset($filter['OR']) && !isset($filter['AND']) && !isset($filter['OR'])) {
+            return $conditions;
+        }
+        foreach ($filter as $operator => $filters) {
+            $temp = array();
+            foreach ($filters as $f) {
+                // split the filter params into two lists, one for substring searches one for exact ones
+                if ($f[strlen($f) - 1] === '%' || $f[0] === '%') {
+                    foreach ($keys as $key) {
+                        if ($operator === 'NOT') {
+                            $temp[] = array($key . ' NOT LIKE' => $f);
+                        } else {
+                            $temp[] = array($key . ' LIKE' => $f);
+                        }
+                    }
+                } else {
+                    foreach ($keys as $key) {
+                        if ($operator === 'NOT') {
+                            $temp[$key . ' !='][] = $f;
+                        } else {
+                            $temp['OR'][$key][] = $f;
+                        }
+                    }
+                }
+            }
+            $conditions['AND'][] = array($operator_composition[$operator] => $temp);
+            if ($operator !== 'NOT') {
+                unset($filter[$operator]);
+            }
+        }
+        return $conditions;
+    }
+
+    /*
+     * Get filters in one of the following formats:
+     * [foo, bar]
+     * ["OR" => [foo, bar], "NOT" => [baz]]
+     * "foo"
+     * "foo&&bar&&!baz"
+     * and convert it into the same format ["OR" => [foo, bar], "NOT" => [baz]]
+     */
+    public function convert_filters($filter)
+    {
+        if (!is_array($filter)) {
+            $temp = explode('&&', $filter);
+            $filter = array();
+            foreach ($temp as $f) {
+                if ($f[0] === '!') {
+                    $filter['NOT'][] = $f;
+                } else {
+                    $filter['OR'][] = $f;
+                }
+            }
+            return $filter;
+        }
+        if (!isset($filter['OR']) && !isset($filter['NOT']) && !isset($filter['AND'])) {
+            $temp = array();
+            foreach ($filter as $param) {
+                if ($param[0] === '!') {
+                    $temp['NOT'][] = substr($param, 1);
+                } else {
+                    $temp['OR'][] = $param;
+                }
+            }
+            $filter = $temp;
+        }
+        return $filter;
     }
 }

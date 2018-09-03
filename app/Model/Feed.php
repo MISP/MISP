@@ -229,7 +229,8 @@ class Feed extends AppModel
             if ($doFetch) {
                 $fetchIssue = false;
                 try {
-                    $response = $this->__getRecursive($feed['Feed']['url'], '', array());
+					$request = $this->__createFeedRequest($feed['Feed']['headers']);
+                    $response = $this->__getRecursive($feed['Feed']['url'], '', $request);
                     //$response = $HttpSocket->get($feed['Feed']['url'], '', array());
                 } catch (Exception $e) {
                     return $e->getMessage();
