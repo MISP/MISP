@@ -312,6 +312,7 @@ class ACLComponent extends Component
                     'edit' => array(),
                     'fetchServersForSG' => array('*'),
                     'filterEventIndex' => array(),
+					'getApiInfo' => array('*'),
                     'getGit' => array(),
                     'getInstanceUUID' => array('perm_sync'),
                     'getPyMISPVersion' => array('*'),
@@ -570,7 +571,7 @@ class ACLComponent extends Component
             $fileContents = preg_replace('/\/\*[^\*]+?\*\//', '', $fileContents);
             preg_match_all($functionFinder, $fileContents, $functionArray);
             foreach ($functionArray[1] as $function) {
-                if (substr($function, 0, 1) !== '_' && $function !== 'beforeFilter') {
+                if (substr($function, 0, 1) !== '_' && $function !== 'beforeFilter' && $function !== 'afterFilter') {
                     $results[$controllerName][] = $function;
                 }
             }

@@ -195,23 +195,41 @@ class Tag extends AppModel
     public function findTagIdsByTagNames($array)
     {
         $ids = array();
-        foreach ($array as $a) {
-            $conditions['OR'][] = array('LOWER(Tag.name) like' => strtolower($a));
+        $tag_ids = array();
+        if (!is_array($array)) {
+          $array = array($array);
         }
-        $params = array(
-                'recursive' => 1,
-                'conditions' => $conditions,
-                'fields' => array('Tag.id', 'Tag.id')
-        );
-        $result = $this->find('list', $params);
-        return array_values($result);
+        foreach ($array as $k => $tag) {
+            if (is_numeric($tag)) {
+                $tag_ids[] = $tag;
+                unset($array[$k]);
+            }
+        }
+        $array = array_values($array);
+        if (!empty($array)) {
+            foreach ($array as $a) {
+                $conditions['OR'][] = array('LOWER(Tag.name) like' => strtolower($a));
+            }
+            $params = array(
+                    'recursive' => 1,
+                    'conditions' => $conditions,
+                    'fields' => array('Tag.id', 'Tag.id')
+            );
+            $result = $this->find('list', $params);
+            $tag_ids = array_merge($result, $tag_ids);
+        }
+        return array_values($tag_ids);
     }
 
     public function findEventIdsByTagNames($array)
     {
         $ids = array();
         foreach ($array as $a) {
-            $conditions['OR'][] = array('LOWER(name) like' => strtolower($a));
+            if (is_numeric($a)) {
+                $conditions['OR'][] = array('id' => $a);
+            } else {
+                $conditions['OR'][] = array('LOWER(name) like' => strtolower($a));
+            }
         }
         $params = array(
                 'recursive' => 1,
