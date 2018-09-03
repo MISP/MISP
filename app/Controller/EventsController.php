@@ -4965,6 +4965,8 @@ class EventsController extends AppController {
 		}
 		else if ($this->request->is('post') && $this->request['data']['SelectedData']['mactime_data'])
 		{
+			$fileName = $this->request['data']['SelectedData']['mactime_file_name'];
+			$fileData = $this->request['data']['SelectedData']['mactime_file_content'];
 			$object = array();
 			$data = json_decode($this->request['data']['SelectedData']['mactime_data'],true);
 			foreach($data as $objectData) 
@@ -5022,8 +5024,20 @@ class EventsController extends AppController {
 						"distribution" => "5",
 						"object_relation" => "filePermissions",
 						"value" => $objectData['permissions']
+					],
+					[
+						"event_id" => $eventId,
+						"category" => "External analysis",
+						"type" => "attachment",
+						"to_ids" => false,
+						"distribution" => "5",
+						"object_relation" => "file",
+						"value" => $fileName,
+						"data" => base64_encode($fileData),
+						"comment" => "Mactime source file"
 					]
-				);
+					
+					);
 				$this->loadModel('MispObject');
 				$this->MispObject->saveObject($object,$eventId,"","");
 			}

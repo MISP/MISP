@@ -38,6 +38,22 @@
 								<div class="input clear"></div>
 							<?php
 						?>
+						<?php
+							echo $this->Form->input('mactime_file_content', array(
+									'type' => 'text'
+							));
+							?>
+								<div class="input clear"></div>
+							<?php
+						?>
+						<?php
+							echo $this->Form->input('mactime_file_name', array(
+									'type' => 'text'
+							));
+							?>
+								<div class="input clear"></div>
+							<?php
+						?>
 					</fieldset>
 				</div>
 				
@@ -107,7 +123,7 @@ echo $eventId;
 </style>
 <script>
 var afterUpload = "<?php echo $file_uploaded; ?>";
-var selText = clearText= '';
+var selText = clearText =fileContent = '';
 var linesArray = [];
 var rowSelected;
 $("#accordion1").accordion({
@@ -119,6 +135,9 @@ $("#accordion2").accordion({
 if(afterUpload == 1)
 {
 	$('#afterUpload').show();
+	fileContent = $("#fileContent").text()
+	$('#SelectedDataMactimeFileContent').val(fileContent);
+	$('#SelectedDataMactimeFileName').val($("#file_name").val());
 	linesArray = $("#fileContent").text().trim().split("<br />");
 	$("#fileContent").empty();
 	for(var i=0; i<linesArray.length;i++)
@@ -163,7 +182,6 @@ $("input[type='checkbox']").change(function (e) {
 
 function processString(text)
 {
-	console.log(text)
 	var time_accessed = "";
 	var size =activity_type = permissions = file_path = activity = time_accessed = "";
 	//full date and time expression
