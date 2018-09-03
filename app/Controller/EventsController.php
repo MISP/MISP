@@ -2779,8 +2779,8 @@ class EventsController extends AppController
         while ($continue) {
             $attributes = $this->Event->csv($user, $params, false, $continue);
             $params['page'] += 1;
-            $final .= $export->handler($attributes, $final, $options);
-            $final .= $export->separator($attributes, $final);
+            $final .= $export->handler($attributes, $options);
+            $final .= $export->separator($attributes);
         }
         $export->footer();
         $this->response->type('csv');	// set the content type
@@ -3015,6 +3015,13 @@ class EventsController extends AppController
             'paramArray' => $paramArray,
             'ordered_url_params' => compact($paramArray)
         );
+		$validFormats = array(
+			'openioc' => array('xml', 'OpeniocExport'),
+			'json' => array('json', 'JsonExport'),
+			'xml' => array('xml', 'XmlExport'),
+			'suricata' => array('txt', 'NidsSuricataExport'),
+			'snort' => array('txt', 'NidsSnortExport')
+		);
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
         unset($filterData);
@@ -3030,22 +3037,19 @@ class EventsController extends AppController
             $returnFormat = $filters['returnFormat'];
         }
         $eventid = $this->Event->filterEventIds($user, $filters);
-        $responseType = 'json';
-        $converters = array(
-            'xml' => 'XMLConverterTool',
-            'json' => 'JSONConverterTool',
-            'openioc' => 'IOCExportTool'
-        );
-        if (in_array($returnFormat, array('json', 'xml', 'openioc'))) {
-            $responseType = $returnFormat;
-        } elseif (((isset($this->request->params['ext']) && $this->request->params['ext'] == 'xml')) || $this->response->type() == 'application/xml') {
-            $responseType = 'xml';
-        } else {
-            $responseType = 'json';
-        }
-        App::uses($converters[$responseType], 'Tools');
-        $converter = new $converters[$responseType]();
-        $final = $converter->generateTop($this->Auth->user());
+		if (!isset($validFormats[$returnFormat])) {
+			// this is where the new code path for the export modules will go
+			throw new MethodNotFoundException('Invalid export format.');
+		}
+		App::uses($validFormats[$returnFormat][1], 'Export');
+        $exportTool = new $validFormats[$returnFormat][1]();
+		$exportToolParams = array(
+			'user' => $this->Auth->user(),
+			'params' => array(),
+			'returnFormat' => $returnFormat,
+			'scope' => 'Event'
+		);
+		$final = $exportTool->header($exportToolParams);
         $eventCount = count($eventid);
         $i = 0;
         foreach ($eventid as $k => $currentEventId) {
@@ -3061,30 +3065,19 @@ class EventsController extends AppController
             if (!empty($result)) {
                 $this->loadModel('Whitelist');
                 $result = $this->Whitelist->removeWhitelistedFromArray($result, false);
-                if ($i != 0) {
-                    $final .= ',' . PHP_EOL;
-                }
-                $final .= $converter->convert($result[0]);
+				$temp = $exportTool->handler($result[0], $exportToolParams);
+				if ($temp !== '') {
+					if ($k !== 0) {
+						$final .= $exportTool->separator($exportToolParams);
+					}
+	            	$final .= $temp;
+				}
                 $i++;
             }
         }
-        if ($i > 0) {
-            $final .= PHP_EOL;
-        }
-        $final .= $converter->generateBottom($responseType, $final);
-        $extension = $responseType;
-        if ($returnFormat == 'openioc') {
-            $extension = '.ioc';
-        }
-        if (isset($eventid) && $eventid) {
-            if (is_array($eventid)) {
-                $eventid = 'list';
-            }
-            $final_filename="misp.event." . $eventid . "." . $result[0]['Event']['uuid'] . '.' . $extension;
-        } else {
-            $final_filename="misp.search.events.results." . $extension;
-        };
-        return $this->RestResponse->viewData($final, $this->response->type(), false, true, $final_filename);
+		$final .= $exportTool->footer($exportToolParams);
+		$responseType = $validFormats[$returnFormat][0];
+		return $this->RestResponse->viewData($final, $responseType, false, true);
     }
 
     public function downloadOpenIOCEvent($key, $eventid, $enforceWarninglist = false)
