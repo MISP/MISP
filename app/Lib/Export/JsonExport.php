@@ -2,6 +2,8 @@
 
 class JsonExport
 {
+	private $__converter = false;
+
     public function handler($data, $options = array())
     {
 		if ($options['scope'] === 'Attribute') {
@@ -10,6 +12,14 @@ class JsonExport
 			return $this->__eventHandler($data, $options);
 		}
     }
+
+	private function __eventHandler($event, $options = array()) {
+		if ($this->__converter === false) {
+			App::uses('JSONConverterTool', 'Tools');
+			$this->__converter = new JSONConverterTool();
+		}
+		return json_encode($this->__converter->convert($event, false, true));
+	}
 
 	private function __attributeHandler($attribute, $options = array())
 	{
@@ -32,12 +42,21 @@ class JsonExport
 
     public function header($options = array())
     {
-		return '{"response": {"Attribute": [';
+		if ($options['scope'] === 'Attribute') {
+			return '{"response": {"Attribute": [';
+		} else {
+			return '{"response": [';
+		}
     }
 
-    public function footer()
+    public function footer($options = array())
     {
-		return ']}}' . PHP_EOL;
+		if ($options['scope'] === 'Attribute') {
+			return ']}}' . PHP_EOL;
+		} else {
+			return ']}' . PHP_EOL;
+		}
+
     }
 
     public function separator()
