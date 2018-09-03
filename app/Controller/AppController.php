@@ -547,7 +547,7 @@ class AppController extends Controller
         return $this->Auth->user('org_id');
     }
 
-    protected function _getApiAuthUser($key, &$exception)
+    protected function _getApiAuthUser(&$key, &$exception)
     {
         if (strlen($key) == 40) {
             // check if the key is valid -> search for users based on key
@@ -569,6 +569,7 @@ class AppController extends Controller
             }
             $user = $this->Auth->user();
         }
+		$key = 'json';
         return $user;
     }
 
