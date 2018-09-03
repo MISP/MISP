@@ -2129,6 +2129,10 @@ class AttributesController extends AppController
                 $params['conditions']['AND'][] = array('Object.deleted' => 1);
             }
         }
+		if (!isset($validFormats[$returnFormat])) {
+			// this is where the new code path for the export modules will go
+			throw new MethodNotFoundException('Invalid export format.');
+		}
 		App::uses($validFormats[$returnFormat][1], 'Export');
 		$exportTool = new $validFormats[$returnFormat][1]();
 		$exportToolParams = array(
@@ -2140,8 +2144,7 @@ class AttributesController extends AppController
 		if (!empty($exportTool->additional_params)) {
 			$params = array_merge($params, $exportTool->additional_params);
 		}
-        $final = '';
-        $final .= $exportTool->header($exportToolParams);
+        $final = $exportTool->header($exportToolParams);
 		$continue = false;
 		if (empty($params['limit'])) {
 			$params['limit'] = 10000;
