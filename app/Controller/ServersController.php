@@ -1638,7 +1638,8 @@ class ServersController extends AppController
         $params = array();
         if (!empty($request['url'])) {
 			$path = preg_replace('#^(://|[^/?])+#', '', $request['url']);
-            $url = Configure::read('MISP.baseurl') . '/' . $path;
+            $url = Configure::read('MISP.baseurl') . $path;
+			unset($request['url']);
         } else {
             throw new InvalidArgumentException('Url not set.');
         }
