@@ -455,6 +455,11 @@ class StixBuilder():
         pattern = mispTypesMapping[attribute_type]['pattern'](attribute_type, attribute_value, b64encode(attribute.data.getbuffer()).decode()[1:-1]) if ('data' in attribute and attribute.data) else self.define_pattern(attribute_type, attribute_value)
         indicator_args = {'id': indicator_id, 'type': 'indicator', 'labels': labels, 'kill_chain_phases': killchain,
                            'valid_from': self.misp_event.date, 'created_by_ref': self.identity_id, 'pattern': pattern}
+        if hasattr(attribute, 'Sighting'):
+            for sighting in attribute.Sighting:
+                if sighting['Organisation']['name'] == self.misp_event.Orgc.name and sighting['type'] == "2":
+                    indicator_args['valid_until'] = datetime.datetime.fromtimestamp(int(sighting['date_sighting']), datetime.timezone.utc).isoformat()
+                    break
         if hasattr(attribute, 'comment') and attribute.comment:
             indicator_args['description'] = attribute.comment
         indicator = Indicator(**indicator_args)

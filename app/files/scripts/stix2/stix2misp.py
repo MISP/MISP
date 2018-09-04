@@ -237,9 +237,10 @@ class StixParser():
         self.misp_event.add_object(**misp_object)
 
     def parse_attribute(self, o, labels):
+        attribute_uuid = o['id'].split('--')[1]
         attribute_type = self.get_misp_type(labels)
         attribute_category = self.get_misp_category(labels)
-        attribute = {'type': attribute_type, 'category': attribute_category}
+        attribute = {'uuid': attribute_uuid, 'type': attribute_type, 'category': attribute_category}
         tags = [{'name': label} for label in labels[3:]]
         if tags:
             attribute['Tag'] = tags
@@ -248,19 +249,21 @@ class StixParser():
             value = o.get('name')
         else:
             if stix_type == 'indicator':
-                o_date = o.get('valid_from')
+                if hasattr(o, 'valid_until'):
+                    org_uuid = o['created_by_ref'].split('--')[1]
+                    attribute['Sighting'] = [{'type': '2', 'date_sighting': str(self.getTimestampfromDate(o['valid_until'])),
+                                             'Organisation': {'uuid': org_uuid, 'name': self.event['identity'][org_uuid]['name']}}]
                 pattern = o.get('pattern').replace('\\\\', '\\')
                 value = self.parse_pattern_with_data(pattern) if attribute_type in ('malware-sample', 'attachment') else self.parse_pattern(pattern)
                 attribute['to_ids'] = True
             else:
-                o_date = o.get('first_observed')
+                attribute['timestamp'] = self.getTimestampfromDate(o.get('last_observed'))
                 observable = o.get('objects')
                 try:
                     value = self.parse_observable(observable, attribute_type)
                 except Exception:
                     print('Error with attribute type {}:\n{}'.format(attribute_type, observable), file=sys.stderr)
                 attribute['to_ids'] = False
-            attribute['timestamp'] = self.getTimestampfromDate(o_date)
         if 'description' in o:
             attribute['comment'] = o.get('description')
         if isinstance(value, tuple):
