@@ -251,6 +251,7 @@ firewall-cmd --reload
 # To rotate these logs install the supplied logrotate script:
 
 cp INSTALL/misp.logrotate /etc/logrotate.d/misp
+chmod 0640 /etc/logrotate.d/misp
 
 8.01/ Allow logrotate to work under SELinux and modify the log files
 semanage fcontext -a -t httpd_log_t "/var/www/MISP/app/tmp/logs(/.*)?"
