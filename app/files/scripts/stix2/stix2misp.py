@@ -249,7 +249,6 @@ class StixParser():
             value = o.get('name')
         else:
             if stix_type == 'indicator':
-                o_date = o.get('valid_from')
                 if hasattr(o, 'valid_until'):
                     org_uuid = o['created_by_ref'].split('--')[1]
                     attribute['Sighting'] = {'type': '2', 'date_sighting': str(self.getTimestampfromDate(o['valid_until'])),
@@ -258,14 +257,13 @@ class StixParser():
                 value = self.parse_pattern_with_data(pattern) if attribute_type in ('malware-sample', 'attachment') else self.parse_pattern(pattern)
                 attribute['to_ids'] = True
             else:
-                o_date = o.get('first_observed')
+                attribute['timestamp'] = self.getTimestampfromDate(o.get('last_observed'))
                 observable = o.get('objects')
                 try:
                     value = self.parse_observable(observable, attribute_type)
                 except Exception:
                     print('Error with attribute type {}:\n{}'.format(attribute_type, observable), file=sys.stderr)
                 attribute['to_ids'] = False
-            attribute['timestamp'] = self.getTimestampfromDate(o_date)
         if 'description' in o:
             attribute['comment'] = o.get('description')
         if isinstance(value, tuple):
