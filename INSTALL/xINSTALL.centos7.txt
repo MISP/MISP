@@ -223,6 +223,7 @@ firewall-cmd --reload
 # To rotate these logs install the supplied logrotate script:
 
 cp INSTALL/misp.logrotate /etc/logrotate.d/misp
+chmod 0640 /etc/logrotate.d/misp
 
 # Now make logrotate work under SELinux as well
 # Allow logrotate to modify the log files
