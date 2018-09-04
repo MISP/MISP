@@ -2335,7 +2335,7 @@ class EventsController extends AppController
                             ),
                         'order' => array('Job.id' => 'desc')
                 ));
-                $dir = new Folder(APP . 'tmp/cached_exports/' . $k);
+                $dir = new Folder(APP . 'tmp/cached_exports/' . $k, true);
                 if ($k === 'text') {
                     // Since all of the text export files are generated together, we might as well just check for a single one md5.
                     $file = new File($dir->pwd() . DS . 'misp.text_md5.' . $org_name . $type['extension']);
