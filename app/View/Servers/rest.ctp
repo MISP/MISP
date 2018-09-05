@@ -144,11 +144,11 @@
 		$('#TemplateSelect').change(function() {
 			var selected_template = $('#TemplateSelect').val();
 			if (selected_template !== '') {
-				setApiInfoBox();
 				$('#template_description').show();
 				$('#ServerMethod').val('POST');
 				$('#ServerUrl').val(allValidApis[selected_template].url);
 				$('#ServerBody').val(allValidApis[selected_template].body);
+				setApiInfoBox();
 			}
 		});
 	});
