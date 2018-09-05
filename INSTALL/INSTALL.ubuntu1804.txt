@@ -205,6 +205,7 @@ sudo systemctl restart apache2
 # To rotate these logs install the supplied logrotate script:
 
 sudo cp /var/www/MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
+chmod 0640 /etc/logrotate.d/misp
 
 9/ MISP configuration
 ---------------------
