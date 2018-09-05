@@ -759,7 +759,7 @@ class Server extends AppModel
                         ),
                         'custom_css' => array(
                                 'level' => 2,
-                                'description' => __('If you would like to customise the css, simply drop a css file in the /var/www/MISP/webroot/css directory and enter the name here.'),
+                                'description' => __('If you would like to customise the css, simply drop a css file in the /var/www/MISP/app/webroot/css directory and enter the name here.'),
                                 'value' => '',
                                 'errorMessage' => '',
                                 'test' => 'testForStyleFile',
