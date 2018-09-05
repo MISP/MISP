@@ -3055,6 +3055,14 @@ class EventsController extends AppController
 			'returnFormat' => $returnFormat,
 			'scope' => 'Event'
 		);
+		if (empty($exportTool->non_restrictive_export)) {
+			if (!isset($filters['to_ids'])) {
+				$filters['to_ids'] = 1;
+			}
+			if (!isset($filters['published'])) {
+				$filters['published'] = 1;
+			}
+		}
 		$final = $exportTool->header($exportToolParams);
         $eventCount = count($eventid);
         $i = 0;
