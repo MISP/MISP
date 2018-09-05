@@ -2112,6 +2112,9 @@ class AttributesController extends AppController
         if (isset($filters['returnFormat'])) {
           $returnFormat = $filters['returnFormat'];
         }
+		if ($returnFormat === 'download') {
+			$returnFormat = 'json';
+		}
         $conditions = $this->Attribute->buildFilterConditions($this->Auth->user(), $filters);
         $params = array(
                 'conditions' => $conditions,
@@ -2129,6 +2132,10 @@ class AttributesController extends AppController
                 $params['conditions']['AND'][] = array('Object.deleted' => 1);
             }
         }
+		if (!isset($validFormats[$returnFormat])) {
+			// this is where the new code path for the export modules will go
+			throw new MethodNotFoundException('Invalid export format.');
+		}
 		App::uses($validFormats[$returnFormat][1], 'Export');
 		$exportTool = new $validFormats[$returnFormat][1]();
 		$exportToolParams = array(
@@ -2140,8 +2147,7 @@ class AttributesController extends AppController
 		if (!empty($exportTool->additional_params)) {
 			$params = array_merge($params, $exportTool->additional_params);
 		}
-        $final = '';
-        $final .= $exportTool->header($exportToolParams);
+        $final = $exportTool->header($exportToolParams);
 		$continue = false;
 		if (empty($params['limit'])) {
 			$params['limit'] = 10000;
@@ -3105,10 +3111,6 @@ class AttributesController extends AppController
                 $resultArray[] = array($type => 'Enrichment service not reachable.');
                 continue;
             }
-            if (!is_array($result)) {
-                $resultArray[] =  array($type => $result);
-                continue;
-            }
             if (!empty($result['results'])) {
                 foreach ($result['results'] as $r) {
                     if (is_array($r['values']) && !empty($r['values'])) {
@@ -3117,7 +3119,7 @@ class AttributesController extends AppController
                             if (is_array($v)) {
                                 $v = 'Array returned';
                             }
-                            $tempArray[] = $k . ': ' . $v;
+                            $tempArray[$k] = $v;
                         }
                         $resultArray[] = array($type => $tempArray);
                     } elseif ($r['values'] == null) {

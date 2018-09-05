@@ -1671,11 +1671,14 @@ class AppModel extends Model
         if (!is_array($keys)) {
             $keys = array($keys);
         }
-        if (!isset($filter['OR']) && !isset($filter['AND']) && !isset($filter['OR'])) {
+        if (!isset($filter['OR']) && !isset($filter['AND']) && !isset($filter['NOT'])) {
             return $conditions;
         }
         foreach ($filter as $operator => $filters) {
             $temp = array();
+			if (!is_array($filters)) {
+				$filters = array($filters);
+			}
             foreach ($filters as $f) {
                 // split the filter params into two lists, one for substring searches one for exact ones
                 if ($f[strlen($f) - 1] === '%' || $f[0] === '%') {
