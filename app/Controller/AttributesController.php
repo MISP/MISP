@@ -3108,10 +3108,6 @@ class AttributesController extends AppController
                 $resultArray[] = array($type => 'Enrichment service not reachable.');
                 continue;
             }
-            if (!is_array($result)) {
-                $resultArray[] =  array($type => $result);
-                continue;
-            }
             if (!empty($result['results'])) {
                 foreach ($result['results'] as $r) {
                     if (is_array($r['values']) && !empty($r['values'])) {
@@ -3120,7 +3116,7 @@ class AttributesController extends AppController
                             if (is_array($v)) {
                                 $v = 'Array returned';
                             }
-                            $tempArray[] = $k . ': ' . $v;
+                            $tempArray[$k] = $v;
                         }
                         $resultArray[] = array($type => $tempArray);
                     } elseif ($r['values'] == null) {
