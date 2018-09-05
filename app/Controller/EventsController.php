@@ -3036,6 +3036,9 @@ class EventsController extends AppController
         if (isset($filters['returnFormat'])) {
             $returnFormat = $filters['returnFormat'];
         }
+		if ($returnFormat === 'download') {
+			$returnFormat = 'json';
+		}
         $eventid = $this->Event->filterEventIds($user, $filters);
 		if (!isset($validFormats[$returnFormat])) {
 			// this is where the new code path for the export modules will go

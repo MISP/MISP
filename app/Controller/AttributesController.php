@@ -2112,6 +2112,9 @@ class AttributesController extends AppController
         if (isset($filters['returnFormat'])) {
           $returnFormat = $filters['returnFormat'];
         }
+		if ($returnFormat === 'download') {
+			$returnFormat = 'json';
+		}
         $conditions = $this->Attribute->buildFilterConditions($this->Auth->user(), $filters);
         $params = array(
                 'conditions' => $conditions,
