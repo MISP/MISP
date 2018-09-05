@@ -2268,7 +2268,7 @@ class EventsController extends AppController
         }
     }
 
-    public function automation()
+    public function automation($legacy = false)
     {
         // Simply display a static view
         if (!$this->userRole['perm_auth']) {
@@ -2294,6 +2294,9 @@ class EventsController extends AppController
         $rpzSettings = $this->Server->retrieveCurrentSettings('Plugin', 'RPZ_');
         $this->set('rpzSettings', $rpzSettings);
         $this->set('hashTypes', array_keys($this->Event->Attribute->hashTypes));
+		if ($legacy) {
+			$this->render('legacy_automation');
+		}
     }
 
     public function export()
