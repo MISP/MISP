@@ -232,7 +232,7 @@ class RestResponseComponent extends Component
 									$filter_items = array($filter_items);
 								}
 								foreach ($filter_items as $filter) {
-									if ($filter === strtolower($filter)) {
+									if ($filter === lcfirst($filter)) {
 										$data['body'][$filter] = $filter_type;
 									} else {
 										$data['body'][$filter] = array($filter_type);
