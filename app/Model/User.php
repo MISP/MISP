@@ -752,12 +752,15 @@ class User extends AppModel
         }
         $failed = false;
         $failureReason = "";
-        // check if the e-mail can be encrypted
-        $canEncryptGPG = isset($user['User']['gpgkey']) && !empty($user['User']['gpgkey']);
-        $canEncryptSMIME = isset($user['User']['certif_public']) && !empty($user['User']['certif_public']) && Configure::read('SMIME.enabled');
-
+        // check if the e-mail can be signed & encrypted
+        $signEncryptOptions = [
+            "GPGSign"       => Configure::read('GnuPG.sign', false),
+            "GPGEncrypt"    => isset($user['User']['gpgkey']) && !empty($user['User']['gpgkey']),
+            "SMIMEEncrypt"  => isset($user['User']['certif_public']) && !empty($user['User']['certif_public']) && Configure::read('SMIME.enabled'),
+        ];
+        
         // If bodyonlyencrypted is enabled and the user has no encryption key, use the alternate body (if it exists)
-        if (Configure::read('GnuPG.bodyonlyencrypted') && !$canEncryptSMIME && !$canEncryptGPG && $bodyNoEnc) {
+        if (Configure::read('GnuPG.bodyonlyencrypted') && !$signEncryptOptions['SMIMEEncrypt'] && !$signEncryptOptions['GPGSign'] && $bodyNoEnc) {
             $body = $bodyNoEnc;
         }
         $body = str_replace('\n', PHP_EOL, $body);
@@ -768,26 +771,14 @@ class User extends AppModel
             $failed = true;
             $failureReason = " encrypted messages are enforced and the message could not be encrypted for this user as no valid encryption key was found.";
         }
-        // Let's encrypt the message if we can
-        if (!$failed && $canEncryptGPG) {
-            $encryptionResult = $this->__encryptUsingGPG($Email, $body, $subject, $user);
-            if (isset($encryptionResult['failed'])) {
-                $failed = true;
-            }
-            if (isset($encryptionResult['failureReason'])) {
-                $failureReason = $encryptionResult['failureReason'];
-            }
+
+        // split out signing/encryption into its own method
+        if (!$failed) {
+            $signEncryptResult = $this->__handleEncryptionAndSigning($Email, $body, $subject, $user, $signEncryptOptions);
+            $failed = (isset($signEncryptResult['failed'])) ? $signEncryptResult['failed'] : false;
+            $failureReason = (isset($signEncryptResult['failureReason'])) ? $signEncryptResult['failureReason'] : "";
         }
-        // SMIME if not GPG key
-        if (!$failed && !$canEncryptGPG && $canEncryptSMIME) {
-            $encryptionResult = $this->__encryptUsingSmime($Email, $body, $subject, $user);
-            if (isset($encryptionResult['failed'])) {
-                $failed = true;
-            }
-            if (isset($encryptionResult['failureReason'])) {
-                $failureReason = $encryptionResult['failureReason'];
-            }
-        }
+
         $replyToLog = '';
         if (!$failed) {
             $result = $this->__finaliseAndSendEmail($replyToUser, $Email, $replyToLog, $user, $subject, $body);
@@ -845,48 +836,83 @@ class User extends AppModel
         return $result;
     }
 
-    private function __encryptUsingGPG(&$Email, &$body, $subject, $user)
+    private function __handleEncryptionAndSigning(&$Email, &$body, $subject, $user, $signEncryptOptions) {
+        
+        $failed = false;
+        $failureReason = "";
+        if (!$failed && $signEncryptOptions['GPGSign']) {
+            $signResult = $this->__signUsingGPG($body);
+            $failed = (isset($signResult['failed'])) ? $signResult['failed'] : false;
+            $failureReason = (isset($signResult['failureReason'])) ? $signResult['failureReason'] : "";
+        }
+
+        if (!$failed && $signEncryptOptions['GPGEncrypt']) {
+            $encryptionResult = $this->__encryptUsingGPG($Email, $body, $subject, $user);
+            $failed = (isset($encryptionResult['failed'])) ? $encryptionResult['failed'] : false;
+            $failureReason = (isset($encryptionResult['failureReason'])) ? $encryptionResult['failureReason'] : "";
+        }
+
+        if (!$failed && !$signEncryptOptions['GPGEncrypt'] && $signEncryptOptions['SMIMEEncrypt']) {
+            $encryptionResult = $this->__encryptUsingSmime($Email, $body, $subject, $user);
+            $failed = (isset($encryptionResult['failed'])) ? $encryptionResult['failed'] : false;
+            $failureReason = (isset($encryptionResult['failureReason'])) ? $encryptionResult['failureReason'] : "";
+        }
+
+        if (!empty($failed)) {
+            return array('failed' => $failed, 'failureReason' => $failureReason);
+        }
+        return true;
+    }
+
+    private function __signUsingGPG(&$body)
     {
         $failed = false;
         // Sign the body
-        require_once 'Crypt/GPG.php';
         try {
+            require_once 'Crypt/GPG.php';
             $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'gpgconf' => Configure::read('GnuPG.gpgconf'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg'), 'debug'));	// , 'debug' => true
-            if (Configure::read('GnuPG.sign')) {
-                $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-                $body = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
-            }
+            $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+            $body = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
         } catch (Exception $e) {
             $failureReason = " the message could not be signed. The following error message was returned by gpg: " . $e->getMessage();
             $this->log($e->getMessage());
             $failed = true;
         }
-        if (!$failed) {
+        if (!empty($failed)) {
+            return array('failed' => $failed, 'failureReason' => $failureReason);
+        }
+        return true;
+    }
+
+    private function __encryptUsingGPG(&$Email, &$body, $subject, $user)
+    {
+        $failed = false;
+        try {
+            require_once 'Crypt/GPG.php';
+            $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'gpgconf' => Configure::read('GnuPG.gpgconf'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg'), 'debug'));	// , 'debug' => true
             $keyImportOutput = $gpg->importKey($user['User']['gpgkey']);
-            try {
-                $key = $gpg->getKeys($keyImportOutput['fingerprint']);
-                $subKeys = $key[0]->getSubKeys();
-                $canEncryptGPG = false;
-                $currentTimestamp = time();
-                foreach ($subKeys as $subKey) {
-                    $expiration = $subKey->getExpirationDate();
-                    if (($expiration == 0 || $currentTimestamp < $expiration) && $subKey->canEncrypt()) {
-                        $canEncryptGPG = true;
-                    }
+            $key = $gpg->getKeys($keyImportOutput['fingerprint']);
+            $subKeys = $key[0]->getSubKeys();
+            $canEncryptGPG = false;
+            $currentTimestamp = time();
+            foreach ($subKeys as $subKey) {
+                $expiration = $subKey->getExpirationDate();
+                if (($expiration == 0 || $currentTimestamp < $expiration) && $subKey->canEncrypt()) {
+                    $canEncryptGPG = true;
                 }
-                if ($canEncryptGPG) {
-                    $gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
-                    $body = $gpg->encrypt($body, true);
-                } else {
-                    $failed = true;
-                    $failureReason = " the message could not be encrypted because the provided key is either expired or cannot be used for encryption.";
-                }
-            } catch (Exception $e) {
-                // despite the user having a GnuPG key and the signing already succeeding earlier, we get an exception. This must mean that there is an issue with the user's key.
-                $failureReason = " the message could not be encrypted because there was an issue with the user's GnuPG key. The following error message was returned by gpg: " . $e->getMessage();
-                $this->log($e->getMessage());
-                $failed = true;
             }
+            if ($canEncryptGPG) {
+                $gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
+                $body = $gpg->encrypt($body, true);
+            } else {
+                $failed = true;
+                $failureReason = " the message could not be encrypted because the provided key is either expired or cannot be used for encryption.";
+            }
+        } catch (Exception $e) {
+            // despite the user having a GnuPG key and the signing already succeeding earlier, we get an exception. This must mean that there is an issue with the user's key.
+            $failureReason = " the message could not be encrypted because there was an issue with the user's GnuPG key. The following error message was returned by gpg: " . $e->getMessage();
+            $this->log($e->getMessage());
+            $failed = true;
         }
         if (!empty($failed)) {
             return array('failed' => $failed, 'failureReason' => $failureReason);

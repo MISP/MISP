@@ -3011,6 +3011,13 @@ class Event extends AppModel
                     }
                 }
             }
+            // zeroq: check if sightings are attached and add to event
+            if (isset($data['Sighting']) && !empty($data['Sighting'])) {
+                $this->Sighting = ClassRegistry::init('Sighting');
+                foreach ($data['Sighting'] as $s) {
+                    $result = $this->Sighting->saveSightings($s['attribute_uuid'], false, $s['date_sighting'], $user, $s['type'], $s['source'], $s['uuid']);
+                }
+            }
             if ($fromXml) {
                 $created_id = $this->id;
             }
@@ -3170,6 +3177,13 @@ class Event extends AppModel
                             ));
                         }
                     }
+                }
+            }
+            // zeroq: if sightings then attach to event
+            if (isset($data['Sighting']) && !empty($data['Sighting'])) {
+                $this->Sighting = ClassRegistry::init('Sighting');
+                foreach ($data['Sighting'] as $s) {
+                    $result = $this->Sighting->saveSightings($s['attribute_uuid'], false, $s['date_sighting'], $user, $s['type'], $s['source'], $s['uuid']);
                 }
             }
             // if published -> do the actual publishing
