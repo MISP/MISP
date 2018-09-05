@@ -2768,18 +2768,18 @@ class EventsController extends AppController
         $params['page'] = 1;
         $i = 0;
         $continue = true;
-        $options = array(
+        $params = array_merge($params, array(
             'requested_obj_attributes' => $requested_obj_attributes,
             'requested_attributes' => $requested_attributes,
             'includeContext' => $includeContext
-        );
+        ));
         App::uses('CsvExport', 'Export');
         $export = new CsvExport();
-        $final = $export->header($options);
+        $final = $export->header($params);
         while ($continue) {
             $attributes = $this->Event->csv($user, $params, false, $continue);
             $params['page'] += 1;
-            $final .= $export->handler($attributes, $options);
+            $final .= $export->handler($attributes, $params);
             $final .= $export->separator($attributes);
         }
         $export->footer();
