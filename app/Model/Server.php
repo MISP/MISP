@@ -1914,12 +1914,6 @@ class Server extends AppModel
             // error
             $fails[$eventId] = 'failed downloading the event';
         }
-        if ($jobId) {
-            if ($k % 10 == 0) {
-                $job->id = $jobId;
-                $job->saveField('progress', 50 * (($k + 1) / count($eventIds)));
-            }
-        }
         return true;
     }
 
@@ -2023,6 +2017,11 @@ class Server extends AppModel
             $HttpSocket = $this->setupHttpSocket($server);
             foreach ($eventIds as $k => $eventId) {
                 $this->__pullEvents($eventId, $successes, $fails, $eventModel, $server, $user, $passAlong, $job, $jobId);
+                if ($jobId) {
+                    if ($k % 10 == 0) {
+                        $job->saveField('progress', 50 * (($k + 1) / count($eventIds)));
+                    }
+                }
             }
         }
         if ($jobId) {
