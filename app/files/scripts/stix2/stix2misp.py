@@ -77,8 +77,8 @@ class StixParser():
         self.load_mapping()
 
     def add_original_file(self, original_filename):
-        with open(self.filename, 'r') as f:
-            sample = b64encode(f.read().encode('utf-8')).decode('utf-8')
+        with open(self.filename, 'rb') as f:
+            sample = b64encode(f.read()).decode('utf-8')
         original_file = MISPObject('original-imported-file')
         original_file.add_attribute(**{'type': 'attachment', 'value': original_filename,
                                        'object_relation': 'imported-sample', 'data': sample})
