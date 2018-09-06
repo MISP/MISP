@@ -559,6 +559,7 @@ class AppController extends Controller
                 );
                 return false;
             }
+			$key = 'json';
         } else {
             if (!$this->Auth->user('id')) {
                 $exception = $this->RestResponse->throwException(
@@ -569,7 +570,6 @@ class AppController extends Controller
             }
             $user = $this->Auth->user();
         }
-		$key = 'json';
         return $user;
     }
 

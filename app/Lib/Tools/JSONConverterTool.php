@@ -44,13 +44,6 @@ class JSONConverterTool
         // cleanup the array from things we do not want to expose
         //
         unset($event['Event']['user_id']);
-        // hide the org field is we are not in showorg mode
-        if (!Configure::read('MISP.showorg') && !$isSiteAdmin) {
-            unset($event['Event']['org']);
-            unset($event['Event']['orgc']);
-            unset($event['Event']['from']);
-        }
-
         if (isset($event['Event']['Attribute'])) {
             $event['Event']['Attribute'] = $this->__cleanAttributes($event['Event']['Attribute']);
             if (!empty($event['Sighting'])) {
@@ -87,10 +80,6 @@ class JSONConverterTool
         if (isset($event['Event']['RelatedEvent'])) {
             foreach ($event['Event']['RelatedEvent'] as $key => $value) {
                 unset($event['Event']['RelatedEvent'][$key]['Event']['user_id']);
-                if (!Configure::read('MISP.showorg') && !$isSiteAdmin) {
-                    unset($event['Event']['RelatedEvent'][$key]['Event']['org']);
-                    unset($event['Event']['RelatedEvent'][$key]['Event']['orgc']);
-                }
             }
         }
         $result = array('Event' => $event['Event']);

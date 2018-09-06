@@ -2,6 +2,9 @@
 
 class XmlExport
 {
+	private $__converter = false;
+	public $non_restrictive_export = true;
+
     public function handler($data, $options = array())
     {
 		if ($options['scope'] === 'Attribute') {
@@ -10,6 +13,14 @@ class XmlExport
 			return $this->__eventHandler($data, $options);
 		}
     }
+
+	private function __eventHandler($event, $options = array()) {
+		if ($this->__converter === false) {
+			App::uses('XMLConverterTool', 'Tools');
+			$this->__converter = new XMLConverterTool();
+		}
+		return $this->__converter->convert($event, false);
+	}
 
 	private function __attributeHandler($attribute, $options = array())
 	{

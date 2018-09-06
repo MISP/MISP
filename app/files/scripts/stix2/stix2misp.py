@@ -251,8 +251,8 @@ class StixParser():
             if stix_type == 'indicator':
                 if hasattr(o, 'valid_until'):
                     org_uuid = o['created_by_ref'].split('--')[1]
-                    attribute['Sighting'] = {'type': '2', 'date_sighting': str(self.getTimestampfromDate(o['valid_until'])),
-                                             'Organisation': {'uuid': org_uuid, 'name': self.event['identity'][org_uuid]['name']}}
+                    attribute['Sighting'] = [{'type': '2', 'date_sighting': str(self.getTimestampfromDate(o['valid_until'])),
+                                             'Organisation': {'uuid': org_uuid, 'name': self.event['identity'][org_uuid]['name']}}]
                 pattern = o.get('pattern').replace('\\\\', '\\')
                 value = self.parse_pattern_with_data(pattern) if attribute_type in ('malware-sample', 'attachment') else self.parse_pattern(pattern)
                 attribute['to_ids'] = True

@@ -81,6 +81,9 @@
         },
         "headers": {
           "type": "string"
+        },
+        "caching_enabled": {
+          "type": "boolean"
         }
       },
       "required": [

@@ -35,7 +35,17 @@ class RestResponseComponent extends Component
                 'mandatory' => array('id'),
                 'optional' => array('event_id', 'allow_hard_delete'),
                 'params' => array('event_id')
-            )
+            ),
+			'restSearch' => array(
+				'description' => "Search MISP using a list of filter parameters and return the data
+					in the selected format. The search is available on an event and an attribute level,
+					just select the scope via the URL (/events/restSearch vs /attributes/restSearch).
+					Besides the parameters listed, other, format specific ones can be passed along.
+					Accepted return formats are: [json, xml, suricata, snort, text, openioc]",
+				'mandatory' => array('returnFormat'),
+				'optional' => array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id'),
+				'params' => array()
+			)
         ),
         'Event' => array(
             'add' => array(
@@ -49,8 +59,25 @@ class RestResponseComponent extends Component
                 'mandatory' => array(),
                 'optional' => array('info', 'threat_level_id', 'analysis', 'distribution', 'sharing_group_id', 'uuid', 'published', 'timestamp', 'date', 'Attribute', 'Object', 'Shadow_Attribute', 'EventTag'),
                 'params' => array('event_id')
-            )
+            ),
+			'restSearch' => array(
+				'description' => "Search MISP using a list of filter parameters and return the data
+					in the selected format. The search is available on an event and an attribute level,
+					just select the scope via the URL (/events/restSearch vs /attributes/restSearch).
+					Besides the parameters listed, other, format specific ones can be passed along.
+					Accepted return formats are: [json, xml, suricata, snort, openioc]",
+				'mandatory' => array('returnFormat'),
+				'optional' => array('value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly'),
+				'params' => array()
+			)
         ),
+		'EventGraph' => array(
+			'add' => array(
+				'description' => "POST a network in JSON format to this API to to keep an history of it",
+				'mandatory' => array('event_id', 'network_json'),
+				'optional' => array('network_name')
+			)
+		),
         'Feed' => array(
             'add' => array(
                 'description' => "POST a MISP Feed descriptor JSON to this API to add a Feed.",
@@ -82,20 +109,20 @@ class RestResponseComponent extends Component
                 'description' => "POST a Role object in JSON format to this API to create a new role. 'permission' sets the data access permission (0 => read only, 1 => add/edit own, 2 => add/edit org, 3 => publish)",
                 'mandatory' => array('name'),
                 'optional' => array(
-          'perm_delegate',
-          'perm_sync',
-          'perm_admin',
-          'perm_audit',
-          'perm_auth',
-          'perm_site_admin',
-          'perm_regexp_access',
-          'perm_tagger',
-          'perm_template',
-          'perm_sharing_group',
-          'perm_tag_editor',
-          'default_role',
-          'perm_sighting',
-          'permission'
+					'perm_delegate',
+					'perm_sync',
+					'perm_admin',
+					'perm_audit',
+					'perm_auth',
+					'perm_site_admin',
+					'perm_regexp_access',
+					'perm_tagger',
+					'perm_template',
+					'perm_sharing_group',
+					'perm_tag_editor',
+					'default_role',
+					'perm_sighting',
+					'permission'
                 )
             ),
             'admin_edit' => array(
@@ -180,15 +207,54 @@ class RestResponseComponent extends Component
                 'description' => "POST a body and a subject in a JSON to send an e-mail through MISP to the user ID given in the URL",
                 'mandatory' => array('subject', 'body')
             )
-        ),
-        'EventGraph' => array(
-            'add' => array(
-                'description' => "POST a network in JSON format to this API to to keep an history of it",
-                'mandatory' => array('event_id', 'network_json'),
-                'optional' => array('network_name')
-            )
         )
     );
+
+	public function getAllApis($user, $Server)
+	{
+		$result = array();
+		foreach ($this->__descriptions as $controller => $actions) {
+			$controller = Inflector::tableize($controller);
+			foreach ($actions as $action => $data) {
+				if ($Server->ACL->checkAccess($user, $controller, $action, true) === true) {
+					$admin_routing = '';
+					if (substr($action, 0, 6) === 'admin_') {
+						$action = substr($action, 6);
+						$admin_routing = 'admin/';
+					}
+					$data['api_name'] = '[' . $controller . '] ' . $action;
+					$data['body'] = array();
+					$filter_types = array('mandatory', 'optional');
+					foreach ($filter_types as $filter_type) {
+						if (!empty($data[$filter_type])) {
+							foreach ($data[$filter_type] as $filter_items) {
+								if (!is_array($filter_items)) {
+									$filter_items = array($filter_items);
+								}
+								foreach ($filter_items as $filter) {
+									if ($filter === lcfirst($filter)) {
+										$data['body'][$filter] = $filter_type;
+									} else {
+										$data['body'][$filter] = array($filter_type);
+									}
+								}
+							}
+						}
+					}
+					$data['body'] = json_encode($data['body'], JSON_PRETTY_PRINT);
+					$url = '/' . $admin_routing . $controller . '/' . $action;
+					$data['url'] = $url;
+					if (!empty($data['params'])) {
+						foreach ($data['params'] as $param) {
+							$data['url'] .= '/[' . $param . ']';
+						}
+					}
+					$result[$url] = $data;
+				}
+			}
+		}
+		return $result;
+	}
 
 	// use a relative path to check if the current api has a description
 	public function getApiInfo($relative_path)

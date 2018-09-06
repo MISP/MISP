@@ -232,12 +232,16 @@ class Sighting extends AppModel
             if (isset($sightings[$k]['Organisation'])) {
                 $sightings[$k]['Sighting']['Organisation'] = $sightings[$k]['Organisation'];
             }
+            // zeroq: add attribute UUID to sighting to make synchronization easier
+            $attribute = $this->Attribute->fetchAttribute($sighting['Sighting']['attribute_id']);
+            $sightings[$k]['Sighting']['attribute_uuid'] = $attribute['Attribute']['uuid'];
+
             $sightings[$k] = $sightings[$k]['Sighting'] ;
         }
         return $sightings;
     }
 
-    public function saveSightings($id, $values, $timestamp, $user, $type = false, $source = false)
+    public function saveSightings($id, $values, $timestamp, $user, $type = false, $source = false, $sighting_uuid = false)
     {
         $conditions = array();
         if ($id && $id !== 'stix') {
@@ -281,6 +285,19 @@ class Sighting extends AppModel
                     'type' => $type,
                     'source' => $source
             );
+            // zeroq: allow setting a specific uuid
+            if($sighting_uuid) {
+                $sighting['uuid'] = $sighting_uuid;
+                // check if sighting with given uuid already exists
+                $existing_sighting = $this->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => array('uuid' => $sighting_uuid)
+                ));
+                // do not add sighting if already exists
+                if (!empty($existing_sighting)) {
+                    return 0;
+                }
+            }
             $result = $this->save($sighting);
             if ($result === false) {
                 return json_encode($this->validationErrors);

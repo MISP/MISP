@@ -458,7 +458,7 @@ class StixBuilder():
         if hasattr(attribute, 'Sighting'):
             for sighting in attribute.Sighting:
                 if sighting['Organisation']['name'] == self.misp_event.Orgc.name and sighting['type'] == "2":
-                    indicator_args['valid_until'] = datetime.datetime.fromtimestamp(int(sighting['date_sighting'])).isoformat()
+                    indicator_args['valid_until'] = datetime.datetime.fromtimestamp(int(sighting['date_sighting']), datetime.timezone.utc).isoformat()
                     break
         if hasattr(attribute, 'comment') and attribute.comment:
             indicator_args['description'] = attribute.comment
