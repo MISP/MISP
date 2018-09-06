@@ -90,13 +90,10 @@ class StixParser():
         with open(self.filename, 'r') as f:
             sample = base64.b64encode(f.read().encode('utf-8')).decode('utf-8')
         original_file = MISPObject('original-imported_file')
-        types = ['filename', 'attachment', 'text']
-        relations = ['filename', 'imported-sample', 'type']
-        for t, v, r in zip(types, [original_filename, original_filename, "STIX {}".format(self.event.version)], relations):
-            attribute = {"type": t, "value":v, "object_relation": r}
-            if t == 'attachment':
-                attribute['data'] = sample
-            original_file.add_attribute(**attribute)
+        original_file.add_attribute(**{'type': 'attachment', 'value': original_filename,
+                                       'object_relation': 'imported-sample', 'data': sample})
+        original_file.add_attribute(**{'type': 'text', 'object_relation': 'type',
+                                       'value': 'STIX {}'.format(self.event.version)})
         self.misp_event.add_object(**original_file)
 
     # Load the mapping dictionary for STIX object types
