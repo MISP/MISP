@@ -20,6 +20,7 @@ import json
 import os
 import time
 import uuid
+import base64
 import stix2misp_mapping
 from operator import attrgetter
 from pymisp import MISPEvent, MISPObject, MISPAttribute, __path__
@@ -57,6 +58,7 @@ class StixParser():
             except ModuleNotFoundError:
                 print(3)
             sys.exit(0)
+        self.filename = filename
         title = event.stix_header.title
         fromMISP = (title is not None and "Export from " in title and "MISP" in title)
         if fromMISP:
@@ -65,14 +67,16 @@ class StixParser():
             self.ttps = package.ttps.ttps if package.ttps else None
         else:
             self.event = event
+        if args[2] is not None:
+            self.add_original_file(args[2])
         try:
-            event_distribution = args[2]
+            event_distribution = args[3]
             if not isinstance(event_distribution, int):
                 event_distribution = int(event_distribution) if event_distribution.isdigit() else 5
         except IndexError:
             event_distribution = 5
         try:
-            attribute_distribution = args[3]
+            attribute_distribution = args[4]
             if attribute_distribution != 'event' and not isinstance(attribute_distribution, int):
                 attribute_distribution = int(attribute_distribution) if attribute_distribution.isdigit() else 5
         except IndexError:
@@ -80,8 +84,17 @@ class StixParser():
         self.misp_event.distribution = event_distribution
         self.__attribute_distribution = event_distribution if attribute_distribution == 'event' else attribute_distribution
         self.fromMISP = fromMISP
-        self.filename = filename
         self.load_mapping()
+
+    def add_original_file(self, original_filename):
+        with open(self.filename, 'r') as f:
+            sample = base64.b64encode(f.read().encode('utf-8'))
+        original_file = MISPObject('original-imported_file')
+        types = ['filename', 'attachment', 'text']
+        relations = ['filename', 'imported-sample', 'type']
+        for t, v, r in zip(types, [original_filename, sample, "STIX {}".format(self.event.version)], relations):
+            original_file.add_attribute(**{"type": t, "value":v, "object_relation": r})
+        self.misp_event.add_object(**original_file)
 
     # Load the mapping dictionary for STIX object types
     def load_mapping(self):
