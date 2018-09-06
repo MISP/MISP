@@ -120,6 +120,7 @@ class StixParser():
             'SystemObjectType': self.handle_system,
             'URIObjectType': self.handle_domain_or_url,
             "WhoisObjectType": self.handle_whois,
+            "WindowsFileObjectType": self.handle_file,
             'WindowsRegistryKeyObjectType': self.handle_regkey,
             "WindowsExecutableFileObjectType": self.handle_pe,
             "WindowsServiceObjectType": self.handle_windows_service,
@@ -352,7 +353,7 @@ class StixParser():
         xsi_type = properties._XSI_TYPE
         # try:
         args = [properties]
-        if xsi_type in ("FileObjectType", "PDFFileObjectType"):
+        if xsi_type in ("FileObjectType", "PDFFileObjectType", "WindowsFileObjectType"):
             args.append(is_object)
         elif xsi_type == "ArtifactObjectType":
             args.append(title)
