@@ -1739,13 +1739,14 @@ class EventsController extends AppController
             throw new UnauthorizedException(__('You do not have permission to do that.'));
         }
         if ($this->request->is('post')) {
+            $original_file = !empty($this->data['Event']['original_file']) ? $this->data['Event']['name'] : None;
             if ($this->_isRest()) {
                 $randomFileName = $this->Event->generateRandomFileName();
                 $tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
                 $tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
                 $tempFile->write($this->request->input());
                 $tempFile->close();
-                $result = $this->Event->upload_stix($this->Auth->user(), $randomFileName, $stix_version);
+                $result = $this->Event->upload_stix($this->Auth->user(), $randomFileName, $stix_version, $original_file);
                 if (is_array($result)) {
                     return $this->RestResponse->saveSuccessResponse('Events', 'upload_stix', false, $this->response->type(), 'STIX document imported, event\'s created: ' . implode(', ', $result) . '.');
                 } elseif (is_numeric($result)) {
@@ -1763,7 +1764,7 @@ class EventsController extends AppController
                     $randomFileName = $this->Event->generateRandomFileName();
                     $tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
                     move_uploaded_file($this->data['Event']['stix']['tmp_name'], $tmpDir . DS . $randomFileName);
-                    $result = $this->Event->upload_stix($this->Auth->user(), $randomFileName, $stix_version);
+                    $result = $this->Event->upload_stix($this->Auth->user(), $randomFileName, $stix_version, $original_file);
                     if (is_array($result)) {
                         $this->Flash->success(__('STIX document imported, event\'s created: ' . implode(', ', $result) . '.'));
                         $this->redirect(array('action' => 'index'));
