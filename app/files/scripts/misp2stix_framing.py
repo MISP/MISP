@@ -1,29 +1,10 @@
 #!/usr/bin/env python3
 
-import sys, json, uuid, os, time, datetime, re
-from dateutil.tz import tzutc
-from stix.indicator import Indicator
-from stix.indicator.valid_time import ValidTime
-from stix.ttp import TTP, Behavior
-from stix.ttp.malware_instance import MalwareInstance
-from stix.incident import Incident, Time, ImpactAssessment, ExternalID, AffectedAsset
-from stix.exploit_target import ExploitTarget, Vulnerability
-from stix.incident.history import JournalEntry, History, HistoryItem
-from stix.threat_actor import ThreatActor
+import sys, datetime, re
 from stix.core import STIXPackage, STIXHeader
-from stix.common import InformationSource, Identity, Confidence
-from stix.data_marking import Marking, MarkingSpecification
-from stix.extensions.marking.tlp import TLPMarkingStructure
-from stix.common.related import *
-from stix.common.confidence import Confidence
-from stix.common.vocabs import IncidentStatus
 from cybox.utils import Namespace
-# if you rely on old idgen from previous stix libraries, mixbox is not installed
-try:
-    from stix.utils import idgen
-except ImportError:
-    from mixbox import idgen
-
+# As python3 is forced anyway, mixbox is used and we don't need to try to import idgen from stix.utils
+from mixbox import idgen
 from stix import __version__ as STIXVER
 
 NS_DICT = {
@@ -77,6 +58,7 @@ SCHEMALOC_DICT = {
     'http://cybox.mitre.org/objects#AccountObject-2': ' http://cybox.mitre.org/XMLSchema/objects/Account/2.1/Account_Object.xsd',
     'http://cybox.mitre.org/objects#ASObject-1': 'http://cybox.mitre.org/XMLSchema/objects/AS/1.0/AS_Object.xsd',
     'http://cybox.mitre.org/objects#AddressObject-2': 'http://cybox.mitre.org/XMLSchema/objects/Address/2.1/Address_Object.xsd',
+    'http://cybox.mitre.org/objects#PortObject-2': 'http://cybox.mitre.org/XMLSchema/objects/Port/2.1/Port_Object.xsd',
     'http://cybox.mitre.org/objects#DomainNameObject-1': 'http://cybox.mitre.org/XMLSchema/objects/Domain_Name/1.0/Domain_Name_Object.xsd',
     'http://cybox.mitre.org/objects#EmailMessageObject-2': 'http://cybox.mitre.org/XMLSchema/objects/Email_Message/2.1/Email_Message_Object.xsd',
     'http://cybox.mitre.org/objects#FileObject-2': 'http://cybox.mitre.org/XMLSchema/objects/File/2.1/File_Object.xsd',
@@ -116,47 +98,29 @@ SCHEMALOC_DICT = {
 def main(args):
     if len(args) < 4:
         sys.exit("Invalid parameters")
-
     baseURL = args[1]
     if not baseURL:
         baseURL = 'https://www.misp-project.org'
     orgname = args[2]
-
-    namespace = [baseURL, orgname.replace(" ", "_")]
-    namespace[1] = re.sub('[\W]+', '', namespace[1])
-    NS_DICT[namespace[0]]=namespace[1]
-
+    orgname = re.sub('[\W]+', '', orgname.replace(" ", "_"))
+    NS_DICT[baseURL] = orgname
     try:
-        idgen.set_id_namespace({baseURL: namespace[1]})
-    except ValueError:
-        # Some weird stix error that sometimes occurs if the stars
-        # align and Mixbox is being mean to us
-        # Glory to STIX, peace and good xmlns be upon it
-        try:
-            idgen.set_id_namespace(Namespace(baseURL, namespace[1]))
-        except TypeError:
-            # Ok this only occurs if the script is being run under py3
-            # and if we're running a REALLY weird version of stix
-            # May as well catch it
-            idgen.set_id_namespace(Namespace(baseURL, namespace[1], "MISP"))
-
-
+        idgen.set_id_namespace(Namespace(baseURL, orgname))
+    except TypeError:
+        idgen.set_id_namespace(Namespace(baseURL, orgname, "MISP"))
     stix_package = STIXPackage()
     stix_header = STIXHeader()
-
-    stix_header.title="Export from {} MISP".format(orgname)
+    stix_header.title="Export from {} MISP".format(args[2])
     stix_header.package_intents="Threat Report"
     stix_package.stix_header = stix_header
     stix_package.version = "1.1.1"
     stix_package.timestamp = datetime.datetime.now()
-
     if args[3] == 'json':
         stix_string = stix_package.to_json()[:-1]
         stix_string += ', "related_packages": ['
     else:
         stix_string = stix_package.to_xml(auto_namespace=False, ns_dict=NS_DICT, schemaloc_dict=SCHEMALOC_DICT)
-        stix_string = stix_string.decode()
-        stix_string = stix_string.replace("</stix:STIX_Package>\n", "");
+        stix_string = stix_string.decode().replace("</stix:STIX_Package>\n", "");
     print(stix_string)
 
 if __name__ == "__main__":

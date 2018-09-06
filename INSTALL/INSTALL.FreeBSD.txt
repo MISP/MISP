@@ -311,6 +311,7 @@ sudo service apache24 restart
 # To rotate these logs install the supplied logrotate script:
 
 sudo cp /usr/local/www/MISP/INSTALL/misp.logrotate /usr/local/etc/logrotate.d/misp
+chmod 0640 /usr/local/etc/logrotate.d/misp
 
 9/ MISP configuration
 ---------------------

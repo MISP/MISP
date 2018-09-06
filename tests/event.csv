@@ -1,31 +1,68 @@
-uuid,event_id,category,type,value,comment,to_ids,date,object_uuid,object_name,object_meta_category
-548847d8-01e0-4231-a739-15bb950d210b,750,Payload installation,md5,"744c07e886497f7b68f6f7fe57b7ab54","Regin samples collected.",1,20141210,,"",""
-548847d8-05f8-49e7-af79-15bb950d210b,750,Payload installation,md5,"47d0e8f9d7a6429920329207a32ecc2e","Regin samples collected.",1,20141210,,"",""
-548847d8-3fbc-4a06-ba82-15bb950d210b,750,Payload installation,md5,"2c8b9d2885543d7ade3cae98225e263b","Regin samples collected.",1,20141210,,"",""
-548847d8-9db0-4df6-8206-15bb950d210b,750,Payload installation,md5,"26297dc3cd0b688de3b846983c5385e5","Regin samples collected.",1,20141210,,"",""
-548847d8-a33c-41f3-9f7a-15bb950d210b,750,Payload installation,md5,"01c2f321b6bfdb9473c079b0797567ba","Regin samples collected.",1,20141210,,"",""
-548847d8-c950-48eb-b960-15bb950d210b,750,Payload installation,md5,"4b6b86c7fec1c574706cecedf44abded","Regin samples collected.",1,20141210,,"",""
-548847d9-1404-4331-ae3c-15bb950d210b,750,Payload installation,md5,"90fecc6a89b2e22d82d58878d93477d4","Regin samples collected.",1,20141210,,"",""
-548847d9-39dc-4247-b23d-15bb950d210b,750,Payload installation,md5,"06665b96e293b23acc80451abb413e50","Regin samples collected.",1,20141210,,"",""
-548847d9-3b28-449e-b527-15bb950d210b,750,Payload installation,md5,"e94393561901895cb0783edc34740fd4","Regin samples collected.",1,20141210,,"",""
-548847d9-4020-41da-b5f3-15bb950d210b,750,Payload installation,md5,"db405ad775ac887a337b02ea8b07fddc","Regin samples collected.",1,20141210,,"",""
-548847d9-6340-44a0-8f33-15bb950d210b,750,Payload installation,md5,"ffb0b9b5b610191051a7bdf0806e1e47","Regin samples collected.",1,20141210,,"",""
-548847d9-8b18-4654-9766-15bb950d210b,750,Payload installation,md5,"f3ffc2aaaa1e2ab55ec26ff098653347","Regin samples collected.",1,20141210,,"",""
-548847d9-a564-4178-b8e6-15bb950d210b,750,Payload installation,md5,"6662c390b2bbbd291ec7987388fc75d7","Regin samples collected.",1,20141210,,"",""
-548847d9-afe0-4531-a4b0-15bb950d210b,750,Payload installation,md5,"187044596bc1328efa0ed636d8aa4a5c","Regin samples collected.",1,20141210,,"",""
-548847d9-b63c-4c95-a2bd-15bb950d210b,750,Payload installation,md5,"1800def71006ca6790767e202fae9b9a","Regin samples collected.",1,20141210,,"",""
-548847d9-e6fc-4b93-a773-15bb950d210b,750,Payload installation,md5,"bfbe8c3ee78750c3a520480700e440f8","Regin samples collected.",1,20141210,,"",""
-548847d9-fd54-4e49-909b-15bb950d210b,750,Payload installation,md5,"89003e9a1ae635c97ebad07aebc67f00","Regin samples collected.",1,20141210,,"",""
-548847da-1660-4562-a1f8-15bb950d210b,750,Payload installation,md5,"b505d65721bb2453d5039a389113b566","Regin samples collected.",1,20141210,,"",""
-548847da-2134-43d7-ba22-15bb950d210b,750,Payload installation,md5,"8fcf4e53ece6111758a1dd3139dc7cad","Regin samples collected.",1,20141210,,"",""
-548847da-3e40-4ab2-a5eb-15bb950d210b,750,Payload installation,md5,"1c024e599ac055312a4ab75b3950040a","Regin samples collected.",1,20141210,,"",""
-548847da-49c0-404d-ae42-15bb950d210b,750,Payload installation,md5,"d240f06e98c8d3e647cbf4d442d79475","Regin samples collected.",1,20141210,,"",""
-548847da-71ec-4b2b-bae5-15bb950d210b,750,Payload installation,md5,"148c1bb9d405d717252c77593aff4bd8","Regin samples collected.",1,20141210,,"",""
-548847da-9798-4b6d-b422-15bb950d210b,750,Payload installation,md5,"ba7bb65634ce1e30c1e5415be3d1db1d","Regin samples collected.",1,20141210,,"",""
-548847da-ac78-474c-86fe-15bb950d210b,750,Payload installation,md5,"b29ca4f22ae7b7b25f79c1d4a421139d","Regin samples collected.",1,20141210,,"",""
-548847da-c2d0-4d24-821e-15bb950d210b,750,Payload installation,md5,"b269894f434657db2b15949641a67532","Regin samples collected.",1,20141210,,"",""
-548847da-ffe4-4a90-9f2a-15bb950d210b,750,Payload installation,md5,"22bfc970f707fd775d49e875b63c2f0c","Regin samples collected.",1,20141210,,"",""
-548847db-060c-4275-a0c7-15bb950d210b,750,Payload installation,md5,"049436bb90f71cf38549817d9b90e2da","Regin samples collected.",1,20141210,,"",""
-5488486c-1418-4624-b87c-15ba950d210b,750,Artifacts dropped,regkey,"Class\{4F20E605-9452-4787-B793-D0204917CA58}","",1,20141210,,"",""
-5488486c-47ec-4952-8e60-15ba950d210b,750,Artifacts dropped,regkey,"Class\{9B9A8ADB-8864-4BC4-8AD5-B17DFDBB9F58}","",1,20141210,,"",""
-5488486c-a044-4c31-830c-15ba950d210b,750,Artifacts dropped,regkey,"HKLM\System\CurrentControlSet\Control\","",1,20141210,,"",""
+uuid,event_id,category,type,value,comment,to_ids,date,object_relation,object_uuid,object_name,object_meta_category
+"5488466a-f0d0-4b58-89a5-15bc950d210b",1635,"External analysis","link","https://www.f-secure.com/documents/996508/1030745/w32_regin_stage_1.pdf","",,20141210,"","","",""
+"548847d8-01e0-4231-a739-15bb950d210b",1635,"Payload installation","md5","744c07e886497f7b68f6f7fe57b7ab54","Regin samples collected.",1,20141210,"","","",""
+"548847d8-05f8-49e7-af79-15bb950d210b",1635,"Payload installation","md5","47d0e8f9d7a6429920329207a32ecc2e","Regin samples collected.",1,20141210,"","","",""
+"548847d8-3fbc-4a06-ba82-15bb950d210b",1635,"Payload installation","md5","2c8b9d2885543d7ade3cae98225e263b","Regin samples collected.",1,20141210,"","","",""
+"548847d8-9db0-4df6-8206-15bb950d210b",1635,"Payload installation","md5","26297dc3cd0b688de3b846983c5385e5","Regin samples collected.",1,20141210,"","","",""
+"548847d8-a33c-41f3-9f7a-15bb950d210b",1635,"Payload installation","md5","01c2f321b6bfdb9473c079b0797567ba","Regin samples collected.",1,20141210,"","","",""
+"548847d8-c950-48eb-b960-15bb950d210b",1635,"Payload installation","md5","4b6b86c7fec1c574706cecedf44abded","Regin samples collected.",1,20141210,"","","",""
+"548847d9-1404-4331-ae3c-15bb950d210b",1635,"Payload installation","md5","90fecc6a89b2e22d82d58878d93477d4","Regin samples collected.",1,20141210,"","","",""
+"548847d9-39dc-4247-b23d-15bb950d210b",1635,"Payload installation","md5","06665b96e293b23acc80451abb413e50","Regin samples collected.",1,20141210,"","","",""
+"548847d9-3b28-449e-b527-15bb950d210b",1635,"Payload installation","md5","e94393561901895cb0783edc34740fd4","Regin samples collected.",1,20141210,"","","",""
+"548847d9-4020-41da-b5f3-15bb950d210b",1635,"Payload installation","md5","db405ad775ac887a337b02ea8b07fddc","Regin samples collected.",1,20141210,"","","",""
+"548847d9-6340-44a0-8f33-15bb950d210b",1635,"Payload installation","md5","ffb0b9b5b610191051a7bdf0806e1e47","Regin samples collected.",1,20141210,"","","",""
+"548847d9-8b18-4654-9766-15bb950d210b",1635,"Payload installation","md5","f3ffc2aaaa1e2ab55ec26ff098653347","Regin samples collected.",1,20141210,"","","",""
+"548847d9-a564-4178-b8e6-15bb950d210b",1635,"Payload installation","md5","6662c390b2bbbd291ec7987388fc75d7","Regin samples collected.",1,20141210,"","","",""
+"548847d9-afe0-4531-a4b0-15bb950d210b",1635,"Payload installation","md5","187044596bc1328efa0ed636d8aa4a5c","Regin samples collected.",1,20141210,"","","",""
+"548847d9-b63c-4c95-a2bd-15bb950d210b",1635,"Payload installation","md5","1800def71006ca6790767e202fae9b9a","Regin samples collected.",1,20141210,"","","",""
+"548847d9-e6fc-4b93-a773-15bb950d210b",1635,"Payload installation","md5","bfbe8c3ee78750c3a520480700e440f8","Regin samples collected.",1,20141210,"","","",""
+"548847d9-fd54-4e49-909b-15bb950d210b",1635,"Payload installation","md5","89003e9a1ae635c97ebad07aebc67f00","Regin samples collected.",1,20141210,"","","",""
+"548847da-1660-4562-a1f8-15bb950d210b",1635,"Payload installation","md5","b505d65721bb2453d5039a389113b566","Regin samples collected.",1,20141210,"","","",""
+"548847da-2134-43d7-ba22-15bb950d210b",1635,"Payload installation","md5","8fcf4e53ece6111758a1dd3139dc7cad","Regin samples collected.",1,20141210,"","","",""
+"548847da-3e40-4ab2-a5eb-15bb950d210b",1635,"Payload installation","md5","1c024e599ac055312a4ab75b3950040a","Regin samples collected.",1,20141210,"","","",""
+"548847da-49c0-404d-ae42-15bb950d210b",1635,"Payload installation","md5","d240f06e98c8d3e647cbf4d442d79475","Regin samples collected.",1,20141210,"","","",""
+"548847da-71ec-4b2b-bae5-15bb950d210b",1635,"Payload installation","md5","148c1bb9d405d717252c77593aff4bd8","Regin samples collected.",1,20141210,"","","",""
+"548847da-9798-4b6d-b422-15bb950d210b",1635,"Payload installation","md5","ba7bb65634ce1e30c1e5415be3d1db1d","Regin samples collected.",1,20141210,"","","",""
+"548847da-ac78-474c-86fe-15bb950d210b",1635,"Payload installation","md5","b29ca4f22ae7b7b25f79c1d4a421139d","Regin samples collected.",1,20141210,"","","",""
+"548847da-c2d0-4d24-821e-15bb950d210b",1635,"Payload installation","md5","b269894f434657db2b15949641a67532","Regin samples collected.",1,20141210,"","","",""
+"548847da-ffe4-4a90-9f2a-15bb950d210b",1635,"Payload installation","md5","22bfc970f707fd775d49e875b63c2f0c","Regin samples collected.",1,20141210,"","","",""
+"548847db-060c-4275-a0c7-15bb950d210b",1635,"Payload installation","md5","049436bb90f71cf38549817d9b90e2da","Regin samples collected.",1,20141210,"","","",""
+"54884832-2608-4fe6-959e-1ac6950d210b",1635,"Artifacts dropped","filename","ser8uart.sys","",,20141210,"","","",""
+"54884832-5134-460e-bea2-1ac6950d210b",1635,"Artifacts dropped","filename","atdisk.sys","",,20141210,"","","",""
+"54884832-6fb4-4c63-937c-1ac6950d210b",1635,"Artifacts dropped","filename","rdpmdd.sys","",,20141210,"","","",""
+"54884832-93a4-4fb0-aeba-1ac6950d210b",1635,"Artifacts dropped","filename","usbclass.sys","",,20141210,"","","",""
+"54884832-983c-4e4c-a692-1ac6950d210b",1635,"Artifacts dropped","filename","pcidump.sys","",,20141210,"","","",""
+"54884832-f2a8-46ff-be58-1ac6950d210b",1635,"Artifacts dropped","filename","abiosdsk.sys","",,20141210,"","","",""
+"5488486c-1418-4624-b87c-15ba950d210b",1635,"Artifacts dropped","regkey","Class\{4F20E605-9452-4787-B793-D0204917CA58}","",1,20141210,"","","",""
+"5488486c-47ec-4952-8e60-15ba950d210b",1635,"Artifacts dropped","regkey","Class\{9B9A8ADB-8864-4BC4-8AD5-B17DFDBB9F58}","",1,20141210,"","","",""
+"5488486c-a044-4c31-830c-15ba950d210b",1635,"Artifacts dropped","regkey","HKLM\System\CurrentControlSet\Control\","",1,20141210,"","","",""
+"5488488d-a4ec-4b40-bd7d-15c7950d210b",1635,"External analysis","text","In this document we analyze a set of 32-bit samples
+which represents stage #1 of the complex threat that is
+known as Regin. Based on our analysis of the malware’s
+functionalities, this part of the Regin threat can be
+considered just a support module — its sole purpose
+is to facilitate and enable the operations of stage #2
+by loading it and making it more difficult to detect by
+security products.
+Regin’s stage #1 targets the Windows platform and
+support various versions of the operating system,
+beginning with Windows NT 4.0. Based on our analysis,
+the samples may be classified into two categories: “pure”
+samples that do not feature any extra, non-malicious
+code; and “augmented” ones which feature malware
+code as part of another device driver. The existence of
+“augmented” samples indicates the intention of the
+attacker to remain undiscovered for as long as possible.
+When activated, samples of Regin stage #1 will
+retrieve encrypted content from specific locations of
+an already compromised system, map it into kernel
+memory and transfer control to it. In terms of technical
+sophistication, stage #1’s import resolution process is
+of particular interest, as the malware uses the unusual
+“trampoline” technique to mask the payload’s access to
+API functions.
+It is clear that this support component, that represents
+the initial stage of a very complex threat, has been
+instrumental in securing long-term persistence in the
+attacks that made use of this threat.","",,20141210,"","","",""
+"54884899-35b8-48a3-9da2-15c6950d210b",1635,"Other","text","Regin","",,20141210,"","","",""

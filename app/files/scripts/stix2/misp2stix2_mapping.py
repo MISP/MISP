@@ -7,8 +7,7 @@ def attribute_data_pattern(data):
 def define_address_type(address):
     if ':' in address:
         return 'ipv6-addr'
-    else:
-        return 'ipv4-addr'
+    return 'ipv4-addr'
 
 def observable_as(_, attribute_value):
     return {'0': {'type': 'autonomous-system', 'number': attribute_value}}
@@ -172,9 +171,10 @@ def pattern_regkey(_, attribute_value):
     return "[windows-registry-key:key = '{}']".format(attribute_value.strip())
 
 def observable_regkey_value(_, attribute_value):
+    from stix2 import WindowsRegistryValueType
     key, value = attribute_value.split('|')
     regkey = observable_regkey(_, key)
-    regkey['0']['values'] = {'name': value.strip()}
+    regkey['0']['values'] = WindowsRegistryValueType(**{'name': value.strip()})
     return regkey
 
 def pattern_regkey_value(_, attribute_value):
@@ -342,7 +342,7 @@ relationshipsSpecifications = {'attack-pattern': {'vulnerability': 'targets', 'i
                                            'tool': 'uses'},
                               'course-of-action':{'attack-pattern': 'mitigates', 'malware': 'mitigates',
                                                   'tool': 'mitigates', 'vulnerability': 'mitigates'},
-                              'indicator': {'attack-pattern': 'indicates', 'cacmpaign': 'indicates',
+                              'indicator': {'attack-pattern': 'indicates', 'campaign': 'indicates',
                                             'intrusion-set': 'indicates', 'malware': 'indicates',
                                             'threat-actor': 'indicates', 'tool': 'indicates'},
                               'intrusion-set': {'threat-actor': 'attributed-to', 'identity': 'targets',

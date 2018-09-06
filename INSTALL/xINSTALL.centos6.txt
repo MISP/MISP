@@ -206,6 +206,7 @@ service iptables save
 # To rotate these logs install the supplied logrotate script:
 
 cp INSTALL/misp.logrotate /etc/logrotate.d/misp
+chmod 0640 /etc/logrotate.d/misp
 
 9/ MISP configuration
 ---------------------

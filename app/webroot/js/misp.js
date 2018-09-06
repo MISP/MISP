@@ -3431,6 +3431,46 @@ function checkIfLoggedIn() {
 	setTimeout(function() { checkIfLoggedIn(); }, 5000);
 }
 
+function insertRawRestResponse() {
+	$('#rest-response-container').append('<pre id="raw-response-container" />');
+	$('#raw-response-container').text($('#rest-response-hidden-container').text());
+}
+
+function insertHTMLRestResponse() {
+	$('#rest-response-container').append('<div id="html-response-container" style="border: 1px solid blue; padding:5px;" />');
+	$('#html-response-container').html($('#rest-response-hidden-container').text());
+}
+
+function insertJSONRestResponse() {
+	$('#rest-response-container').append('<p id="json-response-container" style="border: 1px solid blue; padding:5px;" />');
+	var parsedJson = syntaxHighlightJson($('#rest-response-hidden-container').text());
+	console.log(parsedJson);
+	$('#json-response-container').html(parsedJson);
+}
+
+function syntaxHighlightJson(json) {
+	if (typeof json == 'string') {
+		json = JSON.parse(json);
+	}
+	json = JSON.stringify(json, undefined, 2);
+	json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/(?:\r\n|\r|\n)/g, '<br>').replace(/ /g, '&nbsp;');
+	return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+			var cls = 'json_number';
+			if (/^"/.test(match)) {
+					if (/:$/.test(match)) {
+							cls = 'json_key';
+					} else {
+							cls = 'json_string';
+					}
+			} else if (/true|false/.test(match)) {
+					cls = 'json_boolean';
+			} else if (/null/.test(match)) {
+					cls = 'json_null';
+			}
+			return '<span class="' + cls + '">' + match + '</span>';
+	});
+}
+
 (function(){
     "use strict";
     $(".datepicker").datepicker({

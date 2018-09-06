@@ -45,28 +45,13 @@ class ServerShell extends AppShell
 				'progress' => 100,
 				'status' => 4
 		));
-		if (is_numeric($result[0])) {
-			switch ($result[0]) {
-				case '1' :
-					$message = 'Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server.';
-					break;
-				case '2' :
-					$message = $result[1];
-					break;
-				case '3' :
-					$message = 'Sorry, incremental pushes are not yet implemented.';
-					break;
-				case '4' :
-					$message = 'Invalid technique chosen.';
-					break;
-			}
-			if (!empty($message)) {
-				echo $message . PHP_EOL;
-				$this->Job->saveField('message', $message);
-			}
+		if (is_array($result)) {
+			$message = sprintf(__('Pull completed. %s events pulled, %s events could not be pulled, %s proposals pulled.', count($result[0]), count($result[1]), count($result[2])));
 		} else {
-			echo 'Job done.';
+			$message = sprintf(__('ERROR: %s'), $result);
 		}
+		$this->Job->saveField('message', $message);
+		echo $message . PHP_EOL;
 	}
 
 	public function push() {
@@ -100,7 +85,7 @@ class ServerShell extends AppShell
 		$HttpSocket = $syncTool->setupHttpSocket($server);
 		$result = $this->Server->push($serverId, 'full', $jobId, $HttpSocket, $user);
 		$message = 'Job done.';
-		if ($result === false) $message = 'Job failed. The remote instance is too far outdated to initiate a push.';
+		if ($result !== true && !is_array($result)) $message = 'Job failed. Reason: ' . $result;
 		$this->Job->save(array(
 				'id' => $jobId,
 				'message' => $message,
