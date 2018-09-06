@@ -2269,7 +2269,7 @@ class EventsController extends AppController
         }
     }
 
-    public function automation()
+    public function automation($legacy = false)
     {
         // Simply display a static view
         if (!$this->userRole['perm_auth']) {
@@ -2295,6 +2295,9 @@ class EventsController extends AppController
         $rpzSettings = $this->Server->retrieveCurrentSettings('Plugin', 'RPZ_');
         $this->set('rpzSettings', $rpzSettings);
         $this->set('hashTypes', array_keys($this->Event->Attribute->hashTypes));
+		if ($legacy) {
+			$this->render('legacy_automation');
+		}
     }
 
     public function export()
@@ -3053,6 +3056,14 @@ class EventsController extends AppController
 			'returnFormat' => $returnFormat,
 			'scope' => 'Event'
 		);
+		if (empty($exportTool->non_restrictive_export)) {
+			if (!isset($filters['to_ids'])) {
+				$filters['to_ids'] = 1;
+			}
+			if (!isset($filters['published'])) {
+				$filters['published'] = 1;
+			}
+		}
 		$final = $exportTool->header($exportToolParams);
         $eventCount = count($eventid);
         $i = 0;

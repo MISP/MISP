@@ -3,6 +3,7 @@
 class XmlExport
 {
 	private $__converter = false;
+	public $non_restrictive_export = true;
 
     public function handler($data, $options = array())
     {
