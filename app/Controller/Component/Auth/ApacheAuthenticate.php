@@ -38,6 +38,17 @@ class ApacheAuthenticate extends BaseAuthenticate
         }
         return $returnCode;
     }
+	
+    private function getEmailAddress($ldapEmailField, $ldapUserData)
+    {
+	// return the email address of an LDAP user if one of the fields in $ldapEmaiLField exists
+        foreach($ldapEmailField as $field) {
+            if (isset($ldapUserData[0][$field][0])) {
+                return $ldapUserData[0][$field][0];
+            }
+        }
+        return NULL;
+    }
 
     public function authenticate(CakeRequest $request, CakeResponse $response)
     {
@@ -81,23 +92,18 @@ class ApacheAuthenticate extends BaseAuthenticate
                     or die("Error in LDAP search query: " . ldap_error($ldapconn));
 
             $ldapUserData = ldap_get_entries($ldapconn, $result);
-		
+
             // find the email address in the query's result
-	        // first if the ldapEmailField option is not specified, look for the email address in the default field
-	        if (!isset($ldapEmailField) && isset($ldapUserData[0]['mail'][0])) {
+            // first if the ldapEmailField option is not specified, look for the email address in the default field
+            if (!isset($ldapEmailField) && isset($ldapUserData[0]['mail'][0])) {
                 // assign the real user for MISP
                 $mispUsername = $ldapUserData[0]['mail'][0];
             } else if (isset($ldapEmailField)) {
-		        // if the ldapEmailField is set, use it to find the email address
-		        foreach ($ldapEmailField as $field) {
-			        if (isset($ldapUserData[0][$field][0])) {
-				        $mispUsername = $ldapUserData[0][$field][0];
-				        break;
-			        }
-		        }
-	        } else {
+                $mispUsername = $this->getEmailAddress($ldapEmailField, $ldapUserData);		        
+            } else {
                 die("User not found in LDAP");
             }
+		
             // close LDAP connection
             ldap_close($ldapconn);
         }
