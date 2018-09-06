@@ -88,7 +88,7 @@ class StixParser():
 
     def add_original_file(self, original_filename):
         with open(self.filename, 'r') as f:
-            sample = base64.b64encode(f.read().encode('utf-8'))
+            sample = base64.b64encode(f.read().encode('utf-8')).decode('utf-8')
         original_file = MISPObject('original-imported_file')
         types = ['filename', 'attachment', 'text']
         relations = ['filename', 'imported-sample', 'type']
