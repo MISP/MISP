@@ -1739,7 +1739,7 @@ class EventsController extends AppController
             throw new UnauthorizedException(__('You do not have permission to do that.'));
         }
         if ($this->request->is('post')) {
-            $original_file = !empty($this->data['Event']['original_file']) ? $this->data['Event']['name'] : None;
+            $original_file = !empty($this->data['Event']['original_file']) ? $this->data['Event']['stix']['name'] : None;
             if ($this->_isRest()) {
                 $randomFileName = $this->Event->generateRandomFileName();
                 $tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
