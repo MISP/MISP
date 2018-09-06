@@ -103,10 +103,26 @@
         else $editable = '';
       ?>
       <div id = "Attribute_<?php echo $object['id']; ?>_value_solid" class="inline-field-solid" <?php echo $editable; ?>>
-        <span <?php if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) echo 'class="eventViewAttributeHover" data-object-type="Attribute" data-object-id="' . h($object['id']) . '"'?>>
-          <?php
-            echo $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass));
-          ?>
+        <span>
+        <?php
+			$spanExtra = '';
+			$popupButton = '';
+			if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) {
+				$commonDataFields = sprintf(
+					'data-object-type="%s" data-object-id="%s"',
+					"Attribute",
+					h($object['id'])
+				);
+				$spanExtra = sprintf(' class="eventViewAttributeHover" %s', $commonDataFields);
+				$popupButton = sprintf('<i class="fa fa-search-plus useCursorPointer eventViewAttributePopup" %s></i>', $commonDataFields);
+			}
+			echo sprintf(
+				'<span%s style="white-space: pre-wrap;">%s</span> %s',
+				$spanExtra,
+				$this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass)),
+				$popupButton
+			);
+        ?>
         </span>
         <?php
           if (isset($object['warnings'])) {
@@ -282,7 +298,7 @@
             if ($isSiteAdmin):
       ?>
               <span class="verticalSeparator">&nbsp;</span>
-      <?php		endif;
+      <?php     endif;
           endif;
           if ($isSiteAdmin || $mayModify):
             if (isset($modules) && isset($modules['types'][$object['type']])):

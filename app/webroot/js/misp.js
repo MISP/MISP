@@ -85,8 +85,13 @@ function submitDeletion(context_id, action, type, id) {
 		},
 		data: formData,
 		success:function (data, textStatus) {
-			updateIndex(context_id, context);
-			handleGenericAjaxResponse(data);
+			if (type == 'eventGraph') {
+				showMessage('success', 'Network has been deleted');
+				reset_graph_history();
+			} else {
+				updateIndex(context_id, context);
+				handleGenericAjaxResponse(data);
+			}
 		},
 		complete:function() {
 			$(".loading").hide();
@@ -2781,6 +2786,41 @@ function runHoverLookup(type, id) {
 	});
 }
 
+$(".cortex-json").click(function() {
+	var cortex_data = $(this).data('cortex-json');
+	cortex_data = htmlEncode(JSON.stringify(cortex_data, null, 2));
+	var popupHtml = '<pre class="simplepre">' + cortex_data + '</pre>';
+	popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
+
+});
+
+
+// add the same as below for click popup
+$(".eventViewAttributePopup").click(function() {
+	type = $(this).attr('data-object-type');
+	id = $(this).attr('data-object-id');
+	if (!(type + "_" + id in ajaxResults)) {
+		$.ajax({
+			success:function (html) {
+				ajaxResults[type + "_" + id] = html;
+			},
+			cache: false,
+			url:"/attributes/hoverEnrichment/" + id,
+		});
+	}
+	if (type + "_" + id in ajaxResults) {
+		var enrichment_popover = ajaxResults[type + "_" + id];
+		enrichment_popover += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
+		$('#screenshot_box').html(enrichment_popover);
+		$('#screenshot_box').show();
+		$("#gray_out").fadeIn();
+		$('#screenshot_box').css({'padding': '5px'});
+		$('#screenshot_box').css( "maxWidth", ( $( window ).width() * 0.9 | 0 ) + "px" );
+		left = ($(window).width() / 2) - ($('#screenshot_box').width() / 2);
+		$('#screenshot_box').css({'left': left + 'px'});
+	}
+});
+
 $(".eventViewAttributeHover").mouseenter(function() {
 	$('.popover').remove();
 	type = $(this).attr('data-object-type');
@@ -3424,6 +3464,46 @@ function checkIfLoggedIn() {
 		});
 	}
 	setTimeout(function() { checkIfLoggedIn(); }, 5000);
+}
+
+function insertRawRestResponse() {
+	$('#rest-response-container').append('<pre id="raw-response-container" />');
+	$('#raw-response-container').text($('#rest-response-hidden-container').text());
+}
+
+function insertHTMLRestResponse() {
+	$('#rest-response-container').append('<div id="html-response-container" style="border: 1px solid blue; padding:5px;" />');
+	$('#html-response-container').html($('#rest-response-hidden-container').text());
+}
+
+function insertJSONRestResponse() {
+	$('#rest-response-container').append('<p id="json-response-container" style="border: 1px solid blue; padding:5px;" />');
+	var parsedJson = syntaxHighlightJson($('#rest-response-hidden-container').text());
+	console.log(parsedJson);
+	$('#json-response-container').html(parsedJson);
+}
+
+function syntaxHighlightJson(json) {
+	if (typeof json == 'string') {
+		json = JSON.parse(json);
+	}
+	json = JSON.stringify(json, undefined, 2);
+	json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/(?:\r\n|\r|\n)/g, '<br>').replace(/ /g, '&nbsp;');
+	return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+			var cls = 'json_number';
+			if (/^"/.test(match)) {
+					if (/:$/.test(match)) {
+							cls = 'json_key';
+					} else {
+							cls = 'json_string';
+					}
+			} else if (/true|false/.test(match)) {
+					cls = 'json_boolean';
+			} else if (/null/.test(match)) {
+					cls = 'json_null';
+			}
+			return '<span class="' + cls + '">' + match + '</span>';
+	});
 }
 
 (function(){

@@ -1,3 +1,3 @@
 <?php
-	echo $this->Html->css('treemap');
-	echo $content_for_layout;
+    echo $this->Html->css('treemap');
+    echo $content_for_layout;

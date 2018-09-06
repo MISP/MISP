@@ -29,7 +29,7 @@ def parse_hash(observable, attribute_type):
 def parse_ip_port(observable, _):
     try:
         port = observable['1']['src_port']
-    except:
+    except KeyError:
         port = observable['1']['dst_port']
     return '{}|{}'.format(parse_value(observable, _), port)
 
@@ -121,6 +121,7 @@ address_family_attribute_mapping = {'type': 'text','relation': 'address-family'}
 as_number_attribute_mapping = {'type': 'AS', 'relation': 'asn'}
 asn_description_attribute_mapping = {'type': 'text', 'relation': 'description'}
 asn_subnet_attribute_mapping = {'type': 'ip-src', 'relation': 'subnet-announced'}
+body_multipart_mapping = {'type': 'email-attachment', 'relation': 'attachment'}
 cc_attribute_mapping = {'type': 'email-dst', 'relation': 'cc'}
 data_attribute_mapping = {'type': 'text', 'relation': 'data'}
 data_type_attribute_mapping = {'type': 'text', 'relation': 'data-type'}
@@ -194,8 +195,8 @@ email_mapping = {'date': email_date_attribute_mapping,
                  'Reply-To': reply_to_attribute_mapping,
                  'email-message:additional_header_fields.reply_to': reply_to_attribute_mapping,
                  'email-message:from_ref': {'type': 'email-src', 'relation': 'from'},
-                 'email-message:body_multipart[*].body_raw_ref.name': {'type': 'email-attachment',
-                                                                       'relation': 'attachment'}
+                 'body_multipart': body_multipart_mapping,
+                 'email-message:body_multipart[*].body_raw_ref.name': body_multipart_mapping
                  }
 
 file_mapping = {'mime_type': mime_type_attribute_mapping,
@@ -284,17 +285,28 @@ x509_mapping = {'issuer': issuer_attribute_mapping,
                 "x509-certificate:hashes.'md5'": x509_md5_attribute_mapping,
                 }
 
+def parse_custom_property(p_type):
+    d_type = p_type.split("_")
+    attribute_type = d_type[2]
+    relation = "".join("{}-".format(t) for t in d_type[3:])
+    return attribute_type, relation
+
 def fill_observable_attributes(attributes, stix_object, object_mapping):
     for o_key, o_value in stix_object.items():
         try:
             mapping = object_mapping[o_key]
             attributes.append({'type': mapping.get('type'), 'object_relation': mapping.get('relation'),
                                'value': o_value, 'to_ids': False})
-        except:
+        except KeyError:
             if "x_misp_" in o_key:
-                attribute_type, relation = o_key.split("x_misp_")[1].split("_")
-                attributes.append({'type': attribute_type, 'object_relation': relation,
-                                   'value': o_value, 'to_ids': False})
+                attribute_type, relation = parse_custom_property(o_key)
+                if isinstance(o_value, list):
+                    for v in o_value:
+                        attributes.append({'type': attribute_type, 'object_relation': relation[:-1],
+                                           'value': v, 'to_ids': False})
+                else:
+                    attributes.append({'type': attribute_type, 'object_relation': relation[:-1],
+                                       'value': o_value, 'to_ids': False})
             else:
                 continue
 
@@ -308,8 +320,8 @@ def fill_pattern_attributes(pattern, object_mapping):
                                'value': p_value[1:-1], 'to_ids': True})
         except KeyError:
             if "x_misp_" in p_type:
-                attribute_type, relation = p_type.split("x_misp_")[1][:-1].split("_")
-                attributes.append({'type': attribute_type, 'object_relation': relation,
+                attribute_type, relation = parse_custom_property(p_type)
+                attributes.append({'type': attribute_type, 'object_relation': relation[:-2],
                                    'value': p_value[1:-1], 'to_ids': True})
             else:
                 continue
@@ -367,7 +379,7 @@ def observable_ip_port(observable):
         fill_observable_attributes(attributes, observable_part, network_traffic_mapping)
         try:
             observable_part = dict(observable['2'])
-        except:
+        except KeyError:
             return attributes
     else:
         observable_part = dict(observable['0'])
@@ -379,17 +391,17 @@ def pattern_ip_port(pattern):
 
 def observable_process(observable):
     attributes = []
-    observable_object = observable['0'] if len(observable) == 1 else parse_process_observable(observable)
+    observable_object = dict(observable['0']) if len(observable) == 1 else parse_process_observable(observable)
     try:
         parent_key = observable_object.pop('parent_ref')
         attributes.append({'type': 'text', 'value': observable[parent_key]['pid'], 'object_relation': 'parent-pid'})
-    except:
+    except KeyError:
         pass
     try:
         children_keys = observable_object.pop('child_refs')
         for key in children_keys:
             attributes.append({'type': 'text', 'value': observable[key]['pid'], 'object_relation': 'child-pid'})
-    except:
+    except KeyError:
         pass
     fill_observable_attributes(attributes, observable_object, process_mapping)
     return attributes
@@ -398,7 +410,7 @@ def parse_process_observable(observable):
     for key in observable:
         observable_object = observable[key]
         if observable_object['type'] == 'process' and ('parent_ref' in observable_object or 'child_refs' in observable_object):
-            return observable_object
+            return dict(observable_object)
 
 def pattern_process(pattern):
     attributes = []
@@ -406,7 +418,7 @@ def pattern_process(pattern):
         p_type, p_value = p.split(' = ')
         try:
             mapping = process_mapping[p_type]
-        except:
+        except KeyError:
             continue
         if p_type == 'process:child_refs':
             for value in p_value[1:-1].split(','):
@@ -428,7 +440,7 @@ def observable_regkey(observable):
     for o in observable:
         try:
             mapping = regkey_mapping[o]
-        except:
+        except KeyError:
             continue
         attributes.append({'type': mapping.get('type'), 'object_relation': mapping.get('relation'),
                             'value': observable.get(o).replace('\\\\', '\\')})
@@ -447,12 +459,11 @@ def pattern_regkey(pattern):
     return attributes
 
 def observable_socket(observable):
-    observable_object = observable['0'] if len(observable) == 1 else parse_socket_observable(observable)
+    observable_object = dict(observable['0']) if len(observable) == 1 else parse_socket_observable(observable)
     try:
         extension = observable_object.pop('extensions')
-        if 'socket-ext' in extension:
-            attributes = parse_socket_extension(extension['socket-ext'])
-    except:
+        attributes = parse_socket_extension(extension['socket-ext'])
+    except KeyError:
         attributes = []
     for o_key, o_value in observable_object.items():
         if o_key in ('src_ref', 'dst_ref'):
@@ -467,7 +478,7 @@ def observable_socket(observable):
             continue
         try:
             mapping = network_traffic_mapping[o_key]
-        except:
+        except KeyError:
             continue
         attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
                            'value': o_value})
@@ -477,19 +488,19 @@ def parse_socket_observable(observable):
     for key in observable:
         observable_object = observable[key]
         if observable_object['type'] == 'network-traffic':
-            return observable_object
+            return dict(observable_object)
 
 def parse_socket_extension(extension):
     attributes = []
     for element in extension:
         try:
             mapping = network_traffic_mapping[element]
-        except:
+        except KeyError:
             continue
         if element in ('is_listening', 'is_blocking'):
             attribute_value = element.split('_')[1]
         else:
-            attribute_value = extension['element']
+            attribute_value = extension[element]
         attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
                            'value': attribute_value})
     return attributes
@@ -500,7 +511,7 @@ def pattern_socket(pattern):
         p_type, p_value = p.split(' = ')
         try:
             mapping = network_traffic_mapping[p_type]
-        except:
+        except KeyError:
             continue
         if "network-traffic:extensions.'socket-ext'.is_" in p_type:
             p_value = p_type.split('_')[1]
@@ -515,11 +526,11 @@ def observable_url(observable):
         part_type = observable_part._type
         try:
             mapping = url_mapping[part_type]
-        except:
+        except KeyError:
             continue
         try:
             value = observable_part['value']
-        except:
+        except KeyError:
             value = observable_part['dst_port']
         attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
                            'value': value})

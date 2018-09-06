@@ -1,2 +1,2 @@
 <?php
-	echo nl2br(h($value)) . '&nbsp;';
+    echo nl2br(h($value)) . '&nbsp;';

@@ -302,6 +302,7 @@ sudo systemctl restart apache2
 # To rotate these logs install the supplied logrotate script:
 
 sudo cp $PATH_TO_MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
+chmod 0640 /etc/logrotate.d/misp
 
 9/ MISP configuration
 ---------------------
@@ -606,6 +607,7 @@ cd misp-dashboard
 sudo /var/www/misp-dashboard/install_dependencies.sh
 sudo sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/config/config.cfg
 sudo sed -i -e '$i \sudo -u www-data bash /var/www/misp-dashboard/start_all.sh\n' /etc/rc.local
+sudo sed -i '/Listen 80/a Listen 0.0.0.0:8001' /etc/apache2/ports.conf
 sudo apt install libapache2-mod-wsgi-py3
 
 echo "<VirtualHost *:8001>
