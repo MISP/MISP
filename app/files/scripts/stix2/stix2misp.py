@@ -82,8 +82,11 @@ class StixParser():
         original_file = MISPObject('original-imported-file')
         types = ['filename', 'attachment', 'text']
         relations = ['filename', 'imported-sample', 'type']
-        for t, v, r in zip(types, [original_filename,  sample, self.stix_version], relations):
-            original_file.add_attribute(**{"type": t, "value": v, "object_relation": r})
+        for t, v, r in zip(types, [original_filename,  original_filename, self.stix_version], relations):
+            attribute = {"type": t, "value":v, "object_relation": r}
+            if t == 'attachment':
+                attribute['data'] = sample
+            original_file.add_attribute(**attribute)
         self.misp_event.add_object(**original_file)
 
     def load_mapping(self):
