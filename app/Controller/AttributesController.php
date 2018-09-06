@@ -2115,6 +2115,16 @@ class AttributesController extends AppController
 		if ($returnFormat === 'download') {
 			$returnFormat = 'json';
 		}
+		App::uses($validFormats[$returnFormat][1], 'Export');
+		$exportTool = new $validFormats[$returnFormat][1]();
+		if (empty($exportTool->non_restrictive_export)) {
+			if (!isset($filters['to_ids'])) {
+				$filters['to_ids'] = 1;
+			}
+			if (!isset($filters['published'])) {
+				$filters['published'] = 1;
+			}
+		}
         $conditions = $this->Attribute->buildFilterConditions($this->Auth->user(), $filters);
         $params = array(
                 'conditions' => $conditions,
@@ -2136,8 +2146,6 @@ class AttributesController extends AppController
 			// this is where the new code path for the export modules will go
 			throw new MethodNotFoundException('Invalid export format.');
 		}
-		App::uses($validFormats[$returnFormat][1], 'Export');
-		$exportTool = new $validFormats[$returnFormat][1]();
 		$exportToolParams = array(
 			'user' => $this->Auth->user(),
 			'params' => $params,

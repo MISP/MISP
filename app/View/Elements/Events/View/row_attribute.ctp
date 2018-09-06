@@ -114,7 +114,7 @@
 					h($object['id'])
 				);
 				$spanExtra = sprintf(' class="eventViewAttributeHover" %s', $commonDataFields);
-				$popupButton = sprintf('<i class="fa fa-search-plus eventViewAttributePopup" %s></i>', $commonDataFields);
+				$popupButton = sprintf('<i class="fa fa-search-plus useCursorPointer eventViewAttributePopup" %s></i>', $commonDataFields);
 			}
 			echo sprintf(
 				'<span%s style="white-space: pre-wrap;">%s</span> %s',
