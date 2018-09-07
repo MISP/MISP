@@ -1639,9 +1639,13 @@ class ServersController extends AppController
         App::uses('SyncTool', 'Tools');
         $params = array();
         if (!empty($request['url'])) {
-			$path = preg_replace('#^(://|[^/?])+#', '', $request['url']);
-            $url = Configure::read('MISP.baseurl') . $path;
-			unset($request['url']);
+			if (empty($request['use_full_path'])) {
+				$path = preg_replace('#^(://|[^/?])+#', '', $request['url']);
+	            $url = Configure::read('MISP.baseurl') . $path;
+				unset($request['url']);
+			} else {
+				$url = $request['url'];
+			}
         } else {
             throw new InvalidArgumentException('Url not set.');
         }
