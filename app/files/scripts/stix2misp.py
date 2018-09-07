@@ -92,7 +92,7 @@ class StixParser():
         original_file = MISPObject('original-imported_file')
         original_file.add_attribute(**{'type': 'attachment', 'value': original_filename,
                                        'object_relation': 'imported-sample', 'data': sample})
-        original_file.add_attribute(**{'type': 'text', 'object_relation': 'type',
+        original_file.add_attribute(**{'type': 'text', 'object_relation': 'format',
                                        'value': 'STIX {}'.format(self.event.version)})
         self.misp_event.add_object(**original_file)
 
