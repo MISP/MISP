@@ -23,6 +23,7 @@ import time
 import uuid
 import io
 import stix2
+from base64 import b64encode
 from pymisp import MISPEvent, MISPObject, __path__
 from stix2misp_mapping import *
 from collections import defaultdict
@@ -43,7 +44,7 @@ class StixParser():
         with open(filename, 'r', encoding='utf-8') as f:
             event = json.loads(f.read())
         self.filename = filename
-        self.stix_version = 'stix {}'.format(event.get('spec_version'))
+        self.stix_version = 'STIX {}'.format(event.get('spec_version'))
         for o in event.get('objects'):
             parsed_object = stix2.parse(o, allow_custom=True)
             try:
@@ -57,14 +58,16 @@ class StixParser():
         if not self.event:
             print(json.dumps({'success': 0, 'message': 'There is no valid STIX object to import'}))
             sys.exit(1)
+        if args[2] is not None:
+            self.add_original_file(args[2])
         try:
-            event_distribution = args[2]
+            event_distribution = args[3]
             if not isinstance(event_distribution, int):
                 event_distribution = int(event_distribution) if event_distribution.isdigit() else 5
         except IndexError:
             event_distribution = 5
         try:
-            attribute_distribution = args[3]
+            attribute_distribution = args[4]
             if attribute_distribution != 'event' and not isinstance(attribute_distribution, int):
                 attribute_distribution = int(attribute_distribution) if attribute_distribution.isdigit() else 5
         except IndexError:
@@ -72,6 +75,16 @@ class StixParser():
         self.misp_event.distribution = event_distribution
         self.__attribute_distribution = event_distribution if attribute_distribution == 'event' else attribute_distribution
         self.load_mapping()
+
+    def add_original_file(self, original_filename):
+        with open(self.filename, 'rb') as f:
+            sample = b64encode(f.read()).decode('utf-8')
+        original_file = MISPObject('original-imported-file')
+        original_file.add_attribute(**{'type': 'attachment', 'value': original_filename,
+                                       'object_relation': 'imported-sample', 'data': sample})
+        original_file.add_attribute(**{'type': 'text', 'object_relation': 'format',
+                                       'value': self.stix_version})
+        self.misp_event.add_object(**original_file)
 
     def load_mapping(self):
         self.objects_mapping = {'asn': {'observable': observable_asn, 'pattern': pattern_asn},
