@@ -11,6 +11,7 @@ eventTypes = {"ArtifactObjectType": {"type": "attachment", "relation": "attachme
               "PDFFileObjectType": _file_attribute_type,
               "PortObjectType": {"type": "port", "relation": "port"},
               "URIObjectType": {"type": "url", "relation": "url"},
+              "WindowsFileObjectType": _file_attribute_type,
               "WindowsExecutableFileObjectType": _file_attribute_type,
               "WindowsRegistryKeyObjectType": {"type": "regkey", "relation": ""}}
 
@@ -30,10 +31,11 @@ _email_mapping = {'from_': ("email-src", "address_value.value", "from"),
                    'boundary': ("email-mime-boundary", 'value', "mime-boundary"),
                    'user_agent': ("text", 'value', "user-agent")}
 _file_mapping = {'file_path': ('text', 'file_path.value', 'path'),
-                  'file_format': ('mime-type', 'file_format.value', 'mimetype'),
-                  'byte_runs': ('pattern-in-file', 'byte_runs[0].byte_run_data', 'pattern-in-file'),
-                  'size_in_bytes': ('size-in-bytes', 'size_in_bytes.value', 'size-in-bytes'),
-                  'peak_entropy': ('float', 'peak_entropy.value', 'entropy')}
+                 'full_path': ('text', 'full_path.value', 'fullpath'),
+                 'file_format': ('mime-type', 'file_format.value', 'mimetype'),
+                 'byte_runs': ('pattern-in-file', 'byte_runs[0].byte_run_data', 'pattern-in-file'),
+                 'size_in_bytes': ('size-in-bytes', 'size_in_bytes.value', 'size-in-bytes'),
+                 'peak_entropy': ('float', 'peak_entropy.value', 'entropy')}
 _network_socket_mapping = {'protocol': ('text', 'protocol.value', 'protocol'),
                             'address_family': ('text', 'address_family.value', 'address-family'),
                             'domain': ('text', 'domain.value', 'domain-family')}
