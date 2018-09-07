@@ -1224,7 +1224,8 @@ class Feed extends AppModel
         $fields = array('id', 'input_source', 'source_format', 'url', 'provider', 'name', 'default');
         $feeds = $this->find('all', array(
             'recursive' => -1,
-            'fields' => $fields
+            'fields' => $fields,
+			'conditions' => array('Feed.caching_enabled' => 1)
         ));
         // we'll use this later for the intersect
         $fields[] = 'values';
