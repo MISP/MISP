@@ -6,7 +6,7 @@
 <div class="feed index">
     <h2><?php echo __('Feed overlap analysis matrix');?></h2>
     <?php
-        if (count($feeds) > 2):
+        if (count($feeds) >= 2):
     ?>
         <div>
             <table class="table table-striped table-hover table-condensed" style="width:100px;">
