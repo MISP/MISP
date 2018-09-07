@@ -467,7 +467,8 @@ class StixParser():
                 attributes.append([attribute_type, value, relation])
         self.fetch_attributes_with_keys(properties, stix2misp_mapping._file_mapping, attributes)
         if len(attributes) == 1:
-            return attributes[0]
+            attribute = attributes[0]
+            return attribute if attribute[2] != "fullpath" else "filename", attribute[1], ""
         if len(attributes) == 2:
             if b_hash and b_file:
                 return self.handle_filename_object(attributes, is_object)
