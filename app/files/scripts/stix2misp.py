@@ -465,7 +465,7 @@ class StixParser():
                 b_file = True
                 attribute_type, relation = stix2misp_mapping.eventTypes[properties._XSI_TYPE]
                 attributes.append([attribute_type, value, relation])
-        self.fetch_attributes_with_keys(properties, stix2misp_mapping._file_mapping, attributes)
+        attributes.extend(self.fetch_attributes_with_keys(properties, stix2misp_mapping._file_mapping))
         if len(attributes) == 1:
             attribute = attributes[0]
             return attribute if attribute[2] != "fullpath" else "filename", attribute[1], ""
@@ -559,7 +559,7 @@ class StixParser():
     # Return type & attributes of a network socket objet
     def handle_network_socket(self, properties):
         attributes = self.fetch_attributes_from_sockets(properties, stix2misp_mapping._network_socket_addresses)
-        self.fetch_attributes_with_keys(properties, stix2misp_mapping._network_socket_mapping, attributes)
+        attributes.extend(self.fetch_attributes_with_keys(properties, stix2misp_mapping._network_socket_mapping))
         for prop in ('is_listening', 'is_blocking'):
             if getattr(properties, prop):
                 attributes.append(["text", prop.split('_')[1], "state"])
@@ -948,11 +948,13 @@ class StixParser():
         return attributes
 
     @staticmethod
-    def fetch_attributes_with_keys(properties, mapping_dict, attributes):
+    def fetch_attributes_with_keys(properties, mapping_dict):
+        attributes = []
         for prop, mapping in mapping_dict.items():
             if getattr(properties,prop):
                 attribute_type, properties_key, relation = mapping
                 attributes.append([attribute_type, attrgetter(properties_key)(properties), relation])
+        return attributes
 
     @staticmethod
     def fetch_attributes_with_key_parsing(properties, mapping_dict):
