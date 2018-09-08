@@ -3023,7 +3023,8 @@ class EventsController extends AppController
 			'json' => array('json', 'JsonExport'),
 			'xml' => array('xml', 'XmlExport'),
 			'suricata' => array('txt', 'NidsSuricataExport'),
-			'snort' => array('txt', 'NidsSnortExport')
+			'snort' => array('txt', 'NidsSnortExport'),
+			'rpz' => array('rpz', 'RPZExport')
 		);
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
@@ -3053,7 +3054,8 @@ class EventsController extends AppController
 			'user' => $this->Auth->user(),
 			'params' => array(),
 			'returnFormat' => $returnFormat,
-			'scope' => 'Event'
+			'scope' => 'Event',
+			'filters' => $filters
 		);
 		if (empty($exportTool->non_restrictive_export)) {
 			if (!isset($filters['to_ids'])) {

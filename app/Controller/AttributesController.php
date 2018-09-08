@@ -2096,7 +2096,8 @@ class AttributesController extends AppController
             'xml' => array('xml', 'XmlExport'),
             'suricata' => array('txt', 'NidsSuricataExport'),
             'snort' => array('txt', 'NidsSnortExport'),
-			'text' => array('txt', 'TextExport')
+			'text' => array('txt', 'TextExport'),
+			'rpz' => array('rpz', 'RPZExport')
         );
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
@@ -2133,7 +2134,7 @@ class AttributesController extends AppController
                 'enforceWarninglist' => !empty($filters['enforceWarninglist']) ? $filters['enforceWarninglist'] : 0,
                 'includeAllTags' => true,
                 'flatten' => 1,
-                'includeEventUuid' => !empty($filters['includeEventUuid']) ? $filters['includeEventUuid'] : 0,
+                'includeEventUuid' => !empty($filters['includeEventUuid']) ? $filters['includeEventUuid'] : 0
         );
         if (!empty($filtes['deleted'])) {
             $params['deleted'] = 1;
@@ -2150,7 +2151,8 @@ class AttributesController extends AppController
 			'user' => $this->Auth->user(),
 			'params' => $params,
 			'returnFormat' => $returnFormat,
-			'scope' => 'Attribute'
+			'scope' => 'Attribute',
+			'filters' => $filters
 		);
 		if (!empty($exportTool->additional_params)) {
 			$params = array_merge($params, $exportTool->additional_params);
@@ -2158,7 +2160,7 @@ class AttributesController extends AppController
         $final = $exportTool->header($exportToolParams);
 		$continue = false;
 		if (empty($params['limit'])) {
-			$params['limit'] = 10000;
+			$params['limit'] = 20000;
 			$continue = true;
 			$params['page'] = 1;
 		}
@@ -2400,7 +2402,7 @@ class AttributesController extends AppController
                 if (isset($data['request'][$p])) {
                     ${$p} = $data['request'][$p];
                 } else {
-                    ${$p} = null;
+                    ${$p} = false;
                 }
             }
         }
@@ -2452,7 +2454,7 @@ class AttributesController extends AppController
                 throw new UnauthorizedException(__('You have to be logged in to do that.'));
             }
         }
-        if (false === $eventId) {
+        if (false === $eventId || $eventId === null) {
             $eventIds = $this->Attribute->Event->fetchEventIds($this->Auth->user(), false, false, false, true);
         } elseif (is_numeric($eventId)) {
             $eventIds = array($eventId);
