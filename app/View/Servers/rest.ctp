@@ -28,6 +28,13 @@
             'label' => __('Relative path to query'),
             'class' => 'input-xxlarge'
         ));
+	?>
+		<div class="input clear" style="width:100%;">
+	<?php
+		echo $this->Form->input('use_full_path', array(
+			'label' => 'Use full path - disclose my apikey',
+            'type' => 'checkbox'
+        ));
     ?>
         <div class="input clear" style="width:100%;">
     <?php
@@ -38,6 +45,7 @@
 			'type' => 'checkbox',
 			'label' => 'Skip SSL validation'
 		));
+
     ?>
         <div class="input clear" style="width:100%;">
     <?php

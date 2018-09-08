@@ -96,6 +96,7 @@ class Sighting extends AppModel
         $sighting['org_id'] = $org_id;
         $sighting['event_id'] = $event_id;
         $sighting['attribute_id'] = $attribute_id;
+        $this->create();
         return $this->save($sighting);
     }
 
