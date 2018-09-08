@@ -1739,13 +1739,14 @@ class EventsController extends AppController
             throw new UnauthorizedException(__('You do not have permission to do that.'));
         }
         if ($this->request->is('post')) {
+            $original_file = !empty($this->data['Event']['original_file']) ? $this->data['Event']['stix']['name'] : None;
             if ($this->_isRest()) {
                 $randomFileName = $this->Event->generateRandomFileName();
                 $tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
                 $tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
                 $tempFile->write($this->request->input());
                 $tempFile->close();
-                $result = $this->Event->upload_stix($this->Auth->user(), $randomFileName, $stix_version);
+                $result = $this->Event->upload_stix($this->Auth->user(), $randomFileName, $stix_version, $original_file);
                 if (is_array($result)) {
                     return $this->RestResponse->saveSuccessResponse('Events', 'upload_stix', false, $this->response->type(), 'STIX document imported, event\'s created: ' . implode(', ', $result) . '.');
                 } elseif (is_numeric($result)) {
@@ -1763,7 +1764,7 @@ class EventsController extends AppController
                     $randomFileName = $this->Event->generateRandomFileName();
                     $tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
                     move_uploaded_file($this->data['Event']['stix']['tmp_name'], $tmpDir . DS . $randomFileName);
-                    $result = $this->Event->upload_stix($this->Auth->user(), $randomFileName, $stix_version);
+                    $result = $this->Event->upload_stix($this->Auth->user(), $randomFileName, $stix_version, $original_file);
                     if (is_array($result)) {
                         $this->Flash->success(__('STIX document imported, event\'s created: ' . implode(', ', $result) . '.'));
                         $this->redirect(array('action' => 'index'));
@@ -2268,7 +2269,7 @@ class EventsController extends AppController
         }
     }
 
-    public function automation()
+    public function automation($legacy = false)
     {
         // Simply display a static view
         if (!$this->userRole['perm_auth']) {
@@ -2294,6 +2295,9 @@ class EventsController extends AppController
         $rpzSettings = $this->Server->retrieveCurrentSettings('Plugin', 'RPZ_');
         $this->set('rpzSettings', $rpzSettings);
         $this->set('hashTypes', array_keys($this->Event->Attribute->hashTypes));
+		if ($legacy) {
+			$this->render('legacy_automation');
+		}
     }
 
     public function export()
@@ -2768,19 +2772,19 @@ class EventsController extends AppController
         $params['page'] = 1;
         $i = 0;
         $continue = true;
-        $options = array(
+        $params = array_merge($params, array(
             'requested_obj_attributes' => $requested_obj_attributes,
             'requested_attributes' => $requested_attributes,
             'includeContext' => $includeContext
-        );
+        ));
         App::uses('CsvExport', 'Export');
         $export = new CsvExport();
-        $final = $export->header($options);
+        $final = $export->header($params);
         while ($continue) {
             $attributes = $this->Event->csv($user, $params, false, $continue);
             $params['page'] += 1;
-            $final .= $export->handler($attributes, $final, $options);
-            $final .= $export->separator($attributes, $final);
+            $final .= $export->handler($attributes, $params);
+            $final .= $export->separator($attributes);
         }
         $export->footer();
         $this->response->type('csv');	// set the content type
@@ -3015,6 +3019,13 @@ class EventsController extends AppController
             'paramArray' => $paramArray,
             'ordered_url_params' => compact($paramArray)
         );
+		$validFormats = array(
+			'openioc' => array('xml', 'OpeniocExport'),
+			'json' => array('json', 'JsonExport'),
+			'xml' => array('xml', 'XmlExport'),
+			'suricata' => array('txt', 'NidsSuricataExport'),
+			'snort' => array('txt', 'NidsSnortExport')
+		);
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
         unset($filterData);
@@ -3029,23 +3040,31 @@ class EventsController extends AppController
         if (isset($filters['returnFormat'])) {
             $returnFormat = $filters['returnFormat'];
         }
+		if ($returnFormat === 'download') {
+			$returnFormat = 'json';
+		}
         $eventid = $this->Event->filterEventIds($user, $filters);
-        $responseType = 'json';
-        $converters = array(
-            'xml' => 'XMLConverterTool',
-            'json' => 'JSONConverterTool',
-            'openioc' => 'IOCExportTool'
-        );
-        if (in_array($returnFormat, array('json', 'xml', 'openioc'))) {
-            $responseType = $returnFormat;
-        } elseif (((isset($this->request->params['ext']) && $this->request->params['ext'] == 'xml')) || $this->response->type() == 'application/xml') {
-            $responseType = 'xml';
-        } else {
-            $responseType = 'json';
-        }
-        App::uses($converters[$responseType], 'Tools');
-        $converter = new $converters[$responseType]();
-        $final = $converter->generateTop($this->Auth->user());
+		if (!isset($validFormats[$returnFormat])) {
+			// this is where the new code path for the export modules will go
+			throw new MethodNotFoundException('Invalid export format.');
+		}
+		App::uses($validFormats[$returnFormat][1], 'Export');
+        $exportTool = new $validFormats[$returnFormat][1]();
+		$exportToolParams = array(
+			'user' => $this->Auth->user(),
+			'params' => array(),
+			'returnFormat' => $returnFormat,
+			'scope' => 'Event'
+		);
+		if (empty($exportTool->non_restrictive_export)) {
+			if (!isset($filters['to_ids'])) {
+				$filters['to_ids'] = 1;
+			}
+			if (!isset($filters['published'])) {
+				$filters['published'] = 1;
+			}
+		}
+		$final = $exportTool->header($exportToolParams);
         $eventCount = count($eventid);
         $i = 0;
         foreach ($eventid as $k => $currentEventId) {
@@ -3061,30 +3080,19 @@ class EventsController extends AppController
             if (!empty($result)) {
                 $this->loadModel('Whitelist');
                 $result = $this->Whitelist->removeWhitelistedFromArray($result, false);
-                if ($i != 0) {
-                    $final .= ',' . PHP_EOL;
-                }
-                $final .= $converter->convert($result[0]);
+				$temp = $exportTool->handler($result[0], $exportToolParams);
+				if ($temp !== '') {
+					if ($k !== 0) {
+						$final .= $exportTool->separator($exportToolParams);
+					}
+	            	$final .= $temp;
+				}
                 $i++;
             }
         }
-        if ($i > 0) {
-            $final .= PHP_EOL;
-        }
-        $final .= $converter->generateBottom($responseType, $final);
-        $extension = $responseType;
-        if ($returnFormat == 'openioc') {
-            $extension = '.ioc';
-        }
-        if (isset($eventid) && $eventid) {
-            if (is_array($eventid)) {
-                $eventid = 'list';
-            }
-            $final_filename="misp.event." . $eventid . "." . $result[0]['Event']['uuid'] . '.' . $extension;
-        } else {
-            $final_filename="misp.search.events.results." . $extension;
-        };
-        return $this->RestResponse->viewData($final, $this->response->type(), false, true, $final_filename);
+		$final .= $exportTool->footer($exportToolParams);
+		$responseType = $validFormats[$returnFormat][0];
+		return $this->RestResponse->viewData($final, $responseType, false, true);
     }
 
     public function downloadOpenIOCEvent($key, $eventid, $enforceWarninglist = false)

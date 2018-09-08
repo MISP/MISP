@@ -1,8 +1,18 @@
 <div class="servers form">
+	<div style="position:absolute;right:40px;width:300px;top:90px;">
+		<label for="TemplateSelect">Templates</label>
+		<?php
+			$options = '<option value="">None</option>';
+			foreach ($allValidApis as $endpoint_url => $endpoint_data) {
+				$options .= sprintf('<option value="%s">%s</option>', $endpoint_url, $endpoint_data['api_name']);
+			}
+			echo sprintf('<select id="TemplateSelect">%s</select>', $options);
+		?>
+		<div id="apiInfo"></div>
+	</div>
 <?php echo $this->Form->create('Server');?>
     <fieldset>
         <legend><?php echo __('REST client');?></legend>
-		<div style="position:absolute;right:40px;width:300px;" id="apiInfo"></div>
     <?php
         echo $this->Form->input('method', array(
             'label' => __('Relative path to query'),
@@ -18,6 +28,13 @@
             'label' => __('Relative path to query'),
             'class' => 'input-xxlarge'
         ));
+	?>
+		<div class="input clear" style="width:100%;">
+	<?php
+		echo $this->Form->input('use_full_path', array(
+			'label' => 'Use full path - disclose my apikey',
+            'type' => 'checkbox'
+        ));
     ?>
         <div class="input clear" style="width:100%;">
     <?php
@@ -28,6 +45,7 @@
 			'type' => 'checkbox',
 			'label' => 'Skip SSL validation'
 		));
+
     ?>
         <div class="input clear" style="width:100%;">
     <?php
@@ -47,6 +65,7 @@
         ));
     ?>
         <div class="input clear" style="width:100%;">
+		<div id="template_description" style="display:none;width:700px;" class="alert alert-error">Fill out the JSON template above, make sure to replace all placeholder values. Fields with the value "optional" can be removed.</div>
     <?php
         echo $this->Form->submit('Run query', array('class' => 'btn btn-primary'));
         echo $this->Form->end();
@@ -88,7 +107,34 @@
 ?>
 <script type="text/javascript">
 	// tooltips
+	var thread = null;
+	function setApiInfoBox() {
+		clearTimeout(thread);
+		var $this = $(this);
+		var payload = {
+			"url": $('#ServerUrl').val()
+		};
+		if (payload) {
+			thread = setTimeout(
+				function() {
+					$.ajax({
+						type: "POST",
+						url: '/servers/getApiInfo',
+						data: payload,
+						success:function (data, textStatus) {
+							$('#apiInfo').html(data);
+						}
+					});
+				},
+				1000
+			);
+		} else {
+			$('#apiInfo').empty();
+		}
+	}
+
 	$(document).ready(function () {
+		var allValidApis = <?php echo json_encode($allValidApis); ?>;
 		insertRawRestResponse();
 		$('.format-toggle-button').bind('click', function() {
 			$('#rest-response-container').empty();
@@ -100,29 +146,17 @@
 				insertJSONRestResponse();
 			}
 		});
-		var thread = null;
 		$('#ServerUrl').keyup(function() {
-			clearTimeout(thread);
-			var $this = $(this);
-			var payload = {
-				"url": $('#ServerUrl').val()
-			};
-			if (payload) {
-				thread = setTimeout(
-					function() {
-						$.ajax({
-							type: "POST",
-							url: '/servers/getApiInfo',
-							data: payload,
-							success:function (data, textStatus) {
-								$('#apiInfo').html(data);
-							}
-						});
-					},
-					1000
-				);
-			} else {
-				$('#apiInfo').empty();
+			setApiInfoBox();
+		});
+		$('#TemplateSelect').change(function() {
+			var selected_template = $('#TemplateSelect').val();
+			if (selected_template !== '') {
+				$('#template_description').show();
+				$('#ServerMethod').val('POST');
+				$('#ServerUrl').val(allValidApis[selected_template].url);
+				$('#ServerBody').val(allValidApis[selected_template].body);
+				setApiInfoBox();
 			}
 		});
 	});

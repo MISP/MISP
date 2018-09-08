@@ -3011,6 +3011,13 @@ class Event extends AppModel
                     }
                 }
             }
+            // zeroq: check if sightings are attached and add to event
+            if (isset($data['Sighting']) && !empty($data['Sighting'])) {
+                $this->Sighting = ClassRegistry::init('Sighting');
+                foreach ($data['Sighting'] as $s) {
+                    $result = $this->Sighting->saveSightings($s['attribute_uuid'], false, $s['date_sighting'], $user, $s['type'], $s['source'], $s['uuid']);
+                }
+            }
             if ($fromXml) {
                 $created_id = $this->id;
             }
@@ -3170,6 +3177,13 @@ class Event extends AppModel
                             ));
                         }
                     }
+                }
+            }
+            // zeroq: if sightings then attach to event
+            if (isset($data['Sighting']) && !empty($data['Sighting'])) {
+                $this->Sighting = ClassRegistry::init('Sighting');
+                foreach ($data['Sighting'] as $s) {
+                    $result = $this->Sighting->saveSightings($s['attribute_uuid'], false, $s['date_sighting'], $user, $s['type'], $s['source'], $s['uuid']);
                 }
             }
             // if published -> do the actual publishing
@@ -4729,7 +4743,7 @@ class Event extends AppModel
         return $this->save($event);
     }
 
-    public function upload_stix($user, $filename, $stix_version)
+    public function upload_stix($user, $filename, $stix_version, $original_file)
     {
         App::uses('Folder', 'Utility');
         App::uses('File', 'Utility');
@@ -4746,7 +4760,7 @@ class Event extends AppModel
         } else {
             throw new MethodNotAllowedException('Invalid STIX version');
         }
-        $shell_command .=  ' ' . escapeshellarg(Configure::read('MISP.default_event_distribution')) . ' ' . escapeshellarg(Configure::read('MISP.default_attribute_distribution')) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
+        $shell_command .=  ' ' . $original_file . ' ' . escapeshellarg(Configure::read('MISP.default_event_distribution')) . ' ' . escapeshellarg(Configure::read('MISP.default_attribute_distribution')) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
         $result = shell_exec($shell_command);
         unlink($tempFilePath);
         if (trim($result) == '1') {

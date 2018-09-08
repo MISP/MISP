@@ -14,7 +14,7 @@ class CsvExport
         'event_tag' => array('object' => 'Tag', 'var' => 'name')
     );
 
-    public function handler($attributes, $final, $options = array())
+    public function handler($attributes, $options = array())
     {
         $result = array();
         foreach ($attributes as $attribute) {
