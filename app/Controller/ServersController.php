@@ -624,7 +624,6 @@ class ServersController extends AppController
 	            $this->set('successes', $result[0]);
 	            $this->set('fails', $result[1]);
 	            $this->set('pulledProposals', $result[2]);
-	            $this->set('lastpulledid', $result[3]);
 	        } else {
 	            $this->loadModel('Job');
 	            $this->Job->create();

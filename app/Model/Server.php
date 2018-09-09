@@ -1900,12 +1900,12 @@ class Server extends AppModel
         $event = $eventModel->downloadEventFromServer(
                 $eventId,
                 $server
-        );
+        );;
         if (!empty($event)) {
             if ($this->__checkIfEventIsBlockedBeforePull($event)) {
                 return false;
             }
-            $this->__updatePulledEventBeforeInsert($event, $server, $user);
+            $event = $this->__updatePulledEventBeforeInsert($event, $server, $user);
             $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $server, $user, $jobId);
         } else {
             // error
@@ -2028,6 +2028,7 @@ class Server extends AppModel
                 'recursive' => -1,
                 'conditions' => $conditions
         ));
+		$pulledProposals = array();
         if (!empty($events)) {
             $proposals = $eventModel->downloadProposalsFromServer($events, $server);
             $pulledProposals = $this->__handlePulledProposals($proposals, $events, $job, $jobId, $eventModel, $user);
