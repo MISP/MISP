@@ -80,11 +80,10 @@ git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
 # the message regarding a "detached HEAD state" is expected behaviour
 # (you only have to create a new branch, if you want to change stuff and do a pull request for example)
 
-git submodule init
-git submodule update
+git submodule update --init --recursive
 
 # Make git ignore filesystem permission differences
-git submodule foreach git config core.filemode false
+git submodule foreach --recursive git config core.filemode false
 
 # install Mitre's STIX and its dependencies by running the following commands:
 sudo apt-get install python3-dev python3-pip libxml2-dev libxslt1-dev zlib1g-dev python-setuptools python-pip
