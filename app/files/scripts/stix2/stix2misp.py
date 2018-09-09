@@ -74,7 +74,6 @@ class StixParser():
             attribute_distribution = 5
         self.misp_event.distribution = event_distribution
         self.__attribute_distribution = event_distribution if attribute_distribution == 'event' else attribute_distribution
-        self.load_mapping()
 
     def add_original_file(self, original_filename):
         with open(self.filename, 'rb') as f:
@@ -106,6 +105,7 @@ class StixParser():
     def handler(self):
         self.outputname = '{}.stix2'.format(self.filename)
         if self.from_misp():
+            self.load_mapping()
             self.buildMispDict()
         else:
             self.version_attribute = {'type': 'text', 'object_relation': 'version', 'value': self.stix_version}
