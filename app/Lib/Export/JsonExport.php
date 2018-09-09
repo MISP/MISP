@@ -29,15 +29,21 @@ class JsonExport
 		if (isset($attribute['Object']) && empty($attribute['Object']['id'])) {
 			unset($attribute['Object']);
 		}
-		if (isset($attribute['AttributeTag'])) {
-			$attributeTags = array();
-			foreach ($attribute['AttributeTag'] as $tk => $tag) {
-				$attribute['Tag'][$tk] = $attribute['AttributeTag'][$tk]['Tag'];
+		$tagTypes = array('AttributeTag', 'EventTag');
+		foreach($tagTypes as $tagType) {
+			if (isset($attribute[$tagType])) {
+				$attributeTags = array();
+				foreach ($attribute[$tagType] as $tk => $tag) {
+					if ($tagType === 'EventTag') {
+						$attribute[$tagType][$tk]['Tag']['inherited'] = 1;
+					}
+					$attribute['Tag'][] = $attribute[$tagType][$tk]['Tag'];
+				}
+				unset($attribute[$tagType]);
 			}
-			unset($attribute['AttributeTag']);
-			unset($attribute['value1']);
-			unset($attribute['value2']);
 		}
+		unset($attribute['value1']);
+		unset($attribute['value2']);
 		return json_encode($attribute);
 	}
 
