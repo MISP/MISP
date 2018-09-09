@@ -272,10 +272,9 @@ doas pip3.6 install stix2
 ```
 # CakePHP is included as a submodule of MISP, execute the following commands to let git fetch it:
 cd /var/www/htdocs/MISP
-doas -u www git submodule init
-doas -u www git submodule update
+doas -u www git submodule update --init --recursive
 # Make git ignore filesystem permission differences for submodules
-doas -u www git submodule foreach git config core.filemode false
+doas -u www git submodule foreach --recursive git config core.filemode false
 
 # Once done, install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd /var/www/htdocs/MISP/app

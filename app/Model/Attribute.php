@@ -2230,7 +2230,8 @@ class Attribute extends AppModel
                     array(
                         'conditions' => $tempConditions,
                         'fields' => array('Attribute.value'), // array of field names
-                        'enforceWarninglist' => $enforceWarninglist
+                        'enforceWarninglist' => $enforceWarninglist,
+						'flatten' => 1
                     )
             );
             if (empty($temp)) {
@@ -3401,7 +3402,6 @@ class Attribute extends AppModel
             ));
         } else {
             $tags = array();
-
             if (isset($attribute['AttributeTag'])) {
                 foreach ($attribute['AttributeTag'] as $at) {
                     unset($at['id']);
