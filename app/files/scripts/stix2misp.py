@@ -55,7 +55,7 @@ class StixParser():
             try:
                 import maec
                 print(2)
-            except ModuleNotFoundError:
+            except ImportError:
                 print(3)
             sys.exit(0)
         self.filename = filename
