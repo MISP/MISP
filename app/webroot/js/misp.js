@@ -614,6 +614,14 @@ function toggleAllTaxonomyCheckboxes() {
 	}
 }
 
+function toggleAllTagsCheckboxes() {
+	if ($(".select_all").is(":checked")) {
+		$(".select_tag").prop("checked", true);
+	} else {
+		$(".select_tag").prop("checked", false);
+	}
+}
+
 function attributeListAnyAttributeCheckBoxesChecked() {
 	if ($('.select_attribute:checked').length > 0) $('.mass-select').removeClass('hidden');
 	else $('.mass-select').addClass('hidden');
@@ -631,6 +639,11 @@ function attributeListAnyProposalCheckBoxesChecked() {
 
 function taxonomyListAnyCheckBoxesChecked() {
 	if ($('.select_taxonomy:checked').length > 0) $('.mass-select').show();
+	else $('.mass-select').hide();
+}
+
+function tagListAnyCheckBoxesChecked() {
+	if ($('.select_tag:checked').length > 0) $('.mass-select').show();
 	else $('.mass-select').hide();
 }
 
@@ -726,6 +739,10 @@ function editSelectedAttributes(event) {
 	simplePopup("/attributes/editSelected/" + event);
 }
 
+function editSelectedTags() {
+	simplePopup("/tags/massEditSelected");
+}
+
 function addSelectedTaxonomies(taxonomy) {
 	$.get("/taxonomies/taxonomyMassConfirmation/"+taxonomy, function(data) {
 		$("#confirmation_box").html(data);
@@ -734,6 +751,10 @@ function addSelectedTaxonomies(taxonomy) {
 }
 
 function submitMassTaxonomyTag() {
+	$('#PromptForm').submit();
+}
+
+function submitMassEditTag() {
 	$('#PromptForm').submit();
 }
 
@@ -764,6 +785,19 @@ function getSelectedTaxonomyNames() {
 		}
 	});
 	$('#TaxonomyNameList').val(JSON.stringify(selected));
+}
+
+function getSelectedTags() {
+	var selected = [];
+	$(".select_tag").each(function() {
+		if ($(this).is(":checked")) {
+			var row = $(this).data("id");
+			var temp = $('#tag_' + row).html();
+			temp = $("<div/>").html(temp).text();
+			selected.push(temp);
+		}
+	});
+	$('#TagTagIds').val(JSON.stringify(selected));
 }
 
 function loadEventTags(id) {

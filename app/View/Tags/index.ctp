@@ -42,6 +42,9 @@
 
 
     <div class="tabMenuFixedContainer" style="display:inline-block;">
+        <div class="tabMenu tabMenuEditBlock noPrint mass-select" style="float:left;top:-1px;">
+            <span id="multi-edit-button" title="<?php echo __('Edit selected tags');?>" role="button" tabindex="0" aria-label="<?php echo __('Edit selected tags');?>" class="icon-edit useCursorPointer" onClick="editSelectedTags()"></span>
+        </div>
         <?php if ($filtered):
             foreach ($passedArgsArray as $k => $v):?>
                 <span class="tabMenuFixed tabMenuFixedElement">
@@ -59,6 +62,9 @@
     </div>
     <table class="table table-striped table-hover table-condensed">
     <tr>
+            <?php if (!empty($list)): ?>
+                <th><input class="select_all" type="checkbox" onClick="toggleAllTagsCheckboxes();" /></th>
+            <?php endif;?>
             <th><?php echo $this->Paginator->sort('id');?></th>
             <th><?php echo $this->Paginator->sort('exportable');?></th>
             <th><?php echo $this->Paginator->sort('hide_tag', 'Hidden');?></th>
@@ -78,7 +84,10 @@
     </tr><?php
 foreach ($list as $k => $item): ?>
     <tr>
-        <td class="short"><?php echo h($item['Tag']['id']); ?>&nbsp;</td>
+        <td style="width:10px;">
+            <input id = "select_<?php echo h($k); ?>" class="select_tag" type="checkbox" data-id="<?php echo h($k);?>" />
+        </td>
+        <td id="tag_<?php echo h($k); ?>" class="short"><?php echo h($item['Tag']['id']); ?></td>
         <td class="short"><span class="<?php echo ($item['Tag']['exportable'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
         <td class="short"><span class="icon-<?php echo $item['Tag']['hide_tag'] ? 'ok' : 'remove'; ?>"></span></td>
         <td><a href="<?php echo $baseurl . "/events/index/searchtag:" . $item['Tag']['id']; ?>" class="tag" style="background-color: <?php echo h($item['Tag']['colour']); ?>;color:<?php echo $this->TextColour->getTextColour($item['Tag']['colour']); ?>" title="<?php echo isset($item['Tag']['Taxonomy']['expanded']) ? h($item['Tag']['Taxonomy']['expanded']) : h($item['Tag']['name']); ?>"><?php echo h($item['Tag']['name']); ?></a></td>
@@ -146,6 +155,15 @@ endforeach; ?>
     </div>
 
 </div>
+<script type="text/javascript">
+    $(document).ready(function(){
+        $('input:checkbox').removeAttr('checked');
+        $('.mass-select').hide();
+        $('.select_tag, .select_all').click(function(){
+            tagListAnyCheckBoxesChecked();
+        });
+    });
+</script>
 <?php
     $menuItem = $favouritesOnly ? 'indexfav' : 'index';
     echo $this->element('side_menu', array('menuList' => 'tags', 'menuItem' => $menuItem));
