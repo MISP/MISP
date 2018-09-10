@@ -75,12 +75,6 @@ class StixParser():
         self.buildMISPDict()
         self.set_distribution()
 
-    def from_misp(self):
-        for _, o in self.event['report'].items():
-            if o._type == 'report' and 'misp:tool="misp2stix2"' in o.get('labels'):
-                return True
-        return False
-
     def set_distribution(self):
         for attribute in self.misp_event.attributes:
             attribute.distribution = self._attribute_distribution
