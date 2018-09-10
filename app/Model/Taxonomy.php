@@ -346,6 +346,72 @@ class Taxonomy extends AppModel
         return true;
     }
 
+    public function hideTags($id, $tagList = false)
+    {
+        if ($tagList && !is_array($tagList)) {
+            $tagList = array($tagList);
+        }
+        $this->Tag = ClassRegistry::init('Tag');
+        App::uses('ColourPaletteTool', 'Tools');
+        $paletteTool = new ColourPaletteTool();
+        $taxonomy = $this->__getTaxonomy($id, array('full' => true));
+        $tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace']);
+        $colours = $paletteTool->generatePaletteFromString($taxonomy['Taxonomy']['namespace'], count($taxonomy['entries']));
+        foreach ($taxonomy['entries'] as $k => $entry) {
+            $colour = $colours[$k];
+            if (isset($entry['colour']) && !empty($entry['colour'])) {
+                $colour = $entry['colour'];
+            }
+            if ($tagList) {
+                foreach ($tagList as $tagName) {
+                    if ($tagName === $entry['tag']) {
+                        if (isset($tags[strtoupper($entry['tag'])])) {
+                            $this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $tagName, $colour, 1);
+                        }
+                    }
+                }
+            } else {
+                if (isset($tags[strtoupper($entry['tag'])])) {
+                    $this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $entry['tag'], $colour, 1);
+                }
+            }
+        }
+        return true;
+    }
+
+    public function unhideTags($id, $tagList = false)
+    {
+        if ($tagList && !is_array($tagList)) {
+            $tagList = array($tagList);
+        }
+        $this->Tag = ClassRegistry::init('Tag');
+        App::uses('ColourPaletteTool', 'Tools');
+        $paletteTool = new ColourPaletteTool();
+        $taxonomy = $this->__getTaxonomy($id, array('full' => true));
+        $tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace']);
+        $colours = $paletteTool->generatePaletteFromString($taxonomy['Taxonomy']['namespace'], count($taxonomy['entries']));
+        foreach ($taxonomy['entries'] as $k => $entry) {
+            $colour = $colours[$k];
+            if (isset($entry['colour']) && !empty($entry['colour'])) {
+                $colour = $entry['colour'];
+            }
+            if ($tagList) {
+                foreach ($tagList as $tagName) {
+                    if ($tagName === $entry['tag']) {
+                        if (isset($tags[strtoupper($entry['tag'])])) {
+                            $this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $tagName, $colour, 0);
+                        }
+                    }
+                }
+            } else {
+                if (isset($tags[strtoupper($entry['tag'])])) {
+                    $this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $entry['tag'], $colour, 0);
+                }
+            }
+        }
+        return true;
+    }
+
     public function listTaxonomies($options = array('full' => false, 'enabled' => false))
     {
         $recursive = -1;

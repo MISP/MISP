@@ -64,6 +64,16 @@
             <div style="float:right !important;overflow:hidden;border:0px;padding:0px;padding-right:200px;">
                     <input type="text" id="quickFilterField" class="tabMenuFilterField taxFilter" value="<?php echo h($filter);?>" /><span id="quickFilterButton" class="useCursorPointer taxFilterButton" onClick='quickFilterTaxonomy("<?php echo h($taxonomy['id']);?>");'><?php echo __('Filter');?></span>
             </div>
+            <span class="tabMenuFixed tabMenuFixedLeft tabMenuSides useCursorPointer  noPrint mass-select" style="margin-left:50px;">
+                <span id="multi-edit-button" title="<?php echo __('Hide selected tags');?>" role="button" tabindex="1" aria-label="<?php echo __('Hide selected tags');?>" class="useCursorPointer" onClick="hideSelectedTags(<?php echo $taxonomy['id']; ?>);">
+                    <?php echo __('Hide selected tags');?>
+                </span>
+            </span>
+            <span class="tabMenuFixed tabMenuFixedLeft tabMenuSides useCursorPointer  noPrint mass-select">
+                <span id="multi-edit-button" title="<?php echo __('Unhide selected tags');?>" role="button" tabindex="2" aria-label="<?php echo __('Unhide selected tags');?>" class="useCursorPointer" onClick="unhideSelectedTags(<?php echo $taxonomy['id']; ?>);">
+                    <?php echo __('Unhide selected tags');?>
+                </span>
+            </span>
         </div>
         <table class="table table-striped table-hover table-condensed">
             <tr>

@@ -733,6 +733,20 @@ function addSelectedTaxonomies(taxonomy) {
 	});
 }
 
+function hideSelectedTags(taxonomy) {
+	$.get("/taxonomies/taxonomyMassHide/"+taxonomy, function(data) {
+		$("#confirmation_box").html(data);
+		openPopup("#confirmation_box");
+	});
+}
+
+function unhideSelectedTags(taxonomy) {
+	$.get("/taxonomies/taxonomyMassUnhide/"+taxonomy, function(data) {
+		$("#confirmation_box").html(data);
+		openPopup("#confirmation_box");
+	});
+}
+
 function submitMassTaxonomyTag() {
 	$('#PromptForm').submit();
 }
