@@ -35,45 +35,30 @@ with open(os.path.join(__path__[0], 'data/describeTypes.json'), 'r') as f:
 
 class StixParser():
     def __init__(self):
+        super(StixParser, self).__init__()
         self.misp_event = MISPEvent()
-        self.event = defaultdict(dict)
         self.misp_event['Galaxy'] = []
 
-    def loadEvent(self, args):
-        filename = os.path.join(os.path.dirname(args[0]), args[1])
-        with open(filename, 'r', encoding='utf-8') as f:
-            event = json.loads(f.read())
+    def load_data(self, filename, version, event, args):
         self.filename = filename
-        self.stix_version = 'STIX {}'.format(event.get('spec_version'))
-        for o in event.get('objects'):
-            parsed_object = stix2.parse(o, allow_custom=True)
-            try:
-                object_type = parsed_object._type
-            except AttributeError:
-                object_type = parsed_object['type']
-            object_uuid = parsed_object['id'].split('--')[1]
-            if object_type.startswith('x-misp-object'):
-                object_type = 'x-misp-object'
-            self.event[object_type][object_uuid] = parsed_object
-        if not self.event:
-            print(json.dumps({'success': 0, 'message': 'There is no valid STIX object to import'}))
-            sys.exit(1)
-        if args[2] is not None:
-            self.add_original_file(args[2])
+        self.stix_version = version
+        self.event = event
+        if args and args[0] is not None:
+            self.add_original_file(args[0])
         try:
-            event_distribution = args[3]
+            event_distribution = args[1]
             if not isinstance(event_distribution, int):
                 event_distribution = int(event_distribution) if event_distribution.isdigit() else 5
         except IndexError:
             event_distribution = 5
         try:
-            attribute_distribution = args[4]
+            attribute_distribution = args[2]
             if attribute_distribution != 'event' and not isinstance(attribute_distribution, int):
                 attribute_distribution = int(attribute_distribution) if attribute_distribution.isdigit() else 5
         except IndexError:
             attribute_distribution = 5
         self.misp_event.distribution = event_distribution
-        self.__attribute_distribution = event_distribution if attribute_distribution == 'event' else attribute_distribution
+        self._attribute_distribution = event_distribution if attribute_distribution == 'event' else attribute_distribution
 
     def add_original_file(self, original_filename):
         with open(self.filename, 'rb') as f:
@@ -85,7 +70,81 @@ class StixParser():
                                        'value': self.stix_version})
         self.misp_event.add_object(**original_file)
 
-    def load_mapping(self):
+    def handler(self):
+        self.outputname = '{}.stix2'.format(self.filename)
+        self.buildMISPDict()
+        self.set_distribution()
+
+    def from_misp(self):
+        for _, o in self.event['report'].items():
+            if o._type == 'report' and 'misp:tool="misp2stix2"' in o.get('labels'):
+                return True
+        return False
+
+    def set_distribution(self):
+        for attribute in self.misp_event.attributes:
+            attribute.distribution = self._attribute_distribution
+        for misp_object in self.misp_event.objects:
+            misp_object.distribution = self._attribute_distribution
+            for attribute in misp_object.attributes:
+                attribute.distribution = self._attribute_distribution
+
+    def saveFile(self):
+        eventDict = self.misp_event.to_json()
+        outputfile = '{}.stix2'.format(self.filename)
+        with open(outputfile, 'w') as f:
+            f.write(eventDict)
+
+    @staticmethod
+    def getTimestampfromDate(stix_date):
+        try:
+            return int(stix_date.timestamp())
+        except AttributeError:
+            return int(time.mktime(time.strptime(stix_date.split('+')[0], "%Y-%m-%d %H:%M:%S")))
+
+    @staticmethod
+    def get_misp_type(labels):
+        return labels[0].split('=')[1][1:-1]
+
+    @staticmethod
+    def get_misp_category(labels):
+        return labels[1].split('=')[1][1:-1]
+
+    @staticmethod
+    def parse_observable(observable, attribute_type):
+        return misp_types_mapping[attribute_type](observable, attribute_type)
+
+    @staticmethod
+    def parse_pattern(pattern):
+        if ' AND ' in pattern:
+            pattern_parts = pattern.split(' AND ')
+            if len(pattern_parts) == 3:
+                _, value1 = pattern_parts[2].split(' = ')
+                _, value2 = pattern_parts[0].split(' = ')
+                return '{}|{}'.format(value1[1:-2], value2[1:-1])
+            else:
+                _, value1 = pattern_parts[0].split(' = ')
+                _, value2 = pattern_parts[1].split(' = ')
+                if value1 in ("'ipv4-addr'", "'ipv6-addr'"):
+                    return value2[1:-2]
+                return '{}|{}'.format(value1[1:-1], value2[1:-2])
+        else:
+            return pattern.split(' = ')[1][1:-2]
+
+    def parse_pattern_with_data(self, pattern):
+        if 'artifact:payload_bin' not in pattern:
+            return self.parse_pattern(pattern)
+        pattern_parts = pattern.split(' AND ')
+        if len(pattern_parts) == 3:
+            filename = pattern_parts[0].split(' = ')[1]
+            md5 = pattern_parts[1].split(' = ')[1]
+            return "{}|{}".format(filename[1:-1], md5[1:-1]), pattern_parts[2].split(' = ')[1][1:-2]
+        return pattern_parts[0].split(' = ')[1][1:-1], pattern_parts[1].split(' = ')[1][1:-2]
+
+
+class StixFromMISPParser(StixParser):
+    def __init__(self):
+        super(StixFromMISPParser, self).__init__()
         self.objects_mapping = {'asn': {'observable': observable_asn, 'pattern': pattern_asn},
                                 'domain-ip': {'observable': observable_domain_ip, 'pattern': pattern_domain_ip},
                                 'email': {'observable': self.observable_email, 'pattern': self.pattern_email},
@@ -102,23 +161,7 @@ class StixParser():
         self.object_from_refs.update(dict.fromkeys(list(galaxy_types.keys()), self.parse_galaxy))
         self.object_from_refs.update(dict.fromkeys(['indicator', 'observed-data'], self.parse_usual_object))
 
-    def handler(self):
-        self.outputname = '{}.stix2'.format(self.filename)
-        if self.from_misp():
-            self.load_mapping()
-            self.buildMispDict()
-        else:
-            self.version_attribute = {'type': 'text', 'object_relation': 'version', 'value': self.stix_version}
-            self.buildExternalDict()
-        self.set_distribution()
-
-    def from_misp(self):
-        for _, o in self.event['report'].items():
-            if o._type == 'report' and 'misp:tool="misp2stix2"' in o.get('labels'):
-                return True
-        return False
-
-    def buildMispDict(self):
+    def buildMISPDict(self):
         report_attributes = defaultdict(list)
         orgs = []
         for _, report in self.event['report'].items():
@@ -499,7 +542,13 @@ class StixParser():
         self.misp_event.add_object(**pe)
         return attributes, pe_uuid
 
-    def buildExternalDict(self):
+
+class ExternalStixParser(StixParser):
+    def __init__(self):
+        super(ExternalStixParser, self).__init__()
+        self.version_attribute = {'type': 'text', 'object_relation': 'version', 'value': self.stix_version}
+
+    def buildMISPDict(self):
         self.fetch_report()
         for o in self.event:
             object_type = o._type
@@ -569,69 +618,33 @@ class StixParser():
         # Might cause some issues, need more examples to test
         return {'type': external_pattern_mapping[stix_type][value_type].get('type'), 'value': pattern_value}
 
-    def set_distribution(self):
-        for attribute in self.misp_event.attributes:
-            attribute.distribution = self.__attribute_distribution
-        for misp_object in self.misp_event.objects:
-            misp_object.distribution = self.__attribute_distribution
-            for attribute in misp_object.attributes:
-                attribute.distribution = self.__attribute_distribution
-
-    def saveFile(self):
-        eventDict = self.misp_event.to_json()
-        outputfile = '{}.stix2'.format(self.filename)
-        with open(outputfile, 'w') as f:
-            f.write(eventDict)
-
-    @staticmethod
-    def getTimestampfromDate(stix_date):
-        try:
-            return int(stix_date.timestamp())
-        except AttributeError:
-            return int(time.mktime(time.strptime(stix_date.split('+')[0], "%Y-%m-%d %H:%M:%S")))
-
-    @staticmethod
-    def get_misp_type(labels):
-        return labels[0].split('=')[1][1:-1]
-
-    @staticmethod
-    def get_misp_category(labels):
-        return labels[1].split('=')[1][1:-1]
-
-    @staticmethod
-    def parse_observable(observable, attribute_type):
-        return misp_types_mapping[attribute_type](observable, attribute_type)
-
-    @staticmethod
-    def parse_pattern(pattern):
-        if ' AND ' in pattern:
-            pattern_parts = pattern.split(' AND ')
-            if len(pattern_parts) == 3:
-                _, value1 = pattern_parts[2].split(' = ')
-                _, value2 = pattern_parts[0].split(' = ')
-                return '{}|{}'.format(value1[1:-2], value2[1:-1])
-            else:
-                _, value1 = pattern_parts[0].split(' = ')
-                _, value2 = pattern_parts[1].split(' = ')
-                if value1 in ("'ipv4-addr'", "'ipv6-addr'"):
-                    return value2[1:-2]
-                return '{}|{}'.format(value1[1:-1], value2[1:-2])
-        else:
-            return pattern.split(' = ')[1][1:-2]
-
-    def parse_pattern_with_data(self, pattern):
-        if 'artifact:payload_bin' not in pattern:
-            return self.parse_pattern(pattern)
-        pattern_parts = pattern.split(' AND ')
-        if len(pattern_parts) == 3:
-            filename = pattern_parts[0].split(' = ')[1]
-            md5 = pattern_parts[1].split(' = ')[1]
-            return "{}|{}".format(filename[1:-1], md5[1:-1]), pattern_parts[2].split(' = ')[1][1:-2]
-        return pattern_parts[0].split(' = ')[1][1:-1], pattern_parts[1].split(' = ')[1][1:-2]
+def from_misp(reports):
+    for _, o in reports.items():
+        if 'misp:tool="misp2stix2"' in o.get('labels'):
+            return True
+    return False
 
 def main(args):
-    stix_parser = StixParser()
-    stix_parser.loadEvent(args)
+    stix_event = defaultdict(dict)
+    filename = os.path.join(os.path.dirname(args[0]), args[1])
+    with open(filename, 'rb') as f:
+        event = json.loads(f.read().decode('utf-8'))
+    for o in event.get('objects'):
+        parsed_object = stix2.parse(o, allow_custom=True)
+        try:
+            object_type = parsed_object._type
+        except AttributeError:
+            object_type = parsed_object['type']
+        object_uuid = parsed_object['id'].split('--')[1]
+        if object_type.startswith('x-misp-object'):
+            object_type = 'x-misp-object'
+        stix_event[object_type][object_uuid] = parsed_object
+    if not stix_event:
+        print(json.dumps({'success': 0, 'message': 'There is no valid STIX object to import'}))
+        sys.exit(1)
+    stix_version = 'STIX {}'.format(event.get('spec_version'))
+    stix_parser = StixFromMISPParser() if from_misp(stix_event['report']) else ExternalStixParser()
+    stix_parser.load_data(filename, stix_version, stix_event, args[2:])
     stix_parser.handler()
     stix_parser.saveFile()
     print(1)
