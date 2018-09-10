@@ -2453,6 +2453,9 @@ class Attribute extends AppModel
     // array 1 will have all of the non negated terms and array 2 all the negated terms
     public function dissectArgs($args)
     {
+		if (empty($args)) {
+			return array(0 => array(), 1 => array());
+		}
         if (!is_array($args)) {
             $args = explode('&&', $args);
         }
