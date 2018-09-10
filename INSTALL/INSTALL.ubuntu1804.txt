@@ -56,10 +56,9 @@ sudo mkdir /var/www/MISP
 sudo chown www-data:www-data /var/www/MISP
 cd /var/www/MISP
 sudo -u www-data git clone https://github.com/MISP/MISP.git /var/www/MISP
-sudo -u www-data git submodule init
-sudo -u www-data git submodule update
+sudo -u www-data git submodule update --init --recursive
 # Make git ignore filesystem permission differences for submodules
-sudo -u www-data git submodule foreach git config core.filemode false
+sudo -u www-data git submodule foreach --recursive git config core.filemode false
 
 # Make git ignore filesystem permission differences
 sudo -u www-data git config core.filemode false

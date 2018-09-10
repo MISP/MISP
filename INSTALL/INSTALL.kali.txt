@@ -149,10 +149,9 @@ function installMISPonKali() {
   pip3 install .
 
   cd $PATH_TO_MISP
-  $SUDO_WWW git submodule init
-  $SUDO_WWW git submodule update
+  $SUDO_WWW git submodule update --init --recursive
   # Make git ignore filesystem permission differences for submodules
-  $SUDO_WWW git submodule foreach git config core.filemode false
+  $SUDO_WWW git submodule foreach --recursive git config core.filemode false
 
   # install PyMISP
   cd $PATH_TO_MISP/PyMISP
@@ -515,8 +514,7 @@ function installMISPonKali() {
   git clone https://github.com/viper-framework/viper.git
   chown -R $MISP_USER:$MISP_USER viper
   cd viper
-  $SUDO git submodule init
-  $SUDO git submodule update
+  $SUDO git submodule update --init --recursive
   pip3 install -r requirements.txt
   pip3 uninstall yara -y
   $SUDO /usr/local/src/viper/viper-cli -h > /dev/null
