@@ -69,11 +69,8 @@ class AppModel extends Model
     public $db_changes = array(
         1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
         7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
-<<<<<<< HEAD
-        13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false
-=======
-        13 => false, 14 => false, 15 => false, 16 => false, 17 => false, 21 => false
->>>>>>> feature/variable_tag_value
+        13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false, 
+	21 => false
     );
 
     public function afterSave($created, $options = array())
