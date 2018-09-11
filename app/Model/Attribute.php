@@ -3633,7 +3633,8 @@ class Attribute extends AppModel
 				'type' => array('function' => 'set_filter_simple_attribute'),
 				'tags' => array('function' => 'set_filter_tags'),
 				'uuid' => array('function' => 'set_filter_uuid'),
-				'deleted' => array('function' => 'set_filter_deleted')
+				'deleted' => array('function' => 'set_filter_deleted'),
+				'timestamp' => array('function' => 'set_filter_timestamp'),
 			),
 			'Event' => array(
 				'eventid' => array('function' => 'set_filter_eventid'),
@@ -3643,7 +3644,6 @@ class Attribute extends AppModel
 				'from' => array('function' => 'set_filter_timestamp'),
 				'to' => array('function' => 'set_filter_timestamp'),
 				'last' => array('function' => 'set_filter_timestamp'),
-				'timestamp' => array('function' => 'set_filter_timestamp'),
 				'publish_timestamp' => array('function' => 'set_filter_timestamp'),
 				'org' => array('function' => 'set_filter_org'),
 				'uuid' => array('function' => 'set_filter_uuid'),

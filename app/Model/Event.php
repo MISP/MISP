@@ -2106,9 +2106,14 @@ class Event extends AppModel
         } elseif ($options['filter'] == 'to') {
             $conditions['AND']['Event.date <='] = $params['to'];
         } else {
+			if (empty($options['scope'])) {
+				$scope = 'Attribute';
+			} else {
+				$scope = $options['scope'];
+			}
             $filters = array(
                 'timestamp' => array(
-                    'Event.timestamp'
+                    $scope . '.timestamp'
                 ),
                 'publish_timestamp' => array(
                     'Event.publish_timestamp'
