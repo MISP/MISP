@@ -215,7 +215,6 @@ class Module extends AppModel
         );
         if ($moduleFamily == 'Cortex') {
             if (!empty(Configure::read('Plugin.' . $moduleFamily . '_authkey'))) {
-				unset($request['header']['Content-Type']);
                 $request['header']['Authorization'] = 'Bearer ' . Configure::read('Plugin.' . $moduleFamily . '_authkey');
             }
         }
@@ -223,7 +222,10 @@ class Module extends AppModel
             if ($post) {
                 $response = $httpSocket->post($url . $uri, $post, $request);
             } else {
-                $response = $httpSocket->get($url . $uri, false, $request);
+				if ($moduleFamily == 'Cortex') {
+					unset($request['header']['Content-Type']);
+				}
+			    $response = $httpSocket->get($url . $uri, false, $request);
             }
             return json_decode($response->body, true);
         } catch (Exception $e) {
