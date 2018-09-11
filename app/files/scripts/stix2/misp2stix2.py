@@ -363,16 +363,14 @@ class StixBuilder():
 
     @staticmethod
     def generate_galaxy_args(galaxy, b_killchain, b_alias, sdo_type):
-        galaxy_type = galaxy.get('type')
-        name = galaxy.get('name')
         cluster = galaxy['GalaxyCluster'][0]
         sdo_id = "{}--{}".format(sdo_type, cluster.get('uuid'))
-        description = "{} | {}".format(galaxy.get('description'), cluster.get('description'))
-        labels = ['misp:type=\"{}\"'.format(galaxy_type)]
-        sdo_args = {'id': sdo_id, 'type': sdo_type, 'name': name, 'description': description}
+        description = "{} | {}".format(galaxy['description'], cluster['description'])
+        labels = ['misp:name=\"{}\"'.format(galaxy['name'])]
+        sdo_args = {'id': sdo_id, 'type': sdo_type, 'name': cluster['value'], 'description': description}
         if b_killchain:
             killchain = [{'kill_chain_name': 'misp-category',
-                          'phase_name': galaxy_type}]
+                          'phase_name': galaxy['type']}]
             sdo_args['kill_chain_phases'] = killchain
         if cluster['tag_name']:
             labels.append(cluster.get('tag_name'))
