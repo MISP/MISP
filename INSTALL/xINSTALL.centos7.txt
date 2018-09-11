@@ -131,10 +131,9 @@ sudo git config core.filemode false
 
 # Fetch submodules
 cd /var/www/MISP
-sudo git submodule init
-sudo git submodule update
+sudo git submodule update --init --recursive
 # Make git ignore filesystem permission differences for submodules
-sudo git submodule foreach git config core.filemode false
+sudo git submodule foreach --recursive git config core.filemode false
 
 # install Mitre's STIX and its dependencies by running the following commands:
 sudo yum install python-importlib python-lxml python-dateutil python-six -y
