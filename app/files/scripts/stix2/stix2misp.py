@@ -209,12 +209,12 @@ class StixFromMISPParser(StixParser):
             self.parse_attribute(o, labels)
 
     def parse_galaxy(self, o, labels):
-        galaxy_type = self.get_misp_type(labels)
+        name = self.get_misp_type(labels)
         tag = labels[1]
-        value = tag.split(':')[1].split('=')[1]
+        galaxy_type, value = tag.split(':')[1].split('=')
         galaxy_description, cluster_description = o.get('description').split('|')
         _, uuid = o.get('id').split('--')
-        galaxy = {'type': galaxy_type, 'name': o.get('name'), 'description': galaxy_description,
+        galaxy = {'type': galaxy_type, 'name': name, 'description': galaxy_description,
                   'GalaxyCluster': [{'type': galaxy_type, 'value':value, 'tag_name': tag,
                                      'description': cluster_description, 'uuid': uuid}]}
         self.misp_event['Galaxy'].append(galaxy)
