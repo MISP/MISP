@@ -2230,7 +2230,8 @@ class Attribute extends AppModel
                     array(
                         'conditions' => $tempConditions,
                         'fields' => array('Attribute.value'), // array of field names
-                        'enforceWarninglist' => $enforceWarninglist
+                        'enforceWarninglist' => $enforceWarninglist,
+						'flatten' => 1
                     )
             );
             if (empty($temp)) {
@@ -2452,6 +2453,9 @@ class Attribute extends AppModel
     // array 1 will have all of the non negated terms and array 2 all the negated terms
     public function dissectArgs($args)
     {
+		if (empty($args)) {
+			return array(0 => array(), 1 => array());
+		}
         if (!is_array($args)) {
             $args = explode('&&', $args);
         }
@@ -2864,6 +2868,9 @@ class Attribute extends AppModel
             $pagesToFetch = 1;
         }
         $attributes = array();
+		if (!empty($options['includeEventTags'])) {
+			$eventTags = array();
+		}
         while ($continue) {
             if ($loop) {
                 $params['page'] = $params['page'] + 1;
@@ -2886,6 +2893,27 @@ class Attribute extends AppModel
             $results = array_values($results);
             $proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
             foreach ($results as $key => $attribute) {
+				if (!empty($options['includeEventTags'])) {
+					if (!isset($eventTags[$results[$key]['Event']['id']])) {
+						$tagConditions = array('EventTag.event_id' => $attribute['Event']['id']);
+						if (empty($options['includeAllTags'])) {
+							$tagConditions['Tag.exportable'] = 1;
+						}
+						$temp = $this->Event->EventTag->find('all', array(
+							'recursive' => -1,
+							'contain' => array('Tag'),
+							'conditions' => $tagConditions
+						));
+						foreach ($temp as $tag) {
+							$tag['EventTag']['Tag'] = $tag['Tag'];
+							unset($tag['Tag']);
+							$eventTags[$results[$key]['Event']['id']][] = $tag;
+						}
+					}
+					foreach ($eventTags[$results[$key]['Event']['id']] as $eventTag) {
+						$results[$key]['EventTag'][] = $eventTag['EventTag'];
+					}
+				}
                 if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute['Attribute'])) {
                     continue;
                 }
@@ -3401,7 +3429,6 @@ class Attribute extends AppModel
             ));
         } else {
             $tags = array();
-
             if (isset($attribute['AttributeTag'])) {
                 foreach ($attribute['AttributeTag'] as $at) {
                     unset($at['id']);

@@ -1812,8 +1812,6 @@ class Server extends AppModel
             $eventIds = array_intersect($eventIds, $local_event_ids);
         } elseif (is_numeric($technique)) {
             $eventIds[] = intval($technique);
-            // if we are downloading a single event, don't fetch all proposals
-            $conditions = array('Event.id' => $technique);
         } else {
             return array('error' => array(4, null));
         }
@@ -1832,7 +1830,7 @@ class Server extends AppModel
         return false;
     }
 
-    private function __updatePulledEventBeforeInsert($event, $server, $user)
+    private function __updatePulledEventBeforeInsert(&$event, $server, $user)
     {
         // we have an Event array
         // The event came from a pull, so it should be locked.
@@ -1870,10 +1868,9 @@ class Server extends AppModel
         return $event;
     }
 
-    private function __checkIfPulledEventExistsAndAddOrUpdate($event, &$successes, &$fails, $eventModel, $server, $user, $passAlong, $job, $jobId)
+    private function __checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, &$successes, &$fails, $eventModel, $server, $user, $jobId)
     {
         // check if the event already exist (using the uuid)
-        $existingEvent = null;
         $existingEvent = $eventModel->find('first', array('conditions' => array('Event.uuid' => $event['Event']['uuid'])));
         if (!$existingEvent) {
             // add data for newly imported events
@@ -1898,32 +1895,26 @@ class Server extends AppModel
         }
     }
 
-    private function __pullEvents($eventId, $successes, $fails, $eventModel, $server, $user, $passAlong, $job, $jobId)
+    private function __pullEvent($eventId, &$successes, &$fails, $eventModel, $server, $user, $jobId)
     {
         $event = $eventModel->downloadEventFromServer(
                 $eventId,
                 $server
-        );
+        );;
         if (!empty($event)) {
             if ($this->__checkIfEventIsBlockedBeforePull($event)) {
                 return false;
             }
-            $this->__updatePulledEventBeforeInsert($event, $server, $user);
-            $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $successes, $fails, $eventModel, $server, $user, $passAlong, $job, $jobId);
+            $event = $this->__updatePulledEventBeforeInsert($event, $server, $user);
+            $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $server, $user, $jobId);
         } else {
             // error
             $fails[$eventId] = 'failed downloading the event';
         }
-        if ($jobId) {
-            if ($k % 10 == 0) {
-                $job->id = $jobId;
-                $job->saveField('progress', 50 * (($k + 1) / count($eventIds)));
-            }
-        }
         return true;
     }
 
-    private function __handlePulledProposals($proposals, $events, $job, $jobId)
+    private function __handlePulledProposals($proposals, $events, $job, $jobId, $eventModel, $user)
     {
         $pulledProposals = array();
         if (!empty($proposals)) {
@@ -1971,7 +1962,7 @@ class Server extends AppModel
                 if ($jobId) {
                     if ($k % 50 == 0) {
                         $job->id =  $jobId;
-                        $job->saveField('progress', 50 * (($k + 1) / count($proposals)));
+                        $job->saveField('progress', 50 * (($k + 1) / count($proposals)) + 50);
                     }
                 }
             }
@@ -1979,7 +1970,7 @@ class Server extends AppModel
         return $pulledProposals;
     }
 
-    public function pull($user, $id = null, $technique=false, $server, $jobId = false, $percent = 100, $current = 0)
+    public function pull($user, $id = null, $technique=false, $server, $jobId = false)
     {
         if ($jobId) {
             $job = ClassRegistry::init('Job');
@@ -1990,9 +1981,9 @@ class Server extends AppModel
             $email = $user['email'];
         }
         $eventModel = ClassRegistry::init('Event');
-        App::uses('HttpSocket', 'Network/Http');
         $eventIds = array();
-        $conditions = array();
+        // if we are downloading a single event, don't fetch all proposals
+        $conditions = is_numeric($technique) ? array('Event.id' => $technique) : array();
         $eventIds = $this->__getEventIdListBasedOnPullTechnique($technique, $server);
 		if (!empty($eventIds['error'])) {
 			$errors = array(
@@ -2020,9 +2011,13 @@ class Server extends AppModel
         // now process the $eventIds to pull each of the events sequentially
         if (!empty($eventIds)) {
             // download each event
-            $HttpSocket = $this->setupHttpSocket($server);
             foreach ($eventIds as $k => $eventId) {
-                $this->__pullEvents($eventId, $successes, $fails, $eventModel, $server, $user, $passAlong, $job, $jobId);
+                $this->__pullEvent($eventId, $successes, $fails, $eventModel, $server, $user, $jobId);
+                if ($jobId) {
+                    if ($k % 10 == 0) {
+                        $job->saveField('progress', 50 * (($k + 1) / count($eventIds)));
+                    }
+                }
             }
         }
         if ($jobId) {
@@ -2033,9 +2028,10 @@ class Server extends AppModel
                 'recursive' => -1,
                 'conditions' => $conditions
         ));
+		$pulledProposals = array();
         if (!empty($events)) {
             $proposals = $eventModel->downloadProposalsFromServer($events, $server);
-            $pulledProposals = $this->__handlePulledProposals($proposals, $events, $job, $jobId);
+            $pulledProposals = $this->__handlePulledProposals($proposals, $events, $job, $jobId, $eventModel, $user);
         }
         if ($jobId) {
             $job->saveField('progress', 100);
