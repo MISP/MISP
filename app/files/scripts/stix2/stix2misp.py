@@ -70,7 +70,7 @@ class StixParser():
                                        'value': self.stix_version})
         self.misp_event.add_object(**original_file)
 
-    def handler(self):
+    def general_handler(self):
         self.outputname = '{}.stix2'.format(self.filename)
         self.buildMISPDict()
         self.set_distribution()
@@ -90,7 +90,7 @@ class StixParser():
                 if 'relationship' not in ref:
                     object_type, uuid = ref.split('--')
                     object2parse = self.event[object_type][uuid]
-                    self.process_parsing(object2parse, object_type)
+                    self.parsing_process(object2parse, object_type)
         if len(report_attributes['orgs']) == 1:
             identity = self.event['identity'][report_attributes['orgs'].pop()]
             self.misp_event['Org'] = {'name': identity['name']}
@@ -208,7 +208,10 @@ class StixFromMISPParser(StixParser):
         self.object_from_refs.update(dict.fromkeys(list(galaxy_types.keys()), self.parse_galaxy))
         self.object_from_refs.update(dict.fromkeys(['indicator', 'observed-data'], self.parse_usual_object))
 
-    def process_parsing(self, object2parse, object_type):
+    def handler(self):
+        self.general_handler()
+
+    def parsing_process(self, object2parse, object_type):
         labels = object2parse.get('labels')
         self.object_from_refs[object_type](object2parse, labels)
 
@@ -272,12 +275,12 @@ class StixFromMISPParser(StixParser):
         misp_object = MISPObject(name)
         misp_object['meta-category'] = object_category
         if stix_type == 'indicator':
-            pattern = o.get('pattern').replace('\\\\', '\\').split(' AND ')
+            pattern = o.pattern.replace('\\\\', '\\').split(' AND ')
             pattern[0] = pattern[0][1:]
             pattern[-1] = pattern[-1][:-1]
             attributes = self.objects_mapping[object_type]['pattern'](pattern)
         if stix_type == 'observed-data':
-            observable = o.get('objects')
+            observable = o.objects
             attributes = self.objects_mapping[object_type]['observable'](observable)
         if isinstance(attributes, tuple):
             attributes, pe_uuid = attributes
@@ -304,12 +307,12 @@ class StixFromMISPParser(StixParser):
                     org_uuid = o['created_by_ref'].split('--')[1]
                     attribute['Sighting'] = [{'type': '2', 'date_sighting': str(self.getTimestampfromDate(o['valid_until'])),
                                              'Organisation': {'uuid': org_uuid, 'name': self.event['identity'][org_uuid]['name']}}]
-                pattern = o.get('pattern').replace('\\\\', '\\')
+                pattern = o.pattern.replace('\\\\', '\\')
                 value = self.parse_pattern_with_data(pattern) if attribute_type in ('malware-sample', 'attachment') else self.parse_pattern(pattern)
                 attribute['to_ids'] = True
             else:
                 attribute['timestamp'] = self.getTimestampfromDate(o.get('last_observed'))
-                observable = o.get('objects')
+                observable = o.objects
                 try:
                     value = self.parse_observable(observable, attribute_type)
                 except Exception:
@@ -541,12 +544,15 @@ class StixFromMISPParser(StixParser):
 class ExternalStixParser(StixParser):
     def __init__(self):
         super(ExternalStixParser, self).__init__()
-        self.version_attribute = {'type': 'text', 'object_relation': 'version', 'value': self.stix_version}
         self.object_from_refs = {'course-of-action': self.parse_course_of_action, 'vulnerability': self.parse_external_vulnerability,
                                  'indicator': self.parse_external_indicator, 'observed-data': self.parse_external_observable}
         self.object_from_refs.update(dict.fromkeys(list(galaxy_types.keys()), self.parse_external_galaxy))
 
-    def process_parsing(self, object2parse, object_type):
+    def handler(self):
+        self.version_attribute = {'type': 'text', 'object_relation': 'version', 'value': self.stix_version}
+        self.general_handler()
+
+    def parsing_process(self, object2parse, object_type):
         self.object_from_refs[object_type](object2parse)
 
     def parse_external_galaxy(self, o):
@@ -617,9 +623,8 @@ def main(args):
     stix_event = defaultdict(dict)
     filename = os.path.join(os.path.dirname(args[0]), args[1])
     with open(filename, 'rb') as f:
-        event = json.loads(f.read().decode('utf-8'))
-    for o in event.get('objects'):
-        parsed_object = stix2.parse(o, allow_custom=True)
+        event = stix2.parse(f.read().decode('utf-8'), allow_custom=True)
+    for parsed_object in event.objects:
         try:
             object_type = parsed_object._type
         except AttributeError:
