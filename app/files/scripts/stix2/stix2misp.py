@@ -70,7 +70,7 @@ class StixParser():
                                        'value': self.stix_version})
         self.misp_event.add_object(**original_file)
 
-    def handler(self):
+    def general_handler(self):
         self.outputname = '{}.stix2'.format(self.filename)
         self.buildMISPDict()
         self.set_distribution()
@@ -207,6 +207,9 @@ class StixFromMISPParser(StixParser):
                                  'x-misp-object': self.parse_custom}
         self.object_from_refs.update(dict.fromkeys(list(galaxy_types.keys()), self.parse_galaxy))
         self.object_from_refs.update(dict.fromkeys(['indicator', 'observed-data'], self.parse_usual_object))
+
+    def handler(self):
+        self.general_handler()
 
     def parsing_process(self, object2parse, object_type):
         labels = object2parse.get('labels')
@@ -541,10 +544,13 @@ class StixFromMISPParser(StixParser):
 class ExternalStixParser(StixParser):
     def __init__(self):
         super(ExternalStixParser, self).__init__()
-        self.version_attribute = {'type': 'text', 'object_relation': 'version', 'value': self.stix_version}
         self.object_from_refs = {'course-of-action': self.parse_course_of_action, 'vulnerability': self.parse_external_vulnerability,
                                  'indicator': self.parse_external_indicator, 'observed-data': self.parse_external_observable}
         self.object_from_refs.update(dict.fromkeys(list(galaxy_types.keys()), self.parse_external_galaxy))
+
+    def handler(self):
+        self.version_attribute = {'type': 'text', 'object_relation': 'version', 'value': self.stix_version}
+        self.general_handler()
 
     def parsing_process(self, object2parse, object_type):
         self.object_from_refs[object_type](object2parse)
