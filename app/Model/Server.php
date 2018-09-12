@@ -1805,6 +1805,7 @@ class Server extends AppModel
             } elseif (is_string($eventIds)) {
                 return array('error' => array(2, $eventIds));
             }
+			$eventModel = ClassRegistry::init('Event');
             $local_event_ids = $eventModel->find('list', array(
                     'fields' => array('uuid'),
                     'recursive' => -1,
