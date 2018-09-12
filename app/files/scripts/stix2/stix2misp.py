@@ -275,12 +275,12 @@ class StixFromMISPParser(StixParser):
         misp_object = MISPObject(name)
         misp_object['meta-category'] = object_category
         if stix_type == 'indicator':
-            pattern = o.get('pattern').replace('\\\\', '\\').split(' AND ')
+            pattern = o.pattern.replace('\\\\', '\\').split(' AND ')
             pattern[0] = pattern[0][1:]
             pattern[-1] = pattern[-1][:-1]
             attributes = self.objects_mapping[object_type]['pattern'](pattern)
         if stix_type == 'observed-data':
-            observable = o.get('objects')
+            observable = o.objects
             attributes = self.objects_mapping[object_type]['observable'](observable)
         if isinstance(attributes, tuple):
             attributes, pe_uuid = attributes
@@ -307,12 +307,12 @@ class StixFromMISPParser(StixParser):
                     org_uuid = o['created_by_ref'].split('--')[1]
                     attribute['Sighting'] = [{'type': '2', 'date_sighting': str(self.getTimestampfromDate(o['valid_until'])),
                                              'Organisation': {'uuid': org_uuid, 'name': self.event['identity'][org_uuid]['name']}}]
-                pattern = o.get('pattern').replace('\\\\', '\\')
+                pattern = o.pattern.replace('\\\\', '\\')
                 value = self.parse_pattern_with_data(pattern) if attribute_type in ('malware-sample', 'attachment') else self.parse_pattern(pattern)
                 attribute['to_ids'] = True
             else:
                 attribute['timestamp'] = self.getTimestampfromDate(o.get('last_observed'))
-                observable = o.get('objects')
+                observable = o.objects
                 try:
                     value = self.parse_observable(observable, attribute_type)
                 except Exception:
@@ -623,9 +623,8 @@ def main(args):
     stix_event = defaultdict(dict)
     filename = os.path.join(os.path.dirname(args[0]), args[1])
     with open(filename, 'rb') as f:
-        event = json.loads(f.read().decode('utf-8'))
-    for o in event.get('objects'):
-        parsed_object = stix2.parse(o, allow_custom=True)
+        event = stix2.parse(f.read().decode('utf-8'), allow_custom=True)
+    for parsed_object in event.objects:
         try:
             object_type = parsed_object._type
         except AttributeError:
