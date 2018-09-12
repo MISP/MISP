@@ -90,7 +90,7 @@ class StixParser():
                 if 'relationship' not in ref:
                     object_type, uuid = ref.split('--')
                     object2parse = self.event[object_type][uuid]
-                    self.process_parsing(object2parse, object_type)
+                    self.parsing_process(object2parse, object_type)
         if len(report_attributes['orgs']) == 1:
             identity = self.event['identity'][report_attributes['orgs'].pop()]
             self.misp_event['Org'] = {'name': identity['name']}
@@ -208,7 +208,7 @@ class StixFromMISPParser(StixParser):
         self.object_from_refs.update(dict.fromkeys(list(galaxy_types.keys()), self.parse_galaxy))
         self.object_from_refs.update(dict.fromkeys(['indicator', 'observed-data'], self.parse_usual_object))
 
-    def process_parsing(self, object2parse, object_type):
+    def parsing_process(self, object2parse, object_type):
         labels = object2parse.get('labels')
         self.object_from_refs[object_type](object2parse, labels)
 
@@ -546,7 +546,7 @@ class ExternalStixParser(StixParser):
                                  'indicator': self.parse_external_indicator, 'observed-data': self.parse_external_observable}
         self.object_from_refs.update(dict.fromkeys(list(galaxy_types.keys()), self.parse_external_galaxy))
 
-    def process_parsing(self, object2parse, object_type):
+    def parsing_process(self, object2parse, object_type):
         self.object_from_refs[object_type](object2parse)
 
     def parse_external_galaxy(self, o):
