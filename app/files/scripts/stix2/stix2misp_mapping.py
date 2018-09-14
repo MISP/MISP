@@ -180,7 +180,7 @@ domain_ip_mapping = {'domain-name': domain_attribute_mapping,
                      'domain-name:value': domain_attribute_mapping,
                      'ipv4-addr': ip_attribute_mapping,
                      'ipv6-addr': ip_attribute_mapping,
-                     'domain-name:resolves_to_refs[*].value': ip_attribute_mapping,}
+                     'domain-name:resolves_to_refs[*].value': ip_attribute_mapping}
 
 email_mapping = {'date': email_date_attribute_mapping,
                  'email-message:date': email_date_attribute_mapping,
@@ -196,8 +196,7 @@ email_mapping = {'date': email_date_attribute_mapping,
                  'email-message:additional_header_fields.reply_to': reply_to_attribute_mapping,
                  'email-message:from_ref': {'type': 'email-src', 'relation': 'from'},
                  'body_multipart': body_multipart_mapping,
-                 'email-message:body_multipart[*].body_raw_ref.name': body_multipart_mapping
-                 }
+                 'email-message:body_multipart[*].body_raw_ref.name': body_multipart_mapping}
 
 file_mapping = {'mime_type': mime_type_attribute_mapping,
                 'file:mime_type': mime_type_attribute_mapping,
@@ -285,47 +284,8 @@ x509_mapping = {'issuer': issuer_attribute_mapping,
                 "x509-certificate:hashes.'md5'": x509_md5_attribute_mapping,
                 }
 
-def parse_custom_property(p_type):
-    d_type = p_type.split("_")
-    attribute_type = d_type[2]
-    relation = "".join("{}-".format(t) for t in d_type[3:])
-    return attribute_type, relation
 
-def fill_observable_attributes(attributes, stix_object, object_mapping):
-    for o_key, o_value in stix_object.items():
-        try:
-            mapping = object_mapping[o_key]
-            attributes.append({'type': mapping.get('type'), 'object_relation': mapping.get('relation'),
-                               'value': o_value, 'to_ids': False})
-        except KeyError:
-            if "x_misp_" in o_key:
-                attribute_type, relation = parse_custom_property(o_key)
-                if isinstance(o_value, list):
-                    for v in o_value:
-                        attributes.append({'type': attribute_type, 'object_relation': relation[:-1],
-                                           'value': v, 'to_ids': False})
-                else:
-                    attributes.append({'type': attribute_type, 'object_relation': relation[:-1],
-                                       'value': o_value, 'to_ids': False})
-            else:
-                continue
 
-def fill_pattern_attributes(pattern, object_mapping):
-    attributes = []
-    for p in pattern:
-        p_type, p_value = p.split(' = ')
-        try:
-            mapping = object_mapping[p_type]
-            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                               'value': p_value[1:-1], 'to_ids': True})
-        except KeyError:
-            if "x_misp_" in p_type:
-                attribute_type, relation = parse_custom_property(p_type)
-                attributes.append({'type': attribute_type, 'object_relation': relation[:-2],
-                                   'value': p_value[1:-1], 'to_ids': True})
-            else:
-                continue
-    return attributes
 
 def observable_asn(observable):
     attributes = []
@@ -351,24 +311,7 @@ def observable_domain_ip(observable):
 def pattern_domain_ip(pattern):
     return fill_pattern_attributes(pattern, domain_ip_mapping)
 
-def observable_file(observable):
-    if len(observable) > 1:
-        data = dict(observable['0'])['payload_bin']
-        observable = dict(observable['1'])
-        filename = observable['name']
-        md5 = observable['hashes']['MD5']
-        attributes = [{'type': 'malware-sample', 'object_relation': 'malware-sample',
-                       'value': '{}|{}'.format(filename, md5), 'to_ids': False, 'data': data}]
-    else:
-        observable = dict(observable['0'])
-        attributes = []
-    if 'hashes' in observable:
-        for h_type, h_value in observable.pop('hashes').items():
-            h_type = h_type.lower().replace('-', '')
-            attributes.append({'type': h_type, 'object_relation': h_type,
-                               'value': h_value, 'to_ids': False})
-    fill_observable_attributes(attributes, observable, file_mapping)
-    return attributes
+
 
 def observable_ip_port(observable):
     attributes = []
