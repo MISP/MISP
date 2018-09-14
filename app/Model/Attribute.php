@@ -3635,6 +3635,7 @@ class Attribute extends AppModel
 				'uuid' => array('function' => 'set_filter_uuid'),
 				'deleted' => array('function' => 'set_filter_deleted'),
 				'timestamp' => array('function' => 'set_filter_timestamp'),
+				'to_ids' => array('function' => 'set_filter_to_ids')
 			),
 			'Event' => array(
 				'eventid' => array('function' => 'set_filter_eventid'),
