@@ -1622,7 +1622,7 @@ class Event extends AppModel
             }
         }
 
-        if (isset($options['to_ids'])) {
+        if (!empty($options['to_ids']) || $options['to_ids'] === 0) {
             $conditionsAttributes['AND'][] = array('Attribute.to_ids' => $options['to_ids']);
         }
 
