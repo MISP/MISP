@@ -3025,7 +3025,8 @@ class EventsController extends AppController
 			'xml' => array('xml', 'XmlExport'),
 			'suricata' => array('txt', 'NidsSuricataExport'),
 			'snort' => array('txt', 'NidsSnortExport'),
-			'rpz' => array('rpz', 'RPZExport')
+			'rpz' => array('rpz', 'RPZExport'),
+			'text' => array('text', 'TextExport')
 		);
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
@@ -3051,6 +3052,9 @@ class EventsController extends AppController
 		}
 		App::uses($validFormats[$returnFormat][1], 'Export');
         $exportTool = new $validFormats[$returnFormat][1]();
+		if (!empty($exportTool->additional_params)) {
+			$filters = array_merge($filters, $exportTool->additional_params);
+		}
 		$exportToolParams = array(
 			'user' => $this->Auth->user(),
 			'params' => array(),
