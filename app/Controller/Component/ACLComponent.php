@@ -185,6 +185,7 @@ class ACLComponent extends Component
             ),
             'galaxyClusters' => array(
                 'attachToEvent' => array('perm_tagger'),
+				'delete' => array('perm_site_admin'),
                 'detach' => array('perm_tagger'),
                 'index' => array('*'),
                 'view' => array('*')
