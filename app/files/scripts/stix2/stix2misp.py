@@ -158,10 +158,6 @@ class StixParser():
         self.misp_event.add_object(**misp_object)
 
     @staticmethod
-    def parse_observable(observable, attribute_type):
-        return misp_types_mapping[attribute_type](observable, attribute_type)
-
-    @staticmethod
     def parse_pattern(pattern):
         if ' AND ' in pattern:
             pattern_parts = pattern.split(' AND ')
@@ -314,7 +310,7 @@ class StixFromMISPParser(StixParser):
                 attribute['timestamp'] = self.getTimestampfromDate(o.get('last_observed'))
                 observable = o.objects
                 try:
-                    value = self.parse_observable(observable, attribute_type)
+                    value = misp_types_mapping[attribute_type](observable, attribute_type)
                 except Exception:
                     print('Error with attribute type {}:\n{}'.format(attribute_type, observable), file=sys.stderr)
                 attribute['to_ids'] = False
