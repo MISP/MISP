@@ -41,7 +41,7 @@ class RestResponseComponent extends Component
 					in the selected format. The search is available on an event and an attribute level,
 					just select the scope via the URL (/events/restSearch vs /attributes/restSearch).
 					Besides the parameters listed, other, format specific ones can be passed along.
-					Accepted return formats are: [json, xml, suricata, snort, text, openioc]",
+					Accepted return formats are: [json, xml, suricata, snort, text, openioc, rpz]",
 				'mandatory' => array('returnFormat'),
 				'optional' => array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id'),
 				'params' => array()
@@ -65,7 +65,7 @@ class RestResponseComponent extends Component
 					in the selected format. The search is available on an event and an attribute level,
 					just select the scope via the URL (/events/restSearch vs /attributes/restSearch).
 					Besides the parameters listed, other, format specific ones can be passed along.
-					Accepted return formats are: [json, xml, suricata, snort, openioc]",
+					Accepted return formats are: [json, xml, suricata, snort, text, openioc, rpz]",
 				'mandatory' => array('returnFormat'),
 				'optional' => array('value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly'),
 				'params' => array()
