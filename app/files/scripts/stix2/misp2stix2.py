@@ -97,22 +97,18 @@ class StixBuilder():
     def misp_types(self):
         describe_types_filename = os.path.join(pymisp.__path__[0], 'data/describeTypes.json')
         describe_types = open(describe_types_filename, 'r')
-        self.categories_mapping = json.loads(describe_types.read())['result']['category_type_mappings']
+        categories_mapping = json.loads(describe_types.read())['result']['category_type_mappings']
+        for category in categories_mapping:
+            mispTypesMapping[category] = {'to_call': 'handle_person'}
 
     def read_attributes(self):
         self.misp_types()
         if hasattr(self.misp_event, 'attributes') and self.misp_event.attributes:
             for attribute in self.misp_event.attributes:
-                attribute_type = attribute.type
-                if attribute_type in non_indicator_attributes:
-                    self.handle_non_indicator(attribute, attribute_type)
-                else:
-                    if attribute_type in self.categories_mapping['Person']:
-                        self.handle_person(attribute)
-                    elif attribute_type in mispTypesMapping:
-                        self.handle_usual_type(attribute)
-                    else:
-                        self.add_custom(attribute)
+                try:
+                    getattr(self, mispTypesMapping[attribute.type]['to_call'])(attribute)
+                except KeyError:
+                    self.add_custom(attribute)
         if hasattr(self.misp_event, 'objects') and self.misp_event.objects:
             self.load_objects_mapping()
             objects_to_parse = defaultdict(dict)
@@ -146,7 +142,8 @@ class StixBuilder():
                         self.add_object_custom(misp_object, to_ids)
                 else:
                     self.add_object_custom(misp_object, to_ids)
-            if objects_to_parse: self.resolve_objects2parse(objects_to_parse)
+            if objects_to_parse:
+                self.resolve_objects2parse(objects_to_parse)
         if hasattr(self.misp_event, 'Galaxy') and self.misp_event.Galaxy:
             for galaxy in self.misp_event.Galaxy:
                 self.parse_galaxy(galaxy, self.report_id)
@@ -187,7 +184,7 @@ class StixBuilder():
             'x509': {'observable': self.resolve_x509_observable,
                      'pattern': self.resolve_x509_pattern}
         }
-        self.galaxies_mapping = {'branded-vulnerability': ['vulnerability', self.add_vulnerability]}
+        self.galaxies_mapping = {'branded-vulnerability': ['vulnerability', self.add_vulnerability_from_galaxy]}
         self.galaxies_mapping.update(dict.fromkeys(attack_pattern_galaxies_list, ['attack-pattern', self.add_attack_pattern]))
         self.galaxies_mapping.update(dict.fromkeys(course_of_action_galaxies_list, ['course-of-action', self.add_course_of_action]))
         self.galaxies_mapping.update(dict.fromkeys(intrusion_set_galaxies_list, ['intrusion-set', self.add_intrusion_set]))
@@ -226,23 +223,6 @@ class StixBuilder():
         if pid is not None:
             process['type'] = 'process'
             processes[pid] = process
-
-    def handle_non_indicator(self, attribute, attribute_type):
-        if attribute_type == "link":
-            self.handle_link(attribute)
-        elif attribute_type in ('text', 'comment', 'other') or attribute_type not in mispTypesMapping:
-            self.add_custom(attribute)
-        else:
-            try:
-                self.handle_non_indicator_attribute(attribute, attribute_type)
-            except:
-                self.add_custom(attribute)
-
-    def handle_non_indicator_attribute(self, attribute, attribute_type):
-        if attribute_type == "vulnerability":
-            self.add_vulnerability(attribute, from_galaxy=False)
-        else:
-            self.add_observed_data(attribute)
 
     def handle_person(self, attribute):
         if attribute.category == "Person":
@@ -501,31 +481,33 @@ class StixBuilder():
         tool = Tool(**tool_args)
         self.append_object(tool, tool_id)
 
-    def add_vulnerability(self, attribute, from_galaxy=True):
-        if from_galaxy:
-            vulnerability_id = "vulnerability--{}".format(attribute['uuid'])
-            cluster = attribute['GalaxyCluster'][0]
-            name = cluster['value']
-            if cluster['meta'] and cluster['meta']['aliases']:
-                vulnerability_data = [mispTypesMapping['vulnerability'](alias) for alias in cluster['meta']['aliases']]
-            else:
-                vulnerability_data = [mispTypesMapping['vulnerability'](name)]
-            labels = ['misp:type=\"{}\"'.format(attribute.get('type'))]
-            if cluster['tag_name']:
-                labels.append(cluster['tag_name'])
-            description = "{} | {}".format(attribute.get('description'), cluster.get('description'))
-            vulnerability_args = {'id': vulnerability_id, 'type': 'vulnerability',
-                                  'name': name, 'external_references': vulnerability_data,
-                                  'created_by_ref': self.identity_id, 'labels': labels,
-                                  'description': description}
+    def add_vulnerability(self, attribute):
+        vulnerability_id = "vulnerability--{}".format(attribute.uuid)
+        name = attribute.value
+        vulnerability_data = [mispTypesMapping['vulnerability']['vulnerability_args'](name)]
+        labels = self.create_labels(attribute)
+        vulnerability_args = {'id': vulnerability_id, 'type': 'vulnerability',
+                              'name': name, 'external_references': vulnerability_data,
+                              'created_by_ref': self.identity_id, 'labels': labels}
+        vulnerability = Vulnerability(**vulnerability_args)
+        self.append_object(vulnerability, vulnerability_id)
+
+    def add_vulnerability_from_galaxy(self, attribute):
+        vulnerability_id = "vulnerability--{}".format(attribute['uuid'])
+        cluster = attribute['GalaxyCluster'][0]
+        name = cluster['value']
+        if cluster['meta'] and cluster['meta']['aliases']:
+            vulnerability_data = [mispTypesMapping['vulnerability']['vulnerability_args'](alias) for alias in cluster['meta']['aliases']]
         else:
-            vulnerability_id = "vulnerability--{}".format(attribute.uuid)
-            name = attribute.value
-            vulnerability_data = [mispTypesMapping['vulnerability'](name)]
-            labels = self.create_labels(attribute)
-            vulnerability_args = {'id': vulnerability_id, 'type': 'vulnerability',
-                                  'name': name, 'external_references': vulnerability_data,
-                                  'created_by_ref': self.identity_id, 'labels': labels}
+            vulnerability_data = [mispTypesMapping['vulnerability']['vulnerability_args'](name)]
+        labels = ['misp:type=\"{}\"'.format(attribute.get('type'))]
+        if cluster['tag_name']:
+            labels.append(cluster['tag_name'])
+        description = "{} | {}".format(attribute.get('description'), cluster.get('description'))
+        vulnerability_args = {'id': vulnerability_id, 'type': 'vulnerability',
+                              'name': name, 'external_references': vulnerability_data,
+                              'created_by_ref': self.identity_id, 'labels': labels,
+                              'description': description}
         vulnerability = Vulnerability(**vulnerability_args)
         self.append_object(vulnerability, vulnerability_id)
 
