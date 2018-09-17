@@ -24,9 +24,6 @@ from misp2stix2_mapping import *
 from collections import defaultdict
 from copy import deepcopy
 
-non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', 'target-email',
-                            'target-machine', 'target-org', 'target-location', 'target-external',
-                            'vulnerability']
 misp_hash_types = ["authentihash", "ssdeep", "imphash", "md5", "sha1", "sha224",
                    "sha256", "sha384", "sha512", "sha512/224","sha512/256","tlsh"]
 attack_pattern_galaxies_list = ['mitre-attack-pattern', 'mitre-enterprise-attack-attack-pattern',
