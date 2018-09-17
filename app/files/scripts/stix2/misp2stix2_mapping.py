@@ -272,21 +272,35 @@ network_traffic_pattern = "network-traffic:{0} = '{1}' AND "
 network_traffic_src_ref = "src_ref.type = '{0}' AND network-traffic:src_ref.value"
 network_traffic_dst_ref = "dst_ref.type = '{0}' AND network-traffic:dst_ref.value"
 
-objectsMapping = {'asn': {'observable': {'type': 'autonomous-system'},
+objectsMapping = {'asn': {'to_call': 'handle_usual_object_name',
+                          'observable': {'type': 'autonomous-system'},
                           'pattern': "autonomous-system:{0} = '{1}' AND "},
-                  'domain-ip': {'pattern': "domain-name:{0} = '{1}' AND "},
-                  'email': {'observable': {'0': {'type': 'email-message'}},
+                  'course-of-action': {'to_call': 'add_course_of_action_from_object'},
+                  'domain-ip': {'to_call': 'handle_usual_object_name',
+                                'pattern': "domain-name:{0} = '{1}' AND "},
+                  'email': {'to_call': 'handle_usual_object_name',
+                            'observable': {'0': {'type': 'email-message'}},
                             'pattern': "email-{0}:{1} = '{2}' AND "},
-                  'file': {'observable': {'0': {'type': 'file', 'hashes': {}}},
+                  'file': {'to_call': 'handle_usual_object_name',
+                           'observable': {'0': {'type': 'file', 'hashes': {}}},
                            'pattern': "file:{0} = '{1}' AND "},
-                  'ip-port': {'pattern': network_traffic_pattern},
-                  'network-socket': {'pattern': network_traffic_pattern},
-                  'process': {'pattern': "process:{0} = '{1}' AND "},
-                  'registry-key': {'observable': {'0': {'type': 'windows-registry-key'}},
+                  'ip-port': {'to_call': 'handle_usual_object_name',
+                              'pattern': network_traffic_pattern},
+                  'network-socket': {'to_call': 'handle_usual_object_name',
+                                     'pattern': network_traffic_pattern},
+                  'pe': {'to_call': 'populate_objects_to_parse'},
+                  'pe-section': {'to_call': 'populate_objects_to_parse'},
+                  'process': {'to_call': 'handle_usual_object_name',
+                              'pattern': "process:{0} = '{1}' AND "},
+                  'registry-key': {'to_call': 'handle_usual_object_name',
+                                   'observable': {'0': {'type': 'windows-registry-key'}},
                                    'pattern': "windows-registry-key:{0} = '{1}' AND "},
-                  'url': {'observable': {'0': {'type': 'url'}},
+                  'url': {'to_call': 'handle_usual_object_name',
+                          'observable': {'0': {'type': 'url'}},
                           'pattern': "url:{0} = '{1}' AND "},
-                  'x509': {'pattern': "x509-certificate:{0} = '{1}' AND "}
+                  'vulnerability': {'to_call': 'add_object_vulnerability'},
+                  'x509': {'to_call': 'handle_usual_object_name',
+                           'pattern': "x509-certificate:{0} = '{1}' AND "}
 }
 
 asnObjectMapping = {'asn': 'number', 'description': 'name', 'subnet-announced': 'value'}
