@@ -628,7 +628,9 @@ class ExternalStixParser(StixParser):
         self.object_from_refs = {'course-of-action': self.parse_course_of_action, 'vulnerability': self.parse_external_vulnerability,
                                  'indicator': self.parse_external_indicator, 'observed-data': self.parse_external_observable}
         self.object_from_refs.update(dict.fromkeys(list(galaxy_types.keys()), self.parse_external_galaxy))
-        self.external_mapping = {('file',): self.parse_observable_file, ('artifact', 'file'): self.parse_observable_file_object}
+        self.external_mapping = {('file',): self.parse_observable_file, ('artifact', 'file'): self.parse_observable_file_object,
+                                 ('ipv4-addr', 'network-traffic'): self.parse_observable_ip_network_traffic,
+                                 ('ipv6-addr', 'network-traffic'): self.parse_observable_ip_network_traffic}
 
     def handler(self):
         self.version_attribute = {'type': 'text', 'object_relation': 'version', 'value': self.stix_version}
@@ -723,6 +725,29 @@ class ExternalStixParser(StixParser):
         file, data = self.extract_data_from_file(objects)
         attributes = self.attributes_from_observable_file(file, data)
         self.handle_import_case(attributes, file._type)
+
+    def parse_observable_ip_network_traffic(self, objects):
+        print(objects)
+        references = {}
+        for key, value in objects.items():
+            if isinstance(value, (stix2.IPv4Address, stix2.IPv6Address)):
+                references[key] = value.value
+            elif isinstance(value, stix2.NetworkTraffic):
+                network_traffic = value
+        attributes = self.fill_observable_attributes(network_traffic, network_traffic_mapping)
+        if references:
+            for ref in ('src_ref', 'dst_ref'):
+                if hasattr(network_traffic, ref):
+                    misp_type = 'ip-{}'.format(ref.split('_')[0])
+                    attributes.append({'type': misp_type, 'object_relation': misp_type,
+                                       'to_ids': False, 'value': references[getattr(network_traffic, ref)]})
+        if hasattr(network_traffic, 'extensions') and network_traffic.extensions:
+            extension_type, extension_value = list(network_traffic.extensions.items())[0]
+            name = network_traffic_extensions[extension_type]
+            attributes.extend(self.fill_observable_attributes(extension_value, network_traffic_mapping))
+        else:
+            name = 'ip-port'
+        self.handle_import_case(attributes, name)
 
     ################################################################################
     ##                             UTILITY FUNCTIONS.                             ##

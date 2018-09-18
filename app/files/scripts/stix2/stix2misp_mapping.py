@@ -225,6 +225,8 @@ network_traffic_mapping = {'src_port': src_port_attribute_mapping,
                            'is_listening': state_attribute_mapping,
                            "network-traffic:extensions.'socket-ext'.is_listening": state_attribute_mapping}
 
+network_traffic_extensions = {'socket-ext': 'network-socket'}
+
 pe_mapping = {'pe_type': pe_type_mapping, 'number_of_sections': number_sections_mapping, 'imphash': imphash_mapping}
 
 pe_section_mapping = {'name': section_name_mapping, 'size': size_attribute_mapping, 'entropy': entropy_mapping}
