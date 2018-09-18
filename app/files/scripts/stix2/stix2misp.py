@@ -177,15 +177,6 @@ class StixParser():
             misp_object.add_attribute(**attribute)
         self.misp_event.add_object(**misp_object)
 
-    def parse_observable_file_object(self, objects):
-        for _, value in objects.items():
-            if isinstance(value, stix2.Artifact):
-                data = value.payload_bin
-            elif isinstance(value, stix2.File):
-                file = value
-        attributes = self.observable_file(file, data)
-        self.handle_import_case(attributes, file._type)
-
 
 class StixFromMISPParser(StixParser):
     def __init__(self):
@@ -703,10 +694,23 @@ class ExternalStixParser(StixParser):
         # Might cause some issues, need more examples to test
         return {'type': external_pattern_mapping[stix_type][value_type].get('type'), 'value': pattern_value}
 
+    ################################################################################
+    ##                             PARSING FUNCTIONS.                             ##
+    ################################################################################
+
     def parse_observable_file(self, objects):
         _object = objects['0']
         attributes = self.observable_file(_object)
         self.handle_import_case(attributes, _object._type)
+
+    def parse_observable_file_object(self, objects):
+        for value in objects.values():
+            if isinstance(value, stix2.Artifact):
+                data = value.payload_bin
+            elif isinstance(value, stix2.File):
+                file = value
+        attributes = self.attributes_from_observable_file(file, data)
+        self.handle_import_case(attributes, file._type)
 
     ################################################################################
     ##                             UTILITY FUNCTIONS.                             ##
