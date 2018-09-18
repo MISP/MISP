@@ -149,7 +149,7 @@ class StixParser():
     ##                 PARSING FUNCTIONS USED BY BOTH SUBCLASSES.                 ##
     ################################################################################
 
-    def observable_file(self, _object, data=None):
+    def attributes_from_observable_file(self, _object, data=None):
         attributes = []
         md5 = None
         if hasattr(_object, 'hashes'):
@@ -164,6 +164,16 @@ class StixParser():
             attributes.append({'type': 'malware-sample', 'object_relation': 'malware-sample',
                                'value': '{}|{}'.format(_object.name, md5), 'data': data})
         return attributes
+
+    @staticmethod
+    def extract_data_from_file(objects):
+        data = None
+        for value in objects.values():
+            if isinstance(value, stix2.Artifact):
+                data = value.payload_bin
+            elif isinstance(value, stix2.File):
+                file = value
+        return file, data
 
     def parse_course_of_action(self, o):
         misp_object = MISPObject('course-of-action')
@@ -392,6 +402,13 @@ class StixFromMISPParser(StixParser):
         mapping = email_mapping[_type]
         return {'type': mapping['type'], 'object_relation': mapping['relation'], 'value': value, 'to_ids': to_ids}
 
+    def observable_file(self, observable):
+        if len(observable) > 1:
+            file, data = self.extract_data_from_file(observable)
+            if data is not None:
+                return self.attributes_from_observable_file(file, data)
+        return self.attributes_from_observable_file(observable['0'])
+
     @staticmethod
     def pattern_file(pattern):
         attributes = []
@@ -450,10 +467,9 @@ class StixFromMISPParser(StixParser):
             pe.add_reference(section_uuid, 'included-in')
             self.misp_event.add_object(**pe_section)
         self.misp_event.add_object(**pe)
-        return observable_file(observable), pe_uuid
+        return self.observable_file(observable), pe_uuid
 
-    @staticmethod
-    def fill_object_attributes_observable(misp_object, mapping_dict, stix_object):
+    def fill_object_attributes_observable(self, misp_object, mapping_dict, stix_object):
         for stix_type, value in stix_object.items():
             try:
                 mapping = mapping_dict[stix_type]
@@ -700,15 +716,11 @@ class ExternalStixParser(StixParser):
 
     def parse_observable_file(self, objects):
         _object = objects['0']
-        attributes = self.observable_file(_object)
+        attributes = self.attributes_from_observable_file(_object)
         self.handle_import_case(attributes, _object._type)
 
     def parse_observable_file_object(self, objects):
-        for value in objects.values():
-            if isinstance(value, stix2.Artifact):
-                data = value.payload_bin
-            elif isinstance(value, stix2.File):
-                file = value
+        file, data = self.extract_data_from_file(objects)
         attributes = self.attributes_from_observable_file(file, data)
         self.handle_import_case(attributes, file._type)
 
