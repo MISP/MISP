@@ -244,6 +244,7 @@ class StixFromMISPParser(StixParser):
         name = o['type'].split('x-misp-object-')[1]
         misp_object = MISPObject(name)
         misp_object.timestamp = self.getTimestampfromDate(o['x_misp_timestamp'])
+        misp_object.uuid = o['id'].split('--')[1]
         try:
             misp_object.category = o['category']
         except KeyError:
@@ -263,7 +264,7 @@ class StixFromMISPParser(StixParser):
                      'to_ids': bool(labels[1].split('=')[1]),
                      'value': o['x_misp_value'],
                      'category': self.get_misp_category(labels),
-                    }
+                     'uuid': o['id'].split('--')[1]}
         self.misp_event.add_attribute(**attribute)
 
     def parse_object(self, o, labels):
@@ -272,6 +273,7 @@ class StixFromMISPParser(StixParser):
         object_category = self.get_misp_category(labels)
         stix_type = o._type
         misp_object = MISPObject(name)
+        misp_object.uuid = o.id.split('--')[1]
         misp_object['meta-category'] = object_category
         if stix_type == 'indicator':
             pattern = o.pattern.replace('\\\\', '\\').split(' AND ')
