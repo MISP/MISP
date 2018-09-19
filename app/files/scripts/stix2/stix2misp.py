@@ -242,28 +242,28 @@ class StixFromMISPParser(StixParser):
 
     def parse_custom_object(self, o, labels):
         name = o['type'].split('x-misp-object-')[1]
-        timestamp = self.getTimestampfromDate(o['x_misp_timestamp'])
+        misp_object = MISPObject(name)
+        misp_object.timestamp = self.getTimestampfromDate(o['x_misp_timestamp'])
         try:
-            category = o['category']
+            misp_object.category = o['category']
         except KeyError:
-            category = self.get_misp_category(labels)
+            misp_object.category = self.get_misp_category(labels)
         attributes = []
         for key, value in o['x_misp_values'].items():
             attribute_type, object_relation = key.split('_')
-            attributes.append({'type': attribute_type, 'value': value, 'object_relation': object_relation})
-        misp_object = {'name': name, 'timestamp': timestamp, 'meta-category': category, 'Attribute': attributes}
+            misp_object.add_attribute(**{'type': attribute_type, 'value': value, 'object_relation': object_relation})
         self.misp_event.add_object(**misp_object)
 
     def parse_custom_attribute(self, o, labels):
         attribute_type = o['type'].split('x-misp-object-')[1]
         if attribute_type not in misp_types:
             attribute_type = attribute_type.replace('-', '|')
-        timestamp = self.getTimestampfromDate(o['x_misp_timestamp'])
-        to_ids = bool(labels[1].split('=')[1])
-        value = o['x_misp_value']
-        category = self.get_misp_category(labels)
-        attribute = {'type': attribute_type, 'timestamp': timestamp, 'to_ids': to_ids,
-                     'value': value, 'category': category}
+        attribute = {'type': attribute_type,
+                     'timestamp': self.getTimestampfromDate(o['x_misp_timestamp']),
+                     'to_ids': bool(labels[1].split('=')[1]),
+                     'value': o['x_misp_value'],
+                     'category': self.get_misp_category(labels),
+                    }
         self.misp_event.add_attribute(**attribute)
 
     def parse_object(self, o, labels):
@@ -290,7 +290,7 @@ class StixFromMISPParser(StixParser):
         self.misp_event.add_object(**misp_object)
 
     def parse_attribute(self, o, labels):
-        attribute_uuid = o['id'].split('--')[1]
+        attribute_uuid = o.id.split('--')[1]
         attribute_type = self.get_misp_type(labels)
         attribute_category = self.get_misp_category(labels)
         attribute = {'uuid': attribute_uuid, 'type': attribute_type, 'category': attribute_category}
@@ -303,8 +303,8 @@ class StixFromMISPParser(StixParser):
         else:
             if stix_type == 'indicator':
                 if hasattr(o, 'valid_until'):
-                    org_uuid = o['created_by_ref'].split('--')[1]
-                    attribute['Sighting'] = [{'type': '2', 'date_sighting': str(self.getTimestampfromDate(o['valid_until'])),
+                    org_uuid = o.created_by_ref.split('--')[1]
+                    attribute['Sighting'] = [{'type': '2', 'date_sighting': str(self.getTimestampfromDate(o.valid_until)),
                                              'Organisation': {'uuid': org_uuid, 'name': self.event['identity'][org_uuid]['name']}}]
                 pattern = o.pattern.replace('\\\\', '\\')
                 value = self.parse_pattern_with_data(pattern) if attribute_type in ('malware-sample', 'attachment') else self.parse_pattern(pattern)
@@ -566,8 +566,6 @@ class StixFromMISPParser(StixParser):
                     else:
                         attributes.append({'type': attribute_type, 'object_relation': relation[:-1],
                                            'value': o_value, 'to_ids': False})
-                else:
-                    continue
         return attributes
 
     def fill_pattern_attributes(self, pattern, object_mapping):
@@ -583,8 +581,6 @@ class StixFromMISPParser(StixParser):
                     attribute_type, relation = self.parse_custom_property(p_type)
                     attributes.append({'type': attribute_type, 'object_relation': relation[:-2],
                                        'value': p_value[1:-1], 'to_ids': True})
-                else:
-                    continue
         return attributes
 
     @staticmethod
