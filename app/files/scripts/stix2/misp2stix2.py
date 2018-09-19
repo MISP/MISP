@@ -245,7 +245,7 @@ class StixBuilder():
         self.objects_to_parse[misp_object.name][misp_object.uuid] = to_ids, misp_object
 
     def resolve_objects2parse(self):
-        for uuid, misp_object in self.objects2parse['file'].items():
+        for uuid, misp_object in self.objects_to_parse['file'].items():
             to_ids_file, file_object = misp_object
             file_id = "file--{}".format(file_object.uuid)
             to_ids_list = [to_ids_file]
@@ -254,12 +254,12 @@ class StixBuilder():
                 if reference.relationship_type == "included-in" and reference.Object['name'] == "pe":
                     pe_uuid = reference.referenced_uuid
                     break
-            to_ids_pe, pe_object = self.objects2parse['pe'][pe_uuid]
+            to_ids_pe, pe_object = self.objects_to_parse['pe'][pe_uuid]
             to_ids_list.append(to_ids_pe)
             sections = []
             for reference in pe_object.references:
                 if reference.Object['name'] == "pe-section":
-                    to_ids_section, section_object = self.objects2parse['pe-section'][reference.referenced_uuid]
+                    to_ids_section, section_object = self.objects_to_parse['pe-section'][reference.referenced_uuid]
                     to_ids_list.append(to_ids_section)
                     sections.append(section_object)
             if True in to_ids_list:
