@@ -792,8 +792,9 @@ class ExternalStixParser(StixParser):
 
     def handle_import_case(self, attributes, name, uuid):
         if len(attributes) == 1:
+            attribute = attributes[0]
             attribute['uuid'] = uuid
-            self.misp_event.add_attribute(**attributes[0])
+            self.misp_event.add_attribute(**attribute)
         else:
             misp_object = self.create_misp_object(attributes, name, uuid)
             self.misp_event.add_object(**misp_object)
