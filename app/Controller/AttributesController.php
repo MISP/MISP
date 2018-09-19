@@ -2137,6 +2137,9 @@ class AttributesController extends AppController
                 'includeEventUuid' => !empty($filters['includeEventUuid']) ? $filters['includeEventUuid'] : 0,
 				'includeEventTags' => !empty($filters['includeEventTags']) ? $filters['includeEventTags'] : 0
         );
+		if (isset($filters['include_event_uuid'])) {
+			$params['includeEventUuid'] = $filters['include_event_uuid'];
+		}
         if (!empty($filtes['deleted'])) {
             $params['deleted'] = 1;
             if ($params['deleted'] === 'only') {
