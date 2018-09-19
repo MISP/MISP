@@ -149,6 +149,14 @@ class StixParser():
     ##                 PARSING FUNCTIONS USED BY BOTH SUBCLASSES.                 ##
     ################################################################################
 
+    def attributes_from_observable_domain_ip(self, objects):
+        attributes = []
+        for _object in objects.values():
+            mapping = domain_ip_mapping[_object.type]
+            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                               'value': _object.value, 'to_ids': False})
+        return attributes
+
     def attributes_from_observable_file(self, _object, data=None):
         attributes = []
         md5 = None
@@ -212,7 +220,7 @@ class StixFromMISPParser(StixParser):
     def __init__(self):
         super(StixFromMISPParser, self).__init__()
         self.objects_mapping = {'asn': {'observable': observable_asn, 'pattern': pattern_asn},
-                                'domain-ip': {'observable': observable_domain_ip, 'pattern': pattern_domain_ip},
+                                'domain-ip': {'observable': self.attributes_from_observable_domain_ip, 'pattern': pattern_domain_ip},
                                 'email': {'observable': self.observable_email, 'pattern': self.pattern_email},
                                 'file': {'observable': self.observable_file, 'pattern': self.pattern_file},
                                 'ip-port': {'observable': observable_ip_port, 'pattern': pattern_ip_port},
@@ -629,7 +637,11 @@ class ExternalStixParser(StixParser):
         self.object_from_refs = {'course-of-action': self.parse_course_of_action, 'vulnerability': self.parse_external_vulnerability,
                                  'indicator': self.parse_external_indicator, 'observed-data': self.parse_external_observable}
         self.object_from_refs.update(dict.fromkeys(list(galaxy_types.keys()), self.parse_external_galaxy))
-        self.external_mapping = {('file',): self.parse_observable_file, ('artifact', 'file'): self.parse_observable_file_object,
+        self.external_mapping = {('artifact', 'file'): self.parse_observable_file_object,
+                                 ('domain-name',): self.parse_observable_domain_ip,
+                                 ('domain-name', 'ipv4-addr'): self.parse_observable_domain_ip,
+                                 ('domain-name', 'ipv6-addr'): self.parse_observable_domain_ip,
+                                 ('file',): self.parse_observable_file,
                                  ('ipv4-addr', 'network-traffic'): self.parse_observable_ip_network_traffic,
                                  ('ipv6-addr', 'network-traffic'): self.parse_observable_ip_network_traffic}
 
@@ -722,6 +734,10 @@ class ExternalStixParser(StixParser):
         file_object = self.create_misp_object(attributes, 'file', uuid)
         file_object.add_reference(pe_uuid, 'included-in')
         self.misp_event.add_object(**file_object)
+
+    def parse_observable_domain_ip(self, objects, uuid):
+        attributes = self.attributes_from_observable_domain_ip(objects)
+        self.handle_import_case(attributes, 'domain-ip', uuid)
 
     def parse_observable_file(self, objects, uuid):
         _object = objects['0']

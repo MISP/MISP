@@ -300,16 +300,6 @@ def observable_asn(observable):
 def pattern_asn(pattern):
     return fill_pattern_attributes(pattern, asn_mapping)
 
-def observable_domain_ip(observable):
-    attributes = []
-    for o in observable:
-        observable_part = observable[o]
-        part_type = observable_part._type
-        mapping = domain_ip_mapping[part_type]
-        attributes.append({'type': mapping.get('type'), 'object_relation': mapping.get('relation'),
-                           'value': observable_part.get('value')})
-    return attributes
-
 def pattern_domain_ip(pattern):
     return fill_pattern_attributes(pattern, domain_ip_mapping)
 
