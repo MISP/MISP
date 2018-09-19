@@ -207,7 +207,14 @@ class RestResponseComponent extends Component
                 'description' => "POST a body and a subject in a JSON to send an e-mail through MISP to the user ID given in the URL",
                 'mandatory' => array('subject', 'body')
             )
-        )
+        ),
+		'Warninglist' => array(
+			'toggleEnable' => array(
+				'description' => "POST a json object with a single or a list of warninglist IDs to toggle whether they're enabled or disabled. Specify the optional enabled boolean flag if you would like to enforce the outcome state. Not setting this flag will just toggle the current state.",
+				'mandatory' => array('id'),
+				'optional' => array('enabled')
+			)
+		)
     );
 
 	public function getAllApis($user, $Server)

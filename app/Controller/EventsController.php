@@ -3070,6 +3070,9 @@ class EventsController extends AppController
 		$final = $exportTool->header($exportToolParams);
         $eventCount = count($eventid);
         $i = 0;
+		if (!empty($filters['withAttachments'])) {
+			$filters['includeAttachments'] = 1;
+		}
         foreach ($eventid as $k => $currentEventId) {
             $filters['eventid'] = $currentEventId;
             if (!empty($filters['tags']['NOT'])) {
