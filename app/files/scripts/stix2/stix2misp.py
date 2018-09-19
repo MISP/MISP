@@ -187,6 +187,26 @@ class StixParser():
             misp_object.add_attribute(**attribute)
         self.misp_event.add_object(**misp_object)
 
+    def parse_pe(self, extension):
+        pe = MISPObject('pe')
+        pe_uuid = str(uuid.uuid4())
+        pe.uuid = pe_uuid
+        self.fill_object_attributes_observable(pe, pe_mapping, extension)
+        for section in extension['sections']:
+            pe_section = MISPObject('pe-section')
+            if 'hashes' in section:
+                for h_type, h_value in section['hashes'].items():
+                    h_type = h_type.lower().replace('-', '')
+                    pe_section.add_attribute(**{'type': h_type, 'object_relation': h_type,
+                                                'value': h_value, 'to_ids': False})
+            self.fill_object_attributes_observable(pe_section, pe_section_mapping, section)
+            section_uuid = str(uuid.uuid4())
+            pe_section.uuid = section_uuid
+            pe.add_reference(section_uuid, 'included-in')
+            self.misp_event.add_object(**pe_section)
+        self.misp_event.add_object(**pe)
+        return pe_uuid
+
 
 class StixFromMISPParser(StixParser):
     def __init__(self):
@@ -451,37 +471,8 @@ class StixFromMISPParser(StixParser):
 
     def observable_pe(self, observable):
         extension = observable['1']['extensions']['windows-pebinary-ext']
-        sections = extension['sections']
-        pe = MISPObject('pe')
-        pe_uuid = str(uuid.uuid4())
-        pe.uuid = pe_uuid
-        self.fill_object_attributes_observable(pe, pe_mapping, extension)
-        for section in sections:
-            pe_section = MISPObject('pe-section')
-            if 'hashes' in section:
-                for h_type, h_value in section['hashes'].items():
-                    h_type = h_type.lower().replace('-', '')
-                    pe_section.add_attribute(**{'type': h_type, 'object_relation': h_type,
-                                                'value': h_value, 'to_ids': False})
-            self.fill_object_attributes_observable(pe_section, pe_section_mapping, section)
-            section_uuid = str(uuid.uuid4())
-            pe_section.uuid = section_uuid
-            pe.add_reference(section_uuid, 'included-in')
-            self.misp_event.add_object(**pe_section)
-        self.misp_event.add_object(**pe)
+        pe_uuid = self.parse_pe(extension)
         return self.observable_file(observable), pe_uuid
-
-    def fill_object_attributes_observable(self, misp_object, mapping_dict, stix_object):
-        for stix_type, value in stix_object.items():
-            try:
-                mapping = mapping_dict[stix_type]
-                misp_object.add_attribute(**{'type': mapping['type'], 'object_relation': mapping['relation'],
-                                             'value': value, 'to_ids': False})
-            except KeyError:
-                if stix_type.startswith("x_misp_"):
-                    attribute_type, relation = self.parse_custom_property(stix_type)
-                    misp_object.add_attribute(**{'type': attribute_type, 'object_relation': relation[:-1],
-                                                 'value': value, 'to_ids': False})
 
     def pattern_pe(self, pattern):
         attributes = []
@@ -569,6 +560,18 @@ class StixFromMISPParser(StixParser):
                         attributes.append({'type': attribute_type, 'object_relation': relation[:-1],
                                            'value': o_value, 'to_ids': False})
         return attributes
+
+    def fill_object_attributes_observable(self, misp_object, mapping_dict, stix_object):
+        for stix_type, value in stix_object.items():
+            try:
+                mapping = mapping_dict[stix_type]
+                misp_object.add_attribute(**{'type': mapping['type'], 'object_relation': mapping['relation'],
+                                             'value': value, 'to_ids': False})
+            except KeyError:
+                if stix_type.startswith("x_misp_"):
+                    attribute_type, relation = self.parse_custom_property(stix_type)
+                    misp_object.add_attribute(**{'type': attribute_type, 'object_relation': relation[:-1],
+                                                 'value': value, 'to_ids': False})
 
     def fill_pattern_attributes(self, pattern, object_mapping):
         attributes = []
@@ -669,7 +672,7 @@ class ExternalStixParser(StixParser):
         objects = observable.objects
         types = self.parse_external_observable_object(objects)
         try:
-            self.external_mapping[types](objects)
+            self.external_mapping[types](objects, observable.id.split('--')[1])
         except KeyError:
             print('{} not parsed at the moment'.format(types), file=sys.stderr)
         # deeper analyse to come, as well as for indicators
@@ -714,18 +717,29 @@ class ExternalStixParser(StixParser):
     ##                             PARSING FUNCTIONS.                             ##
     ################################################################################
 
-    def parse_observable_file(self, objects):
+    def handle_pe_case(self, extension, attributes, uuid):
+        pe_uuid = self.parse_pe(extension)
+        file_object = self.create_misp_object(attributes, 'file', uuid)
+        file_object.add_reference(pe_uuid, 'included-in')
+        self.misp_event.add_object(**file_object)
+
+    def parse_observable_file(self, objects, uuid):
         _object = objects['0']
         attributes = self.attributes_from_observable_file(_object)
-        self.handle_import_case(attributes, _object._type)
+        if hasattr(_object, 'extensions') and 'windows-pebinary-ext' in _object.extensions:
+            self.handle_pe_case(_object.extensions['windows-pebinary-ext'], attributes, uuid)
+        else:
+            self.handle_import_case(attributes, _object._type, uuid)
 
-    def parse_observable_file_object(self, objects):
+    def parse_observable_file_object(self, objects, uuid):
         file, data = self.extract_data_from_file(objects)
         attributes = self.attributes_from_observable_file(file, data)
-        self.handle_import_case(attributes, file._type)
+        if hasattr(file, 'extensions') and 'windows-pebinary-ext' in file.extensions:
+            self.handle_pe_case(file.extensions['windows-pebinary-ext'], attributes, uuid)
+        else:
+            self.handle_import_case(attributes, file._type, uuid)
 
-    def parse_observable_ip_network_traffic(self, objects):
-        print(objects)
+    def parse_observable_ip_network_traffic(self, objects, uuid):
         references = {}
         for key, value in objects.items():
             if isinstance(value, (stix2.IPv4Address, stix2.IPv6Address)):
@@ -745,11 +759,19 @@ class ExternalStixParser(StixParser):
             attributes.extend(self.fill_observable_attributes(extension_value, network_traffic_mapping))
         else:
             name = 'ip-port'
-        self.handle_import_case(attributes, name)
+        self.handle_import_case(attributes, name, uuid)
 
     ################################################################################
     ##                             UTILITY FUNCTIONS.                             ##
     ################################################################################
+
+    @staticmethod
+    def create_misp_object(attributes, name, uuid):
+        misp_object = MISPObject(name)
+        misp_object.uuid = uuid
+        for attribute in attributes:
+            misp_object.add_attribute(**attribute)
+        return misp_object
 
     @staticmethod
     def fill_observable_attributes(stix_object, object_mapping):
@@ -761,13 +783,19 @@ class ExternalStixParser(StixParser):
                                    'value': o_value, 'to_ids': False})
         return attributes
 
-    def handle_import_case(self, attributes, name):
+    def fill_object_attributes_observable(self, misp_object, mapping_dict, stix_object):
+        for stix_type, value in stix_object.items():
+            if stix_type in mapping_dict:
+                mapping = mapping_dict[stix_type]
+                misp_object.add_attribute(**{'type': mapping['type'], 'object_relation': mapping['relation'],
+                                             'value': value, 'to_ids': False})
+
+    def handle_import_case(self, attributes, name, uuid):
         if len(attributes) == 1:
+            attribute['uuid'] = uuid
             self.misp_event.add_attribute(**attributes[0])
         else:
-            misp_object = MISPObject(name)
-            for attribute in attributes:
-                misp_object.add_attribute(**attribute)
+            misp_object = self.create_misp_object(attributes, name, uuid)
             self.misp_event.add_object(**misp_object)
 
 def from_misp(reports):
