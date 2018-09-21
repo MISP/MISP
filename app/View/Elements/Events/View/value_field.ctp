@@ -7,7 +7,7 @@
       $uri = 'data:image/' . strtolower(h($extension)) . ';base64,' . h($object['image']);
       echo '<img class="screenshot screenshot-collapsed useCursorPointer" src="' . $uri . '" title="' . h($object['value']) . '" />';
     } else {
-      $filenameHash = explode('|', nl2br(h($object['value'])));
+      $filenameHash = explode('|', h($object['value']));
       if (strrpos($filenameHash[0], '\\')) {
         $filepath = substr($filenameHash[0], 0, strrpos($filenameHash[0], '\\'));
         $filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
@@ -39,14 +39,14 @@
     } else {
       $sigDisplay = str_replace("\r", '', h($sigDisplay));
       $sigDisplay = str_replace(" ", '&nbsp;', $sigDisplay);
-      echo nl2br($sigDisplay);
+      echo $sigDisplay;
     }
   } else if ('hex' == $object['type']) {
     $sigDisplay = str_replace("\r", '', $sigDisplay);
-    echo '<span class="hex-value" title="' . __('Hexadecimal representation') . '">' . nl2br(h($sigDisplay)) . '</span>&nbsp;<span role="button" tabindex="0" aria-label="' . __('Switch to binary representation') . '" class="icon-repeat hex-value-convert useCursorPointer" title="' . __('Switch to binary representation') . '"></span>';
+    echo '<span class="hex-value" title="' . __('Hexadecimal representation') . '">' . h($sigDisplay) . '</span>&nbsp;<span role="button" tabindex="0" aria-label="' . __('Switch to binary representation') . '" class="icon-repeat hex-value-convert useCursorPointer" title="' . __('Switch to binary representation') . '"></span>';
   } else {
     $sigDisplay = str_replace("\r", '', $sigDisplay);
-    echo nl2br(h($sigDisplay));
+    echo h($sigDisplay);
   }
   if (isset($object['validationIssue'])) echo ' <span class="icon-warning-sign" title="' . __('Warning, this doesn\'t seem to be a legitimate ') . strtoupper(h($object['type'])) . __(' value') . '">&nbsp;</span>';
 ?>

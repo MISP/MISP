@@ -1622,8 +1622,8 @@ class Event extends AppModel
             }
         }
 
-        if ($options['to_ids']) {
-            $conditionsAttributes['AND'][] = array('Attribute.to_ids' => 1);
+        if (!empty($options['to_ids']) || $options['to_ids'] === 0) {
+            $conditionsAttributes['AND'][] = array('Attribute.to_ids' => $options['to_ids']);
         }
 
         // removing this for now, we export the to_ids == 0 attributes too, since there is a to_ids field indicating it in the .xml
@@ -2038,14 +2038,20 @@ class Event extends AppModel
 			} else {
 				$scope = $options['scope'];
 			}
-			if ($params['deleted'])
-			$conditions = $this->
-			$conditions = $this->generic_add_filter($conditions, $params['deleted'], $scope . '.deleted');
+			if ($params['deleted']) {
+				$conditions = $this->generic_add_filter($conditions, $params['deleted'], $scope . '.deleted');
+			}
 		}
 		return $conditions;
 	}
 
-
+	public function set_filter_to_ids(&$params, $conditions, $options)
+	{
+		if (isset($params['to_ids'])) {
+			$conditions['AND']['Attribute.to_ids'] = $params['to_ids'];
+		}
+		return $conditions;
+	}
 
     public function set_filter_ignore(&$params, $conditions, $options)
     {
@@ -2106,9 +2112,14 @@ class Event extends AppModel
         } elseif ($options['filter'] == 'to') {
             $conditions['AND']['Event.date <='] = $params['to'];
         } else {
+			if (empty($options['scope'])) {
+				$scope = 'Attribute';
+			} else {
+				$scope = $options['scope'];
+			}
             $filters = array(
                 'timestamp' => array(
-                    'Event.timestamp'
+                    $scope . '.timestamp'
                 ),
                 'publish_timestamp' => array(
                     'Event.publish_timestamp'
@@ -3011,6 +3022,13 @@ class Event extends AppModel
                     }
                 }
             }
+            // zeroq: check if sightings are attached and add to event
+            if (isset($data['Sighting']) && !empty($data['Sighting'])) {
+                $this->Sighting = ClassRegistry::init('Sighting');
+                foreach ($data['Sighting'] as $s) {
+                    $result = $this->Sighting->saveSightings($s['attribute_uuid'], false, $s['date_sighting'], $user, $s['type'], $s['source'], $s['uuid']);
+                }
+            }
             if ($fromXml) {
                 $created_id = $this->id;
             }
@@ -3170,6 +3188,13 @@ class Event extends AppModel
                             ));
                         }
                     }
+                }
+            }
+            // zeroq: if sightings then attach to event
+            if (isset($data['Sighting']) && !empty($data['Sighting'])) {
+                $this->Sighting = ClassRegistry::init('Sighting');
+                foreach ($data['Sighting'] as $s) {
+                    $result = $this->Sighting->saveSightings($s['attribute_uuid'], false, $s['date_sighting'], $user, $s['type'], $s['source'], $s['uuid']);
                 }
             }
             // if published -> do the actual publishing
@@ -4779,7 +4804,7 @@ class Event extends AppModel
         return $this->save($event);
     }
 
-    public function upload_stix($user, $filename, $stix_version)
+    public function upload_stix($user, $filename, $stix_version, $original_file)
     {
         App::uses('Folder', 'Utility');
         App::uses('File', 'Utility');
@@ -4796,7 +4821,7 @@ class Event extends AppModel
         } else {
             throw new MethodNotAllowedException('Invalid STIX version');
         }
-        $shell_command .=  ' ' . escapeshellarg(Configure::read('MISP.default_event_distribution')) . ' ' . escapeshellarg(Configure::read('MISP.default_attribute_distribution')) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
+        $shell_command .=  ' ' . $original_file . ' ' . escapeshellarg(Configure::read('MISP.default_event_distribution')) . ' ' . escapeshellarg(Configure::read('MISP.default_attribute_distribution')) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
         $result = shell_exec($shell_command);
         unlink($tempFilePath);
         if (trim($result) == '1') {

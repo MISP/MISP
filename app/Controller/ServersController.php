@@ -624,7 +624,6 @@ class ServersController extends AppController
 	            $this->set('successes', $result[0]);
 	            $this->set('fails', $result[1]);
 	            $this->set('pulledProposals', $result[2]);
-	            $this->set('lastpulledid', $result[3]);
 	        } else {
 	            $this->loadModel('Job');
 	            $this->Job->create();
@@ -1613,6 +1612,7 @@ class ServersController extends AppController
 
     public function rest()
     {
+		$allValidApis = $this->RestResponse->getAllApis($this->Auth->user(), $this);
         if ($this->request->is('post')) {
             $request = $this->request->data;
             if (!empty($request['Server'])) {
@@ -1630,6 +1630,7 @@ class ServersController extends AppController
             'Accept: application/json' . PHP_EOL .
             'Content-Type: application/json';
         $this->set('header', $header);
+		$this->set('allValidApis', $allValidApis);
     }
 
     private function __doRestQuery($request)
@@ -1637,8 +1638,13 @@ class ServersController extends AppController
         App::uses('SyncTool', 'Tools');
         $params = array();
         if (!empty($request['url'])) {
-			$path = preg_replace('#^(://|[^/?])+#', '', $request['url']);
-            $url = Configure::read('MISP.baseurl') . '/' . $path;
+			if (empty($request['use_full_path'])) {
+				$path = preg_replace('#^(://|[^/?])+#', '', $request['url']);
+	            $url = Configure::read('MISP.baseurl') . $path;
+				unset($request['url']);
+			} else {
+				$url = $request['url'];
+			}
         } else {
             throw new InvalidArgumentException('Url not set.');
         }

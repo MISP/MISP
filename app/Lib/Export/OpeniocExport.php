@@ -2,6 +2,9 @@
 
 class OpeniocExport
 {
+	public $additional_params = array(
+		'flatten' => 1
+	);
 
     public function buildAll($user, $data, $scope = 'event')
     {
@@ -102,16 +105,14 @@ class OpeniocExport
     public function checkValidTypeForIOC($attribute)
     {
         // categories that should be included
-        $Category = array('Payload delivery', 'Artifacts dropped', 'Payload installation', 'Persistence mechanism', 'Network activity');
-        if (!in_array($attribute['category'], $Category)) {
+        $category = array('Payload delivery', 'Artifacts dropped', 'Payload installation', 'Persistence mechanism', 'Network activity');
+        if (!in_array($attribute['category'], $category)) {
             return false;
         }
         return true;
     }
 
-
-    public function handler($attribute, $options = array())
-    {
+	private function __attributeHandler($attribute, $options = array()) {
 		$temp = '';
 		if (isset($attribute['Attribute'])) {
 			$attribute = $attribute['Attribute'];
@@ -133,6 +134,31 @@ class OpeniocExport
 			}
 		}
 		return $temp;
+	}
+
+
+    public function handler($data, $options = array())
+    {
+		if ($options['scope'] === 'Attribute') {
+			return $this->__attributeHandler($data, $options);
+		} else if ($options['scope'] === 'Event') {
+			$result = '';
+			if (!empty($data['Attribute'])) {
+				$first = true;
+				foreach ($data['Attribute'] as $attribute) {
+					$temp = $this->__attributeHandler($attribute, $options);
+					if (!empty($temp)) {
+						if (!$first) {
+							$result .= $this->separator($options);
+						}
+						$result .= $temp;
+						$first = false;
+					}
+				}
+			}
+			return $result;
+		}
+
     }
 
     public function header($options = array())
@@ -166,7 +192,7 @@ class OpeniocExport
 
     public function separator()
     {
-        return PHP_EOL;
+        return '';
     }
 
 }

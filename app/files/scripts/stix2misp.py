@@ -20,6 +20,7 @@ import json
 import os
 import time
 import uuid
+import base64
 import stix2misp_mapping
 from operator import attrgetter
 from pymisp import MISPEvent, MISPObject, MISPAttribute, __path__
@@ -54,9 +55,10 @@ class StixParser():
             try:
                 import maec
                 print(2)
-            except ModuleNotFoundError:
+            except ImportError:
                 print(3)
             sys.exit(0)
+        self.filename = filename
         title = event.stix_header.title
         fromMISP = (title is not None and "Export from " in title and "MISP" in title)
         if fromMISP:
@@ -65,14 +67,16 @@ class StixParser():
             self.ttps = package.ttps.ttps if package.ttps else None
         else:
             self.event = event
+        if args[2] is not None:
+            self.add_original_file(args[2])
         try:
-            event_distribution = args[2]
+            event_distribution = args[3]
             if not isinstance(event_distribution, int):
                 event_distribution = int(event_distribution) if event_distribution.isdigit() else 5
         except IndexError:
             event_distribution = 5
         try:
-            attribute_distribution = args[3]
+            attribute_distribution = args[4]
             if attribute_distribution != 'event' and not isinstance(attribute_distribution, int):
                 attribute_distribution = int(attribute_distribution) if attribute_distribution.isdigit() else 5
         except IndexError:
@@ -80,8 +84,17 @@ class StixParser():
         self.misp_event.distribution = event_distribution
         self.__attribute_distribution = event_distribution if attribute_distribution == 'event' else attribute_distribution
         self.fromMISP = fromMISP
-        self.filename = filename
         self.load_mapping()
+
+    def add_original_file(self, original_filename):
+        with open(self.filename, 'rb') as f:
+            sample = base64.b64encode(f.read()).decode('utf-8')
+        original_file = MISPObject('original-imported_file')
+        original_file.add_attribute(**{'type': 'attachment', 'value': original_filename,
+                                       'object_relation': 'imported-sample', 'data': sample})
+        original_file.add_attribute(**{'type': 'text', 'object_relation': 'format',
+                                       'value': 'STIX {}'.format(self.event.version)})
+        self.misp_event.add_object(**original_file)
 
     # Load the mapping dictionary for STIX object types
     def load_mapping(self):
@@ -107,6 +120,7 @@ class StixParser():
             'SystemObjectType': self.handle_system,
             'URIObjectType': self.handle_domain_or_url,
             "WhoisObjectType": self.handle_whois,
+            "WindowsFileObjectType": self.handle_file,
             'WindowsRegistryKeyObjectType': self.handle_regkey,
             "WindowsExecutableFileObjectType": self.handle_pe,
             "WindowsServiceObjectType": self.handle_windows_service,
@@ -339,7 +353,7 @@ class StixParser():
         xsi_type = properties._XSI_TYPE
         # try:
         args = [properties]
-        if xsi_type in ("FileObjectType", "PDFFileObjectType"):
+        if xsi_type in ("FileObjectType", "PDFFileObjectType", "WindowsFileObjectType"):
             args.append(is_object)
         elif xsi_type == "ArtifactObjectType":
             args.append(title)
@@ -464,9 +478,10 @@ class StixParser():
                 b_file = True
                 attribute_type, relation = stix2misp_mapping.eventTypes[properties._XSI_TYPE]
                 attributes.append([attribute_type, value, relation])
-        self.fetch_attributes_with_keys(properties, stix2misp_mapping._file_mapping, attributes)
+        attributes.extend(self.fetch_attributes_with_keys(properties, stix2misp_mapping._file_mapping))
         if len(attributes) == 1:
-            return attributes[0]
+            attribute = attributes[0]
+            return attribute if attribute[2] != "fullpath" else "filename", attribute[1], ""
         if len(attributes) == 2:
             if b_hash and b_file:
                 return self.handle_filename_object(attributes, is_object)
@@ -557,7 +572,7 @@ class StixParser():
     # Return type & attributes of a network socket objet
     def handle_network_socket(self, properties):
         attributes = self.fetch_attributes_from_sockets(properties, stix2misp_mapping._network_socket_addresses)
-        self.fetch_attributes_with_keys(properties, stix2misp_mapping._network_socket_mapping, attributes)
+        attributes.extend(self.fetch_attributes_with_keys(properties, stix2misp_mapping._network_socket_mapping))
         for prop in ('is_listening', 'is_blocking'):
             if getattr(properties, prop):
                 attributes.append(["text", prop.split('_')[1], "state"])
@@ -946,11 +961,13 @@ class StixParser():
         return attributes
 
     @staticmethod
-    def fetch_attributes_with_keys(properties, mapping_dict, attributes):
+    def fetch_attributes_with_keys(properties, mapping_dict):
+        attributes = []
         for prop, mapping in mapping_dict.items():
             if getattr(properties,prop):
                 attribute_type, properties_key, relation = mapping
                 attributes.append([attribute_type, attrgetter(properties_key)(properties), relation])
+        return attributes
 
     @staticmethod
     def fetch_attributes_with_key_parsing(properties, mapping_dict):

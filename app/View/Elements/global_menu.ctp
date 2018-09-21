@@ -106,7 +106,8 @@
                             <li><a href="<?php echo $baseurl;?>/sharing_groups/add"><?php echo __('Add Sharing Group');?></a></li>
                             <?php endif; ?>
                             <li class="divider"></li>
-                            <li><a href="<?php echo $baseurl;?>/pages/display/doc/quickstart"><?php echo __('User Guide');?></a></li>
+                            <li><a href="https://www.circl.lu/doc/misp/" target="_blank"><?php echo __('User Guide');?></a></li>
+                            <li><a href="<?php echo $baseurl;?>/pages/display/doc/categories_and_types"><?php echo __('Categories & Types');?></a></li>
                             <li><a href="<?php echo $baseurl;?>/users/terms"><?php echo __('Terms &amp; Conditions');?></a></li>
                             <li><a href="<?php echo $baseurl;?>/users/statistics"><?php echo __('Statistics');?></a></li>
                             <li class="divider"></li>

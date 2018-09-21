@@ -2083,7 +2083,7 @@ class AttributesController extends AppController
     }
 
     public function restSearch($returnFormat = 'json', $value = false, $type = false, $category = false, $org = false, $tags = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $uuid = false, $publish_timestamp = false, $published = false, $timestamp = false, $enforceWarninglist = false, $to_ids = false, $deleted = false, $includeEventUuid = false, $event_timestamp = false, $threat_level_id = false) {
-        $paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id');
+        $paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags');
         $filterData = array(
             'request' => $this->request,
             'named_params' => $this->params['named'],
@@ -2096,7 +2096,8 @@ class AttributesController extends AppController
             'xml' => array('xml', 'XmlExport'),
             'suricata' => array('txt', 'NidsSuricataExport'),
             'snort' => array('txt', 'NidsSnortExport'),
-			'text' => array('txt', 'TextExport')
+			'text' => array('txt', 'TextExport'),
+			'rpz' => array('rpz', 'RPZExport')
         );
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
@@ -2112,6 +2113,19 @@ class AttributesController extends AppController
         if (isset($filters['returnFormat'])) {
           $returnFormat = $filters['returnFormat'];
         }
+		if ($returnFormat === 'download') {
+			$returnFormat = 'json';
+		}
+		App::uses($validFormats[$returnFormat][1], 'Export');
+		$exportTool = new $validFormats[$returnFormat][1]();
+		if (empty($exportTool->non_restrictive_export)) {
+			if (!isset($filters['to_ids'])) {
+				$filters['to_ids'] = 1;
+			}
+			if (!isset($filters['published'])) {
+				$filters['published'] = 1;
+			}
+		}
         $conditions = $this->Attribute->buildFilterConditions($this->Auth->user(), $filters);
         $params = array(
                 'conditions' => $conditions,
@@ -2121,7 +2135,11 @@ class AttributesController extends AppController
                 'includeAllTags' => true,
                 'flatten' => 1,
                 'includeEventUuid' => !empty($filters['includeEventUuid']) ? $filters['includeEventUuid'] : 0,
+				'includeEventTags' => !empty($filters['includeEventTags']) ? $filters['includeEventTags'] : 0
         );
+		if (isset($filters['include_event_uuid'])) {
+			$params['includeEventUuid'] = $filters['include_event_uuid'];
+		}
         if (!empty($filtes['deleted'])) {
             $params['deleted'] = 1;
             if ($params['deleted'] === 'only') {
@@ -2129,22 +2147,24 @@ class AttributesController extends AppController
                 $params['conditions']['AND'][] = array('Object.deleted' => 1);
             }
         }
-		App::uses($validFormats[$returnFormat][1], 'Export');
-		$exportTool = new $validFormats[$returnFormat][1]();
+		if (!isset($validFormats[$returnFormat])) {
+			// this is where the new code path for the export modules will go
+			throw new MethodNotFoundException('Invalid export format.');
+		}
 		$exportToolParams = array(
 			'user' => $this->Auth->user(),
 			'params' => $params,
 			'returnFormat' => $returnFormat,
-			'scope' => 'Attribute'
+			'scope' => 'Attribute',
+			'filters' => $filters
 		);
 		if (!empty($exportTool->additional_params)) {
 			$params = array_merge($params, $exportTool->additional_params);
 		}
-        $final = '';
-        $final .= $exportTool->header($exportToolParams);
+        $final = $exportTool->header($exportToolParams);
 		$continue = false;
 		if (empty($params['limit'])) {
-			$params['limit'] = 10000;
+			$params['limit'] = 20000;
 			$continue = true;
 			$params['page'] = 1;
 		}
@@ -2386,7 +2406,7 @@ class AttributesController extends AppController
                 if (isset($data['request'][$p])) {
                     ${$p} = $data['request'][$p];
                 } else {
-                    ${$p} = null;
+                    ${$p} = false;
                 }
             }
         }
@@ -2438,7 +2458,7 @@ class AttributesController extends AppController
                 throw new UnauthorizedException(__('You have to be logged in to do that.'));
             }
         }
-        if (false === $eventId) {
+        if (false === $eventId || $eventId === null) {
             $eventIds = $this->Attribute->Event->fetchEventIds($this->Auth->user(), false, false, false, true);
         } elseif (is_numeric($eventId)) {
             $eventIds = array($eventId);
@@ -3105,10 +3125,6 @@ class AttributesController extends AppController
                 $resultArray[] = array($type => 'Enrichment service not reachable.');
                 continue;
             }
-            if (!is_array($result)) {
-                $resultArray[] =  array($type => $result);
-                continue;
-            }
             if (!empty($result['results'])) {
                 foreach ($result['results'] as $r) {
                     if (is_array($r['values']) && !empty($r['values'])) {
@@ -3117,7 +3133,7 @@ class AttributesController extends AppController
                             if (is_array($v)) {
                                 $v = 'Array returned';
                             }
-                            $tempArray[] = $k . ': ' . $v;
+                            $tempArray[$k] = $v;
                         }
                         $resultArray[] = array($type => $tempArray);
                     } elseif ($r['values'] == null) {

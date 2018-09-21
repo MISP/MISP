@@ -1,4 +1,4 @@
-<?php
+	<?php
     $fixed_fields = array('synonyms', 'description', 'meta', 'authors', 'source');
     foreach ($data as $galaxy):
 ?>
@@ -103,9 +103,9 @@ $(document).ready(function () {
     $('.expandContainer').click(function() {
         $(this).children('.galaxy_data').toggle();
         if ($(this).children('.collapse-status').html() == '+') {
-            $(this).children('.collapse-status').val('-');
+            $(this).children('.collapse-status').html('-');
         } else {
-            $(this).children('.collapse-status').val('+');
+            $(this).children('.collapse-status').html('+');
         }
     });
     $('.delete-cluster').click(function() {

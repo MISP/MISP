@@ -185,6 +185,7 @@ class ACLComponent extends Component
             ),
             'galaxyClusters' => array(
                 'attachToEvent' => array('perm_tagger'),
+				'delete' => array('perm_site_admin'),
                 'detach' => array('perm_tagger'),
                 'index' => array('*'),
                 'view' => array('*')
@@ -498,7 +499,7 @@ class ACLComponent extends Component
     // If the requested action has an AND-ed list, iterate through the list. If any of the permissions for the user are not set, turn the check to false. Otherwise return true.
     // If the requested action has a permission, check if the user's role has it flagged. If yes, return true
     // If we fall through all of the checks, return an exception.
-    public function checkAccess($user, $controller, $action)
+    public function checkAccess($user, $controller, $action, $soft = false)
     {
         $controller = lcfirst(Inflector::camelize($controller));
         $action = strtolower($action);
@@ -510,7 +511,7 @@ class ACLComponent extends Component
             return true;
         }
         if (!isset($aclList[$controller])) {
-            $this->__error(404, 'Invalid controller.');
+            return $this->__error(404, 'Invalid controller.', $soft);
         }
         if ($user['Role']['perm_site_admin']) {
             return true;
@@ -539,11 +540,14 @@ class ACLComponent extends Component
                 return true;
             }
         }
-        $this->__error(403, 'You do not have permission to use this functionality.');
+        return $this->__error(403, 'You do not have permission to use this functionality.', $soft);
     }
 
-    private function __error($code, $message)
+    private function __error($code, $message, $soft = false)
     {
+		if ($soft) {
+			return $code;
+		}
         switch ($code) {
             case 404:
                 throw new NotFoundException($message);

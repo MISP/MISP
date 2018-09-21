@@ -962,7 +962,7 @@ class StixBuilder(object):
         n_attribute = len(attributes_dict)
         whois_object = WhoisEntry()
         for attribute in attributes_dict:
-            if "registrant-" in attribute:
+            if attribute and "registrant-" in attribute:
                 whois_object.registrants = self.fill_whois_registrants(attributes_dict)
                 break
         if  'registrar' in attributes_dict:

@@ -4,7 +4,7 @@ String.prototype.ucfirst = function() {
 
 function deleteObject(type, action, id, event) {
 	var destination = 'attributes';
-	var alternateDestinations = ['shadow_attributes', 'template_elements', 'taxonomies', 'objects', 'object_references'];
+	var alternateDestinations = ['shadow_attributes', 'template_elements', 'taxonomies', 'galaxy_clusters', 'objects', 'object_references'];
 	if (alternateDestinations.indexOf(type) > -1) destination = type;
 	else destination = type;
 	url = "/" + destination + "/" + action + "/" + id;
@@ -1319,11 +1319,11 @@ function choicePopup(legend, list) {
 		popupHtml += '<div class="popover_choice_main" id ="popover_choice_main">';
 			popupHtml += '<table style="width:100%;" id="MainTable">';
 				popupHtml += '<tbody>';
-					for (var item in list) {
+					list.forEach(function(item) {
 						popupHtml += '<tr style="border-bottom:1px solid black;" class="templateChoiceButton">';
 							popupHtml += '<td role="button" tabindex="0" aria-label="All meta-categories" title="'+item.text+'" style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="'+item.onclick+';">'+item.text+'</td>';
 						popupHtml += '</tr>';
-					}
+					});
 				popupHtml += '</tbody>';
 			popupHtml += '</table>';
 		popupHtml += '</div>';
@@ -2785,6 +2785,41 @@ function runHoverLookup(type, id) {
 		url:"/attributes/hoverEnrichment/" + id,
 	});
 }
+
+$(".cortex-json").click(function() {
+	var cortex_data = $(this).data('cortex-json');
+	cortex_data = htmlEncode(JSON.stringify(cortex_data, null, 2));
+	var popupHtml = '<pre class="simplepre">' + cortex_data + '</pre>';
+	popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
+
+});
+
+
+// add the same as below for click popup
+$(".eventViewAttributePopup").click(function() {
+	type = $(this).attr('data-object-type');
+	id = $(this).attr('data-object-id');
+	if (!(type + "_" + id in ajaxResults)) {
+		$.ajax({
+			success:function (html) {
+				ajaxResults[type + "_" + id] = html;
+			},
+			cache: false,
+			url:"/attributes/hoverEnrichment/" + id,
+		});
+	}
+	if (type + "_" + id in ajaxResults) {
+		var enrichment_popover = ajaxResults[type + "_" + id];
+		enrichment_popover += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
+		$('#screenshot_box').html(enrichment_popover);
+		$('#screenshot_box').show();
+		$("#gray_out").fadeIn();
+		$('#screenshot_box').css({'padding': '5px'});
+		$('#screenshot_box').css( "maxWidth", ( $( window ).width() * 0.9 | 0 ) + "px" );
+		left = ($(window).width() / 2) - ($('#screenshot_box').width() / 2);
+		$('#screenshot_box').css({'left': left + 'px'});
+	}
+});
 
 $(".eventViewAttributeHover").mouseenter(function() {
 	$('.popover').remove();
