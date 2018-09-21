@@ -46,19 +46,21 @@ class StixBuilder():
         self.external_refs = []
         self.galaxies = []
         self.relationships = defaultdict(list)
+        self.to_return = {}
 
     def loadEvent(self, args):
         pathname = os.path.dirname(args[0])
         filename = os.path.join(pathname, args[1])
+        self.orgs = [org for org in args[2:]] if len(args) > 2 else []
         self.misp_event.load_file(filename)
         self.filename = filename
         self.report_id = "report--{}".format(self.misp_event.uuid)
 
     def buildEvent(self):
-        self.__set_identity()
+        i = self.__set_identity()
         self.read_attributes()
         report = self.eventReport()
-        self.SDOs.insert(1, report)
+        self.SDOs.insert(i, report)
 
     def eventReport(self):
         report_args = {'type': 'report', 'id': self.report_id, 'name': self.misp_event.info,
@@ -82,14 +84,21 @@ class StixBuilder():
         outputfile = "{}.out".format(self.filename)
         with open(outputfile, 'w') as f:
             f.write(json.dumps(self.SDOs, cls=base.STIXJSONEncoder))
+        self.to_return['success'] = 1
+        print(json.dumps(self.to_return))
 
     def __set_identity(self):
         org = self.misp_event.Orgc
-        identity_id = 'identity--{}'.format(org['uuid'])
-        identity = Identity(type="identity", id=identity_id,
-                            name=org["name"], identity_class="organization")
-        self.SDOs.append(identity)
+        org_uuid = org['uuid']
+        identity_id = 'identity--{}'.format(org_uuid)
         self.identity_id = identity_id
+        if org_uuid not in self.orgs:
+            identity = Identity(type="identity", id=identity_id,
+                                name=org["name"], identity_class="organization")
+            self.SDOs.append(identity)
+            self.to_return['org'] = org_uuid
+            return 1
+        return 0
 
     def misp_types(self):
         describe_types_filename = os.path.join(pymisp.__path__[0], 'data/describeTypes.json')
@@ -1203,7 +1212,6 @@ def main(args):
     stix_builder.loadEvent(args)
     stix_builder.buildEvent()
     stix_builder.saveFile()
-    print(1)
 
 if __name__ == "__main__":
     main(sys.argv)

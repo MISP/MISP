@@ -3852,11 +3852,12 @@ class EventsController extends AppController
         $result = $this->Event->stix2($id, $tags, $withAttachments, $this->Auth->user(), 'json', $from, $to, $last);
         if ($result['success'] == 1) {
             if ($numeric) {
-                $this->header('Content-Disposition: download; filename="misp.stix2.event' . $id . '.json"');
+                $filename = 'misp.stix2.event' . $id . '.json';
             } else {
-                $this->header('Content-Disposition: download; filename="misp.stix2.event.collection.json"');
+                $filename = 'misp.stix2.event.collection.json';
             }
-            $this->set('data', $result['data']);
+            $this->header('Content-Disposition: download; filename="' . $filename . '"');
+            return $this->RestResponse->viewData($result['data'], 'application/json', false, true, $filename);
         } else {
             throw new Exception(h($result['message']));
         }
@@ -4930,6 +4931,11 @@ class EventsController extends AppController
             if (isset($module['meta']['config'])) {
                 foreach ($module['meta']['config'] as $conf) {
                     $modulePayload['config'][$conf] = Configure::read('Plugin.Import_' . $moduleName . '_' . $conf);
+                }
+            }
+            if ($moduleName === 'csvimport') {
+                if (empty($this->request->data['Event']['config']['header']) && $this->request->data['Event']['config']['has_header'] === '1') {
+                    $this->request->data['Event']['config']['header'] = ' ';
                 }
             }
             foreach ($module['mispattributes']['userConfig'] as $configName => $config) {
