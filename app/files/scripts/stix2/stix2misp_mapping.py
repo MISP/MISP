@@ -133,6 +133,7 @@ email_subject_attribute_mapping = {'type': 'email-subject', 'relation': 'subject
 end_datetime_attribute_mapping = {'type': 'datetime', 'relation': 'last-seen'}
 entropy_mapping = {'type': 'float', 'relation': 'entropy'}
 filename_attribute_mapping = {'type': 'filename', 'relation': 'filename'}
+from_attribute_mapping = {'type': 'email-src', 'relation': 'from'}
 imphash_mapping = {'type': 'imphash', 'relation': 'imphash'}
 ip_attribute_mapping = {'type': 'ip-dst', 'relation': 'ip'}
 issuer_attribute_mapping = {'type': 'text', 'relation': 'issuer'}
@@ -194,7 +195,8 @@ email_mapping = {'date': email_date_attribute_mapping,
                  'email-message:additional_header_fields.x_mailer': x_mailer_attribute_mapping,
                  'Reply-To': reply_to_attribute_mapping,
                  'email-message:additional_header_fields.reply_to': reply_to_attribute_mapping,
-                 'email-message:from_ref': {'type': 'email-src', 'relation': 'from'},
+                 'from_ref': from_attribute_mapping,
+                 'email-message:from_ref': from_attribute_mapping,
                  'body_multipart': body_multipart_mapping,
                  'email-message:body_multipart[*].body_raw_ref.name': body_multipart_mapping}
 

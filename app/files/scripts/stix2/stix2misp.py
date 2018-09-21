@@ -149,6 +149,11 @@ class StixParser():
     ##                 PARSING FUNCTIONS USED BY BOTH SUBCLASSES.                 ##
     ################################################################################
 
+    @staticmethod
+    def append_email_attribute(_type, value, to_ids):
+        mapping = email_mapping[_type]
+        return {'type': mapping['type'], 'object_relation': mapping['relation'], 'value': value, 'to_ids': to_ids}
+
     def attributes_from_observable_domain_ip(self, objects):
         attributes = []
         for _object in objects.values():
@@ -183,6 +188,26 @@ class StixParser():
                 file = value
         return file, data
 
+    def parse_complex_fields_observable_email(self, objects, to_ids):
+        attributes = []
+        addresses, files, message = self.split_observable_email_parts(objects)
+        if 'from_ref' in message:
+            from_ref = 'from_ref'
+            attributes.append(self.append_email_attribute(from_ref, addresses[message.pop(from_ref)], to_ids))
+        for ref in ('to_refs', 'cc_refs'):
+            if ref in message:
+                attributes.extend([self.append_email_attribute(ref, addresses[item], to_ids) for item in message.pop(ref)])
+        if 'body_multipart' in message:
+            brr = 'body_raw_ref'
+            attributes.extend([self.append_email_attribute('body_multipart', files[f[brr]], to_ids) for f in message.pop('body_multipart') if brr in f])
+        if 'additional_header_fields' in message:
+            for field_key, field_value in message.pop('additional_header_fields').items():
+                if field_key == 'Reply-To':
+                    attributes.extend([self.append_email_attribute(field_key, reply_to, to_ids) for reply_to in field_value])
+                else:
+                    attributes.append(self.append_email_attribute(field_key, field_value, to_ids))
+        return attributes, message
+
     def parse_course_of_action(self, o):
         misp_object = MISPObject('course-of-action')
         if 'name' in o:
@@ -214,6 +239,20 @@ class StixParser():
             self.misp_event.add_object(**pe_section)
         self.misp_event.add_object(**pe)
         return pe_uuid
+
+    @staticmethod
+    def split_observable_email_parts(observable):
+        addresses = {}
+        files = {}
+        message = None
+        for o_key, o_dict in observable.items():
+            if isinstance(o_dict, stix2.EmailAddress):
+                addresses[o_key] = o_dict.value
+            elif isinstance(o_dict, stix2.EmailMessage):
+                message = dict(o_dict)
+            elif isinstance(o_dict, stix2.File):
+                files[o_key] = o_dict.name
+        return addresses, files, message
 
 
 class StixFromMISPParser(StixParser):
@@ -362,48 +401,21 @@ class StixFromMISPParser(StixParser):
             self.parse_galaxy(o, labels)
 
     def observable_email(self, observable):
-        attributes = []
-        addresses, files, message = self.parse_observable_email(observable)
-        attributes.append({'type': 'email-src', 'object_relation': 'from',
-                           'value': addresses[message.pop('from_ref')], 'to_ids': False})
-        for ref in ('to_refs', 'cc_refs'):
-            attributes.extend([self.append_email_attribute(ref, addresses[item], False) for item in message.pop(ref) if ref in message])
-        body_multipart = 'body_multipart'
-        attributes.extend([self.append_email_attribute(body_multipart, files[f.get('body_raw_ref')], False) for f in message.pop(body_multipart) if body_multipart in message])
+        to_ids = False
+        attributes, message = self.parse_complex_fields_observable_email(observable, to_ids)
         for m_key, m_value in message.items():
-            if m_key == 'additional_header_fields':
-                for field_key, field_value in m_value.items():
-                    if field_key == 'Reply-To':
-                        attributes.extend([self.append_email_attribute(field_key, rt, False) for rt in field_value])
-                    else:
-                        attributes.append(self.append_email_attribute(field_key, field_value, False))
-            else:
-                try:
-                    attributes.append(self.append_email_attribute(m_key, m_value, False))
-                except KeyError:
-                    if m_key.startswith("x_misp_attachment_"):
-                        attribute_type, relation = m_key.split("x_misp_")[1].split("_")
-                        attributes.append({'type': attribute_type, 'object_relation': relation, 'to_ids': False,
-                                           'value': m_value['value'], 'data': io.BytesIO(m_value['data'].encode())})
-                    elif "x_misp_" in m_key:
-                        attribute_type, relation = m_key.split("x_misp_")[1].split("_")
-                        attributes.append({'type': attribute_type, 'object_relation': relation,
-                                           'value': m_value, 'to_ids': False})
+            try:
+                attributes.append(self.append_email_attribute(m_key, m_value, False))
+            except KeyError:
+                if m_key.startswith("x_misp_attachment_"):
+                    attribute_type, relation = m_key.split("x_misp_")[1].split("_")
+                    attributes.append({'type': attribute_type, 'object_relation': relation, 'to_ids': False,
+                                       'value': m_value['value'], 'data': io.BytesIO(m_value['data'].encode())})
+                elif "x_misp_" in m_key:
+                    attribute_type, relation = m_key.split("x_misp_")[1].split("_")
+                    attributes.append({'type': attribute_type, 'object_relation': relation,
+                                       'value': m_value, 'to_ids': False})
         return attributes
-
-    @staticmethod
-    def parse_observable_email(observable):
-        addresses = {}
-        files = {}
-        for o_key, o_dict in observable.items():
-            part_type = o_dict._type
-            if part_type == 'email-addr':
-                addresses[o_key] = o_dict.get('value')
-            elif part_type == 'file':
-                files[o_key] = o_dict.get('name')
-            else:
-                message = dict(o_dict)
-        return addresses, files, message
 
     def pattern_email(self, pattern):
         attributes = []
@@ -426,11 +438,6 @@ class StixFromMISPParser(StixParser):
             attributes.append({'type': attribute_type, 'object_relation': relation, 'to_ids': True,
                                'value': a_dict['value'], 'data': io.BytesIO(a_dict['data'].encode())})
         return attributes
-
-    @staticmethod
-    def append_email_attribute(_type, value, to_ids):
-        mapping = email_mapping[_type]
-        return {'type': mapping['type'], 'object_relation': mapping['relation'], 'value': value, 'to_ids': to_ids}
 
     def observable_file(self, observable):
         if len(observable) > 1:
@@ -641,6 +648,9 @@ class ExternalStixParser(StixParser):
                                  ('domain-name',): self.parse_observable_domain_ip,
                                  ('domain-name', 'ipv4-addr'): self.parse_observable_domain_ip,
                                  ('domain-name', 'ipv6-addr'): self.parse_observable_domain_ip,
+                                 ('email-addr', 'email-message'): self.parse_observable_email,
+                                 ('email-addr', 'email-message', 'file'): self.parse_observable_email,
+                                 ('email-message',): self.parse_observable_email,
                                  ('file',): self.parse_observable_file,
                                  ('ipv4-addr', 'network-traffic'): self.parse_observable_ip_network_traffic,
                                  ('ipv6-addr', 'network-traffic'): self.parse_observable_ip_network_traffic}
@@ -738,6 +748,14 @@ class ExternalStixParser(StixParser):
     def parse_observable_domain_ip(self, objects, uuid):
         attributes = self.attributes_from_observable_domain_ip(objects)
         self.handle_import_case(attributes, 'domain-ip', uuid)
+
+    def parse_observable_email(self, objects, uuid):
+        to_ids = False
+        attributes, message = self.parse_complex_fields_observable_email(objects, to_ids)
+        for m_key, m_value in message.items():
+            if m_key in email_mapping:
+                attributes.append(self.append_email_attribute(m_key, m_value, to_ids))
+        self.handle_import_case(attributes, 'email', uuid)
 
     def parse_observable_file(self, objects, uuid):
         _object = objects['0']
