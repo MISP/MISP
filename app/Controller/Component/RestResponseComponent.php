@@ -41,7 +41,7 @@ class RestResponseComponent extends Component
 					in the selected format. The search is available on an event and an attribute level,
 					just select the scope via the URL (/events/restSearch vs /attributes/restSearch).
 					Besides the parameters listed, other, format specific ones can be passed along.
-					Accepted return formats are: [json, xml, suricata, snort, text, openioc]",
+					Accepted return formats are: [json, xml, suricata, snort, text, openioc, rpz]",
 				'mandatory' => array('returnFormat'),
 				'optional' => array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id'),
 				'params' => array()
@@ -65,7 +65,7 @@ class RestResponseComponent extends Component
 					in the selected format. The search is available on an event and an attribute level,
 					just select the scope via the URL (/events/restSearch vs /attributes/restSearch).
 					Besides the parameters listed, other, format specific ones can be passed along.
-					Accepted return formats are: [json, xml, suricata, snort, openioc]",
+					Accepted return formats are: [json, xml, suricata, snort, text, openioc, rpz]",
 				'mandatory' => array('returnFormat'),
 				'optional' => array('value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly'),
 				'params' => array()
@@ -207,7 +207,14 @@ class RestResponseComponent extends Component
                 'description' => "POST a body and a subject in a JSON to send an e-mail through MISP to the user ID given in the URL",
                 'mandatory' => array('subject', 'body')
             )
-        )
+        ),
+		'Warninglist' => array(
+			'toggleEnable' => array(
+				'description' => "POST a json object with a single or a list of warninglist IDs to toggle whether they're enabled or disabled. Specify the optional enabled boolean flag if you would like to enforce the outcome state. Not setting this flag will just toggle the current state.",
+				'mandatory' => array('id'),
+				'optional' => array('enabled')
+			)
+		)
     );
 
 	public function getAllApis($user, $Server)

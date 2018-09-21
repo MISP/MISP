@@ -2,6 +2,9 @@
 
 class OpeniocExport
 {
+	public $additional_params = array(
+		'flatten' => 1
+	);
 
     public function buildAll($user, $data, $scope = 'event')
     {

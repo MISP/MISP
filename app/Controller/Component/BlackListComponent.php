@@ -10,8 +10,11 @@ class BlackListComponent extends Component
     public $defaultModel = '';
 
 
-    public function index($rest = false)
+    public function index($rest = false, $filters = array())
     {
+		if (!empty($filters)) {
+			$this->controller->paginate['conditions'] = $filters;
+		}
         if ($this->controller->response->type() === 'application/json' || $this->controller->response->type() == 'application/xml' || $rest) {
             $blackList = $this->controller->paginate();
             $blacklist= array();

@@ -1622,8 +1622,8 @@ class Event extends AppModel
             }
         }
 
-        if ($options['to_ids']) {
-            $conditionsAttributes['AND'][] = array('Attribute.to_ids' => 1);
+        if (!empty($options['to_ids']) || $options['to_ids'] === 0) {
+            $conditionsAttributes['AND'][] = array('Attribute.to_ids' => $options['to_ids']);
         }
 
         // removing this for now, we export the to_ids == 0 attributes too, since there is a to_ids field indicating it in the .xml
@@ -2038,14 +2038,20 @@ class Event extends AppModel
 			} else {
 				$scope = $options['scope'];
 			}
-			if ($params['deleted'])
-			$conditions = $this->
-			$conditions = $this->generic_add_filter($conditions, $params['deleted'], $scope . '.deleted');
+			if ($params['deleted']) {
+				$conditions = $this->generic_add_filter($conditions, $params['deleted'], $scope . '.deleted');
+			}
 		}
 		return $conditions;
 	}
 
-
+	public function set_filter_to_ids(&$params, $conditions, $options)
+	{
+		if (isset($params['to_ids'])) {
+			$conditions['AND']['Attribute.to_ids'] = $params['to_ids'];
+		}
+		return $conditions;
+	}
 
     public function set_filter_ignore(&$params, $conditions, $options)
     {
@@ -2106,9 +2112,14 @@ class Event extends AppModel
         } elseif ($options['filter'] == 'to') {
             $conditions['AND']['Event.date <='] = $params['to'];
         } else {
+			if (empty($options['scope'])) {
+				$scope = 'Attribute';
+			} else {
+				$scope = $options['scope'];
+			}
             $filters = array(
                 'timestamp' => array(
-                    'Event.timestamp'
+                    $scope . '.timestamp'
                 ),
                 'publish_timestamp' => array(
                     'Event.publish_timestamp'

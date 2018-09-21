@@ -2690,8 +2690,8 @@ class EventsController extends AppController
             'ordered_url_params' => compact($paramArray)
         );
         $exception = false;
-        $filters = $this->_harvestParameters($filterData, $exception);
-        if ($filters === false) {
+        $params = $this->_harvestParameters($filterData, $exception);
+        if ($params === false) {
             return $exception;
         }
         $list = array();
@@ -2702,7 +2702,7 @@ class EventsController extends AppController
         // if it's a search, grab the attributeIDList from the session and get the IDs from it. Use those as the condition
         // We don't need to look out for permissions since that's filtered by the search itself
         // We just want all the attributes found by the search
-        if (!empty($filters['eventid']) && $filters['eventid'] === 'search') {
+        if (!empty($params['eventid']) && $params['eventid'] === 'search') {
             $ioc = $this->Session->read('paginate_conditions_ioc');
             $paginateConditions = $this->Session->read('paginate_conditions');
             unset($paginateConditions['contain']['Event']['Orgc']);
@@ -2726,8 +2726,6 @@ class EventsController extends AppController
                 );
                 $list[] = $attribute['Attribute']['id'];
             }
-        } elseif (!empty($filters['eventid']) && $filters['eventid'] !== 'all') {
-            $events = $filters['eventid'];
         }
         $final = array();
         $requested_attributes = array('uuid', 'event_id', 'category', 'type',
@@ -2759,13 +2757,12 @@ class EventsController extends AppController
             'enforceWarninglist', 'value', 'timestamp', 'tags',
             'last', 'from', 'to'
         );
-        $params = array();
-        if (!empty($events)) {
-            $filters['eventid'] = $events;
+        if (isset($params['eventid']) && $params['eventid'] == 'all') {
+            unset($params['eventid']);
         }
         foreach ($possibleParams as $possibleParam) {
-            if (isset($filters[$possibleParam])) {
-                $params[$possibleParam] = $filters[$possibleParam];
+            if (isset($params[$possibleParam])) {
+                $params[$possibleParam] = $params[$possibleParam];
             }
         }
         $params['limit'] = 1000;
@@ -2788,15 +2785,15 @@ class EventsController extends AppController
         }
         $export->footer();
         $this->response->type('csv');	// set the content type
-        if (empty($filters['eventid'])) {
+        if (empty($params['eventid'])) {
             $filename = "misp.filtered_attributes.csv";
-        } elseif ($filters['eventid'] === 'search') {
+        } elseif ($params['eventid'] === 'search') {
             $filename = "misp.search_result.csv";
         } else {
-            if (is_array($filters['eventid'])) {
-                $filters['eventid'] = 'list';
+            if (is_array($params['eventid'])) {
+                $params['eventid'] = 'list';
             }
-            $filename = "misp.event_" . $filters['eventid'] . ".csv";
+            $filename = "misp.event_" . $params['eventid'] . ".csv";
         }
         return $this->RestResponse->viewData($final, 'csv', false, true, $filename);
     }
@@ -3024,7 +3021,9 @@ class EventsController extends AppController
 			'json' => array('json', 'JsonExport'),
 			'xml' => array('xml', 'XmlExport'),
 			'suricata' => array('txt', 'NidsSuricataExport'),
-			'snort' => array('txt', 'NidsSnortExport')
+			'snort' => array('txt', 'NidsSnortExport'),
+			'rpz' => array('rpz', 'RPZExport'),
+			'text' => array('text', 'TextExport')
 		);
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
@@ -3050,11 +3049,15 @@ class EventsController extends AppController
 		}
 		App::uses($validFormats[$returnFormat][1], 'Export');
         $exportTool = new $validFormats[$returnFormat][1]();
+		if (!empty($exportTool->additional_params)) {
+			$filters = array_merge($filters, $exportTool->additional_params);
+		}
 		$exportToolParams = array(
 			'user' => $this->Auth->user(),
 			'params' => array(),
 			'returnFormat' => $returnFormat,
-			'scope' => 'Event'
+			'scope' => 'Event',
+			'filters' => $filters
 		);
 		if (empty($exportTool->non_restrictive_export)) {
 			if (!isset($filters['to_ids'])) {
@@ -3067,6 +3070,9 @@ class EventsController extends AppController
 		$final = $exportTool->header($exportToolParams);
         $eventCount = count($eventid);
         $i = 0;
+		if (!empty($filters['withAttachments'])) {
+			$filters['includeAttachments'] = 1;
+		}
         foreach ($eventid as $k => $currentEventId) {
             $filters['eventid'] = $currentEventId;
             if (!empty($filters['tags']['NOT'])) {
@@ -4057,21 +4063,21 @@ class EventsController extends AppController
         // #TODO i18n
         $exports = array(
             'xml' => array(
-                    'url' => '/events/restSearch/download/false/false/false/false/false/false/false/false/false/' . $id . '/false.xml',
+                    'url' => '/events/restSearch/xml/false/false/false/false/false/false/false/false/false/' . $id . '/false.xml',
                     'text' => 'MISP XML (metadata + all attributes)',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/restSearch/download/false/false/false/false/false/false/false/false/false/' . $id . '/true.xml',
+                    'checkbox_set' => '/events/restSearch/xml/false/false/false/false/false/false/false/false/false/' . $id . '/true.xml',
                     'checkbox_default' => true
             ),
             'json' => array(
-                    'url' => '/events/restSearch/download/false/false/false/false/false/false/false/false/false/' . $id . '/false.json',
+                    'url' => '/events/restSearch/json/false/false/false/false/false/false/false/false/false/' . $id . '/false.json',
                     'text' => 'MISP JSON (metadata + all attributes)',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/restSearch/download/false/false/false/false/false/false/false/false/false/' . $id . '/true.json',
+                    'checkbox_set' => '/events/restSearch/json/false/false/false/false/false/false/false/false/false/' . $id . '/true.json',
                     'checkbox_default' => true
             ),
             'openIOC' => array(

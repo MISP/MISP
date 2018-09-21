@@ -117,28 +117,60 @@ class WarninglistsController extends AppController
         }
     }
 
+	/*
+	 * toggle warninglists on or offset
+	 * Simply POST an ID or a list of IDs to toggle the current state
+	 * To control what state the warninglists should have after execution instead of just blindly toggling them, simply pass the enabled flag
+	 * Example:
+	 *   {"id": [5, 8], "enabled": 1}
+	 */
     public function toggleEnable()
     {
-        $id = $this->request->data['Warninglist']['data'];
-        if (!is_numeric($id)) {
+		if (!$this->request->is('post')) {
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'This function only accepts POST requests.')), 'status' => 200, 'type' => 'json'));
+		}
+		if (isset($this->request->data['Warninglist']['data'])) {
+			$id = $this->request->data['Warninglist']['data'];
+		} else {
+			$id = $this->request->data['id'];
+		}
+		if (isset($this->request->data['enabled'])) {
+			$enabled = $this->request->data['enabled'];
+		}
+        if (empty($id)) {
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist not found.')), 'status' => 200, 'type' => 'json'));
         }
-        $currentState = $this->Warninglist->find('first', array('conditions' => array('id' => $id), 'recursive' => -1));
+        $currentState = $this->Warninglist->find('all', array('conditions' => array('id' => $id), 'recursive' => -1));
         if (empty($currentState)) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist not found.')), 'status' => 200, 'type' => 'json'));
+            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist(s) not found.')), 'status' => 200, 'type' => 'json'));
         }
-        if ($currentState['Warninglist']['enabled']) {
-            $currentState['Warninglist']['enabled'] = 0;
-            $message = 'disabled';
-        } else {
-            $currentState['Warninglist']['enabled'] = 1;
-            $message = 'enabled';
-        }
-        if ($this->Warninglist->save($currentState)) {
+		$success = 0;
+		foreach ($currentState as $warningList) {
+			if (isset($enabled)) {
+				$warningList['Warninglist']['enabled'] = $enabled;
+				$message = $enabled ? 'enabled' : 'disabled';
+			} else {
+		        if ($warningList['Warninglist']['enabled']) {
+		            $warningList['Warninglist']['enabled'] = 0;
+		            $message = 'disabled';
+		        } else {
+		            $warningList['Warninglist']['enabled'] = 1;
+		            $message = 'enabled';
+		        }
+				if (!isset($enabled) && count($currentState) > 1) {
+					$message = 'toggled';
+				}
+			}
+			if ($this->Warninglist->save($warningList)) {
+				$success += 1;
+			}
+			$this->Warninglist->regenerateWarninglistCaches($warningList['Warninglist']['id']);
+		}
+        if ($success) {
             $this->Warninglist->regenerateWarninglistCaches($id);
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Warninglist ' . $message)), 'status' => 200, 'type' => 'json'));
+            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $success . ' warninglist(s) ' . $message)), 'status' => 200, 'type' => 'json'));
         } else {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist could not be enabled.')), 'status' => 200, 'type' => 'json'));
+            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist(s) could not be toggled.')), 'status' => 200, 'type' => 'json'));
         }
     }
 
