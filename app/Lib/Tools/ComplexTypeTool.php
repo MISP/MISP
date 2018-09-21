@@ -313,6 +313,13 @@ class ComplexTypeTool
             $input['refanged'] = preg_replace($regex, $replacement, $input['refanged']);
         }
         $input['refanged'] = rtrim($input['refanged'], ".");
+		$input['refanged'] = preg_replace_callback(
+			'/\[.\]/',
+			function ($matches) {
+				return trim($matches[0], '[]');
+        	},
+        	$input['refanged']
+		);
         return $input;
     }
 
