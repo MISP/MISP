@@ -178,6 +178,17 @@ class StixParser():
                                'value': '{}|{}'.format(_object.name, md5), 'data': data})
         return attributes
 
+    def attributes_from_observable_regkey(self, _object):
+        attributes = []
+        for key, value in _object.items():
+            if key in regkey_mapping:
+                mapping = regkey_mapping[key]
+                attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                                   'value': value.replace('\\\\', '\\'), 'to_ids': False})
+        if 'values' in _object:
+            attributes.extend(self.fill_observable_attributes(_object.values[0], regkey_mapping))
+        return attributes
+
     @staticmethod
     def extract_data_from_file(objects):
         data = None
@@ -265,7 +276,7 @@ class StixFromMISPParser(StixParser):
                                 'ip-port': {'observable': observable_ip_port, 'pattern': pattern_ip_port},
                                 'network-socket': {'observable': observable_socket, 'pattern': pattern_socket},
                                 'process': {'observable': observable_process, 'pattern': pattern_process},
-                                'registry-key': {'observable': observable_regkey, 'pattern': pattern_regkey},
+                                'registry-key': {'observable': self.attributes_from_observable_regkey, 'pattern': pattern_regkey},
                                 'url': {'observable': observable_url, 'pattern': pattern_url},
                                 'WindowsPEBinaryFile': {'observable': self.observable_pe, 'pattern': self.pattern_pe},
                                 'x509': {'observable': observable_x509, 'pattern': pattern_x509}}
@@ -653,7 +664,8 @@ class ExternalStixParser(StixParser):
                                  ('email-message',): self.parse_observable_email,
                                  ('file',): self.parse_observable_file,
                                  ('ipv4-addr', 'network-traffic'): self.parse_observable_ip_network_traffic,
-                                 ('ipv6-addr', 'network-traffic'): self.parse_observable_ip_network_traffic}
+                                 ('ipv6-addr', 'network-traffic'): self.parse_observable_ip_network_traffic,
+                                 ('windows-registry-key',): self.parse_observable_regkey}
 
     def handler(self):
         self.version_attribute = {'type': 'text', 'object_relation': 'version', 'value': self.stix_version}
@@ -794,6 +806,11 @@ class ExternalStixParser(StixParser):
         else:
             name = 'ip-port'
         self.handle_import_case(attributes, name, uuid)
+
+    def parse_observable_regkey(self, objects, uuid):
+        _object = objects['0']
+        attributes = self.attributes_from_observable_regkey(_object)
+        self.handle_import_case(attributes, 'registry-key', uuid)
 
     ################################################################################
     ##                             UTILITY FUNCTIONS.                             ##

@@ -366,23 +366,6 @@ def pattern_process(pattern):
                                'object_relation': mapping['relation']})
     return attributes
 
-def observable_regkey(observable):
-    attributes = []
-    observable = dict(observable['0'])
-    if 'values' in observable:
-        values = observable.pop('values')
-        fill_observable_attributes(attributes, values[0], regkey_mapping)
-    # here following, we don't use the function just used on values bacause we may want to rearrange
-    # the strings (such as for regkeys) but not for all the values in all the other objects
-    for o in observable:
-        try:
-            mapping = regkey_mapping[o]
-        except KeyError:
-            continue
-        attributes.append({'type': mapping.get('type'), 'object_relation': mapping.get('relation'),
-                            'value': observable.get(o).replace('\\\\', '\\')})
-    return attributes
-
 def pattern_regkey(pattern):
     attributes = []
     for p in pattern:
