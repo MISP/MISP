@@ -5219,6 +5219,9 @@ class EventsController extends AppController
         $this->Event->insertLock($this->Auth->user(), $event['Event']['id']);
         if ($this->request->is('post')) {
             $modules = array();
+			if (!isset($this->request->data['Event'])) {
+				$this->request->data = array('Event' => $this->request->data);
+			}
             foreach ($this->request->data['Event'] as $module => $enabled) {
                 if ($enabled) {
                     $modules[] = $module;
