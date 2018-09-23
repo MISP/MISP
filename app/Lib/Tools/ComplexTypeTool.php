@@ -228,7 +228,7 @@ class ComplexTypeTool
     );
 
     // algorithms to run through in order
-    private $__checks = array('Hashes', 'Email', 'IP', 'DomainOrFilename', 'SimpleRegex');
+    private $__checks = array('Hashes', 'Email', 'IP', 'DomainOrFilename', 'SimpleRegex', 'AS');
 
     private function __resolveType($raw_input)
     {
@@ -257,6 +257,14 @@ class ComplexTypeTool
         }
         return false;
     }
+
+	private function __checkForAS($input)
+	{
+		if (preg_match('#^as[0-9]+$#i', $input['raw'])) {
+			$input['raw'] = strtoupper($input['raw']);
+			return array('types' => array('AS'), 'to_ids' => false, 'default_type' => 'AS', 'value' => $input['raw']);
+		}
+	}
 
     private function __checkForHashes($input)
     {
