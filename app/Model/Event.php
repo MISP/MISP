@@ -5014,4 +5014,201 @@ class Event extends AppModel
         ));
         return false;
     }
+
+	public function processFreeTextData($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false, $jobId = false)
+	{
+		$event = $this->find('first', array(
+			'conditions' => array('id' => $id),
+			'recursive' => -1,
+			'fields' => array('orgc_id', 'id', 'distribution', 'published', 'uuid'),
+		));
+		if (!$user['Role']['perm_site_admin'] && !empty($event) && $event['Event']['orgc_id'] != $user['org_id']) {
+			$objectType = 'ShadowAttribute';
+		} elseif ($user['Role']['perm_site_admin'] && isset($force) && $force) {
+			$objectType = 'ShadowAttribute';
+		} else {
+			$objectType = 'Attribute';
+		}
+
+		if ($adhereToWarninglists) {
+			$this->Warninglist = ClassRegistry::init('Warninglist');
+			$warninglists = $this->Warninglist->fetchForEventView();
+		}
+		$saved = 0;
+		$failed = 0;
+		$attributeSources = array('attributes', 'ontheflyattributes');
+		$ontheflyattributes = array();
+		$i = 0;
+		$total = count($attributeSources);
+		if ($jobId) {
+			$this->Job = ClassRegistry::init('Job');
+			$this->Job->id = $jobId;
+		}
+		foreach ($attributeSources as $sourceKey => $source) {
+			foreach (${$source} as $k => $attribute) {
+				if ($attribute['type'] == 'ip-src/ip-dst') {
+					$types = array('ip-src', 'ip-dst');
+				} elseif ($attribute['type'] == 'ip-src|port/ip-dst|port') {
+					$types = array('ip-src|port', 'ip-dst|port');
+				} elseif ($attribute['type'] == 'malware-sample') {
+					if (!isset($attribute['data_is_handled']) || !$attribute['data_is_handled']) {
+						$result = $this->Attribute->handleMaliciousBase64($id, $attribute['value'], $attribute['data'], array('md5', 'sha1', 'sha256'), $objectType == 'ShadowAttribute' ? true : false);
+						if (!$result['success']) {
+							$failed++;
+							continue;
+						}
+						$attribute['data'] = $result['data'];
+						$shortValue = $attribute['value'];
+						$attribute['value'] = $shortValue . '|' . $result['md5'];
+						$additionalHashes = array('sha1', 'sha256');
+						foreach ($additionalHashes as $hash) {
+							$temp = $attribute;
+							$temp['type'] = 'filename|' . $hash;
+							$temp['value'] = $shortValue . '|' . $result[$hash];
+							unset($temp['data']);
+							$ontheflyattributes[] = $temp;
+						}
+					}
+					$types = array($attribute['type']);
+				} else {
+					$types = array($attribute['type']);
+				}
+				foreach ($types as $type) {
+					$this->$objectType->create();
+					$attribute['type'] = $type;
+					if (empty($attribute['comment'])) {
+						$attribute['comment'] = $default_comment;
+					}
+					$attribute['event_id'] = $id;
+					if ($objectType == 'ShadowAttribute') {
+						$attribute['org_id'] = $user['Role']['org_id'];
+						$attribute['event_org_id'] = $event['Event']['orgc_id'];
+						$attribute['email'] = $user['Role']['email'];
+						$attribute['event_uuid'] = $event['Event']['uuid'];
+					}
+					// adhere to the warninglist
+					if ($adhereToWarninglists) {
+						if (!$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute)) {
+							if ($adhereToWarninglists == 'soft') {
+								$attribute['to_ids'] = 0;
+							} else {
+								// just ignore the attribute
+								continue;
+							}
+						}
+					}
+					$AttributSave = $this->$objectType->save($attribute);
+					if ($AttributSave) {
+						// If Tags, attache each tags to attribut
+						if (!empty($attribute['tags'])) {
+							foreach (explode(",", $attribute['tags']) as $tagName) {
+								$this->loadModel('Tag');
+								$TagId = $this->Tag->captureTag(array('name' => $tagName), array('Role' => $user['Role']));
+								$this->loadModel('AttributeTag');
+								if (!$this->AttributeTag->attachTagToAttribute($AttributSave['Attribute']['id'], $id, $TagId)) {
+									throw new MethodNotAllowedException(__('Could not add tags.'));
+								}
+							}
+						}
+						$saved++;
+					} else {
+						$lastError = $this->$objectType->validationErrors;
+						$failed++;
+					}
+				}
+				if ($jobId) {
+                    if ($i % 20 == 0) {
+						$this->Job->saveField('message', 'Attribute ' . $i . '/' . $total);
+                        $this->Job->saveField('progress', $i * 80 / $total);
+                    }
+                }
+			}
+		}
+		$emailResult = '';
+		$messageScope = $objectType == 'ShadowAttribute' ? 'proposals' : 'attributes';
+		if ($saved > 0) {
+			if ($objectType != 'ShadowAttribute') {
+				$event = $this->find('first', array(
+						'conditions' => array('Event.id' => $id),
+						'recursive' => -1
+				));
+				if ($event['Event']['published'] == 1) {
+					$event['Event']['published'] = 0;
+				}
+				$date = new DateTime();
+				$event['Event']['timestamp'] = $date->getTimestamp();
+				$this->save($event);
+			} else {
+				if (!$this->ShadowAttribute->sendProposalAlertEmail($id)) {
+					$emailResult = " but sending out the alert e-mails has failed for at least one recipient";
+				}
+			}
+		}
+		if ($failed > 0) {
+			if ($failed == 1) {
+				$message = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. Reason for the failure: ' . json_encode($lastError);
+			} else {
+				$message = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. This may be due to attributes with similar values already existing.';
+			}
+		} else {
+			$message = $saved . ' ' . $messageScope . ' created' . $emailResult . '.';
+		}
+		if ($jobId) {
+			if ($i % 20 == 0) {
+				$this->Job->saveField('message', 'Processing complete. ' . $message);
+				$this->Job->saveField('progress', 100);
+			}
+		}
+		return $message;
+	}
+
+	public function processFreeTextDataRouter($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false)
+	{
+		if (Configure::read('MISP.background_jobs')) {
+			$job = ClassRegistry::init('Job');
+			$job->create();
+			$data = array(
+					'worker' => 'default',
+					'job_type' => 'process_freetext_data',
+					'job_input' => 'Event: ' . $id,
+					'status' => 0,
+					'retries' => 0,
+					'org_id' => $user['org_id'],
+					'org' => $user['Organisation']['name'],
+					'message' => 'Processing...',
+			);
+			$job->save($data);
+			$randomFileName = $this->generateRandomFileName() . '.json';
+			App::uses('Folder', 'Utility');
+			App::uses('File', 'Utility');
+			$tempdir = new Folder(APP . 'tmp/cache/ingest', true, 0755);
+			$tempFile = new File(APP . 'tmp/cache/ingest' . DS . $randomFileName, true, 0644);
+			$tempData = array(
+					'user' => $user,
+					'attributes' => $attributes,
+					'id' => $id,
+					'default_comment' => $default_comment,
+					'force' => $force,
+					'adhereToWarninglists' => $adhereToWarninglists,
+					'jobId' => $job->id
+			);
+
+			$writeResult = $tempFile->write(json_encode($tempData));
+			if (!$writeResult) {
+				return ($this->processFreeTextData($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false));
+			}
+			$tempFile->close();
+			$jobId = $job->id;
+			$process_id = CakeResque::enqueue(
+					'prio',
+					'EventShell',
+					array('processfreetext', $randomFileName),
+					true
+			);
+			$job->saveField('process_id', $process_id);
+			return 'Freetext ingestion queued for background processing. Attributes will be added to the event as they are being processed.';
+		} else {
+			return ($this->processFreeTextData($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false));
+		}
+	}
 }
