@@ -3023,6 +3023,7 @@ class EventsController extends AppController
 			'suricata' => array('txt', 'NidsSuricataExport'),
 			'snort' => array('txt', 'NidsSnortExport'),
 			'rpz' => array('rpz', 'RPZExport'),
+			'stix' => array('xml', 'StixExport'),
 			'text' => array('text', 'TextExport')
 		);
         $exception = false;
