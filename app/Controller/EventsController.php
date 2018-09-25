@@ -3024,6 +3024,7 @@ class EventsController extends AppController
             'snort' => array('txt', 'NidsSnortExport'),
             'rpz' => array('rpz', 'RPZExport'),
             'stix' => array('xml', 'StixExport'),
+            'stix2' => array('json', 'Stix2Export'),
             'text' => array('text', 'TextExport')
         );
         $exception = false;
