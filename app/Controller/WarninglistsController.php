@@ -123,6 +123,8 @@ class WarninglistsController extends AppController
 	 * To control what state the warninglists should have after execution instead of just blindly toggling them, simply pass the enabled flag
 	 * Example:
 	 *   {"id": [5, 8], "enabled": 1}
+     * Alternatively search by a substring in the warninglist's named, such as:
+     *   {"name": ["%alexa%", "%iana%"], "enabled": 1}
 	 */
     public function toggleEnable()
     {
@@ -132,7 +134,24 @@ class WarninglistsController extends AppController
 		if (isset($this->request->data['Warninglist']['data'])) {
 			$id = $this->request->data['Warninglist']['data'];
 		} else {
-			$id = $this->request->data['id'];
+			if (!empty($this->request->data['id'])) {
+				$id = $this->request->data['id'];
+			} else if (!empty($this->request->data['name'])) {
+				if (!is_array($this->request->data['name'])) {
+					$names = array($this->request->data['name']);
+				} else {
+					$names = $this->request->data['name'];
+				}
+				$conditions = array();
+				foreach ($names as $k => $name) {
+					$conditions['OR'][] = array('LOWER(Warninglist.name) LIKE' => strtolower($name));
+				}
+				$id = $this->Warninglist->find('list', array(
+					'conditions' => $conditions,
+					'recursive' => -1,
+					'fields' => array('Warninglist.id', 'Warninglist.id')
+				));
+			}
 		}
 		if (isset($this->request->data['enabled'])) {
 			$enabled = $this->request->data['enabled'];

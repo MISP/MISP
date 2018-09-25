@@ -210,9 +210,8 @@ class RestResponseComponent extends Component
         ),
 		'Warninglist' => array(
 			'toggleEnable' => array(
-				'description' => "POST a json object with a single or a list of warninglist IDs to toggle whether they're enabled or disabled. Specify the optional enabled boolean flag if you would like to enforce the outcome state. Not setting this flag will just toggle the current state.",
-				'mandatory' => array('id'),
-				'optional' => array('enabled')
+				'description' => "POST a json object with a single or a list of warninglist IDsIDs, or alternatively a (list of) substring(s) that match the names of warninglist(s) to toggle whether they're enabled or disabled. Specify the optional enabled boolean flag if you would like to enforce the outcome state. Not setting this flag will just toggle the current state.",'mandatory' => array('id'),
+				'optional' => array('id', 'name', 'enabled')
 			)
 		)
     );
