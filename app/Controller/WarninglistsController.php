@@ -139,12 +139,13 @@ class WarninglistsController extends AppController
 			} else if (!empty($this->request->data['name'])) {
 				if (!is_array($this->request->data['name'])) {
 					$names = array($this->request->data['name']);
+				} else {
+					$names = $this->request->data['name'];
 				}
 				$conditions = array();
 				foreach ($names as $k => $name) {
 					$conditions['OR'][] = array('LOWER(Warninglist.name) LIKE' => strtolower($name));
 				}
-
 				$id = $this->Warninglist->find('list', array(
 					'conditions' => $conditions,
 					'recursive' => -1,
