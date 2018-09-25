@@ -4,7 +4,7 @@ class StixExport
 {
     private $__tmpDir = APP . 'files/scripts/';
     private $end_of_cmd = ' 2>' . APP . 'tmp/logs/exec-errors.log';
-
+    public $non_restrictive_export = true;
     public function handler($data, $options = array())
     {
         $randomFileName = $this->generateRandomFileName();
