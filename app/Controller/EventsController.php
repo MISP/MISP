@@ -3016,16 +3016,16 @@ class EventsController extends AppController
             'paramArray' => $paramArray,
             'ordered_url_params' => compact($paramArray)
         );
-		$validFormats = array(
-			'openioc' => array('xml', 'OpeniocExport'),
-			'json' => array('json', 'JsonExport'),
-			'xml' => array('xml', 'XmlExport'),
-			'suricata' => array('txt', 'NidsSuricataExport'),
-			'snort' => array('txt', 'NidsSnortExport'),
-			'rpz' => array('rpz', 'RPZExport'),
-			'stix' => array('xml', 'StixExport'),
-			'text' => array('text', 'TextExport')
-		);
+        $validFormats = array(
+            'openioc' => array('xml', 'OpeniocExport'),
+            'json' => array('json', 'JsonExport'),
+            'xml' => array('xml', 'XmlExport'),
+            'suricata' => array('txt', 'NidsSuricataExport'),
+            'snort' => array('txt', 'NidsSnortExport'),
+            'rpz' => array('rpz', 'RPZExport'),
+            'stix' => array('xml', 'StixExport'),
+            'text' => array('text', 'TextExport')
+        );
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
         unset($filterData);
@@ -3040,44 +3040,44 @@ class EventsController extends AppController
         if (isset($filters['returnFormat'])) {
             $returnFormat = $filters['returnFormat'];
         }
-		if ($returnFormat === 'download') {
-			$returnFormat = 'json';
-		}
+        if ($returnFormat === 'download') {
+            $returnFormat = 'json';
+        }
         $eventid = $this->Event->filterEventIds($user, $filters);
-		if (!isset($validFormats[$returnFormat])) {
-			// this is where the new code path for the export modules will go
-			throw new MethodNotFoundException('Invalid export format.');
-		}
-		App::uses($validFormats[$returnFormat][1], 'Export');
+        if (!isset($validFormats[$returnFormat])) {
+            // this is where the new code path for the export modules will go
+            throw new MethodNotFoundException('Invalid export format.');
+        }
+        App::uses($validFormats[$returnFormat][1], 'Export');
         $exportTool = new $validFormats[$returnFormat][1]();
-		if (!empty($exportTool->additional_params)) {
-			$filters = array_merge($filters, $exportTool->additional_params);
-		}
-		$exportToolParams = array(
-			'user' => $this->Auth->user(),
-			'params' => array(),
-			'returnFormat' => $returnFormat,
-			'scope' => 'Event',
-			'filters' => $filters
-		);
-		if (empty($exportTool->non_restrictive_export)) {
-			if (!isset($filters['to_ids'])) {
-				$filters['to_ids'] = 1;
-			}
-			if (!isset($filters['published'])) {
-				$filters['published'] = 1;
-			}
-		}
-		$final = $exportTool->header($exportToolParams);
+        if (!empty($exportTool->additional_params)) {
+            $filters = array_merge($filters, $exportTool->additional_params);
+        }
+        $exportToolParams = array(
+            'user' => $this->Auth->user(),
+            'params' => array(),
+            'returnFormat' => $returnFormat,
+            'scope' => 'Event',
+            'filters' => $filters
+        );
+        if (empty($exportTool->non_restrictive_export)) {
+            if (!isset($filters['to_ids'])) {
+                $filters['to_ids'] = 1;
+            }
+            if (!isset($filters['published'])) {
+                $filters['published'] = 1;
+            }
+        }
+        $final = $exportTool->header($exportToolParams);
         $eventCount = count($eventid);
         $i = 0;
-		if (!empty($filters['withAttachments'])) {
-			$filters['includeAttachments'] = 1;
-		}
+        if (!empty($filters['withAttachments'])) {
+            $filters['includeAttachments'] = 1;
+        }
         foreach ($eventid as $k => $currentEventId) {
             $filters['eventid'] = $currentEventId;
             if (!empty($filters['tags']['NOT'])) {
-              $filters['blockedAttributeTags'] = $filters['tags']['NOT'];
+                $filters['blockedAttributeTags'] = $filters['tags']['NOT'];
             }
             $result = $this->Event->fetchEvent(
                 $this->Auth->user(),
@@ -3087,19 +3087,19 @@ class EventsController extends AppController
             if (!empty($result)) {
                 $this->loadModel('Whitelist');
                 $result = $this->Whitelist->removeWhitelistedFromArray($result, false);
-				$temp = $exportTool->handler($result[0], $exportToolParams);
-				if ($temp !== '') {
-					if ($k !== 0) {
-						$final .= $exportTool->separator($exportToolParams);
-					}
-	            	$final .= $temp;
-				}
+                $temp = $exportTool->handler($result[0], $exportToolParams);
+                if ($temp !== '') {
+                    if ($k !== 0) {
+                        $final .= $exportTool->separator($exportToolParams);
+                    }
+                    $final .= $temp;
+                }
                 $i++;
             }
         }
-		$final .= $exportTool->footer($exportToolParams);
-		$responseType = $validFormats[$returnFormat][0];
-		return $this->RestResponse->viewData($final, $responseType, false, true);
+        $final .= $exportTool->footer($exportToolParams);
+        $responseType = $validFormats[$returnFormat][0];
+        return $this->RestResponse->viewData($final, $responseType, false, true);
     }
 
     public function downloadOpenIOCEvent($key, $eventid, $enforceWarninglist = false)
