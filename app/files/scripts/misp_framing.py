@@ -124,11 +124,14 @@ def stix_json_framing(stix_package):
 
 def stix_xml_framing(stix_package, ns, schema):
     s_stix_package = "</stix:STIX_Package>\n"
+    s_related_package = "stix:RelatedPackage"
     header = stix_package.to_xml(auto_namespace=False, ns_dict=ns, schemaloc_dict=schema)
     header = header.decode()
-    header = "{}    <stix:Related_Packages>\n".format(header).replace(s_stix_package, "")
-    footer = "    </stix:Related_Packages>\n{}".format(s_stix_package)
-    return header, '', footer
+    header = "{0}    <{1}s>\n        <{1}>\n".format(header, s_related_package).replace(s_stix_package, "")
+    footer = "        </{0}>\n    </{0}s>\n{1}".format(s_related_package, s_stix_package)
+    separator = "        </{0}>\n        <{0}>\n".format(s_related_package)
+    print("{}{}{}".format(header, separator, footer))
+    return header, separator, footer
 
 def stix2_framing(*args):
     return '{"type": "bundle", "spec_version": "2.0", "id": "bundle--%s", "objects": [' % args[0], ',', json_footer
