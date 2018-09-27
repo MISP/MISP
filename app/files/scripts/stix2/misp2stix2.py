@@ -541,7 +541,7 @@ class StixBuilder():
         class Custom(object):
             def __init__(self, **kwargs):
                 return
-        custom_object = Custom(**custom_object_args, )
+        custom_object = Custom(**custom_object_args)
         self.append_object(custom_object, custom_object_id)
 
     def add_object_indicator(self, misp_object, pattern_arg=None):
