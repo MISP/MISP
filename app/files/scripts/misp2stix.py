@@ -127,20 +127,16 @@ class StixBuilder(object):
     def __init__(self, args):
         self.misp_event = MISPEvent()
         self.args = args
-        if len(args) > 3:
-            namespace[0] = args[3]
-        if len(args) > 4:
-            ns = args[4].replace(" ", "_")
-            namespace[1] = re.sub('[\W]+', '', ns)
-        if not namespace[0]:
-            namespace[0] = 'https://www.misp-project.org'
+        self.return_type = args[2]
+        self.baseurl = args[3] if len(args) > 3 else namespace[0]
+        self.orgname = re.sub('[\W]+', '', args[4].replace(" ", "_")) if len(args) > 4 else namespace[1]
         try:
-            idgen.set_id_namespace({namespace[0]: namespace[1]})
+            idgen.set_id_namespace({self.baseurl: self.orgname})
         except ValueError:
             try:
-                idgen.set_id_namespace(Namespace(namespace[0], namespace[1]))
+                idgen.set_id_namespace(Namespace(self.baseurl, self.orgname))
             except TypeError:
-                idgen.set_id_namespace(Namespace(namespace[0], namespace[1], "MISP"))
+                idgen.set_id_namespace(Namespace(self.baseurl, self.orgname, "MISP"))
         self.namespace_prefix = idgen.get_id_namespace_alias()
         self.objects_to_parse = defaultdict(dict)
         ## MAPPING FOR ATTRIBUTES
@@ -182,7 +178,7 @@ class StixBuilder(object):
         self.filename = filename
 
     def generateEventPackage(self):
-        package_name = "{}:STIXPackage-{}".format(namespace[1], self.misp_event.uuid)
+        package_name = "{}:STIXPackage-{}".format(self.orgname, self.misp_event.uuid)
         timestamp = self.misp_event.timestamp
         stix_package = STIXPackage(id_=package_name, timestamp=timestamp)
         stix_package.version = "1.1.1"
@@ -207,7 +203,7 @@ class StixBuilder(object):
                                                  encoding='utf8'))
 
     def generate_stix_objects(self):
-        incident = self.create_incident(namespace[1])
+        incident = self.create_incident(self.orgname)
         self.history = History()
         threat_level_name = threat_level_mapping.get(str(self.misp_event.threat_level_id), None)
         if threat_level_name:
@@ -356,7 +352,7 @@ class StixBuilder(object):
     def create_indicator(self, misp_object, observable, tags):
         tlp_tags = deepcopy(tags)
         indicator = Indicator(timestamp=misp_object.timestamp)
-        indicator.id_ = "{}:MISPObject-{}".format(namespace[1], misp_object.uuid)
+        indicator.id_ = "{}:MISPObject-{}".format(self.orgname, misp_object.uuid)
         indicator.producer = self.set_prod(self.orgc_name)
         for attribute in misp_object.attributes:
             tlp_tags = self.merge_tags(tlp_tags, attribute)
@@ -498,7 +494,7 @@ class StixBuilder(object):
 
     def generate_indicator(self, attribute, tags):
         indicator = Indicator(timestamp=attribute.timestamp)
-        indicator.id_ = "{}:indicator-{}".format(namespace[1], attribute.uuid)
+        indicator.id_ = "{}:indicator-{}".format(self.orgname, attribute.uuid)
         indicator.producer = self.set_prod(self.orgc_name)
         if attribute.comment:
             indicator.description = attribute.comment
@@ -594,10 +590,9 @@ class StixBuilder(object):
         observable.id_ = "{}:SocketAddress-{}".format(self.namespace_prefix, attribute.uuid)
         return observable
 
-    @staticmethod
-    def generate_threat_actor(attribute):
+    def generate_threat_actor(self, attribute):
         ta = ThreatActor(timestamp=attribute.timestamp)
-        ta.id_ = "{}:threatactor-{}".format(namespace[1], attribute.uuid)
+        ta.id_ = "{}:threatactor-{}".format(self.orgname, attribute.uuid)
         ta.title = "{}: {} (MISP Attribute #{})".format(attribute.category, attribute.value, attribute.id)
         description = attribute.value
         if attribute.comment:
@@ -632,7 +627,7 @@ class StixBuilder(object):
         vulnerability = Vulnerability()
         vulnerability.cve_id = attribute.value
         ET = ExploitTarget(timestamp=attribute.timestamp)
-        ET.id_ = "{}:et-{}".format(namespace[1], attribute.uuid)
+        ET.id_ = "{}:et-{}".format(self.orgname, attribute.uuid)
         if attribute.comment and attribute.comment != "Imported via the freetext import.":
             ET.title = attribute.comment
         else:
@@ -1174,8 +1169,7 @@ class StixBuilder(object):
         observable.id_ = "{}:HTTPSession-{}".format(self.namespace_prefix, attribute.uuid)
         return observable
 
-    @staticmethod
-    def resolve_identity_attribute(attribute):
+    def resolve_identity_attribute(self, attribute):
         attribute_type = attribute.type
         ciq_identity = CIQIdentity3_0Instance()
         identity_spec = STIXCIQIdentity3_0()
@@ -1191,7 +1185,7 @@ class StixBuilder(object):
         elif attribute_type == 'target-email':
             identity_spec.add_electronic_address_identifier(ElectronicAddressIdentifier(value=attribute.value))
         ciq_identity.specification = identity_spec
-        ciq_identity.id_ = "{}:Identity-{}".format(namespace[1], attribute.uuid)
+        ciq_identity.id_ = "{}:Identity-{}".format(self.orgname, attribute.uuid)
         # is this a good idea?
         ciq_identity.name = "{}: {} (MISP Attribute #{})".format(attribute_type, attribute.value, attribute.id)
         return ciq_identity
@@ -1280,7 +1274,7 @@ class StixBuilder(object):
 
     def create_ttp(self, attribute, tags):
         ttp = TTP(timestamp=attribute.timestamp)
-        ttp.id_ = "{}:ttp-{}".format(namespace[1], attribute.uuid)
+        ttp.id_ = "{}:ttp-{}".format(self.orgname, attribute.uuid)
         try:
             ttp.handling = self.set_tlp(attribute.distribution, self.merge_tags(tags, attribute))
         except Exception:
