@@ -3836,9 +3836,6 @@ class Event extends AppModel
         $tmpDir = $tmpDir . DS . "tmp";
         $stixFile = new File($tmpDir . DS . $randomFileName . ".stix");
         $stixFile->write($stix_framing['header']);
-        if ($returnType === 'xml') {
-            $stixFile->append("    <stix:Related_Packages>\n");
-        }
         $result = array();
         if ($jobId) {
             $this->Job = ClassRegistry::init('Job');
@@ -3891,9 +3888,11 @@ class Event extends AppModel
                     $stix_event[count($stix_event)-1] = str_replace("STIX_Package", "Package", $stix_event[count($stix_event)-1]);
                     $stix_event = implode("\n", $stix_event);
                     $stix_event = str_replace("\n", "\n            ", $stix_event) . "\n";
-                    $stix_event = "        <stix:Related_Package>\n" . $stix_event . "        </stix:Related_Package>\n";
                 } else {
-                    $stix_event = $file->read() . (($i + 1) != $eventCount ? $separator : '');
+                    $stix_event = $file->read();
+                }
+                if (($i + 1) != $eventCount) {
+                    $stix_event .= $separator;
                 }
                 $stixFile->append($stix_event);
                 $file->close();

@@ -116,15 +116,22 @@ def stix_framing(*args):
     stix_package.stix_header = stix_header
     stix_package.version = "1.1.1"
     stix_package.timestamp = datetime.datetime.now()
-    if return_type == 'json':
-        header = '{}, "related_packages": ['.format(stix_package.to_json()[:-1])
-        footer = json_footer
-    else:
-        s_stix_package = "</stix:STIX_Package>\n"
-        header = stix_package.to_xml(auto_namespace=False, ns_dict=NS_DICT, schemaloc_dict=SCHEMALOC_DICT)
-        header = header.decode().replace(s_stix_package, "");
-        footer = "    </stix:Related_Packages>\n{}".format(s_stix_package)
-    return header, ',', footer
+    return stix_json_framing(stix_package) if return_type == 'json' else stix_xml_framing(stix_package, NS_DICT, SCHEMALOC_DICT)
+
+def stix_json_framing(stix_package):
+    header = '{}, "related_packages": ['.format(stix_package.to_json()[:-1])
+    return header, ',', json_footer
+
+def stix_xml_framing(stix_package, ns, schema):
+    s_stix_package = "</stix:STIX_Package>\n"
+    s_related_package = "stix:RelatedPackage"
+    header = stix_package.to_xml(auto_namespace=False, ns_dict=ns, schemaloc_dict=schema)
+    header = header.decode()
+    header = "{0}    <{1}s>\n        <{1}>\n".format(header, s_related_package).replace(s_stix_package, "")
+    footer = "        </{0}>\n    </{0}s>\n{1}".format(s_related_package, s_stix_package)
+    separator = "        </{0}>\n        <{0}>\n".format(s_related_package)
+    print("{}{}{}".format(header, separator, footer))
+    return header, separator, footer
 
 def stix2_framing(*args):
     return '{"type": "bundle", "spec_version": "2.0", "id": "bundle--%s", "objects": [' % args[0], ',', json_footer

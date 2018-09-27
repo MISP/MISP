@@ -4,7 +4,7 @@ INSTALLATION INSTRUCTIONS
 1/ Minimal Ubuntu install
 -------------------------
 
-# Install a minimal Ubuntu 16.04-server system with the software:
+# Install a minimal Ubuntu 18.04-server system with the software:
 - OpenSSH server
 
 # Make sure your system is up2date:
@@ -68,9 +68,12 @@ sudo apt-get install python3-dev python3-pip libxml2-dev libxslt1-dev zlib1g-dev
 cd /var/www/MISP/app/files/scripts
 sudo -u www-data git clone https://github.com/CybOXProject/python-cybox.git
 sudo -u www-data git clone https://github.com/STIXProject/python-stix.git
+sudo -u www-data git clone https://github.com/MAECProject/python-maec.git
 cd /var/www/MISP/app/files/scripts/python-cybox
 sudo python3 setup.py install
 cd /var/www/MISP/app/files/scripts/python-stix
+sudo python3 setup.py install
+cd /var/www/MISP/app/files/scripts/python-maec
 sudo python3 setup.py install
 
 # install mixbox to accomodate the new STIX dependencies:
