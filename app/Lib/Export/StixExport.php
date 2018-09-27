@@ -25,6 +25,12 @@ class StixExport
         }
         $file = new File($tmpDir . $randomFileName . '.out');
         $stix_event = $file->read();
+        $stix_event = '            ' . substr($file->read(), 0, -1);
+        $stix_event = explode("\n", $stix_event);
+        $stix_event[0] = str_replace("STIX_Package", "Package", $stix_event[0]);
+        $stix_event[count($stix_event)-1] = str_replace("STIX_Package", "Package", $stix_event[count($stix_event)-1]);
+        $stix_event = implode("\n", $stix_event);
+        $stix_event = str_replace("\n", "\n            ", $stix_event) . "\n";
         $file->close();
         $file->delete();
         return $stix_event;
