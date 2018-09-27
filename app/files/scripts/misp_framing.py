@@ -102,7 +102,7 @@ def stix_framing(*args):
     baseurl, orgname, return_type = args
     if not baseurl:
         baseurl = 'https://www.misp-project.org'
-    orgname = real_orgname = args[2]
+    real_orgname = args[1]
     orgname = re.sub('[\W]+', '', orgname.replace(" ", "_"))
     NS_DICT[baseurl] = orgname
     try:
