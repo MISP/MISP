@@ -125,7 +125,8 @@ def stix_json_framing(stix_package):
 def stix_xml_framing(stix_package, ns, schema):
     s_stix_package = "</stix:STIX_Package>\n"
     header = stix_package.to_xml(auto_namespace=False, ns_dict=ns, schemaloc_dict=schema)
-    header = header.decode().replace(s_stix_package, "")
+    header = header.decode()
+    header = "{}    <stix:Related_Packages>\n".format(header).replace(s_stix_package, "")
     footer = "    </stix:Related_Packages>\n{}".format(s_stix_package)
     return header, '', footer
 

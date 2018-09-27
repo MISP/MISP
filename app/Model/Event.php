@@ -3836,9 +3836,6 @@ class Event extends AppModel
         $tmpDir = $tmpDir . DS . "tmp";
         $stixFile = new File($tmpDir . DS . $randomFileName . ".stix");
         $stixFile->write($stix_framing['header']);
-        if ($returnType === 'xml') {
-            $stixFile->append("    <stix:Related_Packages>\n");
-        }
         $result = array();
         if ($jobId) {
             $this->Job = ClassRegistry::init('Job');
