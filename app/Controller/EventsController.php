@@ -4972,9 +4972,9 @@ class EventsController extends AppController {
 			foreach($data as $objectData) 
 			{ 
 				$object['Object'] = array(
-					'name' => 'mactime-analysis',
+					'name' => 'mactime-timeline-analysis',
 					'meta-category' => 'file',
-					'description' => 'Mactime template, used in forensic investigations esscribe the timeline of a file activity',
+					'description' => 'Mactime template, used in forensic investigations to describe the timeline of a file activity',
 					'template_version' => 1,
 					'template_uuid' => '9297982e-be62-4772-a665-c91f5a8d639'
 				);
