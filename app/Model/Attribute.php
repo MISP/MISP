@@ -3668,6 +3668,11 @@ class Attribute extends AppModel
 			$params['value'] = $params['searchall'];
 			$params['comment'] = $params['searchall'];
 		}
+		if (isset($params['quickfilter'])) {
+			$params['tags'] = $params['value'];
+			$params['eventinfo'] = $params['value'];
+			$params['comment'] = $params['value'];
+		}
 		$simple_params = array(
 			'Attribute' => array(
 				'value' => array('function' => 'set_filter_value'),
