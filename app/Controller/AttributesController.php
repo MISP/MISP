@@ -2117,7 +2117,7 @@ class AttributesController extends AppController
 			$returnFormat = 'json';
 		}
 		if (!isset($validFormats[$returnFormat][1])) {
-			throw new MethodNotFoundException('Invalid output format.');
+			throw new NotFoundException('Invalid output format.');
 		}
 		App::uses($validFormats[$returnFormat][1], 'Export');
 		$exportTool = new $validFormats[$returnFormat][1]();

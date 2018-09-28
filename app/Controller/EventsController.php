@@ -3044,12 +3044,8 @@ class EventsController extends AppController
 		if ($returnFormat === 'download') {
 			$returnFormat = 'json';
 		}
-		if (!isset($validFormats[$returnFormat])) {
-			// this is where the new code path for the export modules will go
-			throw new MethodNotFoundException('Invalid export format.');
-		}
 		if (!isset($validFormats[$returnFormat][1])) {
-			throw new MethodNotFoundException('Invalid output format.');
+			throw new NotFoundException('Invalid output format.');
 		}
 		App::uses($validFormats[$returnFormat][1], 'Export');
 		$exportTool = new $validFormats[$returnFormat][1]();
