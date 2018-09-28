@@ -3358,7 +3358,7 @@ class Attribute extends AppModel
     {
         $execRetval = '';
         $execOutput = array();
-        $result = shell_exec('python3 ' . APP . 'files/scripts/generate_file_objects.py -p ' . $tmpfile->path);
+        $result = shell_exec($this->Server->getPythonVersion() . ' ' . APP . 'files/scripts/generate_file_objects.py -p ' . $tmpfile->path);
         if (!empty($result)) {
             $result = json_decode($result, true);
             if (isset($result['objects'])) {
