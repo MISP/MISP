@@ -125,7 +125,7 @@ class OpeniocExport
 			$attribute['type'] = 'filename|md5';
 		}
 		if (strpos($attribute['type'], '|')) {
-			if ($this->mapping['composite'][$attribute['type']]) {
+			if (isset($this->mapping['composite'][$attribute['type']])) {
 				$temp .= $this->frameComposite($attribute);
 			}
 		} else {

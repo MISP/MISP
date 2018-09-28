@@ -603,15 +603,19 @@ class Attribute extends AppModel
 
     public function afterSave($created, $options = array())
     {
+		$passedEvent = false;
+		if (isset($options['parentEvent'])) {
+			$passedEvent = $options['parentEvent'];
+		}
         parent::afterSave($created, $options);
         // update correlation...
         if (isset($this->data['Attribute']['deleted']) && $this->data['Attribute']['deleted']) {
             $this->__beforeSaveCorrelation($this->data['Attribute']);
             if (isset($this->data['Attribute']['event_id'])) {
-                $this->__alterAttributeCount($this->data['Attribute']['event_id'], false);
+                $this->__alterAttributeCount($this->data['Attribute']['event_id'], false, $passedEvent);
             }
         } else {
-            $this->__afterSaveCorrelation($this->data['Attribute']);
+            $this->__afterSaveCorrelation($this->data['Attribute'], false, $passedEvent);
         }
         $result = true;
         // if the 'data' field is set on the $this->data then save the data to the correct file
@@ -2075,7 +2079,7 @@ class Attribute extends AppModel
         $tag = ClassRegistry::init('Tag');
         $params['tags'] = $this->dissectArgs($params['tags']);
         $tagArray = $tag->fetchTagIds($params['tags'][0], $params['tags'][1]);
-        if (!empty($params['tags'][0]) && empty($tagArray[0])) {
+        if (!empty($params['tags'][0]) && empty($tagArray[0]) && empty($params['lax_tags'])) {
             $tagArray[0] = array(-1);
         }
         $temp = array();
@@ -2093,8 +2097,7 @@ class Attribute extends AppModel
                 $temp,
                 $this->subQueryGenerator($tag->EventTag, $subquery_options, $lookup_field)
             );
-
-            $subquery_options = array(
+			$subquery_options = array(
                 'conditions' => array(
                     'tag_id' => $tagArray[0]
                 ),
@@ -2107,7 +2110,11 @@ class Attribute extends AppModel
                 $temp,
                 $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field)
             );
-            $conditions['AND'][] = array('OR' => $temp);
+			if (!empty($params['searchall'])) {
+            	$conditions['AND']['OR'][] = array('OR' => $temp);
+			} else {
+				$conditions['AND'][] = array('OR' => $temp);
+			}
         }
         $temp = array();
         if (!empty($tagArray[1])) {
@@ -2772,12 +2779,12 @@ class Attribute extends AppModel
                 'Event' => array(
                     'fields' => array('id', 'info', 'org_id', 'orgc_id', 'uuid'),
                 ),
+				'AttributeTag' => array('Tag' => array()),
                 'Object' => array(
                     'fields' => array('id', 'distribution', 'sharing_group_id')
                 )
             )
         );
-        $params['contain']['AttributeTag'] = array('Tag' => array('conditions' => array()));
         if (empty($options['includeAllTags'])) {
             $params['contain']['AttributeTag']['Tag']['conditions']['exportable'] = 1;
         }
@@ -2854,9 +2861,9 @@ class Attribute extends AppModel
             return $results;
         }
 
-        if ($options['enforceWarninglist']) {
+        if ($options['enforceWarninglist'] && !isset($this->warninglists)) {
             $this->Warninglist = ClassRegistry::init('Warninglist');
-            $warninglists = $this->Warninglist->fetchForEventView();
+			$this->warninglists = $this->Warninglist->fetchForEventView();
         }
         if (empty($params['limit'])) {
             $loopLimit = 50000;
@@ -2894,38 +2901,16 @@ class Attribute extends AppModel
             $proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
             foreach ($results as $key => $attribute) {
 				if (!empty($options['includeEventTags'])) {
-					if (!isset($eventTags[$results[$key]['Event']['id']])) {
-						$tagConditions = array('EventTag.event_id' => $attribute['Event']['id']);
-						if (empty($options['includeAllTags'])) {
-							$tagConditions['Tag.exportable'] = 1;
-						}
-						$temp = $this->Event->EventTag->find('all', array(
-							'recursive' => -1,
-							'contain' => array('Tag'),
-							'conditions' => $tagConditions
-						));
-						foreach ($temp as $tag) {
-							$tag['EventTag']['Tag'] = $tag['Tag'];
-							unset($tag['Tag']);
-							$eventTags[$results[$key]['Event']['id']][] = $tag;
-						}
-					}
-					foreach ($eventTags[$results[$key]['Event']['id']] as $eventTag) {
-						$results[$key]['EventTag'][] = $eventTag['EventTag'];
-					}
+					$results = $this->__attachEventTagsToAttributes($eventTags, $results, $key, $options);
 				}
-                if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute['Attribute'])) {
+                if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($this->warninglists, $attribute['Attribute'])) {
                     continue;
                 }
                 if (!empty($options['includeAttributeUuid']) || !empty($options['includeEventUuid'])) {
                     $results[$key]['Attribute']['event_uuid'] = $results[$key]['Event']['uuid'];
                 }
                 if ($proposals_block_attributes) {
-                    if (!empty($attribute['ShadowAttribute'])) {
-                        continue;
-                    } else {
-                        unset($results[$key]['ShadowAttribute']);
-                    }
+					$results = $this->__blockAttributeViaProposal($results, $k);
                 }
                 if ($options['withAttachments']) {
                     if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
@@ -2941,6 +2926,47 @@ class Attribute extends AppModel
         }
         return $attributes;
     }
+
+	private function __attachEventTagsToAttributes($eventTags, &$results, $key, $options) {
+		if (!isset($eventTags[$results[$key]['Event']['id']])) {
+			$tagConditions = array('EventTag.event_id' => $results[$key]['Event']['id']);
+			if (empty($options['includeAllTags'])) {
+				$tagConditions['Tag.exportable'] = 1;
+			}
+			$temp = $this->Event->EventTag->find('all', array(
+				'recursive' => -1,
+				'contain' => array('Tag'),
+				'conditions' => $tagConditions
+			));
+			foreach ($temp as $tag) {
+				$tag['EventTag']['Tag'] = $tag['Tag'];
+				unset($tag['Tag']);
+				$eventTags[$results[$key]['Event']['id']][] = $tag;
+			}
+		}
+		foreach ($eventTags[$results[$key]['Event']['id']] as $eventTag) {
+			$results[$key]['EventTag'][] = $eventTag['EventTag'];
+		}
+		return $results;
+	}
+
+	private function __blockAttributeViaProposal(&$attributes, $k) {
+		if (!empty($attributes[$k]['ShadowAttribute'])) {
+			foreach ($attributes[$k]['ShadowAttribute'] as $sa) {
+				if ($sa['value'] === $attributes[$k]['Attribute']['value'] &&
+					$sa['type'] === $attributes[$k]['Attribute']['type'] &&
+					$sa['category'] === $attributes[$k]['Attribute']['category'] &&
+					$sa['to_ids'] == 0 &&
+					$attribute['to_ids'] == 1
+				) {
+				   continue;
+				}
+			}
+		} else {
+			unset($results[$key]['ShadowAttribute']);
+		}
+		return $results;
+	}
 
     // Method gets and converts the contents of a file passed along as a base64 encoded string with the original filename into a zip archive
     // The zip archive is then passed back as a base64 encoded string along with the md5 hash and a flag whether the transaction was successful
@@ -3395,7 +3421,7 @@ class Attribute extends AppModel
 
     // gets an attribute, saves it
     // handles encryption, attaching to event/object, logging of issues, tag capturing
-    public function captureAttribute($attribute, $eventId, $user, $objectId = false, $log = false)
+    public function captureAttribute($attribute, $eventId, $user, $objectId = false, $log = false, $parentEvent = false)
     {
         if ($log == false) {
             $log = ClassRegistry::init('Log');
@@ -3414,7 +3440,13 @@ class Attribute extends AppModel
                 $attribute['distribution'] = 5;
             }
         }
-        if (!$this->save($attribute, array('fieldList' => $fieldList))) {
+		$params = array(
+			'fieldList' => $fieldList
+		);
+		if (!empty($parentEvent)) {
+			$params['parentEvent'] = $parentEvent;
+		}
+        if (!$this->save($attribute, $params)) {
             $attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
             $log->create();
             $log->save(array(
@@ -3626,6 +3658,16 @@ class Attribute extends AppModel
 		$conditions = $this->buildConditions($user);
 		$attribute_conditions = array();
 		$object_conditions = array();
+		if (isset($params['ignore'])) {
+			$params['to_ids'] = array(0, 1);
+			$params['published'] = array(0, 1);
+		}
+		if (isset($params['searchall'])) {
+			$params['tags'] = $params['searchall'];
+			$params['eventinfo'] = $params['searchall'];
+			$params['value'] = $params['searchall'];
+			$params['comment'] = $params['searchall'];
+		}
 		$simple_params = array(
 			'Attribute' => array(
 				'value' => array('function' => 'set_filter_value'),
@@ -3635,16 +3677,18 @@ class Attribute extends AppModel
 				'uuid' => array('function' => 'set_filter_uuid'),
 				'deleted' => array('function' => 'set_filter_deleted'),
 				'timestamp' => array('function' => 'set_filter_timestamp'),
-				'to_ids' => array('function' => 'set_filter_to_ids')
+				'to_ids' => array('function' => 'set_filter_to_ids'),
+				'comment' => array('function' => 'set_filter_comment')
 			),
 			'Event' => array(
 				'eventid' => array('function' => 'set_filter_eventid'),
+				'eventinfo' => array('function' => 'set_filter_eventinfo'),
 				'ignore' => array('function' => 'set_filter_ignore'),
-				'tags' => array('function' => 'set_filter_tags'),
-				'tag' => array('function' => 'set_filter_tags'),
 				'from' => array('function' => 'set_filter_timestamp'),
 				'to' => array('function' => 'set_filter_timestamp'),
-				'last' => array('function' => 'set_filter_timestamp'),
+				'last' => array('function' => 'set_filter_timestamp', 'pop' => true),
+				'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
+				'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
 				'publish_timestamp' => array('function' => 'set_filter_timestamp'),
 				'org' => array('function' => 'set_filter_org'),
 				'uuid' => array('function' => 'set_filter_uuid'),
@@ -3661,7 +3705,8 @@ class Attribute extends AppModel
 					$options = array(
 						'filter' => $param,
 						'scope' => $scope,
-						'pop' => !empty($simple_param_scoped[$param]['pop'])
+						'pop' => !empty($simple_param_scoped[$param]['pop']),
+						'context' => 'Attribute'
 					);
 					$conditions = $this->Event->{$simple_param_scoped[$param]['function']}($params, $conditions, $options);
 				}
