@@ -8,6 +8,13 @@
 						foreach ($value as $k => $v) {
 							$value[$k] = h($v);
 						}
+						if (isset($value['OR']) || isset($value['AND']) || isset($value['NOT'])) {
+							$temp = array();
+							foreach ($value as $k => $v) {
+								$temp[] = $k . ': ' . implode(', ', $v);
+							}
+							$value = $temp;
+						}
 						$value = implode('<br />', $value);
 					} else {
 						$value = h($value);

@@ -18,7 +18,7 @@
                     <span class="btn btn-inverse" id="btnRight">&gt;&gt;</span>
                 </td>
                 <td style="width:285px;">
-                    <p><?php echo __('Added Organisations');?></p>
+                    <p><?php echo __('Added Instances');?></p>
                     <select id="rightValues" size="5" multiple style="width:285px;"></select>
                 </td>
             </tr>

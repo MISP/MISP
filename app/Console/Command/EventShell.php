@@ -516,4 +516,23 @@ class EventShell extends AppShell
 		);
 		$result = $this->Event->enrichment($options);
 	}
+
+	public function processfreetext() {
+		$inputFile = $this->args[0];
+		$tempdir = new Folder(APP . 'tmp/cache/ingest', true, 0750);
+		$tempFile = new File(APP . 'tmp/cache/ingest' . DS . $inputFile);
+		$inputData = $tempFile->read();
+		$inputData = json_decode($inputData, true);
+		$tempFile->delete();
+		$this->Event->processFreeTextData(
+			$inputData['user'],
+			$inputData['attributes'],
+			$inputData['id'],
+			$inputData['default_comment'],
+			$inputData['force'],
+			$inputData['adhereToWarninglists'],
+			$inputData['jobId']
+		);
+		return true;
+	}
 }
