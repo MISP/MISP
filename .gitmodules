@@ -35,5 +35,5 @@
 	url = https://github.com/MISP/misp-noticelist
 [submodule "Plugin/DebugKit"]
 	path = Plugin/DebugKit
-	url = git://github.com/cakephp/debug_kit.git
+	url = https://github.com/cakephp/debug_kit.git
 	branch = 2.2
