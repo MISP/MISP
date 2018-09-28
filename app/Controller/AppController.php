@@ -90,6 +90,7 @@ class AppController extends Controller
             'ACL',
             'RestResponse',
             'Flash'
+			//,'DebugKit.Toolbar'
     );
 
     private function __isApiFunction($controller, $action)
