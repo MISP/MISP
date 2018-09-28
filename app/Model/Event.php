@@ -1923,6 +1923,7 @@ class Event extends AppModel
 
     private function __attachSharingGroups($doAttach, $data, $sharingGroupData)
     {
+		if (!$doAttach) return $data;
         foreach ($data as $k => $v) {
             if ($v['distribution'] == 4) {
                 $data[$k]['SharingGroup'] = $sharingGroupData[$v['sharing_group_id']]['SharingGroup'];
