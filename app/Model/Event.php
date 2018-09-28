@@ -1307,7 +1307,7 @@ class Event extends AppModel
 			$params['value'] = $params['searchall'];
 			$params['comment'] = $params['searchall'];
 		}
-		if (isset($params['quickfilter'])) {
+		if (!empty($params['quickfilter']) && !empty($params['value'])) {
 			$params['tags'] = $params['value'];
 			$params['eventinfo'] = $params['value'];
 			$params['comment'] = $params['value'];
