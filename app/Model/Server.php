@@ -168,10 +168,11 @@ class Server extends AppModel
                         'python_bin' => array(
                                 'level' => 1,
                                 'description' => __('It is highly recommended to install all the python dependencies in a virtualenv. The recommended location is: %s/venv', ROOT),
-                                'value' =>  ROOT . '/venv/bin/python', # GUI display purpose only.
+                                'value' => false,
                                 'errorMessage' => '',
                                 'null' => false,
-                                'test' => 'testForEmpty',
+                                'test' => 'testForBinExec',
+                                'beforeHook' => 'beforeHookBinExec',
                                 'type' => 'string',
                         ),
                         'disable_auto_logout' => array(
@@ -2674,6 +2675,30 @@ class Server extends AppModel
             return true;
         }
         return 'Invalid characters in the path.';
+    }
+
+    public function beforeHookBinExec($setting, $value)
+    {
+        return $this->testForBinExec($value);
+    }
+
+    public function testForBinExec($value)
+    {
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        if ($value === '') {
+            return true;
+        }
+        if (is_executable($value)) {
+            if (finfo_file($finfo, $value) == "application/x-executable") {
+                finfo_close($finfo);
+                return true;
+            } else {
+                return 'Binary file not executable.';
+            }
+        }
+        else {
+            return false;
+       }
     }
 
     public function testForWritableDir($value)
