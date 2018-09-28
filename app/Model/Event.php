@@ -1297,30 +1297,45 @@ class Event extends AppModel
     public function filterEventIds($user, &$params = array())
     {
         $conditions = $this->createEventConditions($user);
+		if (isset($params['ignore'])) {
+			$params['to_ids'] = array(0, 1);
+			$params['published'] = array(0, 1);
+		}
+		if (isset($params['searchall'])) {
+			$params['tags'] = $params['searchall'];
+			$params['eventinfo'] = $params['searchall'];
+			$params['value'] = $params['searchall'];
+			$params['comment'] = $params['searchall'];
+		}
         $simple_params = array(
             'Event' => array(
                 'eventid' => array('function' => 'set_filter_eventid', 'pop' => true),
+				'eventinfo' => array('function' => 'set_filter_eventinfo'),
                 'ignore' => array('function' => 'set_filter_ignore'),
                 'tags' => array('function' => 'set_filter_tags'),
-                'tag' => array('function' => 'set_filter_tags'),
                 'from' => array('function' => 'set_filter_timestamp', 'pop' => true),
                 'to' => array('function' => 'set_filter_timestamp', 'pop' => true),
                 'last' => array('function' => 'set_filter_timestamp', 'pop' => true),
                 'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
+				'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                 'publish_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                 'org' => array('function' => 'set_filter_org', 'pop' => true),
                 'uuid' => array('function' => 'set_filter_uuid', 'pop' => true),
                 'published' => array('function' => 'set_filter_published', 'pop' => true)
             ),
             'Object' => array(
-                'object_name' => array('function' => 'set_filter_object_name')
+                'object_name' => array('function' => 'set_filter_object_name'),
+				'deleted' => array('function' => 'set_filter_deleted')
             ),
             'Attribute' => array(
                 'value' => array('function' => 'set_filter_value', 'pop' => true),
                 'category' => array('function' => 'set_filter_simple_attribute'),
                 'type' => array('function' => 'set_filter_simple_attribute'),
                 'tags' => array('function' => 'set_filter_tags', 'pop' => true),
-                'uuid' => array('function' => 'set_filter_uuid')
+                'uuid' => array('function' => 'set_filter_uuid'),
+				'deleted' => array('function' => 'set_filter_deleted'),
+				'to_ids' => array('function' => 'set_filter_to_ids'),
+				'comment' => array('function' => 'set_filter_comment')
             )
         );
         foreach ($params as $param => $paramData) {
@@ -1329,7 +1344,8 @@ class Event extends AppModel
                     $options = array(
                         'filter' => $param,
                         'scope' => $scope,
-                        'pop' => !empty($simple_param_scoped[$param]['pop'])
+                        'pop' => !empty($simple_param_scoped[$param]['pop']),
+						'context' => 'Event'
                     );
                     if ($scope === 'Event') {
                         $conditions = $this->{$simple_param_scoped[$param]['function']}($params, $conditions, $options);
@@ -1470,6 +1486,7 @@ class Event extends AppModel
             'last',
             'to_ids',
             'includeAllTags',
+			'withAttachments',
             'includeAttachments',
             'event_uuid',
             'distribution',
@@ -2016,6 +2033,16 @@ class Event extends AppModel
         return $conditions;
     }
 
+	public function set_filter_eventinfo(&$params, $conditions, $options)
+	{
+		if (!empty($params['eventinfo'])) {
+			$params['eventinfo'] = $this->convert_filters($params['eventinfo']);
+			$searchall = empty($params['searchall']) ? false : $params['searchall'];
+			$conditions = $this->generic_add_filter($conditions, $params['eventinfo'], 'Event.info', $searchall);
+		}
+		return $conditions;
+	}
+
     public function set_filter_uuid(&$params, $conditions, $options)
     {
         if (!empty($params['uuid'])) {
@@ -2100,10 +2127,21 @@ class Event extends AppModel
     {
         if (!empty($params['value'])) {
             $params[$options['filter']] = $this->convert_filters($params[$options['filter']]);
-            $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], array('Attribute.value1', 'Attribute.value2'));
+			$searchall = empty($params['searchall']) ? false : $params['searchall'];
+            $conditions = $this->generic_add_filter($conditions, $params[$options['filter']], array('Attribute.value1', 'Attribute.value2'), $searchall);
         }
         return $conditions;
     }
+
+	public function set_filter_comment(&$params, $conditions, $options)
+	{
+		if (!empty($params['comment'])) {
+			$params['comment'] = $this->convert_filters($params['comment']);
+			$searchall = empty($params['searchall']) ? false : $params['searchall'];
+			$conditions = $this->generic_add_filter($conditions, $params['comment'], 'Attribute.comment', $searchall);
+		}
+		return $conditions;
+	}
 
     public function set_filter_timestamp(&$params, $conditions, $options)
     {
@@ -2126,7 +2164,10 @@ class Event extends AppModel
                 ),
                 'last' => array(
                     'Event.publish_timestamp'
-                )
+                ),
+				'event_timestamp' => array(
+					'Event.timestamp'
+				)
             );
             foreach ($filters[$options['filter']] as $f) {
                 $conditions = $this->Attribute->setTimestampConditions($params[$options['filter']], $conditions, $f);
@@ -2987,6 +3028,10 @@ class Event extends AppModel
                     $this->EventTag->save($et);
                 }
             }
+			$parentEvent = $this->find('first', array(
+				'conditions' => array('Event.id' => $this->id),
+				'recursive' => -1
+			));
             if (isset($data['Event']['Attribute']) && !empty($data['Event']['Attribute'])) {
                 foreach ($data['Event']['Attribute'] as $k => $attribute) {
                     $block = false;
@@ -3005,7 +3050,7 @@ class Event extends AppModel
                         }
                     }
                     if (!$block) {
-                        $data['Event']['Attribute'][$k] = $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, $this->Log);
+                        $data['Event']['Attribute'][$k] = $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, $this->Log, $parentEvent);
                     }
                 }
                 $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
@@ -4232,35 +4277,39 @@ class Event extends AppModel
         unset($event['Object']);
         unset($event['ShadowAttribute']);
         $referencedObjectFields = array('meta-category', 'name', 'uuid', 'id');
+		$objectReferenceCount = 0;
+		$referencedByArray = array();
         foreach ($event['objects'] as $object) {
             if (!in_array($object['objectType'], array('attribute', 'object'))) {
                 continue;
             }
-            if (!empty($object['ObjectReference'])) {
+			if (!empty($object['ObjectReference'])) {
                 foreach ($object['ObjectReference'] as $reference) {
-                    if (isset($reference['referenced_uuid'])) {
-                        foreach ($event['objects'] as $k => $v) {
-                            if ($v['uuid'] == $reference['referenced_uuid']) {
-                                $temp = array();
-                                foreach ($referencedObjectFields as $field) {
-                                    if (isset($object[$field])) {
-                                        $temp[$field] = $object[$field];
-                                    }
-                                }
-                                $temp['relationship_type'] = $reference['relationship_type'];
-                                $event['objects'][$k]['referenced_by'][$object['objectType']][] = $temp;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        App::uses('CustomPaginationTool', 'Tools');
+					if (isset($reference['referenced_uuid'])) {
+						$referencedByArray[$reference['referenced_uuid']][$object['objectType']][] = array(
+							'meta-category' => $object['meta-category'],
+							'name' => $object['name'],
+							'uuid' => $object['uuid'],
+							'id' => $object['id'],
+							'object_type' => $object['objectType']
+						);
+					}
+				}
+			}
+		}
+		App::uses('CustomPaginationTool', 'Tools');
         $customPagination = new CustomPaginationTool();
         if ($all) {
             $passedArgs['page'] = 0;
         }
         $params = $customPagination->applyRulesOnArray($event['objects'], $passedArgs, 'events', 'category');
+		foreach ($event['objects'] as $k => $object) {
+			if (isset($referencedByArray[$object['uuid']])) {
+				foreach ($referencedByArray[$object['uuid']] as $objectType => $references) {
+					$event['objects'][$k]['referenced_by'][$objectType] = $references;
+				}
+			}
+		}
         $params['total_elements'] = count($event['objects']);
         $event['Event']['warnings'] = $eventWarnings;
         return $params;
