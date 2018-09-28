@@ -856,7 +856,7 @@ class StixBuilder():
                 malware_sample['filename'] = filename
                 malware_sample['md5'] = md5
                 if attribute.data:
-                    pattern += "{} AND ".format(attribute_data_pattern(b64encode(attribute.data.getbuffer()).decode()[1:-1]))
+                    pattern += "{} AND ".format(attribute_data_pattern(b64encode(attribute.data.getbuffer()).decode()))
             elif attribute_type in ("filename", "md5"):
                 d_pattern[attribute_type] = attribute.value
             else:
