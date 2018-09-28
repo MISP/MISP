@@ -2075,6 +2075,9 @@ class Event extends AppModel
 	public function set_filter_to_ids(&$params, $conditions, $options)
 	{
 		if (isset($params['to_ids'])) {
+			if ($params['to_ids'] === 'exclude') {
+				$params['to_ids'] = 0;
+			}
 			$conditions['AND']['Attribute.to_ids'] = $params['to_ids'];
 		}
 		return $conditions;
