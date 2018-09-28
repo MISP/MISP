@@ -558,8 +558,8 @@ class StixBuilder():
         indicator_args = {'id': indicator_id, 'valid_from': self.misp_event.date, 'type': 'indicator',
                           'labels': labels, 'description': misp_object.description,
                           'pattern': pattern, 'kill_chain_phases': killchain,
-                          'created_by_ref': self.identity_id}
-        indicator = Indicator(**indicator_args, allow_custom=True)
+                          'created_by_ref': self.identity_id, 'allow_custom': True}
+        indicator = Indicator(**indicator_args)
         self.append_object(indicator, indicator_id)
 
     def add_object_observable(self, misp_object, observable_arg=None):
@@ -576,9 +576,9 @@ class StixBuilder():
         observed_data_args = {'id': observed_data_id, 'type': 'observed-data',
                               'number_observed': 1, 'labels': labels, 'objects': observable_objects,
                               'first_observed': timestamp, 'last_observed': timestamp,
-                              'created_by_ref': self.identity_id}
+                              'created_by_ref': self.identity_id, 'allow_custom': True}
         try:
-            observed_data = ObservedData(**observed_data_args, allow_custom=True)
+            observed_data = ObservedData(**observed_data_args)
         except exceptions.InvalidValueError:
             observed_data = self.fix_enumeration_issues(name, observed_data_args)
         self.append_object(observed_data, observed_data_id)
@@ -594,16 +594,16 @@ class StixBuilder():
             for field in ('address_family', 'protocol_family'):
                 enumeration_fails[field] = current_dict.pop(field)
                 try:
-                    return ObservedData(**ns_args, allow_custom=True)
+                    return ObservedData(**ns_args)
                 except exceptions.InvalidValueError:
                     current_dict[field] = enumeration_fails[field]
             for field in enumeration_fails:
                 current_dict.pop(field)
             try:
-                return ObservedData(**ns_args, allow_custom=True)
+                return ObservedData(**ns_args)
             except:
                 pass
-        return ObservedData(**args, allow_custom=True)
+        return ObservedData(**args)
 
     def add_object_vulnerability(self, misp_object, to_ids):
         vulnerability_id = 'vulnerability--{}'.format(misp_object.uuid)
@@ -856,7 +856,7 @@ class StixBuilder():
                 malware_sample['filename'] = filename
                 malware_sample['md5'] = md5
                 if attribute.data:
-                    pattern += "{} AND ".format(attribute_data_pattern(b64encode(attribute.data.getbuffer()).decode()[1:-1]))
+                    pattern += "{} AND ".format(attribute_data_pattern(b64encode(attribute.data.getbuffer()).decode()))
             elif attribute_type in ("filename", "md5"):
                 d_pattern[attribute_type] = attribute.value
             else:
