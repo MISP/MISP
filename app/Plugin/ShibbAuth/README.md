@@ -1,4 +1,4 @@
-#Client SSO Authentication (Shibboleth based) for CakePHP
+# Client SSO Authentication (Shibboleth based) for CakePHP
 
 This plugin enables CakePHP applications to use Single Sign-On to authenticate its users. It gets the information given by Apache environment variables.
 
