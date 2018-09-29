@@ -1058,10 +1058,12 @@ class EventsController extends AppController
         $this->loadModel('GalaxyCluster');
         $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
         foreach ($event['Object'] as $k => $object) {
-            foreach ($object['Attribute'] as $k2 => $attribute) {
-                foreach ($attribute['AttributeTag'] as $k3 => $attributeTag) {
-                    if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
-                        unset($event['Object'][$k]['Attribute'][$k2]['AttributeTag'][$k3]);
+            if (isset($object['Attribute'])) {
+                foreach ($object['Attribute'] as $k2 => $attribute) {
+                    foreach ($attribute['AttributeTag'] as $k3 => $attributeTag) {
+                        if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
+                            unset($event['Object'][$k]['Attribute'][$k2]['AttributeTag'][$k3]);
+                        }
                     }
                 }
             }

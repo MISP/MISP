@@ -102,7 +102,7 @@ def stix_framing(*args):
     baseurl, orgname, return_type = args
     if not baseurl:
         baseurl = 'https://www.misp-project.org'
-    orgname = real_orgname = args[2]
+    real_orgname = args[1]
     orgname = re.sub('[\W]+', '', orgname.replace(" ", "_"))
     NS_DICT[baseurl] = orgname
     try:
@@ -130,7 +130,6 @@ def stix_xml_framing(stix_package, ns, schema):
     header = "{0}    <{1}s>\n        <{1}>\n".format(header, s_related_package).replace(s_stix_package, "")
     footer = "        </{0}>\n    </{0}s>\n{1}".format(s_related_package, s_stix_package)
     separator = "        </{0}>\n        <{0}>\n".format(s_related_package)
-    print("{}{}{}".format(header, separator, footer))
     return header, separator, footer
 
 def stix2_framing(*args):

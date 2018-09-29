@@ -2116,6 +2116,9 @@ class AttributesController extends AppController
 		if ($returnFormat === 'download') {
 			$returnFormat = 'json';
 		}
+		if (!isset($validFormats[$returnFormat][1])) {
+			throw new NotFoundException('Invalid output format.');
+		}
 		App::uses($validFormats[$returnFormat][1], 'Export');
 		$exportTool = new $validFormats[$returnFormat][1]();
 		if (empty($exportTool->non_restrictive_export)) {
@@ -2140,6 +2143,12 @@ class AttributesController extends AppController
 		if (isset($filters['include_event_uuid'])) {
 			$params['includeEventUuid'] = $filters['include_event_uuid'];
 		}
+		if (isset($filters['limit'])) {
+			$params['limit'] = $filters['limit'];
+		}
+		if (isset($filters['page'])) {
+			$params['page'] = $filters['page'];
+		}
         if (!empty($filtes['deleted'])) {
             $params['deleted'] = 1;
             if ($params['deleted'] === 'only') {
@@ -2161,35 +2170,53 @@ class AttributesController extends AppController
 		if (!empty($exportTool->additional_params)) {
 			$params = array_merge($params, $exportTool->additional_params);
 		}
-        $final = $exportTool->header($exportToolParams);
-		$continue = false;
+		$tmpfile = tmpfile();
+		fwrite($tmpfile, $exportTool->header($exportToolParams));
+		$loop = false;
 		if (empty($params['limit'])) {
-			$params['limit'] = 20000;
-			$continue = true;
+			$memory_in_mb = $this->Attribute->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
+			$memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : 100;
+			$params['limit'] = $memory_in_mb * $memory_scaling_factor;
+			$loop = true;
 			$params['page'] = 1;
 		}
-		$this->loadModel('Whitelist');
+		$this->__iteratedFetch($params, $loop, $tmpfile, $exportTool, $exportToolParams);
+		fwrite($tmpfile, $exportTool->footer($exportToolParams));
+		fseek($tmpfile, 0);
+		$final = fread($tmpfile, fstat($tmpfile)['size']);
+        $responseType = $validFormats[$returnFormat][0];
+        return $this->RestResponse->viewData($final, $responseType, false, true);
+    }
+
+	private function __iteratedFetch(&$params, &$loop, &$tmpfile, $exportTool, $exportToolParams) {
+		$continue = true;
 		while ($continue) {
+			$this->loadModel('Whitelist');
 			$results = $this->Attribute->fetchAttributes($this->Auth->user(), $params, $continue);
 			$params['page'] += 1;
 			$results = $this->Whitelist->removeWhitelistedFromArray($results, true);
 			$results = array_values($results);
 	        $i = 0;
+			$temp = '';
 	        foreach ($results as $attribute) {
-				$temp = $exportTool->handler($attribute, $exportToolParams);
+				$temp .= $exportTool->handler($attribute, $exportToolParams);
 				if ($temp !== '') {
-	            	$final .= $temp;
 	            	if ($i != count($results) -1) {
-	                	$final .= $exportTool->separator($exportToolParams);
+	                	$temp .= $exportTool->separator($exportToolParams);
 	            	}
 				}
 	            $i++;
 	        }
+			if (!$loop) {
+				$continue = false;
+			}
+			if ($continue) {
+				$temp .= $exportTool->separator($exportToolParams);
+			}
+			fwrite($tmpfile, $temp);
 		}
-        $final .= $exportTool->footer($exportToolParams);
-        $responseType = $validFormats[$returnFormat][0];
-        return $this->RestResponse->viewData($final, $responseType, false, true);
-    }
+		return true;
+	}
 
     // returns an XML with attributes that belong to an event. The type of attributes to be returned can be restricted by type using the 3rd parameter.
     // Similar to the restSearch, this parameter can be chained with '&&' and negations are accepted too. For example filename&&!filename|md5 would return all filenames that don't have an md5
