@@ -1297,21 +1297,6 @@ class Event extends AppModel
     public function filterEventIds($user, &$params = array())
     {
         $conditions = $this->createEventConditions($user);
-		if (isset($params['ignore'])) {
-			$params['to_ids'] = array(0, 1);
-			$params['published'] = array(0, 1);
-		}
-		if (isset($params['searchall'])) {
-			$params['tags'] = $params['searchall'];
-			$params['eventinfo'] = $params['searchall'];
-			$params['value'] = $params['searchall'];
-			$params['comment'] = $params['searchall'];
-		}
-		if (!empty($params['quickfilter']) && !empty($params['value'])) {
-			$params['tags'] = $params['value'];
-			$params['eventinfo'] = $params['value'];
-			$params['comment'] = $params['value'];
-		}
         $simple_params = array(
             'Event' => array(
                 'eventid' => array('function' => 'set_filter_eventid', 'pop' => true),
@@ -1370,11 +1355,22 @@ class Event extends AppModel
                 }
             }
         }
-        $results = array_values($this->find('list', array(
-            'conditions' => $conditions,
+		$fields = array('Event.id');
+		if (!empty($params['include_attribute_count'])) {
+			$fields[] = 'Event.attribute_count';
+		}
+		$find_params = array(
+			'conditions' => $conditions,
             'recursive' => -1,
-            'fields' => array('Event.id')
-        )));
+            'fields' => $fields
+		);
+		if (isset($params['limit'])) {
+			$find_params['limit'] = $params['limit'];
+			if (isset($params['page'])) {
+				$find_params['page'] = $params['page'];
+			}
+		}
+        $results = $this->find('list', $find_params);
         return $results;
     }
 
