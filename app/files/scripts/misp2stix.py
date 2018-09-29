@@ -125,7 +125,6 @@ misp_reghive = {
 
 class StixBuilder(object):
     def __init__(self, args):
-        self.misp_event = MISPEvent()
         self.args = args
         self.return_type = args[2]
         self.baseurl = args[3] if len(args) > 3 else namespace[0]
@@ -138,7 +137,6 @@ class StixBuilder(object):
             except TypeError:
                 idgen.set_id_namespace(Namespace(self.baseurl, self.orgname, "MISP"))
         self.namespace_prefix = idgen.get_id_namespace_alias()
-        self.objects_to_parse = defaultdict(dict)
         ## MAPPING FOR ATTRIBUTES
         self.simple_type_to_method = {"port": self.generate_port_observable, "domain|ip": self.generate_domain_ip_observable}
         self.simple_type_to_method.update(dict.fromkeys(hash_type_attributes["single"] + hash_type_attributes["composite"] + ["filename"], self.resolve_file_observable))
@@ -173,11 +171,33 @@ class StixBuilder(object):
 
     def loadEvent(self):
         pathname = os.path.dirname(self.args[0])
-        filename = "{}/tmp/{}".format(pathname, self.args[1])
-        self.misp_event.load_file(filename)
-        self.filename = filename
+        self.filename = "{}/tmp/{}".format(pathname, self.args[1])
+        with open(self.filename, 'rt', encoding='utf-8') as f:
+            self.json_event = json.loads(f.read())
 
-    def generateEventPackage(self):
+    def generateEventPackages(self):
+        return_type_to_package = {'json': ('to_json', {}),
+                                  'xml': ('to_xml', {'include_namespaces': False, 'include_schemalocs': False, 'encoding': 'utf8'})}
+        to_call, args = return_type_to_package[self.return_type]
+        separator = None
+        if self.json_event.get('response'):
+            from misp_framing import stix_framing
+            _, separator, _ = stix_framing(self.baseurl, self.orgname, self.return_type)
+            stix_packages = [getattr(self.generate_package(event), to_call)(**args) for event in self.json_event['response']]
+        else:
+            stix_packages = [getattr(self.generate_package(self.json_event), to_call)(**args)]
+        if self.return_type == 'xml':
+            stix_packages = [s.decode() for s in stix_packages]
+            stix_packages = ['\n            '.join(s.split('\n')[:-1]).replace('stix:STIX_Package>', 'stix:Package>') for s in stix_packages]
+            stix_packages = ['            {}\n'.format(s) for s in stix_packages]
+        else:
+            stix_packages = ['{"package": %s}' % s for s in stix_packages]
+        self.stix_package = separator.join(stix_packages) if len(stix_packages) > 1 else stix_packages[0]
+
+    def generate_package(self, event):
+        self.objects_to_parse = defaultdict(dict)
+        self.misp_event = MISPEvent()
+        self.misp_event.load(event)
         package_name = "{}:STIXPackage-{}".format(self.orgname, self.misp_event.uuid)
         timestamp = self.misp_event.timestamp
         stix_package = STIXPackage(id_=package_name, timestamp=timestamp)
@@ -190,17 +210,12 @@ class StixBuilder(object):
         stix_package.add_incident(incident)
         for ttp in self.ttps:
             stix_package.add_ttp(ttp)
-        self.stix_package = stix_package
+        return stix_package
 
     def saveFile(self):
         outputfile = "{}.out".format(self.filename)
-        if self.args[2] == 'json':
-            with open(outputfile, 'w') as f:
-                f.write('{"package": %s}' % self.stix_package.to_json())
-        else:
-            with open(outputfile, 'wb') as f:
-                f.write(self.stix_package.to_xml(include_namespaces=False, include_schemalocs=False,
-                                                 encoding='utf8'))
+        with open(outputfile, 'wt', encoding='utf-8') as f:
+            f.write(self.stix_package)
 
     def generate_stix_objects(self):
         incident = self.create_incident(self.orgname)
@@ -1598,7 +1613,7 @@ class StixBuilder(object):
 def main(args):
     stix_builder = StixBuilder(args)
     stix_builder.loadEvent()
-    stix_builder.generateEventPackage()
+    stix_builder.generateEventPackages()
     stix_builder.saveFile()
     print(json.dumps({'success': 1, 'message': ''}))
 
