@@ -3935,16 +3935,7 @@ class Event extends AppModel
                     return array('success' => 0, 'message' => $decoded['message']);
                 }
                 $file = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName . ".out");
-                if ($returnType == 'xml') {
-                    $stix_event = '            ' . substr($file->read(), 0, -1);
-                    $stix_event = explode("\n", $stix_event);
-                    $stix_event[0] = str_replace("STIX_Package", "Package", $stix_event[0]);
-                    $stix_event[count($stix_event)-1] = str_replace("STIX_Package", "Package", $stix_event[count($stix_event)-1]);
-                    $stix_event = implode("\n", $stix_event);
-                    $stix_event = str_replace("\n", "\n            ", $stix_event) . "\n";
-                } else {
-                    $stix_event = $file->read();
-                }
+                $stix_event = $file->read();
                 if (($i + 1) != $eventCount) {
                     $stix_event .= $separator;
                 }
