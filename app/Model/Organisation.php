@@ -16,6 +16,8 @@ class Organisation extends AppModel
         ),
     );
 
+	private $__orgCache = array();
+
     public $validate = array(
         'name' => array(
             'unique' => array(
@@ -374,4 +376,25 @@ class Organisation extends AppModel
         ));
         return (empty($org)) ? false : $org;
     }
+
+	public function attachOrgsToEvent($event, $fields)
+	{
+		if (empty($this->__orgCache[$event['Event']['orgc_id']])) {
+			$this->__orgCache[$event['Event']['orgc_id']] = $this->find('first', array(
+				'conditions' => array('id' => $event['Event']['orgc_id']),
+				'recursive' => -1,
+				'fields' => $fields
+			));
+		}
+		$event['Orgc'] = $this->__orgCache[$event['Event']['orgc_id']];
+		if (empty($this->__orgCache[$event['Event']['org_id']])) {
+			$this->__orgCache[$event['Event']['org_id']] = $this->find('first', array(
+				'conditions' => array('id' => $event['Event']['org_id']),
+				'recursive' => -1,
+				'fields' => $fields
+			));
+		}
+		$event['Org'] = $this->__orgCache[$event['Event']['org_id']];
+		return $event;
+	}
 }
