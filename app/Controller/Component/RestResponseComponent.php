@@ -379,6 +379,15 @@ class RestResponseComponent extends Component
         return $this->__sendResponse($data, 200, $format, $raw, $download);
     }
 
+	public function sendFile($path, $format = false, $download = false) {
+		$cakeResponse = new CakeResponse(array(
+			'status' => $code,
+			'type' => $type
+		));
+		$cakeResponse->file($path);
+		return $cakeResponse;
+	}
+
     public function throwException($code, $message, $url = '', $format = false, $raw = false)
     {
         $message = array(
