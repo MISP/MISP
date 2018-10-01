@@ -374,25 +374,29 @@ class Organisation extends AppModel
             'conditions' => $conditions,
             'recursive' => -1
         ));
-        return (empty($org)) ? false : $org;
+        return (empty($org)) ? false : $org[$this->alias];
     }
 
 	public function attachOrgsToEvent($event, $fields)
 	{
 		if (empty($this->__orgCache[$event['Event']['orgc_id']])) {
-			$this->__orgCache[$event['Event']['orgc_id']] = $this->find('first', array(
+			$temp = $this->find('first', array(
 				'conditions' => array('id' => $event['Event']['orgc_id']),
 				'recursive' => -1,
 				'fields' => $fields
 			));
+			if (!empty($temp)) $temp = $temp[$this->alias];
+			$this->__orgCache[$event['Event']['orgc_id']] = $temp;
 		}
 		$event['Orgc'] = $this->__orgCache[$event['Event']['orgc_id']];
 		if (empty($this->__orgCache[$event['Event']['org_id']])) {
-			$this->__orgCache[$event['Event']['org_id']] = $this->find('first', array(
+			$temp = $this->find('first', array(
 				'conditions' => array('id' => $event['Event']['org_id']),
 				'recursive' => -1,
 				'fields' => $fields
 			));
+			if (!empty($temp)) $temp = $temp[$this->alias];
+			$this->__orgCache[$event['Event']['org_id']] = $temp;
 		}
 		$event['Org'] = $this->__orgCache[$event['Event']['org_id']];
 		return $event;
