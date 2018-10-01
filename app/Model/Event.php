@@ -1307,6 +1307,11 @@ class Event extends AppModel
 			$params['value'] = $params['searchall'];
 			$params['comment'] = $params['searchall'];
 		}
+		if (!empty($params['quickfilter']) && !empty($params['value'])) {
+			$params['tags'] = $params['value'];
+			$params['eventinfo'] = $params['value'];
+			$params['comment'] = $params['value'];
+		}
         $simple_params = array(
             'Event' => array(
                 'eventid' => array('function' => 'set_filter_eventid', 'pop' => true),
@@ -1918,6 +1923,7 @@ class Event extends AppModel
 
     private function __attachSharingGroups($doAttach, $data, $sharingGroupData)
     {
+		if (!$doAttach) return $data;
         foreach ($data as $k => $v) {
             if ($v['distribution'] == 4) {
                 $data[$k]['SharingGroup'] = $sharingGroupData[$v['sharing_group_id']]['SharingGroup'];
@@ -2075,6 +2081,9 @@ class Event extends AppModel
 	public function set_filter_to_ids(&$params, $conditions, $options)
 	{
 		if (isset($params['to_ids'])) {
+			if ($params['to_ids'] === 'exclude') {
+				$params['to_ids'] = 0;
+			}
 			$conditions['AND']['Attribute.to_ids'] = $params['to_ids'];
 		}
 		return $conditions;

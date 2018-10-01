@@ -37,7 +37,10 @@
 				"to_ids" => __('By default (0) all attributes are returned that match the other filter parameters, irregardless of their to_ids setting. To restrict the returned data set to to_ids only attributes set this parameter to 1. You can only use the special "exclude" setting to only return attributes that have the to_ids flag disabled.'),
 				"deleted" => __('If this parameter is set to 1, it will return soft-deleted attributes along with active ones. By using "only" as a parameter it will limit the returned data set to soft-deleted data only.'),
 				"includeEventUuid" => __('Instead of just including the event ID, also include the event UUID in each of the attributes.'),
-				"event_timestamp" => __('Only return attributes from events that have received a modification after the given timestamp.')
+				"event_timestamp" => __('Only return attributes from events that have received a modification after the given timestamp.'),
+				"sgReferenceOnly" => __('If this flag is set, sharing group objects will not be included, instead only the sharing group ID is set.'),
+				"eventinfo" => __("Filter on the event's info field."),
+				"searchall" => __("Search for a full or a substring (delimited by % for substrings) in the event info, event tags, attribute tags, attribute values or attribute comment fields.")
 			),
 			'url' => array(
 				$baseurl . '/attributes/restSearch',

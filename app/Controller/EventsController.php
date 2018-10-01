@@ -3044,13 +3044,21 @@ class EventsController extends AppController
 		if ($returnFormat === 'download') {
 			$returnFormat = 'json';
 		}
-        $eventid = $this->Event->filterEventIds($user, $filters);
-		if (!isset($validFormats[$returnFormat])) {
-			// this is where the new code path for the export modules will go
-			throw new MethodNotFoundException('Invalid export format.');
+		if (!isset($validFormats[$returnFormat][1])) {
+			throw new NotFoundException('Invalid output format.');
 		}
 		App::uses($validFormats[$returnFormat][1], 'Export');
-        $exportTool = new $validFormats[$returnFormat][1]();
+		$exportTool = new $validFormats[$returnFormat][1]();
+
+		if (empty($exportTool->non_restrictive_export)) {
+			if (!isset($filters['to_ids'])) {
+				$filters['to_ids'] = 1;
+			}
+			if (!isset($filters['published'])) {
+				$filters['published'] = 1;
+			}
+		}
+        $eventid = $this->Event->filterEventIds($user, $filters);
 		if (!empty($exportTool->additional_params)) {
 			$filters = array_merge($filters, $exportTool->additional_params);
 		}
