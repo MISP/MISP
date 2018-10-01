@@ -127,8 +127,8 @@ class StixBuilder(object):
     def __init__(self, args):
         self.args = args
         self.return_type = args[2]
-        self.baseurl = args[3] if len(args) > 3 else namespace[0]
-        self.orgname = re.sub('[\W]+', '', args[4].replace(" ", "_")) if len(args) > 4 else namespace[1]
+        self.baseurl = args[3] if (len(args) > 3 and args[3]) else namespace[0]
+        self.orgname = re.sub('[\W]+', '', args[4].replace(" ", "_")) if (len(args) > 4 and args[4]) else namespace[1]
         try:
             idgen.set_id_namespace({self.baseurl: self.orgname})
         except ValueError:
