@@ -30,12 +30,12 @@ function generate_additional_info(info) {
 		var to_ret = "\n\nInvolved:\n";
 		var sel = document.createElement('select');
 		sel.classList.add('distributionInfo');
-		for (var i in info) {
+		info.forEach(function(i) {
 			var opt = document.createElement('option');
 			opt.val = i;
 			opt.innerHTML = i;
 			sel.appendChild(opt);
-		}
+		});
 		return to_ret += sel.outerHTML;
 	}
 }
@@ -87,7 +87,7 @@ function get_minimum_distribution(array, event_dist) {
 	var connected = array[2];
 	var all = array[3];
 	var sharing = array[4];
-	if (connected != 0 && 3 < event_distribution) {
+	if (connected != 0 && 3 == event_distribution) {
 		return 2;
 	} else if (community != 0 && 1 < event_distribution) {
 		return 1;

@@ -2184,6 +2184,7 @@ class AttributesController extends AppController
 		fwrite($tmpfile, $exportTool->footer($exportToolParams));
 		fseek($tmpfile, 0);
 		$final = fread($tmpfile, fstat($tmpfile)['size']);
+		fclose($tmpfile);
         $responseType = $validFormats[$returnFormat][0];
         return $this->RestResponse->viewData($final, $responseType, false, true);
     }
