@@ -87,7 +87,7 @@ function get_minimum_distribution(array, event_dist) {
 	var connected = array[2];
 	var all = array[3];
 	var sharing = array[4];
-	if (connected != 0 && 3 < event_distribution) {
+	if (connected != 0 && 3 == event_distribution) {
 		return 2;
 	} else if (community != 0 && 1 < event_distribution) {
 		return 1;
