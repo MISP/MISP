@@ -3773,15 +3773,15 @@ class Event extends AppModel
             $event_ids = array_intersect($event_ids, $idList);
         }
         $randomFileName = $this->generateRandomFileName();
-        $tmpDir = APP . "files" . DS . "scripts";
-        $stix2_framing_cmd = 'python3 ' . $tmpDir . DS . 'misp_framing.py stix2 ' . escapeshellarg(CakeText::uuid()) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
+        $scriptDir = APP . "files/scripts/";
+        $stix2_framing_cmd = 'python3 ' . $scriptDir . 'misp_framing.py stix2 ' . escapeshellarg(CakeText::uuid()) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
         $stix2_framing = json_decode(shell_exec($stix2_framing_cmd), true);
         if (empty($stix2_framing)) {
             return array('success' => 0, 'message' => 'There was an issue generating the STIX 2.0 export.');
         }
         $separator = $stix2_framing['separator'];
-        $tmpDir = $tmpDir . DS . "tmp";
-        $stixFile = new File($tmpDir . DS . $randomFileName . ".stix");
+        $tmpDir = $scriptDir . "tmp/";
+        $stixFile = new File($tmpDir . $randomFileName . ".stix");
         $stixFile->write($stix2_framing['header']);
         if ($jobId) {
             $this->Job = ClassRegistry::init('Job');
@@ -3795,7 +3795,7 @@ class Event extends AppModel
         $ORGs = ' ';
         if ($event_ids) {
             foreach ($event_ids as $event_id) {
-                $tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
+                $tempFile = new File($tmpDir . $randomFileName, true, 0644);
                 $event = $this->fetchEvent($user, array('eventid' => $event_id, 'includeAttachments' => 1));
                 if (empty($event)) {
                     continue;
@@ -3809,14 +3809,14 @@ class Event extends AppModel
                 $event = $converter->convert($event[0]);
                 $tempFile->write($event);
                 unset($event);
-                $scriptFile = APP . "files" . DS . "scripts" . DS . "stix2" . DS . "misp2stix2.py";
+                $scriptFile = APP . $scriptDir . "stix2/misp2stix2.py";
                 $result = shell_exec('python3 ' . $scriptFile . ' ' . $tempFile->path . $ORGs . '2>' . APP . 'tmp/logs/exec-errors.log');
                 $decoded = json_decode($result, true);
                 if (isset($decoded['success']) && $decoded['success'] == 1) {
                     if (isset($decoded['org'])) {
                         $ORGs = $ORGs . $decoded['org'] . ' ';
                     }
-                    $file = new File($tmpDir . DS . $randomFileName . '.out', true, 0644);
+                    $file = new File($tmpDir . $randomFileName . '.out', true, 0644);
                     $result = substr($file->read(), 1, -1);
                     $file->delete();
                     $stixFile->append($result . (($i + 1) != $eventCount ? $separator : ''));
