@@ -30,12 +30,12 @@ function generate_additional_info(info) {
 		var to_ret = "\n\nInvolved:\n";
 		var sel = document.createElement('select');
 		sel.classList.add('distributionInfo');
-		for (var i in info) {
+		info.forEach(function(i) {
 			var opt = document.createElement('option');
 			opt.val = i;
 			opt.innerHTML = i;
 			sel.appendChild(opt);
-		}
+		});
 		return to_ret += sel.outerHTML;
 	}
 }
