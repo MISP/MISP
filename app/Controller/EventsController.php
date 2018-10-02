@@ -996,6 +996,7 @@ class EventsController extends AppController
         }
         $conditions['includeFeedCorrelations'] = true;
         $conditions['includeAllTags'] = true;
+		$conditions['includeGranularCorrelations'] = 1;
         $results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
         if (empty($results)) {
             throw new NotFoundException(__('Invalid event'));
@@ -1382,6 +1383,9 @@ class EventsController extends AppController
             $this->set('extended', 0);
         }
         $conditions['includeFeedCorrelations'] = true;
+		if (!$this->_isRest()) {
+			$conditions['includeGranularCorrelations'] = 1;
+		}
         $results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
         if (empty($results)) {
             throw new NotFoundException(__('Invalid event'));
@@ -3056,13 +3060,13 @@ class EventsController extends AppController
             'ordered_url_params' => compact($paramArray)
         );
 		$validFormats = array(
-			'openioc' => array('xml', 'OpeniocExport'),
-			'json' => array('json', 'JsonExport'),
-			'xml' => array('xml', 'XmlExport'),
-			'suricata' => array('txt', 'NidsSuricataExport'),
-			'snort' => array('txt', 'NidsSnortExport'),
-			'rpz' => array('rpz', 'RPZExport'),
-			'text' => array('text', 'TextExport')
+			'openioc' => array('xml', 'OpeniocExport', 'ioc'),
+			'json' => array('json', 'JsonExport', 'json'),
+			'xml' => array('xml', 'XmlExport', 'xml'),
+			'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
+			'snort' => array('txt', 'NidsSnortExport', 'rules'),
+			'rpz' => array('rpz', 'RPZExport', 'rpz'),
+			'text' => array('text', 'TextExport', 'txt')
 		);
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
@@ -4429,7 +4433,10 @@ class EventsController extends AppController
 
     public function viewGraph($id)
     {
-        $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
+        $event = $this->Event->fetchEvent($this->Auth->user(), array(
+			'eventid' => $id,
+			'includeGranularCorrelations' => 1
+		));
         if (empty($event)) {
             throw new MethodNotAllowedException(__('Invalid Event.'));
         }
@@ -4439,10 +4446,11 @@ class EventsController extends AppController
         $this->set('id', $id);
     }
 
-
     public function viewEventGraph()
     {
-        $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
+        $event = $this->Event->fetchEvent($this->Auth->user(), array(
+			'eventid' => $id
+		));
         if (empty($event)) {
             throw new MethodNotAllowedException(__('Invalid Event.'));
         }
