@@ -24,6 +24,7 @@ class GalaxyCluster extends AppModel
         )
     );
 
+	private $__clusterCache = array();
 
     public $hasMany = array(
         'GalaxyElement' => array('dependent' => true),
@@ -144,6 +145,9 @@ class GalaxyCluster extends AppModel
         if (is_numeric($name)) {
             $conditions = array('GalaxyCluster.id' => $name);
         }
+		if (isset($this->__clusterCache[$name])) {
+			return $this->__clusterCache[$name];
+		}
         $objects = array('Galaxy', 'GalaxyElement');
         $cluster = $this->find('first', array(
             'conditions' => $conditions,
@@ -179,6 +183,7 @@ class GalaxyCluster extends AppModel
             }
             $cluster['GalaxyCluster']['meta'] = $elements;
         }
+		$this->__clusterCache[$name] = $cluster;
         return $cluster;
     }
 

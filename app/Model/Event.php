@@ -705,7 +705,7 @@ class Event extends AppModel
         $relatedEvents = $this->find(
             'all',
             array('conditions' => $conditions,
-                'recursive' => 0,
+                'recursive' => -1,
                 'order' => 'Event.date DESC',
                 'fields' => $fields,
                 'contain' => array(
@@ -1297,16 +1297,6 @@ class Event extends AppModel
     public function filterEventIds($user, &$params = array())
     {
         $conditions = $this->createEventConditions($user);
-		if (isset($params['ignore'])) {
-			$params['to_ids'] = array(0, 1);
-			$params['published'] = array(0, 1);
-		}
-		if (isset($params['searchall'])) {
-			$params['tags'] = $params['searchall'];
-			$params['eventinfo'] = $params['searchall'];
-			$params['value'] = $params['searchall'];
-			$params['comment'] = $params['searchall'];
-		}
         $simple_params = array(
             'Event' => array(
                 'eventid' => array('function' => 'set_filter_eventid', 'pop' => true),
@@ -1365,11 +1355,22 @@ class Event extends AppModel
                 }
             }
         }
-        $results = array_values($this->find('list', array(
-            'conditions' => $conditions,
+		$fields = array('Event.id');
+		if (!empty($params['include_attribute_count'])) {
+			$fields[] = 'Event.attribute_count';
+		}
+		$find_params = array(
+			'conditions' => $conditions,
             'recursive' => -1,
-            'fields' => array('Event.id')
-        )));
+            'fields' => $fields
+		);
+		if (isset($params['limit'])) {
+			$find_params['limit'] = $params['limit'];
+			if (isset($params['page'])) {
+				$find_params['page'] = $params['page'];
+			}
+		}
+        $results = $this->find('list', $find_params);
         return $results;
     }
 
@@ -1669,16 +1670,14 @@ class Event extends AppModel
                 'ThreatLevel' => array(
                         'fields' => array('ThreatLevel.name')
                 ),
-                'Org' => array('fields' => $fieldsOrg),
-                'Orgc' => array('fields' => $fieldsOrg),
                 'Attribute' => array(
                     'fields' => $fieldsAtt,
                     'conditions' => $conditionsAttributes,
-                    'order' => false,
-                    'AttributeTag' => array(
-                        'Tag' => array('conditions' => $tagConditions, 'order' => false),
-                        'order' => false
-                    ),
+					'AttributeTag' => array(
+						'Tag' => array('conditions' => $tagConditions, 'order' => false),
+						'order' => false
+					),
+                    'order' => false
                 ),
                 'Object' => array(
                     'fields' => $fieldsObj,
@@ -1695,10 +1694,10 @@ class Event extends AppModel
                     'Org' => array('fields' => $fieldsOrg),
                     'order' => false
                 ),
-                'EventTag' => array(
-                    'Tag' => array('conditions' => $tagConditions, 'order' => false),
-                    'order' => false
-                )
+				'EventTag' => array(
+					'Tag' => array('conditions' => $tagConditions, 'order' => false),
+					'order' => false
+                 )
             )
         );
         if ($flatten) {
@@ -1715,7 +1714,6 @@ class Event extends AppModel
         if (empty($results)) {
             return array();
         }
-
         // Do some refactoring with the event
         $this->Sighting = ClassRegistry::init('Sighting');
         $userEmails = array();
@@ -1725,29 +1723,8 @@ class Event extends AppModel
             'Object' => array('name', 'meta-category')
         );
         foreach ($results as $eventKey => &$event) {
-            if (!empty($event['Object'])) {
-                foreach ($event['Object'] as $k => $object) {
-                    if (!empty($object['ObjectReference'])) {
-                        foreach ($object['ObjectReference'] as $k2 => $reference) {
-                            $type = array('Attribute', 'Object')[$reference['referenced_type']];
-                            $temp = $this->{$type}->find('first', array(
-                                'recursive' => -1,
-                                'fields' => array_merge($fields['common'], $fields[array('Attribute', 'Object')[$reference['referenced_type']]]),
-                                'conditions' => array('id' => $reference['referenced_id'])
-                            ));
-                            if (!empty($temp)) {
-                                if (!$isSiteAdmin && $user['org_id'] != $event['Event']['orgc_id']) {
-                                    if ($temp[$type]['distribution'] == 0 || ($temp[$type]['distribution'] == 4 && !in_array($temp[$type]['sharing_group_id'], $sgsids))) {
-                                        unset($object['ObjectReference'][$k2]);
-                                        continue;
-                                    }
-                                }
-                                $event['Object'][$k]['ObjectReference'][$k2][$type] = $temp[$type];
-                            }
-                        }
-                    }
-                }
-            }
+			$this->__attachReferences($user, $event, $sgids, $fields);
+			$event = $this->Orgc->attachOrgsToEvent($event, $fieldsOrg);
             if (!$options['sgReferenceOnly'] && $event['Event']['sharing_group_id']) {
                 $event['SharingGroup'] = $sharingGroupData[$event['Event']['sharing_group_id']]['SharingGroup'];
             }
@@ -1762,8 +1739,10 @@ class Event extends AppModel
             // Let's find all the related events and attach it to the event itself
             $results[$eventKey]['RelatedEvent'] = $this->getRelatedEvents($user, $event['Event']['id'], $sgids);
             // Let's also find all the relations for the attributes - this won't be in the xml export though
-            $results[$eventKey]['RelatedAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgids);
-            $results[$eventKey]['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgids, true);
+            if (!empty($options['includeGranularCorrelations'])) {
+				$results[$eventKey]['RelatedAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgids);
+				$results[$eventKey]['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgids, true);
+			}
             if (isset($event['ShadowAttribute']) && !empty($event['ShadowAttribute']) && isset($options['includeAttachments']) && $options['includeAttachments']) {
                 foreach ($event['ShadowAttribute'] as $k => $sa) {
                     if ($this->ShadowAttribute->typeIsAttachment($sa['type'])) {
@@ -1918,6 +1897,7 @@ class Event extends AppModel
 
     private function __attachSharingGroups($doAttach, $data, $sharingGroupData)
     {
+		if (!$doAttach) return $data;
         foreach ($data as $k => $v) {
             if ($v['distribution'] == 4) {
                 $data[$k]['SharingGroup'] = $sharingGroupData[$v['sharing_group_id']]['SharingGroup'];
@@ -2075,6 +2055,9 @@ class Event extends AppModel
 	public function set_filter_to_ids(&$params, $conditions, $options)
 	{
 		if (isset($params['to_ids'])) {
+			if ($params['to_ids'] === 'exclude') {
+				$params['to_ids'] = 0;
+			}
 			$conditions['AND']['Attribute.to_ids'] = $params['to_ids'];
 		}
 		return $conditions;
@@ -5257,6 +5240,33 @@ class Event extends AppModel
 			return 'Freetext ingestion queued for background processing. Attributes will be added to the event as they are being processed.';
 		} else {
 			return ($this->processFreeTextData($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false));
+		}
+	}
+
+	private function __attachReferences($user, &$event, $sgids, $fields)
+	{
+		if (!empty($event['Object'])) {
+			foreach ($event['Object'] as $k => $object) {
+				if (!empty($object['ObjectReference'])) {
+					foreach ($object['ObjectReference'] as $k2 => $reference) {
+						$type = array('Attribute', 'Object')[$reference['referenced_type']];
+						$temp = $this->{$type}->find('first', array(
+							'recursive' => -1,
+							'fields' => array_merge($fields['common'], $fields[array('Attribute', 'Object')[$reference['referenced_type']]]),
+							'conditions' => array('id' => $reference['referenced_id'])
+						));
+						if (!empty($temp)) {
+							if (!$user['Role']['perm_site_admin'] && $user['org_id'] != $event['Event']['orgc_id']) {
+								if ($temp[$type]['distribution'] == 0 || ($temp[$type]['distribution'] == 4 && !in_array($temp[$type]['sharing_group_id'], $sgsids))) {
+									unset($object['ObjectReference'][$k2]);
+									continue;
+								}
+							}
+							$event['Object'][$k]['ObjectReference'][$k2][$type] = $temp[$type];
+						}
+					}
+				}
+			}
 		}
 	}
 }

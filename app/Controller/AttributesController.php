@@ -2116,6 +2116,9 @@ class AttributesController extends AppController
 		if ($returnFormat === 'download') {
 			$returnFormat = 'json';
 		}
+		if (!isset($validFormats[$returnFormat][1])) {
+			throw new NotFoundException('Invalid output format.');
+		}
 		App::uses($validFormats[$returnFormat][1], 'Export');
 		$exportTool = new $validFormats[$returnFormat][1]();
 		if (empty($exportTool->non_restrictive_export)) {
@@ -2181,6 +2184,7 @@ class AttributesController extends AppController
 		fwrite($tmpfile, $exportTool->footer($exportToolParams));
 		fseek($tmpfile, 0);
 		$final = fread($tmpfile, fstat($tmpfile)['size']);
+		fclose($tmpfile);
         $responseType = $validFormats[$returnFormat][0];
         return $this->RestResponse->viewData($final, $responseType, false, true);
     }

@@ -3662,12 +3662,6 @@ class Attribute extends AppModel
 			$params['to_ids'] = array(0, 1);
 			$params['published'] = array(0, 1);
 		}
-		if (isset($params['searchall'])) {
-			$params['tags'] = $params['searchall'];
-			$params['eventinfo'] = $params['searchall'];
-			$params['value'] = $params['searchall'];
-			$params['comment'] = $params['searchall'];
-		}
 		$simple_params = array(
 			'Attribute' => array(
 				'value' => array('function' => 'set_filter_value'),
