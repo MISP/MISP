@@ -26,7 +26,7 @@
 
       private function __expandEvent($id)
       {
-          $event = $this->__eventModel->fetchEvent($this->__user, array('eventid' => $id, 'flatten' => 0, 'includeTagRelations' => 1, 'includeGalaxy' => 1));
+          $event = $this->__eventModel->fetchEvent($this->__user, array('eventid' => $id, 'flatten' => 0, 'includeTagRelations' => 1, 'includeGalaxy' => 1, 'includeGranularCorrelations' => 1));
           if (empty($event)) {
               return $this->__json;
           }
