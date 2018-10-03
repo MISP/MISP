@@ -5269,4 +5269,135 @@ class Event extends AppModel
 			}
 		}
 	}
+
+	public function restSearch($user, $validFormats, $returnFormat, $filters)
+	{
+		if (!isset($validFormats[$returnFormat][1])) {
+			throw new NotFoundException('Invalid output format.');
+		}
+		App::uses($validFormats[$returnFormat][1], 'Export');
+		$exportTool = new $validFormats[$returnFormat][1]();
+
+		if (empty($exportTool->non_restrictive_export)) {
+			if (!isset($filters['to_ids'])) {
+				$filters['to_ids'] = 1;
+			}
+			if (!isset($filters['published'])) {
+				$filters['published'] = 1;
+			}
+		}
+		if (isset($filters['ignore'])) {
+			$filters['to_ids'] = array(0, 1);
+			$filters['published'] = array(0, 1);
+		}
+		if (isset($filters['searchall'])) {
+			$filters['tags'] = $filters['searchall'];
+			$filters['eventinfo'] = $filters['searchall'];
+			$filters['value'] = $filters['searchall'];
+			$filters['comment'] = $filters['searchall'];
+		}
+		if (!empty($filters['quickfilter']) && !empty($filters['value'])) {
+			$filters['tags'] = $filters['value'];
+			$filters['eventinfo'] = $filters['value'];
+			$filters['comment'] = $filters['value'];
+		}
+		$filters['include_attribute_count'] = 1;
+        $eventid = $this->filterEventIds($user, $filters);
+		$eventids_chunked = $this->__clusterEventIds($exportTool, $eventid);
+		if (!empty($exportTool->additional_params)) {
+			$filters = array_merge($filters, $exportTool->additional_params);
+		}
+		$exportToolParams = array(
+			'user' => $user,
+			'params' => array(),
+			'returnFormat' => $returnFormat,
+			'scope' => 'Event',
+			'filters' => $filters
+		);
+		if (empty($exportTool->non_restrictive_export)) {
+			if (!isset($filters['to_ids'])) {
+				$filters['to_ids'] = 1;
+			}
+			if (!isset($filters['published'])) {
+				$filters['published'] = 1;
+			}
+		}
+		$tmpfile = tmpfile();
+		fwrite($tmpfile, $exportTool->header($exportToolParams));
+        $eventCount = count($eventid);
+        $i = 0;
+		if (!empty($filters['withAttachments'])) {
+			$filters['includeAttachments'] = 1;
+		}
+		$this->Whitelist = ClassRegistry::init('Whitelist');
+        foreach ($eventids_chunked as $chunk_index => $chunk) {
+            $filters['eventid'] = $chunk;
+            if (!empty($filters['tags']['NOT'])) {
+              $filters['blockedAttributeTags'] = $filters['tags']['NOT'];
+            }
+            $result = $this->fetchEvent(
+                $user,
+                $filters,
+                true
+            );
+			if (!empty($result)) {
+				foreach ($result as $event) {
+	                $result = $this->Whitelist->removeWhitelistedFromArray($result, false);
+					$temp = $exportTool->handler($event, $exportToolParams);
+					if ($temp !== '') {
+						if ($i !== 0) {
+							$temp = $exportTool->separator($exportToolParams) . $temp;
+						}
+						fwrite($tmpfile, $temp);
+						$i++;
+					}
+				}
+            }
+        }
+		unset($result);
+		unset($temp);
+		fwrite($tmpfile, $exportTool->footer($exportToolParams));
+		fseek($tmpfile, 0);
+		$final = fread($tmpfile, fstat($tmpfile)['size']);
+		fclose($tmpfile);
+		return $final;
+	}
+
+	/*
+	 *  Receive a list of eventids in the id=>count format
+	 *  Chunk them by the attribute count to fit the memory limits
+	 *
+	 */
+	private function __clusterEventIds($exportTool, $eventIds)
+	{
+		$memory_in_mb = $this->Attribute->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
+		$memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : 100;
+		$limit = $memory_in_mb * $memory_scaling_factor;
+		$eventIdList = array();
+		$continue = true;
+		$i = 0;
+		$current_chunk_size = 0;
+		while (!empty($eventIds)) {
+			foreach ($eventIds as $id => $count) {
+				if ($current_chunk_size == 0 && $count > $limit) {
+					$eventIdList[$i][] = $id;
+					$current_chunk_size = $count;
+					unset($eventIds[$id]);
+					$i++;
+					break;
+				} else {
+					if (($current_chunk_size + $count) > $limit) {
+						$i++;
+						$current_chunk_size = 0;
+						break;
+					} else {
+						$current_chunk_size += $count;
+						$eventIdList[$i][] = $id;
+						unset($eventIds[$id]);
+					}
+				}
+			}
+		}
+		return $eventIdList;
+	}
 }
