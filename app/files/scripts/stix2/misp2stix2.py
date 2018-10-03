@@ -40,27 +40,25 @@ tool_galaxies_list = ['botnet', 'rat', 'exploit-kit', 'tds', 'tool', 'mitre-tool
 
 class StixBuilder():
     def __init__(self):
-        self.misp_event = pymisp.MISPEvent()
-        self.SDOs = []
-        self.object_refs = []
-        self.external_refs = []
+        self.orgs = []
         self.galaxies = []
-        self.relationships = defaultdict(list)
         self.to_return = {}
 
     def loadEvent(self, args):
         pathname = os.path.dirname(args[0])
         filename = os.path.join(pathname, args[1])
-        self.orgs = [org for org in args[2:]] if len(args) > 2 else []
-        self.misp_event.load_file(filename)
+        with open(filename, 'rt', encoding='utf-8') as f:
+            self.json_event = json.loads(f.read())
         self.filename = filename
-        self.report_id = "report--{}".format(self.misp_event.uuid)
 
     def buildEvent(self):
-        i = self.__set_identity()
-        self.read_attributes()
-        report = self.eventReport()
-        self.SDOs.insert(i, report)
+        self.initialize_misp_types()
+        stix_packages = [sdo for event in self.json_event['response'] for sdo in self.handler(event)] if self.json_event.get('response') else self.handler(self.json_event)
+        outputfile = "{}.out".format(self.filename)
+        with open(outputfile, 'w') as f:
+            f.write(json.dumps(stix_packages, cls=base.STIXJSONEncoder))
+        self.to_return['success'] = 1
+        print(json.dumps(self.to_return))
 
     def eventReport(self):
         report_args = {'type': 'report', 'id': self.report_id, 'name': self.misp_event.info,
@@ -80,13 +78,6 @@ class StixBuilder():
             report_args['external_references'] = self.external_refs
         return Report(**report_args)
 
-    def saveFile(self):
-        outputfile = "{}.out".format(self.filename)
-        with open(outputfile, 'w') as f:
-            f.write(json.dumps(self.SDOs, cls=base.STIXJSONEncoder))
-        self.to_return['success'] = 1
-        print(json.dumps(self.to_return))
-
     def __set_identity(self):
         org = self.misp_event.Orgc
         org_uuid = org['uuid']
@@ -96,19 +87,25 @@ class StixBuilder():
             identity = Identity(type="identity", id=identity_id,
                                 name=org["name"], identity_class="organization")
             self.SDOs.append(identity)
-            self.to_return['org'] = org_uuid
             return 1
         return 0
 
-    def misp_types(self):
+    def initialize_misp_types(self):
         describe_types_filename = os.path.join(pymisp.__path__[0], 'data/describeTypes.json')
         describe_types = open(describe_types_filename, 'r')
         categories_mapping = json.loads(describe_types.read())['result']['category_type_mappings']
         for category in categories_mapping:
             mispTypesMapping[category] = {'to_call': 'handle_person'}
 
-    def read_attributes(self):
-        self.misp_types()
+    def handler(self, event):
+        self.misp_event = pymisp.MISPEvent()
+        self.misp_event.load(event)
+        self.report_id = "report--{}".format(self.misp_event.uuid)
+        self.SDOs = []
+        self.object_refs = []
+        self.external_refs = []
+        self.relationships = defaultdict(list)
+        i = self.__set_identity()
         if hasattr(self.misp_event, 'attributes') and self.misp_event.attributes:
             for attribute in self.misp_event.attributes:
                 try:
@@ -144,6 +141,9 @@ class StixBuilder():
                     relation = "has"
                 relationship = Relationship(source_ref=source, target_ref=target, relationship_type=relation)
                 self.append_object(relationship, relationship.id)
+        report = self.eventReport()
+        self.SDOs.insert(i, report)
+        return self.SDOs
 
     def load_objects_mapping(self):
         self.objects_mapping = {
@@ -1211,7 +1211,6 @@ def main(args):
     stix_builder = StixBuilder()
     stix_builder.loadEvent(args)
     stix_builder.buildEvent()
-    stix_builder.saveFile()
 
 if __name__ == "__main__":
     main(sys.argv)
