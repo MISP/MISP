@@ -53,7 +53,7 @@ class StixBuilder():
 
     def buildEvent(self):
         self.initialize_misp_types()
-        stix_packages = [sdo for event in self.json_event['response'] for sdo in self.handler(event['Event'])] if self.json_event.get('response') else self.handler(self.json_event)
+        stix_packages = [sdo for event in self.json_event['response'] for sdo in self.handler(event['Event'])] if self.json_event.get('response') else self.handler(self.json_event['Event'])
         outputfile = "{}.out".format(self.filename)
         with open(outputfile, 'wt', encoding='utf-8') as f:
             f.write(json.dumps(stix_packages, cls=base.STIXJSONEncoder))
