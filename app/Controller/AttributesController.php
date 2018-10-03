@@ -2097,7 +2097,8 @@ class AttributesController extends AppController
             'suricata' => array('txt', 'NidsSuricataExport'),
             'snort' => array('txt', 'NidsSnortExport'),
 			'text' => array('txt', 'TextExport'),
-			'rpz' => array('rpz', 'RPZExport')
+			'rpz' => array('rpz', 'RPZExport'),
+			'csv' => array('csv', 'CsvExport')
         );
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
@@ -2159,6 +2160,9 @@ class AttributesController extends AppController
 		if (!isset($validFormats[$returnFormat])) {
 			// this is where the new code path for the export modules will go
 			throw new MethodNotFoundException('Invalid export format.');
+		}
+		if (method_exists($exportTool, 'modify_params')) {
+			$params = $exportTool->modify_params($user, $params);
 		}
 		$exportToolParams = array(
 			'user' => $this->Auth->user(),
