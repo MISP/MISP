@@ -117,6 +117,17 @@ class Attribute extends AppModel
         ),
     );
 
+	public $validFormats = array(
+		'openioc' => array('xml', 'OpeniocExport'),
+		'json' => array('json', 'JsonExport'),
+		'xml' => array('xml', 'XmlExport'),
+		'suricata' => array('txt', 'NidsSuricataExport'),
+		'snort' => array('txt', 'NidsSnortExport'),
+		'text' => array('txt', 'TextExport'),
+		'rpz' => array('rpz', 'RPZExport'),
+		'csv' => array('csv', 'CsvExport')
+	);
+
     public $typeDefinitions = array(
             'md5' => array('desc' => 'A checksum in md5 format', 'formdesc' => "You are encouraged to use filename|md5 instead. A checksum in md5 format, only use this if you don't know the correct filename", 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'sha1' => array('desc' => 'A checksum in sha1 format', 'formdesc' => "You are encouraged to use filename|sha1 instead. A checksum in sha1 format, only use this if you don't know the correct filename", 'default_category' => 'Payload delivery', 'to_ids' => 1),
@@ -3166,7 +3177,7 @@ class Attribute extends AppModel
 
     public function convertToOpenIOC($user, $attributes)
     {
-        return $this->IOCExport->buildAll($this->Auth->user(), $event);
+        return $this->IOCExport->buildAll($user, $event);
     }
 
     private function __createTagSubQuery($tag_id, $blocked = false, $scope = 'Event', $limitAttributeHitsTo = 'event')
@@ -3707,5 +3718,115 @@ class Attribute extends AppModel
 			}
 		}
 		return $conditions;
+	}
+
+	public function restSearch($user, $returnFormat, $filters, $paramsOnly = false)
+	{
+		if (!isset($this->validFormats[$returnFormat][1])) {
+			throw new NotFoundException('Invalid output format.');
+		}
+		App::uses($this->validFormats[$returnFormat][1], 'Export');
+		$exportTool = new $this->validFormats[$returnFormat][1]();
+		if (empty($exportTool->non_restrictive_export)) {
+			if (!isset($filters['to_ids'])) {
+				$filters['to_ids'] = 1;
+			}
+			if (!isset($filters['published'])) {
+				$filters['published'] = 1;
+			}
+		}
+		$conditions = $this->buildFilterConditions($user, $filters);
+		$params = array(
+				'conditions' => $conditions,
+				'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution'),
+				'withAttachments' => !empty($filters['withAttachments']) ? $filters['withAttachments'] : 0,
+				'enforceWarninglist' => !empty($filters['enforceWarninglist']) ? $filters['enforceWarninglist'] : 0,
+				'includeAllTags' => true,
+				'flatten' => 1,
+				'includeEventUuid' => !empty($filters['includeEventUuid']) ? $filters['includeEventUuid'] : 0,
+				'includeEventTags' => !empty($filters['includeEventTags']) ? $filters['includeEventTags'] : 0
+		);
+		if (isset($filters['include_event_uuid'])) {
+			$params['includeEventUuid'] = $filters['include_event_uuid'];
+		}
+		if (isset($filters['limit'])) {
+			$params['limit'] = $filters['limit'];
+		}
+		if (isset($filters['page'])) {
+			$params['page'] = $filters['page'];
+		}
+		if (!empty($filtes['deleted'])) {
+			$params['deleted'] = 1;
+			if ($params['deleted'] === 'only') {
+				$params['conditions']['AND'][] = array('Attribute.deleted' => 1);
+				$params['conditions']['AND'][] = array('Object.deleted' => 1);
+			}
+		}
+		if ($paramsOnly) {
+			return $params;
+		}
+		if (!isset($this->validFormats[$returnFormat])) {
+			// this is where the new code path for the export modules will go
+			throw new MethodNotFoundException('Invalid export format.');
+		}
+		if (method_exists($exportTool, 'modify_params')) {
+			$params = $exportTool->modify_params($user, $params);
+		}
+		$exportToolParams = array(
+			'user' => $user,
+			'params' => $params,
+			'returnFormat' => $returnFormat,
+			'scope' => 'Attribute',
+			'filters' => $filters
+		);
+		if (!empty($exportTool->additional_params)) {
+			$params = array_merge($params, $exportTool->additional_params);
+		}
+		$tmpfile = tmpfile();
+		fwrite($tmpfile, $exportTool->header($exportToolParams));
+		$loop = false;
+		if (empty($params['limit'])) {
+			$memory_in_mb = $this->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
+			$memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : 100;
+			$params['limit'] = $memory_in_mb * $memory_scaling_factor;
+			$loop = true;
+			$params['page'] = 1;
+		}
+		$this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams);
+		fwrite($tmpfile, $exportTool->footer($exportToolParams));
+		fseek($tmpfile, 0);
+		$final = fread($tmpfile, fstat($tmpfile)['size']);
+		fclose($tmpfile);
+		return $final;
+	}
+
+	private function __iteratedFetch($user, &$params, &$loop, &$tmpfile, $exportTool, $exportToolParams) {
+		$continue = true;
+		while ($continue) {
+			$this->Whitelist = ClassRegistry::init('Whitelist');
+			$results = $this->fetchAttributes($user, $params, $continue);
+			$params['page'] += 1;
+			$results = $this->Whitelist->removeWhitelistedFromArray($results, true);
+			$results = array_values($results);
+			$i = 0;
+			$temp = '';
+			foreach ($results as $attribute) {
+				$temp .= $exportTool->handler($attribute, $exportToolParams);
+				if ($temp !== '') {
+					if ($i != count($results) -1) {
+						$temp .= $exportTool->separator($exportToolParams);
+					}
+				}
+				$i++;
+			}
+			if (!$loop) {
+				$continue = false;
+			}
+			if ($continue) {
+				$temp .= $exportTool->separator($exportToolParams);
+			}
+			fwrite($tmpfile, $temp);
+		}
+		return true;
 	}
 }
