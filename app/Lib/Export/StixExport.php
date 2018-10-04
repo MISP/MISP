@@ -2,6 +2,7 @@
 
 class StixExport
 {
+    private $__attributes_limit = 10000;
     private $__scripts_dir = APP . 'files/scripts/';
     private $__tmp_dir = null;
     private $__end_of_cmd = ' 2>' . APP . 'tmp/logs/exec-errors.log';
@@ -11,22 +12,36 @@ class StixExport
     private $__framing = null;
     private $__stix_file = null;
     private $__tmp_file = null;
-    private $__n_events = 0;
+    private $__n_attributes = 0;
+    private $__filenames = array();
     public $non_restrictive_export = true;
 
     public function handler($data, $options = array())
     {
-        if ($this->__n_events != 0) {
-            $this->__tmp_file->append(',');
+        $attributes_count = count($data['Attribute']);
+        foreach ($data['Object'] as $_object) {
+            $attributes_count += count($_object['Attribute']);
         }
         App::uses('JSONConverterTool', 'Tools');
         $converter = new JSONConverterTool();
         $event = $converter->convert($data);
-        $this->__tmp_file->append($event);
-        unset($event);
-        $this->__n_events += 1;
-        if ($this->__n_events == 10) {
-            $this->__append_parsed_stix();
+        if ($this->__n_attributes + $attributes_count < $this->__attributes_limit) {
+            ($this->__n_attributes == 0) ? $this->__tmp_file->append($event) : $this->__tmp_file->append(',' . $event);
+            $this->__n_attributes += $attributes_count;
+        } else {
+            if ($attributes_count > $this->__attributes_limit) {
+                $randomFileName = $this->generateRandomFileName();
+                $tmpFile = new File($this->__tmp_dir . $randomFileName, true, 0644);
+                $tmpFile->write($event);
+                $tmpFile->close();
+                array_push($this->__filenames, $randomFileName);
+            } else {
+                $this->__tmp_file->append(']}');
+                $this->__tmp_file->close();
+                $this->__initialize_misp_file();
+                $this->__tmp_file->append($event);
+                $this->__n_attributes = $attributes_count;
+            }
         }
         return '';
     }
@@ -48,49 +63,46 @@ class StixExport
 
     public function footer($options = array())
     {
-        $this->__parse_misp_events();
-        $this->__stix_file->append($this->__framing['footer']);
+        $this->__tmp_file->append(']}');
+        $this->__tmp_file->close();
+        foreach ($this->__filenames as $filename) {
+            $this->__parse_misp_events($filename);
+        }
         $stix_event = $this->__stix_file->read();
         $this->__stix_file->close();
         $this->__stix_file->delete();
+        $sep_len = strlen($this->__framing['separator']);
+        $stix_event = substr($stix_event, 0, -$sep_len) . $this->__framing['footer'];
         return $stix_event;
     }
 
     public function separator($options = array())
     {
-        $this->__stix_file->append($this->__framing['separator']);
         return '';
     }
 
     private function __initialize_misp_file()
     {
-        $this->__tmp_file = new File($this->__tmp_dir . $this->__randomFileName, true, 0644);
+        $randomFileName = $this->generateRandomFileName();
+        $this->__tmp_file = new File($this->__tmp_dir . $randomFileName, true, 0644);
         $this->__tmp_file->write('{"response": [');
+        array_push($this->__filenames, $randomFileName);
     }
 
-    private function __append_parsed_stix()
+    private function __parse_misp_events($filename)
     {
-        $this->__parse_misp_events();
-        $this->__initialize_misp_file();
-        $this->__n_events = 0;
-    }
-
-    private function __parse_misp_events()
-    {
-        $this->__tmp_file->append(']}');
         $scriptFile = $this->__scripts_dir . 'misp2stix.py';
-        $result = shell_exec('python3 ' . $scriptFile . ' ' . $this->__randomFileName . ' xml ' . $this->__baseurl . ' ' . $this->__org . $this->__end_of_cmd);
+        $result = shell_exec('python3 ' . $scriptFile . ' ' . $filename . ' xml ' . $this->__baseurl . ' ' . $this->__org . $this->__end_of_cmd);
         $decoded = json_decode($result, true);
-        $this->__tmp_file->close();
-        $this->__tmp_file->delete();
         if (!isset($decoded['success']) || !$decoded['success']) {
             return '';
         }
-        $file = new File($this->__tmp_dir . $this->__randomFileName . '.out');
+        $file = new File($this->__tmp_dir . $filename . '.out');
         $stix_event = $file->read();
         $file->close();
         $file->delete();
-        $this->__stix_file->append($stix_event);
+        unlink($this->__tmp_dir . $filename);
+        $this->__stix_file->append($stix_event . $this->__framing['separator']);
         unset($stix_event);
     }
 
