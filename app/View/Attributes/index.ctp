@@ -4,15 +4,22 @@
             if ($isSearch == 1) {
                 // The following block should serve as an example and food
                 // for thought on how to optimize i18n & l10n (especially for languages that are not SOV)
-                echo "<h4>" . __("Results for all attributes");
-                if ($keywordSearch != null) echo __(" with the value containing "). "\"<b>" . h($keywordSearch) . "</b>\"";
-                if ($attributeTags != null) echo __(" being tagged with ") ."\"<b>" . h($attributeTags) . "</b>\"";
-                if ($keywordSearch2 != null) echo __(" from the events ") . "\"<b>" . h($keywordSearch2) . "</b>\"";
-                if ($tags != null) echo " from events tagged \"<b>" . h($tags) . "</b>\"";
-                if ($categorySearch != "ALL") echo __(" of category ") . "\"<b>" . h($categorySearch) . "</b>\"";
-                if ($typeSearch != "ALL") echo __(" of type ") . "\"<b>" . h($typeSearch) . "</b>\"";
-                if (isset($orgSearch) && $orgSearch != '' && $orgSearch != null) echo __(" created by the organisation ") . "\"<b>" . h($orgSearch) . "</b>\"";
-                echo ":</h4>";
+				$filterOptions = array(
+					'value' => __(" with the value containing "),
+					'tags' => __(" being tagged with "),
+					'id' => __(" from the events "),
+					'tag' => __(" carrying the tag(s) "),
+					'type' => __(" of type "),
+					'category' => __(" of category "),
+					'org' => __(" created by organisation ")
+				);
+				$temp = '';
+				foreach ($filterOptions as $fo => $text) {
+					if (!empty($filters[$fo])) {
+						$temp .= sprintf('%s <b>%s</b>', $text, h($filters[$fo]));
+					}
+				}
+				echo sprintf("<h4>%s%s</h4>", __("Results for all attributes"), $temp);
             }
         ?>
     <div class="pagination">
@@ -32,10 +39,10 @@
         </ul>
     </div>
     <table class="table table-striped table-hover table-condensed">
-    <tr>
+    	<tr>
             <th><?php echo $this->Paginator->sort('event_id');?></th>
             <?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
-            <th><?php echo $this->Paginator->sort('org_id', 'Org');?></th>
+            <th><?php echo $this->Paginator->sort('Event.orgc_id', 'Org');?></th>
             <?php endif; ?>
             <th><?php echo $this->Paginator->sort('category');?></th>
             <th><?php echo $this->Paginator->sort('type');?></th>
@@ -45,19 +52,20 @@
             <th<?php echo ' title="' . $attrDescriptions['signature']['desc'] . '"';?>>
             <?php echo $this->Paginator->sort('IDS');?></th>
             <th class="actions">Actions</th>
-    </tr>
+    	</tr>
     <?php
     $currentCount = 0;
     if ($isSearch == 1) {
-
         // sanitize data
-        if (isset($keywordArray)) {
-            foreach ($keywordArray as &$keywordArrayElement) {
-                $keywordArrayElement = h($keywordArrayElement);
-            }
+        $toHighlight = array('value', 'comment');
+		$keywordArray = array();
+        foreach ($toHighlight as $highlightedElement) {
+            if (!empty($filters[$highlightedElement])) {
+				$keywordArray[] = $filters[$highlightedElement];
+			}
+        }
         // build the $replacePairs variable used to highlight the keywords
         $replacePairs = $this->Highlight->build_replace_pairs($keywordArray);
-        }
     }
 
 foreach ($attributes as $attribute):
