@@ -2,18 +2,16 @@
 
 class StixExport
 {
-    private $__attributes_limit = 10000;
-    private $__scripts_dir = APP . 'files/scripts/';
+    protected $__scripts_dir = APP . 'files/scripts/';
+    protected $__end_of_cmd = ' 2>' . APP . 'tmp/logs/exec-errors.log';
+    
     private $__tmp_dir = null;
-    private $__end_of_cmd = ' 2>' . APP . 'tmp/logs/exec-errors.log';
-    private $__randomFileName = null;
-    private $__baseurl = null;
-    private $__org = null;
     private $__framing = null;
     private $__stix_file = null;
     private $__tmp_file = null;
     private $__n_attributes = 0;
     private $__filenames = array();
+
     public $non_restrictive_export = true;
 
     public function handler($data, $options = array())
@@ -48,25 +46,33 @@ class StixExport
 
     public function header($options = array())
     {
-        $this->__randomFileName = $this->generateRandomFileName();
+        $framing_cmd = $this->initiate_framing_params($options['returnFormat']);
+        $randomFileName = $this->generateRandomFileName();
         $this->__tmp_dir = $this->__scripts_dir . 'tmp/';
-        $this->__baseurl = escapeshellarg(Configure::read('MISP.baseurl'));
-        $this->__org = escapeshellarg(Configure::read('MISP.org'));
-        $framing_file = $this->__scripts_dir . 'misp_framing.py ';
-        $framing_cmd = 'python3 ' . $framing_file . 'stix ' . $this->__baseurl . ' ' . $this->__org . ' xml' . $this->__end_of_cmd;
         $this->__framing = json_decode(shell_exec($framing_cmd), true);
-        $this->__stix_file = new File($this->__tmp_dir . $this->__randomFileName . '.stix');
+        $this->__stix_file = new File($this->__tmp_dir . $randomFileName . '.stix');
         $this->__stix_file->write($this->__framing['header']);
         $this->__initialize_misp_file();
         return '';
     }
 
-    public function footer($options = array())
+    public function footer()
     {
         $this->__tmp_file->append(']}');
         $this->__tmp_file->close();
         foreach ($this->__filenames as $filename) {
-            $this->__parse_misp_events($filename);
+            $result = $this->__parse_misp_events($filename);
+            $decoded = json_decode($result, true);
+            if (!isset($decoded['success']) || !$decoded['success']) {
+                return '';
+            }
+            $file = new File($this->__tmp_dir . $filename . '.out');
+            $stix_event = $file->read();
+            $file->close();
+            $file->delete();
+            unlink($this->__tmp_dir . $filename);
+            $this->__stix_file->append($stix_event . $this->__framing['separator']);
+            unset($stix_event);
         }
         $stix_event = $this->__stix_file->read();
         $this->__stix_file->close();
@@ -76,7 +82,7 @@ class StixExport
         return $stix_event;
     }
 
-    public function separator($options = array())
+    public function separator()
     {
         return '';
     }
@@ -87,23 +93,6 @@ class StixExport
         $this->__tmp_file = new File($this->__tmp_dir . $randomFileName, true, 0644);
         $this->__tmp_file->write('{"response": [');
         array_push($this->__filenames, $randomFileName);
-    }
-
-    private function __parse_misp_events($filename)
-    {
-        $scriptFile = $this->__scripts_dir . 'misp2stix.py';
-        $result = shell_exec('python3 ' . $scriptFile . ' ' . $filename . ' xml ' . $this->__baseurl . ' ' . $this->__org . $this->__end_of_cmd);
-        $decoded = json_decode($result, true);
-        if (!isset($decoded['success']) || !$decoded['success']) {
-            return '';
-        }
-        $file = new File($this->__tmp_dir . $filename . '.out');
-        $stix_event = $file->read();
-        $file->close();
-        $file->delete();
-        unlink($this->__tmp_dir . $filename);
-        $this->__stix_file->append($stix_event . $this->__framing['separator']);
-        unset($stix_event);
     }
 
     public function generateRandomFileName()

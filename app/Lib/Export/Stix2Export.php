@@ -1,56 +1,22 @@
 <?php
 
-class Stix2Export
+App::uses('StixExport', 'Export');
+
+class Stix2Export extends StixExport
 {
-    private $end_of_cmd = ' 2>' . APP . 'tmp/logs/exec-errors.log';
-    private $__tmpDir = APP . 'files/scripts/';
-    public $non_restrictive_export = true;
-    public function handler($data, $options = array())
+    protected $__attributes_limit = 15000;
+    private $__script_name = 'stix2/misp2stix2.py ';
+
+    protected function initiate_framing_params($return_type)
     {
-        $randomFileName = $this->generateRandomFileName();
-        $tmpDir = $this->__tmpDir . 'tmp/';
-        App::uses('JSONConverterTool', 'Tools');
-        $converter = new JSONConverterTool();
-        $event = $converter->convert($data);
-        $tempFile = new File($tmpDir . $randomFileName, true, 0644);
-        $tempFile->write($event);
-        unset($event);
-        $scriptFile = $this->__tmpDir . 'stix2/misp2stix2.py';
-        $stix_cmd = 'python3 ' . $scriptFile . ' ' . $tempFile->path . ' org' . $this->end_of_cmd;
-        $result = shell_exec($stix_cmd);
-        $decoded = json_decode($result, true);
-        $tempFile->close();
-        $tempFile->delete();
-        if (!isset($decoded['success']) || !$decoded['success']) {
-            return '';
-        }
-        $file = new File($tmpDir . $randomFileName . '.out');
-        $stix_event = $file->read();
-        $file->close();
-        $file->delete();
-        return $stix_event;
+        $framing_file = $this->__scripts_dir . 'misp_framing.py ';
+        return 'python3 ' . $framing_file . $return_type . ' ' . escapeshellarg(CakeText::uuid()) . $this->__end_of_cmd;
     }
 
-    public function header()
+    protected function __parse_misp_events($filename)
     {
-        $framing_file = $this->__tmpDir . 'misp_framing.py ';
-        $framing_cmd = 'python3 ' . $framing_file . 'stix2 ' . escapeshellarg(CakeText::uuid()) . $this->end_of_cmd;
-        $this->framing = json_decode(shell_exec($framing_cmd), true);
-        return $this->framing['header'];
-    }
-
-    public function footer()
-    {
-        return $this->framing['footer'];
-    }
-
-    public function separator()
-    {
-        return $this->framing['separator'];
-    }
-
-    public function generateRandomFileName()
-    {
-        return (new RandomTool())->random_str(false, 12);
+        $scriptFile = $this->__scripts_dir . $this->__script_name;
+        $filename = $this->__scripts_dir . 'tmp/' . $filename;
+        return shell_exec('python3 ' . $scriptFile . ' ' . $filename . $this->__end_of_cmd);
     }
 }

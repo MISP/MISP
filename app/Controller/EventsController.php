@@ -3066,7 +3066,7 @@ class EventsController extends AppController
             'suricata' => array('txt', 'NidsSuricataExport'),
             'snort' => array('txt', 'NidsSnortExport'),
             'rpz' => array('rpz', 'RPZExport'),
-            'stix' => array('xml', 'StixExport'),
+            'stix' => array('xml', 'Stix1Export'),
             'stix2' => array('json', 'Stix2Export'),
             'text' => array('text', 'TextExport')
         );
