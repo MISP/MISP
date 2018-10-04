@@ -152,6 +152,17 @@ class Event extends AppModel
             ),
     );
 
+	public $validFormats = array(
+		'openioc' => array('xml', 'OpeniocExport', 'ioc'),
+		'json' => array('json', 'JsonExport', 'json'),
+		'xml' => array('xml', 'XmlExport', 'xml'),
+		'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
+		'snort' => array('txt', 'NidsSnortExport', 'rules'),
+		'rpz' => array('rpz', 'RPZExport', 'rpz'),
+		'text' => array('text', 'TextExport', 'txt'),
+		'csv' => array('csv', 'CsvExport', 'csv')
+	);
+
     public $csv_event_context_fields_to_fetch = array(
         'event_info' => array('object' => false, 'var' => 'info'),
         'event_member_org' => array('object' => 'Org', 'var' => 'name'),
@@ -5270,13 +5281,13 @@ class Event extends AppModel
 		}
 	}
 
-	public function restSearch($user, $validFormats, $returnFormat, $filters)
+	public function restSearch($user, $returnFormat, $filters)
 	{
-		if (!isset($validFormats[$returnFormat][1])) {
+		if (!isset($this->validFormats[$returnFormat][1])) {
 			throw new NotFoundException('Invalid output format.');
 		}
-		App::uses($validFormats[$returnFormat][1], 'Export');
-		$exportTool = new $validFormats[$returnFormat][1]();
+		App::uses($this->validFormats[$returnFormat][1], 'Export');
+		$exportTool = new $this->validFormats[$returnFormat][1]();
 
 		if (empty($exportTool->non_restrictive_export)) {
 			if (!isset($filters['to_ids'])) {
