@@ -3792,7 +3792,6 @@ class Event extends AppModel
         }
         $i = 0;
         $eventCount = count($event_ids);
-        $ORGs = ' ';
         if ($event_ids) {
             foreach ($event_ids as $event_id) {
                 $tempFile = new File($tmpDir . $randomFileName, true, 0644);
@@ -3809,13 +3808,10 @@ class Event extends AppModel
                 $event = $converter->convert($event[0]);
                 $tempFile->write($event);
                 unset($event);
-                $scriptFile = APP . $scriptDir . "stix2/misp2stix2.py";
-                $result = shell_exec('python3 ' . $scriptFile . ' ' . $tempFile->path . $ORGs . '2>' . APP . 'tmp/logs/exec-errors.log');
+                $scriptFile = APP . $scriptDir . "stix2/misp2stix2.py ";
+                $result = shell_exec('python3 ' . $scriptFile . $tempFile->path . ' 2>' . APP . 'tmp/logs/exec-errors.log');
                 $decoded = json_decode($result, true);
                 if (isset($decoded['success']) && $decoded['success'] == 1) {
-                    if (isset($decoded['org'])) {
-                        $ORGs = $ORGs . $decoded['org'] . ' ';
-                    }
                     $file = new File($tmpDir . $randomFileName . '.out', true, 0644);
                     $result = substr($file->read(), 1, -1);
                     $file->delete();
