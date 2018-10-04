@@ -1815,7 +1815,7 @@ class EventsController extends AppController
         }
         $this->Event->insertLock($this->Auth->user(), $target_id);
         if ($this->request->is('post')) {
-            $source_id = $this->request->data['Event']['source_id'];
+            $source_id = trim($this->request->data['Event']['source_id']);
             $to_ids = $this->request->data['Event']['to_ids'];
             if (!is_numeric($source_id)) {
                 $this->Flash->error(__('Invalid event ID entered.'));

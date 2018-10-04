@@ -3,8 +3,8 @@ $i = 0;
 $linkColour = ($scope == 'Attribute') ? 'red' : 'white';
 $count = count($event['Related' . $scope][$object['id']]);
 foreach ($event['Related' . $scope][$object['id']] as $relatedAttribute) {
-  if ($i == 4) {
-    $expandButton = __('Show ') . (count($event['Related' . $scope][$object['id']]) - 4) . __(' more...');
+  if ($i == 4 && $count > 5) {
+    $expandButton = __('Show ') . ($count - 4) . __(' more...');
     echo sprintf(
       '<li class="no-side-padding correlation-expand-button useCursorPointer linkButton %s">%s</li>',
       $linkColour,
@@ -28,15 +28,15 @@ foreach ($event['Related' . $scope][$object['id']] as $relatedAttribute) {
   );
   echo sprintf(
     '<li class="no-side-padding %s" %s data-toggle="popover" data-content="%s" data-trigger="hover">%s&nbsp;</li>',
-    ($i > 3) ? 'correlation-expanded-area' : '',
-    ($i > 3) ? 'style="display:none;"' : '',
+    ($i > 4 || $i == 4 && $count > 5) ? 'correlation-expanded-area' : '',
+    ($i > 4 || $i == 4 && $count > 5) ? 'style="display:none;"' : '',
     h($popover),
     $link
   );
 
   $i++;
 }
-if ($i > 4) {
+if ($i > 5) {
   echo sprintf(
     '<li class="no-side-padding correlation-collapse-button useCursorPointer linkButton %s" style="display:none;">%s</li>',
     $linkColour,
