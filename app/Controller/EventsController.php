@@ -2957,20 +2957,6 @@ class EventsController extends AppController
             'paramArray' => $paramArray,
             'ordered_url_params' => compact($paramArray)
         );
-<<<<<<< HEAD
-        $validFormats = array(
-            'openioc' => array('xml', 'OpeniocExport'),
-            'json' => array('json', 'JsonExport'),
-            'xml' => array('xml', 'XmlExport'),
-            'suricata' => array('txt', 'NidsSuricataExport'),
-            'snort' => array('txt', 'NidsSnortExport'),
-            'rpz' => array('rpz', 'RPZExport'),
-            'stix' => array('xml', 'Stix1Export'),
-            'stix2' => array('json', 'Stix2Export'),
-            'text' => array('text', 'TextExport')
-        );
-=======
->>>>>>> 92eb8a91ad0c507f97954350535ba87e16d73e23
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
         unset($filterData);
@@ -2988,98 +2974,8 @@ class EventsController extends AppController
 		if ($returnFormat === 'download') {
 			$returnFormat = 'json';
 		}
-<<<<<<< HEAD
-		if (!isset($validFormats[$returnFormat][1])) {
-			throw new NotFoundException('Invalid output format.');
-		}
-		App::uses($validFormats[$returnFormat][1], 'Export');
-		$exportTool = new $validFormats[$returnFormat][1]();
-
-		if (empty($exportTool->non_restrictive_export)) {
-			if (!isset($filters['to_ids'])) {
-				$filters['to_ids'] = 1;
-			}
-			if (!isset($filters['published'])) {
-				$filters['published'] = 1;
-			}
-		}
-		if (isset($filters['ignore'])) {
-			$filters['to_ids'] = array(0, 1);
-			$filters['published'] = array(0, 1);
-		}
-		if (isset($filters['searchall'])) {
-			$filters['tags'] = $filters['searchall'];
-			$filters['eventinfo'] = $filters['searchall'];
-			$filters['value'] = $filters['searchall'];
-			$filters['comment'] = $filters['searchall'];
-		}
-		if (!empty($filters['quickfilter']) && !empty($filters['value'])) {
-			$filters['tags'] = $filters['value'];
-			$filters['eventinfo'] = $filters['value'];
-			$filters['comment'] = $filters['value'];
-		}
-		$filters['include_attribute_count'] = 1;
-        $eventid = $this->Event->filterEventIds($user, $filters);
-		$eventids_chunked = $this->__clusterEventIds($exportTool, $eventid);
-		if (!empty($exportTool->additional_params)) {
-			$filters = array_merge($filters, $exportTool->additional_params);
-		}
-		$exportToolParams = array(
-			'user' => $this->Auth->user(),
-			'params' => array(),
-			'returnFormat' => $returnFormat,
-			'scope' => 'Event',
-			'filters' => $filters
-		);
-		if (empty($exportTool->non_restrictive_export)) {
-			if (!isset($filters['to_ids'])) {
-				$filters['to_ids'] = 1;
-			}
-			if (!isset($filters['published'])) {
-				$filters['published'] = 1;
-			}
-		}
-		$tmpfile = tmpfile();
-		fwrite($tmpfile, $exportTool->header($exportToolParams));
-        $eventCount = count($eventid);
-        $i = 0;
-		if (!empty($filters['withAttachments'])) {
-			$filters['includeAttachments'] = 1;
-		}
-        foreach ($eventids_chunked as $chunk_index => $chunk) {
-            $filters['eventid'] = $chunk;
-            if (!empty($filters['tags']['NOT'])) {
-                $filters['blockedAttributeTags'] = $filters['tags']['NOT'];
-            }
-            $result = $this->Event->fetchEvent(
-                $this->Auth->user(),
-                $filters,
-                true
-            );
-			if (!empty($result)) {
-				foreach ($result as $event) {
-	                $this->loadModel('Whitelist');
-	                $result = $this->Whitelist->removeWhitelistedFromArray($result, false);
-					$temp = $exportTool->handler($event, $exportToolParams);
-					if ($temp !== '') {
-						if ($i !== 0) {
-							$temp = $exportTool->separator($exportToolParams) . $temp;
-						}
-						fwrite($tmpfile, $temp);
-						$i++;
-					}
-				}
-            }
-        }
-		fwrite($tmpfile, $exportTool->footer($exportToolParams));
-		fseek($tmpfile, 0);
-		$final = fread($tmpfile, fstat($tmpfile)['size']);
-		fclose($tmpfile);
-		$responseType = $validFormats[$returnFormat][0];
-=======
 		$final = $this->Event->restSearch($user, $returnFormat, $filters);
 		$responseType = $this->Event->validFormats[$returnFormat][0];
->>>>>>> 92eb8a91ad0c507f97954350535ba87e16d73e23
 		return $this->RestResponse->viewData($final, $responseType, false, true);
     }
 
