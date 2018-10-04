@@ -219,18 +219,13 @@
                     ));
                     if ($menuItem == 'searchAttributes2') {
                         echo $this->element('/side_menu_divider');
-                        echo $this->element('/side_menu_link', array(
-                            'url' => '/events/downloadSearchResult.json',
-                            'text' => __('Download results as JSON')
-                        ));
-                        echo $this->element('/side_menu_link', array(
-                            'url' => '/events/downloadSearchResult.xml',
-                            'text' => __('Download results as XML')
-                        ));
-                        echo $this->element('/side_menu_link', array(
-                            'url' => '/events/csv/download/search',
-                            'text' => __('Download results as CSV')
-                        ));
+						echo $this->element('/side_menu_link', array(
+							'onClick' => array(
+								'function' => 'getPopup',
+								'params' => array(0, 'attributes', 'exportSearch')
+							),
+							'text' => __('Download as...')
+						));
                     }
                     echo $this->element('/side_menu_divider');
                     echo $this->element('/side_menu_link', array(
