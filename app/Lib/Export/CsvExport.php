@@ -6,6 +6,7 @@ class CsvExport
 	public $default_fields = array('uuid', 'event_id', 'category', 'type', 'value', 'comment', 'to_ids', 'timestamp', 'object_relation', 'attribute_tag');
 	public $default_obj_fields = array('object_uuid', 'object_name', 'object_meta-category');
 	public $requested_fields = array();
+	public $non_restrictive_export = true;
 
     public function handler($data, $options = array())
     {
