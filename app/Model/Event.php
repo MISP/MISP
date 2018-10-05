@@ -161,8 +161,8 @@ class Event extends AppModel
         'rpz' => array('rpz', 'RPZExport', 'rpz'),
         'text' => array('text', 'TextExport', 'txt'),
         'csv' => array('csv', 'CsvExport', 'csv'),
-        'stix' => array('stix', 'Stix1Export', 'xml'),
-        'stix2' => array('stix2', 'Stix2Export', 'json')
+        'stix' => array('xml', 'Stix1Export', 'xml'),
+        'stix2' => array('json', 'Stix2Export', 'json')
     );
 
     public $csv_event_context_fields_to_fetch = array(
