@@ -183,9 +183,9 @@ class StixBuilder(object):
         if self.json_event.get('response'):
             from misp_framing import stix_framing
             _, separator, _ = stix_framing(self.baseurl, self.orgname, self.return_type)
-            stix_packages = [getattr(self.generate_package(event), to_call)(**args) for event in self.json_event['response']]
+            stix_packages = [getattr(self.generate_package(event['Event']), to_call)(**args) for event in self.json_event['response']]
         else:
-            stix_packages = [getattr(self.generate_package(self.json_event), to_call)(**args)]
+            stix_packages = [getattr(self.generate_package(self.json_event['Event']), to_call)(**args)]
         if self.return_type == 'xml':
             stix_packages = [s.decode() for s in stix_packages]
             stix_packages = ['\n            '.join(s.split('\n')[:-1]).replace('stix:STIX_Package>', 'stix:Package>') for s in stix_packages]
@@ -196,7 +196,7 @@ class StixBuilder(object):
 
     def generate_package(self, event):
         self.objects_to_parse = defaultdict(dict)
-        self.misp_event = event['Event']
+        self.misp_event = event
         package_name = "{}:STIXPackage-{}".format(self.orgname, self.misp_event['uuid'])
         stix_package = STIXPackage(id_=package_name, timestamp=self.get_datetime_from_timestamp(self.misp_event['timestamp']))
         stix_package.version = "1.1.1"
