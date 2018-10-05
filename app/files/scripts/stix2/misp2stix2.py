@@ -88,6 +88,7 @@ class StixBuilder():
             identity = Identity(type="identity", id=identity_id,
                                 name=org["name"], identity_class="organization")
             self.SDOs.append(identity)
+            self.orgs.append(org_uuid)
             return 1
         return 0
 
