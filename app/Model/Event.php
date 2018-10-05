@@ -62,92 +62,89 @@ class Event extends AppModel
             'json' => array(
                     'extension' => '.json',
                     'type' => 'JSON',
-                    'requiresPublished' => 0,
-                    'canHaveAttachments' => true,
+					'scope' => 'Event',
+					'requiresPublished' => 0,
+					'params' => array('includeAttachments' => 1, 'ignore' => 1, 'returnFormat' => 'json'),
                     'description' => 'Click this to download all events and attributes that you have access to in MISP JSON format.',
             ),
             'xml' => array(
                     'extension' => '.xml',
                     'type' => 'XML',
+					'scope' => 'Event',
+					'params' => array('includeAttachments' => 1, 'ignore' => 1, 'returnFormat' => 'xml'),
                     'requiresPublished' => 0,
-                    'canHaveAttachments' => true,
                     'description' => 'Click this to download all events and attributes that you have access to in MISP XML format.',
             ),
             'csv_sig' => array(
                     'extension' => '.csv',
                     'type' => 'CSV_Sig',
-                    'requiresPublished' => 1,
-                    'canHaveAttachments' => false,
+					'scope' => 'Event',
+					'requiresPublished' => 1,
+					'params' => array('published' => 1, 'to_ids' => 1, 'returnFormat' => 'csv'),
                     'description' => 'Click this to download all attributes that are indicators and that you have access to <small>(except file attachments)</small> in CSV format.',
             ),
             'csv_all' => array(
                     'extension' => '.csv',
                     'type' => 'CSV_All',
-                    'requiresPublished' => 0,
-                    'canHaveAttachments' => false,
-                    'description' => 'Click this to download all attributes that you have access to <small>(except file attachments)</small> in CSV format.',
+					'scope' => 'Event',
+					'requiresPublished' => 0,
+					'params' => array('ignore' => 1, 'returnFormat' => 'csv'),
+					'description' => 'Click this to download all attributes that you have access to <small>(except file attachments)</small> in CSV format.',
             ),
             'suricata' => array(
                     'extension' => '.rules',
                     'type' => 'Suricata',
-                    'requiresPublished' => 1,
-                    'canHaveAttachments' => false,
+					'scope' => 'Attribute',
+					'requiresPublished' => 1,
+					'params' => array('returnFormat' => 'suricata'),
                     'description' => 'Click this to download all network related attributes that you have access to under the Suricata rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
             ),
             'snort' => array(
                     'extension' => '.rules',
                     'type' => 'Snort',
-                    'requiresPublished' => 1,
-                    'canHaveAttachments' => false,
+					'scope' => 'Attribute',
+					'requiresPublished' => 1,
+					'params' => array('returnFormat' => 'snort'),
                     'description' => 'Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
             ),
             'bro' => array(
                     'extension' => '.intel',
                     'type' => 'Bro',
-                    'requiresPublished' => 1,
-                    'canHaveAttachments' => false,
+					'scope' => 'Attribute',
+					'requiresPublished' => 1,
+					'params' => array('returnFormat' => 'bro'),
                     'description' => 'Click this to download all network related attributes that you have access to under the Bro rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
             ),
             'stix' => array(
                     'extension' => '.xml',
                     'type' => 'STIX',
-                    'requiresPublished' => 1,
-                    'canHaveAttachments' => true,
+					'scope' => 'Event',
+					'requiresPublished' => 1,
+					'params' => array('returnFormat' => 'stix', 'includeAttachments' => 1),
                     'description' => 'Click this to download an a STIX document containing the STIX version of all events and attributes that you have access to.'
             ),
+			'stix2' => array(
+					'extension' => '.json',
+					'type' => 'STIX2',
+					'scope' => 'Event',
+					'requiresPublished' => 1,
+					'params' => array('returnFormat' => 'stix2', 'includeAttachments' => 1),
+					'description' => 'Click this to download an a STIX2 document containing the STIX2 version of all events and attributes that you have access to.'
+			),
             'rpz' => array(
                     'extension' => '.txt',
                     'type' => 'RPZ',
-                    'requiresPublished' => 1,
-                    'canHaveAttachments' => false,
+					'scope' => 'Attribute',
+					'requiresPublished' => 1,
+                    'params' => array('returnFormat' => 'rpz'),
                     'description' => 'Click this to download an RPZ Zone file generated from all ip-src/ip-dst, hostname, domain attributes. This can be useful for DNS level firewalling. Only published events and attributes marked as IDS Signature are exported.'
-            ),
-            'md5' => array(
-                    'extension' => '.txt',
-                    'type' => 'MD5',
-                    'requiresPublished' => 1,
-                    'canHaveAttachments' => false,
-                    'description' => 'Click on one of these two buttons to download all MD5 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.',
-            ),
-            'sha1' => array(
-                    'extension' => '.txt',
-                    'type' => 'SHA1',
-                    'requiresPublished' => 1,
-                    'canHaveAttachments' => false,
-                    'description' => 'Click on one of these two buttons to download all SHA1 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.',
-            ),
-            'sha256' => array(
-                    'extension' => '.txt',
-                    'type' => 'SHA256',
-                    'requiresPublished' => 1,
-                    'canHaveAttachments' => false,
-                    'description' => 'Click on one of these two buttons to download all SHA256 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.',
             ),
             'text' => array(
                     'extension' => '.txt',
                     'type' => 'TEXT',
-                    'requiresPublished' => 1,
-                    'canHaveAttachments' => false,
+					'scope' => 'Attribute',
+					'requiresPublished' => 1,
+                    'params' => array('returnFormat' => 'text', 'includeAttachments' => 1),
                     'description' => 'Click on one of the buttons below to download all the attributes with the matching type. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.'
             ),
     );
@@ -5281,13 +5278,18 @@ class Event extends AppModel
 		}
 	}
 
-	public function restSearch($user, $returnFormat, $filters)
+	public function restSearch($user, $returnFormat, $filters, $paramsOnly = false, $jobId = false)
 	{
 		if (!isset($this->validFormats[$returnFormat][1])) {
 			throw new NotFoundException('Invalid output format.');
 		}
 		App::uses($this->validFormats[$returnFormat][1], 'Export');
 		$exportTool = new $this->validFormats[$returnFormat][1]();
+
+		if ($jobId) {
+			$this->Job = ClassRegistry::init('Job');
+			$this->Job->id = $jobId;
+		}
 
 		if (empty($exportTool->non_restrictive_export)) {
 			if (!isset($filters['to_ids'])) {
@@ -5314,7 +5316,9 @@ class Event extends AppModel
 		}
 		$filters['include_attribute_count'] = 1;
         $eventid = $this->filterEventIds($user, $filters);
+        $eventCount = count($eventid);
 		$eventids_chunked = $this->__clusterEventIds($exportTool, $eventid);
+		unset($eventid);
 		if (!empty($exportTool->additional_params)) {
 			$filters = array_merge($filters, $exportTool->additional_params);
 		}
@@ -5335,7 +5339,6 @@ class Event extends AppModel
 		}
 		$tmpfile = tmpfile();
 		fwrite($tmpfile, $exportTool->header($exportToolParams));
-        $eventCount = count($eventid);
         $i = 0;
 		if (!empty($filters['withAttachments'])) {
 			$filters['includeAttachments'] = 1;
@@ -5353,6 +5356,10 @@ class Event extends AppModel
             );
 			if (!empty($result)) {
 				foreach ($result as $event) {
+					if ($jobId && $i%10 == 0) {
+						$this->Job->saveField('progress', intval((100 * $i) / $eventCount));
+						$this->Job->saveField('message', 'Converting Event ' . $i . '/' . $eventCount . '.');
+					}
 	                $result = $this->Whitelist->removeWhitelistedFromArray($result, false);
 					$temp = $exportTool->handler($event, $exportToolParams);
 					if ($temp !== '') {
