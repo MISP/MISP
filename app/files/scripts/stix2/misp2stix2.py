@@ -61,6 +61,15 @@ class StixBuilder():
         print(json.dumps(self.to_return))
 
     def eventReport(self):
+        if not self.object_refs and self.links:
+            self.add_custom(self.links.pop(0))
+        for link in self.links:
+            url = link['value']
+            source = "url"
+            if link.get('comment'):
+                source += " - {}".format(attribute['comment'])
+            external_ref = {'source_name': source, 'url': url}
+            self.external_refs.append(external_ref)
         report_args = {'type': 'report', 'id': self.report_id, 'name': self.misp_event['info'],
                        'created_by_ref': self.identity_id, 'created': self.misp_event['date'],
                        'published': self.get_datetime_from_timestamp(self.misp_event['publish_timestamp']),
@@ -105,6 +114,7 @@ class StixBuilder():
         self.SDOs = []
         self.object_refs = []
         self.external_refs = []
+        self.links = []
         self.relationships = defaultdict(list)
         i = self.__set_identity()
         if self.misp_event.get('Attribute'):
@@ -248,15 +258,7 @@ class StixBuilder():
             self.add_object_custom(misp_object, to_ids)
 
     def handle_link(self, attribute):
-        url = attribute['value']
-        source = "url"
-        try:
-            if attribute.get('comment'):
-                source += " - {}".format(attribute['comment'])
-        except AttributeError:
-            pass
-        link = {'source_name': source, 'url': url}
-        self.external_refs.append(link)
+        self.links.append(attribute)
 
     def populate_objects_to_parse(self, misp_object, to_ids):
         self.objects_to_parse[misp_object['name']][misp_object['uuid']] = to_ids, misp_object
