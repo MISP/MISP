@@ -5130,9 +5130,9 @@ class Event extends AppModel
 						// If Tags, attache each tags to attribut
 						if (!empty($attribute['tags'])) {
 							foreach (explode(",", $attribute['tags']) as $tagName) {
-								$this->loadModel('Tag');
+								$this->Tag = ClassRegistry::init('Tag');
 								$TagId = $this->Tag->captureTag(array('name' => $tagName), array('Role' => $user['Role']));
-								$this->loadModel('AttributeTag');
+								$this->AttributeTag = ClassRegistry::init('AttributeTag');
 								if (!$this->AttributeTag->attachTagToAttribute($AttributSave['Attribute']['id'], $id, $TagId)) {
 									throw new MethodNotAllowedException(__('Could not add tags.'));
 								}
