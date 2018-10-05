@@ -4,7 +4,8 @@ class StixExport
 {
     protected $__scripts_dir = APP . 'files/scripts/';
     protected $__end_of_cmd = ' 2>' . APP . 'tmp/logs/exec-errors.log';
-    
+    protected $__return_type = null;
+
     private $__tmp_dir = null;
     private $__framing = null;
     private $__stix_file = null;
@@ -46,7 +47,8 @@ class StixExport
 
     public function header($options = array())
     {
-        $framing_cmd = $this->initiate_framing_params($options['returnFormat']);
+        $this->__return_type = $options['returnFormat'];
+        $framing_cmd = $this->initiate_framing_params();
         $randomFileName = $this->generateRandomFileName();
         $this->__tmp_dir = $this->__scripts_dir . 'tmp/';
         $this->__framing = json_decode(shell_exec($framing_cmd), true);
@@ -67,7 +69,7 @@ class StixExport
                 return '';
             }
             $file = new File($this->__tmp_dir . $filename . '.out');
-            $stix_event = $file->read();
+            $stix_event = ($this->__return_type == 'stix') ? $file->read() : substr($file->read(), 1, -1);
             $file->close();
             $file->delete();
             unlink($this->__tmp_dir . $filename);

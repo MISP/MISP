@@ -7,10 +7,10 @@ class Stix2Export extends StixExport
     protected $__attributes_limit = 15000;
     private $__script_name = 'stix2/misp2stix2.py ';
 
-    protected function initiate_framing_params($return_type)
+    protected function initiate_framing_params()
     {
         $framing_file = $this->__scripts_dir . 'misp_framing.py ';
-        return 'python3 ' . $framing_file . $return_type . ' ' . escapeshellarg(CakeText::uuid()) . $this->__end_of_cmd;
+        return 'python3 ' . $framing_file . $this->__return_type . ' ' . escapeshellarg(CakeText::uuid()) . $this->__end_of_cmd;
     }
 
     protected function __parse_misp_events($filename)
