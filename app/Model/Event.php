@@ -3818,7 +3818,7 @@ class Event extends AppModel
                 $event = $converter->convert($event[0]);
                 $tempFile->write($event);
                 unset($event);
-                $scriptFile = APP . $scriptDir . "stix2/misp2stix2.py ";
+                $scriptFile = $scriptDir . "stix2/misp2stix2.py ";
                 $result = shell_exec('python3 ' . $scriptFile . $tempFile->path . ' 2>' . APP . 'tmp/logs/exec-errors.log');
                 $decoded = json_decode($result, true);
                 if (isset($decoded['success']) && $decoded['success'] == 1) {
