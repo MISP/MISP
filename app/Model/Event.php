@@ -152,16 +152,18 @@ class Event extends AppModel
             ),
     );
 
-	public $validFormats = array(
-		'openioc' => array('xml', 'OpeniocExport', 'ioc'),
-		'json' => array('json', 'JsonExport', 'json'),
-		'xml' => array('xml', 'XmlExport', 'xml'),
-		'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
-		'snort' => array('txt', 'NidsSnortExport', 'rules'),
-		'rpz' => array('rpz', 'RPZExport', 'rpz'),
-		'text' => array('text', 'TextExport', 'txt'),
-		'csv' => array('csv', 'CsvExport', 'csv')
-	);
+    public $validFormats = array(
+        'openioc' => array('xml', 'OpeniocExport', 'ioc'),
+        'json' => array('json', 'JsonExport', 'json'),
+        'xml' => array('xml', 'XmlExport', 'xml'),
+        'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
+        'snort' => array('txt', 'NidsSnortExport', 'rules'),
+        'rpz' => array('rpz', 'RPZExport', 'rpz'),
+        'text' => array('text', 'TextExport', 'txt'),
+        'csv' => array('csv', 'CsvExport', 'csv'),
+        'stix' => array('stix', 'Stix1Export', 'xml'),
+        'stix2' => array('stix2', 'Stix2Export', 'json')
+    );
 
     public $csv_event_context_fields_to_fetch = array(
         'event_info' => array('object' => false, 'var' => 'info'),
