@@ -3720,7 +3720,7 @@ class Attribute extends AppModel
 		return $conditions;
 	}
 
-	public function restSearch($user, $returnFormat, $filters, $paramsOnly = false)
+	public function restSearch($user, $returnFormat, $filters, $paramsOnly = false, $jobId = false)
 	{
 		if (!isset($this->validFormats[$returnFormat][1])) {
 			throw new NotFoundException('Invalid output format.');
