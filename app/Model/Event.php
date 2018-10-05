@@ -62,94 +62,104 @@ class Event extends AppModel
             'json' => array(
                     'extension' => '.json',
                     'type' => 'JSON',
-                    'requiresPublished' => 0,
-                    'canHaveAttachments' => true,
+					'scope' => 'Event',
+					'requiresPublished' => 0,
+					'params' => array('includeAttachments' => 1, 'ignore' => 1, 'returnFormat' => 'json'),
                     'description' => 'Click this to download all events and attributes that you have access to in MISP JSON format.',
             ),
             'xml' => array(
                     'extension' => '.xml',
                     'type' => 'XML',
+					'scope' => 'Event',
+					'params' => array('includeAttachments' => 1, 'ignore' => 1, 'returnFormat' => 'xml'),
                     'requiresPublished' => 0,
-                    'canHaveAttachments' => true,
                     'description' => 'Click this to download all events and attributes that you have access to in MISP XML format.',
             ),
             'csv_sig' => array(
                     'extension' => '.csv',
                     'type' => 'CSV_Sig',
-                    'requiresPublished' => 1,
-                    'canHaveAttachments' => false,
+					'scope' => 'Event',
+					'requiresPublished' => 1,
+					'params' => array('published' => 1, 'to_ids' => 1, 'returnFormat' => 'csv'),
                     'description' => 'Click this to download all attributes that are indicators and that you have access to <small>(except file attachments)</small> in CSV format.',
             ),
             'csv_all' => array(
                     'extension' => '.csv',
                     'type' => 'CSV_All',
-                    'requiresPublished' => 0,
-                    'canHaveAttachments' => false,
-                    'description' => 'Click this to download all attributes that you have access to <small>(except file attachments)</small> in CSV format.',
+					'scope' => 'Event',
+					'requiresPublished' => 0,
+					'params' => array('ignore' => 1, 'returnFormat' => 'csv'),
+					'description' => 'Click this to download all attributes that you have access to <small>(except file attachments)</small> in CSV format.',
             ),
             'suricata' => array(
                     'extension' => '.rules',
                     'type' => 'Suricata',
-                    'requiresPublished' => 1,
-                    'canHaveAttachments' => false,
+					'scope' => 'Attribute',
+					'requiresPublished' => 1,
+					'params' => array('returnFormat' => 'suricata'),
                     'description' => 'Click this to download all network related attributes that you have access to under the Suricata rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
             ),
             'snort' => array(
                     'extension' => '.rules',
                     'type' => 'Snort',
-                    'requiresPublished' => 1,
-                    'canHaveAttachments' => false,
+					'scope' => 'Attribute',
+					'requiresPublished' => 1,
+					'params' => array('returnFormat' => 'snort'),
                     'description' => 'Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
             ),
             'bro' => array(
                     'extension' => '.intel',
                     'type' => 'Bro',
-                    'requiresPublished' => 1,
-                    'canHaveAttachments' => false,
+					'scope' => 'Attribute',
+					'requiresPublished' => 1,
+					'params' => array('returnFormat' => 'bro'),
                     'description' => 'Click this to download all network related attributes that you have access to under the Bro rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
             ),
             'stix' => array(
                     'extension' => '.xml',
                     'type' => 'STIX',
-                    'requiresPublished' => 1,
-                    'canHaveAttachments' => true,
+					'scope' => 'Event',
+					'requiresPublished' => 1,
+					'params' => array('returnFormat' => 'stix', 'includeAttachments' => 1),
                     'description' => 'Click this to download an a STIX document containing the STIX version of all events and attributes that you have access to.'
             ),
+			'stix2' => array(
+					'extension' => '.json',
+					'type' => 'STIX2',
+					'scope' => 'Event',
+					'requiresPublished' => 1,
+					'params' => array('returnFormat' => 'stix2', 'includeAttachments' => 1),
+					'description' => 'Click this to download an a STIX2 document containing the STIX2 version of all events and attributes that you have access to.'
+			),
             'rpz' => array(
                     'extension' => '.txt',
                     'type' => 'RPZ',
-                    'requiresPublished' => 1,
-                    'canHaveAttachments' => false,
+					'scope' => 'Attribute',
+					'requiresPublished' => 1,
+                    'params' => array('returnFormat' => 'rpz'),
                     'description' => 'Click this to download an RPZ Zone file generated from all ip-src/ip-dst, hostname, domain attributes. This can be useful for DNS level firewalling. Only published events and attributes marked as IDS Signature are exported.'
-            ),
-            'md5' => array(
-                    'extension' => '.txt',
-                    'type' => 'MD5',
-                    'requiresPublished' => 1,
-                    'canHaveAttachments' => false,
-                    'description' => 'Click on one of these two buttons to download all MD5 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.',
-            ),
-            'sha1' => array(
-                    'extension' => '.txt',
-                    'type' => 'SHA1',
-                    'requiresPublished' => 1,
-                    'canHaveAttachments' => false,
-                    'description' => 'Click on one of these two buttons to download all SHA1 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.',
-            ),
-            'sha256' => array(
-                    'extension' => '.txt',
-                    'type' => 'SHA256',
-                    'requiresPublished' => 1,
-                    'canHaveAttachments' => false,
-                    'description' => 'Click on one of these two buttons to download all SHA256 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.',
             ),
             'text' => array(
                     'extension' => '.txt',
                     'type' => 'TEXT',
-                    'requiresPublished' => 1,
-                    'canHaveAttachments' => false,
+					'scope' => 'Attribute',
+					'requiresPublished' => 1,
+                    'params' => array('returnFormat' => 'text', 'includeAttachments' => 1),
                     'description' => 'Click on one of the buttons below to download all the attributes with the matching type. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.'
             ),
+    );
+
+    public $validFormats = array(
+        'openioc' => array('xml', 'OpeniocExport', 'ioc'),
+        'json' => array('json', 'JsonExport', 'json'),
+        'xml' => array('xml', 'XmlExport', 'xml'),
+        'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
+        'snort' => array('txt', 'NidsSnortExport', 'rules'),
+        'rpz' => array('rpz', 'RPZExport', 'rpz'),
+        'text' => array('text', 'TextExport', 'txt'),
+        'csv' => array('csv', 'CsvExport', 'csv'),
+        'stix' => array('xml', 'Stix1Export', 'xml'),
+        'stix2' => array('json', 'Stix2Export', 'json')
     );
 
     public $csv_event_context_fields_to_fetch = array(
@@ -705,7 +715,7 @@ class Event extends AppModel
         $relatedEvents = $this->find(
             'all',
             array('conditions' => $conditions,
-                'recursive' => 0,
+                'recursive' => -1,
                 'order' => 'Event.date DESC',
                 'fields' => $fields,
                 'contain' => array(
@@ -1297,21 +1307,6 @@ class Event extends AppModel
     public function filterEventIds($user, &$params = array())
     {
         $conditions = $this->createEventConditions($user);
-		if (isset($params['ignore'])) {
-			$params['to_ids'] = array(0, 1);
-			$params['published'] = array(0, 1);
-		}
-		if (isset($params['searchall'])) {
-			$params['tags'] = $params['searchall'];
-			$params['eventinfo'] = $params['searchall'];
-			$params['value'] = $params['searchall'];
-			$params['comment'] = $params['searchall'];
-		}
-		if (!empty($params['quickfilter']) && !empty($params['value'])) {
-			$params['tags'] = $params['value'];
-			$params['eventinfo'] = $params['value'];
-			$params['comment'] = $params['value'];
-		}
         $simple_params = array(
             'Event' => array(
                 'eventid' => array('function' => 'set_filter_eventid', 'pop' => true),
@@ -1370,11 +1365,22 @@ class Event extends AppModel
                 }
             }
         }
-        $results = array_values($this->find('list', array(
-            'conditions' => $conditions,
+		$fields = array('Event.id');
+		if (!empty($params['include_attribute_count'])) {
+			$fields[] = 'Event.attribute_count';
+		}
+		$find_params = array(
+			'conditions' => $conditions,
             'recursive' => -1,
-            'fields' => array('Event.id')
-        )));
+            'fields' => $fields
+		);
+		if (isset($params['limit'])) {
+			$find_params['limit'] = $params['limit'];
+			if (isset($params['page'])) {
+				$find_params['page'] = $params['page'];
+			}
+		}
+        $results = $this->find('list', $find_params);
         return $results;
     }
 
@@ -1674,16 +1680,14 @@ class Event extends AppModel
                 'ThreatLevel' => array(
                         'fields' => array('ThreatLevel.name')
                 ),
-                'Org' => array('fields' => $fieldsOrg),
-                'Orgc' => array('fields' => $fieldsOrg),
                 'Attribute' => array(
                     'fields' => $fieldsAtt,
                     'conditions' => $conditionsAttributes,
-                    'order' => false,
-                    'AttributeTag' => array(
-                        'Tag' => array('conditions' => $tagConditions, 'order' => false),
-                        'order' => false
-                    ),
+					'AttributeTag' => array(
+						'Tag' => array('conditions' => $tagConditions, 'order' => false),
+						'order' => false
+					),
+                    'order' => false
                 ),
                 'Object' => array(
                     'fields' => $fieldsObj,
@@ -1700,10 +1704,10 @@ class Event extends AppModel
                     'Org' => array('fields' => $fieldsOrg),
                     'order' => false
                 ),
-                'EventTag' => array(
-                    'Tag' => array('conditions' => $tagConditions, 'order' => false),
-                    'order' => false
-                )
+				'EventTag' => array(
+					'Tag' => array('conditions' => $tagConditions, 'order' => false),
+					'order' => false
+                 )
             )
         );
         if ($flatten) {
@@ -1720,7 +1724,6 @@ class Event extends AppModel
         if (empty($results)) {
             return array();
         }
-
         // Do some refactoring with the event
         $this->Sighting = ClassRegistry::init('Sighting');
         $userEmails = array();
@@ -1730,29 +1733,8 @@ class Event extends AppModel
             'Object' => array('name', 'meta-category')
         );
         foreach ($results as $eventKey => &$event) {
-            if (!empty($event['Object'])) {
-                foreach ($event['Object'] as $k => $object) {
-                    if (!empty($object['ObjectReference'])) {
-                        foreach ($object['ObjectReference'] as $k2 => $reference) {
-                            $type = array('Attribute', 'Object')[$reference['referenced_type']];
-                            $temp = $this->{$type}->find('first', array(
-                                'recursive' => -1,
-                                'fields' => array_merge($fields['common'], $fields[array('Attribute', 'Object')[$reference['referenced_type']]]),
-                                'conditions' => array('id' => $reference['referenced_id'])
-                            ));
-                            if (!empty($temp)) {
-                                if (!$isSiteAdmin && $user['org_id'] != $event['Event']['orgc_id']) {
-                                    if ($temp[$type]['distribution'] == 0 || ($temp[$type]['distribution'] == 4 && !in_array($temp[$type]['sharing_group_id'], $sgsids))) {
-                                        unset($object['ObjectReference'][$k2]);
-                                        continue;
-                                    }
-                                }
-                                $event['Object'][$k]['ObjectReference'][$k2][$type] = $temp[$type];
-                            }
-                        }
-                    }
-                }
-            }
+			$this->__attachReferences($user, $event, $sgids, $fields);
+			$event = $this->Orgc->attachOrgsToEvent($event, $fieldsOrg);
             if (!$options['sgReferenceOnly'] && $event['Event']['sharing_group_id']) {
                 $event['SharingGroup'] = $sharingGroupData[$event['Event']['sharing_group_id']]['SharingGroup'];
             }
@@ -1767,8 +1749,10 @@ class Event extends AppModel
             // Let's find all the related events and attach it to the event itself
             $results[$eventKey]['RelatedEvent'] = $this->getRelatedEvents($user, $event['Event']['id'], $sgids);
             // Let's also find all the relations for the attributes - this won't be in the xml export though
-            $results[$eventKey]['RelatedAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgids);
-            $results[$eventKey]['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgids, true);
+            if (!empty($options['includeGranularCorrelations'])) {
+				$results[$eventKey]['RelatedAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgids);
+				$results[$eventKey]['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgids, true);
+			}
             if (isset($event['ShadowAttribute']) && !empty($event['ShadowAttribute']) && isset($options['includeAttachments']) && $options['includeAttachments']) {
                 foreach ($event['ShadowAttribute'] as $k => $sa) {
                     if ($this->ShadowAttribute->typeIsAttachment($sa['type'])) {
@@ -3799,15 +3783,15 @@ class Event extends AppModel
             $event_ids = array_intersect($event_ids, $idList);
         }
         $randomFileName = $this->generateRandomFileName();
-        $tmpDir = APP . "files" . DS . "scripts";
-        $stix2_framing_cmd = 'python3 ' . $tmpDir . DS . 'misp_framing.py stix2 ' . escapeshellarg(CakeText::uuid()) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
+        $scriptDir = APP . "files/scripts/";
+        $stix2_framing_cmd = 'python3 ' . $scriptDir . 'misp_framing.py stix2 ' . escapeshellarg(CakeText::uuid()) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
         $stix2_framing = json_decode(shell_exec($stix2_framing_cmd), true);
         if (empty($stix2_framing)) {
             return array('success' => 0, 'message' => 'There was an issue generating the STIX 2.0 export.');
         }
         $separator = $stix2_framing['separator'];
-        $tmpDir = $tmpDir . DS . "tmp";
-        $stixFile = new File($tmpDir . DS . $randomFileName . ".stix");
+        $tmpDir = $scriptDir . "tmp/";
+        $stixFile = new File($tmpDir . $randomFileName . ".stix");
         $stixFile->write($stix2_framing['header']);
         if ($jobId) {
             $this->Job = ClassRegistry::init('Job');
@@ -3818,10 +3802,9 @@ class Event extends AppModel
         }
         $i = 0;
         $eventCount = count($event_ids);
-        $ORGs = ' ';
         if ($event_ids) {
             foreach ($event_ids as $event_id) {
-                $tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
+                $tempFile = new File($tmpDir . $randomFileName, true, 0644);
                 $event = $this->fetchEvent($user, array('eventid' => $event_id, 'includeAttachments' => 1));
                 if (empty($event)) {
                     continue;
@@ -3835,14 +3818,11 @@ class Event extends AppModel
                 $event = $converter->convert($event[0]);
                 $tempFile->write($event);
                 unset($event);
-                $scriptFile = APP . "files" . DS . "scripts" . DS . "stix2" . DS . "misp2stix2.py";
-                $result = shell_exec('python3 ' . $scriptFile . ' ' . $tempFile->path . $ORGs . '2>' . APP . 'tmp/logs/exec-errors.log');
+                $scriptFile = $scriptDir . "stix2/misp2stix2.py ";
+                $result = shell_exec('python3 ' . $scriptFile . $tempFile->path . ' 2>' . APP . 'tmp/logs/exec-errors.log');
                 $decoded = json_decode($result, true);
                 if (isset($decoded['success']) && $decoded['success'] == 1) {
-                    if (isset($decoded['org'])) {
-                        $ORGs = $ORGs . $decoded['org'] . ' ';
-                    }
-                    $file = new File($tmpDir . DS . $randomFileName . '.out', true, 0644);
+                    $file = new File($tmpDir . $randomFileName . '.out', true, 0644);
                     $result = substr($file->read(), 1, -1);
                     $file->delete();
                     $stixFile->append($result . (($i + 1) != $eventCount ? $separator : ''));
@@ -3935,16 +3915,7 @@ class Event extends AppModel
                     return array('success' => 0, 'message' => $decoded['message']);
                 }
                 $file = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName . ".out");
-                if ($returnType == 'xml') {
-                    $stix_event = '            ' . substr($file->read(), 0, -1);
-                    $stix_event = explode("\n", $stix_event);
-                    $stix_event[0] = str_replace("STIX_Package", "Package", $stix_event[0]);
-                    $stix_event[count($stix_event)-1] = str_replace("STIX_Package", "Package", $stix_event[count($stix_event)-1]);
-                    $stix_event = implode("\n", $stix_event);
-                    $stix_event = str_replace("\n", "\n            ", $stix_event) . "\n";
-                } else {
-                    $stix_event = $file->read();
-                }
+                $stix_event = $file->read();
                 if (($i + 1) != $eventCount) {
                     $stix_event .= $separator;
                 }
@@ -5159,9 +5130,9 @@ class Event extends AppModel
 						// If Tags, attache each tags to attribut
 						if (!empty($attribute['tags'])) {
 							foreach (explode(",", $attribute['tags']) as $tagName) {
-								$this->loadModel('Tag');
+								$this->Tag = ClassRegistry::init('Tag');
 								$TagId = $this->Tag->captureTag(array('name' => $tagName), array('Role' => $user['Role']));
-								$this->loadModel('AttributeTag');
+								$this->AttributeTag = ClassRegistry::init('AttributeTag');
 								if (!$this->AttributeTag->attachTagToAttribute($AttributSave['Attribute']['id'], $id, $TagId)) {
 									throw new MethodNotAllowedException(__('Could not add tags.'));
 								}
@@ -5267,5 +5238,173 @@ class Event extends AppModel
 		} else {
 			return ($this->processFreeTextData($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false));
 		}
+	}
+
+	private function __attachReferences($user, &$event, $sgids, $fields)
+	{
+		if (!empty($event['Object'])) {
+			foreach ($event['Object'] as $k => $object) {
+				if (!empty($object['ObjectReference'])) {
+					foreach ($object['ObjectReference'] as $k2 => $reference) {
+						$type = array('Attribute', 'Object')[$reference['referenced_type']];
+						$temp = $this->{$type}->find('first', array(
+							'recursive' => -1,
+							'fields' => array_merge($fields['common'], $fields[array('Attribute', 'Object')[$reference['referenced_type']]]),
+							'conditions' => array('id' => $reference['referenced_id'])
+						));
+						if (!empty($temp)) {
+							if (!$user['Role']['perm_site_admin'] && $user['org_id'] != $event['Event']['orgc_id']) {
+								if ($temp[$type]['distribution'] == 0 || ($temp[$type]['distribution'] == 4 && !in_array($temp[$type]['sharing_group_id'], $sgsids))) {
+									unset($object['ObjectReference'][$k2]);
+									continue;
+								}
+							}
+							$event['Object'][$k]['ObjectReference'][$k2][$type] = $temp[$type];
+						}
+					}
+				}
+			}
+		}
+	}
+
+	public function restSearch($user, $returnFormat, $filters, $paramsOnly = false, $jobId = false)
+	{
+		if (!isset($this->validFormats[$returnFormat][1])) {
+			throw new NotFoundException('Invalid output format.');
+		}
+		App::uses($this->validFormats[$returnFormat][1], 'Export');
+		$exportTool = new $this->validFormats[$returnFormat][1]();
+
+		if ($jobId) {
+			$this->Job = ClassRegistry::init('Job');
+			$this->Job->id = $jobId;
+		}
+
+		if (empty($exportTool->non_restrictive_export)) {
+			if (!isset($filters['to_ids'])) {
+				$filters['to_ids'] = 1;
+			}
+			if (!isset($filters['published'])) {
+				$filters['published'] = 1;
+			}
+		}
+		if (isset($filters['ignore'])) {
+			$filters['to_ids'] = array(0, 1);
+			$filters['published'] = array(0, 1);
+		}
+		if (isset($filters['searchall'])) {
+			$filters['tags'] = $filters['searchall'];
+			$filters['eventinfo'] = $filters['searchall'];
+			$filters['value'] = $filters['searchall'];
+			$filters['comment'] = $filters['searchall'];
+		}
+		if (!empty($filters['quickfilter']) && !empty($filters['value'])) {
+			$filters['tags'] = $filters['value'];
+			$filters['eventinfo'] = $filters['value'];
+			$filters['comment'] = $filters['value'];
+		}
+		$filters['include_attribute_count'] = 1;
+        $eventid = $this->filterEventIds($user, $filters);
+        $eventCount = count($eventid);
+		$eventids_chunked = $this->__clusterEventIds($exportTool, $eventid);
+		unset($eventid);
+		if (!empty($exportTool->additional_params)) {
+			$filters = array_merge($filters, $exportTool->additional_params);
+		}
+		$exportToolParams = array(
+			'user' => $user,
+			'params' => array(),
+			'returnFormat' => $returnFormat,
+			'scope' => 'Event',
+			'filters' => $filters
+		);
+		if (empty($exportTool->non_restrictive_export)) {
+			if (!isset($filters['to_ids'])) {
+				$filters['to_ids'] = 1;
+			}
+			if (!isset($filters['published'])) {
+				$filters['published'] = 1;
+			}
+		}
+		$tmpfile = tmpfile();
+		fwrite($tmpfile, $exportTool->header($exportToolParams));
+        $i = 0;
+		if (!empty($filters['withAttachments'])) {
+			$filters['includeAttachments'] = 1;
+		}
+		$this->Whitelist = ClassRegistry::init('Whitelist');
+        foreach ($eventids_chunked as $chunk_index => $chunk) {
+            $filters['eventid'] = $chunk;
+            if (!empty($filters['tags']['NOT'])) {
+              $filters['blockedAttributeTags'] = $filters['tags']['NOT'];
+            }
+            $result = $this->fetchEvent(
+                $user,
+                $filters,
+                true
+            );
+			if (!empty($result)) {
+				foreach ($result as $event) {
+					if ($jobId && $i%10 == 0) {
+						$this->Job->saveField('progress', intval((100 * $i) / $eventCount));
+						$this->Job->saveField('message', 'Converting Event ' . $i . '/' . $eventCount . '.');
+					}
+	                $result = $this->Whitelist->removeWhitelistedFromArray($result, false);
+					$temp = $exportTool->handler($event, $exportToolParams);
+					if ($temp !== '') {
+						if ($i !== 0) {
+							$temp = $exportTool->separator($exportToolParams) . $temp;
+						}
+						fwrite($tmpfile, $temp);
+						$i++;
+					}
+				}
+            }
+        }
+		unset($result);
+		unset($temp);
+		fwrite($tmpfile, $exportTool->footer($exportToolParams));
+		fseek($tmpfile, 0);
+		$final = fread($tmpfile, fstat($tmpfile)['size']);
+		fclose($tmpfile);
+		return $final;
+	}
+
+	/*
+	 *  Receive a list of eventids in the id=>count format
+	 *  Chunk them by the attribute count to fit the memory limits
+	 *
+	 */
+	private function __clusterEventIds($exportTool, $eventIds)
+	{
+		$memory_in_mb = $this->Attribute->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
+		$memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : 100;
+		$limit = $memory_in_mb * $memory_scaling_factor;
+		$eventIdList = array();
+		$continue = true;
+		$i = 0;
+		$current_chunk_size = 0;
+		while (!empty($eventIds)) {
+			foreach ($eventIds as $id => $count) {
+				if ($current_chunk_size == 0 && $count > $limit) {
+					$eventIdList[$i][] = $id;
+					$current_chunk_size = $count;
+					unset($eventIds[$id]);
+					$i++;
+					break;
+				} else {
+					if (($current_chunk_size + $count) > $limit) {
+						$i++;
+						$current_chunk_size = 0;
+						break;
+					} else {
+						$current_chunk_size += $count;
+						$eventIdList[$i][] = $id;
+						unset($eventIds[$id]);
+					}
+				}
+			}
+		}
+		return $eventIdList;
 	}
 }

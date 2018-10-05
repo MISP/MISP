@@ -996,6 +996,7 @@ class EventsController extends AppController
         }
         $conditions['includeFeedCorrelations'] = true;
         $conditions['includeAllTags'] = true;
+		$conditions['includeGranularCorrelations'] = 1;
         $results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
         if (empty($results)) {
             throw new NotFoundException(__('Invalid event'));
@@ -1146,6 +1147,7 @@ class EventsController extends AppController
         }
         $this->set('sightingTypes', $this->Sighting->type);
         $this->set('currentUri', $this->params->here);
+		$this->layout = false;
         $this->render('/Elements/eventattribute');
     }
 
@@ -1382,6 +1384,9 @@ class EventsController extends AppController
             $this->set('extended', 0);
         }
         $conditions['includeFeedCorrelations'] = true;
+		if (!$this->_isRest()) {
+			$conditions['includeGranularCorrelations'] = 1;
+		}
         $results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
         if (empty($results)) {
             throw new NotFoundException(__('Invalid event'));
@@ -1810,7 +1815,7 @@ class EventsController extends AppController
         }
         $this->Event->insertLock($this->Auth->user(), $target_id);
         if ($this->request->is('post')) {
-            $source_id = $this->request->data['Event']['source_id'];
+            $source_id = trim($this->request->data['Event']['source_id']);
             $to_ids = $this->request->data['Event']['to_ids'];
             if (!is_numeric($source_id)) {
                 $this->Flash->error(__('Invalid event ID entered.'));
@@ -2678,7 +2683,7 @@ class EventsController extends AppController
         return new CakeResponse(array('body'=> implode(PHP_EOL, $rules), 'status' => 200, 'type' => 'txt'));
     }
 
-    // csv function
+    // csv function ***DEPRECATED***
     // Usage: csv($key, $eventid)   - key can be a valid auth key or the string 'download'. Download requires the user to be logged in interactively and will generate a .csv file
     // $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
     // $ignore is a flag that allows the export tool to ignore the ids flag. 0 = only IDS signatures, 1 = everything.
@@ -2692,8 +2697,8 @@ class EventsController extends AppController
             'ordered_url_params' => compact($paramArray)
         );
         $exception = false;
-        $params = $this->_harvestParameters($filterData, $exception);
-        if ($params === false) {
+        $filters = $this->_harvestParameters($filterData, $exception);
+        if ($filters === false) {
             return $exception;
         }
         $list = array();
@@ -2701,6 +2706,7 @@ class EventsController extends AppController
         if ($user === false) {
             return $exception;
         }
+		$final = $this->Event->restSearch($user, 'csv', $filters);
         // if it's a search, grab the attributeIDList from the session and get the IDs from it. Use those as the condition
         // We don't need to look out for permissions since that's filtered by the search itself
         // We just want all the attributes found by the search
@@ -2729,75 +2735,8 @@ class EventsController extends AppController
                 $list[] = $attribute['Attribute']['id'];
             }
         }
-        $final = array();
-        $requested_attributes = array('uuid', 'event_id', 'category', 'type',
-                                'value', 'comment', 'to_ids', 'timestamp', 'object_relation');
-        $requested_obj_attributes = array('uuid', 'name', 'meta-category');
-        if ($includeContext) {
-            $requested_attributes[] = 'attribute_tag';
-        }
-        if (isset($this->params['url']['attributes'])) {
-            if (!isset($this->params['url']['obj_attributes'])) {
-                $requested_obj_attributes = array();
-            }
-            $requested_attributes = explode(',', $this->params['url']['attributes']);
-        }
-        if (isset($this->params['url']['obj_attributes'])) {
-            $requested_obj_attributes = explode(',', $this->params['url']['obj_attributes']);
-        }
-        if (isset($data['request']['attributes'])) {
-            if (!isset($data['request']['obj_attributes'])) {
-                $requested_obj_attributes = array();
-            }
-            $requested_attributes = $data['request']['attributes'];
-        }
-        if (isset($data['request']['obj_attributes'])) {
-            $requested_obj_attributes = $data['request']['obj_attributes'];
-        }
-        $possibleParams = array(
-            'ignore', 'list', 'category', 'type', 'includeContext',
-            'enforceWarninglist', 'value', 'timestamp', 'tags',
-            'last', 'from', 'to'
-        );
-        if (isset($params['eventid']) && $params['eventid'] == 'all') {
-            unset($params['eventid']);
-        }
-        foreach ($possibleParams as $possibleParam) {
-            if (isset($params[$possibleParam])) {
-                $params[$possibleParam] = $params[$possibleParam];
-            }
-        }
-        $params['limit'] = 1000;
-        $params['page'] = 1;
-        $i = 0;
-        $continue = true;
-        $params = array_merge($params, array(
-            'requested_obj_attributes' => $requested_obj_attributes,
-            'requested_attributes' => $requested_attributes,
-            'includeContext' => $includeContext
-        ));
-        App::uses('CsvExport', 'Export');
-        $export = new CsvExport();
-        $final = $export->header($params);
-        while ($continue) {
-            $attributes = $this->Event->csv($user, $params, false, $continue);
-            $params['page'] += 1;
-            $final .= $export->handler($attributes, $params);
-            $final .= $export->separator($attributes);
-        }
-        $export->footer();
-        $this->response->type('csv');	// set the content type
-        if (empty($params['eventid'])) {
-            $filename = "misp.filtered_attributes.csv";
-        } elseif ($params['eventid'] === 'search') {
-            $filename = "misp.search_result.csv";
-        } else {
-            if (is_array($params['eventid'])) {
-                $params['eventid'] = 'list';
-            }
-            $filename = "misp.event_" . $params['eventid'] . ".csv";
-        }
-        return $this->RestResponse->viewData($final, 'csv', false, true, $filename);
+        $responseType = 'csv';
+        return $this->RestResponse->viewData($final, $responseType, false, true, 'download.csv');
     }
 
     public function _addIOCFile($id)
@@ -3018,15 +2957,6 @@ class EventsController extends AppController
             'paramArray' => $paramArray,
             'ordered_url_params' => compact($paramArray)
         );
-		$validFormats = array(
-			'openioc' => array('xml', 'OpeniocExport'),
-			'json' => array('json', 'JsonExport'),
-			'xml' => array('xml', 'XmlExport'),
-			'suricata' => array('txt', 'NidsSuricataExport'),
-			'snort' => array('txt', 'NidsSnortExport'),
-			'rpz' => array('rpz', 'RPZExport'),
-			'text' => array('text', 'TextExport')
-		);
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
         unset($filterData);
@@ -3044,70 +2974,8 @@ class EventsController extends AppController
 		if ($returnFormat === 'download') {
 			$returnFormat = 'json';
 		}
-		if (!isset($validFormats[$returnFormat][1])) {
-			throw new NotFoundException('Invalid output format.');
-		}
-		App::uses($validFormats[$returnFormat][1], 'Export');
-		$exportTool = new $validFormats[$returnFormat][1]();
-
-		if (empty($exportTool->non_restrictive_export)) {
-			if (!isset($filters['to_ids'])) {
-				$filters['to_ids'] = 1;
-			}
-			if (!isset($filters['published'])) {
-				$filters['published'] = 1;
-			}
-		}
-        $eventid = $this->Event->filterEventIds($user, $filters);
-		if (!empty($exportTool->additional_params)) {
-			$filters = array_merge($filters, $exportTool->additional_params);
-		}
-		$exportToolParams = array(
-			'user' => $this->Auth->user(),
-			'params' => array(),
-			'returnFormat' => $returnFormat,
-			'scope' => 'Event',
-			'filters' => $filters
-		);
-		if (empty($exportTool->non_restrictive_export)) {
-			if (!isset($filters['to_ids'])) {
-				$filters['to_ids'] = 1;
-			}
-			if (!isset($filters['published'])) {
-				$filters['published'] = 1;
-			}
-		}
-		$final = $exportTool->header($exportToolParams);
-        $eventCount = count($eventid);
-        $i = 0;
-		if (!empty($filters['withAttachments'])) {
-			$filters['includeAttachments'] = 1;
-		}
-        foreach ($eventid as $k => $currentEventId) {
-            $filters['eventid'] = $currentEventId;
-            if (!empty($filters['tags']['NOT'])) {
-              $filters['blockedAttributeTags'] = $filters['tags']['NOT'];
-            }
-            $result = $this->Event->fetchEvent(
-                $this->Auth->user(),
-                $filters,
-                true
-            );
-            if (!empty($result)) {
-                $this->loadModel('Whitelist');
-                $result = $this->Whitelist->removeWhitelistedFromArray($result, false);
-				$temp = $exportTool->handler($result[0], $exportToolParams);
-				if ($temp !== '') {
-					if ($k !== 0) {
-						$final .= $exportTool->separator($exportToolParams);
-					}
-	            	$final .= $temp;
-				}
-                $i++;
-            }
-        }
-		$final .= $exportTool->footer($exportToolParams);
-		$responseType = $validFormats[$returnFormat][0];
+		$final = $this->Event->restSearch($user, $returnFormat, $filters);
+		$responseType = $this->Event->validFormats[$returnFormat][0];
 		return $this->RestResponse->viewData($final, $responseType, false, true);
     }
 
@@ -4369,7 +4237,10 @@ class EventsController extends AppController
 
     public function viewGraph($id)
     {
-        $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
+        $event = $this->Event->fetchEvent($this->Auth->user(), array(
+			'eventid' => $id,
+			'includeGranularCorrelations' => 1
+		));
         if (empty($event)) {
             throw new MethodNotAllowedException(__('Invalid Event.'));
         }
@@ -4379,10 +4250,11 @@ class EventsController extends AppController
         $this->set('id', $id);
     }
 
-
     public function viewEventGraph()
     {
-        $event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
+        $event = $this->Event->fetchEvent($this->Auth->user(), array(
+			'eventid' => $id
+		));
         if (empty($event)) {
             throw new MethodNotAllowedException(__('Invalid Event.'));
         }
