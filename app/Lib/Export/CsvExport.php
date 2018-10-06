@@ -86,7 +86,7 @@ class CsvExport
 	private function __escapeCSVField(&$field)
 	{
 		if (is_bool($field)) {
-			return ($field ? 'true' : 'false');
+			return ($field ? '1' : '0');
 		}
 		if (is_numeric($field)) {
 			return $field;
