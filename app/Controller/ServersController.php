@@ -1652,6 +1652,7 @@ class ServersController extends AppController
 		if (!empty($request['skip_ssl_validation'])) {
 			$params['ssl_verify_peer'] = false;
 		}
+		$params['timeout'] = 300;
         App::uses('HttpSocket', 'Network/Http');
         $HttpSocket = new HttpSocket($params);
         $view_data = array();

@@ -187,15 +187,17 @@ class SharingGroup extends AppModel
 					));
 				}
 				$sg['Organisation'] = $this->__sgoCache[$sg['SharingGroup']['org_id']];
-				foreach ($sg['SharingGroupOrg'] as &$sgo) {
-					if (!isset($this->__sgoCache[$sgo['org_id']])) {
-						$this->__sgoCache[$sgo['org_id']] = $this->Organisation->find('first', array(
-							'recursive' => -1,
-							'fields' => $fieldsOrg,
-							'conditions' => array('id' => $sgo['org_id'])
-						));
+				if (!empty($sg['SharingGroupOrg'])) {
+					foreach ($sg['SharingGroupOrg'] as &$sgo) {
+						if (!isset($this->__sgoCache[$sgo['org_id']])) {
+							$this->__sgoCache[$sgo['org_id']] = $this->Organisation->find('first', array(
+								'recursive' => -1,
+								'fields' => $fieldsOrg,
+								'conditions' => array('id' => $sgo['org_id'])
+							));
+						}
+						$sgo['Organisation'] = $this->__sgoCache[$sgo['org_id']];
 					}
-					$sgo['Organisation'] = $this->__sgoCache[$sgo['org_id']];
 				}
 			}
             return $sgs;

@@ -17,6 +17,8 @@
 			),
 			'parameters' => array(
 				"returnFormat" => __('Set the return format of the search (Currently supported: json, xml, openioc, suricata, snort - more formats are being moved to restSearch with the goal being that all searches happen through this API). Can be passed as the first parameter after restSearch or via the JSON payload.'),
+				"limit" => __('Limit the number of results returned, depending on the scope (for example 10 attributes or 10 full events).'),
+				"page" => __('If a limit is set, sets the page to be returned. page 3, limit 100 will return records 201->300).'),
 				"value" => __('Search for the given value in the attributes\' value field.'),
 				"type" => __('The attribute type, any valid MISP attribute type is accepted.'),
 				"category" => __('The attribute category, any valid MISP attribute category is accepted.'),
@@ -40,7 +42,9 @@
 				"event_timestamp" => __('Only return attributes from events that have received a modification after the given timestamp.'),
 				"sgReferenceOnly" => __('If this flag is set, sharing group objects will not be included, instead only the sharing group ID is set.'),
 				"eventinfo" => __("Filter on the event's info field."),
-				"searchall" => __("Search for a full or a substring (delimited by % for substrings) in the event info, event tags, attribute tags, attribute values or attribute comment fields.")
+				"searchall" => __("Search for a full or a substring (delimited by % for substrings) in the event info, event tags, attribute tags, attribute values or attribute comment fields."),
+				"requested_attributes" => __("CSV only, select the fields that you wish to include in the CSV export. By setting event level fields additionally, includeContext is not required to get event metadata."),
+				"includeContext" => __("CSV only, add additional event level data to the export. The additional fields can be added via requested_attributes too with more granularity.")
 			),
 			'url' => array(
 				$baseurl . '/attributes/restSearch',
