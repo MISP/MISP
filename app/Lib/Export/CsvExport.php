@@ -2,7 +2,7 @@
 
 class CsvExport
 {
-	public $event_context_fields = array('event_info', 'event_member_org', 'event_source_org', 'event_distribution', 'event_threat_level_id', 'event_analysis', 'event_date', 'event_tag');
+	public $event_context_fields = array('event_info', 'event_member_org', 'event_source_org', 'event_distribution', 'event_threat_level_id', 'event_analysis', 'event_date', 'event_tag', 'event_timestamp');
 	public $default_fields = array('uuid', 'event_id', 'category', 'type', 'value', 'comment', 'to_ids', 'timestamp', 'object_relation', 'attribute_tag');
 	public $default_obj_fields = array('object_uuid', 'object_name', 'object_meta-category');
 	public $requested_fields = array();
@@ -113,6 +113,7 @@ class CsvExport
 		$attribute['event_threat_level_id'] = $attribute_raw['Event']['ThreatLevel']['name'];
 		$attribute['event_analysis'] = $attribute_raw['Event']['analysis'];
 		$attribute['event_date'] = $attribute_raw['Event']['date'];
+		$attribute['event_timestamp'] = $attribute_raw['Event']['timestamp'];
 		if (!empty($attribute_raw['EventTag'])) {
 			$tags = array();
 			foreach ($attribute_raw['EventTag'] as $et) {
@@ -140,6 +141,7 @@ class CsvExport
 		$attribute['event_threat_level_id'] = $event['ThreatLevel']['name'];
 		$attribute['event_analysis'] = $event['Event']['analysis'];
 		$attribute['event_date'] = $event['Event']['date'];
+		$attribute['event_timestamp'] = $event['Event']['timestamp'];
 		if (!empty($event['EventTag'])) {
 			$tags = array();
 			foreach ($event['EventTag'] as $et) {
