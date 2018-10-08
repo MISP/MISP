@@ -1,0 +1,17 @@
+[Unit]
+Description=misp-workers
+After=network.target apache2.service
+
+[Service]
+Type=forking
+KillMode=none
+User=www-data
+Group=misp-server
+ExecStart=/bin/bash -c "/opt/misp-server/misp/app/Console/worker/start.sh"
+ExecStop=/bin/bash -c "/opt/misp-server/misp/app/Console/cake CakeResque.CakeResque stop --all"
+WorkingDirectory=%h
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+
