@@ -2121,11 +2121,6 @@ class Attribute extends AppModel
                 $temp,
                 $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field)
             );
-			if (!empty($params['searchall'])) {
-            	$conditions['AND']['OR'][] = array('OR' => $temp);
-			} else {
-				$conditions['AND'][] = array('OR' => $temp);
-			}
         }
         $temp = array();
         if (!empty($tagArray[1])) {
@@ -3667,53 +3662,64 @@ class Attribute extends AppModel
 	public function buildFilterConditions($user, &$params)
 	{
 		$conditions = $this->buildConditions($user);
-		$attribute_conditions = array();
-		$object_conditions = array();
-		if (isset($params['ignore'])) {
-			$params['to_ids'] = array(0, 1);
-			$params['published'] = array(0, 1);
-		}
-		$simple_params = array(
-			'Attribute' => array(
-				'value' => array('function' => 'set_filter_value'),
-				'category' => array('function' => 'set_filter_simple_attribute'),
-				'type' => array('function' => 'set_filter_simple_attribute'),
-				'tags' => array('function' => 'set_filter_tags'),
-				'uuid' => array('function' => 'set_filter_uuid'),
-				'deleted' => array('function' => 'set_filter_deleted'),
-				'timestamp' => array('function' => 'set_filter_timestamp'),
-				'to_ids' => array('function' => 'set_filter_to_ids'),
-				'comment' => array('function' => 'set_filter_comment')
-			),
-			'Event' => array(
-				'eventid' => array('function' => 'set_filter_eventid'),
-				'eventinfo' => array('function' => 'set_filter_eventinfo'),
-				'ignore' => array('function' => 'set_filter_ignore'),
-				'from' => array('function' => 'set_filter_timestamp'),
-				'to' => array('function' => 'set_filter_timestamp'),
-				'last' => array('function' => 'set_filter_timestamp', 'pop' => true),
-				'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
-				'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
-				'publish_timestamp' => array('function' => 'set_filter_timestamp'),
-				'org' => array('function' => 'set_filter_org'),
-				'uuid' => array('function' => 'set_filter_uuid'),
-				'published' => array('function' => 'set_filter_published')
-			),
-			'Object' => array(
-				'object_name' => array('function' => 'set_filter_object_name'),
-				'deleted' => array('function' => 'set_filter_deleted')
-			)
-		);
-		foreach ($params as $param => $paramData) {
-			foreach ($simple_params as $scope => $simple_param_scoped) {
-				if (isset($simple_param_scoped[$param]) && $params[$param] !== false) {
-					$options = array(
-						'filter' => $param,
-						'scope' => $scope,
-						'pop' => !empty($simple_param_scoped[$param]['pop']),
-						'context' => 'Attribute'
-					);
-					$conditions = $this->Event->{$simple_param_scoped[$param]['function']}($params, $conditions, $options);
+		if (isset($params['wildcard'])) {
+			$temp = array();
+			$options = array(
+				'filter' => 'wildcard',
+				'scope' => 'Attribute',
+				'pop' => false,
+				'context' => 'Event'
+			);
+			$conditions['AND'][] = array('OR' => $this->Event->set_filter_wildcard_attributes($params, $temp, $options));
+		} else {
+			$attribute_conditions = array();
+			$object_conditions = array();
+			if (isset($params['ignore'])) {
+				$params['to_ids'] = array(0, 1);
+				$params['published'] = array(0, 1);
+			}
+			$simple_params = array(
+				'Attribute' => array(
+					'value' => array('function' => 'set_filter_value'),
+					'category' => array('function' => 'set_filter_simple_attribute'),
+					'type' => array('function' => 'set_filter_simple_attribute'),
+					'tags' => array('function' => 'set_filter_tags'),
+					'uuid' => array('function' => 'set_filter_uuid'),
+					'deleted' => array('function' => 'set_filter_deleted'),
+					'timestamp' => array('function' => 'set_filter_timestamp'),
+					'to_ids' => array('function' => 'set_filter_to_ids'),
+					'comment' => array('function' => 'set_filter_comment')
+				),
+				'Event' => array(
+					'eventid' => array('function' => 'set_filter_eventid'),
+					'eventinfo' => array('function' => 'set_filter_eventinfo'),
+					'ignore' => array('function' => 'set_filter_ignore'),
+					'from' => array('function' => 'set_filter_timestamp'),
+					'to' => array('function' => 'set_filter_timestamp'),
+					'last' => array('function' => 'set_filter_timestamp', 'pop' => true),
+					'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
+					'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
+					'publish_timestamp' => array('function' => 'set_filter_timestamp'),
+					'org' => array('function' => 'set_filter_org'),
+					'uuid' => array('function' => 'set_filter_uuid'),
+					'published' => array('function' => 'set_filter_published')
+				),
+				'Object' => array(
+					'object_name' => array('function' => 'set_filter_object_name'),
+					'deleted' => array('function' => 'set_filter_deleted')
+				)
+			);
+			foreach ($params as $param => $paramData) {
+				foreach ($simple_params as $scope => $simple_param_scoped) {
+					if (isset($simple_param_scoped[$param]) && $params[$param] !== false) {
+						$options = array(
+							'filter' => $param,
+							'scope' => $scope,
+							'pop' => !empty($simple_param_scoped[$param]['pop']),
+							'context' => 'Attribute'
+						);
+						$conditions = $this->Event->{$simple_param_scoped[$param]['function']}($params, $conditions, $options);
+					}
 				}
 			}
 		}
@@ -3733,6 +3739,20 @@ class Attribute extends AppModel
 			}
 			if (!isset($filters['published'])) {
 				$filters['published'] = 1;
+			}
+		}
+		if (!empty($filters['quickFilter'])) {
+			$filters['searchall'] = $filters['quickFilter'];
+			if (!empty($filters['value'])) {
+				unset($filters['value']);
+			}
+		}
+		if (isset($filters['searchall'])) {
+			if (!empty($filters['value'])) {
+				$filters['wildcard'] = $filters['value'];
+				unset($filters['value']);
+			} else {
+				$filters['wildcard'] = $filters['searchall'];
 			}
 		}
 		$conditions = $this->buildFilterConditions($user, $filters);

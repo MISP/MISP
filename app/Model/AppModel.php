@@ -1673,7 +1673,7 @@ class AppModel extends Model
     }
 
     // take filters in the {"OR" => [foo], "NOT" => [bar]} format along with conditions and set the conditions
-    public function generic_add_filter($conditions, &$filter, $keys, $searchall = false)
+    public function generic_add_filter($conditions, &$filter, $keys)
     {
         $operator_composition = array(
             'NOT' => 'AND',
@@ -1711,11 +1711,7 @@ class AppModel extends Model
                     }
                 }
             }
-			if ($searchall && $operator === 'OR') {
-				$conditions['AND']['OR'][] = array($operator_composition[$operator] => $temp);
-			} else {
-            	$conditions['AND'][] = array($operator_composition[$operator] => $temp);
-			}
+        	$conditions['AND'][] = array($operator_composition[$operator] => $temp);
             if ($operator !== 'NOT') {
                 unset($filter[$operator]);
             }
