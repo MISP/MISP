@@ -203,6 +203,12 @@ class StixParser():
                                    'value': value.dst_port, 'to_ids': False})
         return attributes
 
+    def attributes_from_observable_x509(self, objects):
+        _object = objects['0']
+        attributes = self.fill_observable_attributes(_object.hashes, x509_mapping) if (hasattr(_object, 'hashes') and _object.hashes) else []
+        attributes.extend(self.fill_observable_attributes(_object, x509_mapping))
+        return attributes
+
     @staticmethod
     def extract_data_from_file(objects):
         data = None
@@ -293,7 +299,7 @@ class StixFromMISPParser(StixParser):
                                 'registry-key': {'observable': self.attributes_from_observable_regkey, 'pattern': pattern_regkey},
                                 'url': {'observable': self.attributes_from_observable_url, 'pattern': pattern_url},
                                 'WindowsPEBinaryFile': {'observable': self.observable_pe, 'pattern': self.pattern_pe},
-                                'x509': {'observable': observable_x509, 'pattern': pattern_x509}}
+                                'x509': {'observable': self.attributes_from_observable_x509, 'pattern': pattern_x509}}
         self.object_from_refs = {'course-of-action': self.parse_MISP_course_of_action, 'vulnerability': self.parse_vulnerability,
                                  'x-misp-object': self.parse_custom}
         self.object_from_refs.update(dict.fromkeys(list(galaxy_types.keys()), self.parse_galaxy))
@@ -682,6 +688,7 @@ class ExternalStixParser(StixParser):
                                  ('ipv6-addr', 'network-traffic'): self.parse_observable_ip_network_traffic,
                                  ('mac-addr',): self.parse_observable_mac_address,
                                  ('mutex',): self.parse_observable_mutex,
+                                 ('x509-certificate',): self.parse_observable_x509,
                                  ('url',): self.parse_observable_url,
                                  ('windows-registry-key',): self.parse_observable_regkey}
 
@@ -843,6 +850,10 @@ class ExternalStixParser(StixParser):
     def parse_observable_url_object(self, objects, uuid):
         attributes = self.attributes_from_observable_url(objects)
         self.handle_import_case(attributes, 'url', uuid)
+
+    def parse_observable_x509(self, objects, uuid):
+        attributes = self.attributes_from_observable_x509(objects)
+        self.handle_import_case(attributes, 'x509', uuid)
 
     ################################################################################
     ##                             UTILITY FUNCTIONS.                             ##

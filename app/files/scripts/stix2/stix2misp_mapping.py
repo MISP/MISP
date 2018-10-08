@@ -442,15 +442,6 @@ def pattern_socket(pattern):
 def pattern_url(pattern):
     return fill_pattern_attributes(pattern, url_mapping)
 
-def observable_x509(observable):
-    attributes = []
-    observable = dict(observable['0'])
-    if 'hashes' in observable:
-        hashes = observable.pop('hashes')
-        fill_observable_attributes(attributes, hashes, x509_mapping)
-    fill_observable_attributes(attributes, observable, x509_mapping)
-    return attributes
-
 def pattern_x509(pattern):
     return fill_pattern_attributes(pattern, x509_mapping)
 
