@@ -129,8 +129,10 @@ class StixBuilder():
             misp_objects = self.misp_event['Object']
             self.object_references, self.processes = self.fetch_object_references(misp_objects)
             for misp_object in misp_objects:
-                to_ids = self.fetch_ids_flag(misp_object['Attribute'])
                 name = misp_object['name']
+                if name == 'original-imported-file':
+                    continue
+                to_ids = self.fetch_ids_flag(misp_object['Attribute'])
                 try:
                     getattr(self, objectsMapping[name]['to_call'])(misp_object, to_ids)
                 except KeyError:
