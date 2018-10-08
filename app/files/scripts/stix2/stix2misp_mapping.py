@@ -439,23 +439,6 @@ def pattern_socket(pattern):
                            'value': p_value})
     return attributes
 
-def observable_url(observable):
-    attributes = []
-    for o in observable:
-        observable_part = observable[o]
-        part_type = observable_part._type
-        try:
-            mapping = url_mapping[part_type]
-        except KeyError:
-            continue
-        try:
-            value = observable_part['value']
-        except KeyError:
-            value = observable_part['dst_port']
-        attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                           'value': value})
-    return attributes
-
 def pattern_url(pattern):
     return fill_pattern_attributes(pattern, url_mapping)
 

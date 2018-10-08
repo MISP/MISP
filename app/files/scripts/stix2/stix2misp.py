@@ -190,6 +190,20 @@ class StixParser():
         return attributes
 
     @staticmethod
+    def attributes_from_observable_url(objects):
+        attributes = []
+        for value in objects.values():
+            if isinstance(value, (stix2.URL, stix2.DomainName)):
+                mapping = url_mapping[value._type]
+                attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                                   'value': value.value, 'to_ids': False})
+            elif isinstance(value, stix2.NetworkTraffic):
+                mapping = url_mapping[value._type]
+                attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                                   'value': value.dst_port, 'to_ids': False})
+        return attributes
+
+    @staticmethod
     def extract_data_from_file(objects):
         data = None
         for value in objects.values():
@@ -277,7 +291,7 @@ class StixFromMISPParser(StixParser):
                                 'network-socket': {'observable': observable_socket, 'pattern': pattern_socket},
                                 'process': {'observable': observable_process, 'pattern': pattern_process},
                                 'registry-key': {'observable': self.attributes_from_observable_regkey, 'pattern': pattern_regkey},
-                                'url': {'observable': observable_url, 'pattern': pattern_url},
+                                'url': {'observable': self.attributes_from_observable_url, 'pattern': pattern_url},
                                 'WindowsPEBinaryFile': {'observable': self.observable_pe, 'pattern': self.pattern_pe},
                                 'x509': {'observable': observable_x509, 'pattern': pattern_x509}}
         self.object_from_refs = {'course-of-action': self.parse_MISP_course_of_action, 'vulnerability': self.parse_vulnerability,
@@ -659,12 +673,14 @@ class ExternalStixParser(StixParser):
                                  ('domain-name',): self.parse_observable_domain_ip,
                                  ('domain-name', 'ipv4-addr'): self.parse_observable_domain_ip,
                                  ('domain-name', 'ipv6-addr'): self.parse_observable_domain_ip,
+                                 ('domain-name', 'network-traffic', 'url'): self.parse_observable_url_object,
                                  ('email-addr', 'email-message'): self.parse_observable_email,
                                  ('email-addr', 'email-message', 'file'): self.parse_observable_email,
                                  ('email-message',): self.parse_observable_email,
                                  ('file',): self.parse_observable_file,
                                  ('ipv4-addr', 'network-traffic'): self.parse_observable_ip_network_traffic,
                                  ('ipv6-addr', 'network-traffic'): self.parse_observable_ip_network_traffic,
+                                 ('url',): self.parse_observable_url,
                                  ('windows-registry-key',): self.parse_observable_regkey}
 
     def handler(self):
@@ -811,6 +827,14 @@ class ExternalStixParser(StixParser):
         _object = objects['0']
         attributes = self.attributes_from_observable_regkey(_object)
         self.handle_import_case(attributes, 'registry-key', uuid)
+
+    def parse_observable_url(self, objects, uuid):
+        _object = objects['0']
+        self.misp_event.add_attribute(**{'type': 'url', 'value': _object.value, 'uuid': uuid, 'to_ids': False})
+
+    def parse_observable_url_object(self, objects, uuid):
+        attributes = self.attributes_from_observable_url(objects)
+        self.handle_import_case(attributes, 'url', uuid)
 
     ################################################################################
     ##                             UTILITY FUNCTIONS.                             ##
