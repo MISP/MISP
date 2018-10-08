@@ -681,6 +681,7 @@ class ExternalStixParser(StixParser):
                                  ('ipv4-addr', 'network-traffic'): self.parse_observable_ip_network_traffic,
                                  ('ipv6-addr', 'network-traffic'): self.parse_observable_ip_network_traffic,
                                  ('mac-addr',): self.parse_observable_mac_address,
+                                 ('mutex',): self.parse_observable_mutex,
                                  ('url',): self.parse_observable_url,
                                  ('windows-registry-key',): self.parse_observable_regkey}
 
@@ -826,6 +827,9 @@ class ExternalStixParser(StixParser):
 
     def parse_observable_mac_address(self, objects, uuid):
         self.misp_event.add_attribute(**{'type': 'mac-address', 'value': objects['0'].value, 'uuid': uuid, 'to_ids': False})
+
+    def parse_observable_mutex(self, objects, uuid):
+        self.misp_event.add_attribute(**{'type': 'mutex', 'value': objects['0'].name, 'uuid': uuid, 'to_ids': False})
 
     def parse_observable_regkey(self, objects, uuid):
         _object = objects['0']
