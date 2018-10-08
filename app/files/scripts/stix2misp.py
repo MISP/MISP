@@ -200,7 +200,7 @@ class StixParser():
         self.dictTimestampAndDate()
         self.eventInfo()
         if self.event.indicators:
-            self.parse_external_indicator(self.event.indicators)
+            self.parse_external_indicators(self.event.indicators)
         if self.event.observables:
             self.parse_external_observable(self.event.observables.observables)
         if self.event.ttps:
@@ -856,24 +856,32 @@ class StixParser():
             self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=to_ids)
 
     # Parse indicators of an external STIX document
-    def parse_external_indicator(self, indicators):
+    def parse_external_indicators(self, indicators):
         for indicator in indicators:
-            try:
-                properties = indicator.observable.object_.properties
-            except AttributeError:
-                self.parse_description(indicator)
-                continue
-            if properties:
-                attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
-                if isinstance(attribute_value, (str, int)):
-                    # if the returned value is a simple value, we build an attribute
-                    attribute = {'to_ids': True}
-                    if indicator.timestamp:
-                        attribute['timestamp'] = self.getTimestampfromDate(indicator.timestamp)
-                    self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
-                else:
-                    # otherwise, it is a dictionary of attributes, so we build an object
-                    self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=True)
+            self.parse_external_single_indicator(indicator)
+
+    def parse_external_single_indicator(self, indicator):
+        if hasattr(indicator, 'observable') and indicator.observable:
+            observable = indicator.observable
+            if hasattr(observable, 'object_') and observable.object_:
+                try:
+                    properties = observable.object_.properties
+                    if properties:
+                        attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
+                        if isinstance(attribute_value, (str, int)):
+                            # if the returned value is a simple value, we build an attribute
+                            attribute = {'to_ids': True}
+                            if indicator.timestamp:
+                                attribute['timestamp'] = self.getTimestampfromDate(indicator.timestamp)
+                            self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
+                        else:
+                            # otherwise, it is a dictionary of attributes, so we build an object
+                            self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=True)
+                except AttributeError:
+                    self.parse_description(indicator)
+        if hasattr(indicator, 'related_indicators') and indicator.related_indicators:
+            for related_indicator in indicator.related_indicators:
+                self.parse_external_single_indicator(related_indicator.item)
 
     # Parse observables of an external STIX document
     def parse_external_observable(self, observables):
