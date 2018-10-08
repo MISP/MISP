@@ -415,7 +415,9 @@ class StixParser():
         if len(custom_properties) > 1:
             for prop in custom_properties[:-1]:
                 misp_attribute = {'type': 'text', 'value': prop.value, 'comment': prop.name}
-                self.misp_event.add_attribute(MISPAttribute(**misp_attribute))
+                self.misp_event.add_attribute(**misp_attribute)
+        to_return = custom_properties[-1]
+        return 'text', to_return.value, to_return.name
 
 
     # Return type & attributes of a dns object
@@ -931,6 +933,8 @@ class StixParser():
     def handle_attribute_case(self, attribute_type, attribute_value, data, attribute):
         if attribute_type == 'attachment':
             attribute['data'] = data
+        elif attribute_type == 'text':
+            attribute['comment'] = data
         self.misp_event.add_attribute(attribute_type, attribute_value, **attribute)
 
     # The value returned by the indicators or observables parser is a list of dictionaries
