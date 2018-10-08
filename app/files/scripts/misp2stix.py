@@ -284,8 +284,10 @@ class StixBuilder(object):
 
     def resolve_objects(self, incident, tags):
         for misp_object in self.misp_event['Object']:
-            category = misp_object.get('meta-category')
             name = misp_object['name']
+            if name == 'original-imported-file':
+                continue
+            category = misp_object.get('meta-category')
             try:
                 to_ids, observable = self.objects_mapping[name](misp_object)
             except KeyError:
