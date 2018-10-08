@@ -89,7 +89,7 @@ class StixParser():
     def add_original_file(self, original_filename):
         with open(self.filename, 'rb') as f:
             sample = base64.b64encode(f.read()).decode('utf-8')
-        original_file = MISPObject('original-imported_file')
+        original_file = MISPObject('original-imported-file')
         original_file.add_attribute(**{'type': 'attachment', 'value': original_filename,
                                        'object_relation': 'imported-sample', 'data': sample})
         original_file.add_attribute(**{'type': 'text', 'object_relation': 'format',
@@ -200,7 +200,7 @@ class StixParser():
         self.dictTimestampAndDate()
         self.eventInfo()
         if self.event.indicators:
-            self.parse_external_indicator(self.event.indicators)
+            self.parse_external_indicators(self.event.indicators)
         if self.event.observables:
             self.parse_external_observable(self.event.observables.observables)
         if self.event.ttps:
@@ -415,7 +415,9 @@ class StixParser():
         if len(custom_properties) > 1:
             for prop in custom_properties[:-1]:
                 misp_attribute = {'type': 'text', 'value': prop.value, 'comment': prop.name}
-                self.misp_event.add_attribute(MISPAttribute(**misp_attribute))
+                self.misp_event.add_attribute(**misp_attribute)
+        to_return = custom_properties[-1]
+        return 'text', to_return.value, to_return.name
 
 
     # Return type & attributes of a dns object
@@ -854,24 +856,32 @@ class StixParser():
             self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=to_ids)
 
     # Parse indicators of an external STIX document
-    def parse_external_indicator(self, indicators):
+    def parse_external_indicators(self, indicators):
         for indicator in indicators:
-            try:
-                properties = indicator.observable.object_.properties
-            except AttributeError:
-                self.parse_description(indicator)
-                continue
-            if properties:
-                attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
-                if isinstance(attribute_value, (str, int)):
-                    # if the returned value is a simple value, we build an attribute
-                    attribute = {'to_ids': True}
-                    if indicator.timestamp:
-                        attribute['timestamp'] = self.getTimestampfromDate(indicator.timestamp)
-                    self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
-                else:
-                    # otherwise, it is a dictionary of attributes, so we build an object
-                    self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=True)
+            self.parse_external_single_indicator(indicator)
+
+    def parse_external_single_indicator(self, indicator):
+        if hasattr(indicator, 'observable') and indicator.observable:
+            observable = indicator.observable
+            if hasattr(observable, 'object_') and observable.object_:
+                try:
+                    properties = observable.object_.properties
+                    if properties:
+                        attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
+                        if isinstance(attribute_value, (str, int)):
+                            # if the returned value is a simple value, we build an attribute
+                            attribute = {'to_ids': True}
+                            if indicator.timestamp:
+                                attribute['timestamp'] = self.getTimestampfromDate(indicator.timestamp)
+                            self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
+                        else:
+                            # otherwise, it is a dictionary of attributes, so we build an object
+                            self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=True)
+                except AttributeError:
+                    self.parse_description(indicator)
+        if hasattr(indicator, 'related_indicators') and indicator.related_indicators:
+            for related_indicator in indicator.related_indicators:
+                self.parse_external_single_indicator(related_indicator.item)
 
     # Parse observables of an external STIX document
     def parse_external_observable(self, observables):
@@ -931,6 +941,8 @@ class StixParser():
     def handle_attribute_case(self, attribute_type, attribute_value, data, attribute):
         if attribute_type == 'attachment':
             attribute['data'] = data
+        elif attribute_type == 'text':
+            attribute['comment'] = data
         self.misp_event.add_attribute(attribute_type, attribute_value, **attribute)
 
     # The value returned by the indicators or observables parser is a list of dictionaries

@@ -1711,7 +1711,7 @@ class AppModel extends Model
                     }
                 }
             }
-            $conditions['AND'][] = array($operator_composition[$operator] => $temp);
+        	$conditions['AND'][] = array($operator_composition[$operator] => $temp);
             if ($operator !== 'NOT') {
                 unset($filter[$operator]);
             }
@@ -1754,4 +1754,28 @@ class AppModel extends Model
         }
         return $filter;
     }
+
+	public function convert_to_memory_limit_to_mb($val) {
+	    $val = trim($val);
+		if ($val == -1) {
+			// default to 8GB if no limit is set
+			return 8 * 1024;
+		}
+		$unit = $val[strlen($val)-1];
+		if (is_numeric($unit)) {
+			$unit = 'b';
+		} else {
+			$val = intval($val);
+		}
+	    $unit = strtolower($unit);
+	    switch($unit) {
+	        case 'g':
+	            $val *= 1024;
+	        case 'm':
+	            $val *= 1024;
+	        case 'k':
+	            $val *= 1024;
+	    }
+		return $val / (1024 * 1024);
+	}
 }

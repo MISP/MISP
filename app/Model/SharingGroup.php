@@ -53,6 +53,8 @@ class SharingGroup extends AppModel
         )
     );
 
+	private $__sgoCache = array();
+
 
     public function beforeValidate($options = array())
     {
@@ -163,10 +165,7 @@ class SharingGroup extends AppModel
                 array(
                     'fields' => array('SharingGroup.*'),
                     'contain' => array(
-                        'Organisation' => array('fields' => $fieldsOrg),
-                        'SharingGroupOrg' => array(
-                            'Organisation' => array('fields' => $fieldsOrg),
-                        ),
+                        'SharingGroupOrg',
                         'SharingGroupServer' => array(
                             'Server' => array('fields' => $fieldsServer),
                         )
@@ -179,6 +178,28 @@ class SharingGroup extends AppModel
                 'fields' => $fieldsSharingGroup[$permissionTree]['fields'],
                 'order' => 'SharingGroup.name ASC'
             ));
+			foreach ($sgs as &$sg) {
+				if (!isset($this->__sgoCache[$sg['SharingGroup']['org_id']])) {
+					$this->__sgoCache[$sg['SharingGroup']['org_id']] = $this->Organisation->find('first', array(
+						'recursive' => -1,
+						'fields' => $fieldsOrg,
+						'conditions' => array('id' => $sg['SharingGroup']['org_id'])
+					));
+				}
+				$sg['Organisation'] = $this->__sgoCache[$sg['SharingGroup']['org_id']];
+				if (!empty($sg['SharingGroupOrg'])) {
+					foreach ($sg['SharingGroupOrg'] as &$sgo) {
+						if (!isset($this->__sgoCache[$sgo['org_id']])) {
+							$this->__sgoCache[$sgo['org_id']] = $this->Organisation->find('first', array(
+								'recursive' => -1,
+								'fields' => $fieldsOrg,
+								'conditions' => array('id' => $sgo['org_id'])
+							));
+						}
+						$sgo['Organisation'] = $this->__sgoCache[$sgo['org_id']];
+					}
+				}
+			}
             return $sgs;
         } elseif ($scope == 'name') {
             $sgs = $this->find('list', array(

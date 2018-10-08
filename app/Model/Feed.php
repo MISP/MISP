@@ -865,14 +865,16 @@ class Feed extends AppModel
             }
             $temp = $this->getFreetextFeed($this->data, $HttpSocket, $this->data['Feed']['source_format'], 'all');
             $data = array();
-            foreach ($temp as $key => $value) {
-                $data[] = array(
-                    'category' => $value['category'],
-                    'type' => $value['default_type'],
-                    'value' => $value['value'],
-                    'to_ids' => $value['to_ids']
-                );
-            }
+			if (!empty($temp)) {
+	            foreach ($temp as $key => $value) {
+	                $data[] = array(
+	                    'category' => $value['category'],
+	                    'type' => $value['default_type'],
+	                    'value' => $value['value'],
+	                    'to_ids' => $value['to_ids']
+	                );
+	            }
+			}
             if ($jobId) {
                 $job->saveField('progress', 50);
                 $job->saveField('message', 'Saving data.');

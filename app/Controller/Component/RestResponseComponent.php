@@ -40,10 +40,11 @@ class RestResponseComponent extends Component
 				'description' => "Search MISP using a list of filter parameters and return the data
 					in the selected format. The search is available on an event and an attribute level,
 					just select the scope via the URL (/events/restSearch vs /attributes/restSearch).
-					Besides the parameters listed, other, format specific ones can be passed along.
-					Accepted return formats are: [json, xml, suricata, snort, text, openioc, rpz]",
+					Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export).
+					This API allows pagination via the page and limit parameters.
+					Accepted return formats are: [json, xml, suricata, snort, text, openioc, rpz, stix, stix2, csv]",
 				'mandatory' => array('returnFormat'),
-				'optional' => array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id'),
+				'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'eventinfo'),
 				'params' => array()
 			)
         ),
@@ -64,10 +65,11 @@ class RestResponseComponent extends Component
 				'description' => "Search MISP using a list of filter parameters and return the data
 					in the selected format. The search is available on an event and an attribute level,
 					just select the scope via the URL (/events/restSearch vs /attributes/restSearch).
-					Besides the parameters listed, other, format specific ones can be passed along.
-					Accepted return formats are: [json, xml, suricata, snort, text, openioc, rpz]",
+					Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export).
+					This API allows pagination via the page and limit parameters.
+					Accepted return formats are: [json, xml, suricata, snort, text, openioc, rpz, stix, stix2, csv]",
 				'mandatory' => array('returnFormat'),
-				'optional' => array('value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly'),
+				'optional' => array('page', 'limit', 'value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'eventinfo'),
 				'params' => array()
 			)
         ),
@@ -210,9 +212,8 @@ class RestResponseComponent extends Component
         ),
 		'Warninglist' => array(
 			'toggleEnable' => array(
-				'description' => "POST a json object with a single or a list of warninglist IDs to toggle whether they're enabled or disabled. Specify the optional enabled boolean flag if you would like to enforce the outcome state. Not setting this flag will just toggle the current state.",
-				'mandatory' => array('id'),
-				'optional' => array('enabled')
+				'description' => "POST a json object with a single or a list of warninglist IDsIDs, or alternatively a (list of) substring(s) that match the names of warninglist(s) to toggle whether they're enabled or disabled. Specify the optional enabled boolean flag if you would like to enforce the outcome state. Not setting this flag will just toggle the current state.",'mandatory' => array('id'),
+				'optional' => array('id', 'name', 'enabled')
 			)
 		)
     );
@@ -349,7 +350,7 @@ class RestResponseComponent extends Component
             }
             $type = 'json';
         }
-        $cakeResponse = new CakeResponse(array('body'=> $response,'status' => $code, 'type' => $type));
+        $cakeResponse = new CakeResponse(array('body'=> $response, 'status' => $code, 'type' => $type));
         if ($download) {
             $cakeResponse->download($download);
         }
@@ -379,6 +380,15 @@ class RestResponseComponent extends Component
         }
         return $this->__sendResponse($data, 200, $format, $raw, $download);
     }
+
+	public function sendFile($path, $format = false, $download = false, $name = 'download') {
+		$cakeResponse = new CakeResponse(array(
+			'status' => 200,
+			'type' => $format
+		));
+		$cakeResponse->file($path, array('name' => $name, 'download' => true));
+		return $cakeResponse;
+	}
 
     public function throwException($code, $message, $url = '', $format = false, $raw = false)
     {
