@@ -584,7 +584,7 @@ class StixBuilder():
             observable_objects = self.objects_mapping[name]['observable'](misp_object['Attribute'], observed_data_id)
         category = misp_object.get('meta-category')
         labels = self.create_object_labels(name, category, False)
-        timestamp = self.get_datetime_from_timestamps(misp_object['timestamp'])
+        timestamp = self.get_datetime_from_timestamp(misp_object['timestamp'])
         observed_data_args = {'id': observed_data_id, 'type': 'observed-data',
                               'number_observed': 1, 'labels': labels, 'objects': observable_objects,
                               'first_observed': timestamp, 'last_observed': timestamp,
