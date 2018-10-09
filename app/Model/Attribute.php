@@ -118,14 +118,15 @@ class Attribute extends AppModel
     );
 
 	public $validFormats = array(
-		'openioc' => array('xml', 'OpeniocExport'),
-		'json' => array('json', 'JsonExport'),
-		'xml' => array('xml', 'XmlExport'),
-		'suricata' => array('txt', 'NidsSuricataExport'),
-		'snort' => array('txt', 'NidsSnortExport'),
-		'text' => array('txt', 'TextExport'),
-		'rpz' => array('rpz', 'RPZExport'),
-		'csv' => array('csv', 'CsvExport')
+		'openioc' => array('xml', 'OpeniocExport', 'ioc'),
+		'json' => array('json', 'JsonExport', 'json'),
+		'xml' => array('xml', 'XmlExport', 'xml'),
+		'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
+		'snort' => array('txt', 'NidsSnortExport', 'rules'),
+		'text' => array('txt', 'TextExport', 'txt'),
+		'rpz' => array('rpz', 'RPZExport', 'rpz'),
+		'csv' => array('csv', 'CsvExport', 'csv'),
+		'cache' => array('txt', 'CacheExport', 'cache')
 	);
 
     public $typeDefinitions = array(
@@ -2916,7 +2917,7 @@ class Attribute extends AppModel
                     $results[$key]['Attribute']['event_uuid'] = $results[$key]['Event']['uuid'];
                 }
                 if ($proposals_block_attributes) {
-					$results = $this->__blockAttributeViaProposal($results, $k);
+					$results = $this->__blockAttributeViaProposal($results, $key);
                 }
                 if ($options['withAttachments']) {
                     if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
@@ -2965,13 +2966,13 @@ class Attribute extends AppModel
 					$sa['to_ids'] == 0 &&
 					$attribute['to_ids'] == 1
 				) {
-				   continue;
+					unset($attributes[$k]);
 				}
 			}
 		} else {
-			unset($results[$key]['ShadowAttribute']);
+			unset($attributes[$k]['ShadowAttribute']);
 		}
-		return $results;
+		return $attributes;
 	}
 
     // Method gets and converts the contents of a file passed along as a base64 encoded string with the original filename into a zip archive
