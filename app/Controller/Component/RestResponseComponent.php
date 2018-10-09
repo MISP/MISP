@@ -11,6 +11,8 @@ class RestResponseComponent extends Component
         )
     );
 
+	private $___setup = false;
+
     private $__descriptions = array(
         'Attribute' => array(
             'add' => array(
@@ -41,8 +43,7 @@ class RestResponseComponent extends Component
 					in the selected format. The search is available on an event and an attribute level,
 					just select the scope via the URL (/events/restSearch vs /attributes/restSearch).
 					Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export).
-					This API allows pagination via the page and limit parameters.
-					Accepted return formats are: [json, xml, suricata, snort, text, openioc, rpz, stix, stix2, csv]",
+					This API allows pagination via the page and limit parameters.",
 				'mandatory' => array('returnFormat'),
 				'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'eventinfo'),
 				'params' => array()
@@ -66,8 +67,7 @@ class RestResponseComponent extends Component
 					in the selected format. The search is available on an event and an attribute level,
 					just select the scope via the URL (/events/restSearch vs /attributes/restSearch).
 					Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export).
-					This API allows pagination via the page and limit parameters.
-					Accepted return formats are: [json, xml, suricata, snort, text, openioc, rpz, stix, stix2, csv]",
+					This API allows pagination via the page and limit parameters.",
 				'mandatory' => array('returnFormat'),
 				'optional' => array('page', 'limit', 'value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'eventinfo'),
 				'params' => array()
@@ -128,23 +128,23 @@ class RestResponseComponent extends Component
                 )
             ),
             'admin_edit' => array(
-                'description' => "POST a Role object in JSON format to this API to edit a role. 'permission' sets the data access permission (0 => read only, 1 => add/edit own, 2 => add/edit org, 3 => publish)",
-                'mandatory' => array('name'),
-                'optional' => array(
-          'perm_delegate',
-          'perm_sync',
-          'perm_admin',
-          'perm_audit',
-          'perm_auth',
-          'perm_site_admin',
-          'perm_regexp_access',
-          'perm_tagger',
-          'perm_template',
-          'perm_sharing_group',
-          'perm_tag_editor',
-          'default_role',
-          'perm_sighting',
-          'permission'
+				'description' => "POST a Role object in JSON format to this API to edit a role. 'permission' sets the data access permission (0 => read only, 1 => add/edit own, 2 => add/edit org, 3 => publish)",
+				'mandatory' => array('name'),
+				'optional' => array(
+					'perm_delegate',
+					'perm_sync',
+					'perm_admin',
+					'perm_audit',
+					'perm_auth',
+					'perm_site_admin',
+					'perm_regexp_access',
+					'perm_tagger',
+					'perm_template',
+					'perm_sharing_group',
+					'perm_tag_editor',
+					'default_role',
+					'perm_sighting',
+					'permission'
                 )
             )
         ),
@@ -220,6 +220,7 @@ class RestResponseComponent extends Component
 
 	public function getAllApis($user, $Server)
 	{
+		$this->__setup();
 		$result = array();
 		foreach ($this->__descriptions as $controller => $actions) {
 			$controller = Inflector::tableize($controller);
@@ -267,6 +268,7 @@ class RestResponseComponent extends Component
 	// use a relative path to check if the current api has a description
 	public function getApiInfo($relative_path)
 	{
+		$this->__setup();
 		$relative_path = trim($relative_path, '/');
 		$relative_path = explode('/', $relative_path);
 		$admin = false;
@@ -402,6 +404,7 @@ class RestResponseComponent extends Component
 
     public function describe($controller, $action, $id = false, $format = false)
     {
+		$this->__setup();
         $actionArray = $this->__dissectAdminRouting($action);
         $response['name'] = $this->__generateURL($actionArray, $controller, false) . ' API description';
         $response['description'] = isset($this->__descriptions[Inflector::singularize($controller)][$action]['description']) ? $this->__descriptions[Inflector::singularize($controller)][$action]['description'] : 'This API is not accessible via GET requests.';
@@ -420,4 +423,20 @@ class RestResponseComponent extends Component
         $response['url'] = $this->__generateURL($actionArray, $controller, $params);
         return $this->__sendResponse($response, 200, $format);
     }
+
+	private function __setup() {
+		if (!$this->__setup) {
+			$scopes = array('Event', 'Attribute');
+			foreach ($scopes as $scope) {
+				$this->{$scope} = ClassRegistry::init($scope);
+				$this->__descriptions[$scope]['restSearch'] = array(
+					'description' => $this->__descriptions[$scope]['restSearch']['description'],
+					'returnFormat' => array_keys($this->{$scope}->validFormats),
+					'mandatory' => $this->__descriptions[$scope]['restSearch']['mandatory'],
+					'optional' => $this->__descriptions[$scope]['restSearch']['optional']
+				);
+			}
+		}
+		return true;
+	}
 }

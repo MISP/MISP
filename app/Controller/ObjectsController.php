@@ -221,7 +221,7 @@ class ObjectsController extends AppController
                 }
                 if ($error === true) {
                     $result = $this->MispObject->saveObject($object, $eventId, $template, $this->Auth->user(), $errorBehaviour = 'halt');
-                    if ($result === true) {
+                    if (is_numeric($result)) {
                         $this->MispObject->Event->unpublishEvent($eventId);
                     }
                 } else {
