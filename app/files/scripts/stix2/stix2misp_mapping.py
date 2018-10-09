@@ -315,29 +315,6 @@ def observable_ip_port(observable):
 def pattern_ip_port(pattern):
     return fill_pattern_attributes(pattern, network_traffic_mapping)
 
-def observable_process(observable):
-    attributes = []
-    observable_object = dict(observable['0']) if len(observable) == 1 else parse_process_observable(observable)
-    try:
-        parent_key = observable_object.pop('parent_ref')
-        attributes.append({'type': 'text', 'value': observable[parent_key]['pid'], 'object_relation': 'parent-pid'})
-    except KeyError:
-        pass
-    try:
-        children_keys = observable_object.pop('child_refs')
-        for key in children_keys:
-            attributes.append({'type': 'text', 'value': observable[key]['pid'], 'object_relation': 'child-pid'})
-    except KeyError:
-        pass
-    fill_observable_attributes(attributes, observable_object, process_mapping)
-    return attributes
-
-def parse_process_observable(observable):
-    for key in observable:
-        observable_object = observable[key]
-        if observable_object['type'] == 'process' and ('parent_ref' in observable_object or 'child_refs' in observable_object):
-            return dict(observable_object)
-
 def pattern_process(pattern):
     attributes = []
     for p in pattern:

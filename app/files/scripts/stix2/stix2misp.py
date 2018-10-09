@@ -184,6 +184,24 @@ class StixParser():
                                'value': '{}|{}'.format(_object.name, md5), 'data': data})
         return attributes
 
+    def attributes_from_observable_process(self, objects):
+        for _object in objects.values():
+            if hasattr(_object, 'parent_ref') or hasattr(_object, 'child_refs'):
+                main_process = _object
+                break
+        attributes = self.fill_observable_attributes(main_process, process_mapping)
+        for refs in ('parent_ref', 'child_refs'):
+            if hasattr(main_process, refs):
+                attributes.extend([self.parse_reference_process(objects[ref], refs) for ref in getattr(main_process, refs)])
+        return attributes
+
+    @staticmethod
+    def parse_reference_process(process, ref_type):
+        field = 'pid'
+        mapping = process_mapping[field]
+        relation = '{}-{}'.format(ref_type.split('_')[0], mapping['relation'])
+        return {'type': mapping['type'], 'object_relation': relation, 'value': getattr(process, field), 'to_ids': False}
+
     def attributes_from_observable_regkey(self, _object):
         attributes = []
         for key, value in _object.items():
@@ -301,7 +319,7 @@ class StixFromMISPParser(StixParser):
                                 'file': {'observable': self.observable_file, 'pattern': self.pattern_file},
                                 'ip-port': {'observable': observable_ip_port, 'pattern': pattern_ip_port},
                                 'network-socket': {'observable': observable_socket, 'pattern': pattern_socket},
-                                'process': {'observable': observable_process, 'pattern': pattern_process},
+                                'process': {'observable': self.attributes_from_observable_process, 'pattern': pattern_process},
                                 'registry-key': {'observable': self.attributes_from_observable_regkey, 'pattern': pattern_regkey},
                                 'url': {'observable': self.attributes_from_observable_url, 'pattern': pattern_url},
                                 'WindowsPEBinaryFile': {'observable': self.observable_pe, 'pattern': self.pattern_pe},
@@ -698,6 +716,7 @@ class ExternalStixParser(StixParser):
                                  ('ipv6-addr', 'network-traffic'): self.parse_observable_ip_network_traffic,
                                  ('mac-addr',): self.parse_observable_mac_address,
                                  ('mutex',): self.parse_observable_mutex,
+                                 ('process',): self.parse_observable_process,
                                  ('x509-certificate',): self.parse_observable_x509,
                                  ('url',): self.parse_observable_url,
                                  ('windows-registry-key',): self.parse_observable_regkey}
@@ -851,6 +870,10 @@ class ExternalStixParser(StixParser):
 
     def parse_observable_mutex(self, objects, uuid):
         self.misp_event.add_attribute(**{'type': 'mutex', 'value': objects['0'].name, 'uuid': uuid, 'to_ids': False})
+
+    def parse_observable_process(self, objects, uuid):
+        attributes = self.attributes_from_observable_process(objects)
+        self.handle_import_case(attributes, 'process', uuid)
 
     def parse_observable_regkey(self, objects, uuid):
         _object = objects['0']
