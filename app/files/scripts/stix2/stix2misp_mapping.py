@@ -296,22 +296,6 @@ def pattern_asn(pattern):
 def pattern_domain_ip(pattern):
     return fill_pattern_attributes(pattern, domain_ip_mapping)
 
-def observable_ip_port(observable):
-    attributes = []
-    if len(observable) >= 2:
-        attributes.append({'type': 'ip-dst', 'object_relation': 'ip',
-                           'value': observable['0'].get('value')})
-        observable_part = dict(observable['1'])
-        fill_observable_attributes(attributes, observable_part, network_traffic_mapping)
-        try:
-            observable_part = dict(observable['2'])
-        except KeyError:
-            return attributes
-    else:
-        observable_part = dict(observable['0'])
-    fill_observable_attributes(attributes, observable_part, network_traffic_mapping)
-    return attributes
-
 def pattern_ip_port(pattern):
     return fill_pattern_attributes(pattern, network_traffic_mapping)
 
