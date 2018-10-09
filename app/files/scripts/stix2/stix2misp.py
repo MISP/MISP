@@ -287,7 +287,7 @@ class StixFromMISPParser(StixParser):
             misp_object.add_reference(pe_uuid, 'included-in')
         for attribute in attributes:
             misp_object.add_attribute(**attribute)
-        misp_object.to_ids = bool(labels[1].split('=')[1])
+        misp_object.to_ids = (labels[2].split('=')[1][1:-1].lower() == 'true')
         self.misp_event.add_object(**misp_object)
 
     def parse_attribute(self, o, labels):
