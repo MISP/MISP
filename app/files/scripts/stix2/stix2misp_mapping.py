@@ -174,6 +174,7 @@ asn_mapping = {'number': as_number_attribute_mapping,
                'autonomous-system:number': as_number_attribute_mapping,
                'name': asn_description_attribute_mapping,
                'autonomous-system:name': asn_description_attribute_mapping,
+               'value': asn_subnet_attribute_mapping,
                'ipv4-addr:value': asn_subnet_attribute_mapping,
                'ipv6-addr:value': asn_subnet_attribute_mapping}
 
@@ -289,23 +290,11 @@ x509_mapping = {'issuer': issuer_attribute_mapping,
                 }
 
 
-
-
-def observable_asn(observable):
-    attributes = []
-    fill_observable_attributes(attributes, observable.pop(str(len(observable) - 1)), asn_mapping)
-    for o_dict in observable.values():
-        attributes.append({'type': 'ip-src', 'object_relation': 'subnet-announced',
-                           'value': o_dict['value'], 'to_ids': False})
-    return attributes
-
 def pattern_asn(pattern):
     return fill_pattern_attributes(pattern, asn_mapping)
 
 def pattern_domain_ip(pattern):
     return fill_pattern_attributes(pattern, domain_ip_mapping)
-
-
 
 def observable_ip_port(observable):
     attributes = []

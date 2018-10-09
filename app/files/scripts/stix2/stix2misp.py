@@ -154,6 +154,12 @@ class StixParser():
         mapping = email_mapping[_type]
         return {'type': mapping['type'], 'object_relation': mapping['relation'], 'value': value, 'to_ids': to_ids}
 
+    def attributes_from_observable_asn(self, objects):
+        attributes = []
+        for _object in objects.values():
+            attributes.extend(self.fill_observable_attributes(_object, asn_mapping))
+        return attributes
+
     def attributes_from_observable_domain_ip(self, objects):
         attributes = []
         for _object in objects.values():
@@ -289,7 +295,7 @@ class StixParser():
 class StixFromMISPParser(StixParser):
     def __init__(self):
         super(StixFromMISPParser, self).__init__()
-        self.objects_mapping = {'asn': {'observable': observable_asn, 'pattern': pattern_asn},
+        self.objects_mapping = {'asn': {'observable': self.attributes_from_observable_asn, 'pattern': pattern_asn},
                                 'domain-ip': {'observable': self.attributes_from_observable_domain_ip, 'pattern': pattern_domain_ip},
                                 'email': {'observable': self.observable_email, 'pattern': self.pattern_email},
                                 'file': {'observable': self.observable_file, 'pattern': self.pattern_file},
@@ -676,6 +682,10 @@ class ExternalStixParser(StixParser):
                                  'indicator': self.parse_external_indicator, 'observed-data': self.parse_external_observable}
         self.object_from_refs.update(dict.fromkeys(list(galaxy_types.keys()), self.parse_external_galaxy))
         self.external_mapping = {('artifact', 'file'): self.parse_observable_file_object,
+                                 ('autonomous-system',): self.parse_observable_asn,
+                                 ('autonomous-system', 'ipv4-addr'): self.parse_observable_asn,
+                                 ('autonomous-system', 'ipv6-addr'): self.parse_observable_asn,
+                                 ('autonomous-system', 'ipv4-addr', 'ipv6-addr'): self.parse_observable_asn,
                                  ('domain-name',): self.parse_observable_domain_ip,
                                  ('domain-name', 'ipv4-addr'): self.parse_observable_domain_ip,
                                  ('domain-name', 'ipv6-addr'): self.parse_observable_domain_ip,
@@ -781,6 +791,10 @@ class ExternalStixParser(StixParser):
         file_object = self.create_misp_object(attributes, 'file', uuid)
         file_object.add_reference(pe_uuid, 'included-in')
         self.misp_event.add_object(**file_object)
+
+    def parse_observable_asn(self, objects, uuid):
+        attributes = self.attributes_from_observable_asn(objects)
+        self.handle_import_case(attributes, 'asn', uuid)
 
     def parse_observable_domain_ip(self, objects, uuid):
         attributes = self.attributes_from_observable_domain_ip(objects)
