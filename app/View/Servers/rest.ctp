@@ -76,7 +76,7 @@
         $formats = array('Raw', 'JSON', 'HTML');
 		if (!empty($curl)) {
 			echo sprintf('<h3>%s</h3>', __('Curl query'));
-			echo sprintf('<pre>%s</pre>', $curl);
+			echo sprintf('<pre>%s</pre>', h($curl));
 		}
         if (!empty($data['data'])):
             echo sprintf('<h3>%s</h3>', __('Response'));
