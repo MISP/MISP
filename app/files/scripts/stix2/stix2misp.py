@@ -185,15 +185,18 @@ class StixParser():
         return attributes
 
     def attributes_from_observable_process(self, objects):
+        main_process = None
         for _object in objects.values():
             if hasattr(_object, 'parent_ref') or hasattr(_object, 'child_refs'):
                 main_process = _object
                 break
-        attributes = self.fill_observable_attributes(main_process, process_mapping)
-        for refs in ('parent_ref', 'child_refs'):
-            if hasattr(main_process, refs):
-                attributes.extend([self.parse_reference_process(objects[ref], refs) for ref in getattr(main_process, refs)])
-        return attributes
+        if main_process:
+            attributes = self.fill_observable_attributes(main_process, process_mapping)
+            for refs in ('parent_ref', 'child_refs'):
+                if hasattr(main_process, refs):
+                    attributes.extend([self.parse_reference_process(objects[ref], refs) for ref in getattr(main_process, refs)])
+            return attributes
+        return [result for _object in objects.values() for result in self.fill_observable_attributes(_object, process_mapping)]
 
     @staticmethod
     def parse_reference_process(process, ref_type):
