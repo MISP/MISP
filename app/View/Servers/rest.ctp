@@ -74,6 +74,10 @@
 	</fieldset>
     <?php
         $formats = array('Raw', 'JSON', 'HTML');
+		if (!empty($curl)) {
+			echo sprintf('<h3>%s</h3>', __('Curl query'));
+			echo sprintf('<pre>%s</pre>', h($curl));
+		}
         if (!empty($data['data'])):
             echo sprintf('<h3>%s</h3>', __('Response'));
             echo sprintf('<div><span class="bold">%s</span>: %d</div>', __('Response code'), h($data['code']));

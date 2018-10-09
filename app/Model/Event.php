@@ -159,7 +159,8 @@ class Event extends AppModel
         'text' => array('text', 'TextExport', 'txt'),
         'csv' => array('csv', 'CsvExport', 'csv'),
         'stix' => array('xml', 'Stix1Export', 'xml'),
-        'stix2' => array('json', 'Stix2Export', 'json')
+        'stix2' => array('json', 'Stix2Export', 'json'),
+		'cache' => array('txt', 'CacheExport', 'cache')
     );
 
     public $csv_event_context_fields_to_fetch = array(

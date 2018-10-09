@@ -1618,7 +1618,9 @@ class ServersController extends AppController
             if (!empty($request['Server'])) {
                 $request = $this->request->data['Server'];
             }
-            $result = $this->__doRestQuery($request);
+			$curl = '';
+            $result = $this->__doRestQuery($request, $curl);
+			$this->set('curl', $curl);
             if (!$result) {
                 $this->Flash->error('Something went wrong. Make sure you set the http method, body (when sending POST requests) and URL correctly.');
             } else {
@@ -1633,7 +1635,7 @@ class ServersController extends AppController
 		$this->set('allValidApis', $allValidApis);
     }
 
-    private function __doRestQuery($request)
+    private function __doRestQuery($request, &$curl = false)
     {
         App::uses('SyncTool', 'Tools');
         $params = array();
@@ -1672,12 +1674,40 @@ class ServersController extends AppController
             !empty($request['method']) &&
             $request['method'] === 'GET'
         ) {
+			if ($curl !== false) {
+				$curl = sprintf(
+					'curl \%s -H "Authorization: %s" \%s -H "Accept: %s" \%s -H "Content-type: %s" \%s %s',
+					PHP_EOL,
+					$request['header']['Authorization'],
+					PHP_EOL,
+					$request['header']['Accept'],
+					PHP_EOL,
+					$request['header']['Content-Type'],
+					PHP_EOL,
+					$url
+				);
+			}
             $response = $HttpSocket->get($url, false, array('header' => $request['header']));
         } elseif (
             !empty($request['method']) &&
             $request['method'] === 'POST' &&
             !empty($request['body'])
         ) {
+			if ($curl !== false) {
+				$curl = sprintf(
+					'curl \%s -d \'%s\' \%s -H "Authorization: %s" \%s -H "Accept: %s" \%s -H "Content-type: %s" \%s -X POST %s',
+					PHP_EOL,
+					json_encode(json_decode($request['body']), true),
+					PHP_EOL,
+					$request['header']['Authorization'],
+					PHP_EOL,
+					$request['header']['Accept'],
+					PHP_EOL,
+					$request['header']['Content-Type'],
+					PHP_EOL,
+					$url
+				);
+			}
             $response = $HttpSocket->post($url, $request['body'], array('header' => $request['header']));
         } else {
             return false;
