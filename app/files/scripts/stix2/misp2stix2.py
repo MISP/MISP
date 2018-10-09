@@ -127,7 +127,7 @@ class StixBuilder():
             self.load_objects_mapping()
             self.objects_to_parse = defaultdict(dict)
             misp_objects = self.misp_event['Object']
-            self.object_references, self.processes = self.fetch_object_references(misp_objects)
+            self.object_references = self.fetch_object_references(misp_objects)
             for misp_object in misp_objects:
                 name = misp_object['name']
                 if name == 'original-imported-file':
@@ -191,19 +191,16 @@ class StixBuilder():
         self.galaxies_mapping.update(dict.fromkeys(tool_galaxies_list, ['tool', self.add_tool]))
 
     def fetch_object_references(self, misp_objects):
-        object_references, processes = {}, {}
+        object_references = {}
         for misp_object in misp_objects:
-            attributes = misp_object['Attribute']
-            if misp_object['name'] == "process":
-                self.get_process_attributes(processes, attributes)
-            if misp_object.get('ObjectReference') and not self.fetch_ids_flag(attributes):
+            if misp_object.get('ObjectReference') and not self.fetch_ids_flag(misp_object['Attribute']):
                 for reference in misp_object['ObjectReference']:
                     try:
                         referenced_object = reference['Attribute']
                     except:
                         referenced_object = self.get_object_by_uuid(reference['referenced_uuid'])
                     object_references[reference['referenced_uuid']] = referenced_object
-        return object_references, processes
+        return object_references
 
     @staticmethod
     def get_object_by_uuid(uuid):
@@ -211,23 +208,6 @@ class StixBuilder():
             if _object.get('uuid') and _object['uuid'] == uuid:
                 return _object
         raise Exception('Object with uuid {} does not exist in this event.'.format(uuid))
-
-    @staticmethod
-    def get_process_attributes(processes, attributes):
-        pid, process = None, {}
-        for attribute in attributes:
-            relation = attribute['object_relation']
-            attribute_value = attribute['value']
-            if relation == 'pid':
-                if attribute_value in processes:
-                    return
-                pid = attribute_value
-                process[relation] = attribute_value
-            elif relation in ('name', 'creation-time'):
-                process[relation] = attribute_value
-        if pid is not None:
-            process['type'] = 'process'
-            processes[pid] = process
 
     def handle_person(self, attribute):
         if attribute['category'] == "Person":
@@ -1055,24 +1035,18 @@ class StixBuilder():
             relation = attribute['object_relation']
             if relation == 'parent-pid':
                 str_n = str(n)
-                try:
-                    observable[str_n] = self.processes[attribute['value']]
-                except:
-                    continue
+                observable[str_n] = {'type': 'process', 'pid': attribute['value']}
                 current_process['parent_ref'] = str_n
                 n += 1
             elif relation == 'child-pid':
                 str_n = str(n)
-                try:
-                    observable[str_n] = self.processes[attribute['value']]
-                except:
-                    continue
+                observable[str_n] = {'type': 'process', 'pid': attribute['value']}
                 current_process['child_refs'].append(str_n)
                 n += 1
             else:
                 try:
                     current_process[processMapping[relation]] = attribute['value']
-                except:
+                except KeyError:
                     pass
         observable[str(n)] = current_process
         return observable
