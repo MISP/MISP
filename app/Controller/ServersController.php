@@ -1619,8 +1619,10 @@ class ServersController extends AppController
                 $request = $this->request->data['Server'];
             }
 			$curl = '';
-            $result = $this->__doRestQuery($request, $curl);
+			$python = '';
+            $result = $this->__doRestQuery($request, $curl, $python);
 			$this->set('curl', $curl);
+			$this->set('python', $python);
             if (!$result) {
                 $this->Flash->error('Something went wrong. Make sure you set the http method, body (when sending POST requests) and URL correctly.');
             } else {
@@ -1635,7 +1637,7 @@ class ServersController extends AppController
 		$this->set('allValidApis', $allValidApis);
     }
 
-    private function __doRestQuery($request, &$curl = false)
+    private function __doRestQuery($request, &$curl = false, &$python = false)
     {
         App::uses('SyncTool', 'Tools');
         $params = array();
@@ -1675,17 +1677,10 @@ class ServersController extends AppController
             $request['method'] === 'GET'
         ) {
 			if ($curl !== false) {
-				$curl = sprintf(
-					'curl \%s -H "Authorization: %s" \%s -H "Accept: %s" \%s -H "Content-type: %s" \%s %s',
-					PHP_EOL,
-					$request['header']['Authorization'],
-					PHP_EOL,
-					$request['header']['Accept'],
-					PHP_EOL,
-					$request['header']['Content-Type'],
-					PHP_EOL,
-					$url
-				);
+				$curl = $this->__generateCurlQuery('get', $request, $url);
+			}
+			if ($python !== false) {
+				$python = $this->__generatePythonScript($request, $url);
 			}
             $response = $HttpSocket->get($url, false, array('header' => $request['header']));
         } elseif (
@@ -1694,19 +1689,10 @@ class ServersController extends AppController
             !empty($request['body'])
         ) {
 			if ($curl !== false) {
-				$curl = sprintf(
-					'curl \%s -d \'%s\' \%s -H "Authorization: %s" \%s -H "Accept: %s" \%s -H "Content-type: %s" \%s -X POST %s',
-					PHP_EOL,
-					json_encode(json_decode($request['body']), true),
-					PHP_EOL,
-					$request['header']['Authorization'],
-					PHP_EOL,
-					$request['header']['Accept'],
-					PHP_EOL,
-					$request['header']['Content-Type'],
-					PHP_EOL,
-					$url
-				);
+				$curl = $this->__generateCurlQuery('post', $request, $url);
+			}
+			if ($python !== false) {
+				$python = $this->__generatePythonScript($request, $url);
 			}
             $response = $HttpSocket->post($url, $request['body'], array('header' => $request['header']));
         } else {
@@ -1727,6 +1713,80 @@ class ServersController extends AppController
         }
         return $view_data;
     }
+
+	private function __generatePythonScript($request, $url)
+	{
+		$slashCounter = 0;
+		$baseurl = '';
+		$relative = '';
+		$verifyCert = ($url[4] === 's') ? 'True' : 'False';
+		for ($i = 0; $i < strlen($url); $i++) {
+		//foreach ($url as $url[$i]) {
+			if ($url[$i] === '/') {
+				$slashCounter += 1;
+				if ($slashCounter == 3) {
+					continue;
+				}
+			}
+			if ($slashCounter < 3) {
+				$baseurl .= $url[$i];
+			} else {
+				$relative .= $url[$i];
+			}
+		}
+		$python_script =
+		sprintf(
+'misp_url = \'%s\'
+misp_key = \'%s\'
+misp_verifycert = %s
+relative_path = \'%s\'
+body = %s
+
+from pymisp import PyMISP
+
+misp = PyMISP(misp_url, misp_key, misp_verifycert)
+misp.direct_call(relative_path, body)
+',
+			$baseurl,
+			$request['header']['Authorization'],
+			$verifyCert,
+			$relative,
+			(empty($request['body']) ? 'Null' : '\'' . $request['body'] . '\'')
+		);
+		return $python_script;
+	}
+
+	private function __generateCurlQuery($type, $request, $url)
+	{
+		if ($type === 'get') {
+			$curl = sprintf(
+				'curl \%s -H "Authorization: %s" \%s -H "Accept: %s" \%s -H "Content-type: %s" \%s %s',
+				PHP_EOL,
+				$request['header']['Authorization'],
+				PHP_EOL,
+				$request['header']['Accept'],
+				PHP_EOL,
+				$request['header']['Content-Type'],
+				PHP_EOL,
+				$url
+			);
+		} else {
+			$curl = sprintf(
+				'curl \%s -d \'%s\' \%s -H "Authorization: %s" \%s -H "Accept: %s" \%s -H "Content-type: %s" \%s -X POST %s',
+				PHP_EOL,
+				json_encode(json_decode($request['body']), true),
+				PHP_EOL,
+				$request['header']['Authorization'],
+				PHP_EOL,
+				$request['header']['Accept'],
+				PHP_EOL,
+				$request['header']['Content-Type'],
+				PHP_EOL,
+				$url
+			);
+		}
+		return $curl;
+	}
 
 	public function getApiInfo() {
 		$relative_path = $this->request->data['url'];
