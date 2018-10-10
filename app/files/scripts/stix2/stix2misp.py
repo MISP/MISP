@@ -72,10 +72,10 @@ class StixParser():
 
     def general_handler(self):
         self.outputname = '{}.stix2'.format(self.filename)
-        self.buildMISPDict()
+        self.build_from_STIX_with_report() if self.event['report'] else self.build_from_STIX_without_report()
         self.set_distribution()
 
-    def buildMISPDict(self):
+    def build_from_STIX_with_report(self):
         report_attributes = defaultdict(set)
         for _, report in self.event['report'].items():
             report_attributes['orgs'].add(report['created_by_ref'].split('--')[1])
@@ -102,6 +102,12 @@ class StixParser():
             self.misp_event.info = "Imported with MISP import script for {}.".format(self.stix_version)
         for l in report_attributes['labels']:
             self.misp_event.add_tag(l)
+
+    def build_from_STIX_without_report(self):
+        for object_type, objects in self.event.items():
+            if object_type not in ('relationship', 'report'):
+                for _, _object in objects.items():
+                    self.parsing_process(_object, object_type)
 
     def set_distribution(self):
         for attribute in self.misp_event.attributes:
@@ -890,6 +896,10 @@ class ExternalStixParser(StixParser):
         misp_object = {'name': 'stix2-pattern', 'meta-category': 'stix2-pattern',
                        'Attribute': [self.version_attribute, attribute]}
         self.misp_event.add_object(**misp_object)
+        try:
+            self.parse_external_pattern(pattern)
+        except:
+            pass
 
     def parse_external_observable(self, observable):
         objects = observable.objects
