@@ -331,17 +331,17 @@ class StixParser():
 class StixFromMISPParser(StixParser):
     def __init__(self):
         super(StixFromMISPParser, self).__init__()
-        self.objects_mapping = {'asn': {'observable': self.attributes_from_observable_asn, 'pattern': pattern_asn},
-                                'domain-ip': {'observable': self.attributes_from_observable_domain_ip, 'pattern': pattern_domain_ip},
+        self.objects_mapping = {'asn': {'observable': self.attributes_from_observable_asn, 'pattern': self.pattern_asn},
+                                'domain-ip': {'observable': self.attributes_from_observable_domain_ip, 'pattern': self.pattern_domain_ip},
                                 'email': {'observable': self.observable_email, 'pattern': self.pattern_email},
                                 'file': {'observable': self.observable_file, 'pattern': self.pattern_file},
-                                'ip-port': {'observable': self.attributes_from_observable_ip_port, 'pattern': pattern_ip_port},
-                                'network-socket': {'observable': observable_socket, 'pattern': pattern_socket},
-                                'process': {'observable': self.attributes_from_observable_process, 'pattern': pattern_process},
-                                'registry-key': {'observable': self.attributes_from_observable_regkey, 'pattern': pattern_regkey},
-                                'url': {'observable': self.attributes_from_observable_url, 'pattern': pattern_url},
+                                'ip-port': {'observable': self.attributes_from_observable_ip_port, 'pattern': self.pattern_ip_port},
+                                'network-socket': {'observable': self.observable_socket, 'pattern': self.pattern_socket},
+                                'process': {'observable': self.attributes_from_observable_process, 'pattern': self.pattern_process},
+                                'registry-key': {'observable': self.attributes_from_observable_regkey, 'pattern': self.pattern_regkey},
+                                'url': {'observable': self.attributes_from_observable_url, 'pattern': self.pattern_url},
                                 'WindowsPEBinaryFile': {'observable': self.observable_pe, 'pattern': self.pattern_pe},
-                                'x509': {'observable': self.attributes_from_observable_x509, 'pattern': pattern_x509}}
+                                'x509': {'observable': self.attributes_from_observable_x509, 'pattern': self.pattern_x509}}
         self.object_from_refs = {'course-of-action': self.parse_MISP_course_of_action, 'vulnerability': self.parse_vulnerability,
                                  'x-misp-object': self.parse_custom}
         self.object_from_refs.update(dict.fromkeys(list(galaxy_types.keys()), self.parse_galaxy))
@@ -353,6 +353,10 @@ class StixFromMISPParser(StixParser):
     def parsing_process(self, object2parse, object_type):
         labels = object2parse.get('labels')
         self.object_from_refs[object_type](object2parse, labels)
+
+    ################################################################################
+    ##                             PARSING FUNCTIONS.                             ##
+    ################################################################################
 
     def parse_usual_object(self, o, labels):
         if 'from_object' in labels:
@@ -625,6 +629,116 @@ class StixFromMISPParser(StixParser):
             self.misp_event.add_object(**pe_section)
         self.misp_event.add_object(**pe)
         return attributes, pe_uuid
+
+    def pattern_asn(self, pattern):
+        return self.fill_pattern_attributes(pattern, asn_mapping)
+
+    def pattern_domain_ip(self, pattern):
+        return self.fill_pattern_attributes(pattern, domain_ip_mapping)
+
+    def pattern_ip_port(self, pattern):
+        return self.fill_pattern_attributes(pattern, network_traffic_mapping)
+
+    @staticmethod
+    def pattern_process(pattern):
+        attributes = []
+        for p in pattern:
+            p_type, p_value = p.split(' = ')
+            try:
+                mapping = process_mapping[p_type]
+            except KeyError:
+                continue
+            if p_type == 'process:child_refs':
+                for value in p_value[1:-1].split(','):
+                    attribute.append({'type': mapping['type'], 'value': value.strip(),
+                                     'object_relation': mapping['relation']})
+            else:
+                attributes.append({'type': mapping['type'], 'value': p_value,
+                                   'object_relation': mapping['relation']})
+        return attributes
+
+    @staticmethod
+    def pattern_regkey(pattern):
+        attributes = []
+        for p in pattern:
+            p_type, p_value = p.split(' = ')
+            try:
+                mapping = regkey_mapping[p_type]
+            except KeyError:
+                continue
+            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                               'value': p_value.replace('\\\\', '\\')[1:-1]})
+        return attributes
+
+    def observable_socket(self, observable):
+        observable_object = dict(observable['0']) if len(observable) == 1 else self.parse_socket_observable(observable)
+        try:
+            extension = observable_object.pop('extensions')
+            attributes = self.parse_socket_extension(extension['socket-ext'])
+        except KeyError:
+            attributes = []
+        for o_key, o_value in observable_object.items():
+            if o_key in ('src_ref', 'dst_ref'):
+                element_object = observable[o_value]
+                if 'domain-name' in element_object['type']:
+                    attribute_type = 'hostname'
+                    relation = 'hostname-{}'.format(o_key.split('_')[0])
+                else:
+                    attribute_type = relation = "ip-{}".format(o_key.split('_')[0])
+                attributes.append({'type': attribute_type, 'object_relation': relation,
+                                   'value': element_object['value']})
+                continue
+            try:
+                mapping = network_traffic_mapping[o_key]
+            except KeyError:
+                continue
+            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                               'value': o_value})
+        return attributes
+
+    @staticmethod
+    def parse_socket_observable(observable):
+        for key in observable:
+            observable_object = observable[key]
+            if observable_object['type'] == 'network-traffic':
+                return dict(observable_object)
+
+    @staticmethod
+    def parse_socket_extension(extension):
+        attributes = []
+        for element in extension:
+            try:
+                mapping = network_traffic_mapping[element]
+            except KeyError:
+                continue
+            if element in ('is_listening', 'is_blocking'):
+                attribute_value = element.split('_')[1]
+            else:
+                attribute_value = extension[element]
+            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                               'value': attribute_value})
+        return attributes
+
+    @staticmethod
+    def pattern_socket(pattern):
+        attributes = []
+        for p in pattern:
+            p_type, p_value = p.split(' = ')
+            try:
+                mapping = network_traffic_mapping[p_type]
+            except KeyError:
+                continue
+            if "network-traffic:extensions.'socket-ext'.is_" in p_type:
+                p_value = p_type.split('_')[1]
+            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                               'value': p_value})
+        return attributes
+
+    def pattern_url(self, pattern):
+        return self.fill_pattern_attributes(pattern, url_mapping)
+
+    def pattern_x509(self, pattern):
+        return self.fill_pattern_attributes(pattern, x509_mapping)
 
     ################################################################################
     ##                             UTILITY FUNCTIONS.                             ##
