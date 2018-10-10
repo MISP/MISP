@@ -2127,7 +2127,9 @@ class Attribute extends AppModel
 	            );
 			}
         }
-        $temp = array();
+		if (!empty($temp)) {
+			$conditions['AND'][] = array('OR' => $temp);
+		}
         if (!empty($tagArray[1])) {
             if ($options['scope'] == 'all' || $options['scope'] == 'Event') {
                 $subquery_options = array(
