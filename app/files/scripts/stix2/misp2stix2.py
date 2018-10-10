@@ -587,14 +587,11 @@ class StixBuilder():
                 enumeration_fails[field] = current_dict.pop(field)
                 try:
                     return ObservedData(**ns_args)
-                except exceptions.InvalidValueError:
+                except (exceptions.InvalidValueError, exceptions.MissingPropertiesError):
                     current_dict[field] = enumeration_fails[field]
             for field in enumeration_fails:
                 current_dict.pop(field)
-            try:
-                return ObservedData(**ns_args)
-            except:
-                pass
+            return ObservedData(**ns_args)
         return ObservedData(**args)
 
     def add_object_vulnerability(self, misp_object, to_ids):
