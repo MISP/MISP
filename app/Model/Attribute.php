@@ -2130,6 +2130,7 @@ class Attribute extends AppModel
 		if (!empty($temp)) {
 			$conditions['AND'][] = array('OR' => $temp);
 		}
+		$temp = array();
         if (!empty($tagArray[1])) {
             if ($options['scope'] == 'all' || $options['scope'] == 'Event') {
                 $subquery_options = array(
