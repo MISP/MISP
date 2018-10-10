@@ -2096,34 +2096,40 @@ class Attribute extends AppModel
         }
         $temp = array();
         if (!empty($tagArray[0])) {
-            $subquery_options = array(
-                'conditions' => array(
-                    'tag_id' => $tagArray[0]
-                ),
-                'fields' => array(
-                    'event_id'
-                )
-            );
-            $lookup_field = ($options['scope'] === 'Event') ? 'Event.id' : 'Attribute.event_id';
-            $temp = array_merge(
-                $temp,
-                $this->subQueryGenerator($tag->EventTag, $subquery_options, $lookup_field)
-            );
-			$subquery_options = array(
-                'conditions' => array(
-                    'tag_id' => $tagArray[0]
-                ),
-                'fields' => array(
-                    $options['scope'] === 'Event' ? 'Event.id' : 'attribute_id'
-                )
-            );
-            $lookup_field = $options['scope'] === 'Event' ? 'Event.id' : 'Attribute.id';
-            $temp = array_merge(
-                $temp,
-                $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field)
-            );
+			if ($tagArray[0][0] === -1) {
+				$conditions[] = array('Event.id' => -1);
+			} else {
+	            $subquery_options = array(
+	                'conditions' => array(
+	                    'tag_id' => $tagArray[0]
+	                ),
+	                'fields' => array(
+	                    'event_id'
+	                )
+	            );
+	            $lookup_field = ($options['scope'] === 'Event') ? 'Event.id' : 'Attribute.event_id';
+	            $temp = array_merge(
+	                $temp,
+	                $this->subQueryGenerator($tag->EventTag, $subquery_options, $lookup_field)
+	            );
+				$subquery_options = array(
+	                'conditions' => array(
+	                    'tag_id' => $tagArray[0]
+	                ),
+	                'fields' => array(
+	                    $options['scope'] === 'Event' ? 'Event.id' : 'attribute_id'
+	                )
+	            );
+	            $lookup_field = $options['scope'] === 'Event' ? 'Event.id' : 'Attribute.id';
+	            $temp = array_merge(
+	                $temp,
+	                $this->subQueryGenerator($tag->AttributeTag, $subquery_options, $lookup_field)
+	            );
+			}
         }
-        $temp = array();
+		if (!empty($temp)) {
+			$conditions['AND'][] = array('OR' => $temp);
+		}
         if (!empty($tagArray[1])) {
             if ($options['scope'] == 'all' || $options['scope'] == 'Event') {
                 $subquery_options = array(
