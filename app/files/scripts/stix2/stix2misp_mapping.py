@@ -296,5 +296,6 @@ external_pattern_mapping = {'domain-name': domain_pattern_mapping,
                             'file': file_mapping,
                             'ipv4-addr': ip_pattern_mapping,
                             'ipv6-addr': ip_pattern_mapping,
+                            'url': {'value':{'type': 'url'}},
                             'x509-certificate': x509_mapping
                             }
