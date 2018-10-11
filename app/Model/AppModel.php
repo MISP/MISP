@@ -1692,8 +1692,14 @@ class AppModel extends Model
 				$filters = array($filters);
 			}
             foreach ($filters as $f) {
+				if ($f === -1) {
+					foreach ($keys as $key) {
+						$temp['OR'][$key][] = -1;
+					}
+					continue;
+				}
                 // split the filter params into two lists, one for substring searches one for exact ones
-                if ($f[strlen($f) - 1] === '%' || $f[0] === '%') {
+                if (is_string($f) && ($f[strlen($f) - 1] === '%' || $f[0] === '%')) {
                     foreach ($keys as $key) {
                         if ($operator === 'NOT') {
                             $temp[] = array($key . ' NOT LIKE' => $f);
