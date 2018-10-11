@@ -1,5 +1,5 @@
 #@IgnoreInspection BashAddShebang
-#/!bin/sh
+#!/bin/sh
 ##
 ## script to wipe MISP on debian/ubuntu
 ##
