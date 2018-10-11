@@ -622,6 +622,17 @@ class AppController extends Controller
                 }
             }
         }
+		if (!empty($options['additional_delimiters'])) {
+			if (!is_array($options['additional_delimiters'])) {
+				$options['additional_delimiters'] = array($options['additional_delimiters']);
+			}
+			foreach ($data as $k => $v) {
+				$data[$k] = explode($options['additional_delimiters'][0], str_replace($options['additional_delimiters'], $options['additional_delimiters'][0], $v));
+				foreach ($data[$k] as $k2 => $value) {
+					$data[$k][$k2] = trim($data[$k][$k2]);
+				}
+			}
+		}
         return $data;
     }
 
