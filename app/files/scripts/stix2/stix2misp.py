@@ -267,6 +267,13 @@ class StixParser():
                 file = value
         return file, data
 
+    @staticmethod
+    def fetch_network_traffic_objects(objects):
+        network_traffics = []
+        for value in objects.values():
+            if isinstance(value, stix2.NetworkTraffic):
+                return value
+
     def parse_complex_fields_observable_email(self, objects, to_ids):
         attributes = []
         addresses, files, message = self.split_observable_email_parts(objects)
@@ -298,6 +305,18 @@ class StixParser():
             attribute = {'type': 'text', 'object_relation': 'description', 'value': o.get('description')}
             misp_object.add_attribute(**attribute)
         self.misp_event.add_object(**misp_object)
+
+    @staticmethod
+    def parse_network_traffic_references(objects, network_traffic, mapping):
+        attributes= []
+        for ref in ('src_ref', 'dst_ref'):
+            if hasattr(network_traffic, ref):
+                ref_object = objects[getattr(network_traffic, ref)]
+                origin = ref.split('_')[0]
+                misp_type, relation = mapping[ref_object._type]
+                attributes.append({'type': misp_type.format(origin), 'object_relation': relation.format(origin),
+                                   'to_ids': False, 'value': ref_object.value})
+        return attributes
 
     def parse_pe(self, extension):
         pe = MISPObject('pe')
@@ -848,6 +867,7 @@ class ExternalStixParser(StixParser):
                                  ('domain-name', 'ipv4-addr', 'network-traffic'): self.parse_observable_ip_port,
                                  ('domain-name', 'ipv6-addr', 'network-traffic'): self.parse_observable_ip_port,
                                  ('domain-name', 'ipv4-addr', 'ipv6-addr', 'network-traffic'): self.parse_observable_ip_port,
+                                 ('domain-name', 'network-traffic'): self.parse_observable_network_socket,
                                  ('domain-name', 'network-traffic', 'url'): self.parse_observable_url_object,
                                  ('email-addr', 'email-message'): self.parse_observable_email,
                                  ('email-addr', 'email-message', 'file'): self.parse_observable_email,
@@ -1019,6 +1039,20 @@ class ExternalStixParser(StixParser):
 
     def parse_observable_mutex(self, objects, uuid):
         self.misp_event.add_attribute(**{'type': 'mutex', 'value': objects['0'].name, 'uuid': uuid, 'to_ids': False})
+
+    def parse_observable_network_socket(self, objects, uuid):
+        network_traffic = self.fetch_network_traffic_objects(objects)
+        attributes = self.fill_observable_attributes(network_traffic, network_traffic_mapping)
+        if  hasattr(network_traffic, 'extensions') and network_traffic.extensions:
+            extension_type, extension_value = list(network_traffic.extensions.items())[0]
+            name = network_traffic_extensions[extension_type]
+            attributes.extend(self.fill_observable_attributes(extension_value, network_traffic_mapping))
+            mapping = network_traffic_references_mapping['with_extensions']
+        else:
+            name = 'ip-port'
+            mapping = network_traffic_references_mapping['without_extensions']
+        attributes.extend(self.parse_network_traffic_references(objects, network_traffic, mapping))
+        self.handle_import_case(attributes, name, uuid)
 
     def parse_observable_process(self, objects, uuid):
         attributes = self.attributes_from_observable_process(objects)
