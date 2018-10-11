@@ -208,7 +208,7 @@ class Tag extends AppModel
         $array = array_values($array);
         if (!empty($array)) {
             foreach ($array as $a) {
-                $conditions['OR'][] = array('LOWER(Tag.name) like' => strtolower($a));
+                $conditions['OR'][] = array('Tag.name like' => $a);
             }
             $params = array(
                     'recursive' => 1,

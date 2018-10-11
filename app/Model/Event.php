@@ -820,6 +820,7 @@ class Event extends AppModel
         foreach ($correlations as $k => $correlation) {
             $current = array(
                     'id' => $correlation[$settings[$context]['correlationModel']]['event_id'],
+					'attribute_id' => $correlation[$settings[$context]['correlationModel']]['attribute_id'],
                     'org_id' => $correlation[$settings[$context]['correlationModel']]['org_id'],
                     'info' => $correlation[$settings[$context]['correlationModel']]['info'],
                     'value' => $correlation[$settings[$context]['correlationModel']]['value'],
@@ -1589,7 +1590,8 @@ class Event extends AppModel
             'blockedAttributeTags',
             'eventsExtendingUuid',
             'extended',
-            'excludeGalaxy'
+            'excludeGalaxy',
+			'includeRelatedTags'
         );
         if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
             $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
@@ -1700,7 +1702,9 @@ class Event extends AppModel
         if ($options['event_uuid']) {
             $conditions['AND'][] = array('Event.uuid' => $options['event_uuid']);
         }
-
+		if (!empty($options['includeRelatedTags'])) {
+			$options['includeGranularCorrelations'] = 1;
+		}
         $softDeletables = array('Attribute', 'Object', 'ObjectReference');
         if (isset($options['deleted']) && $options['deleted']) {
             if (!$user['Role']['perm_sync']) {
@@ -1830,6 +1834,9 @@ class Event extends AppModel
             // Let's also find all the relations for the attributes - this won't be in the xml export though
             if (!empty($options['includeGranularCorrelations'])) {
 				$results[$eventKey]['RelatedAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgids);
+				if (!empty($options['includeRelatedTags'])) {
+					$results[$eventKey] = $this->includeRelatedTags($results[$eventKey], $options);
+				}
 				$results[$eventKey]['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgids, true);
 			}
             if (isset($event['ShadowAttribute']) && !empty($event['ShadowAttribute']) && isset($options['includeAttachments']) && $options['includeAttachments']) {
@@ -1961,6 +1968,78 @@ class Event extends AppModel
         }
         return $results;
     }
+
+	private function __cacheRelatedEventTags($eventTagCache, $relatedAttribute) {
+		if (empty($eventTagCache[$relatedAttribute['id']])) {
+			$params = array(
+				'contain' => array(
+					'Tag' => array(
+						'fields' => array(
+							'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value'
+						)
+					)
+				),
+				'recursive' => -1,
+				'conditions' => array(
+					'EventTag.event_id' => $relatedAttribute['id']
+				)
+			);
+			$eventTags = $this->EventTag->find('all', $params);
+			if (!empty($eventTags)) {
+				foreach ($eventTags as $et) {
+					if (!isset($eventTagCache[$relatedAttribute['id']][$et['Tag']['id']])) {
+						$eventTagCache[$relatedAttribute['id']][$et['Tag']['id']] = $et['Tag'];
+					}
+				}
+			}
+		}
+		return $eventTagCache;
+	}
+
+	public function includeRelatedTags($event, $options)
+	{
+		$eventTagCache = array();
+		$tags = array();
+		$includeAllTags = !empty($options['includeAllTags']);
+		foreach ($event['RelatedAttribute'] as $attributeId => $relatedAttributes) {
+			$attributePos = false;
+			foreach ($event['Attribute'] as $k => $attribute) {
+				if ($attribute['id'] == $attributeId) {
+					$attributePos = $k;
+					break;
+				}
+			}
+			foreach ($relatedAttributes as $relatedAttribute) {
+				$eventTagCache = $this->__cacheRelatedEventTags($eventTagCache, $relatedAttribute);
+				if (!empty($eventTagCache[$relatedAttribute['id']])) {
+					if (!isset($event['Attribute'][$attributePos]['RelatedTags'])) {
+						$event['Attribute'][$attributePos]['RelatedTags'] = array();
+					}
+					$event['Attribute'][$attributePos]['RelatedTags'] = array_merge($event['Attribute'][$attributePos]['RelatedTags'], $eventTagCache[$relatedAttribute['id']]);
+				}
+				$params = array(
+					'contain' => array(
+						'Tag' => array(
+							'fields' => array(
+								'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value'
+							)
+						)
+					),
+					'recursive' => -1,
+					'conditions' => array(
+						'AttributeTag.attribute_id' => $relatedAttribute['attribute_id']
+					)
+				);
+				$attributeTags = $this->Attribute->AttributeTag->find('all', $params);
+				if (!empty($attributeTags)) {
+					foreach($attributeTags as $at) {
+						$event['Attribute'][$attributePos]['RelatedTags'][$at['Tag']['id']] = $at['Tag'];
+					}
+				}
+			}
+		}
+		return $event;
+	}
 
     private function __mergeExtensions($user, $uuid, $event)
     {
