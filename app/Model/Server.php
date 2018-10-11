@@ -3745,7 +3745,10 @@ class Server extends AppModel
             }
         }
         $worker_array['proc_accessible'] = $procAccessible;
-        $worker_array['controls'] = Configure::read('MISP.manage_workers');
+		$worker_array['controls'] = 1;
+		if (Configure::check('MISP.manage_workers')) {
+			$worker_array['controls'] = Configure::read('MISP.manage_workers');
+		}
         return $worker_array;
     }
 
