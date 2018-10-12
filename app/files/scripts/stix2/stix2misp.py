@@ -1136,8 +1136,8 @@ def from_misp(reports):
 def main(args):
     stix_event = defaultdict(dict)
     filename = os.path.join(os.path.dirname(args[0]), args[1])
-    with open(filename, 'rb') as f:
-        event = stix2.parse(f.read().decode('utf-8'), allow_custom=True)
+    with open(filename, 'rt', encoding='utf-8') as f:
+        event = stix2.parse(f.read(), allow_custom=True)
     for parsed_object in event.objects:
         try:
             object_type = parsed_object._type
