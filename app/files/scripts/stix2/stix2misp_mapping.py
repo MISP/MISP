@@ -231,7 +231,8 @@ network_traffic_mapping = {'src_port': src_port_attribute_mapping,
 network_traffic_extensions = {'socket-ext': 'network-socket'}
 
 network_traffic_ip = ('ip-{}', 'ip-{}')
-ip_port_types = {'domain-name': ('domain', 'domain'), 'ipv4-addr': network_traffic_ip, 'ipv6-addr': network_traffic_ip}
+ip_port_ip = ('ip-dst', 'ip')
+ip_port_types = {'domain-name': ('domain', 'domain'), 'ipv4-addr': ip_port_ip, 'ipv6-addr': ip_port_ip}
 network_socket_types = {'domain-name': ('hostname', 'hostname-{}'), 'ipv4-addr': network_traffic_ip, 'ipv6-addr': network_traffic_ip}
 network_traffic_references_mapping = {'with_extensions': network_socket_types, 'without_extensions': ip_port_types}
 

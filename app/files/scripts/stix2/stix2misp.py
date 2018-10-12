@@ -307,11 +307,11 @@ class StixParser():
         self.misp_event.add_object(**misp_object)
 
     @staticmethod
-    def parse_network_traffic_references(objects, network_traffic, mapping):
+    def parse_network_traffic_references(objects, network_traffic, mapping, attr='get'):
         attributes= []
         for ref in ('src_ref', 'dst_ref'):
             if hasattr(network_traffic, ref):
-                ref_object = objects[getattr(network_traffic, ref)]
+                ref_object = getattr(objects, attr)(getattr(network_traffic, ref))
                 origin = ref.split('_')[0]
                 misp_type, relation = mapping[ref_object._type]
                 attributes.append({'type': misp_type.format(origin), 'object_relation': relation.format(origin),
@@ -864,8 +864,8 @@ class ExternalStixParser(StixParser):
                                  ('domain-name',): self.parse_observable_domain_ip,
                                  ('domain-name', 'ipv4-addr'): self.parse_observable_domain_ip,
                                  ('domain-name', 'ipv6-addr'): self.parse_observable_domain_ip,
-                                 ('domain-name', 'ipv4-addr', 'network-traffic'): self.parse_observable_ip_port,
-                                 ('domain-name', 'ipv6-addr', 'network-traffic'): self.parse_observable_ip_port,
+                                 ('domain-name', 'ipv4-addr', 'network-traffic'): self.parse_observable_ip_port_or_network_socket,
+                                 ('domain-name', 'ipv6-addr', 'network-traffic'): self.parse_observable_ip_port_or_network_socket,
                                  ('domain-name', 'ipv4-addr', 'ipv6-addr', 'network-traffic'): self.parse_observable_ip_port,
                                  ('domain-name', 'network-traffic'): self.parse_observable_network_socket,
                                  ('domain-name', 'network-traffic', 'url'): self.parse_observable_url_object,
@@ -1009,30 +1009,44 @@ class ExternalStixParser(StixParser):
             self.handle_import_case(attributes, file._type, uuid)
 
     def parse_observable_ip_network_traffic(self, objects, uuid):
-        references = {}
-        for key, value in objects.items():
-            if isinstance(value, (stix2.IPv4Address, stix2.IPv6Address)):
-                references[key] = value.value
-            elif isinstance(value, stix2.NetworkTraffic):
-                network_traffic = value
+        network_traffic = self.fetch_network_traffic_objects(objects)
         attributes = self.fill_observable_attributes(network_traffic, network_traffic_mapping)
-        if references:
-            for ref in ('src_ref', 'dst_ref'):
-                if hasattr(network_traffic, ref):
-                    misp_type = 'ip-{}'.format(ref.split('_')[0])
-                    attributes.append({'type': misp_type, 'object_relation': misp_type,
-                                       'to_ids': False, 'value': references[getattr(network_traffic, ref)]})
         if hasattr(network_traffic, 'extensions') and network_traffic.extensions:
             extension_type, extension_value = list(network_traffic.extensions.items())[0]
             name = network_traffic_extensions[extension_type]
             attributes.extend(self.fill_observable_attributes(extension_value, network_traffic_mapping))
         else:
             name = 'ip-port'
+        attributes.extend(self.parse_network_traffic_references(objects, network_traffic, network_socket_types))
         self.handle_import_case(attributes, name, uuid)
 
     def parse_observable_ip_port(self, objects, uuid):
         attributes = self.attributes_from_observable_ip_port(objects)
         self.handle_import_case(attributes, 'ip-port', uuid)
+
+    def parse_observable_ip_port_or_network_socket(self, objects, uuid):
+        references = defaultdict(dict)
+        for key, value in objects.items():
+            if isinstance(value, (stix2.DomainName, stix2.IPv4Address, stix2.IPv6Address)):
+                references[key] = value
+            elif isinstance(value, stix2.NetworkTraffic):
+                network_traffic = value
+        attributes = self.fill_observable_attributes(network_traffic, network_traffic_mapping)
+        if hasattr(network_traffic, 'extensions') and network_traffic.extensions:
+            extension_type, extension_value = list(network_traffic.extensions.items())[0]
+            name = network_traffic_extensions[extension_type]
+            attributes.extend(self.fill_observable_attributes(extension_value, network_traffic_mapping))
+            mapping = network_traffic_references_mapping['with_extensions']
+        else:
+            name = 'ip-port'
+            mapping = network_traffic_references_mapping['without_extensions']
+        attributes.extend(self.parse_network_traffic_references(references, network_traffic, mapping, attr='pop'))
+        if references:
+            for reference in references.values():
+                misp_type, relation = mapping[reference._type]
+                attributes.append({'type': misp_type, 'object_relation': relation,
+                                   'to_ids': False, 'value': reference.value})
+        self.handle_import_case(attributes, name, uuid)
 
     def parse_observable_mac_address(self, objects, uuid):
         self.misp_event.add_attribute(**{'type': 'mac-address', 'value': objects['0'].value, 'uuid': uuid, 'to_ids': False})
