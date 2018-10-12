@@ -274,6 +274,16 @@ class StixParser():
             if isinstance(value, stix2.NetworkTraffic):
                 return value
 
+    @staticmethod
+    def fetch_network_traffic_objects_and_references(objects):
+        references = defaultdict(dict)
+        for key, value in objects.items():
+            if isinstance(value, (stix2.DomainName, stix2.IPv4Address, stix2.IPv6Address)):
+                references[key] = value
+            elif isinstance(value, stix2.NetworkTraffic):
+                network_traffic = value
+        return network_traffic, references
+
     def parse_complex_fields_observable_email(self, objects, to_ids):
         attributes = []
         addresses, files, message = self.split_observable_email_parts(objects)
@@ -337,6 +347,15 @@ class StixParser():
             self.misp_event.add_object(**pe_section)
         self.misp_event.add_object(**pe)
         return pe_uuid
+
+    @staticmethod
+    def parse_remaining_references(references, mapping):
+        attributes = []
+        for reference in references.values():
+            misp_type, relation = mapping[reference._type]
+            attributes.append({'type': misp_type, 'object_relation': relation,
+                               'to_ids': False, 'value': reference.value})
+        return attributes
 
     @staticmethod
     def split_observable_email_parts(observable):
@@ -1015,9 +1034,11 @@ class ExternalStixParser(StixParser):
             extension_type, extension_value = list(network_traffic.extensions.items())[0]
             name = network_traffic_extensions[extension_type]
             attributes.extend(self.fill_observable_attributes(extension_value, network_traffic_mapping))
+            mapping = network_traffic_references_mapping['with_extensions']
         else:
             name = 'ip-port'
-        attributes.extend(self.parse_network_traffic_references(objects, network_traffic, network_socket_types))
+            mapping = network_traffic_references_mapping['without_extensions']
+        attributes.extend(self.parse_network_traffic_references(objects, network_traffic, mapping))
         self.handle_import_case(attributes, name, uuid)
 
     def parse_observable_ip_port(self, objects, uuid):
@@ -1025,12 +1046,7 @@ class ExternalStixParser(StixParser):
         self.handle_import_case(attributes, 'ip-port', uuid)
 
     def parse_observable_ip_port_or_network_socket(self, objects, uuid):
-        references = defaultdict(dict)
-        for key, value in objects.items():
-            if isinstance(value, (stix2.DomainName, stix2.IPv4Address, stix2.IPv6Address)):
-                references[key] = value
-            elif isinstance(value, stix2.NetworkTraffic):
-                network_traffic = value
+        network_traffic, references = self.fetch_network_traffic_objects_and_references(objects)
         attributes = self.fill_observable_attributes(network_traffic, network_traffic_mapping)
         if hasattr(network_traffic, 'extensions') and network_traffic.extensions:
             extension_type, extension_value = list(network_traffic.extensions.items())[0]
@@ -1042,10 +1058,7 @@ class ExternalStixParser(StixParser):
             mapping = network_traffic_references_mapping['without_extensions']
         attributes.extend(self.parse_network_traffic_references(references, network_traffic, mapping, attr='pop'))
         if references:
-            for reference in references.values():
-                misp_type, relation = mapping[reference._type]
-                attributes.append({'type': misp_type, 'object_relation': relation,
-                                   'to_ids': False, 'value': reference.value})
+            attributes.extend(self.parse_remaining_references(references, mapping))
         self.handle_import_case(attributes, name, uuid)
 
     def parse_observable_mac_address(self, objects, uuid):
@@ -1055,7 +1068,7 @@ class ExternalStixParser(StixParser):
         self.misp_event.add_attribute(**{'type': 'mutex', 'value': objects['0'].name, 'uuid': uuid, 'to_ids': False})
 
     def parse_observable_network_socket(self, objects, uuid):
-        network_traffic = self.fetch_network_traffic_objects(objects)
+        network_traffic, references = self.fetch_network_traffic_objects_and_references(objects)
         attributes = self.fill_observable_attributes(network_traffic, network_traffic_mapping)
         if  hasattr(network_traffic, 'extensions') and network_traffic.extensions:
             extension_type, extension_value = list(network_traffic.extensions.items())[0]
@@ -1065,7 +1078,9 @@ class ExternalStixParser(StixParser):
         else:
             name = 'ip-port'
             mapping = network_traffic_references_mapping['without_extensions']
-        attributes.extend(self.parse_network_traffic_references(objects, network_traffic, mapping))
+        attributes.extend(self.parse_network_traffic_references(objects, network_traffic, mapping, attr='pop'))
+        if references:
+            attributes.extend(self.parse_remaining_references(references, mapping))
         self.handle_import_case(attributes, name, uuid)
 
     def parse_observable_process(self, objects, uuid):
