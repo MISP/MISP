@@ -16,7 +16,11 @@
 				$temp = '';
 				foreach ($filterOptions as $fo => $text) {
 					if (!empty($filters[$fo])) {
-						$temp .= sprintf('%s <b>%s</b>', $text, h($filters[$fo]));
+						$filter_options_string = $filters[$fo];
+						if (is_array($filter_options_string)) {
+							$filter_options_string = implode(' OR ', $filter_options_string);
+						}
+						$temp .= sprintf('%s <b>%s</b>', $text, h($filter_options_string));
 					}
 				}
 				echo sprintf("<h4>%s%s</h4>", __("Results for all attributes"), $temp);
@@ -61,7 +65,12 @@
 		$keywordArray = array();
         foreach ($toHighlight as $highlightedElement) {
             if (!empty($filters[$highlightedElement])) {
-				$keywordArray[] = $filters[$highlightedElement];
+				if (!is_array($filters[$highlightedElement])) {
+					$filters[$highlightedElement] = array($filters[$highlightedElement]);
+				}
+				foreach ($filters[$highlightedElement] as $highlightedString) {
+					$keywordArray[] = $highlightedString;
+				}
 			}
         }
         // build the $replacePairs variable used to highlight the keywords

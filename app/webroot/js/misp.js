@@ -2691,12 +2691,14 @@ function pivotObjectReferences(url, uuid) {
 	});
 }
 
-function toggleDeletedAttributes(url) {
+function toggleBoolFilter(url, param) {
 	url = url.replace(/view\//i, 'viewEventAttributes/');
-	if (url.indexOf('deleted:') > -1) {
-		url = url.replace(/\/deleted:[^\/]*/i, '');
+	if (url.indexOf(param) > -1) {
+		var replace = '\/' + param + ".+1";
+		var re = new RegExp(replace,"i");
+		url = url.replace(re, '');
 	} else {
-		url = url + '/deleted:true'
+		url = url + '/' + param + ':1'
 	}
 	$.ajax({
 		type:"get",

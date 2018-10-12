@@ -1589,7 +1589,8 @@ class AttributesController extends AppController
 	            'request' => $this->request,
 	            'named_params' => $this->params['named'],
 	            'paramArray' => $paramArray,
-	            'ordered_url_params' => compact($paramArray)
+	            'ordered_url_params' => compact($paramArray),
+				'additional_delimiters' => PHP_EOL
 	        );
 	        $exception = false;
 	        $filters = $this->_harvestParameters($filterData, $exception);
