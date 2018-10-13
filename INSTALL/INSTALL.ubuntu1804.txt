@@ -23,6 +23,9 @@ sudo postfix reload
 ------------------------------
 Once the system is installed you can perform the following steps:
 
+# Make sure you have enabled the Universe repository (fe. for redis-server), enable it with
+# sudo add-apt-repository universe
+
 # Install the dependencies: (some might already be installed)
 sudo apt-get install curl gcc git gnupg-agent make python python3 openssl redis-server sudo vim zip
 
@@ -207,7 +210,7 @@ sudo systemctl restart apache2
 # To rotate these logs install the supplied logrotate script:
 
 sudo cp /var/www/MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
-chmod 0640 /etc/logrotate.d/misp
+sudo chmod 0640 /etc/logrotate.d/misp
 
 9/ MISP configuration
 ---------------------
