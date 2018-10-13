@@ -144,6 +144,19 @@
         <?php echo $this->element('ajaxAttributeTags', array('attributeId' => $object['id'], 'attributeTags' => $object['AttributeTag'], 'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id']) )); ?>
       </div>
     </td>
+	<?php
+		if (!empty($includeRelatedTags)) {
+			$element = '';
+			if (!empty($object['RelatedTags'])) {
+				$element = $this->element('ajaxAttributeTags', array('attributeId' => $object['id'], 'attributeTags' => $object['RelatedTags'], 'tagAccess' => false));
+			}
+			echo sprintf(
+				'<td class="shortish"><div %s>%s</div></td>',
+				'class="attributeRelatedTagContainer" id="#Attribute_' . h($object['id']) . 'Related_tr .attributeTagContainer"',
+				$element
+			);
+		}
+	?>
     <td class="short">
       <?php
         echo $this->element('galaxyQuickViewMini', array(

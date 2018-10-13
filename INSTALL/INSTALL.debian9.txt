@@ -150,9 +150,12 @@ sudo -u www-data git config core.filemode false
 cd $PATH_TO_MISP/app/files/scripts
 sudo -u www-data git clone https://github.com/CybOXProject/python-cybox.git
 sudo -u www-data git clone https://github.com/STIXProject/python-stix.git
+sudo -u www-data git clone https://github.com/MAECProject/python-maec.git
 cd $PATH_TO_MISP/app/files/scripts/python-cybox
 sudo pip3 install .
 cd $PATH_TO_MISP/app/files/scripts/python-stix
+sudo pip3 install .
+cd $PATH_TO_MISP/app/files/scripts/python-maec
 sudo pip3 install .
 
 # install mixbox to accomodate the new STIX dependencies:

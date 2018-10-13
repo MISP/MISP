@@ -94,6 +94,12 @@ class RestResponseComponent extends Component
                 'params' => array('feed_id')
             ),
         ),
+		'Log' => array(
+			'admin_index' => array(
+				'description' => "POST a filter object to receive a JSON with the log entries matching the query. A simple get request will return the entire DB. You can use the filter parameters as url parameters with a GET request such as: https://path.to.my.misp/admin/logs/page:1/limit:200 - to run substring queries simply append/prepend/encapsulate the search term with %. All restSearch rules apply.",
+				"optional" => array('id', 'title', 'created', 'model', 'model_id', 'action', 'user_id', 'change', 'email', 'org', 'description', 'ip')
+			)
+		),
         'Organisation' => array(
             'admin_add' => array(
                 'description' => "POST an Organisation object in JSON format to this API to create a new organsiation.",

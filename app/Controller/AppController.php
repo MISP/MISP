@@ -46,8 +46,8 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg');
 
-    private $__queryVersion = '45';
-    public $pyMispVersion = '2.4.95';
+    private $__queryVersion = '46';
+    public $pyMispVersion = '2.4.96';
     public $phpmin = '5.6.5';
     public $phprec = '7.0.16';
 
@@ -622,6 +622,17 @@ class AppController extends Controller
                 }
             }
         }
+		if (!empty($options['additional_delimiters'])) {
+			if (!is_array($options['additional_delimiters'])) {
+				$options['additional_delimiters'] = array($options['additional_delimiters']);
+			}
+			foreach ($data as $k => $v) {
+				$data[$k] = explode($options['additional_delimiters'][0], str_replace($options['additional_delimiters'], $options['additional_delimiters'][0], $v));
+				foreach ($data[$k] as $k2 => $value) {
+					$data[$k][$k2] = trim($data[$k][$k2]);
+				}
+			}
+		}
         return $data;
     }
 

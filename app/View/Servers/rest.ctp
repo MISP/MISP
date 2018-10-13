@@ -74,7 +74,7 @@
 	</fieldset>
     <?php
 		$formats = array('Raw', 'JSON', 'HTML');
-		if ($data['code'] < 300) {
+		if (!empty($data['code']) && $data['code'] < 300) {
 			$query_formats = array('curl' => 'cURL', 'python' => 'PyMISP');
 			echo '<ul class="nav nav-tabs" style="margin-bottom:5px;">';
 			foreach ($query_formats as $format => $formatName) {

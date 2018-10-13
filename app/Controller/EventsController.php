@@ -997,6 +997,12 @@ class EventsController extends AppController
         $conditions['includeFeedCorrelations'] = true;
         $conditions['includeAllTags'] = true;
 		$conditions['includeGranularCorrelations'] = 1;
+		if (!empty($this->params['named']['includeRelatedTags'])) {
+			$this->set('includeRelatedTags', 1);
+			$conditions['includeRelatedTags'] = 1;
+		} else {
+			$this->set('includeRelatedTags', 0);
+		}
         $results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
         if (empty($results)) {
             throw new NotFoundException(__('Invalid event'));
@@ -1129,7 +1135,7 @@ class EventsController extends AppController
             $cortex_modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Cortex');
             $this->set('cortex_modules', $cortex_modules);
         }
-        $this->set('deleted', (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) ? true : false);
+        $this->set('deleted', (!empty($this->params['named']['deleted'])) ? 1 : 0);
         $this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
         $this->set('attributeFilter', isset($this->params['named']['attributeFilter']) ? $this->params['named']['attributeFilter'] : 'all');
         $this->disableCache();
@@ -1368,6 +1374,9 @@ class EventsController extends AppController
         if (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) {
             $conditions['deleted'] = 1;
         }
+		if (isset($this->params['named']['includeRelatedTags']) && $this->params['named']['includeRelatedTags']) {
+            $conditions['includeRelatedTags'] = 1;
+        }
         if (isset($this->params['named']['public']) && $this->params['named']['public']) {
             $conditions['distribution'] = array(3, 5);
         }
@@ -1400,6 +1409,7 @@ class EventsController extends AppController
             $this->set('event', $event);
         }
         $this->set('deleted', isset($this->params['named']['deleted']) && $this->params['named']['deleted']);
+		$this->set('includeRelatedTags', (!empty($this->params['named']['includeRelatedTags'])) ? 1 : 0);
         if (!$this->_isRest()) {
             $this->__viewUI($event, $continue, $fromEvent);
         }

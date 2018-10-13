@@ -205,21 +205,6 @@
         "ShadowAttribute": []
       },
       {
-        "id": "96651",
-        "type": "text",
-        "category": "External analysis",
-        "to_ids": false,
-        "uuid": "5488488d-a4ec-4b40-bd7d-15c7950d210b",
-        "event_id": "750",
-        "distribution": "3",
-        "timestamp": "1418217613",
-        "comment": "",
-        "sharing_group_id": "0",
-        "value": "In this document we analyze a set of 32-bit samples\r\nwhich represents stage #1 of the complex threat that is\r\nknown as Regin. Based on our analysis of the malware’s\r\nfunctionalities, this part of the Regin threat can be\r\nconsidered just a support module — its sole purpose\r\nis to facilitate and enable the operations of stage #2\r\nby loading it and making it more difficult to detect by\r\nsecurity products.\r\nRegin’s stage #1 targets the Windows platform and\r\nsupport various versions of the operating system,\r\nbeginning with Windows NT 4.0. Based on our analysis,\r\nthe samples may be classified into two categories: “pure”\r\nsamples that do not feature any extra, non-malicious\r\ncode; and “augmented” ones which feature malware\r\ncode as part of another device driver. The existence of\r\n“augmented” samples indicates the intention of the\r\nattacker to remain undiscovered for as long as possible.\r\nWhen activated, samples of Regin stage #1 will\r\nretrieve encrypted content from specific locations of\r\nan already compromised system, map it into kernel\r\nmemory and transfer control to it. In terms of technical\r\nsophistication, stage #1’s import resolution process is\r\nof particular interest, as the malware uses the unusual\r\n“trampoline” technique to mask the payload’s access to\r\nAPI functions.\r\nIt is clear that this support component, that represents\r\nthe initial stage of a very complex threat, has been\r\ninstrumental in securing long-term persistence in the\r\nattacks that made use of this threat.",
-        "SharingGroup": [],
-        "ShadowAttribute": []
-      },
-      {
         "id": "96652",
         "type": "text",
         "category": "Other",

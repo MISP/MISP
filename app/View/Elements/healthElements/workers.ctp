@@ -7,7 +7,7 @@
 	endif;
 	if (!$worker_array['controls']):
 ?>
-	<div><b><?php echo __('Note:');?></b>: <?php echo  __('You have set the "control_workers" variable to "false", therefore worker controls have been disabled.');?></div>
+	<div><b><?php echo __('Note:');?></b>: <?php echo  __('You have set the "manage_workers" variable to "false", therefore worker controls have been disabled.');?></div>
 <?php
         endif;
         foreach ($worker_array as $type => $data):
