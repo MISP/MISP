@@ -62,6 +62,10 @@ class RestResponseComponent extends Component
                 'optional' => array('info', 'threat_level_id', 'analysis', 'distribution', 'sharing_group_id', 'uuid', 'published', 'timestamp', 'date', 'Attribute', 'Object', 'Shadow_Attribute', 'EventTag'),
                 'params' => array('event_id')
             ),
+			'index' => array(
+				'description' => 'POST a JSON filter object to this API to get the meta-data about matching events.',
+				'optional' => array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal')
+			),
 			'restSearch' => array(
 				'description' => "Search MISP using a list of filter parameters and return the data
 					in the selected format. The search is available on an event and an attribute level,
@@ -98,6 +102,9 @@ class RestResponseComponent extends Component
 			'admin_index' => array(
 				'description' => "POST a filter object to receive a JSON with the log entries matching the query. A simple get request will return the entire DB. You can use the filter parameters as url parameters with a GET request such as: https://path.to.my.misp/admin/logs/page:1/limit:200 - to run substring queries simply append/prepend/encapsulate the search term with %. All restSearch rules apply.",
 				"optional" => array('id', 'title', 'created', 'model', 'model_id', 'action', 'user_id', 'change', 'email', 'org', 'description', 'ip')
+			),
+			'event_index' => array(
+				'description' => "Simply run a get request on this endpoint to get the relevant log entries for a given event. This functionality is open to any user having access to a given event."
 			)
 		),
         'Organisation' => array(
