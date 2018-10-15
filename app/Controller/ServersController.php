@@ -1020,6 +1020,7 @@ class ServersController extends AppController
                 $workerIssueCount = 0;
                 $worker_array = $this->Server->workerDiagnostics($workerIssueCount);
             }
+            $this->set('worker_array', $worker_array);
             if ($tab == 'download') {
                 foreach ($dumpResults as $key => $dr) {
                     unset($dumpResults[$key]['description']);
