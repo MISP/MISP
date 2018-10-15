@@ -72,10 +72,10 @@ class StixParser():
 
     def general_handler(self):
         self.outputname = '{}.stix2'.format(self.filename)
-        self.buildMISPDict()
+        self.build_from_STIX_with_report() if self.event['report'] else self.build_from_STIX_without_report()
         self.set_distribution()
 
-    def buildMISPDict(self):
+    def build_from_STIX_with_report(self):
         report_attributes = defaultdict(set)
         for _, report in self.event['report'].items():
             report_attributes['orgs'].add(report['created_by_ref'].split('--')[1])
@@ -102,6 +102,12 @@ class StixParser():
             self.misp_event.info = "Imported with MISP import script for {}.".format(self.stix_version)
         for l in report_attributes['labels']:
             self.misp_event.add_tag(l)
+
+    def build_from_STIX_without_report(self):
+        for object_type, objects in self.event.items():
+            if object_type not in ('relationship', 'report'):
+                for _, _object in objects.items():
+                    self.parsing_process(_object, object_type)
 
     def set_distribution(self):
         for attribute in self.misp_event.attributes:
@@ -145,6 +151,159 @@ class StixParser():
     def get_misp_category(labels):
         return labels[1].split('=')[1][1:-1]
 
+    ################################################################################
+    ##                 PARSING FUNCTIONS USED BY BOTH SUBCLASSES.                 ##
+    ################################################################################
+
+    @staticmethod
+    def append_email_attribute(_type, value, to_ids):
+        mapping = email_mapping[_type]
+        return {'type': mapping['type'], 'object_relation': mapping['relation'], 'value': value, 'to_ids': to_ids}
+
+    def attributes_from_observable_asn(self, objects):
+        attributes = []
+        for _object in objects.values():
+            attributes.extend(self.fill_observable_attributes(_object, asn_mapping))
+        return attributes
+
+    def attributes_from_observable_domain_ip(self, objects):
+        attributes = []
+        for _object in objects.values():
+            mapping = domain_ip_mapping[_object.type]
+            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                               'value': _object.value, 'to_ids': False})
+        return attributes
+
+    def attributes_from_observable_file(self, _object, data=None):
+        attributes = []
+        md5 = None
+        if hasattr(_object, 'hashes'):
+            if 'MD5' in _object.hashes:
+                md5 = _object.hashes['MD5']
+            for h_type, h_value in _object.hashes.items():
+                h_type = h_type.lower().replace('-', '')
+                attributes.append({'type': h_type, 'object_relation': h_type,
+                                   'value': h_value, 'to_ids': False})
+        attributes.extend(self.fill_observable_attributes(_object, file_mapping))
+        if data is not None and md5 and hasattr(_object, 'name'):
+            attributes.append({'type': 'malware-sample', 'object_relation': 'malware-sample',
+                               'value': '{}|{}'.format(_object.name, md5), 'data': data})
+        return attributes
+
+    def attributes_from_observable_ip_port(self, objects):
+        ordered_objects = defaultdict(dict)
+        for key, value in objects.items():
+            if isinstance(value, (stix2.IPv4Address, stix2.IPv6Address, stix2.NetworkTraffic)):
+                ordered_objects[value._type.split('-')[1]][key] = value
+            else:
+                attributes = self.fill_observable_attributes(value, network_traffic_mapping)
+        for traffic in ordered_objects['traffic'].values():
+            if hasattr(traffic, 'dst_ref'):
+                mapping = ip_attribute_mapping
+                attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                                   'to_ids': False, 'value': ordered_objects['addr'][traffic.dst_ref].value})
+            attributes.extend(self.fill_observable_attributes(traffic, network_traffic_mapping))
+        return attributes
+
+    def attributes_from_observable_process(self, objects):
+        main_process = None
+        for _object in objects.values():
+            if hasattr(_object, 'parent_ref') or hasattr(_object, 'child_refs'):
+                main_process = _object
+                break
+        if main_process:
+            attributes = self.fill_observable_attributes(main_process, process_mapping)
+            for refs in ('parent_ref', 'child_refs'):
+                if hasattr(main_process, refs):
+                    attributes.extend([self.parse_reference_process(objects[ref], refs) for ref in getattr(main_process, refs)])
+            return attributes
+        return [result for _object in objects.values() for result in self.fill_observable_attributes(_object, process_mapping)]
+
+    @staticmethod
+    def parse_reference_process(process, ref_type):
+        field = 'pid'
+        mapping = process_mapping[field]
+        relation = '{}-{}'.format(ref_type.split('_')[0], mapping['relation'])
+        return {'type': mapping['type'], 'object_relation': relation, 'value': getattr(process, field), 'to_ids': False}
+
+    def attributes_from_observable_regkey(self, _object):
+        attributes = []
+        for key, value in _object.items():
+            if key in regkey_mapping:
+                mapping = regkey_mapping[key]
+                attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                                   'value': value.replace('\\\\', '\\'), 'to_ids': False})
+        if 'values' in _object:
+            attributes.extend(self.fill_observable_attributes(_object.values[0], regkey_mapping))
+        return attributes
+
+    @staticmethod
+    def attributes_from_observable_url(objects):
+        attributes = []
+        for value in objects.values():
+            if isinstance(value, (stix2.URL, stix2.DomainName)):
+                mapping = url_mapping[value._type]
+                attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                                   'value': value.value, 'to_ids': False})
+            elif isinstance(value, stix2.NetworkTraffic):
+                mapping = url_mapping[value._type]
+                attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                                   'value': value.dst_port, 'to_ids': False})
+        return attributes
+
+    def attributes_from_observable_x509(self, objects):
+        _object = objects['0']
+        attributes = self.fill_observable_attributes(_object.hashes, x509_mapping) if (hasattr(_object, 'hashes') and _object.hashes) else []
+        attributes.extend(self.fill_observable_attributes(_object, x509_mapping))
+        return attributes
+
+    @staticmethod
+    def extract_data_from_file(objects):
+        data = None
+        for value in objects.values():
+            if isinstance(value, stix2.Artifact):
+                data = value.payload_bin
+            elif isinstance(value, stix2.File):
+                file = value
+        return file, data
+
+    @staticmethod
+    def fetch_network_traffic_objects(objects):
+        network_traffics = []
+        for value in objects.values():
+            if isinstance(value, stix2.NetworkTraffic):
+                return value
+
+    @staticmethod
+    def fetch_network_traffic_objects_and_references(objects):
+        references = defaultdict(dict)
+        for key, value in objects.items():
+            if isinstance(value, (stix2.DomainName, stix2.IPv4Address, stix2.IPv6Address)):
+                references[key] = value
+            elif isinstance(value, stix2.NetworkTraffic):
+                network_traffic = value
+        return network_traffic, references
+
+    def parse_complex_fields_observable_email(self, objects, to_ids):
+        attributes = []
+        addresses, files, message = self.split_observable_email_parts(objects)
+        if 'from_ref' in message:
+            from_ref = 'from_ref'
+            attributes.append(self.append_email_attribute(from_ref, addresses[message.pop(from_ref)], to_ids))
+        for ref in ('to_refs', 'cc_refs'):
+            if ref in message:
+                attributes.extend([self.append_email_attribute(ref, addresses[item], to_ids) for item in message.pop(ref)])
+        if 'body_multipart' in message:
+            brr = 'body_raw_ref'
+            attributes.extend([self.append_email_attribute('body_multipart', files[f[brr]], to_ids) for f in message.pop('body_multipart') if brr in f])
+        if 'additional_header_fields' in message:
+            for field_key, field_value in message.pop('additional_header_fields').items():
+                if field_key == 'Reply-To':
+                    attributes.extend([self.append_email_attribute(field_key, reply_to, to_ids) for reply_to in field_value])
+                else:
+                    attributes.append(self.append_email_attribute(field_key, field_value, to_ids))
+        return attributes, message
+
     def parse_course_of_action(self, o):
         misp_object = MISPObject('course-of-action')
         if 'name' in o:
@@ -158,51 +317,75 @@ class StixParser():
         self.misp_event.add_object(**misp_object)
 
     @staticmethod
-    def parse_observable(observable, attribute_type):
-        return misp_types_mapping[attribute_type](observable, attribute_type)
+    def parse_network_traffic_references(objects, network_traffic, mapping, attr='get'):
+        attributes= []
+        for ref in ('src_ref', 'dst_ref'):
+            if hasattr(network_traffic, ref):
+                ref_object = getattr(objects, attr)(getattr(network_traffic, ref))
+                origin = ref.split('_')[0]
+                misp_type, relation = mapping[ref_object._type]
+                attributes.append({'type': misp_type.format(origin), 'object_relation': relation.format(origin),
+                                   'to_ids': False, 'value': ref_object.value})
+        return attributes
+
+    def parse_pe(self, extension):
+        pe = MISPObject('pe')
+        pe_uuid = str(uuid.uuid4())
+        pe.uuid = pe_uuid
+        self.fill_object_attributes_observable(pe, pe_mapping, extension)
+        for section in extension['sections']:
+            pe_section = MISPObject('pe-section')
+            if 'hashes' in section:
+                for h_type, h_value in section['hashes'].items():
+                    h_type = h_type.lower().replace('-', '')
+                    pe_section.add_attribute(**{'type': h_type, 'object_relation': h_type,
+                                                'value': h_value, 'to_ids': False})
+            self.fill_object_attributes_observable(pe_section, pe_section_mapping, section)
+            section_uuid = str(uuid.uuid4())
+            pe_section.uuid = section_uuid
+            pe.add_reference(section_uuid, 'included-in')
+            self.misp_event.add_object(**pe_section)
+        self.misp_event.add_object(**pe)
+        return pe_uuid
 
     @staticmethod
-    def parse_pattern(pattern):
-        if ' AND ' in pattern:
-            pattern_parts = pattern.split(' AND ')
-            if len(pattern_parts) == 3:
-                _, value1 = pattern_parts[2].split(' = ')
-                _, value2 = pattern_parts[0].split(' = ')
-                return '{}|{}'.format(value1[1:-2], value2[1:-1])
-            else:
-                _, value1 = pattern_parts[0].split(' = ')
-                _, value2 = pattern_parts[1].split(' = ')
-                if value1 in ("'ipv4-addr'", "'ipv6-addr'"):
-                    return value2[1:-2]
-                return '{}|{}'.format(value1[1:-1], value2[1:-2])
-        else:
-            return pattern.split(' = ')[1][1:-2]
+    def parse_remaining_references(references, mapping):
+        attributes = []
+        for reference in references.values():
+            misp_type, relation = mapping[reference._type]
+            attributes.append({'type': misp_type, 'object_relation': relation,
+                               'to_ids': False, 'value': reference.value})
+        return attributes
 
-    def parse_pattern_with_data(self, pattern):
-        if 'artifact:payload_bin' not in pattern:
-            return self.parse_pattern(pattern)
-        pattern_parts = pattern.split(' AND ')
-        if len(pattern_parts) == 3:
-            filename = pattern_parts[0].split(' = ')[1]
-            md5 = pattern_parts[1].split(' = ')[1]
-            return "{}|{}".format(filename[1:-1], md5[1:-1]), pattern_parts[2].split(' = ')[1][1:-2]
-        return pattern_parts[0].split(' = ')[1][1:-1], pattern_parts[1].split(' = ')[1][1:-2]
+    @staticmethod
+    def split_observable_email_parts(observable):
+        addresses = {}
+        files = {}
+        message = None
+        for o_key, o_dict in observable.items():
+            if isinstance(o_dict, stix2.EmailAddress):
+                addresses[o_key] = o_dict.value
+            elif isinstance(o_dict, stix2.EmailMessage):
+                message = dict(o_dict)
+            elif isinstance(o_dict, stix2.File):
+                files[o_key] = o_dict.name
+        return addresses, files, message
 
 
 class StixFromMISPParser(StixParser):
     def __init__(self):
         super(StixFromMISPParser, self).__init__()
-        self.objects_mapping = {'asn': {'observable': observable_asn, 'pattern': pattern_asn},
-                                'domain-ip': {'observable': observable_domain_ip, 'pattern': pattern_domain_ip},
+        self.objects_mapping = {'asn': {'observable': self.attributes_from_observable_asn, 'pattern': self.pattern_asn},
+                                'domain-ip': {'observable': self.attributes_from_observable_domain_ip, 'pattern': self.pattern_domain_ip},
                                 'email': {'observable': self.observable_email, 'pattern': self.pattern_email},
-                                'file': {'observable': observable_file, 'pattern': self.pattern_file},
-                                'ip-port': {'observable': observable_ip_port, 'pattern': pattern_ip_port},
-                                'network-socket': {'observable': observable_socket, 'pattern': pattern_socket},
-                                'process': {'observable': observable_process, 'pattern': pattern_process},
-                                'registry-key': {'observable': observable_regkey, 'pattern': pattern_regkey},
-                                'url': {'observable': observable_url, 'pattern': pattern_url},
+                                'file': {'observable': self.observable_file, 'pattern': self.pattern_file},
+                                'ip-port': {'observable': self.attributes_from_observable_ip_port, 'pattern': self.pattern_ip_port},
+                                'network-socket': {'observable': self.observable_socket, 'pattern': self.pattern_socket},
+                                'process': {'observable': self.attributes_from_observable_process, 'pattern': self.pattern_process},
+                                'registry-key': {'observable': self.attributes_from_observable_regkey, 'pattern': self.pattern_regkey},
+                                'url': {'observable': self.attributes_from_observable_url, 'pattern': self.pattern_url},
                                 'WindowsPEBinaryFile': {'observable': self.observable_pe, 'pattern': self.pattern_pe},
-                                'x509': {'observable': observable_x509, 'pattern': pattern_x509}}
+                                'x509': {'observable': self.attributes_from_observable_x509, 'pattern': self.pattern_x509}}
         self.object_from_refs = {'course-of-action': self.parse_MISP_course_of_action, 'vulnerability': self.parse_vulnerability,
                                  'x-misp-object': self.parse_custom}
         self.object_from_refs.update(dict.fromkeys(list(galaxy_types.keys()), self.parse_galaxy))
@@ -214,6 +397,10 @@ class StixFromMISPParser(StixParser):
     def parsing_process(self, object2parse, object_type):
         labels = object2parse.get('labels')
         self.object_from_refs[object_type](object2parse, labels)
+
+    ################################################################################
+    ##                             PARSING FUNCTIONS.                             ##
+    ################################################################################
 
     def parse_usual_object(self, o, labels):
         if 'from_object' in labels:
@@ -243,28 +430,29 @@ class StixFromMISPParser(StixParser):
 
     def parse_custom_object(self, o, labels):
         name = o['type'].split('x-misp-object-')[1]
-        timestamp = self.getTimestampfromDate(o['x_misp_timestamp'])
+        misp_object = MISPObject(name)
+        misp_object.timestamp = self.getTimestampfromDate(o['x_misp_timestamp'])
+        misp_object.uuid = o['id'].split('--')[1]
         try:
-            category = o['category']
+            misp_object.category = o['category']
         except KeyError:
-            category = self.get_misp_category(labels)
+            misp_object.category = self.get_misp_category(labels)
         attributes = []
         for key, value in o['x_misp_values'].items():
             attribute_type, object_relation = key.split('_')
-            attributes.append({'type': attribute_type, 'value': value, 'object_relation': object_relation})
-        misp_object = {'name': name, 'timestamp': timestamp, 'meta-category': category, 'Attribute': attributes}
+            misp_object.add_attribute(**{'type': attribute_type, 'value': value, 'object_relation': object_relation})
         self.misp_event.add_object(**misp_object)
 
     def parse_custom_attribute(self, o, labels):
         attribute_type = o['type'].split('x-misp-object-')[1]
         if attribute_type not in misp_types:
             attribute_type = attribute_type.replace('-', '|')
-        timestamp = self.getTimestampfromDate(o['x_misp_timestamp'])
-        to_ids = bool(labels[1].split('=')[1])
-        value = o['x_misp_value']
-        category = self.get_misp_category(labels)
-        attribute = {'type': attribute_type, 'timestamp': timestamp, 'to_ids': to_ids,
-                     'value': value, 'category': category}
+        attribute = {'type': attribute_type,
+                     'timestamp': self.getTimestampfromDate(o['x_misp_timestamp']),
+                     'to_ids': bool(labels[1].split('=')[1]),
+                     'value': o['x_misp_value'],
+                     'category': self.get_misp_category(labels),
+                     'uuid': o['id'].split('--')[1]}
         self.misp_event.add_attribute(**attribute)
 
     def parse_object(self, o, labels):
@@ -273,6 +461,7 @@ class StixFromMISPParser(StixParser):
         object_category = self.get_misp_category(labels)
         stix_type = o._type
         misp_object = MISPObject(name)
+        misp_object.uuid = o.id.split('--')[1]
         misp_object['meta-category'] = object_category
         if stix_type == 'indicator':
             pattern = o.pattern.replace('\\\\', '\\').split(' AND ')
@@ -287,11 +476,11 @@ class StixFromMISPParser(StixParser):
             misp_object.add_reference(pe_uuid, 'included-in')
         for attribute in attributes:
             misp_object.add_attribute(**attribute)
-        misp_object.to_ids = bool(labels[1].split('=')[1])
+        misp_object.to_ids = (labels[2].split('=')[1][1:-1].lower() == 'true')
         self.misp_event.add_object(**misp_object)
 
     def parse_attribute(self, o, labels):
-        attribute_uuid = o['id'].split('--')[1]
+        attribute_uuid = o.id.split('--')[1]
         attribute_type = self.get_misp_type(labels)
         attribute_category = self.get_misp_category(labels)
         attribute = {'uuid': attribute_uuid, 'type': attribute_type, 'category': attribute_category}
@@ -304,8 +493,8 @@ class StixFromMISPParser(StixParser):
         else:
             if stix_type == 'indicator':
                 if hasattr(o, 'valid_until'):
-                    org_uuid = o['created_by_ref'].split('--')[1]
-                    attribute['Sighting'] = [{'type': '2', 'date_sighting': str(self.getTimestampfromDate(o['valid_until'])),
+                    org_uuid = o.created_by_ref.split('--')[1]
+                    attribute['Sighting'] = [{'type': '2', 'date_sighting': str(self.getTimestampfromDate(o.valid_until)),
                                              'Organisation': {'uuid': org_uuid, 'name': self.event['identity'][org_uuid]['name']}}]
                 pattern = o.pattern.replace('\\\\', '\\')
                 value = self.parse_pattern_with_data(pattern) if attribute_type in ('malware-sample', 'attachment') else self.parse_pattern(pattern)
@@ -314,7 +503,7 @@ class StixFromMISPParser(StixParser):
                 attribute['timestamp'] = self.getTimestampfromDate(o.get('last_observed'))
                 observable = o.objects
                 try:
-                    value = self.parse_observable(observable, attribute_type)
+                    value = misp_types_mapping[attribute_type](observable, attribute_type)
                 except Exception:
                     print('Error with attribute type {}:\n{}'.format(attribute_type, observable), file=sys.stderr)
                 attribute['to_ids'] = False
@@ -333,48 +522,21 @@ class StixFromMISPParser(StixParser):
             self.parse_galaxy(o, labels)
 
     def observable_email(self, observable):
-        attributes = []
-        addresses, files, message = self.parse_observable_email(observable)
-        attributes.append({'type': 'email-src', 'object_relation': 'from',
-                           'value': addresses[message.pop('from_ref')], 'to_ids': False})
-        for ref in ('to_refs', 'cc_refs'):
-            attributes.extend([self.append_email_attribute(ref, addresses[item], False) for item in message.pop(ref) if ref in message])
-        body_multipart = 'body_multipart'
-        attributes.extend([self.append_email_attribute(body_multipart, files[f.get('body_raw_ref')], False) for f in message.pop(body_multipart) if body_multipart in message])
+        to_ids = False
+        attributes, message = self.parse_complex_fields_observable_email(observable, to_ids)
         for m_key, m_value in message.items():
-            if m_key == 'additional_header_fields':
-                for field_key, field_value in m_value.items():
-                    if field_key == 'Reply-To':
-                        attributes.extend([self.append_email_attribute(field_key, rt, False) for rt in field_value])
-                    else:
-                        attributes.append(self.append_email_attribute(field_key, field_value, False))
-            else:
-                try:
-                    attributes.append(self.append_email_attribute(m_key, m_value, False))
-                except KeyError:
-                    if m_key.startswith("x_misp_attachment_"):
-                        attribute_type, relation = m_key.split("x_misp_")[1].split("_")
-                        attributes.append({'type': attribute_type, 'object_relation': relation, 'to_ids': False,
-                                           'value': m_value['value'], 'data': io.BytesIO(m_value['data'].encode())})
-                    elif "x_misp_" in m_key:
-                        attribute_type, relation = m_key.split("x_misp_")[1].split("_")
-                        attributes.append({'type': attribute_type, 'object_relation': relation,
-                                           'value': m_value, 'to_ids': False})
+            try:
+                attributes.append(self.append_email_attribute(m_key, m_value, False))
+            except KeyError:
+                if m_key.startswith("x_misp_attachment_"):
+                    attribute_type, relation = m_key.split("x_misp_")[1].split("_")
+                    attributes.append({'type': attribute_type, 'object_relation': relation, 'to_ids': False,
+                                       'value': m_value['value'], 'data': io.BytesIO(m_value['data'].encode())})
+                elif "x_misp_" in m_key:
+                    attribute_type, relation = m_key.split("x_misp_")[1].split("_")
+                    attributes.append({'type': attribute_type, 'object_relation': relation,
+                                       'value': m_value, 'to_ids': False})
         return attributes
-
-    @staticmethod
-    def parse_observable_email(observable):
-        addresses = {}
-        files = {}
-        for o_key, o_dict in observable.items():
-            part_type = o_dict._type
-            if part_type == 'email-addr':
-                addresses[o_key] = o_dict.get('value')
-            elif part_type == 'file':
-                files[o_key] = o_dict.get('name')
-            else:
-                message = dict(o_dict)
-        return addresses, files, message
 
     def pattern_email(self, pattern):
         attributes = []
@@ -398,10 +560,12 @@ class StixFromMISPParser(StixParser):
                                'value': a_dict['value'], 'data': io.BytesIO(a_dict['data'].encode())})
         return attributes
 
-    @staticmethod
-    def append_email_attribute(_type, value, to_ids):
-        mapping = email_mapping[_type]
-        return {'type': mapping['type'], 'object_relation': mapping['relation'], 'value': value, 'to_ids': to_ids}
+    def observable_file(self, observable):
+        if len(observable) > 1:
+            file, data = self.extract_data_from_file(observable)
+            if data is not None:
+                return self.attributes_from_observable_file(file, data)
+        return self.attributes_from_observable_file(observable['0'])
 
     @staticmethod
     def pattern_file(pattern):
@@ -443,38 +607,8 @@ class StixFromMISPParser(StixParser):
 
     def observable_pe(self, observable):
         extension = observable['1']['extensions']['windows-pebinary-ext']
-        sections = extension['sections']
-        pe = MISPObject('pe')
-        pe_uuid = str(uuid.uuid4())
-        pe.uuid = pe_uuid
-        self.fill_object_attributes_observable(pe, pe_mapping, extension)
-        for section in sections:
-            pe_section = MISPObject('pe-section')
-            if 'hashes' in section:
-                for h_type, h_value in section['hashes'].items():
-                    h_type = h_type.lower().replace('-', '')
-                    pe_section.add_attribute(**{'type': h_type, 'object_relation': h_type,
-                                                'value': h_value, 'to_ids': False})
-            self.fill_object_attributes_observable(pe_section, pe_section_mapping, section)
-            section_uuid = str(uuid.uuid4())
-            pe_section.uuid = section_uuid
-            pe.add_reference(section_uuid, 'included-in')
-            self.misp_event.add_object(**pe_section)
-        self.misp_event.add_object(**pe)
-        return observable_file(observable), pe_uuid
-
-    @staticmethod
-    def fill_object_attributes_observable(misp_object, mapping_dict, stix_object):
-        for stix_type, value in stix_object.items():
-            try:
-                mapping = mapping_dict[stix_type]
-                misp_object.add_attribute(**{'type': mapping['type'], 'object_relation': mapping['relation'],
-                                             'value': value, 'to_ids': False})
-            except KeyError:
-                if stix_type.startswith("x_misp_"):
-                    attribute_type, relation = parse_custom_property(stix_type)
-                    misp_object.add_attribute(**{'type': attribute_type, 'object_relation': relation[:-1],
-                                                 'value': value, 'to_ids': False})
+        pe_uuid = self.parse_pe(extension)
+        return self.observable_file(observable), pe_uuid
 
     def pattern_pe(self, pattern):
         attributes = []
@@ -498,7 +632,7 @@ class StixFromMISPParser(StixParser):
                                             'value': p_value, 'to_ids': True})
                     except KeyError:
                         if stix_type.startswith("x_misp_"):
-                            attribute_type, relation = parse_custom_property(stix_type)
+                            attribute_type, relation = self.parse_custom_property(stix_type)
                             pe.add_attribute(**{'type': attribute_type, 'object_relation': relation[:-2],
                                                 'value': p_value, 'to_ids': False})
             else:
@@ -540,6 +674,200 @@ class StixFromMISPParser(StixParser):
         self.misp_event.add_object(**pe)
         return attributes, pe_uuid
 
+    def pattern_asn(self, pattern):
+        return self.fill_pattern_attributes(pattern, asn_mapping)
+
+    def pattern_domain_ip(self, pattern):
+        return self.fill_pattern_attributes(pattern, domain_ip_mapping)
+
+    def pattern_ip_port(self, pattern):
+        return self.fill_pattern_attributes(pattern, network_traffic_mapping)
+
+    @staticmethod
+    def pattern_process(pattern):
+        attributes = []
+        for p in pattern:
+            p_type, p_value = p.split(' = ')
+            try:
+                mapping = process_mapping[p_type]
+            except KeyError:
+                continue
+            if p_type == 'process:child_refs':
+                for value in p_value[1:-1].split(','):
+                    attribute.append({'type': mapping['type'], 'value': value.strip(),
+                                     'object_relation': mapping['relation']})
+            else:
+                attributes.append({'type': mapping['type'], 'value': p_value,
+                                   'object_relation': mapping['relation']})
+        return attributes
+
+    @staticmethod
+    def pattern_regkey(pattern):
+        attributes = []
+        for p in pattern:
+            p_type, p_value = p.split(' = ')
+            try:
+                mapping = regkey_mapping[p_type]
+            except KeyError:
+                continue
+            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                               'value': p_value.replace('\\\\', '\\')[1:-1]})
+        return attributes
+
+    def observable_socket(self, observable):
+        observable_object = dict(observable['0']) if len(observable) == 1 else self.parse_socket_observable(observable)
+        try:
+            extension = observable_object.pop('extensions')
+            attributes = self.parse_socket_extension(extension['socket-ext'])
+        except KeyError:
+            attributes = []
+        for o_key, o_value in observable_object.items():
+            if o_key in ('src_ref', 'dst_ref'):
+                element_object = observable[o_value]
+                if 'domain-name' in element_object['type']:
+                    attribute_type = 'hostname'
+                    relation = 'hostname-{}'.format(o_key.split('_')[0])
+                else:
+                    attribute_type = relation = "ip-{}".format(o_key.split('_')[0])
+                attributes.append({'type': attribute_type, 'object_relation': relation,
+                                   'value': element_object['value']})
+                continue
+            try:
+                mapping = network_traffic_mapping[o_key]
+            except KeyError:
+                continue
+            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                               'value': o_value})
+        return attributes
+
+    @staticmethod
+    def parse_socket_observable(observable):
+        for key in observable:
+            observable_object = observable[key]
+            if observable_object['type'] == 'network-traffic':
+                return dict(observable_object)
+
+    @staticmethod
+    def parse_socket_extension(extension):
+        attributes = []
+        for element in extension:
+            try:
+                mapping = network_traffic_mapping[element]
+            except KeyError:
+                continue
+            if element in ('is_listening', 'is_blocking'):
+                attribute_value = element.split('_')[1]
+            else:
+                attribute_value = extension[element]
+            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                               'value': attribute_value})
+        return attributes
+
+    @staticmethod
+    def pattern_socket(pattern):
+        attributes = []
+        for p in pattern:
+            p_type, p_value = p.split(' = ')
+            try:
+                mapping = network_traffic_mapping[p_type]
+            except KeyError:
+                continue
+            if "network-traffic:extensions.'socket-ext'.is_" in p_type:
+                p_value = p_type.split('_')[1]
+            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                               'value': p_value})
+        return attributes
+
+    def pattern_url(self, pattern):
+        return self.fill_pattern_attributes(pattern, url_mapping)
+
+    def pattern_x509(self, pattern):
+        return self.fill_pattern_attributes(pattern, x509_mapping)
+
+    ################################################################################
+    ##                             UTILITY FUNCTIONS.                             ##
+    ################################################################################
+
+    def fill_observable_attributes(self, stix_object, object_mapping):
+        attributes = []
+        for o_key, o_value in stix_object.items():
+            try:
+                mapping = object_mapping[o_key]
+                attributes.append({'type': mapping.get('type'), 'object_relation': mapping.get('relation'),
+                                   'value': o_value, 'to_ids': False})
+            except KeyError:
+                if "x_misp_" in o_key:
+                    attribute_type, relation = self.parse_custom_property(o_key)
+                    if isinstance(o_value, list):
+                        for v in o_value:
+                            attributes.append({'type': attribute_type, 'object_relation': relation[:-1],
+                                               'value': v, 'to_ids': False})
+                    else:
+                        attributes.append({'type': attribute_type, 'object_relation': relation[:-1],
+                                           'value': o_value, 'to_ids': False})
+        return attributes
+
+    def fill_object_attributes_observable(self, misp_object, mapping_dict, stix_object):
+        for stix_type, value in stix_object.items():
+            try:
+                mapping = mapping_dict[stix_type]
+                misp_object.add_attribute(**{'type': mapping['type'], 'object_relation': mapping['relation'],
+                                             'value': value, 'to_ids': False})
+            except KeyError:
+                if stix_type.startswith("x_misp_"):
+                    attribute_type, relation = self.parse_custom_property(stix_type)
+                    misp_object.add_attribute(**{'type': attribute_type, 'object_relation': relation[:-1],
+                                                 'value': value, 'to_ids': False})
+
+    def fill_pattern_attributes(self, pattern, object_mapping):
+        attributes = []
+        for p in pattern:
+            p_type, p_value = p.split(' = ')
+            try:
+                mapping = object_mapping[p_type]
+                attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                                   'value': p_value[1:-1], 'to_ids': True})
+            except KeyError:
+                if "x_misp_" in p_type:
+                    attribute_type, relation = self.parse_custom_property(p_type)
+                    attributes.append({'type': attribute_type, 'object_relation': relation[:-2],
+                                       'value': p_value[1:-1], 'to_ids': True})
+        return attributes
+
+    @staticmethod
+    def parse_custom_property(p_type):
+        d_type = p_type.split("_")
+        attribute_type = d_type[2]
+        relation = "".join("{}-".format(t) for t in d_type[3:])
+        return attribute_type, relation
+
+    @staticmethod
+    def parse_pattern(pattern):
+        if ' AND ' in pattern:
+            pattern_parts = pattern.split(' AND ')
+            if len(pattern_parts) == 3:
+                _, value1 = pattern_parts[2].split(' = ')
+                _, value2 = pattern_parts[0].split(' = ')
+                return '{}|{}'.format(value1[1:-2], value2[1:-1])
+            else:
+                _, value1 = pattern_parts[0].split(' = ')
+                _, value2 = pattern_parts[1].split(' = ')
+                if value1 in ("'ipv4-addr'", "'ipv6-addr'"):
+                    return value2[1:-2]
+                return '{}|{}'.format(value1[1:-1], value2[1:-2])
+        else:
+            return pattern.split(' = ')[1][1:-2]
+
+    def parse_pattern_with_data(self, pattern):
+        if 'artifact:payload_bin' not in pattern:
+            return self.parse_pattern(pattern)
+        pattern_parts = pattern.split(' AND ')
+        if len(pattern_parts) == 3:
+            filename = pattern_parts[0].split(' = ')[1]
+            md5 = pattern_parts[1].split(' = ')[1]
+            return "{}|{}".format(filename[1:-1], md5[1:-1]), pattern_parts[2].split(' = ')[1][1:-2]
+        return pattern_parts[0].split(' = ')[1][1:-1], pattern_parts[1].split(' = ')[1][1:-2]
+
 
 class ExternalStixParser(StixParser):
     def __init__(self):
@@ -547,24 +875,52 @@ class ExternalStixParser(StixParser):
         self.object_from_refs = {'course-of-action': self.parse_course_of_action, 'vulnerability': self.parse_external_vulnerability,
                                  'indicator': self.parse_external_indicator, 'observed-data': self.parse_external_observable}
         self.object_from_refs.update(dict.fromkeys(list(galaxy_types.keys()), self.parse_external_galaxy))
+        self.external_mapping = {('artifact', 'file'): self.parse_observable_file_object,
+                                 ('autonomous-system',): self.parse_observable_asn,
+                                 ('autonomous-system', 'ipv4-addr'): self.parse_observable_asn,
+                                 ('autonomous-system', 'ipv6-addr'): self.parse_observable_asn,
+                                 ('autonomous-system', 'ipv4-addr', 'ipv6-addr'): self.parse_observable_asn,
+                                 ('domain-name',): self.parse_observable_domain_ip,
+                                 ('domain-name', 'ipv4-addr'): self.parse_observable_domain_ip,
+                                 ('domain-name', 'ipv6-addr'): self.parse_observable_domain_ip,
+                                 ('domain-name', 'ipv4-addr', 'network-traffic'): self.parse_observable_ip_port_or_network_socket,
+                                 ('domain-name', 'ipv6-addr', 'network-traffic'): self.parse_observable_ip_port_or_network_socket,
+                                 ('domain-name', 'ipv4-addr', 'ipv6-addr', 'network-traffic'): self.parse_observable_ip_port,
+                                 ('domain-name', 'network-traffic'): self.parse_observable_network_socket,
+                                 ('domain-name', 'network-traffic', 'url'): self.parse_observable_url_object,
+                                 ('email-addr', 'email-message'): self.parse_observable_email,
+                                 ('email-addr', 'email-message', 'file'): self.parse_observable_email,
+                                 ('email-message',): self.parse_observable_email,
+                                 ('file',): self.parse_observable_file,
+                                 ('ipv4-addr', 'network-traffic'): self.parse_observable_ip_network_traffic,
+                                 ('ipv6-addr', 'network-traffic'): self.parse_observable_ip_network_traffic,
+                                 ('mac-addr',): self.parse_observable_mac_address,
+                                 ('mutex',): self.parse_observable_mutex,
+                                 ('process',): self.parse_observable_process,
+                                 ('x509-certificate',): self.parse_observable_x509,
+                                 ('url',): self.parse_observable_url,
+                                 ('windows-registry-key',): self.parse_observable_regkey}
 
     def handler(self):
         self.version_attribute = {'type': 'text', 'object_relation': 'version', 'value': self.stix_version}
         self.general_handler()
 
     def parsing_process(self, object2parse, object_type):
-        self.object_from_refs[object_type](object2parse)
+        try:
+            self.object_from_refs[object_type](object2parse)
+        except KeyError:
+            print("Unknown {} type: {}".format(self.stix_version, object_type), file=sys.stderr)
 
     def parse_external_galaxy(self, o):
         galaxy = {'name': galaxy_types[o._type].replace('-', ' ').title()}
         cluster = defaultdict(dict)
-        cluster['value'] = o.get('name')
-        cluster['description'] = o.get('description')
-        if 'kill_chain_phases' in o:
-            galaxy_type = o['kill_chain_phases'][0].get('phase_name')
+        cluster['value'] = o.name
+        cluster['description'] = o.description
+        if hasattr(o, 'kill_chain_name'):
+            galaxy_type = o.kill_chain_phases[0].get('phase_name')
             galaxy['type'] = galaxy_type
             cluster['type'] = galaxy_type
-        if 'aliases' in o:
+        if hasattr(o, 'aliases'):
             aliases = []
             for a in o.get('aliases'):
                 aliases.append(a)
@@ -572,17 +928,33 @@ class ExternalStixParser(StixParser):
         galaxy['GalaxyCluster'] = [cluster]
         self.misp_event['Galaxy'].append(galaxy)
 
-    def parse_external_indicator(self, o):
-        pattern = o.get('pattern')
-        self.parse_external_pattern(pattern)
+    def parse_external_indicator(self, observable):
+        pattern = observable.pattern
+        # Deeper analyse of patterns coming when we get examples
         attribute = {'type': 'stix2-pattern', 'object_relation': 'stix2-pattern', 'value': pattern}
         misp_object = {'name': 'stix2-pattern', 'meta-category': 'stix2-pattern',
                        'Attribute': [self.version_attribute, attribute]}
         self.misp_event.add_object(**misp_object)
+        try:
+            self.parse_external_pattern(pattern)
+        except:
+            pass
 
-    def parse_external_observable(self, o):
-        observable = o.get('objects')
+    def parse_external_observable(self, observable):
+        objects = observable.objects
+        types = self.parse_external_observable_object(objects)
+        try:
+            self.external_mapping[types](objects, observable.id.split('--')[1])
+        except KeyError:
+            print('{} not parsed at the moment'.format(types), file=sys.stderr)
         # deeper analyse to come, as well as for indicators
+
+    @staticmethod
+    def parse_external_observable_object(observable_objects):
+        types = set()
+        for _object in observable_objects.values():
+            types.add(_object._type)
+        return tuple(sorted(types))
 
     def parse_external_pattern(self, pattern):
         if ' OR ' in pattern and ' AND ' not in pattern:
@@ -608,10 +980,167 @@ class ExternalStixParser(StixParser):
         pattern_type, pattern_value = pattern_type[1:].strip(), pattern_value[1:-2].strip()
         stix_type, value_type = pattern_type.split(':')
         if 'hashes' in value_type and 'x509' not in stix_type:
-            h_type = value_type.split('.')[1]
+            h_type = value_type.split('.')[1].replace("'", '')
             return {'type': h_type, 'value': pattern_value}
         # Might cause some issues, need more examples to test
         return {'type': external_pattern_mapping[stix_type][value_type].get('type'), 'value': pattern_value}
+
+    ################################################################################
+    ##                             PARSING FUNCTIONS.                             ##
+    ################################################################################
+
+    def handle_pe_case(self, extension, attributes, uuid):
+        pe_uuid = self.parse_pe(extension)
+        file_object = self.create_misp_object(attributes, 'file', uuid)
+        file_object.add_reference(pe_uuid, 'included-in')
+        self.misp_event.add_object(**file_object)
+
+    def parse_observable_asn(self, objects, uuid):
+        attributes = self.attributes_from_observable_asn(objects)
+        self.handle_import_case(attributes, 'asn', uuid)
+
+    def parse_observable_domain_ip(self, objects, uuid):
+        attributes = self.attributes_from_observable_domain_ip(objects)
+        self.handle_import_case(attributes, 'domain-ip', uuid)
+
+    def parse_observable_email(self, objects, uuid):
+        to_ids = False
+        attributes, message = self.parse_complex_fields_observable_email(objects, to_ids)
+        for m_key, m_value in message.items():
+            if m_key in email_mapping:
+                attributes.append(self.append_email_attribute(m_key, m_value, to_ids))
+        self.handle_import_case(attributes, 'email', uuid)
+
+    def parse_observable_file(self, objects, uuid):
+        _object = objects['0']
+        attributes = self.attributes_from_observable_file(_object)
+        if hasattr(_object, 'extensions') and 'windows-pebinary-ext' in _object.extensions:
+            self.handle_pe_case(_object.extensions['windows-pebinary-ext'], attributes, uuid)
+        else:
+            self.handle_import_case(attributes, _object._type, uuid)
+
+    def parse_observable_file_object(self, objects, uuid):
+        file, data = self.extract_data_from_file(objects)
+        attributes = self.attributes_from_observable_file(file, data)
+        if hasattr(file, 'extensions') and 'windows-pebinary-ext' in file.extensions:
+            self.handle_pe_case(file.extensions['windows-pebinary-ext'], attributes, uuid)
+        else:
+            self.handle_import_case(attributes, file._type, uuid)
+
+    def parse_observable_ip_network_traffic(self, objects, uuid):
+        network_traffic = self.fetch_network_traffic_objects(objects)
+        attributes = self.fill_observable_attributes(network_traffic, network_traffic_mapping)
+        if hasattr(network_traffic, 'extensions') and network_traffic.extensions:
+            extension_type, extension_value = list(network_traffic.extensions.items())[0]
+            name = network_traffic_extensions[extension_type]
+            attributes.extend(self.fill_observable_attributes(extension_value, network_traffic_mapping))
+            mapping = network_traffic_references_mapping['with_extensions']
+        else:
+            name = 'ip-port'
+            mapping = network_traffic_references_mapping['without_extensions']
+        attributes.extend(self.parse_network_traffic_references(objects, network_traffic, mapping))
+        self.handle_import_case(attributes, name, uuid)
+
+    def parse_observable_ip_port(self, objects, uuid):
+        attributes = self.attributes_from_observable_ip_port(objects)
+        self.handle_import_case(attributes, 'ip-port', uuid)
+
+    def parse_observable_ip_port_or_network_socket(self, objects, uuid):
+        network_traffic, references = self.fetch_network_traffic_objects_and_references(objects)
+        attributes = self.fill_observable_attributes(network_traffic, network_traffic_mapping)
+        if hasattr(network_traffic, 'extensions') and network_traffic.extensions:
+            extension_type, extension_value = list(network_traffic.extensions.items())[0]
+            name = network_traffic_extensions[extension_type]
+            attributes.extend(self.fill_observable_attributes(extension_value, network_traffic_mapping))
+            mapping = network_traffic_references_mapping['with_extensions']
+        else:
+            name = 'ip-port'
+            mapping = network_traffic_references_mapping['without_extensions']
+        attributes.extend(self.parse_network_traffic_references(references, network_traffic, mapping, attr='pop'))
+        if references:
+            attributes.extend(self.parse_remaining_references(references, mapping))
+        self.handle_import_case(attributes, name, uuid)
+
+    def parse_observable_mac_address(self, objects, uuid):
+        self.misp_event.add_attribute(**{'type': 'mac-address', 'value': objects['0'].value, 'uuid': uuid, 'to_ids': False})
+
+    def parse_observable_mutex(self, objects, uuid):
+        self.misp_event.add_attribute(**{'type': 'mutex', 'value': objects['0'].name, 'uuid': uuid, 'to_ids': False})
+
+    def parse_observable_network_socket(self, objects, uuid):
+        network_traffic, references = self.fetch_network_traffic_objects_and_references(objects)
+        attributes = self.fill_observable_attributes(network_traffic, network_traffic_mapping)
+        if  hasattr(network_traffic, 'extensions') and network_traffic.extensions:
+            extension_type, extension_value = list(network_traffic.extensions.items())[0]
+            name = network_traffic_extensions[extension_type]
+            attributes.extend(self.fill_observable_attributes(extension_value, network_traffic_mapping))
+            mapping = network_traffic_references_mapping['with_extensions']
+        else:
+            name = 'ip-port'
+            mapping = network_traffic_references_mapping['without_extensions']
+        attributes.extend(self.parse_network_traffic_references(objects, network_traffic, mapping, attr='pop'))
+        if references:
+            attributes.extend(self.parse_remaining_references(references, mapping))
+        self.handle_import_case(attributes, name, uuid)
+
+    def parse_observable_process(self, objects, uuid):
+        attributes = self.attributes_from_observable_process(objects)
+        self.handle_import_case(attributes, 'process', uuid)
+
+    def parse_observable_regkey(self, objects, uuid):
+        _object = objects['0']
+        attributes = self.attributes_from_observable_regkey(_object)
+        self.handle_import_case(attributes, 'registry-key', uuid)
+
+    def parse_observable_url(self, objects, uuid):
+        _object = objects['0']
+        self.misp_event.add_attribute(**{'type': 'url', 'value': _object.value, 'uuid': uuid, 'to_ids': False})
+
+    def parse_observable_url_object(self, objects, uuid):
+        attributes = self.attributes_from_observable_url(objects)
+        self.handle_import_case(attributes, 'url', uuid)
+
+    def parse_observable_x509(self, objects, uuid):
+        attributes = self.attributes_from_observable_x509(objects)
+        self.handle_import_case(attributes, 'x509', uuid)
+
+    ################################################################################
+    ##                             UTILITY FUNCTIONS.                             ##
+    ################################################################################
+
+    @staticmethod
+    def create_misp_object(attributes, name, uuid):
+        misp_object = MISPObject(name)
+        misp_object.uuid = uuid
+        for attribute in attributes:
+            misp_object.add_attribute(**attribute)
+        return misp_object
+
+    @staticmethod
+    def fill_observable_attributes(stix_object, object_mapping):
+        attributes = []
+        for o_key, o_value in stix_object.items():
+            if o_key in object_mapping:
+                mapping = object_mapping[o_key]
+                attributes.append({'type': mapping.get('type'), 'object_relation': mapping.get('relation'),
+                                   'value': o_value, 'to_ids': False})
+        return attributes
+
+    def fill_object_attributes_observable(self, misp_object, mapping_dict, stix_object):
+        for stix_type, value in stix_object.items():
+            if stix_type in mapping_dict:
+                mapping = mapping_dict[stix_type]
+                misp_object.add_attribute(**{'type': mapping['type'], 'object_relation': mapping['relation'],
+                                             'value': value, 'to_ids': False})
+
+    def handle_import_case(self, attributes, name, uuid):
+        if len(attributes) == 1:
+            attribute = attributes[0]
+            attribute['uuid'] = uuid
+            self.misp_event.add_attribute(**attribute)
+        else:
+            misp_object = self.create_misp_object(attributes, name, uuid)
+            self.misp_event.add_object(**misp_object)
 
 def from_misp(reports):
     for _, o in reports.items():
@@ -622,8 +1151,8 @@ def from_misp(reports):
 def main(args):
     stix_event = defaultdict(dict)
     filename = os.path.join(os.path.dirname(args[0]), args[1])
-    with open(filename, 'rb') as f:
-        event = stix2.parse(f.read().decode('utf-8'), allow_custom=True)
+    with open(filename, 'rt', encoding='utf-8') as f:
+        event = stix2.parse(f.read(), allow_custom=True)
     for parsed_object in event.objects:
         try:
             object_type = parsed_object._type

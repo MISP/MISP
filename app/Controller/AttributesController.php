@@ -16,17 +16,6 @@ class AttributesController extends AppController
 
     public $helpers = array('Js' => array('Jquery'));
 
-	public $validFormats = array(
-		'openioc' => array('xml', 'OpeniocExport'),
-		'json' => array('json', 'JsonExport'),
-		'xml' => array('xml', 'XmlExport'),
-		'suricata' => array('txt', 'NidsSuricataExport'),
-		'snort' => array('txt', 'NidsSnortExport'),
-		'text' => array('txt', 'TextExport'),
-		'rpz' => array('rpz', 'RPZExport'),
-		'csv' => array('csv', 'CsvExport')
-	);
-
     public function beforeFilter()
     {
         parent::beforeFilter();
@@ -1600,7 +1589,8 @@ class AttributesController extends AppController
 	            'request' => $this->request,
 	            'named_params' => $this->params['named'],
 	            'paramArray' => $paramArray,
-	            'ordered_url_params' => compact($paramArray)
+	            'ordered_url_params' => compact($paramArray),
+				'additional_delimiters' => PHP_EOL
 	        );
 	        $exception = false;
 	        $filters = $this->_harvestParameters($filterData, $exception);
@@ -1733,7 +1723,7 @@ class AttributesController extends AppController
             'paramArray' => $paramArray,
             'ordered_url_params' => compact($paramArray)
         );
-		$validFormats = $this->validFormats;
+		$validFormats = $this->Attribute->validFormats;
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
         unset($filterData);
@@ -3039,14 +3029,14 @@ class AttributesController extends AppController
 	public function exportSearch($type = false)
 	{
 		if (empty($type)) {
-			$exports = array_keys($this->validFormats);
+			$exports = array_keys($this->Attribute->validFormats);
 			$this->set('exports', $exports);
 			$this->render('ajax/exportSearch');
 		} else {
 			$filters = $this->Session->read('search_attributes_filters');
 			$filters = json_decode($filters, true);
 			$final = $this->Attribute->restSearch($this->Auth->user(), $type, $filters);
-			$responseType = $this->validFormats[$type][0];
+			$responseType = $this->Attribute->validFormats[$type][0];
 			return $this->RestResponse->viewData($final, $responseType, false, true, 'search.' . $type . '.' . $responseType);
 		}
 	}

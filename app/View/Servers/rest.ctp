@@ -73,7 +73,26 @@
         <hr />
 	</fieldset>
     <?php
-        $formats = array('Raw', 'JSON', 'HTML');
+		$formats = array('Raw', 'JSON', 'HTML');
+		if (!empty($data['code']) && $data['code'] < 300) {
+			$query_formats = array('curl' => 'cURL', 'python' => 'PyMISP');
+			echo '<ul class="nav nav-tabs" style="margin-bottom:5px;">';
+			foreach ($query_formats as $format => $formatName) {
+				if (!empty(${$format})) {
+					echo sprintf('<li><a href="#%s" data-toggle="tab">%s</a></li>', 'tab' . $format, $formatName);
+				}
+			}
+			echo '</ul>';
+			echo '<div class="tab-content">';
+			foreach ($query_formats as $format => $formatName) {
+				if (!empty(${$format})) {
+					echo sprintf('<div class="tab-pane" id="%s"><pre>%s</pre></div>', 'tab' . $format, ${$format});
+				}
+			}
+			echo '</div>';
+		}
+	?>
+	<?php
         if (!empty($data['data'])):
             echo sprintf('<h3>%s</h3>', __('Response'));
             echo sprintf('<div><span class="bold">%s</span>: %d</div>', __('Response code'), h($data['code']));
@@ -160,4 +179,7 @@
 			}
 		});
 	});
+	$(function () {
+		$('#myTab a:last').tab('show');
+	})
 </script>

@@ -854,6 +854,14 @@ class Server extends AppModel
                             'test' => null,
                             'type' => 'string',
                         ),
+                        'manage_workers' => array(
+                                'level' => 2,
+                                'description' => __('Set this to false if you would like to disable MISP managing its own worker processes (for example, if you are managing the workers with a systemd unit).'),
+                                'value' => true,
+                                'errorMessage' => '',
+                                'test' => 'testBool',
+                                'type' => 'boolean'
+                        ),
                         'deadlock_avoidance' => array(
                                 'level' => 1,
                                 'description' => __('Only enable this if you have some tools using MISP with extreme high concurency. General performance will be lower as normal as certain transactional queries are avoided in favour of shorter table locks.'),
@@ -3771,6 +3779,10 @@ class Server extends AppModel
             }
         }
         $worker_array['proc_accessible'] = $procAccessible;
+		$worker_array['controls'] = 1;
+		if (Configure::check('MISP.manage_workers')) {
+			$worker_array['controls'] = Configure::read('MISP.manage_workers');
+		}
         return $worker_array;
     }
 

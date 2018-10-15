@@ -127,10 +127,12 @@ class StixBuilder():
             self.load_objects_mapping()
             self.objects_to_parse = defaultdict(dict)
             misp_objects = self.misp_event['Object']
-            self.object_references, self.processes = self.fetch_object_references(misp_objects)
+            self.object_references = self.fetch_object_references(misp_objects)
             for misp_object in misp_objects:
-                to_ids = self.fetch_ids_flag(misp_object['Attribute'])
                 name = misp_object['name']
+                if name == 'original-imported-file':
+                    continue
+                to_ids = self.fetch_ids_flag(misp_object['Attribute'])
                 try:
                     getattr(self, objectsMapping[name]['to_call'])(misp_object, to_ids)
                 except KeyError:
@@ -189,19 +191,16 @@ class StixBuilder():
         self.galaxies_mapping.update(dict.fromkeys(tool_galaxies_list, ['tool', self.add_tool]))
 
     def fetch_object_references(self, misp_objects):
-        object_references, processes = {}, {}
+        object_references = {}
         for misp_object in misp_objects:
-            attributes = misp_object['Attribute']
-            if misp_object['name'] == "process":
-                self.get_process_attributes(processes, attributes)
-            if misp_object.get('ObjectReference') and not self.fetch_ids_flag(attributes):
+            if misp_object.get('ObjectReference') and not self.fetch_ids_flag(misp_object['Attribute']):
                 for reference in misp_object['ObjectReference']:
                     try:
                         referenced_object = reference['Attribute']
                     except:
                         referenced_object = self.get_object_by_uuid(reference['referenced_uuid'])
                     object_references[reference['referenced_uuid']] = referenced_object
-        return object_references, processes
+        return object_references
 
     @staticmethod
     def get_object_by_uuid(uuid):
@@ -209,23 +208,6 @@ class StixBuilder():
             if _object.get('uuid') and _object['uuid'] == uuid:
                 return _object
         raise Exception('Object with uuid {} does not exist in this event.'.format(uuid))
-
-    @staticmethod
-    def get_process_attributes(processes, attributes):
-        pid, process = None, {}
-        for attribute in attributes:
-            relation = attribute['object_relation']
-            attribute_value = attribute['value']
-            if relation == 'pid':
-                if attribute_value in processes:
-                    return
-                pid = attribute_value
-                process[relation] = attribute_value
-            elif relation in ('name', 'creation-time'):
-                process[relation] = attribute_value
-        if pid is not None:
-            process['type'] = 'process'
-            processes[pid] = process
 
     def handle_person(self, attribute):
         if attribute['category'] == "Person":
@@ -447,7 +429,7 @@ class StixBuilder():
         killchain = self.create_killchain(category)
         labels = self.create_labels(attribute)
         attribute_value = attribute['value'] if attribute_type != "AS" else self.define_attribute_value(attribute['value'], attribute['comment'])
-        pattern = mispTypesMapping[attribute_type]['pattern'](attribute_type, attribute_value, b64encode(attribute['data'].getbuffer()).decode()[1:-1]) if attribute.get('data') else self.define_pattern(attribute_type, attribute_value)
+        pattern = mispTypesMapping[attribute_type]['pattern'](attribute_type, attribute_value, attribute['data']) if attribute.get('data') else self.define_pattern(attribute_type, attribute_value)
         indicator_args = {'id': indicator_id, 'type': 'indicator', 'labels': labels, 'kill_chain_phases': killchain,
                            'valid_from': self.misp_event['date'], 'created_by_ref': self.identity_id, 'pattern': pattern}
         if hasattr(attribute, 'Sighting'):
@@ -479,7 +461,7 @@ class StixBuilder():
         timestamp = self.get_datetime_from_timestamp(attribute['timestamp'])
         labels = self.create_labels(attribute)
         attribute_value = attribute['value'] if attribute_type != "AS" else self.define_attribute_value(attribute['value'], attribute['comment'])
-        observable = mispTypesMapping[attribute_type]['observable'](attribute_type, attribute_value, b64encode(attribute['data'].getbuffer())) if 'data' in attribute else self.define_observable(attribute_type, attribute_value)
+        observable = mispTypesMapping[attribute_type]['observable'](attribute_type, attribute_value, attribute['data']) if attribute.get('data') else self.define_observable(attribute_type, attribute_value)
         observed_data_args = {'id': observed_data_id, 'type': 'observed-data', 'number_observed': 1,
                               'first_observed': timestamp, 'last_observed': timestamp, 'labels': labels,
                               'created_by_ref': self.identity_id, 'objects': observable}
@@ -582,7 +564,7 @@ class StixBuilder():
             observable_objects = self.objects_mapping[name]['observable'](misp_object['Attribute'], observed_data_id)
         category = misp_object.get('meta-category')
         labels = self.create_object_labels(name, category, False)
-        timestamp = self.get_datetime_from_timestamps(misp_object['timestamp'])
+        timestamp = self.get_datetime_from_timestamp(misp_object['timestamp'])
         observed_data_args = {'id': observed_data_id, 'type': 'observed-data',
                               'number_observed': 1, 'labels': labels, 'objects': observable_objects,
                               'first_observed': timestamp, 'last_observed': timestamp,
@@ -605,14 +587,11 @@ class StixBuilder():
                 enumeration_fails[field] = current_dict.pop(field)
                 try:
                     return ObservedData(**ns_args)
-                except exceptions.InvalidValueError:
+                except (exceptions.InvalidValueError, exceptions.MissingPropertiesError):
                     current_dict[field] = enumeration_fails[field]
             for field in enumeration_fails:
                 current_dict.pop(field)
-            try:
-                return ObservedData(**ns_args)
-            except:
-                pass
+            return ObservedData(**ns_args)
         return ObservedData(**args)
 
     def add_object_vulnerability(self, misp_object, to_ids):
@@ -786,7 +765,7 @@ class StixBuilder():
             except:
                 mapping = "x_misp_{}_{}".format(attribute['type'], relation)
                 if relation in ('eml', 'screenshot'):
-                    message[mapping] = {'value': attribute_value, 'data': b64encode(attribute['data'].getbuffer()).decode()[1:-1]}
+                    message[mapping] = {'value': attribute_value, 'data': attribute['data']}
                 else:
                     message[mapping] = attribute_value
         if reply_to and 'additional_header_fields' in message:
@@ -814,7 +793,7 @@ class StixBuilder():
                 stix_type = "'x_misp_{}_{}'".format(attribute['type'], relation)
                 if relation in ('eml', 'screenshot'):
                     stix_type_data = "{}.data".format(stix_type)
-                    pattern += pattern_mapping.format(email_type, stix_type_data, b64encode(attribute['data'].getbuffer()).decode()[1:-1])
+                    pattern += pattern_mapping.format(email_type, stix_type_data, attribute['data'])
                     stix_type += ".value"
             pattern += pattern_mapping.format(email_type, stix_type, attribute['value'])
         return "[{}]".format(pattern[:-5])
@@ -834,7 +813,7 @@ class StixBuilder():
                 malware_sample['filename'] = filename
                 malware_sample['md5'] = md5
                 if attribute.get('data'):
-                    observable[str(n_object)] = {'type': 'artifact', 'payload_bin': b64encode(attribute['data'].getbuffer())}
+                    observable[str(n_object)] = {'type': 'artifact', 'payload_bin': attribute['data']}
                     observable_file['content_ref'] = str(n_object)
                     n_object += 1
             elif attribute_type in ('filename', 'md5'):
@@ -867,7 +846,7 @@ class StixBuilder():
                 malware_sample['filename'] = filename
                 malware_sample['md5'] = md5
                 if attribute.get('data'):
-                    pattern += "{} AND ".format(attribute_data_pattern(b64encode(attribute['data'].getbuffer()).decode()))
+                    pattern += "{} AND ".format(attribute_data_pattern(attribute['data']))
             elif attribute_type in ("filename", "md5"):
                 d_pattern[attribute_type] = attribute['value']
             else:
@@ -1053,24 +1032,18 @@ class StixBuilder():
             relation = attribute['object_relation']
             if relation == 'parent-pid':
                 str_n = str(n)
-                try:
-                    observable[str_n] = self.processes[attribute['value']]
-                except:
-                    continue
+                observable[str_n] = {'type': 'process', 'pid': attribute['value']}
                 current_process['parent_ref'] = str_n
                 n += 1
             elif relation == 'child-pid':
                 str_n = str(n)
-                try:
-                    observable[str_n] = self.processes[attribute['value']]
-                except:
-                    continue
+                observable[str_n] = {'type': 'process', 'pid': attribute['value']}
                 current_process['child_refs'].append(str_n)
                 n += 1
             else:
                 try:
                     current_process[processMapping[relation]] = attribute['value']
-                except:
+                except KeyError:
                     pass
         observable[str(n)] = current_process
         return observable

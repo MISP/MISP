@@ -1682,7 +1682,7 @@ class AppModel extends Model
     }
 
     // take filters in the {"OR" => [foo], "NOT" => [bar]} format along with conditions and set the conditions
-    public function generic_add_filter($conditions, &$filter, $keys, $searchall = false)
+    public function generic_add_filter($conditions, &$filter, $keys)
     {
         $operator_composition = array(
             'NOT' => 'AND',
@@ -1701,8 +1701,14 @@ class AppModel extends Model
 				$filters = array($filters);
 			}
             foreach ($filters as $f) {
+				if ($f === -1) {
+					foreach ($keys as $key) {
+						$temp['OR'][$key][] = -1;
+					}
+					continue;
+				}
                 // split the filter params into two lists, one for substring searches one for exact ones
-                if ($f[strlen($f) - 1] === '%' || $f[0] === '%') {
+                if (is_string($f) && ($f[strlen($f) - 1] === '%' || $f[0] === '%')) {
                     foreach ($keys as $key) {
                         if ($operator === 'NOT') {
                             $temp[] = array($key . ' NOT LIKE' => $f);
@@ -1720,11 +1726,7 @@ class AppModel extends Model
                     }
                 }
             }
-			if ($searchall && $operator === 'OR') {
-				$conditions['AND']['OR'][] = array($operator_composition[$operator] => $temp);
-			} else {
-            	$conditions['AND'][] = array($operator_composition[$operator] => $temp);
-			}
+        	$conditions['AND'][] = array($operator_composition[$operator] => $temp);
             if ($operator !== 'NOT') {
                 unset($filter[$operator]);
             }
