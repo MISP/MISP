@@ -28,11 +28,11 @@
 </div>
 </div>
 <script type="text/javascript">
-	$(document).ready(function() {
-		resizePopoverBody();
-	});
+    $(document).ready(function() {
+        resizePopoverBody();
+    });
 
-	$(window).resize(function() {
-		resizePopoverBody();
-	});
+    $(window).resize(function() {
+        resizePopoverBody();
+    });
 </script>

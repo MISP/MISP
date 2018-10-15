@@ -112,21 +112,8 @@
       ?>
     </div>
   </td>
-  <td class="shortish">
-    <?php
-      if ($object['objectType'] == 0):
-    ?>
-      <div class="attributeTagContainer">
-        &nbsp;
-      </div>
-    <?php
-      else:
-    ?>
-      &nbsp;
-    <?php
-      endif;
-    ?>
-  </td>
+  <td class="shortish">&nbsp;</td>
+  <td class="shortish">&nbsp;</td>
   <td class="showspaces bitwider">
     <div id = "<?php echo $currentType . '_' . $object['id'] . '_comment_placeholder'; ?>" class = "inline-field-placeholder"></div>
     <div id = "<?php echo $currentType . '_' . $object['id'] . '_comment_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">
@@ -138,18 +125,11 @@
     <ul class="inline" style="margin:0px;">
       <?php
         if (!empty($event['RelatedShadowAttribute'][$object['id']])) {
-          foreach ($event['RelatedShadowAttribute'][$object['id']] as $relatedAttribute) {
-            $relatedData = array('Event info' => $relatedAttribute['info'], 'Correlating Value' => $relatedAttribute['value'], 'date' => isset($relatedAttribute['date']) ? $relatedAttribute['date'] : 'N/A');
-            $popover = '';
-            foreach ($relatedData as $k => $v) {
-              $popover .= '<span class=\'bold black\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
-            }
-            echo '<li style="padding-right: 0px; padding-left:0px;" data-toggle="popover" data-content="' . h($popover) . '" data-trigger="hover"><span>';
-            $correlationClass = 'white' . ($relatedAttribute['org_id'] == $me['org_id'] ? ' bold' : '');
-            echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array('class' => $correlationClass));
-            echo "</span></li>";
-            echo ' ';
-          }
+          echo $this->element('Events/View/attribute_correlations', array(
+            'scope' => 'ShadowAttribute',
+            'object' => $object,
+            'event' => $event,
+          ));
         }
       ?>
     </ul>

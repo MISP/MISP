@@ -837,6 +837,11 @@ a.proposal_link_red:hover {
 	z-index:5;
 }
 
+.ajax_popover_form_large {
+    width: 1400px;
+    left: calc(50% - 700px);
+}
+
 .screenshot_box {
 	display:none;
 	position: fixed;
@@ -1554,6 +1559,19 @@ a.proposal_link_red:hover {
 	color: white;
 }
 
+.json_key {
+	color: #690;
+	font-weight: bold;
+}
+
+.json_string, .json_boolean, .json_number {
+	color: #905;
+}
+
+.json_null {
+	color: #a8a8a8;
+}
+
 .background-lightblue {
 	background-color:#cfefff;
 }
@@ -2054,4 +2072,14 @@ table tr:hover .down-expand-button {
 	to {
 		transform: rotate(359deg);
 	}
+}
+
+#attackmatrix_div {
+    border-color: #363636;
+    overflow: visible;
+    max-height: 700px;
+    height: auto;
+    margin-top: 30px;
+    width: calc(100vw - 230px);
+    min-width: 1400px;
 }

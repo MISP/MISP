@@ -28,6 +28,8 @@
 !/app/files/scripts/
 !/app/files/warninglists
 !/app/files/warninglists/*
+!/app/files/noticelists
+!/app/files/noticelists/*
 !/app/files/misp-galaxy
 !/app/files/misp-galaxy/*
 !/app/files/misp-objects

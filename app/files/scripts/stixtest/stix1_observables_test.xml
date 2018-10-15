@@ -1,0 +1,758 @@
+<stix:STIX_Package 
+	xmlns:cyboxCommon="http://cybox.mitre.org/common-2"
+	xmlns:cybox="http://cybox.mitre.org/cybox-2"
+	xmlns:cyboxVocabs="http://cybox.mitre.org/default_vocabularies-2"
+	xmlns:AccountObj="http://cybox.mitre.org/objects#AccountObject-2"
+	xmlns:ASObj="http://cybox.mitre.org/objects#ASObject-1"
+	xmlns:AddressObj="http://cybox.mitre.org/objects#AddressObject-2"
+	xmlns:PortObj="http://cybox.mitre.org/objects#PortObject-2"
+	xmlns:DomainNameObj="http://cybox.mitre.org/objects#DomainNameObject-1"
+	xmlns:EmailMessageObj="http://cybox.mitre.org/objects#EmailMessageObject-2"
+	xmlns:FileObj="http://cybox.mitre.org/objects#FileObject-2"
+	xmlns:HTTPSessionObj="http://cybox.mitre.org/objects#HTTPSessionObject-2"
+	xmlns:HostnameObj="http://cybox.mitre.org/objects#HostnameObject-1"
+	xmlns:MutexObj="http://cybox.mitre.org/objects#MutexObject-2"
+	xmlns:PipeObj="http://cybox.mitre.org/objects#PipeObject-2"
+	xmlns:URIObj="http://cybox.mitre.org/objects#URIObject-2"
+	xmlns:WinRegistryKeyObj="http://cybox.mitre.org/objects#WinRegistryKeyObject-2"
+	xmlns:WinServiceObj="http://cybox.mitre.org/objects#WinServiceObject-2"
+	xmlns:NetworkConnectionObj="http://cybox.mitre.org/objects#NetworkConnectionObject-2"
+	xmlns:NetworkSocketObj="http://cybox.mitre.org/objects#NetworkSocketObject-2"
+	xmlns:SocketAddressObj="http://cybox.mitre.org/objects#SocketAddressObject-1"
+	xmlns:SystemObj="http://cybox.mitre.org/objects#SystemObject-2"
+	xmlns:ProcessObj="http://cybox.mitre.org/objects#ProcessObject-2"
+	xmlns:X509CertificateObj="http://cybox.mitre.org/objects#X509CertificateObject-2"
+	xmlns:WhoisObj="http://cybox.mitre.org/objects#WhoisObject-2"
+	xmlns:marking="http://data-marking.mitre.org/Marking-1"
+	xmlns:tlpMarking="http://data-marking.mitre.org/extensions/MarkingStructure#TLP-1"
+	xmlns:et="http://stix.mitre.org/ExploitTarget-1"
+	xmlns:incident="http://stix.mitre.org/Incident-1"
+	xmlns:indicator="http://stix.mitre.org/Indicator-2"
+	xmlns:ttp="http://stix.mitre.org/TTP-1"
+	xmlns:ta="http://stix.mitre.org/ThreatActor-1"
+	xmlns:stixCommon="http://stix.mitre.org/common-1"
+	xmlns:stixVocabs="http://stix.mitre.org/default_vocabularies-1"
+	xmlns:ciqIdentity="http://stix.mitre.org/extensions/Identity#CIQIdentity3.0-1"
+	xmlns:snortTM="http://stix.mitre.org/extensions/TestMechanism#Snort-1"
+	xmlns:stix="http://stix.mitre.org/stix-1"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:xal="urn:oasis:names:tc:ciq:xal:3"
+	xmlns:xnl="urn:oasis:names:tc:ciq:xnl:3"
+	xmlns:xpil="urn:oasis:names:tc:ciq:xpil:3"
+	xmlns:ORGNAME="https://www.misp-project.org"
+	xmlns:xlink="http://www.w3.org/1999/xlink"
+	xmlns:ds="http://www.w3.org/2000/09/xmldsig#"
+	xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	 id="ORGNAME:Package-6911d6ff-2f60-4039-937f-1c3561f5c11f" version="1.1.1" timestamp="2018-06-19T14:31:41.251914">
+    <stix:STIX_Header>
+        <stix:Title>Export from ORGNAME MISP</stix:Title>
+        <stix:Package_Intent xsi:type="stixVocabs:PackageIntentVocab-1.0">Threat Report</stix:Package_Intent>
+    </stix:STIX_Header>
+    <stix:Related_Packages>
+        <stix:Related_Package>
+            <stix:Package id="ORGNAME:STIXPackage-5ac4db18-0c58-4436-a3fa-01ef0a00020f" version="1.1.1" timestamp="2018-06-18T08:09:46+00:00">
+                <stix:STIX_Header>
+                    <stix:Title>Export from ORGNAME MISP</stix:Title>
+                    <stix:Package_Intent xsi:type="stixVocabs:PackageIntentVocab-1.0">Threat Report</stix:Package_Intent>
+                </stix:STIX_Header>
+                <stix:TTPs>
+                    <stix:TTP id="ORGNAME:ttp-5ac4db18-0150-4435-b016-01ef0a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'>
+                        <ttp:Title>External analysis: CVE-2010-4444 (MISP Attribute #117)</ttp:Title>
+                        <ttp:Exploit_Targets>
+                            <ttp:Exploit_Target>
+                                <stixCommon:Exploit_Target id="ORGNAME:et-5ac4db18-0150-4435-b016-01ef0a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='et:ExploitTargetType'>
+                                    <et:Title>Vulnerability CVE-2010-4444</et:Title>
+                                    <et:Vulnerability>
+                                        <et:CVE_ID>CVE-2010-4444</et:CVE_ID>
+                                        <et:References/>
+                                    </et:Vulnerability>
+                                </stixCommon:Exploit_Target>
+                            </ttp:Exploit_Target>
+                        </ttp:Exploit_Targets>
+                        <ttp:Handling>
+                            <marking:Marking>
+                                <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="AMBER"/>
+                            </marking:Marking>
+                        </ttp:Handling>
+                    </stix:TTP>
+                </stix:TTPs>
+                <stix:Incidents>
+                    <stix:Incident id="ORGNAME:incident-5ac4db18-0c58-4436-a3fa-01ef0a00020f" timestamp="2018-06-18T08:11:42+00:00" xsi:type='incident:IncidentType'>
+                        <incident:Title>STIX observables test event</incident:Title>
+                        <incident:External_ID source="MISP Event">2</incident:External_ID>
+                        <incident:Time>
+                            <incident:Incident_Discovery precision="second">2018-03-28T00:00:00</incident:Incident_Discovery>
+                            <incident:Incident_Reported precision="second">2018-06-18T08:11:42+00:00</incident:Incident_Reported>
+                        </incident:Time>
+                        <incident:Reporter>
+                            <stixCommon:Identity>
+                                <stixCommon:Name>ORGNAME_387</stixCommon:Name>
+                            </stixCommon:Identity>
+                        </incident:Reporter>
+                        <incident:Status xsi:type="stixVocabs:IncidentStatusVocab-1.0">New</incident:Status>
+                        <incident:Related_Observables>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>Payload delivery</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:File-5ac4db18-1294-41ba-a57f-01ef0a00020f">
+                                    <cybox:Object id="ORGNAME:FileObject-5ac4db18-1294-41ba-a57f-01ef0a00020f">
+                                        <cybox:Properties xsi:type="FileObj:FileObjectType">
+                                            <FileObj:Hashes>
+                                                <cyboxCommon:Hash>
+                                                    <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">MD5</cyboxCommon:Type>
+                                                    <cyboxCommon:Simple_Hash_Value condition="Equals">b2a5abfeef9e36964281a31e17b57c97</cyboxCommon:Simple_Hash_Value>
+                                                </cyboxCommon:Hash>
+                                            </FileObj:Hashes>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>Payload delivery</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:File-5ac4db18-0ee0-4e31-b4b6-01ef0a00020f">
+                                    <cybox:Object id="ORGNAME:FileObject-5ac4db18-0ee0-4e31-b4b6-01ef0a00020f">
+                                        <cybox:Properties xsi:type="FileObj:FileObjectType">
+                                            <FileObj:Hashes>
+                                                <cyboxCommon:Hash>
+                                                    <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">SHA1</cyboxCommon:Type>
+                                                    <cyboxCommon:Simple_Hash_Value condition="Equals">5898fc860300e228dcd54c0b1045b5fa0dcda502</cyboxCommon:Simple_Hash_Value>
+                                                </cyboxCommon:Hash>
+                                            </FileObj:Hashes>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>Payload delivery</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:File-5ac4db18-02f4-42eb-b89b-01ef0a00020f">
+                                    <cybox:Object id="ORGNAME:FileObject-5ac4db18-02f4-42eb-b89b-01ef0a00020f">
+                                        <cybox:Properties xsi:type="FileObj:FileObjectType">
+                                            <FileObj:Hashes>
+                                                <cyboxCommon:Hash>
+                                                    <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">SHA256</cyboxCommon:Type>
+                                                    <cyboxCommon:Simple_Hash_Value condition="Equals">3a3468fa89b2ab7cbfe5400858a8ec0066e9e8defa9a64c993b5f24210244df8</cyboxCommon:Simple_Hash_Value>
+                                                </cyboxCommon:Hash>
+                                            </FileObj:Hashes>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>Payload delivery</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:File-5ac4db18-be00-43c7-9527-01ef0a00020f">
+                                    <cybox:Object id="ORGNAME:FileObject-5ac4db18-be00-43c7-9527-01ef0a00020f">
+                                        <cybox:Properties xsi:type="FileObj:FileObjectType">
+                                            <FileObj:Hashes>
+                                                <cyboxCommon:Hash>
+                                                    <cyboxCommon:Type condition="Equals">Other</cyboxCommon:Type>
+                                                    <cyboxCommon:Simple_Hash_Value condition="Equals">oui|5898fc860300e228dcd54c0b1045b5fa0dcda502</cyboxCommon:Simple_Hash_Value>
+                                                </cyboxCommon:Hash>
+                                            </FileObj:Hashes>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>Payload delivery</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:File-5ac4db18-fc8c-4b50-9ad0-01ef0a00020f">
+                                    <cybox:Object id="ORGNAME:FileObject-5ac4db18-fc8c-4b50-9ad0-01ef0a00020f">
+                                        <cybox:Properties xsi:type="FileObj:FileObjectType">
+                                            <FileObj:File_Name condition="Equals">oui</FileObj:File_Name>
+                                            <FileObj:Hashes>
+                                                <cyboxCommon:Hash>
+                                                    <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">MD5</cyboxCommon:Type>
+                                                    <cyboxCommon:Simple_Hash_Value condition="Equals">b2a5abfeef9e36964281a31e17b57c97</cyboxCommon:Simple_Hash_Value>
+                                                </cyboxCommon:Hash>
+                                            </FileObj:Hashes>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>Network activity</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:Address-5ac4db18-62f0-4f12-906d-01ef0a00020f">
+                                    <cybox:Object id="ORGNAME:AddressObject-5ac4db18-62f0-4f12-906d-01ef0a00020f">
+                                        <cybox:Properties xsi:type="AddressObj:AddressObjectType" category="ipv4-addr" is_source="true" is_destination="false">
+                                            <AddressObj:Address_Value condition="Equals">1.2.3.4</AddressObj:Address_Value>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>Network activity</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:Hostname-5ac4db18-e320-42b6-afb4-01ef0a00020f">
+                                    <cybox:Object id="ORGNAME:HostnameObject-5ac4db18-e320-42b6-afb4-01ef0a00020f">
+                                        <cybox:Properties xsi:type="HostnameObj:HostnameObjectType">
+                                            <HostnameObj:Hostname_Value condition="Equals">www.circl.lu</HostnameObj:Hostname_Value>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>Network activity</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:ObservableComposition-5ac4db18-d4dc-4e7b-be94-01ef0a00020f">
+                                    <cybox:Observable_Composition operator="AND">
+                                        <cybox:Observable id="ORGNAME:Address-5ac4db18-d4dc-4e7b-be94-01ef0a00020f">
+                                            <cybox:Object id="ORGNAME:AddressObject-5ac4db18-d4dc-4e7b-be94-01ef0a00020f">
+                                                <cybox:Properties xsi:type="AddressObj:AddressObjectType" category="ipv4-addr" is_source="false" is_destination="true">
+                                                    <AddressObj:Address_Value condition="Equals">1.2.3.4</AddressObj:Address_Value>
+                                                </cybox:Properties>
+                                            </cybox:Object>
+                                        </cybox:Observable>
+                                        <cybox:Observable id="ORGNAME:DomainName-5ac4db18-d4dc-4e7b-be94-01ef0a00020f">
+                                            <cybox:Object id="ORGNAME:DomainNameObject-5ac4db18-d4dc-4e7b-be94-01ef0a00020f">
+                                                <cybox:Properties xsi:type="DomainNameObj:DomainNameObjectType">
+                                                    <DomainNameObj:Value condition="Equals">www.circl.lu</DomainNameObj:Value>
+                                                </cybox:Properties>
+                                            </cybox:Object>
+                                        </cybox:Observable>
+                                    </cybox:Observable_Composition>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>Network activity</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:Port-5ac4db18-aec4-4efd-9b85-01ef0a00020f">
+                                    <cybox:Object id="ORGNAME:PortObject-5ac4db18-aec4-4efd-9b85-01ef0a00020f">
+                                        <cybox:Properties xsi:type="PortObj:PortObjectType">
+                                            <PortObj:Port_Value condition="Equals">2510</PortObj:Port_Value>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>Payload delivery</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:EmailMessage-5ac4db18-70bc-4d45-b435-01ef0a00020f">
+                                    <cybox:Object id="ORGNAME:EmailMessageObject-5ac4db18-70bc-4d45-b435-01ef0a00020f">
+                                        <cybox:Properties xsi:type="EmailMessageObj:EmailMessageObjectType">
+                                            <EmailMessageObj:Header>
+                                                <EmailMessageObj:From xsi:type="AddressObj:AddressObjectType" category="e-mail">
+                                                    <AddressObj:Address_Value condition="Equals">christian.studer@circl.lu</AddressObj:Address_Value>
+                                                </EmailMessageObj:From>
+                                            </EmailMessageObj:Header>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>Payload delivery</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:EmailMessage-5ac4db18-3f90-4a8c-aada-01ef0a00020f">
+                                    <cybox:Object id="ORGNAME:EmailMessageObject-5ac4db18-3f90-4a8c-aada-01ef0a00020f">
+                                        <cybox:Properties xsi:type="EmailMessageObj:EmailMessageObjectType">
+                                            <EmailMessageObj:Header>
+                                                <EmailMessageObj:Subject condition="Equals">Oui</EmailMessageObj:Subject>
+                                            </EmailMessageObj:Header>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>External analysis</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:URI-5ac4db18-4984-4a75-8203-01ef0a00020f">
+                                    <cybox:Object id="ORGNAME:URIObject-5ac4db18-4984-4a75-8203-01ef0a00020f">
+                                        <cybox:Properties xsi:type="URIObj:URIObjectType">
+                                            <URIObj:Value condition="Equals">https://www.circl.lu/team</URIObj:Value>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>Persistence mechanism</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:WinRegistryKey-5ac4db18-e380-4cfa-bd53-01ef0a00020f">
+                                    <cybox:Object id="ORGNAME:WinRegistryKeyObject-5ac4db18-e380-4cfa-bd53-01ef0a00020f">
+                                        <cybox:Properties xsi:type="WinRegistryKeyObj:WindowsRegistryKeyObjectType">
+                                            <WinRegistryKeyObj:Key condition="Equals">Software\Microsoft\Windows\CurrentVersion\Run</WinRegistryKeyObj:Key>
+                                            <WinRegistryKeyObj:Hive condition="Equals">HKEY_CURRENT_USER</WinRegistryKeyObj:Hive>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>Persistence mechanism</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:WinRegistryKey-5ac4db18-598c-48d0-89f2-01ef0a00020f">
+                                    <cybox:Object id="ORGNAME:WinRegistryKeyObject-5ac4db18-598c-48d0-89f2-01ef0a00020f">
+                                        <cybox:Properties xsi:type="WinRegistryKeyObj:WindowsRegistryKeyObjectType">
+                                            <WinRegistryKeyObj:Key condition="Equals">Software\Microsoft\Windows\CurrentVersion\Run </WinRegistryKeyObj:Key>
+                                            <WinRegistryKeyObj:Hive condition="Equals">HKEY_CURRENT_USER</WinRegistryKeyObj:Hive>
+                                            <WinRegistryKeyObj:Values>
+                                                <WinRegistryKeyObj:Value>
+                                                    <WinRegistryKeyObj:Data condition="Equals"> %TEMP%\seagate.exe</WinRegistryKeyObj:Data>
+                                                </WinRegistryKeyObj:Value>
+                                            </WinRegistryKeyObj:Values>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>Artifacts dropped</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:Mutex-5ac4db18-47c4-4631-b3c8-01ef0a00020f">
+                                    <cybox:Object id="ORGNAME:MutexObject-5ac4db18-47c4-4631-b3c8-01ef0a00020f">
+                                        <cybox:Properties xsi:type="MutexObj:MutexObjectType">
+                                            <MutexObj:Name condition="Equals">no idea</MutexObj:Name>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>Payload delivery</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:File-5ac4db18-0d5c-4305-a505-01ef0a00020f">
+                                    <cybox:Object id="ORGNAME:FileObject-5ac4db18-0d5c-4305-a505-01ef0a00020f">
+                                        <cybox:Properties xsi:type="FileObj:FileObjectType">
+                                            <FileObj:Hashes>
+                                                <cyboxCommon:Hash>
+                                                    <cyboxCommon:Type condition="Equals">Other</cyboxCommon:Type>
+                                                    <cyboxCommon:Simple_Hash_Value condition="Equals">oui|12288:LLaIgXMVvf2u/n42bDaxGrAz1N4QiqPW44NGMJw3:LLFgXMVvf2cDaxG0N4RPK</cyboxCommon:Simple_Hash_Value>
+                                                </cyboxCommon:Hash>
+                                            </FileObj:Hashes>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>Network activity</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:SocketAddress-5ac4db18-14b0-4554-9999-01ef0a00020f">
+                                    <cybox:Object id="ORGNAME:SocketAddressObject-5ac4db18-14b0-4554-9999-01ef0a00020f">
+                                        <cybox:Properties xsi:type="SocketAddressObj:SocketAddressObjectType">
+                                            <SocketAddressObj:IP_Address xsi:type="AddressObj:AddressObjectType" category="ipv4-addr" is_source="false" is_destination="true">
+                                                <AddressObj:Address_Value condition="Equals">12.34.56.78</AddressObj:Address_Value>
+                                            </SocketAddressObj:IP_Address>
+                                            <SocketAddressObj:Port xsi:type="PortObj:PortObjectType">
+                                                <PortObj:Port_Value condition="Equals">2510</PortObj:Port_Value>
+                                            </SocketAddressObj:Port>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>External analysis</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:File-5ac4db18-7328-4665-93b2-01ef0a00020f">
+                                    <cybox:Object id="ORGNAME:FileObject-5ac4db18-7328-4665-93b2-01ef0a00020f">
+                                        <cybox:Properties xsi:type="FileObj:FileObjectType">
+                                            <FileObj:File_Name>oui.oui</FileObj:File_Name>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>Network activity</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:System-5ac4db18-ddfc-4fde-b936-01ef0a00020f">
+                                    <cybox:Object id="ORGNAME:SystemObject-5ac4db18-ddfc-4fde-b936-01ef0a00020f">
+                                        <cybox:Properties xsi:type="SystemObj:SystemObjectType">
+                                            <SystemObj:Network_Interface_List>
+                                                <SystemObj:Network_Interface>
+                                                    <SystemObj:MAC>5E:FF:56:A2:AF:15</SystemObj:MAC>
+                                                </SystemObj:Network_Interface>
+                                            </SystemObj:Network_Interface_List>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>Network activity</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:File-5ac4db18-4a4c-4623-bea4-01ef0a00020f">
+                                    <cybox:Object id="ORGNAME:FileObject-5ac4db18-4a4c-4623-bea4-01ef0a00020f">
+                                        <cybox:Properties xsi:type="FileObj:FileObjectType">
+                                            <FileObj:Hashes>
+                                                <cyboxCommon:Hash>
+                                                    <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">SHA1</cyboxCommon:Type>
+                                                    <cyboxCommon:Simple_Hash_Value condition="Equals">fa3d5d670dc1d153b999c3aec7b1d815cc33c4dc</cyboxCommon:Simple_Hash_Value>
+                                                </cyboxCommon:Hash>
+                                            </FileObj:Hashes>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>Payload delivery</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:EmailMessage-5ac4db18-5634-4e63-a270-01ef0a00020f">
+                                    <cybox:Object id="ORGNAME:EmailMessageObject-5ac4db18-5634-4e63-a270-01ef0a00020f">
+                                        <cybox:Properties xsi:type="EmailMessageObj:EmailMessageObjectType">
+                                            <EmailMessageObj:Header>
+                                                <EmailMessageObj:Reply_To xsi:type="AddressObj:AddressObjectType" category="e-mail">
+                                                    <AddressObj:Address_Value condition="Equals">jean@michel.crapaud</AddressObj:Address_Value>
+                                                </EmailMessageObj:Reply_To>
+                                            </EmailMessageObj:Header>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>Network activity</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:AutonomousSystem-5b23a25a-08c0-497c-8475-04660a00020f">
+                                    <cybox:Object id="ORGNAME:AutonomousSystemObject-5b23a25a-08c0-497c-8475-04660a00020f">
+                                        <cybox:Properties xsi:type="ASObj:ASObjectType">
+                                            <ASObj:Handle condition="Equals">AS66642</ASObj:Handle>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>file</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:WinRegistryKey-5ac4db18-7ba4-4c60-ae41-01ef0a00020f">
+                                    <cybox:Object id="ORGNAME:WinRegistryKeyObject-5ac4db18-7ba4-4c60-ae41-01ef0a00020f">
+                                        <cybox:Properties xsi:type="WinRegistryKeyObj:WindowsRegistryKeyObjectType">
+                                            <WinRegistryKeyObj:Key condition="Equals">system\bar\foo</WinRegistryKeyObj:Key>
+                                            <WinRegistryKeyObj:Hive condition="Equals">HKEY_LOCAL_MACHINE</WinRegistryKeyObj:Hive>
+                                            <WinRegistryKeyObj:Values>
+                                                <WinRegistryKeyObj:Value>
+                                                    <WinRegistryKeyObj:Name condition="Equals">Oui</WinRegistryKeyObj:Name>
+                                                    <WinRegistryKeyObj:Data condition="Equals">qwertyuiop</WinRegistryKeyObj:Data>
+                                                    <WinRegistryKeyObj:Datatype condition="Equals">REG_SZ</WinRegistryKeyObj:Datatype>
+                                                </WinRegistryKeyObj:Value>
+                                            </WinRegistryKeyObj:Values>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>network</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:domain-ip_ObservableComposition-5ac4db18-3900-4b41-8099-01ef0a00020f">
+                                    <cybox:Observable_Composition operator="AND">
+                                        <cybox:Observable id="ORGNAME:DomainName-5ac4db18-0150-45de-8473-01ef0a00020f">
+                                            <cybox:Object id="ORGNAME:DomainNameObject-5ac4db18-0150-45de-8473-01ef0a00020f">
+                                                <cybox:Properties xsi:type="DomainNameObj:DomainNameObjectType">
+                                                    <DomainNameObj:Value condition="Equals">www.circl.lu</DomainNameObj:Value>
+                                                </cybox:Properties>
+                                            </cybox:Object>
+                                        </cybox:Observable>
+                                        <cybox:Observable id="ORGNAME:Address-5ac4db18-f138-44b1-9b12-01ef0a00020f">
+                                            <cybox:Object id="ORGNAME:AddressObject-5ac4db18-f138-44b1-9b12-01ef0a00020f">
+                                                <cybox:Properties xsi:type="AddressObj:AddressObjectType" category="ipv4-addr" is_source="false" is_destination="true">
+                                                    <AddressObj:Address_Value condition="Equals">8.8.8.8</AddressObj:Address_Value>
+                                                </cybox:Properties>
+                                            </cybox:Object>
+                                        </cybox:Observable>
+                                    </cybox:Observable_Composition>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>network</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:x509Certificate-5ac4db18-7d84-4ab3-b47b-01ef0a00020f">
+                                    <cybox:Object id="ORGNAME:x509CertificateObject-5ac4db18-7d84-4ab3-b47b-01ef0a00020f">
+                                        <cybox:Properties xsi:type="X509CertificateObj:X509CertificateObjectType">
+                                            <X509CertificateObj:Certificate>
+                                                <X509CertificateObj:Version>1</X509CertificateObj:Version>
+                                                <X509CertificateObj:Serial_Number>1234567890</X509CertificateObj:Serial_Number>
+                                                <X509CertificateObj:Issuer>mr oui</X509CertificateObj:Issuer>
+                                                <X509CertificateObj:Subject_Public_Key>
+                                                    <X509CertificateObj:Public_Key_Algorithm>oui algo</X509CertificateObj:Public_Key_Algorithm>
+                                                </X509CertificateObj:Subject_Public_Key>
+                                            </X509CertificateObj:Certificate>
+                                            <X509CertificateObj:Certificate_Signature>
+                                                <X509CertificateObj:Signature_Algorithm>SHA1</X509CertificateObj:Signature_Algorithm>
+                                                <X509CertificateObj:Signature>5898fc860300e228dcd54c0b1045b5fa0dcda502</X509CertificateObj:Signature>
+                                            </X509CertificateObj:Certificate_Signature>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>network</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:url_ObservableComposition-5ac4db18-0040-46e6-b788-01ef0a00020f">
+                                    <cybox:Observable_Composition operator="AND">
+                                        <cybox:Observable id="ORGNAME:URI-5ac4db18-e6c0-48ba-bcb9-01ef0a00020f">
+                                            <cybox:Object id="ORGNAME:URIObject-5ac4db18-e6c0-48ba-bcb9-01ef0a00020f">
+                                                <cybox:Properties xsi:type="URIObj:URIObjectType">
+                                                    <URIObj:Value condition="Equals">https://www.circl.lu</URIObj:Value>
+                                                </cybox:Properties>
+                                            </cybox:Object>
+                                        </cybox:Observable>
+                                        <cybox:Observable id="ORGNAME:DomainName-5ac4db18-3a9c-4688-b4fb-01ef0a00020f">
+                                            <cybox:Object id="ORGNAME:DomainNameObject-5ac4db18-3a9c-4688-b4fb-01ef0a00020f">
+                                                <cybox:Properties xsi:type="DomainNameObj:DomainNameObjectType">
+                                                    <DomainNameObj:Value condition="Equals">www.circl.lu</DomainNameObj:Value>
+                                                </cybox:Properties>
+                                            </cybox:Object>
+                                        </cybox:Observable>
+                                    </cybox:Observable_Composition>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>network</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:EmailMessage-5ac4db18-1c74-4220-a942-01ef0a00020f">
+                                    <cybox:Object id="ORGNAME:EmailMessageObject-5ac4db18-1c74-4220-a942-01ef0a00020f">
+                                        <cybox:Properties xsi:type="EmailMessageObj:EmailMessageObjectType">
+                                            <EmailMessageObj:Header>
+                                                <EmailMessageObj:To>
+                                                    <EmailMessageObj:Recipient xsi:type="AddressObj:AddressObjectType" category="e-mail">
+                                                        <AddressObj:Address_Value>oui@to.lu</AddressObj:Address_Value>
+                                                    </EmailMessageObj:Recipient>
+                                                </EmailMessageObj:To>
+                                                <EmailMessageObj:CC>
+                                                    <EmailMessageObj:Recipient xsi:type="AddressObj:AddressObjectType" category="e-mail">
+                                                        <AddressObj:Address_Value>oui1@cc.com</AddressObj:Address_Value>
+                                                    </EmailMessageObj:Recipient>
+                                                    <EmailMessageObj:Recipient xsi:type="AddressObj:AddressObjectType" category="e-mail">
+                                                        <AddressObj:Address_Value>oui2@cc.com</AddressObj:Address_Value>
+                                                    </EmailMessageObj:Recipient>
+                                                </EmailMessageObj:CC>
+                                                <EmailMessageObj:From xsi:type="AddressObj:AddressObjectType" category="e-mail">
+                                                    <AddressObj:Address_Value condition="Equals">oui@source.com</AddressObj:Address_Value>
+                                                </EmailMessageObj:From>
+                                                <EmailMessageObj:Subject condition="Equals">Le Oui</EmailMessageObj:Subject>
+                                                <EmailMessageObj:Reply_To xsi:type="AddressObj:AddressObjectType" category="e-mail">
+                                                    <AddressObj:Address_Value condition="Equals">oui@reply.com</AddressObj:Address_Value>
+                                                </EmailMessageObj:Reply_To>
+                                                <EmailMessageObj:X_Mailer condition="Equals">oui_X-mailer</EmailMessageObj:X_Mailer>
+                                            </EmailMessageObj:Header>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>file</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:File-5ac4db19-c620-4b8d-a5a7-01ef0a00020f">
+                                    <cybox:Object id="ORGNAME:FileObject-5ac4db19-c620-4b8d-a5a7-01ef0a00020f">
+                                        <cybox:Properties xsi:type="FileObj:FileObjectType">
+                                            <FileObj:File_Name condition="Equals">oui</FileObj:File_Name>
+                                            <FileObj:Size_In_Bytes condition="Equals">1234</FileObj:Size_In_Bytes>
+                                            <FileObj:Hashes>
+                                                <cyboxCommon:Hash>
+                                                    <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">MD5</cyboxCommon:Type>
+                                                    <cyboxCommon:Simple_Hash_Value condition="Equals">b2a5abfeef9e36964281a31e17b57c97</cyboxCommon:Simple_Hash_Value>
+                                                </cyboxCommon:Hash>
+                                                <cyboxCommon:Hash>
+                                                    <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">SHA256</cyboxCommon:Type>
+                                                    <cyboxCommon:Simple_Hash_Value condition="Equals">3a3468fa89b2ab7cbfe5400858a8ec0066e9e8defa9a64c993b5f24210244df8</cyboxCommon:Simple_Hash_Value>
+                                                </cyboxCommon:Hash>
+                                                <cyboxCommon:Hash>
+                                                    <cyboxCommon:Type condition="Equals" xsi:type="cyboxVocabs:HashNameVocab-1.0">SHA1</cyboxCommon:Type>
+                                                    <cyboxCommon:Simple_Hash_Value condition="Equals">5898fc860300e228dcd54c0b1045b5fa0dcda502</cyboxCommon:Simple_Hash_Value>
+                                                </cyboxCommon:Hash>
+                                            </FileObj:Hashes>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>network</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:ip-port_ObservableComposition-5ac4db19-f4d0-460f-94c8-01ef0a00020f">
+                                    <cybox:Observable_Composition operator="AND">
+                                        <cybox:Observable id="ORGNAME:DomainName-5ac4db19-b0d8-4c05-ab80-01ef0a00020f">
+                                            <cybox:Object id="ORGNAME:DomainNameObject-5ac4db19-b0d8-4c05-ab80-01ef0a00020f">
+                                                <cybox:Properties xsi:type="DomainNameObj:DomainNameObjectType">
+                                                    <DomainNameObj:Value condition="Equals">www.circl.lu</DomainNameObj:Value>
+                                                </cybox:Properties>
+                                            </cybox:Object>
+                                        </cybox:Observable>
+                                        <cybox:Observable id="ORGNAME:srcPort-5ac4db19-c3b4-4190-88e7-01ef0a00020f">
+                                            <cybox:Object id="ORGNAME:PortObject-5ac4db19-c3b4-4190-88e7-01ef0a00020f">
+                                                <cybox:Properties xsi:type="PortObj:PortObjectType">
+                                                    <PortObj:Port_Value condition="Equals">443</PortObj:Port_Value>
+                                                </cybox:Properties>
+                                            </cybox:Object>
+                                        </cybox:Observable>
+                                        <cybox:Observable id="ORGNAME:dstPort-5ac4db19-14c4-4013-8c8e-01ef0a00020f">
+                                            <cybox:Object id="ORGNAME:PortObject-5ac4db19-14c4-4013-8c8e-01ef0a00020f">
+                                                <cybox:Properties xsi:type="PortObj:PortObjectType">
+                                                    <PortObj:Port_Value condition="Equals">443</PortObj:Port_Value>
+                                                </cybox:Properties>
+                                            </cybox:Object>
+                                        </cybox:Observable>
+                                        <cybox:Observable id="ORGNAME:Address-5ac4db19-171c-44f5-8959-01ef0a00020f">
+                                            <cybox:Object id="ORGNAME:AddressObject-5ac4db19-171c-44f5-8959-01ef0a00020f">
+                                                <cybox:Properties xsi:type="AddressObj:AddressObjectType" category="ipv4-addr" is_source="false" is_destination="true">
+                                                    <AddressObj:Address_Value condition="Equals">8.8.8.8</AddressObj:Address_Value>
+                                                </cybox:Properties>
+                                            </cybox:Object>
+                                        </cybox:Observable>
+                                    </cybox:Observable_Composition>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>network</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:NetworkConnection-5afb32e7-cb00-4dd5-ba41-02090a00020f">
+                                    <cybox:Object id="ORGNAME:NetworkConnectionObject-5afb32e7-cb00-4dd5-ba41-02090a00020f">
+                                        <cybox:Properties xsi:type="NetworkConnectionObj:NetworkConnectionObjectType">
+                                            <NetworkConnectionObj:Layer3_Protocol>IP</NetworkConnectionObj:Layer3_Protocol>
+                                            <NetworkConnectionObj:Layer4_Protocol>TCP</NetworkConnectionObj:Layer4_Protocol>
+                                            <NetworkConnectionObj:Layer7_Protocol>HTTP</NetworkConnectionObj:Layer7_Protocol>
+                                            <NetworkConnectionObj:Source_Socket_Address xsi:type="SocketAddressObj:SocketAddressObjectType">
+                                                <SocketAddressObj:IP_Address xsi:type="AddressObj:AddressObjectType" category="ipv4-addr" is_source="true" is_destination="false">
+                                                    <AddressObj:Address_Value condition="Equals">1.2.3.4</AddressObj:Address_Value>
+                                                </SocketAddressObj:IP_Address>
+                                                <SocketAddressObj:Port xsi:type="PortObj:PortObjectType">
+                                                    <PortObj:Port_Value condition="Equals">2510</PortObj:Port_Value>
+                                                </SocketAddressObj:Port>
+                                            </NetworkConnectionObj:Source_Socket_Address>
+                                            <NetworkConnectionObj:Destination_Socket_Address xsi:type="SocketAddressObj:SocketAddressObjectType">
+                                                <SocketAddressObj:IP_Address xsi:type="AddressObj:AddressObjectType" category="ipv4-addr" is_source="false" is_destination="true">
+                                                    <AddressObj:Address_Value condition="Equals">8.8.8.8</AddressObj:Address_Value>
+                                                </SocketAddressObj:IP_Address>
+                                                <SocketAddressObj:Hostname xsi:type="HostnameObj:HostnameObjectType">
+                                                    <HostnameObj:Hostname_Value condition="Equals">www.hostname.circl.lu</HostnameObj:Hostname_Value>
+                                                </SocketAddressObj:Hostname>
+                                                <SocketAddressObj:Port xsi:type="PortObj:PortObjectType">
+                                                    <PortObj:Port_Value condition="Equals">443</PortObj:Port_Value>
+                                                </SocketAddressObj:Port>
+                                            </NetworkConnectionObj:Destination_Socket_Address>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>network</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:NetworkSocket-5afb332f-1fbc-4028-be0d-02070a00020f">
+                                    <cybox:Object id="ORGNAME:NetworkSocketObject-5afb332f-1fbc-4028-be0d-02070a00020f">
+                                        <cybox:Properties xsi:type="NetworkSocketObj:NetworkSocketObjectType" is_blocking="false" is_listening="true">
+                                            <NetworkSocketObj:Address_Family>AF_UNSPEC</NetworkSocketObj:Address_Family>
+                                            <NetworkSocketObj:Domain>PF_UNSPEC</NetworkSocketObj:Domain>
+                                            <NetworkSocketObj:Local_Address xsi:type="SocketAddressObj:SocketAddressObjectType">
+                                                <SocketAddressObj:IP_Address xsi:type="AddressObj:AddressObjectType" category="ipv4-addr" is_source="true" is_destination="false">
+                                                    <AddressObj:Address_Value condition="Equals">1.2.3.4</AddressObj:Address_Value>
+                                                </SocketAddressObj:IP_Address>
+                                                <SocketAddressObj:Port xsi:type="PortObj:PortObjectType">
+                                                    <PortObj:Port_Value condition="Equals">2510</PortObj:Port_Value>
+                                                </SocketAddressObj:Port>
+                                            </NetworkSocketObj:Local_Address>
+                                            <NetworkSocketObj:Protocol>TCP</NetworkSocketObj:Protocol>
+                                            <NetworkSocketObj:Remote_Address xsi:type="SocketAddressObj:SocketAddressObjectType">
+                                                <SocketAddressObj:IP_Address xsi:type="AddressObj:AddressObjectType" category="ipv4-addr" is_source="false" is_destination="true">
+                                                    <AddressObj:Address_Value condition="Equals">8.8.8.8</AddressObj:Address_Value>
+                                                </SocketAddressObj:IP_Address>
+                                                <SocketAddressObj:Port xsi:type="PortObj:PortObjectType">
+                                                    <PortObj:Port_Value condition="Equals">443</PortObj:Port_Value>
+                                                </SocketAddressObj:Port>
+                                            </NetworkSocketObj:Remote_Address>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>misc</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:Process-5afbed53-7eb0-4a86-ac84-021d0a00020f">
+                                    <cybox:Object id="ORGNAME:ProcessObject-5afbed53-7eb0-4a86-ac84-021d0a00020f">
+                                        <cybox:Properties xsi:type="ProcessObj:ProcessObjectType">
+                                            <ProcessObj:PID>2510</ProcessObj:PID>
+                                            <ProcessObj:Name>Ça_process</ProcessObj:Name>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>network</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:Whois-5b0d1bd1-7508-4002-85d0-026b0a00020f">
+                                    <cybox:Object id="ORGNAME:WhoisObject-5b0d1bd1-7508-4002-85d0-026b0a00020f">
+                                        <cybox:Properties xsi:type="WhoisObj:WhoisObjectType">
+                                            <WhoisObj:Domain_Name xsi:type="URIObj:URIObjectType">
+                                                <URIObj:Value>www.circl.lu</URIObj:Value>
+                                            </WhoisObj:Domain_Name>
+                                            <WhoisObj:IP_Address xsi:type="AddressObj:AddressObjectType">
+                                                <AddressObj:Address_Value>1.2.3.4</AddressObj:Address_Value>
+                                            </WhoisObj:IP_Address>
+                                            <WhoisObj:Nameservers>
+                                                <WhoisObj:Nameserver xsi:type="URIObj:URIObjectType">
+                                                    <URIObj:Value>circl.lu</URIObj:Value>
+                                                </WhoisObj:Nameserver>
+                                            </WhoisObj:Nameservers>
+                                            <WhoisObj:Creation_Date precision="day">2017-05-22</WhoisObj:Creation_Date>
+                                            <WhoisObj:Registrants>
+                                                <WhoisObj:Registrant>
+                                                    <WhoisObj:Name>Registrant Name</WhoisObj:Name>
+                                                    <WhoisObj:Email_Address xsi:type="AddressObj:AddressObjectType" category="e-mail">
+                                                        <AddressObj:Address_Value>registrant@email.com</AddressObj:Address_Value>
+                                                    </WhoisObj:Email_Address>
+                                                    <WhoisObj:Phone_Number>0123456789</WhoisObj:Phone_Number>
+                                                    <WhoisObj:Organization>Registrant Org</WhoisObj:Organization>
+                                                </WhoisObj:Registrant>
+                                            </WhoisObj:Registrants>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>misc</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:Account-5b1f9adb-6b24-4752-83fe-02030a00020f">
+                                    <cybox:Object id="ORGNAME:AccountObject-5b1f9adb-6b24-4752-83fe-02030a00020f">
+                                        <cybox:Properties xsi:type="AccountObj:AccountObjectType">
+                                            <cyboxCommon:Custom_Properties>
+                                                <cyboxCommon:Property name="username">misp</cyboxCommon:Property>
+                                                <cyboxCommon:Property name="origin">bruteforce-scanning</cyboxCommon:Property>
+                                                <cyboxCommon:Property name="notification">victim-notified</cyboxCommon:Property>
+                                            </cyboxCommon:Custom_Properties>
+                                            <AccountObj:Description>MISP default credentials</AccountObj:Description>
+                                            <AccountObj:Authentication>
+                                                <AccountObj:Authentication_Type>password</AccountObj:Authentication_Type>
+                                                <AccountObj:Authentication_Data>Password1234</AccountObj:Authentication_Data>
+                                                <AccountObj:Structured_Authentication_Mechanism>
+                                                    <AccountObj:Description>clear-text</AccountObj:Description>
+                                                </AccountObj:Structured_Authentication_Mechanism>
+                                            </AccountObj:Authentication>
+                                            <AccountObj:Authentication>
+                                                <AccountObj:Authentication_Type>password</AccountObj:Authentication_Type>
+                                                <AccountObj:Authentication_Data>admin</AccountObj:Authentication_Data>
+                                                <AccountObj:Structured_Authentication_Mechanism>
+                                                    <AccountObj:Description>clear-text</AccountObj:Description>
+                                                </AccountObj:Structured_Authentication_Mechanism>
+                                            </AccountObj:Authentication>
+                                            <AccountObj:Authentication>
+                                                <AccountObj:Authentication_Type>password</AccountObj:Authentication_Type>
+                                            </AccountObj:Authentication>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                            <incident:Related_Observable>
+                                <stixCommon:Relationship>network</stixCommon:Relationship>
+                                <stixCommon:Observable id="ORGNAME:AutonomousSystem-5b23c878-df00-4f88-8722-02710a00020f">
+                                    <cybox:Object id="ORGNAME:AutonomousSystemObject-5b23c878-df00-4f88-8722-02710a00020f">
+                                        <cybox:Properties xsi:type="ASObj:ASObjectType">
+                                            <ASObj:Name>AS name</ASObj:Name>
+                                            <ASObj:Handle>AS66642</ASObj:Handle>
+                                        </cybox:Properties>
+                                    </cybox:Object>
+                                </stixCommon:Observable>
+                            </incident:Related_Observable>
+                        </incident:Related_Observables>
+                        <incident:Leveraged_TTPs>
+                            <incident:Leveraged_TTP>
+                                <stixCommon:Relationship>External analysis</stixCommon:Relationship>
+                                <stixCommon:TTP idref="ORGNAME:ttp-5ac4db18-0150-4435-b016-01ef0a00020f" timestamp="2018-03-28T12:06:12+00:00" xsi:type='ttp:TTPType'/>
+                            </incident:Leveraged_TTP>
+                        </incident:Leveraged_TTPs>
+                        <incident:History>
+                            <incident:History_Item>
+                                <incident:Journal_Entry time_precision="second">Event Threat Level: Undefined</incident:Journal_Entry>
+                            </incident:History_Item>
+                            <incident:History_Item>
+                                <incident:Journal_Entry time_precision="second">MISP Tag: misp:tool="misp2stix"</incident:Journal_Entry>
+                            </incident:History_Item>
+                            <incident:History_Item>
+                                <incident:Journal_Entry time_precision="second">MISP Tag: misp-galaxy:mitre-attack-pattern="DLL Injection"</incident:Journal_Entry>
+                            </incident:History_Item>
+                            <incident:History_Item>
+                                <incident:Journal_Entry time_precision="second">MISP Tag: misp-galaxy:mitre-malware="Elise"</incident:Journal_Entry>
+                            </incident:History_Item>
+                            <incident:History_Item>
+                                <incident:Journal_Entry time_precision="second">MISP Tag: misp-galaxy:mitre-intrusion-set="APT16"</incident:Journal_Entry>
+                            </incident:History_Item>
+                            <incident:History_Item>
+                                <incident:Journal_Entry time_precision="second">MISP Tag: misp-galaxy:mitre-tool="ifconfig"</incident:Journal_Entry>
+                            </incident:History_Item>
+                            <incident:History_Item>
+                                <incident:Journal_Entry time_precision="second">attribute[Other][comment]: oui, c'est un comment</incident:Journal_Entry>
+                            </incident:History_Item>
+                            <incident:History_Item>
+                                <incident:Journal_Entry time_precision="second">attribute[Other][other]: bla</incident:Journal_Entry>
+                            </incident:History_Item>
+                        </incident:History>
+                        <incident:Information_Source>
+                            <stixCommon:Identity>
+                                <stixCommon:Name>ORGNAME</stixCommon:Name>
+                            </stixCommon:Identity>
+                            <stixCommon:References>
+                                <stixCommon:Reference>https://www.circl.lu</stixCommon:Reference>
+                            </stixCommon:References>
+                        </incident:Information_Source>
+                        <incident:Handling>
+                            <marking:Marking>
+                                <marking:Controlled_Structure>../../../descendant-or-self::node()</marking:Controlled_Structure>
+                                <marking:Marking_Structure xsi:type='tlpMarking:TLPMarkingStructureType' color="AMBER"/>
+                            </marking:Marking>
+                        </incident:Handling>
+                    </stix:Incident>
+                </stix:Incidents>
+            </stix:Package>
+        </stix:Related_Package>
+    </stix:Related_Packages>
+</stix:STIX_Package>
+

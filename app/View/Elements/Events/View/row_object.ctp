@@ -61,7 +61,7 @@
     ?>
     &nbsp;
   </td>
-  <td colspan="4">
+  <td colspan="5">
     <span class="bold"><?php echo __('Name: ');?></span><?php echo h($object['name']);?>
     <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo h($object['id']); ?>_collapsible"></span>
     <br />
@@ -113,16 +113,22 @@
   <td>&nbsp;</td>
   <td class="short action-links">
     <?php
-      if ($mayModify && empty($object['deleted'])):
-    ?>
-        <a href="<?php echo $baseurl;?>/objects/edit/<?php echo $object['id']; ?>" title="Edit" class="icon-edit icon-white useCursorPointer"></a>
-        <span class="icon-trash icon-white useCursorPointer" title="<?php echo __('Soft delete object');?>" role="button" tabindex="0" aria-label="<?php echo __('Soft delete object');?>" onClick="deleteObject('objects', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
-    <?php
-      elseif ($mayModify):
-    ?>
-        <span class="icon-trash icon-white useCursorPointer" title="<?php echo __('Permanently delete object');?>" role="button" tabindex="0" aria-label="<?php echo __('Permanently delete attribute');?>" onClick="deleteObject('objects', 'delete', '<?php echo h($object['id']) . '/true'; ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
-    <?php
-      endif;
+      if ($mayModify && empty($object['deleted'])) {
+        echo sprintf(
+          '<a href="%s/objects/edit/%s" title="Edit" class="icon-edit icon-white useCursorPointer"></a>',
+          $baseurl,
+          h($object['id'])
+        );
+        echo sprintf(
+          '<span class="icon-trash icon-white useCursorPointer" title="%1$s" role="button" tabindex="0" aria-label="%1$s" onClick="%2$s"></span>',
+          (empty($event['Event']['publish_timestamp']) ? __('Permanently delete object') : __('Soft delete object')),
+          sprintf(
+            'deleteObject(\'objects\', \'delete\', \'%s\', \'%s\');',
+            empty($event['Event']['publish_timestamp']) ? h($object['id']) . '/true' : h($object['id']),
+            h($event['Event']['id'])
+          )
+        );
+      }
     ?>
   </td>
 </tr>

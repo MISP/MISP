@@ -1,0 +1,490 @@
+INSTALLATION INSTRUCTIONS
+------------------------- for FreeBSD 11.2-amd64
+
+0/ WIP /!\ You are warned, this does not work yet! /!\
+
+NOT working: pydeep, lief, py-yara, MAEC
+
+1/ Minimal FreeBSD install
+--------------------------
+
+# Install standard FreeBSD-amd64 with:
+- sshd
+- ntpd
+- ports
+
+# System Hardening
+
+- Clean /tmp
+- Disable Syslogd network socket
+- Disable Sendmail service
+
+# Install pkg and point to latest
+
+Install pkg by typing:
+```
+$ su -
+# pkg
+```
+
+# Install sudo
+
+pkg install sudo
+
+# Install bash
+
+sudo pkg install bash
+
+Make sure users in group wheel can sudo, uncomment in /usr/local/etc/sudoers :
+```
+%wheel ALL=(ALL) ALL
+```
+
+# Update system
+```
+sudo freebsd-update fetch install
+```
+
+# Make python3 default
+
+echo "DEFAULT_VERSIONS= python=3.6 python2=2.7 python3=3.6" >> /etc/make.conf
+sudo ln -s /usr/local/bin/python3 /usr/local/bin/python
+
+# Install postfix
+```
+sudo pkg install postfix
+
+# Optional but useful, add a local misp user
+sudo pw user add misp -s /usr/local/bin/bash -G wheel,www
+sudo mkdir /home/misp ; sudo chown misp:misp /home/misp
+sudo passwd misp
+```
+
+# FAMP
+## Install misc dependencies
+```
+sudo pkg install curl git python3 vim m4 help2man gmake automake libtool
+```
+
+/!\ N.B: MariaDB 10.3 currently segfaults on 11.2: https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=229219
+
+```
+sudo pkg install apache24 \
+    logrotate \
+    gnupg \
+    mariadb102-server mariadb102-client \
+    php72 \
+    php72-mysqli \
+    php72-xml \
+    php72-openssl \
+    php72-pcntl \
+    php72-mbstring \
+    php72-pdo_mysql \
+    php72-phar \
+    php72-json \
+    php72-filter \
+    php72-dom \
+    php72-opcache \
+    php72-session \
+    mod_php72
+
+sudo cp -p /usr/local/etc/php.ini-development /usr/local/etc/php.ini
+
+sudo sysrc apache24_enable="yes"
+sudo sysrc mysql_enable="yes"
+sudo sysrc mysql_args="--bind-address=127.0.0.1"
+sudo service apache24 start
+sudo service mysql-server start
+sudo /usr/local/bin/mysql_secure_installation
+```
+
+```
+sudo vi /usr/local/etc/apache24/Includes/php.conf
+```
+
+Add:
+```
+<IfModule dir_module>
+    DirectoryIndex index.php index.html
+
+    <FilesMatch "\.php$">
+        SetHandler application/x-httpd-php
+    </FilesMatch>
+
+    <FilesMatch "\.phps$">
+        SetHandler application/x-httpd-php-source
+    </FilesMatch>
+</IfModule>
+```
+
+
+## Redis need to be installed via ports
+
+```
+cd /usr/ports/databases/redis
+sudo make install clean
+sudo sysrc redis_enable="yes"
+```
+
+### php-redis
+```
+cd /use/ports/databases/pecl-redis
+sudo make install clean
+```
+
+## Maybe needed, had to add the path for php CLI to work…
+add this: PATH=$PATH:/usr/local/bin
+to: /usr/local/etc/apache24/envvars.d/php.env
+
+
+```
+sudo service apache24 restart
+```
+
+3/ MISP code
+------------
+
+# Download MISP using git in the /usr/local/www/ directory.
+sudo mkdir /usr/local/www/MISP
+sudo chown www:www /usr/local/www/MISP
+cd /usr/local/www/MISP
+sudo -u www git clone https://github.com/MISP/MISP.git /usr/local/www/MISP
+
+# Make git ignore filesystem permission differences
+sudo -u www git config core.filemode false
+
+# install Mitre's STIX and its dependencies by running the following commands:
+##sudo apt-get install python-dev zlib1g-dev python-setuptools
+sudo pkg install py27-pip py36-pip libxml2 libxslt
+
+cd /usr/local/www/MISP/app/files/scripts
+sudo -u www git clone https://github.com/CybOXProject/python-cybox.git
+sudo -u www git clone https://github.com/STIXProject/python-stix.git
+cd /usr/local/www/MISP/app/files/scripts/python-cybox
+sudo python3 setup.py install
+cd /usr/local/www/MISP/app/files/scripts/python-stix
+sudo python3 setup.py install
+
+# install mixbox to accomodate the new STIX dependencies:
+cd /usr/local/www/MISP/app/files/scripts/
+sudo -u www git clone https://github.com/CybOXProject/mixbox.git
+cd /usr/local/www/MISP/app/files/scripts/mixbox
+sudo python3 setup.py install
+
+
+
+4/ CakePHP
+-----------
+# CakePHP is included as a submodule of MISP, execute the following commands to let git fetch it:
+cd /usr/local/www/MISP
+sudo -u www git submodule update --init --recursive
+# Make git ignore filesystem permission differences for submodules
+sudo -u www git submodule foreach --recursive git config core.filemode false
+
+# Once done, install CakeResque along with its dependencies if you intend to use the built in background jobs:
+cd /usr/local/www/MISP/app
+sudo -u www php composer.phar require kamisama/cake-resque:4.1.2
+sudo -u www php composer.phar config vendor-dir Vendor
+sudo -u www php composer.phar install
+
+# To use the scheduler worker for scheduled tasks, do the following:
+sudo -u www cp -fa /usr/local/www/MISP/INSTALL/setup/config.php /usr/local/www/MISP/app/Plugin/CakeResque/Config/config.php
+
+5/ Set the permissions
+----------------------
+
+# Check if the permissions are set correctly using the following commands:
+sudo chown -R www:www /usr/local/www/MISP
+sudo chmod -R 750 /usr/local/www/MISP
+sudo chmod -R g+ws /usr/local/www/MISP/app/tmp
+sudo chmod -R g+ws /usr/local/www/MISP/app/files
+sudo chmod -R g+ws /usr/local/www/MISP/app/files/scripts/tmp
+
+6/ Create a database and user
+-----------------------------
+# Enter the mysql shell
+sudo mysql -u root -p
+
+MariaDB [(none)]> create database misp;
+MariaDB [(none)]> grant usage on *.* to misp@localhost identified by 'XXXXdbpasswordhereXXXXX';
+MariaDB [(none)]> grant all privileges on misp.* to misp@localhost;
+MariaDB [(none)]> flush privileges;
+MariaDB [(none)]> exit
+
+# Import the empty MISP database from MYSQL.sql
+sudo -u www sh -c "mysql -u misp -p misp < /usr/local/www/MISP/INSTALL/MYSQL.sql"
+# enter the password you set previously
+
+
+7/ Apache configuration
+-----------------------
+```
+# Now configure your Apache webserver with the DocumentRoot /usr/local/www/MISP/app/webroot/
+
+#2.4
+sudo mkdir /usr/local/etc/apache24/sites-available/ /usr/local/etc/apache24/sites-enabled/
+
+# If the apache version is 2.4:
+sudo cp /usr/local/www/MISP/INSTALL/apache.24.misp.ssl /usr/local/etc/apache24/sites-available/misp-ssl.conf
+
+# Be aware that the configuration files for apache 2.4 and up have changed.
+# The configuration file has to have the .conf extension in the sites-available directory
+# For more information, visit http://httpd.apache.org/docs/2.4/upgrading.html
+
+sudo mkdir /etc/ssl/private/
+# If a valid SSL certificate is not already created for the server, create a self-signed certificate: (Make sure to fill the <…>)
+sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
+-subj "/C=<Country>/ST=<State>/L=<Locality>/O=<Organization>/OU=<Organizational Unit Name>/CN=<QDN.here>/emailAddress=admin@<your.FQDN.here>" \
+-keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt
+
+sudo chmod 750 /etc/ssl/private/
+sudo chmod 640 /etc/ssl/private/*
+
+# Otherwise, copy the SSLCertificateFile, SSLCertificateKeyFile, and SSLCertificateChainFile to /etc/ssl/private/. (Modify path and config to fit your environment)
+
+sudo mkdir /var/log/apache24/
+```
+
+Now edit: /usr/local/etc/apache24/sites-available/misp-ssl.conf to reflect the below.
+Make sure the ssl fqdn will reflect what you entered as a CN in the SSL-Cert.
+You might see this: "AH00558: httpd: Could not reliably determine the server's fully qualified domain name, using 127.0.0.1. Set the 'ServerName' directive globally to suppress this message"
+Edit: 
+
+```
+============================================= Begin sample working SSL config for MISP
+<VirtualHost <IP, FQDN, or *>:80>
+        ServerName <your.FQDN.here>
+
+        Redirect permanent / https://<your.FQDN.here>
+
+        LogLevel warn
+        ErrorLog /var/log/apache24/misp.local_error.log
+        CustomLog /var/log/apache24/misp.local_access.log combined
+        ServerSignature Off
+</VirtualHost>
+
+<VirtualHost <IP, FQDN, or *>:443>
+        ServerAdmin admin@<your.FQDN.here>
+        ServerName <your.FQDN.here>
+        DocumentRoot /usr/local/www/MISP/app/webroot
+        <Directory /usr/local/www/MISP/app/webroot>
+                Options -Indexes
+                AllowOverride all
+                Order allow,deny
+                allow from all
+        </Directory>
+
+        SSLEngine On
+        SSLCertificateFile /etc/ssl/private/misp.local.crt
+        SSLCertificateKeyFile /etc/ssl/private/misp.local.key
+#        SSLCertificateChainFile /etc/ssl/private/misp-chain.crt
+
+        LogLevel warn
+        ErrorLog /var/log/apache24/misp.local_error.log
+        CustomLog /var/log/apache24/misp.local_access.log combined
+        ServerSignature Off
+</VirtualHost>
+============================================= End sample working SSL config for MISP
+```
+
+```
+# activate new vhost
+cd /usr/local/etc/apache24/sites-enabled/
+sudo ln -s ../sites-available/misp-ssl.conf
+echo "Include etc/apache24/sites-enabled/*.conf" >> /usr/local/etc/apache24/httpd.conf
+echo "IncludeOptional etc/apache24/sites-enabled/*.conf" >> /usr/local/etc/apache24/httpd.conf
+
+sudo vi /usr/local/etc/apache24/httpd.conf
+/!\ Enable mod_rewrite in httpd.conf /!\
+LoadModule rewrite_module libexec/apache24/mod_rewrite.so
+LoadModule ssl_module libexec/apache24/mod_ssl.so
+Listen 443
+
+# Restart apache
+sudo service apache24 restart
+```
+
+8/ Log rotation
+---------------
+# MISP saves the stdout and stderr of its workers in /usr/local/www/MISP/app/tmp/logs
+# To rotate these logs install the supplied logrotate script:
+
+sudo cp /usr/local/www/MISP/INSTALL/misp.logrotate /usr/local/etc/logrotate.d/misp
+chmod 0640 /usr/local/etc/logrotate.d/misp
+
+9/ MISP configuration
+---------------------
+# There are 4 sample configuration files in /usr/local/www/MISP/app/Config that need to be copied
+sudo -u www cp -a /usr/local/www/MISP/app/Config/bootstrap.default.php /usr/local/www/MISP/app/Config/bootstrap.php
+sudo -u www cp -a /usr/local/www/MISP/app/Config/database.default.php /usr/local/www/MISP/app/Config/database.php
+sudo -u www cp -a /usr/local/www/MISP/app/Config/core.default.php /usr/local/www/MISP/app/Config/core.php
+sudo -u www cp -a /usr/local/www/MISP/app/Config/config.default.php /usr/local/www/MISP/app/Config/config.php
+
+# Configure the fields in the newly created files:
+sudo -u www vim /usr/local/www/MISP/app/Config/database.php
+# DATABASE_CONFIG has to be filled
+# With the default values provided in section 6, this would look like:
+# class DATABASE_CONFIG {
+#   public $default = array(
+#       'datasource' => 'Database/Mysql',
+#       'persistent' => false,
+#       'host' => 'localhost',
+#       'login' => 'misp', // grant usage on *.* to misp@localhost
+#       'port' => 3306,
+#       'password' => 'XXXXdbpasswordhereXXXXX', // identified by 'XXXXdbpasswordhereXXXXX';
+#       'database' => 'misp', // create database misp;
+#       'prefix' => '',
+#       'encoding' => 'utf8',
+#   );
+#}
+
+# Important! Change the salt key in /usr/local/www/MISP/app/Config/config.php
+# The salt key must be a string at least 32 bytes long.
+# The admin user account will be generated on the first login, make sure that the salt is changed before you create that user
+# If you forget to do this step, and you are still dealing with a fresh installation, just alter the salt,
+# delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
+
+# Change base url in config.php
+sudo -u www vim /usr/local/www/MISP/app/Config/config.php
+# example: 'baseurl' => 'https://<your.FQDN.here>',
+# alternatively, you can leave this field empty if you would like to use relative pathing in MISP
+# 'baseurl' => '',
+
+# and make sure the file permissions are still OK
+sudo chown -R www:www /usr/local/www/MISP/app/Config
+sudo chmod -R 750 /usr/local/www/MISP/app/Config
+
+# Generate a GPG encryption key.
+sudo -u www mkdir /usr/local/www/MISP/.gnupg
+sudo chmod 700 /usr/local/www/MISP/.gnupg
+##### sudo -u www gpg --homedir /usr/local/www/MISP/.gnupg --gen-key <- Broken
+# The email address should match the one set in the config.php / set in the configuration menu in the administration menu configuration file
+
+# And export the public key to the webroot
+sudo -u www sh -c "gpg --homedir /usr/local/www/MISP/.gnupg --export --armor YOUR-KEYS-EMAIL-HERE > /usr/local/www/MISP/app/webroot/gpg.asc"
+
+# To make the background workers start on boot
+sudo chmod +x /usr/local/www/MISP/app/Console/worker/start.sh
+sudo vim /etc/rc.local
+# Add the following line before the last line (exit 0). Make sure that you replace www with your apache user:
+sudo -u www bash /usr/local/www/MISP/app/Console/worker/start.sh
+
+# Now log in using the webinterface:
+# The default user/pass = admin@admin.test/admin
+
+# Using the server settings tool in the admin interface (Administration -> Server Settings), set MISP up to your preference
+# It is especially vital that no critical issues remain!
+# start the workers by navigating to the workers tab and clicking restart all workers
+
+# Don't forget to change the email, password and authentication key after installation.
+
+# Once done, have a look at the diagnostics
+
+# If any of the directories that MISP uses to store files is not writeable to the apache user, change the permissions
+# you can do this by running the following commands:
+
+sudo chmod -R 750 /usr/local/www/MISP/<directory path with an indicated issue>
+sudo chown -R www:www /usr/local/www/MISP/<directory path with an indicated issue>
+
+# Make sure that the STIX libraries and GnuPG work as intended, if not, refer to INSTALL.txt's paragraphs dealing with these two items
+
+# If anything goes wrong, make sure that you check MISP's logs for errors:
+# /usr/local/www/MISP/app/tmp/logs/error.log
+# /usr/local/www/MISP/app/tmp/logs/resque-worker-error.log
+# /usr/local/www/MISP/app/tmp/logs/resque-scheduler-error.log
+# /usr/local/www/MISP/app/tmp/logs/resque-2015-01-01.log // where the actual date is the current date
+
+set PATH_TO_MISP='/usr/local/www/MISP'
+set MISP_BASEURL=''
+set MISP_LIVE='1'
+set FQDN='localhost'
+
+
+# Enable Enrichment set better timeouts
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_services_enable" true
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_hover_enable" true
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_timeout" 300
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_hover_timeout" 150
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_cve_enabled" true
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_dns_enabled" true
+
+# Enable Import modules set better timout
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Import_services_enable" true
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Import_timeout" 300
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Import_ocr_enabled" true
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Import_csvimport_enabled" true
+
+# Enable Export modules set better timout
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Export_services_enable" true
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Export_timeout" 300
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Plugin.Export_pdfexport_enabled" true
+
+sudo $PATH_TO_MISP/app/Console/cake Live $MISP_LIVE
+
+
+# Enable installer org and tune some configurables
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.host_org_id" 1
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.email" "info@admin.test"
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.disable_emailing" true
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.contact" "info@admin.test"
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.disablerestalert" true
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.showCorrelationsOnIndex" true
+
+# Force defaults to make MISP Server Settings less RED
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.language" "eng"
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.proposals_block_attributes" false
+## Redis block
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.redis_host" "127.0.0.1"
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.redis_port" 6379
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.redis_database" 13
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "MISP.redis_password" ""
+
+# Tune global time outs
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Session.autoRegenerate" 0
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Session.timeout" 600
+sudo $PATH_TO_MISP/app/Console/cake Admin setSetting "Session.cookie_timeout" 3600
+
+
+Recommended actions
+-------------------
+- By default CakePHP exposes its name and version in email headers. Apply a patch to remove this behavior.
+
+- You should really harden your OS
+- You should really harden the configuration of Apache
+- You should really harden the configuration of MySQL/MariaDB
+- Keep your software up2date (OS, MISP, CakePHP and everything else)
+- Log and audit
+
+10/ MISP modulesß
+
+sudo pkg install yara
+sudo mkdir /usr/local/src/
+cd /usr/local/src/
+sudo git clone https://github.com/MISP/misp-modules.git
+cd misp-modules
+# pip3 install
+sudo pip-3.6 install -I -r REQUIREMENTS
+sudo pip-3.6 install -I .
+##sudo pip-3.6 install lief
+sudo pip-3.6 install maec
+sudo pip-3.6 install pymisp python-magic wand yara
+##sudo pip-3.6 install git+https://github.com/kbandla/pydeep.git
+
+# pip2 install
+sudo pip-2.7 install pymisp python-magic wand yara
+##sudo pip-2.7 install git+https://github.com/kbandla/pydeep.git
+##sudo pip-2.7 install lief
+# install STIX2.0 library to support STIX 2.0 export:
+sudo pip-3.6 install stix2
+
+Add this to rc.local:
+
+```
+sudo -u www misp-modules -l 0.0.0.0 -s &
+```
+
+Optional features
+-------------------
+# MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
+sudo pkg install libzmq4
+# ZeroMQ depends on the Python client for Redis

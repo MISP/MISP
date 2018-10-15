@@ -12,13 +12,13 @@
 $imgId = h($id);
 if (!isset($imgSize)) $imgSize = 48;
 if (!isset($imgStyle)) {
-	$imgStyle = 'float:right;';
+    $imgStyle = 'float:right;';
 } else if (is_array($imgStyle)) {
-	$imgStyle = $imgStyle['style'];
+    $imgStyle = $imgStyle['style'];
 }
 else $imgStyle = '';
 $imgRelativePath = 'orgs/' . $imgId . '.png';
 $imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
 if (file_exists($imgAbsolutePath)) {
-	echo $this->Html->image($imgRelativePath, array('alt' => $imgId, 'style' => 'width:' . $imgSize . 'px; max-height:' . $imgSize . 'px;' . $imgStyle, 'title' => $imgId));
+    echo $this->Html->image($imgRelativePath, array('alt' => $imgId, 'style' => 'width:' . $imgSize . 'px; max-height:' . $imgSize . 'px;' . $imgStyle, 'title' => $imgId));
 }

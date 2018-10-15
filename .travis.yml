@@ -1,51 +1,39 @@
 language: php
 
 php:
-    - 5.6
     - 7.0
     - 7.1
+    - 7.2
     - nightly
 
 services:
     - redis
 
 sudo: required
-dist: trusty
+dist: bionic
 group: edge
 
 addons:
-    mariadb:
-        - '10.0'
+    mariadb: '10.2'
     hosts:
         - misp.local
         - localhost
-    apt:
-        packages:
-            - python3-dev
-            - python3-pip
-            - libxml2-dev
-            - zlib1g-dev
-            - apache2
-            - curl
-            - php5-mysql
-            - php5-dev
-            - php5-cli
-            - libapache2-mod-php5
-
 
 before_install:
     - git config --global user.name "TravisCI"
+    - export PATH="$HOME/.local/bin:$PATH"
 
 install:
-    - sudo apt-get install python3-pip python3-nose
-    - git pull --recurse-submodules && git submodule update
-    - pip3 install --user pip -U
-    - pip3 install --user pyzmq
-    - pip3 install --user coveralls
-    - pip3 install --user codecov
-    - pip3 install --user git+https://github.com/CybOXProject/python-cybox.git@v2.1.0.12#egg=Package
-    - pip3 install --user git+https://github.com/stixproject/python-stix.git@v1.2.0.0#egg=Package
-    - pip3 install --user git+https://github.com/MISP/PyMISP.git#egg=Package
+    - sudo add-apt-repository -y ppa:deadsnakes/ppa
+    - sudo apt-get -y update
+    - sudo apt-get -y install python3.6 python3-pip python3.6-dev python3-nose libxml2-dev libzmq3-dev zlib1g-dev apache2 curl php-mysql php-dev php-cli libapache2-mod-php libfuzzy-dev php-mbstring
+    - sudo apt-get -y dist-upgrade
+    - wget https://bootstrap.pypa.io/get-pip.py
+    - sudo python3.6 get-pip.py
+    - hash -r
+    - sudo pip3.6 install --upgrade pip setuptools requests
+    - hash -r
+    - sudo pip3.6 install --upgrade -r requirements.txt
     - phpenv rehash
     - pushd app
     - composer install
@@ -73,6 +61,7 @@ install:
     - mysql -u misp -pblah misp < INSTALL/MYSQL.sql
     # configure apache virtual hosts
     - sudo chmod -R 777 `pwd`/build
+    - sudo mkdir -p /etc/apache2/sites-available
     - sudo cp -f build/travis-ci-apache /etc/apache2/sites-available/misp.local.conf
     - sudo sed -e "s?%TRAVIS_BUILD_DIR%?$(pwd)?g" --in-place /etc/apache2/sites-available/misp.local.conf
     - sudo a2dissite 000-default
@@ -98,6 +87,7 @@ install:
     # Get authkey
     - sudo usermod -a -G www-data $USER
     - sudo -E su $USER -c 'app/Console/cake userInit -q | sudo tee ./key.txt'
+    - sudo app/Console/cake Live 1
     - sudo chmod 777 ./key.txt
     - sudo chmod -R 777 ./tests
     - sudo chown -R www-data:www-data `pwd`
@@ -120,17 +110,23 @@ script:
     - ./curl_tests.sh $AUTH
     - popd
     - pushd PyMISP
-    - pip3 install --user -U nose
-    - pip3 install --user coveralls
-    - pip3 install --user codecov
-    - pip3 install --user requests-mock
-    - pip3 install --user .
-    - nosetests --with-coverage --cover-package=pymisp tests/test_*.py
-    - python3 tests/test.py
+    - sudo pip3.6 install nose python-dateutil
+    - sudo pip3.6 install git+https://github.com/kbandla/pydeep.git
+    - sudo pip3.6 install -e .[fileobjects,neo,openioc,virustotal]
+    - pushd tests
+    - git clone https://github.com/viper-framework/viper-test-files.git
+    - popd
+    - python3.6 tests/test.py
+    - python3.6 tests/test_mispevent.py
+    - python3.6 tests/test_offline.py
+    - python3.6 tests/testlive_comprehensive.py
     - popd
     - cp PyMISP/tests/keys.py PyMISP/examples/events/
     - pushd PyMISP/examples/events/
-    - python3 ./create_massive_dummy_events.py -l 5 -a 30
+    - python3.6 ./create_massive_dummy_events.py -l 5 -a 30
+    - popd
+    - pushd app/files/feed-metadata
+    - jsonschema -i defaults.json schema.json
     - popd
 
 after_failure:

@@ -67,28 +67,12 @@ class UserInitShell extends AppShell {
 
 		// populate the DB with the first user if it's empty
 		if ($this->User->find('count') == 0 ) {
-			$authkey = $this->User->generateAuthKey();
-			$admin = array('User' => array(
-					'id' => 1,
-					'email' => 'admin@admin.test',
-					'org_id' => $org_id,
-					'password' => 'admin',
-					'confirm_password' => 'admin',
-					'authkey' => $authkey,
-					'nids_sid' => 4000000,
-					'newsread' => 0,
-					'role_id' => 1,
-					'change_pw' => 0,
-					'termsaccepted' => 1
-			));
-			$this->User->validator()->remove('password'); // password is to simple, remove validation
-			$this->User->save($admin);
-			// PostgreSQL: update value of auto incremented serial primary key after setting the column by force
-			if ($dataSource == 'Database/Postgres') {
-				$sql = "SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));";
-				$this->User->query($sql);
+			$auth_key = $this->User->createInitialUser($org_id);
+			if (!empty($auth_key)) {
+				echo $auth_key . PHP_EOL;
+			} else {
+				echo 'Could not generate the initial user!' . PHP_EOL;
 			}
-			echo $authkey . PHP_EOL;
 		} else {
 			echo 'Script aborted: MISP instance already initialised.' . PHP_EOL;
 		}

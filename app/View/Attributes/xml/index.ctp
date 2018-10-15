@@ -1,13 +1,13 @@
 <?php
 $xmlArray = array();
 foreach ($attributes as $key => $attribute) {
-	// rearrange things to be compatible with the Xml::fromArray()
-	$attributes[$key] = $attributes[$key]['Attribute'];
+    // rearrange things to be compatible with the Xml::fromArray()
+    $attributes[$key] = $attributes[$key]['Attribute'];
 
-	// cleanup the array from things we do not want to expose
-	unset($attributes[$key]['Event']);
-	unset($attributes[$key]['value1']);
-	unset($attributes[$key]['value2']);
+    // cleanup the array from things we do not want to expose
+    unset($attributes[$key]['Event']);
+    unset($attributes[$key]['value1']);
+    unset($attributes[$key]['value2']);
 }
 
 // display the XML to the user
