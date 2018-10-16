@@ -16,7 +16,7 @@
 ## built system. This is not intended as an upgrade script
 ## to move between MISP versions - But it might work ;).
 ##
-## Tested against MISP 2.4.33
+## Tested against MISP 2.4.96
 ##
 ## Run the script as the standard user with the command below
 ##
@@ -58,6 +58,7 @@ MISPPath=${MISPPath:-$(locate MISP/app/webroot/index.php|sed 's/\/app\/webroot\/
 # Output
 OutputFileName=${OutputFileName:-MISP-Backup}
 OutputDirName=${OutputDirName:-/tmp}
+OutputFull="${OutputDirName}/${OutputFileName}-$(date '+%Y%m%d_%H%M%S').tar.gz"
 # database.php
 MySQLUUser=$(grep -o -P "(?<='login' => ').*(?=')" $MISPPath/app/Config/database.php)
 MySQLUPass=$(grep -o -P "(?<='password' => ').*(?=')" $MISPPath/app/Config/database.php)
@@ -75,7 +76,7 @@ GnuPGHomeDir=$(grep -o -P "(?<='homedir' => ').*(?=')" $MISPPath/app/Config/conf
 GnuPGPass=$(grep -o -P "(?<='password' => ').*(?=')" $MISPPath/app/Config/config.php)
 # Create backup files
 TmpDir="$(mktemp --tmpdir=$OutputDirName -d)"
-cp $GnuPGHomeDir/* $TmpDir/
+cp -r $GnuPGHomeDir/* $TmpDir/
 echo "copy of org images and other custom images"
 cp -r $MISPPath/app/webroot/img/orgs $TmpDir/
 cp -r $MISPPath/app/webroot/img/custom $TmpDir/
@@ -93,7 +94,9 @@ MySQLRPass=${MySQLRPass:-$MySQLUPass}
 mysqldump --opt -u $MySQLRUser -p$MySQLRPass $MISPDB > $TmpDir/MISPbackupfile.sql
 # Create compressed archive
 cd $TmpDir
-tar -zcf $OutputDirName/$OutputFileName-$(date "+%Y%m%d_%H%M%S").tar.gz *
+tar -zcf $OutputFull *
 cd -
 rm -rf $TmpDir
-echo 'MISP Backup Complete!!!'
+echo "MISP Backup Completed, OutputDir: ${OutputDirName}"
+echo "FileName: ${OutputFileName}-$(date '+%Y%m%d_%H%M%S').tar.gz"
+echo "FullName: ${OutputFull}"
