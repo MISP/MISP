@@ -2039,6 +2039,22 @@ class Server extends AppModel
                 }
             }
         }
+		if (!empty($fails)) {
+			$this->Log = ClassRegistry::init('Log');
+			foreach ($fails as $eventid => $message) {
+				$this->Log->create();
+				$this->Log->save(array(
+					'org' => $user['Organisation']['name'],
+					'model' => 'Server',
+					'model_id' => $id,
+					'email' => $user['email'],
+					'action' => 'pull',
+					'user_id' => $user['id'],
+					'title' => 'Failed to pull event #' . $eventid . '.',
+					'change' => 'Reason:' . $message 
+				));
+			}
+		}
         if ($jobId) {
             $job->saveField('message', 'Pulling proposals.');
         }
