@@ -94,7 +94,7 @@ MySQLRPass=${MySQLRPass:-$MySQLUPass}
 mysqldump --opt -u $MySQLRUser -p$MySQLRPass $MISPDB > $TmpDir/MISPbackupfile.sql
 # Create compressed archive
 cd $TmpDir
-tar -zcf $OutputFull *
+tar -zcf $OutputFull ./*
 cd -
 rm -rf $TmpDir
 echo "MISP Backup Completed, OutputDir: ${OutputDirName}"
