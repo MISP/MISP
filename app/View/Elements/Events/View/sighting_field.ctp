@@ -28,8 +28,8 @@
 </td>
 <td class="short">
   <?php
-    if (!empty($temp)) {
-      echo $this->element('sparkline', array('id' => $object['id'], 'csv' => $temp));
+    if (!empty($sightingsData['csv'][$object['id']])) {
+      echo $this->element('sparkline', array('id' => $object['id'], 'csv' => $sightingsData['csv'][$object['id']]));
     }
   ?>
 </td>

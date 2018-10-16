@@ -2,10 +2,10 @@
   $branches = array('services', 'timeout', 'hover');
 ?>
 <div class="templateTableRow ui-sortable-handle">
-	<div class="templateElementHeader" style="width:100%; position:relative;">
-		<div class="templateGlass"></div>
-		<div class="templateElementHeaderText"><?php echo h($type); ?></div>
-	</div>
+    <div class="templateElementHeader" style="width:100%; position:relative;">
+        <div class="templateGlass"></div>
+        <div class="templateElementHeaderText"><?php echo h($type); ?></div>
+    </div>
   <div style="padding:10px;">
     <div><?php echo h($moduleTypes[$type]['description']); ?></div>
     <div><span class="bold"><?php echo __('Status'); ?></span>: <span id="<?php echo h(strtolower($type)); ?>_type">&nbsp;</span></div>

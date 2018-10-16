@@ -177,10 +177,9 @@ sudo python3 setup.py install
 -----------
 # CakePHP is included as a submodule of MISP, execute the following commands to let git fetch it:
 cd /usr/local/www/MISP
-sudo -u www git submodule init
-sudo -u www git submodule update
+sudo -u www git submodule update --init --recursive
 # Make git ignore filesystem permission differences for submodules
-sudo -u www git submodule foreach git config core.filemode false
+sudo -u www git submodule foreach --recursive git config core.filemode false
 
 # Once done, install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd /usr/local/www/MISP/app
@@ -311,6 +310,7 @@ sudo service apache24 restart
 # To rotate these logs install the supplied logrotate script:
 
 sudo cp /usr/local/www/MISP/INSTALL/misp.logrotate /usr/local/etc/logrotate.d/misp
+chmod 0640 /usr/local/etc/logrotate.d/misp
 
 9/ MISP configuration
 ---------------------

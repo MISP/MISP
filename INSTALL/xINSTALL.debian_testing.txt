@@ -174,10 +174,9 @@ cd $PATH_TO_MISP/app/files/scripts/mixbox
 sudo pip3 install .
 
 cd $PATH_TO_MISP
-sudo -u www-data git submodule init
-sudo -u www-data git submodule update
+sudo -u www-data git submodule update --init --recursive
 # Make git ignore filesystem permission differences for submodules
-sudo -u www-data git submodule foreach git config core.filemode false
+sudo -u www-data git submodule foreach --recursive git config core.filemode false
 
 # install PyMISP
 cd $PATH_TO_MISP/PyMISP
@@ -315,6 +314,7 @@ sudo systemctl restart apache2
 # To rotate these logs install the supplied logrotate script:
 
 sudo cp $PATH_TO_MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
+chmod 0640 /etc/logrotate.d/misp
 
 9/ MISP configuration
 ---------------------
@@ -700,8 +700,7 @@ sudo apt-get install -y libssl-dev swig python3-ssdeep p7zip-full unrar-free sql
 sudo pip3 install SQLAlchemy PrettyTable python-magic
 sudo git clone https://github.com/viper-framework/viper.git
 cd viper
-sudo git submodule init
-sudo git submodule update
+sudo git git submodule update --init --recursive
 sudo pip3 install -r requirements.txt
 sudo pip3 uninstall yara -y
 /usr/local/src/viper/viper-cli -h

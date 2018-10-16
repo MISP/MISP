@@ -1,2 +1,2 @@
 <?php
-	echo $this->element('histogram', array());
+    echo $this->element('histogram', array());

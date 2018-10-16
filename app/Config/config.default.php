@@ -36,6 +36,7 @@ $config = array(
 			'take_ownership_xml_import'      => false,
 			'unpublishedprivate'             => false,
 			'disable_emailing'               => false,
+			'manage_workers'                 => true,
 			'Attributes_Values_Filter_In_Event' => 'id, uuid, value, comment, type, category, Tag.name',
 		),
 	'GnuPG'            =>

@@ -3,7 +3,8 @@
 # based on @jasonish idstools regexp
 # https://github.com/jasonish/py-idstools/blob/master/idstools/rule.py
 
-class SuricataRuleFormat {
+class SuricataRuleFormat
+{
     private $actions = array("alert", "log", "pass", "activate", "dynamic", "drop", "reject", "sdrop");
     private $rule_pattern = '/(?P<action>%s)\s*'
                             . '(?P<protocol>[^\s]*)\s*'
@@ -19,7 +20,8 @@ class SuricataRuleFormat {
     private $http_res_modifiers = array('http_stat_msg', 'http_stat_code', 'http_header', 'http_raw_header', 'http_cookie', 'http_server_body');
     private $http_res_sticky = array('http_response_line', 'file_data', 'http_content_type', 'http_content_len', 'http_start', 'http_protocol', 'http_header_names');
 
-    private function findOptionEnd($options) {
+    private function findOptionEnd($options)
+    {
         $offset = 0;
         while (true) {
             $i = strpos($options, ';', $offset);
@@ -28,14 +30,14 @@ class SuricataRuleFormat {
             }
             if ($options[$offset + $i - 1] == '\\') {
                 $offset += 2;
-            }
-            else {
+            } else {
                 return $offset + $i;
             }
         }
     }
 
-    private function getOptions($options) {
+    private function getOptions($options)
+    {
         $opt_list = array();
 
         if ($options == false) {
@@ -57,8 +59,7 @@ class SuricataRuleFormat {
             if ($delim === false) {
                 $name = $option;
                 $value = None;
-            }
-            else {
+            } else {
                 $vals = explode(':', $option);
                 $name = $vals[0];
                 $value = $vals[1];
@@ -69,14 +70,16 @@ class SuricataRuleFormat {
         return $opt_list;
     }
 
-    private function parseRule($rule) {
+    private function parseRule($rule)
+    {
         $regexp = sprintf($this->rule_pattern, join('|', $this->actions));
         preg_match($regexp, $rule, $matches);
         return $matches;
     }
 
     # function to validate the global syntax of a suricata rule
-    private function validateRuleSyntax($rule) {
+    private function validateRuleSyntax($rule)
+    {
         $matches = $this->parseRule($rule);
         if (($matches === false) or ($matches['src_ip'] === false) or ($matches['dst_ip'] === false)) {
             return false;
@@ -85,24 +88,21 @@ class SuricataRuleFormat {
     }
 
     #function to validate http rule keywords order (sticky vs modifiers)
-    private function validateRuleHTTP($rule) {
+    private function validateRuleHTTP($rule)
+    {
         $matches = $this->parseRule($rule);
         if ($matches['protocol'] != 'http') {
             return true;
         }
         $options = $this->getOptions($matches['options']);
         $keys = array_keys($options);
-        foreach ($keys as $k)
-        {
-            if (in_array($k, $this->http_req_modifiers) or in_array($k, $this->http_res_modifiers))
-            {
+        foreach ($keys as $k) {
+            if (in_array($k, $this->http_req_modifiers) or in_array($k, $this->http_res_modifiers)) {
                 $mod = array_search($k, $keys);
                 if (($mod != 0) and ($keys[$mod - 1] != 'content')) {
                     return false;
                 }
-            }
-            elseif (in_array($k, $this->http_req_sticky) or in_array($k, $this->http_res_sticky))
-            {
+            } elseif (in_array($k, $this->http_req_sticky) or in_array($k, $this->http_res_sticky)) {
                 $mod = array_search($k, $keys);
                 if (($mod != (count($keys) - 1)) and ($keys[$mod + 1] != 'content')) {
                     return false;
@@ -113,7 +113,8 @@ class SuricataRuleFormat {
     }
 
     # function to validate dns rule keywords order
-    private function validateRuleDNS($rule) {
+    private function validateRuleDNS($rule)
+    {
         $matches = $this->parseRule($rule);
         if ($matches['protocol'] != 'dns') {
             return true;
@@ -131,8 +132,9 @@ class SuricataRuleFormat {
     }
 
     # function to validate the complete syntax of a suricata rule
-    # idea is to 
-    public function validateRule($rule) {
+    # idea is to
+    public function validateRule($rule)
+    {
         return $this->validateRuleSyntax($rule) and $this->validateRuleHTTP($rule) and $this->validateRuleDNS($rule);
     }
 }

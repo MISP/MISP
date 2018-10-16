@@ -1559,6 +1559,19 @@ a.proposal_link_red:hover {
 	color: white;
 }
 
+.json_key {
+	color: #690;
+	font-weight: bold;
+}
+
+.json_string, .json_boolean, .json_number {
+	color: #905;
+}
+
+.json_null {
+	color: #a8a8a8;
+}
+
 .background-lightblue {
 	background-color:#cfefff;
 }
