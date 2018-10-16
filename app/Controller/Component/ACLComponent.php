@@ -472,6 +472,7 @@ class ACLComponent extends Component
                     'view' => array('*'),
             ),
             'warninglists' => array(
+					'checkValue' => array('perm_auth'),
                     'delete' => array(),
                     'enableWarninglist' => array(),
                     'getToggleField' => array(),

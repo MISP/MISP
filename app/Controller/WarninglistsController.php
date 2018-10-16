@@ -258,4 +258,31 @@ class WarninglistsController extends AppController
             }
         }
     }
+
+	public function checkValue() {
+		if ($this->request->is('post')) {
+			$warninglists = $this->Warninglist->getWarninglists(array());
+			if (empty($this->request->data)) {
+				throw new NotFoundException('No valid data received.');
+			}
+			$data = $this->request->data;
+			if (!is_array($data)) {
+				$data = array($data);
+			}
+			$hits = array();
+			foreach ($data as $dataPoint) {
+				foreach ($warninglists as $warninglist) {
+					$listValues = $this->Warninglist->getWarninglistEntries($warninglist['Warninglist']['id']);
+					$listValues = array_combine($listValues, $listValues);
+					$result = $this->Warninglist->quickCheckValue($listValues, $dataPoint, $warninglist['Warninglist']['type']);
+					if ($result) {
+						$hits[$dataPoint][] = array('id' => $warninglist['Warninglist']['id'], 'name' => $warninglist['Warninglist']['name']);
+					}
+				}
+			}
+			return $this->RestResponse->viewData($hits, $this->response->type());
+        } else {
+			return $this->RestResponse->describe('Warninglists', 'checkValue', false, $this->response->type());
+        }
+	}
 }
