@@ -2716,7 +2716,11 @@ class EventsController extends AppController
         if ($user === false) {
             return $exception;
         }
-        $filename = 'misp.csv.event' . $eventid . '.csv';
+		if (!empty($eventid) && !is_array($eventid)) {
+        	$filename = 'misp.csv.event' . $eventid . '.csv';
+		} else {
+			$filename = 'misp.csv.filtered_results.csv';
+		}
 
 		$final = $this->Event->restSearch($user, 'csv', $filters);
         // if it's a search, grab the attributeIDList from the session and get the IDs from it. Use those as the condition
