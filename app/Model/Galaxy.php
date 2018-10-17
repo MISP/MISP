@@ -106,8 +106,7 @@ class Galaxy extends AppModel
             // Delete all existing outdated clusters
             foreach ($cluster_package['values'] as $k => $cluster) {
                 if (empty($cluster['value'])) {
-                    debug($cluster);
-                    throw new Exception();
+                    continue;
                 }
                 if (isset($cluster['version'])) {
                 } elseif (!empty($cluster_package['version'])) {
@@ -130,6 +129,9 @@ class Galaxy extends AppModel
 
             // create all clusters
             foreach ($cluster_package['values'] as $cluster) {
+				if (empty($cluster['version'])) {
+					$cluster['version'] = 1;
+				}
                 $template['version'] = $cluster['version'];
                 $this->GalaxyCluster->create();
                 $cluster_to_save = $template;
