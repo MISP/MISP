@@ -2716,6 +2716,8 @@ class EventsController extends AppController
         if ($user === false) {
             return $exception;
         }
+        $filename = 'misp.csv.event' . $eventid . '.csv';
+
 		$final = $this->Event->restSearch($user, 'csv', $filters);
         // if it's a search, grab the attributeIDList from the session and get the IDs from it. Use those as the condition
         // We don't need to look out for permissions since that's filtered by the search itself
@@ -2746,7 +2748,7 @@ class EventsController extends AppController
             }
         }
         $responseType = 'csv';
-        return $this->RestResponse->viewData($final, $responseType, false, true, 'download.csv');
+        return $this->RestResponse->viewData($final, $responseType, false, true, $filename);
     }
 
     public function _addIOCFile($id)
