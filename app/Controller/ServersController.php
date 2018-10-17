@@ -921,7 +921,8 @@ class ServersController extends AppController
             if ($tab == 'diagnostics' || $tab == 'download') {
                 $php_ini = php_ini_loaded_file();
                 $this->set('php_ini', $php_ini);
-                $advanced_attachments = shell_exec('python3 ' . APP . 'files/scripts/generate_file_objects.py -c');
+                $advanced_attachments = shell_exec($this->Server->getPythonVersion() . ' ' . APP . 'files/scripts/generate_file_objects.py -c');
+
                 try {
                     $advanced_attachments = json_decode($advanced_attachments, true);
                 } catch (Exception $e) {
@@ -1014,13 +1015,13 @@ class ServersController extends AppController
                 $this->set($viewVar, ${$viewVar});
             }
 
-            $workerIssueCount = 0;
+            $workerIssueCount = 4;
+            $worker_array = array();
             if (Configure::read('MISP.background_jobs')) {
-                $this->set('worker_array', $this->Server->workerDiagnostics($workerIssueCount));
-            } else {
-                $workerIssueCount = 4;
-                $this->set('worker_array', array());
+                $workerIssueCount = 0;
+                $worker_array = $this->Server->workerDiagnostics($workerIssueCount);
             }
+            $this->set('worker_array', $worker_array);
             if ($tab == 'download') {
                 foreach ($dumpResults as $key => $dr) {
                     unset($dumpResults[$key]['description']);
@@ -1037,7 +1038,8 @@ class ServersController extends AppController
                         'writeableFiles' => $writeableFiles,
                         'readableFiles' => $readableFiles,
                         'finalSettings' => $dumpResults,
-                        'extensions' => $extensions
+                        'extensions' => $extensions,
+                        'workers' => $worker_array
                 );
                 foreach ($dump['finalSettings'] as $k => $v) {
                     if (!empty($v['redacted'])) {

@@ -3930,6 +3930,7 @@ class Event extends AppModel
 
     public function stix2($id, $tags, $attachments, $user, $returnType = 'json', $from = false, $to = false, $last = false, $jobId = false, $returnFile = false)
     {
+        $my_server = ClassRegistry::init('Server');
         $eventIDs = $this->Attribute->dissectArgs($id);
         $tagIDs = $this->Attribute->dissectArgs($tags);
         $idList = $this->getAccessibleEventIds($eventIDs[0], $eventIDs[1], $tagIDs[0], $tagIDs[1]);
@@ -3939,7 +3940,7 @@ class Event extends AppModel
         }
         $randomFileName = $this->generateRandomFileName();
         $scriptDir = APP . "files/scripts/";
-        $stix2_framing_cmd = 'python3 ' . $scriptDir . 'misp_framing.py stix2 ' . escapeshellarg(CakeText::uuid()) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
+        $stix2_framing_cmd = $my_server->getPythonVersion() . ' ' . $scriptDir . 'misp_framing.py stix2 ' . escapeshellarg(CakeText::uuid()) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
         $stix2_framing = json_decode(shell_exec($stix2_framing_cmd), true);
         if (empty($stix2_framing)) {
             return array('success' => 0, 'message' => 'There was an issue generating the STIX 2.0 export.');
@@ -3974,7 +3975,7 @@ class Event extends AppModel
                 $tempFile->write($event);
                 unset($event);
                 $scriptFile = $scriptDir . "stix2/misp2stix2.py ";
-                $result = shell_exec('python3 ' . $scriptFile . $tempFile->path . ' 2>' . APP . 'tmp/logs/exec-errors.log');
+                $result = shell_exec($my_server->getPythonVersion() . ' ' . $scriptFile . $tempFile->path . ' 2>' . APP . 'tmp/logs/exec-errors.log');
                 $decoded = json_decode($result, true);
                 if (isset($decoded['success']) && $decoded['success'] == 1) {
                     $file = new File($tmpDir . $randomFileName . '.out', true, 0644);
@@ -4007,6 +4008,7 @@ class Event extends AppModel
 
     public function stix($id, $tags, $attachments, $user, $returnType = 'xml', $from = false, $to = false, $last = false, $jobId = false, $returnFile = false)
     {
+        $my_server = ClassRegistry::init('Server');
         $eventIDs = $this->Attribute->dissectArgs($id);
         $tagIDs = $this->Attribute->dissectArgs($tags);
         $idList = $this->getAccessibleEventIds($eventIDs[0], $eventIDs[1], $tagIDs[0], $tagIDs[1]);
@@ -4016,7 +4018,7 @@ class Event extends AppModel
         }
         $randomFileName = $this->generateRandomFileName();
         $tmpDir = APP . "files" . DS . "scripts";
-        $stix_framing_cmd = 'python3 ' . $tmpDir . DS . 'misp_framing.py stix ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' ' . escapeshellarg($returnType) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
+        $stix_framing_cmd = $my_server->getPythonVersion() . ' ' . $tmpDir . DS . 'misp_framing.py stix ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' ' . escapeshellarg($returnType) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
         $stix_framing = json_decode(shell_exec($stix_framing_cmd), true);
         if (empty($stix_framing)) {
             return array('success' => 0, 'message' => 'There was an issue generating the STIX export.');
@@ -4060,7 +4062,7 @@ class Event extends AppModel
                 $tempFile->write($event);
                 unset($event);
                 $scriptFile = APP . "files" . DS . "scripts" . DS . "misp2stix.py";
-                $result = shell_exec('python3 ' . $scriptFile . ' ' . $randomFileName . ' ' . escapeshellarg($returnType) . ' ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' 2>' . APP . 'tmp/logs/exec-errors.log');
+                $result = shell_exec($my_server->getPythonVersion() . ' ' . $scriptFile . ' ' . $randomFileName . ' ' . escapeshellarg($returnType) . ' ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' 2>' . APP . 'tmp/logs/exec-errors.log');
                 // The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
                 // If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along
                 $decoded = json_decode($result, true);
@@ -4994,12 +4996,12 @@ class Event extends AppModel
         if ($stix_version == '2') {
             $scriptFile = APP . 'files/scripts/stix2/stix2misp.py';
             $tempFilePath = APP . 'files/scripts/tmp/' . $filename;
-            $shell_command = 'python3 ' . $scriptFile . ' ' . $tempFilePath;
+            $shell_command = $this->Server->getPythonVersion() . ' ' . $scriptFile . ' ' . $tempFilePath;
             $output_path = $tempFilePath . '.stix2';
         } elseif ($stix_version == '1' || $stix_version == '1.1' || $stix_version == '1.2') {
             $scriptFile = APP . 'files/scripts/stix2misp.py';
             $tempFilePath = APP . 'files/scripts/tmp/' . $filename;
-            $shell_command = 'python3 ' . $scriptFile . ' ' . $filename;
+            $shell_command = $this->Server->getPythonVersion() . ' ' . $scriptFile . ' ' . $filename;
             $output_path = $tempFilePath . '.json';
         } else {
             throw new MethodNotAllowedException('Invalid STIX version');
@@ -5282,7 +5284,7 @@ class Event extends AppModel
 					}
 					$AttributSave = $this->$objectType->save($attribute);
 					if ($AttributSave) {
-						// If Tags, attache each tags to attribut
+						// If Tags, attach each tags to attribute
 						if (!empty($attribute['tags'])) {
 							foreach (explode(",", $attribute['tags']) as $tagName) {
 								$this->Tag = ClassRegistry::init('Tag');

@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2018-09-06 12:46\n"
+"PO-Revision-Date: 2018-10-15 23:37\n"
 "Last-Translator: SteveClement <steve@localhost.lu>\n"
 "Language-Team: Japanese\n"
 "MIME-Version: 1.0\n"
@@ -9442,7 +9442,7 @@ msgstr "特定の共通タスクは、後で実行するため、または定期
 
 #: View/Pages/doc/concepts.ctp:38
 msgid "Sync User"
-msgstr "同期ユーザー"
+msgstr "同期用ユーザー"
 
 #: View/Pages/doc/concepts.ctp:39
 msgid "A user of a role that grants sync permissions, these users (and their authentication keys) are used to serve as the points of connection between instances. Events pushed to an instance are pushed to a sync user, who then creates the events on the remote instance. Events pulled are added by the sync user that is used to connect the remote instance to your instance. As an administrator, keep in mind that a sync user needs auth key and publish permissions, has to have undergone the mandatory password change and has to have accepted the Terms of Use in order for the sync to work. Please make sure that all of these steps are taken before attempting to push or pull."
@@ -9517,7 +9517,7 @@ msgstr "このメニューでは MISP とこのインスタンスに関する情
 
 #: View/Pages/doc/general.ctp:23;66
 msgid "Sync Actions"
-msgstr "アクションを同期"
+msgstr "同期アクション"
 
 #: View/Pages/doc/general.ctp:23
 msgid "With administrator access rights, shows a list of the connected instances and allows the initiation of a push and a pull (more about the synchronisation mechanisms later)."

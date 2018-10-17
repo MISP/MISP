@@ -84,7 +84,8 @@ class PubSubTool
 
     public function checkIfPythonLibInstalled()
     {
-        $result = trim(shell_exec('python3 ' . APP . 'files' . DS . 'scripts' . DS . 'mispzmq' . DS . 'mispzmqtest.py'));
+        $my_server = ClassRegistry::init('Server');
+        $result = trim(shell_exec($my_server->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'mispzmq' . DS . 'mispzmqtest.py'));
         if ($result === "OK") {
             return true;
         }
@@ -94,9 +95,10 @@ class PubSubTool
     private function __setupPubServer()
     {
         App::uses('File', 'Utility');
+        $my_server = ClassRegistry::init('Server');
         $settings = $this->__getSetSettings();
         if ($this->checkIfRunning() === false) {
-            shell_exec('python3 ' . APP . 'files' . DS . 'scripts' . DS . 'mispzmq' . DS . 'mispzmq.py > ' . APP . 'tmp' . DS . 'logs' . DS . 'mispzmq.log 2> ' . APP . 'tmp' . DS . 'logs' . DS . 'mispzmq.error.log &');
+            shell_exec($my_server->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'mispzmq' . DS . 'mispzmq.py > ' . APP . 'tmp' . DS . 'logs' . DS . 'mispzmq.log 2> ' . APP . 'tmp' . DS . 'logs' . DS . 'mispzmq.error.log &');
         }
         return $settings;
     }

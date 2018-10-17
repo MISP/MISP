@@ -165,6 +165,16 @@ class Server extends AppModel
                                 'type' => 'boolean',
                                 'null' => true
                         ),
+                        'python_bin' => array(
+                                'level' => 1,
+                                'description' => __('It is highly recommended to install all the python dependencies in a virtualenv. The recommended location is: %s/venv', ROOT),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'null' => false,
+                                'test' => 'testForBinExec',
+                                'beforeHook' => 'beforeHookBinExec',
+                                'type' => 'string',
+                        ),
                         'disable_auto_logout' => array(
                                 'level' => 1,
                                 'description' => __('In some cases, a heavily used MISP instance can generate unwanted blackhole errors due to a high number of requests hitting the server. Disable the auto logout functionality to ease the burden on the system.'),
@@ -2029,6 +2039,22 @@ class Server extends AppModel
                 }
             }
         }
+		if (!empty($fails)) {
+			$this->Log = ClassRegistry::init('Log');
+			foreach ($fails as $eventid => $message) {
+				$this->Log->create();
+				$this->Log->save(array(
+					'org' => $user['Organisation']['name'],
+					'model' => 'Server',
+					'model_id' => $id,
+					'email' => $user['email'],
+					'action' => 'pull',
+					'user_id' => $user['id'],
+					'title' => 'Failed to pull event #' . $eventid . '.',
+					'change' => 'Reason:' . $message 
+				));
+			}
+		}
         if ($jobId) {
             $job->saveField('message', 'Pulling proposals.');
         }
@@ -2673,6 +2699,30 @@ class Server extends AppModel
             return true;
         }
         return 'Invalid characters in the path.';
+    }
+
+    public function beforeHookBinExec($setting, $value)
+    {
+        return $this->testForBinExec($value);
+    }
+
+    public function testForBinExec($value)
+    {
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        if ($value === '') {
+            return true;
+        }
+        if (is_executable($value)) {
+            if (finfo_file($finfo, $value) == "application/x-executable") {
+                finfo_close($finfo);
+                return true;
+            } else {
+                return 'Binary file not executable.';
+            }
+        }
+        else {
+            return false;
+       }
     }
 
     public function testForWritableDir($value)
@@ -3539,7 +3589,7 @@ class Server extends AppModel
         $result = array();
         $expected = array('stix' => '1.2.0.6', 'cybox' => '2.1.0.18.dev0', 'mixbox' => '1.0.3', 'maec' => '4.1.0.14', 'pymisp' => '>2.4.93');
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
-        $scriptResult = shell_exec('python3 ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
+        $scriptResult = shell_exec($this->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
         $scriptResult = json_decode($scriptResult, true);
         if ($scriptResult == null) {
             return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']), 'mixbox' => array('expected' => $expected['mixbox']), 'maec' => array('expected' => $expected['maec']), 'pymisp' => array('expected' => $expected['pymisp']));
