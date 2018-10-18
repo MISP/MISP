@@ -4993,12 +4993,12 @@ class Event extends AppModel
         if ($stix_version == '2') {
             $scriptFile = APP . 'files/scripts/stix2/stix2misp.py';
             $tempFilePath = APP . 'files/scripts/tmp/' . $filename;
-            $shell_command = $this->Server->getPythonVersion() . ' ' . $scriptFile . ' ' . $tempFilePath;
+            $shell_command = $this->getPythonVersion() . ' ' . $scriptFile . ' ' . $tempFilePath;
             $output_path = $tempFilePath . '.stix2';
         } elseif ($stix_version == '1' || $stix_version == '1.1' || $stix_version == '1.2') {
             $scriptFile = APP . 'files/scripts/stix2misp.py';
             $tempFilePath = APP . 'files/scripts/tmp/' . $filename;
-            $shell_command = $this->Server->getPythonVersion() . ' ' . $scriptFile . ' ' . $filename;
+            $shell_command = $this->getPythonVersion() . ' ' . $scriptFile . ' ' . $filename;
             $output_path = $tempFilePath . '.json';
         } else {
             throw new MethodNotAllowedException('Invalid STIX version');
