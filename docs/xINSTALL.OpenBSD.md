@@ -1,74 +1,76 @@
-INSTALLATION INSTRUCTIONS
-------------------------- for OpenBSD 6.3-amd64
+# INSTALLATION INSTRUCTIONS
+## for OpenBSD 6.3-amd64
 
-0/ WIP /!\ You are warned, this does not work yet! /!\
+!!! warning
+    This is not fully working yet. Mostly it is a template for our ongoing documentation efforts :spider:
 
-Current issues: php-redis only available in binary for php-56, workaround: use ports.
-This guide attempts to offer native httpd or apache2/nginx set-up.
+### 0/ WIP! You are warned, this does not work yet!
 
-1/ Minimal OpenBSD install
---------------------------
+!!! note
+    Current issues: php-redis only available in binary for php-56, workaround: use ports.
+    This guide attempts to offer native httpd or apache2/nginx set-up.
 
-# Install standard OpenBSD-amd64 with ports
+### 1/ Minimal OpenBSD install
 
-## In case you forgot to fetch ports
+#### Install standard OpenBSD-amd64 with ports
 
-```
+##### In case you forgot to fetch ports
+
+```bash
 $ cd /tmp
 $ ftp https://ftp.openbsd.org/pub/OpenBSD/$(uname -r)/{ports.tar.gz,SHA256.sig}
 $ signify -Cp /etc/signify/openbsd-$(uname -r | cut -c 1,3)-base.pub -x SHA256.sig ports.tar.gz
 # cd /usr
 # tar xzf /tmp/ports.tar.gz
-````
+```
 
-# System Hardening
+#### System Hardening
 
 - TBD
 
-# doas & pkg (as root)
-```
+#### doas & pkg (as root)
+```bash
 echo http://ftp.belnet.be/pub/OpenBSD/ > /etc/installurl
 echo "permit keepenv setenv { PKG_PATH ENV PS1 SSH_AUTH_SOCK } :wheel" > /etc/doas.conf
 ```
 
-# Update system
-```
+#### Update system
+```bash
 doas syspatch
 ```
 
-# Install bash & ntp
-```
+#### Install bash & ntp
+```bash
 doas pkg_add -v bash ntp
 ```
 
-# rc.local - Add ntpdate on boot
-
-```
+#### rc.local - Add ntpdate on boot
+```bash
 echo -n ' ntpdate'
 /usr/local/sbin/ntpdate -b pool.ntp.org >/dev/null
 ```
 
-# Launch ntpd on boot
-```
+#### Launch ntpd on boot
+```bash
 doas rcctl enable xntpd
 doas rcctl set xntpd flags "-p /var/run/ntpd.pid"
 doas /usr/local/sbin/ntpd -p /var/run/ntpd.pid
 ```
 
-# misp user
-```
+#### misp user
+```bash
 useradd -m -s /usr/local/bin/bash -G wheel,www misp
 ```
 
-# nvim (optional)
-```
+#### nvim (optional)
+```bash
 doas pkg_add -v neovim
 doas mv /usr/bin/vi /usr/bin/vi-`date +%d%m%y`
 doas ln -s /usr/local/bin/nvim /usr/bin/vi
 ```
 
-# /etc/httpd.conf
-```
+#### /etc/httpd.conf
+```bash
 cp /etc/examples/httpd.conf /etc # adjust by hand, or copy/paste the config example below
 ```
 
@@ -133,42 +135,42 @@ types {
 ```
 
 # If a valid SSL certificate is not already created for the server, create a self-signed certificate:
-```
+```bash
 doas openssl genrsa -out /etc/ssl/private/server.key
 doas openssl req -new -x509 -subj "/C=<Country>/ST=<State>/L=<Locality>/O=<Organization>/OU=<Organizational Unit Name>/CN=<QDN.here>/emailAddress=admin@<your.FQDN.here>" -key /etc/ssl/private/server.key -out /etc/ssl/server.crt -days 3650
 ```
 
 # mariadb server
-```
+```bash
 pkd_add -v mariadb-server 
 ```
 
 # start httpd
-```
+```bash
 /etc/rc.d/httpd -f start
 ```
 
 # Install postfix
-```
+```bash
 doas pkg_add -v postfix
 ```
 
 # Enable httpd
-```
+```bash
 doas rcctl enable httpd
 ```
 
 # Install misc dependencies
 
-```
+```bash
 doas pkg_add -v curl git python redis
 ```
 
 # OpendBSD + Apache/httpd/nginx + MySQL/Mariadb + PHP
-```
-#pkg_add -v apache-httpd
+```bash
+pkg_add -v apache-httpd
 pkg_add -v \
-    gnupg \
+     gnupg \
 ```
 
 # php7 ports
@@ -181,27 +183,27 @@ pkg_add -v \
 ```
 
 # Optional for Apache2
-```
+```bash
 doas pkg_add -v fcgi-cgi fcgi
-``
+```
 
 # /etc/php-5.6.ini 
 ```
 allow_url_fopen = On
 ```
 
-```
+```bash
 cd /etc/php-5.6
 doas cp ../php-5.6.sample/* .
 ```
 
 # php ln
-```
+```bash
 doas ln -s /usr/local/bin/php-5.6 /usr/local/bin/php
 ```
 
 # Enable php fpm 
-``
+```bash
 doas rcctl enable php56_fpm
 ```
 
@@ -218,13 +220,13 @@ For native httpd: listen = /var/www/run/php-fpm.sock
 For apache2: listen = 127.0.0.1:9000
 
 # Enable redis
-```
+```bash
 doas rcctl enable redis
 doas /etc/rc.d/redis start
 ```
 
 # Enable mysqld
-```
+```bash
 doas rcctl set mysqld status on
 doas rcctl set mysqld flags --bind-address=127.0.0.1
 doas /etc/rc.d/mysqld start
@@ -233,7 +235,7 @@ doas mysql_secure_installation
 
 3/ MISP code
 ------------
-```
+```bash
 # Download MISP using git in the /usr/local/www/ directory.
 doas mkdir /var/www/htdocs/MISP
 doas chown www:www /var/www/htdocs/MISP
@@ -269,7 +271,7 @@ doas pip3.6 install stix2
 
 4/ CakePHP
 -----------
-```
+```bash
 # CakePHP is included as a submodule of MISP, execute the following commands to let git fetch it:
 cd /var/www/htdocs/MISP
 doas -u www git submodule update --init --recursive
@@ -288,7 +290,7 @@ doas -u www cp -f /var/www/htdocs/MISP/INSTALL/setup/config.php /var/www/htdocs/
 
 5/ Set the permissions
 ----------------------
-```
+```bash
 # Check if the permissions are set correctly using the following commands:
 doas chown -R www:www /var/www/htdocs/MISP
 doas chmod -R 750 /var/www/htdocs/MISP
@@ -299,7 +301,7 @@ doas chmod -R g+ws /var/www/htdocs/MISP/app/files/scripts/tmp
 
 6/ Create a database and user
 -----------------------------
-```
+```bash
 # Enter the mysql shell
 doas mysql -u root -p
 ```
@@ -312,7 +314,7 @@ MariaDB [(none)]> flush privileges;
 MariaDB [(none)]> exit
 ```
 
-```
+```bash
 # Import the empty MISP database from MYSQL.sql
 doas -u www sh -c "mysql -u misp -p misp < /var/www/htdocs/MISP/INSTALL/MYSQL.sql"
 # enter the password you set previously
@@ -320,6 +322,7 @@ doas -u www sh -c "mysql -u misp -p misp < /var/www/htdocs/MISP/INSTALL/MYSQL.sq
 
 7/ Apache configuration (optional)
 -----------------------
+```bash
 # Now configure your Apache webserver with the DocumentRoot /var/www/htdocs/MISP/app/webroot/
 
 #2.4
@@ -341,7 +344,9 @@ doas openssl req -newkey rsa:4096 -days 3650 -nodes -x509 \
 # Otherwise, copy the SSLCertificateFile, SSLCertificateKeyFile, and SSLCertificateChainFile to /etc/ssl/private/. (Modify path and config to fit your environment)
 
 doas mkdir /var/log/apache2/
+```
 
+```
 ============================================= Begin sample working SSL config for MISP
 <VirtualHost <IP, FQDN, or *>:80>
         ServerName <your.FQDN.here>
@@ -376,23 +381,30 @@ doas mkdir /var/log/apache2/
         ServerSignature Off
 </VirtualHost>
 ============================================= End sample working SSL config for MISP
+```
 
+```bash
 # activate new vhost
 cd /etc/apache2/sites-enabled/
 doas ln -s ../sites-available/misp-ssl.conf
 echo "Include /etc/apache2/sites-enabled/*.conf" >> /etc/apache2/httpd2.conf
 
 doas vi /etc/apache2/httpd2.conf
+```
 
+```
 /!\ Enable mod_rewrite in httpd2.conf /!\
 LoadModule rewrite_module /usr/local/lib/apache2/mod_rewrite.so
 LoadModule ssl_module /usr/local/lib/apache2/mod_ssl.so
 LoadModule proxy_module /usr/local/lib/apache2/mod_proxy.so
 LoadModule proxy_fcgi_module /usr/local/lib/apache2/mod_proxy_fcgi.so
 Listen 443
+```
 
+```bash
 # Restart apache
 doas /etc/rc.d/apache2 restart
+``` 
 
 8/ Log rotation (needs to be adapted to OpenBSD, newsyslog does this for you
 ---------------
@@ -401,6 +413,7 @@ doas /etc/rc.d/apache2 restart
 
 9/ MISP configuration
 ---------------------
+``` 
 # There are 4 sample configuration files in /var/www/htdocs/MISP/app/Config that need to be copied
 doas -u www cp /var/www/htdocs/MISP/app/Config/bootstrap.default.php /var/www/htdocs/MISP/app/Config/bootstrap.php
 doas -u www cp /var/www/htdocs/MISP/app/Config/database.default.php /var/www/htdocs/MISP/app/Config/database.php
@@ -409,6 +422,8 @@ doas -u www cp /var/www/htdocs/MISP/app/Config/config.default.php /var/www/htdoc
 
 # Configure the fields in the newly created files:
 doas -u www vim /var/www/htdocs/MISP/app/Config/database.php
+``` 
+``` 
 # DATABASE_CONFIG has to be filled
 # With the default values provided in section 6, this would look like:
 # class DATABASE_CONFIG {
@@ -424,6 +439,7 @@ doas -u www vim /var/www/htdocs/MISP/app/Config/database.php
 #       'encoding' => 'utf8',
 #   );
 #}
+``` 
 
 # Important! Change the salt key in /usr/local/www/MISP/app/Config/config.php
 # The salt key must be a string at least 32 bytes long.
@@ -431,6 +447,7 @@ doas -u www vim /var/www/htdocs/MISP/app/Config/database.php
 # If you forget to do this step, and you are still dealing with a fresh installation, just alter the salt,
 # delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
 
+``` 
 # Change base url in config.php
 doas -u www vim /var/www/htdocs/MISP/app/Config/config.php
 # example: 'baseurl' => 'https://<your.FQDN.here>',
@@ -472,6 +489,7 @@ doas -u www bash /var/www/htdocs/MISP/app/Console/worker/start.sh
 
 doas chmod -R 750 /var/www/htdocs/MISP/<directory path with an indicated issue>
 doas chown -R www:www /var/www/htdocs/MISP/<directory path with an indicated issue>
+``` 
 
 # Make sure that the STIX libraries and GnuPG work as intended, if not, refer to INSTALL.txt's paragraphs dealing with these two items
 
@@ -498,6 +516,6 @@ Optional features
 # MISP has a new pub/sub feature, using ZeroMQ.
 
 # ZeroMQ depends on the Python client for Redis
-```
+```bash
 doas pkg_add -v py3-zmq
 ```
