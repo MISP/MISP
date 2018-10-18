@@ -108,6 +108,14 @@ server "default" {
         location "*.php" {
                 fastcgi socket "/run/php-fpm.sock"
         }
+        location match "/(.*)" {
+                request rewrite "/$HTTP_HOST/%1"
+        }
+# Temporary Apache 2.x rewrite rules for future foo!
+        #RewriteRule    ^$    webroot/    [L]
+        #RewriteRule    (.*) webroot/$1    [L]
+# Temporary Apache 2.x rewrite rules for future foo!
+
         #location "/.well-known/acme-challenge/*" {
         #       root "/acme"
         #       root strip 2
@@ -165,12 +173,12 @@ doas pkg_add -v mariadb-server
 
 #### start httpd
 ```bash
-doas /etc/rc.d/httpd -f start
+##doas /etc/rc.d/httpd -f start
 ```
 
 #### Enable httpd
 ```bash
-doas rcctl enable httpd
+##doas rcctl enable httpd
 ```
 
 #### Install postfix
@@ -197,12 +205,12 @@ doas pkg_add -v curl git python redis
     GnuPG 2.x is best, option 3.
 
 ```bash
-##pkg_add -v apache-httpd
 doas pkg_add -v gnupg
 ```
 
 #### Optional for Apache2
 ```bash
+doas pkg_add -v apache-httpd
 doas pkg_add -v fcgi-cgi fcgi
 ```
 
@@ -371,10 +379,10 @@ doas cp /var/www/htdocs/MISP/INSTALL/apache.24.misp.ssl /etc/apache2/sites-avail
 
 doas mkdir /etc/ssl/private/
 # If a valid SSL certificate is not already created for the server, create a self-signed certificate: (Make sure to fill the <…>)
-doas openssl req -newkey rsa:4096 -days 3650 -nodes -x509 \
--subj "/C=<Country>/ST=<State>/L=<Locality>/O=<Organization>/OU=<Organizational Unit Name>/CN=<QDN.here>/emailAddress=admin@<your.FQDN.here>" \
--keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt
 
+doas openssl req -newkey rsa:4096 -days 3650 -nodes -x509 \
+-subj "/C=$OPENSSL_C/ST=$OPENSSL_ST/L=$OPENSSL_L/O=<$OPENSSL_O/OU=$OPENSSL_OU/CN=$OPENSSL_CN/emailAddress=$OPENSSL_EMAILADDRESS" \
+-keyout /etc/ssl/private/server.key -out /etc/ssl/server.crt
 # Otherwise, copy the SSLCertificateFile, SSLCertificateKeyFile, and SSLCertificateChainFile to /etc/ssl/private/. (Modify path and config to fit your environment)
 
 doas mkdir /var/log/apache2/
@@ -405,8 +413,8 @@ doas mkdir /var/log/apache2/
         </Directory>
 
         SSLEngine On
-        SSLCertificateFile /etc/ssl/private/misp.local.crt
-        SSLCertificateKeyFile /etc/ssl/private/misp.local.key
+        SSLCertificateFile /etc/ssl/server.crt
+        SSLCertificateKeyFile /etc/ssl/private/server.key
 #        SSLCertificateChainFile /etc/ssl/private/misp-chain.crt
 
         LogLevel warn
@@ -436,6 +444,7 @@ Listen 443
 ```
 
 ```bash
+doas ln -sf /var/www/conf/modules.sample/php-7.0.conf /var/www/conf/modules/php.conf
 # Restart apache
 doas /etc/rc.d/apache2 restart
 ``` 
