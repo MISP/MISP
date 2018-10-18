@@ -2051,7 +2051,7 @@ class Server extends AppModel
 					'action' => 'pull',
 					'user_id' => $user['id'],
 					'title' => 'Failed to pull event #' . $eventid . '.',
-					'change' => 'Reason:' . $message 
+					'change' => 'Reason:' . $message
 				));
 			}
 		}
@@ -4140,16 +4140,6 @@ class Server extends AppModel
         exec($command2, $output);
         $final .= implode("\n", $output);
         return $final;
-    }
-
-    public function getDefaultAttachments_dir()
-    {
-        return APP . 'files';
-    }
-
-    public function getDefaultTmp_dir()
-    {
-        return sys_get_temp_dir();
     }
 
     public function fetchServer($id)
