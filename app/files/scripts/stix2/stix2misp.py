@@ -108,6 +108,7 @@ class StixParser():
             if object_type not in ('relationship', 'report'):
                 for _, _object in objects.items():
                     self.parsing_process(_object, object_type)
+        self.misp_event.info = "Imported with MISP import script for {}.".format(self.stix_version)
 
     def set_distribution(self):
         for attribute in self.misp_event.attributes:
