@@ -5,24 +5,20 @@
     This is not fully working yet. Mostly it is a template for our ongoing documentation efforts :spider:
 
 ### 0/ WIP! You are warned, this does not work yet!
+------------
 
-!!! note
+!!! notice
     Current issues: php-redis only available in binary for php-56, workaround: use ports.
     This guide attempts to offer native httpd or apache2/nginx set-up.
 
+!!! warning
+    As of 20181018 the native httpd server is NOT useable with MISP. Thus ONLY Apache 2.x available.
+    NO *rewrite* available, just yet. It will be in [the next release](https://marc.info/?l=openbsd-tech&m=152761257806283&w=2)
+
 ### 1/ Minimal OpenBSD install
+------------
 
 #### Install standard OpenBSD-amd64 with ports
-
-##### In case you forgot to fetch ports
-
-```bash
-$ cd /tmp
-$ ftp https://ftp.openbsd.org/pub/OpenBSD/$(uname -r)/{ports.tar.gz,SHA256.sig}
-$ signify -Cp /etc/signify/openbsd-$(uname -r | cut -c 1,3)-base.pub -x SHA256.sig ports.tar.gz
-# cd /usr
-# tar xzf /tmp/ports.tar.gz
-```
 
 #### System Hardening
 
@@ -30,8 +26,17 @@ $ signify -Cp /etc/signify/openbsd-$(uname -r | cut -c 1,3)-base.pub -x SHA256.s
 
 #### doas & pkg (as root)
 ```bash
-echo http://ftp.belnet.be/pub/OpenBSD/ > /etc/installurl
+echo https://cdn.openbsd.org/pub/OpenBSD/ > /etc/installurl
 echo "permit keepenv setenv { PKG_PATH ENV PS1 SSH_AUTH_SOCK } :wheel" > /etc/doas.conf
+```
+
+##### In case you forgot to fetch ports
+
+```bash
+cd /tmp
+ftp https://ftp.openbsd.org/pub/OpenBSD/$(uname -r)/{ports.tar.gz,SHA256.sig}
+signify -Cp /etc/signify/openbsd-$(uname -r | cut -c 1,3)-base.pub -x SHA256.sig ports.tar.gz
+doas tar -x -z -f /tmp/ports.tar.gz -C /usr
 ```
 
 #### Update system
@@ -46,8 +51,8 @@ doas pkg_add -v bash ntp
 
 #### rc.local - Add ntpdate on boot
 ```bash
-echo -n ' ntpdate'
-/usr/local/sbin/ntpdate -b pool.ntp.org >/dev/null
+echo "echo -n ' ntpdate'" |doas tee -a /etc/rc.local
+echo "/usr/local/sbin/ntpdate -b pool.ntp.org >/dev/null" |doas tee -a /etc/rc.local
 ```
 
 #### Launch ntpd on boot
@@ -59,7 +64,7 @@ doas /usr/local/sbin/ntpd -p /var/run/ntpd.pid
 
 #### misp user
 ```bash
-useradd -m -s /usr/local/bin/bash -G wheel,www misp
+doas useradd -m -s /usr/local/bin/bash -G wheel,www misp
 ```
 
 #### nvim (optional)
@@ -71,7 +76,7 @@ doas ln -s /usr/local/bin/nvim /usr/bin/vi
 
 #### /etc/httpd.conf
 ```bash
-cp /etc/examples/httpd.conf /etc # adjust by hand, or copy/paste the config example below
+doas cp /etc/examples/httpd.conf /etc # adjust by hand, or copy/paste the config example below
 ```
 
 ```
@@ -134,106 +139,135 @@ types {
 #}
 ```
 
-# If a valid SSL certificate is not already created for the server, create a self-signed certificate:
-```bash
-doas openssl genrsa -out /etc/ssl/private/server.key
-doas openssl req -new -x509 -subj "/C=<Country>/ST=<State>/L=<Locality>/O=<Organization>/OU=<Organizational Unit Name>/CN=<QDN.here>/emailAddress=admin@<your.FQDN.here>" -key /etc/ssl/private/server.key -out /etc/ssl/server.crt -days 3650
+#### If a valid SSL certificate is not already created for the server, create a self-signed certificate:
+
+```
+# OpenSSL configuration
+OPENSSL_C='LU'
+OPENSSL_ST='State'
+OPENSSL_L='Location'
+OPENSSL_O='Organization'
+OPENSSL_OU='Organizational Unit'
+OPENSSL_CN='Common Name'
+OPENSSL_EMAILADDRESS='info@localhost'
 ```
 
-# mariadb server
+
+
 ```bash
-pkd_add -v mariadb-server 
+doas openssl req -newkey rsa:4096 -days 3650 -nodes -x509 -subj "/C=$OPENSSL_C/ST=$OPENSSL_ST/L=$OPENSSL_L/O=<$OPENSSL_O/OU=$OPENSSL_OU/CN=$OPENSSL_CN/emailAddress=$OPENSSL_EMAILADDRESS" -keyout /etc/ssl/private/server.key -out /etc/ssl/server.crt
 ```
 
-# start httpd
+#### mariadb server
 ```bash
-/etc/rc.d/httpd -f start
+doas pkg_add -v mariadb-server 
 ```
 
-# Install postfix
+#### start httpd
 ```bash
-doas pkg_add -v postfix
+doas /etc/rc.d/httpd -f start
 ```
 
-# Enable httpd
+#### Enable httpd
 ```bash
 doas rcctl enable httpd
 ```
 
-# Install misc dependencies
+#### Install postfix
+!!! notice
+    When asked, the standard postfix will be enough for a basic setup, option 9.
+
+```bash
+doas pkg_add -v postfix
+doas /usr/local/sbin/postfix-enable 
+```
+
+#### Install misc dependencies
+
+!!! notice
+    You need to install python 3.x when asked, option 2.
 
 ```bash
 doas pkg_add -v curl git python redis
 ```
 
-# OpendBSD + Apache/httpd/nginx + MySQL/Mariadb + PHP
+#### OpendBSD + Apache/httpd/nginx + MySQL/Mariadb + PHP (optional)
+
+!!! notice
+    GnuPG 2.x is best, option 3.
+
 ```bash
-pkg_add -v apache-httpd
-pkg_add -v \
-     gnupg \
+##pkg_add -v apache-httpd
+doas pkg_add -v gnupg
 ```
 
-# php7 ports
-```
-    php-mysqli 
-    php-pcntl 
-    php-pdo_mysql 
-    pecl-redis 
-    pear
-```
-
-# Optional for Apache2
+#### Optional for Apache2
 ```bash
 doas pkg_add -v fcgi-cgi fcgi
 ```
 
-# /etc/php-5.6.ini 
+#### php7 ports
+!!! notice
+    php-5.6 is marked as end-of-life starting December 2018, use php 7.x instead.
+    Option 2.
+
+```
+doas pkg_add -v php-mysqli php-pcntl php-pdo_mysql 
+# pecl-redis --> Pull php56
+# pear --> Pull php56
+```
+
+#### /etc/php-7.0.ini 
 ```
 allow_url_fopen = On
 ```
 
 ```bash
-cd /etc/php-5.6
-doas cp ../php-5.6.sample/* .
+cd /etc/php-7.0
+doas cp ../php-7.0.sample/* .
 ```
 
-# php ln
+#### php ln
 ```bash
-doas ln -s /usr/local/bin/php-5.6 /usr/local/bin/php
+doas ln -s /usr/local/bin/php-7.0 /usr/local/bin/php
 ```
 
-# Enable php fpm 
+#### Enable php fpm 
 ```bash
-doas rcctl enable php56_fpm
+doas rcctl enable php70_fpm
 ```
 
-# Configure fpm
+#### Configure fpm
 ```
 doas vi /etc/php-fpm.conf
+
+# pid = /var/www/run/php-fpm.pid
+# error_log = /var/www/logs/php-fpm.log
+# listen = /var/www/run/php-fpm.sock
+
+doas /etc/rc.d/php70_fpm start 
 ```
 
-error_log = log/php-fpm.log
-chroot -> remove for the time being
+!!! notice
+    For native httpd: listen = /var/www/run/php-fpm.sock
+    For apache2: listen = 127.0.0.1:9000
 
-
-For native httpd: listen = /var/www/run/php-fpm.sock
-For apache2: listen = 127.0.0.1:9000
-
-# Enable redis
+#### Enable redis
 ```bash
 doas rcctl enable redis
 doas /etc/rc.d/redis start
 ```
 
-# Enable mysqld
+#### Enable mysqld
 ```bash
+doas /usr/local/bin/mysql_install_db
 doas rcctl set mysqld status on
 doas rcctl set mysqld flags --bind-address=127.0.0.1
 doas /etc/rc.d/mysqld start
 doas mysql_secure_installation
 ```
 
-3/ MISP code
+### 2/ MISP code
 ------------
 ```bash
 # Download MISP using git in the /usr/local/www/ directory.
@@ -241,6 +275,9 @@ doas mkdir /var/www/htdocs/MISP
 doas chown www:www /var/www/htdocs/MISP
 cd /var/www/htdocs/MISP
 doas -u www git clone https://github.com/MISP/MISP.git /var/www/htdocs/MISP
+doas -u www git submodule update --init --recursive
+# Make git ignore filesystem permission differences for submodules
+doas -u www git submodule foreach --recursive git config core.filemode false
 
 # Make git ignore filesystem permission differences
 doas -u www git config core.filemode false
@@ -269,16 +306,13 @@ doas python3 setup.py install
 doas pip3.6 install stix2
 ```
 
-4/ CakePHP
+### 3/ CakePHP
 -----------
 ```bash
-# CakePHP is included as a submodule of MISP, execute the following commands to let git fetch it:
+# CakePHP is included as a submodule of MISP and has been fetched earlier.
 cd /var/www/htdocs/MISP
-doas -u www git submodule update --init --recursive
-# Make git ignore filesystem permission differences for submodules
-doas -u www git submodule foreach --recursive git config core.filemode false
 
-# Once done, install CakeResque along with its dependencies if you intend to use the built in background jobs:
+# Install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd /var/www/htdocs/MISP/app
 doas -u www php composer.phar require kamisama/cake-resque:4.1.2
 doas -u www php composer.phar config vendor-dir Vendor
@@ -288,7 +322,7 @@ doas -u www php composer.phar install
 doas -u www cp -f /var/www/htdocs/MISP/INSTALL/setup/config.php /var/www/htdocs/MISP/app/Plugin/CakeResque/Config/config.php
 ```
 
-5/ Set the permissions
+### 4/ Set the permissions
 ----------------------
 ```bash
 # Check if the permissions are set correctly using the following commands:
@@ -299,7 +333,7 @@ doas chmod -R g+ws /var/www/htdocs/MISP/app/files
 doas chmod -R g+ws /var/www/htdocs/MISP/app/files/scripts/tmp
 ```
 
-6/ Create a database and user
+### 5/ Create a database and user
 -----------------------------
 ```bash
 # Enter the mysql shell
@@ -320,7 +354,7 @@ doas -u www sh -c "mysql -u misp -p misp < /var/www/htdocs/MISP/INSTALL/MYSQL.sq
 # enter the password you set previously
 ```
 
-7/ Apache configuration (optional)
+### 6/ Apache configuration (optional)
 -----------------------
 ```bash
 # Now configure your Apache webserver with the DocumentRoot /var/www/htdocs/MISP/app/webroot/
@@ -406,12 +440,12 @@ Listen 443
 doas /etc/rc.d/apache2 restart
 ``` 
 
-8/ Log rotation (needs to be adapted to OpenBSD, newsyslog does this for you
+### 7/ Log rotation (needs to be adapted to OpenBSD, newsyslog does this for you
 ---------------
-# MISP saves the stdout and stderr of its workers in /var/www/htdocs/MISP/app/tmp/logs
+!!! notice
+    MISP saves the stdout and stderr of its workers in /var/www/htdocs/MISP/app/tmp/logs
 
-
-9/ MISP configuration
+### 8/ MISP configuration
 ---------------------
 ``` 
 # There are 4 sample configuration files in /var/www/htdocs/MISP/app/Config that need to be copied
@@ -421,7 +455,7 @@ doas -u www cp /var/www/htdocs/MISP/app/Config/core.default.php /var/www/htdocs/
 doas -u www cp /var/www/htdocs/MISP/app/Config/config.default.php /var/www/htdocs/MISP/app/Config/config.php
 
 # Configure the fields in the newly created files:
-doas -u www vim /var/www/htdocs/MISP/app/Config/database.php
+doas -u www vi /var/www/htdocs/MISP/app/Config/database.php
 ``` 
 ``` 
 # DATABASE_CONFIG has to be filled
@@ -441,15 +475,16 @@ doas -u www vim /var/www/htdocs/MISP/app/Config/database.php
 #}
 ``` 
 
-# Important! Change the salt key in /usr/local/www/MISP/app/Config/config.php
-# The salt key must be a string at least 32 bytes long.
-# The admin user account will be generated on the first login, make sure that the salt is changed before you create that user
-# If you forget to do this step, and you are still dealing with a fresh installation, just alter the salt,
-# delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
+!!! danger
+    Important! Change the salt key in /usr/local/www/MISP/app/Config/config.php
+    The salt key must be a string at least 32 bytes long.
+    The admin user account will be generated on the first login, make sure that the salt is changed before you create that user
+    If you forget to do this step, and you are still dealing with a fresh installation, just alter the salt,
+    delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
 
 ``` 
 # Change base url in config.php
-doas -u www vim /var/www/htdocs/MISP/app/Config/config.php
+doas -u www vi /var/www/htdocs/MISP/app/Config/config.php
 # example: 'baseurl' => 'https://<your.FQDN.here>',
 # alternatively, you can leave this field empty if you would like to use relative pathing in MISP
 # 'baseurl' => '',
@@ -469,7 +504,7 @@ doas -u www sh -c "gpg --homedir /var/www/htdocs/MISP/.gnupg --export --armor YO
 
 # To make the background workers start on boot
 doas chmod +x /var/www/htdocs/MISP/app/Console/worker/start.sh
-doas vim /etc/rc.local
+doas vi /etc/rc.local
 # Add the following line before the last line (exit 0). Make sure that you replace www with your apache user:
 doas -u www bash /var/www/htdocs/MISP/app/Console/worker/start.sh
 
@@ -491,16 +526,18 @@ doas chmod -R 750 /var/www/htdocs/MISP/<directory path with an indicated issue>
 doas chown -R www:www /var/www/htdocs/MISP/<directory path with an indicated issue>
 ``` 
 
-# Make sure that the STIX libraries and GnuPG work as intended, if not, refer to INSTALL.txt's paragraphs dealing with these two items
+!!! notice
+    Make sure that the STIX libraries and GnuPG work as intended, if not, refer to INSTALL.txt's paragraphs dealing with these two items
 
-# If anything goes wrong, make sure that you check MISP's logs for errors:
-# /var/www/htdocs/MISP/app/tmp/logs/error.log
-# /var/www/htdocs/MISP/app/tmp/logs/resque-worker-error.log
-# /var/www/htdocs/MISP/app/tmp/logs/resque-scheduler-error.log
-# /var/www/htdocs/MISP/app/tmp/logs/resque-2015-01-01.log // where the actual date is the current date
+!!! notice
+    If anything goes wrong, make sure that you check MISP's logs for errors:
+    /var/www/htdocs/MISP/app/tmp/logs/error.log
+    /var/www/htdocs/MISP/app/tmp/logs/resque-worker-error.log
+    /var/www/htdocs/MISP/app/tmp/logs/resque-scheduler-error.log
+    /var/www/htdocs/MISP/app/tmp/logs/resque-2015-01-01.log // where the actual date is the current date
 
 
-Recommended actions
+### Recommended actions
 -------------------
 - By default CakePHP exposes its name and version in email headers. Apply a patch to remove this behavior.
 
@@ -511,11 +548,13 @@ Recommended actions
 - Log and audit
 
 
-Optional features
+### Optional features
 -------------------
-# MISP has a new pub/sub feature, using ZeroMQ.
 
-# ZeroMQ depends on the Python client for Redis
+!!! notice
+    MISP has a pub/sub feature, using ZeroMQ.
+
+#### ZeroMQ depends on the Python client for Redis
 ```bash
 doas pkg_add -v py3-zmq
 ```
