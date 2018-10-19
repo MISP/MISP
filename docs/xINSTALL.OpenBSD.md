@@ -3,6 +3,8 @@
 
 !!! warning
     This is not fully working yet. Mostly it is a template for our ongoing documentation efforts :spider:
+		LIEF, will probably not be available for a long long time on OpenBSD, until someone is brave enough to make it work.
+		GnuPG also needs some more TLC.
 
 ### 0/ WIP! You are warned, this does not work yet!
 ------------
@@ -641,7 +643,7 @@ doas $CAKE Admin updateWarningLists
 curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/noticelists/update
 
 # Updating the object templates…
-##sudo $CAKE Admin updateObjectTemplates
+##doas $CAKE Admin updateObjectTemplates
 curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/objectTemplates/update
 
 # Tune global time outs
@@ -783,4 +785,125 @@ doas $CAKE Admin setSetting "Session.cookie_timeout" 3600
 ```bash
 doas pkg_add -v py3-zmq zeromq
 doas /usr/local/virtualenvs/MISP/bin/pip install pyzmq
+```
+
+#### misp-dashboard 
+
+!!! notice
+    Enable ZeroMQ for misp-dashboard
+
+!!! warning
+    This still needs more testing, it runs but no data is showing.
+
+
+!!! warning
+    The install_dependencies.sh script is for Linux ONLY. The following blurp will be a diff of a working OpenBSD version.
+
+```diff
+(DASHENV) obsd# diff -u install_dependencies.sh install_dependencies_obsd.sh  
+--- install_dependencies.sh     Fri Oct 19 12:14:38 2018
++++ install_dependencies_obsd.sh        Fri Oct 19 12:43:22 2018
+@@ -1,14 +1,14 @@
+-#!/bin/bash
++#!/usr/local/bin/bash
+ 
+ set -e
+ #set -x
+ 
+-sudo apt-get install python3-virtualenv virtualenv screen redis-server unzip -y
++doas pkg_add -v unzip wget
+ 
+ if [ -z "$VIRTUAL_ENV" ]; then
+-    virtualenv -p python3 DASHENV
++    virtualenv -p python3 /usr/local/virtualenvs/DASHENV
+ 
+-    . ./DASHENV/bin/activate
++    . /usr/local/virtualenvs/DASHENV/bin/activate
+ fi
+ 
+ pip3 install -U pip argparse redis zmq geoip2 flask phonenumbers pycountry
+```
+
+```
+cd /var/www
+doas mkdir misp-dashboard
+doas chown www:www misp-dashboard
+doas -u www git clone https://github.com/MISP/misp-dashboard.git
+cd misp-dashboard
+#/!\ Made on Linux, the next script will fail
+#doas /var/www/misp-dashboard/install_dependencies.sh
+doas virtualenv -ppython3 /usr/local/virtualenvs/DASHENV
+doas /usr/local/virtualenvs/DASHENV/bin/pip install -U pip argparse redis zmq geoip2 flask phonenumbers pycountry
+
+doas sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/config/config.cfg
+doas sed -i -e '$i \doas -u www bash /var/www/misp-dashboard/start_all.sh\n' /etc/rc.local
+#/!\ Add port 8001 as a listener
+#doas sed -i '/Listen 80/a Listen 0.0.0.0:8001' /etc/apache2/ports.conf
+doas pkg_add -v ap2-mod_wsgi
+
+echo "<VirtualHost *:8001>
+    ServerAdmin admin@misp.local
+    ServerName misp.local
+    DocumentRoot /var/www/misp-dashboard
+    
+    WSGIDaemonProcess misp-dashboard \
+       user=misp group=misp \
+       python-home=/var/www/misp-dashboard/DASHENV \
+       processes=1 \
+       threads=15 \
+       maximum-requests=5000 \
+       listen-backlog=100 \
+       queue-timeout=45 \
+       socket-timeout=60 \
+       connect-timeout=15 \
+       request-timeout=60 \
+       inactivity-timeout=0 \
+       deadlock-timeout=60 \
+       graceful-timeout=15 \
+       eviction-timeout=0 \
+       shutdown-timeout=5 \
+       send-buffer-size=0 \
+       receive-buffer-size=0 \
+       header-buffer-size=0 \
+       response-buffer-size=0 \
+       server-metrics=Off
+    WSGIScriptAlias / /var/www/misp-dashboard/misp-dashboard.wsgi
+    <Directory /var/www/misp-dashboard>
+        WSGIProcessGroup misp-dashboard
+        WSGIApplicationGroup %{GLOBAL}
+        Require all granted
+    </Directory>
+    LogLevel info
+    ErrorLog /var/log/apache2/misp-dashboard.local_error.log
+    CustomLog /var/log/apache2/misp-dashboard.local_access.log combined
+    ServerSignature Off
+</VirtualHost>" | doas tee /etc/apache2/sites-available/misp-dashboard.conf
+
+doas ln -s /etc/apache2/sites-available/misp-dashboard.conf /etc/apache2/sites-enabled/misp-dashboard.conf
+```
+
+Add this to /etc/httpd2.conf
+```
+LoadModule wsgi_module /usr/local/lib/apache2/mod_wsgi.so
+Listen 8001
+```
+
+
+```
+doas $CAKE Admin setSetting "Plugin.ZeroMQ_enable" true
+doas $CAKE Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" true
+doas $CAKE Admin setSetting "Plugin.ZeroMQ_object_notifications_enable" true
+doas $CAKE Admin setSetting "Plugin.ZeroMQ_object_reference_notifications_enable" true
+doas $CAKE Admin setSetting "Plugin.ZeroMQ_attribute_notifications_enable" true
+doas $CAKE Admin setSetting "Plugin.ZeroMQ_sighting_notifications_enable" true
+doas $CAKE Admin setSetting "Plugin.ZeroMQ_user_notifications_enable" true
+doas $CAKE Admin setSetting "Plugin.ZeroMQ_organisation_notifications_enable" true
+doas $CAKE Admin setSetting "Plugin.ZeroMQ_port" 50000
+doas $CAKE Admin setSetting "Plugin.ZeroMQ_redis_host" "localhost"
+doas $CAKE Admin setSetting "Plugin.ZeroMQ_redis_port" 6379
+doas $CAKE Admin setSetting "Plugin.ZeroMQ_redis_database" 1
+doas $CAKE Admin setSetting "Plugin.ZeroMQ_redis_namespace" "mispq"
+doas $CAKE Admin setSetting "Plugin.ZeroMQ_include_attachments" false
+doas $CAKE Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false
+doas $CAKE Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false
 ```
