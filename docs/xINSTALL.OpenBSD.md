@@ -607,7 +607,7 @@ doas /usr/local/virtualenvs/MISP/bin/pip install git+https://github.com/VirusTot
 doas /usr/local/virtualenvs/MISP/bin/pip install wand
 ##doas gem install pygments.rb
 ##doas gem install asciidoctor-pdf --pre
-echo "doas -u www /usr/local/virtualenvs/MISP/bin/misp-modules -l 0.0.0.0 -s &" |doas tee -a /etc/rc.local
+doas -u www /usr/local/virtualenvs/MISP/bin/misp-modules -l 0.0.0.0 -s &
 echo "doas -u www /usr/local/virtualenvs/MISP/bin/misp-modules -l 0.0.0.0 -s &" |doas tee -a /etc/rc.local
 ```
 
