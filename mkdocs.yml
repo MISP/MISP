@@ -70,7 +70,7 @@ nav:
       - 'Warning': 'xINSTALL.md'
       - 'Centos 7': 'xINSTALL.centos7.md'
       - 'Debian testing': 'xINSTALL.debian_testing.md'
-      - 'OpenBSD 6.3': 'xINSTALL.OpenBSD.md'
+      - 'OpenBSD 6.4': 'xINSTALL.OpenBSD.md'
     - Config Guides:
       - 'Elastic Search Logging': 'CONFIG.elasticsearch-logging.md'
       - 'Amazon S3 attachments': 'CONFIG.s3-attachments.md'
