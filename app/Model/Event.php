@@ -902,8 +902,6 @@ class Event extends AppModel
         }
         $updated = null;
         $newLocation = $newTextBody = '';
-		debug($event);
-		throw new Exception();
         $result = $this->__executeRestfulEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket);
         if ($result !== true) {
             return $result;
