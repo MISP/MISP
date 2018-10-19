@@ -1,5 +1,5 @@
 # INSTALLATION INSTRUCTIONS
-## for OpenBSD 6.3-amd64
+## for OpenBSD 6.4-amd64
 
 !!! warning
     This is not fully working yet. Mostly it is a template for our ongoing documentation efforts :spider:
@@ -8,12 +8,16 @@
 ------------
 
 !!! notice
-    Current issues: php-redis only available in binary for php-56, workaround: use ports.
-    This guide attempts to offer native httpd or apache2/nginx set-up.
+    Current issues: php-redis only available in binary for php-56, workaround: use OpenBSD 6.4.
+    This guide attempts to offer native httpd or apache2/nginx.
 
 !!! warning
-    As of 20181018 the native httpd server is NOT useable with MISP. Thus ONLY Apache 2.x available.
+    As of 20181018 the native httpd server is NOT useable with MISP on OpenBSD 6.3.
+    Thus ONLY Apache 2.x available.
     NO *rewrite* available, just yet. It will be in [the next release](https://marc.info/?l=openbsd-tech&m=152761257806283&w=2)
+
+!!! notice
+    As of OpenBSD 6.4 the native httpd has rewrite rules and php 5.6 is gone too.
 
 ### 1/ Minimal OpenBSD install
 ------------
@@ -24,13 +28,23 @@
 
 - TBD
 
+#### MISP configuration variables
+```bash
+export PATH_TO_MISP='/var/www/htdocs/MISP'
+export MISP_BASEURL='https://misp.local'
+export MISP_LIVE='1'
+export CAKE="$PATH_TO_MISP/app/Console/cake"
+export AUTOMAKE_VERSION=1.16
+export AUTOCONF_VERSION=2.69
+```
+
 #### doas & pkg (as root)
 ```bash
 echo https://cdn.openbsd.org/pub/OpenBSD/ > /etc/installurl
 echo "permit keepenv setenv { PKG_PATH ENV PS1 SSH_AUTH_SOCK } :wheel" > /etc/doas.conf
 ```
 
-##### In case you forgot to fetch ports
+##### In case you forgot to fetch ports (optional)
 
 ```bash
 cd /tmp
@@ -49,6 +63,46 @@ doas syspatch
 doas pkg_add -v bash ntp
 ```
 
+#### mariadb server
+```bash
+doas pkg_add -v mariadb-server 
+```
+
+#### Install misc dependencies
+
+!!! notice
+    You need to install python 3.x when asked, option 2.
+    autoconf wants to be version 2.69, option 16
+    automake wants to be version 1.16, option 7
+
+```bash
+doas pkg_add -v curl git python redis libmagic autoconf automake libtool
+```
+
+!!! notice
+    GnuPG 2.x is best, option 3.
+
+```bash
+doas pkg_add -v gnupg
+doas ln -s /usr/local/bin/gpg2 /usr/local/bin/gpg
+```
+
+#### Install postfix (optional)
+!!! notice
+    When asked, the standard postfix will be enough for a basic setup, option 9.
+
+```bash
+doas pkg_add -v postfix
+doas /usr/local/sbin/postfix-enable 
+```
+
+#### nvim (optional)
+```bash
+doas pkg_add -v neovim
+doas mv /usr/bin/vi /usr/bin/vi-`date +%d%m%y`
+doas ln -s /usr/local/bin/nvim /usr/bin/vi
+```
+
 #### rc.local - Add ntpdate on boot
 ```bash
 echo "echo -n ' ntpdate'" |doas tee -a /etc/rc.local
@@ -65,13 +119,6 @@ doas /usr/local/sbin/ntpd -p /var/run/ntpd.pid
 #### misp user
 ```bash
 doas useradd -m -s /usr/local/bin/bash -G wheel,www misp
-```
-
-#### nvim (optional)
-```bash
-doas pkg_add -v neovim
-doas mv /usr/bin/vi /usr/bin/vi-`date +%d%m%y`
-doas ln -s /usr/local/bin/nvim /usr/bin/vi
 ```
 
 #### /etc/httpd.conf
@@ -160,55 +207,43 @@ OPENSSL_CN='Common Name'
 OPENSSL_EMAILADDRESS='info@localhost'
 ```
 
-
-
 ```bash
 doas openssl req -newkey rsa:4096 -days 3650 -nodes -x509 -subj "/C=$OPENSSL_C/ST=$OPENSSL_ST/L=$OPENSSL_L/O=<$OPENSSL_O/OU=$OPENSSL_OU/CN=$OPENSSL_CN/emailAddress=$OPENSSL_EMAILADDRESS" -keyout /etc/ssl/private/server.key -out /etc/ssl/server.crt
 ```
 
-#### mariadb server
-```bash
-doas pkg_add -v mariadb-server 
-```
-
 #### start httpd
 ```bash
-##doas /etc/rc.d/httpd -f start
+doas /etc/rc.d/httpd -f start
 ```
 
 #### Enable httpd
 ```bash
-##doas rcctl enable httpd
+doas rcctl enable httpd
 ```
 
-#### Install postfix
-!!! notice
-    When asked, the standard postfix will be enough for a basic setup, option 9.
-
+#### Install Python virtualenv
 ```bash
-doas pkg_add -v postfix
-doas /usr/local/sbin/postfix-enable 
+doas ln -sf /usr/local/bin/pip3.6 /usr/local/bin/pip
+doas ln -s /usr/local/bin/python3.6 /usr/local/bin/python
+doas pkg_add -v py-virtualenv
+doas mkdif /usr/local/virtualenvs
+doas virtualenv -ppython3 /usr/local/virtualenvs/MISP
 ```
 
-#### Install misc dependencies
-
-!!! notice
-    You need to install python 3.x when asked, option 2.
-
-```bash
-doas pkg_add -v curl git python redis
+#### Install ssdeep
+```
+doas mkdir /usr/local/src
+doas chown misp:misp /usr/local/src
+cd /usr/local/src
+git clone https://github.com/ssdeep-project/ssdeep.git
+cd ssdeep
+./bootstrap
+./configure --prefix=/usr
+make
+doas make install
 ```
 
-#### OpendBSD + Apache/httpd/nginx + MySQL/Mariadb + PHP (optional)
-
-!!! notice
-    GnuPG 2.x is best, option 3.
-
-```bash
-doas pkg_add -v gnupg
-```
-
-#### Optional for Apache2
+#### Apache2 only
 ```bash
 doas pkg_add -v apache-httpd
 doas pkg_add -v fcgi-cgi fcgi
@@ -216,13 +251,12 @@ doas pkg_add -v fcgi-cgi fcgi
 
 #### php7 ports
 !!! notice
-    php-5.6 is marked as end-of-life starting December 2018, use php 7.x instead.
+    php-5.6 is marked as end-of-life starting December 2018, use php 7.0 instead.
     Option 2.
+    If on OpenBSD 6.3, upgrade to 6.4 to make your life much easier.
 
 ```
-doas pkg_add -v php-mysqli php-pcntl php-pdo_mysql 
-# pecl-redis --> Pull php56
-# pear --> Pull php56
+doas pkg_add -v php-mysqli php-pcntl php-pdo_mysql php-apache pecl70-redis
 ```
 
 #### /etc/php-7.0.ini 
@@ -235,9 +269,11 @@ cd /etc/php-7.0
 doas cp ../php-7.0.sample/* .
 ```
 
-#### php ln
+#### php symlinks
 ```bash
 doas ln -s /usr/local/bin/php-7.0 /usr/local/bin/php
+doas ln -s /usr/local/bin/phpize-7.0 /usr/local/bin/phpize
+doas ln -s /usr/local/bin/php-config-7.0 /usr/local/bin/php-config
 ```
 
 #### Enable php fpm 
@@ -291,37 +327,42 @@ doas -u www git submodule foreach --recursive git config core.filemode false
 doas -u www git config core.filemode false
 
 doas pkg_add py-pip py3-pip libxml libxslt py3-jsonschema
+doas /usr/local/virtualenvs/MISP/bin/pip install -U pip
 
 cd /var/www/htdocs/MISP/app/files/scripts
 doas -u www git clone https://github.com/CybOXProject/python-cybox.git
 doas -u www git clone https://github.com/STIXProject/python-stix.git
 cd /var/www/htdocs/MISP/app/files/scripts/python-cybox
-doas python3 setup.py install
+doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 cd /var/www/htdocs/MISP/app/files/scripts/python-stix
-doas python3 setup.py install
+doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
 # install mixbox to accomodate the new STIX dependencies:
 cd /var/www/htdocs/MISP/app/files/scripts/
 doas -u www git clone https://github.com/CybOXProject/mixbox.git
 cd /var/www/htdocs/MISP/app/files/scripts/mixbox
-doas python3 setup.py install
+doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
 # install PyMISP
 cd /var/www/htdocs/MISP/PyMISP
-doas python3 setup.py install
+doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
 # install support for STIX 2.0
-doas pip3.6 install stix2
+doas /usr/local/virtualenvs/MISP/bin/pip install stix2
+
+# install python-magic, pydeep and maec
+doas /usr/local/virtualenvs/MISP/bin/pip install python-magic
+doas /usr/local/virtualenvs/MISP/bin/pip install git+https://github.com/kbandla/pydeep.git
+doas /usr/local/virtualenvs/MISP/bin/pip install maec
 ```
 
 ### 3/ CakePHP
 -----------
 ```bash
 # CakePHP is included as a submodule of MISP and has been fetched earlier.
-cd /var/www/htdocs/MISP
-
 # Install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd /var/www/htdocs/MISP/app
+mkdir /var/www/.composer ; chown www:www /var/www/.composer
 doas -u www php composer.phar require kamisama/cake-resque:4.1.2
 doas -u www php composer.phar config vendor-dir Vendor
 doas -u www php composer.phar install
@@ -429,7 +470,7 @@ doas mkdir /var/log/apache2/
 # activate new vhost
 cd /etc/apache2/sites-enabled/
 doas ln -s ../sites-available/misp-ssl.conf
-echo "Include /etc/apache2/sites-enabled/*.conf" >> /etc/apache2/httpd2.conf
+echo "Include /etc/apache2/sites-enabled/*.conf" |doas tee -a /etc/apache2/httpd2.conf
 
 doas vi /etc/apache2/httpd2.conf
 ```
@@ -441,6 +482,7 @@ LoadModule ssl_module /usr/local/lib/apache2/mod_ssl.so
 LoadModule proxy_module /usr/local/lib/apache2/mod_proxy.so
 LoadModule proxy_fcgi_module /usr/local/lib/apache2/mod_proxy_fcgi.so
 Listen 443
+DirectoryIndex index.php
 ```
 
 ```bash
@@ -503,13 +545,30 @@ doas chown -R www:www /var/www/htdocs/MISP/app/Config
 doas chmod -R 750 /var/www/htdocs/MISP/app/Config
 
 # Generate a GPG encryption key.
+export GPG_REAL_NAME='Autogenerated Key'
+export GPG_COMMENT='WARNING: MISP AutoGenerated Key consider this Key VOID!'
+export GPG_EMAIL_ADDRESS='admin@admin.test'
+export GPG_KEY_LENGTH='2048'
+export GPG_PASSPHRASE='Password1234'
+echo "%echo Generating a default key
+    Key-Type: default
+    Key-Length: $GPG_KEY_LENGTH
+    Subkey-Type: default
+    Name-Real: $GPG_REAL_NAME
+    Name-Comment: $GPG_COMMENT
+    Name-Email: $GPG_EMAIL_ADDRESS
+    Expire-Date: 0
+    Passphrase: $GPG_PASSPHRASE
+    # Do a commit here, so that we can later print "done"
+    %commit
+%echo done" > /tmp/gen-key-script
 doas -u www mkdir /var/www/htdocs/MISP/.gnupg
 doas chmod 700 /var/www/htdocs/MISP/.gnupg
-##### doas -u www gpg --homedir /var/www/htdocs/MISP/.gnupg --gen-key <- Broken
+doas gpg2 --homedir /var/www/htdocs/MISP/.gnupg --batch --gen-key /tmp/gen-key-script
 # The email address should match the one set in the config.php / set in the configuration menu in the administration menu configuration file
 
 # And export the public key to the webroot
-doas -u www sh -c "gpg --homedir /var/www/htdocs/MISP/.gnupg --export --armor YOUR-KEYS-EMAIL-HERE > /var/www/htdocs/MISP/app/webroot/gpg.asc"
+doas sh -c "gpg2 --homedir /var/www/htdocs/MISP/.gnupg --export --armor $GPG_EMAIL_ADDRESS > /var/www/htdocs/MISP/app/webroot/gpg.asc"
 
 # To make the background workers start on boot
 doas chmod +x /var/www/htdocs/MISP/app/Console/worker/start.sh
@@ -535,6 +594,23 @@ doas chmod -R 750 /var/www/htdocs/MISP/<directory path with an indicated issue>
 doas chown -R www:www /var/www/htdocs/MISP/<directory path with an indicated issue>
 ``` 
 
+#### MISP Modules
+```
+doas pkg_add -v jpeg yara
+cd /usr/local/src/
+git clone https://github.com/MISP/misp-modules.git
+cd misp-modules
+# pip3 install
+doas /usr/local/virtualenvs/MISP/bin/pip install -I -r REQUIREMENTS
+doas /usr/local/virtualenvs/MISP/bin/pip install -I .
+doas /usr/local/virtualenvs/MISP/bin/pip install git+https://github.com/VirusTotal/yara-python.git
+doas /usr/local/virtualenvs/MISP/bin/pip install wand
+##doas gem install pygments.rb
+##doas gem install asciidoctor-pdf --pre
+echo "doas -u www misp-modules -l 0.0.0.0 -s &" |doas tee -a /etc/rc.local
+echo "doas -u www /usr/local/virtualenvs/MISP/bin/misp-modules -l 0.0.0.0 -s &" |doas tee -a /etc/rc.local
+```
+
 !!! notice
     Make sure that the STIX libraries and GnuPG work as intended, if not, refer to INSTALL.txt's paragraphs dealing with these two items
 
@@ -545,6 +621,146 @@ doas chown -R www:www /var/www/htdocs/MISP/<directory path with an indicated iss
     /var/www/htdocs/MISP/app/tmp/logs/resque-scheduler-error.log
     /var/www/htdocs/MISP/app/tmp/logs/resque-2015-01-01.log // where the actual date is the current date
 
+
+#### MISP Config Automation
+
+```bash
+doas $CAKE Live $MISP_LIVE
+AUTH_KEY=$(mysql -u misp -p misp -e "SELECT authkey FROM users;" | tail -1)
+# Update the galaxies…
+doas $CAKE Admin updateGalaxies
+
+# Updating the taxonomies…
+doas $CAKE Admin updateTaxonomies
+
+# Updating the warning lists…
+doas $CAKE Admin updateWarningLists
+
+# Updating the notice lists…
+## doas $CAKE Admin updateNoticeLists
+curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/noticelists/update
+
+# Updating the object templates…
+##sudo $CAKE Admin updateObjectTemplates
+curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/objectTemplates/update
+
+# Tune global time outs
+doas $CAKE Admin setSetting "Session.autoRegenerate" 0
+doas $CAKE Admin setSetting "Session.timeout" 600
+doas $CAKE Admin setSetting "Session.cookie_timeout" 3600
+
+# Enable GnuPG
+doas $CAKE Admin setSetting "GnuPG.email" "admin@admin.test"
+doas $CAKE Admin setSetting "GnuPG.homedir" "$PATH_TO_MISP/.gnupg"
+doas $CAKE Admin setSetting "GnuPG.password" "Password1234"
+
+# Enable Enrichment set better timeouts
+doas $CAKE Admin setSetting "Plugin.Enrichment_services_enable" true
+doas $CAKE Admin setSetting "Plugin.Enrichment_hover_enable" true
+doas $CAKE Admin setSetting "Plugin.Enrichment_timeout" 300
+doas $CAKE Admin setSetting "Plugin.Enrichment_hover_timeout" 150
+doas $CAKE Admin setSetting "Plugin.Enrichment_cve_enabled" true
+doas $CAKE Admin setSetting "Plugin.Enrichment_dns_enabled" true
+doas $CAKE Admin setSetting "Plugin.Enrichment_services_url" "http://127.0.0.1"
+doas $CAKE Admin setSetting "Plugin.Enrichment_services_port" 6666
+
+# Enable Import modules set better timout
+doas $CAKE Admin setSetting "Plugin.Import_services_enable" true
+doas $CAKE Admin setSetting "Plugin.Import_services_url" "http://127.0.0.1"
+doas $CAKE Admin setSetting "Plugin.Import_services_port" 6666
+doas $CAKE Admin setSetting "Plugin.Import_timeout" 300
+doas $CAKE Admin setSetting "Plugin.Import_ocr_enabled" true
+doas $CAKE Admin setSetting "Plugin.Import_csvimport_enabled" true
+
+# Enable Export modules set better timout
+doas $CAKE Admin setSetting "Plugin.Export_services_enable" true
+doas $CAKE Admin setSetting "Plugin.Export_services_url" "http://127.0.0.1"
+doas $CAKE Admin setSetting "Plugin.Export_services_port" 6666
+doas $CAKE Admin setSetting "Plugin.Export_timeout" 300
+doas $CAKE Admin setSetting "Plugin.Export_pdfexport_enabled" true
+
+# Enable installer org and tune some configurables
+doas $CAKE Admin setSetting "MISP.host_org_id" 1
+doas $CAKE Admin setSetting "MISP.email" "info@admin.test"
+doas $CAKE Admin setSetting "MISP.disable_emailing" true
+doas $CAKE Admin setSetting "MISP.contact" "info@admin.test"
+doas $CAKE Admin setSetting "MISP.disablerestalert" true
+doas $CAKE Admin setSetting "MISP.showCorrelationsOnIndex" true
+
+# Provisional Cortex tunes
+doas $CAKE Admin setSetting "Plugin.Cortex_services_enable" false
+doas $CAKE Admin setSetting "Plugin.Cortex_services_url" "http://127.0.0.1"
+doas $CAKE Admin setSetting "Plugin.Cortex_services_port" 9000
+doas $CAKE Admin setSetting "Plugin.Cortex_timeout" 120
+doas $CAKE Admin setSetting "Plugin.Cortex_services_url" "http://127.0.0.1"
+doas $CAKE Admin setSetting "Plugin.Cortex_services_port" 9000
+doas $CAKE Admin setSetting "Plugin.Cortex_services_timeout" 120
+doas $CAKE Admin setSetting "Plugin.Cortex_services_authkey" ""
+doas $CAKE Admin setSetting "Plugin.Cortex_ssl_verify_peer" false
+doas $CAKE Admin setSetting "Plugin.Cortex_ssl_verify_host" false
+doas $CAKE Admin setSetting "Plugin.Cortex_ssl_allow_self_signed" true
+
+# Various plugin sightings settings
+doas $CAKE Admin setSetting "Plugin.Sightings_policy" 0
+doas $CAKE Admin setSetting "Plugin.Sightings_anonymise" false
+doas $CAKE Admin setSetting "Plugin.Sightings_range" 365
+
+# Plugin CustomAuth tuneable
+doas $CAKE Admin setSetting "Plugin.CustomAuth_disable_logout" false
+
+# RPZ Plugin settings
+
+doas $CAKE Admin setSetting "Plugin.RPZ_policy" "DROP"
+doas $CAKE Admin setSetting "Plugin.RPZ_walled_garden" "127.0.0.1"
+doas $CAKE Admin setSetting "Plugin.RPZ_serial" "\$date00"
+doas $CAKE Admin setSetting "Plugin.RPZ_refresh" "2h"
+doas $CAKE Admin setSetting "Plugin.RPZ_retry" "30m"
+doas $CAKE Admin setSetting "Plugin.RPZ_expiry" "30d"
+doas $CAKE Admin setSetting "Plugin.RPZ_minimum_ttl" "1h"
+doas $CAKE Admin setSetting "Plugin.RPZ_ttl" "1w"
+doas $CAKE Admin setSetting "Plugin.RPZ_ns" "localhost."
+doas $CAKE Admin setSetting "Plugin.RPZ_ns_alt" ""
+doas $CAKE Admin setSetting "Plugin.RPZ_email" "root.localhost"
+
+# Force defaults to make MISP Server Settings less RED
+doas $CAKE Admin setSetting "MISP.language" "eng"
+doas $CAKE Admin setSetting "MISP.proposals_block_attributes" false
+
+## Redis block
+doas $CAKE Admin setSetting "MISP.redis_host" "127.0.0.1"
+doas $CAKE Admin setSetting "MISP.redis_port" 6379
+doas $CAKE Admin setSetting "MISP.redis_database" 13
+doas $CAKE Admin setSetting "MISP.redis_password" ""
+
+# Force defaults to make MISP Server Settings less YELLOW
+doas $CAKE Admin setSetting "MISP.ssdeep_correlation_threshold" 40
+doas $CAKE Admin setSetting "MISP.extended_alert_subject" false
+doas $CAKE Admin setSetting "MISP.default_event_threat_level" 4
+doas $CAKE Admin setSetting "MISP.newUserText" "Dear new MISP user,\\n\\nWe would hereby like to welcome you to the \$org MISP community.\\n\\n Use the credentials below to log into MISP at \$misp, where you will be prompted to manually change your password to something of your own choice.\\n\\nUsername: \$username\\nPassword: \$password\\n\\nIf you have any questions, don't hesitate to contact us at: \$contact.\\n\\nBest regards,\\nYour \$org MISP support team"
+doas $CAKE Admin setSetting "MISP.passwordResetText" "Dear MISP user,\\n\\nA password reset has been triggered for your account. Use the below provided temporary password to log into MISP at \$misp, where you will be prompted to manually change your password to something of your own choice.\\n\\nUsername: \$username\\nYour temporary password: \$password\\n\\nIf you have any questions, don't hesitate to contact us at: \$contact.\\n\\nBest regards,\\nYour \$org MISP support team"
+doas $CAKE Admin setSetting "MISP.enableEventBlacklisting" true
+doas $CAKE Admin setSetting "MISP.enableOrgBlacklisting" true
+doas $CAKE Admin setSetting "MISP.log_client_ip" false
+doas $CAKE Admin setSetting "MISP.log_auth" false
+doas $CAKE Admin setSetting "MISP.disableUserSelfManagement" false
+doas $CAKE Admin setSetting "MISP.block_event_alert" false
+doas $CAKE Admin setSetting "MISP.block_event_alert_tag" "no-alerts=\"true\""
+doas $CAKE Admin setSetting "MISP.block_old_event_alert" false
+doas $CAKE Admin setSetting "MISP.block_old_event_alert_age" ""
+doas $CAKE Admin setSetting "MISP.incoming_tags_disabled_by_default" false
+doas $CAKE Admin setSetting "MISP.footermidleft" "This is an initial install"
+doas $CAKE Admin setSetting "MISP.footermidright" "Please configure and harden accordingly"
+doas $CAKE Admin setSetting "MISP.welcome_text_top" "Initial Install, please configure"
+doas $CAKE Admin setSetting "MISP.welcome_text_bottom" "Welcome to MISP, change this message in MISP Settings"
+
+# Force defaults to make MISP Server Settings less GREEN
+doas $CAKE Admin setSetting "Security.password_policy_length" 12
+doas $CAKE Admin setSetting "Security.password_policy_complexity" '/^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/'
+# Tune global time outs
+doas $CAKE Admin setSetting "Session.autoRegenerate" 0
+doas $CAKE Admin setSetting "Session.timeout" 600
+doas $CAKE Admin setSetting "Session.cookie_timeout" 3600
+```
 
 ### Recommended actions
 -------------------
@@ -565,5 +781,6 @@ doas chown -R www:www /var/www/htdocs/MISP/<directory path with an indicated iss
 
 #### ZeroMQ depends on the Python client for Redis
 ```bash
-doas pkg_add -v py3-zmq
+doas pkg_add -v py3-zmq zeromq
+doas /usr/local/virtualenvs/MISP/bin/pip install pyzmq
 ```
