@@ -342,7 +342,7 @@ class RestResponseComponent extends Component
 
     private function __sendResponse($response, $code, $format = false, $raw = false, $download = false)
     {
-        if (strtolower($format) === 'application/xml') {
+        if (strtolower($format) === 'application/xml' || strtolower($format) === 'xml') {
             if (!$raw) {
                 if (isset($response[0])) {
                     if (count(array_keys($response[0])) == 1) {
