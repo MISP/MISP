@@ -170,7 +170,10 @@ class RestResponseComponent extends Component
             'edit' => array(
                 'description' => "POST an Server object in JSON format to this API to edit a server.",
                 'optional' => array('url', 'name', 'authkey', 'json', 'push', 'pull', 'push_rules', 'pull_rules', 'submitted_cert', 'submitted_client_cert', 'remote_org_id')
-            )
+            ),
+			'serverSettings' => array(
+				'description' => "Send a GET request to this endpoint to get a full diagnostic along with all currently set settings of the current instance."
+			)
         ),
         'Sighting' => array(
             'add' => array(
