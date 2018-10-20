@@ -1,14 +1,15 @@
-INSTALLATION INSTRUCTIONS
-------------------------- for Debian 9 "stretch" server
+# INSTALLATION INSTRUCTIONS
+## for Debian 9.5 "stretch"
 
-0/ MISP debian stable install - Status
+### 0/ MISP debian stable install - Status
 --------------------------------------
 
-Maintained and tested by @SteveClement on 20180705
+!!! notice
+    Maintained and tested by @SteveClement on 20180705
 
-Some configurables used below:
+#### MISP configuration variables
 
-```
+```bash
 # MISP configuration variables
 PATH_TO_MISP='/var/www/MISP'
 CAKE="$PATH_TO_MISP/app/Console/cake"
@@ -53,29 +54,33 @@ echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
 echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 ```
 
-1/ Minimal Debian install
+### 1/ Minimal Debian install
 -------------------------
 
-# Install a minimal Debian 9 "stretch" server system with the software:
+#### Install a minimal Debian 9 "stretch" server system with the software:
 - OpenSSH server
 - Web server, apache FTW!
 - This guide assumes a user name of 'misp'
 
-# install etckeeper (optional)
+#### install etckeeper (optional)
+```bash
 su -
 apt install etckeeper
 apt install sudo
 adduser misp sudo
+```
 
-# Make sure your system is up2date:
+#### Make sure your system is up2date
+```bash
 sudo apt update
 sudo apt -y dist-upgrade
+```
 
-# Network Interface Name salvage (optional)
+#### Network Interface Name salvage (optional)
 
 This will bring back 'ethX' e.g: eth0
 
-```
+```bash
 GRUB_CMDLINE_LINUX="net.ifnames=0 biosdevname=0"
 DEFAULT_GRUB=/etc/default/grub
 for key in GRUB_CMDLINE_LINUX
@@ -85,19 +90,24 @@ done
 sudo grub-mkconfig -o /boot/grub/grub.cfg
 ```
 
-# install postfix, there will be some questions.
-sudo apt install -y postfix
+#### install postfix, there will be some questions. *(optional)
+```bash
 # Postfix Configuration: Satellite system
+sudo apt install -y postfix
+```
+
+```bash
 # change the relay server later with:
 sudo postconf -e 'relayhost = example.com'
 sudo postfix reload
+```
 
-
-2/ Install LAMP & dependencies
+### 2/ Install LAMP & dependencies
 ------------------------------
-Once the system is installed you can perform the following steps:
 
-# Install all the dependencies: (some might already be installed)
+#### Install all the dependencies (some might already be installed)
+
+```bash
 sudo apt install -y \
 curl gcc git gnupg-agent make openssl redis-server vim zip libyara-dev python3-yara python3-redis python3-zmq \
 mariadb-client \
@@ -129,22 +139,29 @@ sudo pear install Crypt_GPG
 
 sudo update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1
 sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.5 2
+```
 
-To flip between the 2 pythons: sudo update-alternatives --config python
+To flip between the 2 pythons use *update-alternatives*
+```bash
+sudo update-alternatives --config python
+```
 
-# Apply all changes
+#### Apply all changes
+```bash
 sudo systemctl restart apache2
+```
 
 
-3/ MISP code
+### 3/ MISP code
 ------------
+```bash
 # Download MISP using git in the /var/www/ directory.
 sudo mkdir $PATH_TO_MISP
 sudo chown www-data:www-data $PATH_TO_MISP
 cd $PATH_TO_MISP
 sudo -u www-data git clone https://github.com/MISP/MISP.git $PATH_TO_MISP
 
-# Make git ignore filesystem permission differences
+#### Make git ignore filesystem permission differences
 sudo -u www-data git config core.filemode false
 
 cd $PATH_TO_MISP/app/files/scripts
@@ -172,11 +189,13 @@ sudo -u www-data git submodule foreach --recursive git config core.filemode fals
 # install PyMISP
 cd $PATH_TO_MISP/PyMISP
 sudo pip3 install .
+```
 
-4/ CakePHP
+### 4/ CakePHP
 -----------
-# CakePHP is included as a submodule of MISP.
+#### CakePHP is included as a submodule of MISP.
 
+```bash
 # Install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd $PATH_TO_MISP/app
 # Make composer cache happy
@@ -190,23 +209,28 @@ sudo phpenmod redis
 
 # To use the scheduler worker for scheduled tasks, do the following:
 sudo -u www-data cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
+```
 
 
-5/ Set the permissions
+### 5/ Set the permissions
 ----------------------
 
+```bash
 # Check if the permissions are set correctly using the following commands:
 sudo chown -R www-data:www-data $PATH_TO_MISP
 sudo chmod -R 750 $PATH_TO_MISP
 sudo chmod -R g+ws $PATH_TO_MISP/app/tmp
 sudo chmod -R g+ws $PATH_TO_MISP/app/files
 sudo chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
+```
 
 
-6/ Create a database and user
+### 6/ Create a database and user
 -----------------------------
-# Enter the mysql shell
+#### Enter the mysql shell
+```bash
 sudo mysql -u root -p
+```
 
 ```
 MariaDB [(none)]> create database misp;
@@ -216,19 +240,22 @@ MariaDB [(none)]> flush privileges;
 MariaDB [(none)]> exit
 ```
 
-copy/paste:
-```
+#### copy/paste:
+```bash
 sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "create database $DBNAME;"
 sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant usage on *.* to $DBNAME@localhost identified by '$DBPASSWORD_MISP';"
 sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant all privileges on $DBNAME.* to '$DBUSER_MISP'@'localhost';"
 sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "flush privileges;"
 ```
 
-# Import the empty MISP database from MYSQL.sql
+#### Import the empty MISP database from MYSQL.sql
+```bash
 sudo -u www-data cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
+```
 
-7/ Apache configuration
+### 7/ Apache configuration
 -----------------------
+```bash
 # Now configure your Apache webserver with the DocumentRoot $PATH_TO_MISP/app/webroot/
 
 # If the apache version is 2.4:
@@ -244,7 +271,9 @@ sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
 -keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt
 
 # Otherwise, copy the SSLCertificateFile, SSLCertificateKeyFile, and SSLCertificateChainFile to /etc/ssl/private/. (Modify path and config to fit your environment)
+```
 
+```
 ============================================= Begin sample working SSL config for MISP
 <VirtualHost <IP, FQDN, or *>:80>
         ServerAdmin admin@<your.FQDN.here>
@@ -280,7 +309,9 @@ sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
         ServerSignature Off
 </VirtualHost>
 ============================================= End sample working SSL config for MISP
+```
 
+```bash
 # activate new vhost
 sudo a2dissite default-ssl
 sudo a2ensite misp-ssl
@@ -297,17 +328,21 @@ done
 
 # Restart apache
 sudo systemctl restart apache2
+```
 
-8/ Log rotation
+### 8/ Log rotation
 ---------------
+```bash
 # MISP saves the stdout and stderr of its workers in $PATH_TO_MISP/app/tmp/logs
 # To rotate these logs install the supplied logrotate script:
 
 sudo cp $PATH_TO_MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
 chmod 0640 /etc/logrotate.d/misp
+```
 
-9/ MISP configuration
+### 9/ MISP configuration
 ---------------------
+```bash
 # There are 4 sample configuration files in $PATH_TO_MISP/app/Config that need to be copied
 sudo -u www-data cp -a $PATH_TO_MISP/app/Config/bootstrap.default.php $PATH_TO_MISP/app/Config/bootstrap.php
 sudo -u www-data cp -a $PATH_TO_MISP/app/Config/database.default.php $PATH_TO_MISP/app/Config/database.php
@@ -574,9 +609,10 @@ sudo chown -R www-data:www-data $PATH_TO_MISP/<directory path with an indicated 
 
 echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
 echo "User  (misp) DB Password: $DBPASSWORD_MISP"
+```
 
 
-Recommended actions
+### Recommended actions
 -------------------
 - By default CakePHP exposes its name and version in email headers. Apply a patch to remove this behavior.
 
@@ -587,20 +623,21 @@ Recommended actions
 - Log and audit
 
 
-Optional features
+### Optional features
 -------------------
-# MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following commands
-
+#### MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following commands
+```
 # ZeroMQ depends on the Python client for Redis
 sudo pip3 install redis
 
 ## install pyzmq
 sudo pip3 install pyzmq
+```
 
 
-MISP Dashboard
+### MISP Dashboard
 --------------
-
+```bash
 cd /var/www
 sudo mkdir misp-dashboard
 sudo chown www-data:www-data misp-dashboard
@@ -670,11 +707,13 @@ sudo $CAKE Admin setSetting "Plugin.ZeroMQ_redis_namespace" "mispq"
 sudo $CAKE Admin setSetting "Plugin.ZeroMQ_include_attachments" false
 sudo $CAKE Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false
 sudo $CAKE Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false
+```
 
 
-Install viper framework
+### Install viper framework
 -----------------------
 
+```bash
 cd /usr/local/src/
 sudo apt-get install -y libssl-dev swig python3-ssdeep p7zip-full unrar-free sqlite python3-pyclamd exiftool radare2
 sudo pip3 install SQLAlchemy PrettyTable python-magic
@@ -689,12 +728,13 @@ echo 'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/ga
 sed -i "s/^misp_url\ =/misp_url\ =\ http:\/\/localhost/g" ~/.viper/viper.conf
 sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" ~/.viper/viper.conf
 sqlite3 ~/.viper/admin.db 'UPDATE auth_user SET password="pbkdf2_sha256$100000$iXgEJh8hz7Cf$vfdDAwLX8tko1t0M1TLTtGlxERkNnltUnMhbv56wK/U="'
+```
 
 
 
-Install mail to misp
+### Install mail to misp
 --------------------
-
+```bash
 cd /usr/local/src/
 sudo apt-get install -y cmake
 sudo git clone https://github.com/MISP/mail_to_misp.git
@@ -712,4 +752,4 @@ sudo cp mail_to_misp_config.py-example mail_to_misp_config.py
 
 sudo sed -i "s/^misp_url\ =\ 'YOUR_MISP_URL'/misp_url\ =\ 'http:\/\/localhost'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
 sudo sed -i "s/^misp_key\ =\ 'YOUR_KEY_HERE'/misp_key\ =\ '$AUTH_KEY'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
-
+```
