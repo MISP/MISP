@@ -5,7 +5,7 @@ INSTALLATION INSTRUCTIONS for RHEL 7.x
 |   0/ Overview and Assumptions          |
 +----------------------------------------+
 This document details the steps to install MISP on Red Hat Enterprise Linux 7.x (RHEL 7.x). At time of this writing it
-was tested on version 7.4.
+was tested on version 7.5.
 
 The following assumptions with regard to this installation have been made.
 
@@ -106,6 +106,7 @@ yum install rh-python36
 3.01/ Download MISP code using git in /var/www/ directory
 cd /var/www
 git clone https://github.com/MISP/MISP.git
+cd MISP
 git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
 # if the last shortcut doesn't work, specify the latest version manually
 # example: git checkout tags/v2.4.XY
