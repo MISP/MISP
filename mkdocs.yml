@@ -76,6 +76,9 @@ nav:
       - 'Amazon S3 attachments': 'CONFIG.s3-attachments.md'
       - 'S/MIME': 'CONFIG.SMIME.md'
     - Update MISP: 'UPDATE.md'
+    - Upgrading MISP: 'UPGRADE.md'
+    - Old guides:
+      - '2.3 to 2.4 upgrade': 'old-2_3to2_4-UPGRADE.md'
     - About:
       - 'MISP Release Notes': 'Changelog.md'
       - 'License': 'license.md'
