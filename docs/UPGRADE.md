@@ -5,5 +5,5 @@
 
 !!! warning
     If you are a MISP developer reading this.<br />
-    Always aim to avoid having to write anything about a specific upgrade procuder. We strive to make our upgrades as seamless as possible and no extra steps should be needed, alas, extreme circumstances sometimes need thos extreme measures.<br />
+    Always aim to avoid having to write anything about a specific upgrade procedure. We strive to make our upgrades as seamless as possible and no extra steps should be needed, alas, extreme circumstances sometimes need those extreme measures.<br />
     We have been warned.
