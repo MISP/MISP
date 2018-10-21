@@ -818,6 +818,11 @@ class EventsController extends AppController
         $this->set('analysisLevels', $this->Event->analysisLevels);
         $this->set('distributionLevels', $this->Event->distributionLevels);
         $this->set('shortDist', $this->Event->shortDist);
+		if ($this->params['ext'] === 'csv') {
+			App::uses('CsvExport', 'Export');
+			$export = new CsvExport();
+			return $this->RestResponse->viewData($export->eventIndex($events), 'csv');
+		}
         if ($this->request->is('ajax')) {
             $this->autoRender = false;
             $this->layout = false;
