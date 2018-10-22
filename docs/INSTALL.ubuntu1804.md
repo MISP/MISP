@@ -1,29 +1,42 @@
-INSTALLATION INSTRUCTIONS
-------------------------- for Ubuntu 18.04-server
+# INSTALLATION INSTRUCTIONS
+## for Ubuntu 18.04-server
 
-1/ Minimal Ubuntu install
+### 0/ MISP Ubuntu 18.04-server install - status
+-------------------------
+!!! notice
+    Maintained and tested by the community.
+    It is also partially the basis of the [bootstrap.sh](https://github.com/MISP/misp-packer/blob/18.04/scripts/bootstrap.sh) script of misp-packer.
+
+### 1/ Minimal Ubuntu install
 -------------------------
 
-# Install a minimal Ubuntu 18.04-server system with the software:
+#### Install a minimal Ubuntu 18.04-server system with the software:
 - OpenSSH server
 
-# Make sure your system is up2date:
+#### Make sure your system is up2date
+```bash
 sudo apt-get update
 sudo apt-get upgrade
+```
 
-# install postfix, there will be some questions.
+#### install postfix, there will be some questions.
+```bash
 sudo apt-get install postfix
-# Postfix Configuration: Satellite system
-# change the relay server later with:
-sudo postconf -e 'relayhost = example.com'
-sudo postfix reload
+```
+!!! notice
+    Postfix Configuration: Satellite system<br />
+    change the relay server later with:
+    ```bash
+    sudo postconf -e 'relayhost = example.com'
+    sudo postfix reload
+    ```
 
-
-2/ Install LAMP & dependencies
+### 2/ Install LAMP & dependencies
 ------------------------------
-Once the system is installed you can perform the following steps:
-
-# Make sure you have enabled the Universe repository (fe. for redis-server), enable it with
+Once the system is installed you can perform the following steps.
+```bash
+# Make sure you have enabled the Universe repository
+# (ie. for redis-server), enable it with:
 # sudo add-apt-repository universe
 
 # Install the dependencies: (some might already be installed)
@@ -51,9 +64,11 @@ sudo apt-get install libapache2-mod-php php php-cli php-gnupg php-dev php-json p
 
 # Apply all changes
 sudo systemctl restart apache2
+```
 
-3/ MISP code
+### 3/ MISP code
 ------------
+```bash
 # Download MISP using git in the /var/www/ directory.
 sudo mkdir /var/www/MISP
 sudo chown www-data:www-data /var/www/MISP
@@ -91,11 +106,14 @@ sudo python3 setup.py install
 
 # install support for STIX 2.0
 sudo pip3 install stix2
+```
 
-4/ CakePHP
+### 4/ CakePHP
 -----------
 
-# Once done, install CakeResque along with its dependencies if you intend to use the built in background jobs:
+```bash
+# Once done, install CakeResque along with its dependencies 
+# if you intend to use the built in background jobs:
 cd /var/www/MISP/app
 sudo -u www-data php composer.phar require kamisama/cake-resque:4.1.2
 sudo -u www-data php composer.phar config vendor-dir Vendor
@@ -109,59 +127,76 @@ sudo -u www-data cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app
 
 # If you have multiple MISP instances on the same system, don't forget to have a different Redis per MISP instance for the CakeResque workers
 # The default Redis port can be updated in Plugin/CakeResque/Config/config.php
+```
 
-5/ Set the permissions
+### 5/ Set the permissions
 ----------------------
 
+```bash
 # Check if the permissions are set correctly using the following commands:
 sudo chown -R www-data:www-data /var/www/MISP
 sudo chmod -R 750 /var/www/MISP
 sudo chmod -R g+ws /var/www/MISP/app/tmp
 sudo chmod -R g+ws /var/www/MISP/app/files
 sudo chmod -R g+ws /var/www/MISP/app/files/scripts/tmp
+```
 
-
-6/ Create a database and user
+### 6/ Create a database and user
 -----------------------------
+```bash
 # Enter the mysql shell
 sudo mysql -u root -p
+```
 
+```
 MariaDB [(none)]> create database misp;
 MariaDB [(none)]> grant usage on *.* to misp@localhost identified by 'XXXXdbpasswordhereXXXXX';
 MariaDB [(none)]> grant all privileges on misp.* to misp@localhost;
 MariaDB [(none)]> flush privileges;
 MariaDB [(none)]> exit
+```
 
+```bash
 # Import the empty MISP database from MYSQL.sql
 sudo -u www-data sh -c "mysql -u misp -p misp < /var/www/MISP/INSTALL/MYSQL.sql"
 # enter the password you've set in line 129 when prompted
+```
 
 
-7/ Apache configuration
+### 7/ Apache configuration
 -----------------------
-# Now configure your Apache webserver with the DocumentRoot /var/www/MISP/app/webroot/
+Now configure your Apache webserver with the DocumentRoot /var/www/MISP/app/webroot/
 
-# If the apache version is 2.2:
+#### Apache version 2.2 config:
+```bash
 sudo cp /var/www/MISP/INSTALL/apache.22.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
+```
 
-# If the apache version is 2.4:
+#### Apache version 2.4 config:
+```bash
 sudo cp /var/www/MISP/INSTALL/apache.24.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
+```
 
-# Be aware that the configuration files for apache 2.4 and up have changed.
-# The configuration file has to have the .conf extension in the sites-available directory
-# For more information, visit http://httpd.apache.org/docs/2.4/upgrading.html
+!!! notice
+    Be aware that the configuration files for apache 2.4 and up have changed.
+    The configuration file has to have the .conf extension in the sites-available directory
+    For more information, visit http://httpd.apache.org/docs/2.4/upgrading.html
 
-# If a valid SSL certificate is not already created for the server, create a self-signed certificate:
+```bash
+# If a valid SSL certificate is not already created for the server,
+# create a self-signed certificate:
 sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
 -subj "/C=<Country>/ST=<State>/L=<Locality>/O=<Organization>/OU=<Organizational Unit Name>/CN=<QDN.here>/emailAddress=admin@<your.FQDN.here>" \
 -keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt
+```
 
-# Please find a sample conf file for an SSL enabled conf file in-line below (alternatively use one of the samples provided in /var/www/MISP/INSTALL
+!!! notice
+    Please find a sample conf file for an SSL enabled conf file in-line below (alternatively use one of the samples provided in /var/www/MISP/INSTALL).<br />
+    Also remember to verify the SSLCertificateChainFile property in your config file.<br />
+    This is usually commented out for the self-generated certificate in the sample configurations, such as the one pasted below.<br />
+    Otherwise, copy the SSLCertificateFile, SSLCertificateKeyFile, and SSLCertificateChainFile to /etc/ssl/private/. (Modify path and config to fit your environment)
 
-# Also remember to verify the SSLCertificateChainFile property in your config file - this is usually commented out for the self-generated certificate in the sample configurations, such as the one pasted below.
-
-# Otherwise, copy the SSLCertificateFile, SSLCertificateKeyFile, and SSLCertificateChainFile to /etc/ssl/private/. (Modify path and config to fit your environment)
-
+```
 ============================================= Begin sample working SSL config for MISP
 <VirtualHost <IP, FQDN, or *>:80>
         ServerName <your.FQDN.here>
@@ -196,24 +231,30 @@ sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
         ServerSignature Off
 </VirtualHost>
 ============================================= End sample working SSL config for MISP
+```
 
+```
 # activate new vhost
 sudo a2dissite default-ssl
 sudo a2ensite misp-ssl
 
 # Restart apache
 sudo systemctl restart apache2
+```
 
-8/ Log rotation
+### 8/ Log rotation
 ---------------
+```bash
 # MISP saves the stdout and stderr of its workers in /var/www/MISP/app/tmp/logs
 # To rotate these logs install the supplied logrotate script:
 
 sudo cp /var/www/MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
 sudo chmod 0640 /etc/logrotate.d/misp
+```
 
-9/ MISP configuration
+### 9/ MISP configuration
 ---------------------
+```bash
 # There are 4 sample configuration files in /var/www/MISP/app/Config that need to be copied
 sudo -u www-data cp -a /var/www/MISP/app/Config/bootstrap.default.php /var/www/MISP/app/Config/bootstrap.php
 sudo -u www-data cp -a /var/www/MISP/app/Config/database.default.php /var/www/MISP/app/Config/database.php
@@ -257,9 +298,12 @@ sudo -u www-data mkdir /var/www/MISP/.gnupg
 sudo chmod 700 /var/www/MISP/.gnupg
 sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --gen-key
 # The email address should match the one set in the config.php / set in the configuration menu in the administration menu configuration file
+```
 
-# NOTE: if entropy is not high enough, you can install rng-tools and then run rngd -r /dev/urandom do fix it quickly
+!!! notice
+    If entropy is not high enough, you can install rng-tools and then run rngd -r /dev/urandom do fix it quickly
 
+```bash
 # And export the public key to the webroot
 sudo -u www-data sh -c "gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR-KEYS-EMAIL-HERE > /var/www/MISP/app/webroot/gpg.asc"
 
@@ -268,34 +312,40 @@ sudo chmod +x /var/www/MISP/app/Console/worker/start.sh
 sudo vim /etc/rc.local
 # Add the following line before the last line (exit 0). Make sure that you replace www-data with your apache user:
 sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh
+```
+!!! notice
+    Now log in using the webinterface. <br />
+    The default user/pass = admin@admin.test/admin<br />
+    Using the server settings tool in the admin interface (Administration -> Server Settings), set MISP up to your preference<br />
+    It is especially vital that no critical issues remain!<br />
+    Don't forget to change the email, password and authentication key after installation.
 
-# Now log in using the webinterface:
-# The default user/pass = admin@admin.test/admin
+!!! notice
+    Start the workers by navigating to the workers tab and clicking restart all workers
 
-# Using the server settings tool in the admin interface (Administration -> Server Settings), set MISP up to your preference
-# It is especially vital that no critical issues remain!
-# start the workers by navigating to the workers tab and clicking restart all workers
+!!! notice
+    Once done, have a look at the diagnostics
+    If any of the directories that MISP uses to store files is not writeable to the apache user, change the permissions
+    you can do this by running the following commands:
+    ```
+    sudo chmod -R 750 /var/www/MISP/<directory path with an indicated issue>
+    sudo chown -R www-data:www-data /var/www/MISP/<directory path with an indicated issue>
+    ```
 
-# Don't forget to change the email, password and authentication key after installation.
+!!! warning
+    Make sure that the STIX libraries and GnuPG work as intended, if not, refer to INSTALL.txt's paragraphs dealing with these two items
 
-# Once done, have a look at the diagnostics
-
-# If any of the directories that MISP uses to store files is not writeable to the apache user, change the permissions
-# you can do this by running the following commands:
-
-sudo chmod -R 750 /var/www/MISP/<directory path with an indicated issue>
-sudo chown -R www-data:www-data /var/www/MISP/<directory path with an indicated issue>
-
-# Make sure that the STIX libraries and GnuPG work as intended, if not, refer to INSTALL.txt's paragraphs dealing with these two items
-
-# If anything goes wrong, make sure that you check MISP's logs for errors:
-# /var/www/MISP/app/tmp/logs/error.log
-# /var/www/MISP/app/tmp/logs/resque-worker-error.log
-# /var/www/MISP/app/tmp/logs/resque-scheduler-error.log
-# /var/www/MISP/app/tmp/logs/resque-2015-01-01.log // where the actual date is the current date
+!!! notice
+    If anything goes wrong, make sure that you check MISP's logs for errors:
+    ```
+    # /var/www/MISP/app/tmp/logs/error.log
+    # /var/www/MISP/app/tmp/logs/resque-worker-error.log
+    # /var/www/MISP/app/tmp/logs/resque-scheduler-error.log
+    # /var/www/MISP/app/tmp/logs/resque-2015-01-01.log // where the actual date is the current date
+    ```
 
 
-Recommended actions
+### Recommended actions
 -------------------
 - By default CakePHP exposes its name and version in email headers. Apply a patch to remove this behavior.
 
@@ -306,14 +356,17 @@ Recommended actions
 - Log and audit
 
 
-Optional features
+### Optional features
 -----------------
-# MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
+#### MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
+```bash
 sudo pip3 install pyzmq
 # ZeroMQ depends on the Python client for Redis
 sudo pip3 install redis
+```
 
-# For the experimental ssdeep correlations, run the following installation:
+#### Experimental ssdeep correlations
+```bash
 # installing ssdeep
 wget http://downloads.sourceforge.net/project/ssdeep/ssdeep-2.13/ssdeep-2.13.tar.gz
 tar zxvf ssdeep-2.13.tar.gz
@@ -330,9 +383,11 @@ sudo pecl install ssdeep
 echo "extension=ssdeep.so" | sudo tee /etc/php/7.2/mods-available/ssdeep.ini
 sudo phpenmod ssdeep
 sudo service apache2 restart
+```
 
-Optional features: misp-modules
+#### misp-modules
 -------------------------------
-# If you want to add the misp modules functionality, follow the setup procedure described in misp-modules:
-# https://github.com/MISP/misp-modules#how-to-install-and-start-misp-modules
-# Then the enrichment, export and import modules can be enabled in MISP via the settings.
+!!! notice
+    If you want to add the misp modules functionality, follow the setup procedure described in misp-modules:<br />
+    https://github.com/MISP/misp-modules#how-to-install-and-start-misp-modules<br />
+    Then the enrichment, export and import modules can be enabled in MISP via the settings.

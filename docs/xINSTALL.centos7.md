@@ -1,16 +1,19 @@
-INSTALLATION INSTRUCTIONS
-------------------------- for CentOS 7.x
+# INSTALLATION INSTRUCTIONS
+## for CentOS 7.x
 
-0/ MISP CentOS 7 Minimal NetInstall - Status
+### 0/ MISP CentOS 7 Minimal NetInstall - Status
 --------------------------------------------
 
-Maintained and tested by @SteveClement, CentOS 7.5-1804 on 20180906
+!!! notice
+    Semi-maintained and tested by @SteveClement, CentOS 7.5-1804 on 20180906<br />
+    It is still considered experimental as not everything works seemlessly.
 
-CentOS 7.5-1804 NetInstallURL: http://mirror.centos.org/centos/7.5.1804/os/x86_64/
 
-Some configurables used below:
+CentOS 7.5-1804 [NetInstallURL](http://mirror.centos.org/centos/7.5.1804/os/x86_64/)
 
-```
+#### MISP configuration variables
+
+```bash
 # CentOS Specific
 RUN_PHP='/usr/bin/scl enable rh-php56 '
 RUN_PYTHON='/usr/bin/scl enable rh-python36 '
@@ -59,7 +62,7 @@ echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
 echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 ```
 
-1/ Minimal CentOS install
+### 1/ Minimal CentOS install
 -------------------------
 
 Install a minimal CentOS 7.x system with the software:
@@ -68,16 +71,20 @@ Install a minimal CentOS 7.x system with the software:
 - LAMP server (actually, this is done below)
 - Mail server
 
-# Make sure you set your hostname CORRECTLY vs. like an animal (manually in /etc/hostname)
+
+```bash
+# Make sure you set your hostname CORRECTLY vs. like an brute (manually in /etc/hostname)
 hostnamectl set-hostname misp.local # or whatever you want it to be
 
 # Make sure your system is up2date:
 sudo yum update -y
+```
 
-2/ Dependencies *
+### 2/ Dependencies *
 ----------------
-Once the system is installed you can perform the following steps as root or with sudo:
+Once the system is installed you can perform the following steps as root or with sudo.
 
+```
 # We need some packages from the Extra Packages for Enterprise Linux repository
 sudo yum install epel-release -y
 
@@ -102,9 +109,12 @@ sudo systemctl start  rh-php56-php-fpm.service
 
 $RUN_PHP "pear channel-update pear.php.net"
 sudo $RUN_PHP "pear install Crypt_GPG"    # we need version >1.3.0
+```
 
-NOTE: $RUN_PHP makes php available for you if using rh-php56. e.g: $RUN_PHP "pear list | grep Crypt_GPG"
+!!! notice
+    $RUN_PHP makes php available for you if using rh-php56. e.g: $RUN_PHP "pear list | grep Crypt_GPG"
 
+```bash
 # GPG needs lots of entropy, haveged provides entropy
 sudo yum install haveged -y
 sudo systemctl enable haveged.service
@@ -113,9 +123,11 @@ sudo systemctl start  haveged.service
 # Enable and start redis
 sudo systemctl enable redis.service
 sudo systemctl start  redis.service
+```
 
-3/ MISP code
+### 3/ MISP code
 ------------
+```bash
 # Download MISP using git in the /var/www/ directory.
 cd /var/www/
 sudo git clone https://github.com/MISP/MISP.git
@@ -176,12 +188,14 @@ sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php56/php-fpm.d/w
 sudo systemctl restart rh-php56-php-fpm.service
 
 umask $UMASK
+```
 
 
-4/ CakePHP
+### 4/ CakePHP
 -----------
-# CakePHP is now included as a submodule of MISP and has been fetch by a previous step.
-# Install CakeResque along with its dependencies if you intend to use the built in background jobs:
+#### CakePHP is now included as a submodule of MISP and has been fetch by a previous step.
+#### Install CakeResque along with its dependencies if you intend to use the built in background jobs.
+```bash
 sudo chown -R apache:apache /var/www/MISP
 sudo mkdir /usr/share/httpd/.composer
 sudo chown apache:apache /usr/share/httpd/.composer
@@ -213,10 +227,11 @@ sudo systemctl restart rh-php56-php-fpm.service
 
 # To use the scheduler worker for scheduled tasks, do the following:
 sudo cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResque/Config/config.php
+```
 
-5/ Set the permissions
+### 5/ Set the permissions
 ----------------------
-
+```bash
 # Make sure the permissions are set correctly using the following commands as root:
 sudo chown -R root:apache /var/www/MISP
 sudo find /var/www/MISP -type d -exec chmod g=rx {} \;
@@ -233,9 +248,11 @@ sudo chown -R apache:apache /var/www/MISP/app/Config
 sudo chown -R apache:apache /var/www/MISP/app/tmp
 sudo chown -R apache:apache /var/www/MISP/app/webroot/img/orgs
 sudo chown -R apache:apache /var/www/MISP/app/webroot/img/custom
+```
 
-6/ Create a database and user
+### 6/ Create a database and user
 -----------------------------
+```bash
 # Enable, start and secure your mysql database server
 sudo systemctl enable mariadb.service
 sudo systemctl start  mariadb.service
@@ -252,6 +269,7 @@ sudo systemctl restart mariadb.service
 
 # Enter the mysql shell
 mysql -u root -p
+```
 
 ```
 MariaDB [(none)]> create database misp;
@@ -260,21 +278,25 @@ MariaDB [(none)]> grant all privileges on misp.* to misp@localhost ;
 MariaDB [(none)]> exit
 ```
 
-copy/paste:
+#### copy/paste:
 
-```
+```bash
 sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "create database $DBNAME;"
 sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant usage on *.* to $DBNAME@localhost identified by '$DBPASSWORD_MISP';"
 sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant all privileges on $DBNAME.* to '$DBUSER_MISP'@'localhost';"
 sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "flush privileges;"
 ```
 
-# Import the empty MySQL database from MYSQL.sql
+#### Import the empty MySQL database from MYSQL.sql
+
+```bash
 sudo -u apache cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
+```
 
 
-7/ Apache configuration
+### 7/ Apache configuration
 -----------------------
+```bash
 # Now configure your apache server with the DocumentRoot /var/www/MISP/app/webroot/
 # A sample vhost can be found in /var/www/MISP/INSTALL/apache.misp.centos7
 
@@ -289,8 +311,12 @@ sudo chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/tmp
 sudo chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/tmp/logs
 sudo chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/webroot/img/orgs
 sudo chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/webroot/img/custom
+```
 
-:warning: Revise all permissions so update in Web UI works.
+!!! warning
+    Revise all permissions so update in Web UI works.
+
+```bash
 sudo chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/tmp
 
 
@@ -308,16 +334,22 @@ sudo firewall-cmd --reload
 # We seriously recommend using only HTTPS / SSL !
 # Add SSL support by running: yum install mod_ssl
 # Check out the apache.misp.ssl file for an example
+```
 
-/!\ WARNING - To be fixed - Place holder
+!!! warning
+    To be fixed - Place holder
+
+```bash
 # If a valid SSL certificate is not already created for the server, create a self-signed certificate:
 sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
 -subj "/C=${OPENSSL_C}/ST=${OPENSSL_ST}/L=${OPENSSL_L}/O=${OPENSSL_O}/OU=${OPENSSL_OU}/CN=${OPENSSL_CN}/emailAddress=${OPENSSL_EMAILADDRESS}" \
 -keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt
+```
 
 
-8/ Log rotation
+### 8/ Log rotation
 ---------------
+```bash
 # MISP saves the stdout and stderr of it's workers in /var/www/MISP/app/tmp/logs
 # To rotate these logs install the supplied logrotate script:
 
@@ -333,9 +365,11 @@ sudo chcon -R -t httpd_log_t /var/www/MISP/app/tmp/logs
 sudo checkmodule -M -m -o /tmp/misplogrotate.mod $PATH_TO_MISP/INSTALL/misplogrotate.te
 sudo semodule_package -o /tmp/misplogrotate.pp -m /tmp/misplogrotate.mod
 sudo semodule -i /tmp/misplogrotate.pp
+```
 
-9/ MISP configuration
+### 9/ MISP configuration
 ---------------------
+```
 # There are 4 sample configuration files in $PATH_TO_MISP/app/Config that need to be copied
 sudo -u apache cp -a $PATH_TO_MISP/app/Config/bootstrap.default.php $PATH_TO_MISP/app/Config/bootstrap.php
 sudo -u apache cp -a $PATH_TO_MISP/app/Config/database.default.php $PATH_TO_MISP/app/Config/database.php
@@ -552,33 +586,38 @@ sudo $RUN_PHP "$CAKE Admin setSetting "Security.password_policy_length" 12"
 sudo $RUN_PHP "$CAKE Admin setSetting "Session.autoRegenerate" 0"
 sudo $RUN_PHP "$CAKE Admin setSetting "Session.timeout" 600"
 sudo $RUN_PHP "$CAKE Admin setSetting "Session.cookie_timeout" 3600"
+```
 
 
-# Now log in using the webinterface: http://misp/users/login
-# The default user/pass = admin@admin.test/admin
+!!! notice
+    Now log in using the webinterface: http://misp/users/login<br />
+    The default user/pass = admin@admin.test/admin<br />
+    Using the server settings tool in the admin interface (Administration -> Server Settings), set MISP up to your preference<br />
+    It is especially vital that no critical issues remain!<br />
+    Don't forget to change the email, password and authentication key after installation<br />
+    Once done, have a look at the diagnostics.<br />
 
-# Using the server settings tool in the admin interface (Administration -> Server Settings), set MISP up to your preference
-# It is especially vital that no critical issues remain!
+!!! notice
+    If any of the directories that MISP uses to store files is not writeable to the apache user, change the permissions<br />
+    you can do this by running the following commands:
+    ```bash
+    chmod -R 750 /var/www/MISP/<directory path with an indicated issue>
+    chown -R apache:apache /var/www/MISP/<directory path with an indicated issue>
+    ```
 
-Don't forget to change the email, password and authentication key after installation.
+!!! warning
+    Make sure that the STIX libraries and GnuPG work as intended, if not, refer to INSTALL.txt's paragraphs dealing with these two items
 
-# Once done, have a look at the diagnostics
+!!! notice
+    If anything goes wrong, make sure that you check MISP's logs for errors:
+    ```
+    # /var/www/MISP/app/tmp/logs/error.log
+    # /var/www/MISP/app/tmp/logs/resque-worker-error.log
+    # /var/www/MISP/app/tmp/logs/resque-scheduler-error.log
+    # /var/www/MISP/app/tmp/logs/resque-2015-01-01.log //where the actual date is the current date
+    ```
 
-# If any of the directories that MISP uses to store files is not writeable to the apache user, change the permissions
-# you can do this by running the following commands:
-
-chmod -R 750 /var/www/MISP/<directory path with an indicated issue>
-chown -R apache:apache /var/www/MISP/<directory path with an indicated issue>
-
-# Make sure that the STIX libraries and GnuPG work as intended, if not, refer to INSTALL.txt's paragraphs dealing with these two items
-
-# If anything goes wrong, make sure that you check MISP's logs for errors:
-# /var/www/MISP/app/tmp/logs/error.log
-# /var/www/MISP/app/tmp/logs/resque-worker-error.log
-# /var/www/MISP/app/tmp/logs/resque-scheduler-error.log
-# /var/www/MISP/app/tmp/logs/resque-2015-01-01.log //where the actual date is the current date
-
-Recommended actions
+### Recommended actions
 -------------------
 - By default CakePHP exposes his name and version in email headers. Apply a patch to remove this behavior.
 
