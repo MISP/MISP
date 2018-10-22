@@ -7,8 +7,8 @@ site_author: MISP Project
 site_url: https://www.misp-project.org/
 
 # Repository
-repo_name: SteveClement/MISP
-repo_url: https://github.com/SteveClement/MISP
+repo_name: MISP/MISP
+repo_url: https://github.com/MISP/MISP
 edit_uri: ""
 
 # Copyright
@@ -63,13 +63,16 @@ nav:
     - Home: 'index.md'
     - Install Guides:
       - 'Ubuntu 18.04': 'INSTALL.ubuntu1804.md'
+      - 'Ubuntu 18.04 \w webmin': 'INSTALL.ubuntu1804.with.webmin.md'
       - 'Debian stable': 'INSTALL.debian9.md'
       - 'Kali Linux': 'INSTALL.kali.md'
       - 'Redhat Enterprise Linux 7': 'INSTALL.rhel7.md'
     - xInstall Guides: 
       - 'Warning': 'xINSTALL.md'
+      - 'Centos 6': 'xINSTALL.centos6.md'
       - 'Centos 7': 'xINSTALL.centos7.md'
       - 'Debian testing': 'xINSTALL.debian_testing.md'
+      - 'Debian 9 \w postgresql': 'xINSTALL.debian9-postgresql.md'
       - 'OpenBSD 6.4': 'xINSTALL.OpenBSD.md'
     - Config Guides:
       - 'Elastic Search Logging': 'CONFIG.elasticsearch-logging.md'
