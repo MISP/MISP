@@ -2,9 +2,9 @@
 tools/misp-wipe/misp-wipe.conf
 tools/misp-backup/misp-backup.conf
 
-# Ignore mkdocs site directory
-# /!\ UPDATE ONCE IN 2.4
-INSTALL/ng/site/
+# Ignore mkdocs site directory and mkdocs virtualenv
+site/
+tools/mkdocs
 
 # Other
 /vendors
