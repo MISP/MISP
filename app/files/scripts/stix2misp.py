@@ -67,7 +67,7 @@ class StixParser():
             self.ttps = package.ttps.ttps if package.ttps else None
         else:
             self.event = event
-        if args[2] is not None:
+        if len(args) > 2 and args[2]:
             self.add_original_file(args[2])
         try:
             event_distribution = args[3]
