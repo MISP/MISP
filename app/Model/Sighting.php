@@ -490,7 +490,7 @@ class Sighting extends AppModel
         ));
         $sightings = array_values($sightings);
 
-        // apply ACL and sightings configuration
+        // apply ACL and sightings policies
         $allowedSightings = array();
         foreach($sightings as $sid) {
             $sight = $this->getSighting($sid, $user);
