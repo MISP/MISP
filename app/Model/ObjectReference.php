@@ -191,8 +191,8 @@ class ObjectReference extends AppModel
                 }
             }
         }
-        if (isset($reference['object_uuid'])) {
-            $conditions = array('Object.uuid' => $reference['object_uuid']);
+        if (isset($reference['source_uuid'])) {
+            $conditions = array('Object.uuid' => $reference['source_uuid']);
         } elseif (isset($reference['object_id'])) {
             $conditions = array('Object.id' => $reference['object_id']);
         } else {
@@ -229,26 +229,26 @@ class ObjectReference extends AppModel
             if (empty($referencedObject)) {
                 return true;
             }
-            $referenced_type = 0;
+            $referenced_type = 'Attribute';
         } else {
-            $referenced_type = 1;
+            $referenced_type = 'Object';
         }
         $objectTypes = array('Attribute', 'Object');
         if (!isset($sourceObject['Object']) || $sourceObject['Object']['event_id'] != $eventId) {
             return true;
         }
-        if ($referencedObject[$objectTypes[$referenced_type]]['event_id'] != $eventId) {
+        if ($referencedObject[$referenced_type]['event_id'] != $eventId) {
             return true;
         }
         $this->create();
         unset($reference['id']);
         $reference['referenced_type'] = $referenced_type;
         $reference['object_id'] = $sourceObject['Object']['id'];
-        $reference['referenced_id'] = $referencedObject[$objectTypes[$referenced_type]]['id'];
-        $reference['referenced_uuid'] = $referencedObject[$objectTypes[$referenced_type]]['uuid'];
+        $reference['referenced_id'] = $referencedObject[$referenced_type]['id'];
+        $reference['referenced_uuid'] = $referencedObject[$referenced_type]['uuid'];
         $reference['object_uuid'] = $sourceObject['Object']['uuid'];
         $reference['event_id'] = $eventId;
-        $this->save(array('ObjectReference' => $reference));
+        $result = $this->save(array('ObjectReference' => $reference));
         return true;
     }
 }

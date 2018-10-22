@@ -675,8 +675,7 @@ class Attribute extends AppModel
             // only delete the file if it exists
             $attachments_dir = Configure::read('MISP.attachments_dir');
             if (empty($attachments_dir)) {
-                $my_server = ClassRegistry::init('Server');
-                $attachments_dir = $my_server->getDefaultAttachments_dir();
+                $attachments_dir = $this->getDefaultAttachments_dir();
             }
 
             // Special case - If using S3, we have to delete from there
@@ -1531,8 +1530,7 @@ class Attribute extends AppModel
     {
         $attachments_dir = Configure::read('MISP.attachments_dir');
         if (empty($attachments_dir)) {
-            $my_server = ClassRegistry::init('Server');
-            $attachments_dir = $my_server->getDefaultAttachments_dir();
+            $attachments_dir = $this->getDefaultAttachments_dir();
         }
 
         if ($this->attachmentDirIsS3()) {
@@ -1557,8 +1555,7 @@ class Attribute extends AppModel
     {
         $attachments_dir = Configure::read('MISP.attachments_dir');
         if (empty($attachments_dir)) {
-            $my_server = ClassRegistry::init('Server');
-            $attachments_dir = $my_server->getDefaultAttachments_dir();
+            $attachments_dir = $this->getDefaultAttachments_dir();
         }
 
         if ($this->attachmentDirIsS3()) {
@@ -2993,8 +2990,7 @@ class Attribute extends AppModel
         }
         $attachments_dir = Configure::read('MISP.attachments_dir');
         if (empty($attachments_dir)) {
-            $my_server = ClassRegistry::init('Server');
-            $attachments_dir = $my_server->getDefaultAttachments_dir();
+            $attachments_dir = $this->getDefaultAttachments_dir();
         }
 
         // If we've set attachments to S3, we can't write there
@@ -3003,8 +2999,7 @@ class Attribute extends AppModel
             // Sometimes it's not set?
             if (empty($attachments_dir)) {
                 // Get a default tmpdir
-                $my_server = ClassRegistry::init('Server');
-                $attachments_dir = $my_server->getDefaultTmp_dir();
+                $attachments_dir = $this->getDefaultTmp_dir();
             }
         }
 

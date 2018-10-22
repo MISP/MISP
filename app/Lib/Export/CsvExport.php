@@ -207,4 +207,34 @@ class CsvExport
         return '';
     }
 
+	public function eventIndex($events)
+	{
+		$fields = array(
+			'id', 'date', 'info', 'tags', 'uuid', 'published', 'analysis', 'attribute_count', 'orgc_id', 'orgc_name', 'orgc_uuid', 'timestamp', 'distribution', 'sharing_group_id', 'threat_level_id',
+			'publish_timestamp', 'extends_uuid'
+		);
+		$result = implode(',', $fields) . PHP_EOL;
+		foreach ($events as $key => $event) {
+			$event['tags'] = '';
+			if (!empty($event['EventTag'])) {
+				$tags = array();
+				foreach ($event['EventTag'] as $et) {
+					$tags[] = $et['Tag']['name'];
+				}
+				$tags = implode(', ', $tags);
+			} else {
+				$tags = '';
+			}
+			$event['Event']['tags'] = $tags;
+			$event['Event']['orgc_name'] = $event['Orgc']['name'];
+			$event['Event']['orgc_uuid'] = $event['Orgc']['uuid'];
+			$current = array();
+			foreach ($fields as $field) {
+				$current[] = $this->__escapeCSVField($event['Event'][$field]);
+			}
+			$result .= implode(', ', $current) . PHP_EOL;
+		}
+		return $result;
+	}
+
 }

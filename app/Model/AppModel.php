@@ -70,7 +70,7 @@ class AppModel extends Model
         1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
         7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
         13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false,
-        21 => false, 22 => false
+        21 => false, 22 => false, 23 => false
     );
 
     public function afterSave($created, $options = array())
@@ -163,6 +163,9 @@ class AppModel extends Model
             case 12:
                 $this->__forceSettings();
                 break;
+			case 23:
+				$this->__bumpReferences();
+				break;
             default:
                 $this->updateDatabase($command);
                 break;
@@ -1792,5 +1795,86 @@ class AppModel extends Model
 	            $val *= 1024;
 	    }
 		return $val / (1024 * 1024);
+	}
+
+	public function getDefaultAttachments_dir()
+	{
+		return APP . 'files';
+	}
+
+	public function getDefaultTmp_dir()
+	{
+		return sys_get_temp_dir();
+	}
+
+	private function __bumpReferences()
+	{
+		$this->Event = ClassRegistry::init('Event');
+		$this->AdminSetting = ClassRegistry::init('AdminSetting');
+		$existingSetting = $this->AdminSetting->find('first', array(
+			'conditions' => array('AdminSetting.setting' => 'update_23')
+		));
+		if (empty($existingSetting)) {
+			$this->AdminSetting->create();
+			$data = array(
+				'setting' => 'update_23',
+				'value' => 1
+			);
+			$this->AdminSetting->save($data);
+			$references = $this->Event->Object->ObjectReference->find('list', array(
+				'recursive' => -1,
+				'fields' => array('ObjectReference.event_id', 'ObjectReference.event_id'),
+				'group' => array('ObjectReference.event_id')
+			));
+			$event_ids = array();
+			$object_ids = array();
+			foreach ($references as $reference) {
+				$event = $this->Event->find('first', array(
+					'conditions' => array(
+						'Event.id' => $reference,
+						'Event.locked' => 0
+					),
+					'recursive' => -1,
+					'fields' => array('Event.id', 'Event.locked')
+				));
+				if (!empty($event)) {
+					$event_ids[] = $event['Event']['id'];
+					$event_references = $this->Event->Object->ObjectReference->find('list', array(
+						'conditions' => array('ObjectReference.event_id' => $reference),
+						'recursive' => -1,
+						'fields' => array('ObjectReference.object_id', 'ObjectReference.object_id')
+					));
+					$object_ids = array_merge($object_ids, array_values($event_references));
+				}
+			}
+			if (!empty($object_ids)) {
+				$this->Event->Object->updateAll(
+					array(
+					'Object.timestamp' => 'Object.timestamp + 1'
+					),
+					array('Object.id' => $object_ids)
+				);
+				$this->Event->updateAll(
+					array(
+					'Event.timestamp' => 'Event.timestamp + 1'
+					),
+					array('Event.id' => $event_ids)
+				);
+			}
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			$entry = array(
+					'org' => 'SYSTEM',
+					'model' => 'Server',
+					'model_id' => 0,
+					'email' => 'SYSTEM',
+					'action' => 'update_database',
+					'user_id' => 0,
+					'title' => 'Bumped the timestamps of locked events containing object references.',
+					'change' => sprintf('Event timestamps updated: %s; Object timestamps updated: %s', count($event_ids), count($object_ids))
+			);
+			$this->Log->save($entry);
+		}
+		return true;
 	}
 }
