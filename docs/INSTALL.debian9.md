@@ -611,7 +611,6 @@ echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
 echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 ```
 
-
 ### Recommended actions
 -------------------
 - By default CakePHP exposes its name and version in email headers. Apply a patch to remove this behavior.
@@ -622,11 +621,10 @@ echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 - Keep your software up2date (OS, MISP, CakePHP and everything else)
 - Log and audit
 
-
 ### Optional features
 -------------------
 #### MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following commands
-```
+```bash
 # ZeroMQ depends on the Python client for Redis
 sudo pip3 install redis
 
@@ -634,8 +632,7 @@ sudo pip3 install redis
 sudo pip3 install pyzmq
 ```
 
-
-### MISP Dashboard
+#### MISP Dashboard
 --------------
 ```bash
 cd /var/www
@@ -710,9 +707,8 @@ sudo $CAKE Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false
 ```
 
 
-### Install viper framework
+#### Install viper framework
 -----------------------
-
 ```bash
 cd /usr/local/src/
 sudo apt-get install -y libssl-dev swig python3-ssdeep p7zip-full unrar-free sqlite python3-pyclamd exiftool radare2
@@ -730,9 +726,7 @@ sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" ~/.viper/viper.conf
 sqlite3 ~/.viper/admin.db 'UPDATE auth_user SET password="pbkdf2_sha256$100000$iXgEJh8hz7Cf$vfdDAwLX8tko1t0M1TLTtGlxERkNnltUnMhbv56wK/U="'
 ```
 
-
-
-### Install mail to misp
+#### Install mail to misp
 --------------------
 ```bash
 cd /usr/local/src/
