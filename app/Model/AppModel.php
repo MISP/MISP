@@ -70,7 +70,7 @@ class AppModel extends Model
         1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
         7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
         13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false,
-        21 => false, 22 => false, 23 => false
+        21 => false, 22 => false, 23 => false, 24 => false, 25 => false
     );
 
     public function afterSave($created, $options = array())
@@ -261,7 +261,7 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `users` ADD `external_auth_required` tinyint(1) NOT NULL DEFAULT 0;";
                 $sqlArray[] = 'ALTER TABLE `users` ADD `external_auth_key` text COLLATE utf8_bin;';
                 break;
-            case '24betaupdates':
+            case 'x24betaupdates':
                 $sqlArray = array();
                 $sqlArray[] = "ALTER TABLE `shadow_attributes` ADD  `proposal_to_delete` tinyint(1) NOT NULL DEFAULT 0;";
 
@@ -1045,6 +1045,18 @@ class AppModel extends Model
                 break;
 			case 22:
 				$sqlArray[] = 'ALTER TABLE `object_references` MODIFY `deleted` tinyint(1) NOT NULL default 0;';
+				break;
+			case 24:
+				$this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+				if (empty($this->GalaxyCluster->schema('collection_uuid'))) {
+					$sqlArray[] = 'ALTER TABLE `galaxy_clusters` CHANGE `uuid` `collection_uuid` varchar(255) COLLATE utf8_bin NOT NULL;';
+					$sqlArray[] = 'ALTER TABLE `galaxy_clusters` ADD COLUMN `uuid` varchar(255) COLLATE utf8_bin NOT NULL default \'\';';
+				}
+				break;
+			case 25:
+				$this->__dropIndex('galaxy_clusters', 'uuid');
+				$this->__addIndex('galaxy_clusters', 'uuid');
+				$this->__addIndex('galaxy_clusters', 'collection_uuid');
 				break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
