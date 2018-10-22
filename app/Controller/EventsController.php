@@ -818,6 +818,11 @@ class EventsController extends AppController
         $this->set('analysisLevels', $this->Event->analysisLevels);
         $this->set('distributionLevels', $this->Event->distributionLevels);
         $this->set('shortDist', $this->Event->shortDist);
+		if ($this->params['ext'] === 'csv') {
+			App::uses('CsvExport', 'Export');
+			$export = new CsvExport();
+			return $this->RestResponse->viewData($export->eventIndex($events), 'csv');
+		}
         if ($this->request->is('ajax')) {
             $this->autoRender = false;
             $this->layout = false;
@@ -2716,6 +2721,12 @@ class EventsController extends AppController
         if ($user === false) {
             return $exception;
         }
+		if (!empty($eventid) && !is_array($eventid)) {
+        	$filename = 'misp.csv.event' . $eventid . '.csv';
+		} else {
+			$filename = 'misp.csv.filtered_results.csv';
+		}
+
 		$final = $this->Event->restSearch($user, 'csv', $filters);
         // if it's a search, grab the attributeIDList from the session and get the IDs from it. Use those as the condition
         // We don't need to look out for permissions since that's filtered by the search itself
@@ -2746,7 +2757,7 @@ class EventsController extends AppController
             }
         }
         $responseType = 'csv';
-        return $this->RestResponse->viewData($final, $responseType, false, true, 'download.csv');
+        return $this->RestResponse->viewData($final, $responseType, false, true, $filename);
     }
 
     public function _addIOCFile($id)
@@ -2764,8 +2775,7 @@ class EventsController extends AppController
             // write
             $attachments_dir = Configure::read('MISP.attachments_dir');
             if (empty($attachments_dir)) {
-                $this->loadModel('Server');
-                $attachments_dir = $this->Server->getDefaultAttachments_dir();
+                $attachments_dir = $this->Event->getDefaultAttachments_dir();
             }
             $rootDir = $attachments_dir . DS . $id . DS;
             App::uses('Folder', 'Utility');

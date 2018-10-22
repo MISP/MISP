@@ -108,6 +108,7 @@ class StixParser():
             if object_type not in ('relationship', 'report'):
                 for _, _object in objects.items():
                     self.parsing_process(_object, object_type)
+        self.misp_event.info = "Imported with MISP import script for {}.".format(self.stix_version)
 
     def set_distribution(self):
         for attribute in self.misp_event.attributes:
@@ -915,7 +916,8 @@ class ExternalStixParser(StixParser):
         galaxy = {'name': galaxy_types[o._type].replace('-', ' ').title()}
         cluster = defaultdict(dict)
         cluster['value'] = o.name
-        cluster['description'] = o.description
+        if  hasattr(o, 'description'):
+            cluster['description'] = o.description
         if hasattr(o, 'kill_chain_name'):
             galaxy_type = o.kill_chain_phases[0].get('phase_name')
             galaxy['type'] = galaxy_type

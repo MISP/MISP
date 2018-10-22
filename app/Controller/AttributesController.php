@@ -430,8 +430,7 @@ class AttributesController extends AppController
     {
         $attachments_dir = Configure::read('MISP.attachments_dir');
         if (empty($attachments_dir)) {
-            $this->loadModel('Server');
-            $attachments_dir = $this->Server->getDefaultAttachments_dir();
+            $attachments_dir = $this->Attribute->getDefaultAttachments_dir();
         }
 
         $is_s3 = substr($attachments_dir, 0, 2) === "s3";

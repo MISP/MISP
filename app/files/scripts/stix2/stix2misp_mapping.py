@@ -299,7 +299,7 @@ domain_pattern_mapping = {'value': {'type': 'domain'}}
 ip_pattern_mapping = {'value': {'type': 'ip-dst'}}
 
 external_pattern_mapping = {'domain-name': domain_pattern_mapping,
-                            'email-addr': {'value': {'type': 'email-dst'}}
+                            'email-addr': {'value': {'type': 'email-dst'}},
                             'file': file_mapping,
                             'ipv4-addr': ip_pattern_mapping,
                             'ipv6-addr': ip_pattern_mapping,

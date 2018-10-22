@@ -3202,6 +3202,7 @@ class Event extends AppModel
                 }
                 $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
             }
+			$referencesToCapture = array();
             if (!empty($data['Event']['Object'])) {
                 foreach ($data['Event']['Object'] as $object) {
                     $result = $this->Object->captureObject($object, $this->id, $user, $this->Log);
@@ -3209,11 +3210,20 @@ class Event extends AppModel
                 foreach ($data['Event']['Object'] as $object) {
                     if (isset($object['ObjectReference'])) {
                         foreach ($object['ObjectReference'] as $objectRef) {
-                            $result = $this->Object->ObjectReference->captureReference($objectRef, $this->id, $user, $this->Log);
+							$objectRef['source_uuid'] = $object['uuid'];
+							$referencesToCapture[] = $objectRef;
                         }
                     }
                 }
             }
+			foreach ($referencesToCapture as $referenceToCapture) {
+				$result = $this->Object->ObjectReference->captureReference(
+					$referenceToCapture,
+					$this->id,
+					$user,
+					$this->Log
+				);
+			}
             // zeroq: check if sightings are attached and add to event
             if (isset($data['Sighting']) && !empty($data['Sighting'])) {
                 $this->Sighting = ClassRegistry::init('Sighting');
@@ -4993,12 +5003,12 @@ class Event extends AppModel
         if ($stix_version == '2') {
             $scriptFile = APP . 'files/scripts/stix2/stix2misp.py';
             $tempFilePath = APP . 'files/scripts/tmp/' . $filename;
-            $shell_command = $this->Server->getPythonVersion() . ' ' . $scriptFile . ' ' . $tempFilePath;
+            $shell_command = $this->getPythonVersion() . ' ' . $scriptFile . ' ' . $tempFilePath;
             $output_path = $tempFilePath . '.stix2';
         } elseif ($stix_version == '1' || $stix_version == '1.1' || $stix_version == '1.2') {
             $scriptFile = APP . 'files/scripts/stix2misp.py';
             $tempFilePath = APP . 'files/scripts/tmp/' . $filename;
-            $shell_command = $this->Server->getPythonVersion() . ' ' . $scriptFile . ' ' . $filename;
+            $shell_command = $this->getPythonVersion() . ' ' . $scriptFile . ' ' . $filename;
             $output_path = $tempFilePath . '.json';
         } else {
             throw new MethodNotAllowedException('Invalid STIX version');

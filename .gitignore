@@ -2,6 +2,10 @@
 tools/misp-wipe/misp-wipe.conf
 tools/misp-backup/misp-backup.conf
 
+# Ignore mkdocs site directory and mkdocs virtualenv
+site/
+tools/mkdocs
+
 # Other
 /vendors
 /app/Vendor
