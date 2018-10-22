@@ -2713,7 +2713,7 @@ class Server extends AppModel
             return true;
         }
         if (is_executable($value)) {
-            if (finfo_file($finfo, $value) == "application/x-executable") {
+            if (finfo_file($finfo, $value) == "application/x-executable" || (finfo_file($finfo, $value) == "application/x-sharedlib") && PHP_OS == "OpenBSD") {
                 finfo_close($finfo);
                 return true;
             } else {

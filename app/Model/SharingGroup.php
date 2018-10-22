@@ -158,7 +158,8 @@ class SharingGroup extends AppModel
                         'SharingGroup.id',
                         'SharingGroup.name',
                         'SharingGroup.releasability',
-                        'SharingGroup.description'
+                        'SharingGroup.description',
+						'SharingGroup.org_id'
                     ),
                     'contain' => array()
                 ),

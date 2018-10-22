@@ -918,7 +918,7 @@ class ServersController extends AppController
                 $this->set('files', $files);
             }
             // Only run this check on the diagnostics tab
-            if ($tab == 'diagnostics' || $tab == 'download') {
+            if ($tab == 'diagnostics' || $tab == 'download' || $this->_isRest()) {
                 $php_ini = php_ini_loaded_file();
                 $this->set('php_ini', $php_ini);
                 $advanced_attachments = shell_exec($this->Server->getPythonVersion() . ' ' . APP . 'files/scripts/generate_file_objects.py -c');
@@ -1022,7 +1022,7 @@ class ServersController extends AppController
                 $worker_array = $this->Server->workerDiagnostics($workerIssueCount);
             }
             $this->set('worker_array', $worker_array);
-            if ($tab == 'download') {
+            if ($tab == 'download' || $this->_isRest()) {
                 foreach ($dumpResults as $key => $dr) {
                     unset($dumpResults[$key]['description']);
                 }
@@ -1806,4 +1806,6 @@ misp.direct_call(relative_path, body)
 			$this->render('ajax/get_api_info');
 		}
 	}
+
+
 }

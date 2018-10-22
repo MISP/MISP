@@ -3202,6 +3202,7 @@ class Event extends AppModel
                 }
                 $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
             }
+			$referencesToCapture = array();
             if (!empty($data['Event']['Object'])) {
                 foreach ($data['Event']['Object'] as $object) {
                     $result = $this->Object->captureObject($object, $this->id, $user, $this->Log);
@@ -3209,11 +3210,20 @@ class Event extends AppModel
                 foreach ($data['Event']['Object'] as $object) {
                     if (isset($object['ObjectReference'])) {
                         foreach ($object['ObjectReference'] as $objectRef) {
-                            $result = $this->Object->ObjectReference->captureReference($objectRef, $this->id, $user, $this->Log);
+							$objectRef['source_uuid'] = $object['uuid'];
+							$referencesToCapture[] = $objectRef;
                         }
                     }
                 }
             }
+			foreach ($referencesToCapture as $referenceToCapture) {
+				$result = $this->Object->ObjectReference->captureReference(
+					$referenceToCapture,
+					$this->id,
+					$user,
+					$this->Log
+				);
+			}
             // zeroq: check if sightings are attached and add to event
             if (isset($data['Sighting']) && !empty($data['Sighting'])) {
                 $this->Sighting = ClassRegistry::init('Sighting');

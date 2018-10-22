@@ -345,6 +345,7 @@ class Galaxy extends AppModel
                 foreach ($galaxyElements as $element) {
                     if ($element['key'] == 'kill_chain') {
                         $kc = explode(":", $element['value'])[2];
+                        $attackClusters[$kc][] = $cluster;
                         $toBeAdded = true;
                     }
                     if ($element['key'] == 'external_id') {
@@ -352,7 +353,6 @@ class Galaxy extends AppModel
                     }
                 }
                 if ($toBeAdded) {
-                    $attackClusters[$kc][] = $cluster;
                     array_push($attackTactic['attackTags'], $cluster['tag_name']);
                 }
             }
