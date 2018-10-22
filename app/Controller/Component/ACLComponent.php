@@ -372,6 +372,7 @@ class ACLComponent extends Component
             ),
             'sightings' => array(
                     'add' => array('perm_sighting'),
+                    'get' => array('perm_sighting'),
                     'advanced' => array('perm_sighting'),
                     'delete' => array('perm_sighting'),
                     'index' => array('*'),

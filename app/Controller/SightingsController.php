@@ -220,6 +220,27 @@ class SightingsController extends AppController
         return $this->RestResponse->viewData($sightings);
     }
 
+    public function get($context = false)
+    {
+        $paramArray = array('id', 'type', 'from', 'to', 'last', 'org_id');
+        $filterData = array(
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'paramArray' => $paramArray,
+            'ordered_url_params' => compact($paramArray)
+        );
+        $filters = $this->_harvestParameters($filterData, $exception);
+        $filters['context'] = $context;
+
+        // ensure that an id is provided if context is set
+        if ($context !== false && !isset($filters['id'])) {
+            throw new MethodNotAllowedException(_('An id must be provided if the context is set.'));
+        }
+
+        $sightings = $this->Sighting->getSightingsForTime($this->Auth->user(), $filters);
+        return $this->RestResponse->viewData($sightings);
+    }
+
     public function listSightings($id, $context = 'attribute', $org_id = false)
     {
         $this->loadModel('Event');

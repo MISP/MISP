@@ -180,7 +180,15 @@ class RestResponseComponent extends Component
                 'description' => "POST a simplified sighting object in JSON format to this API to add a or a list of sightings. Pass either value(s) or attribute IDs (can be uuids) to identify the target sightings.",
                 'mandatory' => array('OR' => array('values', 'id')),
                 'optional' => array('type', 'source', 'timestamp', 'date', 'time')
-            )
+            ),
+            'get' => array(
+                'description' => "Search MISP using a list of filter parameters and return the data in the JSON format.
+                    The search is available on an event, attribute or instace level,
+                    just select the scope via the URL (/sighting/get/event vs /sighting/get/).",
+                'mandatory' => array('context'),
+                'optional' => array('id', 'type', 'from', 'to', 'last', 'org_id', 'includeAttribute', 'includeEvent'),
+                'params' => array()
+            ),
         ),
         'SharingGroup' => array(
             'add' => array(

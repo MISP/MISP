@@ -120,6 +120,12 @@ class Sighting extends AppModel
         if (empty($sighting)) {
             return array();
         }
+
+        if (!isset($event)) {
+            $event = array('Event' => $sighting['Event']);
+        }
+
+        $ownEvent = false;
         if ($user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id']) {
             $ownEvent = true;
         }
@@ -441,5 +447,64 @@ class Sighting extends AppModel
             }
         }
         return $sightingsRearranged;
+    }
+
+    public function getSightingsForTime($user, $filters)
+    {
+
+        // fetch sightings matching the query
+        if (isset($filters['from']) && isset($filters['to'])) {
+            $timeCondition = array($filters['from'], $filters['to']);
+            unset($filters['from']);
+            unset($filters['to']);
+        } else if (isset($filters['last'])) {
+            $timeCondition = $filters['last'];
+            unset($filters['last']);
+        } else {
+            $timeCondition = '30d';
+        }
+        $conditions = $this->Attribute->setTimestampConditions($timeCondition, array(), $scope = 'Sighting.date_sighting');
+
+        if (isset($filters['type'])) {
+            $conditions['Sighting.type'] = $filters['type'];
+        }
+
+        if (isset($filters['org_id'])) {
+            $conditions['Sighting.org_id'] = $filters['org_id'];
+        }
+
+        if (isset($filters['source'])) {
+            $conditions['Sighting.source'] = $filters['source'];
+        }
+
+        if ($filters['context'] === 'attribute') {
+            $conditions['Sighting.attribute_id'] = $filters['id'];
+        } else if ($filters['context'] === 'event') {
+            $conditions['Sighting.event_id'] = $filters['id'];
+        }
+
+        $sightings = $this->find('list', array(
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'fields' => array('id'),
+        ));
+        $sightings = array_values($sightings);
+
+        // apply ACL and sightings configuration
+        $allowedSightings = array();
+        foreach($sightings as $sid) {
+            $sight = $this->getSighting($sid, $user);
+            // by default, do not include event and attribute
+            if (!isset($filters['includeAttribute']) || !$filters['includeAttribute']) {
+                unset($sight["Sighting"]["Attribute"]);
+            }
+            if (!isset($filters['includeEvent']) || !$filters['includeEvent']) {
+                unset($sight["Sighting"]["Event"]);
+            }
+            if (!empty($sight)) {
+                array_push($allowedSightings, $sight);
+            }
+        }
+        return $allowedSightings;
     }
 }
