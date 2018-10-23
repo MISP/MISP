@@ -187,7 +187,7 @@ class RestResponseComponent extends Component
                     just select the scope via the URL (/sighting/get/event vs /sighting/get/attribute vs /sighting/get/).
                     id MUST be provided if context is set.",
                 'mandatory' => array('returnFormat'),
-                'optional' => array('id', 'type', 'from', 'to', 'last', 'org_id', 'includeAttribute', 'includeEvent'),
+                'optional' => array('id', 'type', 'from', 'to', 'last', 'org_id', 'source', 'includeAttribute', 'includeEvent'),
                 'params' => array('context')
             ),
         ),

@@ -223,7 +223,7 @@ class SightingsController extends AppController
     public function restSearch($context = false)
     {
         $allowedContext = array(false, 'event', 'attribute');
-        $paramArray = array('returnFormat', 'id', 'type', 'from', 'to', 'last', 'org_id', 'includeAttribute', 'includeEvent');
+        $paramArray = array('returnFormat', 'id', 'type', 'from', 'to', 'last', 'org_id', 'source', 'includeAttribute', 'includeEvent');
         $filterData = array(
             'request' => $this->request,
             'named_params' => $this->params['named'],
