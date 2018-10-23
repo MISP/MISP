@@ -7,7 +7,7 @@
 !!! notice
     This is mostly the install [@SteveClement](https://twitter.com/SteveClement)
     uses for testing, qc and random development.
-    Maintained and tested by @SteveClement on 20180705
+    Maintained and tested by @SteveClement on 20181023
 
 #### MISP configuration variables
 
@@ -64,24 +64,15 @@ echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 - Web server, apache FTW!
 - This guide assumes a user name of 'misp'
 
-#### Make sure you can sudo
-```bash
-misp@debian:~$ sudo ls
-[sudo] password for misp:
-misp is not in the sudoers file.  This incident will be reported.
-```
-
+#### install etckeeper and sudo (optional)
 ```bash
 su -
+apt install -y etckeeper
+apt install -y sudo
 adduser misp sudo
 ```
 
-#### install etckeeper (optional)
-```bash
-sudo apt install -y etckeeper
-```
-
-#### Make sure your system is up2date:
+#### Make sure your system is up2date
 ```bash
 sudo apt update
 sudo apt -y dist-upgrade
@@ -107,7 +98,7 @@ sudo grub-mkconfig -o /boot/grub/grub.cfg
 sudo apt install -y postfix
 ```
 
-```
+```bash
 # change the relay server later with:
 sudo postconf -e 'relayhost = example.com'
 sudo postfix reload
@@ -116,7 +107,7 @@ sudo postfix reload
 ### 2/ Install LAMP & dependencies
 ------------------------------
 
-#### Install all the dependencies: (some might already be installed)
+#### Install all the dependencies (some might already be installed)
 
 ```bash
 sudo apt install -y \
@@ -155,7 +146,7 @@ sudo update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1
 sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.6 2
 ```
 
-To flip between the 2 pythons use update-alternatives
+To flip between the 2 pythons use *update-alternatives*
 ```bash
 sudo update-alternatives --config python
 ```
@@ -168,14 +159,14 @@ sudo systemctl restart apache2
 
 ### 3/ MISP code
 ------------
-```
+```bash
 # Download MISP using git in the /var/www/ directory.
 sudo mkdir $PATH_TO_MISP
 sudo chown www-data:www-data $PATH_TO_MISP
 cd $PATH_TO_MISP
 sudo -u www-data git clone https://github.com/MISP/MISP.git $PATH_TO_MISP
 
-# Make git ignore filesystem permission differences
+#### Make git ignore filesystem permission differences
 sudo -u www-data git config core.filemode false
 
 cd $PATH_TO_MISP/app/files/scripts
@@ -222,8 +213,10 @@ sudo phpenmod redis
 sudo -u www-data cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
 ```
 
+
 ### 5/ Set the permissions
 ----------------------
+
 ```bash
 # Check if the permissions are set correctly using the following commands:
 sudo chown -R www-data:www-data $PATH_TO_MISP
@@ -232,6 +225,7 @@ sudo chmod -R g+ws $PATH_TO_MISP/app/tmp
 sudo chmod -R g+ws $PATH_TO_MISP/app/files
 sudo chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
 ```
+
 
 ### 6/ Create a database and user
 -----------------------------
@@ -593,7 +587,7 @@ cd misp-modules
 # pip3 install
 sudo pip3 install -I -r REQUIREMENTS
 sudo pip3 install -I .
-sudo pip3 install maec lief python-magic wand
+sudo pip3 install maec lief python-magic wand yara
 sudo pip3 install git+https://github.com/kbandla/pydeep.git
 # install STIX2.0 library to support STIX 2.0 export:
 sudo pip3 install stix2
@@ -620,7 +614,6 @@ echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
 echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 ```
 
-
 ### Recommended actions
 -------------------
 - By default CakePHP exposes its name and version in email headers. Apply a patch to remove this behavior.
@@ -630,7 +623,6 @@ echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 - You should really harden the configuration of MySQL/MariaDB
 - Keep your software up2date (OS, MISP, CakePHP and everything else)
 - Log and audit
-
 
 ### Optional features
 -------------------
@@ -710,6 +702,7 @@ echo "<VirtualHost *:8001>
 sudo a2ensite misp-dashboard
 sudo systemctl reload apache2
 
+
 # Enable ZeroMQ for misp-dashboard
 sudo $CAKE Admin setSetting "Plugin.ZeroMQ_enable" true
 sudo $CAKE Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" true
@@ -730,16 +723,15 @@ sudo $CAKE Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false
 ```
 
 
-Install viper framework
+#### Install viper framework
 -----------------------
-
-```
+```bash
 cd /usr/local/src/
 sudo apt-get install -y libssl-dev swig python3-ssdeep p7zip-full unrar-free sqlite python3-pyclamd exiftool radare2
 sudo pip3 install SQLAlchemy PrettyTable python-magic
 sudo git clone https://github.com/viper-framework/viper.git
 cd viper
-sudo git git submodule update --init --recursive
+sudo git submodule update --init --recursive
 sudo pip3 install -r requirements.txt
 sudo pip3 uninstall yara -y
 /usr/local/src/viper/viper-cli -h

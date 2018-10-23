@@ -5,7 +5,7 @@
 --------------------------------------
 
 !!! notice
-    Maintained and tested by @SteveClement on 20180705
+    Maintained and tested by @SteveClement on 20181023
 
 #### MISP configuration variables
 
@@ -62,11 +62,11 @@ echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 - Web server, apache FTW!
 - This guide assumes a user name of 'misp'
 
-#### install etckeeper (optional)
+#### install etckeeper and sudo (optional)
 ```bash
 su -
-apt install etckeeper
-apt install sudo
+apt install -y etckeeper
+apt install -y sudo
 adduser misp sudo
 ```
 
@@ -90,7 +90,7 @@ done
 sudo grub-mkconfig -o /boot/grub/grub.cfg
 ```
 
-#### install postfix, there will be some questions. *(optional)
+#### install postfix, there will be some questions. (optional)
 ```bash
 # Postfix Configuration: Satellite system
 sudo apt install -y postfix
@@ -623,13 +623,25 @@ echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 
 ### Optional features
 -------------------
+```bash
+# set PATH so it includes viper if it exists
+if [ -d "/usr/local/src/viper" ] ; then
+    PATH="$PATH:/usr/local/src/viper"
+fi
+
+# set PATH so it includes viper if it exists
+if [ -d "/var/www/MISP/app/Console" ] ; then
+    PATH="$PATH:/var/www/MISP/app/Console"
+fi
+```
+
 #### MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following commands
 ```bash
 # ZeroMQ depends on the Python client for Redis
-sudo pip3 install redis
+sudo apt install python3-redis -y
 
 ## install pyzmq
-sudo pip3 install pyzmq
+sudo apt install python3-zmq -y
 ```
 
 #### MISP Dashboard
