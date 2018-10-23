@@ -38,6 +38,20 @@ class Sighting extends AppModel
         2 => 'expiration'
     );
 
+    public $validFormats = array(
+        'json' => array('json', 'JsonExport', 'json'),
+        //'openioc' => array('xml', 'OpeniocExport', 'ioc'),
+        //'xml' => array('xml', 'XmlExport', 'xml'),
+        //'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
+        //'snort' => array('txt', 'NidsSnortExport', 'rules'),
+        //'rpz' => array('rpz', 'RPZExport', 'rpz'),
+        //'text' => array('text', 'TextExport', 'txt'),
+        'csv' => array('csv', 'CsvExport', 'csv'),
+        //'stix' => array('xml', 'Stix1Export', 'xml'),
+        //'stix2' => array('json', 'Stix2Export', 'json'),
+        //'cache' => array('txt', 'CacheExport', 'cache')
+    );
+
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
@@ -449,8 +463,13 @@ class Sighting extends AppModel
         return $sightingsRearranged;
     }
 
-    public function getSightingsForTime($user, $filters)
+    public function getSightingsForTime($user, $returnFormat, $filters)
     {
+        if (!isset($this->validFormats[$returnFormat][1])) {
+            throw new NotFoundException('Invalid output format.');
+        }
+        App::uses($this->validFormats[$returnFormat][1], 'Export');
+        $exportTool = new $this->validFormats[$returnFormat][1]();
 
         // fetch sightings matching the query
         if (isset($filters['from']) && isset($filters['to'])) {
@@ -490,21 +509,79 @@ class Sighting extends AppModel
         ));
         $sightings = array_values($sightings);
 
+        $filters['requested_attributes'] = array('id', 'attribute_id', 'event_id', 'org_id', 'date_sighting', 'uuid', 'source', 'type');
+
         // apply ACL and sightings policies
         $allowedSightings = array();
+        $additional_attribute_added = false;
+        $additional_event_added = false;
         foreach($sightings as $sid) {
             $sight = $this->getSighting($sid, $user);
             // by default, do not include event and attribute
             if (!isset($filters['includeAttribute']) || !$filters['includeAttribute']) {
                 unset($sight["Sighting"]["Attribute"]);
+            } else if (!$additional_attribute_added) {
+                $filters['requested_attributes'] = array_merge($filters['requested_attributes'], array('attribute_uuid', 'attribute_type', 'attribute_category', 'attribute_to_ids', 'attribute_value'));
+                $additional_attribute_added = true;
             }
+
             if (!isset($filters['includeEvent']) || !$filters['includeEvent']) {
                 unset($sight["Sighting"]["Event"]);
+            } else if (!$additional_event_added) {
+                $filters['requested_attributes'] = array_merge($filters['requested_attributes'], array('event_uuid', 'event_orgc_id', 'event_org_id', 'event_info', 'event_Orgc_name'));
+                $additional_event_added = true;
             }
+
             if (!empty($sight)) {
                 array_push($allowedSightings, $sight);
             }
         }
-        return $allowedSightings;
+
+        $params = array(
+            'conditions' => array(), //result already filtered
+        );
+
+        if (!isset($this->validFormats[$returnFormat])) {
+            // this is where the new code path for the export modules will go
+            throw new MethodNotFoundException('Invalid export format.');
+        }
+        if (method_exists($exportTool, 'modify_params')) {
+            //$params = $exportTool->modify_params($user, $params);
+        }
+
+        $exportToolParams = array(
+            'user' => $user,
+            'params' => $params,
+            'returnFormat' => $returnFormat,
+            'scope' => 'Sighting',
+            'filters' => $filters
+        );
+        if (!empty($exportTool->additional_params)) {
+            //$params = array_merge($params, $exportTool->additional_params);
+        }
+
+        $tmpfile = tmpfile();
+        fwrite($tmpfile, $exportTool->header($exportToolParams));
+
+        $temp = '';
+        $i = 0;
+        foreach ($allowedSightings as $sighting) {
+            $temp .= $exportTool->handler($sighting, $exportToolParams);
+            if ($temp !== '') {
+                if ($i != count($allowedSightings) -1) {
+                    $temp .= $exportTool->separator($exportToolParams);
+                }
+            }
+            $i++;
+        }
+        fwrite($tmpfile, $temp);
+
+        fwrite($tmpfile, $exportTool->footer($exportToolParams));
+        fseek($tmpfile, 0);
+        $final = fread($tmpfile, fstat($tmpfile)['size']);
+        fclose($tmpfile);
+        return $final;
+
+        //return $allowedSightings;
     }
 }

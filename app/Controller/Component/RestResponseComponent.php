@@ -181,13 +181,14 @@ class RestResponseComponent extends Component
                 'mandatory' => array('OR' => array('values', 'id')),
                 'optional' => array('type', 'source', 'timestamp', 'date', 'time')
             ),
-            'get' => array(
+            'restSearch' => array(
                 'description' => "Search MISP using a list of filter parameters and return the data in the JSON format.
                     The search is available on an event, attribute or instace level,
-                    just select the scope via the URL (/sighting/get/event vs /sighting/get/).",
-                'mandatory' => array('context'),
+                    just select the scope via the URL (/sighting/get/event vs /sighting/get/).
+                    id MUST be provided is context is set.",
+                'mandatory' => array('returnFormat'),
                 'optional' => array('id', 'type', 'from', 'to', 'last', 'org_id', 'includeAttribute', 'includeEvent'),
-                'params' => array()
+                'params' => array('context')
             ),
         ),
         'SharingGroup' => array(
@@ -454,14 +455,15 @@ class RestResponseComponent extends Component
 
 	private function __setup() {
 		if (!$this->__setup) {
-			$scopes = array('Event', 'Attribute');
+			$scopes = array('Event', 'Attribute', 'Sighting');
 			foreach ($scopes as $scope) {
 				$this->{$scope} = ClassRegistry::init($scope);
 				$this->__descriptions[$scope]['restSearch'] = array(
 					'description' => $this->__descriptions[$scope]['restSearch']['description'],
 					'returnFormat' => array_keys($this->{$scope}->validFormats),
 					'mandatory' => $this->__descriptions[$scope]['restSearch']['mandatory'],
-					'optional' => $this->__descriptions[$scope]['restSearch']['optional']
+					'optional' => $this->__descriptions[$scope]['restSearch']['optional'],
+					'params' => $this->__descriptions[$scope]['restSearch']['params']
 				);
 			}
 		}
