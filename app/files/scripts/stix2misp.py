@@ -78,12 +78,14 @@ class StixParser():
             event_distribution = 5
         try:
             attribute_distribution = args[4]
-            if attribute_distribution != 'event' and not isinstance(attribute_distribution, int):
-                attribute_distribution = int(attribute_distribution) if attribute_distribution.isdigit() else 5
+            if attribute_distribution == 'event':
+                attribute_distribution = event_distribution
+            elif not isinstance(attribute_distribution, int):
+                attribute_distribution = int(attribute_distribution) if attribute_distribution.isdigit() else event_distribution
         except IndexError:
-            attribute_distribution = 5
+            attribute_distribution = event_distribution
         self.misp_event.distribution = event_distribution
-        self.__attribute_distribution = event_distribution if attribute_distribution == 'event' else attribute_distribution
+        self.__attribute_distribution = attribute_distribution
         self.fromMISP = fromMISP
         self.load_mapping()
 
