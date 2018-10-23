@@ -463,7 +463,7 @@ class Sighting extends AppModel
         App::uses($this->validFormats[$returnFormat][1], 'Export');
         $exportTool = new $this->validFormats[$returnFormat][1]();
 
-        // fetch sightings matching the query
+        // construct filtering conditions
         if (isset($filters['from']) && isset($filters['to'])) {
             $timeCondition = array($filters['from'], $filters['to']);
             unset($filters['from']);
@@ -494,6 +494,7 @@ class Sighting extends AppModel
             $conditions['Sighting.event_id'] = $filters['id'];
         }
 
+        // fetch sightings matching the query
         $sightings = $this->find('list', array(
             'recursive' => -1,
             'conditions' => $conditions,
@@ -503,7 +504,7 @@ class Sighting extends AppModel
 
         $filters['requested_attributes'] = array('id', 'attribute_id', 'event_id', 'org_id', 'date_sighting', 'uuid', 'source', 'type');
 
-        // apply ACL and sightings policies
+        // apply ACL and sighting policies
         $allowedSightings = array();
         $additional_attribute_added = false;
         $additional_event_added = false;
@@ -537,9 +538,6 @@ class Sighting extends AppModel
             // this is where the new code path for the export modules will go
             throw new MethodNotFoundException('Invalid export format.');
         }
-        if (method_exists($exportTool, 'modify_params')) {
-            //$params = $exportTool->modify_params($user, $params);
-        }
 
         $exportToolParams = array(
             'user' => $user,
@@ -548,9 +546,6 @@ class Sighting extends AppModel
             'scope' => 'Sighting',
             'filters' => $filters
         );
-        if (!empty($exportTool->additional_params)) {
-            //$params = array_merge($params, $exportTool->additional_params);
-        }
 
         $tmpfile = tmpfile();
         fwrite($tmpfile, $exportTool->header($exportToolParams));

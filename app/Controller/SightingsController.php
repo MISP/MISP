@@ -232,10 +232,11 @@ class SightingsController extends AppController
         );
         $filters = $this->_harvestParameters($filterData, $exception);
 
-        // ensure that an id is provided if context is set
+        // validate context
         if (!in_array($context, $allowedContext, true)) {
             throw new MethodNotAllowedException(_('Invalid context.'));
         }
+        // ensure that an id is provided if context is set
         if ($context !== false && !isset($filters['id'])) {
             throw new MethodNotAllowedException(_('An id must be provided if the context is set.'));
         }
