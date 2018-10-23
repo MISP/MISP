@@ -40,16 +40,8 @@ class Sighting extends AppModel
 
     public $validFormats = array(
         'json' => array('json', 'JsonExport', 'json'),
-        //'openioc' => array('xml', 'OpeniocExport', 'ioc'),
-        //'xml' => array('xml', 'XmlExport', 'xml'),
-        //'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
-        //'snort' => array('txt', 'NidsSnortExport', 'rules'),
-        //'rpz' => array('rpz', 'RPZExport', 'rpz'),
-        //'text' => array('text', 'TextExport', 'txt'),
-        'csv' => array('csv', 'CsvExport', 'csv'),
-        //'stix' => array('xml', 'Stix1Export', 'xml'),
-        //'stix2' => array('json', 'Stix2Export', 'json'),
-        //'cache' => array('txt', 'CacheExport', 'cache')
+        'xml' => array('xml', 'XmlExport', 'xml'),
+        'csv' => array('csv', 'CsvExport', 'csv')
     );
 
     public function beforeValidate($options = array())
@@ -581,7 +573,5 @@ class Sighting extends AppModel
         $final = fread($tmpfile, fstat($tmpfile)['size']);
         fclose($tmpfile);
         return $final;
-
-        //return $allowedSightings;
     }
 }

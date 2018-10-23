@@ -222,6 +222,7 @@ class SightingsController extends AppController
 
     public function restSearch($context = false)
     {
+        $allowedContext = array(false, 'event', 'attribute');
         $paramArray = array('returnFormat', 'id', 'type', 'from', 'to', 'last', 'org_id', 'includeAttribute', 'includeEvent');
         $filterData = array(
             'request' => $this->request,
@@ -230,6 +231,14 @@ class SightingsController extends AppController
             'ordered_url_params' => compact($paramArray)
         );
         $filters = $this->_harvestParameters($filterData, $exception);
+
+        // ensure that an id is provided if context is set
+        if (!in_array($context, $allowedContext, true)) {
+            throw new MethodNotAllowedException(_('Invalid context.'));
+        }
+        if ($context !== false && !isset($filters['id'])) {
+            throw new MethodNotAllowedException(_('An id must be provided if the context is set.'));
+        }
         $filters['context'] = $context;
 
         if (isset($filters['returnFormat'])) {
@@ -237,11 +246,6 @@ class SightingsController extends AppController
         }
         if ($returnFormat === 'download') {
             $returnFormat = 'json';
-        }
-
-        // ensure that an id is provided if context is set
-        if ($context !== false && !isset($filters['id'])) {
-            throw new MethodNotAllowedException(_('An id must be provided if the context is set.'));
         }
 
         $sightings = $this->Sighting->restSearch($this->Auth->user(), $returnFormat, $filters);
