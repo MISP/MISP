@@ -22,6 +22,7 @@ import time
 import uuid
 import base64
 import stix2misp_mapping
+import stix.extensions.marking.ais
 from operator import attrgetter
 from pymisp import MISPEvent, MISPObject, MISPAttribute, __path__
 from stix.core import STIXPackage
