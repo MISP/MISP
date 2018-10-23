@@ -1006,11 +1006,7 @@ class StixParser():
     @staticmethod
     def fetch_uuid(object_id):
         try:
-            identifier = object_id.split(':')[1]
-            return_id = ""
-            for part in identifier.split('-')[1:]:
-                return_id += "{}-".format(part)
-            return return_id[:-1]
+            return "-".join(object_id.split("-")[1:])
         except Exception:
             return str(uuid.uuid4())
 
