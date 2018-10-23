@@ -244,12 +244,11 @@ class SightingsController extends AppController
             throw new MethodNotAllowedException(_('An id must be provided if the context is set.'));
         }
 
-        $sightings = $this->Sighting->getSightingsForTime($this->Auth->user(), $returnFormat, $filters);
+        $sightings = $this->Sighting->restSearch($this->Auth->user(), $returnFormat, $filters);
 
         $validFormats = $this->Sighting->validFormats;
         $responseType = $validFormats[$returnFormat][0];
         return $this->RestResponse->viewData($sightings, $responseType, false, true);
-        //return $this->RestResponse->viewData($sightings);
     }
 
     public function listSightings($id, $context = 'attribute', $org_id = false)

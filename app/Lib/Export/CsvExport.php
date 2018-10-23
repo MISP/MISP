@@ -48,8 +48,8 @@ class CsvExport
 		return $this->__addLine($attribute, $options);
 	}
 
-	private function __sightingsHandler($sighting, $options)
-	{
+        private function __sightingsHandler($sighting, $options)
+        {
                 $lines = '';
                 if (isset($sighting['Sighting']['Event'])) {
                     foreach($sighting['Sighting']['Event'] as $k => $event_val) {

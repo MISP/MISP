@@ -463,7 +463,7 @@ class Sighting extends AppModel
         return $sightingsRearranged;
     }
 
-    public function getSightingsForTime($user, $returnFormat, $filters)
+    public function restSearch($user, $returnFormat, $filters)
     {
         if (!isset($this->validFormats[$returnFormat][1])) {
             throw new NotFoundException('Invalid output format.');
