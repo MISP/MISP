@@ -74,6 +74,7 @@ nav:
       - 'Debian testing': 'xINSTALL.debian_testing.md'
       - 'Debian 9 \w postgresql': 'xINSTALL.debian9-postgresql.md'
       - 'OpenBSD 6.4': 'xINSTALL.OpenBSD.md'
+      - 'Redhat Enterprise Linux 7.6 (BETA)': 'xINSTALL.rhel7.md'
     - Config Guides:
       - 'Elastic Search Logging': 'CONFIG.elasticsearch-logging.md'
       - 'Amazon S3 attachments': 'CONFIG.s3-attachments.md'
