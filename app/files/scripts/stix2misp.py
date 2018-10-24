@@ -871,19 +871,20 @@ class StixParser():
         if hasattr(indicator, 'observable') and indicator.observable:
             observable = indicator.observable
             if hasattr(observable, 'object_') and observable.object_:
+                uuid = self.fetch_uuid(observable.object_.id_)
                 try:
                     properties = observable.object_.properties
                     if properties:
                         attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
                         if isinstance(attribute_value, (str, int)):
                             # if the returned value is a simple value, we build an attribute
-                            attribute = {'to_ids': True}
+                            attribute = {'to_ids': True, 'uuid': uuid}
                             if indicator.timestamp:
                                 attribute['timestamp'] = self.getTimestampfromDate(indicator.timestamp)
                             self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
                         else:
                             # otherwise, it is a dictionary of attributes, so we build an object
-                            self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=True)
+                            self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=True, object_uuid=uuid)
                 except AttributeError:
                     self.parse_description(indicator)
         if hasattr(indicator, 'related_indicators') and indicator.related_indicators:
