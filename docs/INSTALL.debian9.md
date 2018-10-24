@@ -77,6 +77,7 @@ mariadb-server \
 apache2 apache2-doc apache2-utils \
 libapache2-mod-php7.0 php7.0 php7.0-cli php7.0-mbstring php7.0-dev php7.0-json php7.0-xml php7.0-mysql php7.2-opcache php7.0-readline php-redis php-gnupg \
 libpq5 libjpeg-dev libfuzzy-dev ruby asciidoctor \
+jq ntp ntpdate jupyter-notebook imagemagick tesseract-ocr \
 libxml2-dev libxslt1-dev zlib1g-dev
 
 # Start rng-tools to get more entropy (optional)
@@ -532,16 +533,9 @@ sudo $CAKE Admin setSetting "Security.password_policy_complexity" '/^((?=.*\d)|(
 sudo $CAKE Admin setSetting "Session.autoRegenerate" 0
 sudo $CAKE Admin setSetting "Session.timeout" 600
 sudo $CAKE Admin setSetting "Session.cookie_timeout" 3600
+```
 
-# Now log in using the webinterface:
-# The default user/pass = admin@admin.test/admin
-
-# Using the server settings tool in the admin interface (Administration -> Server Settings), set MISP up to your preference
-# It is especially vital that no critical issues remain!
-# start the workers by navigating to the workers tab and clicking restart all workers
-
-# Don't forget to change the email, password and authentication key after installation.
-
+```bash
 # Set MISP Live
 sudo $CAKE Live $MISP_LIVE
 
@@ -599,23 +593,36 @@ echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
 echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 ```
 
-# Once done, have a look at the diagnostics
+!!! notice
+    Now log in using the webinterface:<br />
+    The default user/pass = admin@admin.test/admin<br />
+    Using the server settings tool in the admin interface (Administration -> Server Settings), set MISP up to your preference<br />
+    It is especially vital that no critical issues remain!<br />
+    Don't forget to change the email, password and authentication key after installation.
 
-# If any of the directories that MISP uses to store files is not writeable to the apache user, change the permissions
-# you can do this by running the following commands:
+!!! notice
+    Start the workers by navigating to the workers tab and clicking restart all workers
 
-```
-sudo chmod -R 750 $PATH_TO_MISP/<directory path with an indicated issue>
-sudo chown -R www-data:www-data $PATH_TO_MISP/<directory path with an indicated issue>
-```
+!!! notice
+    Once done, have a look at the diagnostics
+    If any of the directories that MISP uses to store files is not writeable to the apache user, change the permissions
+    you can do this by running the following commands:
+    ```
+    sudo chmod -R 750 $PATH_TO_MISP/<directory path with an indicated issue>
+    sudo chown -R www-data:www-data $PATH_TO_MISP/<directory path with an indicated issue>
+    ```
 
-# Make sure that the STIX libraries and GnuPG work as intended, if not, refer to INSTALL.txt's paragraphs dealing with these two items
+!!! warning
+    Make sure that the STIX libraries and GnuPG work as intended, if not, refer to INSTALL.txt's paragraphs dealing with these two items
 
-# If anything goes wrong, make sure that you check MISP's logs for errors:
-# $PATH_TO_MISP/app/tmp/logs/error.log
-# $PATH_TO_MISP/app/tmp/logs/resque-worker-error.log
-# $PATH_TO_MISP/app/tmp/logs/resque-scheduler-error.log
-# $PATH_TO_MISP/app/tmp/logs/resque-2015-01-01.log // where the actual date is the current date
+!!! notice
+    If anything goes wrong, make sure that you check MISP's logs for errors:
+    ```
+    # $PATH_TO_MISP/app/tmp/logs/error.log
+    # $PATH_TO_MISP/app/tmp/logs/resque-worker-error.log
+    # $PATH_TO_MISP/app/tmp/logs/resque-scheduler-error.log
+    # $PATH_TO_MISP/app/tmp/logs/resque-2015-01-01.log // where the actual date is the current date
+    ```
 
 !!! warning
     If you have install a python virtualenv to the recommended place of */var/www/MISP/venv* set the following MISP configurable
@@ -786,7 +793,7 @@ sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" ~/.viper/viper.conf
 # Reset admin password to: admin/Password1234
 sqlite3 ~/.viper/admin.db 'UPDATE auth_user SET password="pbkdf2_sha256$100000$iXgEJh8hz7Cf$vfdDAwLX8tko1t0M1TLTtGlxERkNnltUnMhbv56wK/U="'
 # Add viper-web to rc.local to be started on boot
-sed -i -e '$i \sudo -u misp /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 > /tmp/viper-web_rc.local.log &\n' /etc/rc.local
+sudo sed -i -e '$i \sudo -u misp /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 > /tmp/viper-web_rc.local.log &\n' /etc/rc.local
 ```
 
 #### Install mail to misp
