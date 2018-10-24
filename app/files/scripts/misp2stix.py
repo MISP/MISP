@@ -188,7 +188,7 @@ class StixBuilder(object):
             stix_packages = [getattr(self.generate_package(self.json_event['Event']), to_call)(**args)]
         if self.return_type == 'xml':
             stix_packages = [s.decode() for s in stix_packages]
-            stix_packages = ['\n            '.join(s.split('\n')[:-1]).replace('stix:STIX_Package>', 'stix:Package>') for s in stix_packages]
+            stix_packages = ['\n            '.join(s.split('\n')[:-1]).replace('stix:STIX_Package', 'stix:Package') for s in stix_packages]
             stix_packages = ['            {}\n'.format(s) for s in stix_packages]
         else:
             stix_packages = ['{"package": %s}' % s for s in stix_packages]

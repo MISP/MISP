@@ -22,6 +22,7 @@ import time
 import uuid
 import base64
 import stix2misp_mapping
+import stix.extensions.marking.ais
 from operator import attrgetter
 from pymisp import MISPEvent, MISPObject, MISPAttribute, __path__
 from stix.core import STIXPackage
@@ -67,7 +68,7 @@ class StixParser():
             self.ttps = package.ttps.ttps if package.ttps else None
         else:
             self.event = event
-        if args[2] is not None:
+        if len(args) > 2 and args[2]:
             self.add_original_file(args[2])
         try:
             event_distribution = args[3]
@@ -77,12 +78,14 @@ class StixParser():
             event_distribution = 5
         try:
             attribute_distribution = args[4]
-            if attribute_distribution != 'event' and not isinstance(attribute_distribution, int):
-                attribute_distribution = int(attribute_distribution) if attribute_distribution.isdigit() else 5
+            if attribute_distribution == 'event':
+                attribute_distribution = event_distribution
+            elif not isinstance(attribute_distribution, int):
+                attribute_distribution = int(attribute_distribution) if attribute_distribution.isdigit() else event_distribution
         except IndexError:
-            attribute_distribution = 5
+            attribute_distribution = event_distribution
         self.misp_event.distribution = event_distribution
-        self.__attribute_distribution = event_distribution if attribute_distribution == 'event' else attribute_distribution
+        self.__attribute_distribution = attribute_distribution
         self.fromMISP = fromMISP
         self.load_mapping()
 
@@ -301,7 +304,8 @@ class StixParser():
 
     # Parse STIX objects that we know will give MISP attributes
     def parse_misp_attribute_indicator(self, indicator):
-        misp_attribute = {'to_ids': True, 'category': str(indicator.relationship)}
+        misp_attribute = {'to_ids': True, 'category': str(indicator.relationship),
+                          'uuid': self.fetch_uuid(indicator.id_)}
         item = indicator.item
         misp_attribute['timestamp'] = self.getTimestampfromDate(item.timestamp)
         if item.observable:
@@ -309,7 +313,8 @@ class StixParser():
             self.parse_misp_attribute(observable, misp_attribute, to_ids=True)
 
     def parse_misp_attribute_observable(self, observable):
-        misp_attribute = {'to_ids': False, 'category': str(observable.relationship)}
+        misp_attribute = {'to_ids': False, 'category': str(observable.relationship),
+                          'uuid': self.fetch_uuid(observable.id_)}
         if observable.item:
             self.parse_misp_attribute(observable.item, misp_attribute)
 
@@ -483,7 +488,7 @@ class StixParser():
         attributes.extend(self.fetch_attributes_with_keys(properties, stix2misp_mapping._file_mapping))
         if len(attributes) == 1:
             attribute = attributes[0]
-            return attribute if attribute[2] != "fullpath" else "filename", attribute[1], ""
+            return attribute[0] if attribute[2] != "fullpath" else "filename", attribute[1], ""
         if len(attributes) == 2:
             if b_hash and b_file:
                 return self.handle_filename_object(attributes, is_object)
@@ -828,8 +833,10 @@ class StixParser():
 
     # Create a MISP object, its attributes, and add it in the MISP event
     def fill_misp_object(self, item, name, to_ids=False):
+        uuid = self.fetch_uuid(item.id_)
         try:
             misp_object = MISPObject(name)
+            misp_object.uuid = uuid
             if to_ids:
                 observables = item.observable.observable_composition.observables
                 misp_object.timestamp = self.getTimestampfromDate(item.timestamp)
@@ -844,16 +851,16 @@ class StixParser():
             self.misp_event.add_object(**misp_object)
         except AttributeError:
             properties = item.observable.object_.properties if to_ids else item.object_.properties
-            self.parse_observable(properties, to_ids)
+            self.parse_observable(properties, to_ids, uuid)
 
     # Create a MISP attribute and add it in its MISP object
-    def parse_observable(self, properties, to_ids):
+    def parse_observable(self, properties, to_ids, uuid):
         attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
         if isinstance(attribute_value, (str, int)):
-            attribute = {'to_ids': to_ids}
+            attribute = {'to_ids': to_ids, 'uuid': uuid}
             self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
         else:
-            self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=to_ids)
+            self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=to_ids, object_uuid=uuid)
 
     # Parse indicators of an external STIX document
     def parse_external_indicators(self, indicators):
@@ -864,19 +871,20 @@ class StixParser():
         if hasattr(indicator, 'observable') and indicator.observable:
             observable = indicator.observable
             if hasattr(observable, 'object_') and observable.object_:
+                uuid = self.fetch_uuid(observable.object_.id_)
                 try:
                     properties = observable.object_.properties
                     if properties:
                         attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
                         if isinstance(attribute_value, (str, int)):
                             # if the returned value is a simple value, we build an attribute
-                            attribute = {'to_ids': True}
+                            attribute = {'to_ids': True, 'uuid': uuid}
                             if indicator.timestamp:
                                 attribute['timestamp'] = self.getTimestampfromDate(indicator.timestamp)
                             self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
                         else:
                             # otherwise, it is a dictionary of attributes, so we build an object
-                            self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=True)
+                            self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=True, object_uuid=uuid)
                 except AttributeError:
                     self.parse_description(indicator)
         if hasattr(indicator, 'related_indicators') and indicator.related_indicators:
@@ -1003,11 +1011,7 @@ class StixParser():
     @staticmethod
     def fetch_uuid(object_id):
         try:
-            identifier = object_id.split(':')[1]
-            return_id = ""
-            for part in identifier.split('-')[1:]:
-                return_id += "{}-".format(part)
-            return return_id[:-1]
+            return "-".join(object_id.split("-")[1:])
         except Exception:
             return str(uuid.uuid4())
 
