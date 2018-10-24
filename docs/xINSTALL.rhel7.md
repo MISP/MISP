@@ -2,8 +2,8 @@
 -------------------------
 
 ## 0/ Overview and Assumptions
-This document details the steps to install MISP on Red Hat Enterprise Linux 7.x (RHEL 7.x). At time of this writing it
-was tested on version 7.5.
+This document details the steps to install MISP on Red Hat Enterprise Linux 7.x BETA (RHEL 7.x). At time of this writing it
+was tested on version 7.6 BETA.
 
 The following assumptions with regard to this installation have been made.
 
@@ -11,6 +11,19 @@ The following assumptions with regard to this installation have been made.
 ### 0.2/ The ability to enable additional RPM repositories, specifically the EPEL and Software Collections (SCL) repos
 ### 0.3/ This system will have direct or proxy access to the Internet for updates. Or connected to a Red Hat Satellite Server
 ### 0.4/ This document is to get a MISP instance up and running over HTTP. I haven't done a full test of all features
+
+!!! note
+		For fresh installs the following tips might be handy.<br />
+		Allow ssh to pass the firewall on the CLI
+		```bash
+		firewall-cmd --zone=public --add-port=22/tcp --permanent
+		firewall-cmd --reload
+		```
+		<br />
+		To quickly make sure if NetworkManager handles your network interface on boot, check in the following location:
+		```
+		/etc/sysconfig/network-scripts/ifcfg-*
+		```
 
 # 1/ OS Install and additional repositories
 

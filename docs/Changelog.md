@@ -20,6 +20,7 @@ New
 - [API] rework of the searchall/quickFilter parameters. [iglocska]
 
   Now it correctly works as intended on both attribute and event contexts
+
 - [API] documentation added for the new APIs. [iglocska]
 - [export] Further changes required for the reworked export added.
   [iglocska]

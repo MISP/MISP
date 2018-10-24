@@ -7,6 +7,8 @@
     Maintained and tested by the community.
     It is also partially the basis of the [bootstrap.sh](https://github.com/MISP/misp-packer/blob/18.04/scripts/bootstrap.sh) script of misp-packer.
 
+{!globalVariables.md!}
+
 ### 1/ Minimal Ubuntu install
 -------------------------
 
@@ -233,7 +235,7 @@ sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
 ============================================= End sample working SSL config for MISP
 ```
 
-```
+```bash
 # activate new vhost
 sudo a2dissite default-ssl
 sudo a2ensite misp-ssl
@@ -301,7 +303,8 @@ sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --gen-key
 ```
 
 !!! notice
-    If entropy is not high enough, you can install rng-tools and then run rngd -r /dev/urandom do fix it quickly
+    If entropy is not high enough, you can install rng-tools and then run rngd -r /dev/urandom do fix it quickly<br />
+    In case rng-tools gives you troubles, haveged is an alternative.
 
 ```bash
 # And export the public key to the webroot
