@@ -304,7 +304,8 @@ class StixParser():
 
     # Parse STIX objects that we know will give MISP attributes
     def parse_misp_attribute_indicator(self, indicator):
-        misp_attribute = {'to_ids': True, 'category': str(indicator.relationship)}
+        misp_attribute = {'to_ids': True, 'category': str(indicator.relationship),
+                          'uuid': self.fetch_uuid(indicator.id_)}
         item = indicator.item
         misp_attribute['timestamp'] = self.getTimestampfromDate(item.timestamp)
         if item.observable:
@@ -312,7 +313,8 @@ class StixParser():
             self.parse_misp_attribute(observable, misp_attribute, to_ids=True)
 
     def parse_misp_attribute_observable(self, observable):
-        misp_attribute = {'to_ids': False, 'category': str(observable.relationship)}
+        misp_attribute = {'to_ids': False, 'category': str(observable.relationship),
+                          'uuid': self.fetch_uuid(observable.id_)}
         if observable.item:
             self.parse_misp_attribute(observable.item, misp_attribute)
 
@@ -831,8 +833,10 @@ class StixParser():
 
     # Create a MISP object, its attributes, and add it in the MISP event
     def fill_misp_object(self, item, name, to_ids=False):
+        uuid = self.fetch_uuid(item.id_)
         try:
             misp_object = MISPObject(name)
+            misp_object.uuid = uuid
             if to_ids:
                 observables = item.observable.observable_composition.observables
                 misp_object.timestamp = self.getTimestampfromDate(item.timestamp)
@@ -847,16 +851,16 @@ class StixParser():
             self.misp_event.add_object(**misp_object)
         except AttributeError:
             properties = item.observable.object_.properties if to_ids else item.object_.properties
-            self.parse_observable(properties, to_ids)
+            self.parse_observable(properties, to_ids, uuid)
 
     # Create a MISP attribute and add it in its MISP object
-    def parse_observable(self, properties, to_ids):
+    def parse_observable(self, properties, to_ids, uuid):
         attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
         if isinstance(attribute_value, (str, int)):
-            attribute = {'to_ids': to_ids}
+            attribute = {'to_ids': to_ids, 'uuid': uuid}
             self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
         else:
-            self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=to_ids)
+            self.handle_object_case(attribute_type, attribute_value, compl_data, to_ids=to_ids, object_uuid=uuid)
 
     # Parse indicators of an external STIX document
     def parse_external_indicators(self, indicators):
