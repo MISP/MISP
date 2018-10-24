@@ -1,0 +1,139 @@
+.tabMenu {
+	position:absolute;
+	top:-23px;
+	padding-left:10px;
+	padding-right:10px;
+	border: 1px solid #ddd;
+	border-bottom: 0px !important;
+	background-color: $c_f9-grey;
+	border-collapse: separate !important;
+}
+
+.tabMenuFixedContainer {
+	position:relative;
+	left:10px;
+	height:20px;
+	width:calc(100% - 10px);
+	bottom:0px;
+	min-width:1100px;
+}
+
+.tabMenuFixedContainer > span:nth-child(1) {
+	padding-left:10px;
+}
+
+.tabMenuFixedContainer > span:nth-last-child(1) {
+	border-right: 1px solid $c_matrix-grey;
+	padding-right:10px;
+
+}
+
+.tabMenuFixed {
+	position:relative;
+	padding-top:3px;
+	padding-bottom:3px;
+	border-left: 1px solid #ddd;
+	border-bottom: 1px solid $c_white;
+	padding-left:5px;
+	padding-right:5px;
+}
+
+.tabMenuFixed:hover {
+	background-color:$c_tab-menu-grey;
+}
+
+.tabMenuSides {
+	border-top: 1px solid $c_matrix-grey;
+}
+
+.tabMenuFilterFieldHeader {
+	border-radius: 10px 0px 0 0 !important;
+	height:14px !important;
+	width:30px;
+	margin:0px !important;
+	margin-bottom:1px !important;
+	padding:3px !important;
+	padding-left:10px !important;
+	border: 1px solid $c_ddd-grey !important;
+	border-bottom:0px !important;
+	line-height:14px !important;
+	margin-right:0px !important;
+	margin-bottom:1px !important;
+	float:right;
+}
+
+.tabMenuFilterField {
+	border-radius: 10px 0 0 0 !important;
+	height:20px !important;
+	margin:0px !important;
+	margin-bottom:1px !important;
+	padding:0px !important;
+	padding-left:10px !important;
+	border-top: 1px solid $c_ddd-grey !important;
+	border-left: 1px solid $c_ddd-grey !important;
+	border-right:0px !important;
+	border-bottom:0px !important;
+	float:right;
+}
+
+.tabMenuFilterFieldButton {
+	border-radius: 0px 10px 0 0 !important;
+	background-color:#f9f9f9;
+	height:20px !important;
+	width:34px;
+	padding-left:3px;
+	margin:0px !important;
+	margin-bottom:1px !important;
+	border: 1px solid $c_ddd-grey !important;
+	border-bottom:0px !important;
+	margin-right:200px !important;
+	margin-bottom:0px !important;
+	float:right;
+}
+
+.tabMenuFilterFieldButton:hover {
+	background-color:$c_tab-menu-grey;
+}
+
+.tabMenuFixedLeft {
+	padding-left:10px;
+}
+
+.tabMenuFixedRight {
+	border-right: 1px solid $c_ddd-grey;
+	padding-right:10px;
+}
+
+.tabMenuFixedCenter {
+	padding-right:10px;
+	padding-left:10px;
+	border-right: 1px solid $c_ddd-grey;
+	border-left: 1px solid $c_ddd-grey;
+}
+
+.tabMenuFixedElement {
+	background-color: $c_f9-grey !important;
+	border-top: 1px solid $c_ddd-grey;
+}
+
+.tabMenuEditBlock {
+	margin-left:5px;
+}
+
+.tabMenuToolsBlock {
+	margin-left:200px;
+}
+
+.tabMenuFiltersBlock {
+	margin-left:400px;
+}
+
+.tabMenu [class^="icon-"] {
+	vertical-align:baseline;
+	margin-top:3px;
+}
+
+.tabMenuActive {
+	color:$c_white;
+	background-color: $c_blue;
+}

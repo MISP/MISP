@@ -1,0 +1,28 @@
+/** Scaffold View **/
+dl {
+	line-height: 2em;
+	margin: 0em 0em;
+	overflow: hidden
+	/*width: 60%;*/
+}
+dl dd:nth-child(4n+2),
+dl dt:nth-child(4n+1) {
+	background: $c_box-grey;
+}
+
+dt {
+	float:left;
+	font-weight: bold;
+	padding: 0;
+	margin: 0;
+	vertical-align: top;
+	width: 150px;
+}
+dd {
+	float:left;
+	vertical-align: top;
+	width: calc(100% - 150px);
+	padding: 0;
+	margin: 0;
+}
+

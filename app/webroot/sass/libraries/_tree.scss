@@ -1,0 +1,131 @@
+.tree {
+	width: 100%;
+	position: relative;
+}
+
+.tree div:not(:nth-of-type(1))::before {
+	content: '';
+	position: absolute;
+	left: -15px;
+	border-bottom: 1px solid #ccc;
+	border-top: 0px solid #ccc;
+	border-right: 0px solid #ccc;
+	border-left: 1px solid #ccc;
+	width: 15px;
+}
+
+.distance1::before {
+ 	top: -35px;
+ 	height: 50px;
+ }
+
+.distance2::before {
+ 	top: -85px;
+ 	height: 100px;
+ }
+
+.distance3::before {
+ 	top: -135px;
+ 	height: 150px;
+ }
+
+.distance4::before {
+ 	top: -185px;
+ 	height: 200px;
+ }
+
+.distance5::before {
+ 	top: -235px;
+ 	height: 250px;
+ }
+
+.distance6::before {
+ 	top: -285px;
+ 	height: 300px;
+ }
+
+.distance7::before {
+ 	top: -335px;
+ 	height: 350px;
+ }
+
+ .distance8::before {
+ 	top: -385px;
+ 	height: 400px;
+ }
+
+.distance9::before {
+ 	top: -435px;
+ 	height: 450px;
+ }
+
+.distance10::before {
+ 	top: -485px;
+ 	height: 500px;
+ }
+
+.tree div:last-of-type::before {
+	border-bottom-left-radius: 7px;
+	-webkit-bottom-left-border-radius: 7px;
+	-moz-border-bottom-left-radius: 7px;
+}
+
+.tree div:first-of-type::before {
+	content: '';
+	position: absolute; top: 15px; left: -34px;
+	border-top: 1px solid #ccc;
+	width: 35px; height: 20px;
+}
+
+.firstPivot::before {
+	display:none;
+}
+
+.firstPivot {
+	left:0px;
+	top:0px;
+}
+
+.tree div span{
+	border: 1px solid #ccc;
+	padding-left:5px;
+	padding-right:5px;
+	padding-top:4px;
+	padding-bottom:2px;
+	width: 105px;
+
+	display: inline-block;
+	border-radius: 7px;
+	-webkit-border-radius: 7px;
+	-moz-border-radius: 7px;
+}
+
+.tree .pivotElement div{
+	position: absolute;
+	left: 150px;
+}
+
+.pivotDelete {
+	vertical-align: text-top;
+}
+
+.pivotText {
+	padding-left:3px;
+	vertical-align: top;
+	color: #666;
+	text-decoration: none;
+}
+
+.pivotTextBlue {
+	padding-left:3px;
+	vertical-align: top;
+	color: #fff;
+	text-decoration: none;
+}
+
+.pivotSpanBlue {
+	background-color: #0088cc;
+	border-radius: 7px;
+	-webkit-border-radius: 7px;
+	-moz-border-radius: 7px;
+}

@@ -1,0 +1,30 @@
+.screenshot_box {
+	display:none;
+	position: fixed;
+	top:150px;
+	background-color:$c_box-grey;
+	border-radius: 11px 11px 10px 10px;
+	box-shadow: 4px 4px 4px $c_dark-grey;
+	z-index:5;
+}
+.confirmation_box {
+	display:none;
+	width: 300px;
+	top:calc(50% - 50px);
+	left:calc(50% - 150px);
+	position: fixed;
+	background-color:$c_box-grey;
+	border-radius: 5px;
+	box-shadow: 4px 4px 4px $c_dark-grey;
+	z-index:5;
+}
+
+.confirmation_box legend, .confirmation .legend {
+	border-radius: 5px 5px 0px 0px;
+	margin-bottom:5px;
+	padding-left:5px;
+	width:295px;
+	background-color:$c_black;
+	color:$c_white;
+}
+

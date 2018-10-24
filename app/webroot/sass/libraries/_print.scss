@@ -1,0 +1,20 @@
+/* bootstrap changes */
+.actions, .header, .footer, .cake-sql-log, .comment, .pagination, .action-links, .addTagTD .tagSecondHalf, .toggleButtons{
+	display: none;
+}
+
+.topGap {
+	padding-top:0px;
+}
+
+div.view, div.index{
+	width: 99% !important;
+}
+
+.noPrint {
+	display: none !important;
+}
+
+a[href]:after, .tagSecondHalf{
+	content:none;
+}

@@ -1,0 +1,41 @@
+/** Debugging **/
+
+/* SQL log */
+.cake-sql-log {
+	display: block;
+	clear: both;
+	background: $c_black;
+	color: $c_attribute-grey;
+}
+.cake-sql-log tr {
+	border: $c_attribute-grey solid 1px;
+}
+.cake-sql-log td {
+	padding: 4px 8px;
+	text-align: left;
+
+}
+.cake-sql-log caption {
+	color:$c_white
+}
+
+
+.debugOff {
+	position:fixed;
+}
+
+.debugOn {
+	position:relative;
+}
+
+.debugOff-layout {
+	position:fixed;
+	padding-top:50px;
+	width:98%;
+}
+
+.debugOn-layout {
+	position:relative;
+	padding-top:10px;
+	width:98%;
+}

@@ -1,0 +1,16 @@
+.loading {
+	display: none;
+	text-color: $c_blue;
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	right: 50%;
+	bottom: 50%;
+}
+
+.loadingText {
+	color: $c_blue;
+	position: relative;
+	top: -45px;
+	left: 13px;
+}
