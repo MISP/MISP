@@ -7,7 +7,7 @@
     Maintained and tested by the community.
     It is also partially the basis of the [bootstrap.sh](https://github.com/MISP/misp-packer/blob/18.04/scripts/bootstrap.sh) script of misp-packer.
 
-{!globalVariables.md!}
+{!generic/globalVariables.md!}
 
 ### 1/ Minimal Ubuntu install
 -------------------------

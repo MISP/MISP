@@ -21,6 +21,13 @@
 !!! notice
     As of OpenBSD 6.4 the native httpd has rewrite rules and php 5.6 is gone too.
 
+{!generic/globalVariables.md!}
+
+```bash
+export AUTOMAKE_VERSION=1.16
+export AUTOCONF_VERSION=2.69
+```
+
 ### 1/ Minimal OpenBSD install
 ------------
 
@@ -29,16 +36,6 @@
 #### System Hardening
 
 - TBD
-
-#### MISP configuration variables
-```bash
-export PATH_TO_MISP='/var/www/htdocs/MISP'
-export MISP_BASEURL='https://misp.local'
-export MISP_LIVE='1'
-export CAKE="$PATH_TO_MISP/app/Console/cake"
-export AUTOMAKE_VERSION=1.16
-export AUTOCONF_VERSION=2.69
-```
 
 #### doas & pkg (as root)
 ```bash
