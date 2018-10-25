@@ -574,24 +574,11 @@ doas chmod +x /var/www/htdocs/MISP/app/Console/worker/start.sh
 doas vi /etc/rc.local
 # Add the following line before the last line (exit 0). Make sure that you replace www with your apache user:
 doas -u www bash /var/www/htdocs/MISP/app/Console/worker/start.sh
-
-# Now log in using the webinterface:
-# The default user/pass = admin@admin.test/admin
-
-# Using the server settings tool in the admin interface (Administration -> Server Settings), set MISP up to your preference
-# It is especially vital that no critical issues remain!
-# start the workers by navigating to the workers tab and clicking restart all workers
-
-# Don't forget to change the email, password and authentication key after installation.
-
-# Once done, have a look at the diagnostics
-
-# If any of the directories that MISP uses to store files is not writeable to the apache user, change the permissions
-# you can do this by running the following commands:
-
-doas chmod -R 750 /var/www/htdocs/MISP/<directory path with an indicated issue>
-doas chown -R www:www /var/www/htdocs/MISP/<directory path with an indicated issue>
 ``` 
+
+{!generic/INSTALL.done.md!}
+
+{!generic/recommended.actions.md!}
 
 #### MISP Modules
 ```

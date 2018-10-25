@@ -1,11 +1,9 @@
 # INSTALLATION INSTRUCTIONS
-## for Ubuntu 18.04-server
+## for Ubuntu 18.04.1-server
 
 ### 0/ MISP Ubuntu 18.04-server install - status
 -------------------------
-!!! notice
-    Maintained and tested by the community.
-    It is also partially the basis of the [bootstrap.sh](https://github.com/MISP/misp-packer/blob/18.04/scripts/bootstrap.sh) script of misp-packer.
+{!generic/community.md!}
 
 {!generic/globalVariables.md!}
 
@@ -316,48 +314,10 @@ sudo vim /etc/rc.local
 # Add the following line before the last line (exit 0). Make sure that you replace www-data with your apache user:
 sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh
 ```
-!!! notice
-    Now log in using the webinterface. <br />
-    The default user/pass = admin@admin.test/admin<br />
-    Using the server settings tool in the admin interface (Administration -> Server Settings), set MISP up to your preference<br />
-    It is especially vital that no critical issues remain!<br />
-    Don't forget to change the email, password and authentication key after installation.
 
-!!! notice
-    Start the workers by navigating to the workers tab and clicking restart all workers
+{!generic/INSTALL.done.md!}
 
-!!! notice
-    Once done, have a look at the diagnostics
-    If any of the directories that MISP uses to store files is not writeable to the apache user, change the permissions
-    you can do this by running the following commands:
-    ```
-    sudo chmod -R 750 /var/www/MISP/<directory path with an indicated issue>
-    sudo chown -R www-data:www-data /var/www/MISP/<directory path with an indicated issue>
-    ```
-
-!!! warning
-    Make sure that the STIX libraries and GnuPG work as intended, if not, refer to INSTALL.txt's paragraphs dealing with these two items
-
-!!! notice
-    If anything goes wrong, make sure that you check MISP's logs for errors:
-    ```
-    # /var/www/MISP/app/tmp/logs/error.log
-    # /var/www/MISP/app/tmp/logs/resque-worker-error.log
-    # /var/www/MISP/app/tmp/logs/resque-scheduler-error.log
-    # /var/www/MISP/app/tmp/logs/resque-2015-01-01.log // where the actual date is the current date
-    ```
-
-
-### Recommended actions
--------------------
-- By default CakePHP exposes its name and version in email headers. Apply a patch to remove this behavior.
-
-- You should really harden your OS
-- You should really harden the configuration of Apache
-- You should really harden the configuration of MySQL/MariaDB
-- Keep your software up2date (OS, MISP, CakePHP and everything else)
-- Log and audit
-
+{!generic/recommended.actions.md!}
 
 ### Optional features
 -----------------

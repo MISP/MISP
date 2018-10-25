@@ -453,52 +453,9 @@ echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
 echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 ```
 
-!!! notice
-    Now log in using the webinterface:<br />
-    The default user/pass = admin@admin.test/admin<br />
-    Using the server settings tool in the admin interface (Administration -> Server Settings), set MISP up to your preference<br />
-    It is especially vital that no critical issues remain!<br />
-    Don't forget to change the email, password and authentication key after installation.
+{!generic/INSTALL.done.md!}
 
-!!! notice
-    Start the workers by navigating to the workers tab and clicking restart all workers
-
-!!! notice
-    Once done, have a look at the diagnostics
-    If any of the directories that MISP uses to store files is not writeable to the apache user, change the permissions
-    you can do this by running the following commands:
-    ```
-    sudo chmod -R 750 $PATH_TO_MISP/<directory path with an indicated issue>
-    sudo chown -R www-data:www-data $PATH_TO_MISP/<directory path with an indicated issue>
-    ```
-
-!!! warning
-    Make sure that the STIX libraries and GnuPG work as intended, if not, refer to INSTALL.txt's paragraphs dealing with these two items
-
-!!! notice
-    If anything goes wrong, make sure that you check MISP's logs for errors:
-    ```
-    # $PATH_TO_MISP/app/tmp/logs/error.log
-    # $PATH_TO_MISP/app/tmp/logs/resque-worker-error.log
-    # $PATH_TO_MISP/app/tmp/logs/resque-scheduler-error.log
-    # $PATH_TO_MISP/app/tmp/logs/resque-2015-01-01.log // where the actual date is the current date
-    ```
-
-!!! warning
-    If you have install a python virtualenv to the recommended place of */var/www/MISP/venv* set the following MISP configurable
-    ```bash
-    sudo $CAKE Admin setSetting "MISP.python_bin" "/var/www/MISP/venv/bin/python"
-    ```
-
-### Recommended actions
--------------------
-- By default CakePHP exposes its name and version in email headers. Apply a patch to remove this behavior.
-
-- You should really harden your OS
-- You should really harden the configuration of Apache
-- You should really harden the configuration of MySQL/MariaDB
-- Keep your software up2date (OS, MISP, CakePHP and everything else)
-- Log and audit
+{!generic/recommended.actions.md!}
 
 ### Optional features
 -------------------
