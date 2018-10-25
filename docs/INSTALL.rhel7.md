@@ -176,7 +176,7 @@ git config core.filemode false
 scl enable rh-python36 'python3 setup.py install'
 ```
 
-## 3.04/ Install mixbox to accomodate the new STIX dependencies
+## 3.04/ Install mixbox to accommodate the new STIX dependencies
 ```bash
 cd /var/www/MISP/app/files/scripts/
 git clone https://github.com/CybOXProject/mixbox.git
@@ -424,33 +424,9 @@ su -s /bin/bash apache -c 'scl enable rh-php71 rh-redis32 rh-mariadb102 /var/www
 chmod +x /etc/rc.local
 ```
 
-!!! note
-    Now log in using the webinterface: http://misp/users/login<br />
-    The default user/pass = admin@admin.test/admin<br />
-    Using the server settings tool in the admin interface (Administration -> Server Settings), set MISP up to your preference<br />
-    It is especially vital that no critical issues remain!<br />
-    Don't forget to change the email, password and authentication key after installation.
+{!generic/INSTALL.done.md!}
 
-!!! note
-    Once done, have a look at the diagnostics<br />
-    If any of the directories that MISP uses to store files is not writeable to the apache user, change the permissions<br />
-    you can do this by running the following commands:<br />
-    ```
-    chmod -R 750 /var/www/MISP/<directory path with an indicated issue>
-    chown -R apache:apache /var/www/MISP/<directory path with an indicated issue>
-    ```
-
-!!! warning
-    Make sure that the STIX libraries and GnuPG work as intended, if not, refer to INSTALL.txt's paragraphs dealing with these two items
-
-!!! note 
-    If anything goes wrong, make sure that you check MISP's logs for errors:
-    ```
-    # /var/www/MISP/app/tmp/logs/error.log
-    # /var/www/MISP/app/tmp/logs/resque-worker-error.log
-    # /var/www/MISP/app/tmp/logs/resque-scheduler-error.log
-    # /var/www/MISP/app/tmp/logs/resque-2015-01-01.log //where the actual date is the current date
-    ```
+{!generic/recommended.actions.md!}
 
 # 10/ Post Install
 
