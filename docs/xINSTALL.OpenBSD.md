@@ -21,6 +21,13 @@
 !!! notice
     As of OpenBSD 6.4 the native httpd has rewrite rules and php 5.6 is gone too.
 
+{!generic/globalVariables.md!}
+
+```bash
+export AUTOMAKE_VERSION=1.16
+export AUTOCONF_VERSION=2.69
+```
+
 ### 1/ Minimal OpenBSD install
 ------------
 
@@ -29,16 +36,6 @@
 #### System Hardening
 
 - TBD
-
-#### MISP configuration variables
-```bash
-export PATH_TO_MISP='/var/www/htdocs/MISP'
-export MISP_BASEURL='https://misp.local'
-export MISP_LIVE='1'
-export CAKE="$PATH_TO_MISP/app/Console/cake"
-export AUTOMAKE_VERSION=1.16
-export AUTOCONF_VERSION=2.69
-```
 
 #### doas & pkg (as root)
 ```bash
@@ -577,24 +574,11 @@ doas chmod +x /var/www/htdocs/MISP/app/Console/worker/start.sh
 doas vi /etc/rc.local
 # Add the following line before the last line (exit 0). Make sure that you replace www with your apache user:
 doas -u www bash /var/www/htdocs/MISP/app/Console/worker/start.sh
-
-# Now log in using the webinterface:
-# The default user/pass = admin@admin.test/admin
-
-# Using the server settings tool in the admin interface (Administration -> Server Settings), set MISP up to your preference
-# It is especially vital that no critical issues remain!
-# start the workers by navigating to the workers tab and clicking restart all workers
-
-# Don't forget to change the email, password and authentication key after installation.
-
-# Once done, have a look at the diagnostics
-
-# If any of the directories that MISP uses to store files is not writeable to the apache user, change the permissions
-# you can do this by running the following commands:
-
-doas chmod -R 750 /var/www/htdocs/MISP/<directory path with an indicated issue>
-doas chown -R www:www /var/www/htdocs/MISP/<directory path with an indicated issue>
 ``` 
+
+{!generic/INSTALL.done.md!}
+
+{!generic/recommended.actions.md!}
 
 #### MISP Modules
 ```

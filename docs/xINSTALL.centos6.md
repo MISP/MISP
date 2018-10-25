@@ -1,7 +1,22 @@
-INSTALLATION INSTRUCTIONS
-------------------------- for CentOS 6.x
+ # INSTALLATION INSTRUCTIONS
+## for CentOS 6.x
 
-1/ Minimal CentOS install
+### 0/ MISP CentOS 6 Minimal NetInstall - Status
+--------------------------------------------
+
+CentOS 6.10 [NetInstallURL](http://mirrors.sonic.net/centos/6.10/os/x86_64/)
+
+{!generic/globalVariables.md!}
+
+```bash
+# CentOS Specific
+RUN_PHP='/usr/bin/scl enable rh-php56 '
+RUN_PYTHON='/usr/bin/scl enable rh-python36 '
+
+PHP_INI=/etc/opt/rh/rh-php56/php.ini
+```
+
+### 1/ Minimal CentOS install
 -------------------------
 
 Install a minimal CentOS 6.x system with the software:
@@ -10,151 +25,186 @@ Install a minimal CentOS 6.x system with the software:
 - LAMP server (actually, this is done below)
 - Mail server
 
+
+```bash
+# Make sure you set your hostname CORRECTLY vs. like an brute (manually in /etc/hostname)
+hostnamectl set-hostname misp.local # or whatever you want it to be
+
 # Make sure your system is up2date:
-yum update
+sudo yum update -y
+```
 
-
-2/ Dependencies *
+### 2/ Dependencies *
 ----------------
-Once the system is installed you can perform the following steps as root:
+Once the system is installed you can perform the following steps as root or with sudo.
 
+```bash
 # We need some packages from the Extra Packages for Enterprise Linux repository
-curl -o epel.rpm http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
-rpm -Uvh epel.rpm
+curl -o /tmp/epel.rpm http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+sudo rpm -Uvh /tmp/epel.rpm
 
 # Since MISP 2.4 PHP 5.5 is a minimal requirement, so we need a newer version than CentOS base provides
 # Software Collections is a way do to this, see https://wiki.centos.org/AdditionalResources/Repositories/SCL
-yum install centos-release-scl
+sudo yum install centos-release-scl
 
 # Because vim is just so practical
-yum install vim
+sudo yum install vim
 
 # Install the dependencies:
-yum install gcc git httpd zip redis mysql-server python-devel python-pip libxslt-devel zlib-devel
+sudo yum install gcc git httpd zip redis mysql-server python-devel python-pip libxslt-devel zlib-devel
 
 # Install PHP 5.6 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php56/
-yum install rh-php56 rh-php56-php-fpm rh-php56-php-devel rh-php56-php-mysqlnd rh-php56-php-mbstring rh-php56-php-xml rh-php56-php-bcmath
+sudo yum install rh-php56 rh-php56-php-fpm rh-php56-php-devel rh-php56-php-mysqlnd rh-php56-php-mbstring rh-php56-php-xml rh-php56-php-bcmath
 
 # Install Python 3.6 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-python36/
-yum install rh-python36
+sudo yum install rh-python36
 
 # rh-php56-php only provided mod_php for httpd24-httpd from SCL
 # if we want to use httpd from CentOS base we can use rh-php56-php-fpm instead
-chkconfig rh-php56-php-fpm on
-service rh-php56-php-fpm start
+sudo chkconfig rh-php56-php-fpm on
+sudo service rh-php56-php-fpm start
 
 # php-fpm is accessed using the fcgi interface
-yum install mod_fcgid mod_proxy_fcgi
+sudo yum install mod_fcgid mod_proxy_fcgi
 
 # Start a new shell with rh-php56 enabled
-scl enable rh-php56 bash
+sudo scl enable rh-php56 bash
 
-pear channel-update pear.php.net
+sudo pear channel-update pear.php.net
 
-pear install Crypt_GPG    # we need version >1.3.0
+sudo pear install Crypt_GPG    # we need version >1.3.0
 
 # GPG needs lots of entropy, haveged provides entropy
-yum install haveged
-chkconfig haveged on
-service haveged start
+sudo yum install haveged
+sudo chkconfig haveged on
+sudo service haveged start
 
 # Enable and start redis
-chkconfig redis on
-service redis start
+sudo chkconfig redis on
+sudo service redis start
+```
 
-3/ MISP code
+### 3/ MISP code
 ------------
+```bash
 # Download MISP using git in the /var/www/ directory.
 cd /var/www/
-git clone https://github.com/MISP/MISP.git
+sudo git clone https://github.com/MISP/MISP.git
+cd /var/www/MISP
+sudo git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
+# if the last shortcut doesn't work, specify the latest version manually
+# example: git checkout tags/v2.4.XY
+# the message regarding a "detached HEAD state" is expected behaviour
+# (you only have to create a new branch, if you want to change stuff and do a pull request for example)
 
 # Make git ignore filesystem permission differences
-cd /var/www/MISP
-git config core.filemode false
+sudo git config core.filemode false
 
-# Start new shell with python 3 enabled
-scl enable rh-python36 bash
+# Fetch submodules
+cd /var/www/MISP
+sudo git submodule update --init --recursive
+# Make git ignore filesystem permission differences for submodules
+sudo git submodule foreach --recursive git config core.filemode false
 
 # install Mitre's STIX and its dependencies by running the following commands:
-yum install python-importlib python-lxml python-dateutil python-six
+sudo yum install python-importlib python-lxml python-dateutil python-six -y
 cd /var/www/MISP/app/files/scripts
-git clone https://github.com/CybOXProject/python-cybox.git
-git clone https://github.com/STIXProject/python-stix.git
+sudo git clone https://github.com/CybOXProject/python-cybox.git
+sudo git clone https://github.com/STIXProject/python-stix.git
 cd /var/www/MISP/app/files/scripts/python-cybox
-git config core.filemode false
+sudo git config core.filemode false
 # If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
 UMASK=$(umask)
 umask 0022
-python3 setup.py install
+sudo $RUN_PYTHON "python3 setup.py install"
 cd /var/www/MISP/app/files/scripts/python-stix
-git config core.filemode false
-python3 setup.py install
+sudo git config core.filemode false
+sudo $RUN_PYTHON "python3 setup.py install"
+
+# install maec
+sudo $RUN_PYTHON "pip install maec"
+
+# install zmq
+sudo $RUN_PYTHON "pip install zmq"
+
+# install redis
+sudo $RUN_PYTHON "pip install redis"
 
 # install mixbox to accomodate the new STIX dependencies:
 cd /var/www/MISP/app/files/scripts/
-git clone https://github.com/CybOXProject/mixbox.git
+sudo git clone https://github.com/CybOXProject/mixbox.git
 cd /var/www/MISP/app/files/scripts/mixbox
-git config core.filemode false
-python3 setup.py install
+sudo git config core.filemode false
+sudo $RUN_PYTHON "python3 setup.py install"
 
 # install PyMISP
 cd /var/www/MISP/PyMISP
-python3 setup.py install
+sudo $RUN_PYTHON "python3 setup.py install"
 
 # Enable python3 for php-fpm
-echo 'source scl_source enable rh-python36' >> /etc/opt/rh/rh-php56/sysconfig/php-fpm
-sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php56/php-fpm.d/www.conf
-service rh-php56-php-fpm restart
+echo 'source scl_source enable rh-python36' | sudo tee -a /etc/opt/rh/rh-php56/sysconfig/php-fpm
+sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php56/php-fpm.d/www.conf
+sudo service rh-php56-php-fpm restart
 
 umask $UMASK
+```
 
-4/ CakePHP
+
+### 4/ CakePHP
 -----------
-# CakePHP is now included as a submodule of MISP, execute the following commands to let git fetch it
-# ignore this message:
-# No submodule mapping found in .gitmodules for path 'app/Plugin/CakeResque'
-
-cd /var/www/MISP
-git submodule update --init --recursive
-# Make git ignore filesystem permission differences for submodules
-git submodule foreach --recursive git config core.filemode false
-
-# Once done, install CakeResque along with its dependencies if you intend to use the built in background jobs:
+#### CakePHP is now included as a submodule of MISP and has been fetch by a previous step.
+#### Install CakeResque along with its dependencies if you intend to use the built in background jobs.
+```bash
+sudo chown -R apache:apache /var/www/MISP
+sudo mkdir /usr/share/httpd/.composer
+sudo chown apache:apache /usr/share/httpd/.composer
 cd /var/www/MISP/app
-php composer.phar require kamisama/cake-resque:4.1.2
-php composer.phar config vendor-dir Vendor
-php composer.phar install
+sudo -u apache $RUN_PHP "php composer.phar require kamisama/cake-resque:4.1.2"
+sudo -u apache $RUN_PHP "php composer.phar config vendor-dir Vendor"
+sudo -u apache $RUN_PHP "php composer.phar install"
 
 # CakeResque normally uses phpredis to connect to redis, but it has a (buggy) fallback connector through Redisent. It is highly advised to install phpredis
-pecl install redis
-echo "extension=redis.so" > /etc/opt/rh/rh-php56/php-fpm.d/redis.ini
-ln -s ../php-fpm.d/redis.ini /etc/opt/rh/rh-php56/php.d/99-redis.ini
-service rh-php56-php-fpm restart
+sudo $RUN_PHP "pecl install redis-2.2.8"
+echo "extension=redis.so" |sudo tee /etc/opt/rh/rh-php56/php-fpm.d/redis.ini
+sudo ln -s ../php-fpm.d/redis.ini /etc/opt/rh/rh-php56/php.d/99-redis.ini
+sudo service rh-php56-php-fpm restart
 
 # If you have not yet set a timezone in php.ini
-echo 'date.timezone = "Europe/Amsterdam"' > /etc/opt/rh/rh-php56/php-fpm.d/timezone.ini
-ln -s ../php-fpm.d/timezone.ini /etc/opt/rh/rh-php56/php.d/99-timezone.ini
+echo 'date.timezone = "Europe/Luxembourg"' |sudo tee /etc/opt/rh/rh-php56/php-fpm.d/timezone.ini
+sudo ln -s ../php-fpm.d/timezone.ini /etc/opt/rh/rh-php56/php.d/99-timezone.ini
 
+# Recommended: Change some PHP settings in /etc/opt/rh/rh-php56/php.ini
+# max_execution_time = 300
+# memory_limit = 512M
+# upload_max_filesize = 50M
+# post_max_size = 50M
+for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
+do
+    sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
+done
+sudo systemctl restart rh-php56-php-fpm.service
 # To use the scheduler worker for scheduled tasks, do the following:
-cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResque/Config/config.php
+sudo cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResque/Config/config.php
+```
 
-5/ Set the permissions
+### 5/ Set the permissions
 ----------------------
-
+```bash
 # Make sure the permissions are set correctly using the following commands as root:
-chown -R root:apache /var/www/MISP
-find /var/www/MISP -type d -exec chmod g=rx {} \;
-chmod -R g+r,o= /var/www/MISP
-chown apache:apache /var/www/MISP/app/files
-chown apache:apache /var/www/MISP/app/files/terms
-chown apache:apache /var/www/MISP/app/files/scripts/tmp
-chown apache:apache /var/www/MISP/app/Plugin/CakeResque/tmp
-chown -R apache:apache /var/www/MISP/app/tmp
-chown -R apache:apache /var/www/MISP/app/webroot/img/orgs
-chown -R apache:apache /var/www/MISP/app/webroot/img/custom
+sudo chown -R root:apache /var/www/MISP
+sudo find /var/www/MISP -type d -exec chmod g=rx {} \;
+sudo chmod -R g+r,o= /var/www/MISP
+sudo chown apache:apache /var/www/MISP/app/files
+sudo chown apache:apache /var/www/MISP/app/files/terms
+sudo chown apache:apache /var/www/MISP/app/files/scripts/tmp
+sudo chown apache:apache /var/www/MISP/app/Plugin/CakeResque/tmp
+sudo chown -R apache:apache /var/www/MISP/app/tmp
+sudo chown -R apache:apache /var/www/MISP/app/webroot/img/orgs
+sudo chown -R apache:apache /var/www/MISP/app/webroot/img/custom
 
-6/ Create a database and user
+### 6/ Create a database and user
 -----------------------------
+```bash
 # Enable, start and secure your mysql database server
 chkconfig mysqld on
 service mysqld start
@@ -165,50 +215,76 @@ mysql_secure_installation
 
 # Enter the mysql shell
 mysql -u root -p
+```
 
+```
 mysql> create database misp;
 mysql> grant usage on *.* to misp@localhost identified by 'XXXXXXXXX';
 mysql> grant all privileges on misp.* to misp@localhost ;
 mysql> exit
+```
 
-cd /var/www/MISP
+#### copy/paste:
 
-# Import the empty MySQL database from MYSQL.sql
-mysql -u misp -p misp < INSTALL/MYSQL.sql
+```bash
+sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "create database $DBNAME;"
+sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant usage on *.* to $DBNAME@localhost identified by '$DBPASSWORD_MISP';"
+sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant all privileges on $DBNAME.* to '$DBUSER_MISP'@'localhost';"
+sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "flush privileges;"
+```
+
+#### Import the empty MySQL database from MYSQL.sql
+```bash
+sudo -u apache cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
+```
 
 
-7/ Apache configuration
+### 7/ Apache configuration
 -----------------------
+```bash
 # Now configure your apache server with the DocumentRoot /var/www/MISP/app/webroot/
 # A sample vhost can be found in /var/www/MISP/INSTALL/apache.misp.centos6
 
-cp /var/www/MISP/INSTALL/apache.misp.centos6 /etc/httpd/conf.d/misp.conf
+sudo cp /var/www/MISP/INSTALL/apache.misp.centos6 /etc/httpd/conf.d/misp.conf
 
 # Allow httpd to connect to the redis server and php-fpm over tcp/ip
-setsebool -P httpd_can_network_connect on
+sudo setsebool -P httpd_can_network_connect on
 
 # Enable and start the httpd service
-chkconfig httpd on
-service httpd start
+sudo chkconfig httpd on
+sudo service httpd start
 
 # Open a hole in the iptables firewall
-iptables -I INPUT 5 -p tcp --dport 80 -m state --state NEW,ESTABLISHED -j ACCEPT
-service iptables save
+sudo iptables -I INPUT 5 -p tcp --dport 80 -m state --state NEW,ESTABLISHED -j ACCEPT
+sudo service iptables save
 
-# We seriously recommend using only SSL !
+# We seriously recommend using only HTTPS / SSL !
+# Add SSL support by running: yum install mod_ssl
 # Check out the apache.misp.ssl file for an example
+```
 
 
-8/ Log rotation
+```bash
+# If a valid SSL certificate is not already created for the server, create a self-signed certificate:
+sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
+-subj "/C=${OPENSSL_C}/ST=${OPENSSL_ST}/L=${OPENSSL_L}/O=${OPENSSL_O}/OU=${OPENSSL_OU}/CN=${OPENSSL_CN}/emailAddress=${OPENSSL_EMAILADDRESS}" \
+-keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt
+```
+
+
+### 8/ Log rotation
 ---------------
+```bash
 # MISP saves the stdout and stderr of its workers in /var/www/MISP/app/tmp/logs
 # To rotate these logs install the supplied logrotate script:
 
-cp INSTALL/misp.logrotate /etc/logrotate.d/misp
-chmod 0640 /etc/logrotate.d/misp
+sudo cp INSTALL/misp.logrotate /etc/logrotate.d/misp
+sudo chmod 0640 /etc/logrotate.d/misp
+```
 
-9/ MISP configuration
+### 9/ MISP configuration
 ---------------------
+```
 # There are 4 sample configuration files in /var/www/MISP/app/Config that need to be copied
 cd /var/www/MISP/app/Config
 cp -a bootstrap.default.php bootstrap.php
@@ -224,9 +300,9 @@ cp -a config.default.php config.php
 # The admin user account will be generated on the first login, make sure that the salt is changed before you create that user
 # If you forget to do this step, and you are still dealing with a fresh installation, just alter the salt,
 # delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
-
+	
 # If you want to be able to change configuration parameters from the webinterface:
-chown apache:apache /var/www/MISP/app/Config/config.php
+sudo chown apache:apache /var/www/MISP/app/Config/config.php
 
 # Generate a GPG encryption key.
 # If the following command gives an error message, try it as root from the console
@@ -241,7 +317,7 @@ chown -R apache:apache /var/www/MISP/.gnupg
 sudo -u apache gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR-EMAIL > /var/www/MISP/app/webroot/gpg.asc
 
 # Start the workers to enable background jobs
-chmod +x /var/www/MISP/app/Console/worker/start.sh
+sudo chmod +x /var/www/MISP/app/Console/worker/start.sh
 su -s /bin/bash apache -c 'scl enable rh-php56 /var/www/MISP/app/Console/worker/start.sh'
 
 # To make the background workers start on boot
@@ -249,36 +325,9 @@ vi /etc/rc.local
 # Add the following line at the end
 su -s /bin/bash apache -c 'scl enable rh-php56 /var/www/MISP/app/Console/worker/start.sh'
 
-# Now log in using the webinterface:
-# The default user/pass = admin@admin.test/admin
+{!generic/MISP_CAKE_init_centos.md!}
 
-# Using the server settings tool in the admin interface (Administration -> Server Settings), set MISP up to your preference
-# It is especially vital that no critical issues remain!
+{!generic/INSTALL.done.md!}
 
-Don't forget to change the email, password and authentication key after installation.
+{!generic/recommended.actions.md!}
 
-# Once done, have a look at the diagnostics
-
-# If any of the directories that MISP uses to store files is not writeable to the apache user, change the permissions
-# you can do this by running the following commands:
-
-chmod -R 750 /var/www/MISP/<directory path with an indicated issue>
-chown -R apache:apache /var/www/MISP/<directory path with an indicated issue>
-
-# Make sure that the STIX libraries and GnuPG work as intended, if not, refer to INSTALL.txt's paragraphs dealing with these two items
-
-# If anything goes wrong, make sure that you check MISP's logs for errors:
-# /var/www/MISP/app/tmp/logs/error.log
-# /var/www/MISP/app/tmp/logs/resque-worker-error.log
-# /var/www/MISP/app/tmp/logs/resque-scheduler-error.log
-# /var/www/MISP/app/tmp/logs/resque-2015-01-01.log //where the actual date is the current date
-
-Recommended actions
--------------------
-- By default CakePHP exposes his name and version in email headers. Apply a patch to remove this behavior.
-
-- You should really harden your OS
-- You should really harden the configuration of Apache
-- You should really harden the configuration of MySQL
-- Keep your software up2date (MISP, CakePHP and everything else)
-- Log and audit
