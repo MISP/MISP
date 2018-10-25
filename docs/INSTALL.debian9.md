@@ -147,7 +147,7 @@ sudo -u www-data /var/www/MISP/venv/bin/pip install .
 cd $PATH_TO_MISP/app/files/scripts/python-maec
 sudo -u www-data /var/www/MISP/venv/bin/pip install .
 
-# install mixbox to accomodate the new STIX dependencies:
+# install mixbox to accommodate the new STIX dependencies:
 cd $PATH_TO_MISP/app/files/scripts/
 sudo -u www-data git clone https://github.com/CybOXProject/mixbox.git
 cd $PATH_TO_MISP/app/files/scripts/mixbox

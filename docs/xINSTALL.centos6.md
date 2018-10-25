@@ -130,7 +130,7 @@ sudo $RUN_PYTHON "pip install zmq"
 # install redis
 sudo $RUN_PYTHON "pip install redis"
 
-# install mixbox to accomodate the new STIX dependencies:
+# install mixbox to accommodate the new STIX dependencies:
 cd /var/www/MISP/app/files/scripts/
 sudo git clone https://github.com/CybOXProject/mixbox.git
 cd /var/www/MISP/app/files/scripts/mixbox

@@ -336,7 +336,7 @@ doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 cd /var/www/htdocs/MISP/app/files/scripts/python-stix
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
-# install mixbox to accomodate the new STIX dependencies:
+# install mixbox to accommodate the new STIX dependencies:
 cd /var/www/htdocs/MISP/app/files/scripts/
 doas -u www git clone https://github.com/CybOXProject/mixbox.git
 cd /var/www/htdocs/MISP/app/files/scripts/mixbox
