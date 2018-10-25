@@ -2,8 +2,17 @@
 -------------------------
 
 ## 0/ Overview and Assumptions
-This document details the steps to install MISP on Red Hat Enterprise Linux 7.x BETA (RHEL 7.x). At time of this writing it
-was tested on version 7.6 BETA.
+
+{!generic/community.md!}
+
+!!! warning
+    The core MISP team cannot verify if this guide is working or not. Please help us in keeping it up to date and accurate.
+    Thus we also have difficulties in supporting RHEL issues but will do a best effort on a similar yet slightly different setup.
+
+!!! warning
+    This is a carbon copy of the 7.5 document. Please try to adapt it to the 7.6 BETA release so we can seamlessly switch versions once it is not BETA anymore.
+
+This document details the steps to install MISP on Red Hat Enterprise Linux 7.x BETA (RHEL 7.x). At time of this writing it could be tested on version 7.6 BETA.
 
 The following assumptions with regard to this installation have been made.
 
@@ -31,47 +40,47 @@ The following assumptions with regard to this installation have been made.
 
 ## 1.2/ Configure system hostname
 ```bash
-hostnamectl set-hostname misp # You're choice, in a production environment, it's best to use a FQDN
+sudo hostnamectl set-hostname misp # Your choice, in a production environment, it's best to use a FQDN
 ```
 
 ## 1.3/ Register the system for updates with Red Hat Subscription Manager
 ```bash
-subscription-manager register # register your system to an account
-subscription-manager attach   # attach your system to a current subscription
+sudo subscription-manager register # register your system to an account
+sudo subscription-manager attach   # attach your system to a current subscription
 ```
 
 ## 1.4/ Enable the optional, extras and Software Collections (SCL) repos
 ```bash
-subscription-manager repos --enable rhel-7-server-optional-rpms
-subscription-manager repos --enable rhel-7-server-extras-rpms
-subscription-manager repos --enable rhel-server-rhscl-7-rpms
+sudo subscription-manager repos --enable rhel-7-server-optional-rpms
+sudo subscription-manager repos --enable rhel-7-server-extras-rpms
+sudo subscription-manager repos --enable rhel-server-rhscl-7-rpms
 ```
 
 ### 1.5a/ OPTIONAL: Install the deltarpm package to help reduce download size when installing updates
 ```bash
-yum install deltarpm
+sudo yum install deltarpm -y
 ```
 
 ## 1.5/ Update the system and reboot
 ```bash
-yum update
+sudo yum update -y
 ```
 
 !!! note
-    As time of writing performing a yum update results in the rhel-7-server-rt-beta-rpms being forbidden.<br />
+    At the time of writing performing a yum update results in the rhel-7-server-rt-beta-rpms being forbidden.<br />
     The repo can be disabled using the following command
     ```bash
-    subscription-manager repos --disable rhel-7-server-rt-beta-rpms
+    sudo subscription-manager repos --disable rhel-7-server-rt-beta-rpms
     ```
 
 ## 1.6/ Install the EPEL repo
 ```bash
-yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y
 ```
 
 ## 1.7/ Install the SCL repo
 ```bash
-yum install centos-release-scl
+sudo yum install centos-release-scl -y
 ```
 
 # 2/ Install Dependencies
@@ -79,18 +88,18 @@ Once the system is installed and updated, the following steps can be performed a
 
 ## 2.01/ Install some base system dependencies
 ```bash
-yum install gcc git httpd zip python-devel libxslt-devel zlib-devel python-pip ssdeep-devel
+sudo yum install gcc git httpd zip python-devel libxslt-devel zlib-devel python-pip ssdeep-devel -y
 ```
 
 ## 2.02/ Install MariaDB 10.2 from SCL
 ```bash
-yum install rh-mariadb102
+sudo yum install rh-mariadb102 -y
 ```
 
 ## 2.03/ Start the MariaDB service and enable it to start on boot
 ```bash
-systemctl start rh-mariadb102-mariadb.service
-systemctl enable rh-mariadb102-mariadb.service
+sudo systemctl start rh-mariadb102-mariadb.service
+sudo systemctl enable rh-mariadb102-mariadb.service
 ```
 
 !!! note
@@ -102,7 +111,7 @@ systemctl enable rh-mariadb102-mariadb.service
 
 ## 2.04/ Install PHP 7.1 from SCL
 ```bash
-yum install rh-php71 rh-php71-php-fpm rh-php71-php-devel rh-php71-php-mysqlnd rh-php71-php-mbstring rh-php71-php-xml rh-php71-php-bcmath rh-php71-php-opcache
+sudo yum install rh-php71 rh-php71-php-fpm rh-php71-php-devel rh-php71-php-mysqlnd rh-php71-php-mbstring rh-php71-php-xml rh-php71-php-bcmath rh-php71-php-opcache -y
 ```
 
 !!! note
