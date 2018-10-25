@@ -6,6 +6,12 @@ AUTH_KEY=$(mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM
 
 # Setup some more MISP default via cake CLI
 
+# Change base url, either with this CLI command or in the UI
+sudo $CAKE Baseurl $MISP_BASEURL
+# example: 'baseurl' => 'https://<your.FQDN.here>',
+# alternatively, you can leave this field empty if you would like to use relative pathing in MISP
+# 'baseurl' => '',
+
 # Tune global time outs
 sudo $CAKE Admin setSetting "Session.autoRegenerate" 0
 sudo $CAKE Admin setSetting "Session.timeout" 600

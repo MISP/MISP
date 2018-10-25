@@ -18,37 +18,16 @@ PHP_INI=/etc/php/7.0/apache2/php.ini
 
 #### Install a minimal Debian 9 "stretch" server system with the software:
 - OpenSSH server
-- Web server, apache FTW!
-- This guide assumes a user name of 'misp'
+- This guide assumes a user name of 'misp' with sudo working
 
-#### install etckeeper and sudo (optional)
-```bash
-su -
-apt install -y etckeeper
-apt install -y sudo
-adduser misp sudo
-# Add the user to the staff group to be able to write to /usr/local/src
-adduser misp staff
-```
+{!generic/sudo_etckeeper.md!}
+
+{!generic/ethX.md!}
 
 #### Make sure your system is up2date
 ```bash
 sudo apt update
 sudo apt -y dist-upgrade
-```
-
-#### Network Interface Name salvage (optional)
-
-This will bring back 'ethX' e.g: eth0
-
-```bash
-GRUB_CMDLINE_LINUX="net.ifnames=0 biosdevname=0"
-DEFAULT_GRUB=/etc/default/grub
-for key in GRUB_CMDLINE_LINUX
-do
-    sudo sed -i "s/^\($key\)=.*/\1=\"$(eval echo \${$key})\"/" $DEFAULT_GRUB
-done
-sudo grub-mkconfig -o /boot/grub/grub.cfg
 ```
 
 #### install postfix, there will be some questions. (optional)
@@ -80,11 +59,9 @@ libpq5 libjpeg-dev libfuzzy-dev ruby asciidoctor \
 jq ntp ntpdate jupyter-notebook imagemagick tesseract-ocr \
 libxml2-dev libxslt1-dev zlib1g-dev
 
-# Start rng-tools to get more entropy (optional)
-# If you get TPM errors, enable "Security chip" in BIOS (keep secure boot disabled)
-# On virtual machines this might fail by default. haveged should work
-sudo apt install rng-tools haveged -y
-sudo service rng-tools start
+# Start haveged to get more entropy (optional)
+sudo apt install haveged -y
+sudo service havegd start
 
 sudo apt install expect -y
 
@@ -149,12 +126,13 @@ sudo chown www-data:www-data $PATH_TO_MISP
 cd $PATH_TO_MISP
 sudo -u www-data git clone https://github.com/MISP/MISP.git $PATH_TO_MISP
 
-#### Make git ignore filesystem permission differences
+# Make git ignore filesystem permission differences
 sudo -u www-data git config core.filemode false
 
-#### Create a python3 virtualenv
-
+# Create a python3 virtualenv
 sudo -u www-data virtualenv -p python3 /var/www/MISP/venv
+
+# make pip happy
 sudo mkdir /var/www/.cache/
 sudo chown www-data:www-data /var/www/.cache
 
@@ -366,19 +344,6 @@ class DATABASE_CONFIG {
 sudo chown -R www-data:www-data $PATH_TO_MISP/app/Config
 sudo chmod -R 750 $PATH_TO_MISP/app/Config
 
-# Set some MISP directives with the command line tool
-
-# Change base url
-sudo $CAKE Baseurl $MISP_BASEURL
-
-# example: 'baseurl' => 'https://<your.FQDN.here>',
-# alternatively, you can leave this field empty if you would like to use relative pathing in MISP
-# 'baseurl' => '',
-
-# and make sure the file permissions are still OK
-sudo chown -R www-data:www-data $PATH_TO_MISP/app/Config
-sudo chmod -R 750 $PATH_TO_MISP/app/Config
-
 # Generate a GPG encryption key.
 
 cat >/tmp/gen-key-script <<EOF
@@ -508,130 +473,10 @@ In case you are using a virtualenv make sure pyzmq is installed therein.
 sudo -u www-data /var/www/MISP/venv/bin/pip install pyzmq
 ```
 
-#### MISP Dashboard
---------------
-```bash
-cd /var/www
-sudo mkdir misp-dashboard
-sudo chown www-data:www-data misp-dashboard
-sudo -u www-data git clone https://github.com/MISP/misp-dashboard.git
-cd misp-dashboard
-sudo /var/www/misp-dashboard/install_dependencies.sh
-sudo sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/config/config.cfg
-sudo sed -i -e '$i \sudo -u www-data bash /var/www/misp-dashboard/start_all.sh\n' /etc/rc.local
-sudo sed -i '/Listen 80/a Listen 0.0.0.0:8001' /etc/apache2/ports.conf
-sudo apt install libapache2-mod-wsgi-py3 -y
+{!generic/misp-dashboard-debian.md!}
 
-echo "<VirtualHost *:8001>
-    ServerAdmin admin@misp.local
-    ServerName misp.local
-    DocumentRoot /var/www/misp-dashboard
-    
-    WSGIDaemonProcess misp-dashboard \
-       user=misp group=misp \
-       python-home=/var/www/misp-dashboard/DASHENV \
-       processes=1 \
-       threads=15 \
-       maximum-requests=5000 \
-       listen-backlog=100 \
-       queue-timeout=45 \
-       socket-timeout=60 \
-       connect-timeout=15 \
-       request-timeout=60 \
-       inactivity-timeout=0 \
-       deadlock-timeout=60 \
-       graceful-timeout=15 \
-       eviction-timeout=0 \
-       shutdown-timeout=5 \
-       send-buffer-size=0 \
-       receive-buffer-size=0 \
-       header-buffer-size=0 \
-       response-buffer-size=0 \
-       server-metrics=Off
-    WSGIScriptAlias / /var/www/misp-dashboard/misp-dashboard.wsgi
-    <Directory /var/www/misp-dashboard>
-        WSGIProcessGroup misp-dashboard
-        WSGIApplicationGroup %{GLOBAL}
-        Require all granted
-    </Directory>
-    LogLevel info
-    ErrorLog /var/log/apache2/misp-dashboard.local_error.log
-    CustomLog /var/log/apache2/misp-dashboard.local_access.log combined
-    ServerSignature Off
-</VirtualHost>" | sudo tee /etc/apache2/sites-available/misp-dashboard.conf
+{!generic/viper-debian.md!}
 
-sudo a2ensite misp-dashboard
-sudo systemctl reload apache2
+{!generic/ssdeep-debian.md!}
 
-# Add misp-dashboard to rc.local to start on boot.
-sudo sed -i -e '$i \sudo -u www-data bash /var/www/misp-dashboard/start_all.sh > /tmp/misp-dashboard_rc.local.log\n' /etc/rc.local
-
-# Enable ZeroMQ for misp-dashboard
-sudo $CAKE Admin setSetting "Plugin.ZeroMQ_enable" true
-sudo $CAKE Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" true
-sudo $CAKE Admin setSetting "Plugin.ZeroMQ_object_notifications_enable" true
-sudo $CAKE Admin setSetting "Plugin.ZeroMQ_object_reference_notifications_enable" true
-sudo $CAKE Admin setSetting "Plugin.ZeroMQ_attribute_notifications_enable" true
-sudo $CAKE Admin setSetting "Plugin.ZeroMQ_sighting_notifications_enable" true
-sudo $CAKE Admin setSetting "Plugin.ZeroMQ_user_notifications_enable" true
-sudo $CAKE Admin setSetting "Plugin.ZeroMQ_organisation_notifications_enable" true
-sudo $CAKE Admin setSetting "Plugin.ZeroMQ_port" 50000
-sudo $CAKE Admin setSetting "Plugin.ZeroMQ_redis_host" "localhost"
-sudo $CAKE Admin setSetting "Plugin.ZeroMQ_redis_port" 6379
-sudo $CAKE Admin setSetting "Plugin.ZeroMQ_redis_database" 1
-sudo $CAKE Admin setSetting "Plugin.ZeroMQ_redis_namespace" "mispq"
-sudo $CAKE Admin setSetting "Plugin.ZeroMQ_include_attachments" false
-sudo $CAKE Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false
-sudo $CAKE Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false
-```
-
-
-#### Install viper framework (with a virtualenv)
------------------------
-```bash
-cd /usr/local/src/
-sudo apt-get install -y libssl-dev swig python3-ssdeep p7zip-full unrar-free sqlite python3-pyclamd exiftool radare2 python3-magic python3-sqlalchemy python3-prettytable
-git clone https://github.com/viper-framework/viper.git
-cd viper
-virtualenv -p python3 venv
-git submodule update --init --recursive
-./venv/bin/pip install scrapy
-./venv/bin/pip install -r requirements.txt
-sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-cli
-sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-web
-## /!\ Check wtf is going on with yara.
-###sudo pip3 uninstall yara -y
-###./venv/bin/pip uninstall yara -y
-/usr/local/src/viper/viper-cli -h
-/usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 &
-echo 'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/src/viper"' |sudo tee /etc/environment
-sed -i "s/^misp_url\ =/misp_url\ =\ http:\/\/localhost/g" ~/.viper/viper.conf
-sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" ~/.viper/viper.conf
-# Reset admin password to: admin/Password1234
-sqlite3 ~/.viper/admin.db 'UPDATE auth_user SET password="pbkdf2_sha256$100000$iXgEJh8hz7Cf$vfdDAwLX8tko1t0M1TLTtGlxERkNnltUnMhbv56wK/U="'
-# Add viper-web to rc.local to be started on boot
-sudo sed -i -e '$i \sudo -u misp /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 > /tmp/viper-web_rc.local.log &\n' /etc/rc.local
-```
-
-#### Install mail to misp
---------------------
-```bash
-cd /usr/local/src/
-sudo apt-get install -y cmake
-git clone https://github.com/MISP/mail_to_misp.git
-git clone https://github.com/stricaud/faup.git
-cd faup
-sudo mkdir -p build
-cd build
-cmake .. && make
-sudo make install
-sudo ldconfig
-cd ../../
-cd mail_to_misp
-virtualenv -p python3 venv
-./venv/bin/pip install -r requirements.txt
-cp mail_to_misp_config.py-example mail_to_misp_config.py
-
-sed -i "s/^misp_url\ =\ 'YOUR_MISP_URL'/misp_url\ =\ 'http:\/\/localhost'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
-sed -i "s/^misp_key\ =\ 'YOUR_KEY_HERE'/misp_key\ =\ '$AUTH_KEY'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
-```
+{!generic/mail_to_misp-debian.md!}
