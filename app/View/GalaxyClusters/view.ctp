@@ -16,6 +16,10 @@
                 <dd><?php echo $cluster['Galaxy']['name'] ? h($cluster['Galaxy']['name']) : h($cluster['Galaxy']['type']); ?></dd>
                 <dt>Description</dt>
                 <dd><?php echo h($cluster['GalaxyCluster']['description']); ?>&nbsp;</dd>
+				<dt>UUID</dt>
+                <dd><?php echo h($cluster['GalaxyCluster']['uuid']); ?>&nbsp;</dd>
+				<dt>Collection UUID</dt>
+                <dd><?php echo h($cluster['GalaxyCluster']['collection_uuid']); ?>&nbsp;</dd>
                 <dt>Source</dt>
                 <dd><?php echo h($cluster['GalaxyCluster']['source']); ?>&nbsp;</dd>
                 <dt>Authors</dt>

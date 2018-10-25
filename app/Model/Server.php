@@ -2713,11 +2713,11 @@ class Server extends AppModel
             return true;
         }
         if (is_executable($value)) {
-            if (finfo_file($finfo, $value) == "application/x-executable" || (finfo_file($finfo, $value) == "application/x-sharedlib") && PHP_OS == "OpenBSD") {
+            if (finfo_file($finfo, $value) == "application/x-executable" || finfo_file($finfo, $value) == "application/x-sharedlib") {
                 finfo_close($finfo);
                 return true;
             } else {
-                return 'Binary file not executable.';
+                return 'Binary file not executable. It is of type: ' . finfo_file($finfo, $value);
             }
         }
         else {

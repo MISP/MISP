@@ -91,6 +91,7 @@ class GalaxyCluster extends AppModel
                 $newCluster = array_intersect_key($cluster, array_flip(array('value', 'description')));
                 $newCluster['galaxy_id'] = $id;
                 $newCluster['type'] = $galaxy['type'];
+				$newCluster['collection_uuid'] = $newCluster['uuid'];
                 $toSave[] = $newCluster;
             }
             $final = array();
