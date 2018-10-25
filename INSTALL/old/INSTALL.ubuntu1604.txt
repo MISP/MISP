@@ -75,7 +75,7 @@ sudo python3 setup.py install
 cd /var/www/MISP/app/files/scripts/python-stix
 sudo python3 setup.py install
 
-# install mixbox to accomodate the new STIX dependencies:
+# install mixbox to accommodate the new STIX dependencies:
 cd /var/www/MISP/app/files/scripts/
 sudo -u www-data git clone https://github.com/CybOXProject/mixbox.git
 cd /var/www/MISP/app/files/scripts/mixbox

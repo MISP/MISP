@@ -189,7 +189,7 @@ git config core.filemode false
 scl enable rh-python36 'python3 setup.py install'
 ```
 
-## 3.04/ Install mixbox to accomodate the new STIX dependencies
+## 3.04/ Install mixbox to accommodate the new STIX dependencies
 ```bash
 cd /var/www/MISP/app/files/scripts/
 git clone https://github.com/CybOXProject/mixbox.git
