@@ -751,7 +751,7 @@ class ServersController extends AppController
                     }
                     $file = new File($server['Server'][$subm]['name']);
                     $ext = $file->ext();
-                    if (($ext != 'pem') || !$server['Server'][$subm]['size'] > 0) {
+                    if (!$server['Server'][$subm]['size'] > 0) {
                         $this->Flash->error('Incorrect extension or empty file.');
                         $this->redirect(array('action' => 'index'));
                     }
