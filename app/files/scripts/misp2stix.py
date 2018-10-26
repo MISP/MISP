@@ -197,7 +197,7 @@ class StixBuilder(object):
     def generate_package(self, event):
         self.objects_to_parse = defaultdict(dict)
         self.misp_event = event
-        self.header_comment = None
+        self.header_comment = []
         package_name = "{}:STIXPackage-{}".format(self.orgname, self.misp_event['uuid'])
         stix_package = STIXPackage(id_=package_name, timestamp=self.get_datetime_from_timestamp(self.misp_event['timestamp']))
         stix_package.version = "1.1.1"
@@ -209,8 +209,8 @@ class StixBuilder(object):
         stix_package.add_incident(incident)
         for ttp in self.ttps:
             stix_package.add_ttp(ttp)
-        if self.header_comment:
-            stix_header.description = self.header_comment
+        if self.header_comment and len(self.header_comment) == 1:
+            stix_header.description = self.header_comment[0]
         stix_package.stix_header = stix_header
         return stix_package
 
@@ -417,7 +417,7 @@ class StixBuilder(object):
             self.add_reference(incident, attribute['value'])
         elif attribute_type in ('comment', 'text', 'other'):
             if 'comment' in attribute and attribute['comment'] == 'Imported from STIX header description':
-                self.header_comment = attribute['value']
+                self.header_comment.append(attribute['value'])
             elif attribute_category == "Payload type":
                 ttp = self.generate_ttp(attribute, tags)
                 incident.leveraged_ttps.append(self.append_ttp(attribute_category, ttp))
