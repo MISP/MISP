@@ -202,7 +202,7 @@ class StixParser():
     def buildExternalDict(self):
         self.dictTimestampAndDate()
         self.eventInfo()
-        if hasattr(self.event.stix_header, 'description'):
+        if hasattr(self.event.stix_header, 'description') and self.event.stix_header.description:
             self.misp_event.add_attribute(**{'type': 'comment', 'value': self.event.stix_header.description.value,
                                              'comment': 'Imported from STIX header description'})
         if self.event.indicators:
