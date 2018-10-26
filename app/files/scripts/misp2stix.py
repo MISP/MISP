@@ -204,9 +204,9 @@ class StixBuilder(object):
         stix_header = STIXHeader()
         stix_header.title = "Export from {} MISP".format(self.namespace_prefix)
         stix_header.package_intents = "Threat Report"
-        stix_package.stix_header = stix_header
-        incident = self.generate_stix_objects()
-        stix_package.add_incident(incident)
+        self.create_incident(self.orgname)
+        self.generate_stix_objects()
+        stix_package.add_incident(self.incident)
         for ttp in self.ttps:
             stix_package.add_ttp(ttp)
         if self.header_comment and len(self.header_comment) == 1:
@@ -220,7 +220,6 @@ class StixBuilder(object):
             f.write(self.stix_package)
 
     def generate_stix_objects(self):
-        incident = self.create_incident(self.orgname)
         self.history = History()
         threat_level_name = threat_level_mapping.get(str(self.misp_event['threat_level_id']), None)
         if threat_level_name:
@@ -241,24 +240,23 @@ class StixBuilder(object):
         else:
             self.add_journal_entry('MISP Tag: misp:tool="misp2stix"')
         external_id = ExternalID(value=str(self.misp_event['id']), source="MISP Event")
-        incident.add_external_id(external_id)
+        self.incident.add_external_id(external_id)
         incident_status_name = status_mapping.get(str(self.misp_event['analysis']), None)
         if incident_status_name is not None:
-            incident.status = IncidentStatus(incident_status_name)
+            self.incident.status = IncidentStatus(incident_status_name)
         try:
-            incident.handling = self.set_tlp(self.misp_event['distribution'], event_tags)
+            self.incident.handling = self.set_tlp(self.misp_event['distribution'], event_tags)
         except Exception:
             pass
-        incident.information_source = self.set_src()
+        self.incident.information_source = self.set_src()
         self.orgc_name = self.misp_event['Orgc'].get('name')
-        incident.reporter = self.set_rep()
+        self.incident.reporter = self.set_rep()
         self.ttps = []
-        self.resolve_attributes(incident, Tags)
-        self.resolve_objects(incident, Tags)
-        self.add_related_indicators(incident)
+        self.resolve_attributes(Tags)
+        self.resolve_objects(Tags)
+        self.add_related_indicators()
         if self.history.history_items:
-            incident.history = self.history
-        return incident
+            self.incident.history = self.history
 
     def create_incident(self, org):
         incident_id = "{}:incident-{}".format(org, self.misp_event['uuid'])
@@ -269,24 +267,24 @@ class StixBuilder(object):
         incident_time.incident_discovery = self.misp_event['date']
         incident_time.incident_reported = timestamp
         incident.time = incident_time
-        return incident
+        self.incident = incident
 
-    def resolve_attributes(self, incident, tags):
+    def resolve_attributes(self, tags):
         for attribute in self.misp_event['Attribute']:
             attribute_type = attribute['type']
             if attribute_type in not_implemented_attributes:
                 if attribute_type == "snort":
-                    self.generate_TM(incident, attribute, tags)
+                    self.generate_TM(attribute, tags)
                 else:
                     journal_entry = "!Not implemented attribute category/type combination caught! attribute[{}][{}]: {}".format(attribute['category'],
                     attribute_type, attribute['value'])
                     self.add_journal_entry(journal_entry)
             elif attribute_type in non_indicator_attributes:
-                self.handle_non_indicator_attribute(incident, attribute, tags)
+                self.handle_non_indicator_attribute(attribute, tags)
             else:
-                self.handle_attribute(incident, attribute, tags)
+                self.handle_attribute(attribute, tags)
 
-    def resolve_objects(self, incident, tags):
+    def resolve_objects(self, tags):
         for misp_object in self.misp_event['Object']:
             name = misp_object['name']
             if name == 'original-imported-file':
@@ -301,15 +299,15 @@ class StixBuilder(object):
             if to_ids:
                 indicator = self.create_indicator(misp_object, observable, tags)
                 related_indicator = RelatedIndicator(indicator, relationship=category)
-                incident.related_indicators.append(related_indicator)
+                self.incident.related_indicators.append(related_indicator)
             else:
                 related_observable = RelatedObservable(observable, relationship=category)
-                incident.related_observables.append(related_observable)
+                self.incident.related_observables.append(related_observable)
         if self.objects_to_parse:
-            self.resolve_objects2parse(incident, tags)
+            self.resolve_objects2parse(tags)
 
 
-    def resolve_objects2parse(self, incident, tags):
+    def resolve_objects2parse(self, tags):
         for uuid, file_object in self.objects_to_parse['file'].items():
             category = file_object.get('meta-category')
             to_ids_file, file_dict = self.create_attributes_dict(file_object['Attribute'])
@@ -340,10 +338,10 @@ class StixBuilder(object):
             if to_ids:
                 indicator = self.create_indicator(file_object, observable, tags)
                 related_indicator = RelatedIndicator(indicator, relationship=category)
-                incident.related_indicators.append(related_indicator)
+                self.incident.related_indicators.append(related_indicator)
             else:
                 related_observable = RelatedObservable(observable, relationship=category)
-                incident.related_observables.append(related_observable)
+                self.incident.related_observables.append(related_observable)
 
     def parse_pe_references(self, pe_object, to_ids_list):
         pe_headers = PEHeaders()
@@ -383,13 +381,13 @@ class StixBuilder(object):
         indicator.add_observable(observable)
         return indicator
 
-    def add_related_indicators(self, incident):
-        for rindicator in incident.related_indicators:
+    def add_related_indicators(self):
+        for rindicator in self.incident.related_indicators:
             for ttp in self.ttps:
                 ittp = TTP(idref=ttp.id_, timestamp=ttp.timestamp)
                 rindicator.item.add_indicated_ttp(ittp)
 
-    def handle_attribute(self, incident, attribute, tags):
+    def handle_attribute(self, attribute, tags):
         observable = self.generate_observable(attribute)
         if observable:
             if attribute['to_ids']:
@@ -402,46 +400,50 @@ class StixBuilder(object):
                 indicator.add_valid_time_position(ValidTime())
                 indicator.add_observable(observable)
                 related_indicator = RelatedIndicator(indicator, relationship=attribute['category'])
-                incident.related_indicators.append(related_indicator)
+                self.incident.related_indicators.append(related_indicator)
             else:
                 related_observable = RelatedObservable(observable, relationship=attribute['category'])
-                incident.related_observables.append(related_observable)
+                self.incident.related_observables.append(related_observable)
 
-    def handle_non_indicator_attribute(self, incident, attribute, tags):
+    def handle_non_indicator_attribute(self, attribute, tags):
         attribute_type = attribute['type']
-        attribute_category = attribute['category']
         if attribute_type == "vulnerability":
             ttp = self.generate_vulnerability(attribute, tags)
-            incident.leveraged_ttps.append(self.append_ttp(attribute_category, ttp))
+            self.incident.leveraged_ttps.append(self.append_ttp(attribute['category'], ttp))
         elif attribute_type == "link":
-            self.add_reference(incident, attribute['value'])
+            self.add_reference(attribute['value'])
         elif attribute_type in ('comment', 'text', 'other'):
-            if 'comment' in attribute and attribute['comment'] == 'Imported from STIX header description':
-                self.header_comment.append(attribute['value'])
-            elif attribute_category == "Payload type":
-                ttp = self.generate_ttp(attribute, tags)
-                incident.leveraged_ttps.append(self.append_ttp(attribute_category, ttp))
-            elif attribute_category == "Attribution":
-                ta = self.generate_threat_actor(attribute)
-                rta = RelatedThreatActor(ta, relationship="Attribution")
-                if incident.attributed_threat_actors:
-                    incident.attributed_threat_actors.append(rta)
-                else:
-                    ata = AttributedThreatActors()
-                    ata.append(rta)
-                    incident.attributed_threat_actors = ata
-            else:
-                entry_line = "attribute[{}][{}]: {}".format(attribute_category, attribute_type, attribute['value'])
-                self.add_journal_entry(entry_line)
+            self.handle_undefined_attribute(attribute, tags)
         elif attribute_type == "target-machine":
             aa = AffectedAsset()
             description = attribute['value']
             if attribute.get('comment'):
                 description += " ({})".format(attribute['comment'])
             aa.description = description
-            incident.affected_assets.append(aa)
+            self.incident.affected_assets.append(aa)
         elif attribute_type.startswith('target-'):
-            incident.add_victim(self.resolve_identity_attribute(attribute))
+            self.incident.add_victim(self.resolve_identity_attribute(attribute))
+
+    # "Undefifned" because of the type of value we can not know in advance for this type of attribute
+    def handle_undefined_attribute(self, attribute, tags):
+        attribute_category = attribute['category']
+        if 'comment' in attribute and attribute['comment'] == 'Imported from STIX header description':
+            self.header_comment.append(attribute['value'])
+        elif attribute_category == "Payload type":
+            ttp = self.generate_ttp(attribute, tags)
+            self.incident.leveraged_ttps.append(self.append_ttp(attribute_category, ttp))
+        elif attribute_category == "Attribution":
+            ta = self.generate_threat_actor(attribute)
+            rta = RelatedThreatActor(ta, relationship="Attribution")
+            if self.incident.attributed_threat_actors:
+                self.incident.attributed_threat_actors.append(rta)
+            else:
+                ata = AttributedThreatActors()
+                ata.append(rta)
+                self.incident.attributed_threat_actors = ata
+        else:
+            entry_line = "attribute[{}][{}]: {}".format(attribute_category, attribute['type'], attribute['value'])
+            self.add_journal_entry(entry_line)
 
     def create_artifact_object(self, data, artifact=None):
         raw_artifact = RawArtifact(data)
@@ -625,7 +627,7 @@ class StixBuilder(object):
         ta.description = description
         return ta
 
-    def generate_TM(self, incident, attribute, tags):
+    def generate_TM(self, attribute, tags):
         if attribute['to_ids']:
             tm = SnortTestMechanism()
             value = attribute['value'].encode('utf-8')
@@ -635,7 +637,7 @@ class StixBuilder(object):
             indicator.add_valid_time_position(ValidTime())
             indicator.add_test_mechanism(tm)
             related_indicator = RelatedIndicator(indicator, relationship=attribute['category'])
-            incident.related_indicators.append(related_indicator)
+            self.incident.related_indicators.append(related_indicator)
 
     def generate_ttp(self, attribute, tags):
         ttp = self.create_ttp(attribute, tags)
@@ -1292,12 +1294,12 @@ class StixBuilder(object):
         self.history.append(hi)
 
     @staticmethod
-    def add_reference(target, reference):
-        if hasattr(target.information_source, 'references'):
+    def add_reference(reference):
+        if hasattr(self.incident.information_source, 'references'):
             try:
-                target.information_source.add_reference(reference)
+                self.incident.information_source.add_reference(reference)
             except AttributeError:
-                target.information_source.references = [reference]
+                self.incident.information_source.references = [reference]
 
     def append_ttp(self, category, ttp):
         self.ttps.append(ttp)
