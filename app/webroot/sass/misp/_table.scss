@@ -1,0 +1,317 @@
+th.filter {
+	white-space:nowrap;
+}
+th.filter a {
+	cursor: pointer;
+}
+
+td.searchLabel{
+	opacity: 50;
+	height: 20px;
+	padding-top: 4px;
+	padding-left: 4px;
+	padding-right: 4px;
+	vertical-align:top;
+	background-color: $c_white_darker;
+	box-shadow: 0px 0px 6px $c_container-grey;
+}
+td.searchLabelFirst{
+	opacity: 50;
+	height: 20px;
+	padding-top: 4px;
+	padding-left: 4px;
+	padding-right: 4px;
+	vertical-align:top;
+	background-color: $c_white_darker;
+	border-top-left-radius: 5px;
+	border-bottom-left-radius: 5px;
+	box-shadow: 0px 0px 6px $c_container-grey;
+}
+td.searchLabelCancel{
+	opacity: 50;
+	height: 20px;
+	width: 20px;
+	padding-top: 4px;
+	padding-left: 5px;
+	vertical-align:top;
+	background-color: $c_white;
+	border-top-right-radius: 5px;
+	border-bottom-right-radius: 5px;
+	box-shadow: 0px 0px 6px $c_container-grey;
+}
+
+/** Tables **/
+/* Tables */
+table.fullwidth {
+    width:100%;
+    clear:both;
+    font-size:12px;
+    padding:1px;
+    margin-bottom:10px;
+}
+
+table.fullwidth th {
+    height:28px;
+    text-transform:uppercase;
+    font-size:10px;
+}
+
+table.fullwidth td{
+    padding:3px;
+    margin:1px 0;
+    text-align:center;
+}
+td.actions {
+text-align: center;
+white-space: nowrap;
+}
+
+td.short {
+width:5%;
+white-space: nowrap;
+text-align: left;
+}
+
+td.shortish {
+width:10%;
+text-align: left;
+}
+
+td.limitedWidth {
+max-width:400px;
+word-wrap:break-word;
+}
+
+td.bitwider {
+width:20%;
+text-align: left;
+}
+
+td.highlight1 {
+background-color: $c_blue !important;
+color: $c_white !important;
+}
+
+td.highlight2 {
+background-color: $c_table-grey!important;
+color: $c_white !important;
+}
+
+td.highlight3 {
+background-color: $c_full-red !important;
+color: $c_white !important;
+
+}
+
+tr.highlightBlueSides {
+border-left:2px solid $c_blue;
+border-right:2px solid $c_blue;
+}
+
+tr.highlightBlueTop {
+border-top:2px solid $c_blue;
+}
+
+tr.highlightBlueBottom {
+border-bottom:2px solid $c_blue;
+}
+
+table.fullwidth {
+    border:1px solid $c_f0-grey;
+}
+
+table.fullwidth th, table.fullwidth th a {
+background:$c_blue;
+color: $c_white;
+text-decoration:none;
+}
+
+
+table.fullwidth tr{
+color:$c_dark-grey;
+cursor:pointer;
+}
+
+
+table.fullwidth tr:nth-child(2n) {
+background:$c_f9-grey;
+color:$c_dark-grey;
+}
+
+table.fullwidth tr:hover{
+color:$c_dark-grey;
+background: $c-ffd-grey;
+}
+
+table.fullwidth th:hover{
+color:$c_white;
+}
+
+.table-hover tbody tr:hover > td,
+.table-hover tbody tr:hover > th {
+background-color: $c_table-light;
+}
+
+
+th a.asc:after {
+content: ' ⇣';
+}
+th a.desc:after {
+content: ' ⇡';
+}
+
+td.action-links {
+text-align: right;
+}
+
+tr.darkOrangeRow td, .darkOrangeElement {
+	background-color: $c_table-orange !important;
+	color: $c_white;
+	border-top:0px !important;
+}
+
+tr.blueRow td, .blueElement {
+	background-color: $c_table-dark-blue !important;
+	color: $c_white;
+	border-top:0px !important;
+}
+
+tr.lightBlueRow td, .lightBlueElement {
+	background-color: #729fcf !important;
+	border-top:0px !important;
+}
+
+tr.redRow td, .redElement {
+	background-color: $c_bright-red !important;
+	color: $c_white;
+	border-top:0px !important;
+}
+
+.blank_table_row {
+	height: 10px;
+}
+
+tr.blank_table_row td {
+	background-color: $c_white !important;
+}
+
+tr.tableInsetOrangeFirst td:first-child {
+	box-shadow:
+		inset 0px 2px 0px 0px $c_border-orange,
+		inset 3px 0px 0px 0px $c_border-orange;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrangeFirst td {
+	box-shadow:
+		inset 0px 2px 0px 0px $c_border-orange;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrangeFirst td:last-child {
+	box-shadow:
+    inset 0px 2px 0px 0px $c_border-orange,
+    inset -2px 0px 0px 0px $c_border-orange;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrangeMiddle td:first-child {
+	box-shadow:
+		inset 3px 0px 0px 0px $c_border-orange;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrangeMiddle td:last-child {
+	box-shadow:
+    inset -3px 0px 0px 0px $c_border-orange;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrangeLast td:first-child {
+	box-shadow:
+		inset 0px -3px 0px 0px $c_border-orange,
+		inset 3px 0px 0px 0px $c_border-orange;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrangeLast td {
+	box-shadow:
+		inset 0px -3px 0px 0px $c_border-orange;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrangeLast td:last-child {
+	box-shadow:
+    inset 0px -3px 0px 0px $c_border-orange,
+    inset -3px 0px 0px 0px $c_border-orange;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrange td:first-child {
+	box-shadow:
+		inset 0px 2px 0px 0px $c_border-orange,
+		inset 0px -3px 0px 0px $c_border-orange,
+		inset 2px 0px 0px 0px $c_border-orange;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrange td {
+	box-shadow:
+		inset 0px 2px 0px 0px $c_border-orange,
+		inset 0px -3px 0px 0px $c_border-orange;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrange td:last-child {
+	box-shadow:
+    inset 0px 2px 0px 0px $c_border-orange,
+    inset 0px -3px 0px 0px $c_border-orange,
+    inset -2px 0px 0px 0px $c_border-orange;
+	border-top:0px !important;
+}
+
+.tableHighlightBorder {
+	border-radius: 3px !important;
+	border-width: 3px;
+	border-style: solid;
+}
+
+.tableHighlightBorderTop {
+	border-radius: 3px !important;
+	border-width: 3px;
+	border-style: solid;
+	border-bottom: 0px;
+}
+
+.tableHighlightBorderCenter {
+	border-radius: 3px !important;
+	border-width: 3px;
+	border-style: solid;
+	border-bottom: 0px;
+	border-top: 0px;
+}
+
+.tableHighlightBorderBottom {
+	border-radius: 3px !important;
+	border-width: 3px;
+	border-style:solid;
+	border-top: 0px;
+}
+
+tr.tableHighlightBorderBottom td {
+	border-top:0px !important;
+		margin-bottom:10px;
+}
+
+table.table.table-striped tr.deleted_row td {
+	background: $c_fcc-grey !important;
+	color:$c_white !important;
+}
+
+table tr:hover .down-expand-button {
+	background: $c_ddd-grey !important;
+}
+
+tr.deleted-attribute td {
+	background-color: $c_table-d37 !important;
+}

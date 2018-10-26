@@ -1,0 +1,21 @@
+.proposal_span {
+	padding-right: 25px;
+}
+
+a.proposal_link, a.proposal_link_red {
+	text-decoration:none;
+	font-weight:normal;
+}
+
+a.proposal_link:visited, a.proposal_link:link {
+	color:$c_grey;
+}
+a.proposal_link:hover {
+	color: $c_white;
+}
+a.proposal_link_red:visited, a.proposal_link:link {
+	color:$c_grey;
+}
+a.proposal_link_red:hover {
+	color:$c_red;
+}

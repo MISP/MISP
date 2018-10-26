@@ -136,7 +136,7 @@ endforeach; ?>
 	?>
 	</p>
 	<div>
-		<ul class="pagination">
+	<ul class="pagination">
 			<?php
 
 			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false, 'class' => 'page-link'), null, array('tag' => 'li', 'class' => 'page-link', 'escape' => false, 'disabledTag' => 'span'));

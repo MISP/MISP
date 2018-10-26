@@ -84,7 +84,7 @@
 	<?php
 	echo $this->element('footer');
 	echo $this->element('sql_dump');
-	echo $this->Html->script('bootstrap');
+    echo $this->Html->script('bootstrap.bundle');
 	echo $this->Html->script('bootstrap-timepicker');
 	echo $this->Html->script('bootstrap-datepicker');
 	echo $this->Html->script('bootstrap-colorpicker');

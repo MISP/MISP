@@ -1,12 +1,12 @@
 <div class="actions <?php echo $debugMode;?>">
-	<ol class="nav nav-list">
-		<li class="active"><?php echo $this->Html->link(__('Quick Start'), array('controller' => 'pages', 'action' => 'display', 'doc', 'quickstart')); ?></li>
-		<li><?php echo $this->Html->link(__('General Layout'), array('controller' => 'pages', 'action' => 'display', 'doc', 'general')); ?></li>
-		<li><?php echo $this->Html->link(__('General Concepts'), array('controller' => 'pages', 'action' => 'display', 'doc', 'concepts')); ?></li>
-		<li><?php echo $this->Html->link(__('User Management and Global actions'), array('controller' => 'pages', 'action' => 'display', 'doc', 'user_management')); ?></li>
-		<li><?php echo $this->Html->link(__('Using the system'), array('controller' => 'pages', 'action' => 'display', 'doc', 'using_the_system')); ?></li>
-		<li><?php echo $this->Html->link(__('Administration'), array('controller' => 'pages', 'action' => 'display', 'doc', 'administration')); ?></li>
-		<li><?php echo $this->Html->link(__('Categories and Types'), array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')); ?></li>
+	<ol class="nav flex-column">
+		<li class="active"><?php echo $this->Html->link(__('Quick Start'), array('controller' => 'pages', 'action' => 'display', 'doc', 'quickstart'), array('class' => 'nav-link')); ?></li>
+		<li class="nav-item"><?php echo $this->Html->link(__('General Layout'), array('controller' => 'pages', 'action' => 'display', 'doc', 'general'), array('class' => 'nav-link')); ?></li>
+		<li class="nav-item"><?php echo $this->Html->link(__('General Concepts'), array('controller' => 'pages', 'action' => 'display', 'doc', 'concepts'), array('class' => 'nav-link')); ?></li>
+		<li class="nav-item"><?php echo $this->Html->link(__('User Management and Global actions'), array('controller' => 'pages', 'action' => 'display', 'doc', 'user_management'), array('class' => 'nav-link')); ?></li>
+		<li class="nav-item"><?php echo $this->Html->link(__('Using the system'), array('controller' => 'pages', 'action' => 'display', 'doc', 'using_the_system'), array('class' => 'nav-link')); ?></li>
+		<li class="nav-item"><?php echo $this->Html->link(__('Administration'), array('controller' => 'pages', 'action' => 'display', 'doc', 'administration'), array('class' => 'nav-link')); ?></li>
+		<li class="nav-item"><?php echo $this->Html->link(__('Categories and Types'), array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types'), array('class' => 'nav-link')); ?></li>
 	</ol>
 </div>
 

@@ -1,0 +1,80 @@
+.clear{
+	clear:both;
+}
+
+.useCursorPointer {
+	cursor: pointer;
+	cursor: hand;
+}
+
+.bold {
+	font-weight: bold;
+}
+
+.align-right {
+	text-align: right;
+}
+
+.hidden {
+	display:none;
+}
+
+.indent {
+	text-indent: 2em;
+}
+
+.wrap-text {
+	word-wrap: break-word;
+}
+
+.nowrap {
+	word-wrap:nowrap;
+}
+
+.strikethrough {
+	text-decoration: line-through;
+}
+
+.no-side-padding {
+	padding-right: 0px !important;
+	padding-left:0px !important;
+}
+
+.verticalSeparator {
+	border-left: 1px solid $c_grey;
+}
+
+.vertical-scroll {
+	overflow-y: scroll;
+	overflow-x: hidden;
+}
+
+.bottomGap {
+	margin-bottom:5px;
+}
+
+.drop {
+	min-height: 150px;
+	width: 250px;
+	border: 1px solid $c_full-blue;
+	margin: 10px;
+	padding: 10px;
+}
+
+.simplepre {
+	border:0px !important;
+	background-color: $c_box-grey;
+}
+
+.checkbox input[type=checkbox] {
+	margin-top:0px;
+}
+
+.overlay_spacing {
+	padding-left:10px !important;
+	padding-right:10px !important;
+}
+
+.topGap {
+	padding-top:100px;
+}

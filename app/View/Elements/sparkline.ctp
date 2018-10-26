@@ -9,10 +9,11 @@ Modified version of http://www.tnoda.com/blog/2013-12-19
 <script>
   var width = 100;
   var height = 25;
-  var x = d3.scale.linear().range([0, width - 2]);
-  var y = d3.scale.linear().range([height - 4, 0]);
-  var parseDate = d3.time.format("%Y-%m-%d").parse;
-  var line = d3.svg.line()
+  var x = d3.scaleLinear().range([0, width - 2]);
+  var y = d3.scaleLinear().range([height - 4, 0]);
+  var parseDate = d3.timeParse("%Y-%m-%d");
+  var line = d3.line()
+               .curve(d3.curveLinear)
                .interpolate("linear")
                .x(function(d) { return x(d.date); })
                .y(function(d) { return y(d.close); });
@@ -42,7 +43,7 @@ Modified version of http://www.tnoda.com/blog/2013-12-19
 
   var myData = "<?php echo isset($csv) ? $csv : ''; ?>";
   if (myData != '') {
-    var data = d3.csv.parse(myData);
+    var data = d3.csvParse(myData);
     sparkline('#spark_<?php echo h($id); ?>', data);
   }
 </script>

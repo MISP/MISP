@@ -2806,7 +2806,7 @@ function initPopoverContent(context) {
 		if (formInfoFields.hasOwnProperty(property)) {
 			$('#' + property + 'InfoPopover').popover("destroy").popover({
 				placement: 'right',
-				html: 'true',
+				html: true,
 				trigger: 'hover',
 				content: getFormInfoContent(property, '#' + context + formInfoFields[property])
 			});

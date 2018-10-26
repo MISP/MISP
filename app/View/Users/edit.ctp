@@ -51,7 +51,7 @@
 	$(document).ready(function() {
 		$('#PasswordPopover').popover("destroy").popover({
 			placement: 'right',
-			html: 'true',
+			html: true,
 			trigger: 'hover',
 			content: '<?php echo $passwordPopover; ?>'
 		});

@@ -1,0 +1,132 @@
+#attributes_div {
+	min-width: 1400px;
+}
+
+/* footer shortcut list */
+#shortcutsListContainer {
+	z-index: 10;
+	position: absolute;
+	background-color: #1b1b1b;
+	top: 0;
+	width:100%;
+}
+
+#triangle {
+	cursor: pointer;
+	position:fixed;
+	background-color: #1b1b1b;
+	width: 20px;
+	height: 20px;
+	bottom:30px;
+	right: 30px;
+	transform: rotate(45deg);
+}
+
+#shortcutsList {
+	top: 0;
+	width: 100%;
+	position:relative;
+	color: #999999;
+	margin: 5px 5px 0px 5px;
+}
+/* fonts for logo */
+
+.glass {
+	width: 100%;
+	height: 100%;
+	position: absolute;
+	padding: 0;
+	-webkit-border-radius: 10px;
+	-moz-border-radius: 10px;
+	border-radius: 10px;
+	background: rgba(0,0,0,0.25);
+	box-shadow: 0 2px 6px rgba(0,0,0,0.5), inset 0 1px rgba(255,255,255,0.3), inset 0 10px rgba(255,255,255,0.1), inset 0 10px 20px rgba(255,255,255,0.3), inset 0 -15px 30px rgba(0,0,0,0.3);
+}
+
+.quote {
+	margin: 0 10px;
+	margin-bottom: 10px;
+	-moz-border-radius: 0px;
+	-webkit-border-radius: 0px;
+	background: $c_style_grey none;
+	border-radius: 0px;
+	border: 1px solid #417394;
+	position: relative;
+	top: 0;
+	padding: 4px;
+}
+
+.qet {
+	padding:1px 5px !important;
+	font-size:12px !important;
+	float:left !important;
+}
+
+
+.legend {
+	display: block;
+	width: 100%;
+	padding: 0;
+	font-size: 21px;
+	line-height: 40px;
+	color: $c_dark-grey;
+	border: 0;
+}
+
+
+.multi-page-form-div {
+	border:1px solid $c_ddd-grey;
+	padding:10px;
+}
+
+.dashboard_element{
+	border: 1px solid $c_blue;
+	border-radius: 5px;
+	box-shadow: 0px 0px 6px $c_container-grey;
+	padding-left:10px;
+	padding-right:10px;
+	width: 100%;
+	height: 100%;
+}
+
+.tooltip-inner {
+	white-space:pre-wrap !important;
+}
+
+.caret-right {
+	border-bottom: 4px solid transparent;
+	border-top: 4px solid transparent;
+	border-left: 4px solid;
+	display: inline-block;
+	height: 0;
+	opacity: 0.3;
+	vertical-align: top;
+	width: 0;
+}
+
+.screenshot-collapsed {
+	width:200px;
+}
+
+.sightings_advanced {
+	width:1000px;
+}
+
+.down-expand-button {
+	text-align:center !important;
+	border:0px;
+	padding:0px !important;
+	width:100%;
+	cursor: pointer;
+	cursor: hand;
+}
+
+#attackmatrix_div {
+    border-color: $c_matrix-grey;
+    overflow: visible;
+    max-height: 700px;
+    height: auto;
+    margin-top: 30px;
+    width: calc(100vw - 230px);
+    min-width: 1400px;
+}

@@ -20,12 +20,12 @@
 		width = 980 - margin.left - margin.right,
 		height = 300 - margin.top - margin.bottom;
 
-	var parseDate = d3.time.format("%Y%m%d").parse;
+    var parseDate = d3.timeParse("%Y-%m-%d");
 
 	var x = d3.time.scale()
 		.range([0, width]);
 
-	var y = d3.scale.linear()
+	var y = d3.scaleLinear()
 		.range([height, 0]);
 
 	var color = d3.scale.category10();
@@ -38,8 +38,8 @@
 		.scale(y)
 		.orient("left");
 
-	var line = d3.svg.line()
-		.interpolate("linear")
+    var line = d3.line()
+        .curve(d3.curveLinear)
 		.x(function(d) {
 			return x(d.date);
 		})

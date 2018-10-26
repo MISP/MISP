@@ -1,0 +1,189 @@
+.borderRed {
+	border-color: $c_bright-red;
+}
+
+.borderOrange {
+	border-color: $c_border-orange;
+}
+
+.borderBlue {
+	border-color: $c_border-blue;
+}
+
+.whitelink {
+	color:$c_white;
+}
+
+a.discrete {
+	color:$c_black;
+	text-decoration:none;
+	font-weight:normal;
+}
+
+.logoBlueStatic {
+	color: $c_blue;
+}
+
+.logoGray {
+	color: $c_grey;
+}
+
+.footerText {
+	color: $c_grey;
+}
+
+.privateRedText {
+	color: $c_full-red !important;
+	font-weight:bold !important;
+}
+
+.red {
+	color: $c_full-red!important;
+}
+
+.blue {
+	color: $c_blue !important;
+}
+
+.grey {
+	color: $c_greytext !important;
+}
+
+.green {
+	color: $c_full-green !important;
+}
+
+.black {
+	color: $c_black !important;
+}
+
+.orange {
+	color: $c_full-orange !important;
+}
+
+.white {
+	color: $c_white !important;
+}
+
+.white {
+	color: $c_white;
+}
+
+.json_key {
+	color: $c_light-green;
+	font-weight: bold;
+}
+
+.json_string, .json_boolean, .json_number {
+	color: $c_violet;
+}
+
+.json_null {
+	color: $c_greytext;
+}
+
+.background-lightblue {
+	background-color:$c_light-grey
+}
+
+.red-background {
+	background-color:$c_full-red;
+}
+
+.blue-background {
+	background-color:$c_blue;
+}
+
+.green-background {
+	background-color:$c_full-green;
+}
+
+.background-red {
+	background: $c_full-red !important;
+	color: $c_white !important;
+}
+
+.background-blue {
+	background: $c_blue !important;
+	color: $c_white !important;
+}
+
+.background-light-red {
+	background: #ffcccc !important;
+	color: $c_white !important;
+}
+
+.redHighlightedBlock {
+	border:1px solid $c_full-red;
+	background-color:$c_white;
+	padding:5px;
+	border-radius:5px;
+	height:228px;
+	width:320px;
+	overflow-y:scroll;
+	line-height:12px;
+}
+
+.highlighted_node {
+	border:50px solid $c_black;
+}
+
+.action-links > .fa {
+	color:$c_black;
+}
+
+.background-deleted {
+	background: repeating-linear-gradient(
+		45deg,
+		#606dbc,
+		#606dbc 10px,
+		#465298 10px,
+		#465298 20px
+	) !important;
+}
+
+.highlightedBlock {
+	border:1px solid $c_black;
+	background-color:$c_white;
+	padding:5px;
+	border-radius:5px;
+}
+
+.linkButton {
+	background: none;
+	border: none;
+	  padding: 0px;
+	color: $c_full-red;
+	cursor: pointer;
+	  margin: 0;
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+	font-size: 12px;
+	line-height: 20px;
+  }
+
+.visibleDL {
+	background-color: $c_full-red !important;
+	color: $c_white;
+	font-weight: bold;
+}
+
+.sparkline {
+	fill: none;
+	stroke: $c_black;
+	stroke-width: 0.5px;
+  }
+  .sparkcircle {
+	fill: $c_full-red;
+	stroke: none;
+  }
+  
+  .gray_out {
+	display:none;
+	width: 100%;
+	height: 100%;
+	position: fixed;
+	opacity: 0.75;
+	filter: alpha(opacity=75);
+	background-color: $c_black;
+	z-index:4;
+}

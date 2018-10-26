@@ -7,7 +7,7 @@
 			<a href="<?php echo $baseurl; ?>/feeds/cacheFeeds/misp" class="toggle-right qet btn btn-dark"><?php echo __('Cache MISP feeds');?></a>
 			<a href="<?php echo $baseurl; ?>/feeds/fetchFromAllFeeds" class="btn btn-primary qet" style="margin-left:20px;"><?php echo __('Fetch and store all feed data');?></a>
 		</div><br />
-		<div>
+		<dgit submodule update --init misp-vagrantgit submodule update --init misp-vagrantiv>
 		<ul class="pagination">
 			<?php
 			$this->Paginator->options(array(
@@ -22,15 +22,14 @@
 			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false, 'class' => 'page-link'), null, array('tag' => 'li', 'class' => 'page-link', 'escape' => false, 'disabledTag' => 'span', 'disabledClass' => 'page-link'));
 			?>
 		</ul>
-	</div>
 	<div class="tabMenuFixedContainer" style="display:inline-block;">
 			<span id="multi-delete-button" role="button" tabindex="0" aria-label="<?php echo __('Default feeds filter');?>" title="<?php echo __('Default feeds');?>" class=" hidden tabMenuFixed mass-select tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onClick="multiSelectToggleFeeds(1);"><?php echo __('Enable Selected');?></span>
 			<span id="multi-delete-button" role="button" tabindex="0" aria-label="<?php echo __('Default feeds filter');?>" title="<?php echo __('Default feeds');?>" class=" hidden tabMenuFixed mass-select tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onClick="multiSelectToggleFeeds(0);"><?php echo __('Disable Selected');?></span>
-  		<span role="button" tabindex="0" aria-label="<?php echo __('Default feeds filter');?>" title="<?php echo __('Default feeds');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onclick="window.location='/feeds/index/scope:default'"><?php echo __('Default feeds');?></span>
-  		<span role="button" tabindex="0" aria-label="<?php echo __('Custom feeds filter');?>" title="<?php echo __('Custom feeds');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'custom' ? 'tabMenuActive' : ''; ?> " onclick="window.location='/feeds/index/scope:custom'"><?php echo __('Custom Feeds');?></span>
-  		<span role="button" tabindex="0" aria-label="<?php echo __('All feeds');?>" title="<?php echo __('All feeds');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'all' ? 'tabMenuActive' : ''; ?> " onclick="window.location='/feeds/index/scope:all'"><?php echo __('All Feeds');?></span>
+			<span role="button" tabindex="0" aria-label="<?php echo __('Default feeds filter');?>" title="<?php echo __('Default feeds');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onclick="window.location='/feeds/index/scope:default'"><?php echo __('Default feeds');?></span>
+			<span role="button" tabindex="0" aria-label="<?php echo __('Custom feeds filter');?>" title="<?php echo __('Custom feeds');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'custom' ? 'tabMenuActive' : ''; ?> " onclick="window.location='/feeds/index/scope:custom'"><?php echo __('Custom Feeds');?></span>
+			<span role="button" tabindex="0" aria-label="<?php echo __('All feeds');?>" title="<?php echo __('All feeds');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'all' ? 'tabMenuActive' : ''; ?> " onclick="window.location='/feeds/index/scope:all'"><?php echo __('All Feeds');?></span>
 			<span role="button" tabindex="0" aria-label="<?php echo __('Enabled feeds');?>" title="<?php echo __('Enabled feeds');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'enabled' ? 'tabMenuActive' : ''; ?> " onclick="window.location='/feeds/index/scope:enabled'"><?php echo __('Enabled Feeds');?></span>
-  </div>
+	</div>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<?php if ($isSiteAdmin): ?>
@@ -85,7 +84,7 @@ foreach ($feeds as $item):
 			if ($isSiteAdmin):
 		?>
 				<td style="width:10px;" data-id="<?php echo h($item['Feed']['id']); ?>">
-					<input class="form-control select" type="checkbox" data-id="<?php echo $item['Feed']['id'];?>" />
+					<input class="" type="checkbox" data-id="<?php echo $item['Feed']['id'];?>" />
 				</td>
 		<?php
 			else:
@@ -219,12 +218,12 @@ endforeach; ?>
 	?>
 	</p>
 	<div>
-		<ul class="pagination">
+	<ul class="pagination">
 			<?php
 
-				echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-				echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-				echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false, 'class' => 'page-link'), null, array('tag' => 'li', 'class' => 'page-link', 'escape' => false, 'disabledTag' => 'span'));
+			echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'class' => 'page-link', 'currentClass' => 'page-link', 'currentTag' => 'span', 'currentClass' => 'p-active'));
+			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false, 'class' => 'page-link'), null, array('tag' => 'li', 'class' => 'page-link', 'escape' => false, 'disabledTag' => 'span', 'disabledClass' => 'page-link'));
 			?>
 		</ul>
 	</div>

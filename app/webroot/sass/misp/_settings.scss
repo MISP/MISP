@@ -1,0 +1,19 @@
+#server-settings-container {
+	min-width:1100px;
+}
+
+.settingsTableContainer {
+	border:1px solid $c_attribute-grey;
+	margin-top:1px;
+	margin-bottom:0px;
+	width:100%;
+	padding:10px;
+}
+
+.settingsTableContainerOutline {
+	border:1px solid $c_attribute-grey;
+	margin-top:1px;
+	width:95%;
+	padding:10px;
+	min-width:1100px;
+}

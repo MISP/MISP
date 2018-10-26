@@ -1,0 +1,41 @@
+.discussionBox {
+	border-collapse: separate;
+	box-shadow: 5px 5px 5px $c_ajax-grey;
+	width:100%;
+	max-width:900px;
+}
+
+.discussionBoxTD {
+	padding-right: 8px;
+	padding-left: 8px;
+	border-style: solid;
+	border-width: 0px;
+
+}
+
+.discussionBoxTDtop {
+	color: $c_white;
+	background-color: $c_discussion-grey;
+}
+
+.discussionBoxTDbottom {
+	background-color: $c_macos-grey;
+	padding-left: 8px;
+	padding-bottom: 4px;
+	padding-top: 4px;
+}
+
+.discussionBoxTDMid {
+	padding-top: 8px;
+	height: 100px;
+	vertical-align: top;
+}
+
+.discussionBoxTDMidLeft {
+	background-color: $c_macos-grey;
+	width: 80px;
+	text-align:center;
+}
+
+.discussionBoxTDMidRight {
+}

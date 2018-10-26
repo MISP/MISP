@@ -1,0 +1,41 @@
+/*NOTIFICATION MESSAGES*/
+
+.block {
+    text-align: center;
+    margin: 20px;
+    height: 500px;
+  }
+  
+  .block:before {
+    content: '';
+    display: inline-block;
+    height: 100%;
+    vertical-align: middle;
+    margin-right: -0.25em;
+   }
+  
+  .centered {
+    display: inline-block;
+    vertical-align: middle;
+    width: 230px;
+    padding: 10px 15px;
+    border: #a0a0a0 solid 1px;
+    background: #f5f5f5;
+    text-align: left;
+   }
+
+
+   .notification-active {
+    float:left;
+    background-color:$c_bright-red;
+    color:white;
+    border-radius: 50%;
+    width:20px;
+    height:20px;
+  }
+  
+  .notification-passive {
+    float:left;
+    width:20px;
+    height:20px;
+  }

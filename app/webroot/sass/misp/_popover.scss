@@ -1,0 +1,41 @@
+.popover {
+	max-width:33%;
+}
+
+.popover_choice legend {
+	margin-bottom:0px !important;
+	border-bottom:0px !important;
+}
+
+.popover_choice form {
+	margin-bottom:0px !important;
+	border-bottom:0px !important;
+}
+
+.popover_choice_main {
+	max-height:400px;
+	overflow-y:auto;
+}
+
+.popover-legend {
+	border-radius: 5px 5px 0px 0px;
+	margin-bottom:5px;
+	padding-left:0px;
+	background-color:black;
+	color:white;
+	font-size: 21px;
+	line-height: 40px;
+}
+
+.popover-legend p {
+	padding-left:10px;
+}
+
+.popover-back {
+	border-top:1px solid $c_black;
+	line-height: 30px;
+	padding-top: 1px;
+	padding-bottom: 1px;
+	text-align:center;
+	width:100%;
+}

@@ -106,6 +106,7 @@
       </div>
     </td>
     <td class="short" style="padding-top:3px;">
+      <input
         id="correlation_toggle_<?php echo h($object['id']); ?>"
         class="check-control correlation-toggle"
         type="checkbox"

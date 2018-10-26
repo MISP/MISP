@@ -121,9 +121,9 @@
 				break;
 				case 'warninglist':?>
 					<?php if ($menuItem == 'view'): ?><li class="nav-item" class="active"><a class="nav-link active" href="#"><?php echo __('View Warninglist');?></a></li><?php endif;?>
-					<li class="nav-item" id='liindex'><?php echo $this->Html->link(__('List Warninglists'), array('action' => 'index'));?></li>
+					<li class="nav-item" id='liindex'><?php echo $this->Html->link(__('List Warninglists'), array('action' => 'index'), array('class' => 'nav-link'));?></li>
 					<?php if ($isSiteAdmin): ?>
-					<li class="nav-item"><?php echo $this->Form->postLink(__('Update Warninglists'), '/warninglists/update'); ?></li>
+					<li class="nav-item"><?php echo $this->Form->postLink(__('Update Warninglists'), '/warninglists/update', array('class' => 'nav-link')); ?></li>
 					<?php
 						endif;
 				break;
