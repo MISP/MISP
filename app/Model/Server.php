@@ -1399,7 +1399,7 @@ class Server extends AppModel
                         ),
                         'ElasticSearch_connection_string' => array(
                             'level' => 2,
-                            'description' => __('The URL(s) at which to access ElasticSearch - comma seperate if you want to have more than one.'),
+                            'description' => __('The URL(s) at which to access ElasticSearch - comma separate if you want to have more than one.'),
                             'value' => '',
                             'errorMessage' => '',
                             'test' => 'testForEmpty',

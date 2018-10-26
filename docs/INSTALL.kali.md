@@ -1,6 +1,9 @@
 # INSTALLATION INSTRUCTIONS
 ## for Kali Linux
 # 0/ Quick MISP Instance on Kali Linux - Status
+
+This has been tested by @SteveClement on 20181023
+
 # 1/ Prepare Kali with a MISP User
 
 To install MISP on Kali copy paste this in your r00t shell:

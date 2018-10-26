@@ -20,6 +20,7 @@ New
 - [API] rework of the searchall/quickFilter parameters. [iglocska]
 
   Now it correctly works as intended on both attribute and event contexts
+
 - [API] documentation added for the new APIs. [iglocska]
 - [export] Further changes required for the reworked export added.
   [iglocska]
@@ -10053,7 +10054,7 @@ Changes
 
 Fix
 ---
-- Some additional changes to accomodate for the automatically enabled
+- Some additional changes to accommodate for the automatically enabled
   sightings. [Iglocska]
 - Tell MISP to run the db update. [Iglocska]
 - MISP taxonomies updated to the latest version. [Alexandre Dulaunoy]
@@ -12169,7 +12170,7 @@ Fix
   - This unimaginative patch would not have existed without an uncomfortable British Aerospace ATP
 - Added the date field to the related attribute popover, fixes #1190.
   [Iglocska]
-- Fix to a previous change of the bootstrap.php file to accomodate for
+- Fix to a previous change of the bootstrap.php file to accommodate for
   some exotic setups. [Iglocska]
 - Accidental invalid debug code left in the verifyGPG admin task
   breaking the script. [Iglocska]

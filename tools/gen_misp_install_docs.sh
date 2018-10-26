@@ -12,7 +12,7 @@ fi
 
 if [ -z "$VIRTUAL_ENV" ]; then
     virtualenv -p python3 mkdocs
-    ${PWD}/mkdocs/bin/pip install mkdocs mkdocs-material
+    ${PWD}/mkdocs/bin/pip install mkdocs mkdocs-material markdown-include python-markdown-comments gitchangelog
 fi
 
 wget -O ../docs/Changelog.md https://www.misp-project.org/Changelog.txt

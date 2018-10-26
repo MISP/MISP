@@ -115,10 +115,18 @@ class GalaxyClustersController extends AppController
 
     public function view($id)
     {
+		$conditions = array('GalaxyCluster.id' => $id);
+		if (Validation::uuid($id)) {
+			$conditions = array('GalaxyCluster.uuid' => $id);
+		}
+		$contain = array('Galaxy');
+		if ($this->_isRest()) {
+			$contain[] = 'GalaxyElement';
+		}
         $cluster = $this->GalaxyCluster->find('first', array(
             'recursive' => -1,
-            'contain' => array('Galaxy'),
-            'conditions' => array('GalaxyCluster.id' => $id)
+            'contain' => $contain,
+            'conditions' => $conditions
         ));
         if (!empty($cluster)) {
             $galaxyType = $cluster['GalaxyCluster']['type'];
@@ -136,9 +144,15 @@ class GalaxyClustersController extends AppController
                 $cluster['GalaxyCluster']['tag_id'] = $tag['Tag']['id'];
             }
         }
-        $this->set('id', $id);
-        $this->set('galaxy_id', $cluster['Galaxy']['id']);
-        $this->set('cluster', $cluster);
+		if ($this->_isRest()) {
+			$cluster['GalaxyCluster']['Galaxy'] = $cluster['Galaxy'];
+			$cluster['GalaxyCluster']['GalaxyElement'] = $cluster['GalaxyElement'];
+			return $this->RestResponse->viewData(array('GalaxyCluster' => $cluster['GalaxyCluster']), $this->response->type());
+		} else {
+			$this->set('id', $id);
+	        $this->set('galaxy_id', $cluster['Galaxy']['id']);
+	        $this->set('cluster', $cluster);
+		}
     }
 
     public function attachToEvent($event_id, $tag_name)
