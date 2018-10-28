@@ -84,7 +84,7 @@ class Galaxy extends AppModel
             $template = array(
                 'source' => isset($cluster_package['source']) ? $cluster_package['source'] : '',
                 'authors' => json_encode(isset($cluster_package['authors']) ? $cluster_package['authors'] : array(), true),
-                'uuid' => isset($cluster_package['uuid']) ? $cluster_package['uuid'] : '',
+                'collection_uuid' => isset($cluster_package['uuid']) ? $cluster_package['uuid'] : '',
                 'galaxy_id' => $galaxies[$cluster_package['type']],
                 'type' => $cluster_package['type'],
                 'tag_name' => 'misp-galaxy:' . $cluster_package['type'] . '="'
@@ -141,6 +141,9 @@ class Galaxy extends AppModel
                 }
                 $cluster_to_save['value'] = $cluster['value'];
                 $cluster_to_save['tag_name'] = $cluster_to_save['tag_name'] . $cluster['value'] . '"';
+				if (!empty($cluster['uuid'])) {
+					$cluster_to_save['uuid'] = $cluster['uuid'];
+				}
                 unset($cluster['value']);
                 if (empty($cluster_to_save['description'])) {
                     $cluster_to_save['description'] = '';

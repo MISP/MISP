@@ -1,15 +1,20 @@
-INSTALLATION INSTRUCTIONS
+# INSTALLATION INSTRUCTIONS
+## for Ubuntu 18.04.1-server with Webmin
+
+### 0/ MISP Ubuntu 18.04-server install - status
 -------------------------
-# For Ubuntu 18.04.1 server with Webmin
-# Why Webmin/Virtualmin?
-# Some may not be full time sysadmin and prefer a platform that once it has been setup works and is decently easy to manage.
+{!generic/community.md!}
 
-# Assuming you created the subdomanin misp.yourserver.tld to where MISP will be installed
-# and that the user "misp" is in the sudoers group
-# and that you have already configured SSL with Lets Encrypt on the subdomain
+#### Why Webmin/Virtualmin?
+Some may not be full time sysadmin and prefer a platform that once it has been setup works and is decently easy to manage.
+
+#### Assumptions
+Assuming you created the subdomanin misp.yourserver.tld to where MISP will be installed and that the user "misp" is in the sudoers group and that you have already configured SSL with Lets Encrypt on the subdomain
 
 
-1/ Minimal Ubuntu install
+{!generic/globalVariables.md!}
+
+### 1/ Minimal Ubuntu install
 -------------------------
 # Make sure your system is up2date:
 sudo apt-get update
@@ -64,7 +69,7 @@ sudo pear install Crypt_GPG
 # Apply all changes
 sudo systemctl restart apache2
 
-3/ MISP code
+### 3/ MISP code
 ------------
 # Assuming you created the subdomanin misp.yourserver.tld
 # Download MISP using git in the /home/misp/public_html/ as misp
@@ -95,7 +100,7 @@ sudo python3 setup.py install
 cd /home/misp/public_html/MISP/app/files/scripts/python-stix
 sudo python3 setup.py install
 
-# install mixbox to accomodate the new STIX dependencies:
+# install mixbox to accommodate the new STIX dependencies:
 cd /home/misp/public_html/MISP/app/files/scripts/
 git clone https://github.com/CybOXProject/mixbox.git
 cd /home/misp/public_html/MISP/app/files/scripts/mixbox
@@ -296,51 +301,39 @@ sudo systemctl enable rc-local
 sudo systemctl start rc-local.service
 sudo systemctl status rc-local.service
 
-# Now log in using the webinterface:
-# The default user/pass = admin@admin.test/admin
+!!! notice
+    Once done, have a look at the diagnostics
+    If any of the directories that MISP uses to store files is not writeable to the apache user, change the permissions
+    you can do this by running the following commands:
+    ```
+    sudo chmod -R 770 /home/misp/public_html/MISP/<directory path with an indicated issue>
+    sudo chown -R misp:www-data /home/misp/public_html/MISP/<directory path with an indicated issue>
+    ```
 
-# Using the server settings tool in the admin interface (Administration -> Server Settings), set MISP up to your preference
-# It is especially vital that no critical issues remain!
-# start the workers by navigating to the workers tab and clicking restart all workers
+!!! notice
+    If anything goes wrong, make sure that you check MISP's logs for errors:
+    ```
+    # /home/misp/public_html/MISP/app/tmp/logs/error.log
+    # /home/misp/public_html/MISP/app/tmp/logs/resque-worker-error.log
+    # /home/misp/public_html/MISP/app/tmp/logs/resque-scheduler-error.log
+    # /home/misp/public_html/MISP/app/tmp/logs/resque-2015-01-01.log // where the actual date is the current date
+```
 
-# Don't forget to change the email, password and authentication key after installation.
+{!generic/INSTALL.done.md!}
 
-# Once done, have a look at the diagnostics
+{!generic/recommended.actions.md!}
 
-# If any of the directories that MISP uses to store files is not writeable to the apache user, change the permissions
-# you can do this by running the following commands:
-
-sudo chmod -R 770 /home/misp/public_html/MISP/<directory path with an indicated issue>
-sudo chown -R misp:www-data /home/misp/public_html/MISP/<directory path with an indicated issue>
-
-# Make sure that the STIX libraries and GnuPG work as intended, if not, refer to INSTALL.txt's paragraphs dealing with these two items
-
-# If anything goes wrong, make sure that you check MISP's logs for errors:
-# /home/misp/public_html/MISP/app/tmp/logs/error.log
-# /home/misp/public_html/MISP/app/tmp/logs/resque-worker-error.log
-# /home/misp/public_html/MISP/app/tmp/logs/resque-scheduler-error.log
-# /home/misp/public_html/MISP/app/tmp/logs/resque-2015-01-01.log // where the actual date is the current date
-
-
-Recommended actions
--------------------
-- By default CakePHP exposes its name and version in email headers. Apply a patch to remove this behavior.
-
-- You should really harden your OS
-- You should really harden the configuration of Apache
-- You should really harden the configuration of MySQL/MariaDB
-- Keep your software up2date (OS, MISP, CakePHP and everything else)
-- Log and audit
-
-
-Optional features
+### Optional features
 -----------------
-# MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
-sudo pip install pyzmq
+#### MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
+```bash
+sudo pip3 install pyzmq
 # ZeroMQ depends on the Python client for Redis
-sudo pip install redis
+sudo pip3 install redis
+```
 
-# For the experimental ssdeep correlations, run the following installation:
+#### Experimental ssdeep correlations
+```bash
 # installing ssdeep
 wget http://downloads.sourceforge.net/project/ssdeep/ssdeep-2.13/ssdeep-2.13.tar.gz
 tar zxvf ssdeep-2.13.tar.gz
@@ -357,9 +350,11 @@ sudo pecl install ssdeep
 echo "extension=ssdeep.so" | sudo tee /etc/php/7.2/mods-available/ssdeep.ini
 sudo phpenmod ssdeep
 sudo service apache2 restart
+```
 
-Optional features: misp-modules
+#### misp-modules
 -------------------------------
-# If you want to add the misp modules functionality, follow the setup procedure described in misp-modules:
-# https://github.com/MISP/misp-modules#how-to-install-and-start-misp-modules
-# Then the enrichment, export and import modules can be enabled in MISP via the settings.
+!!! notice
+    If you want to add the misp modules functionality, follow the setup procedure described in misp-modules:<br />
+    https://github.com/MISP/misp-modules#how-to-install-and-start-misp-modules<br />
+    Then the enrichment, export and import modules can be enabled in MISP via the settings.

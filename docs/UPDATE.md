@@ -60,7 +60,7 @@ cd /var/www/MISP/app/files/scripts/python-stix
 python3 setup.py install
 ```
 
-# 4. Update mixbox to accomodate the new STIX dependencies:
+# 4. Update mixbox to accommodate the new STIX dependencies:
 ```bash
 cd /var/www/MISP/app/files/scripts/
 rm -rf mixbox
