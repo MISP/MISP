@@ -6,13 +6,6 @@
 ## TODO, FIX:
 # Must be launch in the parent directoy of your MISP installation
 
-if [ ! -d /var/log/git ]; then
-    mkdir -p /var/log/git/
-    cd /var/www/MISP
-    # The following git config is to be able to handle larger files, as per: https://stackoverflow.com/questions/2702731/git-fails-when-pushing-commit-to-github
-    git config http.postBuffer 524288000
-fi
-
 # VAR AFFECTATION
 ver="1.1-20181025"
 day=$(date +%Y%m%d)
@@ -28,6 +21,13 @@ web_perms_deb_g="www-data"
 # Permissions of web user for RedHat flavoured and standard Apache installs
 web_perms_rh_u="root"
 web_perms_rh_g="apache"
+
+if [ ! -d /var/log/git ]; then
+    mkdir -p /var/log/git/
+    cd ${misp_folder}
+    # The following git config is to be able to handle larger files, as per: https://stackoverflow.com/questions/2702731/git-fails-when-pushing-commit-to-github
+    git config http.postBuffer 524288000
+fi
 
 if [ -e "/usr/bin/lsb_release" ]; then
     flavour="$(lsb_release -s -i)"
@@ -63,28 +63,28 @@ function log_date () {
 }
 
 function apply_permissions () {
-	chown -R ${web_perms_u}:${web_perms_g} /var/www/MISP
-	find /var/www/MISP -type d -exec chmod g=rx {} \;
-	chmod -R g+r,o= /var/www/MISP
-	chown ${web_perms_g}:${web_perms_g} /var/www/MISP/app/Config/config.php
-	chown ${web_perms_g}:${web_perms_g} /var/www/MISP/app/files
-	chown ${web_perms_g}:${web_perms_g} /var/www/MISP/app/files/terms
-	chown ${web_perms_g}:${web_perms_g} /var/www/MISP/app/files/scripts/tmp
-	chown ${web_perms_g}:${web_perms_g} /var/www/MISP/app/Plugin/CakeResque/tmp
-	chown -R ${web_perms_g}:${web_perms_g} /var/www/MISP/app/tmp
-	chown -R ${web_perms_g}:${web_perms_g} /var/www/MISP/app/webroot/img/orgs
-	chown -R ${web_perms_g}:${web_perms_g} /var/www/MISP/app/webroot/img/custom
-	chown -R ${web_perms_g}:${web_perms_g} /var/www/MISP/.gnupg
-	chmod 755 /var/www/MISP/app/Console/worker/start.sh
-	chown ${web_perms_g}:${web_perms_g} /var/www/MISP/app/Console/worker/start.sh
-	chcon -t httpd_sys_rw_content_t /var/www/MISP/app/Config/config.php
-	chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files
-	chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files/terms
-	chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files/scripts/tmp
-	chcon -t httpd_sys_rw_content_t /var/www/MISP/app/Plugin/CakeResque/tmp
-	chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/tmp
-	chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/webroot/img/orgs
-	chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/webroot/img/custom
+	chown -R ${web_perms_u}:${web_perms_g} ${misp_folder}
+	find ${misp_folder} -type d -exec chmod g=rx {} \;
+	chmod -R g+r,o= ${misp_folder}
+	chown ${web_perms_g}:${web_perms_g} ${misp_folder}/app/Config/config.php
+	chown ${web_perms_g}:${web_perms_g} ${misp_folder}/app/files
+	chown ${web_perms_g}:${web_perms_g} ${misp_folder}/app/files/terms
+	chown ${web_perms_g}:${web_perms_g} ${misp_folder}/app/files/scripts/tmp
+	chown ${web_perms_g}:${web_perms_g} ${misp_folder}/app/Plugin/CakeResque/tmp
+	chown -R ${web_perms_g}:${web_perms_g} ${misp_folder}/app/tmp
+	chown -R ${web_perms_g}:${web_perms_g} ${misp_folder}/app/webroot/img/orgs
+	chown -R ${web_perms_g}:${web_perms_g} ${misp_folder}/app/webroot/img/custom
+	chown -R ${web_perms_g}:${web_perms_g} ${misp_folder}/.gnupg
+	chmod 755 ${misp_folder}/app/Console/worker/start.sh
+	chown ${web_perms_g}:${web_perms_g} ${misp_folder}/app/Console/worker/start.sh
+	chcon -t httpd_sys_rw_content_t ${misp_folder}/app/Config/config.php
+	chcon -t httpd_sys_rw_content_t ${misp_folder}/app/files
+	chcon -t httpd_sys_rw_content_t ${misp_folder}/app/files/terms
+	chcon -t httpd_sys_rw_content_t ${misp_folder}/app/files/scripts/tmp
+	chcon -t httpd_sys_rw_content_t ${misp_folder}/app/Plugin/CakeResque/tmp
+	chcon -R -t httpd_sys_rw_content_t ${misp_folder}/app/tmp
+	chcon -R -t httpd_sys_rw_content_t ${misp_folder}/app/webroot/img/orgs
+	chcon -R -t httpd_sys_rw_content_t ${misp_folder}/app/webroot/img/custom
 }
 
 # CHECKING PRIVILEGES
@@ -95,8 +95,8 @@ if [[ $whoami != "root" ]]; then
 fi
 
 # CHECKING SCRIPT INTEGRITY
-md5=$(md5sum /var/www/misp_update.sh | grep -Eio "[a-f0-9]{32}")
-sha1=$(sha1sum /var/www/misp_update.sh | grep -Eio "[a-f0-9]{40}")
+md5=$(md5sum ${PWD}/$0 | grep -Eio "[a-f0-9]{32}")
+sha1=$(sha1sum $PWD/$0 | grep -Eio "[a-f0-9]{40}")
 echo "Script version is: $ver"
 echo "Script MD5 is: $md5"
 echo "Script SHA-1 is: $sha1"
@@ -203,7 +203,7 @@ if [ ${redhat} == "1" ]; then
     echo -n "--> Restarting PHP service: "; log_date
     systemctl restart rh-php56-php-fpm.service; systemctl status rh-php56-php-fpm.service
     echo -n "--> Restarting MISP Workers: "; log_date
-    su -s /bin/bash ${web_perms_g} -c '/usr/bin/scl enable ${rh-scl-php} /var/www/MISP/app/Console/worker/start.sh'
+    su -s /bin/bash ${web_perms_g} -c '/usr/bin/scl enable ${rh-scl-php} ${misp_folder}/app/Console/worker/start.sh'
     echo -n "--> Restarting firewalld service: "; log_date
     systemctl restart firewalld.service; systemctl status firewalld.service
 elif [ ${debian} == "1"]; then
