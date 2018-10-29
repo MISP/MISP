@@ -14,6 +14,8 @@ class CsvExport
 			$lines = $this->__attributesHandler($data, $options);
 		} else if($options['scope'] === 'Event') {
 			$lines = $this->__eventsHandler($data, $options);
+		} else if($options['scope'] === 'Sighting') {
+			$lines = $this->__sightingsHandler($data, $options);
 		}
         return $lines;
     }
@@ -44,6 +46,32 @@ class CsvExport
 			$attribute['object_meta-category'] = $attribute['Object']['meta-category'];
 		}
 		return $this->__addLine($attribute, $options);
+	}
+
+        private function __sightingsHandler($sighting, $options)
+        {
+                $lines = '';
+                if (isset($sighting['Sighting']['Event'])) {
+                    foreach($sighting['Sighting']['Event'] as $k => $event_val) {
+                        $new_key = 'event_' . $k;
+                        // in case we have an array, e.g. orc => name
+                        if (is_array($event_val)) {
+                            $v2 = reset($event_val);
+                            $k2 = key($event_val);
+                            $new_key .= '_' . $k2;
+                            $event_val = $v2;
+                        }
+                        $sighting['Sighting'][$new_key] = $event_val;
+                    }
+                }
+                if (isset($sighting['Sighting']['Attribute'])) {
+                    foreach($sighting['Sighting']['Attribute'] as $k => $attribute_val) {
+                        $new_key = 'attribute_' . $k;
+                        $sighting['Sighting'][$new_key] = $attribute_val;
+                    }
+                }
+		$lines .= $this->__addLine($sighting['Sighting'], $options);
+                return $lines;
 	}
 
 	private function __eventsHandler($event, $options)

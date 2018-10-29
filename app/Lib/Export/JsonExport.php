@@ -9,8 +9,10 @@ class JsonExport
     {
 		if ($options['scope'] === 'Attribute') {
 			return $this->__attributeHandler($data, $options);
-		} else {
+		} else if($options['scope'] === 'Event') {
 			return $this->__eventHandler($data, $options);
+		} else if($options['scope'] === 'Sighting') {
+			return $this->__sightingsHandler($data, $options);
 		}
     }
 
@@ -46,6 +48,11 @@ class JsonExport
 		unset($attribute['value2']);
 		return json_encode($attribute);
 	}
+
+        private function __sightingsHandler($sighting, $options = array())
+        {
+            return json_encode($sighting);
+        }
 
     public function header($options = array())
     {
