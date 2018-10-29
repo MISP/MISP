@@ -3556,6 +3556,7 @@ class Server extends AppModel
     {
         $writeableFiles = array(
                 APP . 'Config' . DS . 'config.php' => 0,
+                ROOT .  DS . '.git' . DS . 'ORIG_HEAD' => 0,
         );
         foreach ($writeableFiles as $path => &$error) {
             if (!file_exists($path)) {
