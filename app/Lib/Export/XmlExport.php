@@ -53,7 +53,7 @@ class XmlExport
 	}
 
         private function __sightingsHandler($sighting, $options = array()) {
-            $xmlObject = Xml::fromArray(array('Sighting' => $sighting), array('format' => 'tags'));
+            $xmlObject = Xml::fromArray(array('Sighting' => $sighting['Sighting']), array('format' => 'tags'));
             $xmlString = $xmlObject->asXML();
             return substr($xmlString, strpos($xmlString, "\n") + 1);
         }

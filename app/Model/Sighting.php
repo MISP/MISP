@@ -510,6 +510,7 @@ class Sighting extends AppModel
         $additional_event_added = false;
         foreach($sightings as $sid) {
             $sight = $this->getSighting($sid, $user);
+			$sight['Sighting']['value'] = $sight['Sighting']['Attribute']['value'];
             // by default, do not include event and attribute
             if (!isset($filters['includeAttribute']) || !$filters['includeAttribute']) {
                 unset($sight["Sighting"]["Attribute"]);
