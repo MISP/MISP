@@ -3447,11 +3447,19 @@ $(document).ready(function() {
 
 function queryEventLock(event_id, user_org_id) {
 	if (tabIsActive) {
-		$.get( "/events/checkLocks/" + event_id, function(data) {
-			if ($('#event_lock_warning').length != 0) {
-				$('#event_lock_warning').remove();
+		$.ajax({
+			url: "/events/checkLocks/" + event_id,
+			type: "get",
+			success: function(data, statusText, xhr) {
+				 if (xhr.status == 200) {
+					 if ($('#event_lock_warning').length != 0) {
+ 						$('#event_lock_warning').remove();
+ 					}
+ 					if (data.startsWith('Warning:')) {
+ 						$('#main-view-container').append(data);
+ 					}
+				 }
 			}
-			$('#main-view-container').append(data);
 		});
 	}
 	setTimeout(function() { queryEventLock(event_id, user_org_id); }, 5000);
