@@ -1556,6 +1556,7 @@ class UsersController extends AppController
         $stats['proposal_count'] = $this->User->Event->ShadowAttribute->find('count', array('recursive' => -1));
 
         $stats['user_count'] = $this->User->find('count', array('recursive' => -1));
+		$stats['user_count_pgp'] = $this->User->find('count', array('recursive' => -1, 'conditions' => array('User.gpgkey !=' => '')));
         $stats['org_count'] = count($orgs);
 		$stats['local_org_count'] = count($local_orgs);
 		$stats['average_user_per_org'] = round($stats['user_count'] / $stats['local_org_count'], 1);
