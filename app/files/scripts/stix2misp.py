@@ -133,6 +133,7 @@ class StixParser():
                 try:
                     self.marking_mapping[marking._XSI_TYPE](marking)
                 except KeyError:
+                    print(marking._XSI_TYPE, file=sys.stderr)
                     continue
 
     def set_distribution(self):
@@ -869,7 +870,7 @@ class StixFromMISPParser(StixParser):
             self.fill_misp_object(item, name, to_ids=True)
         else:
             if object_type != "misc":
-                print("Unparsed Object type: {}".format(name))
+                print("Unparsed Object type: {}".format(name), file=sys.stderr)
 
     def parse_misp_object_observable(self, observable):
         object_type = str(observable.relationship)
@@ -889,7 +890,7 @@ class StixFromMISPParser(StixParser):
         try:
             self.fill_misp_object(observable, name)
         except Exception:
-            print("Unparsed Object type: {}".format(observable.to_json()))
+            print("Unparsed Object type: {}".format(observable.to_json()), file=sys.stderr)
 
     # Create a MISP object, its attributes, and add it in the MISP event
     def fill_misp_object(self, item, name, to_ids=False):
