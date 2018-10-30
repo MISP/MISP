@@ -182,9 +182,9 @@ class RestResponseComponent extends Component
                 'optional' => array('type', 'source', 'timestamp', 'date', 'time')
             ),
             'restSearch' => array(
-                'description' => "Search MISP using a list of filter parameters and return the data in the JSON format.
+                'description' => "Search MISP sightings using a list of filter parameters and return the data in the JSON format.
                     The search is available on an event, attribute or instance level,
-                    just select the scope via the URL (/sighting/get/event vs /sighting/get/attribute vs /sighting/get/).
+                    just select the scope via the URL (/sighting/restSearch/event vs /sighting/restSearch/attribute vs /sighting/restSearch/).
                     id MUST be provided if context is set.",
                 'mandatory' => array('returnFormat'),
                 'optional' => array('id', 'type', 'from', 'to', 'last', 'org_id', 'source', 'includeAttribute', 'includeEvent'),
