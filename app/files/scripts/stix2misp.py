@@ -128,13 +128,15 @@ class StixParser():
         }
 
     def parse_marking(self, handling):
+        tags = []
         if hasattr(handling, 'marking_structures') and handling.marking_structures:
             for marking in handling.marking_structures:
                 try:
-                    self.marking_mapping[marking._XSI_TYPE](marking)
+                    tags.extend(self.marking_mapping[marking._XSI_TYPE](marking))
                 except KeyError:
                     print(marking._XSI_TYPE, file=sys.stderr)
                     continue
+        return tags
 
     def set_distribution(self):
         for attribute in self.misp_event.attributes:
@@ -622,6 +624,7 @@ class StixParser():
     ################################################################################
 
     def parse_AIS_marking(self, marking):
+        tags = []
         if hasattr(marking, 'is_proprietary') and marking.is_proprietary:
             proprietary = "Is"
             marking = marking.is_proprietary
@@ -632,21 +635,22 @@ class StixParser():
             return
         mapping = stix2misp_mapping._AIS_marking_mapping
         prefix = mapping['prefix']
-        self.misp_event.add_tag('{}{}'.format(prefix, mapping['proprietary'].format(proprietary)))
+        tags.append('{}{}'.format(prefix, mapping['proprietary'].format(proprietary)))
         if hasattr(marking, 'cisa_proprietary'):
             try:
                 cisa_proprietary = marking.cisa_proprietary.numerator
                 cisa_proprietary = 'true' if cisa_proprietary == 1 else 'false'
-                self.misp_event.add_tag('{}{}'.format(prefix, mapping['cisa_proprietary'].format(cisa_proprietary)))
+                tags.append('{}{}'.format(prefix, mapping['cisa_proprietary'].format(cisa_proprietary)))
             except AttributeError:
                 pass
         for ais_field in ('ais_consent', 'tlp_marking'):
             if hasattr(marking, ais_field) and getattr(marking, ais_field):
                 key, tag = mapping[ais_field]
-                self.misp_event.add_tag('{}{}'.format(prefix, tag.format(getattr(getattr(marking, ais_field), key))))
+                tags.append('{}{}'.format(prefix, tag.format(getattr(getattr(marking, ais_field), key))))
+        return tags
 
     def parse_TLP_marking(self, marking):
-        self.misp_event.add_tag('tlp:{}'.format(marking.color.lower()))
+        return 'tlp:{}'.format(marking.color.lower())
 
     ################################################################################
     ##          FUNCTIONS HANDLING PARSED DATA, USED BY BOTH SUBCLASSES.          ##
@@ -964,7 +968,9 @@ class ExternalStixParser(StixParser):
                                              'comment': 'Imported from STIX header description'})
         if hasattr(header, 'handling') and header.handling:
             for handling in header.handling:
-                self.parse_marking(handling)
+                tags = self.parse_marking(handling)
+                for tag in  tags:
+                    self.misp_event.add_tag(tag)
         if self.event.indicators:
             self.parse_external_indicators(self.event.indicators)
         if self.event.observables:
@@ -1048,11 +1054,15 @@ class ExternalStixParser(StixParser):
                         if isinstance(attribute_value, (str, int)):
                             # if the returned value is a simple value, we build an attribute
                             attribute = {'to_ids': True, 'uuid': uuid}
+                            if indicator.timestamp:
+                                attribute['timestamp'] = self.getTimestampfromDate(indicator.timestamp)
+                            if hasattr(observable, 'handling') and observable.handling:
+                                attribute['Tag'] = []
+                                for handling in observable.handling:
+                                    attribute['Tag'].extend(self.parse_marking(handling))
                             parsed = self.special_parsing(observable.object_, attribute_type, attribute_value, attribute, uuid)
                             if parsed is not None:
                                 return
-                            if indicator.timestamp:
-                                attribute['timestamp'] = self.getTimestampfromDate(indicator.timestamp)
                             self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
                         else:
                             # otherwise, it is a dictionary of attributes, so we build an object
@@ -1083,6 +1093,10 @@ class ExternalStixParser(StixParser):
                 if isinstance(attribute_value, (str, int)):
                     # if the returned value is a simple value, we build an attribute
                     attribute = {'to_ids': False, 'uuid': object_uuid}
+                    if hasattr(observable, 'handling') and observable.handling:
+                        attribute['Tag'] = []
+                        for handling in observable.handling:
+                            attribute['Tag'].extend(self.parse_marking(handling))
                     parsed = self.special_parsing(observable_object, attribute_type, attribute_value, attribute, object_uuid)
                     if parsed is not None:
                         continue
@@ -1146,7 +1160,7 @@ class ExternalStixParser(StixParser):
             if attribute_type == "url" and len(related_objects) == 1 and related_objects[0].relationship.value == "Resolved_To":
                 related_ip = self.fetch_uuid(related_objects[0].idref)
                 self.dns_objects['domain'][uuid] = {"related": related_ip,
-                                                           "data": {"type": "text", "value": attribute_value}}
+                                                    "data": {"type": "text", "value": attribute_value}}
                 if related_ip not in self.dns_ips:
                     self.dns_ips.append(related_ip)
                 return 1
