@@ -122,6 +122,10 @@ class StixParser():
             "X509CertificateObjectType": self.handle_x509
         }
 
+        self.marking_mapping = {
+            'AIS:AISMarkingStructure': self.parse_AIS_marking,
+            'tlpMarking:TLPMarkingStructureType': self.parse_TLP_marking
+        }
 
     def parse_marking(self, handling):
         if hasattr(handling, 'marking_structures') and handling.marking_structures:
@@ -616,7 +620,32 @@ class StixParser():
     ##             MARKINGS PARSING FUNCTIONS USED BY BOTH SUBCLASSES             ##
     ################################################################################
 
+    def parse_AIS_marking(self, marking):
+        if hasattr(marking, 'is_proprietary') and marking.is_proprietary:
+            proprietary = "Is"
+            marking = marking.is_proprietary
+        elif hasattr(marking, 'not_proprietary') and marking.not_proprietary:
+            proprietary = "Not"
+            marking = marking.not_proprietary
+        else:
+            return
+        mapping = stix2misp_mapping._AIS_marking_mapping
+        prefix = mapping['prefix']
+        self.misp_event.add_tag('{}{}'.format(prefix, mapping['proprietary'].format(proprietary)))
+        if hasattr(marking, 'cisa_proprietary'):
+            try:
+                cisa_proprietary = marking.cisa_proprietary.numerator
+                cisa_proprietary = 'true' if cisa_proprietary == 1 else 'false'
+                self.misp_event.add_tag('{}{}'.format(prefix, mapping['cisa_proprietary'].format(cisa_proprietary)))
+            except AttributeError:
+                pass
+        for ais_field in ('ais_consent', 'tlp_marking'):
+            if hasattr(marking, ais_field) and getattr(marking, ais_field):
+                key, tag = mapping[ais_field]
+                self.misp_event.add_tag('{}{}'.format(prefix, tag.format(getattr(getattr(marking, ais_field), key))))
 
+    def parse_TLP_marking(self, marking):
+        self.misp_event.add_tag('tlp:{}'.format(marking.color.lower()))
 
     ################################################################################
     ##          FUNCTIONS HANDLING PARSED DATA, USED BY BOTH SUBCLASSES.          ##
@@ -932,6 +961,9 @@ class ExternalStixParser(StixParser):
         if hasattr(header, 'description') and header.description:
             self.misp_event.add_attribute(**{'type': 'comment', 'value': header.description.value,
                                              'comment': 'Imported from STIX header description'})
+        if hasattr(header, 'handling') and header.handling:
+            for handling in header.handling:
+                self.parse_marking(handling)
         if self.event.indicators:
             self.parse_external_indicators(self.event.indicators)
         if self.event.observables:
