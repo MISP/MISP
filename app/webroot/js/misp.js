@@ -22,6 +22,35 @@ function quickDeleteSighting(id, rawId, context) {
 	});
 }
 
+function quickAddSighting(clicked, id, value) {
+    var btn = $(clicked);
+    var html = '<div>'
+        + '<button class="btn btn-primary" onclick="fetchAddSightingForm(\''+id+'\', false)">'+'id'+'</button>'
+        + '<button class="btn btn-primary" style="margin-left:5px;" onclick="fetchAddSightingForm(\''+id+'\', true)">'+value+'</button>'
+        + '</div>';
+    if (!btn.data('popover')) {
+        btn.popover({
+        	content: html,
+        	placement: 'left',
+        	html: true,
+        	trigger: 'click',
+        	container: 'body'
+        }).popover('show');
+    }
+}
+function fetchAddSightingForm(id, onvalue) {
+	var url = "/sightings/quickAdd/" + id;
+    if (onvalue) {
+        url = url + "/1";
+    } else {
+        url = url + "/0";
+    }
+	$.get(url, function(data) {
+		$("#confirmation_box").html(data);
+		openPopup("#confirmation_box");
+	});
+}
+
 function publishPopup(id, type) {
 	var action = "alert";
 	if (type == "publish") action = "publish";
@@ -373,6 +402,7 @@ function activateField(type, id, field, event) {
 		url:"/" + objectType + "/fetchEditForm/" + id + "/" + field,
 	});
 }
+
 
 function submitQuickTag(form) {
 	$('#' + form).submit();
