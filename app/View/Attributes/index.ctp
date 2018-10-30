@@ -168,6 +168,15 @@ foreach ($attributes as $attribute):
             <a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?php echo $attribute['Attribute']['id'];?>" class="icon-share" title="<?php echo __('Propose an edit'); ?>"></a>
     <?php
         endif;
+
+        if ($me['Role']['perm_sighting']):
+           echo $this->Form->postLink('', array('action' => 'add', 'controller' => 'sightings', $attribute['Attribute']['id']),
+                array(
+                    'class' => 'icon-eye fa fa-eye',
+                    'title' => 'Add sighting',
+                    'style' => 'text-decoration: none;'),
+               __('Attributes ' . h($attribute['Attribute']['id']) . ' will be sighted. Do you want to proceed?'));
+        endif;
     ?>
             <a href="<?php echo $baseurl;?>/events/view/<?php echo $attribute['Attribute']['event_id'];?>" class="icon-list-alt" title="<?php echo __('View'); ?>"></a>
         </td>
@@ -193,7 +202,6 @@ endforeach;
         ?>
         </ul>
     </div>
-
 </div>
 <?php
 if ($isSearch == 1){
