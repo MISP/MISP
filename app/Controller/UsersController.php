@@ -1521,12 +1521,16 @@ class UsersController extends AppController
         // set all of the data up for the heatmaps
         $params = array(
             'fields' => array('name'),
-            'recursive' => -1
+            'recursive' => -1,
+			'conditions' => array()
         );
         if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
             $params['conditions'] = array('Organisation.id' => $this->Auth->user('org_id'));
         }
         $orgs = $this->User->Organisation->find('all', $params);
+		$local_orgs_params = $params;
+		$local_orgs_params['conditions']['Organisation.local'] = 1;
+		$local_orgs = $this->User->Organisation->find('all', $local_orgs_params);
         $this->loadModel('Log');
         $year = date('Y');
         $month = date('n');
@@ -1553,6 +1557,8 @@ class UsersController extends AppController
 
         $stats['user_count'] = $this->User->find('count', array('recursive' => -1));
         $stats['org_count'] = count($orgs);
+		$stats['local_org_count'] = count($local_orgs);
+		$stats['average_user_per_org'] = round($stats['user_count'] / $stats['local_org_count'], 1);
 
         $this->loadModel('Thread');
         $stats['thread_count'] = $this->Thread->find('count', array('conditions' => array('Thread.post_count >' => 0), 'recursive' => -1));
