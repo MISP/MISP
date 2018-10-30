@@ -133,6 +133,7 @@ class StixParser():
                 try:
                     self.marking_mapping[marking._XSI_TYPE](marking)
                 except KeyError:
+                    print(marking._XSI_TYPE, file=sys.stderr)
                     continue
 
     def set_distribution(self):
@@ -869,7 +870,7 @@ class StixFromMISPParser(StixParser):
             self.fill_misp_object(item, name, to_ids=True)
         else:
             if object_type != "misc":
-                print("Unparsed Object type: {}".format(name))
+                print("Unparsed Object type: {}".format(name), file=sys.stderr)
 
     def parse_misp_object_observable(self, observable):
         object_type = str(observable.relationship)
@@ -889,7 +890,7 @@ class StixFromMISPParser(StixParser):
         try:
             self.fill_misp_object(observable, name)
         except Exception:
-            print("Unparsed Object type: {}".format(observable.to_json()))
+            print("Unparsed Object type: {}".format(observable.to_json()), file=sys.stderr)
 
     # Create a MISP object, its attributes, and add it in the MISP event
     def fill_misp_object(self, item, name, to_ids=False):
@@ -1047,6 +1048,9 @@ class ExternalStixParser(StixParser):
                         if isinstance(attribute_value, (str, int)):
                             # if the returned value is a simple value, we build an attribute
                             attribute = {'to_ids': True, 'uuid': uuid}
+                            parsed = self.special_parsing(observable.object_, attribute_type, attribute_value, attribute, uuid)
+                            if parsed is not None:
+                                return
                             if indicator.timestamp:
                                 attribute['timestamp'] = self.getTimestampfromDate(indicator.timestamp)
                             self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
@@ -1079,19 +1083,8 @@ class ExternalStixParser(StixParser):
                 if isinstance(attribute_value, (str, int)):
                     # if the returned value is a simple value, we build an attribute
                     attribute = {'to_ids': False, 'uuid': object_uuid}
-                    if observable_object.related_objects:
-                        related_objects = observable_object.related_objects
-                        if attribute_type == "url" and len(related_objects) == 1 and related_objects[0].relationship.value == "Resolved_To":
-                            related_ip = self.fetch_uuid(related_objects[0].idref)
-                            self.dns_objects['domain'][object_uuid] = {"related": related_ip,
-                                                                       "data": {"type": "text", "value": attribute_value}}
-                            if related_ip not in self.dns_ips:
-                                self.dns_ips.append(related_ip)
-                            continue
-                    if attribute_type in ('ip-src', 'ip-dst'):
-                        attribute['type'] = attribute_type
-                        attribute['value'] = attribute_value
-                        self.dns_objects['ip'][object_uuid] = attribute
+                    parsed = self.special_parsing(observable_object, attribute_type, attribute_value, attribute, object_uuid)
+                    if parsed is not None:
                         continue
                     self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
                 else:
@@ -1146,6 +1139,22 @@ class ExternalStixParser(StixParser):
         for ip, ip_dict in self.dns_objects['ip'].items():
             if ip not in self.dns_ips:
                 self.misp_event.add_attribute(**ip_dict)
+
+    def special_parsing(self, observable_object, attribute_type, attribute_value, attribute, uuid):
+        if observable_object.related_objects:
+            related_objects = observable_object.related_objects
+            if attribute_type == "url" and len(related_objects) == 1 and related_objects[0].relationship.value == "Resolved_To":
+                related_ip = self.fetch_uuid(related_objects[0].idref)
+                self.dns_objects['domain'][uuid] = {"related": related_ip,
+                                                           "data": {"type": "text", "value": attribute_value}}
+                if related_ip not in self.dns_ips:
+                    self.dns_ips.append(related_ip)
+                return 1
+        if attribute_type in ('ip-src', 'ip-dst'):
+            attribute['type'] = attribute_type
+            attribute['value'] = attribute_value
+            self.dns_objects['ip'][uuid] = attribute
+            return 2
 
 
 def generate_event(filename):
