@@ -5050,7 +5050,7 @@ class EventsController extends AppController
             $this->layout = false;
             $this->render('/Events/ajax/event_lock');
         } else {
-            return $this->RestResponse->viewData(array(), $this->response->type());
+            return $this->RestResponse->viewData('', $this->response->type());
         }
     }
 

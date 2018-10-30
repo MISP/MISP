@@ -220,6 +220,42 @@ class SightingsController extends AppController
         return $this->RestResponse->viewData($sightings);
     }
 
+    public function restSearch($context = false)
+    {
+        $allowedContext = array(false, 'event', 'attribute');
+        $paramArray = array('returnFormat', 'id', 'type', 'from', 'to', 'last', 'org_id', 'source', 'includeAttribute', 'includeEvent');
+        $filterData = array(
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'paramArray' => $paramArray,
+            'ordered_url_params' => compact($paramArray)
+        );
+        $filters = $this->_harvestParameters($filterData, $exception);
+
+        // validate context
+        if (!in_array($context, $allowedContext, true)) {
+            throw new MethodNotAllowedException(_('Invalid context.'));
+        }
+        // ensure that an id is provided if context is set
+        if ($context !== false && !isset($filters['id'])) {
+            throw new MethodNotAllowedException(_('An id must be provided if the context is set.'));
+        }
+        $filters['context'] = $context;
+
+        if (isset($filters['returnFormat'])) {
+            $returnFormat = $filters['returnFormat'];
+        }
+        if ($returnFormat === 'download') {
+            $returnFormat = 'json';
+        }
+
+        $sightings = $this->Sighting->restSearch($this->Auth->user(), $returnFormat, $filters);
+
+        $validFormats = $this->Sighting->validFormats;
+        $responseType = $validFormats[$returnFormat][0];
+        return $this->RestResponse->viewData($sightings, $responseType, false, true);
+    }
+
     public function listSightings($id, $context = 'attribute', $org_id = false)
     {
         $this->loadModel('Event');
