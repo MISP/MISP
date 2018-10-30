@@ -170,12 +170,9 @@ foreach ($attributes as $attribute):
         endif;
 
         if ($me['Role']['perm_sighting']):
-           echo $this->Form->postLink('', array('action' => 'add', 'controller' => 'sightings', $attribute['Attribute']['id']),
-                array(
-                    'class' => 'icon-eye fa fa-eye',
-                    'title' => 'Add sighting',
-                    'style' => 'text-decoration: none;'),
-               __('Attributes ' . h($attribute['Attribute']['id']) . ' will be sighted. Do you want to proceed?'));
+    ?>
+    <span class="icon-eye useCursorPointer fa fa-eye" title="<?php echo __('Add sighting');?>" role="button" tabindex="0" aria-label="<?php echo __('Add sighting');?>" onClick="quickAddSighting(this, <?php echo h($attribute['Attribute']['id']); ?>, '<?php echo h($attribute['Attribute']['value']);?>');">&nbsp;</span>
+    <?php
         endif;
     ?>
             <a href="<?php echo $baseurl;?>/events/view/<?php echo $attribute['Attribute']['event_id'];?>" class="icon-list-alt" title="<?php echo __('View'); ?>"></a>
