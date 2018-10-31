@@ -60,3 +60,10 @@ _whois_mapping = {'registrar_info': ('whois-registrar', 'value', 'whois-registra
 _x509_datetime_types = ('not_before', 'not_after')
 _x509_pubkey_types = ('exponent', 'modulus')
 _x509_certificate_types = ('version', 'serial_number', 'issuer', 'subject')
+
+
+_AIS_marking_mapping = {'prefix': 'ais-marking:',
+                        'proprietary': 'AISMarking="{}_Proprietary"',
+                        'cisa_proprietary': 'CISA_Proprietary="{}"',
+                        'ais_consent': ('consent', 'AISConsent="{}"'),
+                        'tlp_marking': ('color', 'TLPMarking="{}"')}

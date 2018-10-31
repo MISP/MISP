@@ -6,7 +6,7 @@ sudo mkdir misp-dashboard
 sudo chown www-data:www-data misp-dashboard
 sudo -u www-data git clone https://github.com/MISP/misp-dashboard.git
 cd misp-dashboard
-sudo /var/www/misp-dashboard/install_dependencies.sh
+sudo -H /var/www/misp-dashboard/install_dependencies.sh
 sudo sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/config/config.cfg
 sudo sed -i -e '$i \sudo -u www-data bash /var/www/misp-dashboard/start_all.sh\n' /etc/rc.local
 sudo sed -i '/Listen 80/a Listen 0.0.0.0:8001' /etc/apache2/ports.conf

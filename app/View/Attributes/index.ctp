@@ -168,6 +168,12 @@ foreach ($attributes as $attribute):
             <a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?php echo $attribute['Attribute']['id'];?>" class="icon-share" title="<?php echo __('Propose an edit'); ?>"></a>
     <?php
         endif;
+
+        if ($me['Role']['perm_sighting']):
+    ?>
+    <span class="icon-eye useCursorPointer fa fa-eye" title="<?php echo __('Add sighting');?>" role="button" tabindex="0" aria-label="<?php echo __('Add sighting');?>" onClick="quickAddSighting(this, <?php echo h($attribute['Attribute']['id']); ?>, '<?php echo h($attribute['Attribute']['value']);?>');">&nbsp;</span>
+    <?php
+        endif;
     ?>
             <a href="<?php echo $baseurl;?>/events/view/<?php echo $attribute['Attribute']['event_id'];?>" class="icon-list-alt" title="<?php echo __('View'); ?>"></a>
         </td>
@@ -193,7 +199,6 @@ endforeach;
         ?>
         </ul>
     </div>
-
 </div>
 <?php
 if ($isSearch == 1){
