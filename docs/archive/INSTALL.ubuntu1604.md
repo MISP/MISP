@@ -442,6 +442,19 @@ echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 sudo -H -u www-data /var/www/MISP/venv/bin/pip install pyzmq
 ```
 
+!!! warning
+    There is an issue with the apache config of misp-dashboard in Ubuntu 16.04
+    You need to **remove** the following 3 options from **WSGIDaemonProcess**
+    ```
+    #       eviction-timeout=0
+    #       response-buffer-size=0
+    #       server-metrics=Off
+    ```
+    The version of **libapache2-mod-wsgi-py3** is "out-of-date".
+    ```
+    ii  libapache2-mod-wsgi-py3             4.3.0-1.1build1                            amd64        Python 3 WSGI adapter module for Apache
+    ```
+
 {!generic/misp-dashboard-debian.md!}
 
 {!generic/viper-debian.md!}

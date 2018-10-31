@@ -13,7 +13,7 @@ fi
 
 if [ -z "$VIRTUAL_ENV" ]; then
     virtualenv -p python3 mkdocs || echo "You probably having Python running somewhere."
-    ${PWD}/mkdocs/bin/pip install mkdocs mkdocs-material markdown-include python-markdown-comments gitchangelog
+    ${PWD}/mkdocs/bin/pip install mkdocs mkdocs-material markdown-include python-markdown-comments git+https://github.com/vaab/gitchangelog.git
 fi
 
 # Fixing ASCII aborration introduced in: https://github.com/MISP/MISP/commit/1b028ee15a3bd2f209102cd6204e6c4bb519be97
