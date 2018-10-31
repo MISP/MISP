@@ -171,7 +171,7 @@ foreach ($attributes as $attribute):
 
         if ($me['Role']['perm_sighting']):
     ?>
-    <span class="icon-eye useCursorPointer fa fa-eye" title="<?php echo __('Add sighting');?>" role="button" tabindex="0" aria-label="<?php echo __('Add sighting');?>" onClick="quickAddSighting(this, <?php echo h($attribute['Attribute']['id']); ?>, '<?php echo h($attribute['Attribute']['value']);?>');">&nbsp;</span>
+    <span class="icon-eye useCursorPointer fa fa-eye" title="<?php echo __('Add sighting');?>" role="button" tabindex="0" aria-label="<?php echo __('Add sighting');?>" data-toggle="popover" onClick="quickAddSighting(this, <?php echo h($attribute['Attribute']['id']); ?>, '<?php echo h($attribute['Attribute']['value']);?>');">&nbsp;</span>
     <?php
         endif;
     ?>
@@ -220,6 +220,17 @@ $(document).ready(function () {
     });
     $('.screenshot').click(function() {
         screenshotPopup($(this).attr('src'), $(this).attr('title'));
+    });
+    $(document).on('click', function (e) {
+        //did not click a popover toggle or popover
+        if ($(e.target).data('toggle') !== 'popover'
+            && $(e.target).parents('.popover.in').length === 0) {
+            // filter for only defined popover
+            var definedPopovers = $('[data-toggle="popover"]').filter(function(i, e) {
+                    return $(e).data('popover') !== undefined;
+            });
+            definedPopovers.popover('hide');
+        }
     });
 });
 </script>
