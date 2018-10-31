@@ -3,6 +3,10 @@
     ```bash
     sudo $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
     ```
+    or on CentOS
+    ```bash
+    sudo $RUN_PHP "$CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python""
+    ```
 
 !!! warning
     Make sure that the STIX libraries and GnuPG work as intended, if not, refer to the relevant sections in the install guide you are currently reading.
