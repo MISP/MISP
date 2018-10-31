@@ -292,12 +292,12 @@ sudo -u apache cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DB
 sudo cp /var/www/MISP/INSTALL/apache.misp.centos7 /etc/httpd/conf.d/misp.conf
 
 # Since SELinux is enabled, we need to allow httpd to write to certain directories
-sudo chcon -t httpd_sys_rw_content_t /var/www/MISP/venv
+sudo chcon -t usr_t /var/www/MISP/venv
 sudo chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files
 sudo chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files/terms
 sudo chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files/scripts/tmp
 sudo chcon -t httpd_sys_rw_content_t /var/www/MISP/app/Plugin/CakeResque/tmp
-sudo chcon -R -t httpd_sys_rw_content_t /var/www/MISP/venv
+sudo chcon -R -t usr_t /var/www/MISP/venv
 sudo chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/tmp
 sudo chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/tmp/logs
 sudo chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/webroot/img/orgs
