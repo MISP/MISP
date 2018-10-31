@@ -10,7 +10,8 @@
 {!generic/globalVariables.md!}
 
 ```bash
-PHP_INI=/etc/php/7.0/apache2/php.ini
+PHP_ETC_BASE=/etc/php/7.0
+PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
 ```
 
 ### 1/ Minimal Debian install
@@ -54,7 +55,7 @@ python3-setuptools python3-dev python3-pip python3-yara python3-redis python3-zm
 mariadb-client \
 mariadb-server \
 apache2 apache2-doc apache2-utils \
-libapache2-mod-php7.0 php7.0 php7.0-cli php7.0-mbstring php7.0-dev php7.0-json php7.0-xml php7.0-mysql php7.2-opcache php7.0-readline php-redis php-gnupg \
+libapache2-mod-php7.0 php7.0 php7.0-cli php7.0-mbstring php7.0-dev php7.0-json php7.0-xml php7.0-mysql php7.0-opcache php7.0-readline php-redis php-gnupg \
 libpq5 libjpeg-dev libfuzzy-dev ruby asciidoctor \
 jq ntp ntpdate jupyter-notebook imagemagick tesseract-ocr \
 libxml2-dev libxslt1-dev zlib1g-dev
@@ -130,7 +131,7 @@ sudo -u www-data git clone https://github.com/MISP/MISP.git $PATH_TO_MISP
 sudo -u www-data git config core.filemode false
 
 # Create a python3 virtualenv
-sudo -u www-data virtualenv -p python3 /var/www/MISP/venv
+sudo -u www-data virtualenv -p python3 ${PATH_TO_MISP}/venv
 
 # make pip happy
 sudo mkdir /var/www/.cache/
@@ -141,17 +142,17 @@ sudo -u www-data git clone https://github.com/CybOXProject/python-cybox.git
 sudo -u www-data git clone https://github.com/STIXProject/python-stix.git
 sudo -u www-data git clone https://github.com/MAECProject/python-maec.git
 cd $PATH_TO_MISP/app/files/scripts/python-cybox
-sudo -u www-data /var/www/MISP/venv/bin/pip install .
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 cd $PATH_TO_MISP/app/files/scripts/python-stix
-sudo -u www-data /var/www/MISP/venv/bin/pip install .
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 cd $PATH_TO_MISP/app/files/scripts/python-maec
-sudo -u www-data /var/www/MISP/venv/bin/pip install .
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 
 # install mixbox to accommodate the new STIX dependencies:
 cd $PATH_TO_MISP/app/files/scripts/
 sudo -u www-data git clone https://github.com/CybOXProject/mixbox.git
 cd $PATH_TO_MISP/app/files/scripts/mixbox
-sudo -u www-data /var/www/MISP/venv/bin/pip install .
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 
 cd $PATH_TO_MISP
 sudo -u www-data git submodule update --init --recursive
@@ -160,7 +161,7 @@ sudo -u www-data git submodule foreach --recursive git config core.filemode fals
 
 # install PyMISP
 cd $PATH_TO_MISP/PyMISP
-sudo -u www-data /var/www/MISP/venv/bin/pip install .
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 ```
 
 ### 4/ CakePHP
@@ -172,9 +173,9 @@ sudo -u www-data /var/www/MISP/venv/bin/pip install .
 cd $PATH_TO_MISP/app
 # Make composer cache happy
 sudo mkdir /var/www/.composer ; sudo chown www-data:www-data /var/www/.composer
-sudo -u www-data php composer.phar require kamisama/cake-resque:4.1.2
-sudo -u www-data php composer.phar config vendor-dir Vendor
-sudo -u www-data php composer.phar install
+sudo -H -u www-data php composer.phar require kamisama/cake-resque:4.1.2
+sudo -H -u www-data php composer.phar config vendor-dir Vendor
+sudo -H -u www-data php composer.phar install
 
 # Enable CakeResque with php-redis
 sudo phpenmod redis
@@ -398,21 +399,21 @@ cd /usr/local/src/
 git clone https://github.com/MISP/misp-modules.git
 cd misp-modules
 # pip install
-sudo -u www-data /var/www/MISP/venv/bin/pip install -I -r REQUIREMENTS
-sudo -u www-data /var/www/MISP/venv/bin/pip install .
+sudo -u www-data ${PATH_TO_MISP}/MISP/venv/bin/pip install -I -r REQUIREMENTS
+sudo -u www-data ${PATH_TO_MISP}/MISP/venv/bin/pip install .
 sudo apt install ruby-pygments.rb -y
 sudo gem install asciidoctor-pdf --pre
 
 # install STIX2.0 library to support STIX 2.0 export:
-sudo -u www-data /var/www/MISP/venv/bin/pip install stix2
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install stix2
 
 # install additional dependencies for extended object generation and extraction
-sudo -u www-data /var/www/MISP/venv/bin/pip install maec lief python-magic pathlib
-sudo -u www-data /var/www/MISP/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install maec lief python-magic pathlib
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
 
 # Start misp-modules
 ## /!\ Check wtf is going on with yara.
-sudo -u www-data /var/www/MISP/venv/bin/misp-modules -l 0.0.0.0 -s &
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/misp-modules -l 0.0.0.0 -s &
 
 echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
 echo "User  (misp) DB Password: $DBPASSWORD_MISP"
@@ -470,7 +471,7 @@ sudo apt install python3-zmq -y
 
 In case you are using a virtualenv make sure pyzmq is installed therein.
 ```bash
-sudo -u www-data /var/www/MISP/venv/bin/pip install pyzmq
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install pyzmq
 ```
 
 {!generic/misp-dashboard-debian.md!}

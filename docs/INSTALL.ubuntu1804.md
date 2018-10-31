@@ -11,7 +11,8 @@
 {!generic/globalVariables.md!}
 
 ```bash
-PHP_INI=/etc/php/7.2/apache2/php.ini
+PHP_ETC_BASE=/etc/php/7.2
+PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
 ```
 
 ### 1/ Minimal Ubuntu install
@@ -110,10 +111,10 @@ sudo systemctl restart apache2
 ------------
 ```bash
 # Download MISP using git in the /var/www/ directory.
-sudo mkdir /var/www/MISP
-sudo chown www-data:www-data /var/www/MISP
-cd /var/www/MISP
-sudo -u www-data git clone https://github.com/MISP/MISP.git /var/www/MISP
+sudo mkdir ${PATH_TO_MISP}
+sudo chown www-data:www-data ${PATH_TO_MISP}
+cd ${PATH_TO_MISP}
+sudo -u www-data git clone https://github.com/MISP/MISP.git ${PATH_TO_MISP}
 sudo -u www-data git submodule update --init --recursive
 # Make git ignore filesystem permission differences for submodules
 sudo -u www-data git submodule foreach --recursive git config core.filemode false
@@ -121,6 +122,8 @@ sudo -u www-data git submodule foreach --recursive git config core.filemode fals
 # Make git ignore filesystem permission differences
 sudo -u www-data git config core.filemode false
 
+# Create a python3 virtualenv
+sudo -u www-data virtualenv -p python3 ${PATH_TO_MISP}/MISP/venv
 
 # make pip happy
 sudo mkdir /var/www/.cache/
@@ -128,27 +131,22 @@ sudo chown www-data:www-data /var/www/.cache
 
 # install Mitre's STIX and its dependencies by running the following commands:
 sudo apt-get install python3-dev python3-pip libxml2-dev libxslt1-dev zlib1g-dev python-setuptools -y
-cd /var/www/MISP/app/files/scripts
+cd ${PATH_TO_MISP}/app/files/scripts
 sudo -u www-data git clone https://github.com/CybOXProject/python-cybox.git
 sudo -u www-data git clone https://github.com/STIXProject/python-stix.git
 sudo -u www-data git clone https://github.com/MAECProject/python-maec.git
 # install mixbox to accommodate the new STIX dependencies:
 sudo -u www-data git clone https://github.com/CybOXProject/mixbox.git
-cd /var/www/MISP/app/files/scripts/mixbox
-sudo python3 setup.py install
-cd /var/www/MISP/app/files/scripts/python-cybox
-sudo python3 setup.py install
-cd /var/www/MISP/app/files/scripts/python-stix
-sudo python3 setup.py install
-cd /var/www/MISP/app/files/scripts/python-maec
-sudo python3 setup.py install
+cd ${PATH_TO_MISP}/app/files/scripts/mixbox
+sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+cd ${PATH_TO_MISP}/app/files/scripts/python-cybox
+sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+cd ${PATH_TO_MISP}/app/files/scripts/python-stix
+sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 
 # install PyMISP
-cd /var/www/MISP/PyMISP
-sudo python3 setup.py install
-
-# install support for STIX 2.0
-sudo pip3 install stix2
+cd ${PATH_TO_MISP}/PyMISP
+sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 ```
 
 ### 4/ CakePHP
@@ -157,20 +155,20 @@ sudo pip3 install stix2
 ```bash
 # Once done, install CakeResque along with its dependencies 
 # if you intend to use the built in background jobs:
-cd /var/www/MISP/app
+cd ${PATH_TO_MISP}/app
 # Make composer cache happy
 # /!\ composer on Ubuntu when invoked with sudo -u doesn't set $HOME to /var/www but keeps it /home/misp \!/
 sudo mkdir /var/www/.composer ; sudo chown www-data:www-data /var/www/.composer
-sudo -u www-data php composer.phar require kamisama/cake-resque:4.1.2
-sudo -u www-data php composer.phar config vendor-dir Vendor
-sudo -u www-data php composer.phar install
+sudo -H -u www-data php composer.phar require kamisama/cake-resque:4.1.2
+sudo -H -u www-data php composer.phar config vendor-dir Vendor
+sudo -H -u www-data php composer.phar install
 
 # Enable CakeResque with php-redis
 sudo phpenmod redis
 sudo phpenmod gnupg
 
 # To use the scheduler worker for scheduled tasks, do the following:
-sudo -u www-data cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResque/Config/config.php
+sudo -u www-data cp -fa ${PATH_TO_MISP}/INSTALL/setup/config.php ${PATH_TO_MISP}/app/Plugin/CakeResque/Config/config.php
 
 # If you have multiple MISP instances on the same system, don't forget to have a different Redis per MISP instance for the CakeResque workers
 # The default Redis port can be updated in Plugin/CakeResque/Config/config.php
@@ -181,11 +179,11 @@ sudo -u www-data cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app
 
 ```bash
 # Check if the permissions are set correctly using the following commands:
-sudo chown -R www-data:www-data /var/www/MISP
-sudo chmod -R 750 /var/www/MISP
-sudo chmod -R g+ws /var/www/MISP/app/tmp
-sudo chmod -R g+ws /var/www/MISP/app/files
-sudo chmod -R g+ws /var/www/MISP/app/files/scripts/tmp
+sudo chown -R www-data:www-data ${PATH_TO_MISP}
+sudo chmod -R 750 ${PATH_TO_MISP}
+sudo chmod -R g+ws ${PATH_TO_MISP}/app/tmp
+sudo chmod -R g+ws ${PATH_TO_MISP}/app/files
+sudo chmod -R g+ws ${PATH_TO_MISP}/app/files/scripts/tmp
 ```
 
 ### 6/ Create a database and user
@@ -219,16 +217,16 @@ sudo -u www-data cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$
 
 ### 7/ Apache configuration
 -----------------------
-Now configure your Apache webserver with the DocumentRoot /var/www/MISP/app/webroot/
+Now configure your Apache webserver with the DocumentRoot ${PATH_TO_MISP}/app/webroot/
 
 #### Apache version 2.2 config:
 ```bash
-sudo cp /var/www/MISP/INSTALL/apache.22.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
+sudo cp ${PATH_TO_MISP}/INSTALL/apache.22.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
 ```
 
 #### Apache version 2.4 config:
 ```bash
-sudo cp /var/www/MISP/INSTALL/apache.24.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
+sudo cp ${PATH_TO_MISP}/INSTALL/apache.24.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
 ```
 
 !!! notice
@@ -304,21 +302,21 @@ sudo systemctl restart apache2
 ### 8/ Log rotation
 ---------------
 ```bash
-# MISP saves the stdout and stderr of its workers in /var/www/MISP/app/tmp/logs
+# MISP saves the stdout and stderr of its workers in ${PATH_TO_MISP}/app/tmp/logs
 # To rotate these logs install the supplied logrotate script:
 
-sudo cp /var/www/MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
+sudo cp ${PATH_TO_MISP}/INSTALL/misp.logrotate /etc/logrotate.d/misp
 sudo chmod 0640 /etc/logrotate.d/misp
 ```
 
 ### 9/ MISP configuration
 ---------------------
 ```bash
-# There are 4 sample configuration files in /var/www/MISP/app/Config that need to be copied
-sudo -u www-data cp -a /var/www/MISP/app/Config/bootstrap.default.php /var/www/MISP/app/Config/bootstrap.php
-sudo -u www-data cp -a /var/www/MISP/app/Config/database.default.php /var/www/MISP/app/Config/database.php
-sudo -u www-data cp -a /var/www/MISP/app/Config/core.default.php /var/www/MISP/app/Config/core.php
-sudo -u www-data cp -a /var/www/MISP/app/Config/config.default.php /var/www/MISP/app/Config/config.php
+# There are 4 sample configuration files in ${PATH_TO_MISP}/app/Config that need to be copied
+sudo -u www-data cp -a ${PATH_TO_MISP}/app/Config/bootstrap.default.php ${PATH_TO_MISP}/app/Config/bootstrap.php
+sudo -u www-data cp -a ${PATH_TO_MISP}/app/Config/database.default.php ${PATH_TO_MISP}/app/Config/database.php
+sudo -u www-data cp -a ${PATH_TO_MISP}/app/Config/core.default.php ${PATH_TO_MISP}/app/Config/core.php
+sudo -u www-data cp -a ${PATH_TO_MISP}/app/Config/config.default.php ${PATH_TO_MISP}/app/Config/config.php
 
 echo "<?php
 class DATABASE_CONFIG {
@@ -337,15 +335,15 @@ class DATABASE_CONFIG {
         );
 }" | sudo -u www-data tee $PATH_TO_MISP/app/Config/database.php
 
-# Important! Change the salt key in /var/www/MISP/app/Config/config.php
+# Important! Change the salt key in ${PATH_TO_MISP}/app/Config/config.php
 # The salt key must be a string at least 32 bytes long.
 # The admin user account will be generated on the first login, make sure that the salt is changed before you create that user
 # If you forget to do this step, and you are still dealing with a fresh installation, just alter the salt,
 # delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
 
 # and make sure the file permissions are still OK
-sudo chown -R www-data:www-data /var/www/MISP/app/Config
-sudo chmod -R 750 /var/www/MISP/app/Config
+sudo chown -R www-data:www-data ${PATH_TO_MISP}/app/Config
+sudo chmod -R 750 ${PATH_TO_MISP}/app/Config
 
 # Generate a GPG encryption key.
 
@@ -397,8 +395,8 @@ fi
 sudo sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
 sudo sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
 sudo sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
-sudo sed -i -e '$i \sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh > /tmp/worker_start_rc.local.log\n' /etc/rc.local
-sudo sed -i -e '$i \sudo -u www-data misp-modules -l 127.0.0.1 -s > /tmp/misp-modules_rc.local.log &\n' /etc/rc.local
+sudo sed -i -e '$i \sudo -u www-data bash ${PATH_TO_MISP}/app/Console/worker/start.sh > /tmp/worker_start_rc.local.log\n' /etc/rc.local
+sudo sed -i -e '$i \sudo -u www-data ${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s > /tmp/misp-modules_rc.local.log &\n' /etc/rc.local
 
 # Start the workers
 sudo -u www-data bash $PATH_TO_MISP/app/Console/worker/start.sh
@@ -412,17 +410,17 @@ cd /usr/local/src/
 git clone https://github.com/MISP/misp-modules.git
 cd misp-modules
 # pip install
-sudo pip3 install -I -r REQUIREMENTS
-sudo pip3 install .
+sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
+sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 sudo apt install ruby-pygments.rb -y
 sudo gem install asciidoctor-pdf --pre
 
 # install STIX2.0 library to support STIX 2.0 export:
-sudo pip3 install stix2
+sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install stix2
 
 # install additional dependencies for extended object generation and extraction
-sudo pip3 install maec lief python-magic pathlib
-sudo pip3 install git+https://github.com/kbandla/pydeep.git
+sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install maec lief python-magic pathlib
+sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
 
 # Start misp-modules
 ## /!\ Check wtf is going on with yara.
@@ -440,9 +438,7 @@ echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 -----------------
 #### MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
 ```bash
-sudo pip3 install pyzmq
-# ZeroMQ depends on the Python client for Redis
-sudo pip3 install redis
+sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install pyzmq
 ```
 
 {!generic/misp-dashboard-debian.md!}
