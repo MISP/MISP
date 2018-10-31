@@ -1159,7 +1159,7 @@ class AttributesController extends AppController
             throw new NotFoundException('Invalid attribute');
         }
         if ($this->_isRest()) {
-            $conditions = array('conditions' => array('Attribute.id' => $id), 'withAttachments' => true);
+            $conditions = array('conditions' => array('Attribute.id' => $id), 'withAttachments' => true, 'flatten' => true);
             $conditions['includeAllTags'] = false;
             $conditions['includeAttributeUuid'] = true;
             $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $conditions);
