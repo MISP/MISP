@@ -55,6 +55,13 @@ New
 
 Changes
 -------
+- [doc] the venv directory needs usr_t profile. [Steve Clement]
+- [doc] Update Centos 6.x and 7.x chg: [doc] re-Added Ubuntu 16.04-LTS
+  as an archived/old INSTALL Guide (tested working) chg: [doc] Adapted
+  some variables in generic scripts. [Steve Clement]
+- [doc] updated Changelog.md to be more markdown friendly chg: [tools]
+  Changed the way gen_misp_install_docs.sh parseses the changelog new:
+  [tools] Added simple tool for git log sanitizing. [Steve Clement]
 - [docs] Added note on RHEL unmaintainability at this point of time, by
   the core team. [Steve Clement]
 - [tools] Updated gitchangelog.rc for latest version of toll, added to
@@ -154,6 +161,9 @@ Changes
 
 Fix
 ---
+- [doc] Included git repo of gitchangelog due to Python 3.7 bug fix not
+  yet in release: https://github.com/vaab/gitchangelog/issues/107.
+  [Steve Clement]
 - [stix import] Importing uuids for objects from external sources.
   [chrisr3d]
 - [stix import] Importing uuids for STIX files generated via MISP.
