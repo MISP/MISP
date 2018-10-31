@@ -455,6 +455,17 @@ sudo -H -u www-data /var/www/MISP/venv/bin/pip install pyzmq
     ii  libapache2-mod-wsgi-py3             4.3.0-1.1build1                            amd64        Python 3 WSGI adapter module for Apache
     ```
 
+!!! warning
+    On a stock Ubuntu 16.04 **redis-server** is only at v3.0 the command GEOADD only got introduce v3.2
+    If you want to use misp-dashboard on 16.04 do the following:
+    ```bash
+    sudo add-apt-repository ppa:chris-lea/redis-server
+    sudo apt update
+    sudo apt install redis-server
+    ```
+
+All of the above said, it might still not work for you. If so, please open an [issue](https://github.com/MISP/misp-dashboard/issues) or join [gitter](https://gitter.im/MISP) and discuss there.
+
 {!generic/misp-dashboard-debian.md!}
 
 {!generic/viper-debian.md!}
