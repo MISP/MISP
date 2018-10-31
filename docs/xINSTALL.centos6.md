@@ -1,8 +1,13 @@
- # INSTALLATION INSTRUCTIONS
+# INSTALLATION INSTRUCTIONS
 ## for CentOS 6.x
 
 ### 0/ MISP CentOS 6 Minimal NetInstall - Status
 --------------------------------------------
+
+!!! notice
+    Semi-maintained and tested by @SteveClement, CentOS 6.10 on 20181025<br />
+    It is still considered experimental as not everything works seemlessly.
+
 
 CentOS 6.10 [NetInstallURL](http://mirrors.sonic.net/centos/6.10/os/x86_64/)
 
@@ -10,10 +15,10 @@ CentOS 6.10 [NetInstallURL](http://mirrors.sonic.net/centos/6.10/os/x86_64/)
 
 ```bash
 # CentOS Specific
-RUN_PHP='/usr/bin/scl enable rh-php56 '
+RUN_PHP='/usr/bin/scl enable rh-php70 '
 RUN_PYTHON='/usr/bin/scl enable rh-python36 '
 
-PHP_INI=/etc/opt/rh/rh-php56/php.ini
+PHP_INI=/etc/opt/rh/rh-php70/php.ini
 ```
 
 ### 1/ Minimal CentOS install
@@ -28,7 +33,7 @@ Install a minimal CentOS 6.x system with the software:
 
 ```bash
 # Make sure you set your hostname CORRECTLY vs. like an brute (manually in /etc/hostname)
-hostnamectl set-hostname misp.local # or whatever you want it to be
+sudo hostnamectl set-hostname misp.local # or whatever you want it to be
 
 # Make sure your system is up2date:
 sudo yum update -y
@@ -45,34 +50,36 @@ sudo rpm -Uvh /tmp/epel.rpm
 
 # Since MISP 2.4 PHP 5.5 is a minimal requirement, so we need a newer version than CentOS base provides
 # Software Collections is a way do to this, see https://wiki.centos.org/AdditionalResources/Repositories/SCL
-sudo yum install centos-release-scl
+sudo yum install centos-release-scl -y
 
 # Because vim is just so practical
-sudo yum install vim
+sudo yum install vim -y
 
 # Install the dependencies:
-sudo yum install gcc git httpd zip redis mysql-server python-devel python-pip libxslt-devel zlib-devel
+sudo yum install gcc git httpd zip redis mysql-server python-devel python-pip libxslt-devel zlib-devel -y
 
-# Install PHP 5.6 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php56/
-sudo yum install rh-php56 rh-php56-php-fpm rh-php56-php-devel rh-php56-php-mysqlnd rh-php56-php-mbstring rh-php56-php-xml rh-php56-php-bcmath
+# Install PHP 7.0 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php70/
+sudo yum install rh-php70 rh-php70-php-fpm rh-php70-php-devel rh-php70-php-mysqlnd rh-php70-php-mbstring rh-php70-php-xml rh-php70-php-bcmath
 
 # Install Python 3.6 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-python36/
-sudo yum install rh-python36
+sudo yum install rh-python36 -y
 
-# rh-php56-php only provided mod_php for httpd24-httpd from SCL
-# if we want to use httpd from CentOS base we can use rh-php56-php-fpm instead
-sudo chkconfig rh-php56-php-fpm on
-sudo service rh-php56-php-fpm start
+# rh-php70-php only provided mod_php for httpd24-httpd from SCL
+# if we want to use httpd from CentOS base we can use rh-php70-php-fpm instead
+sudo chkconfig rh-php70-php-fpm on
+sudo service rh-php70-php-fpm start
 
 # php-fpm is accessed using the fcgi interface
 sudo yum install mod_fcgid mod_proxy_fcgi
+``` 
 
-# Start a new shell with rh-php56 enabled
-sudo scl enable rh-php56 bash
+!!! notice
+    $RUN_PHP makes php available for you if using rh-php70. e.g: $RUN_PHP "pear list | grep Crypt_GPG"
 
-sudo pear channel-update pear.php.net
+```bash
+sudo $RUN_PHP pear channel-update pear.php.net
 
-sudo pear install Crypt_GPG    # we need version >1.3.0
+sudo $RUN_PHP pear install Crypt_GPG    # we need version >1.3.0
 
 # GPG needs lots of entropy, haveged provides entropy
 sudo yum install haveged
@@ -142,9 +149,9 @@ cd /var/www/MISP/PyMISP
 sudo $RUN_PYTHON "python3 setup.py install"
 
 # Enable python3 for php-fpm
-echo 'source scl_source enable rh-python36' | sudo tee -a /etc/opt/rh/rh-php56/sysconfig/php-fpm
-sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php56/php-fpm.d/www.conf
-sudo service rh-php56-php-fpm restart
+echo 'source scl_source enable rh-python36' | sudo tee -a /etc/opt/rh/rh-php70/sysconfig/php-fpm
+sudo sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php70/php-fpm.d/www.conf
+sudo service rh-php70-php-fpm restart
 
 umask $UMASK
 ```
@@ -165,15 +172,15 @@ sudo -u apache $RUN_PHP "php composer.phar install"
 
 # CakeResque normally uses phpredis to connect to redis, but it has a (buggy) fallback connector through Redisent. It is highly advised to install phpredis
 sudo $RUN_PHP "pecl install redis-2.2.8"
-echo "extension=redis.so" |sudo tee /etc/opt/rh/rh-php56/php-fpm.d/redis.ini
-sudo ln -s ../php-fpm.d/redis.ini /etc/opt/rh/rh-php56/php.d/99-redis.ini
-sudo service rh-php56-php-fpm restart
+echo "extension=redis.so" |sudo tee /etc/opt/rh/rh-php70/php-fpm.d/redis.ini
+sudo ln -s ../php-fpm.d/redis.ini /etc/opt/rh/rh-php70/php.d/99-redis.ini
+sudo service rh-php70-php-fpm restart
 
 # If you have not yet set a timezone in php.ini
-echo 'date.timezone = "Europe/Luxembourg"' |sudo tee /etc/opt/rh/rh-php56/php-fpm.d/timezone.ini
-sudo ln -s ../php-fpm.d/timezone.ini /etc/opt/rh/rh-php56/php.d/99-timezone.ini
+echo 'date.timezone = "Europe/Luxembourg"' |sudo tee /etc/opt/rh/rh-php70/php-fpm.d/timezone.ini
+sudo ln -s ../php-fpm.d/timezone.ini /etc/opt/rh/rh-php70/php.d/99-timezone.ini
 
-# Recommended: Change some PHP settings in /etc/opt/rh/rh-php56/php.ini
+# Recommended: Change some PHP settings in /etc/opt/rh/rh-php70/php.ini
 # max_execution_time = 300
 # memory_limit = 512M
 # upload_max_filesize = 50M
@@ -182,7 +189,7 @@ for key in upload_max_filesize post_max_size max_execution_time max_input_time m
 do
     sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
 done
-sudo systemctl restart rh-php56-php-fpm.service
+sudo systemctl restart rh-php70-php-fpm.service
 # To use the scheduler worker for scheduled tasks, do the following:
 sudo cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResque/Config/config.php
 ```
@@ -194,13 +201,19 @@ sudo cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/Cake
 sudo chown -R root:apache /var/www/MISP
 sudo find /var/www/MISP -type d -exec chmod g=rx {} \;
 sudo chmod -R g+r,o= /var/www/MISP
+sudo chmod -R 750 /var/www/MISP
+sudo chmod -R g+ws /var/www/MISP/app/tmp
+sudo chmod -R g+ws /var/www/MISP/app/files
+sudo chmod -R g+ws /var/www/MISP/app/files/scripts/tmp
 sudo chown apache:apache /var/www/MISP/app/files
 sudo chown apache:apache /var/www/MISP/app/files/terms
 sudo chown apache:apache /var/www/MISP/app/files/scripts/tmp
 sudo chown apache:apache /var/www/MISP/app/Plugin/CakeResque/tmp
+sudo chown -R apache:apache /var/www/MISP/app/Config
 sudo chown -R apache:apache /var/www/MISP/app/tmp
 sudo chown -R apache:apache /var/www/MISP/app/webroot/img/orgs
 sudo chown -R apache:apache /var/www/MISP/app/webroot/img/custom
+```
 
 ### 6/ Create a database and user
 -----------------------------
@@ -318,12 +331,12 @@ sudo -u apache gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR-EMAIL > 
 
 # Start the workers to enable background jobs
 sudo chmod +x /var/www/MISP/app/Console/worker/start.sh
-su -s /bin/bash apache -c 'scl enable rh-php56 /var/www/MISP/app/Console/worker/start.sh'
+su -s /bin/bash apache -c 'scl enable rh-php70 /var/www/MISP/app/Console/worker/start.sh'
 
 # To make the background workers start on boot
 vi /etc/rc.local
 # Add the following line at the end
-su -s /bin/bash apache -c 'scl enable rh-php56 /var/www/MISP/app/Console/worker/start.sh'
+su -s /bin/bash apache -c 'scl enable rh-php70 /var/www/MISP/app/Console/worker/start.sh'
 
 {!generic/MISP_CAKE_init_centos.md!}
 

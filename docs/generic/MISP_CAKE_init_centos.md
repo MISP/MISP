@@ -138,15 +138,15 @@ sudo $RUN_PHP "$CAKE Admin updateTaxonomies"
 
 # Updating the warning lists…
 ##sudo $RUN_PHP "$CAKE Admin updateWarningLists"
-curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/warninglists/update
+curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST http://127.0.0.1/warninglists/update
 
 # Updating the notice lists…
 ## sudo $RUN_PHP "$CAKE Admin updateNoticeLists"
-curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/noticelists/update
+curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST http://127.0.0.1/noticelists/update
 
 # Updating the object templates…
 ##sudo $RUN_PHP "$CAKE Admin updateObjectTemplates"
-curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/objectTemplates/update
+curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST http://127.0.0.1/objectTemplates/update
 
 # Set MISP Live
 sudo $RUN_PHP "$CAKE Live $MISP_LIVE"

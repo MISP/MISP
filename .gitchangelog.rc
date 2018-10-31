@@ -14,7 +14,7 @@
 ##       'fix' is for bug fixes
 ##       'new' is for new features, big improvement
 ##
-##   AUDIENCE is optional and one of 'dev', 'usr', 'pkg', 'test', 'doc'
+##   AUDIENCE is optional and one of 'dev', 'usr', 'pkg', 'test', 'doc'|'docs'
 ##
 ##       Is WHO is concerned by the change.
 ##
@@ -82,13 +82,13 @@ ignore_regexps = [
 ##
 section_regexps = [
     ('New', [
-        r'^[nN]ew\s*:\s*((dev|use?r|pkg|test|doc)\s*:\s*)?([^\n]*)$',
+        r'^[nN]ew\s*:\s*((dev|use?r|pkg|test|doc|docs)\s*:\s*)?([^\n]*)$',
      ]),
     ('Changes', [
-        r'^[cC]hg\s*:\s*((dev|use?r|pkg|test|doc)\s*:\s*)?([^\n]*)$',
+        r'^[cC]hg\s*:\s*((dev|use?r|pkg|test|doc|docs)\s*:\s*)?([^\n]*)$',
      ]),
     ('Fix', [
-        r'^[fF]ix\s*:\s*((dev|use?r|pkg|test|doc)\s*:\s*)?([^\n]*)$',
+        r'^[fF]ix\s*:\s*((dev|use?r|pkg|test|doc|docs)\s*:\s*)?([^\n]*)$',
      ]),
 
     ('Other', None ## Match all lines
@@ -141,7 +141,7 @@ body_process = ReSub(r'((^|\n)[A-Z]\w+(-\w+)*: .*(\n\s+.*)*)+$', r'') | strip
 ##
 ## Available constructs are those listed in ``body_process`` doc.
 subject_process = (strip |
-    ReSub(r'^([cC]hg|[fF]ix|[nN]ew)\s*:\s*((dev|use?r|pkg|test|doc)\s*:\s*)?([^\n@]*)(@[a-z]+\s+)*$', r'\4') |
+    ReSub(r'^([cC]hg|[fF]ix|[nN]ew)\s*:\s*((dev|use?r|pkg|test|doc|docs)\s*:\s*)?([^\n@]*)(@[a-z]+\s+)*$', r'\4') |
     SetIfEmpty("No commit message.") | ucfirst | final_dot)
 
 
