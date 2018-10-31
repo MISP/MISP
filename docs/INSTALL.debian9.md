@@ -54,7 +54,7 @@ python3-setuptools python3-dev python3-pip python3-yara python3-redis python3-zm
 mariadb-client \
 mariadb-server \
 apache2 apache2-doc apache2-utils \
-libapache2-mod-php7.0 php7.0 php7.0-cli php7.0-mbstring php7.0-dev php7.0-json php7.0-xml php7.0-mysql php7.2-opcache php7.0-readline php-redis php-gnupg \
+libapache2-mod-php7.0 php7.0 php7.0-cli php7.0-mbstring php7.0-dev php7.0-json php7.0-xml php7.0-mysql php7.0-opcache php7.0-readline php-redis php-gnupg \
 libpq5 libjpeg-dev libfuzzy-dev ruby asciidoctor \
 jq ntp ntpdate jupyter-notebook imagemagick tesseract-ocr \
 libxml2-dev libxslt1-dev zlib1g-dev
