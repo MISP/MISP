@@ -1,5 +1,13 @@
 #### Install viper framework (with a virtualenv)
 -----------------------
+
+!!! warning
+    Viper has **lief** as a dependency, lief only has an .egg for Python3.6 NOT Python3.7<br />
+    If you have python3.7 installed make sure **virtualenv** uses **python3.6**<br />
+    ```bash
+    virtualenv -p python3.6 venv
+    ```
+
 ```bash
 cd /usr/local/src/
 sudo apt-get install -y libssl-dev swig python3-ssdeep p7zip-full unrar-free sqlite python3-pyclamd exiftool radare2 python3-magic python3-sqlalchemy python3-prettytable
