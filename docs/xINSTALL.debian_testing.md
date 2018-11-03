@@ -57,7 +57,7 @@ sudo postfix reload
 ```bash
 sudo apt install -y \
 curl gcc git gnupg-agent make openssl redis-server neovim zip libyara-dev \
-python3-setuptools python3-dev python3-pip python3-yara python3-redis python3-zmq virtualenv \
+python3-setuptools python3-dev python3-pip python3-redis python3-zmq virtualenv \
 mariadb-client \
 mariadb-server \
 apache2 apache2-doc apache2-utils \
@@ -429,9 +429,12 @@ sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install maec lief python-magic pat
 sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
 
 # Start misp-modules
-## /!\ Check wtf is going on with yara.
 sudo -u www-data ${PATH_TO_MISP}/venv/bin/misp-modules -l 0.0.0.0 -s &
+```
 
+{!generic/misp-modules.md!}
+
+```bash
 echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
 echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 ```

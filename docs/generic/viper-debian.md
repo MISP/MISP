@@ -19,9 +19,6 @@ git submodule update --init --recursive
 ./venv/bin/pip install -r requirements.txt
 sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-cli
 sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-web
-## /!\ Check wtf is going on with yara.
-###sudo pip3 uninstall yara -y
-###./venv/bin/pip uninstall yara -y
 /usr/local/src/viper/viper-cli -h
 /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 &
 echo 'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/src/viper"' |sudo tee /etc/environment
