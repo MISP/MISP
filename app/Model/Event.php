@@ -5148,6 +5148,9 @@ class Event extends AppModel
     public function massageTags($data, $dataType = 'Event', $excludeGalaxy = false)
     {
         $data['Galaxy'] = array();
+		if (empty($this->GalaxyCluster)) {
+			$this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');	
+		}
         // unset empty event tags that got added because the tag wasn't exportable
         if (!empty($data[$dataType . 'Tag'])) {
             foreach ($data[$dataType . 'Tag'] as $k => &$dataTag) {

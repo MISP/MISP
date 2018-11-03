@@ -42,141 +42,80 @@
         ?>
         </ul>
     </div>
-    <table class="table table-striped table-hover table-condensed">
-    	<tr>
-            <th><?php echo $this->Paginator->sort('event_id');?></th>
-            <?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
-            <th><?php echo $this->Paginator->sort('Event.orgc_id', 'Org');?></th>
-            <?php endif; ?>
-            <th><?php echo $this->Paginator->sort('category');?></th>
-            <th><?php echo $this->Paginator->sort('type');?></th>
-            <th><?php echo $this->Paginator->sort('value');?></th>
-            <th>Tags</th>
-            <th><?php echo $this->Paginator->sort('comment');?></th>
-            <th<?php echo ' title="' . $attrDescriptions['signature']['desc'] . '"';?>>
-            <?php echo $this->Paginator->sort('IDS');?></th>
-            <th class="actions">Actions</th>
-    	</tr>
-    <?php
-    $currentCount = 0;
-    if ($isSearch == 1) {
-        // sanitize data
-        $toHighlight = array('value', 'comment');
-		$keywordArray = array();
-        foreach ($toHighlight as $highlightedElement) {
-            if (!empty($filters[$highlightedElement])) {
-				if (!is_array($filters[$highlightedElement])) {
-					$filters[$highlightedElement] = array($filters[$highlightedElement]);
-				}
-				foreach ($filters[$highlightedElement] as $highlightedString) {
-					$keywordArray[] = $highlightedString;
+	<?php
+		$headers = array(
+			$this->Paginator->sort('date'),
+			$this->Paginator->sort('event_id'),
+			$this->Paginator->sort('Event.orgc_id', 'Org'),
+			$this->Paginator->sort('category'),
+			$this->Paginator->sort('type'),
+			$this->Paginator->sort('value'),
+			__('Tags'),
+			__('Galaxies'),
+			$this->Paginator->sort('comment'),
+			__('Correlate'),
+			__('Related Events'),
+			__('Feed hits'),
+			sprintf('<span title="%s">%s</th>', $attrDescriptions['signature']['desc'], $this->Paginator->sort('IDS')),
+			$this->Paginator->sort('distribution'),
+			__('Sightings'),
+			__('Activity'),
+			__('Actions')
+		);
+		foreach ($headers as $k => &$header) {
+			if ($k == (count($headers)-1)) {
+				$header = sprintf('<th title="%s">%s</th>', $attrDescriptions['signature']['desc'], $header);
+			} else {
+				$header = sprintf('<th>%s</th>', $header);
+			}
+		}
+		$rows = array(
+			sprintf('<tr>%s</tr>', implode('', $headers))
+		);
+		$currentCount = 0;
+		if ($isSearch == 1) {
+			// sanitize data
+			$toHighlight = array('value', 'comment');
+			$keywordArray = array();
+			foreach ($toHighlight as $highlightedElement) {
+				if (!empty($filters[$highlightedElement])) {
+					if (!is_array($filters[$highlightedElement])) {
+						$filters[$highlightedElement] = array($filters[$highlightedElement]);
+					}
+					foreach ($filters[$highlightedElement] as $highlightedString) {
+						$keywordArray[] = $highlightedString;
+					}
 				}
 			}
-        }
-        // build the $replacePairs variable used to highlight the keywords
-        $replacePairs = $this->Highlight->build_replace_pairs($keywordArray);
-    }
-
-foreach ($attributes as $attribute):
+			// build the $replacePairs variable used to highlight the keywords
+			$replacePairs = $this->Highlight->build_replace_pairs($keywordArray);
+		}
+		foreach ($attributes as $k => $attribute) {
+			$mayModify = ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id'] && $attribute['Event']['orgc_id'] == $me['org_id']) || ($isAclModifyOrg && $attribute['Event']['orgc_id'] == $me['org_id']));
+			$mayPublish = ($isAclPublish && $attribute['Event']['orgc_id'] == $me['org_id']);
+			$mayChangeCorrelation = !Configure::read('MISP.completely_disable_correlation') && ($isSiteAdmin || ($mayModify && Configure::read('MISP.allow_disabling_correlation')));
+			$mayModify = $attribute['Event']['orgc_id'] === $me['org_id'] ? true : false;
+			$event = array(
+				'Event' => $attribute['Event'],
+				'Orgc' => $attribute['Event']['Orgc']
+			);
+			$rows[] =  $this->element('/Events/View/row_attribute', array(
+				'object' => $attribute['Attribute'],
+				'k' => $k,
+				'mayModify' => $mayModify,
+				'mayChangeCorrelation' => $mayChangeCorrelation,
+				'page' => 1,
+				'fieldCount' => 11,
+				'includeRelatedTags' => 0,
+				'event' => $event,
+				'me' => $me,
+				'extended' => 1,
+				'disable_multi_select' => 1,
+				'context' => 'list'
+			));
+		}
+		echo sprintf('<table class="table table-striped table-hover table-condensed">%s</table>', implode('', $rows));
     ?>
-    <tr>
-        <td class="short">
-            <div ondblclick="document.location='<?php echo $baseurl?>/events/view/<?php echo $attribute['Event']['id'];?>';" title="<?php echo h($attribute['Event']['info']); ?>">
-            <?php
-                if ($attribute['Event']['orgc_id'] == $me['org_id']) {
-                    $style='style="color:red;"';
-                } else {
-                    $style='';
-                }
-                $currentCount++;
-            ?>
-                <a href="<?php echo $baseurl;?>/events/view/<?php echo $attribute['Event']['id'];?>" <?php echo $style;?>><?php echo $attribute['Event']['id'];?></a>
-            </div>
-        </td>
-        <?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
-        <td class="short" ondblclick="document.location.href ='<?php echo $baseurl;?>/events/view/<?php echo $attribute['Event']['id'];?>'">
-            <?php
-        echo $this->OrgImg->getOrgImg(array('name' => $attribute['Event']['Orgc']['name'], 'id' => $attribute['Event']['orgc_id'], 'size' => 24));
-            ?>
-            &nbsp;
-        </td>
-        <?php endif;?>
-        <td title="<?php echo $categoryDefinitions[$attribute['Attribute']['category']]['desc'];?>" class="short" ondblclick="document.location='<?php echo $baseurl;?>/events/view/<?php echo $attribute['Event']['id'];?>';">
-        <?php echo h($attribute['Attribute']['category']); ?>&nbsp;</td>
-        <td title="<?php if (isset($typeDefinitions[$attribute['Attribute']['type']])) echo $typeDefinitions[$attribute['Attribute']['type']]['desc'];?>" class="short" ondblclick="document.location='<?php echo $baseurl;?>/events/view/<?php echo $attribute['Event']['id'];?>';">
-        <?php echo h($attribute['Attribute']['type']); ?>&nbsp;</td>
-        <td class="showspaces" ondblclick="document.location='<?php echo $baseurl;?>/events/view/<?php echo $attribute['Event']['id'];?>';"><?php
-            $sigDisplay = nl2br(h($attribute['Attribute']['value']));
-            if ($isSearch == 1 && !empty($replacePairs)) {
-                // highlight the keywords if there are any
-                $sigDisplay = $this->Highlight->highlighter($sigDisplay, $replacePairs);
-            }
-            if ('attachment' == $attribute['Attribute']['type'] || 'malware-sample' == $attribute['Attribute']['type']) {
-                if ($attribute['Attribute']['type'] == 'attachment' && isset($attribute['Attribute']['image'])):
-                    $extension = explode('.', $attribute['Attribute']['value']);
-                    $extension = end($extension);
-                    $uri = 'data:image/' . strtolower(h($extension)) . ';base64,' . h($attribute['Attribute']['image']);
-                    echo '<img class="screenshot screenshot-collapsed useCursorPointer" src="' . $uri . '" title="' . h($attribute['Attribute']['value']) . '" />';
-                else:
-            ?>
-                    <a href="<?php echo $baseurl;?>/attributes/download/<?php echo $attribute['Attribute']['id'];?>"><?php echo $sigDisplay; ?></a>
-            <?php
-                endif;
-            } else if ('link' == $attribute['Attribute']['type']) {
-                ?><a href="<?php echo h($attribute['Attribute']['value']);?>"><?php echo $sigDisplay; ?></a><?php
-            } else {
-                echo $sigDisplay;
-            }
-            ?>
-        </td>
-        <td style = "max-width:200px;width:10px;">
-            <?php foreach ($attribute['AttributeTag'] as $tag):
-                $tagText = "&nbsp;";
-                if (Configure::read('MISP.full_tags_on_attribute_index') == 1) $tagText = h($tag['Tag']['name']);
-                else if (Configure::read('MISP.full_tags_on_attribute_index') == 2) {
-                    if (strpos($tag['Tag']['name'], '=')) {
-                        $tagText = explode('=', $tag['Tag']['name']);
-                        $tagText = h(trim(end($tagText), "\""));
-                    }
-                    else $tagText = h($tag['Tag']['name']);
-                }
-                ?>
-                <span class="tag useCursorPointer" style="margin-bottom:3px;background-color:<?php echo h($tag['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>;" title="<?php echo h($tag['Tag']['name']); ?>" role="button" tabindex="0" aria-label="Search events tagged <?php echo h($tag['Tag']['name'])?>" onClick="document.location.href='<?php echo $baseurl; ?>/attributes/search/attributetag:<?php echo h($tag['Tag']['id']);?>';"><?php echo $tagText; ?></span>
-            <?php endforeach; ?>
-        </td>
-        <td ondblclick="document.location ='document.location ='<?php echo $baseurl;?>/events/view/<?php echo $attribute['Event']['id'];?>';">
-            <?php
-            $sigDisplay = nl2br(h($attribute['Attribute']['comment']));
-                if ($isSearch == 1 && !empty($replacePairs)) {
-                    // highlight the keywords if there are any
-                    $sigDisplay = $this->Highlight->highlighter($sigDisplay, $replacePairs);
-            }
-            echo $sigDisplay;
-            ?>&nbsp;
-        </td>
-        <td class="short" ondblclick="document.location ='document.location ='/events/view/<?php echo $attribute['Event']['id'];?>';">
-            <?php echo $attribute['Attribute']['to_ids'] ? 'Yes' : 'No'; ?>&nbsp;
-        </td>
-        <td class="short action-links">
-    <?php
-        if ($isSiteAdmin || ($isAclModify && $attribute['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $attribute['Event']['org_id'] == $me['org_id'])):
-    ?>
-            <a href="<?php echo $baseurl;?>/attributes/edit/<?php echo $attribute['Attribute']['id'];?>" class="icon-edit" title="Edit"></a><?php
-            echo $this->Form->postLink('',array('action' => 'delete', $attribute['Attribute']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this attribute?'));
-        elseif ($isAclModify):
-    ?>
-            <a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?php echo $attribute['Attribute']['id'];?>" class="icon-share" title="<?php echo __('Propose an edit'); ?>"></a>
-    <?php
-        endif;
-    ?>
-            <a href="<?php echo $baseurl;?>/events/view/<?php echo $attribute['Attribute']['event_id'];?>" class="icon-list-alt" title="<?php echo __('View'); ?>"></a>
-        </td>
-    </tr>
-    <?php
-endforeach;
-    ?>
-    </table>
-
     <p>
     <?php
     echo $this->Paginator->counter(array(
@@ -216,5 +155,8 @@ $(document).ready(function () {
     $('.screenshot').click(function() {
         screenshotPopup($(this).attr('src'), $(this).attr('title'));
     });
+	$('.addGalaxy').click(function() {
+		addGalaxyListener(this);
+	});
 });
 </script>

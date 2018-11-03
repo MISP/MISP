@@ -125,6 +125,7 @@ class AttributesController extends AppController
             }
         }
         $this->set('orgs', $orgs);
+		$this->set('shortDist', $this->Attribute->shortDist);
         $this->set('attributes', $attributes);
         $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
         $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
@@ -1569,6 +1570,7 @@ class AttributesController extends AppController
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
+		$this->set('shortDist', $this->Attribute->shortDist);
 		if ($this->request->is('post')) {
 			if (isset($this->request->data['Attribute'])) {
 				$this->request->data = $this->request->data['Attribute'];
@@ -1617,6 +1619,9 @@ class AttributesController extends AppController
 		}
 		if (isset($filters)) {
 			$params = $this->Attribute->restSearch($this->Auth->user(), 'json', $filters, true);
+			if (!isset($params['conditions']['Attribute.deleted'])) {
+				$params['conditions']['Attribute.deleted'] = 0;
+			}
 			$this->paginate = $params;
 			if (empty($this->paginate['limit'])) {
 				$this->paginate['limit'] = 60;
@@ -1637,6 +1642,22 @@ class AttributesController extends AppController
                 )
 			);
 			$attributes = $this->paginate();
+			if (!$this->_isRest()) {
+				$this->loadModel('GalaxyCluster');
+				$cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
+				foreach ($attributes as $k => $attribute) {
+					$attributes[$k]['Attribute']['AttributeTag'] = $attributes[$k]['AttributeTag'];
+					$attributes[$k]['Attribute'] = $this->Attribute->Event->massageTags($attributes[$k]['Attribute'], 'Attribute');
+					unset($attributes[$k]['AttributeTag']);
+					foreach ($attributes[$k]['Attribute']['AttributeTag'] as $k2 => $attributeTag) {
+						if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
+							unset($attributes[$k]['Attribute']['AttributeTag'][$k2]);
+						}
+					}
+				}
+				$this->loadModel('Galaxy');
+				$this->set('mitreAttackGalaxyId', $this->Galaxy->getMitreAttackGalaxyId());
+			}
 			$this->set('filters', $filters);
 			$this->set('attributes', $attributes);
 			$this->set('isSearch', 1);
