@@ -138,11 +138,11 @@ sudo -u www-data git clone https://github.com/MAECProject/python-maec.git
 # install mixbox to accommodate the new STIX dependencies:
 sudo -u www-data git clone https://github.com/CybOXProject/mixbox.git
 cd ${PATH_TO_MISP}/app/files/scripts/mixbox
-sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+sudo -H -u www-data ${PATH_TO_MISP}/MISP/venv/bin/pip install .
 cd ${PATH_TO_MISP}/app/files/scripts/python-cybox
-sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+sudo -H -u www-data ${PATH_TO_MISP}/MISP/venv/bin/pip install .
 cd ${PATH_TO_MISP}/app/files/scripts/python-stix
-sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+sudo -H -u www-data ${PATH_TO_MISP}/MISP/venv/bin/pip install .
 
 # install PyMISP
 cd ${PATH_TO_MISP}/PyMISP
