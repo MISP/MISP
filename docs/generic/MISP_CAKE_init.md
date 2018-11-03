@@ -1,5 +1,7 @@
 #### Initialize MISP configuration and set some defaults
 ```bash
+# Default Cake path
+export CAKE="$PATH_TO_MISP/app/Console/cake"
 # Initialize user and fetch Auth Key
 sudo -E $CAKE userInit -q
 AUTH_KEY=$(mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM users;" | tail -1)
