@@ -13,7 +13,7 @@ sudo make install
 sudo pecl install ssdeep
 
 # You should add "extension=ssdeep.so" to mods-available - Check /etc/php for your current version
-echo "extension=ssdeep.so" | sudo tee /etc/php/7.2/mods-available/ssdeep.ini
+echo "extension=ssdeep.so" | sudo tee ${PHP_ETC_BASE}/mods-available/ssdeep.ini
 sudo phpenmod ssdeep
 sudo service apache2 restart
 ```

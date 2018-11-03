@@ -86,7 +86,8 @@ nav:
     - Update MISP: 'UPDATE.md'
     - Upgrading MISP: 'UPGRADE.md'
     - Old guides:
-      - '2.3 to 2.4 upgrade': 'old-2_3to2_4-UPGRADE.md'
+      - '2.3 to 2.4 upgrade': 'archive/old-2_3to2_4-UPGRADE.md'
+      - 'Ubuntu 16.04': 'archive/INSTALL.ubuntu1604.md'
     - About:
       - 'MISP Release Notes': 'Changelog.md'
       - 'License': 'license.md'

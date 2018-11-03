@@ -378,7 +378,8 @@ class ACLComponent extends Component
                     'index' => array('*'),
                     'listSightings' => array('perm_sighting'),
                     'quickDelete' => array('perm_sighting'),
-                    'viewSightings' => array('perm_sighting')
+                    'viewSightings' => array('perm_sighting'),
+                    'quickAdd' => array('perm_sighting')
             ),
             'tags' => array(
                     'add' => array('perm_tag_editor'),
