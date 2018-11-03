@@ -146,7 +146,7 @@ sudo -H -u www-data ${PATH_TO_MISP}/MISP/venv/bin/pip install .
 
 # install PyMISP
 cd ${PATH_TO_MISP}/PyMISP
-sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+sudo -H -u www-data ${PATH_TO_MISP}/MISP/venv/bin/pip install .
 ```
 
 ### 4/ CakePHP
