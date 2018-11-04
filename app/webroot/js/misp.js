@@ -3146,15 +3146,17 @@ function quickSubmitGalaxyForm(event_id, cluster_id) {
 
 function checkAndSetPublishedInfo() {
 	var id = $('#hiddenSideMenuData').data('event-id');
-	$.get( "/events/checkPublishedStatus/" + id, function(data) {
-		if (data == 1) {
-			$('.published').removeClass('hidden');
-			$('.not-published').addClass('hidden');
-		} else {
-			$('.published').addClass('hidden');
-			$('.not-published').removeClass('hidden');
-		}
-	});
+	if (id !== 'undefined') {
+		$.get( "/events/checkPublishedStatus/" + id, function(data) {
+			if (data == 1) {
+				$('.published').removeClass('hidden');
+				$('.not-published').addClass('hidden');
+			} else {
+				$('.published').addClass('hidden');
+				$('.not-published').removeClass('hidden');
+			}
+		});
+	}
 }
 
 $(document).keyup(function(e){
