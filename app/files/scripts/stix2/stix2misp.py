@@ -78,7 +78,10 @@ class StixParser():
     def build_from_STIX_with_report(self):
         report_attributes = defaultdict(set)
         for _, report in self.event['report'].items():
-            report_attributes['orgs'].add(report['created_by_ref'].split('--')[1])
+            try:
+                report_attributes['orgs'].add(report['created_by_ref'].split('--')[1])
+            except KeyError:
+                pass
             report_attributes['name'].add(report['name'])
             if report.get('published'):
                 report_attributes['published'].add(report['published'])
