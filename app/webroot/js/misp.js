@@ -1488,7 +1488,7 @@ function indexEvaluateFiltering() {
 		} else {
 			$('#value_hasproposal').html("");
 		}
-		if (filtering.date.from != null || filtering.date.from != null) {
+		if (filtering.date.from != null) {
 			var text = "";
 			if (filtering.date.from != "") text = "From: " + $('<span>').text(filtering.date.from).html();
 			if (filtering.date.until != "") {
