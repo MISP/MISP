@@ -1293,8 +1293,7 @@ class StixBuilder(object):
         hi.journal_entry = entry_line
         self.history.append(hi)
 
-    @staticmethod
-    def add_reference(reference):
+    def add_reference(self, reference):
         if hasattr(self.incident.information_source, 'references'):
             try:
                 self.incident.information_source.add_reference(reference)
