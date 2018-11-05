@@ -8,7 +8,14 @@
 #1/ Prepare Tsurugi with a MISP User
 #--------------------------------
 # You will need a working OpenSSH server, reconfigure as follows:
+# sudo update-rc.d -f ssh remove
+# sudo update-rc.d -f ssh defaults
 # sudo dpkg-reconfigure openssh-server
+# sudo systemctl restart ssh
+# If you installed tsurugi the locale is a little all over the place. I assume en_US to be default unless you know what you're doing.
+# sudo sed -i 's/ja_JP/en_US/g' /etc/default/locale
+# sudo sed -i 's/ja_JP.UTF/# ja_JP.UTF/g' /etc/locale.gen
+# sudo dpkg-reconfigure locales
 # To install MISP on Tsurugi copy paste this in your r00t shell:
 # wget -O /tmp/misp-tsurugi.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.tsurugi.txt && bash /tmp/misp-tsurugi.sh
 # /!\ Please read the installer script before randomly doing the above.
@@ -137,19 +144,22 @@ function installMISPonTsurugi() {
 
   $SUDO_WWW git config core.filemode false
 
-  cp -p /etc/lsb_release /etc/lsb_release.tmp
-  sudo sed -i 's/TSURUGI/Ubuntu/g' /etc/lsb_release
-  sudo sed -i 's/bamboo/xenial/g' /etc/lsb_release
-  sudo add-apt-repository ppa:jonathonf/python-3.6
+  cp -p /etc/lsb-release /etc/lsb-release.tmp
+  sudo sed -i 's/TSURUGI/Ubuntu/g' /etc/lsb-release
+  sudo sed -i 's/bamboo/xenial/g' /etc/lsb-release
+  sudo add-apt-repository ppa:jonathonf/python-3.6 -y
   sudo apt-get update
-  sudo apt-get install python3.6 python3.6-dev
-  mv /etc/lsb_release.tmp /etc/lsb_release
+  sudo apt-get install python3.6 python3.6-dev -y
+  mv /etc/lsb-release.tmp /etc/lsb-release
   $SUDO_WWW virtualenv -p python3.6 $PATH_TO_MISP/venv
 
   cd $PATH_TO_MISP/app/files/scripts
   $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
   $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
   $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
+
+  mkdir /var/www/.cache
+  chown www-data:www-data /var/www/.cache
 
   cd $PATH_TO_MISP/app/files/scripts/python-stix
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
@@ -255,6 +265,7 @@ function installMISPonTsurugi() {
   chown www-data:www-data misp-dashboard
   $SUDO_WWW git clone https://github.com/MISP/misp-dashboard.git
   cd misp-dashboard
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install zmq
   /var/www/misp-dashboard/install_dependencies.sh
   sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/config/config.cfg
   sed -i -e '$i \sudo -u www-data bash /var/www/misp-dashboard/start_all.sh\n' /etc/rc.local
@@ -513,7 +524,7 @@ function installMISPonTsurugi() {
   # pip3 install
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I -r REQUIREMENTS
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I .
-  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install maec lief python-magic wand yara
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install maec python-magic wand lief yara-python
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
   $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install stix2
   gem install pygments.rb
