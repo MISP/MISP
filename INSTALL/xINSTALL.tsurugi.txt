@@ -137,18 +137,28 @@ function installMISPonTsurugi() {
 
   $SUDO_WWW git config core.filemode false
 
+  cp -p /etc/lsb_release /etc/lsb_release.tmp
+  sudo sed -i 's/TSURUGI/Ubuntu/g' /etc/lsb_release
+  sudo sed -i 's/bamboo/xenial/g' /etc/lsb_release
+  sudo add-apt-repository ppa:jonathonf/python-3.6
+  sudo apt-get update
+  sudo apt-get install python3.6 python3.6-dev
+  mv /etc/lsb_release.tmp /etc/lsb_release
+  $SUDO_WWW virtualenv -p python3.6 $PATH_TO_MISP/venv
+
   cd $PATH_TO_MISP/app/files/scripts
   $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
   $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
-  cd $PATH_TO_MISP/app/files/scripts/python-stix
-  pip3 install .
-  cd $PATH_TO_MISP/app/files/scripts/python-cybox
-  pip3 install .
-
-  cd $PATH_TO_MISP/app/files/scripts/
   $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
+
+  cd $PATH_TO_MISP/app/files/scripts/python-stix
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+
+  cd $PATH_TO_MISP/app/files/scripts/python-cybox
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
+
   cd $PATH_TO_MISP/app/files/scripts/mixbox
-  pip3 install .
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 
   cd $PATH_TO_MISP
   $SUDO_WWW git submodule update --init --recursive
@@ -156,9 +166,9 @@ function installMISPonTsurugi() {
   $SUDO_WWW git submodule foreach --recursive git config core.filemode false
 
   # install PyMISP
-  pip3 install enum34
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install enum34
   cd $PATH_TO_MISP/PyMISP
-  pip3 install .
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install .
 
   cd $PATH_TO_MISP/app
   mkdir /var/www/.composer ; chown www-data:www-data /var/www/.composer
@@ -383,6 +393,7 @@ function installMISPonTsurugi() {
 
   AUTH_KEY=$(mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM users;" | tail -1)
 
+  $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
   $CAKE Admin setSetting "Plugin.ZeroMQ_enable" true
   $CAKE Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" true
   $CAKE Admin setSetting "Plugin.ZeroMQ_object_notifications_enable" true
@@ -494,24 +505,17 @@ function installMISPonTsurugi() {
   sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
   sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
   sed -i -e '$i \sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh\n' /etc/rc.local
-  sed -i -e '$i \sudo -u www-data misp-modules -l 0.0.0.0 -s &\n' /etc/rc.local
+  sed -i -e '$i \sudo -u www-data /var/www/MISP/venv/bin/misp-modules -l 127.0.0.1 -s > /tmp/misp-modules_rc.local.log 2> /dev/null &\n' /etc/rc.local
   $SUDO_WWW bash $PATH_TO_MISP/app/Console/worker/start.sh
   cd /usr/local/src/
   git clone https://github.com/MISP/misp-modules.git
   cd misp-modules
-  cp -p /etc/lsb_release /etc/lsb_release.tmp
-  sudo sed -i 's/TSURUGI/Ubuntu/g' /etc/lsb_release
-  sudo sed -i 's/bamboo/xenial/g' /etc/lsb_release
-  sudo add-apt-repository ppa:jonathonf/python-3.6
-  sudo apt-get update
-  sudo apt-get install python3.6
-  mv /etc/lsb_release.tmp /etc/lsb_release
   # pip3 install
-  pip3 install -I -r REQUIREMENTS
-  pip3 install -I .
-  pip3 install maec lief python-magic wand yara
-  pip3 install git+https://github.com/kbandla/pydeep.git
-  pip3 install stix2
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I -r REQUIREMENTS
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install -I .
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install maec lief python-magic wand yara
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
+  $SUDO_WWW $PATH_TO_MISP/venv/bin/pip install stix2
   gem install pygments.rb
   gem install asciidoctor-pdf --pre
   $SUDO_WWW misp-modules -l 0.0.0.0 -s &
@@ -521,9 +525,15 @@ function installMISPonTsurugi() {
   git clone https://github.com/viper-framework/viper.git
   chown -R $MISP_USER:$MISP_USER viper
   cd viper
+  virtualenv -p python3.6 venv
   $SUDO git submodule update --init --recursive
-  pip3 install -r requirements.txt
-  pip3 uninstall yara -y
+  # There is a bug with yara-python, removing for the time being
+  sed -i 's/yara-python==3.7.0//g' requirements-modules.txt
+  ./venv/bin/pip install scrapy
+  ./venv/bin/pip install -r requirements.txt
+  ./venv/bin/pip uninstall yara -y
+  sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-cli
+  sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-web
   $SUDO /usr/local/src/viper/viper-cli -h > /dev/null
   $SUDO /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 &
   echo 'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/src/viper:/var/www/MISP/app/Console"' |tee /etc/environment
