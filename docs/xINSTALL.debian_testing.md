@@ -416,8 +416,8 @@ cd /usr/local/src/
 git clone https://github.com/MISP/misp-modules.git
 cd misp-modules
 # pip install
-sudo -u www-data ${PATH_TO_MISP}/MISP/venv/bin/pip install -I -r REQUIREMENTS
-sudo -u www-data ${PATH_TO_MISP}/MISP/venv/bin/pip install .
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 sudo apt install ruby-pygments.rb -y
 sudo gem install asciidoctor-pdf --pre
 
