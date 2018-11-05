@@ -10,13 +10,13 @@
     Maintained and tested by @SteveClement on 20181023
 
 !!! warning
-    PHP 7.3.0RC2 is not working at the moment. Please us 7.2<br />
-    **php-gnupg** and **php-redis** pull in PHP 7.3 thus they are installed with **pecl**
+    PHP 7.3.0RC4 is not working at the moment with the packaged composer.phar<br />
+    You need to manually update composer.phar as outlined below.
 
 {!generic/globalVariables.md!}
 
 ```bash
-PHP_ETC_BASE=/etc/php/7.2
+PHP_ETC_BASE=/etc/php/7.3
 PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
 ```
 
@@ -57,11 +57,11 @@ sudo postfix reload
 ```bash
 sudo apt install -y \
 curl gcc git gnupg-agent make openssl redis-server neovim zip libyara-dev \
-python3-setuptools python3-dev python3-pip python3-yara python3-redis python3-zmq virtualenv \
+python3-setuptools python3-dev python3-pip python3-redis python3-zmq virtualenv \
 mariadb-client \
 mariadb-server \
 apache2 apache2-doc apache2-utils \
-libapache2-mod-php7.2 php7.2 php7.2-cli php7.2-mbstring php7.2-dev php7.2-json php7.2-xml php7.2-mysql php7.2-opcache php7.2-readline \
+libapache2-mod-php7.3 php7.3 php7.3-cli php7.3-mbstring php7.3-dev php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php-redis php-gnupg \
 libpq5 libjpeg-dev libfuzzy-dev ruby asciidoctor \
 jq ntp ntpdate jupyter-notebook imagemagick tesseract-ocr \
 libxml2-dev libxslt1-dev zlib1g-dev
@@ -107,12 +107,8 @@ sudo a2enmod ssl rewrite
 sudo a2dissite 000-default
 sudo a2ensite default-ssl
 
-# Apply all changes
-sudo systemctl restart apache2
-```
-
 # Switch to python3 by default (optional)
-```bash
+
 sudo update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1
 sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.6 2
 ```
@@ -121,6 +117,12 @@ To flip between the 2 pythons use *update-alternatives*
 ```bash
 sudo update-alternatives --config python
 ```
+
+#### Apply all changes
+```bash
+sudo systemctl restart apache2
+```
+
 
 ### 3/ MISP code
 ------------
@@ -146,17 +148,17 @@ sudo -u www-data git clone https://github.com/CybOXProject/python-cybox.git
 sudo -u www-data git clone https://github.com/STIXProject/python-stix.git
 sudo -u www-data git clone https://github.com/MAECProject/python-maec.git
 cd $PATH_TO_MISP/app/files/scripts/python-cybox
-sudo -u www-data /var/www/MISP/venv/bin/pip install .
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 cd $PATH_TO_MISP/app/files/scripts/python-stix
-sudo -u www-data /var/www/MISP/venv/bin/pip install .
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 cd $PATH_TO_MISP/app/files/scripts/python-maec
-sudo -u www-data /var/www/MISP/venv/bin/pip install .
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 
 # install mixbox to accommodate the new STIX dependencies:
 cd $PATH_TO_MISP/app/files/scripts/
 sudo -u www-data git clone https://github.com/CybOXProject/mixbox.git
 cd $PATH_TO_MISP/app/files/scripts/mixbox
-sudo -u www-data /var/www/MISP/venv/bin/pip install .
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 
 cd $PATH_TO_MISP
 sudo -u www-data git submodule update --init --recursive
@@ -165,7 +167,7 @@ sudo -u www-data git submodule foreach --recursive git config core.filemode fals
 
 # install PyMISP
 cd $PATH_TO_MISP/PyMISP
-sudo -u www-data /var/www/MISP/venv/bin/pip install .
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 ```
 
 ### 4/ CakePHP
@@ -174,20 +176,26 @@ sudo -u www-data /var/www/MISP/venv/bin/pip install .
 
 !!! warning
     PHP Warning:  PHP Startup: Unable to load dynamic library 'redis.so' (tried: /usr/lib/php/20170718/redis.so (/usr/lib/php/20170718/redis.so: cannot open shared object file: No such file or directory), /usr/lib/php/20170718/redis.so.so (/usr/lib/php/20170718/redis.so.so: cannot open shared object file: No such file or directory)) in Unknown on line 0<br />
-    This probably means you installed the package **php-redis** which pulls in PHP-7.3 which is not working yet. Please install with **pecl**
+    This probably means you installed the package **php-redis** which pulls in PHP-7.3 which is not working yet. Please install with **pecl** OR <br />
+    Follow the guide and manually install a new composer.phar and keep using PHP-7.3RC4
 
 ```bash
 # Install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd $PATH_TO_MISP/app
 # Make composer cache happy
 sudo mkdir /var/www/.composer ; sudo chown www-data:www-data /var/www/.composer
-sudo -u www-data php composer.phar require kamisama/cake-resque:4.1.2
-sudo -u www-data php composer.phar config vendor-dir Vendor
-sudo -u www-data php composer.phar install
+# Update composer.phar
+sudo -H -u www-data php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+sudo -H -u www-data php -r "if (hash_file('SHA384', 'composer-setup.php') === '93b54496392c062774670ac18b134c3b3a95e5a5e5c8f1a9f115f203b75bf9a129d5daa8ba6a13e2cc8a1da0806388a8') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+sudo -H -u www-data php composer-setup.php
+sudo -H -u www-data php -r "unlink('composer-setup.php');"
+sudo -H -u www-data php composer.phar require kamisama/cake-resque:4.1.2
+sudo -H -u www-data php composer.phar config vendor-dir Vendor
+sudo -H -u www-data php composer.phar install
 
-## /!\ This will only be possible once PHP 7.3 works with composer
-### Enable CakeResque with php-redis
-##sudo phpenmod redis
+# Enable CakeResque with php-redis
+sudo phpenmod redis
+sudo phpenmod gnupg
 
 # To use the scheduler worker for scheduled tasks, do the following:
 sudo -u www-data cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
@@ -299,20 +307,7 @@ sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
 sudo a2dissite default-ssl
 sudo a2ensite misp-ssl
 
-# Install PHP external dependencies
-sudo pecl channel-update pecl.php.net
-yes no |sudo pecl install redis
-# gnupg dependency
-sudo apt-get install libgpgme11-dev -y
-sudo pecl install gnupg
-
-echo "extension=redis.so" | sudo tee ${PHP_ETC_BASE}/mods-available/redis.ini
-echo "extension=gnupg.so" | sudo tee ${PHP_ETC_BASE}/mods-available/gnupg.ini
-
-sudo phpenmod redis
-sudo phpenmod gnupg
-
-# Recommended: Change some PHP settings in /etc/php/7.2/apache2/php.ini
+# Recommended: Change some PHP settings in /etc/php/7.3/apache2/php.ini
 # max_execution_time = 300
 # memory_limit = 512M
 # upload_max_filesize = 50M
@@ -421,22 +416,25 @@ cd /usr/local/src/
 git clone https://github.com/MISP/misp-modules.git
 cd misp-modules
 # pip install
-sudo -u www-data /var/www/MISP/venv/bin/pip install -I -r REQUIREMENTS
-sudo -u www-data /var/www/MISP/venv/bin/pip install .
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 sudo apt install ruby-pygments.rb -y
 sudo gem install asciidoctor-pdf --pre
 
 # install STIX2.0 library to support STIX 2.0 export:
-sudo -u www-data /var/www/MISP/venv/bin/pip install stix2
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install stix2
 
 # install additional dependencies for extended object generation and extraction
-sudo -u www-data /var/www/MISP/venv/bin/pip install maec lief python-magic pathlib
-sudo -u www-data /var/www/MISP/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install maec lief python-magic pathlib
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
 
 # Start misp-modules
-## /!\ Check wtf is going on with yara.
-sudo -u www-data /var/www/MISP/venv/bin/misp-modules -l 0.0.0.0 -s &
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/misp-modules -l 0.0.0.0 -s &
+```
 
+{!generic/misp-modules.md!}
+
+```bash
 echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
 echo "User  (misp) DB Password: $DBPASSWORD_MISP"
 ```
@@ -493,7 +491,7 @@ sudo apt install python3-zmq -y
 
 In case you are using a virtualenv make sure pyzmq is installed therein.
 ```bash
-sudo -u www-data /var/www/MISP/venv/bin/pip install pyzmq
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install pyzmq
 ```
 
 {!generic/misp-dashboard-debian.md!}
