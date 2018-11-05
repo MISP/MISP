@@ -1696,7 +1696,7 @@ function indexAddRule(param) {
 			var operator = operators[escape($('#EventSearchbool').val())];
 			if (value != "" && filtering[param.data.param1][operator].indexOf(value) < 0) filtering[param.data.param1][operator].push(value);
 		}
-	} else if (filterContext = 'user') {
+	} else if (filterContext == 'user') {
 		if (differentFilters.indexOf(param.data.param1) != -1) {
 			var value = escape($('#UserSearch' + param.data.param1).val());
 			if (value != "") filtering[param.data.param1] = value;
