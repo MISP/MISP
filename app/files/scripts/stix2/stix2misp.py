@@ -90,7 +90,7 @@ class StixParser():
             if 'external_references' in report:
                 self.add_links(report.external_references)
             for ref in report.object_refs:
-                if 'relationship' not in ref:
+                if not any(field in ref for field in ('relationship', 'report')):
                     object_type, uuid = ref.split('--')
                     object2parse = self.event[object_type][uuid]
                     self.parsing_process(object2parse, object_type)
