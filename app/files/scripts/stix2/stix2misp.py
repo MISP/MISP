@@ -904,6 +904,7 @@ class ExternalStixParser(StixParser):
                                  ('x509-certificate',): self.parse_observable_x509,
                                  ('url',): self.parse_observable_url,
                                  ('windows-registry-key',): self.parse_observable_regkey}
+        self.pattern_forbidden_relations = (' LIKE ', ' FOLLOWEDBY ', ' MATCHES ', ' ISSUBSET ', ' ISSUPERSET ', ' REPEATS ')
 
     def handler(self):
         self.version_attribute = {'type': 'text', 'object_relation': 'version', 'value': self.stix_version}
@@ -962,16 +963,17 @@ class ExternalStixParser(StixParser):
         return tuple(sorted(types))
 
     def parse_external_pattern(self, pattern):
-        if ' OR ' in pattern and ' AND ' not in pattern:
-            pattern = pattern.split('OR')
-            for p in pattern:
-                attribute = self.attribute_from_external_pattern(p)
-                self.misp_event.add_attribute(**attribute)
-        elif ' OR ' not in pattern and ' LIKE ' not in pattern:
-            pattern = pattern.split('AND')
-            if len(pattern) == 1:
-                attribute = self.attribute_from_external_pattern(pattern[0])
-                self.misp_event.add_attribute(**attribute)
+        if not any(relation in pattern for relation in self.pattern_forbidden_relations):
+            if ' OR ' in pattern and ' AND ' not in pattern:
+                pattern = pattern.split('OR')
+                for p in pattern:
+                    attribute = self.attribute_from_external_pattern(p)
+                    self.misp_event.add_attribute(**attribute)
+            elif ' OR ' not in pattern and ' LIKE ' not in pattern:
+                pattern = pattern.split('AND')
+                if len(pattern) == 1:
+                    attribute = self.attribute_from_external_pattern(pattern[0])
+                    self.misp_event.add_attribute(**attribute)
 
     def parse_external_vulnerability(self, o):
         attribute = {'type': 'vulnerability', 'value': o.get('name')}
