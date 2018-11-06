@@ -2836,6 +2836,7 @@ $(".eventViewAttributePopup").click(function() {
 			success:function (html) {
 				ajaxResults[type + "_" + id] = html;
 			},
+			async: false,
 			cache: false,
 			url:"/attributes/hoverEnrichment/" + id,
 		});
