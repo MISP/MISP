@@ -1,5 +1,5 @@
 <div class="servers form">
-	<div style="position:absolute;right:40px;width:300px;top:90px;">
+    <div style="position:absolute;right:40px;width:300px;top:90px;">
 		<label for="TemplateSelect">Templates</label>
 		<?php
 			$options = '<option value="">None</option>';
@@ -9,6 +9,11 @@
 			echo sprintf('<select id="TemplateSelect">%s</select>', $options);
 		?>
 		<div id="apiInfo"></div>
+	</div>
+
+	<div style="position:absolute;left:800px;width:calc(100% - 1200px);top:196px;">
+		<div id="querybuilder"></div>
+        <button id="btn-apply" type="button" class="btn btn-success"><i class="glyphicon glyphicon-send"></i> Apply </button>
 	</div>
 <?php echo $this->Form->create('Server');?>
     <fieldset>
@@ -121,8 +126,26 @@
         endif;
     ?>
 </div>
+
 <?php
     echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'rest'));
+?>
+
+<?php
+    echo $this->Html->script('/querybuilder/bootstrap3.3.7.js');
+    echo $this->Html->css('/querybuilder/bootstrap3.3.7.min.css');
+    echo $this->Html->css('/querybuilder/bootstrap-datepicker3.min.css');
+    echo $this->Html->script('/querybuilder/bootstrap-datepicker.min.js');
+    echo $this->Html->css('/querybuilder/bootstrap-select.min.css');
+    echo $this->Html->script('/querybuilder/bootstrap-select.min.js');
+    echo $this->Html->script('/querybuilder/doT.js');
+    echo $this->Html->script('/querybuilder/extendext.js');
+    echo $this->Html->script('/querybuilder/interact.min.js');
+    echo $this->Html->script('/querybuilder/moment.js');
+    echo $this->Html->css('/querybuilder/query-builder.default.css');
+    echo $this->Html->script('/querybuilder/query-builder.js');
+    echo $this->Html->css('/querybuilder/chosen.min.css');
+    echo $this->Html->script('/querybuilder/chosen.jquery.min.js');
 ?>
 <script type="text/javascript">
 	// tooltips
@@ -152,8 +175,12 @@
 		}
 	}
 
+    var allValidApis;
+    var fieldsConstraint;
+    var querybuilderTool;
 	$(document).ready(function () {
-		var allValidApis = <?php echo json_encode($allValidApis); ?>;
+		allValidApis = <?php echo json_encode($allValidApis); ?>;
+        fieldsConstraint = <?php echo json_encode($allValidApisFieldsContraint); ?>;
 		insertRawRestResponse();
 		$('.format-toggle-button').bind('click', function() {
 			$('#rest-response-container').empty();
@@ -176,10 +203,114 @@
 				$('#ServerUrl').val(allValidApis[selected_template].url);
 				$('#ServerBody').val(allValidApis[selected_template].body);
 				setApiInfoBox();
+                updateQueryTool(selected_template);
 			}
 		});
+
+        /* Query builder */
+
+        // Fix for Bootstrap Datepicker
+        $('#builder-widgets').on('afterUpdateRuleValue.queryBuilder', function(e, rule) {
+            if (rule.filter.plugin === 'datepicker') {
+                rule.$el.find('.rule-value-container input').datepicker('update');
+            }
+        });
+
+        querybuilderTool = $('#querybuilder').queryBuilder({
+              plugins: {
+                'filter-description' : {
+                    mode: 'inline'
+                },
+                'unique-filter': null,
+                'bt-tooltip-errors': null,
+                //'bt-selectpicker': null,
+                //'chosen-selectpicker': null,
+                'bt-checkbox': null,
+                //'invert': null,
+                'not-group': null
+            },
+            allow_empty: true,
+
+            filters: [{
+                id: 'noValidFilters',
+                label: 'No valid filters, Pick an endpoint first',
+                type: 'string'
+            }],
+        });
+        querybuilderTool = querybuilderTool[0].queryBuilder;
+        
+        $('#btn-apply').on('click', function() {
+            var result = querybuilderTool.getRules();
+            
+            if (!$.isEmptyObject(result)) {
+                alert(JSON.stringify(result, null, 2));
+            }
+        });
 	});
-	$(function () {
-		$('#myTab a:last').tab('show');
-	})
 </script>
+
+<script>
+    function updateQueryTool(url) {
+        var apiJson = $.extend({}, allValidApis[url]);
+        var filtersJson = $.extend({}, fieldsConstraint[url]);
+        console.log(apiJson);
+        console.log(filtersJson);
+        var filters = [];
+        for (var k in filtersJson) {
+            if (filtersJson.hasOwnProperty(k)) {
+                var filter = filtersJson[k];
+                var helptext = filter.help;
+                if (helptext !== undefined) {
+                    filter.description = helptext;
+                }
+                filter.unique = filter.unique !== undefined ? filter.unique : true;
+                filters.push(filter);
+            }
+        }
+        if (filters.length > 0) {
+            querybuilderTool.setFilters(true, filters);
+        }
+
+        // add and lock mandatory fields
+        var mandatoryFields = apiJson.mandatory;
+        if (mandatoryFields !== undefined && mandatoryFields.length > 0) {
+            var rules = {
+                "condition": "AND",
+                "rules": [
+                    {
+                        "condition": "AND",
+                        "rules": [],
+                        "not": false,
+                        "valid": true,
+                        "flags": {
+                            "condition_readonly": true,
+                            "no_add_rule": true,
+                            "no_add_group": true,
+                            "no_delete": true
+                        }
+                    }
+                ],
+                "not": false,
+                "valid": true
+            };
+            mandatoryFields.forEach(function(mandatory) {
+                var r = filtersJson[mandatory];
+                r.flags = {
+                    no_delete: true,
+                    filter_readonly: true
+                };
+                rules.rules[0].rules.push(r);
+            })
+        } else {
+            var rules = {
+                "condition": "AND",
+                "rules": [],
+                "not": false,
+                "valid": true
+            };
+        }
+
+        querybuilderTool.setRules(rules, false);
+    }
+</script>
+

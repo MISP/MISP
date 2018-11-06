@@ -13,7 +13,7 @@ class RestResponseComponent extends Component
 
 	private $___setup = false;
 
-    private $__descriptions = array(
+    public $__descriptions = array(
         'Attribute' => array(
             'add' => array(
                 'description' => "POST a MISP Attribute JSON to this API to create an Attribute.",
@@ -194,8 +194,8 @@ class RestResponseComponent extends Component
         'SharingGroup' => array(
             'add' => array(
                 'description' => "POST a Sharing Group object in JSON format to this API to add a Sharing Group. The API will also try to capture attached organisations and servers if applicable to the current user.",
-                'mandatory' => array('name', 'releasability'),
-                'optional' => array('description', 'uuid', 'organisation_uuid (sync/site admin only)', 'active', 'created', 'modified', 'roaming', 'Server' => array('url', 'name', 'all_orgs'), 'Organisation' => array('uuid', 'name', 'extend'))
+                'mandatory' => array('AND' => array('name', 'releasability')),
+                'optional' => array('description', 'uuid', 'organisation_uuid (sync/site admin only)', 'active', 'created', 'modified', 'roaming', 'Server #FIXME API help display not working' => array('url', 'name', 'all_orgs'), 'Organisation' => array('uuid', 'name', 'extend'))
             ),
             'edit' => array(
                 'description' => "POST a Sharing Group object in JSON format to this API to edit a Sharing Group. The API will also try to capture attached organisations and servers if applicable to the current user.",
@@ -215,7 +215,7 @@ class RestResponseComponent extends Component
                 'params' => array('tag_id')
             ),
             'removeTag' => array(
-                'description' => "POST a request object in JSON format to this API to create detach a tag from an event.",
+                'description' => "POST a request object in JSON format to this API to create detach a tag from an event. #FIXME Function does not exists",
                 'mandatory' => array('event', 'tag'),
                 'params' => array('tag_id')
             ),
@@ -246,6 +246,9 @@ class RestResponseComponent extends Component
 			)
 		)
     );
+
+    public $__scopedFieldsConstraint = array();
+
 
 	public function getAllApis($user, $Server)
 	{
@@ -293,6 +296,28 @@ class RestResponseComponent extends Component
 		}
 		return $result;
 	}
+
+	public function getAllApisFieldsConstraint($user, $Server)
+	{
+		$this->__setup();
+		$result = array();
+		foreach ($this->__scopedFieldsConstraint as $controller => $actions) {
+			$controller = Inflector::tableize($controller);
+			foreach ($actions as $action => $data) {
+				if ($Server->ACL->checkAccess($user, $controller, $action, true) === true) {
+					$admin_routing = '';
+					if (substr($action, 0, 6) === 'admin_') {
+						$action = substr($action, 6);
+						$admin_routing = 'admin/';
+					}
+					$url = '/' . $admin_routing . $controller . '/' . $action;
+					$result[$url] = $data;
+				}
+			}
+		}
+		return $result;
+	}
+
 
 	// use a relative path to check if the current api has a description
 	public function getApiInfo($relative_path)
@@ -466,7 +491,911 @@ class RestResponseComponent extends Component
 					'params' => $this->__descriptions[$scope]['restSearch']['params']
 				);
 			}
+            $this->__setupFieldsConstraint();
 		}
 		return true;
 	}
+
+
+    private $__fieldsConstraint = array(
+        'returnFormat' => array(
+            'input' => 'select',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'values' => array('json', 'openioc', 'xml', 'suricata', 'snort', 'text', 'rpz', 'csv', 'cache', 'stix', 'stix2'),
+        ),
+        'page' => array(
+            'input' => 'number',
+            'type' => 'integer',
+            'operators' => array('equal', 'not_equal'),
+            'validation' => array('min' => 0, 'step' => 1)
+        ),
+        'limit' => array(
+            'input' => 'number',
+            'type' => 'integer',
+            'operators' => array('equal', 'not_equal'),
+            'validation' => array('min' => 0, 'step' => 1)
+        ),
+        'value' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal', 'not_equal')
+        ),
+        'type' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal', 'not_equal'),
+        ),
+        'category' => array(
+            'input' => 'select',
+            'type' => 'string',
+            'operators' => array('equal', 'not_equal'),
+            'values' => array('type1', 'type2', 'type3')
+        ),
+        'to_ids' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'uuid' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal', 'not_equal')
+        ),
+        'distribution' => array(
+            'input' => 'select',
+            'type' => 'integer',
+            'operators' => ['equal', 'not_equal'],
+            'values' => array( 0 => 'Organisation', 1 => 'Community', 2 => 'Connected communities', 3 => 'All communities', 4 => 'Sharing group')
+        ),
+
+        'sharing_group_id' => array(
+            'input' => 'number',
+            'type' => 'integer',
+            'operators' => array('equal', 'not_equal'),
+            'validation' => array('min' => 0, 'step' => 1)
+        ),
+        'sharinggroup' => array(
+            'input' => 'number',
+            'type' => 'integer',
+            'operators' => array('equal', 'not_equal'),
+            'validation' => array('min' => 0, 'step' => 1),
+            'help' => 'Sharing group ID'
+        ),
+
+        'timestamp' => array(
+            'input' => 'number',
+            'type' => 'integer',
+            'operators' => array('equal', 'not_equal'),
+            'validation' => array('min' => 0, 'step' => 1)
+        ),
+        'comment' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal', 'not_equal')
+        ),
+        'id' => array(
+            'input' => 'number',
+            'type' => 'integer',
+            'operators' => array('equal', 'not_equal'),
+            'validation' => array('min' => 0, 'step' => 1)
+        ),
+        'event_id' => array(
+            'input' => 'number',
+            'type' => 'integer',
+            'operators' => array('equal', 'not_equal'),
+            'validation' => array('min' => 0, 'step' => 1)
+        ),
+        'allow_hard_delete' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'from' => array(
+            'input' => 'number',
+            'type' => 'integer',
+            'operators' => array('equal', 'not_equal'),
+            'validation' => array('min' => 0, 'step' => 1)
+        ),
+        'to' => array(
+            'input' => 'number',
+            'type' => 'integer',
+            'operators' => array('equal', 'not_equal'),
+            'validation' => array('min' => 0, 'step' => 1)
+        ),
+        'last' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal', 'not_equal')
+        ),
+
+        'threat_level_id' => array(
+            'input' => 'select',
+            'type' => 'integer',
+            'operators' => ['equal', 'not_equal'],
+            'values' => array( 1 => 'Hight', 2 => 'Medium', 3 => 'Low', 4 => 'Undefined')
+        ),
+        'threatlevel' => array(
+            'input' => 'select',
+            'type' => 'integer',
+            'operators' => ['equal', 'not_equal'],
+            'values' => array( 1 => 'Hight', 2 => 'Medium', 3 => 'Low', 4 => 'Undefined')
+        ),
+
+
+        'org' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal', 'not_equal'),
+            'help' => 'Can be either the ORG_ID or the ORG_NAME'
+        ),
+        'withAttachments' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+
+        'publish_timestamp' => array(
+            'input' => 'number',
+            'type' => 'integer',
+            'operators' => array('equal', 'not_equal'),
+            'validation' => array('min' => 0, 'step' => 1)
+        ),
+        'publishtimestamp' => array(
+            'input' => 'number',
+            'type' => 'integer',
+            'operators' => array('equal', 'not_equal'),
+            'validation' => array('min' => 0, 'step' => 1)
+        ),
+
+        'enforceWarningList' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'deleted' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'includeEventUuid' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'includeEventTags' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'eventid' => array(
+            'input' => 'number',
+            'type' => 'integer',
+            'operators' => array('equal', 'not_equal'),
+            'validation' => array('min' => 0, 'step' => 1)
+        ),
+        'enforceWarninglist' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'event_timestamp' => array(
+            'input' => 'number',
+            'type' => 'integer',
+            'operators' => array('equal', 'not_equal'),
+            'validation' => array('min' => 0, 'step' => 1)
+        ),
+        'eventinfo' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal', 'not_equal')
+        ),
+        'info' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal', 'not_equal')
+        ),
+        'analysis' => array(
+            'input' => 'select',
+            'type' => 'integer',
+            'operators' => array('equal', 'not_equal'),
+            'values' => array( 0 => 'Initial', 1 => 'Ongoing', 2 => 'Completed')
+        ),
+        'published' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'date' => array(
+            'input' => 'number',
+            'type' => 'date',
+            'validation' => array( 'format' => 'YYYY-MM-DD' ),
+            'plugin' => 'datepicker',
+            'plugin_config' => array(
+                'format' => 'yyyy/mm/dd',
+                'todayBtn' => 'linked',
+                'todayHighlight' => true,
+                'autoclose' => true
+            ),
+        ),
+        'attribute' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal', 'not_equal'),
+            'help' => 'Filter on attribute value'
+        ),
+        'datefrom' => array(
+            'input' => 'number',
+            'type' => 'date',
+            'validation' => array( 'format' => 'YYYY-MM-DD' ),
+            'plugin' => 'datepicker',
+            'plugin_config' => array(
+                'format' => 'yyyy/mm/dd',
+                'todayBtn' => 'linked',
+                'todayHighlight' => true,
+                'autoclose' => true
+            ),
+        ),
+        'dateuntil' => array(
+            'input' => 'number',
+            'type' => 'date',
+            'validation' => array( 'format' => 'YYYY-MM-DD' ),
+            'plugin' => 'datepicker',
+            'plugin_config' => array(
+                'format' => 'yyyy/mm/dd',
+                'todayBtn' => 'linked',
+                'todayHighlight' => true,
+                'autoclose' => true
+            ),
+        ),
+
+        'all' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'searchall' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+
+        'email' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal', 'not_equal'),
+            'help' => 'Filter on user email'
+        ),
+        'hasproposal' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'minimal' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' ),
+            'help' => 'Will only return  id, timestamp, published and uuid'
+        ),
+        'metadata' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' ),
+            'help' => 'Will not return Attributes, shadow attribute and objects'
+        ),
+        'sgReferenceOnly' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' ),
+            'help' => 'Will only return the sharing group ID'
+        ),
+        'source_format' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'values' => array( 'misp' => 'MISP Feed', 'freetext' => 'Freetext Parsed Feed', 'csv' => 'CSV Parsed Feed')
+        ),
+        'url' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal', 'not_equal'),
+        ),
+        'name' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal', 'not_equal'),
+        ),
+        'provider' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal', 'not_equal'),
+        ),
+        'enabled' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'caching_enabled' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'delete_local_file' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'lookup_visible' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'input_source' => array(
+            'input' => 'select',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'values' => array( 'network' => 'Network', 'local' => 'Local')
+        ),
+        'target_event' => array(
+            'input' => 'number',
+            'type' => 'integer',
+            'operators' => array('equal'),
+            'validation' => array('min' => 0, 'step' => 1),
+            'help' => 'The provided ID will be reused as an existing event'
+        ),
+        'fixed_event' => array(
+            'input' => 'select',
+            'type' => 'integer',
+            'operators' => array('equal'),
+            'values' => array( 0 => 'New Event Each Pull', 1 => 'Fixed Event'),
+            'help' => 'target_event option might be considered'
+        ),
+        'publish' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'override_ids' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'delta_merge' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'tag_id' => array(
+            'input' => 'number',
+            'type' => 'integer',
+            'operators' => array('equal'),
+            'validation' => array('min' => 0, 'step' => 1),
+            'help' => 'A tad ID to attach to created events'
+        ),
+        'headers' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => 'Headers to be passed with the requests. All separated by `\n`'
+        ),
+        'model' => array(
+            'input' => 'select',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'values' => array('Attribute', 'Event', 'EventBlacklist', 'EventTag', 'MispObject', 'Organisation', 'Post', 'Regexp', 'Role', 'Server', 'ShadowAttribute', 'SharingGroup', 'Tag', 'Task', 'Taxonomy', 'Template', 'Thread', 'User', 'Whitelist'),
+        ),
+        'model_id' => array(
+            'input' => 'number',
+            'type' => 'integer',
+            'operators' => array('equal'),
+            'validation' => array('min' => 0, 'step' => 1),
+        ),
+        'change' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+        ),
+        'title' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+        ),
+        'description' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+        ),
+        'created' => array(
+            'input' => 'number',
+            'type' => 'date',
+            'validation' => array( 'format' => 'YYYY-MM-DD' ),
+            'plugin' => 'datepicker',
+            'plugin_config' => array(
+                'format' => 'yyyy/mm/dd',
+                'todayBtn' => 'linked',
+                'todayHighlight' => true,
+                'autoclose' => true
+            ),
+        ),
+        'action' => array(
+            'input' => 'select',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'values' => array('TODO: autogenerated'),
+        ),
+        'user_id' => array(
+            'input' => 'number',
+            'type' => 'integer',
+            'operators' => array('equal'),
+            'validation' => array('min' => 0, 'step' => 1),
+        ),
+        'ip' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+        ),
+        'nationality' => array(
+            'input' => 'select',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'values' => array('TODO: autogenerated'),
+        ),
+        'sector' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+        ),
+        'contacts' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+        ),
+        'local' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'perm_sync' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'perm_audit' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'perm_auth' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'perm_sighting' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'perm_admin' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'perm_delegate' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'perm_site_admin' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'perm_regexp_access' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'perm_tagger' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'perm_template' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'perm_sharing_group' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'perm_tag_editor' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'default_role' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'permission' => array(
+            'input' => 'select',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'values' => array(0 =>'Read Only', 1 => 'Manage Own Events', 2 => 'Manage Organisation Events', 3 => 'Manage and Publish Organisation Events'),
+        ),
+        'remote_org_id' => array(
+            'input' => 'number',
+            'type' => 'integer',
+            'operators' => array('equal'),
+            'validation' => array('min' => 0, 'step' => 1),
+        ),
+        'authkey' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+        ),
+        'push' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'pull' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'submitted_cert' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => 'Base64 encoded certificate',
+        ),
+        'submitted_client_cert' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => 'Base64 encoded certificate',
+        ),
+        'json' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => 'JSON containing ID, UUID and name',
+        ),
+        'values' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => 'An array containing values to sight. i.e. `[v1, v2]`',
+        ),
+        'source' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+        ),
+        'time' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => 'Time of the form `h:i:s`',
+        ),
+        'org_id' => array(
+            'input' => 'number',
+            'type' => 'integer',
+            'operators' => array('equal'),
+            'validation' => array('min' => 0, 'step' => 1),
+        ),
+        'includeAttribute' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'includeEvent' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'releasability' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+        ),
+        'organisation_uuid (sync/site admin only)' => array(
+            'input' => 'number',
+            'type' => 'integer',
+            'operators' => array('equal'),
+            'validation' => array('min' => 0, 'step' => 1),
+        ),
+        'active' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'modified' => array(
+            'input' => 'number',
+            'type' => 'date',
+            'validation' => array( 'format' => 'YYYY-MM-DD' ),
+            'plugin' => 'datepicker',
+            'plugin_config' => array(
+                'format' => 'yyyy/mm/dd',
+                'todayBtn' => 'linked',
+                'todayHighlight' => true,
+                'autoclose' => true
+            ),
+        ),
+        'roaming' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'all_orgs' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'extend' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'colour' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => 'A valid hexadecimal colour `#ffffff`',
+        ),
+        'exportable' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'hide_tag' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'role_id' => array(
+            'input' => 'select',
+            'type' => 'integer',
+            'operators' => array('equal'),
+            'validation' => array(0 => ''),
+            'help' => 'TODO Auto generate',
+        ),
+        'external_auth_required' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'external_auth_key' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => 'A valid auth key',
+        ),
+        'enable_password' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'password' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+        ),
+        'nids_sid' => array(
+            'input' => 'number',
+            'type' => 'integer',
+            'operators' => array('equal'),
+            'validation' => array('min' => 0, 'step' => 1),
+        ),
+        'server_id' => array(
+            'input' => 'number',
+            'type' => 'integer',
+            'operators' => array('equal'),
+            'validation' => array('min' => 0, 'step' => 1),
+        ),
+        'gpgkey' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => 'A valid GPG '
+        ),
+        'certif_public' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => 'A valid x509 certificate '
+        ),
+        'autoalert' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'contactalert' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'disabled' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'change_pw' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'termsaccepted' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' )
+        ),
+        'newsread' => array(
+            'input' => 'number',
+            'type' => 'integer',
+            'operators' => array('equal'),
+            'validation' => array('min' => 0, 'step' => 1),
+        ),
+        'subject' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+        ),
+        'body' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+        ),
+
+
+
+        '[]' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => 'Not supported (warninglist->checkvalues) expect an array'
+        ),
+        'tags' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => 'Not supported (restSearch)'
+        ),
+        'tag' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => 'Not supported (removeTag)'
+        ),
+        'event' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => 'Not supported (removeTag)'
+        ),
+        'push_rules' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => 'Not supported'
+        ),
+        'pull_rules' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => 'Not supported'
+        ),
+        'rules' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => 'Not supported'
+        ),
+
+        'settings' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => 'Not supported'
+        ),
+        'network_name' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => 'Not supported'
+        ),
+        'network_json' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => 'Not supported'
+        ),
+        'Attribute' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => 'Not supported'
+        ),
+        'Object' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => 'Not supported'
+        ),
+        'EventTag' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => 'Not supported'
+        ),
+        'Shadow_Attribute' => array(
+            'input' => 'text',
+            'type' => 'string',
+            'operators' => array('equal'),
+            'help' => 'Not supported'
+        ),
+    );
+
+    private function __setupFieldsConstraint() {
+        foreach ($this->__descriptions as $scope => $desc) {
+            foreach ($desc as $action => $params) {
+                $fieldsConstraint = array();
+                foreach ($params as $paramType => $field) {
+                    if ($paramType == 'optional' || $paramType == 'mandatory') {
+                        $fields = array_values($field);
+                        if (!empty($fields)) {
+                            foreach($fields as $field) {
+                                if (is_array($field)) {
+                                    foreach($field as $sf) {
+                                        $fieldsConstraint[$sf] = $this->__fieldsConstraint[$sf];
+                                        $label = $scope . '.' . $sf;
+                                        $fieldsConstraint[$sf]['id'] = $label;
+                                        $fieldsConstraint[$sf]['label'] = $label;
+                                    }
+                                } else {
+                                    $fieldsConstraint[$field] = $this->__fieldsConstraint[$field];
+                                    $label = $scope . '.' . $field;
+                                    $fieldsConstraint[$field]['id'] = $label;
+                                    $fieldsConstraint[$field]['label'] = $label;
+                                }
+
+                                switch($field) {
+                                    case "type":
+                                        $this->__overwriteType($scope, $fieldsConstraint[$field]);
+                                        break;
+                                    default:
+                                        break;
+                                }
+
+                            }
+                        }
+                    }
+                }
+                $this->__scopedFieldsConstraint[$scope][$action] = $fieldsConstraint;
+            }
+        }
+    }
+
+    // Fetch the correct values based on the scope
+    private function __overwriteType($scope, &$field) {
+        $field['input'] = 'select';
+        switch($scope) {
+            case "Attribute":
+                $field['values'] = array_keys(ClassRegistry::init($scope)->typeDefinitions);
+                break;
+            case "Event":
+                $field['values'] = array_keys(ClassRegistry::init("Attribute")->typeDefinitions);
+                break;
+            case "Sighting":
+                $field['values'] = ClassRegistry::init($scope)->type;
+                break;
+            default:
+                $field['input'] = 'text';
+                break;
+        }
+    }
 }

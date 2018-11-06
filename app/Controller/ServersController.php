@@ -1615,6 +1615,7 @@ class ServersController extends AppController
     public function rest()
     {
 		$allValidApis = $this->RestResponse->getAllApis($this->Auth->user(), $this);
+		$allValidApisFieldsContraint = $this->RestResponse->getAllApisFieldsConstraint($this->Auth->user(), $this);
         if ($this->request->is('post')) {
             $request = $this->request->data;
             if (!empty($request['Server'])) {
@@ -1637,6 +1638,7 @@ class ServersController extends AppController
             'Content-Type: application/json';
         $this->set('header', $header);
 		$this->set('allValidApis', $allValidApis);
+		$this->set('allValidApisFieldsContraint', $allValidApisFieldsContraint);
     }
 
     private function __doRestQuery($request, &$curl = false, &$python = false)
@@ -1793,6 +1795,7 @@ misp.direct_call(relative_path, body)
 	public function getApiInfo() {
 		$relative_path = $this->request->data['url'];
 		$result = $this->RestResponse->getApiInfo($relative_path);
+        //$fieldsConstraint = $this->RestResponse->getFieldsConstraint($relative_path);
 		if ($this->_isRest()) {
 			return $result;
 		} else {
@@ -1806,6 +1809,5 @@ misp.direct_call(relative_path, body)
 			$this->render('ajax/get_api_info');
 		}
 	}
-
 
 }
