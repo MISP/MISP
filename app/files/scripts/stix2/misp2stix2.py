@@ -24,19 +24,19 @@ from misp2stix2_mapping import *
 from collections import defaultdict
 from copy import deepcopy
 
-misp_hash_types = ["authentihash", "ssdeep", "imphash", "md5", "sha1", "sha224",
-                   "sha256", "sha384", "sha512", "sha512/224","sha512/256","tlsh"]
-attack_pattern_galaxies_list = ['mitre-attack-pattern', 'mitre-enterprise-attack-attack-pattern',
-                                'mitre-mobile-attack-attack-pattern', 'mitre-pre-attack-attack-pattern']
-course_of_action_galaxies_list = ['mitre-course-of-action', 'mitre-enterprise-attack-course-of-action',
-                                  'mitre-mobile-attack-course-of-action']
-intrusion_set_galaxies_list = ['mitre-enterprise-attack-intrusion-set', 'mitre-mobile-attack-intrusion-set',
-                               'mitre-pre-attack-intrusion-set', 'mitre-intrusion-set']
-malware_galaxies_list = ['android', 'banker', 'stealer', 'backdoor', 'ransomware', 'mitre-malware',
-                         'mitre-enterprise-attack-malware', 'mitre-mobile-attack-malware']
-threat_actor_galaxies_list = ['threat-actor', 'microsoft-activity-group']
-tool_galaxies_list = ['botnet', 'rat', 'exploit-kit', 'tds', 'tool', 'mitre-tool',
-                      'mitre-enterprise-attack-tool', 'mitre-mobile-attack-tool']
+misp_hash_types = ("authentihash", "ssdeep", "imphash", "md5", "sha1", "sha224",
+                   "sha256", "sha384", "sha512", "sha512/224","sha512/256","tlsh")
+attack_pattern_galaxies_list = ('mitre-attack-pattern', 'mitre-enterprise-attack-attack-pattern',
+                                'mitre-mobile-attack-attack-pattern', 'mitre-pre-attack-attack-pattern')
+course_of_action_galaxies_list = ('mitre-course-of-action', 'mitre-enterprise-attack-course-of-action',
+                                  'mitre-mobile-attack-course-of-action')
+intrusion_set_galaxies_list = ('mitre-enterprise-attack-intrusion-set', 'mitre-mobile-attack-intrusion-set',
+                               'mitre-pre-attack-intrusion-set', 'mitre-intrusion-set')
+malware_galaxies_list = ('android', 'banker', 'stealer', 'backdoor', 'ransomware', 'mitre-malware',
+                         'mitre-enterprise-attack-malware', 'mitre-mobile-attack-malware')
+threat_actor_galaxies_list = ('threat-actor', 'microsoft-activity-group')
+tool_galaxies_list = ('botnet', 'rat', 'exploit-kit', 'tds', 'tool', 'mitre-tool',
+                      'mitre-enterprise-attack-tool', 'mitre-mobile-attack-tool')
 
 class StixBuilder():
     def __init__(self):

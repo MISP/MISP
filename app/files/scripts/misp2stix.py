@@ -75,15 +75,17 @@ TLP_mapping = {'0' : 'AMBER', '1' : 'GREEN', '2' : 'GREEN', '3' : 'GREEN', '4' :
 TLP_order = {'RED' : 4, 'AMBER' : 3, 'GREEN' : 2, 'WHITE' : 1}
 confidence_mapping = {False : 'None', True : 'High'}
 
-not_implemented_attributes = ['yara', 'snort', 'pattern-in-traffic', 'pattern-in-memory']
+not_implemented_attributes = ('yara', 'snort', 'pattern-in-traffic', 'pattern-in-memory')
 
-non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', 'target-email', 'target-machine', 'target-org', 'target-location', 'target-external', 'vulnerability']
+non_indicator_attributes = ('text', 'comment', 'other', 'link', 'target-user', 'target-email', 'target-machine',
+                            'target-org', 'target-location', 'target-external', 'vulnerability')
 
-hash_type_attributes = {"single": ["md5", "sha1", "sha224", "sha256", "sha384", "sha512", "sha512/224", "sha512/256", "ssdeep",
-                                   "imphash", "authentihash", "pehash", "tlsh", "x509-fingerprint-sha1"],
-                        "composite": ["filename|md5", "filename|sha1", "filename|sha224", "filename|sha256", "filename|sha384",
-                                      "filename|sha512", "filename|sha512/224", "filename|sha512/256", "filename|authentihash",
-                                      "filename|ssdeep", "filename|tlsh", "filename|imphash", "filename|pehash"]}
+hash_type_attributes = {"single": ("md5", "sha1", "sha224", "sha256", "sha384", "sha512", "sha512/224", "sha512/256",
+                                   "ssdeep", "imphash", "authentihash", "pehash", "tlsh", "x509-fingerprint-sha1"),
+                        "composite": ("filename|md5", "filename|sha1", "filename|sha224", "filename|sha256",
+                                      "filename|sha384", "filename|sha512", "filename|sha512/224", "filename|sha512/256",
+                                      "filename|authentihash", "filename|ssdeep", "filename|tlsh", "filename|imphash",
+                                      "filename|pehash")}
 
 # mapping for the attributes that can go through the simpleobservable script
 misp_cybox_name = {"domain" : "DomainName", "hostname" : "Hostname", "url" : "URI", "AS" : "AutonomousSystem", "mutex" : "Mutex",
