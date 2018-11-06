@@ -77,17 +77,20 @@ class StixParser():
 
     def build_from_STIX_with_report(self):
         report_attributes = defaultdict(set)
-        for _, report in self.event['report'].items():
-            report_attributes['orgs'].add(report['created_by_ref'].split('--')[1])
-            report_attributes['name'].add(report['name'])
+        for report in self.event['report'].values():
+            try:
+                report_attributes['orgs'].add(report.created_by_ref.split('--')[1])
+            except AttributeError:
+                pass
+            report_attributes['name'].add(report.name)
             if report.get('published'):
-                report_attributes['published'].add(report['published'])
+                report_attributes['published'].add(report.published)
             if 'labels' in report:
-                report_attributes['labels'].update([l for l in report['labels']])
+                report_attributes['labels'].update([l for l in report.labels])
             if 'external_references' in report:
-                self.add_links(report['external_references'])
-            for ref in report['object_refs']:
-                if 'relationship' not in ref:
+                self.add_links(report.external_references)
+            for ref in report.object_refs:
+                if not any(field in ref for field in ('relationship', 'report')):
                     object_type, uuid = ref.split('--')
                     object2parse = self.event[object_type][uuid]
                     self.parsing_process(object2parse, object_type)
