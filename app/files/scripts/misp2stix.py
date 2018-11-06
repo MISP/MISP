@@ -1464,7 +1464,6 @@ class StixBuilder(object):
         if '|' in attribute_value:
             attribute_value = attribute_value.split('|')[0]
         if '/' in attribute_value:
-            attribute_value = attribute_value.split('/')[0]
             address_object.category = "cidr"
             condition = "Contains"
         else:
