@@ -2802,7 +2802,7 @@ function toggleSettingSubGroup(group) {
 function runHoverLookup(type, id) {
 	$.ajax({
 		success:function (html) {
-			ajaxResults[type + "_" + id] = html;
+			ajaxResults["hover"][type + "_" + id] = html;
 			$('.popover').remove();
 			$('#' + type + '_' + id + '_container').popover({
 				title: 'Lookup results:',
@@ -2832,18 +2832,18 @@ $(".eventViewAttributePopup").click(function() {
 	$('#screenshot_box').empty();
 	type = $(this).attr('data-object-type');
 	id = $(this).attr('data-object-id');
-	if (!(type + "_" + id in ajaxResults)) {
+	if (!(type + "_" + id in ajaxResults["persistent"])) {
 		$.ajax({
 			success:function (html) {
-				ajaxResults[type + "_" + id] = html;
+				ajaxResults["persistent"][type + "_" + id] = html;
 			},
 			async: false,
 			cache: false,
 			url:"/attributes/hoverEnrichment/" + id + "/1",
 		});
 	}
-	if (type + "_" + id in ajaxResults) {
-		var enrichment_popover = ajaxResults[type + "_" + id];
+	if (type + "_" + id in ajaxResults["persistent"]) {
+		var enrichment_popover = ajaxResults["persistent"][type + "_" + id];
 		enrichment_popover += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
 		$('#screenshot_box').html('<div class="screenshot_content">' + enrichment_popover + '</div>');
 		$('#screenshot_box').show();
@@ -2862,10 +2862,10 @@ $(".eventViewAttributeHover").mouseenter(function() {
 	$('.popover').remove();
 	type = $(this).attr('data-object-type');
 	id = $(this).attr('data-object-id');
-	if (type + "_" + id in ajaxResults) {
+	if (type + "_" + id in ajaxResults["hover"]) {
 		$('#' + type + '_' + id + '_container').popover({
 			title: 'Lookup results:',
-			content: ajaxResults[type + "_" + id],
+			content: ajaxResults["hover"][type + "_" + id],
 			placement: 'top',
 			html: true,
 			trigger: 'hover',
