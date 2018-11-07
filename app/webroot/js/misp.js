@@ -2829,6 +2829,7 @@ $(".cortex-json").click(function() {
 
 // add the same as below for click popup
 $(".eventViewAttributePopup").click(function() {
+	$('#screenshot_box').empty();
 	type = $(this).attr('data-object-type');
 	id = $(this).attr('data-object-id');
 	if (!(type + "_" + id in ajaxResults)) {
@@ -2838,18 +2839,21 @@ $(".eventViewAttributePopup").click(function() {
 			},
 			async: false,
 			cache: false,
-			url:"/attributes/hoverEnrichment/" + id,
+			url:"/attributes/hoverEnrichment/" + id + "/1",
 		});
 	}
 	if (type + "_" + id in ajaxResults) {
 		var enrichment_popover = ajaxResults[type + "_" + id];
 		enrichment_popover += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
-		$('#screenshot_box').html(enrichment_popover);
+		$('#screenshot_box').html('<div class="screenshot_content">' + enrichment_popover + '</div>');
 		$('#screenshot_box').show();
 		$("#gray_out").fadeIn();
-		$('#screenshot_box').css({'padding': '5px'});
-		$('#screenshot_box').css( "maxWidth", ( $( window ).width() * 0.9 | 0 ) + "px" );
-		left = ($(window).width() / 2) - ($('#screenshot_box').width() / 2);
+		$('#screenshot_box').css('top', '50px');
+		$('#screenshot_box').css('padding', '5px');
+		$('#screenshot_box').css("maxWidth", ( $( window ).width() * 0.9 | 0 ) + "px" );
+		$('.screenshot_content').css("maxHeight", ( $( window ).height() - 120 | 0 ) + "px" );
+		$('.screenshot_content').css("overflow-y", "auto");
+		var left = ($(window).width() / 2) - ($('#screenshot_box').width() / 2);
 		$('#screenshot_box').css({'left': left + 'px'});
 	}
 });
