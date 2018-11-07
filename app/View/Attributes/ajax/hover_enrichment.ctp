@@ -7,10 +7,10 @@
 					if (!is_numeric($key)) {
 						echo '<div class="blue" style="margin-left:10px;">' . h($key) . ':</div>';
 					}
-					echo '<div class="red" style="margin-left:20px;">' . str_replace('\n', '<br />', nl2br(h($value))) . '</div>';
+					echo '<div class="red" style="margin-left:20px;"><pre class="red" style="border:0px;">' . h($value) . '</pre></div>';
 				}
 			} else {
-				echo '<div class="red" style="margin-left:20px;">' . str_replace('\n', '<br />', nl2br(h($v))) . '</div>';
+				echo '<div style="margin-left:20px;"><pre class="red" style="border:0px;">' . h($v) . '</pre></div>';
 			}
         endforeach;
     endforeach;
