@@ -1910,8 +1910,13 @@ class EventsController extends AppController
         // check if private and user not authorised to edit
         if (!$this->_isSiteAdmin() && !($this->userRole['perm_sync'] && $this->_isRest())) {
             if (($this->Event->data['Event']['orgc_id'] != $this->_checkOrg()) || !($this->userRole['perm_modify'])) {
-                $this->Flash->error(__('You are not authorised to do that. Please consider using the \'propose attribute\' feature.'));
-                $this->redirect(array('controller' => 'events', 'action' => 'index'));
+				$message = __('You are not authorised to do that. Please consider using the \'propose attribute\' feature.');
+				if ($this->_isRest()) {
+					throw new MethodNotAllowedException($message);
+				} else {
+	                $this->Flash->error($message);
+	                $this->redirect(array('controller' => 'events', 'action' => 'index'));
+				}
             }
         }
         if (!$this->_isRest()) {
