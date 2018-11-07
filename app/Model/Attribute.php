@@ -118,8 +118,8 @@ class Attribute extends AppModel
     );
 
 	public $validFormats = array(
-		'openioc' => array('xml', 'OpeniocExport', 'ioc'),
 		'json' => array('json', 'JsonExport', 'json'),
+		'openioc' => array('xml', 'OpeniocExport', 'ioc'),
 		'xml' => array('xml', 'XmlExport', 'xml'),
 		'suricata' => array('txt', 'NidsSuricataExport', 'rules'),
 		'snort' => array('txt', 'NidsSnortExport', 'rules'),
