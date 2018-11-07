@@ -1157,6 +1157,7 @@ def from_misp(reports):
 
 def main(args):
     stix_event = defaultdict(dict)
+    stix_event['relationship'] = defaultdict(list)
     filename = os.path.join(os.path.dirname(args[0]), args[1])
     with open(filename, 'rt', encoding='utf-8') as f:
         event = stix2.parse(f.read(), allow_custom=True)
@@ -1165,10 +1166,12 @@ def main(args):
             object_type = parsed_object._type
         except AttributeError:
             object_type = parsed_object['type']
-        object_uuid = parsed_object['id'].split('--')[1]
         if object_type.startswith('x-misp-object'):
             object_type = 'x-misp-object'
-        stix_event[object_type][object_uuid] = parsed_object
+        if object_type == 'relationship':
+            stix_event[object_type][parsed_object.source_ref.split('--')[1]].append(parsed_object)
+        else:
+            stix_event[object_type][parsed_object['id'].split('--')[1]] = parsed_object
     if not stix_event:
         print(json.dumps({'success': 0, 'message': 'There is no valid STIX object to import'}))
         sys.exit(1)
