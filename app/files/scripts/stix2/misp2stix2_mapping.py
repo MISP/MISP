@@ -43,7 +43,6 @@ def observable_domain_ip(_, attribute_value):
     return domain
 
 def pattern_domain_ip(_, attribute_value):
-    address_type = define_address_type(attribute_value)
     domain_value, ip_value = attribute_value.split('|')
     domain = pattern_domain(_, domain_value)[1:-1]
     domain += " AND domain-name:resolves_to_refs[*].value = '{}'".format(ip_value)

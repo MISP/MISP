@@ -7,16 +7,14 @@ import datetime
 import re
 import ntpath
 import socket
-from pymisp import MISPEvent
 from copy import deepcopy
-from dateutil.tz import tzutc
 from stix.indicator import Indicator
 from stix.indicator.valid_time import ValidTime
 from stix.ttp import TTP, Behavior
 from stix.ttp.malware_instance import MalwareInstance
-from stix.incident import Incident, Time, ImpactAssessment, ExternalID, AffectedAsset, AttributedThreatActors
+from stix.incident import Incident, Time, ExternalID, AffectedAsset, AttributedThreatActors
 from stix.exploit_target import ExploitTarget, Vulnerability
-from stix.incident.history import JournalEntry, History, HistoryItem
+from stix.incident.history import History, HistoryItem
 from stix.threat_actor import ThreatActor
 from stix.core import STIXPackage, STIXHeader
 from stix.common import InformationSource, Identity
@@ -35,7 +33,6 @@ from cybox.objects.uri_object import URI
 from cybox.objects.pipe_object import Pipe
 from cybox.objects.mutex_object import Mutex
 from cybox.objects.artifact_object import Artifact, RawArtifact
-from cybox.objects.memory_object import Memory
 from cybox.objects.email_message_object import EmailMessage, EmailHeader, EmailRecipients, Attachments
 from cybox.objects.domain_name_object import DomainName
 from cybox.objects.win_registry_key_object import RegistryValue, RegistryValues, WinRegistryKey
@@ -713,7 +710,7 @@ class StixBuilder(object):
 
     def parse_credential_authentication(self, authentication, attributes_dict):
         if len(attributes_dict['type']) == len(attributes_dict['password']):
-            return self.parse_authentication_simple_case(authentication)
+            return self.parse_authentication_simple_case(authentication, attributes_dict)
         authentication_list = []
         if 'type' in attributes_dict:
             credential_types = attributes_dict['type']
@@ -932,7 +929,7 @@ class StixBuilder(object):
                     try:
                         referenced_attribute_type = reference['Object']['name']
                     except KeyError:
-                        references_attribute_type = reference['Attribute']['type']
+                        referenced_attribute_type = reference['Attribute']['type']
                     related_object.idref = "{}:{}-{}".format(self.namespace_prefix, referenced_attribute_type, reference['referenced_uuid'])
                     related_object.relationship = "Connected_To"
                     observable.object_.related_objects.append(related_object)
@@ -984,7 +981,6 @@ class StixBuilder(object):
 
     def parse_whois(self, misp_object):
         to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object['Attribute'])
-        n_attribute = len(attributes_dict)
         whois_object = WhoisEntry()
         for attribute in attributes_dict:
             if attribute and "registrant-" in attribute:
@@ -1615,7 +1611,6 @@ class StixBuilder(object):
     @staticmethod
     def set_color(colors):
         tlp_color = 0
-        color = None
         for color in colors:
             color_num = TLP_order[color]
             if color_num > tlp_color:
