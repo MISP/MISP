@@ -2632,7 +2632,7 @@ class AttributesController extends AppController
         $this->redirect('/pages/display/administration');
     }
 
-    public function hoverEnrichment($id)
+    public function hoverEnrichment($id, $persistent = false)
     {
         $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'flatten' => 1));
         if (empty($attribute)) {
@@ -2665,6 +2665,9 @@ class AttributesController extends AppController
                 throw new MethodNotAllowedException(__('No valid enrichment options found for this attribute.'));
             }
             $data = array('module' => $type, $attribute[0]['Attribute']['type'] => $attribute[0]['Attribute']['value']);
+			if ($persistent) {
+				$data['persistent'] = 1;
+			}
             if (!empty($options)) {
                 $data['config'] = $options;
             }
