@@ -312,7 +312,7 @@ class StixParser():
 
     def handle_object_relationship(self, misp_object, uuid):
         for reference in self.relationship[uuid]:
-            target = reference.target_ref
+            target = reference.target_ref.split('--')[1]
             if target not in self.galaxy:
                 misp_object.add_reference(target, reference.relationship_type)
 
