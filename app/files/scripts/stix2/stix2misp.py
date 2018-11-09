@@ -949,6 +949,7 @@ class ExternalStixParser(StixParser):
                                    ('windows-registry-key',): self.parse_regkey_observable}
         self.pattern_mapping = {('file',): self.parse_file_pattern,
                                 ('network-traffic',): self.parse_network_traffic_pattern,
+                                ('process',): self.parse_process_pattern,
                                 ('windows-registry-key',): self.parse_regkey_pattern}
         self.pattern_forbidden_relations = (' LIKE ', ' FOLLOWEDBY ', ' MATCHES ', ' ISSUBSET ', ' ISSUPERSET ', ' REPEATS ')
 
@@ -1163,6 +1164,11 @@ class ExternalStixParser(StixParser):
         attributes = self.attributes_from_process_observable(objects)
         self.handle_import_case(attributes, 'process', uuid)
 
+    def parse_process_pattern(self, pattern, uuid=None):
+        pattern_types, pattern_values = self.get_types_and_values_from_pattern(pattern)
+        attributes = self.fill_pattern_attributes(pattern_types, pattern_values, process_mapping)
+        self.object_case_import(attributes, 'process', uuid)
+
     def parse_regkey_observable(self, objects, uuid):
         _object = objects['0']
         attributes = self.attributes_from_regkey_observable(_object)
@@ -1254,10 +1260,13 @@ class ExternalStixParser(StixParser):
                         attribute['Galaxy'] = galaxies
             self.misp_event.add_attribute(**attribute)
         else:
-            misp_object = self.create_misp_object(attributes, name, uuid)
-            if uuid is not None and uuid in self.relationship:
-                self.handle_object_relationship(misp_object, uuid)
-            self.misp_event.add_object(**misp_object)
+            self.object_case_import(attributes, name, uuid)
+
+    def object_case_import(self, attributes, name, uuid):
+        misp_object = self.create_misp_object(attributes, name, uuid)
+        if uuid is not None and uuid in self.relationship:
+            self.handle_object_relationship(misp_object, uuid)
+        self.misp_event.add_object(**misp_object)
 
     def parse_galaxies(self, galaxy_object):
         return self.parse_external_galaxy(galaxy_object)
