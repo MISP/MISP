@@ -264,6 +264,18 @@ class StixParser():
         return attributes
 
     @staticmethod
+    def attributes_from_regkey_pattern(types, values):
+        attributes = []
+        for type_, value in zip(types, values):
+            try:
+                mapping = regkey_mapping[type_]
+                attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                                   'to_ids': True, 'value': value.replace('\\\\', '\\')})
+            except KeyError:
+                continue
+        return attributes
+
+    @staticmethod
     def attributes_from_url_observable(objects):
         attributes = []
         for value in objects.values():
@@ -947,7 +959,8 @@ class ExternalStixParser(StixParser):
                                    ('x509-certificate',): self.parse_x509_observable,
                                    ('url',): self.parse_url_observable,
                                    ('windows-registry-key',): self.parse_regkey_observable}
-        self.pattern_mapping = {('file',): self.parse_file_pattern}
+        self.pattern_mapping = {('file',): self.parse_file_pattern,
+                                ('windows-registry-key',): self.parse_regkey_pattern}
         self.pattern_forbidden_relations = (' LIKE ', ' FOLLOWEDBY ', ' MATCHES ', ' ISSUBSET ', ' ISSUPERSET ', ' REPEATS ')
 
     def handler(self):
@@ -1159,6 +1172,11 @@ class ExternalStixParser(StixParser):
     def parse_regkey_observable(self, objects, uuid):
         _object = objects['0']
         attributes = self.attributes_from_regkey_observable(_object)
+        self.handle_import_case(attributes, 'registry-key', uuid)
+
+    def parse_regkey_pattern(self, pattern, uuid=None):
+        pattern_types, pattern_values = self.get_types_and_values_from_pattern(pattern)
+        attributes = self.attributes_from_regkey_pattern(pattern_types, pattern_values)
         self.handle_import_case(attributes, 'registry-key', uuid)
 
     def parse_url_observable(self, objects, uuid):

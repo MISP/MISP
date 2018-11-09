@@ -258,7 +258,8 @@ regkey_mapping = {'data': data_attribute_mapping,
                   'name': regkey_name_attribute_mapping,
                   'windows-registry-key:name': regkey_name_attribute_mapping,
                   'key': key_attribute_mapping,
-                  'windows-registry-key:key': key_attribute_mapping
+                  'windows-registry-key:key': key_attribute_mapping,
+                  'windows-registry-key:value': {'type': 'text', 'relation': 'hive'}
                   }
 
 url_mapping = {'url': url_attribute_mapping,
