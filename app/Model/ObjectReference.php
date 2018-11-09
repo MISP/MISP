@@ -242,7 +242,7 @@ class ObjectReference extends AppModel
         }
         $this->create();
         unset($reference['id']);
-        $reference['referenced_type'] = $referenced_type;
+        $reference['referenced_type'] = array_keys($objectTypes, $referenced_type)[0]);
         $reference['object_id'] = $sourceObject['Object']['id'];
         $reference['referenced_id'] = $referencedObject[$referenced_type]['id'];
         $reference['referenced_uuid'] = $referencedObject[$referenced_type]['uuid'];
