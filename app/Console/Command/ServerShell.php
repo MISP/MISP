@@ -129,26 +129,54 @@ class ServerShell extends AppShell
 			$jobId = $this->Job->id;
 		}
 		$this->Job->read(null, $jobId);
-		$result = $this->Feed->downloadFromFeedInitiator($feedId, $user, $jobId);
-		$this->Job->id = $jobId;
-		if (!$result) {
-			$message = 'Job Failed.';
-			$this->Job->save(array(
-					'id' => $jobId,
-					'message' => $message,
-					'progress' => 0,
-					'status' => 3
+		$outcome = array(
+			'id' => $jobId,
+			'message' => 'Job done.',
+			'progress' => 100,
+			'status' => 4
+		);
+		if ($feedId == 'all') {
+			$feedIds = $this->Feed->find('list', array(
+				'fields' => array('Feed.id', 'Feed.id'),
+				'conditions' => array('Feed.enabled' => 1)
 			));
+			$feedIds = array_values($feedIds);
+			$successes = 0;
+			$fails = 0;
+			foreach ($feedIds as $k => $feedId) {
+				$jobStatus = array(
+					'id' => $jobId,
+					'message' => 'Fetching feed: ' . $feedId,
+					'progress' => 100 * $k / count($feedIds),
+					'status' => 0
+				);
+				$this->Job->id = $jobId;
+				$this->Job->save($jobStatus);
+				$result = $this->Feed->downloadFromFeedInitiator($feedId, $user);
+				if ($result) {
+					$successes++;
+				} else {
+					$fails++;
+				}
+			}
+			$outcome['message'] = 'Job done. ' . $successes . ' feeds pulled successfuly, ' . $fails . ' feeds could not be pulled.';
 		} else {
-			$message = 'Job done.';
-			$this->Job->save(array(
-					'id' => $jobId,
-					'message' => $message,
-					'progress' => 100,
-					'status' => 4
+			$temp = $this->Feed->find('first', array(
+				'fields' => array('Feed.id', 'Feed.id'),
+				'conditions' => array('Feed.enabled' => 1, 'Feed.id' => $feedId)
 			));
+			if (!empty($temp)) {
+				$result = $this->Feed->downloadFromFeedInitiator($feedId, $user, $jobId);
+				if (!$result) {
+					$outcome['progress'] = 0;
+					$outcome['status'] = 3;
+					$outcome['message'] = 'Job failed.';
+				}
+			}
 		}
-		echo $message . PHP_EOL;
+		$this->Job->id = $jobId;
+		$this->Job->save($outcome);
+		echo $outcome['message'] . PHP_EOL;
 	}
 
 	public function cacheFeed() {

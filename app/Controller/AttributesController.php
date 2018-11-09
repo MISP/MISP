@@ -877,8 +877,13 @@ class AttributesController extends AppController
                     || $this->userRole['perm_modify_org'])) {
                 // Allow the edit
             } else {
-                $this->Flash->error(__('Invalid attribute.'));
-                $this->redirect(array('controller' => 'events', 'action' => 'index'));
+				$message = __('Invalid attribute.');
+				if ($this->_isRest()) {
+					throw new MethodNotAllowedException($message);
+				} else {
+                	$this->Flash->error($message);
+                	$this->redirect(array('controller' => 'events', 'action' => 'index'));
+				}
             }
         }
         if (!$this->_isRest()) {
