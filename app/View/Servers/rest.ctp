@@ -15,7 +15,9 @@
 	</div>
 
 	<div style="position:absolute;left:770px;width:calc(100% - 1130px);top:100px;">
-		<h3 id="selected-path" class="selected-path-header">---</h3>
+        <div class="selected-path-container">
+		    <h3 id="selected-path" >---</h3>
+        </div>
 		<div id="querybuilder"></div>
         <button id="btn-inject" type="button" class="btn btn-success"><i class="fa fa-mail-forward" style="transform: scaleX(-1);"></i> Inject </button>
         <button id="btn-apply" type="button" class="btn btn-default"><i class="fa fa-list-alt"></i> Show rules </button>
@@ -260,7 +262,6 @@
             injectQuerybuilterRulesToBody();
         });
 
-
         /* Apply jquery chosen where applicable */
         $("#TemplateSelect").chosen();
 	});
@@ -268,8 +269,8 @@
 
 <script>
     function updateQueryTool(url) {
-        var apiJson = $.extend({}, allValidApis[url]);
-        var filtersJson = $.extend({}, fieldsConstraint[url]);
+        var apiJson = allValidApis[url];
+        var filtersJson = fieldsConstraint[url];
         var filters = [];
         for (var k in filtersJson) {
             if (filtersJson.hasOwnProperty(k)) {
@@ -328,6 +329,21 @@
             };
         }
 
+        // add Params input field
+        var paramFields = apiJson.params;
+        $('#divAdditionalParamInput').remove();
+        if (paramFields !== undefined && paramFields.length > 0) {
+            var div = $('.selected-path-container');
+            var additionalInput = $('<div class="query-builder">'
+                    + '<div class="rules-list">'
+                        + '<div id="divAdditionalParamInput" class="rule-container">'
+                            + '<input id="paramInput" class="form-control" type="text" style="margin-bottom: 0px;" placeholder="' + paramFields[0] + '">'
+                        + '</div>'
+                    + '</div>'
+                + '</div>');
+            div.append(additionalInput);
+        }
+
         querybuilderTool.setRules(rules, false);
     }
 
@@ -338,6 +354,13 @@
         var jres = JSON.stringify(result, null, '    ');
         $('#ServerBody').val(jres);
 
+        // inject param to url
+        var param = $('#paramInput').val();
+        if (param !== undefined) {
+            var origVal = $('#ServerUrl').val();
+            var newVal = origVal.replace(/(\[\w+\]){1}/, param);
+            $('#ServerUrl').val(newVal);
+        }
     }
 
     function recursiveInject(result, rules, isNot) {
@@ -371,7 +394,7 @@
 
         var authorizedParamTypes = ['mandatory', 'optional'];
 
-        var todisplay = allValidApis[url].controller + '/' + allValidApis[url].action;
+        var todisplay = allValidApis[url].controller + '/' + allValidApis[url].action + '/';
         $('#selected-path').text(todisplay);
 
         authorizedParamTypes.forEach(function(paramtype) {
