@@ -1386,10 +1386,10 @@ class UsersController extends AppController
             if (!$this->_isSiteAdmin()) {
                 $conditions = array('org_id' => $this->Auth->user('org_id'));
             }
-            if ($this->request->query['recipient'] == 0) {
+            if ($this->request->data['User']['recipient'] == 0) {
                 $recipientEmailList = isset($this->request->query['recipientEmailList']) ? $this->request->query['recipientEmailList'] : 0;
                 $conditions['id'] = $recipientEmailList;
-            } else if ($this->request->query['recipient'] == 2) {
+            } else if ($this->request->data['User']['recipient'] == 2) {
                 if (isset($this->request->query['orgNameList'])) {
                     $conditions['org_id'] = $this->request->query['orgNameList'];
                 }
@@ -1451,29 +1451,25 @@ class UsersController extends AppController
         }
     }
 
+    // mimic fetch admin_email user fetching
     public function admin_email_confirm() {
         if (!$this->_isAdmin()) {
             throw new MethodNotAllowedException();
         }
-        // User has filled in his contact form, send out the email.
-        if ($this->request->is('get')) {
-            $conditions = array();
-            if (!$this->_isSiteAdmin()) {
-                $conditions = array('org_id' => $this->Auth->user('org_id'));
-            }
-            if ($this->request->query['recipient'] == 0) {
-                $recipientEmailList = isset($this->request->query['recipientEmailList']) ? $this->request->query['recipientEmailList'] : 0;
-                $conditions['id'] = $recipientEmailList;
-            } else if ($this->request->query['recipient'] == 2) {
-                if (isset($this->request->query['orgNameList'])) {
-                    $conditions['org_id'] = $this->request->query['orgNameList'];
-                }
-            }
-            $conditions['AND'][] = array('User.disabled' => 0);
-            $users = $this->User->find('list', array('recursive' => -1, 'order' => array('email ASC'), 'conditions' => $conditions, 'fields' => array('email')));
-        } else {
-            $users = array();
+        $conditions = array();
+        if (!$this->_isSiteAdmin()) {
+            $conditions = array('org_id' => $this->Auth->user('org_id'));
         }
+        if ($this->request->query['recipient'] == 0) {
+            $recipientEmailList = isset($this->request->query['recipientEmailList']) ? $this->request->query['recipientEmailList'] : 0;
+            $conditions['id'] = $recipientEmailList;
+        } else if ($this->request->query['recipient'] == 2) {
+            if (isset($this->request->query['orgNameList'])) {
+                $conditions['org_id'] = $this->request->query['orgNameList'];
+            }
+        }
+        $conditions['AND'][] = array('User.disabled' => 0);
+        $users = $this->User->find('list', array('recursive' => -1, 'order' => array('email ASC'), 'conditions' => $conditions, 'fields' => array('email')));
         $this->set('emails', $users);
         $this->set('emailsCount', count($users));
         $this->render('ajax/emailConfirmTemplate');
