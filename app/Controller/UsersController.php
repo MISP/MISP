@@ -1375,17 +1375,18 @@ class UsersController extends AppController
         $this->set('user', $user);
     }
 
-    public function admin_email($isTest=false)
+    public function admin_email($isPreview=false)
     {
         if (!$this->_isAdmin()) {
             throw new MethodNotAllowedException();
         }
-        // User has filled in his contact form, send out the email.
         $isPostOrPut = $this->request->is('post') || $this->request->is('put');
         $conditions = array();
         if (!$this->_isSiteAdmin()) {
             $conditions = array('org_id' => $this->Auth->user('org_id'));
         }
+
+        // harvest parameters
         if ($isPostOrPut) {
             $recipient = $this->request->data['User']['recipient'];
         } else {
@@ -1416,13 +1417,14 @@ class UsersController extends AppController
         $conditions['AND'][] = array('User.disabled' => 0);
 
         // Allow to mimic real form post
-        if ($isTest) {
+        if ($isPreview) {
             $users = $this->User->find('list', array('recursive' => -1, 'order' => array('email ASC'), 'conditions' => $conditions, 'fields' => array('email')));
             $this->set('emails', $users);
             $this->set('emailsCount', count($users));
             $this->render('ajax/emailConfirmTemplate');
         } else {
             $users = $this->User->find('all', array('recursive' => -1, 'order' => array('email ASC'), 'conditions' => $conditions));
+            // User has filled in his contact form, send out the email.
             if ($isPostOrPut) {
                 $this->request->data['User']['message'] = $this->User->adminMessageResolve($this->request->data['User']['message']);
                 $failures = '';
