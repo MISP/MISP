@@ -76,7 +76,7 @@ $(document).ready(function() {
 
     // Confirm before submit
     $('#UserAdminEmailForm').submit(function(e) {
-        var url = 'http://127.0.0.1:8085/admin/users/email_confirm?';
+        var url = 'http://127.0.0.1:8085/admin/users/email/true?';
         url += 'recipient=' + $('#recipient').val();
         url += '&recipientEmailList=' + $('#UserRecipientEmailList').val();
         url += '&orgNameList=' + $('#UserOrgNameList').val();
