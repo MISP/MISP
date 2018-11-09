@@ -199,6 +199,23 @@ class StixParser():
                                'value': '{}|{}'.format(_object.name, md5), 'data': data})
         return attributes
 
+    @staticmethod
+    def attributes_from_file_pattern(types, values):
+        attributes = []
+        for type_, value in zip(types, values):
+            if 'hashes' in type_:
+                hash_type = type_.split('.')[1]
+                attributes.append({'type': hash_type, 'value': value,
+                                   'object_relation': hash_type, 'to_ids': True})
+            else:
+                try:
+                    mapping = file_mapping[type_]
+                    attributes.append({'type': mapping['type'], 'value': value,
+                                       'object_relation': mapping['relation'], 'to_ids': True})
+                except KeyError:
+                    continue
+        return attributes
+
     def attributes_from_ip_port_observable(self, objects):
         ordered_objects = defaultdict(dict)
         for key, value in objects.items():
@@ -930,6 +947,7 @@ class ExternalStixParser(StixParser):
                                    ('x509-certificate',): self.parse_x509_observable,
                                    ('url',): self.parse_url_observable,
                                    ('windows-registry-key',): self.parse_regkey_observable}
+        self.pattern_mapping = {('file',): self.parse_file_pattern}
         self.pattern_forbidden_relations = (' LIKE ', ' FOLLOWEDBY ', ' MATCHES ', ' ISSUBSET ', ' ISSUPERSET ', ' REPEATS ')
 
     def handler(self):
@@ -967,10 +985,7 @@ class ExternalStixParser(StixParser):
         misp_object = {'name': 'stix2-pattern', 'meta-category': 'stix2-pattern',
                        'Attribute': [self.version_attribute, attribute]}
         self.misp_event.add_object(**misp_object)
-        try:
-            self.parse_external_pattern(pattern)
-        except:
-            pass
+        self.parse_external_pattern(pattern, indicator['id'].split('--')[1])
 
     def parse_external_observable(self, observable):
         objects = observable.objects
@@ -988,18 +1003,33 @@ class ExternalStixParser(StixParser):
             types.add(_object._type)
         return tuple(sorted(types))
 
-    def parse_external_pattern(self, pattern):
+    def parse_external_pattern(self, pattern, uuid):
         if not any(relation in pattern for relation in self.pattern_forbidden_relations):
-            if ' OR ' in pattern and ' AND ' not in pattern:
-                pattern = pattern.split('OR')
+            pattern = pattern[1:-1]
+            if ' OR ' in pattern and ' AND ' in pattern:
+                return
+            if ' OR ' in pattern:
+                pattern = pattern.split(' OR ')
                 for p in pattern:
-                    attribute = self.attribute_from_external_pattern(p)
-                    self.misp_event.add_attribute(**attribute)
-            elif ' OR ' not in pattern and ' LIKE ' not in pattern:
-                pattern = pattern.split('AND')
-                if len(pattern) == 1:
-                    attribute = self.attribute_from_external_pattern(pattern[0])
-                    self.misp_event.add_attribute(**attribute)
+                    type_ = tuple([p.split(' = ')[0].split(':')[0]])
+                    try:
+                        self.pattern_mapping[type_]([p.strip()])
+                    except KeyError:
+                        print('{} not parsed at the moment'.format(type_), file=sys.stderr)
+            else:
+                pattern = [p.strip() for p in pattern.split(' AND ')]
+                types = self.parse_external_pattern_types(pattern)
+                try:
+                    self.pattern_mapping[types](pattern, uuid=uuid)
+                except KeyError:
+                    print('{} not parsed at the moment'.format(types), file=sys.stderr)
+
+    @staticmethod
+    def parse_external_pattern_types(pattern):
+        types = set()
+        for p in pattern:
+            types.add(p.split('=')[0].split(':')[0])
+        return tuple(sorted(types))
 
     def parse_external_vulnerability(self, o):
         attribute = {'type': 'vulnerability', 'value': o.get('name')}
@@ -1008,7 +1038,8 @@ class ExternalStixParser(StixParser):
         self.misp_event.add_attribute(**attribute)
 
     @staticmethod
-    def attribute_from_external_pattern(pattern):
+    def attributes_from_external_pattern(pattern):
+        types = self.parse_external_pattern_types()
         pattern_type, pattern_value = pattern.split(' = ')
         pattern_type, pattern_value = pattern_type[1:].strip(), pattern_value[1:-2].strip()
         stix_type, value_type = pattern_type.split(':')
@@ -1051,6 +1082,11 @@ class ExternalStixParser(StixParser):
             self.handle_pe_case(_object.extensions['windows-pebinary-ext'], attributes, uuid)
         else:
             self.handle_import_case(attributes, _object._type, uuid)
+
+    def parse_file_pattern(self, pattern, uuid=None):
+        pattern_types, pattern_values = self.get_types_and_values_from_pattern(pattern)
+        attributes = self.attributes_from_file_pattern(pattern_types, pattern_values)
+        self.handle_import_case(attributes, 'file', uuid)
 
     def parse_file_object_observable(self, objects, uuid):
         file, data = self.extract_data_from_file(objects)
@@ -1142,9 +1178,10 @@ class ExternalStixParser(StixParser):
     ################################################################################
 
     @staticmethod
-    def create_misp_object(attributes, name, uuid):
+    def create_misp_object(attributes, name, uuid=None):
         misp_object = MISPObject(name)
-        misp_object.uuid = uuid
+        if uuid is not None:
+            misp_object.uuid = uuid
         for attribute in attributes:
             misp_object.add_attribute(**attribute)
         return misp_object
@@ -1166,24 +1203,35 @@ class ExternalStixParser(StixParser):
                 misp_object.add_attribute(**{'type': mapping['type'], 'object_relation': mapping['relation'],
                                              'value': value, 'to_ids': False})
 
-    def handle_import_case(self, attributes, name, uuid):
+    @staticmethod
+    def get_types_and_values_from_pattern(pattern):
+        types = []
+        values = []
+        for p in pattern:
+            type_, value = p.split('=')
+            types.append(type_.strip())
+            values.append(value.strip().strip('\''))
+        return types, values
+
+    def handle_import_case(self, attributes, name, uuid=None):
         if len(attributes) == 1:
             attribute = attributes[0]
-            attribute['uuid'] = uuid
-            if uuid in self.relationship:
-                galaxies = []
-                for reference in self.relationship[uuid]:
-                    target = reference.target_ref
-                    if target in self.galaxy:
-                        galaxy = self.galaxy[target]
-                        galaxies.append(self.parse_external_galaxy(galaxy['object']))
-                        galaxy['used'] = True
-                if galaxies:
-                    attribute['Galaxy'] = galaxies
+            if uuid is not None:
+                attribute['uuid'] = uuid
+                if uuid in self.relationship:
+                    galaxies = []
+                    for reference in self.relationship[uuid]:
+                        target = reference.target_ref
+                        if target in self.galaxy:
+                            galaxy = self.galaxy[target]
+                            galaxies.append(self.parse_external_galaxy(galaxy['object']))
+                            galaxy['used'] = True
+                    if galaxies:
+                        attribute['Galaxy'] = galaxies
             self.misp_event.add_attribute(**attribute)
         else:
             misp_object = self.create_misp_object(attributes, name, uuid)
-            if uuid in self.relationship:
+            if uuid is not None and uuid in self.relationship:
                 self.handle_object_relationship(misp_object, uuid)
             self.misp_event.add_object(**misp_object)
 
