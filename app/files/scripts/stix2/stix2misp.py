@@ -264,18 +264,6 @@ class StixParser():
         return attributes
 
     @staticmethod
-    def attributes_from_regkey_pattern(types, values):
-        attributes = []
-        for type_, value in zip(types, values):
-            try:
-                mapping = regkey_mapping[type_]
-                attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
-                                   'to_ids': True, 'value': value.replace('\\\\', '\\')})
-            except KeyError:
-                continue
-        return attributes
-
-    @staticmethod
     def attributes_from_url_observable(objects):
         attributes = []
         for value in objects.values():
@@ -960,6 +948,7 @@ class ExternalStixParser(StixParser):
                                    ('url',): self.parse_url_observable,
                                    ('windows-registry-key',): self.parse_regkey_observable}
         self.pattern_mapping = {('file',): self.parse_file_pattern,
+                                ('network-traffic',): self.parse_network_traffic_pattern,
                                 ('windows-registry-key',): self.parse_regkey_pattern}
         self.pattern_forbidden_relations = (' LIKE ', ' FOLLOWEDBY ', ' MATCHES ', ' ISSUBSET ', ' ISSUPERSET ', ' REPEATS ')
 
@@ -1165,6 +1154,11 @@ class ExternalStixParser(StixParser):
             attributes.extend(self.parse_remaining_references(references, mapping))
         self.handle_import_case(attributes, name, uuid)
 
+    def parse_network_traffic_pattern(self, pattern, uuid=None):
+        pattern_types, pattern_values = self.get_types_and_values_from_pattern(pattern)
+        attributes = self.fill_pattern_attributes(pattern_types, pattern_values, network_traffic_mapping)
+        self.handle_import_case(attributes, 'ip-port', uuid)
+
     def parse_process_observable(self, objects, uuid):
         attributes = self.attributes_from_process_observable(objects)
         self.handle_import_case(attributes, 'process', uuid)
@@ -1176,7 +1170,7 @@ class ExternalStixParser(StixParser):
 
     def parse_regkey_pattern(self, pattern, uuid=None):
         pattern_types, pattern_values = self.get_types_and_values_from_pattern(pattern)
-        attributes = self.attributes_from_regkey_pattern(pattern_types, pattern_values)
+        attributes = self.fill_pattern_attributes(pattern_types, pattern_values, regkey_mapping)
         self.handle_import_case(attributes, 'registry-key', uuid)
 
     def parse_url_observable(self, objects, uuid):
@@ -1220,6 +1214,18 @@ class ExternalStixParser(StixParser):
                 mapping = mapping_dict[stix_type]
                 misp_object.add_attribute(**{'type': mapping['type'], 'object_relation': mapping['relation'],
                                              'value': value, 'to_ids': False})
+
+    @staticmethod
+    def fill_pattern_attributes(types, values, object_mapping):
+        attributes = []
+        for type_, value in zip(types, values):
+            try:
+                mapping = object_mapping[type_]
+                attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                                   'to_ids': True, 'value': value.replace('\\\\', '\\')})
+            except KeyError:
+                continue
+        return attributes
 
     @staticmethod
     def get_types_and_values_from_pattern(pattern):
