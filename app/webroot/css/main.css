@@ -2083,3 +2083,10 @@ table tr:hover .down-expand-button {
     width: calc(100vw - 230px);
     min-width: 1400px;
 }
+
+.restclient-infofield {
+    margin-left: 2px;
+    font-size: smaller;
+    position: relative;
+    bottom: 4px;
+}

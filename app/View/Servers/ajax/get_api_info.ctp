@@ -15,7 +15,17 @@
 							}
 							$value = $temp;
 						}
-						$value = implode('<br />', $value);
+                        $temp = array();
+                        foreach($value as $field) {
+                            if ($key === 'mandatory' || $key === 'optional') {
+                                $infoHtml =  '<i id="infofield-'. $field .'" class="fa fa-info restclient-infofield" style="margin-left: 5px;"></i>';
+                            } else {
+                                $infoHtml = '';
+                            }
+                            $temp[] = $field . $infoHtml;
+                        }
+						$value = implode('<br />', $temp);
+						//$value = implode('<br />', $value);
 					} else {
 						$value = h($value);
 					}

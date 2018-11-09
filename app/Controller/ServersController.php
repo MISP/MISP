@@ -1638,6 +1638,12 @@ class ServersController extends AppController
             'Content-Type: application/json';
         $this->set('header', $header);
 		$this->set('allValidApis', $allValidApis);
+        // formating for optgroup
+        $allValidApisFormated = array();
+		foreach ($allValidApis as $endpoint_url => $endpoint_data) {
+            $allValidApisFormated[$endpoint_data['controller']][] = array('url' => $endpoint_url, 'action' => $endpoint_data['action']);
+		}
+        $this->set('allValidApisFormated', $allValidApisFormated);
 		$this->set('allValidApisFieldsContraint', $allValidApisFieldsContraint);
     }
 

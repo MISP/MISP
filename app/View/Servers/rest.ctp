@@ -3,17 +3,22 @@
 		<label for="TemplateSelect">Templates</label>
 		<?php
 			$options = '<option value="">None</option>';
-			foreach ($allValidApis as $endpoint_url => $endpoint_data) {
-				$options .= sprintf('<option value="%s">%s</option>', $endpoint_url, $endpoint_data['api_name']);
-			}
+            foreach($allValidApisFormated as $scope => $actions) {
+                $options .= sprintf('<optgroup label="%s">', $scope);
+                foreach($actions as $action) {
+			        $options .= sprintf('<option value="%s">%s</option>', $action['url'], $action['action']);
+                }
+            }
 			echo sprintf('<select id="TemplateSelect">%s</select>', $options);
 		?>
-		<div id="apiInfo"></div>
+		<div id="apiInfo" style="margin-top: 15px;"></div>
 	</div>
 
-	<div style="position:absolute;left:800px;width:calc(100% - 1200px);top:196px;">
+	<div style="position:absolute;left:770px;width:calc(100% - 1130px);top:100px;">
+		<h3 id="selected-path" class="selected-path-header">---</h3>
 		<div id="querybuilder"></div>
-        <button id="btn-apply" type="button" class="btn btn-success"><i class="glyphicon glyphicon-send"></i> Apply </button>
+        <button id="btn-inject" type="button" class="btn btn-success"><i class="fa fa-mail-forward" style="transform: scaleX(-1);"></i> Inject </button>
+        <button id="btn-apply" type="button" class="btn btn-default"><i class="fa fa-list-alt"></i> Show rules </button>
 	</div>
 <?php echo $this->Form->create('Server');?>
     <fieldset>
@@ -132,15 +137,8 @@
 ?>
 
 <?php
-    echo $this->Html->script('/querybuilder/bootstrap3.3.7.js');
-    echo $this->Html->css('/querybuilder/bootstrap3.3.7.min.css');
-    echo $this->Html->css('/querybuilder/bootstrap-datepicker3.min.css');
-    echo $this->Html->script('/querybuilder/bootstrap-datepicker.min.js');
-    echo $this->Html->css('/querybuilder/bootstrap-select.min.css');
-    echo $this->Html->script('/querybuilder/bootstrap-select.min.js');
     echo $this->Html->script('/querybuilder/doT.js');
     echo $this->Html->script('/querybuilder/extendext.js');
-    echo $this->Html->script('/querybuilder/interact.min.js');
     echo $this->Html->script('/querybuilder/moment.js');
     echo $this->Html->css('/querybuilder/query-builder.default.css');
     echo $this->Html->script('/querybuilder/query-builder.js');
@@ -150,8 +148,13 @@
 <script type="text/javascript">
 	// tooltips
 	var thread = null;
-	function setApiInfoBox() {
+	function setApiInfoBox(isTyping) {
 		clearTimeout(thread);
+        if (isTyping) {
+            var delay = 200;
+        } else {
+            var delay = 0;
+        }
 		var $this = $(this);
 		var payload = {
 			"url": $('#ServerUrl').val()
@@ -165,10 +168,11 @@
 						data: payload,
 						success:function (data, textStatus) {
 							$('#apiInfo').html(data);
+                            addHoverInfo($('#ServerUrl').data('urlWithoutParam'));
 						}
 					});
 				},
-				1000
+                delay
 			);
 		} else {
 			$('#apiInfo').empty();
@@ -181,6 +185,7 @@
 	$(document).ready(function () {
 		allValidApis = <?php echo json_encode($allValidApis); ?>;
         fieldsConstraint = <?php echo json_encode($allValidApisFieldsContraint); ?>;
+
 		insertRawRestResponse();
 		$('.format-toggle-button').bind('click', function() {
 			$('#rest-response-container').empty();
@@ -193,16 +198,17 @@
 			}
 		});
 		$('#ServerUrl').keyup(function() {
-			setApiInfoBox();
+            $('#TemplateSelect').val($(this).val()).trigger("chosen:updated").trigger("change");
 		});
 		$('#TemplateSelect').change(function() {
 			var selected_template = $('#TemplateSelect').val();
-			if (selected_template !== '') {
+			if (selected_template !== '' && allValidApis[selected_template] !== undefined) {
 				$('#template_description').show();
 				$('#ServerMethod').val('POST');
 				$('#ServerUrl').val(allValidApis[selected_template].url);
+				$('#ServerUrl').data('urlWithoutParam', selected_template);
 				$('#ServerBody').val(allValidApis[selected_template].body);
-				setApiInfoBox();
+				setApiInfoBox(false);
                 updateQueryTool(selected_template);
 			}
 		});
@@ -217,16 +223,13 @@
         });
 
         querybuilderTool = $('#querybuilder').queryBuilder({
-              plugins: {
+            plugins: {
                 'filter-description' : {
                     mode: 'inline'
                 },
                 'unique-filter': null,
                 'bt-tooltip-errors': null,
-                //'bt-selectpicker': null,
-                //'chosen-selectpicker': null,
-                'bt-checkbox': null,
-                //'invert': null,
+                'chosen-selectpicker': null,
                 'not-group': null
             },
             allow_empty: true,
@@ -236,6 +239,13 @@
                 label: 'No valid filters, Pick an endpoint first',
                 type: 'string'
             }],
+            icons: {
+              add_group: 'fa fa-plus-square',
+              add_rule: 'fa fa-plus-circle',
+              remove_group: 'fa fa-minus-square',
+              remove_rule: 'fa fa-minus-circle',
+              error: 'fa fa-exclamation-triangle'
+            }
         });
         querybuilderTool = querybuilderTool[0].queryBuilder;
         
@@ -246,6 +256,13 @@
                 alert(JSON.stringify(result, null, 2));
             }
         });
+        $('#btn-inject').on('click', function() {
+            injectQuerybuilterRulesToBody();
+        });
+
+
+        /* Apply jquery chosen where applicable */
+        $("#TemplateSelect").chosen();
 	});
 </script>
 
@@ -253,8 +270,6 @@
     function updateQueryTool(url) {
         var apiJson = $.extend({}, allValidApis[url]);
         var filtersJson = $.extend({}, fieldsConstraint[url]);
-        console.log(apiJson);
-        console.log(filtersJson);
         var filters = [];
         for (var k in filtersJson) {
             if (filtersJson.hasOwnProperty(k)) {
@@ -262,6 +277,9 @@
                 var helptext = filter.help;
                 if (helptext !== undefined) {
                     filter.description = helptext;
+                }
+                if (filter.input === 'select') {
+                    filter.plugin = 'chosen';
                 }
                 filter.unique = filter.unique !== undefined ? filter.unique : true;
                 filters.push(filter);
@@ -311,6 +329,69 @@
         }
 
         querybuilderTool.setRules(rules, false);
+    }
+
+    function injectQuerybuilterRulesToBody() {
+        var rules_root = querybuilderTool.getRules();
+        var result = {};
+        recursiveInject(result, rules_root, false);
+        var jres = JSON.stringify(result, null, '    ');
+        $('#ServerBody').val(jres);
+
+    }
+
+    function recursiveInject(result, rules, isNot) {
+        if (rules.rules === undefined) { // add to result
+            var field = rules.field.split(".")[1];
+            var value = rules.value;
+            var operator_notequal = rules.operator === 'not_equal' ? true : false;
+            var negate = isNot ^ operator_notequal;
+            value = negate ? '!' + value : value;
+            if (result.hasOwnProperty(field)) {
+                if (Array.isArray(result[field])) {
+                    result[field].push(value);
+                } else {
+                    result[field] = [result[field], value];
+                }
+            } else {
+                result[field] = value;
+            }
+        }
+        else if (Array.isArray(rules.rules)) {
+            rules.rules.forEach(function(subrules) {
+               recursiveInject(result, subrules, isNot ^ rules.not) ;
+            });
+        }
+    }
+
+    function addHoverInfo(url) {
+        if (allValidApis[url] === undefined) {
+            return;
+        }
+
+        var authorizedParamTypes = ['mandatory', 'optional'];
+
+        var todisplay = allValidApis[url].controller + '/' + allValidApis[url].action;
+        $('#selected-path').text(todisplay);
+
+        authorizedParamTypes.forEach(function(paramtype) {
+            if (allValidApis[url][paramtype] !== undefined) {
+                allValidApis[url][paramtype].forEach(function(field) {
+                    if (fieldsConstraint[url][field] !== undefined) { // add icon
+                        var apiInfo = fieldsConstraint[url][field].help;
+                        if(apiInfo !== undefined && apiInfo !== '') {
+                            $('#infofield-'+field).popover({
+                                trigger: 'hover',
+                                //placement: 'right',
+                                content: apiInfo,
+                            });
+                        } else { // no help, delete icon
+                            $('#infofield-'+field).remove();
+                        }
+                    }
+                });
+            }
+        });
     }
 </script>
 
