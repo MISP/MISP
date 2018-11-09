@@ -1386,8 +1386,13 @@ class UsersController extends AppController
             if (!$this->_isSiteAdmin()) {
                 $conditions = array('org_id' => $this->Auth->user('org_id'));
             }
-            if ($this->request->data['User']['recipient'] != 1) {
-                $conditions['id'] = $this->request->data['User']['recipientEmailList'];
+            if ($this->request->query['recipient'] == 0) {
+                $recipientEmailList = isset($this->request->query['recipientEmailList']) ? $this->request->query['recipientEmailList'] : 0;
+                $conditions['id'] = $recipientEmailList;
+            } else if ($this->request->query['recipient'] == 2) {
+                if (isset($this->request->query['orgNameList'])) {
+                    $conditions['org_id'] = $this->request->query['orgNameList'];
+                }
             }
             $conditions['AND'][] = array('User.disabled' => 0);
             $users = $this->User->find('all', array('recursive' => -1, 'order' => array('email ASC'), 'conditions' => $conditions));
@@ -1422,14 +1427,18 @@ class UsersController extends AppController
             $conditions = array('org_id' => $this->Auth->user('org_id'));
         }
         $conditions['User.disabled'] = 0;
-        $temp = $this->User->find('all', array('recursive' => -1, 'fields' => array('id', 'email'), 'order' => array('email ASC'), 'conditions' => $conditions));
+        $temp = $this->User->find('all', array('recursive' => -1, 'fields' => array('id', 'email', 'Organisation.name'), 'order' => array('email ASC'), 'conditions' => $conditions, 'contain' => array('Organisation')));
         $emails = array();
+        $orgName = array();
         // save all the emails of the users and set it for the dropdown list in the form
         foreach ($temp as $user) {
             $emails[$user['User']['id']] = $user['User']['email'];
+            $orgName[$user['Organisation']['id']] = $user['Organisation']['name'];
         }
+
         $this->set('users', $temp);
         $this->set('recipientEmail', $emails);
+        $this->set('orgName', $orgName);
         $this->set('org', Configure::read('MISP.org'));
         $textsToFetch = array('newUserText', 'passwordResetText');
         $this->loadModel('Server');
@@ -1452,9 +1461,13 @@ class UsersController extends AppController
             if (!$this->_isSiteAdmin()) {
                 $conditions = array('org_id' => $this->Auth->user('org_id'));
             }
-            if ($this->request->query['recipient'] != 1) {
+            if ($this->request->query['recipient'] == 0) {
                 $recipientEmailList = isset($this->request->query['recipientEmailList']) ? $this->request->query['recipientEmailList'] : 0;
                 $conditions['id'] = $recipientEmailList;
+            } else if ($this->request->query['recipient'] == 2) {
+                if (isset($this->request->query['orgNameList'])) {
+                    $conditions['org_id'] = $this->request->query['orgNameList'];
+                }
             }
             $conditions['AND'][] = array('User.disabled' => 0);
             $users = $this->User->find('list', array('recursive' => -1, 'order' => array('email ASC'), 'conditions' => $conditions, 'fields' => array('email')));
