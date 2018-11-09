@@ -1442,6 +1442,30 @@ class UsersController extends AppController
         }
     }
 
+    public function admin_email_confirm() {
+        if (!$this->_isAdmin()) {
+            throw new MethodNotAllowedException();
+        }
+        // User has filled in his contact form, send out the email.
+        if ($this->request->is('get')) {
+            $conditions = array();
+            if (!$this->_isSiteAdmin()) {
+                $conditions = array('org_id' => $this->Auth->user('org_id'));
+            }
+            if ($this->request->query['recipient'] != 1) {
+                $recipientEmailList = isset($this->request->query['recipientEmailList']) ? $this->request->query['recipientEmailList'] : 0;
+                $conditions['id'] = $recipientEmailList;
+            }
+            $conditions['AND'][] = array('User.disabled' => 0);
+            $users = $this->User->find('list', array('recursive' => -1, 'order' => array('email ASC'), 'conditions' => $conditions, 'fields' => array('email')));
+        } else {
+            $users = array();
+        }
+        $this->set('emails', $users);
+        $this->set('emailsCount', count($users));
+        $this->render('ajax/emailConfirmTemplate');
+    }
+
     public function initiatePasswordReset($id, $firstTime = false)
     {
         if (!$this->_isAdmin()) {

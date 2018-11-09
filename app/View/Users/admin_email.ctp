@@ -64,12 +64,31 @@ $("#customMessage").change(setAll);
 $("#action").change(populateSubject);
 var subjects = [];
 var standardTexts = [];
+var submitAllowed = false;
 $(document).ready(function() {
     var org = "<?php echo $org;?>";
     subjects = ["", "[" + org + " MISP] " + "<?php echo __('New user registration');?>" , "[" + org + " MISP] " + "<?php echo __('Password reset');?>"];
     standardTexts = ['', '<?php echo h($newUserText); ?>', '<?php echo h($passwordResetText); ?>'];
     //setAll();
+
+    // Confirm before submit
+    $('#UserAdminEmailForm').submit(function(e) {
+        var url = 'http://127.0.0.1:8085/admin/users/email_confirm?';
+        url += 'recipient=' + $('#recipient').val();
+        url += '&recipientEmailList=' + $('#UserRecipientEmailList').val();
+        $.get(url, function(data) {
+	    	$("#confirmation_box").html(data);
+	    	openPopup("#confirmation_box");
+	    });
+        return submitAllowed;
+    });
+
 });
+
+function submitMailsForm() {
+    submitAllowed = true;
+    $('#UserAdminEmailForm').submit();
+}
 
 function populateSubject() {
     $("#UserSubject").val(subjects[$("#action").val()]);
