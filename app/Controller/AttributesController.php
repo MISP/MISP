@@ -1642,9 +1642,11 @@ class AttributesController extends AppController
                 )
 			);
 			$attributes = $this->paginate();
+			$sightingsData = array();
 			if (!$this->_isRest()) {
 				$this->loadModel('GalaxyCluster');
 				$cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
+				$this->loadModel('Sighting');
 				foreach ($attributes as $k => $attribute) {
 					$attributes[$k]['Attribute']['AttributeTag'] = $attributes[$k]['AttributeTag'];
 					$attributes[$k]['Attribute'] = $this->Attribute->Event->massageTags($attributes[$k]['Attribute'], 'Attribute');
@@ -1654,10 +1656,16 @@ class AttributesController extends AppController
 							unset($attributes[$k]['Attribute']['AttributeTag'][$k2]);
 						}
 					}
+					$sightingsData = array_merge(
+						$sightingsData,
+						$this->Sighting->attachToEvent($attribute, $this->Auth->user(), $attributes[$k]['Attribute']['id'], $extraConditions = false)
+					);
 				}
 				$this->loadModel('Galaxy');
 				$this->set('mitreAttackGalaxyId', $this->Galaxy->getMitreAttackGalaxyId());
 			}
+			$sightingsData = $this->Attribute->Event->getSightingData(array('Sighting' => $sightingsData));
+			$this->set('sightingsData', $sightingsData);
 			$this->set('filters', $filters);
 			$this->set('attributes', $attributes);
 			$this->set('isSearch', 1);
