@@ -269,14 +269,14 @@ function acceptObject(type, id, event) {
 	});
 }
 
-function toggleCorrelation(id) {
+function toggleCorrelation(id, skip_reload = false) {
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
 		},
 		data: $('#PromptForm').serialize(),
 		success:function (data, textStatus) {
-			handleGenericAjaxResponse(data);
+			handleGenericAjaxResponse(data, skip_reload);
 			$("#correlation_toggle_" + id).prop('checked', !$("#correlation_toggle_" + id).is(':checked'));
 		},
 		complete:function() {
@@ -431,7 +431,11 @@ function addSighting(type, attribute_id, event_id, page) {
 				$('.sightingsCounter').each(function( counter ) {
 					$(this).html(parseInt($(this).html()) + 1);
 				});
-				updateIndex(event_id, 'event');
+				if (typeof currentUri == 'undefined') {
+					location.reload();
+				} else {
+					updateIndex(event_id, 'event');
+				}
 			}
 		},
 		error:function() {
@@ -570,7 +574,7 @@ function handleAjaxEditResponse(data, name, type, id, field, event) {
 	}
 }
 
-function handleGenericAjaxResponse(data) {
+function handleGenericAjaxResponse(data, skip_reload = false) {
 	if (typeof data == 'string') {
 		responseArray = JSON.parse(data);
 	} else {
@@ -579,7 +583,7 @@ function handleGenericAjaxResponse(data) {
 	if (responseArray.saved) {
 		showMessage('success', responseArray.success);
 		if (responseArray.hasOwnProperty('check_publish')) {
-			checkAndSetPublishedInfo();
+			checkAndSetPublishedInfo(skip_reload);
 		}
 		return true;
 	} else {
@@ -2818,7 +2822,10 @@ $(".eventViewAttributePopup").click(function() {
 		$("#gray_out").fadeIn();
 		$('#screenshot_box').css({'padding': '5px'});
 		$('#screenshot_box').css( "maxWidth", ( $( window ).width() * 0.9 | 0 ) + "px" );
-		left = ($(window).width() / 2) - ($('#screenshot_box').width() / 2);
+		$('#screenshot_box').css( "maxHeight", ( $( window ).width() - 300 | 0 ) + "px" );
+		$('#screenshot_box').css( "overflow-y", "auto");
+
+		var left = ($(window).width() / 2) - ($('#screenshot_box').width() / 2);
 		$('#screenshot_box').css({'left': left + 'px'});
 	}
 });
@@ -3144,9 +3151,9 @@ function quickSubmitGalaxyForm(event_id, cluster_id) {
 	return false;
 }
 
-function checkAndSetPublishedInfo() {
+function checkAndSetPublishedInfo(skip_reload=false) {
 	var id = $('#hiddenSideMenuData').data('event-id');
-	if (id !== 'undefined') {
+	if (id !== 'undefined' && !skip_reload) {
 		$.get( "/events/checkPublishedStatus/" + id, function(data) {
 			if (data == 1) {
 				$('.published').removeClass('hidden');
