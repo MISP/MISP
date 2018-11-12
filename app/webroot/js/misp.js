@@ -301,6 +301,10 @@ function updateIndex(id, context, newPage) {
 	if (typeof newPage !== 'undefined') page = newPage;
 	var url, div;
 	if (context == 'event') {
+		if (typeof currentUri == 'undefined') {
+			location.reload();
+			return true;
+		}
 		url = currentUri;
 		div = "#attributes_div";
 	}

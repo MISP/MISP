@@ -91,14 +91,17 @@
 			$replacePairs = $this->Highlight->build_replace_pairs($keywordArray);
 		}
 		foreach ($attributes as $k => $attribute) {
+			$event = array(
+				'Event' => $attribute['Event'],
+				'Orgc' => $attribute['Event']['Orgc'],
+			);
 			$mayModify = ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id'] && $attribute['Event']['orgc_id'] == $me['org_id']) || ($isAclModifyOrg && $attribute['Event']['orgc_id'] == $me['org_id']));
 			$mayPublish = ($isAclPublish && $attribute['Event']['orgc_id'] == $me['org_id']);
 			$mayChangeCorrelation = !Configure::read('MISP.completely_disable_correlation') && ($isSiteAdmin || ($mayModify && Configure::read('MISP.allow_disabling_correlation')));
 			$mayModify = $attribute['Event']['orgc_id'] === $me['org_id'] ? true : false;
-			$event = array(
-				'Event' => $attribute['Event'],
-				'Orgc' => $attribute['Event']['Orgc']
-			);
+			if (!empty($attribute['Attribute']['RelatedAttribute'])) {
+				$event['RelatedAttribute'] = array($attribute['Attribute']['id'] => $attribute['Attribute']['RelatedAttribute']);
+			}
 			$rows[] =  $this->element('/Events/View/row_attribute', array(
 				'object' => $attribute['Attribute'],
 				'k' => $k,
@@ -178,5 +181,6 @@ $(document).ready(function () {
 		getPopup(attribute_id, 'attributes', 'toggleCorrelation', '', '#confirmation_box');
 		return false;
 	});
+	popoverStartup();
 });
 </script>

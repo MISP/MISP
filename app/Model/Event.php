@@ -740,16 +740,18 @@ class Event extends AppModel
         return $relatedEvents;
     }
 
-    public function getRelatedAttributes($user, $id = null, $sgids, $shadowAttribute = false)
+    public function getRelatedAttributes($user, $id = null, $sgids, $shadowAttribute = false, $scope = 'event')
     {
         $context = $shadowAttribute ? 'ShadowAttribute' : 'Attribute';
         $settings = array(
             'Attribute' => array('model' => 'Attribute', 'correlationModel' => 'Correlation', 'parentIdField' => '1_attribute_id'),
             'ShadowAttribute' => array('model' => 'ShadowAttribute', 'correlationModel' => 'ShadowAttributeCorrelation', 'parentIdField' => '1_shadow_attribute_id')
         );
-        if ($id == null) {
+        if ($scope === 'event' && $id == null) {
             $id = $this->data['Event']['id'];
-        }
+        } else if ($scope === 'attribute' && $id == null) {
+			$id = $this->data['Attribute']['id'];
+		}
         if (!isset($sgids) || empty($sgids)) {
             $sgids = array(-1);
         }
@@ -757,7 +759,7 @@ class Event extends AppModel
         if (!$user['Role']['perm_site_admin']) {
             $conditionsCorrelation = array(
                     'AND' => array(
-                            $settings[$context]['correlationModel'] . '.1_event_id' => $id,
+                            $settings[$context]['correlationModel'] . '.1_' . $scope . '_id' => $id,
                             array(
                                     'OR' => array(
                                             $settings[$context]['correlationModel'] . '.org_id' => $user['org_id'],
@@ -802,7 +804,7 @@ class Event extends AppModel
                     )
             );
         } else {
-            $conditionsCorrelation = array($settings[$context]['correlationModel'] . '.1_event_id' => $id);
+            $conditionsCorrelation = array($settings[$context]['correlationModel'] . '.1_' . $scope . '_id' => $id);
         }
         $max_correlations = Configure::read('MISP.max_correlations_per_event');
         if (empty($max_correlations)) {
@@ -5149,7 +5151,7 @@ class Event extends AppModel
     {
         $data['Galaxy'] = array();
 		if (empty($this->GalaxyCluster)) {
-			$this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');	
+			$this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
 		}
         // unset empty event tags that got added because the tag wasn't exportable
         if (!empty($data[$dataType . 'Tag'])) {
