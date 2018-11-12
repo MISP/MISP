@@ -6945,7 +6945,7 @@ msgid "This event has "
 msgstr "This event has "
 
 #: View/Events/view.ctp:336
-msgid "correlations with data contained within the various feeds, however, due to the large number of attributes the actual feed correlations are not shown. Click (<a href=\"%s\\/overrideLimit:1\">here</a> to refresh the page with the feed data loaded."
+msgid "correlations with data contained within the various feeds, however, due to the large number of attributes the actual feed correlations are not shown. Click <a href=\"%s\\/overrideLimit:1\">here</a> to refresh the page with the feed data loaded."
 msgstr "さまざまなフィードに含まれるデータの相関、しかしながら多数のアトリビュートがあるため、実際のフィードの相関は表示されません。フィードが読み込まれたページを更新するためには<a href=\"%s\\/overrideLimit:1\">ここ</a>をクリックしてください。"
 
 #: View/Events/view.ctp:344

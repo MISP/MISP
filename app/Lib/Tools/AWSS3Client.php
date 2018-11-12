@@ -77,18 +77,25 @@ class AWSS3Client
     }
 
     public function deleteDirectory($prefix) {
-        $keys = $s3->listObjects([
+        $keys = $this->__client->listObjectsV2([
             'Bucket' => $this->__settings['bucket_name'],
             'Prefix' => $prefix
-        ]) ->getPath('Contents/*/Key');
-
-        $s3->deleteObjects([
-            'Bucket'  => $bucket,
-            'Delete' => [
-                'Objects' => array_map(function ($key) {
-                    return ['Key' => $key];
-                }, $keys)
-            ],
         ]);
+
+        $toDelete = array_map(
+            function ($key) {
+                return ['Key' => $key['Key']];
+            },
+            is_array($keys['Contents'])?$keys['Contents']:[]
+        );
+
+        if (sizeof($toDelete) != 0) {
+            $this->__client->deleteObjects([
+                'Bucket'  => $this->__settings['bucket_name'],
+                'Delete' => [
+                    'Objects' => $toDelete
+                ]
+            ]);
+        }
     }
 }

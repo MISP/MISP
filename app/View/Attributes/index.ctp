@@ -135,7 +135,6 @@
         ?>
         </ul>
     </div>
-
 </div>
 <?php
 if ($isSearch == 1){
@@ -158,6 +157,7 @@ $(document).ready(function () {
     $('.screenshot').click(function() {
         screenshotPopup($(this).attr('src'), $(this).attr('title'));
     });
+<<<<<<< HEAD
 	$('.addGalaxy').click(function() {
 		addGalaxyListener(this);
 	});
@@ -182,5 +182,18 @@ $(document).ready(function () {
 		return false;
 	});
 	popoverStartup();
+=======
+    $(document).on('click', function (e) {
+        //did not click a popover toggle or popover
+        if ($(e.target).data('toggle') !== 'popover'
+            && $(e.target).parents('.popover.in').length === 0) {
+            // filter for only defined popover
+            var definedPopovers = $('[data-toggle="popover"]').filter(function(i, e) {
+                    return $(e).data('popover') !== undefined;
+            });
+            definedPopovers.popover('hide');
+        }
+    });
+>>>>>>> 2adef5897cdb233c1541461a97b9b08f15ae5134
 });
 </script>

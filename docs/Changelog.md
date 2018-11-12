@@ -1,6 +1,482 @@
 Changelog
 =========
 
+v2.4 aka 2.4 for ever (current changelog)
+------------------------
+
+New
+---
+- [docs] Added new sub-sections in seperate files that are shared
+  between install guides. new: [docs] ethX.md to bring back eth0 new:
+  [docs] mail to misp install debian flavored guide new: [docs] ssdeep
+  install debian flavored guide new: [docs] viper install debian
+  flavored guide new: [docs] sudo/etckeeper install debian flavored
+  guide new: [docs] misp dashboard install debian flavored guide. [Steve
+  Clement]
+- [docs] Added 3 generic documentation files, one where the MISP install
+  is completed, A specific centos/etc... one because, well, CentOS.. and
+  the generic recommended actions section that kept repeating in all
+  guides. chg: [docs] Implemented the above 3 files in all the guides.
+  Plus some format changes. [Steve Clement]
+- [docs] Added generic notice about community contributed doc
+  maintenance. [Steve Clement]
+- [docs] Added globalVariables files to be included by all Install
+  Guides chg: [tools] Updated dependencies on docs creator chg: [docs]
+  Some minor changes to Ubuntu Install guide and added
+  VariableglobalVariables chg: [docs] Updated mkdocs.yml with new
+  dependencies. [Steve Clement]
+- [docs] Added eXperimental RHEL7.6 (BETA) Install Doc. [Steve Clement]
+- [tools] Added tool to create MISP INSTALL Docs and push to gh-page,
+  plus it fetche latest Changelog.txt. [Steve Clement]
+- [docs] Added intial mkdocs directory. [Steve Clement]
+- [galaxy] Several changes. [iglocska]
+
+  - moved the current uuid field on cluster level to a new "collection_uuid" field to better represent the actual purpose
+  - added new uuid field that actually captures the cluster's uuid
+  - upgrade script is multi-execution safe
+  - added /galaxy_clusters/view to the API
+  - /galaxy_clusters/view can now be queried via the uuid instead of just the ID
+- [API] Added CSV as return format for event index. [iglocska]
+- [API description] Describe how to run diagnostics on MISP via the API.
+  [iglocska]
+- [upgrade] Preparing the data for recovery after the object reference
+  sync fix. [iglocska]
+
+  - update the timestamps of all events / objcts that are affected and are locked = 0
+- [API] Added a way to use the API to throw values at the warninglist
+  for quick evaluations of the values. [iglocska]
+- [logging] Log why an event could not be pulled. [iglocska]
+- [API documentation] Added some missing API templates. [iglocska]
+- [API] Added the log index/search to the API. [iglocska]
+
+  - described in the templates / rest client page
+- [related tags] View the related tags of attributes on the event view
+  (via a toggle) [iglocska]
+
+Changes
+-------
+- [doc] the venv directory needs usr_t profile. [Steve Clement]
+- [doc] Update Centos 6.x and 7.x chg: [doc] re-Added Ubuntu 16.04-LTS
+  as an archived/old INSTALL Guide (tested working) chg: [doc] Adapted
+  some variables in generic scripts. [Steve Clement]
+- [doc] updated Changelog.md to be more markdown friendly chg: [tools]
+  Changed the way gen_misp_install_docs.sh parseses the changelog new:
+  [tools] Added simple tool for git log sanitizing. [Steve Clement]
+- [docs] Added note on RHEL unmaintainability at this point of time, by
+  the core team. [Steve Clement]
+- [tools] Updated gitchangelog.rc for latest version of toll, added to
+  doc generator. [Steve Clement]
+- Bump misp-galaxy & taxonomies. [Raphaël Vinot]
+- [docs] Added generic sections to debian guides. [Steve Clement]
+- [docs] Added a generic directory where all the platform independent
+  files should reside. chg: [docs] Added MISP Defaults via the cake
+  command to seperate file. [Steve Clement]
+- [misp-objects] forensic objects added. [Alexandre Dulaunoy]
+- [misp-galaxy] updated to the latest version. [Alexandre Dulaunoy]
+- [misp-objects] updated to the latest version (including many new
+  objects) [Alexandre Dulaunoy]
+- [docs] More formatting updates and evened both versions out. [Steve
+  Clement]
+- [docs] Compared with bootstrap.sh and added missing dependencies and
+  tools. [Steve Clement]
+- [docs] Added note on when Kali was last tested working. Added RHEL 7.6
+  BETA to index. [Steve Clement]
+- [docs] Leveled both install docs, updated debian testing and verified
+  working. [Steve Clement]
+- [docs] Minor regression, fixed. [Steve Clement]
+- [docs] Leveled both guides, 9.5 moved a little closer to testing.
+  [Steve Clement]
+- [docs] Symlink to rhel7 guide chg: [docs] Made the index a little less
+  messy chg: [docs] A minor (but not automated) change to Changelog.
+  [Steve Clement]
+- [tools] Changed testForBinExec as the x-sharedlib type is not only on
+  OpenBSD, Debian has the same type when check if executable. chg:
+  [tools] Added typeinfo to the return so you see in the UI what type it
+  thinks it is. (In case you forced the parameter on the CLI) [Steve
+  Clement]
+- [misp-objects] updated to the latest version. [Alexandre Dulaunoy]
+- [misp-galaxy] updated to the latest version. [Alexandre Dulaunoy]
+- [docs] More general info about xINSTALL in index. Minor formatting
+  touch-up in license. Added missing sections to mkdocs.yml and adapted
+  it to reflect official MISP repo. [Steve Clement]
+- [docs] Adapted rhel7/Ubuntu18.04/Centos7/UPDATE_Notes to be mkdocs
+  compliant. [Steve Clement]
+- [tools] Added sed to gen_misp_install_docs.sh to replace some
+  formatting tildes which mkdocs does not really understand chg: [docs]
+  Minor touch-up to Changelog.md to correct for formatting issues. chg:
+  [config] Added correct paths to .gitignore for mkdocs. [Steve Clement]
+- [docs] Adapted Debian 9/testing install to mkdocs new: [docs] Added
+  old version of Debian + postgresql guide, needs updating. [Steve
+  Clement]
+- [docs] Added symlinks to new .md to preserve old style for a while.
+  chg: [docs] More details in README.md. [Steve Clement]
+- [docs] Added some symlinks to migrated files. [Steve Clement]
+- [docs] Remove some migrated INSTALL guides, move FreeBSD to old, will
+  not be supported in the future. [Steve Clement]
+- [docs] Typo in UPGRADE.md. [Steve Clement]
+- [docs] Added an old upgrade doc, 2.3 -> 2.4, more as an example then
+  anytyhing else. chg: [docs] Added UPGRADE.md notice for future upgrade
+  steps. [Steve Clement]
+- [docs] Minor formating chage. [Steve Clement]
+- [docs] Removed old Debian stable install guide. [Steve Clement]
+- [docs] Updated Debian install guide. [Steve Clement]
+- [docs] Version bump of OpenBSD to 6.4. [Steve Clement]
+- [docs] Added misp-dashboard instruction, but not really working yet.
+  [Steve Clement]
+- [docs] Another small unattentive typo. [Steve Clement]
+- [docs] Small misp-modules virtualenv typo. [Steve Clement]
+- [docs] Removed old OpenBSD Docs. [Steve Clement]
+- [docs] More or less finalized the Apache2 install. 95% working. [Steve
+  Clement]
+- [docs] Disable native httpd for now added Apache2 conf. [Steve
+  Clement]
+- [docs] Better formatting, more information on the current state of
+  MISP on OpenBSD. [Steve Clement]
+- [docs] Reformated some of the .txt based doc. [Steve Clement]
+- [config] Added mkdocs site directory to be ignored. [Steve Clement]
+- [tools] Added x-sharedlib clause in testForBinExec if on OpenBSD.
+  [Steve Clement]
+- [warninglist] warninglists updated, fixes #3775. [iglocska]
+- [Galaxy] Updated MISP galaxies. [iglocska]
+- Chg: [tools] removed: #@IgnoreInspection BashAddShebang -- Added a
+  better globbing opt: ./* [Steve Clement]
+- [tools] Updated misp-backup and misp-wipe to be a bit more late 2018
+  compliant. [Steve Clement]
+- [tools] Added misp-wipe/misp-backup config file to .gitignore. [Steve
+  Clement]
+- [python] Added and amended varios places where python is called.
+  [Steve Clement]
+- [fix] Some fixed to the python virtualenv tweaks. [Steve Clement]
+- [python] Added initial python virtualenv support, STIX Tests only.
+  [www-data]
+- [i18n] extracted latest strings to default.pot and cake_dev.pot.
+  [Steve Clement]
+- [i18n] New strings in Spanish translation. [Steve Clement]
+- [i18n] Updated to latest jpn translation, minor changes. [Steve
+  Clement]
+- [i18n] Added 100% French translation. Thanks to all involved so far.
+  wq. [Steve Clement]
+- Bump PyMISP & recommended version. [Raphaël Vinot]
+- [misp-galaxy] updated to the latest version. [Alexandre Dulaunoy]
+
+Fix
+---
+- [doc] Included git repo of gitchangelog due to Python 3.7 bug fix not
+  yet in release: https://github.com/vaab/gitchangelog/issues/107.
+  [Steve Clement]
+- [stix import] Importing uuids for objects from external sources.
+  [chrisr3d]
+- [stix import] Importing uuids for STIX files generated via MISP.
+  [chrisr3d]
+- [stix import] Improved uuid fetching. [chrisr3d]
+- [stix import] Better event & attribute distribution parsing.
+  [chrisr3d]
+- [stix import] Supporting DHS stix files with ais marking. [chrisr3d]
+- [stix import] Fixed import of File Objects as single attribute.
+  [chrisr3d]
+- [stix framing] Fixed Related Package(s) xml field typo. [chrisr3d]
+- [stix export] Fixed xml package string replacement. [chrisr3d]
+- [stix2 import] Avoiding errors when the imported file name is not
+  specified. [chrisr3d]
+- [stix2 import] Fixed GalaxyCluster description. [chrisr3d]
+
+  - Since description is optionnal in some STIX 2.0
+    objects, we test if the field is there before
+    trying to use its value
+- [galaxy] added collection uuid capture. [iglocska]
+- [view] Added uuids to galaxy cluster view. [iglocska]
+- [routes] Added route for .csv parsing. [iglocska]
+- \#3769 Att&ck matrix now render multiple kill_chain by column. [Sami
+  Mokaddem]
+- Check if the format is xml or application/xml on __sendResponse. [Tom
+  King]
+- [cleanup] Removed debug from the bug fixing session. [iglocska]
+- [stix2 import] Fixed MISP event info field when importing STIX2
+  without report object. [chrisr3d]
+- [stix2 import] Fixed json dict monkey syntax error. [chrisr3d]
+- [internal] Sharing group capturing fixed, fixes #3573. [iglocska]
+
+  - As reported by @eCrimeLabs
+- [internal] Unneeded model initialisation for
+  getDefaultAttachments_dir() [iglocska]
+- [internal] getPythonVersion woes. [iglocska]
+- [internal] Fix of wonky model function calls across the application
+  for getting default attachment directories. [iglocska]
+- [Galaxy] Various fixes to blocking issues with the galaxy update
+  system, fixes #3773. [iglocska]
+- [API] Handle multiple event IDs being queries or not using the event
+  ID filter when generating the CSV output file names. [iglocska]
+- [internal] Fixes to invalid model function calls. [iglocska]
+- [tools] small typo in she-bang line. [Steve Clement]
+- [stix2 import] Made NetworkTraffic objects import include all the
+  possible cases. [chrisr3d]
+
+  - We were potentially missing some DomainName
+    or IP Address objects data, when it is not
+    a reference of the NetworkTraffic object.
+  - Now we look if we still have some of these
+    objects that did not have been parsed, and
+    in that case, parse them.
+- [stix2 import] Quick change on event loading. [chrisr3d]
+
+  - Specifying the encoding within the file opening
+  - Allows to get rid of 1 'encode()' call
+- [stix2 import] Better parsing for objects that can be imported as
+  either ip-port or network-socket. [chrisr3d]
+- [stix2 import] Supporting STIX 2 files with no report object.
+  [chrisr3d]
+- [stix2 import] Moved the remaining parsing functions from the mapping
+  script to the main script. [chrisr3d]
+
+  - Fixing at the same time some AttributeName errors
+- [stix2 export] Fixed enumeration errors handling. [chrisr3d]
+
+  - More specific exception types
+  - Removed useless try/catch statement
+- [stix2 export] Fixed attributes data parsing. [chrisr3d]
+
+  - With json format, base64 & encode/decode
+    operations are no longer needed since the base64
+    string is already displayed in data
+- [stix2 import] Fixed process import. [chrisr3d]
+
+  Fixing import for cases like:
+  - single process without parent or child
+  - where processes are not referenced as expected
+- [stix2 import] Fixed monkey coder issue. [chrisr3d]
+- [stix2 import] Added missing uuid fields to attributes and objects
+  imported. [chrisr3d]
+- [stix2 import] Quick clean-up. [chrisr3d]
+
+  - Using MISPObject class & attributes instead of
+    adding a MISP object dealing with a dictionary
+  - Using STIX objects attributes instead of
+    ditionary keys
+  - Removed useless 'continue' statement
+- [stix2 import] Parsing file objects in a more generic way between
+  classes. [chrisr3d]
+- [stix2 import] Moved file object parsing function into the subclass.
+  [chrisr3d]
+
+  - Because it is only called by functions of this subclass
+- [stix2 import] Removed useless function. [chrisr3d]
+- [search] Multiple lines didn't correctly get parsed as separate values
+  in the attribute search. [iglocska]
+- [workers] manage workers by default defaulted to false (should be
+  true) [iglocska]
+- [API] Further fixes to the query builder. [iglocska]
+- Travis import/export. [Raphaël Vinot]
+- [API] Further fixes to the tag handling. [iglocska]
+- [API] Handle filters with no valid tags set as filter patterns
+  correctly. [iglocska]
+
+Other
+-----
+- Merge pull request #3802 from SteveClement/guides. [Steve Clement]
+
+  chg: [tools] RHEL7 update status and added gitchangelog to document creation toolchain.
+- Merge branch '2.4' into guides. [Steve Clement]
+- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [Alexandre
+  Dulaunoy]
+- Merge pull request #3803 from garanews/2.4. [Andras Iklody]
+
+  fix accommodate misspelling
+- Fix accommodate misspelling. [garanews]
+
+  accommodate vs accomodate
+- Merge pull request #3799 from garanews/patch-1. [Alexandre Dulaunoy]
+
+  fix separate misspelling
+- Fix separate misspelling. [garanews]
+
+  separate vs seperate
+- Merge pull request #3800 from garanews/patch-2. [Alexandre Dulaunoy]
+
+  fix referred misspelling
+- Fix referred misspelling. [garanews]
+
+  referred vs refered
+- Merge pull request #3798 from SteveClement/guides. [Steve Clement]
+
+  chg: [docs] Major INSTALL Guide update
+- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
+- Merge pull request #3726 from pettai/shibb. [Steve Clement]
+
+  add date_created for provisioned users
+- Add date_created for provisioned users. [Fredrik Pettai]
+
+  add date_created then new users are provisioned via shibbauth
+- Merge pull request #3794 from SteveClement/guides. [Steve Clement]
+
+  chg: [docs] The debian install docs are now fully functional and quite a few format changes to some of the install guides.
+- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
+- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [Alexandre
+  Dulaunoy]
+- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
+- Merge pull request #3784 from SteveClement/guides. [Steve Clement]
+
+  new: [docs] Move INSTALL guides formatting to mkdocs
+- Merge branch '2.4' into guides. [Steve Clement]
+- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
+- Merge pull request #3771 from P4rs3R/patch-3. [Alexandre Dulaunoy]
+
+  Update INSTALL.rhel7.txt
+- Update INSTALL.rhel7.txt. [A. Cristallo]
+
+  Added instruction (at line 109) and updated line 8, minor change.
+  Tested on RHEL 7.5 and CentOS 7.5
+- Merge pull request #3779 from MISP/att&ckMatrixFix. [Alexandre
+  Dulaunoy]
+
+  fix: #3769 Att&ck matrix now render multiple kill_chain by column.
+- Merge pull request #3778 from tomking2/2.4. [Andras Iklody]
+
+  Fixes Issue #3633 - Returned XML has application/json Content-Type header
+- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
+- Merge pull request #3768 from devnull-/#3748_download_files. [Andras
+  Iklody]
+
+  Fix CSV filename #3740
+- Define filename (instead of download.csv) [Amaury Leroy]
+- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
+- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
+- Add: [stix2 import] Added an entry to the simple pattern mapping
+  dictionary. [chrisr3d]
+- Merge pull request #3765 from IFX-CDC/2.4. [Andras Iklody]
+
+  add: workers diagnostics to the server settings
+- Fixed workers tab. [netjinho]
+- Added workers diagnostics to the server settings. [netjinho]
+- Merge pull request #3766 from SteveClement/misp-wipe. [Andras Iklody]
+
+  Misp wipe and backup
+- Merge pull request #3762 from SteveClement/py-virtualenv. [Andras
+  Iklody]
+
+  chg: [tools] Added the option to have Python Virtualenv support
+- Merge branch '2.4' into py-virtualenv. [www-data]
+- Merge branch '2.4' into py-virtualenv. [Steve Clement]
+- Merge branch '2.4' into py-virtualenv. [www-data]
+- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
+- Merge pull request #3760 from cudeso/2.4. [Alexandre Dulaunoy]
+
+  Ubuntu 18 documentation (sudo logrotate, universe repo)
+- Ubuntu 18 documentation (sudo logrotate, universe repo) [Koen Van
+  Impe]
+- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [Alexandre
+  Dulaunoy]
+- Merge pull request #3757 from rmarsollier/patch-1. [Andras Iklody]
+
+  adding python-maec to the debian9 install
+- Adding python-maec to the debian9 install. [RbN]
+
+  adding python-maec to the debian9 install
+- Merge pull request #3758 from MISP/chrisr3d_patch. [Christian Studer]
+
+  Chrisr3d patch
+- Merge branch '2.4' of github.com:MISP/MISP into chrisr3d_patch.
+  [chrisr3d]
+- Merge branch '2.4' of github.com:MISP/MISP into chrisr3d_patch.
+  [chrisr3d]
+- :construction: [stix2 import] Parsing external Network Socket objects when
+  references are hostnames. [chrisr3d]
+
+  - :warning: :construction:, it is preferable to wait for the branch to be merged,
+        this script may be broken in some cases atm :warning:
+  - Also reusing functions working for both subclasses
+- Merge branch '2.4' of github.com:MISP/MISP into chrisr3d_patch.
+  [chrisr3d]
+- Add: [stix2 import] Added 1 easily parsable pattern type for external
+  STIX parsing. [chrisr3d]
+- Merge branch '2.4' of github.com:MISP/MISP into chrisr3d_patch.
+  [chrisr3d]
+- Merge branch '2.4' of github.com:MISP/MISP into chrisr3d_patch.
+  [chrisr3d]
+- :construction: [stix2 import] Parsing external observable IPAddr -
+  NetworkTraffic - Domain composition objects. [chrisr3d]
+
+  - :warning: :construction:, it is preferable to wait for the branch to be merged,
+        this script may be broken in some cases atm :warning:
+  - Also reusing functions working for both subclasses
+- Merge branch '2.4' of github.com:MISP/MISP into chrisr3d_patch.
+  [chrisr3d]
+- :construction: [stix2 import] Parsing external process objects. [chrisr3d]
+
+  - :warning: :construction:, it is preferable to wait for the branch to be merged,
+        this script may be broken in some cases atm :warning:
+  - Also reusing functions working for both subclasses
+- :construction: [stix2 import] Parsing external AS objects. [chrisr3d]
+
+  - :warning: :construction:, it is preferable to wait for the branch to be merged,
+        this script may be broken in some cases atm :warning:
+  - Also reusing functions working for both subclasses
+- :construction: [stix2 import] Parsing external x509 objects. [chrisr3d]
+
+  - :warning: :construction:, it is preferable to wait for the branch to be merged,
+        this script may be broken in some cases atm :warning:
+  - Also reusing functions working for both subclasses
+- :construction: [stix2 import] Parsing external mutex objects. [chrisr3d]
+
+  - :warning: :construction:, it is preferable to wait for the branch to be merged,
+        this script may be broken in some cases atm :warning:
+- :construction: [stix2 import] Parsing external mac-address objects. [chrisr3d]
+
+  - :warning: :construction:, it is preferable to wait for the branch to be merged,
+        this script may be broken in some cases atm :warning:
+- :construction: [stix2 import] Parsing external url objects. [chrisr3d]
+
+  - :warning: :construction:, it is preferable to wait for the branch to be merged,
+        this script may be broken in some cases atm :warning:
+  - Also reusing functions working for both subclasses
+- Merge branch '2.4' of github.com:MISP/MISP into chrisr3d_patch.
+  [chrisr3d]
+- :construction: [stix2 import] Parsing external regkey objects. [chrisr3d]
+
+  - :warning: :construction:, it is preferable to wait for the branch to be merged,
+        this script may be broken in some cases atm :warning:
+  - Also reusing functions working for both subclasses
+- :construction: [stix2 import] Parsing external email objects. [chrisr3d]
+
+  - :warning: :construction:, it is preferable to wait for the branch to be merged,
+        this script may be broken in some cases atm :warning:
+  - Also reusing functions working for both subclasses
+- :construction: [stix2 import] Parsing domain & domain-ip attributes/objects.
+  [chrisr3d]
+
+  - :warning: :construction:, it is preferable to wait for the branch to be merged,
+        this script may be broken in some cases atm :warning:
+  - Also reusing code that works for both subclasses
+- Merge branch '2.4' of github.com:MISP/MISP into chrisr3d_patch.
+  [chrisr3d]
+- :construction: [stix2 import] Included pe & pe-section parsing for file objects.
+  [chrisr3d]
+
+  - :warning: :construction:, it is preferable to wait for the branch to be merged,
+        this script may be broken in some cases atm :warning:
+  - Including uuid fields
+  - Including refactor on some class attributes to
+    avoid errors and duplications
+- Merge branch '2.4' of github.com:MISP/MISP into chrisr3d_patch.
+  [chrisr3d]
+- :construction: [stix2 import] Starting parsing network-traffic objects from
+  external files. [chrisr3d]
+
+  - :warning: :construction:, it is preferable to wait for the branch to be merged,
+        this script may be broken in some cases atm :warning:
+- :construction: [stix2 import] Starting parsing observables from external STIX2
+  files + moving functions to the main script. [chrisr3d]
+
+  - :warning: :construction:, it is preferable to wait for the branch to be merged, script broken atm :warning:
+- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
+- Merge pull request #3751 from ancailliau/fixes-error-message-
+  control_workers. [Andras Iklody]
+
+  Fixes a typo in an error message (control_workers -> manage_workers)
+- Fixes a typo in an error message (control_workers -> manage_workers)
+  [Antoine Cailliau]
+- Merge pull request #3750 from Rafiot/csv_travis. [Raphaël Vinot]
+
+  fix: travis import/export
 
 v2.4.96 (2018-10-09)
 --------------------
@@ -20,7 +496,6 @@ New
 - [API] rework of the searchall/quickFilter parameters. [iglocska]
 
   Now it correctly works as intended on both attribute and event contexts
-
 - [API] documentation added for the new APIs. [iglocska]
 - [export] Further changes required for the reworked export added.
   [iglocska]
@@ -130,7 +605,6 @@ Changes
   published ignored by default) [iglocska]
 - [misp-galaxy] updated to the latest version. [Alexandre Dulaunoy]
 - Bump PyMISP. [Raphaël Vinot]
-- Bump PyMISP. [Raphaël Vinot]
 - [misp-galaxy] updated to the latest version. [Alexandre Dulaunoy]
 - Bump PyMISP. [Raphaël Vinot]
 - [API] new restresponse library addition fixed (send file) [iglocska]
@@ -138,8 +612,6 @@ Changes
 - [sharing-group] fix typo "Added Organisations" -> "Added Instance"
   [Alexandre Dulaunoy]
 - [misp-objects] add the relationship annotates. [Alexandre Dulaunoy]
-- Bump PyMISP. [Raphaël Vinot]
-- Bump PyMISP. [Raphaël Vinot]
 - Bump PyMISP. [Raphaël Vinot]
 - [misp-galaxy] updated to the latest version. [Alexandre Dulaunoy]
 - [misp-taxonomy] updated to the latest version. [Alexandre Dulaunoy]
@@ -196,6 +668,9 @@ Changes
 - [misp-warninglists] updated to the latest version. [Alexandre
   Dulaunoy]
 - Bump recommended pyMispVersion. [Raphaël Vinot]
+- [doc] Point to official misp-book, MISP "User Guide" in main codebase
+  is obsolete. [Steve Clement]
+- [PyMISP] updated to the latest version. [Alexandre Dulaunoy]
 
 Fix
 ---
@@ -471,6 +946,7 @@ Fix
 - [REST client] baseurl can now be set optionally in the url. [iglocska]
 - [Feeds] I CAN'T MATH. [iglocska]
 - [feeds] Feed caching generates a lot of notices. [iglocska]
+- [documentation] added missing legacy automation page view. [iglocska]
 
 Other
 -----
@@ -480,8 +956,6 @@ Other
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
@@ -522,18 +996,18 @@ Other
     read and displayed
 - Merge branch '2.4' of github.com:MISP/MISP into
   chrisr3d_restSearch_tests. [chrisr3d]
-- Wip: [stix2 export] Supporting export of multiple MISP events.
+- :construction: [stix2 export] Supporting export of multiple MISP events.
   [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into
   chrisr3d_restSearch_tests. [chrisr3d]
-- Wip: [restSearch] Passing multiple events to the STIX parsing script.
+- :construction: [restSearch] Passing multiple events to the STIX parsing script.
   [chrisr3d]
 
   - atm calling the python script every 10 events
     fetched with fetchEvent
 - Merge branch '2.4' of github.com:MISP/MISP into
   chrisr3d_restSearch_tests. [chrisr3d]
-- Wip: [stix1 export] Supporting export of multiple MISP events.
+- :construction: [stix1 export] Supporting export of multiple MISP events.
   [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into
   chrisr3d_restSearch_tests. [chrisr3d]
@@ -541,8 +1015,8 @@ Other
   chrisr3d_restSearch_tests. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into
   chrisr3d_restSearch_tests. [chrisr3d]
-- Wip: [restSearch] Added stix2 export in restSearch. [chrisr3d]
-- Wip: [restSearch] Stix1 export for restSearch. [chrisr3d]
+- :construction: [restSearch] Added stix2 export in restSearch. [chrisr3d]
+- :construction: [restSearch] Stix1 export for restSearch. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [Alexandre
   Dulaunoy]
@@ -594,15 +1068,6 @@ Other
   chg: Bump PyMISP
 - Merge branch 'stix2' of github.com:MISP/MISP into 2.4. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into stix2. [chrisr3d]
-- Merge branch '2.4' of github.com:MISP/MISP into stix2. [chrisr3d]
-- Merge branch '2.4' of github.com:MISP/MISP into stix2. [chrisr3d]
-- Merge branch '2.4' of github.com:MISP/MISP into stix2. [chrisr3d]
-- Merge branch '2.4' of github.com:MISP/MISP into stix2. [chrisr3d]
-- Merge branch '2.4' of github.com:MISP/MISP into stix2. [chrisr3d]
-- Merge branch '2.4' of github.com:MISP/MISP into stix2. [chrisr3d]
-- Merge branch '2.4' of github.com:MISP/MISP into stix2. [chrisr3d]
-- Merge branch '2.4' of github.com:MISP/MISP into stix2. [chrisr3d]
-- Merge branch '2.4' of github.com:MISP/MISP into stix2. [chrisr3d]
 - Add: [export] Introduction of a framing script. [chrisr3d]
 
   - atm returning header, separator and footer for
@@ -612,22 +1077,15 @@ Other
     for the format in subject and returning the
     corresponding header, footer and separator
 - Merge branch '2.4' of github.com:MISP/MISP into stix2. [chrisr3d]
-- Merge branch '2.4' of github.com:MISP/MISP into stix2. [chrisr3d]
-- Merge branch '2.4' of github.com:MISP/MISP into stix2. [chrisr3d]
 - Add: [stix2 export] Added stix2 export view. [chrisr3d]
 - Add: [stix2 export] Added instruction about automation part.
   [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into stix2. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [Alexandre
   Dulaunoy]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge pull request #3664 from SteveClement/guides. [Andras Iklody]
 
@@ -684,9 +1142,20 @@ Other
   [chrisr3d]
 - Fixed bug where popoverChoice was returning undefined values for some
   browser. [Sami Mokaddem]
+- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
+- Temporary revert to avoid PGP bug. [Sami Mokaddem]
+- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [Alexandre
+  Dulaunoy]
+- Merge pull request #3623 from SteveClement/guides. [Andras Iklody]
 
+  chg: [doc] Guides in the main code base are obosolete
+- Merge remote-tracking branch 'upstream/2.4' into guides. [Steve
+  Clement]
+- Merge branch '2.4' into guides. [Steve Clement]
+- Add: [stix1 import] Added STIX 1 object type to the mapping types.
+  [chrisr3d]
 
-v2.4.95 (2018-09-06)
+v2.4.95 (2018-09-05)
 --------------------
 
 New
@@ -756,13 +1225,13 @@ New
 - [rest client] parsers for JSON/HTML return added. [iglocska]
 - [rest client] parser helper css/js added. [iglocska]
 - [API] CSV export tool added. [iglocska]
-- [API] WIP work in progress - moving CSV export to standardised
+- [API] :construction: work in progress - moving CSV export to standardised
   converter format. [iglocska]
 - [API] Added publish filter to restsearch. [iglocska]
 - [API] further rework of the restsearch api. [iglocska]
 
   - move to the new popping filter system
-- [API] rework of the event level restSearch (WIP) [iglocska]
+- [API] rework of the event level restSearch (:construction:) [iglocska]
 - [internal] Further work on the filtering. [iglocska]
 - [internal] Rework of the filter handling internally. [iglocska]
 - [internal] Added internal functions to interpret parameters in various
@@ -804,9 +1273,6 @@ New
 
 Changes
 -------
-- [doc] Point to official misp-book, MISP "User Guide" in main codebase
-  is obsolete. [Steve Clement]
-- [PyMISP] updated to the latest version. [Alexandre Dulaunoy]
 - [version] Bump. [iglocska]
 - [bug] Fixed wrong event lookup in case the uuid is passed as an
   eventId. Previously the code had two mutually exclusive conditions
@@ -837,10 +1303,6 @@ Changes
 
   - instead of loading it over and over
 - Bump PyMISP. [Raphaël Vinot]
-- Bump PyMISP. [Raphaël Vinot]
-- Bump PyMISP. [Raphaël Vinot]
-- Bump PyMISP. [Raphaël Vinot]
-- Bump PyMISP. [Raphaël Vinot]
 - [rest client] render the response by default. [iglocska]
 - [querystring] version bumped. [iglocska]
 - [API] Fixed fetchAttributes lookup on value to be only optionally a
@@ -869,7 +1331,6 @@ Changes
 - [doc] MISP logo b&w only added. [Alexandre Dulaunoy]
 - Bump PyMISP. [Raphaël Vinot]
 - [PyMISP] updated to the latest version. [Alexandre Dulaunoy]
-- [PyMISP] updated to the latest version. [Alexandre Dulaunoy]
 - [data-model] new bro attribute type to store rule in Bro rule-format.
   [Alexandre Dulaunoy]
 
@@ -885,7 +1346,6 @@ Changes
 - [misp-galaxy] updated to the latest version including related changes.
   [Alexandre Dulaunoy]
 - [misp-galaxy] updated to the latest version. [Alexandre Dulaunoy]
-- [misp-galaxy] updated to the latest version. [Alexandre Dulaunoy]
 - [misp-warninglist] updated to the latest version. [Alexandre Dulaunoy]
 - [misp-taxonomies] updated to the latest version. [Alexandre Dulaunoy]
 - [misp-galaxy] updated to the latest version. [Alexandre Dulaunoy]
@@ -893,7 +1353,6 @@ Changes
 
 Fix
 ---
-- [documentation] added missing legacy automation page view. [iglocska]
 - [description] Typo in serverSetting fixed, fixes #3612. [iglocska]
 - [API] using "download" as a returnformat via the URL breaks the
   restSearch API. [iglocska]
@@ -1058,16 +1517,6 @@ Fix
 
 Other
 -----
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
-- Temporary revert to avoid PGP bug. [Sami Mokaddem]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [Alexandre
-  Dulaunoy]
-- Merge pull request #3623 from SteveClement/guides. [Andras Iklody]
-
-  chg: [doc] Guides in the main code base are obosolete
-- Merge remote-tracking branch 'upstream/2.4' into guides. [Steve
-  Clement]
-- Merge branch '2.4' into guides. [Steve Clement]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge pull request #3530 from chkp-aliaksandrt/fix-object-add-if-uuid-
   is-passed-as-eventid. [Andras Iklody]
@@ -1094,8 +1543,6 @@ Other
   Vaccaro]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [Alexandre
   Dulaunoy]
-- Add: [stix1 import] Added STIX 1 object type to the mapping types.
-  [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge pull request #3610 from RichieB2B/patch-3. [Andras Iklody]
 
@@ -1118,11 +1565,9 @@ Other
 - Add: [stix2 export] Parsing expiration date from sightings as
   'valid_until' in indicators. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [Alexandre
   Dulaunoy]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
-- Merge branch 'feature/api_rework2' into 2.4. [iglocska]
 - Merge branch 'feature/api_rework2' into 2.4. [iglocska]
 - Merge branch 'feature/api_rework' into feature/api_rework2. [iglocska]
 - Merge branch 'feature/api_rework' into 2.4. [iglocska]
@@ -1132,7 +1577,6 @@ Other
 - Merge branch 'feature/api_rework' of github.com:MISP/MISP into
   feature/api_rework. [Raphaël Vinot]
 - Merge branch '2.4' into feature/api_rework. [iglocska]
-- Merge branch '2.4' into feature/api_rework. [iglocska]
 - Merge branch 'feature/api_rework' of github.com:MISP/MISP into
   feature/api_rework. [iglocska]
 - Merge branch 'feature/api_rework' of github.com:MISP/MISP into
@@ -1141,7 +1585,6 @@ Other
   feature/api_rework. [Raphaël Vinot]
 - Merge branch 'feature/api_rework' of github.com:MISP/MISP into
   feature/api_rework. [iglocska]
-- Merge branch '2.4' into feature/api_rework. [iglocska]
 - Merge branch '2.4' into feature/api_rework. [iglocska]
 - Merge branch 'feature/api_rework' of github.com:MISP/MISP into
   feature/api_rework. [iglocska]
@@ -1275,7 +1718,6 @@ Other
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge remote-tracking branch 'origin/2.4' into 2.4. [Christophe
   Vandeplas]
-
 
 v2.4.94 (2018-08-09)
 --------------------
@@ -1420,8 +1862,6 @@ Changes
 - [cleanup] added function to check for prio worker's existance in
   Event.php. [iglocska]
 - [misp-galaxy] updated to the latest version. [Alexandre Dulaunoy]
-- [misp-galaxy] updated to the latest version. [Alexandre Dulaunoy]
-- [misp-galaxy] updated to the latest version. [Alexandre Dulaunoy]
 - [documenation] Added CLI documentation for the getAuthkey tool.
   [iglocska]
 - [PyMISP] updated to the latest version. [Alexandre Dulaunoy]
@@ -1548,7 +1988,6 @@ Changes
 - [misp-objects] updated to the latest version. [Alexandre Dulaunoy]
 - [doc] More updates on the debian install guides, small fix on OpenBSD.
   [Steve Clement]
-- [misp-objects] updated to the latest version. [Alexandre Dulaunoy]
 - [misp-objects] updated to the latest version. [Alexandre Dulaunoy]
 - [attackMatrix] UI improvement (contextual menu) [Sami Mokaddem]
 - [attackMatrix] UI improvements. [Sami Mokaddem]
@@ -1936,8 +2375,6 @@ Other
 - Default sort order for ID and Date: desc. [StefanKelm]
 - Default sort order for timesamps: desc. [StefanKelm]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [Alexandre
@@ -1954,7 +2391,6 @@ Other
 
   chg: [typo] Minor typo
 - Merge remote-tracking branch 'upstream/2.4' into 2.4. [Steve Clement]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [Alexandre
   Dulaunoy]
@@ -1983,7 +2419,6 @@ Other
 - Merge pull request #3510 from ater49/patch-1. [Andras Iklody]
 
   Update default.po
-- Update default.po. [ater49]
 - Update default.po. [ater49]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
@@ -2038,8 +2473,6 @@ Other
 - Merge remote-tracking branch 'upstream/2.4' into 2.4. [Steve Clement]
 - Merge branch '2.4' of github.com:SteveClement/MISP into 2.4. [Steve
   Clement]
-- Merge remote-tracking branch 'upstream/2.4' into 2.4. [Steve Clement]
-- Merge remote-tracking branch 'upstream/2.4' into 2.4. [Steve Clement]
 - Merge remote-tracking branch 'upstream/2.4' into 2.4. [Steve Clement]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
@@ -2131,9 +2564,6 @@ Other
 
   Sod the bloody typos
 - Typo. [StefanKelm]
-- Typo. [StefanKelm]
-- Typo. [StefanKelm]
-- Typo. [StefanKelm]
 - Add: [stix2 import] Importing email-attachment attributes. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
 - Add: [stix2 export] Exporting email-attachment attributes. [chrisr3d]
@@ -2149,7 +2579,6 @@ Other
 
   chg: [doc] debian testing/stable install guide updates
 - Merge remote-tracking branch 'upstream/2.4' into 2.4. [Steve Clement]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge pull request #3445 from SteveClement/2.4. [Steve Clement]
 
@@ -2209,7 +2638,6 @@ Other
 
   Change --force to --recursive in update/upgrade documentation
 - Change --force to --recursive. [StefanKelm]
-- Change --force to --recursive. [StefanKelm]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
 - Merge branch 'attributeFetcherFix' into 2.4. [iglocska]
@@ -2218,7 +2646,7 @@ Other
 - Merge pull request #3417 from SteveClement/2.4. [Steve Clement]
 
   Added initial internationalization for: French (6%), Japanese (21%)
-  Updated FreeBSD and added OpenBSD Install document (WIP-pre-alpha)
+  Updated FreeBSD and added OpenBSD Install document (:construction:-pre-alpha)
 - - Rudimentary support for apache2, login works. [Steve Clement]
 - Merge remote-tracking branch 'upstream/2.4' into 2.4. [Steve Clement]
 - - Partially works, again, but still CSS issues. [Steve Clement]
@@ -2253,7 +2681,6 @@ Other
 - Add: [stix2 import] Importing files with pe & pe_sections objects.
   [chrisr3d]
 - [stix2 import] Improved file observable object parsing. [chrisr3d]
-
 
 v2.4.93 (2018-06-27)
 --------------------
@@ -2402,7 +2829,7 @@ Fix
   MISP/PyMISP#236. [iglocska]
 - [stix diagnostic] Returning the correct 'success' value in case of
   error with maec. [chrisr3d]
-- [security] Brute force protection can be bypased with a PUT request.
+- :lock: Brute force protection can be bypased with a PUT request.
   [iglocska]
 
   - fixes an issue where brute forcing the login would work by using PUT requests
@@ -2616,7 +3043,6 @@ Other
 - Merge branch '2.4' of https://github.com/MISP/MISP into favicon. [Sami
   Mokaddem]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Add: [stix2 export] Exporting asn MISP objects. [chrisr3d]
 - Add: [stix1 export] Exporting asn object. [chrisr3d]
 - [stix2 export] Removed intermediary 1 line functions. [chrisr3d]
@@ -2644,7 +3070,6 @@ Other
 
   Enable python3 for php-fpm for RHEL/CentOS
 - Enable python3 for php-fpm for RHEL/CentOS. [Richard van den Berg]
-
 
 v2.4.92 (2018-06-07)
 --------------------
@@ -3012,9 +3437,7 @@ Other
   STIX Custom object. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - [stix1 export] typo. [chrisr3d]
 - Add: [stix1 export] Added namespaces for WindowsService object.
@@ -3048,7 +3471,6 @@ Other
 - Add: [stix1 export] Exporting network-socket MISP objects. [chrisr3d]
 - Add: [stix1 export] Exporting network connection MISP objects.
   [chrisr3d]
-
 
 v2.4.91 (2018-05-15)
 --------------------
@@ -3160,7 +3582,6 @@ Changes
   pb labels and lots of minor improvements. [Sami Mokaddem]
 - Changed distribution graph popover title. [Sami Mokaddem]
 - Removed useless prints. [Sami Mokaddem]
-- [misp-galaxy] updated to the latest version. [Alexandre Dulaunoy]
 - [misp-galaxy] updated to the latest version. [Alexandre Dulaunoy]
 - Bump PyMISP. [Raphaël Vinot]
 - First round of refactoring of the side menu. [iglocska]
@@ -3375,9 +3796,7 @@ Other
 - [stix1 export] Reusing little functions. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Add: [stix1 import] Importing reply-to attributes. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
@@ -3392,7 +3811,6 @@ Other
   Match message text with what is being displayed at event view
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Added description for the latest functions created. [chrisr3d]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge branch 'global_ajax' into 2.4. [Sami Mokaddem]
@@ -3544,13 +3962,11 @@ Other
 
   Update Log.php
 - Update Log.php. [StefanKelm]
-- Update Log.php. [StefanKelm]
 
   Alphabetically sort list of Actions pull-down menu within "Search Logs"
 - Add: Making references between objects in the event created while
   importing STIX. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Add: Added Windows Service objects parsing. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
@@ -3565,7 +3981,6 @@ Other
 - MISP to stix, cybox & ciq in 1 module (class methods) [chrisr3d]
 - MISP to STIX export refactored & updated to work with python3.
   [chrisr3d]
-
 
 v2.4.90 (2018-04-21)
 --------------------
@@ -3592,7 +4007,7 @@ New
   automation page. [iglocska]
 - Cleanup of server push, feed fetch, fed cache console commands.
   [iglocska]
-- Rework of the server/feed command line tools, WIP. [iglocska]
+- Rework of the server/feed command line tools, :construction:. [iglocska]
 - Added improvements to the Cortex settings. [iglocska]
 
   - allow for configuring SSL options for Cortex
@@ -3886,7 +4301,6 @@ Other
 - Made the auto download of attachments when loaded in the browser
   configurable. [John Doe]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge pull request #3152 from StefanKelm/2.4. [Andras Iklody]
 
   Default sort order for id / date reversed on click for Server preview index
@@ -3911,7 +4325,6 @@ Other
 - Starting parsing some easy patterns. [chrisr3d]
 - Add: Added course-of-action object parsing. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into stix2. [chrisr3d]
-- Merge branch '2.4' of github.com:MISP/MISP into stix2. [chrisr3d]
 - Add: Added the stix version attribute in stix2-pattern objects.
   [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into stix2. [chrisr3d]
@@ -3923,57 +4336,57 @@ Other
 - Importing external indicators as stix2-pattern objects. [chrisr3d]
 
   Now on the same state as the current used import module
-- Wip: Import module importing things, but need to fix few attributes
+- :construction: Import module importing things, but need to fix few attributes
   loss. [chrisr3d]
-- Wip: Parsing patterns representing MISP objects. [chrisr3d]
-- Wip: Parsing observable objects representing MISP objects. [chrisr3d]
-- Wip: Parsing STIX2 objects that give MISP attributes with the import.
+- :construction: Parsing patterns representing MISP objects. [chrisr3d]
+- :construction: Parsing observable objects representing MISP objects. [chrisr3d]
+- :construction: Parsing STIX2 objects that give MISP attributes with the import.
   [chrisr3d]
-- Wip: Starting parsing STIX2 from MISP. [chrisr3d]
+- :construction: Starting parsing STIX2 from MISP. [chrisr3d]
 - STIX2 export refactored. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into stix2. [chrisr3d]
 - Parsing ip-port objects. [chrisr3d]
 
   - Observable added
   - Observable & pattern tested
-- Wip: Parsing file objects. [chrisr3d]
+- :construction: Parsing file objects. [chrisr3d]
 
   - observable added
   - observable & pattern tested
-- Wip: Parsing email objects. [chrisr3d]
+- :construction: Parsing email objects. [chrisr3d]
 
   - observable added
   - observable & pattern tested
-- Wip: Parsing url objects (observable added & tested + pattern tested)
+- :construction: Parsing url objects (observable added & tested + pattern tested)
   [chrisr3d]
-- Wip: Parsing x509 objects (observable added + pattern & observable
+- :construction: Parsing x509 objects (observable added + pattern & observable
   tested) [chrisr3d]
-- Wip: Regkey object parsing + Fix on observable object creation.
+- :construction: Regkey object parsing + Fix on observable object creation.
   [chrisr3d]
-- Wip: Implementing observable objects generation for MISP objects.
+- :construction: Implementing observable objects generation for MISP objects.
   [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into stix2. [chrisr3d]
-- Wip: Should now be able to create indicators for MISP objects.
+- :construction: Should now be able to create indicators for MISP objects.
   [chrisr3d]
 
   - Patterns generation to be tested
-- Wip: Parsing Galaxies. [chrisr3d]
+- :construction: Parsing Galaxies. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into stix2. [chrisr3d]
-- Wip: Fixed typo of some attribute values to delete spaces. [chrisr3d]
-- Wip: Catching errors on indicators and observed data, and creating
+- :construction: Fixed typo of some attribute values to delete spaces. [chrisr3d]
+- :construction: Catching errors on indicators and observed data, and creating
   custom objects instead. [chrisr3d]
-- Wip: Fixed typo & bugs. [chrisr3d]
+- :construction: Fixed typo & bugs. [chrisr3d]
 
   - tests made for indicators
-- Wip: Dictionary for attributes mapping should be ok. [chrisr3d]
-- Wip: Always better with a stix package builder and the output file
+- :construction: Dictionary for attributes mapping should be ok. [chrisr3d]
+- :construction: Always better with a stix package builder and the output file
   saved. [chrisr3d]
-- Wip: Handling special misp types. [chrisr3d]
-- Wip: Should  be able to export attributes. [chrisr3d]
-- Wip: Refactoring to be continued. [chrisr3d]
-- Wip: Dictionary update to go with stix2 export refactoring. [chrisr3d]
-- Wip: Refactoring stix2 export & performance improvement. [chrisr3d]
-- Wip: First try of refactored stix2 parsing. [chrisr3d]
+- :construction: Handling special misp types. [chrisr3d]
+- :construction: Should  be able to export attributes. [chrisr3d]
+- :construction: Refactoring to be continued. [chrisr3d]
+- :construction: Dictionary update to go with stix2 export refactoring. [chrisr3d]
+- :construction: Refactoring stix2 export & performance improvement. [chrisr3d]
+- :construction: First try of refactored stix2 parsing. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge pull request #3148 from StefanKelm/2.4. [Andras Iklody]
 
@@ -3995,8 +4408,6 @@ Other
 
   Spelling error update
 - Spelling error update. [Geert De Ron]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge pull request #3139 from mokaddem/quick-fix-metacategory-graph.
   [Andras Iklody]
@@ -4079,7 +4490,6 @@ Other
 - Update admin_add.ctp. [StefanKelm]
 - Update user_management.ctp. [StefanKelm]
 - Update administration.ctp. [StefanKelm]
-- Update administration.ctp. [StefanKelm]
 - Update diagnostics.ctp. [StefanKelm]
 - Update footer.ctp. [StefanKelm]
 - Update User.php. [StefanKelm]
@@ -4101,7 +4511,6 @@ Other
 - Changed imports & only kept only used pymisp functions. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
 
-
 v2.4.89 (2018-03-23)
 --------------------
 
@@ -4116,7 +4525,7 @@ New
 - Allow the searching of organisations by uuid on the event index (via
   the API) [iglocska]
 - Finished the first version of the recovery tool. [iglocska]
-- Object reconstruction after, resolving the ID bug, WIP. [iglocska]
+- Object reconstruction after, resolving the ID bug, :construction:. [iglocska]
 - Temp diagnostic tool for orphaned object attributes. [iglocska]
 - RestResponse::describe() now uses generic URLs with optional url
   parameters instead of showing the currently accessed ID. [iglocska]
@@ -4401,16 +4810,16 @@ Other
 - Merge branch '2.4' of github.com:MISP/MISP into stiximport. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Add: Parsing attachments. [chrisr3d]
-- Wip: Starting parsing portable executables. [chrisr3d]
-- Wip: Added description parsing for stix objects without properties.
+- :construction: Starting parsing portable executables. [chrisr3d]
+- :construction: Added description parsing for stix objects without properties.
   [chrisr3d]
-- Wip: Whois parsing function improved. [chrisr3d]
+- :construction: Whois parsing function improved. [chrisr3d]
 
   Still need some tests with proper examples to finish this part
-- Wip: Starting parsing Whois Objects. [chrisr3d]
+- :construction: Starting parsing Whois Objects. [chrisr3d]
 
   But need some examples to parse properly !!!!
-- Wip: Rebuilt hashes & files parsing functions. [chrisr3d]
+- :construction: Rebuilt hashes & files parsing functions. [chrisr3d]
 
   Also handling more properly when to import a stix
   object as a MISP Object or as Attribute
@@ -4430,19 +4839,19 @@ Other
   #2473. [Andras Iklody]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Fixed key value that was not correct. [chrisr3d]
-- Wip: More types supported & functions clarified. [chrisr3d]
-- Wip: Starting to import external stix. [chrisr3d]
-- Wip: Supporting more Object types. [chrisr3d]
-- Wip: handling malware-sample in file objects. [chrisr3d]
-- Wip: Supporting more attribute types. [chrisr3d]
-- Wip: Parsing more attribute types & objects. [chrisr3d]
+- :construction: More types supported & functions clarified. [chrisr3d]
+- :construction: Starting to import external stix. [chrisr3d]
+- :construction: Supporting more Object types. [chrisr3d]
+- :construction: handling malware-sample in file objects. [chrisr3d]
+- :construction: Supporting more attribute types. [chrisr3d]
+- :construction: Parsing more attribute types & objects. [chrisr3d]
 
   - More attribute types and objects to come with events testing
 - First version parsing some attributes. [chrisr3d]
 
   - More attribute types to be added
   - Objects to be parsed as well
-- Wip: Refactor of  stix2misp - only a beginning atm. [chrisr3d]
+- :construction: Refactor of  stix2misp - only a beginning atm. [chrisr3d]
 - Merge pull request #3012 from Res260/feature_keyboard_navigation.
   [Andras Iklody]
 
@@ -4536,14 +4945,11 @@ Other
 - Fixed a bug regarding filename|ssdeep attributes importing using
   FreeTextImport. See Issue #2971. [Émilio Gonzalez]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge pull request #2979 from SteveClement/2.4. [Alexandre Dulaunoy]
 
   Added install step to make sure submodule permissions are ignored
 - - Added install step to make sure all the submodules ignore
   permissions. [Steve Clement]
-- Merge remote-tracking branch 'upstream/2.4' into 2.4. [Steve Clement]
-- Merge remote-tracking branch 'upstream/2.4' into 2.4. [Steve Clement]
 - Merge remote-tracking branch 'upstream/2.4' into 2.4. [Steve Clement]
 - Merge branch '2.4' of github.com:SteveClement/MISP into 2.4. [Steve
   Clement]
@@ -4557,10 +4963,8 @@ Other
 - Add attribute shortcut now triggers the popup instead of changing page
   + bottom right triangle now with pointer cursor. [Émilio Gonzalez]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [Alexandre
   Dulaunoy]
-
 
 v2.4.88 (2018-02-21)
 --------------------
@@ -4680,7 +5084,6 @@ Fix
   - added check for disabled modules and for modules that the current user is not allowed to use
   - removed the module config from the index function to avoid exposing API keys / credentials to users
   - some formating fixes
-- ModulesController. [Juan C. Montes]
 - ModulesController. [Juan C. Montes]
 - Searching for exact values not possible via the attribute search,
   fixes #2946. [iglocska]
@@ -4837,13 +5240,11 @@ Other
   Dulaunoy]
 - Add: mime-type attribute added. [Alexandre Dulaunoy]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
 - Merge pull request #2908 from Res260/fix_keyboard_shortcut_focus.
   [Andras Iklody]
 
   new: Add search shortcut for events and attributes + small bugfix
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge pull request #2906 from Res260/feature_keyboard_shortcuts.
   [Alexandre Dulaunoy]
@@ -4873,14 +5274,12 @@ Other
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [Alexandre
   Dulaunoy]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge pull request #2886 from MISP/Bump-PyMISP. [Raphaël Vinot]
 
   chg: Bump PyMISP recommended version
 - Merge pull request #2883 from Rafiot/travis. [Raphaël Vinot]
 
   chg: Bump PyMISP
-
 
 v2.4.87 (2018-01-28)
 --------------------
@@ -4955,7 +5354,7 @@ Fix
 - Load orgc data after attributes are loaded in search csv export.
   [iglocska]
 
-  - functionality still needs further fixes, WIP
+  - functionality still needs further fixes, :construction:
 - Graceful handling of removed users in discussion boards. [iglocska]
 - Suricata export URL encodes an IPv6 between [], fixes #2872.
   [iglocska]
@@ -5096,9 +5495,6 @@ Other
 - Merge remote-tracking branch 'upstream/2.4' into 2.4. [Steve Clement]
 - - Feeds/compare_feeds.ctp. [Steve Clement]
 - - Fixed various typos/omissions etc. [Steve Clement]
-- - Fixed various typos/omissions etc. [Steve Clement]
-- - Fixed various typos/omissions etc. [Steve Clement]
-- - Fixed various typos/omissions etc. [Steve Clement]
 - - Closing parenthesis mistake. [Steve Clement]
 - View/SharingGroups -> __(' [Steve Clement]
 - View/Sightings -> __(' [Steve Clement]
@@ -5194,7 +5590,6 @@ Other
 - - __(' added where needed. [Steve Clement]
 - - Attributes folder scavenged for Translatables… [Steve Clement]
 - - __('')-ized labels, buttons, styles. [Steve Clement]
-
 
 v2.4.86 (2018-01-16)
 --------------------
@@ -5392,8 +5787,6 @@ Other
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
 - 1st version of TTPs parsing function. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
 - Merge branch 'feature/sg_api' into 2.4. [iglocska]
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
@@ -5416,7 +5809,7 @@ Other
 - Merge pull request #2789 from MISP/pymisp_test2. [Raphaël Vinot]
 
   chg: Bump PyMISP
-- Wip: Some updates on pattern import. [chrisr3d]
+- :construction: Some updates on pattern import. [chrisr3d]
 
   Will work on pattern parser soon
 - Merge pull request #2785 from atluxity/patch-1. [Alexandre Dulaunoy]
@@ -5454,7 +5847,6 @@ Other
   -- Fixed some Ubuntu remenants
   -- Fixed config typos
   -- Added all missing dependencies
-
 
 v2.4.85 (2017-12-22)
 --------------------
@@ -5630,7 +6022,7 @@ Other
 -----
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [iglocska]
-- Wip: parsing external Stix2 documents. [chrisr3d]
+- :construction: parsing external Stix2 documents. [chrisr3d]
 
   - atm: read patterns and create a stix2-pattern
   Object with the pattern as attribute
@@ -5732,7 +6124,7 @@ Other
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [iglocska]
-- Wip: Includes category import. [chrisr3d]
+- :construction: Includes category import. [chrisr3d]
 
   Still need to include the missing types of object
   not supported yet.
@@ -5762,7 +6154,7 @@ Other
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [iglocska]
-- Wip: fixed bugs that appeared with Objects support. [chrisr3d]
+- :construction: fixed bugs that appeared with Objects support. [chrisr3d]
 - Add: new feed VXvault - URL List added. [Alexandre Dulaunoy]
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [iglocska]
@@ -5773,7 +6165,7 @@ Other
   - Initial FreeBSD install document
 - - Initial FreeBSD install document. [Steve Clement]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
-- Wip: Parsing patterns for Objects. [chrisr3d]
+- :construction: Parsing patterns for Objects. [chrisr3d]
 
   Also little fixes & updates
 - Added label with the type for Identity object. [chrisr3d]
@@ -5784,7 +6176,7 @@ Other
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
-- Wip: Import module from STIX2. [chrisr3d]
+- :construction: Import module from STIX2. [chrisr3d]
 
   Functional but improvements still needed.
   Not all the fields of Stix2 events supported
@@ -5798,7 +6190,6 @@ Other
   [Christophe Vandeplas]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
 - Added custom object for MISP Objects. [chrisr3d]
-
 
 v2.4.84 (2017-12-06)
 --------------------
@@ -5816,7 +6207,6 @@ Other
 -----
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
 - Added label to recognize malware-sample attributes. [chrisr3d]
-
 
 v2.4.83 (2017-12-06)
 --------------------
@@ -5866,7 +6256,6 @@ Changes
 - Version strings updated. [iglocska]
 - Bump PyMISP, again. [Raphaël Vinot]
 - Bump PyMISP. [Raphaël Vinot]
-- Wip. [chrisr3d]
 - Wip. [chrisr3d]
 - Make misp to stix export work with MISP json formatted. [chrisr3d]
 - Push MISP json formatted events to the stix exporter (pending rework)
@@ -6023,7 +6412,6 @@ Other
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [Alexandre
   Dulaunoy]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [iglocska]
 - Merge pull request #2706 from Rafiot/cortex_doc. [Raphaël Vinot]
@@ -6035,7 +6423,6 @@ Other
 - Merge branch 'feature/tag_filter_rework' into 2.4. [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into
   feature/tag_filter_rework. [iglocska]
-- Merge branch '2.4' into feature/tag_filter_rework. [iglocska]
 - Merge branch '2.4' into feature/tag_filter_rework. [iglocska]
 - Little change about SDOs generated from Galaxy. [chrisr3d]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
@@ -6100,7 +6487,7 @@ Other
 - Parsing attachment attributes. [chrisr3d]
 
   Also fixed some specific issues with single quotes
-- Wip: Import of some of the most common attributes. [chrisr3d]
+- :construction: Import of some of the most common attributes. [chrisr3d]
 
   Work still in progress in order to:
   - Support as many attribute types as possible
@@ -6238,7 +6625,6 @@ Other
   Dulaunoy]
 - 2017 even if it's not 2049 ;-) [Alexandre Dulaunoy]
 - Quick fixes. [chrisr3d]
-
 
 v2.4.82 (2017-11-10)
 --------------------
@@ -6412,7 +6798,6 @@ Other
 - Enables the user to select the attributes to be included in the CSV
   export (event and object attributes). [Cédric Bonhomme]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
-- Merge branch '2.4' of github.com:MISP/MISP into 2.4. [chrisr3d]
 - Added custom objects. [chrisr3d]
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [iglocska]
@@ -6504,7 +6889,6 @@ Other
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [iglocska]
 
-
 v2.4.81 (2017-10-10)
 --------------------
 
@@ -6537,44 +6921,25 @@ New
 
   - this commit was brought to you by CEF and
 
-  MMMH$= -  .,   ,,.          %H++  ,= %%$$$$X+ ;=== .=  :+HHHMMMHMMM####MMH@@@@@@HHH$=      HHH@HHHHH+XXX$$$$$$$$XXXXXXX+
   MMH = -.  . ,-,,-,.         :H@H  =;;++$HH+XX$%+X%+$++=:=.XH@@@HMMMMMMMMH@@@@@@@HHX$   ,X@@@@@@@HHHHHHHHHHXXXXXXXXXXXXXX
-    . ---,  -    ,,,            +@ .. ;++$HH+HHH++$+++HH+++, .+%HHMHHHHHHHHH+%%%++++$+   +++HHHHHHH+++++++++HHHHHHHHHHHHHH
   - -- ,,,  --,. -                 , ,; +$XHH@@@@HHH@@@HHHH+$+$X+HH+$$+ ;  ;=  .    %   +  ,+$X+++XXXXXXXXXXXXX++HH+++++++
   ---==,,--,-,-., :     .          -,,:/ $XHH@HMMMMMMMMMM@HHX$H@MHHHHX+H%%$%+H/:.%. $. @,,,. $$XXXXXXXXXXXXXXXXXXXXXXXXXX+
     =  - --,,   , --   ..             =/ +$+H@@HMMMMMMMMH+H+++HHHHHHHH@+++++H+X++X+$$  = ,,, - $$XXXXX$$$$X$$$$$$$$$$$$$$X
-  ====== --,,,, ,= =              ,==== ++$$+HHMMM####MH+$$+++HH@+HH@MHMMH@@H@@@HH+$+    ,,, ,. $$+$++$$$$$$$$$$++$$$$$$$X
    :==-===-,. ,., ==   .           :;; +++%$+H@HMMMMMMM%$%$$$+H@@+HH@MMMMMM@@@@HHH++H. .,,-,,--=/+$$%%%%%%%%$+%%$$$$$XXXXX
   ,  =  ==- -  .  ==             . =; ++++%++HHHHHHHHHH++%$$X+@@H+HHHMMMMMMHH@@@+X+    , ,,,,-  , ,$$$$$$$+++++$$$$XXXXX$$
-  ,,-       ,    --=    ..       . ;/ ++++%$X+HHHHHHH  ++$++X+HH+X+H@HMMHHHHHHHH+.       ,,  ,,  , .    +$$$$+%+$$$$$$$$$$
-  ,-----=-=--,   ,==             ..;/ +% +%$XX+HH++HH+/+$%++H@@HHXHHH@@@@@@@@HXX  .   .,,,.  ,,,,     ,-=$$$$$$$$$$$$$$$$$
-   - ,- --  -,   ,-=     .         =/++%++%+++++XXXXX$$+.  +HHH@+$XHHHHHHHHH++$        -,,,  ,,      ,,,.   ,+$$$$$$$$$$$$
-   ---,-----, .   ==               =/+%+++%++$$+++$X$$$$++,$$+++XXHHHHHHHH+X$+%       ,-,-,        ,,    .  .  ,+$$+++++++
   == --, -- =--, ,,=          .    ./++$$++$+X$+/++$$XXXX$$$$XXXXXXH+HH+H+X$%%/     .,,,,,,    ..  ..    ,. ,,,-=+%+++ /++
   +   -- -  -,,-  .,    .  . .      = +$$++++HH+.  ,+$$+++++++$XX$X$XHHH+X$$+      ..--,-    .. .        .    ,-, = ======
   MH - ---- --,,,    .       .. ,      %++$$X++++ +%++++++++%++$$$$$+H++X$$+        --,    .         .   .        =  .====
-  MM=,-, ---,,,,,    . .     ...,,,   =/++%$$XXXX+/+++@@H@HX$+%$$+HHHHH$$$+:       ,--    .     ,. ..       .. ==::;=-:;;;
   MM+ ,----,,,,              , .. ,.      +++X+HH+++++%++$++++$$+HHH+++$$          ,-          ,   .       .   : ;/ +%+.
   MMH ,-,-,, ,,.        .    -,     =     = +$+H@HH++++$$X$$+++HHH+++$                       ,    ..       ,  +++++++%%+%+
-  MM@,--,-,,,,,. .     ,,     .    ,-,    .=+$XHHHXXHHHHHHHH@@@@HX$%+:          ,, .      ..,,  .....    ...%%%%++%%%%%%%%
   M@@== ,,,  ,                               ++++XX++HHHHHH++HHH+,              ,         ,  .  ....     . +$+%%%%%%+%%%%%
-  H@H+=,,,  ..                                  ,,+%$+H@HHHXX++,               ,         ,,  .  ...   . ,$$$$$%%%%%+%+%%%%
   @H+,-,,.....       .                          .,.;; ++$$X+%+:-              ,  .     .,,,  .  ...   . XXX$$$%%%%%%+%%%%%
-  +++ -, . ...                             .  .======== === ,                          ,, . .  ..   . -,XXX$X$+$+%%%%%%%%%
   $+     .                                ===:; ++++ ++++-,.  ,                       ,-,          .  $X+XX+XXX$$+%++%%%%%
   ++: ,. .                         ,-,,-==:; %%%%%+%$$%$$X$$$+%+:==        .        . ,,           ..+X$XXXXXX$$$+%%$$%%%%
-  =:                              ,,,  ==   ++++++$+$$%+++$$$++$+ . ==     .        .,,,             +$$$$$$$$$$$$$$+$%%%+
    ,                          ,---, =:;/++$$XX$$$$$$X+H@H@HHH$%%%$X$++;===== .      .,            .. +%%+$++$%$$$$$$%%++%+
                                  ===; +++$$$$+ +%+++%+HH@@@@HH+++ ++%+$+,  ===      ..             ,=;   +++++++++..   :;;
                         .   =:;   /++%$$++,  ,++HHMMHH@@@@HHHH@HH++++++ ,+$$+ .     ..                :=;;:;;;;;==========
                     .,,-==;;;+%  %%+$$$$ /+++@@@@@@@@@@HH@M@MH@@@HHHHH$$% /%$XXX$X  .                -=====::::=========::
-                  .    =;  ++++++$+++  , +%H@@@HHH@HH++HHH@MHHH@HHHHHH++++ , +%%+$                    ,, -       --- ==:=:
-                 ====;    ++++$$+%  ++H@HHHHHHH+X++X++@@@HHH@MMMMHHHHHH@HHHH+++++.                        ,,,,-,--- =:==;;
-       .,., ==;// / ++++%+%+%+++$$+@H@@@@H@HHH+XXX$%+HHHH@@HH@HMMMMMMMMMMMMMMH@+%;                       ...,,,,,--==;;;/;
-   .  ...=    .,+%$++%+$XXX$++%+++H@@@@HHH@HHH+++.   ++++H+HHHHHHHMMMMMMMMMMMM@++:                            ,,, ===;;;;;
-  ==: .  ++++++++HH%H+++X++HH+H@HHHH@HHHHHHH+++++%++%%+%%++ . ,   = ++$H@@HMHMMH%=                                .  ..,,=
-  +++%$XXHHHHHH@H@@@@@H@HH@MMM@@HH@HH+HXH@HH%%+HH+XX$$$+++/;:=== ,,,,,, = ::; % :,                                   ...,,
-  %+++HHH@HHH@@HMHHHH@HHHMHMHHHHHH+XH+HHH++++HHHH@HHHHH++%+ -,  = ,=== ,,  ,,, .
   H@HHHH#M#M#MHHHM#MMMMMMMHHHH@H@H++@H$+++HHM#MMMMHMMH@@HHHHHH%+++++%%%+++    ,  .
   %%%%%%%%%%%%%%++++%%++   ..   ...  ..  .                                   +++%+++++++%++++%+++++++++%+%++%+%%++%++++++%
 - Change server settings via the API. [iglocska]
@@ -6670,7 +7035,6 @@ Fix
   ──████────────█▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓█
   ──███─────────█▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓█
   ──██──────────█▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓█
-  ──██──────────█▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓█
   ──██─────────▐█▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓█
   ──██────────▐█▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓█
   ──██───────▐█▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓█▌
@@ -6713,7 +7077,7 @@ Other
   for 'created' and 'modified' properties of all the STIX Objects
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [iglocska]
-- Add: First WiP STIX 2.0 export from MISP JSON standard format.
+- Add: First :construction: STIX 2.0 export from MISP JSON standard format.
   [chrisr3d]
 
   This is an early stage export from MISP JSON into the STIX 2.0
@@ -6797,7 +7161,6 @@ Other
 - Up: Bump PyMISP. [Raphaël Vinot]
 - Up: test file. [Raphaël Vinot]
 
-
 v2.4.80 (2017-09-19)
 --------------------
 
@@ -6839,7 +7202,7 @@ New
   - added multiple flag among other things
 - Added first iteration of new add attachment functionality. [iglocska]
 
-  - still WIP
+  - still :construction:
 - Added back referencing from a referenced object. [iglocska]
 
   - also fixed some view file issues
@@ -6865,11 +7228,11 @@ New
   - added objects fields to object rows
   - nested rows within the object
   - massive cleanup
-- WIP - change to model aliasing to solve the reserved class name.
+- :construction: - change to model aliasing to solve the reserved class name.
   [iglocska]
 
   - Internal name is now MispObject for the model, but it is used Aliased, removing the need to do any data massaging
-  - Added WIP edit function
+  - Added :construction: edit function
 - Added objects submodule. [iglocska]
 - Further progress with the objects. [iglocska]
 
@@ -7102,11 +7465,7 @@ Other
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [iglocska]
 - Merge branch '2.4' into objects_wip. [iglocska]
-- Merge branch '2.4' into objects_wip. [iglocska]
-- Merge branch '2.4' into objects_wip. [iglocska]
-- Merge branch '2.4' into objects_wip. [iglocska]
 - Merge branch '2.4' into feature/objects. [iglocska]
-
 
 v2.4.79 (2017-08-28)
 --------------------
@@ -7235,7 +7594,6 @@ Other
 
   Vagrant dev environment
 - Updated default values for OpenSSL and GPG. [Cédric Bonhomme]
-- Updated default values for OpenSSL and GPG. [Cédric Bonhomme]
 - Merge pull request #2410 from cedricbonhomme/vagrant-dev-environment.
   [Andras Iklody]
 
@@ -7243,8 +7601,6 @@ Other
 - Fixed group owner of the MISP installation. [Cédric Bonhomme]
 - Updateg .gitignore: ignore Vagrant log files and VM related files.
   [Cédric Bonhomme]
-- Updated README. [Cédric Bonhomme]
-- Updated README. [Cédric Bonhomme]
 - Updated README. [Cédric Bonhomme]
 - Added Vagrant configuration files for a development environment.
   [Cédric Bonhomme]
@@ -7282,8 +7638,6 @@ Other
 
   Expose galaxies lit to api
 - Update GalaxiesController.php. [truckydev]
-- Update GalaxiesController.php. [truckydev]
-- Update GalaxiesController.php. [truckydev]
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [iglocska]
 - Merge pull request #2385 from cedricbonhomme/fix-command-line-tool-to-
@@ -7293,7 +7647,6 @@ Other
 - Fixed error: 'Value is not a boolean, make sure that you convert
   'true' to true for example.' when enabling/disabling MISP with the
   command line tool. [Cédric Bonhomme]
-
 
 v2.4.78 (2017-08-06)
 --------------------
@@ -7374,7 +7727,6 @@ Other
 - Update travis file, use composer for all PHP deps. [Raphaël Vinot]
 - MISP website links and references updated. [Alexandre Dulaunoy]
 - A link to the CONTRIBUTING page added. [Alexandre Dulaunoy]
-
 
 v2.4.77 (2017-07-12)
 --------------------
@@ -7576,11 +7928,9 @@ Other
 
   New apache directive with apache 2.4
 - Fixes #2278. [dc]
-- Fixes #2278. [dc]
 - Merge pull request #2276 from FafnerKeyZee/2.4. [Andras Iklody]
 
   Install Debian 9 (Stretch)
-- Update INSTALL.debian9.txt. [Fafner [_KeyZee_]]
 - Update INSTALL.debian9.txt. [Fafner [_KeyZee_]]
 - Create INSTALL.debian9.txt. [Fafner [_KeyZee_]]
 - Merge remote-tracking branch 'upstream/2.4' into 2.4. [Fafner
@@ -7588,7 +7938,6 @@ Other
 - Merge pull request #2 from MISP/2.4. [Fafner [_KeyZee_]]
 
   update
-
 
 v2.4.76 (2017-06-20)
 --------------------
@@ -7728,7 +8077,6 @@ Other
 - Merge branch '2.4' into dmaciejak-patch-2. [David Maciejak]
 - Remove duplicated h() calls. [David Maciejak]
 
-
 v2.4.75 (2017-06-13)
 --------------------
 
@@ -7787,7 +8135,7 @@ Fix
   names, fixes #2248. [iglocska]
 - Truncate log descriptions that are over 65532 character long.
   [iglocska]
--  [iglocska]
+- No commit message. [iglocska]
 
   - cleanup refactoring of pub sub tool
   - better handling of no access to redis
@@ -7851,7 +8199,6 @@ Other
   [iglocska]
 - Two new feeds from @bambenek added in the default JSON feed.
   [Alexandre Dulaunoy]
-
 
 v2.4.74 (2017-05-30)
 --------------------
@@ -7927,7 +8274,6 @@ Fix
   - allow POSTed parameters
   - simpler response always responds with txt type, won't complain about view not being set for incorrect accept headers
 - Hids api threw error on empty result. [iglocska]
-- MISP galaxy updated to the latest version. [Alexandre Dulaunoy]
 - MISP galaxy updated to the latest version. [Alexandre Dulaunoy]
 - Update to the MISP galaxy latest version. [Alexandre Dulaunoy]
 - Misp-galaxy updated to the latest version. [Alexandre Dulaunoy]
@@ -8012,7 +8358,6 @@ Other
   add possibility to define tags for import module.
 - Add possibility to define tags for import module. Add possibility to
   desable validation for String field when empty. [Tristan METAYER]
-
 
 v2.4.73 (2017-05-10)
 --------------------
@@ -8138,7 +8483,7 @@ Other
   [iglocska]
 - Merge pull request #2163 from ppanero/bro_export. [Andras Iklody]
 
-  [WIP] - BroExport types updeted
+  [:construction:] - BroExport types updeted
 - BroExport types updeted. [Pablo Panero]
 - Merge pull request #2161 from Keisial/2158. [Andras Iklody]
 
@@ -8175,10 +8520,6 @@ Other
 
   Issues 1643
 - Merge branch '2.4' into issues_1643. [devnull-]
-- Merge branch '2.4' into issues_1643. [devnull-]
-- Merge branch '2.4' into issues_1643. [devnull-]
-- Merge branch '2.4' into issues_1643. [devnull-]
-- Merge branch '2.4' into issues_1643. [devnull-]
 - Quick & Dirty 'without_email' & 'Unpublish_event' options for Sync
   Server. [devnull-]
 - Update the database schema unpublish_event (servers) &
@@ -8198,7 +8539,6 @@ Other
 
   Strangely, this does not affect centos7 and mariadb 5.5 even if corresponding documentation states the same.
   https://travis-ci.org/juju4/ansible-MISP/jobs/222624827#L4862
-
 
 v2.4.72 (2017-04-14)
 --------------------
@@ -8280,7 +8620,6 @@ Other
   [iglocska]
 - Merge branch 'jsfix' into 2.4. [iglocska]
 - Ignore node packages in gitignore. [Hannah Ward]
-
 
 v2.4.71 (2017-04-11)
 --------------------
@@ -8445,7 +8784,6 @@ Other
   Pull Update
 - Merge branch '2.4' into 2.4. [devnull-]
 
-
 v2.4.70 (2017-03-26)
 --------------------
 
@@ -8566,7 +8904,6 @@ Other
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [iglocska]
 
-
 v2.4.69 (2017-03-10)
 --------------------
 
@@ -8637,7 +8974,6 @@ Other
   the raised alerts. [Mathieu Deloitte]
 - Initialize host to empty value when the URL is formed incorrectly.
   [Mathieu Deloitte]
-
 
 v2.4.68 (2017-03-08)
 --------------------
@@ -8724,7 +9060,6 @@ Other
   block_event_proposals. [ppanero]
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [Iglocska]
-
 
 v2.4.67 (2017-02-24)
 --------------------
@@ -8839,7 +9174,6 @@ Other
 
   Code for issue : https://github.com/MISP/MISP/issues/1965
 - Code for issue : https://github.com/MISP/MISP/issues/1965. [truckydev]
-
 
 v2.4.66 (2017-02-19)
 --------------------
@@ -8995,8 +9329,6 @@ Other
 
   NidsSuricataExport refactoring for attribute *URL*
 - Merge branch '2.4' into 2.4. [Alexandre Dulaunoy]
-- Merge branch '2.4' into 2.4. [Alexandre Dulaunoy]
-- Merge branch '2.4' into 2.4. [Alexandre Dulaunoy]
 - NidsSuricataExport refactoring for attribute *URL* [Mathieu Deloitte]
 - Merge pull request #1928 from cvandeplas/2.4. [Andras Iklody]
 
@@ -9018,7 +9350,6 @@ Other
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [iglocska]
 - Update PyMISP. [Raphaël Vinot]
-
 
 v2.4.65 (2017-02-09)
 --------------------
@@ -9060,13 +9391,11 @@ Other
 - Version bump. [iglocska]
 - Merge branch 'auditor' into 2.4. [iglocska]
 - Merge branch '2.4' into 2.4. [truckydev]
-- Merge branch '2.4' into 2.4. [truckydev]
 - Check if auditor have good "org_id" [truckydev]
 - Merge branch '2.4' into 2.4. [truckydev]
 - Get email creator user for auditor users. [Tristan METAYER]
 - Add auditor user        auditor user can see event_creator_id.
   [Tristan METAYER]
-
 
 v2.4.64 (2017-02-06)
 --------------------
@@ -9147,7 +9476,6 @@ Other
   events. [Christophe Vandeplas]
 - Merge branch 'feature/passwordSending' into 2.4. [iglocska]
 
-
 v2.4.63 (2017-02-01)
 --------------------
 
@@ -9220,7 +9548,6 @@ Other
   Dulaunoy]
 - Merge branch 'feature/db_fix' into 2.4. [iglocska]
 
-
 v2.4.62 (2017-01-26)
 --------------------
 
@@ -9281,7 +9608,6 @@ Other
 
   Truncate bro cached export files
 - Truncate bro cached export files. [Richard van den Berg]
-
 
 v2.4.61 (2017-01-22)
 --------------------
@@ -9370,7 +9696,6 @@ Other
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [Iglocska]
 
-
 v2.4.60 (2017-01-17)
 --------------------
 
@@ -9383,7 +9708,7 @@ New
   - make sure that the attribute value is the desired filename, the hashes will be added automagically
 - Add a new api to check the supported PyMISP version. [iglocska]
 - Index API for sightings added. [iglocska]
-- Sightings API improvements WIP. [iglocska]
+- Sightings API improvements :construction:. [iglocska]
 
   - reworked responses
   - started work on the new index
@@ -9508,7 +9833,6 @@ Other
 -----
 - Merge branch 'feature/attribute-tagging' into 2.4. [Iglocska]
 - Merge branch '2.4' into feature/attribute-tagging. [Iglocska]
-- Merge branch '2.4' into feature/attribute-tagging. [Iglocska]
 - Merge branch '2.4' into feature/attribute-tagging. [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [Alexandre
   Dulaunoy]
@@ -9541,7 +9865,6 @@ Other
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [Iglocska]
 - Merge branch '2.4' into feature/attribute-tagging. [iglocska]
-
 
 v2.4.59 (2017-01-01)
 --------------------
@@ -9633,7 +9956,6 @@ Other
 
   Remove bang (!) so it doesn't get interpreted as an image.
 
-
 v2.4.58 (2016-12-22)
 --------------------
 
@@ -9703,7 +10025,6 @@ Other
 - Added support for creating users into different roles depending on
   ldap group membership. [Emil Enemærke]
 
-
 v2.4.57 (2016-12-19)
 --------------------
 
@@ -9717,7 +10038,7 @@ New
 
   - still missing: Export modules
   - consider having the flag for misp JSON/XML and STIX perhaps?
-- WIP: Parameter to remove warning list hits from exports. [iglocska]
+- :construction:: Parameter to remove warning list hits from exports. [iglocska]
 - Added a way to disable certain tags from the UI, fixes #1733.
   [iglocska]
 
@@ -9868,14 +10189,12 @@ Other
 
   up: Run tests in python3
 - Merge branch '2.4' into travis. [Raphaël Vinot]
-- Merge branch '2.4' into travis. [Raphaël Vinot]
 - Up: Run tests in python3. [Raphaël Vinot]
 - Merge pull request #1727 from kirzaks/2.4. [Andras Iklody]
 
   Snort optimisation
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4. [Armins]
 - Added fast_pattern. [Armins]
-
 
 v2.4.56 (2016-12-07)
 --------------------
@@ -9885,7 +10204,7 @@ New
 - Tied the galaxies into the ACL. [Iglocska]
 - First RC of MISP galaxies 1.0. [Iglocska]
 - Added galaxy attach/detach functions. [Iglocska]
-- First iteration of the galaxies (WIP) [Iglocska]
+- First iteration of the galaxies (:construction:) [Iglocska]
 - Added upgrade scripts. [Iglocska]
 - Added galaxy tables. [Iglocska]
 - Added the publish_timestamp and timestamp parameters to both
@@ -10015,7 +10334,6 @@ Other
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [Iglocska]
 
-
 v2.4.55 (2016-11-22)
 --------------------
 
@@ -10119,11 +10437,9 @@ Other
 - Block alert e-mails based on tag. [Richard van den Berg]
 - Merge branch '1642' into 2.4. [Iglocska]
 - Update UPDATE.txt. [Deventual]
-- Update UPDATE.txt. [Deventual]
 - Merge branch '1653' into 2.4. [Iglocska]
 - Sorts the "Attributes per organization" array by the total number of
   attr, highest on top. [cristian bell]
-
 
 v2.4.54 (2016-11-04)
 --------------------
@@ -10210,7 +10526,6 @@ Fix
   [Iglocska]
 - Increased space between taxonomy names in the treemap as some of them
   can be quite long. [Iglocska]
-- PyMISP updated to the latest version. [Alexandre Dulaunoy]
 - PyMISP updated to the latest version. [Alexandre Dulaunoy]
 - MISP name fixed. [Alexandre Dulaunoy]
 - Fixed annoying capitalisation mess in the event index parameters.
@@ -10300,7 +10615,6 @@ Other
   [Iglocska]
 - Removed Imported via the Freetext Import ... text. [Christophe
   Vandeplas]
-
 
 v2.4.53 (2016-10-21)
 --------------------
@@ -10423,7 +10737,6 @@ Other
   Berg]
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [Iglocska]
-
 
 v2.4.52 (2016-10-07)
 --------------------
@@ -10962,7 +11275,6 @@ Other
 
   fix: update version number to 2.4.51 in MYSQL.sql
 
-
 v2.4.51 (2016-08-29)
 --------------------
 
@@ -11082,7 +11394,7 @@ Fix
 - Refactoring of the STIX export. [iglocska]
 
   - Also adding it to the caching mechanism
-  - still WIP
+  - still :construction:
 - Differentiate queued and running jobs if no granular progress is
   returned. [iglocska]
 - Version bump. [iglocska]
@@ -11177,16 +11489,12 @@ Other
 - Model/Server.php modified so the settings remain the same after config
   change on the web UI. [ppanero]
 - Merge branch '2.4' into 2.4.51. [iglocska]
-- Merge branch '2.4' into 2.4.51. [iglocska]
-- Merge branch '2.4' into 2.4.51. [iglocska]
-- Merge branch '2.4' into 2.4.51. [iglocska]
 - Merge branch 'sslclientsync' into 2.4.51. [iglocska]
 - Merge branch 'sslclientcert' into sslclientsync. [iglocska]
 - Example API script using client cert. [Richard van den Berg]
 - Merge branch '2.4' into sslclientsync. [iglocska]
 - Add support for sync server SSL client certificates. [Richard van den
   Berg]
-- Merge branch '2.4' into 2.4.51. [iglocska]
 - Merge branch '2.4' into 2.4.51. [iglocska]
 - First iteration of the internal sync rework. [iglocska]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [Alexandre
@@ -11328,7 +11636,6 @@ Other
 - Update to the latest version of PyMISP. [Alexandre Dulaunoy]
 - Version bump. [iglocska]
 
-
 v2.4.50 (2016-08-10)
 --------------------
 
@@ -11436,7 +11743,6 @@ Other
 -----
 - Merge branch 'feature/import-export-modules' into 2.4. [iglocska]
 - Merge branch '2.4' into feature/import-export-modules. [iglocska]
-- Merge branch '2.4' into feature/import-export-modules. [iglocska]
 - Merge branch '2.4' into feature/import-export-modules. [Iglocska]
 - Merge branch '2.4.50' into 2.4. [iglocska]
 - Merge branch '1426' into 2.4. [iglocska]
@@ -11504,7 +11810,6 @@ Other
 - Using custom comments for module return value. [nkuhnert]
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [Iglocska]
-
 
 v2.4.49 (2016-07-22)
 --------------------
@@ -11805,8 +12110,6 @@ Other
 
   fix: Remove the default defined salt #625
 - Merge branch '2.4' into feature/modulerework. [Iglocska]
-- Merge branch '2.4' into feature/modulerework. [Iglocska]
-- Merge branch '2.4' into feature/modulerework. [Iglocska]
 
   Conflicts:
   	app/Model/Module.php
@@ -11966,8 +12269,8 @@ Other
   MYSQL.sql cleanup
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [Iglocska]
-- Merge pull request #1319 from cristianbell/fix-
-  939_graceful_maintenance_page. [Andras Iklody]
+- Merge pull request #1319 from
+  cristianbell/fix-939_graceful_maintenance_page. [Andras Iklody]
 
   issue 993: Graceful maintenance message.
 - Issue 993: Graceful maintenance message. [Cristian Bell]
@@ -12087,7 +12390,6 @@ Other
   chg: use escapeshellarg() instead of addslashes() with exec()
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [Iglocska]
-
 
 v2.4.48 (2016-06-08)
 --------------------
@@ -12364,7 +12666,6 @@ Other
   - set missing keys to null in foreach
 - Merge remote-tracking branch 'origin/2.4' into 2.4. [Iglocska]
 - Update PULL_REQUEST_TEMPLATE.md. [Raphaël Vinot]
-- Update PULL_REQUEST_TEMPLATE.md. [Raphaël Vinot]
 - Update ISSUE_TEMPLATE.md. [Raphaël Vinot]
 - Merge pull request #1193 from rotanid/defaults. [Andras Iklody]
 
@@ -12403,7 +12704,6 @@ Other
   Vinot]
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [Iglocska]
-- Update PULL_REQUEST_TEMPLATE.md. [Raphaël Vinot]
 - Update PULL_REQUEST_TEMPLATE.md. [Raphaël Vinot]
 - Merge branch '2.4' of github.com:MISP/MISP into 2.4. [Raphaël Vinot]
 - Add PR template. [Raphaël Vinot]
@@ -12495,7 +12795,6 @@ Other
   [Iglocska]
 - Add issue template. [Raphaël Vinot]
 
-
 v2.4.47 (2016-05-24)
 --------------------
 
@@ -12524,7 +12823,6 @@ Other
 - Merge pull request #1164 from rotanid/bugfix. [Andras Iklody]
 
   fix: wrong variable name in __ipv6InCidr()
-
 
 v2.4.46 (2016-05-23)
 --------------------
@@ -12582,7 +12880,6 @@ Other
 
   improve some text passages
 - Improve some text passages. [Andreas Ziegler]
-
 
 v2.4.45 (2016-05-20)
 --------------------
@@ -12706,7 +13003,6 @@ Other
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [iglocska]
 
-
 v2.4.44 (2016-05-12)
 --------------------
 
@@ -12725,7 +13021,6 @@ Other
 
   Missing DEFAULT value in certif_public
 - Missing DEFAULT value in certif_public. [I-am-Sherlocked]
-
 
 v2.4.43 (2016-05-11)
 --------------------
@@ -12780,7 +13075,6 @@ Other
   in "Request URL: /users/memberslist" , since Organization.name is not a unique field. Grouping by Organization.id instead will fix the issue.
 - Fixed the logging of attribute deletes. [Iglocska]
 
-
 v2.4.42 (2016-05-05)
 --------------------
 
@@ -12826,7 +13120,6 @@ Other
 - Merge branch '2.4' of https://github.com/MISP/MISP into 2.4.
   [Iglocska]
 
-
 v2.4.41 (2016-04-28)
 --------------------
 
@@ -12839,7 +13132,6 @@ Changes
 Fix
 ---
 - Fixed some issues with the favourite tags. [Iglocska]
-
 
 v2.4.40 (2016-04-28)
 --------------------
@@ -12859,7 +13151,6 @@ Changes
 Other
 -----
 - Airbus added as contributor. [Alexandre Dulaunoy]
-
 
 v2.4.39 (2016-04-27)
 --------------------
@@ -12915,7 +13206,6 @@ Other
 - Add the field 'certif_public' in view. [devnull-]
 - Add the field 'certif_public' in index. [devnull-]
 - Add in form the field 'certif_public' [devnull-]
-- Add in form the field 'certif_public' [devnull-]
 - Patch SMIME to sign and encrypt email. [devnull-]
 - Update fields & add certificate as attachment to email. [devnull-]
 - Add function verifyCertificate & update of fields. [devnull-]
@@ -12929,7 +13219,6 @@ Other
 - Specific transport class to send SMIME with CakePHP (add SMIME
   headers) [devnull-]
 - PATCH: Update the database schema (SMIME) [devnull-]
-
 
 v2.4.38 (2016-04-23)
 --------------------
@@ -12951,10 +13240,9 @@ v2.4.38 (2016-04-23)
 - Merge branch '2.4' into feature/warninglists. [Iglocska]
 - First version of the warnings finished. [Iglocska]
 - Further progress. [Iglocska]
-- Further progress. [Iglocska]
 - Import, enabling, viewing, indexing of warninglists finished.
   [Iglocska]
-- Warninglists WIP. [Iglocska]
+- Warninglists :construction:. [Iglocska]
 - Fix to an invalid check. [Iglocska]
 - Small tune to the freetext import. [Iglocska]
 
@@ -13048,7 +13336,6 @@ v2.4.38 (2016-04-23)
 - Some small changes. [Iglocska]
 - Small fixes. [Iglocska]
 
-
 v2.4.37 (2016-04-18)
 --------------------
 - Version bump. [Iglocska]
@@ -13058,7 +13345,6 @@ v2.4.37 (2016-04-18)
 - Gitchangelog configuration added. [Alexandre Dulaunoy]
 - Version bump. [Iglocska]
 
-
 v2.4.36 (2016-04-15)
 --------------------
 - Fixed a check for the upload sample API to check if the target event
@@ -13066,7 +13352,6 @@ v2.4.36 (2016-04-15)
 - Added comment field to upload sample API. [Iglocska]
 - Changed the publish dating to number of days from fixed date.
   [Iglocska]
-
 
 v2.4.35 (2016-04-15)
 --------------------
@@ -13194,7 +13479,6 @@ v2.4.35 (2016-04-15)
     - 4. Include the Sightings data in the XML/JSON views
     - 5. View sighting for attribute / event via the API
 
-
 v2.4.34 (2016-04-08)
 --------------------
 - Version bump. [Iglocska]
@@ -13287,7 +13571,6 @@ v2.4.34 (2016-04-08)
   Dulaunoy]
 - MISP logo in a square. [Alexandre Dulaunoy]
 
-
 v2.4.32 (2016-03-30)
 --------------------
 - Split the tagging permission into two. [Iglocska]
@@ -13311,7 +13594,6 @@ v2.4.32 (2016-03-30)
   - old syntax still accepted
 
   - new tool for rearranging request data to allow the APIs to automatically catch and correct typical rearrange errors
-
 
 v2.4.31 (2016-03-30)
 --------------------
@@ -13350,7 +13632,6 @@ v2.4.31 (2016-03-30)
   There is a typo in main.css
 - CIRCL logo added. [Alexandre Dulaunoy]
 - Fix #1051. [Alexandre Dulaunoy]
-- Fix #1051. [Alexandre Dulaunoy]
 - Fix to an invalid default password complexity validation, fixes #585.
   [Iglocska]
 - Fixes to the plugin settings not working for any plugin beyond the
@@ -13360,11 +13641,9 @@ v2.4.31 (2016-03-30)
 
   - also added the correlations to the enrichment view
 
-
 v2.4.30 (2016-03-28)
 --------------------
 - Verision bump. [Iglocska]
-
 
 v2.4.29 (2016-03-28)
 --------------------
@@ -13418,7 +13697,6 @@ v2.4.29 (2016-03-28)
 - Merge branch '2.4' into feature/authentication. [Iglocska]
 - Fix to the incoming address check. [Iglocska]
 - First implementation of the new auth mechanism. [Iglocska]
-
 
 v2.4.28 (2016-03-21)
 --------------------
@@ -13477,7 +13755,6 @@ v2.4.28 (2016-03-21)
   - next step: Tie it into the freetext import results
   - add additional fields to the python service
 
-
 v2.4.27 (2016-03-11)
 --------------------
 - Re-added a feed. [Iglocska]
@@ -13493,7 +13770,6 @@ v2.4.27 (2016-03-11)
 - Freetext import results now show similar attributes. [Iglocska]
 - Correctly detect e-mail addresses in the freetext import tool.
   [Iglocska]
-
 
 v2.4.26 (2016-03-10)
 --------------------
@@ -13544,12 +13820,10 @@ v2.4.26 (2016-03-10)
 - Set proposal's deleted field to 0 if nothing is set before saving,
   fixes #988. [Iglocska]
 
-
 v2.4.25 (2016-03-09)
 --------------------
 - Scheduled push incorrectly used the user e-mail address instead of a
   user object to initiate the sync, fixes #1000. [Iglocska]
-
 
 v2.4.24 (2016-03-07)
 --------------------
@@ -13632,12 +13906,10 @@ v2.4.24 (2016-03-07)
   event. [Iglocska]
 - Version bump. [Iglocska]
 
-
 v2.4.23 (2016-02-22)
 --------------------
 - Fixed a bug that caused the publish e-mails to not respect the sharing
   groups correctly. [Iglocska]
-
 
 v2.4.22 (2016-02-21)
 --------------------
@@ -13652,7 +13924,6 @@ v2.4.22 (2016-02-21)
   - If a task is missing then visiting the task index will automatically re-create it
   - MYSQL.sql brought up to date, the upgrade scripts in the application shouldn't have to run on first login
 - Version bump. [Iglocska]
-
 
 v2.4.21 (2016-02-19)
 --------------------
@@ -13678,7 +13949,6 @@ v2.4.21 (2016-02-19)
 - Fix to setting the job progress before initialising the model when
   correlating proposals. [Iglocska]
 - Fixed a copy paste fail. [Iglocska]
-
 
 v2.4.20 (2016-02-17)
 --------------------
@@ -13736,11 +14006,9 @@ v2.4.20 (2016-02-17)
 - Added new attribute type x509-fingerprint-sha1. [Iglocska]
 - Version bump and footer version fix. [Iglocska]
 
-
 v2.4.18 (2016-02-13)
 --------------------
 - Merge branch 'features/delegation' into 2.4. [Iglocska]
-- Merge fixes. [Iglocska]
 - Merge fixes. [Iglocska]
 - Merge branch '2.4' into features/delegation. [Iglocska]
 
@@ -13759,7 +14027,6 @@ v2.4.18 (2016-02-13)
   [Iglocska]
 
   - this helps with composite attributes where only one half of the attribute correlates
-
 
 v2.4.17 (2016-02-11)
 --------------------
@@ -13852,9 +14119,7 @@ v2.4.17 (2016-02-11)
 
   Comment a line that includes a comment
 - Update INSTALL.ubuntu1404.txt. [Alexander J]
-- Update INSTALL.ubuntu1404.txt. [Alexander J]
 - Fix to the e-mail contents of the contact message. [Iglocska]
-
 
 v2.4.16 (2016-02-02)
 --------------------
@@ -13873,7 +14138,6 @@ v2.4.16 (2016-02-02)
 
   - contact e-mail recipients were incorrectly set resulting in the e-mails landing at the wrong recipient
   - disabled users were not excluded from certain e-mails
-
 
 v2.4.15 (2016-02-02)
 --------------------
@@ -13933,7 +14197,6 @@ v2.4.15 (2016-02-02)
 - Display and Search for model ID in the audit logs, fixes #889.
   [Iglocska]
 
-
 v2.4.14 (2016-01-29)
 --------------------
 - Version bump. [Iglocska]
@@ -13962,7 +14225,6 @@ v2.4.14 (2016-01-29)
   - it looks like PHP is overriding the setting
 - Set the returnPath header in e-mails correctly. [Iglocska]
 - Version bump. [Iglocska]
-
 
 v2.4.13 (2016-01-28)
 --------------------
@@ -14020,7 +14282,6 @@ v2.4.13 (2016-01-28)
 - Fixed an invalid org lookup on the proposal download blocking users
   from downloading proposal attachments, fixes #874. [Iglocska]
 
-
 v2.4.12 (2016-01-21)
 --------------------
 - Merge branch 'feature/proposalFix' into 2.4. [Iglocska]
@@ -14050,14 +14311,12 @@ v2.4.12 (2016-01-21)
 
   - the removed columns can cause exceptions if not removed as described in #814
 
-
 v2.4.11 (2016-01-20)
 --------------------
 - Fix to an invalid org lookup. [Iglocska]
 
   - prevents normal users from seeing the proposal index
   - still a left-over from 2.3
-
 
 v2.4.10 (2016-01-20)
 --------------------
@@ -14072,7 +14331,6 @@ v2.4.10 (2016-01-20)
 - Added full text search to organisation index, fixes #803. [Iglocska]
 
   - also some fixes and enhancements in general for this
-
 
 v2.4.9 (2016-01-19)
 -------------------
@@ -14153,7 +14411,6 @@ v2.4.9 (2016-01-19)
 - Fix to an invalid data entry pre-validation call that broke prtn
   attribute entry with a leading + [Iglocska]
 
-
 v2.4.7 (2016-01-14)
 -------------------
 - Version bump. [Iglocska]
@@ -14218,9 +14475,6 @@ v2.4.7 (2016-01-14)
 - Add php 5.5 and 7.0 in the travis tests. [Raphaël Vinot]
 - Merge branch 'pr/679' into 2.4. [Raphaël Vinot]
 - Update .travis.yml. [Steve Peak]
-- Update .travis.yml. [Steve Peak]
-- Update .travis.yml. [Steve Peak]
-- Update .travis.yml. [Steve Peak]
 - Create .coveragerc. [Steve Peak]
 - Debugging coverage. [Steve Peak]
 - Add check for values on diagnostics page, fixes #839. [Iglocska]
@@ -14247,7 +14501,6 @@ v2.4.7 (2016-01-14)
 
   - fixed a series of issues with the exports
 
-
 v2.4.6 (2016-01-07)
 -------------------
 - Fix to a trailing slash in the baseurl breaking the upgrade script.
@@ -14269,7 +14522,6 @@ v2.4.6 (2016-01-07)
 - Updated upgrade.txt. [Iglocska]
 - Quickfilter added for users. [Iglocska]
 - Added malware sample to the file attribute filter. [Iglocska]
-
 
 v2.4.5 (2016-01-04)
 -------------------
@@ -14304,7 +14556,6 @@ v2.4.5 (2016-01-04)
 - Add today's date as the event date field if not set. [Iglocska]
 - Removal of PGP key generation for travis. [Iglocska]
 
-
 v2.4.4 (2015-12-30)
 -------------------
 - Fixes to the first user initialisation. [Iglocska]
@@ -14329,7 +14580,6 @@ v2.4.4 (2015-12-30)
 
   Solving #786
 - Solving #786. [Fafner [_KeyZee_]]
-- Solving #786. [Fafner [_KeyZee_]]
 - Merge pull request #796 from FafnerKeyZee/2.4. [Andras Iklody]
 
   Fix for orgc_id into TemplatesController.php
@@ -14353,14 +14603,12 @@ v2.4.4 (2015-12-30)
 
   - it was erroneously looking up servers that have push enabled instead of pull
 
-
 v2.4.3 (2015-12-27)
 -------------------
 - Rework of the contributor field, some MYSQL.sql tweaks. [iglocska]
 
   - added indeces to the MYSQL.sql file
   - contributors now looks for shadow attributes instead of log entries (should make the event view much faster and resolve some timeout issues on sync when the log is massive)
-
 
 v2.4.2 (2015-12-26)
 -------------------
@@ -14369,7 +14617,6 @@ v2.4.2 (2015-12-26)
 
   - Running a stix export for a specific ID that doesn't exist results in a full STIX export for the user (events visible to the user)
   - This leads for an unnecesarily long export process when a quick export is expected
-
 
 v2.4.1 (2015-12-26)
 -------------------
@@ -14384,7 +14631,6 @@ v2.4.1 (2015-12-26)
 
   - scheduled pulls would fail because of invalid user object passed
   - invalid permissions checks / org checks would cause the RPZ export to fail when using background workers
-
 
 v2.4.0 (2015-12-24)
 -------------------
@@ -15073,7 +15319,7 @@ v2.4.0 (2015-12-24)
 - Progress on the sync. [Iglocska]
 
   - Creating objects whenever necessary during sync (sharing groups, organisations, etc)
-  - it's still WIP, but time to sleep
+  - it's still :construction:, but time to sleep
 - More changes to the sync. [Iglocska]
 
   - pushes are now taking into account the push_rules and pull_rules fields
@@ -15190,7 +15436,6 @@ v2.4.0 (2015-12-24)
 - Removed debug line. [iglocska]
 - Initial commit. [iglocska]
 
-
 v2.3.178 (2015-12-14)
 ---------------------
 - Merge branch 'hotfix-2.3.178' [iglocska]
@@ -15202,13 +15447,11 @@ v2.3.178 (2015-12-14)
 - Double quoting of quoted messages in discussion threads fixed.
   [iglocska]
 
-
 v2.3.177 (2015-12-08)
 ---------------------
 - Merge branch 'hotfix-2.3.177' [iglocska]
 - Invalid message fixed when accepting several proposals at once.
   [iglocska]
-
 
 v2.3.176 (2015-12-08)
 ---------------------
@@ -15218,7 +15461,6 @@ v2.3.176 (2015-12-08)
   - Double sanitisation when edditing an attribute/proposal comment removed
   - Fixed an issue where an ip/resource was recognised as a CIDR notation IP range instead of a url
   - Changed the flash message for publishing without e-mails to something less scary
-
 
 v2.3.175 (2015-12-04)
 ---------------------
@@ -15244,12 +15486,10 @@ v2.3.175 (2015-12-04)
 
   - admin tool doesn't recognise a word followed by a . as a url
 
-
 v2.3.174 (2015-12-04)
 ---------------------
 - Merge branch 'hotfix-2.3.173' [iglocska]
 - Junk left in the previous commit. [iglocska]
-
 
 v2.3.173 (2015-12-02)
 ---------------------
@@ -15268,7 +15508,6 @@ v2.3.173 (2015-12-02)
 - Fix to an incorrect call on sending out alert emails on edit.
   [iglocska]
 
-
 v2.3.172 (2015-12-01)
 ---------------------
 - Merge branch 'hotfix-2.3.172' [iglocska]
@@ -15284,7 +15523,6 @@ v2.3.172 (2015-12-01)
 
   - add_misp_export updated with the above in mind
 
-
 v2.3.171 (2015-12-01)
 ---------------------
 - Merge branch 'hotfix-2.3.170' [iglocska]
@@ -15297,7 +15535,6 @@ v2.3.171 (2015-12-01)
 
   - REST XML/JSON add/edit of events returns errors instead of the partially succeeding event
 
-
 v2.3.169 (2015-11-27)
 ---------------------
 - Merge branch 'hotfix-2.3.169' [iglocska]
@@ -15306,31 +15543,26 @@ v2.3.169 (2015-11-27)
 
   - there is no need to keep retransfering the actual attached file if all we want to convey is that the proposal is gone.
 
-
 v2.3.168 (2015-11-27)
 ---------------------
 - Merge branch 'hotfix-2.3.168' [iglocska]
 - Fix to an issue where a proposal with an attachment could not be
   correctly accepted. [iglocska]
 
-
 v2.3.167 (2015-11-26)
 ---------------------
 - Merge branch 'hotfix-2.3.167' [iglocska]
 - Updated CakePHP version to 2.7.7. [iglocska]
 - Merge branch 'hotfix-2.3.166' into develop. [iglocska]
-- Merge branch 'hotfix-2.3.166' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.165' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.166' [iglocska]
 - Left off the view file from the previous commit. [iglocska]
-
 
 v2.3.166 (2015-11-26)
 ---------------------
 - Merge branch 'hotfix-2.3.166' [iglocska]
 - Backport of a fix to 2.4 adding comments to proposed attachments.
   [iglocska]
-
 
 v2.3.165 (2015-11-26)
 ---------------------
@@ -15341,7 +15573,6 @@ v2.3.165 (2015-11-26)
 - Merge branch 'master' into develop. [iglocska]
 - Merge branch 'master' of https://github.com/MISP/MISP. [iglocska]
 - Initial JSON schema - MISP event (version 2.3) [Alexandre Dulaunoy]
-
 
 v2.3.164 (2015-11-22)
 ---------------------
@@ -15359,7 +15590,6 @@ v2.3.164 (2015-11-22)
 - Merge branch 'master' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.161' into develop. [iglocska]
 
-
 v2.3.163 (2015-11-19)
 ---------------------
 - Merge branch 'hotfix-2.3.163' [iglocska]
@@ -15370,7 +15600,6 @@ v2.3.163 (2015-11-19)
   - Fixed an invalid validation check on the salt key
 
   - Added a note on the server page to make it more obvious that values can be changed by double clicking them
-
 
 v2.3.162 (2015-11-17)
 ---------------------
@@ -15384,7 +15613,6 @@ v2.3.162 (2015-11-17)
 
   - fixed a reflected XSS for template creator users when viewing a template
 - Merge branch 'hotfix-2.3.160' into develop. [iglocska]
-- Merge branch 'hotfix-2.3.160' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.159' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.158' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.157' into develop. [iglocska]
@@ -15396,7 +15624,6 @@ v2.3.162 (2015-11-17)
 - Merge branch 'hotfix-2.3.161' [iglocska]
 - Fix to a recent patch breaking the publish button. [iglocska]
 
-
 v2.3.161 (2015-11-17)
 ---------------------
 - Merge branch 'hotfix-2.3.160' [iglocska]
@@ -15404,7 +15631,6 @@ v2.3.161 (2015-11-17)
   [iglocska]
 
   - sanitising it in appcontroller instead
-
 
 v2.3.160 (2015-11-16)
 ---------------------
@@ -15436,7 +15662,6 @@ v2.3.160 (2015-11-16)
 
   - also added an admin tool that lets admins clean their current set of regexes of the harmful modifier
 
-
 v2.3.159 (2015-11-15)
 ---------------------
 - Merge branch 'hotfix-2.3.159' [iglocska]
@@ -15452,9 +15677,7 @@ v2.3.159 (2015-11-15)
   - Also removed the logging of the hashed password for newly created users
 - Merge branch 'master' of https://github.com/MISP/MISP. [iglocska]
 - PyMISP submodule updated. [Alexandre Dulaunoy]
-- PyMISP submodule updated. [Alexandre Dulaunoy]
 - PyMISP updated. [Alexandre Dulaunoy]
-
 
 v2.3.158 (2015-11-13)
 ---------------------
@@ -15483,14 +15706,12 @@ v2.3.158 (2015-11-13)
 - Fixed an issue where PGP keys that are set to never expire show up as
   expired. [iglocska]
 
-
 v2.3.157 (2015-11-12)
 ---------------------
 - Merge branch 'hotfix-2.3.156' [iglocska]
 - Better verification of PGP keys. [iglocska]
 
   - checks whether the key can be used to encrypt and whether it's expired
-
 
 v2.3.156 (2015-11-11)
 ---------------------
@@ -15508,7 +15729,6 @@ v2.3.156 (2015-11-11)
   - reported by RichieB2B
   - The scraped URL for the PGP fetching tool was not sanitised before being echoed
 
-
 v2.3.155 (2015-11-10)
 ---------------------
 - Merge branch 'hotfix-2.3.155' [iglocska]
@@ -15516,7 +15736,6 @@ v2.3.155 (2015-11-10)
 
   - The scraped URL for the PGP fetching tool was not sanitised before being echoed
   - Trying to view an event that doesn't exist and one that the user has no access to resulted in different error messages
-
 
 v2.3.154 (2015-11-10)
 ---------------------
@@ -15528,14 +15747,12 @@ v2.3.154 (2015-11-10)
   - until now multi line fields were both escaped and the line breaks removed
     - this was overkill, linebreaks are now kept intact
 
-
 v2.3.153 (2015-11-09)
 ---------------------
 - Merge branch 'master' of https://github.com/MISP/MISP. [iglocska]
 - Updated PyMISP to the latest version. [Alexandre Dulaunoy]
 - Merge branch 'hotfix-2.3.153' [iglocska]
 - Fixed a bug with the attribute search API. [iglocska]
-
 
 v2.3.152 (2015-11-08)
 ---------------------
@@ -15553,7 +15770,6 @@ v2.3.152 (2015-11-08)
     - disabling it also hides the IPs from the interface
     - added new IP field for the log search (only if enabled)
 
-
 v2.3.151 (2015-11-03)
 ---------------------
 - Merge branch 'develop' [iglocska]
@@ -15564,7 +15780,6 @@ v2.3.151 (2015-11-03)
 - Merge branch 'hotfix-2.3.148' into develop. [Iglocska]
 - Merge branch 'hotfix-2.3.147' into develop. [Iglocska]
 
-
 v2.3.150 (2015-10-30)
 ---------------------
 - Merge branch 'hotfix-2.3.150' [iglocska]
@@ -15574,14 +15789,12 @@ v2.3.150 (2015-10-30)
   - Proposals that can be accepted / discarded via the API
   - Can restrict the index to the proposals of a single event
 
-
 v2.3.149 (2015-10-30)
 ---------------------
 - Merge branch 'hotfix-2.3.149' [iglocska]
 - Tagging added to the API. [iglocska]
 
   - Create / Edit / Remove / index / view tags via the API
-
 
 v2.3.148 (2015-10-28)
 ---------------------
@@ -15599,7 +15812,6 @@ v2.3.148 (2015-10-28)
 - Merge branch 'hotfix-2.3.147' [Iglocska]
 - More details on the PGP validation tool. [Iglocska]
 
-
 v2.3.147 (2015-10-27)
 ---------------------
 - Merge branch 'hotfix-2.3.147' [Iglocska]
@@ -15610,18 +15822,13 @@ v2.3.147 (2015-10-27)
 - Merge branch 'hotfix-2.3.145' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.144' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.143' into develop. [Iglocska]
-- Merge branch 'hotfix-2.3.143' into develop. [Iglocska]
 - Merge branch 'hotfix-2.3.142' into develop. [Iglocska]
 - Merge branch 'hotfix-2.3.141' into develop. [Iglocska]
 - Merge branch 'hotfix-2.3.140' into develop. [Iglocska]
 - Merge branch 'hotfix-2.3.139' into develop. [Iglocska]
 - Merge branch 'hotfix-2.3.138' into develop. [Iglocska]
 - Merge branch 'hotfix-2.3.136' into develop. [Iglocska]
-- Merge branch 'hotfix-2.3.136' into develop. [Iglocska]
-- Merge branch 'hotfix-2.3.136' into develop. [Iglocska]
 - Merge branch 'hotfix-2.3.135' into develop. [Iglocska]
-- Merge branch 'hotfix-2.3.135' into develop. [Iglocska]
-
 
 v2.3.146 (2015-10-27)
 ---------------------
@@ -15635,13 +15842,11 @@ v2.3.146 (2015-10-27)
   - removed ajax path
   - added XML/JSON view
 
-
 v2.3.145 (2015-10-22)
 ---------------------
 - Merge branch 'hotfix-2.3.145' [iglocska]
 - Reverted change in proposal file storage path that wasn't needed.
   [iglocska]
-
 
 v2.3.144 (2015-10-21)
 ---------------------
@@ -15665,7 +15870,6 @@ v2.3.144 (2015-10-21)
 - Added the attribute relations to the XML / JSON output, fixes #687.
   [Iglocska]
 
-
 v2.3.143 (2015-10-15)
 ---------------------
 - Copyright notices as a list. [Alexandre Dulaunoy]
@@ -15676,7 +15880,6 @@ v2.3.143 (2015-10-15)
 - Merge branch 'master' of github.com:MISP/MISP. [Alexandre Dulaunoy]
 - Licensed updated to AGPL 3.0 - #686. [Alexandre Dulaunoy]
 
-
 v2.3.142 (2015-10-14)
 ---------------------
 - Merge branch 'hotfix-2.3.142' [Iglocska]
@@ -15684,7 +15887,6 @@ v2.3.142 (2015-10-14)
   [Iglocska]
 
   - as pointed out by RichieB2B
-
 
 v2.3.141 (2015-10-13)
 ---------------------
@@ -15699,7 +15901,6 @@ v2.3.141 (2015-10-13)
 - Merge branch 'master' of https://github.com/MISP/MISP. [Iglocska]
 - Documentation location updated (misp-book) [Alexandre Dulaunoy]
 
-
 v2.3.140 (2015-10-12)
 ---------------------
 - Merge branch 'hotfix-2.3.140' [Iglocska]
@@ -15709,7 +15910,6 @@ v2.3.140 (2015-10-12)
   - for some users the workers appeared to be dead even though the worker processes were functional and started by the correct user
   - this was due to access to /proc being blocked by open_basedir directive settings
   - added a check and the corresponding view changes to this being the case
-
 
 v2.3.139 (2015-10-09)
 ---------------------
@@ -15722,12 +15922,10 @@ v2.3.139 (2015-10-09)
   - Under these distros, php is blocked from seeing concurrently running php processes even under the same user
   - instead of running ps, the diagnostic now checks the existance of the pid file in /proc/
 
-
 v2.3.138 (2015-10-09)
 ---------------------
 - Merge branch 'hotfix-2.3.136' [Iglocska]
 - Further fixes that caused issues with old PHP versions. [Iglocska]
-
 
 v2.3.137 (2015-10-09)
 ---------------------
@@ -15735,7 +15933,6 @@ v2.3.137 (2015-10-09)
 - Version bump. [Iglocska]
 - Fixed a possible issue with the previous commit on certain php
   versions. [Iglocska]
-
 
 v2.3.136 (2015-10-09)
 ---------------------
@@ -15748,7 +15945,6 @@ v2.3.136 (2015-10-09)
   - not updating will not break compatibility
 - Merge branch 'hotfix-2.3.135' [Iglocska]
 - Left off view file. [Iglocska]
-
 
 v2.3.135 (2015-10-08)
 ---------------------
@@ -15767,7 +15963,6 @@ v2.3.135 (2015-10-08)
 - Merge branch 'hotfix-2.3.132' into develop. [Iglocska]
 - Merge branch 'hotfix-2.3.131' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.130' into develop. [iglocska]
-- Merge branch 'hotfix-2.3.130' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.129' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.128' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.127' into develop. [iglocska]
@@ -15775,7 +15970,6 @@ v2.3.135 (2015-10-08)
 - Merge branch 'hotfix-2.3.123' into develop. [Iglocska]
 - Merge branch 'hotfix-2.3.122' into develop. [Iglocska]
 - Merge branch 'hotfix-2.3.121' into develop. [Iglocska]
-
 
 v2.3.134 (2015-09-24)
 ---------------------
@@ -15789,12 +15983,10 @@ v2.3.134 (2015-09-24)
   - before the recorrelation admin tool would load all attributes into memory in one go
   - now it loads them in chunks of 1k attributes at a time
 
-
 v2.3.133 (2015-09-24)
 ---------------------
 - Merge branch 'hotfix-2.3.132' [Iglocska]
 - Fix to the previous commit. [Iglocska]
-
 
 v2.3.132 (2015-09-23)
 ---------------------
@@ -15824,7 +16016,6 @@ v2.3.132 (2015-09-23)
   Move test cases to PyMISP
 - Move test cases to PyMISP. [Raphaël Vinot]
 
-
 v2.3.131 (2015-09-21)
 ---------------------
 - Merge branch 'hotfix-2.3.131' [iglocska]
@@ -15839,13 +16030,11 @@ v2.3.131 (2015-09-21)
 - Merge branch 'hotfix-2.3.130' [iglocska]
 - Version bump. [iglocska]
 
-
 v2.3.130 (2015-09-17)
 ---------------------
 - Merge branch 'hotfix-2.3.130' [iglocska]
 - Fix to an issue introduced in 2.3.128 that incorrectly causes MISP to
   not sync due to a version mismatch. [iglocska]
-
 
 v2.3.129 (2015-09-16)
 ---------------------
@@ -15859,13 +16048,11 @@ v2.3.129 (2015-09-16)
 
   At least, I think so, please review :)
 
-
 v2.3.128 (2015-09-16)
 ---------------------
 - Merge branch 'hotfix-2.3.128' [iglocska]
 - Added a diagnostic to check and purge overgrown session tables.
   [iglocska]
-
 
 v2.3.127 (2015-09-16)
 ---------------------
@@ -15883,7 +16070,6 @@ v2.3.127 (2015-09-16)
 - Added gcc in dependencies (related to
   https://github.com/MISP/MISP/issues/302) [David André]
 - Added gcc in dependencies (related to #302) [David André]
-
 
 v2.3.126 (2015-09-16)
 ---------------------
@@ -15913,7 +16099,7 @@ v2.3.126 (2015-09-16)
 - Further progress on several issues. [iglocska]
 - Progress on several issues. [Iglocska]
 
-  - switching workstations, this is all WiP
+  - switching workstations, this is all :construction:
 - Merge pull request #653 from Rafiot/master. [Raphaël Vinot]
 
   [Travis] Fix DB
@@ -15924,7 +16110,6 @@ v2.3.126 (2015-09-16)
 - Big update, Almost ready to run tests. [Raphaël Vinot]
 - Fix to a display bug on the event index when short tags are used.
   [Iglocska]
-
 
 v2.3.125 (2015-09-09)
 ---------------------
@@ -15946,7 +16131,6 @@ v2.3.125 (2015-09-09)
 
   non IDS flagged attributes are also exported by default.
 - Fix travis message in README. [Raphaël Vinot]
-
 
 v2.3.124 (2015-09-07)
 ---------------------
@@ -15973,7 +16157,6 @@ v2.3.124 (2015-09-07)
   Add partial travis support
 - Add partial travis support. [Raphaël Vinot]
 
-
 v2.3.123 (2015-09-03)
 ---------------------
 - Merge branch 'hotfix-2.3.123' [Iglocska]
@@ -15983,7 +16166,6 @@ v2.3.123 (2015-09-03)
   - now also shows issues not related to the value field
   - takes an optional parameter to validate a single event's attributes
 
-
 v2.3.122 (2015-09-02)
 ---------------------
 - Merge branch 'hotfix-2.3.122' [Iglocska]
@@ -15991,7 +16173,6 @@ v2.3.122 (2015-09-02)
 - Fixed XSS in the footer. [Iglocska]
 
   - reported by Roberto Suggi Liverani from NCIA
-
 
 v2.3.121 (2015-09-02)
 ---------------------
@@ -16020,12 +16201,10 @@ v2.3.121 (2015-09-02)
 - Merge branch 'hotfix-2.3.120' [Iglocska]
 - Cleanup of some mistakes. [Iglocska]
 
-
 v2.3.120 (2015-08-27)
 ---------------------
 - Merge branch 'hotfix-2.3.118' [Iglocska]
 - Add / Remove tags from events via a new API. [Iglocska]
-
 
 v2.3.118 (2015-08-27)
 ---------------------
@@ -16043,7 +16222,6 @@ v2.3.118 (2015-08-27)
 
   it must be core.php instead of Core.php
 
-
 v2.3.117 (2015-08-27)
 ---------------------
 - Merge branch 'hotfix-2.3.117' [Iglocska]
@@ -16053,7 +16231,6 @@ v2.3.117 (2015-08-27)
   - tagging events didn't work as expected in some cases
   - timing out and clicking on an admin action results in being redirected to a non-existing admin login page
   - distribution setting ignored when uploading attachments
-
 
 v2.3.116 (2015-08-25)
 ---------------------
@@ -16081,7 +16258,6 @@ v2.3.116 (2015-08-25)
 - Merge branch 'hotfix-2.3.113' into develop. [Iglocska]
 - Merge branch 'hotfix-2.3.112' into develop. [Iglocska]
 
-
 v2.3.114 (2015-08-24)
 ---------------------
 - Merge branch 'hotfix-2.3.114' [Iglocska]
@@ -16098,7 +16274,6 @@ v2.3.114 (2015-08-24)
   - OpenIOC import specifies the source file in the comments
 
   - Fixed a blackhole issue with the password reset popups
-
 
 v2.3.112 (2015-08-18)
 ---------------------
@@ -16117,14 +16292,12 @@ v2.3.112 (2015-08-18)
   - removed the requirement for the files to have the .ioc extension
 - Merge branch 'hotfix-2.3.110' into develop. [Iglocska]
 
-
 v2.3.110 (2015-08-18)
 ---------------------
 - Merge branch 'hotfix-2.3.110' [Iglocska]
 - Fix to a new bug introduced with the blacklisting that can prevent new
   events from being added via the UI. [Iglocska]
 - Merge branch 'hotfix-2.3.109' into develop. [Iglocska]
-
 
 v2.3.109 (2015-08-18)
 ---------------------
@@ -16139,13 +16312,11 @@ v2.3.109 (2015-08-18)
 - Merge branch 'hotfix-2.3.107' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.106' into develop. [Iglocska]
 
-
 v2.3.108 (2015-08-18)
 ---------------------
 - Merge branch 'hotfix-2.3.108' [Iglocska]
 - Database update admin-actions are now logged and if they fail the
   errors are logged. [Iglocska]
-
 
 v2.3.107 (2015-08-17)
 ---------------------
@@ -16166,7 +16337,6 @@ v2.3.107 (2015-08-17)
   - config.core.php now includes a change that prevents from 404 exceptions being logged
     - the sync uses 404s to signal that an event with a given uuid does not exist when negotiating proposal synchronisation
     - this causes a dangerously high amount of noise in the logs
-
 
 v2.3.106 (2015-08-07)
 ---------------------
@@ -16192,7 +16362,6 @@ v2.3.106 (2015-08-07)
 - Merge branch 'hotfix-2.3.93' into develop. [Iglocska]
 - Merge branch 'hotfix-2.3.92' into develop. [Iglocska]
 
-
 v2.3.105 (2015-08-07)
 ---------------------
 - Merge branch 'hotfix-2.3.105' [Iglocska]
@@ -16202,7 +16371,6 @@ v2.3.105 (2015-08-07)
   - pass any hash along with a flag set and receive any samples from events that have the passed hash
 
   - Also, fix for an issue with the freetext import not using semi-colons as separators
-
 
 v2.3.104 (2015-08-04)
 ---------------------
@@ -16217,7 +16385,6 @@ v2.3.104 (2015-08-04)
 
   * the real name of libxslt-dev is libxslt1-dev
   * curl is required later in the installation and may not be present on the system
-
 
 v2.3.103 (2015-08-04)
 ---------------------
@@ -16239,7 +16406,6 @@ v2.3.103 (2015-08-04)
     - changed the UI attachment upload to reflect these changes
     - code more centralised and extendible
 
-
 v2.3.102 (2015-07-27)
 ---------------------
 - Merge branch 'hotfix-2.3.102' [Iglocska]
@@ -16253,7 +16419,6 @@ v2.3.102 (2015-07-27)
 
   - added a toggle for the IDS fields in the freetext import to quickly set all found attributes to being IDS worthy
 
-
 v2.3.100 (2015-07-22)
 ---------------------
 - Merge branch 'hotfix-2.3.100' [Iglocska]
@@ -16266,11 +16431,9 @@ v2.3.100 (2015-07-22)
   - Greatly reduces memory footprint (It mostly depends on the event with the most eligible attributes now, instead of the combined list of all events)
   - Because of the lower memory usage, the time taken for the export is also slashed to a fragment of what it was before
 
-
 v2.3.99 (2015-07-20)
 --------------------
 - Merge branch 'hotfix-2.3.98' [Iglocska]
-
 
 v2.3.98 (2015-07-17)
 --------------------
@@ -16292,7 +16455,6 @@ v2.3.98 (2015-07-17)
   - fixed some issues with unset variables (from, to, last) when triggered by the background workers
   - reduced memory usage of the hids exports (removed storing the hashes twice in memory, drastically removed the data retrieved from the db when preparing the export)
 
-
 v2.3.97 (2015-07-13)
 --------------------
 - Merge branch 'hotfix-2.3.97' [Iglocska]
@@ -16309,7 +16471,6 @@ v2.3.97 (2015-07-13)
 - Merge branch 'pr546' into hotfix-2.3.97. [Iglocska]
 - Use innodb engine for cake sessions table. [David André]
 
-
 v2.3.96 (2015-07-12)
 --------------------
 - Merge branch 'hotfix-2.3.96' [Iglocska]
@@ -16319,13 +16480,11 @@ v2.3.96 (2015-07-12)
   - allows site admins to add workers to any queue on the fly
   - allows site admins to kill workers on the fly
 
-
 v2.3.95 (2015-07-09)
 --------------------
 - Merge branch 'hotfix-2.3.95' [Iglocska]
 - Some tuning to the hostname / url type recognition in the freetext
   import tool, fixes #562. [Iglocska]
-
 
 v2.3.94 (2015-07-08)
 --------------------
@@ -16335,7 +16494,6 @@ v2.3.94 (2015-07-08)
 
   Moved the XML conversion in restfullEventToServer() to MISP's own xml conversion tool
 
-
 v2.3.93 (2015-07-07)
 --------------------
 - Merge branch 'hotfix-2.3.93' [Iglocska]
@@ -16344,13 +16502,11 @@ v2.3.93 (2015-07-07)
   - some errors in the format (wrong comment character used, rpz-ip not appended to IP addresses, missing semi-colon)
   - removed hostnames that are on domains blocked by the rules based on domain attributes
 
-
 v2.3.92 (2015-07-01)
 --------------------
 - Merge branch 'hotfix-2.3.92' [Iglocska]
 - Fix to an incorrect validation of temporary filenames. [Iglocska]
 - Merge branch 'hotfix-2.3.91' into develop. [Iglocska]
-- Merge branch 'hotfix-2.3.90' into develop. [Iglocska]
 - Merge branch 'hotfix-2.3.90' into develop. [Iglocska]
 - Merge branch 'hotfix-2.3.89' into develop. [Iglocska]
 - Merge branch 'hotfix-2.3.91' [Iglocska]
@@ -16358,12 +16514,10 @@ v2.3.92 (2015-07-01)
 
   - a previous patch removed the contents of the page
 
-
 v2.3.91 (2015-07-01)
 --------------------
 - Merge branch 'hotfix-2.3.90' [Iglocska]
 - GnuPG.binary demoted to optional setting as it should be. [Iglocska]
-
 
 v2.3.90 (2015-07-01)
 --------------------
@@ -16381,10 +16535,8 @@ v2.3.90 (2015-07-01)
   - the disabled fields are no longer created via the form helper
 - Merge branch 'hotfix-2.3.88' into develop. [Iglocska]
 - Merge branch 'hotfix-2.3.87' into develop. [Iglocska]
-- Merge branch 'hotfix-2.3.87' into develop. [Iglocska]
 - Merge branch 'hotfix-2.3.86' into develop. [Iglocska]
 - Merge branch 'hotfix-2.3.84' into develop. [iglocska]
-
 
 v2.3.88 (2015-06-29)
 --------------------
@@ -16404,7 +16556,6 @@ v2.3.88 (2015-06-29)
   - added a missing file from hotfix-2.3.87 (pgp key import view)
   - updated gitignore to ignore some items that are outside of the scope of the git package
 - Proposal mass accept/discard, fixes #466. [Iglocska]
-
 
 v2.3.87 (2015-06-25)
 --------------------
@@ -16476,12 +16627,10 @@ v2.3.87 (2015-06-25)
 
   - future enhancement possibility: move the second stage (the actual key fetch) to the server side instead of a direct ajax query from the user's browser
 
-
 v2.3.85 (2015-06-22)
 --------------------
 - Merge branch 'hotfix-2.3.85' [Iglocska]
 - Tuning of the complex type tool. [Iglocska]
-
 
 v2.3.84 (2015-06-18)
 --------------------
@@ -16505,13 +16654,11 @@ v2.3.84 (2015-06-18)
   [Iglocska]
 - Merge branch 'hotfix-2.3.75' into develop. [Iglocska]
 
-
 v2.3.83 (2015-06-17)
 --------------------
 - Merge branch 'hotfix-2.3.83' [iglocska]
 - Small tweak to the email/domain/hostname validation, affects #551.
   [iglocska]
-
 
 v2.3.82 (2015-06-16)
 --------------------
@@ -16520,7 +16667,6 @@ v2.3.82 (2015-06-16)
   attributes to allow for longer custom tlds. [iglocska]
 - Merge branch 'hotfix-2.3.81' [Iglocska]
 - Removed some junk. [Iglocska]
-
 
 v2.3.81 (2015-06-10)
 --------------------
@@ -16537,7 +16683,6 @@ v2.3.81 (2015-06-10)
   - Sending a password reset / welcome message picked the opposite subject line
   - line breaks were sent as literals.
 
-
 v2.3.80 (2015-06-09)
 --------------------
 - Merge branch 'hotfix-2.3.80' [Iglocska]
@@ -16553,7 +16698,6 @@ v2.3.80 (2015-06-09)
 
   - This patch enables option 3, administrators can point MISP to the alternate executable in the server settings
 - Server setting changes logged, fixes #531. [Iglocska]
-
 
 v2.3.79 (2015-06-06)
 --------------------
@@ -16581,7 +16725,6 @@ v2.3.79 (2015-06-06)
   - added a new entry to the admin tools (Administartion -> Administrative tools)
   - converts title and change columns in the logs table to text from varchar(255)
 
-
 v2.3.77 (2015-06-05)
 --------------------
 - Merge branch 'hotfix-2.3.77' [Iglocska]
@@ -16589,7 +16732,6 @@ v2.3.77 (2015-06-05)
   [Iglocska]
 
   - fixed an incorrect privilege check on the publish pop-up
-
 
 v2.3.76 (2015-06-04)
 --------------------
@@ -16620,14 +16762,12 @@ v2.3.76 (2015-06-04)
   - on CentOS this is a separate package php-mbstring
   - on Ubuntu this is part of libapache2-mod-php5
 
-
 v2.3.74 (2015-06-03)
 --------------------
 - Merge branch 'hotfix-2.3.74' [Iglocska]
 - Timing for rescheduling of tasks changed slightly. [Iglocska]
 
   - The rescheduling now happens before the task is executed - this way a failed job will not prevent the rescheduling of the next execution time
-
 
 v2.3.73 (2015-06-03)
 --------------------
@@ -16657,7 +16797,6 @@ v2.3.73 (2015-06-03)
   - Ports in IP/url/link/domain/hostname now added as a comment
   - virustotal now automatically recognised as external analysis / link
 
-
 v2.3.71 (2015-06-01)
 --------------------
 - Merge branch 'hotfix-2.3.71' [Iglocska]
@@ -16674,8 +16813,6 @@ v2.3.71 (2015-06-01)
 
   Add a note on Debian Wheezy installation instructions
 - Merge branch 'master' of https://github.com/MISP/MISP. [Aaron Kaplan]
-- Merge branch 'master' of https://github.com/MISP/MISP. [Aaron Kaplan]
-- Merge branch 'master' of https://github.com/MISP/MISP. [Aaron Kaplan]
 - Merge branch 'master' of https://github.com/aaronkaplan/MISP. [Aaron
   Kaplan]
 - Merge branch 'master' of https://github.com/MISP/MISP. [Aaron Kaplan]
@@ -16688,7 +16825,6 @@ v2.3.71 (2015-06-01)
 - Added CERT.at org file Also testing pull requests upstream. [Aaron
   Kaplan]
 - Merge branch 'hotfix-2.3.69' into develop. [iglocska]
-
 
 v2.3.69 (2015-05-27)
 --------------------
@@ -16752,12 +16888,10 @@ v2.3.69 (2015-05-27)
 - Merge branch 'hotfix-2.3.66' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.65' into develop. [iglocska]
 
-
 v2.3.68 (2015-05-21)
 --------------------
 - Merge branch 'hotfix-2.3.68' [iglocska]
 - Date set to today's date by default, fixes #495. [iglocska]
-
 
 v2.3.67 (2015-05-20)
 --------------------
@@ -16769,13 +16903,11 @@ v2.3.67 (2015-05-20)
 
   - MISP will now try to only detect MISP auth keys in the headers and if it detects something else it ignores it
 
-
 v2.3.66 (2015-05-15)
 --------------------
 - Merge branch 'hotfix-2.3.66' [iglocska]
 - Fix to copy pasta issue breaking from/to filters in exports, fixes
   #494. [iglocska]
-
 
 v2.3.65 (2015-05-15)
 --------------------
@@ -16836,13 +16968,11 @@ v2.3.65 (2015-05-15)
 
   - based on stevengoossensB's pull request
 
-
 v2.3.64 (2015-05-13)
 --------------------
 - Merge branch 'password_script' [iglocska]
 - Password reset fix. [iglocska]
 - Added link to GNU AGLP License v3 text. [David André]
-
 
 v2.3.63 (2015-05-04)
 --------------------
@@ -16865,7 +16995,6 @@ v2.3.63 (2015-05-04)
   Fix for issue #467
   Changed the label of IDS checkbox for proposals
 
-
 v2.3.62 (2015-04-16)
 --------------------
 - Merge branch 'hotfix-2.3.62' [Iglocska]
@@ -16878,7 +17007,6 @@ v2.3.62 (2015-04-16)
 
   - also updated the sample curl scripts
 
-
 v2.3.60 (2015-04-13)
 --------------------
 - Merge branch 'hotfix-2.3.60' [Iglocska]
@@ -16886,7 +17014,6 @@ v2.3.60 (2015-04-13)
   server, fixes #457. [Iglocska]
 
   - Issue fixed: When background jobs are enabled the wrong flag is checked when attemptying to enqueue a pull
-
 
 v2.3.59 (2015-04-08)
 --------------------
@@ -16970,7 +17097,6 @@ v2.3.59 (2015-04-08)
 - Merge remote-tracking branch 'upstream/master' [Richard van den Berg]
 - Disallow unpublished events. [Richard van den Berg]
 
-
 v2.3.58 (2015-04-01)
 --------------------
 - Merge branch 'hotfix-2.3.58' [Iglocska]
@@ -16978,7 +17104,6 @@ v2.3.58 (2015-04-01)
 
   - attributes were not correctly updated during a manual push due to an incorrect conditional
   - re-publishing was unaffected
-
 
 v2.3.57 (2015-03-16)
 --------------------
@@ -16999,12 +17124,10 @@ v2.3.57 (2015-03-16)
 - Merge branch 'hotfix-2.3.47' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.46' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.45' into develop. [iglocska]
-- Merge branch 'hotfix-2.3.45' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.44' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.43' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.42' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.41' into develop. [iglocska]
-
 
 v2.3.56 (2015-03-14)
 --------------------
@@ -17020,7 +17143,6 @@ v2.3.56 (2015-03-14)
 
   - The log search incorrectly set the search terms for empty fields, meaning that any log entries that had unfilled columns, such as it is the case with admin_email would never return results
 
-
 v2.3.55 (2015-03-10)
 --------------------
 - Merge branch 'hotfix-2.3.55' [iglocska]
@@ -17028,13 +17150,11 @@ v2.3.55 (2015-03-10)
 
   - filenames are now enclosed by quotes instead of double quotes while executing the zip command via exec
 
-
 v2.3.54 (2015-02-24)
 --------------------
 - Merge branch 'hotfix-2.3.54' [iglocska]
 - Version bump. [iglocska]
 - Json view fixed, fixes #411. [iglocska]
-
 
 v2.3.53 (2015-02-23)
 --------------------
@@ -17054,7 +17174,6 @@ v2.3.53 (2015-02-23)
 
   - also fixed the edit button on the index
 
-
 v2.3.52 (2015-02-18)
 --------------------
 - Merge branch 'hotfix-2.3.51' [iglocska]
@@ -17065,14 +17184,12 @@ v2.3.52 (2015-02-18)
   - JSON view code moved to Lib
   - Fixed an issue that didn't restrict the dates correctly with the from / to parameters
 
-
 v2.3.51 (2015-02-16)
 --------------------
 - Merge branch 'master' of https://github.com/MISP/MISP. [iglocska]
 - Fix pull #400. [Alexandre Dulaunoy]
 - MISP logo added. [Alexandre Dulaunoy]
 - MISP logos added (SVG, PDF and PNG) [Alexandre Dulaunoy]
-
 
 v2.3.50 (2015-02-16)
 --------------------
@@ -17084,7 +17201,6 @@ v2.3.50 (2015-02-16)
   - return attributes fails when requesting the results in JSON
   - added missing view file
 
-
 v2.3.49 (2015-02-16)
 --------------------
 - Merge branch 'hotfix-2.3.49' [iglocska]
@@ -17092,7 +17208,6 @@ v2.3.49 (2015-02-16)
 
   - incorrect check on the nids exports blocked logged in users from downloading the snort/suricata rules of an event
   - check removed
-
 
 v2.3.48 (2015-02-10)
 --------------------
@@ -17106,7 +17221,6 @@ v2.3.48 (2015-02-10)
   - Allows massive IOC lists to be imported
   - improved performance
 
-
 v2.3.47 (2015-02-09)
 --------------------
 - Merge branch 'hotfix-2.3.47' [iglocska]
@@ -17116,12 +17230,10 @@ v2.3.47 (2015-02-09)
 
   - World's smallest patch
 
-
 v2.3.46 (2015-02-05)
 --------------------
 - Merge branch 'hotfix-2.3.45' [iglocska]
 - New documentation left off. [iglocska]
-
 
 v2.3.45 (2015-02-05)
 --------------------
@@ -17133,7 +17245,6 @@ v2.3.45 (2015-02-05)
   - resolved an issue of warnings being generated when an event without attributes / relations gets XML exported.
   - added new dump of the documentation
 
-
 v2.3.44 (2015-02-04)
 --------------------
 - Merge branch 'hotfix-2.3.44' [iglocska]
@@ -17143,12 +17254,10 @@ v2.3.44 (2015-02-04)
   - added a file that was not pushed during the last hotfix
   - some improvements to the XML export to lower memory usage
 
-
 v2.3.43 (2015-02-03)
 --------------------
 - Merge branch 'hotfix-2.3.43' [iglocska]
 - Documentation fail fixes #384. [iglocska]
-
 
 v2.3.42 (2015-02-03)
 --------------------
@@ -17162,7 +17271,6 @@ v2.3.42 (2015-02-03)
   - Fixed the documentation
   - Most exports are now restrictable by the event date (From/To parameters)
   - none cached XML export now writes to file after converting each event, clearing the memory and resolving any potential memory issues
-
 
 v2.3.41 (2015-02-02)
 --------------------
@@ -17183,7 +17291,6 @@ v2.3.41 (2015-02-02)
   hotfix-2.3.41. [iglocska]
 - Pretify some comments. [Richard van den Berg]
 - Fixed typo. [Richard van den Berg]
-- Fixed typo. [Richard van den Berg]
 - Fix string assignments to StructuredText. [Richard van den Berg]
 - Map most MISP attribute comments into STIX. [Richard van den Berg]
 - Preserve indicator comments in STIX export. [Richard van den Berg]
@@ -17197,7 +17304,6 @@ v2.3.41 (2015-02-02)
   - old behavior used if left untouched
 - Merge branch 'hotfix-2.3.40' into develop. [iglocska]
 
-
 v2.3.40 (2015-01-15)
 --------------------
 - Merge branch 'hotfix-2.3.40' [iglocska]
@@ -17205,7 +17311,6 @@ v2.3.40 (2015-01-15)
 
   Incorrectly trying to look up authenticated user in the model fixed
 - Merge branch 'hotfix-2.3.39' into develop. [iglocska]
-
 
 v2.3.39 (2015-01-12)
 --------------------
@@ -17215,8 +17320,6 @@ v2.3.39 (2015-01-12)
   - Scheduled pulls should work correctly now
   - Scheduled pushes and pulls correctly display in the logs
   - Scheduled caching correctly sets the next date of execution
-- Merge branch 'hotfix-2.3.38' into develop. [iglocska]
-- Merge branch 'hotfix-2.3.38' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.38' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.38' [iglocska]
 - Copy pasta fail. [iglocska]
@@ -17246,7 +17349,6 @@ v2.3.39 (2015-01-12)
   - text exports now allow restricting the results based on event id
 - Merge branch 'hotfix-2.3.37' into develop. [iglocska]
 
-
 v2.3.37 (2014-12-12)
 --------------------
 - Merge branch 'hotfix-2.3.37' [iglocska]
@@ -17259,14 +17361,11 @@ v2.3.37 (2014-12-12)
 - Fix to some event altering actions not updating the timestamp.
   [iglocska]
 - Merge branch 'hotfix-2.3.35' into develop. [iglocska]
-- Merge branch 'hotfix-2.3.35' into develop. [iglocska]
-
 
 v2.3.36 (2014-12-10)
 --------------------
 - Merge branch 'hotfix-2.3.35' [iglocska]
 - Small fix. [iglocska]
-
 
 v2.3.35 (2014-12-10)
 --------------------
@@ -17296,7 +17395,6 @@ v2.3.35 (2014-12-10)
 - Changed wording of warning message when entering a targeting type
   attribute, fixes #355. [iglocska]
 
-
 v2.3.34 (2014-12-05)
 --------------------
 - Merge branch 'hotfix-2.3.33' [iglocska]
@@ -17305,14 +17403,12 @@ v2.3.34 (2014-12-05)
 - Merge branch 'hotfix-2.3.32' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.31' into develop. [iglocska]
 
-
 v2.3.33 (2014-12-03)
 --------------------
 - Merge branch 'hotfix-2.3.32' [iglocska]
 - Fix to an issue with the markings in the STIX export. [iglocska]
 
   - xpath describing the current node and descendants is incorrect
-
 
 v2.3.31 (2014-11-27)
 --------------------
@@ -17326,7 +17422,6 @@ v2.3.31 (2014-11-27)
   - Organisation of events pulled now get the org in the server object as the owner instead of the one who initiates the pull
   - Small fix to wrapping text in the pivot graph
 - Merge branch 'hotfix-2.3.30' into develop. [iglocska]
-
 
 v2.3.30 (2014-11-27)
 --------------------
@@ -17345,7 +17440,6 @@ v2.3.30 (2014-11-27)
   - naming convention changed (orgc => source org, org => member org)
   - this should allow users to see if an event was generated on their instance or not.
 
-
 v2.3.29 (2014-11-20)
 --------------------
 - Merge branch 'hotfix-2.3.29' [iglocska]
@@ -17358,12 +17452,10 @@ v2.3.29 (2014-11-20)
 - Merge branch 'hotfix-2.3.28' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.27' into develop. [iglocska]
 
-
 v2.3.28 (2014-11-19)
 --------------------
 - Merge branch 'hotfix-2.3.28' [iglocska]
 - Fix to the CSRF protection blocking a proposal add. [iglocska]
-
 
 v2.3.27 (2014-11-14)
 --------------------
@@ -17371,13 +17463,9 @@ v2.3.27 (2014-11-14)
 - Diagnostics check fails on PGP check if the server's key is a sign
   only key. [iglocska]
 - Merge branch 'hotfix-2.3.25' into develop. [iglocska]
-- Merge branch 'hotfix-2.3.25' into develop. [iglocska]
-- Merge branch 'hotfix-2.3.25' into develop. [iglocska]
-- Merge branch 'hotfix-2.3.25' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.25' [iglocska]
 - Further corner case fixed (shadow attribute to attribute, not event)
   [iglocska]
-
 
 v2.3.26 (2014-11-14)
 --------------------
@@ -17388,7 +17476,6 @@ v2.3.26 (2014-11-14)
 - Merge branch 'hotfix-2.3.25' [iglocska]
 - Added to the caching mechanism. [iglocska]
 
-
 v2.3.25 (2014-11-14)
 --------------------
 - Merge branch 'hotfix-2.3.25' [iglocska]
@@ -17397,7 +17484,6 @@ v2.3.25 (2014-11-14)
 - Merge branch 'hotfix-2.3.23' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.24' [iglocska]
 
-
 v2.3.24 (2014-11-12)
 --------------------
 - Fix to an issue with the CSV export. [iglocska]
@@ -17405,18 +17491,15 @@ v2.3.24 (2014-11-12)
   - missing linebreak after header row added
   - fixed an issue with quotes in the value field not being escaped properly
 
-
 v2.3.23 (2014-11-05)
 --------------------
 - Merge branch 'hotfix-2.3.23' [iglocska]
 - Fixes issue with file attachments not being downloadable for users of
   another org. [iglocska]
 - Merge branch 'hotfix-2.3.22' into develop. [iglocska]
-- Merge branch 'hotfix-2.3.22' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.22' [iglocska]
 - Document referencing deprecated way of passing authkey in url.
   [iglocska]
-
 
 v2.3.22 (2014-11-03)
 --------------------
@@ -17427,13 +17510,11 @@ v2.3.22 (2014-11-03)
   - search on any sub-string match in the event info, orgc, attribute value, attribute comment via the API
 - Merge branch 'hotfix-2.3.21' into develop. [iglocska]
 
-
 v2.3.21 (2014-10-31)
 --------------------
 - Merge branch 'hotfix-2.3.21' [iglocska]
 - Fix to the missing accept terms button. [iglocska]
 - Merge branch 'hotfix-2.3.20' into develop. [iglocska]
-
 
 v2.3.20 (2014-10-31)
 --------------------
@@ -17449,13 +17530,10 @@ v2.3.20 (2014-10-31)
   - attribute search returns any event that has a a sub-string match on the entered attribute
   - can also be used to negate (e.g: don't show me any events that have a sub-string match on any of its attributes)
 - Merge branch 'hotfix-2.3.19' into develop. [iglocska]
-- Merge branch 'hotfix-2.3.19' into develop. [iglocska]
-- Merge branch 'hotfix-2.3.19' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.19' [iglocska]
 - Left off from previous commit. [iglocska]
 - Merge branch 'hotfix-2.3.19' [iglocska]
 - Font change caused some misalignment. [iglocska]
-
 
 v2.3.19 (2014-10-30)
 --------------------
@@ -17474,10 +17552,8 @@ v2.3.19 (2014-10-30)
       - Mapping of hostnames to Network activity failed due to incorrect capitalistion
       - Temporarily removed the ignore function on certain indicators. Ignoring an element in an AND-ed branch happens without a pruning of the element IDs
 - Merge branch 'hotfix-2.3.18' into develop. [iglocska]
-- Merge branch 'hotfix-2.3.18' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.18' [iglocska]
 - Small visual fix. [iglocska]
-
 
 v2.3.18 (2014-10-29)
 --------------------
@@ -17489,7 +17565,6 @@ v2.3.18 (2014-10-29)
   - add, link, delete files directly from the interface
 - Merge branch 'hotfix-2.3.17' into develop. [iglocska]
 
-
 v2.3.17 (2014-10-28)
 --------------------
 - Merge branch 'hotfix-2.3.17' [iglocska]
@@ -17500,24 +17575,20 @@ v2.3.17 (2014-10-28)
   - specify whether to show it inline or create a download link for users instead
   - by default everything is the same as before, except that the MISP installation path is no longer exposed by a non-existing terms file
 - Merge branch 'hotfix-2.3.16' into develop. [iglocska]
-- Merge branch 'hotfix-2.3.16' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.14' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.16' [iglocska]
 - Version number fixed. [iglocska]
-
 
 v2.3.16 (2014-10-27)
 --------------------
 - Merge branch 'hotfix-2.3.16' [iglocska]
 - Made the version check exclusive to the diagnostics tab. [iglocska]
 
-
 v2.3.15 (2014-10-27)
 --------------------
 - Merge branch 'hotfix-2.3.15' [iglocska]
 - Event attribute pagination is persistent through edits / deletes.
   [iglocska]
-
 
 v2.3.14 (2014-10-27)
 --------------------
@@ -17548,8 +17619,6 @@ v2.3.14 (2014-10-27)
 - Fix to the GFI upload. [iglocska]
 - Merge branch 'hotfix-2.3.10' [iglocska]
 - Merge branch 'hotfix-2.3.9' into develop. [iglocska]
-- Merge branch 'hotfix-2.3.9' into develop. [iglocska]
-- Merge branch 'hotfix-2.3.9' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.9' [iglocska]
 - Fix to the filters. [iglocska]
 - Merge branch 'hotfix-2.3.9' [iglocska]
@@ -17565,7 +17634,6 @@ v2.3.14 (2014-10-27)
 - Added missing comment about enabling the scheduler worker fixes #295.
   [iglocska]
 - Merge branch 'hotfix-2.3.6' into develop. [iglocska]
-- Merge branch 'hotfix-2.3.6' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.6' [iglocska]
 - Fixes to the proposal ajax mechanism for newer cakephp versions.
   [iglocska]
@@ -17580,10 +17648,6 @@ v2.3.14 (2014-10-27)
   - fulltext indexes are not supported on mysql < 5.6 for innodb, and the default version for the current ubuntu distribution seems to be 5.5 still
 
   Might revisit this in the future
-- Merge branch 'hotfix-2.3.4' into develop. [iglocska]
-- Merge branch 'hotfix-2.3.4' into develop. [iglocska]
-- Merge branch 'hotfix-2.3.4' into develop. [iglocska]
-- Merge branch 'hotfix-2.3.4' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.4' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.3' into develop. [iglocska]
 - Merge branch 'hotfix-2.3.2' into develop. [iglocska]
@@ -17607,7 +17671,6 @@ v2.3.14 (2014-10-27)
 - Merge branch 'hotfix-2.3.2' [iglocska]
 - CIDR now recognised by freetext import. [iglocska]
 - Typo fail fixed. [iglocska]
-
 
 v2.3.0 (2014-10-07)
 -------------------
@@ -17657,7 +17720,6 @@ v2.3.0 (2014-10-07)
 - Changes to CakeResque installation fixes #287. [iglocska]
 
   - CakeResque's installation instructions changed
-- Merge branch 'hotfix-2.2.39' [iglocska]
 - Merge branch 'hotfix-2.2.39' [iglocska]
 - Merge branch 'hotfix-2.2.38' [iglocska]
 - Updated .gitignore. [iglocska]
@@ -17729,7 +17791,6 @@ v2.3.0 (2014-10-07)
   partially responsible for #271. [iglocska]
 - Merge branch 'master' of https://github.com/MISP/MISP. [iglocska]
 - Merge branch 'hotfix-2.2.35' [iglocska]
-- Merge branch 'hotfix-2.2.35' [iglocska]
 - Merge branch 'hotfix-2.2.36' [iglocska]
 - Added the confirmation box div to all the pages that can have the
   publish popup. [iglocska]
@@ -17778,7 +17839,6 @@ v2.3.0 (2014-10-07)
 - Further work on the sync. [iglocska]
 
   - changed the pull implementation for proposals
-- Merge branch 'hotfix-2.2.35' into feature/proposalfix. [iglocska]
 - Merge branch 'hotfix-2.2.35' into feature/proposalfix. [iglocska]
 - Publishing now also pushes proposals. [iglocska]
 
@@ -17912,7 +17972,6 @@ v2.3.0 (2014-10-07)
 
   - Division by zero in e-mail alerts when calculating the progress of the background job
 - Merge branch 'hotfix-2.2.32' [iglocska]
-- Merge branch 'hotfix-2.2.32' [iglocska]
 - Merge branch 'hotfix-2.2.32' into develop. [iglocska]
 - Removed junk left in the previous commit. [iglocska]
 - Update to the way xml files are cached. [iglocska]
@@ -18008,7 +18067,6 @@ v2.3.0 (2014-10-07)
 
   - The tags parameter in the exports now correctly accepts null as a valid value even if it is the last parameter
 - Merge branch 'hotfix-2.2.20' [iglocska]
-- Merge branch 'hotfix-2.2.20' [iglocska]
 - Merge branch 'hotfix-2.2.20' into develop. [iglocska]
 - Missing parantheses. [iglocska]
 
@@ -18070,7 +18128,6 @@ v2.3.0 (2014-10-07)
 - Merge branch 'hotfix-2.2.14' into develop. [iglocska]
 - Event description in alert e-mail subject made optional, fixes #231.
   [iglocska]
-- Merge branch 'hotfix-2.2.13' [iglocska]
 - Merge branch 'hotfix-2.2.13' [iglocska]
 - Clearer disctinction between proposals that belong to an attribute and
   proposals to an event. [iglocska]
@@ -18288,15 +18345,9 @@ v2.3.0 (2014-10-07)
   - A colon in the tag search tag will render the tag search invalid. Since colons are commonly used in tag names, this poses an issue - users should use a semi-colon instead, which gets automatically converted to a colon.
 - Fixing newlines in script. [Christophe Vandeplas]
 - Merge branch 'develop' [iglocska]
-- Merge branch 'develop' [iglocska]
 - Minor corrections in the UPGRADE docu. [Christophe Vandeplas]
 - Clean cache at upgrade. [Christophe Vandeplas]
 - Merge branch 'develop' [iglocska]
-- Merge branch 'develop' [iglocska]
-- Merge branch 'develop' [iglocska]
-- Merge branch 'develop' [iglocska]
-- Merge branch 'develop' [iglocska]
-
 
 v2.2.1 (2014-02-19)
 -------------------
@@ -19009,7 +19060,6 @@ v2.2.1 (2014-02-19)
 
   - Helper will now only be called during view when it's not a rest request.
 - Merge branch 'hotfix-2.1.21' [iglocska]
-- Merge branch 'hotfix-2.1.21' [iglocska]
 - Merge branch 'hotfix-2.1.21' into develop. [iglocska]
 - Accidental debug removed. [iglocska]
 - Merge branch 'hotfix-2.1.21' into develop. [iglocska]
@@ -19017,8 +19067,6 @@ v2.2.1 (2014-02-19)
 
   - removed own proposals from the list
   - allowing site admin to see all proposals of any org
-- Merge branch 'hotfix-2.1.19' [iglocska]
-- Merge branch 'hotfix-2.1.19' [iglocska]
 - Merge branch 'hotfix-2.1.19' [iglocska]
 - Merge branch 'hotfix-2.1.20' [iglocska]
 - Merge branch 'hotfix-2.1.19' into develop. [iglocska]
@@ -19078,8 +19126,6 @@ v2.2.1 (2014-02-19)
   - The idea is to draw a horizontal path instead of a vertical one
 - First refactoring of the pivoting. [iglocska]
 - Merge branch 'hotfix-2.1.18' [iglocska]
-- Merge branch 'hotfix-2.1.18' [iglocska]
-- Merge branch 'hotfix-2.1.18' [iglocska]
 - Merge branch 'hotfix/2.1.18' [Christophe Vandeplas]
 - Merge branch 'hotfix-2.1.18' into develop. [iglocska]
 - Deleting attributes deletes associated shadow attributes. [iglocska]
@@ -19101,7 +19147,6 @@ v2.2.1 (2014-02-19)
 - Fix bug in pull updated events, improved performance. [Christophe
   Vandeplas]
 - Merge branch 'hotfix-2.1.17' [iglocska]
-- Merge branch 'hotfix-2.1.17' [iglocska]
 - Merge branch 'hotfix-2.1.17' into develop. [iglocska]
 - Left-over line removed. [iglocska]
 - Merge branch 'hotfix-2.1.17' into develop. [iglocska]
@@ -19111,8 +19156,6 @@ v2.2.1 (2014-02-19)
   - bug that broke transfer of attachments on pull fixed
 
   - data only exported on view() not mass xml exports
-- Merge branch 'hotfix-2.1.15' [iglocska]
-- Merge branch 'hotfix-2.1.15' [iglocska]
 - Merge branch 'hotfix-2.1.15' [iglocska]
 - Merge branch 'hotfix-2.1.15' into develop. [iglocska]
 - Export fixes. [iglocska]
@@ -19137,9 +19180,6 @@ v2.2.1 (2014-02-19)
 - Merge branch 'hotfix-2.1.13' into develop. [iglocska]
 - Removed vulnerability and comment from correlation. [iglocska]
 - Merge branch 'hotfix-2.1.12' [iglocska]
-- Merge branch 'hotfix-2.1.12' [iglocska]
-- Merge branch 'hotfix-2.1.12' [iglocska]
-- Merge branch 'hotfix-2.1.12' [iglocska]
 - Merge branch 'hotfix-2.1.12' into develop. [iglocska]
 - Final change to the placement of the logos on the login page.
   [iglocska]
@@ -19150,8 +19190,6 @@ v2.2.1 (2014-02-19)
 - Merge branch 'hotfix-2.1.12' into develop. [iglocska]
 - Added second logo to the left of the login screen. [iglocska]
 - Merge branch 'hotfix-2.1.8' [iglocska]
-- Merge branch 'hotfix-2.1.11' [iglocska]
-- Merge branch 'hotfix-2.1.11' [iglocska]
 - Merge branch 'hotfix-2.1.11' [iglocska]
 - Merge branch 'hotfix-2.1.8' into develop. [iglocska]
 - A previous change reverted by accident in the previous commit.
@@ -19730,7 +19768,6 @@ v2.2.1 (2014-02-19)
 
   - Some changes to the documentation
 - More updates to the manual. [iglocska]
-- More updates to the manual. [iglocska]
 - Some UI changes and partial update to the manual. [iglocska]
 - Added 2 new type of attributes. [iglocska]
 
@@ -20239,7 +20276,6 @@ v2.2.1 (2014-02-19)
   #95 comes to light. [Christophe Vandeplas]
 - Removed unused CyDefSIG.showowner field. Closes issue #93. [Christophe
   Vandeplas]
-- Merge branch 'develop' [Andras Iklody]
 - Merge branch 'develop' [Andras Iklody]
 - Updated github url. [Christophe Vandeplas]
 - Merge branch 'master' of https://github.com/BeDefCERT/MISP. [iglocska]
@@ -22732,7 +22768,6 @@ v2.2.1 (2014-02-19)
 - Allow string-in-file. [Christophe Vandeplas]
 - Snort signature type has no datavalidation. [Christophe Vandeplas]
 - Added 'snort' signature type. [Christophe Vandeplas]
-- Added 'snort' signature type. [Christophe Vandeplas]
 - Database structure and rough license. [Christophe Vandeplas]
 - List members (orgs) of the platform. [Christophe Vandeplas]
 - Allow to hide (default) the name of the Organisation that posted the
@@ -22778,5 +22813,4 @@ v2.2.1 (2014-02-19)
 - Minor layout improvements. [Christophe Vandeplas]
 - Minor change. [Christophe Vandeplas]
 - Initial import. [Christophe Vandeplas]
-
 

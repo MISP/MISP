@@ -22,6 +22,35 @@ function quickDeleteSighting(id, rawId, context) {
 	});
 }
 
+function quickAddSighting(clicked, id, value) {
+    var btn = $(clicked);
+    var html = '<div>'
+        + '<button class="btn btn-primary" onclick="fetchAddSightingForm(\''+id+'\', false)">'+'id'+'</button>'
+        + '<button class="btn btn-primary" style="margin-left:5px;" onclick="fetchAddSightingForm(\''+id+'\', true)">'+value+'</button>'
+        + '</div>';
+    if (!btn.data('popover')) {
+        btn.popover({
+        	content: html,
+        	placement: 'left',
+        	html: true,
+        	trigger: 'click',
+        	container: 'body'
+        }).popover('show');
+    }
+}
+function fetchAddSightingForm(id, onvalue) {
+	var url = "/sightings/quickAdd/" + id;
+    if (onvalue) {
+        url = url + "/1";
+    } else {
+        url = url + "/0";
+    }
+	$.get(url, function(data) {
+		$("#confirmation_box").html(data);
+		openPopup("#confirmation_box");
+	});
+}
+
 function publishPopup(id, type) {
 	var action = "alert";
 	if (type == "publish") action = "publish";
@@ -377,6 +406,7 @@ function activateField(type, id, field, event) {
 		url:"/" + objectType + "/fetchEditForm/" + id + "/" + field,
 	});
 }
+
 
 function submitQuickTag(form) {
 	$('#' + form).submit();
@@ -1466,7 +1496,7 @@ function indexEvaluateFiltering() {
 		} else {
 			$('#value_hasproposal').html("");
 		}
-		if (filtering.date.from != null || filtering.date.from != null) {
+		if (filtering.date.from != null) {
 			var text = "";
 			if (filtering.date.from != "") text = "From: " + $('<span>').text(filtering.date.from).html();
 			if (filtering.date.until != "") {
@@ -1674,7 +1704,7 @@ function indexAddRule(param) {
 			var operator = operators[escape($('#EventSearchbool').val())];
 			if (value != "" && filtering[param.data.param1][operator].indexOf(value) < 0) filtering[param.data.param1][operator].push(value);
 		}
-	} else if (filterContext = 'user') {
+	} else if (filterContext == 'user') {
 		if (differentFilters.indexOf(param.data.param1) != -1) {
 			var value = escape($('#UserSearch' + param.data.param1).val());
 			if (value != "") filtering[param.data.param1] = value;
@@ -2780,7 +2810,7 @@ function toggleSettingSubGroup(group) {
 function runHoverLookup(type, id) {
 	$.ajax({
 		success:function (html) {
-			ajaxResults[type + "_" + id] = html;
+			ajaxResults["hover"][type + "_" + id] = html;
 			$('.popover').remove();
 			$('#' + type + '_' + id + '_container').popover({
 				title: 'Lookup results:',
@@ -2807,21 +2837,23 @@ $(".cortex-json").click(function() {
 
 // add the same as below for click popup
 $(".eventViewAttributePopup").click(function() {
+	$('#screenshot_box').empty();
 	type = $(this).attr('data-object-type');
 	id = $(this).attr('data-object-id');
-	if (!(type + "_" + id in ajaxResults)) {
+	if (!(type + "_" + id in ajaxResults["persistent"])) {
 		$.ajax({
 			success:function (html) {
-				ajaxResults[type + "_" + id] = html;
+				ajaxResults["persistent"][type + "_" + id] = html;
 			},
+			async: false,
 			cache: false,
-			url:"/attributes/hoverEnrichment/" + id,
+			url:"/attributes/hoverEnrichment/" + id + "/1",
 		});
 	}
-	if (type + "_" + id in ajaxResults) {
-		var enrichment_popover = ajaxResults[type + "_" + id];
+	if (type + "_" + id in ajaxResults["persistent"]) {
+		var enrichment_popover = ajaxResults["persistent"][type + "_" + id];
 		enrichment_popover += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
-		$('#screenshot_box').html(enrichment_popover);
+		$('#screenshot_box').html('<div class="screenshot_content">' + enrichment_popover + '</div>');
 		$('#screenshot_box').show();
 		$("#gray_out").fadeIn();
 		$('#screenshot_box').css({'padding': '5px'});
@@ -2838,10 +2870,10 @@ $(".eventViewAttributeHover").mouseenter(function() {
 	$('.popover').remove();
 	type = $(this).attr('data-object-type');
 	id = $(this).attr('data-object-id');
-	if (type + "_" + id in ajaxResults) {
+	if (type + "_" + id in ajaxResults["hover"]) {
 		$('#' + type + '_' + id + '_container').popover({
 			title: 'Lookup results:',
-			content: ajaxResults[type + "_" + id],
+			content: ajaxResults["hover"][type + "_" + id],
 			placement: 'top',
 			html: true,
 			trigger: 'hover',
@@ -3460,11 +3492,19 @@ $(document).ready(function() {
 
 function queryEventLock(event_id, user_org_id) {
 	if (tabIsActive) {
-		$.get( "/events/checkLocks/" + event_id, function(data) {
-			if ($('#event_lock_warning').length != 0) {
-				$('#event_lock_warning').remove();
+		$.ajax({
+			url: "/events/checkLocks/" + event_id,
+			type: "get",
+			success: function(data, statusText, xhr) {
+				 if (xhr.status == 200) {
+					 if ($('#event_lock_warning').length != 0) {
+ 						$('#event_lock_warning').remove();
+ 					}
+ 					if (data.startsWith('Warning:')) {
+ 						$('#main-view-container').append(data);
+ 					}
+				 }
 			}
-			$('#main-view-container').append(data);
 		});
 	}
 	setTimeout(function() { queryEventLock(event_id, user_org_id); }, 5000);

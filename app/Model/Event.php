@@ -4387,7 +4387,11 @@ class Event extends AppModel
             if (!empty($object['data'])) {
                 $object['image'] = $object['data'];
             } else {
-                $object['image'] = $this->Attribute->base64EncodeAttachment($object);
+				if ($object['objectType'] === 'proposal') {
+					$object['image'] = $this->ShadowAttribute->base64EncodeAttachment($object);
+				} else {
+                	$object['image'] = $this->Attribute->base64EncodeAttachment($object);
+				}
             }
         }
         if (isset($object['distribution']) && $object['distribution'] != 4) {

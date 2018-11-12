@@ -7,16 +7,14 @@ import datetime
 import re
 import ntpath
 import socket
-from pymisp import MISPEvent
 from copy import deepcopy
-from dateutil.tz import tzutc
 from stix.indicator import Indicator
 from stix.indicator.valid_time import ValidTime
 from stix.ttp import TTP, Behavior
 from stix.ttp.malware_instance import MalwareInstance
-from stix.incident import Incident, Time, ImpactAssessment, ExternalID, AffectedAsset, AttributedThreatActors
+from stix.incident import Incident, Time, ExternalID, AffectedAsset, AttributedThreatActors
 from stix.exploit_target import ExploitTarget, Vulnerability
-from stix.incident.history import JournalEntry, History, HistoryItem
+from stix.incident.history import History, HistoryItem
 from stix.threat_actor import ThreatActor
 from stix.core import STIXPackage, STIXHeader
 from stix.common import InformationSource, Identity
@@ -35,7 +33,6 @@ from cybox.objects.uri_object import URI
 from cybox.objects.pipe_object import Pipe
 from cybox.objects.mutex_object import Mutex
 from cybox.objects.artifact_object import Artifact, RawArtifact
-from cybox.objects.memory_object import Memory
 from cybox.objects.email_message_object import EmailMessage, EmailHeader, EmailRecipients, Attachments
 from cybox.objects.domain_name_object import DomainName
 from cybox.objects.win_registry_key_object import RegistryValue, RegistryValues, WinRegistryKey
@@ -75,15 +72,17 @@ TLP_mapping = {'0' : 'AMBER', '1' : 'GREEN', '2' : 'GREEN', '3' : 'GREEN', '4' :
 TLP_order = {'RED' : 4, 'AMBER' : 3, 'GREEN' : 2, 'WHITE' : 1}
 confidence_mapping = {False : 'None', True : 'High'}
 
-not_implemented_attributes = ['yara', 'snort', 'pattern-in-traffic', 'pattern-in-memory']
+not_implemented_attributes = ('yara', 'snort', 'pattern-in-traffic', 'pattern-in-memory')
 
-non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', 'target-email', 'target-machine', 'target-org', 'target-location', 'target-external', 'vulnerability']
+non_indicator_attributes = ('text', 'comment', 'other', 'link', 'target-user', 'target-email', 'target-machine',
+                            'target-org', 'target-location', 'target-external', 'vulnerability')
 
-hash_type_attributes = {"single": ["md5", "sha1", "sha224", "sha256", "sha384", "sha512", "sha512/224", "sha512/256", "ssdeep",
-                                   "imphash", "authentihash", "pehash", "tlsh", "x509-fingerprint-sha1"],
-                        "composite": ["filename|md5", "filename|sha1", "filename|sha224", "filename|sha256", "filename|sha384",
-                                      "filename|sha512", "filename|sha512/224", "filename|sha512/256", "filename|authentihash",
-                                      "filename|ssdeep", "filename|tlsh", "filename|imphash", "filename|pehash"]}
+hash_type_attributes = {"single": ("md5", "sha1", "sha224", "sha256", "sha384", "sha512", "sha512/224", "sha512/256",
+                                   "ssdeep", "imphash", "authentihash", "pehash", "tlsh", "x509-fingerprint-sha1"),
+                        "composite": ("filename|md5", "filename|sha1", "filename|sha224", "filename|sha256",
+                                      "filename|sha384", "filename|sha512", "filename|sha512/224", "filename|sha512/256",
+                                      "filename|authentihash", "filename|ssdeep", "filename|tlsh", "filename|imphash",
+                                      "filename|pehash")}
 
 # mapping for the attributes that can go through the simpleobservable script
 misp_cybox_name = {"domain" : "DomainName", "hostname" : "Hostname", "url" : "URI", "AS" : "AutonomousSystem", "mutex" : "Mutex",
@@ -92,7 +91,7 @@ cybox_name_attribute = {"DomainName" : "value", "Hostname" : "hostname_value", "
                         "Pipe" : "name", "Mutex" : "name", "WinService": "name"}
 misp_indicator_type = {"AS" : "", "mutex" : "Host Characteristics", "named pipe" : "Host Characteristics",
                        "email-attachment": "Malicious E-mail", "url" : "URL Watchlist"}
-misp_indicator_type.update(dict.fromkeys(hash_type_attributes["single"] + hash_type_attributes["composite"] + ["filename"] + ["attachment"], "File Hash Watchlist"))
+misp_indicator_type.update(dict.fromkeys(list(hash_type_attributes["single"]) + list(hash_type_attributes["composite"]) + ["filename"] + ["attachment"], "File Hash Watchlist"))
 misp_indicator_type.update(dict.fromkeys(["email-src", "email-dst", "email-subject", "email-reply-to",  "email-attachment"], "Malicious E-mail"))
 misp_indicator_type.update(dict.fromkeys(["ip-src", "ip-dst", "ip-src|port", "ip-dst|port"], "IP Watchlist"))
 misp_indicator_type.update(dict.fromkeys(["domain", "domain|ip", "hostname"], "Domain Watchlist"))
@@ -139,7 +138,7 @@ class StixBuilder(object):
         self.namespace_prefix = idgen.get_id_namespace_alias()
         ## MAPPING FOR ATTRIBUTES
         self.simple_type_to_method = {"port": self.generate_port_observable, "domain|ip": self.generate_domain_ip_observable}
-        self.simple_type_to_method.update(dict.fromkeys(hash_type_attributes["single"] + hash_type_attributes["composite"] + ["filename"], self.resolve_file_observable))
+        self.simple_type_to_method.update(dict.fromkeys(list(hash_type_attributes["single"]) + list(hash_type_attributes["composite"]) + ["filename"], self.resolve_file_observable))
         self.simple_type_to_method.update(dict.fromkeys(["ip-src", "ip-dst"], self.generate_ip_observable))
         self.simple_type_to_method.update(dict.fromkeys(["ip-src|port", "ip-dst|port", "hostname|port"], self.generate_socket_address_observable))
         self.simple_type_to_method.update(dict.fromkeys(["regkey", "regkey|value"], self.generate_regkey_observable))
@@ -197,17 +196,21 @@ class StixBuilder(object):
     def generate_package(self, event):
         self.objects_to_parse = defaultdict(dict)
         self.misp_event = event
+        self.header_comment = []
         package_name = "{}:STIXPackage-{}".format(self.orgname, self.misp_event['uuid'])
         stix_package = STIXPackage(id_=package_name, timestamp=self.get_datetime_from_timestamp(self.misp_event['timestamp']))
         stix_package.version = "1.1.1"
         stix_header = STIXHeader()
         stix_header.title = "Export from {} MISP".format(self.namespace_prefix)
         stix_header.package_intents = "Threat Report"
-        stix_package.stix_header = stix_header
-        incident = self.generate_stix_objects()
-        stix_package.add_incident(incident)
+        self.create_incident(self.orgname)
+        self.generate_stix_objects()
+        stix_package.add_incident(self.incident)
         for ttp in self.ttps:
             stix_package.add_ttp(ttp)
+        if self.header_comment and len(self.header_comment) == 1:
+            stix_header.description = self.header_comment[0]
+        stix_package.stix_header = stix_header
         return stix_package
 
     def saveFile(self):
@@ -216,7 +219,6 @@ class StixBuilder(object):
             f.write(self.stix_package)
 
     def generate_stix_objects(self):
-        incident = self.create_incident(self.orgname)
         self.history = History()
         threat_level_name = threat_level_mapping.get(str(self.misp_event['threat_level_id']), None)
         if threat_level_name:
@@ -237,24 +239,23 @@ class StixBuilder(object):
         else:
             self.add_journal_entry('MISP Tag: misp:tool="misp2stix"')
         external_id = ExternalID(value=str(self.misp_event['id']), source="MISP Event")
-        incident.add_external_id(external_id)
+        self.incident.add_external_id(external_id)
         incident_status_name = status_mapping.get(str(self.misp_event['analysis']), None)
         if incident_status_name is not None:
-            incident.status = IncidentStatus(incident_status_name)
+            self.incident.status = IncidentStatus(incident_status_name)
         try:
-            incident.handling = self.set_tlp(self.misp_event['distribution'], event_tags)
+            self.incident.handling = self.set_tlp(self.misp_event['distribution'], event_tags)
         except Exception:
             pass
-        incident.information_source = self.set_src()
+        self.incident.information_source = self.set_src()
         self.orgc_name = self.misp_event['Orgc'].get('name')
-        incident.reporter = self.set_rep()
+        self.incident.reporter = self.set_rep()
         self.ttps = []
-        self.resolve_attributes(incident, Tags)
-        self.resolve_objects(incident, Tags)
-        self.add_related_indicators(incident)
+        self.resolve_attributes(Tags)
+        self.resolve_objects(Tags)
+        self.add_related_indicators()
         if self.history.history_items:
-            incident.history = self.history
-        return incident
+            self.incident.history = self.history
 
     def create_incident(self, org):
         incident_id = "{}:incident-{}".format(org, self.misp_event['uuid'])
@@ -265,24 +266,24 @@ class StixBuilder(object):
         incident_time.incident_discovery = self.misp_event['date']
         incident_time.incident_reported = timestamp
         incident.time = incident_time
-        return incident
+        self.incident = incident
 
-    def resolve_attributes(self, incident, tags):
+    def resolve_attributes(self, tags):
         for attribute in self.misp_event['Attribute']:
             attribute_type = attribute['type']
             if attribute_type in not_implemented_attributes:
                 if attribute_type == "snort":
-                    self.generate_TM(incident, attribute, tags)
+                    self.generate_TM(attribute, tags)
                 else:
                     journal_entry = "!Not implemented attribute category/type combination caught! attribute[{}][{}]: {}".format(attribute['category'],
                     attribute_type, attribute['value'])
                     self.add_journal_entry(journal_entry)
             elif attribute_type in non_indicator_attributes:
-                self.handle_non_indicator_attribute(incident, attribute, tags)
+                self.handle_non_indicator_attribute(attribute, tags)
             else:
-                self.handle_attribute(incident, attribute, tags)
+                self.handle_attribute(attribute, tags)
 
-    def resolve_objects(self, incident, tags):
+    def resolve_objects(self, tags):
         for misp_object in self.misp_event['Object']:
             name = misp_object['name']
             if name == 'original-imported-file':
@@ -297,15 +298,15 @@ class StixBuilder(object):
             if to_ids:
                 indicator = self.create_indicator(misp_object, observable, tags)
                 related_indicator = RelatedIndicator(indicator, relationship=category)
-                incident.related_indicators.append(related_indicator)
+                self.incident.related_indicators.append(related_indicator)
             else:
                 related_observable = RelatedObservable(observable, relationship=category)
-                incident.related_observables.append(related_observable)
+                self.incident.related_observables.append(related_observable)
         if self.objects_to_parse:
-            self.resolve_objects2parse(incident, tags)
+            self.resolve_objects2parse(tags)
 
 
-    def resolve_objects2parse(self, incident, tags):
+    def resolve_objects2parse(self, tags):
         for uuid, file_object in self.objects_to_parse['file'].items():
             category = file_object.get('meta-category')
             to_ids_file, file_dict = self.create_attributes_dict(file_object['Attribute'])
@@ -336,10 +337,10 @@ class StixBuilder(object):
             if to_ids:
                 indicator = self.create_indicator(file_object, observable, tags)
                 related_indicator = RelatedIndicator(indicator, relationship=category)
-                incident.related_indicators.append(related_indicator)
+                self.incident.related_indicators.append(related_indicator)
             else:
                 related_observable = RelatedObservable(observable, relationship=category)
-                incident.related_observables.append(related_observable)
+                self.incident.related_observables.append(related_observable)
 
     def parse_pe_references(self, pe_object, to_ids_list):
         pe_headers = PEHeaders()
@@ -379,13 +380,13 @@ class StixBuilder(object):
         indicator.add_observable(observable)
         return indicator
 
-    def add_related_indicators(self, incident):
-        for rindicator in incident.related_indicators:
+    def add_related_indicators(self):
+        for rindicator in self.incident.related_indicators:
             for ttp in self.ttps:
                 ittp = TTP(idref=ttp.id_, timestamp=ttp.timestamp)
                 rindicator.item.add_indicated_ttp(ittp)
 
-    def handle_attribute(self, incident, attribute, tags):
+    def handle_attribute(self, attribute, tags):
         observable = self.generate_observable(attribute)
         if observable:
             if attribute['to_ids']:
@@ -398,44 +399,50 @@ class StixBuilder(object):
                 indicator.add_valid_time_position(ValidTime())
                 indicator.add_observable(observable)
                 related_indicator = RelatedIndicator(indicator, relationship=attribute['category'])
-                incident.related_indicators.append(related_indicator)
+                self.incident.related_indicators.append(related_indicator)
             else:
                 related_observable = RelatedObservable(observable, relationship=attribute['category'])
-                incident.related_observables.append(related_observable)
+                self.incident.related_observables.append(related_observable)
 
-    def handle_non_indicator_attribute(self, incident, attribute, tags):
+    def handle_non_indicator_attribute(self, attribute, tags):
         attribute_type = attribute['type']
-        attribute_category = attribute['category']
         if attribute_type == "vulnerability":
             ttp = self.generate_vulnerability(attribute, tags)
-            incident.leveraged_ttps.append(self.append_ttp(attribute_category, ttp))
+            self.incident.leveraged_ttps.append(self.append_ttp(attribute['category'], ttp))
         elif attribute_type == "link":
-            self.add_reference(incident, attribute['value'])
+            self.add_reference(attribute['value'])
         elif attribute_type in ('comment', 'text', 'other'):
-            if attribute_category == "Payload type":
-                ttp = self.generate_ttp(attribute, tags)
-                incident.leveraged_ttps.append(self.append_ttp(attribute_category, ttp))
-            elif attribute_category == "Attribution":
-                ta = self.generate_threat_actor(attribute)
-                rta = RelatedThreatActor(ta, relationship="Attribution")
-                if incident.attributed_threat_actors:
-                    incident.attributed_threat_actors.append(rta)
-                else:
-                    ata = AttributedThreatActors()
-                    ata.append(rta)
-                    incident.attributed_threat_actors = ata
-            else:
-                entry_line = "attribute[{}][{}]: {}".format(attribute_category, attribute_type, attribute['value'])
-                self.add_journal_entry(entry_line)
+            self.handle_undefined_attribute(attribute, tags)
         elif attribute_type == "target-machine":
             aa = AffectedAsset()
             description = attribute['value']
             if attribute.get('comment'):
                 description += " ({})".format(attribute['comment'])
             aa.description = description
-            incident.affected_assets.append(aa)
+            self.incident.affected_assets.append(aa)
         elif attribute_type.startswith('target-'):
-            incident.add_victim(self.resolve_identity_attribute(attribute))
+            self.incident.add_victim(self.resolve_identity_attribute(attribute))
+
+    # "Undefifned" because of the type of value we can not know in advance for this type of attribute
+    def handle_undefined_attribute(self, attribute, tags):
+        attribute_category = attribute['category']
+        if 'comment' in attribute and attribute['comment'] == 'Imported from STIX header description':
+            self.header_comment.append(attribute['value'])
+        elif attribute_category == "Payload type":
+            ttp = self.generate_ttp(attribute, tags)
+            self.incident.leveraged_ttps.append(self.append_ttp(attribute_category, ttp))
+        elif attribute_category == "Attribution":
+            ta = self.generate_threat_actor(attribute)
+            rta = RelatedThreatActor(ta, relationship="Attribution")
+            if self.incident.attributed_threat_actors:
+                self.incident.attributed_threat_actors.append(rta)
+            else:
+                ata = AttributedThreatActors()
+                ata.append(rta)
+                self.incident.attributed_threat_actors = ata
+        else:
+            entry_line = "attribute[{}][{}]: {}".format(attribute_category, attribute['type'], attribute['value'])
+            self.add_journal_entry(entry_line)
 
     def create_artifact_object(self, data, artifact=None):
         raw_artifact = RawArtifact(data)
@@ -619,7 +626,7 @@ class StixBuilder(object):
         ta.description = description
         return ta
 
-    def generate_TM(self, incident, attribute, tags):
+    def generate_TM(self, attribute, tags):
         if attribute['to_ids']:
             tm = SnortTestMechanism()
             value = attribute['value'].encode('utf-8')
@@ -629,7 +636,7 @@ class StixBuilder(object):
             indicator.add_valid_time_position(ValidTime())
             indicator.add_test_mechanism(tm)
             related_indicator = RelatedIndicator(indicator, relationship=attribute['category'])
-            incident.related_indicators.append(related_indicator)
+            self.incident.related_indicators.append(related_indicator)
 
     def generate_ttp(self, attribute, tags):
         ttp = self.create_ttp(attribute, tags)
@@ -703,7 +710,7 @@ class StixBuilder(object):
 
     def parse_credential_authentication(self, authentication, attributes_dict):
         if len(attributes_dict['type']) == len(attributes_dict['password']):
-            return self.parse_authentication_simple_case(authentication)
+            return self.parse_authentication_simple_case(authentication, attributes_dict)
         authentication_list = []
         if 'type' in attributes_dict:
             credential_types = attributes_dict['type']
@@ -922,7 +929,7 @@ class StixBuilder(object):
                     try:
                         referenced_attribute_type = reference['Object']['name']
                     except KeyError:
-                        references_attribute_type = reference['Attribute']['type']
+                        referenced_attribute_type = reference['Attribute']['type']
                     related_object.idref = "{}:{}-{}".format(self.namespace_prefix, referenced_attribute_type, reference['referenced_uuid'])
                     related_object.relationship = "Connected_To"
                     observable.object_.related_objects.append(related_object)
@@ -974,7 +981,6 @@ class StixBuilder(object):
 
     def parse_whois(self, misp_object):
         to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object['Attribute'])
-        n_attribute = len(attributes_dict)
         whois_object = WhoisEntry()
         for attribute in attributes_dict:
             if attribute and "registrant-" in attribute:
@@ -1285,13 +1291,12 @@ class StixBuilder(object):
         hi.journal_entry = entry_line
         self.history.append(hi)
 
-    @staticmethod
-    def add_reference(target, reference):
-        if hasattr(target.information_source, 'references'):
+    def add_reference(self, reference):
+        if hasattr(self.incident.information_source, 'references'):
             try:
-                target.information_source.add_reference(reference)
+                self.incident.information_source.add_reference(reference)
             except AttributeError:
-                target.information_source.references = [reference]
+                self.incident.information_source.references = [reference]
 
     def append_ttp(self, category, ttp):
         self.ttps.append(ttp)
@@ -1457,7 +1462,6 @@ class StixBuilder(object):
         if '|' in attribute_value:
             attribute_value = attribute_value.split('|')[0]
         if '/' in attribute_value:
-            attribute_value = attribute_value.split('/')[0]
             address_object.category = "cidr"
             condition = "Contains"
         else:
@@ -1607,7 +1611,6 @@ class StixBuilder(object):
     @staticmethod
     def set_color(colors):
         tlp_color = 0
-        color = None
         for color in colors:
             color_num = TLP_order[color]
             if color_num > tlp_color:

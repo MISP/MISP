@@ -1399,7 +1399,7 @@ class Server extends AppModel
                         ),
                         'ElasticSearch_connection_string' => array(
                             'level' => 2,
-                            'description' => __('The URL(s) at which to access ElasticSearch - comma seperate if you want to have more than one.'),
+                            'description' => __('The URL(s) at which to access ElasticSearch - comma separate if you want to have more than one.'),
                             'value' => '',
                             'errorMessage' => '',
                             'test' => 'testForEmpty',
@@ -3556,6 +3556,7 @@ class Server extends AppModel
     {
         $writeableFiles = array(
                 APP . 'Config' . DS . 'config.php' => 0,
+                ROOT .  DS . '.git' . DS . 'ORIG_HEAD' => 0,
         );
         foreach ($writeableFiles as $path => &$error) {
             if (!file_exists($path)) {

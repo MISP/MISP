@@ -23,7 +23,7 @@ git submodule update --init --recursive
 
 # Upgrades from minor version to another
 !!! notice
-    If you would like to upgrade from a minor version to another, look at the Upgrade MISP guides instead (such as [2.3.xyz -> 2.4.xyz](old-2_3to2_4-UPGRADE.md))
+    If you would like to upgrade from a minor version to another, look at the Upgrade MISP guides instead (such as [2.3.xyz -> 2.4.xyz](archive/old-2_3to2_4-UPGRADE.md))
 
 !!! warning
     If for any reason something goes wrong with the above instructions, walk through the following manual upgrade
@@ -60,7 +60,7 @@ cd /var/www/MISP/app/files/scripts/python-stix
 python3 setup.py install
 ```
 
-# 4. Update mixbox to accomodate the new STIX dependencies:
+# 4. Update mixbox to accommodate the new STIX dependencies:
 ```bash
 cd /var/www/MISP/app/files/scripts/
 rm -rf mixbox
