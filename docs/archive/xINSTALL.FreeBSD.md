@@ -1,10 +1,10 @@
 # INSTALLATION INSTRUCTIONS
-## for FreeBSD 11.2-amd64
+## for FreeBSD 12.0-amd64
 
 ### 0/ WIP /!\ You are warned, this does not work yet! /!\
 
 !!! warning
-    NOT working: pydeep, lief, py-yara, MAEC
+    NOT working: pydeep, lief
 
 {!generic/globalVariables.md!}
 
@@ -14,7 +14,6 @@ PHP_INI=${PHP_ETC_BASE}/php.ini
 PATH_TO_MISP=/usr/local/www/MISP
 CAKE="$PATH_TO_MISP/app/Console/cake"
 ```
-
 
 ### 1/ Minimal FreeBSD install
 --------------------------
@@ -32,28 +31,25 @@ CAKE="$PATH_TO_MISP/app/Console/cake"
 - Disable Sendmail service
 
 # Install pkg and point to latest
-
-Install pkg by typing:
 ```bash
 $ su -
 # pkg
 ```
 
 #### Install sudo
-
 ```bash
 pkg install -y sudo
 ```
 
-#### Install bash
+!!! notice
+    Make sure users in group wheel can sudo, uncomment in **/usr/local/etc/sudoers**<br />
+    ```
+    %wheel ALL=(ALL) ALL
+    ```
 
+#### Install bash
 ```bash
 sudo pkg install -y bash
-```
-
-Make sure users in group wheel can sudo, uncomment in /usr/local/etc/sudoers :
-```
-%wheel ALL=(ALL) ALL
 ```
 
 #### Update system
@@ -62,7 +58,6 @@ sudo freebsd-update fetch install
 ```
 
 #### Make python3 default *(optional)
-
 ```bash
 echo "DEFAULT_VERSIONS= python=3.6 python2=2.7 python3=3.6" >> /etc/make.conf
 sudo ln -s /usr/local/bin/python3 /usr/local/bin/python
@@ -71,11 +66,20 @@ sudo ln -s /usr/local/bin/python3 /usr/local/bin/python
 #### Install postfix
 ```bash
 sudo pkg install -y postfix
+```
 
-# Optional but useful, add a local misp user
-sudo pw user add misp -s /usr/local/bin/bash -G wheel,www
+#### Optional but useful, add a local misp user
+```bash
+sudo pw user add misp -s /usr/local/bin/bash -G wheel,www,staff
 sudo mkdir /home/misp ; sudo chown misp:misp /home/misp
 sudo passwd misp
+```
+
+```bash
+# In case you already have a MISP User
+sudo pw usermod misp -s /usr/local/bin/bash
+sudo pw groupmod -n www -m misp
+sudo pw groupmod -n staff -m misp
 ```
 
 ### FAMP
@@ -116,6 +120,8 @@ sudo sysrc mysql_args="--bind-address=127.0.0.1"
 sudo service apache24 start
 sudo service mysql-server start
 
+
+### /!\ Needs Fixing /!\
 # Add your credentials if needed, if sudo has NOPASS, comment out the relevant lines
 pw="Password1234"
 
@@ -144,16 +150,9 @@ expect -f - <<-EOF
   expect eof
 EOF
 
-sudo pkg remove -R tcl86 
-```
+sudo pkg remove -R tcl86
 
-```
-sudo vi /usr/local/etc/apache24/Includes/php.conf
-```
-
-Add:
-```
-<IfModule dir_module>
+echo "<IfModule dir_module>
     DirectoryIndex index.php index.html
 
     <FilesMatch "\.php$">
@@ -163,10 +162,10 @@ Add:
     <FilesMatch "\.phps$">
         SetHandler application/x-httpd-php-source
     </FilesMatch>
-</IfModule>
+</IfModule>" |tee -a /usr/local/etc/apache24/Includes/php.conf
 ```
 
-#### Redis need to be installed via ports
+#### Redis needs to be installed via ports
 
 ```
 cd /usr/ports/databases/redis
@@ -177,6 +176,12 @@ sudo sysrc redis_enable="yes"
 ##### php-redis
 ```
 cd /usr/ports/databases/pecl-redis
+sudo make install clean
+```
+
+##### php-gnupg
+```
+cd /usr/ports/security/pecl-gnupg
 sudo make install clean
 ```
 
@@ -192,10 +197,10 @@ sudo service apache24 restart
 
 ```bash
 # Download MISP using git in the /usr/local/www/ directory.
-sudo mkdir /usr/local/www/MISP
-sudo chown www:www /usr/local/www/MISP
-cd /usr/local/www/MISP
-sudo -u www git clone https://github.com/MISP/MISP.git /usr/local/www/MISP
+sudo mkdir ${PATH_TO_MISP}
+sudo chown www:www ${PATH_TO_MISP}
+cd ${PATH_TO_MISP}
+sudo -u www git clone https://github.com/MISP/MISP.git ${PATH_TO_MISP}
 
 # Make git ignore filesystem permission differences
 sudo -u www git config core.filemode false
@@ -205,7 +210,6 @@ sudo -u www git submodule update --init --recursive
 sudo -u www git submodule foreach --recursive git config core.filemode false
 
 # install Mitre's STIX and its dependencies by running the following commands:
-##sudo apt-get install python-dev zlib1g-dev python-setuptools
 sudo pkg install -y py36-pip libxml2 libxslt
 
 # Install virtualenv
@@ -238,7 +242,7 @@ sudo -H -u www ${PATH_TO_MISP}/venv/bin/pip install .
 -----------
 ```bash
 # Install CakeResque along with its dependencies if you intend to use the built in background jobs:
-cd /usr/local/www/MISP/app
+cd ${PATH_TO_MISP}/app
 sudo -u www php composer.phar require kamisama/cake-resque:4.1.2
 sudo -u www php composer.phar config vendor-dir Vendor
 sudo -u www php composer.phar install
@@ -369,11 +373,9 @@ do
     sudo gsed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
 done
 
-sudo vi /usr/local/etc/apache24/httpd.conf
-/!\ Enable mod_rewrite in httpd.conf /!\
-LoadModule rewrite_module libexec/apache24/mod_rewrite.so
-LoadModule ssl_module libexec/apache24/mod_ssl.so
-Listen 443
+sudo gsed -i "s/#LoadModule rewrite_module libexec\/apache24\/mod_rewrite.so/LoadModule rewrite_module libexec\/apache24\/mod_rewrite.so/" /usr/local/etc/apache24/httpd.conf
+sudo gsed -i "s/#LoadModule ssl_module libexec\/apache24\/mod_ssl.so/LoadModule ssl_module libexec\/apache24\/mod_ssl.so/" /usr/local/etc/apache24/httpd.conf
+sudo gsed -i "s/Listen 80/Listen 80\nListen 443/" /usr/local/etc/apache24/httpd.conf
 
 # Restart apache
 sudo service apache24 restart
