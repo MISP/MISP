@@ -8,7 +8,7 @@
 
 {!generic/globalVariables.md!}
 
-```
+```bash
 PHP_ETC_BASE=/usr/local/etc
 PHP_INI=${PHP_ETC_BASE}/php.ini
 PATH_TO_MISP=/usr/local/www/MISP
@@ -52,22 +52,6 @@ pkg install -y sudo
 sudo pkg install -y bash
 ```
 
-#### Update system
-```bash
-sudo freebsd-update fetch install
-```
-
-#### Make python3 default *(optional)
-```bash
-echo "DEFAULT_VERSIONS= python=3.6 python2=2.7 python3=3.6" >> /etc/make.conf
-sudo ln -s /usr/local/bin/python3 /usr/local/bin/python
-```
-
-#### Install postfix
-```bash
-sudo pkg install -y postfix
-```
-
 #### Optional but useful, add a local misp user
 ```bash
 sudo pw user add misp -s /usr/local/bin/bash -G wheel,www,staff
@@ -80,6 +64,30 @@ sudo passwd misp
 sudo pw usermod misp -s /usr/local/bin/bash
 sudo pw groupmod -n www -m misp
 sudo pw groupmod -n staff -m misp
+exit
+```
+
+#### Update system
+```bash
+sudo freebsd-update fetch install
+```
+
+#### Fetch ports or update ports
+```bash
+sudo portsnap fetch extract
+# OR
+sudo portsnap fetch update
+```
+
+#### Make python3 default *(optional)
+```bash
+echo "DEFAULT_VERSIONS= python=3.6 python2=2.7 python3=3.6" >> /etc/make.conf
+sudo ln -s /usr/local/bin/python3 /usr/local/bin/python
+```
+
+#### Install postfix
+```bash
+sudo pkg install -y postfix
 ```
 
 ### FAMP
@@ -162,7 +170,7 @@ echo "<IfModule dir_module>
     <FilesMatch "\.phps$">
         SetHandler application/x-httpd-php-source
     </FilesMatch>
-</IfModule>" |tee -a /usr/local/etc/apache24/Includes/php.conf
+</IfModule>" |sudo tee -a /usr/local/etc/apache24/Includes/php.conf
 ```
 
 #### Redis needs to be installed via ports
@@ -317,51 +325,11 @@ sudo chmod 640 /etc/ssl/private/*
 # Otherwise, copy the SSLCertificateFile, SSLCertificateKeyFile, and SSLCertificateChainFile to /etc/ssl/private/. (Modify path and config to fit your environment)
 
 sudo mkdir /var/log/apache24/
-```
 
-Now edit: /usr/local/etc/apache24/sites-available/misp-ssl.conf to reflect the below.
-Make sure the ssl fqdn will reflect what you entered as a CN in the SSL-Cert.
-You might see this: "AH00558: httpd: Could not reliably determine the server's fully qualified domain name, using 127.0.0.1. Set the 'ServerName' directive globally to suppress this message"
-Edit: 
+sudo gsed -i "s/apache2/apache24/" /usr/local/etc/apache24/sites-available/misp-ssl.conf
+sudo gsed -i "s/var\/www/usr\/local\/www/" /usr/local/etc/apache24/sites-available/misp-ssl.conf
+sudo gsed -i "s/SSLCertificateChainFile/#SSLCertificateChainFile/" /usr/local/etc/apache24/sites-available/misp-ssl.conf
 
-```
-============================================= Begin sample working SSL config for MISP
-<VirtualHost <IP, FQDN, or *>:80>
-        ServerName <your.FQDN.here>
-
-        Redirect permanent / https://<your.FQDN.here>
-
-        LogLevel warn
-        ErrorLog /var/log/apache24/misp.local_error.log
-        CustomLog /var/log/apache24/misp.local_access.log combined
-        ServerSignature Off
-</VirtualHost>
-
-<VirtualHost <IP, FQDN, or *>:443>
-        ServerAdmin admin@<your.FQDN.here>
-        ServerName <your.FQDN.here>
-        DocumentRoot /usr/local/www/MISP/app/webroot
-        <Directory /usr/local/www/MISP/app/webroot>
-                Options -Indexes
-                AllowOverride all
-                Order allow,deny
-                allow from all
-        </Directory>
-
-        SSLEngine On
-        SSLCertificateFile /etc/ssl/private/misp.local.crt
-        SSLCertificateKeyFile /etc/ssl/private/misp.local.key
-#        SSLCertificateChainFile /etc/ssl/private/misp-chain.crt
-
-        LogLevel warn
-        ErrorLog /var/log/apache24/misp.local_error.log
-        CustomLog /var/log/apache24/misp.local_access.log combined
-        ServerSignature Off
-</VirtualHost>
-============================================= End sample working SSL config for MISP
-```
-
-```
 # activate new vhost
 cd /usr/local/etc/apache24/sites-enabled/
 sudo ln -s ../sites-available/misp-ssl.conf
@@ -471,14 +439,14 @@ fi
 {!generic/MISP_CAKE_init.md!}
 
 ```bash
-sudo gsed -i -e '$i \sudo -u www bash ${PATH_TO_MISP}/app/Console/worker/start.sh > /tmp/worker_start_rc.local.log\n' /etc/rc.local
-sudo gsed -i -e '$i \sudo -u www ${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s > /tmp/misp-modules_rc.local.log &\n' /etc/rc.local
+sudo gsed -i -e '$i \sudo -u www bash /usr/local/www/MISP/app/Console/worker/start.sh > /tmp/worker_start_rc.local.log\n' /etc/rc.local
+sudo gsed -i -e '$i \sudo -u www /usr/local/www/MISP/venv/bin/misp-modules -l 127.0.0.1 -s > /tmp/misp-modules_rc.local.log 2> /dev/null &\n' /etc/rc.local
 ```
 
 ### 10/ MISP modules
 
 ```bash
-sudo pkg install yara
+sudo pkg install -y yara
 sudo mkdir /usr/local/src
 sudo chmod 2775 /usr/local/src
 sudo chown root:staff /usr/local/src
@@ -503,10 +471,137 @@ sudo -H -u www ${PATH_TO_MISP}/venv/bin/pip install stix2
 -----------------
 #### MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
 ```bash
-sudo pkg install libzmq4
+sudo pkg install -y libzmq4
 sudo -H -u www ${PATH_TO_MISP}/venv/bin/pip install pyzmq
 ```
 
+#### misp-dashboard  (NOT WORKING)
+
+!!! notice
+    Enable ZeroMQ for misp-dashboard
+
+!!! warning
+    This is not working, still needs a working WSGI config.
+
+
+!!! warning
+    The install_dependencies.sh script is for Linux ONLY. The following blurp will be a diff of a working OpenBSD version.
+
+```diff
+(DASHENV) fbsd# diff -u install_dependencies.sh install_dependencies_fbsd.sh
+diff --git a/install_dependencies.sh b/install_dependencies.sh
+index ca10fc0..bd5d415 100755
+--- a/install_dependencies.sh
++++ b/install_dependencies.sh
+@@ -1,9 +1,9 @@
+-#!/bin/bash
++#!/usr/local/bin/bash
+ 
+ set -e
+ #set -x
+ 
+-sudo apt-get install python3-virtualenv virtualenv screen redis-server unzip -y
++pkg install -y unzip wget screen
+ 
+ if [ -z "$VIRTUAL_ENV" ]; then
+     virtualenv -p python3 DASHENV
+@@ -25,8 +25,8 @@ if [ -e "config/config.cfg" ]; then
+ else
+     cp -i config/config.cfg.default config/config.cfg
+     echo "Sanitizing MaxMindDB Path"
+-    sed -i "s|pathMaxMindDB=./data/GeoLite2-City/GeoLite2-City.mmdb|pathMaxMindDB=$PWD/data/GeoLite2-City/GeoLite2-City.mmdb|" config/config.cfg
+-    sed -i "s|path_countrycode_to_coord_JSON=./data/country_code_lat_long.json|path_countrycode_to_coord_JSON=$PWD/data/country_code_lat_long.json|" config/config.cfg
++    gsed -i "s|pathMaxMindDB=./data/GeoLite2-City/GeoLite2-City.mmdb|pathMaxMindDB=$PWD/data/GeoLite2-City/GeoLite2-City.mmdb|" config/config.cfg
++    gsed -i "s|path_countrycode_to_coord_JSON=./data/country_code_lat_long.json|path_countrycode_to_coord_JSON=$PWD/data/country_code_lat_long.json|" config/config.cfg
+ fi
+ 
+ ## Web stuff
+```
+
+```
+cd /usr/local/www
+sudo mkdir misp-dashboard
+sudo chown www:www misp-dashboard
+sudo -u www git clone https://github.com/MISP/misp-dashboard.git
+cd misp-dashboard
+#/!\ Made on Linux, the next script will fail
+#sudo /usr/local/www/misp-dashboard/install_dependencies.sh
+sudo virtualenv -ppython3 /usr/local/www/misp-dashboard/DASHENV
+sudo chown -R www DASHENV/
+sudo -u www /usr/local/www/misp-dashboard/DASHENV/bin/pip install -U pip argparse redis zmq geoip2 flask phonenumbers pycountry
+
+sudo gsed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /usr/local/www/misp-dashboard/config/config.cfg
+sudo gsed -i -e '$i \sudo -u www bash /usr/local/www/misp-dashboard/start_all.sh\n' /etc/rc.local
+#/!\ Add port 8001 as a listener
+#sudo sed -i '/Listen 80/a Listen 0.0.0.0:8001' /etc/apache2/ports.conf
+sudo pkg install -y ap24-py36-mod_wsgi
+
+echo "<VirtualHost *:8001>
+    ServerAdmin admin@misp.local
+    ServerName misp.local
+    DocumentRoot /usr/local/www/misp-dashboard
+    
+    WSGIDaemonProcess misp-dashboard \
+       user=misp group=misp \
+       python-home=/usr/local/www/misp-dashboard/DASHENV \
+       processes=1 \
+       threads=15 \
+       maximum-requests=5000 \
+       listen-backlog=100 \
+       queue-timeout=45 \
+       socket-timeout=60 \
+       connect-timeout=15 \
+       request-timeout=60 \
+       inactivity-timeout=0 \
+       deadlock-timeout=60 \
+       graceful-timeout=15 \
+       eviction-timeout=0 \
+       shutdown-timeout=5 \
+       send-buffer-size=0 \
+       receive-buffer-size=0 \
+       header-buffer-size=0 \
+       response-buffer-size=0 \
+       server-metrics=Off
+    WSGIScriptAlias / /usr/local/www/misp-dashboard/misp-dashboard.wsgi
+    <Directory /usr/local/www/misp-dashboard>
+        WSGIProcessGroup misp-dashboard
+        WSGIApplicationGroup %{GLOBAL}
+        Require all granted
+    </Directory>
+    LogLevel info
+    ErrorLog /usr/local/log/apache2/misp-dashboard.local_error.log
+    CustomLog /usr/local/log/apache2/misp-dashboard.local_access.log combined
+    ServerSignature Off
+</VirtualHost>" | sudo tee /usr/local/etc/apache24/sites-available/misp-dashboard.conf
+
+sudo ln -s /usr/local/etc/apache24/sites-available/misp-dashboard.conf /usr/local/etc/apache24/sites-enabled/misp-dashboard.conf
+```
+
+Add this to /etc/httpd2.conf
+```
+LoadModule wsgi_module /usr/local/lib/apache2/mod_wsgi.so
+Listen 8001
+```
+
+
+```
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_enable" true
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" true
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_object_notifications_enable" true
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_object_reference_notifications_enable" true
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_attribute_notifications_enable" true
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_sighting_notifications_enable" true
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_user_notifications_enable" true
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_organisation_notifications_enable" true
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_port" 50000
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_redis_host" "localhost"
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_redis_port" 6379
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_redis_database" 1
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_redis_namespace" "mispq"
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_include_attachments" false
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false
+sudo $CAKE Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false
+```
 #### misp-modules (section deprecated)
 -------------------------------
 !!! notice
