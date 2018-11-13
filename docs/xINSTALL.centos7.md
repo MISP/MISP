@@ -5,7 +5,7 @@
 --------------------------------------------
 
 !!! notice
-    Semi-maintained and tested by @SteveClement, CentOS 7.5-1804 on 20180906<br />
+    Semi-maintained and tested by @SteveClement, CentOS 7.5-1804 on 20181113<br />
     It is still considered experimental as not everything works seemlessly.
 
 
@@ -55,7 +55,7 @@ sudo yum install centos-release-scl -y
 sudo yum install vim -y
 
 # Install the dependencies:
-sudo yum install gcc git httpd zip redis mariadb mariadb-server python-devel python-pip python-zmq libxslt-devel zlib-devel -y
+sudo yum install gcc git httpd zip redis mariadb mariadb-server python-devel python-pip python-zmq libxslt-devel zlib-devel ssdeep-devel -y
 
 # Install PHP 7.1 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php71/
 sudo yum install rh-php71 rh-php71-php-fpm rh-php71-php-devel rh-php71-php-mysqlnd rh-php71-php-mbstring rh-php71-php-xml rh-php71-php-bcmath rh-php71-php-opcache -y
@@ -110,8 +110,8 @@ sudo -u apache git submodule foreach --recursive git config core.filemode false
 
 # Create a python3 virtualenv
 sudo -u apache $RUN_PYTHON "virtualenv -p python3 $PATH_TO_MISP/venv"
-sudo mkdir /var/www/.cache/
-sudo chown apache:apache /var/www/.cache
+sudo mkdir /usr/share/httpd/.cache
+sudo chown apache:apache /usr/share/httpd/.cache
 sudo -u apache $PATH_TO_MISP/venv/bin/pip install -U pip
 
 # install Mitre's STIX and its dependencies by running the following commands:
@@ -135,6 +135,9 @@ sudo -u apache $PATH_TO_MISP/venv/bin/pip install -U zmq
 # install redis
 sudo -u apache $PATH_TO_MISP/venv/bin/pip install -U redis
 
+# install magic, lief, pydeep
+sudo -u apache $PATH_TO_MISP/venv/bin/pip install -U python-magic lief git+https://github.com/kbandla/pydeep.git
+
 # install mixbox to accommodate the new STIX dependencies:
 cd /var/www/MISP/app/files/scripts/
 sudo -u apache git clone https://github.com/CybOXProject/mixbox.git
@@ -143,6 +146,7 @@ sudo -u apache $PATH_TO_MISP/venv/bin/pip install .
 
 # install PyMISP
 cd /var/www/MISP/PyMISP
+sudo -u apache $PATH_TO_MISP/venv/bin/pip install enum34
 sudo -u apache $PATH_TO_MISP/venv/bin/pip install .
 
 # Enable python3 for php-fpm
@@ -285,6 +289,18 @@ sudo -u apache cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DB
 
 ### 7/ Apache configuration
 -----------------------
+
+!!! notice
+    SELinux note, to check if it is running:
+    ```bash
+    $ sestatus
+    SELinux status:                 disabled
+    ```
+    If it is disabled, you can ignore the **chcon/setsebool/semanage/checkmodule/semodule*** commands.
+
+!!! warning
+    This guide only copies a stock **NON-SSL** configuration file.
+
 ```bash
 # Now configure your apache server with the DocumentRoot /var/www/MISP/app/webroot/
 # A sample vhost can be found in /var/www/MISP/INSTALL/apache.misp.centos7
@@ -331,6 +347,8 @@ sudo firewall-cmd --reload
     To be fixed - Place holder
 
 ```bash
+sudo mkdir /etc/ssl/private
+sudo chmod 700 /etc/ssl/private
 # If a valid SSL certificate is not already created for the server, create a self-signed certificate:
 sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
 -subj "/C=${OPENSSL_C}/ST=${OPENSSL_ST}/L=${OPENSSL_L}/O=${OPENSSL_O}/OU=${OPENSSL_OU}/CN=${OPENSSL_CN}/emailAddress=${OPENSSL_EMAILADDRESS}" \
@@ -360,7 +378,7 @@ sudo semodule -i /tmp/misplogrotate.pp
 
 ### 9/ MISP configuration
 ---------------------
-```
+```bash
 # There are 4 sample configuration files in $PATH_TO_MISP/app/Config that need to be copied
 sudo -u apache cp -a $PATH_TO_MISP/app/Config/bootstrap.default.php $PATH_TO_MISP/app/Config/bootstrap.php
 sudo -u apache cp -a $PATH_TO_MISP/app/Config/database.default.php $PATH_TO_MISP/app/Config/database.php
@@ -438,13 +456,50 @@ sudo gpg --homedir /var/www/MISP/.gnupg --export --armor $GPG_EMAIL_ADDRESS |sud
 sudo chown apache:apache /var/www/MISP/app/webroot/gpg.asc
 
 # Start the workers to enable background jobs
-chmod +x /var/www/MISP/app/Console/worker/start.sh
+sudo chmod +x /var/www/MISP/app/Console/worker/start.sh
 sudo -u apache $RUN_PHP /var/www/MISP/app/Console/worker/start.sh
 
-# Add the following line at the end
-su -s /bin/bash apache -c 'scl enable rh-php71 /var/www/MISP/app/Console/worker/start.sh'
-# and make sure it will execute
+if [ ! -e /etc/rc.local ]
+then
+    echo '#!/bin/sh -e' | sudo tee -a /etc/rc.local
+    echo 'exit 0' | sudo tee -a /etc/rc.local
+    sudo chmod u+x /etc/rc.local
+fi
+
+sudo sed -i -e '$i \su -s /bin/bash apache -c "scl enable rh-php71 /var/www/MISP/app/Console/worker/start.sh" > /tmp/worker_start_rc.local.log\n' /etc/rc.local
+# Make sure it will execute
 sudo chmod +x /etc/rc.local
+
+echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
+echo "User  (misp) DB Password: $DBPASSWORD_MISP"
+```
+
+```
+# some misp-modules dependencies
+sudo yum install -y openjpeg-devel
+
+sudo chmod 2777 /usr/local/src
+sudo chown root:users /usr/local/src
+cd /usr/local/src/
+git clone https://github.com/MISP/misp-modules.git
+cd misp-modules
+# pip install
+sudo $PATH_TO_MISP/venv/bin/pip install -I -r REQUIREMENTS
+sudo -u apache $PATH_TO_MISP/venv/bin/pip install .
+sudo yum install rubygem-rouge -y
+##sudo gem install asciidoctor-pdf --pre
+
+# install STIX2.0 library to support STIX 2.0 export:
+sudo -u apache $PATH_TO_MISP/venv/bin/pip install stix2
+
+# install additional dependencies for extended object generation and extraction
+sudo -u apache ${PATH_TO_MISP}/venv/bin/pip install maec lief python-magic pathlib
+sudo -u apache ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
+
+# Start misp-modules
+sudo -u apache ${PATH_TO_MISP}/venv/bin/misp-modules -l 0.0.0.0 -s &
+
+sudo sed -i -e '$i \sudo -u apache /var/www/MISP/venv/bin/misp-modules -l 127.0.0.1 -s &\n' /etc/rc.local
 ```
 
 {!generic/MISP_CAKE_init_centos.md!}
