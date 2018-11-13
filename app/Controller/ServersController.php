@@ -1613,8 +1613,16 @@ class ServersController extends AppController
             throw new MethodNotAllowedException('You are not authorised to do that.');
         }
         $updateProgress = $this->Server->getUpdateProgress();
-        debug($updateProgress);
         $this->set('updateProgress', $updateProgress);
+    }
+
+    public function quickUpdateProgress()
+    {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException('You are not authorised to do that.');
+        }
+        $updateProgress = $this->Server->getUpdateProgress();
+        return $this->RestResponse->viewData(h($updateProgress), $this->response->type());
     }
 
     public function getInstanceUUID()

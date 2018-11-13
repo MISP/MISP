@@ -804,7 +804,11 @@ class AppController extends Controller
         }
         $this->Server->updateDatabase($command, $liveOff);
         $this->Flash->success('Done.');
-        //$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+        if ($liveOff) {
+            $this->redirect(array('controller' => 'servers', 'action' => 'updateProgress'));
+        } else {
+            $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+        }
     }
 
     public function upgrade2324()

@@ -2100,11 +2100,41 @@ table tr:hover .down-expand-button {
     display: inline-block;
 }
 
+.div-terminal {
+    background-color: #303030;
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    font-family: Monaco, Menlo, Consolas, "Courier New", monospace;
+}
+
+.div-terminal > span {
+    display: block;
+}
+
+.terminal-res {
+    margin-top: 5px;
+    margin-left: 25px;
+}
+
+.terminal-res-icon {
+    position: absolute;
+    transform: rotate(90deg);
+    font-size: large;
+    margin-right: 5px;
+    margin-left: 5px;
+}
+
 .advancedUpdateBlock {
     border: #ccc solid 1px;
     border-radius: 5px;
     background: #fbfbfb;
     padding: 6px;
+}
+
+table.updateProgressTable > tbody > tr > td:first-child {
+    width: 40px;
+    text-align: center;
 }
 
 #attackmatrix_div {

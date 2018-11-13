@@ -1,0 +1,4 @@
+<?php
+if (!$isSiteAdmin) exit();
+?>
+
