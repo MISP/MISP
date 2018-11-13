@@ -59,15 +59,18 @@ class AttributesController extends AppController
     {
         $this->Attribute->recursive = -1;
         if (!$this->_isRest()) {
-            $this->paginate['contain'] = array(
-                'Event' => array(
-                    'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id')
+			$this->paginate['recursive'] = -1;
+			$this->paginate['contain'] = array(
+				'Event' => array(
+                    'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
+					'Orgc' => array('fields' => array('Orgc.id', 'Orgc.name')),
+					'Org' => array('fields' => array('Org.id', 'Org.name'))
                 ),
-                'Object' => array(
+				'AttributeTag' => array('Tag'),
+				'Object' => array(
                     'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
-                ),
-                'AttributeTag'
-            );
+                )
+			);
             $this->Attribute->contain(array('AttributeTag' => array('Tag')));
         }
         $this->set('isSearch', 0);
@@ -77,28 +80,6 @@ class AttributesController extends AppController
         }
         $org_ids = array();
         $tag_ids = array();
-        foreach ($attributes as $k => $attribute) {
-            if (empty($attribute['Event']['id'])) {
-                unset($attribute[$k]);
-                continue;
-            }
-            if ($attribute['Attribute']['type'] == 'attachment' && preg_match('/.*\.(jpg|png|jpeg|gif)$/i', $attribute['Attribute']['value'])) {
-                $attributes[$k]['Attribute']['image'] = $this->Attribute->base64EncodeAttachment($attribute['Attribute']);
-            }
-            if (!in_array($attribute['Event']['orgc_id'], $org_ids)) {
-                $org_ids[] = $attribute['Event']['orgc_id'];
-            }
-            if (!in_array($attribute['Event']['org_id'], $org_ids)) {
-                $org_ids[] = $attribute['Event']['org_id'];
-            }
-            if (!empty($attribute['AttributeTag'])) {
-                foreach ($attribute['AttributeTag'] as $k => $v) {
-                    if (!in_array($v['tag_id'], $tag_ids)) {
-                        $tag_ids[] = $v['tag_id'];
-                    }
-                }
-            }
-        }
         $orgs = $this->Attribute->Event->Orgc->find('list', array(
                 'conditions' => array('Orgc.id' => $org_ids),
                 'fields' => array('Orgc.id', 'Orgc.name')
@@ -110,21 +91,16 @@ class AttributesController extends AppController
                 'fields' => array('Tag.id', 'Tag.name', 'Tag.colour')
             ));
         }
-
-        foreach ($attributes as $k => $attribute) {
-            $attributes[$k]['Event']['Orgc'] = array('id' => $attribute['Event']['orgc_id'], 'name' => $orgs[$attribute['Event']['orgc_id']]);
-            $attributes[$k]['Event']['Org'] = array('id' => $attribute['Event']['org_id'], 'name' => $orgs[$attribute['Event']['org_id']]);
-            if (!empty($attribute['AttributeTag'])) {
-                foreach ($attribute['AttributeTag'] as $kat => $at) {
-                    foreach ($tags as $ktag => $tag) {
-                        if ($tag['Tag']['id'] == $at['tag_id']) {
-                            $attributes[$k]['AttributeTag'][$kat]['Tag'] = $tag['Tag'];
-                        }
-                    }
-                }
-            }
-        }
+		if (!$this->_isRest()) {
+			$temp = $this->__searchUI($attributes);
+			$this->loadModel('Galaxy');
+			$this->set('mitreAttackGalaxyId', $this->Galaxy->getMitreAttackGalaxyId());
+			$attributes = $temp[0];
+			$sightingsData = $temp[1];
+			$this->set('sightingsData', $sightingsData);
+		}
         $this->set('orgs', $orgs);
+		$this->set('shortDist', $this->Attribute->shortDist);
         $this->set('attributes', $attributes);
         $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
         $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
@@ -877,8 +853,13 @@ class AttributesController extends AppController
                     || $this->userRole['perm_modify_org'])) {
                 // Allow the edit
             } else {
-                $this->Flash->error(__('Invalid attribute.'));
-                $this->redirect(array('controller' => 'events', 'action' => 'index'));
+				$message = __('Invalid attribute.');
+				if ($this->_isRest()) {
+					throw new MethodNotAllowedException($message);
+				} else {
+                	$this->Flash->error($message);
+                	$this->redirect(array('controller' => 'events', 'action' => 'index'));
+				}
             }
         }
         if (!$this->_isRest()) {
@@ -1569,6 +1550,7 @@ class AttributesController extends AppController
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
+		$this->set('shortDist', $this->Attribute->shortDist);
 		if ($this->request->is('post')) {
 			if (isset($this->request->data['Attribute'])) {
 				$this->request->data = $this->request->data['Attribute'];
@@ -1617,6 +1599,9 @@ class AttributesController extends AppController
 		}
 		if (isset($filters)) {
 			$params = $this->Attribute->restSearch($this->Auth->user(), 'json', $filters, true);
+			if (!isset($params['conditions']['Attribute.deleted'])) {
+				$params['conditions']['Attribute.deleted'] = 0;
+			}
 			$this->paginate = $params;
 			if (empty($this->paginate['limit'])) {
 				$this->paginate['limit'] = 60;
@@ -1627,7 +1612,7 @@ class AttributesController extends AppController
 			$this->paginate['recursive'] = -1;
 			$this->paginate['contain'] = array(
 				'Event' => array(
-                    'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id'),
+                    'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
 					'Orgc' => array('fields' => array('Orgc.id', 'Orgc.name')),
 					'Org' => array('fields' => array('Org.id', 'Org.name'))
                 ),
@@ -1637,6 +1622,16 @@ class AttributesController extends AppController
                 )
 			);
 			$attributes = $this->paginate();
+			if (!$this->_isRest()) {
+				$temp = $this->__searchUI($attributes);
+				$this->loadModel('Galaxy');
+				$this->set('mitreAttackGalaxyId', $this->Galaxy->getMitreAttackGalaxyId());
+				$attributes = $temp[0];
+				$sightingsData = $temp[1];
+				$this->set('sightingsData', $sightingsData);
+			} else {
+				return $this->RestResponse->viewData($attributes, $this->response->type());
+			}
 			$this->set('filters', $filters);
 			$this->set('attributes', $attributes);
 			$this->set('isSearch', 1);
@@ -1646,6 +1641,44 @@ class AttributesController extends AppController
             $this->set('attributeTags', $attributeTags);
         }
     }
+
+	private function __searchUI($attributes) {
+		$sightingsData = array();
+		$sgids = $this->Attribute->Event->cacheSgids($this->Auth->user(), true);
+		$this->Feed = ClassRegistry::init('Feed');
+		if (!empty($options['overrideLimit'])) {
+			$overrideLimit = true;
+		} else {
+			$overrideLimit = false;
+		}
+		$this->loadModel('GalaxyCluster');
+		$cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
+		$this->loadModel('Sighting');
+		foreach ($attributes as $k => $attribute) {
+			$attributes[$k]['Attribute']['AttributeTag'] = $attributes[$k]['AttributeTag'];
+			$attributes[$k]['Attribute'] = $this->Attribute->Event->massageTags($attributes[$k]['Attribute'], 'Attribute');
+			unset($attributes[$k]['AttributeTag']);
+			foreach ($attributes[$k]['Attribute']['AttributeTag'] as $k2 => $attributeTag) {
+				if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
+					unset($attributes[$k]['Attribute']['AttributeTag'][$k2]);
+				}
+			}
+			$sightingsData = array_merge(
+				$sightingsData,
+				$this->Sighting->attachToEvent($attribute, $this->Auth->user(), $attributes[$k]['Attribute']['id'], $extraConditions = false)
+			);
+			$correlations = $this->Attribute->Event->getRelatedAttributes($this->Auth->user(), $attributes[$k]['Attribute']['id'], false, false, 'attribute');
+			if (!empty($correlations)) {
+				$attributes[$k]['Attribute']['RelatedAttribute'] = $correlations[$attributes[$k]['Attribute']['id']];
+			}
+			$temp = $this->Feed->attachFeedCorrelations(array($attributes[$k]['Attribute']), $this->Auth->user, $attributes[$k]['Event'], $overrideLimit);
+			if (!empty($temp)) {
+				$attributes[$k]['Attribute'] = $temp[0];
+			}
+		}
+		$sightingsData = $this->Attribute->Event->getSightingData(array('Sighting' => $sightingsData));
+		return array($attributes, $sightingsData);
+	}
 
     // If the checkbox for the alternate search is ticked, then this method is called to return the data to be represented
     // This alternate view will show a list of events with matching search results and the percentage of those matched attributes being marked as to_ids
@@ -2632,7 +2665,7 @@ class AttributesController extends AppController
         $this->redirect('/pages/display/administration');
     }
 
-    public function hoverEnrichment($id)
+    public function hoverEnrichment($id, $persistent = false)
     {
         $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'flatten' => 1));
         if (empty($attribute)) {
@@ -2665,6 +2698,9 @@ class AttributesController extends AppController
                 throw new MethodNotAllowedException(__('No valid enrichment options found for this attribute.'));
             }
             $data = array('module' => $type, $attribute[0]['Attribute']['type'] => $attribute[0]['Attribute']['value']);
+			if ($persistent) {
+				$data['persistent'] = 1;
+			}
             if (!empty($options)) {
                 $data['config'] = $options;
             }
