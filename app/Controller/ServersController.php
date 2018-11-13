@@ -1607,6 +1607,16 @@ class ServersController extends AppController
         }
     }
 
+    public function updateProgress()
+    {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException('You are not authorised to do that.');
+        }
+        $updateProgress = $this->Server->getUpdateProgress();
+        debug($updateProgress);
+        $this->set('updateProgress', $updateProgress);
+    }
+
     public function getInstanceUUID()
     {
         return $this->RestResponse->viewData(array('uuid' => Configure::read('MISP.uuid')), $this->response->type());

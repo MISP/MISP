@@ -793,7 +793,7 @@ class AppController extends Controller
         $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
     }
 
-    public function updateDatabase($command)
+    public function updateDatabase($command, $liveOff=false)
     {
         if (!$this->_isSiteAdmin() || !$this->request->is('post')) {
             throw new MethodNotAllowedException();
@@ -802,9 +802,9 @@ class AppController extends Controller
         if (is_numeric($command)) {
             $command = intval($command);
         }
-        $this->Server->updateDatabase($command);
+        $this->Server->updateDatabase($command, $liveOff);
         $this->Flash->success('Done.');
-        $this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+        //$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
     }
 
     public function upgrade2324()

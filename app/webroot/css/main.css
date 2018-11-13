@@ -2078,6 +2078,35 @@ table tr:hover .down-expand-button {
 	}
 }
 
+.label-icon {
+    left: 5px;
+    position: relative;
+}
+
+.nanosec-div {
+    font-weight:bold;
+    position: relative;
+    width: 100%;
+    text-align: center;
+    top: -5px;
+}
+
+.larger-input-field {
+    width: 270px !important;
+}
+
+.precision-tool {
+    margin-left: 10px;
+    display: inline-block;
+}
+
+.advancedUpdateBlock {
+    border: #ccc solid 1px;
+    border-radius: 5px;
+    background: #fbfbfb;
+    padding: 6px;
+}
+
 #attackmatrix_div {
     border-color: #363636;
     overflow: visible;

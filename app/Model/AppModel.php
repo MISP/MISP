@@ -201,7 +201,7 @@ class AppModel extends Model
     }
 
     // SQL scripts for updates
-    public function updateDatabase($command)
+    public function updateDatabase($command, $liveOff=false)
     {
         $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
         $dataSource = $dataSourceConfig['datasource'];
@@ -1074,12 +1074,71 @@ class AppModel extends Model
                 $sqlArray[] = 'ALTER TABLE `threads` DROP `org`;';
                 $sqlArray[] = 'ALTER TABLE `users` DROP `org`;';
                 break;
+            case 'seenOnAttribute':
+                $sqlArray[] =
+                    "ALTER TABLE `attributes`
+						DROP INDEX uuid,
+						DROP INDEX event_id,
+						DROP INDEX sharing_group_id,
+						DROP INDEX type,
+						DROP INDEX category,
+						DROP INDEX value1,
+						DROP INDEX value2,
+						DROP INDEX object_id,
+						DROP INDEX object_relation,
+						DROP INDEX deleted
+					";
+                $sqlArray[] =
+                    "ALTER TABLE `attributes`
+						ADD COLUMN `first_seen` DATETIME(6) NULL DEFAULT NULL,
+						ADD COLUMN `last_seen` DATETIME(6) NULL DEFAULT NULL,
+						MODIFY comment TEXT COLLATE utf8_unicode_ci
+					;";
+                $sqlArray[] = "
+					ALTER TABLE `attributes`
+						ADD INDEX `uuid` (`uuid`),
+						ADD INDEX `event_id` (`event_id`),
+						ADD INDEX `sharing_group_id` (`sharing_group_id`),
+						ADD INDEX `type` (`type`),
+						ADD INDEX `category` (`category`),
+						ADD INDEX `value1` (`value1`(255)),
+						ADD INDEX `value2` (`value2`(255)),
+						ADD INDEX `object_id` (`object_id`),
+						ADD INDEX `object_relation` (`object_relation`),
+						ADD INDEX `deleted` (`deleted`),
+						ADD INDEX `first_seen` (`first_seen`),
+						ADD INDEX `last_seen` (`last_seen`),
+						ADD INDEX `comment` (`comment`(767))
+				";
+                $sqlArray[] = "
+					ALTER TABLE `objects`
+						ADD `first_seen` DATETIME(6) NULL DEFAULT NULL,
+						ADD `last_seen` DATETIME(6) NULL DEFAULT NULL
+				;";
+                $indexArray[] = array('objects', 'first_seen');
+                $indexArray[] = array('objects', 'last_seen');
+                $sqlArray[] = "ALTER TABLE `roles` ADD `perm_publish_zmq` tinyint(1) NOT NULL DEFAULT 0;";
+		        break;
+
             default:
                 return false;
                 break;
         }
-        foreach ($sqlArray as $sql) {
+        // switch MISP instance live to false
+        if ($liveOff) {
+            $this->Server = Classregistry::init('Server');
+            $liveSetting = 'MISP.live';
+            $this->Server->serverSettingsSaveValue($liveSetting, true);
+            $SqlUpdateCount = count($sqlArray);
+            $IndexUpdateCount = count($indexArray);
+            $totupdatecount = $SqlUpdateCount + $IndexUpdateCount;
+            $this->__setUpdateProgress(0, $totupdatecount);
+            $this->__setUpdateMessages(array_merge($sqlArray, $indexArray));
+        }
+        foreach ($sqlArray as $i => $sql) {
             try {
+                sleep(5);
+                $this->__setUpdateProgress($i, false, $sql);
                 $this->query($sql);
                 $this->Log->create();
                 $this->Log->save(array(
@@ -1110,7 +1169,8 @@ class AppModel extends Model
             if ($clean) {
                 $this->cleanCacheFiles();
             }
-            foreach ($indexArray as $iA) {
+            foreach ($indexArray as $i => $iA) {
+                $this->__setUpdateProgress(count($sqlArray)+$i, false, $iA);
                 if (isset($iA[2])) {
                     $this->__addIndex($iA[0], $iA[1], $iA[2]);
                 } else {
@@ -1121,6 +1181,8 @@ class AppModel extends Model
         if ($clean) {
             $this->cleanCacheFiles();
         }
+        $this->__setUpdateProgress(0, 0, '');
+        $this->__setUpdateMessages(array());
         return true;
     }
 
@@ -1312,6 +1374,35 @@ class AppModel extends Model
         if ($requiresLogout) {
             $this->updateDatabase('destroyAllSessions');
         }
+    }
+
+    private function __setUpdateProgress($current, $total=false, $message=false) {
+        $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        $this->AdminSetting->changeSetting('update_prog_cur', $current);
+        if ($total !== false) {
+            $this->AdminSetting->changeSetting('update_prog_tot', $total);
+        }
+        if ($message !== false) {
+            $this->AdminSetting->changeSetting('update_prog_msg', $message);
+        }
+    }
+
+    private function __setUpdateMessages($messages) {
+        $this->AdminSetting->changeSetting('update_prog_msg', $messages);
+        //foreach($messages as $msg) {
+        //}
+    }
+
+    public function getUpdateProgress() {
+        $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        $updateProgress = array();
+        $settingNames = array('update_prog_cur', 'update_prog_tot', 'update_prog_msg');
+        foreach($settingNames as $setting) {
+            $value = $this->AdminSetting->getSetting($setting);
+            $value = $value !== false ? $value : '';
+            $updateProgress[$setting] = $value;
+        }
+        return $updateProgress;
     }
 
     private function __queueCleanDB()

@@ -346,6 +346,9 @@
     <h3><?php echo __('Database cleanup scripts');?></h3>
     <p><?php echo __('If you run into an issue with an infinite upgrade loop (when upgrading from version ~2.4.50) that ends up filling your database with upgrade script log messages, run the following script.');?></p>
     <?php echo $this->Form->postButton(__('Prune upgrade logs'), $baseurl . '/logs/pruneUpdateLogs', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
+    <h3><?php echo __('Advanced Manual Update');?></h3>
+    <p><?php echo __('Click the following button to go to the advanced manual update page. This page list all update that are not performed automatically and should be executed on demand.');?></p>
+    <span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick="location.href = '<?php echo $baseurl; ?>/pages/display/advancedUpdate';"><?php echo __('Advanced Manual Update');?></span>
     <h3><?php echo __('Legacy Administrative Tools');?></h3>
     <p><?php echo __('Click the following button to go to the legacy administrative tools page. There should in general be no need to do this unless you are upgrading a very old MISP instance (<2.4), all updates are done automatically with more current versions.');?></p>
     <span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick="location.href = '<?php echo $baseurl; ?>/pages/display/administration';"><?php echo __('Legacy Administrative Tools');?></span>
