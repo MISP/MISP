@@ -166,9 +166,10 @@ class AttributesController extends AppController
                 } else {
                     $values = explode("\n", $this->request->data['Attribute']['value']);
                 }
+				$temp = $this->request->data['Attribute'];
                 foreach ($values as $value) {
-                    $this->request->data['Attribute']['value'] = $value;
-                    $attributes[] = $this->request->data['Attribute'];
+                    $temp['value'] = $value;
+                    $attributes[] = $temp;
                 }
             } else {
                 $attributes = $this->request->data['Attribute'];
@@ -294,18 +295,19 @@ class AttributesController extends AppController
                 if (empty($fails)) {
                     $message = 'Attributes saved.';
                 } else {
-                    if (count($attributes) > 1) {
+                    if ($attributeCount > 1) {
                         $failKeys = array_keys($fails);
                         foreach ($failKeys as $k => $v) {
                             $v = explode('_', $v);
-                            $failKeys[$k] = intval($v[1]) + 1;
+                            $failKeys[$k] = intval($v[1]);
                         }
-                        $message = 'Attributes saved, however, attributes ' . implode(', ', $failKeys) . ' could not be saved.';
+						$failed = 1;
+                        $message = sprintf('Attributes saved, however, %s attributes could not be saved. Click %s for more info', count($fails), '$flashErrorMessage');
                     } else {
                         if (!empty($fails["attribute_0"])) {
                             foreach ($fails["attribute_0"] as $k => $v) {
                                 $failed = 1;
-                                $message = '$this->Flash->info [' . $k . ']: ' . $v[0];
+                                $message = $k . ': ' . $v[0];
                                 break;
                             }
                         } else {
@@ -314,6 +316,25 @@ class AttributesController extends AppController
                         }
                     }
                 }
+				if (!empty($failKeys)) {
+					$flashErrorMessage = array();
+					$original_values = trim($this->request->data['Attribute']['value']);
+					$original_values = explode("\n", $original_values);
+					foreach ($original_values as $k => $original_value) {
+						$original_value = trim($original_value);
+						if (in_array($k, $failKeys)) {
+							$reason = '';
+							foreach ($fails["attribute_" . $k] as $failKey => $failData) {
+								$reason = $failKey . ': ' . $failData[0];
+							}
+							$flashErrorMessage[] = '<span class="red bold">' . h($original_value) . '</span> (' . h($reason) . ')';
+						} else {
+							$flashErrorMessage[] = '<span class="green bold">' . h($original_value) . '</span>';
+						}
+					}
+					$flashErrorMessage = implode('<br />', $flashErrorMessage);
+					$this->Session->write('flashErrorMessage', $flashErrorMessage);
+				}
                 if ($this->request->is('ajax')) {
                     $this->autoRender = false;
                     $errors = ($attributeCount > 1) ? $message : $this->Attribute->validationErrors;
