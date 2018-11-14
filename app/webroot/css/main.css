@@ -1257,6 +1257,10 @@ a.proposal_link_red:hover {
 	cursor: hand;
 }
 
+.underline {
+	text-decoration: underline;
+}
+
 .template_general {
 	display:inline-block;
 	width: 100%;
