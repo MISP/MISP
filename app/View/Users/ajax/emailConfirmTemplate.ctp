@@ -10,8 +10,8 @@
             </select>
         </div>
         <div>
-            <span role="button" tabindex="0" aria-label="<?php echo __('Send');?>" title="<?php echo __('Send');?>" class="btn btn-success" id="PromptYesButton" onClick="submitMailsForm();"><?php echo __('Send');?></span>
-            <span role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="btn btn-danger" id="PromptNoButton" style="float:right;" onClick="cancelPrompt();"><?php echo __('Cancel');?></span>
+            <span role="button" tabindex="0" aria-label="<?php echo __('Send');?>" title="<?php echo __('Send');?>" class="btn btn-primary" id="PromptYesButton" onClick="submitMailsForm();"><?php echo __('Send');?></span>
+            <span role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="btn btn-inverse" id="PromptNoButton" style="float:right;" onClick="cancelPrompt();"><?php echo __('Cancel');?></span>
         </div>
     </div>
 </div>
