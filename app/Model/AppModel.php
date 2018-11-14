@@ -73,6 +73,18 @@ class AppModel extends Model
         21 => false, 22 => false, 23 => false, 24 => false, 25 => false
     );
 
+    public $advanced_updates_description = array(
+        array(
+            'id' => 'seenOnAttribute',
+            'title' => 'First seen/Last seen Attribute table',
+            'description' => 'Update the Attribute table to support first_seen and last_seen feature, with a microsecond resolution.',
+            'liveOff' => true,
+            'recommendBackup' => true,
+            'exitOnError' => true,
+            'url' => '/servers/updateDatabase/seenOnAttribute/'
+        ),
+    );
+
     public function afterSave($created, $options = array())
     {
         if ($created) {
@@ -201,7 +213,7 @@ class AppModel extends Model
     }
 
     // SQL scripts for updates
-    public function updateDatabase($command)
+    public function updateDatabase($command, $liveOff=false, $exitOnError=false)
     {
         $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
         $dataSource = $dataSourceConfig['datasource'];
@@ -1075,12 +1087,78 @@ class AppModel extends Model
                 $sqlArray[] = 'ALTER TABLE `threads` DROP `org`;';
                 $sqlArray[] = 'ALTER TABLE `users` DROP `org`;';
                 break;
+            case 'seenOnAttribute':
+                $sqlArray[] =
+                    "ALTER TABLE `attributes`
+                        DROP INDEX uuid,
+                        DROP INDEX event_id,
+                        DROP INDEX sharing_group_id,
+                        DROP INDEX type,
+                        DROP INDEX category,
+                        DROP INDEX value1,
+                        DROP INDEX value2,
+                        DROP INDEX object_id,
+                        DROP INDEX object_relation,
+                        DROP INDEX deleted
+                    ";
+                $sqlArray[] =
+                    "ALTER TABLE `attributes`
+                        ADD COLUMN `first_seen` DATETIME(6) NULL DEFAULT NULL,
+                        ADD COLUMN `last_seen` DATETIME(6) NULL DEFAULT NULL,
+                        MODIFY comment TEXT COLLATE utf8_unicode_ci
+                    ;";
+                $sqlArray[] = "
+                    ALTER TABLE `attributes`
+                        ADD INDEX `uuid` (`uuid`),
+                        ADD INDEX `event_id` (`event_id`),
+                        ADD INDEX `sharing_group_id` (`sharing_group_id`),
+                        ADD INDEX `type` (`type`),
+                        ADD INDEX `category` (`category`),
+                        ADD INDEX `value1` (`value1`(255)),
+                        ADD INDEX `value2` (`value2`(255)),
+                        ADD INDEX `object_id` (`object_id`),
+                        ADD INDEX `object_relation` (`object_relation`),
+                        ADD INDEX `deleted` (`deleted`),
+                        ADD INDEX `first_seen` (`first_seen`),
+                        ADD INDEX `last_seen` (`last_seen`),
+                        ADD INDEX `comment` (`comment`(767))
+                    ";
+                $sqlArray[] = "
+                    ALTER TABLE `objects`
+                        ADD `first_seen` DATETIME(6) NULL DEFAULT NULL,
+                        ADD `last_seen` DATETIME(6) NULL DEFAULT NULL
+                    ;";
+                $indexArray[] = array('objects', 'first_seen');
+                $indexArray[] = array('objects', 'last_seen');
+                break;
+
             default:
                 return false;
                 break;
         }
-        foreach ($sqlArray as $sql) {
+
+        $this->__resetUpdateProgress();
+        // switch MISP instance live to false
+        if ($liveOff) {
+            $this->Server = Classregistry::init('Server');
+            $liveSetting = 'MISP.live';
+            $this->Server->serverSettingsSaveValue($liveSetting, false);
+        }
+
+        $SqlUpdateCount = count($sqlArray);
+        $IndexUpdateCount = count($indexArray);
+        $totupdatecount = $SqlUpdateCount + $IndexUpdateCount;
+        $this->__setUpdateProgress(0, $totupdatecount);
+        $strIndexArray = array();
+        foreach($indexArray as $toIndex) {
+            $strIndexArray[] = __('Indexing ') . implode($toIndex, '->');
+        }
+        $this->__setUpdateCmdMessages(array_merge($sqlArray, $strIndexArray));
+        $flagStop = false;
+        $errorCount = 0;
+        foreach ($sqlArray as $i => $sql) {
             try {
+                $this->__setUpdateProgress($i, false);
                 $this->query($sql);
                 $this->Log->create();
                 $this->Log->save(array(
@@ -1093,6 +1171,7 @@ class AppModel extends Model
                         'title' => 'Successfuly executed the SQL query for ' . $command,
                         'change' => 'The executed SQL query was: ' . $sql
                 ));
+                $this->__setUpdateResMessages($i, 'Successfuly executed the SQL query for ' . $command);
             } catch (Exception $e) {
                 $this->Log->create();
                 $this->Log->save(array(
@@ -1105,24 +1184,54 @@ class AppModel extends Model
                         'title' => 'Issues executing the SQL query for ' . $command,
                         'change' => 'The executed SQL query was: ' . $sql . PHP_EOL . ' The returned error is: ' . $e->getMessage()
                 ));
-            }
-        }
-        if (!empty($indexArray)) {
-            if ($clean) {
-                $this->cleanCacheFiles();
-            }
-            foreach ($indexArray as $iA) {
-                if (isset($iA[2])) {
-                    $this->__addIndex($iA[0], $iA[1], $iA[2]);
-                } else {
-                    $this->__addIndex($iA[0], $iA[1]);
+                $this->__setUpdateResMessages($i, 'Issues executing the SQL query for ' . $command . '. The returned error is: ' . PHP_EOL . $e->getMessage());
+                $this->__setUpdateError($i);
+                $errorCount++;
+                if ($exitOnError) {
+                    $flagStop = true;
+                    break;
                 }
             }
+        }
+        if (!$flagStop) {
+            if (!empty($indexArray)) {
+                if ($clean) {
+                    $this->cleanCacheFiles();
+                }
+                foreach ($indexArray as $i => $iA) {
+                    $this->__setUpdateProgress(count($sqlArray)+$i, false);
+                    if (isset($iA[2])) {
+                        $this->__addIndex($iA[0], $iA[1], $iA[2]);
+                    } else {
+                        $this->__addIndex($iA[0], $iA[1]);
+                    }
+                    $this->__setUpdateResMessages(count($sqlArray)+$i, 'Successfuly indexed ' . implode($iA, '->'));
+                }
+            }
+            $this->__setUpdateProgress(count($sqlArray)+count($indexArray), false);
         }
         if ($clean) {
             $this->cleanCacheFiles();
         }
+        if ($liveOff) {
+            $liveSetting = 'MISP.live';
+            $this->Server->serverSettingsSaveValue($liveSetting, true);
+        }
+
+        if (!$flagStop && $errorCount == 0) {
+            $this->__postUpdate($command);
+        }
+
         return true;
+    }
+
+    // check whether the adminSetting should be updated after the update
+    private function __postUpdate($command) {
+        foreach($this->advanced_updates_description as $update) {
+            if ($update['id'] == $command) {
+                $this->AdminSetting->changeSetting($command, 1);
+            }
+        }
     }
 
     private function __dropIndex($table, $field)
@@ -1314,6 +1423,56 @@ class AppModel extends Model
             $this->updateDatabase('destroyAllSessions');
         }
         return true;
+    }
+
+    private function __setUpdateProgress($current, $total=false) {
+        $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        $this->AdminSetting->changeSetting('update_prog_cur', $current);
+        if ($total !== false) {
+            $this->AdminSetting->changeSetting('update_prog_tot', $total);
+        }
+    }
+    
+    private function __setUpdateError($index) {
+        $failArray = json_decode($this->AdminSetting->getSetting('update_prog_failed_num'), true);
+        $failArray[] = $index;
+        $data = json_encode($failArray);
+        $this->AdminSetting->changeSetting('update_prog_failed_num', $data);
+    }
+
+    private function __resetUpdateProgress() {
+        $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        $settingNames = array('update_prog_cur', 'update_prog_tot', 'update_prog_failed_num', 'update_prog_msg');
+        foreach($settingNames as $setting) {
+            $this->AdminSetting->changeSetting($setting, '');
+        }
+    }
+
+    private function __setUpdateCmdMessages($messages) {
+        $data = array( 'cmd' => $messages, 'res' => array());
+        $this->AdminSetting->changeSetting('update_prog_msg', json_encode($data));
+    }
+
+    private function __setUpdateResMessages($index, $message) {
+        $messages = json_decode($this->AdminSetting->getSetting('update_prog_msg'), true);
+        $messages['res'][$index] = $message;
+        $data = json_encode($messages);
+        $this->AdminSetting->changeSetting('update_prog_msg', $data);
+    }
+
+    public function getUpdateProgress() {
+        $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        $updateProgress = array();
+        $settingNames = array('update_prog_cur', 'update_prog_tot');
+        foreach($settingNames as $setting) {
+            $value = $this->AdminSetting->getSetting($setting);
+            $value = $value !== false && $value !== '' ? intval($value) : -1;
+            $updateProgress[$setting] = $value;
+        }
+        $updateProgress['update_prog_failed_num'] = json_decode($this->AdminSetting->getSetting('update_prog_failed_num'), true);
+        $updateProgress['update_prog_failed_num'] = is_null($updateProgress['update_prog_failed_num']) ? [] : $updateProgress['update_prog_failed_num'];
+        $updateProgress['update_prog_msg'] = json_decode($this->AdminSetting->getSetting('update_prog_msg'), true);
+        return $updateProgress;
     }
 
     private function __queueCleanDB()

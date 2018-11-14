@@ -62,6 +62,7 @@
         </span><br />
         <pre class="hidden green bold" id="gitResult"></pre>
         <button title="<?php echo __('Pull the latest MISP version from github');?>" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "updateMISP();"><?php echo __('Update MISP');?></button>
+        <a title="<?php echo __('Click the following button to go to the advanced manual update page. This page lists all updates that are not performed automatically.'); ?>" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" href="<?php echo $baseurl; ?>/servers/advancedUpdate/"><?php echo __('Advanced Manual Update');?></a>
     </div>
     <h3><?php echo __('Writeable Directories and files');?></h3>
     <p><?php echo __('The following directories and files have to be writeable for MISP to function properly. Make sure that the apache user has write privileges for the directories below.');?></p>
