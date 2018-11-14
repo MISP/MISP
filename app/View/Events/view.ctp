@@ -169,7 +169,7 @@
                 <dd><?php echo h($attribute_count);?></dd>
                 <dt><?php echo __('Last change');?></dt>
                 <dd>
-                    <?php echo date('Y/m/d h:i:s', $event['Event']['timestamp']);; ?>
+                    <?php echo date('Y-m-d H:i:s', $event['Event']['timestamp']);; ?>
                     &nbsp;
                 </dd>
                 <dt><?php echo __('Extends');?></dt>
@@ -332,7 +332,7 @@
                 ?>
                         <span>
                             <?php echo __('This event has ');?><span class="bold"><?php echo h($event['Event']['FeedCount']); ?></span>
-                            <?php echo __('correlations with data contained within the various feeds, however, due to the large number of attributes the actual feed correlations are not shown. Click (<a href="%s\/overrideLimit:1">here</a> to refresh the page with the feed data loaded.', h($this->here));?>
+                            <?php echo __('correlations with data contained within the various feeds, however, due to the large number of attributes the actual feed correlations are not shown. Click <a href="%s\/overrideLimit:1">here</a> to refresh the page with the feed data loaded.', h($this->here));?>
                      </span>
                 <?php
                     endif;

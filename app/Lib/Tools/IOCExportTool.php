@@ -55,7 +55,7 @@ class IOCExportTool
     {
         $temp = '';
         // We will start adding all the components that will be in the xml file here
-        $date = date("Y-m-d\Th:i:s");
+        $date = date("Y-m-d\TH:i:s");
         $temp .= '<?xml version="1.0" encoding="utf-8"?>' . PHP_EOL;
         $temp .= '<ioc xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="' . CakeText::uuid() . '" last-modified="' . $date . '" xmlns="http://schemas.mandiant.com/2010/ioc">' . PHP_EOL;
         $temp .= '  <short_description>Filtered indicator list</short_description>' . PHP_EOL;

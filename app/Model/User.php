@@ -273,31 +273,33 @@ class User extends AppModel
     {
         if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_user_notifications_enable')) {
             $pubSubTool = $this->getPubSubTool();
-            $user = $this->data;
-            if (!isset($user['User'])) {
-                $user['User'] = $user;
-            }
-            $action = $created ? 'edit' : 'add';
-            if (isset($user['User']['action'])) {
-                $action = $user['User']['action'];
-            }
-            if (isset($user['User']['id'])) {
-                $user = $this->find('first', array(
-                    'recursive' => -1,
-                    'conditons' => array('User.id' => $user['User']['id']),
-                    'fields' => array('id', 'email', 'last_login', 'org_id', 'termsaccepted', 'autoalert', 'newsread', 'disabled'),
-                    'contain' => array(
-                        'Organisation' => array(
-                            'fields' => array('Organisation.id', 'Organisation.name', 'Organisation.description', 'Organisation.uuid', 'Organisation.nationality', 'Organisation.sector', 'Organisation.type', 'Organisation.local')
-                        )
-                    )
-                ));
-            }
-            if (isset($user['User']['password'])) {
-                unset($user['User']['password']);
-                unset($user['User']['confirm_password']);
-            }
-            $pubSubTool->modified($user, 'user', $action);
+			if (!empty($this->data)) {
+	            $user = $this->data;
+	            if (!isset($user['User'])) {
+	                $user['User'] = $user;
+	            }
+	            $action = $created ? 'edit' : 'add';
+	            if (isset($user['User']['action'])) {
+	                $action = $user['User']['action'];
+	            }
+	            if (isset($user['User']['id'])) {
+	                $user = $this->find('first', array(
+	                    'recursive' => -1,
+	                    'conditions' => array('User.id' => $user['User']['id']),
+	                    'fields' => array('id', 'email', 'last_login', 'org_id', 'termsaccepted', 'autoalert', 'newsread', 'disabled'),
+	                    'contain' => array(
+	                        'Organisation' => array(
+	                            'fields' => array('Organisation.id', 'Organisation.name', 'Organisation.description', 'Organisation.uuid', 'Organisation.nationality', 'Organisation.sector', 'Organisation.type', 'Organisation.local')
+	                        )
+	                    )
+	                ));
+	            }
+	            if (isset($user['User']['password'])) {
+	                unset($user['User']['password']);
+	                unset($user['User']['confirm_password']);
+	            }
+	            $pubSubTool->modified($user, 'user', $action);
+			}
         }
         return true;
     }
@@ -529,7 +531,8 @@ class User extends AppModel
         return $results;
     }
 
-    private function testSmimeCertificate($certif_public) {
+    private function testSmimeCertificate($certif_public)
+    {
         $result = array();
         try {
             App::uses('Folder', 'Utility');
@@ -779,7 +782,7 @@ class User extends AppModel
         }
         // SMIME if not GPG key
         if (!$failed && !$canEncryptGPG && $canEncryptSMIME) {
-            $encryptionResult = $this->__encryptUsingSmime($Email, $body, $subject);
+            $encryptionResult = $this->__encryptUsingSmime($Email, $body, $subject, $user);
             if (isset($encryptionResult['failed'])) {
                 $failed = true;
             }
@@ -893,7 +896,7 @@ class User extends AppModel
         return true;
     }
 
-    private function __encryptUsingSmime(&$Email, &$body, $subject)
+    private function __encryptUsingSmime(&$Email, &$body, $subject, $user)
     {
         try {
             $prependedBody = 'Content-Transfer-Encoding: 7bit' . PHP_EOL . 'Content-Type: text/plain;' . PHP_EOL . '    charset=us-ascii' . PHP_EOL . PHP_EOL . $body;

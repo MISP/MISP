@@ -229,7 +229,8 @@ class Feed extends AppModel
             if ($doFetch) {
                 $fetchIssue = false;
                 try {
-                    $response = $this->__getRecursive($feed['Feed']['url'], '', array());
+					$request = $this->__createFeedRequest($feed['Feed']['headers']);
+                    $response = $this->__getRecursive($feed['Feed']['url'], '', $request);
                     //$response = $HttpSocket->get($feed['Feed']['url'], '', array());
                 } catch (Exception $e) {
                     return $e->getMessage();
@@ -864,14 +865,16 @@ class Feed extends AppModel
             }
             $temp = $this->getFreetextFeed($this->data, $HttpSocket, $this->data['Feed']['source_format'], 'all');
             $data = array();
-            foreach ($temp as $key => $value) {
-                $data[] = array(
-                    'category' => $value['category'],
-                    'type' => $value['default_type'],
-                    'value' => $value['value'],
-                    'to_ids' => $value['to_ids']
-                );
-            }
+			if (!empty($temp)) {
+	            foreach ($temp as $key => $value) {
+	                $data[] = array(
+	                    'category' => $value['category'],
+	                    'type' => $value['default_type'],
+	                    'value' => $value['value'],
+	                    'to_ids' => $value['to_ids']
+	                );
+	            }
+			}
             if ($jobId) {
                 $job->saveField('progress', 50);
                 $job->saveField('message', 'Saving data.');
@@ -1223,7 +1226,8 @@ class Feed extends AppModel
         $fields = array('id', 'input_source', 'source_format', 'url', 'provider', 'name', 'default');
         $feeds = $this->find('all', array(
             'recursive' => -1,
-            'fields' => $fields
+            'fields' => $fields,
+			'conditions' => array('Feed.caching_enabled' => 1)
         ));
         // we'll use this later for the intersect
         $fields[] = 'values';

@@ -4,15 +4,26 @@
             if ($isSearch == 1) {
                 // The following block should serve as an example and food
                 // for thought on how to optimize i18n & l10n (especially for languages that are not SOV)
-                echo "<h4>" . __("Results for all attributes");
-                if ($keywordSearch != null) echo __(" with the value containing "). "\"<b>" . h($keywordSearch) . "</b>\"";
-                if ($attributeTags != null) echo __(" being tagged with ") ."\"<b>" . h($attributeTags) . "</b>\"";
-                if ($keywordSearch2 != null) echo __(" from the events ") . "\"<b>" . h($keywordSearch2) . "</b>\"";
-                if ($tags != null) echo " from events tagged \"<b>" . h($tags) . "</b>\"";
-                if ($categorySearch != "ALL") echo __(" of category ") . "\"<b>" . h($categorySearch) . "</b>\"";
-                if ($typeSearch != "ALL") echo __(" of type ") . "\"<b>" . h($typeSearch) . "</b>\"";
-                if (isset($orgSearch) && $orgSearch != '' && $orgSearch != null) echo __(" created by the organisation ") . "\"<b>" . h($orgSearch) . "</b>\"";
-                echo ":</h4>";
+				$filterOptions = array(
+					'value' => __(" with the value containing "),
+					'tags' => __(" being tagged with "),
+					'id' => __(" from the events "),
+					'tag' => __(" carrying the tag(s) "),
+					'type' => __(" of type "),
+					'category' => __(" of category "),
+					'org' => __(" created by organisation ")
+				);
+				$temp = '';
+				foreach ($filterOptions as $fo => $text) {
+					if (!empty($filters[$fo])) {
+						$filter_options_string = $filters[$fo];
+						if (is_array($filter_options_string)) {
+							$filter_options_string = implode(' OR ', $filter_options_string);
+						}
+						$temp .= sprintf('%s <b>%s</b>', $text, h($filter_options_string));
+					}
+				}
+				echo sprintf("<h4>%s%s</h4>", __("Results for all attributes"), $temp);
             }
         ?>
     <div class="pagination">
@@ -32,10 +43,10 @@
         </ul>
     </div>
     <table class="table table-striped table-hover table-condensed">
-    <tr>
+    	<tr>
             <th><?php echo $this->Paginator->sort('event_id');?></th>
             <?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
-            <th><?php echo $this->Paginator->sort('org_id', 'Org');?></th>
+            <th><?php echo $this->Paginator->sort('Event.orgc_id', 'Org');?></th>
             <?php endif; ?>
             <th><?php echo $this->Paginator->sort('category');?></th>
             <th><?php echo $this->Paginator->sort('type');?></th>
@@ -45,19 +56,25 @@
             <th<?php echo ' title="' . $attrDescriptions['signature']['desc'] . '"';?>>
             <?php echo $this->Paginator->sort('IDS');?></th>
             <th class="actions">Actions</th>
-    </tr>
+    	</tr>
     <?php
     $currentCount = 0;
     if ($isSearch == 1) {
-
         // sanitize data
-        if (isset($keywordArray)) {
-            foreach ($keywordArray as &$keywordArrayElement) {
-                $keywordArrayElement = h($keywordArrayElement);
-            }
+        $toHighlight = array('value', 'comment');
+		$keywordArray = array();
+        foreach ($toHighlight as $highlightedElement) {
+            if (!empty($filters[$highlightedElement])) {
+				if (!is_array($filters[$highlightedElement])) {
+					$filters[$highlightedElement] = array($filters[$highlightedElement]);
+				}
+				foreach ($filters[$highlightedElement] as $highlightedString) {
+					$keywordArray[] = $highlightedString;
+				}
+			}
+        }
         // build the $replacePairs variable used to highlight the keywords
         $replacePairs = $this->Highlight->build_replace_pairs($keywordArray);
-        }
     }
 
 foreach ($attributes as $attribute):
@@ -151,6 +168,12 @@ foreach ($attributes as $attribute):
             <a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?php echo $attribute['Attribute']['id'];?>" class="icon-share" title="<?php echo __('Propose an edit'); ?>"></a>
     <?php
         endif;
+
+        if ($me['Role']['perm_sighting']):
+    ?>
+    <span class="icon-eye useCursorPointer fa fa-eye" title="<?php echo __('Add sighting');?>" role="button" tabindex="0" aria-label="<?php echo __('Add sighting');?>" data-toggle="popover" onClick="quickAddSighting(this, <?php echo h($attribute['Attribute']['id']); ?>, '<?php echo h($attribute['Attribute']['value']);?>');">&nbsp;</span>
+    <?php
+        endif;
     ?>
             <a href="<?php echo $baseurl;?>/events/view/<?php echo $attribute['Attribute']['event_id'];?>" class="icon-list-alt" title="<?php echo __('View'); ?>"></a>
         </td>
@@ -176,7 +199,6 @@ endforeach;
         ?>
         </ul>
     </div>
-
 </div>
 <?php
 if ($isSearch == 1){
@@ -198,6 +220,17 @@ $(document).ready(function () {
     });
     $('.screenshot').click(function() {
         screenshotPopup($(this).attr('src'), $(this).attr('title'));
+    });
+    $(document).on('click', function (e) {
+        //did not click a popover toggle or popover
+        if ($(e.target).data('toggle') !== 'popover'
+            && $(e.target).parents('.popover.in').length === 0) {
+            // filter for only defined popover
+            var definedPopovers = $('[data-toggle="popover"]').filter(function(i, e) {
+                    return $(e).data('popover') !== undefined;
+            });
+            definedPopovers.popover('hide');
+        }
     });
 });
 </script>

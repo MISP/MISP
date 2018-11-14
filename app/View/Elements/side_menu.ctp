@@ -219,18 +219,13 @@
                     ));
                     if ($menuItem == 'searchAttributes2') {
                         echo $this->element('/side_menu_divider');
-                        echo $this->element('/side_menu_link', array(
-                            'url' => '/events/downloadSearchResult.json',
-                            'text' => __('Download results as JSON')
-                        ));
-                        echo $this->element('/side_menu_link', array(
-                            'url' => '/events/downloadSearchResult.xml',
-                            'text' => __('Download results as XML')
-                        ));
-                        echo $this->element('/side_menu_link', array(
-                            'url' => '/events/csv/download/search',
-                            'text' => __('Download results as CSV')
-                        ));
+						echo $this->element('/side_menu_link', array(
+							'onClick' => array(
+								'function' => 'getPopup',
+								'params' => array(0, 'attributes', 'exportSearch')
+							),
+							'text' => __('Download as...')
+						));
                     }
                     echo $this->element('/side_menu_divider');
                     echo $this->element('/side_menu_link', array(
@@ -390,9 +385,9 @@
                     <?php endif;?>
                     <li id='liindexOrg'><a href="<?php echo $baseurl;?>/organisations/index"><?php echo __('List Organisations');?></a></li>
                     <li class="divider"></li>
-                    <li id='liaddRole'><?php echo $this->Html->link('Add Role', array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
+                    <li id='liaddRole'><?php echo $this->Html->link(__('Add Role'), array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
                     <?php endif; ?>
-                    <li id='liindexRole'><?php echo $this->Html->link('List Roles', array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
+                    <li id='liindexRole'><?php echo $this->Html->link(__('List Roles'), array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
                     <?php if ($isSiteAdmin): ?>
                         <li class="divider"></li>
                         <li id='liserverSettings'><a href="<?php echo $baseurl;?>/servers/serverSettings"><?php echo __('Server Settings & Maintenance');?></a></li>

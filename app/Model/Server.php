@@ -165,6 +165,25 @@ class Server extends AppModel
                                 'type' => 'boolean',
                                 'null' => true
                         ),
+                        'python_bin' => array(
+                                'level' => 1,
+                                'description' => __('It is highly recommended to install all the python dependencies in a virtualenv. The recommended location is: %s/venv', ROOT),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'null' => false,
+                                'test' => 'testForBinExec',
+                                'beforeHook' => 'beforeHookBinExec',
+                                'type' => 'string',
+                        ),
+                        'disable_auto_logout' => array(
+                                'level' => 1,
+                                'description' => __('In some cases, a heavily used MISP instance can generate unwanted blackhole errors due to a high number of requests hitting the server. Disable the auto logout functionality to ease the burden on the system.'),
+                                'value' => false,
+                                'errorMessage' => '',
+                                'test' => 'testBool',
+                                'type' => 'boolean',
+                                'null' => true
+                        ),
                         'ssdeep_correlation_threshold' => array(
                             'level' => 1,
                             'description' => __('Set the ssdeep score at which to consider two ssdeep hashes as correlating [1-100]'),
@@ -750,7 +769,7 @@ class Server extends AppModel
                         ),
                         'custom_css' => array(
                                 'level' => 2,
-                                'description' => __('If you would like to customise the css, simply drop a css file in the /var/www/MISP/webroot/css directory and enter the name here.'),
+                                'description' => __('If you would like to customise the css, simply drop a css file in the /var/www/MISP/app/webroot/css directory and enter the name here.'),
                                 'value' => '',
                                 'errorMessage' => '',
                                 'test' => 'testForStyleFile',
@@ -834,6 +853,14 @@ class Server extends AppModel
                             'errorMessage' => '',
                             'test' => null,
                             'type' => 'string',
+                        ),
+                        'manage_workers' => array(
+                                'level' => 2,
+                                'description' => __('Set this to false if you would like to disable MISP managing its own worker processes (for example, if you are managing the workers with a systemd unit).'),
+                                'value' => true,
+                                'errorMessage' => '',
+                                'test' => 'testBool',
+                                'type' => 'boolean'
                         ),
                         'deadlock_avoidance' => array(
                                 'level' => 1,
@@ -1372,7 +1399,7 @@ class Server extends AppModel
                         ),
                         'ElasticSearch_connection_string' => array(
                             'level' => 2,
-                            'description' => __('The URL(s) at which to access ElasticSearch - comma seperate if you want to have more than one.'),
+                            'description' => __('The URL(s) at which to access ElasticSearch - comma separate if you want to have more than one.'),
                             'value' => '',
                             'errorMessage' => '',
                             'test' => 'testForEmpty',
@@ -1381,6 +1408,46 @@ class Server extends AppModel
                         'ElasticSearch_log_index' => array(
                             'level' => 2,
                             'description' => __('The index in which to place logs'),
+                            'value' => '',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'S3_enable' => array(
+                            'level' => 2,
+                            'description' => __('Enables or disables uploading of malware samples to S3 rather than to disk (WARNING: Get permission from amazon first!)'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean'
+                        ),
+                        'S3_bucket_name' => array(
+                            'level' => 2,
+                            'description' => __('Bucket name to upload to'),
+                            'value' => '',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'S3_region' => array(
+                            'level' => 2,
+                            'description' => __('Region in which your S3 bucket resides'),
+                            'value' => '',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'S3_aws_access_key' => array(
+                            'level' => 2,
+                            'description' => __('AWS key to use when uploading samples (WARNING: It\' highly recommended that you use EC2 IAM roles if at all possible)'),
+                            'value' => '',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string'
+                        ),
+                        'S3_aws_secret_key' => array(
+                            'level' => 2,
+                            'description' => __('AWS secret key to use when uploading samples'),
                             'value' => '',
                             'errorMessage' => '',
                             'test' => 'testForEmpty',
@@ -1734,7 +1801,8 @@ class Server extends AppModel
         return true;
     }
 
-    private function __getEventIdListBasedOnPullTechnique($technique, $server) {
+    private function __getEventIdListBasedOnPullTechnique($technique, $server)
+    {
         if ("full" === $technique) {
             // get a list of the event_ids on the server
             $eventIds = $this->getEventIdsFromServer($server);
@@ -1755,6 +1823,7 @@ class Server extends AppModel
             } elseif (is_string($eventIds)) {
                 return array('error' => array(2, $eventIds));
             }
+			$eventModel = ClassRegistry::init('Event');
             $local_event_ids = $eventModel->find('list', array(
                     'fields' => array('uuid'),
                     'recursive' => -1,
@@ -1762,127 +1831,230 @@ class Server extends AppModel
             $eventIds = array_intersect($eventIds, $local_event_ids);
         } elseif (is_numeric($technique)) {
             $eventIds[] = intval($technique);
-            // if we are downloading a single event, don't fetch all proposals
-            $conditions = array('Event.id' => $technique);
         } else {
             return array('error' => array(4, null));
         }
         return $eventIds;
     }
 
-    public function pull($user, $id = null, $technique=false, $server, $jobId = false, $percent = 100, $current = 0)
+    private function __checkIfEventIsBlockedBeforePull($event)
+    {
+        if (Configure::read('MISP.enableEventBlacklisting') !== false) {
+            $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
+            $r = $this->EventBlacklist->find('first', array('conditions' => array('event_uuid' => $event['Event']['uuid'])));
+            if (!empty($r)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private function __updatePulledEventBeforeInsert(&$event, $server, $user)
+    {
+        // we have an Event array
+        // The event came from a pull, so it should be locked.
+        $event['Event']['locked'] = true;
+        if (!isset($event['Event']['distribution'])) { // version 1
+            $event['Event']['distribution'] = '1';
+        }
+        // Distribution
+        if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id']) {
+            switch ($event['Event']['distribution']) {
+                case 1:
+                    // if community only, downgrade to org only after pull
+                    $event['Event']['distribution'] = '0';
+                    break;
+                case 2:
+                    // if connected communities downgrade to community only
+                    $event['Event']['distribution'] = '1';
+                    break;
+            }
+            if (isset($event['Event']['Attribute']) && !empty($event['Event']['Attribute'])) {
+                foreach ($event['Event']['Attribute'] as $key => $a) {
+                    switch ($a['distribution']) {
+                        case '1':
+                            $event['Event']['Attribute'][$key]['distribution'] = '0';
+                            break;
+                        case '2':
+                            $event['Event']['Attribute'][$key]['distribution'] = '1';
+                            break;
+                    }
+                }
+            }
+        }
+        // Distribution, set reporter of the event, being the admin that initiated the pull
+        $event['Event']['user_id'] = $user['id'];
+        return $event;
+    }
+
+    private function __checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, &$successes, &$fails, $eventModel, $server, $user, $jobId)
+    {
+        // check if the event already exist (using the uuid)
+        $existingEvent = $eventModel->find('first', array('conditions' => array('Event.uuid' => $event['Event']['uuid'])));
+        if (!$existingEvent) {
+            // add data for newly imported events
+            $passAlong = $server['Server']['id'];
+            $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
+            if ($result) {
+                $successes[] = $eventId;
+            } else {
+                $fails[$eventId] = 'Failed (partially?) because of validation errors: '. json_encode($eventModel->validationErrors, true);
+            }
+        } else {
+            $tempUser = $user;
+            $tempUser['Role']['perm_site_admin'] = 0;
+            $result = $eventModel->_edit($event, $tempUser, $existingEvent['Event']['id'], $jobId);
+            if ($result === true) {
+                $successes[] = $eventId;
+            } elseif (isset($result['error'])) {
+                $fails[$eventId] = $result['error'];
+            } else {
+                $fails[$eventId] = json_encode($result);
+            }
+        }
+    }
+
+    private function __pullEvent($eventId, &$successes, &$fails, $eventModel, $server, $user, $jobId)
+    {
+        $event = $eventModel->downloadEventFromServer(
+                $eventId,
+                $server
+        );;
+        if (!empty($event)) {
+            if ($this->__checkIfEventIsBlockedBeforePull($event)) {
+                return false;
+            }
+            $event = $this->__updatePulledEventBeforeInsert($event, $server, $user);
+            $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $server, $user, $jobId);
+        } else {
+            // error
+            $fails[$eventId] = 'failed downloading the event';
+        }
+        return true;
+    }
+
+    private function __handlePulledProposals($proposals, $events, $job, $jobId, $eventModel, $user)
+    {
+        $pulledProposals = array();
+        if (!empty($proposals)) {
+            $shadowAttribute = ClassRegistry::init('ShadowAttribute');
+            $shadowAttribute->recursive = -1;
+            $uuidEvents = array_flip($events);
+            foreach ($proposals as $k => &$proposal) {
+                $proposal = $proposal['ShadowAttribute'];
+                $oldsa = $shadowAttribute->findOldProposal($proposal);
+                $proposal['event_id'] = $uuidEvents[$proposal['event_uuid']];
+                if (!$oldsa || $oldsa['timestamp'] < $proposal['timestamp']) {
+                    if ($oldsa) {
+                        $shadowAttribute->delete($oldsa['id']);
+                    }
+                    if (!isset($pulledProposals[$proposal['event_id']])) {
+                        $pulledProposals[$proposal['event_id']] = 0;
+                    }
+                    $pulledProposals[$proposal['event_id']]++;
+                    if (isset($proposal['old_id'])) {
+                        $oldAttribute = $eventModel->Attribute->find('first', array('recursive' => -1, 'conditions' => array('uuid' => $proposal['uuid'])));
+                        if ($oldAttribute) {
+                            $proposal['old_id'] = $oldAttribute['Attribute']['id'];
+                        } else {
+                            $proposal['old_id'] = 0;
+                        }
+                    }
+                    // check if this is a proposal from an old MISP instance
+                    if (!isset($proposal['Org']) && isset($proposal['org']) && !empty($proposal['org'])) {
+                        $proposal['Org'] = $proposal['org'];
+                        $proposal['EventOrg'] = $proposal['event_org'];
+                    } elseif (!isset($proposal['Org']) && !isset($proposal['EventOrg'])) {
+                        continue;
+                    }
+                    $proposal['org_id'] = $this->Organisation->captureOrg($proposal['Org'], $user);
+                    $proposal['event_org_id'] = $this->Organisation->captureOrg($proposal['EventOrg'], $user);
+                    unset($proposal['Org']);
+                    unset($proposal['EventOrg']);
+                    $shadowAttribute->create();
+                    if (!isset($proposal['deleted']) || !$proposal['deleted']) {
+                        if ($shadowAttribute->save($proposal)) {
+                            $shadowAttribute->sendProposalAlertEmail($proposal['event_id']);
+                        }
+                    }
+                }
+                if ($jobId) {
+                    if ($k % 50 == 0) {
+                        $job->id =  $jobId;
+                        $job->saveField('progress', 50 * (($k + 1) / count($proposals)) + 50);
+                    }
+                }
+            }
+        }
+        return $pulledProposals;
+    }
+
+    public function pull($user, $id = null, $technique=false, $server, $jobId = false)
     {
         if ($jobId) {
             $job = ClassRegistry::init('Job');
             $job->read(null, $jobId);
             $email = "Scheduled job";
         } else {
+            $job = false;
             $email = $user['email'];
         }
         $eventModel = ClassRegistry::init('Event');
-        App::uses('HttpSocket', 'Network/Http');
         $eventIds = array();
-        $conditions = array();
+        // if we are downloading a single event, don't fetch all proposals
+        $conditions = is_numeric($technique) ? array('Event.id' => $technique) : array();
         $eventIds = $this->__getEventIdListBasedOnPullTechnique($technique, $server);
+		if (!empty($eventIds['error'])) {
+			$errors = array(
+				'1' => __('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting.'),
+				'2' => $eventIds['error'][1],
+				'3' => __('Sorry, this is not yet implemented'),
+				'4' => __('Something went wrong while trying to pull')
+			);
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			$this->Log->save(array(
+				'org' => $user['Organisation']['name'],
+				'model' => 'Server',
+				'model_id' => $id,
+				'email' => $user['email'],
+				'action' => 'error',
+				'user_id' => $user['id'],
+				'title' => 'Failed pull from ' . $server['Server']['url'] . ' initiated by ' . $email,
+				'change' => !empty($errors[$eventIds['error'][0]]) ? $errors[$eventIds['error'][0]] : __('Unknown issue.')
+			));
+			return !empty($errors[$eventIds['error'][0]]) ? $errors[$eventIds['error'][0]] : __('Unknown issue.');
+		}
         $successes = array();
         $fails = array();
-        $pulledProposals = array();
         // now process the $eventIds to pull each of the events sequentially
         if (!empty($eventIds)) {
             // download each event
-            if (null != $eventIds) {
-                $HttpSocket = $this->setupHttpSocket($server);
-                foreach ($eventIds as $k => $eventId) {
-                    $event = $eventModel->downloadEventFromServer(
-                            $eventId,
-                            $server
-                    );
-                    if (null != $event) {
-                        $blocked = false;
-                        if (Configure::read('MISP.enableEventBlacklisting') !== false) {
-                            $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
-                            $r = $this->EventBlacklist->find('first', array('conditions' => array('event_uuid' => $event['Event']['uuid'])));
-                            if (!empty($r)) {
-                                continue;
-                            }
-                        }
-                        // we have an Event array
-                        // The event came from a pull, so it should be locked.
-                        $event['Event']['locked'] = true;
-                        if (!isset($event['Event']['distribution'])) { // version 1
-                            $event['Event']['distribution'] = '1';
-                        }
-                        // Distribution
-                        if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id']) {
-                            switch ($event['Event']['distribution']) {
-                                case 1:
-                                    // if community only, downgrade to org only after pull
-                                    $event['Event']['distribution'] = '0';
-                                    break;
-                                case 2:
-                                    // if connected communities downgrade to community only
-                                    $event['Event']['distribution'] = '1';
-                                    break;
-                            }
-                            if (isset($event['Event']['Attribute']) && !empty($event['Event']['Attribute'])) {
-                                foreach ($event['Event']['Attribute'] as $key => $a) {
-                                    switch ($a['distribution']) {
-                                        case '1':
-                                            $event['Event']['Attribute'][$key]['distribution'] = '0';
-                                            break;
-                                        case '2':
-                                            $event['Event']['Attribute'][$key]['distribution'] = '1';
-                                            break;
-                                    }
-                                }
-                            }
-                        }
-                        // Distribution, set reporter of the event, being the admin that initiated the pull
-                        $event['Event']['user_id'] = $user['id'];
-                        // check if the event already exist (using the uuid)
-                        $existingEvent = null;
-                        $existingEvent = $eventModel->find('first', array('conditions' => array('Event.uuid' => $event['Event']['uuid'])));
-                        if (!$existingEvent) {
-                            // add data for newly imported events
-                            $passAlong = $server['Server']['id'];
-                            $result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
-                            if ($result) {
-                                $successes[] = $eventId;
-                            } else {
-                                $fails[$eventId] = 'Failed (partially?) because of validation errors: '. json_encode($eventModel->validationErrors, true);
-                            }
-                        } else {
-                            $tempUser = $user;
-                            $tempUser['Role']['perm_site_admin'] = 0;
-                            $result = $eventModel->_edit($event, $tempUser, $existingEvent['Event']['id'], $jobId);
-                            if ($result === true) {
-                                $successes[] = $eventId;
-                            } elseif (isset($result['error'])) {
-                                $fails[$eventId] = $result['error'];
-                            } else {
-                                $fails[$eventId] = json_encode($result);
-                            }
-                        }
-                    } else {
-                        // error
-                        $fails[$eventId] = 'failed downloading the event';
+            foreach ($eventIds as $k => $eventId) {
+                $this->__pullEvent($eventId, $successes, $fails, $eventModel, $server, $user, $jobId);
+                if ($jobId) {
+                    if ($k % 10 == 0) {
+                        $job->saveField('progress', 50 * (($k + 1) / count($eventIds)));
                     }
-                    if ($jobId) {
-                        if ($k % 10 == 0) {
-                            $job->id = $jobId;
-                            $job->saveField('progress', 50 * (($k + 1) / count($eventIds)));
-                        }
-                    }
-                }
-                if (count($fails) > 0) {
-                    // there are fails, take the lowest fail
-                    $lastpulledid = min(array_keys($fails));
-                } else {
-                    // no fails, take the highest success
-                    $lastpulledid = count($successes) > 0 ? max($successes) : 0;
                 }
             }
         }
+		if (!empty($fails)) {
+			$this->Log = ClassRegistry::init('Log');
+			foreach ($fails as $eventid => $message) {
+				$this->Log->create();
+				$this->Log->save(array(
+					'org' => $user['Organisation']['name'],
+					'model' => 'Server',
+					'model_id' => $id,
+					'email' => $user['email'],
+					'action' => 'pull',
+					'user_id' => $user['id'],
+					'title' => 'Failed to pull event #' . $eventid . '.',
+					'change' => 'Reason:' . $message
+				));
+			}
+		}
         if ($jobId) {
             $job->saveField('message', 'Pulling proposals.');
         }
@@ -1891,58 +2063,10 @@ class Server extends AppModel
                 'recursive' => -1,
                 'conditions' => $conditions
         ));
-        $shadowAttribute = ClassRegistry::init('ShadowAttribute');
-        $shadowAttribute->recursive = -1;
+		$pulledProposals = array();
         if (!empty($events)) {
             $proposals = $eventModel->downloadProposalsFromServer($events, $server);
-            if (!empty($proposals)) {
-                $uuidEvents = array_flip($events);
-                foreach ($proposals as $k => &$proposal) {
-                    $proposal = $proposal['ShadowAttribute'];
-                    $oldsa = $shadowAttribute->findOldProposal($proposal);
-                    $proposal['event_id'] = $uuidEvents[$proposal['event_uuid']];
-                    if (!$oldsa || $oldsa['timestamp'] < $proposal['timestamp']) {
-                        if ($oldsa) {
-                            $shadowAttribute->delete($oldsa['id']);
-                        }
-                        if (!isset($pulledProposals[$proposal['event_id']])) {
-                            $pulledProposals[$proposal['event_id']] = 0;
-                        }
-                        $pulledProposals[$proposal['event_id']]++;
-                        if (isset($proposal['old_id'])) {
-                            $oldAttribute = $eventModel->Attribute->find('first', array('recursive' => -1, 'conditions' => array('uuid' => $proposal['uuid'])));
-                            if ($oldAttribute) {
-                                $proposal['old_id'] = $oldAttribute['Attribute']['id'];
-                            } else {
-                                $proposal['old_id'] = 0;
-                            }
-                        }
-                        // check if this is a proposal from an old MISP instance
-                        if (!isset($proposal['Org']) && isset($proposal['org']) && !empty($proposal['org'])) {
-                            $proposal['Org'] = $proposal['org'];
-                            $proposal['EventOrg'] = $proposal['event_org'];
-                        } elseif (!isset($proposal['Org']) && !isset($proposal['EventOrg'])) {
-                            continue;
-                        }
-                        $proposal['org_id'] = $this->Organisation->captureOrg($proposal['Org'], $user);
-                        $proposal['event_org_id'] = $this->Organisation->captureOrg($proposal['EventOrg'], $user);
-                        unset($proposal['Org']);
-                        unset($proposal['EventOrg']);
-                        $shadowAttribute->create();
-                        if (!isset($proposal['deleted']) || !$proposal['deleted']) {
-                            if ($shadowAttribute->save($proposal)) {
-                                $shadowAttribute->sendProposalAlertEmail($proposal['event_id']);
-                            }
-                        }
-                    }
-                    if ($jobId) {
-                        if ($k % 50 == 0) {
-                            $job->id =  $jobId;
-                            $job->saveField('progress', 50 * (($k + 1) / count($proposals)));
-                        }
-                    }
-                }
-            }
+            $pulledProposals = $this->__handlePulledProposals($proposals, $events, $job, $jobId, $eventModel, $user);
         }
         if ($jobId) {
             $job->saveField('progress', 100);
@@ -1959,12 +2083,9 @@ class Server extends AppModel
             'action' => 'pull',
             'user_id' => $user['id'],
             'title' => 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email,
-            'change' => count($successes) . ' events and ' . count($pulledProposals) . ' proposals pulled or updated. ' . count($fails) . ' events failed or didn\'t need an update.'
+            'change' => count($successes) . ' events and ' . array_sum($pulledProposals) . ' proposals pulled or updated. ' . count($fails) . ' events failed or didn\'t need an update.'
         ));
-        if (!isset($lastpulledid)) {
-            $lastpulledid = 0;
-        }
-        return array($successes, $fails, $pulledProposals, $lastpulledid);
+        return array($successes, $fails, $pulledProposals);
     }
 
     public function filterRuleToParameter($filter_rules)
@@ -2080,16 +2201,32 @@ class Server extends AppModel
         $this->Event = ClassRegistry::init('Event');
         $this->read(null, $id);
         $url = $this->data['Server']['url'];
-        $push = $this->checkVersionCompatibility($id, $user)['canPush'];
-        if (!isset($push) || !$push) {
-            if ($jobId) {
-                $job->id = $jobId;
-                $job->saveField('progress', 100);
-                $job->saveField('message', 'Push to server ' . $id . ' failed. Remote instance is outdated.');
-                $job->saveField('status', 4);
-            }
-            return false;
-        }
+		$push = $this->checkVersionCompatibility($id, $user);
+		if (isset($push['canPush']) && !$push['canPush']) {
+			$push = 'Remote instance is outdated.';
+		}
+		if (!is_array($push)) {
+			$message = sprintf('Push to server %s failed. Reason: %s', $id, $push);
+			$this->Log = ClassRegistry::init('Log');
+	        $this->Log->create();
+	        $this->Log->save(array(
+	                'org' => $user['Organisation']['name'],
+	                'model' => 'Server',
+	                'model_id' => $id,
+	                'email' => $user['email'],
+	                'action' => 'error',
+	                'user_id' => $user['id'],
+	                'title' => 'Failed: Push to ' . $url . ' initiated by ' . $user['email'],
+	                'change' => $message
+	        ));
+			if ($jobId) {
+				$job->id = $jobId;
+				$job->saveField('progress', 100);
+				$job->saveField('message', $message);
+				$job->saveField('status', 4);
+			}
+			return $push;
+		}
         if ("full" == $technique) {
             $eventid_conditions_key = 'Event.id >';
             $eventid_conditions_value = 0;
@@ -2223,6 +2360,7 @@ class Server extends AppModel
         } else {
             return array($successes, $fails);
         }
+		return true;
     }
 
     public function getEventIdsForPush($id, $HttpSocket, $eventIds, $user)
@@ -2561,6 +2699,30 @@ class Server extends AppModel
             return true;
         }
         return 'Invalid characters in the path.';
+    }
+
+    public function beforeHookBinExec($setting, $value)
+    {
+        return $this->testForBinExec($value);
+    }
+
+    public function testForBinExec($value)
+    {
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        if ($value === '') {
+            return true;
+        }
+        if (is_executable($value)) {
+            if (finfo_file($finfo, $value) == "application/x-executable" || finfo_file($finfo, $value) == "application/x-sharedlib") {
+                finfo_close($finfo);
+                return true;
+            } else {
+                return 'Binary file not executable. It is of type: ' . finfo_file($finfo, $value);
+            }
+        }
+        else {
+            return false;
+       }
     }
 
     public function testForWritableDir($value)
@@ -3241,34 +3403,34 @@ class Server extends AppModel
         try {
             $response = $HttpSocket->get($uri, '', $request);
         } catch (Exception $e) {
-            if (!isset($response) || $response->code != '200') {
-                $this->Log = ClassRegistry::init('Log');
-                $this->Log->create();
-                if (isset($response->code)) {
-                    $title = 'Error: Connection to the server has failed.' . isset($response->code) ? ' Returned response code: ' . $response->code : '';
-                } else {
-                    $title = 'Error: Connection to the server has failed. The returned exception\'s error message was: ' . $e->getMessage();
-                }
-                $this->Log->save(array(
-                        'org' => $user['Organisation']['name'],
-                        'model' => 'Server',
-                        'model_id' => $id,
-                        'email' => $user['email'],
-                        'action' => 'error',
-                        'user_id' => $user['id'],
-                        'title' => $title,
-                ));
-            }
+			$error = $e->getMessage;
         }
-        if (!isset($response) || $response->code != '200') {
-            return 1;
-        }
+		if (!isset($response) || $response->code != '200') {
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			if (isset($response->code)) {
+				$title = 'Error: Connection to the server has failed.' . (isset($response->code) ? ' Returned response code: ' . $response->code : '');
+			} else {
+				$title = 'Error: Connection to the server has failed. The returned exception\'s error message was: ' . $e->getMessage();
+			}
+			$this->Log->save(array(
+					'org' => $user['Organisation']['name'],
+					'model' => 'Server',
+					'model_id' => $id,
+					'email' => $user['email'],
+					'action' => 'error',
+					'user_id' => $user['id'],
+					'title' => $title
+			));
+			return $title;
+		}
         $remoteVersion = json_decode($response->body, true);
         $canPush = isset($remoteVersion['perm_sync']) ? $remoteVersion['perm_sync'] : false;
         $remoteVersion = explode('.', $remoteVersion['version']);
         if (!isset($remoteVersion[0])) {
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
+			$message = __('Error: Server didn\'t send the expected response. This may be because the remote server version is outdated.');
             $this->Log->save(array(
                     'org' => $user['Organisation']['name'],
                     'model' => 'Server',
@@ -3276,9 +3438,9 @@ class Server extends AppModel
                     'email' => $user['email'],
                     'action' => 'error',
                     'user_id' => $user['id'],
-                    'title' => 'Error: Server didn\'t send the expected response. This may be because the remote server version is outdated.',
+                    'title' => $message,
             ));
-            return 2;
+            return $message;
         }
         $response = false;
         $success = false;
@@ -3394,6 +3556,7 @@ class Server extends AppModel
     {
         $writeableFiles = array(
                 APP . 'Config' . DS . 'config.php' => 0,
+                ROOT .  DS . '.git' . DS . 'ORIG_HEAD' => 0,
         );
         foreach ($writeableFiles as $path => &$error) {
             if (!file_exists($path)) {
@@ -3425,9 +3588,9 @@ class Server extends AppModel
     public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion, &$maecVersion, &$pymispVersion)
     {
         $result = array();
-        $expected = array('stix' => '1.2.0.6', 'cybox' => '2.1.0.17', 'mixbox' => '1.0.3', 'maec' => '4.1.0.13', 'pymisp' => '>2.4.93');
+        $expected = array('stix' => '1.2.0.6', 'cybox' => '2.1.0.18.dev0', 'mixbox' => '1.0.3', 'maec' => '4.1.0.14', 'pymisp' => '>2.4.93');
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
-        $scriptResult = shell_exec('python3 ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
+        $scriptResult = shell_exec($this->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
         $scriptResult = json_decode($scriptResult, true);
         if ($scriptResult == null) {
             return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']), 'mixbox' => array('expected' => $expected['mixbox']), 'maec' => array('expected' => $expected['maec']), 'pymisp' => array('expected' => $expected['pymisp']));
@@ -3633,6 +3796,10 @@ class Server extends AppModel
             }
         }
         $worker_array['proc_accessible'] = $procAccessible;
+		$worker_array['controls'] = 1;
+		if (Configure::check('MISP.manage_workers')) {
+			$worker_array['controls'] = Configure::read('MISP.manage_workers');
+		}
         return $worker_array;
     }
 
@@ -3974,11 +4141,6 @@ class Server extends AppModel
         exec($command2, $output);
         $final .= implode("\n", $output);
         return $final;
-    }
-
-    public function getDefaultAttachments_dir()
-    {
-        return APP . 'files';
     }
 
     public function fetchServer($id)

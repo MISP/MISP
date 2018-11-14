@@ -105,7 +105,7 @@ class ObjectsController extends AppController
         $eventFindParams = array(
             'recursive' => -1,
             'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id'),
-            'conditions' => array('Event.id' => $eventId)
+            'conditions' => array()
         );
 
         if (!empty($templateId) && Validation::uuid($templateId)) {
@@ -221,7 +221,7 @@ class ObjectsController extends AppController
                 }
                 if ($error === true) {
                     $result = $this->MispObject->saveObject($object, $eventId, $template, $this->Auth->user(), $errorBehaviour = 'halt');
-                    if ($result === true) {
+                    if (is_numeric($result)) {
                         $this->MispObject->Event->unpublishEvent($eventId);
                     }
                 } else {

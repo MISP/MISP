@@ -103,10 +103,26 @@
         else $editable = '';
       ?>
       <div id = "Attribute_<?php echo $object['id']; ?>_value_solid" class="inline-field-solid" <?php echo $editable; ?>>
-        <span <?php if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) echo 'class="eventViewAttributeHover" data-object-type="Attribute" data-object-id="' . h($object['id']) . '"'?>>
-          <?php
-            echo $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass));
-          ?>
+        <span>
+        <?php
+			$spanExtra = '';
+			$popupButton = '';
+			if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) {
+				$commonDataFields = sprintf(
+					'data-object-type="%s" data-object-id="%s"',
+					"Attribute",
+					h($object['id'])
+				);
+				$spanExtra = sprintf(' class="eventViewAttributeHover" %s', $commonDataFields);
+				$popupButton = sprintf('<i class="fa fa-search-plus useCursorPointer eventViewAttributePopup" %s></i>', $commonDataFields);
+			}
+			echo sprintf(
+				'<span%s style="white-space: pre-wrap;">%s</span> %s',
+				$spanExtra,
+				$this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass)),
+				$popupButton
+			);
+        ?>
         </span>
         <?php
           if (isset($object['warnings'])) {
@@ -128,6 +144,19 @@
         <?php echo $this->element('ajaxAttributeTags', array('attributeId' => $object['id'], 'attributeTags' => $object['AttributeTag'], 'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id']) )); ?>
       </div>
     </td>
+	<?php
+		if (!empty($includeRelatedTags)) {
+			$element = '';
+			if (!empty($object['RelatedTags'])) {
+				$element = $this->element('ajaxAttributeTags', array('attributeId' => $object['id'], 'attributeTags' => $object['RelatedTags'], 'tagAccess' => false));
+			}
+			echo sprintf(
+				'<td class="shortish"><div %s>%s</div></td>',
+				'class="attributeRelatedTagContainer" id="#Attribute_' . h($object['id']) . 'Related_tr .attributeTagContainer"',
+				$element
+			);
+		}
+	?>
     <td class="short">
       <?php
         echo $this->element('galaxyQuickViewMini', array(

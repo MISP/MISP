@@ -110,10 +110,12 @@
 
             // value rule - search in the object's atribute value
             $valueMatch = true;
-            foreach ($obj['Attribute'] as $attr) {
-                $valueMatch = $this->__satisfy_val_filtering($attr);
-                if (!$valueMatch) {
-                    return false;
+            if (isset($obj['Attribute'])) {
+                foreach ($obj['Attribute'] as $attr) {
+                    $valueMatch = $this->__satisfy_val_filtering($attr);
+                    if (!$valueMatch) {
+                        return false;
+                    }
                 }
             }
             return true;
@@ -266,19 +268,23 @@
                     'id' => $obj['id'],
                     'uuid' => $obj['uuid'],
                     'type' => $obj['name'],
-                    'Attribute' => $obj['Attribute'],
                     'label' => '',
+                    'Attribute' => [],
                     'node_type' => 'object',
                     'meta-category' => $obj['meta-category'],
                     'template_uuid' => $obj['template_uuid'],
                     'event_id' => $obj['event_id'],
                 );
-                array_push($this->__json['items'], $toPush);
+                if (isset($obj['Attribute'])) {
+                    $toPush['Attribute'] = $obj['Attribute'];
 
-                // Record existing object_relation
-                foreach ($obj['Attribute'] as $attr) {
-                    $this->__json['existing_object_relation'][$attr['object_relation']] = 0; // set-alike
+                    // Record existing object_relation
+                    foreach ($obj['Attribute'] as $attr) {
+                        $this->__json['existing_object_relation'][$attr['object_relation']] = 0; // set-alike
+                    }
                 }
+
+                array_push($this->__json['items'], $toPush);
 
                 foreach ($obj['ObjectReference'] as $rel) {
                     $toPush = array(

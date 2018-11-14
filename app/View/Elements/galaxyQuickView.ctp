@@ -1,4 +1,4 @@
-<?php
+	<?php
     $fixed_fields = array('synonyms', 'description', 'meta', 'authors', 'source');
     foreach ($data as $galaxy):
 ?>
@@ -11,8 +11,10 @@
         foreach ($galaxy['GalaxyCluster'] as $cluster):
     ?>
             <div style="margin-left:8px;">
-                <span class="bold blue expandContainer useCursorPointer">
-                    <span class="collapse-status" style="font-size: 16px;">+</span>
+                <span class="bold blue expandContainer">
+					<span class="collapse-status-container useCursorPointer">
+                    	<span class="collapse-status" style="font-size: 16px;">+</span>
+					</span>
                     <span><?php echo h($cluster['value']); ?></span>
                     <a href="<?php echo $baseurl; ?>/galaxy_clusters/view/<?php echo h($cluster['id']); ?>" class="icon-search" title="<?php echo __('View details about this cluster');?>"></a>&nbsp;
                     <a href="<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($cluster['tag_id']); ?>" class="icon-th-list" title="<?php echo __('View all events containing this cluster.');?>"></a>
@@ -100,12 +102,12 @@
 
 <script type="text/javascript">
 $(document).ready(function () {
-    $('.expandContainer').click(function() {
-        $(this).children('.galaxy_data').toggle();
-        if ($(this).children('.collapse-status').html() == '+') {
-            $(this).children('.collapse-status').val('-');
+    $('.collapse-status-container').click(function() {
+        $(this).parent().children('.galaxy_data').toggle();
+        if ($(this).parent().children('.collapse-status-container').children('.collapse-status').html() == '+') {
+            $(this).parent().children('.collapse-status-container').children('.collapse-status').html('-');
         } else {
-            $(this).children('.collapse-status').val('+');
+            $(this).parent().children('.collapse-status-container').children('.collapse-status').html('+');
         }
     });
     $('.delete-cluster').click(function() {

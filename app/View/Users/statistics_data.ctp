@@ -29,8 +29,14 @@
         <dd><?php echo h($stats['proposal_count']); ?>&nbsp;</dd>
         <dt><?php echo __('Users'); ?></dt>
         <dd><?php echo h($stats['user_count']); ?>&nbsp;</dd>
+		<dt><?php echo __('Users with PGP keys'); ?></dt>
+		<dd><?php echo h($stats['user_count_pgp']) . ' (' . (round(100*($stats['user_count_pgp'] / $stats['user_count']) ,1)) . '%)'; ?>&nbsp;</dd>
         <dt><?php echo __('Organisations'); ?></dt>
         <dd><?php echo h($stats['org_count']); ?>&nbsp;</dd>
+		<dt><?php echo __('Local Organisations'); ?></dt>
+        <dd><?php echo h($stats['local_org_count']); ?>&nbsp;</dd>
+		<dt><?php echo __('Average Users / Org'); ?></dt>
+        <dd><?php echo h($stats['average_user_per_org']); ?>&nbsp;</dd>
         <dt><?php echo __('Discussion threads'); ?></dt>
         <dd><?php echo h($stats['thread_count']);
             if ($stats['thread_count_month']) echo ' <span style="color:green">(+' . h($stats['thread_count_month']) . ')</span>&nbsp;';

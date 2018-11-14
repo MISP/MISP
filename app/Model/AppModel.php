@@ -38,6 +38,7 @@ class AppModel extends Model
     private $__profiler = array();
 
     public $elasticSearchClient = false;
+    public $s3Client = false;
 
     public function __construct($id = false, $table = null, $ds = null)
     {
@@ -68,7 +69,8 @@ class AppModel extends Model
     public $db_changes = array(
         1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
         7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
-        13 => false, 14 => false, 15 => false, 16 => false, 17 => false, 18 => false
+        13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false,
+        21 => false, 22 => false, 23 => false, 24 => false, 25 => false
     );
 
     public function afterSave($created, $options = array())
@@ -161,6 +163,9 @@ class AppModel extends Model
             case 12:
                 $this->__forceSettings();
                 break;
+			case 23:
+				$this->__bumpReferences();
+				break;
             default:
                 $this->updateDatabase($command);
                 break;
@@ -256,7 +261,7 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `users` ADD `external_auth_required` tinyint(1) NOT NULL DEFAULT 0;";
                 $sqlArray[] = 'ALTER TABLE `users` ADD `external_auth_key` text COLLATE utf8_bin;';
                 break;
-            case '24betaupdates':
+            case 'x24betaupdates':
                 $sqlArray = array();
                 $sqlArray[] = "ALTER TABLE `shadow_attributes` ADD  `proposal_to_delete` tinyint(1) NOT NULL DEFAULT 0;";
 
@@ -1023,63 +1028,38 @@ class AppModel extends Model
 					INDEX `timestamp` (`timestamp`)
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 break;
-            case '16':
+            case 18:
                 $sqlArray[] = 'ALTER TABLE `taxonomy_predicates` ADD COLUMN description text CHARACTER SET UTF8 collate utf8_bin;';
                 $sqlArray[] = 'ALTER TABLE `taxonomy_entries` ADD COLUMN description text CHARACTER SET UTF8 collate utf8_bin;';
                 $sqlArray[] = 'ALTER TABLE `taxonomy_predicates` ADD COLUMN exclusive tinyint(1) DEFAULT 0;';
                 break;
-            case '17':
+            case 19:
                 $sqlArray[] = 'ALTER TABLE `taxonomies` ADD COLUMN exclusive tinyint(1) DEFAULT 0;';
                 break;
-            case 18:
-                $sqlArray[] =
-                    "ALTER TABLE `attributes`
-						DROP INDEX uuid,
-						DROP INDEX event_id,
-						DROP INDEX sharing_group_id,
-						DROP INDEX type,
-						DROP INDEX category,
-						DROP INDEX value1,
-						DROP INDEX value2,
-						DROP INDEX object_id,
-						DROP INDEX object_relation,
-						DROP INDEX deleted
-					";
-                break;
-            case 19:
-                $sqlArray[] =
-                    "ALTER TABLE `attributes`
-						ADD COLUMN `first_seen` DATETIME(6) NULL DEFAULT NULL,
-						ADD COLUMN `last_seen` DATETIME(6) NULL DEFAULT NULL,
-						MODIFY comment TEXT COLLATE utf8_unicode_ci
-					;";
-                break;
             case 20:
-                $sqlArray[] = "
-					ALTER TABLE `attributes`
-						ADD INDEX `uuid` (`uuid`),
-						ADD INDEX `event_id` (`event_id`),
-						ADD INDEX `sharing_group_id` (`sharing_group_id`),
-						ADD INDEX `type` (`type`),
-						ADD INDEX `category` (`category`),
-						ADD INDEX `value1` (`value1`(255)),
-						ADD INDEX `value2` (`value2`(255)),
-						ADD INDEX `object_id` (`object_id`),
-						ADD INDEX `object_relation` (`object_relation`),
-						ADD INDEX `deleted` (`deleted`),
-						ADD INDEX `first_seen` (`first_seen`),
-						ADD INDEX `last_seen` (`last_seen`),
-						ADD INDEX `comment` (`comment`(767))
-				";
-                $sqlArray[] = "
-					ALTER TABLE `objects`
-						ADD `first_seen` DATETIME(6) NULL DEFAULT NULL,
-						ADD `last_seen` DATETIME(6) NULL DEFAULT NULL
-				;";
-                $indexArray[] = array('objects', 'first_seen');
-                $indexArray[] = array('objects', 'last_seen');
-                $sqlArray[] = "ALTER TABLE `roles` ADD `perm_publish_zmq` tinyint(1) NOT NULL DEFAULT 0;";
-		break;
+                $sqlArray[] = "ALTER TABLE `servers` ADD `skip_proxy` tinyint(1) NOT NULL DEFAULT 0;";
+                break;
+            case 21:
+                $sqlArray[] = 'ALTER TABLE `tags` ADD COLUMN numerical_value int(11) NULL;';
+                $sqlArray[] = 'ALTER TABLE `taxonomy_predicates` ADD COLUMN numerical_value int(11) NULL;';
+                $sqlArray[] = 'ALTER TABLE `taxonomy_entries` ADD COLUMN numerical_value int(11) NULL;';
+                break;
+			case 22:
+				$sqlArray[] = 'ALTER TABLE `object_references` MODIFY `deleted` tinyint(1) NOT NULL default 0;';
+				break;
+			case 24:
+				$this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+				if (empty($this->GalaxyCluster->schema('collection_uuid'))) {
+					$sqlArray[] = 'ALTER TABLE `galaxy_clusters` CHANGE `uuid` `collection_uuid` varchar(255) COLLATE utf8_bin NOT NULL;';
+					$sqlArray[] = 'ALTER TABLE `galaxy_clusters` ADD COLUMN `uuid` varchar(255) COLLATE utf8_bin NOT NULL default \'\';';
+				}
+				break;
+			case 25:
+				$this->__dropIndex('galaxy_clusters', 'uuid');
+				$this->__addIndex('galaxy_clusters', 'uuid');
+				$this->__addIndex('galaxy_clusters', 'collection_uuid');
+				break;
+>>>>>>> 2.4
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1243,7 +1223,17 @@ class AppModel extends Model
         return $version_array;
     }
 
-    public function validateAuthkey($value) {
+    public function getPythonVersion()
+    {
+        if (!empty(Configure::read('MISP.python_bin'))) {
+            return Configure::read('MISP.python_bin');
+        } else {
+            return 'python3';
+        }
+    }
+
+    public function validateAuthkey($value)
+    {
         if (empty($value['authkey'])) {
             return 'Empty authkey found. Make sure you set the 40 character long authkey.';
         }
@@ -1508,6 +1498,29 @@ class AppModel extends Model
         $this->elasticSearchClient = $client;
     }
 
+    public function getS3Client()
+    {
+        if (!$this->s3Client) {
+            $this->s3Client = $this->loadS3Client();
+        }
+
+        return $this->s3Client;
+    }
+
+    public function loadS3Client()
+    {
+        App::uses('AWSS3Client', 'Tools');
+        $client = new AWSS3Client();
+        $client->initTool();
+        return $client;
+    }
+
+    public function attachmentDirIsS3()
+    {
+        // Naive way to detect if we're working in S3
+        return substr(Configure::read('MISP.attachments_dir'), 0, 2) === "s3";
+    }
+
     public function checkVersionRequirements($versionString, $minVersion)
     {
         $version = explode('.', $versionString);
@@ -1685,4 +1698,198 @@ class AppModel extends Model
         }
         return $request;
     }
+
+    // take filters in the {"OR" => [foo], "NOT" => [bar]} format along with conditions and set the conditions
+    public function generic_add_filter($conditions, &$filter, $keys)
+    {
+        $operator_composition = array(
+            'NOT' => 'AND',
+            'OR' => 'OR',
+            'AND' => 'AND'
+        );
+        if (!is_array($keys)) {
+            $keys = array($keys);
+        }
+        if (!isset($filter['OR']) && !isset($filter['AND']) && !isset($filter['NOT'])) {
+            return $conditions;
+        }
+        foreach ($filter as $operator => $filters) {
+            $temp = array();
+			if (!is_array($filters)) {
+				$filters = array($filters);
+			}
+            foreach ($filters as $f) {
+				if ($f === -1) {
+					foreach ($keys as $key) {
+						$temp['OR'][$key][] = -1;
+					}
+					continue;
+				}
+                // split the filter params into two lists, one for substring searches one for exact ones
+                if (is_string($f) && ($f[strlen($f) - 1] === '%' || $f[0] === '%')) {
+                    foreach ($keys as $key) {
+                        if ($operator === 'NOT') {
+                            $temp[] = array($key . ' NOT LIKE' => $f);
+                        } else {
+                            $temp[] = array($key . ' LIKE' => $f);
+                        }
+                    }
+                } else {
+                    foreach ($keys as $key) {
+                        if ($operator === 'NOT') {
+                            $temp[$key . ' !='][] = $f;
+                        } else {
+                            $temp['OR'][$key][] = $f;
+                        }
+                    }
+                }
+            }
+        	$conditions['AND'][] = array($operator_composition[$operator] => $temp);
+            if ($operator !== 'NOT') {
+                unset($filter[$operator]);
+            }
+        }
+        return $conditions;
+    }
+
+    /*
+     * Get filters in one of the following formats:
+     * [foo, bar]
+     * ["OR" => [foo, bar], "NOT" => [baz]]
+     * "foo"
+     * "foo&&bar&&!baz"
+     * and convert it into the same format ["OR" => [foo, bar], "NOT" => [baz]]
+     */
+    public function convert_filters($filter)
+    {
+        if (!is_array($filter)) {
+            $temp = explode('&&', $filter);
+            $filter = array();
+            foreach ($temp as $f) {
+                if ($f[0] === '!') {
+                    $filter['NOT'][] = $f;
+                } else {
+                    $filter['OR'][] = $f;
+                }
+            }
+            return $filter;
+        }
+        if (!isset($filter['OR']) && !isset($filter['NOT']) && !isset($filter['AND'])) {
+            $temp = array();
+            foreach ($filter as $param) {
+                if ($param[0] === '!') {
+                    $temp['NOT'][] = substr($param, 1);
+                } else {
+                    $temp['OR'][] = $param;
+                }
+            }
+            $filter = $temp;
+        }
+        return $filter;
+    }
+
+	public function convert_to_memory_limit_to_mb($val) {
+	    $val = trim($val);
+		if ($val == -1) {
+			// default to 8GB if no limit is set
+			return 8 * 1024;
+		}
+		$unit = $val[strlen($val)-1];
+		if (is_numeric($unit)) {
+			$unit = 'b';
+		} else {
+			$val = intval($val);
+		}
+	    $unit = strtolower($unit);
+	    switch($unit) {
+	        case 'g':
+	            $val *= 1024;
+	        case 'm':
+	            $val *= 1024;
+	        case 'k':
+	            $val *= 1024;
+	    }
+		return $val / (1024 * 1024);
+	}
+
+	public function getDefaultAttachments_dir()
+	{
+		return APP . 'files';
+	}
+
+	public function getDefaultTmp_dir()
+	{
+		return sys_get_temp_dir();
+	}
+
+	private function __bumpReferences()
+	{
+		$this->Event = ClassRegistry::init('Event');
+		$this->AdminSetting = ClassRegistry::init('AdminSetting');
+		$existingSetting = $this->AdminSetting->find('first', array(
+			'conditions' => array('AdminSetting.setting' => 'update_23')
+		));
+		if (empty($existingSetting)) {
+			$this->AdminSetting->create();
+			$data = array(
+				'setting' => 'update_23',
+				'value' => 1
+			);
+			$this->AdminSetting->save($data);
+			$references = $this->Event->Object->ObjectReference->find('list', array(
+				'recursive' => -1,
+				'fields' => array('ObjectReference.event_id', 'ObjectReference.event_id'),
+				'group' => array('ObjectReference.event_id')
+			));
+			$event_ids = array();
+			$object_ids = array();
+			foreach ($references as $reference) {
+				$event = $this->Event->find('first', array(
+					'conditions' => array(
+						'Event.id' => $reference,
+						'Event.locked' => 0
+					),
+					'recursive' => -1,
+					'fields' => array('Event.id', 'Event.locked')
+				));
+				if (!empty($event)) {
+					$event_ids[] = $event['Event']['id'];
+					$event_references = $this->Event->Object->ObjectReference->find('list', array(
+						'conditions' => array('ObjectReference.event_id' => $reference),
+						'recursive' => -1,
+						'fields' => array('ObjectReference.object_id', 'ObjectReference.object_id')
+					));
+					$object_ids = array_merge($object_ids, array_values($event_references));
+				}
+			}
+			if (!empty($object_ids)) {
+				$this->Event->Object->updateAll(
+					array(
+					'Object.timestamp' => 'Object.timestamp + 1'
+					),
+					array('Object.id' => $object_ids)
+				);
+				$this->Event->updateAll(
+					array(
+					'Event.timestamp' => 'Event.timestamp + 1'
+					),
+					array('Event.id' => $event_ids)
+				);
+			}
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			$entry = array(
+					'org' => 'SYSTEM',
+					'model' => 'Server',
+					'model_id' => 0,
+					'email' => 'SYSTEM',
+					'action' => 'update_database',
+					'user_id' => 0,
+					'title' => 'Bumped the timestamps of locked events containing object references.',
+					'change' => sprintf('Event timestamps updated: %s; Object timestamps updated: %s', count($event_ids), count($object_ids))
+			);
+			$this->Log->save($entry);
+		}
+		return true;
+	}
 }

@@ -48,6 +48,7 @@ class ACLComponent extends Component
                     'edit' => array('perm_add'),
                     'editField' => array('perm_add'),
                     'editSelected' => array('perm_add'),
+					'exportSearch' => array('*'),
                     'fetchEditForm' => array('perm_add'),
                     'fetchViewValue' => array('*'),
                     'generateCorrelation' => array(),
@@ -186,6 +187,7 @@ class ACLComponent extends Component
             ),
             'galaxyClusters' => array(
                 'attachToEvent' => array('perm_tagger'),
+				'delete' => array('perm_site_admin'),
                 'detach' => array('perm_tagger'),
                 'index' => array('*'),
                 'view' => array('*')
@@ -316,6 +318,7 @@ class ACLComponent extends Component
                     'edit' => array(),
                     'fetchServersForSG' => array('*'),
                     'filterEventIndex' => array(),
+					'getApiInfo' => array('*'),
                     'getGit' => array(),
                     'getInstanceUUID' => array('perm_sync'),
                     'getPyMISPVersion' => array('*'),
@@ -373,12 +376,14 @@ class ACLComponent extends Component
             ),
             'sightings' => array(
                     'add' => array('perm_sighting'),
+                    'restSearch' => array('perm_sighting'),
                     'advanced' => array('perm_sighting'),
                     'delete' => array('perm_sighting'),
                     'index' => array('*'),
                     'listSightings' => array('perm_sighting'),
                     'quickDelete' => array('perm_sighting'),
-                    'viewSightings' => array('perm_sighting')
+                    'viewSightings' => array('perm_sighting'),
+                    'quickAdd' => array('perm_sighting')
             ),
             'tags' => array(
                     'add' => array('perm_tag_editor'),
@@ -473,6 +478,7 @@ class ACLComponent extends Component
                     'view' => array('*'),
             ),
             'warninglists' => array(
+					'checkValue' => array('perm_auth'),
                     'delete' => array(),
                     'enableWarninglist' => array(),
                     'getToggleField' => array(),
@@ -501,7 +507,7 @@ class ACLComponent extends Component
     // If the requested action has an AND-ed list, iterate through the list. If any of the permissions for the user are not set, turn the check to false. Otherwise return true.
     // If the requested action has a permission, check if the user's role has it flagged. If yes, return true
     // If we fall through all of the checks, return an exception.
-    public function checkAccess($user, $controller, $action)
+    public function checkAccess($user, $controller, $action, $soft = false)
     {
         $controller = lcfirst(Inflector::camelize($controller));
         $action = strtolower($action);
@@ -513,7 +519,7 @@ class ACLComponent extends Component
             return true;
         }
         if (!isset($aclList[$controller])) {
-            $this->__error(404, 'Invalid controller.');
+            return $this->__error(404, 'Invalid controller.', $soft);
         }
         if ($user['Role']['perm_site_admin']) {
             return true;
@@ -542,11 +548,14 @@ class ACLComponent extends Component
                 return true;
             }
         }
-        $this->__error(403, 'You do not have permission to use this functionality.');
+        return $this->__error(403, 'You do not have permission to use this functionality.', $soft);
     }
 
-    private function __error($code, $message)
+    private function __error($code, $message, $soft = false)
     {
+		if ($soft) {
+			return $code;
+		}
         switch ($code) {
             case 404:
                 throw new NotFoundException($message);
@@ -574,7 +583,7 @@ class ACLComponent extends Component
             $fileContents = preg_replace('/\/\*[^\*]+?\*\//', '', $fileContents);
             preg_match_all($functionFinder, $fileContents, $functionArray);
             foreach ($functionArray[1] as $function) {
-                if (substr($function, 0, 1) !== '_' && $function !== 'beforeFilter') {
+                if (substr($function, 0, 1) !== '_' && $function !== 'beforeFilter' && $function !== 'afterFilter') {
                     $results[$controllerName][] = $function;
                 }
             }
