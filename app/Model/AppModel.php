@@ -1059,7 +1059,6 @@ class AppModel extends Model
 				$this->__addIndex('galaxy_clusters', 'uuid');
 				$this->__addIndex('galaxy_clusters', 'collection_uuid');
 				break;
->>>>>>> 2.4
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
