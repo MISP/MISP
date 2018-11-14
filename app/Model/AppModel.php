@@ -83,10 +83,6 @@ class AppModel extends Model
             'exitOnError' => true,
             'url' => '/servers/updateDatabase/seenOnAttribute/'
         ),
-        array(
-            'title' => 'An example of update',
-            'description' => 'desc of update',
-        ),
     );
 
     public function afterSave($created, $options = array())

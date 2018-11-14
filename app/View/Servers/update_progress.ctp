@@ -57,7 +57,7 @@ if ($updateProgress['update_prog_tot'] !== 0 ) {
                                     <a style="cursor: pointer; maring-bottom: 2px;" onclick="toggleVisiblity(<?php echo $i;?>)">
                                         <span class="foldable fa fa-terminal"></span>
                                         <?php echo __('Update ') . ($i+1); ?>
-                                        <span class="inline-term"><?php echo h(substr($cmd, 0, 30));?></span>
+                                        <span class="inline-term"><?php echo h(substr($cmd, 0, 60)) . (strlen($cmd) > 60 ? '[...]' : '' );?></span>
                                     </a>
                                     <div data-terminalid="<?php echo $i;?>" style="display: none; margin-top: 5px;">
                                         <div id="termcmd-<?php echo $i;?>" class="div-terminal">
