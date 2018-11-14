@@ -75,13 +75,13 @@ class AppModel extends Model
 
     public $advanced_updates_description = array(
         array(
-            'id' => 'seenOnAttribute',
+            'id' => 'seenOnAttributeAndObject',
             'title' => 'First seen/Last seen Attribute table',
             'description' => 'Update the Attribute table to support first_seen and last_seen feature, with a microsecond resolution.',
             'liveOff' => true,
             'recommendBackup' => true,
             'exitOnError' => true,
-            'url' => '/servers/updateDatabase/seenOnAttribute/'
+            'url' => '/servers/updateDatabase/seenOnAttributeAndObject/'
         ),
     );
 
@@ -1087,7 +1087,7 @@ class AppModel extends Model
                 $sqlArray[] = 'ALTER TABLE `threads` DROP `org`;';
                 $sqlArray[] = 'ALTER TABLE `users` DROP `org`;';
                 break;
-            case 'seenOnAttribute':
+            case 'seenOnAttributeAndObject':
                 $sqlArray[] =
                     "ALTER TABLE `attributes`
                         DROP INDEX uuid,

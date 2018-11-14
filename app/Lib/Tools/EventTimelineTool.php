@@ -10,10 +10,11 @@
         private $__related_events = array();
         private $__related_attributes = array();
 
-        public function construct($eventModel, $user, $filterRules, $extended_view=0)
+        public function construct($eventModel, $user, $seenSupported, $filterRules, $extended_view=0)
         {
             $this->__eventModel = $eventModel;
             $this->__user = $user;
+            $this->__seenSupported = $seenSupported;
             $this->__filterRules = $filterRules;
             $this->__json = array();
             $this->__extended_view = $extended_view;
@@ -46,8 +47,12 @@
                 $event['Object'] = array();
             }
 
-            if (!empty($fullevent[0]['Attribute'])) {
-                $event['Attribute'] = $fullevent[0]['Attribute'];
+            if ($this->__seenSupported) {
+                if (!empty($fullevent[0]['Attribute'])) {
+                    $event['Attribute'] = $fullevent[0]['Attribute'];
+                } else {
+                    $event['Attribute'] = array();
+                }
             } else {
                 $event['Attribute'] = array();
             }
@@ -100,11 +105,14 @@
                     'meta-category' => $obj['meta-category'],
                     'template_uuid' => $obj['template_uuid'],
                     'event_id' => $obj['event_id'],
-                    'timestamp' => $attr['timestamp'],
-                    'first_seen' => $obj['first_seen'],
-                    'last_seen' => $obj['last_seen'],
+                    'timestamp' => $obj['timestamp'],
                     'Attribute' => array(),
                 );
+
+                if ($this->__seenSupported) {
+                    $toPush_obj['first_seen'] = $obj['first_seen'];
+                    $toPush_obj['last_seen'] = $obj['last_seen'];
+                }
 
                 foreach ($obj['Attribute'] as $obj_attr) {
                     if ($obj_attr['object_relation'] == 'first-seen') {
@@ -121,7 +129,7 @@
                         'contentType' => $obj_attr['object_relation'],
                         'event_id' => $obj_attr['event_id'],
                         'group' => 'object_attribute',
-                        'timestamp' => $attr['timestamp'],
+                        'timestamp' => $obj_attr['timestamp'],
                     );
                     array_push($toPush_obj['Attribute'], $toPush_attr);
                 }

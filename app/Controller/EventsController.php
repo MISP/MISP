@@ -4329,6 +4329,10 @@ class EventsController extends AppController
         if (!in_array($type, $validTools)) {
             throw new MethodNotAllowedException('Invalid type.');
         }
+
+        $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        $seenSupported = $this->AdminSetting->getSetting('seenOnAttributeAndObject');
+
         App::uses('EventTimelineTool', 'Tools');
         $grapher = new EventTimelineTool();
         $data = $this->request->is('post') ? $this->request->data : array();
@@ -4336,7 +4340,7 @@ class EventsController extends AppController
 
         $extended = isset($this->params['named']['extended']) ? 1 : 0;
 
-        $grapher->construct($this->Event, $this->Auth->user(), $dataFiltering, $extended);
+        $grapher->construct($this->Event, $this->Auth->user(), $seenSupported, $dataFiltering, $extended);
         $json = $grapher->get_timeline($id);
 
         array_walk_recursive($json, function (&$item, $key) {
