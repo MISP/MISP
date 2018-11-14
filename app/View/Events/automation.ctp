@@ -1,7 +1,8 @@
 <div class="event index">
     <h2><?php echo __('Automation');?></h2>
     <p><?php echo __('Automation functionality is designed to automatically feed other tools and systems with the data in your MISP repository.
-    To to make this functionality available for automated tools an authentication key is used.');?><br/>
+    To to make this functionality available for automated tools an authentication key is used.');?>
+    <br />You can use the <a href="<?php echo $baseurl;?>/servers/rest">ReST client</a> to test your API queries against your MISP and export the resulting tuned queries as curl or python scripts.
     <strong><?php echo __('Make sure you keep your API key secret as it gives access to the all of the data that you normally have access to in MISP.');?></strong>
 	To view the old MISP automation page, click <a href="<?php echo $baseurl; ?>/events/automation/1">here</a>.
 	</p>

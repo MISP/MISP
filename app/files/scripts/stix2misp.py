@@ -650,7 +650,7 @@ class StixParser():
         return tags
 
     def parse_TLP_marking(self, marking):
-        return 'tlp:{}'.format(marking.color.lower())
+        return ['tlp:{}'.format(marking.color.lower())]
 
     ################################################################################
     ##          FUNCTIONS HANDLING PARSED DATA, USED BY BOTH SUBCLASSES.          ##

@@ -59,7 +59,9 @@
         ?>
     </div>
     <div>
-        <?php echo $this->fetch('content'); ?>
+        <?php
+			echo $this->fetch('content');
+		?>
     </div>
     <?php
     echo $this->element('footer');
@@ -104,12 +106,17 @@
                 tabIsActive = true;
             });
         <?php
-            if (!Configure::read('MISP.disable_auto_logout')):  
+            if (!Configure::read('MISP.disable_auto_logout')):
         ?>
                 checkIfLoggedIn();
         <?php
             endif;
         ?>
+		if ($('.alert').text().indexOf("$flashErrorMessage") >= 0) {
+			//$('#flashErrorMessage').html()
+			var flashMessageLink = '<span class="useCursorPointer underline bold" onClick="flashErrorPopover();">here</span>';
+			$('.alert').html(($('.alert').html().replace("$flashErrorMessage", flashMessageLink)));
+		}
         });
     </script>
 </body>

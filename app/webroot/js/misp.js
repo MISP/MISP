@@ -298,14 +298,14 @@ function acceptObject(type, id, event) {
 	});
 }
 
-function toggleCorrelation(id) {
+function toggleCorrelation(id, skip_reload = false) {
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
 		},
 		data: $('#PromptForm').serialize(),
 		success:function (data, textStatus) {
-			handleGenericAjaxResponse(data);
+			handleGenericAjaxResponse(data, skip_reload);
 			$("#correlation_toggle_" + id).prop('checked', !$("#correlation_toggle_" + id).is(':checked'));
 		},
 		complete:function() {
@@ -330,6 +330,10 @@ function updateIndex(id, context, newPage) {
 	if (typeof newPage !== 'undefined') page = newPage;
 	var url, div;
 	if (context == 'event') {
+		if (typeof currentUri == 'undefined') {
+			location.reload();
+			return true;
+		}
 		url = currentUri;
 		div = "#attributes_div";
 	}
@@ -493,7 +497,11 @@ function addSighting(type, attribute_id, event_id, page) {
 				$('.sightingsCounter').each(function( counter ) {
 					$(this).html(parseInt($(this).html()) + 1);
 				});
-				updateIndex(event_id, 'event');
+				if (typeof currentUri == 'undefined') {
+					location.reload();
+				} else {
+					updateIndex(event_id, 'event');
+				}
 			}
 		},
 		error:function() {
@@ -645,7 +653,7 @@ function handleAjaxEditResponse(data, name, type, id, field, event) {
 	}
 }
 
-function handleGenericAjaxResponse(data) {
+function handleGenericAjaxResponse(data, skip_reload = false) {
 	if (typeof data == 'string') {
 		responseArray = JSON.parse(data);
 	} else {
@@ -654,7 +662,7 @@ function handleGenericAjaxResponse(data) {
 	if (responseArray.saved) {
 		showMessage('success', responseArray.success);
 		if (responseArray.hasOwnProperty('check_publish')) {
-			checkAndSetPublishedInfo();
+			checkAndSetPublishedInfo(skip_reload);
 		}
 		return true;
 	} else {
@@ -1536,7 +1544,7 @@ function indexEvaluateFiltering() {
 		} else {
 			$('#value_hasproposal').html("");
 		}
-		if (filtering.date.from != null || filtering.date.from != null) {
+		if (filtering.date.from != null) {
 			var text = "";
 			if (filtering.date.from != "") text = "From: " + $('<span>').text(filtering.date.from).html();
 			if (filtering.date.until != "") {
@@ -1744,7 +1752,7 @@ function indexAddRule(param) {
 			var operator = operators[escape($('#EventSearchbool').val())];
 			if (value != "" && filtering[param.data.param1][operator].indexOf(value) < 0) filtering[param.data.param1][operator].push(value);
 		}
-	} else if (filterContext = 'user') {
+	} else if (filterContext == 'user') {
 		if (differentFilters.indexOf(param.data.param1) != -1) {
 			var value = escape($('#UserSearch' + param.data.param1).val());
 			if (value != "") filtering[param.data.param1] = value;
@@ -2850,7 +2858,7 @@ function toggleSettingSubGroup(group) {
 function runHoverLookup(type, id) {
 	$.ajax({
 		success:function (html) {
-			ajaxResults[type + "_" + id] = html;
+			ajaxResults["hover"][type + "_" + id] = html;
 			$('.popover').remove();
 			$('#' + type + '_' + id + '_container').popover({
 				title: 'Lookup results:',
@@ -2877,38 +2885,52 @@ $(".cortex-json").click(function() {
 
 // add the same as below for click popup
 $(".eventViewAttributePopup").click(function() {
+	$('#screenshot_box').empty();
 	type = $(this).attr('data-object-type');
 	id = $(this).attr('data-object-id');
-	if (!(type + "_" + id in ajaxResults)) {
+	if (!(type + "_" + id in ajaxResults["persistent"])) {
 		$.ajax({
 			success:function (html) {
-				ajaxResults[type + "_" + id] = html;
+				ajaxResults["persistent"][type + "_" + id] = html;
 			},
+			async: false,
 			cache: false,
-			url:"/attributes/hoverEnrichment/" + id,
+			url:"/attributes/hoverEnrichment/" + id + "/1",
 		});
 	}
-	if (type + "_" + id in ajaxResults) {
-		var enrichment_popover = ajaxResults[type + "_" + id];
+	if (type + "_" + id in ajaxResults["persistent"]) {
+		var enrichment_popover = ajaxResults["persistent"][type + "_" + id];
 		enrichment_popover += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
-		$('#screenshot_box').html(enrichment_popover);
+		$('#screenshot_box').html('<div class="screenshot_content">' + enrichment_popover + '</div>');
 		$('#screenshot_box').show();
 		$("#gray_out").fadeIn();
 		$('#screenshot_box').css({'padding': '5px'});
 		$('#screenshot_box').css( "maxWidth", ( $( window ).width() * 0.9 | 0 ) + "px" );
-		left = ($(window).width() / 2) - ($('#screenshot_box').width() / 2);
+		$('#screenshot_box').css( "maxHeight", ( $( window ).width() - 300 | 0 ) + "px" );
+		$('#screenshot_box').css( "overflow-y", "auto");
+
+		var left = ($(window).width() / 2) - ($('#screenshot_box').width() / 2);
 		$('#screenshot_box').css({'left': left + 'px'});
 	}
 });
+
+function flashErrorPopover() {
+	$('#popover_form').css( "minWidth", "200px");
+	$('#popover_form').html($('#flashErrorMessage').html());
+	$('#popover_form').show();
+	var left = ($(window).width() / 2) - ($('#popover_form').width() / 2);
+	$('#popover_form').css({'left': left + 'px'});
+	$("#gray_out").fadeIn();
+}
 
 $(".eventViewAttributeHover").mouseenter(function() {
 	$('.popover').remove();
 	type = $(this).attr('data-object-type');
 	id = $(this).attr('data-object-id');
-	if (type + "_" + id in ajaxResults) {
+	if (type + "_" + id in ajaxResults["hover"]) {
 		$('#' + type + '_' + id + '_container').popover({
 			title: 'Lookup results:',
-			content: ajaxResults[type + "_" + id],
+			content: ajaxResults["hover"][type + "_" + id],
 			placement: 'top',
 			html: true,
 			trigger: 'hover',
@@ -3222,17 +3244,19 @@ function quickSubmitGalaxyForm(event_id, cluster_id) {
 	return false;
 }
 
-function checkAndSetPublishedInfo() {
+function checkAndSetPublishedInfo(skip_reload=false) {
 	var id = $('#hiddenSideMenuData').data('event-id');
-	$.get( "/events/checkPublishedStatus/" + id, function(data) {
-		if (data == 1) {
-			$('.published').removeClass('hidden');
-			$('.not-published').addClass('hidden');
-		} else {
-			$('.published').addClass('hidden');
-			$('.not-published').removeClass('hidden');
-		}
-	});
+	if (id !== 'undefined' && !skip_reload) {
+		$.get( "/events/checkPublishedStatus/" + id, function(data) {
+			if (data == 1) {
+				$('.published').removeClass('hidden');
+				$('.not-published').addClass('hidden');
+			} else {
+				$('.published').addClass('hidden');
+				$('.not-published').removeClass('hidden');
+			}
+		});
+	}
 }
 
 $(document).keyup(function(e){

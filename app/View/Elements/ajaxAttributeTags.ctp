@@ -1,5 +1,8 @@
 <div style="width:100%;display:inline-block;">
     <?php
+		if (empty($context)) {
+			$context = 'event';
+		}
         $full = $isAclTagger && $tagAccess;
         foreach ($attributeTags as $tag):
             if (!isset($tag['Tag'])) $tag = array('Tag' => $tag);
@@ -31,10 +34,15 @@
         endforeach;
     ?>
         <div style="float:left">
-            <?php if ($full): ?>
-                <button id="addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;" onClick="getPopup('<?php echo h($attributeId); ?>' + '/true', 'tags', 'selectTaxonomy');">+</button>
-            <?php else:?>
-                &nbsp;
-            <?php endif; ?>
+			<?php
+				$addTagButton = '&nbsp;';
+				if ($full) {
+					$addTagButton = sprintf(
+						'<button id="addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;" onClick="getPopup(%s);">+</button>',
+						sprintf("'%s/true', 'tags', 'selectTaxonomy'", h($attributeId))
+					);
+				}
+				echo $addTagButton;
+			?>
         </div>
 </div>
