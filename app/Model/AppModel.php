@@ -1774,11 +1774,13 @@ class AppModel extends Model
         if (!isset($filter['OR']) && !isset($filter['NOT']) && !isset($filter['AND'])) {
             $temp = array();
             foreach ($filter as $param) {
-                if ($param[0] === '!') {
-                    $temp['NOT'][] = substr($param, 1);
-                } else {
-                    $temp['OR'][] = $param;
-                }
+				if (!empty($param)) {
+	                if ($param[0] === '!') {
+	                    $temp['NOT'][] = substr($param, 1);
+	                } else {
+	                    $temp['OR'][] = $param;
+	                }
+				}
             }
             $filter = $temp;
         }

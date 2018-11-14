@@ -91,7 +91,7 @@ cybox_name_attribute = {"DomainName" : "value", "Hostname" : "hostname_value", "
                         "Pipe" : "name", "Mutex" : "name", "WinService": "name"}
 misp_indicator_type = {"AS" : "", "mutex" : "Host Characteristics", "named pipe" : "Host Characteristics",
                        "email-attachment": "Malicious E-mail", "url" : "URL Watchlist"}
-misp_indicator_type.update(dict.fromkeys(hash_type_attributes["single"] + hash_type_attributes["composite"] + ["filename"] + ["attachment"], "File Hash Watchlist"))
+misp_indicator_type.update(dict.fromkeys(list(hash_type_attributes["single"]) + list(hash_type_attributes["composite"]) + ["filename"] + ["attachment"], "File Hash Watchlist"))
 misp_indicator_type.update(dict.fromkeys(["email-src", "email-dst", "email-subject", "email-reply-to",  "email-attachment"], "Malicious E-mail"))
 misp_indicator_type.update(dict.fromkeys(["ip-src", "ip-dst", "ip-src|port", "ip-dst|port"], "IP Watchlist"))
 misp_indicator_type.update(dict.fromkeys(["domain", "domain|ip", "hostname"], "Domain Watchlist"))
@@ -138,7 +138,7 @@ class StixBuilder(object):
         self.namespace_prefix = idgen.get_id_namespace_alias()
         ## MAPPING FOR ATTRIBUTES
         self.simple_type_to_method = {"port": self.generate_port_observable, "domain|ip": self.generate_domain_ip_observable}
-        self.simple_type_to_method.update(dict.fromkeys(hash_type_attributes["single"] + hash_type_attributes["composite"] + ["filename"], self.resolve_file_observable))
+        self.simple_type_to_method.update(dict.fromkeys(list(hash_type_attributes["single"]) + list(hash_type_attributes["composite"]) + ["filename"], self.resolve_file_observable))
         self.simple_type_to_method.update(dict.fromkeys(["ip-src", "ip-dst"], self.generate_ip_observable))
         self.simple_type_to_method.update(dict.fromkeys(["ip-src|port", "ip-dst|port", "hostname|port"], self.generate_socket_address_observable))
         self.simple_type_to_method.update(dict.fromkeys(["regkey", "regkey|value"], self.generate_regkey_observable))
