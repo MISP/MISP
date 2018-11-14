@@ -1607,6 +1607,37 @@ class ServersController extends AppController
         }
     }
 
+    public function advancedUpdate() {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException('You are not authorised to do that.');
+        }
+        $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        $updates = $this->Server->advanced_updates_description;
+        $default_fields = array(
+            'title' => '',
+            'description' => '',
+            'liveOff' => true,
+            'recommendBackup' => true,
+            'exitOnError' => true,
+            'url' => '/'
+
+        );
+        foreach($updates as $i => $update) {
+            foreach($default_fields as $field => $value) {
+                if (!isset($update[$field])) {
+                    $updates[$i][$field] = $value;
+                }
+            }
+            if (!isset($update['id'])) {
+                $updates[$i]['done'] =  false;
+            } else {
+                $done = $this->AdminSetting->getSetting($update['id']);
+                $updates[$i]['done'] =  $done !== false && $done == '1' ? true : false;
+            }
+        }
+        $this->set('advancedUpdates', $updates);
+    }
+
     public function updateProgress()
     {
         if (!$this->_isSiteAdmin()) {

@@ -1,9 +1,12 @@
 <?php
 if (!$isSiteAdmin) exit();
 if ($updateProgress['update_prog_tot'] !== 0 ) {
+    $percentageFail = floor(count($updateProgress['update_prog_failed_num']) / $updateProgress['update_prog_tot']*100);
     $percentage = floor($updateProgress['update_prog_cur'] / $updateProgress['update_prog_tot']*100);
+    $percentage -= $percentageFail; // substract failed updates
 } else {
     $percentage = 100;
+    $percentageFail = 0;
 }
 ?>
 <div style="width: 50%;margin: 0 auto;">
@@ -12,7 +15,8 @@ if ($updateProgress['update_prog_tot'] !== 0 ) {
         <div class="" style="max-width: 1000px;">
             
             <div class="progress progress-striped" style="max-width: 1000px;">
-                <div class="bar" style="width: <?php echo h($percentage);?>%;"><?php echo h($percentage);?>%</div>
+                <div id="pb-progress" class="bar" style="width: <?php echo h($percentage);?>%;"><?php echo h($percentage);?>%</div>
+                <div id="pb-fail" class="bar" style="width: <?php echo h($percentageFail);?>%; background-color: #ee5f5b;"></div>
             </div>
 
             <table class="table table-bordered table-stripped updateProgressTable">
@@ -31,13 +35,14 @@ if ($updateProgress['update_prog_tot'] !== 0 ) {
                         }
                         $rowDone = $i < $updateProgress['update_prog_cur'];
                         $rowCurrent = $i === $updateProgress['update_prog_cur'];
-                        $rowFail = $i === $updateProgress['update_prog_failed_num'];
+                        $rowFail = in_array($i, $updateProgress['update_prog_failed_num']);
                         $rowClass = '';
                         $rowIcon =  '<i id="icon-' . $i . '" class="fa"></i>';
                         if ($rowDone) {
                             $rowClass =  'class="alert alert-success"';
                             $rowIcon =  '<i id="icon-' . $i . '" class="fa fa-check-circle-o"></i>';
-                        } else if ($rowCurrent && !$rowFail) {
+                        }
+                        if ($rowCurrent && !$rowFail) {
                             $rowClass =  'class="alert alert-info"';
                             $rowIcon =  '<i id="icon-' . $i . '" class="fa fa-cogs"></i>';
                         } else if ($rowFail) {
@@ -49,11 +54,12 @@ if ($updateProgress['update_prog_tot'] !== 0 ) {
                             <td><?php echo $rowIcon; ?></td>
                             <td>
                                 <div>
-                                    <a style="cursor: pointer;" onclick="toggleVisiblity(this, <?php echo $i;?>)">
+                                    <a style="cursor: pointer; maring-bottom: 2px;" onclick="toggleVisiblity(<?php echo $i;?>)">
                                         <span class="foldable fa fa-terminal"></span>
-                                            <?php echo __('Update ') . ($i+1); ?>
+                                        <?php echo __('Update ') . ($i+1); ?>
+                                        <span class="inline-term"><?php echo h(substr($cmd, 0, 30));?></span>
                                     </a>
-                                    <div data-terminalid="<?php echo $i;?>" style="<?php echo !$rowFail ? 'display: none;' : ''; ?>">
+                                    <div data-terminalid="<?php echo $i;?>" style="display: none; margin-top: 5px;">
                                         <div id="termcmd-<?php echo $i;?>" class="div-terminal">
                                             <?php
                                                 $temp = preg_replace('/^\n*\s+/', '', $cmd);
@@ -98,8 +104,28 @@ if ($updateProgress['update_prog_tot'] !== 0 ) {
 </div>
 
 <script>
-    function toggleVisiblity(clicked, termId) {
-        $('div[data-terminalid='+termId+']').toggle();
+    function toggleVisiblity(termId, auto, show) {
+        var term = $('div[data-terminalid='+termId+']')
+        if (auto === true) {
+            if (term.data('manual') !== true) { //  show if manual is not set
+                if (show === true) {
+                    term.show();
+                } else if (show === false) {
+                    term.hide();
+                } else {
+                    term.toggle();
+                }
+            }
+        } else {
+            term.data('manual', true);
+            if (show === true) {
+                term.show();
+            } else if (show === false) {
+                term.hide();
+            } else {
+                term.toggle();
+            }
+        }
     }
 
     var updateProgress = <?php echo json_encode($updateProgress); ?>;;
@@ -115,18 +141,23 @@ if ($updateProgress['update_prog_tot'] !== 0 ) {
         $.getJSON(url, function(data) {
             var tot = parseInt(data['update_prog_tot']);
             var cur = parseInt(data['update_prog_cur']);
-            var fail = parseInt(data['update_prog_failed_num']);
+            var failArray = data['update_prog_failed_num'];
             for (var i=0; i<tot; i++) {
-                $('div[data-terminalid='+i+']').hide();
+                var term = $('div[data-terminalid='+i+']')
+                toggleVisiblity(i, true, false);   
                 if (i < cur) {
-                    update_row_state(i, 0);
-                } else if (i == cur) {
-                    if (i == fail) {
+                    if (failArray.indexOf(String(i)) != -1) {
                         update_row_state(i, 2);
-                        $('div[data-terminalid='+i+']').show();
+                    } else {
+                        update_row_state(i, 0);
+                    }
+                } else if (i == cur) {
+                    if (failArray.indexOf(String(i)) != -1) {
+                        update_row_state(i, 2);
+                        toggleVisiblity(i, true, true);   
                     } else {
                         update_row_state(i, 1);
-                        $('div[data-terminalid='+(i-1)+']').show();
+                        toggleVisiblity(i-1, true, true);   
                     }
                 } else {
                     update_row_state(i, 3);
@@ -134,11 +165,12 @@ if ($updateProgress['update_prog_tot'] !== 0 ) {
             }
             update_messages(data['update_prog_msg']);
             if (tot > 0) {
-                var perc = Math.round(cur/tot*100);
-                update_pb(perc);
+                var percFail = Math.round(failArray.length/tot*100);
+                var perc = Math.round(cur/tot*100) - percFail;
+                update_pb(perc, percFail);
             }
 
-            if (cur >= tot || cur === fail) {
+            if (cur >= tot || failArray.indexOf(cur) != -1) {
                 clearInterval(pooler);
             }
         });
@@ -201,9 +233,11 @@ if ($updateProgress['update_prog_tot'] !== 0 ) {
         }
     }
 
-    function update_pb(perc) {
-        var pb = $('div.bar');
+    function update_pb(perc, percFail) {
+        var pb = $('#pb-progress');
         pb.css('width', perc+'%');
         pb.text(perc+'%');
+        var pbF = $('#pb-fail');
+        pbF.css('width', percFail+'%');
     }
 </script>

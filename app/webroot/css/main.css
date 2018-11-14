@@ -2095,6 +2095,24 @@ table tr:hover .down-expand-button {
     width: 270px !important;
 }
 
+.headerUpdateBlock {
+    border: #ccc solid 1px;
+    border-bottom: 1px solid transparent;
+    background: #e6e6e6;
+    padding: 0px 6px;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+}
+
+.bodyUpdateBlock {
+    border: #ccc solid 1px;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+    background: #fbfbfb;
+    padding: 6px;
+    margin-bottom: 10px;
+}
+
 .precision-tool {
     margin-left: 10px;
     display: inline-block;
@@ -2103,9 +2121,18 @@ table tr:hover .down-expand-button {
 .div-terminal {
     background-color: #303030;
     color: white;
+    font-family: Monaco, Menlo, Consolas, "Courier New", monospace;
     padding: 10px;
     border-radius: 5px;
+}
+
+.inline-term {
+    display: inline-block;
+    background-color: #303030;
+    color: white;
     font-family: Monaco, Menlo, Consolas, "Courier New", monospace;
+    padding: 2px;
+    border-radius: 4px;
 }
 
 .div-terminal > span {
@@ -2115,6 +2142,8 @@ table tr:hover .down-expand-button {
 .terminal-res {
     margin-top: 5px;
     margin-left: 25px;
+    max-height: 500px;
+    overflow-y: auto;
 }
 
 .terminal-res-icon {
@@ -2123,13 +2152,6 @@ table tr:hover .down-expand-button {
     font-size: large;
     margin-right: 5px;
     margin-left: 5px;
-}
-
-.advancedUpdateBlock {
-    border: #ccc solid 1px;
-    border-radius: 5px;
-    background: #fbfbfb;
-    padding: 6px;
 }
 
 table.updateProgressTable > tbody > tr > td:first-child {

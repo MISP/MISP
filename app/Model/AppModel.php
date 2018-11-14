@@ -73,6 +73,22 @@ class AppModel extends Model
         21 => false, 22 => false, 23 => false, 24 => false, 25 => false
     );
 
+    public $advanced_updates_description = array(
+        array(
+            'id' => 'seenOnAttribute',
+            'title' => 'First seen/Last seen Attribute table',
+            'description' => 'Update the Attribute table to support first_seen and last_seen feature, with a microsecond resolution.',
+            'liveOff' => true,
+            'recommendBackup' => true,
+            'exitOnError' => true,
+            'url' => '/servers/updateDatabase/seenOnAttribute/'
+        ),
+        array(
+            'title' => 'An example of update',
+            'description' => 'desc of update',
+        ),
+    );
+
     public function afterSave($created, $options = array())
     {
         if ($created) {
@@ -201,7 +217,7 @@ class AppModel extends Model
     }
 
     // SQL scripts for updates
-    public function updateDatabase($command, $liveOff=false)
+    public function updateDatabase($command, $liveOff=false, $exitOnError=false)
     {
         $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
         $dataSource = $dataSourceConfig['datasource'];
@@ -1124,23 +1140,8 @@ class AppModel extends Model
                 break;
         }
 
-        // FIXME: TO DELETE!
-        $sqlArray = array();
-        $indexArray = array();
-        $sqlArray[] = "SELECT SLEEP(" . rand(1, 2) . ");";
-        $sqlArray[] = "SELECT SLEEP(" . rand(1, 2) . ");";
-        $sqlArray[] = "SELECT SLEEP(" . rand(1, 2) . ");";
-        $sqlArray[] = "SELECT SLEEP(" . rand(1, 2) . ");";
-        $sqlArray[] = "SELECT SLEEP(" . rand(1, 2) . ");";
-        $sqlArray[] = "SELECT SLEEP(" . rand(1, 2) . ");";
-        $sqlArray[] = "SELECT SLEEP(" . rand(1, 2) . ");";
-        $sqlArray[] = "SELECTkkkkkk;";
-        $sqlArray[] = "SELECT SLEEP(" . rand(1, 2) . ");";
-        $sqlArray[] = "SELECT SLEEP(" . rand(1, 2) . ");";
-
         $this->__resetUpdateProgress();
         // switch MISP instance live to false
-        $shouldStopOnError = false;
         if ($liveOff) {
             $this->Server = Classregistry::init('Server');
             $liveSetting = 'MISP.live';
@@ -1156,8 +1157,8 @@ class AppModel extends Model
             $strIndexArray[] = __('Indexing ') . implode($toIndex, '->');
         }
         $this->__setUpdateCmdMessages(array_merge($sqlArray, $strIndexArray));
-        $shouldStopOnError = true;
         $flagStop = false;
+        $errorCount = 0;
         foreach ($sqlArray as $i => $sql) {
             try {
                 $this->__setUpdateProgress($i, false);
@@ -1187,8 +1188,9 @@ class AppModel extends Model
                         'change' => 'The executed SQL query was: ' . $sql . PHP_EOL . ' The returned error is: ' . $e->getMessage()
                 ));
                 $this->__setUpdateResMessages($i, 'Issues executing the SQL query for ' . $command . '. The returned error is: ' . PHP_EOL . $e->getMessage());
-                $this->__setUpdateProgress($i, false, true);
-                if ($shouldStopOnError) {
+                $this->__setUpdateError($i);
+                $errorCount++;
+                if ($exitOnError) {
                     $flagStop = true;
                     break;
                 }
@@ -1219,7 +1221,20 @@ class AppModel extends Model
             $this->Server->serverSettingsSaveValue($liveSetting, true);
         }
 
+        if (!$flagStop && $errorCount == 0) {
+            $this->__postUpdate($command);
+        }
+
         return true;
+    }
+
+    // check whether the adminSetting should be updated after the update
+    private function __postUpdate($command) {
+        foreach($this->advanced_updates_description as $update) {
+            if ($update['id'] == $command) {
+                $this->AdminSetting->changeSetting($command, 1);
+            }
+        }
     }
 
     private function __dropIndex($table, $field)
@@ -1412,17 +1427,21 @@ class AppModel extends Model
         }
     }
 
-    private function __setUpdateProgress($current, $total=false, $failed=false) {
+    private function __setUpdateProgress($current, $total=false) {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $this->AdminSetting->changeSetting('update_prog_cur', $current);
         if ($total !== false) {
             $this->AdminSetting->changeSetting('update_prog_tot', $total);
         }
-        if($failed !== false) {
-            $this->AdminSetting->changeSetting('update_prog_failed_num', $current);
-        }
     }
     
+    private function __setUpdateError($index) {
+        $failArray = json_decode($this->AdminSetting->getSetting('update_prog_failed_num'), true);
+        $failArray[] = $index;
+        $data = json_encode($failArray);
+        $this->AdminSetting->changeSetting('update_prog_failed_num', $data);
+    }
+
     private function __resetUpdateProgress() {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $settingNames = array('update_prog_cur', 'update_prog_tot', 'update_prog_failed_num', 'update_prog_msg');
@@ -1446,12 +1465,14 @@ class AppModel extends Model
     public function getUpdateProgress() {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $updateProgress = array();
-        $settingNames = array('update_prog_cur', 'update_prog_tot', 'update_prog_failed_num');
+        $settingNames = array('update_prog_cur', 'update_prog_tot');
         foreach($settingNames as $setting) {
             $value = $this->AdminSetting->getSetting($setting);
             $value = $value !== false && $value !== '' ? intval($value) : -1;
             $updateProgress[$setting] = $value;
         }
+        $updateProgress['update_prog_failed_num'] = json_decode($this->AdminSetting->getSetting('update_prog_failed_num'), true);
+        $updateProgress['update_prog_failed_num'] = is_null($updateProgress['update_prog_failed_num']) ? [] : $updateProgress['update_prog_failed_num'];
         $updateProgress['update_prog_msg'] = json_decode($this->AdminSetting->getSetting('update_prog_msg'), true);
         return $updateProgress;
     }
