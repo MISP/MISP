@@ -17,6 +17,7 @@
             $this->__seenSupported = $seenSupported;
             $this->__filterRules = $filterRules;
             $this->__json = array();
+            $this->__json['seenSupported'] = $this->__seenSupported;
             $this->__extended_view = $extended_view;
             $this->__lookupTables = array(
                 'analysisLevels' => $this->__eventModel->analysisLevels,
@@ -90,7 +91,7 @@
                     'event_id' => $attr['event_id'],
                     'group' => 'attribute',
                     'timestamp' => $attr['timestamp'],
-                    'first_seen' => $attr['first_seen'],
+                    'first_seen' => $attr['first_seen'], // $attribute is empty if __seenSupported==false
                     'last_seen' => $attr['last_seen'],
                 );
                 array_push($this->__json['items'], $toPush);

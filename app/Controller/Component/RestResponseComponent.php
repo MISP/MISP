@@ -18,13 +18,13 @@ class RestResponseComponent extends Component
             'add' => array(
                 'description' => "POST a MISP Attribute JSON to this API to create an Attribute.",
                 'mandatory' => array('value', 'type'),
-                'optional' => array('category', 'to_ids', 'uuid', 'distribution', 'sharing_group_id', 'timestamp', 'comment', 'first_seen', 'last_seen'),
+                'optional' => array('category', 'to_ids', 'uuid', 'distribution', 'sharing_group_id', 'timestamp', 'comment'),
                 'params' => array('event_id')
             ),
             'edit' => array(
                 'description' => "POST a MISP Attribute JSON to this API to update an Attribute. If the timestamp is set, it has to be newer than the existing Attribute.",
                 'mandatory' => array(),
-                'optional' => array('value', 'type', 'category', 'to_ids', 'uuid', 'distribution', 'sharing_group_id', 'timestamp', 'comment', 'first_seen', 'last_seen'),
+                'optional' => array('value', 'type', 'category', 'to_ids', 'uuid', 'distribution', 'sharing_group_id', 'timestamp', 'comment'),
                 'params' => array('event_id')
             ),
             'deleteSelected' => array(
@@ -455,6 +455,11 @@ class RestResponseComponent extends Component
 
 	private function __setup() {
 		if (!$this->__setup) {
+                    // add fields if applicable
+                    $this->Attribute = ClassRegistry::init('Attribute');
+                    $this->Attribute->addFieldsBasedOnUpdate($this->__descriptions['Attribute']['add']['optional']);
+                    $this->Attribute->addFieldsBasedOnUpdate($this->__descriptions['Attribute']['edit']['optional']);
+
 			$scopes = array('Event', 'Attribute', 'Sighting');
 			foreach ($scopes as $scope) {
 				$this->{$scope} = ClassRegistry::init($scope);

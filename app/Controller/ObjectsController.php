@@ -448,7 +448,9 @@ class ObjectsController extends AppController
                 return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'Invalid attribute')), 'status'=>200, 'type' => 'json'));
             }
         }
-        $validFields = array('comment', 'distribution', 'first_seen', 'last_seen');
+        $validFields = array('comment', 'distribution');
+        $this->Attribute->addFieldsBasedOnUpdate($validFields);
+        //$this->MispObject->Attribute
         $changed = false;
         if (empty($this->request->data['Object'])) {
             $this->request->data = array('Object' => $this->request->data);
@@ -496,7 +498,8 @@ class ObjectsController extends AppController
 
     public function fetchViewValue($id, $field = null)
     {
-        $validFields = array('timestamp', 'comment', 'distribution', 'first_seen', 'last_seen');
+        $validFields = array('timestamp', 'comment', 'distribution');
+        $this->Attribute->addFieldsBasedOnUpdate($validFields);
         if (!isset($field) || !in_array($field, $validFields)) {
             throw new MethodNotAllowedException('Invalid field requested.');
         }
@@ -533,7 +536,8 @@ class ObjectsController extends AppController
 
     public function fetchEditForm($id, $field = null)
     {
-        $validFields = array('distribution', 'comment', 'first_seen', 'last_seen');
+        $validFields = array('distribution', 'comment');
+        $this->Attribute->addFieldsBasedOnUpdate($validFields);
         if (!isset($field) || !in_array($field, $validFields)) {
             throw new MethodNotAllowedException('Invalid field requested.');
         }

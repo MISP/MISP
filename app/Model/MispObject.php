@@ -531,8 +531,12 @@ class MispObject extends AppModel
         }
         $date = new DateTime();
         $object['Object']['timestamp'] = $date->getTimestamp();
-        $object['Object']['first_seen'] = $objectToSave['Object']['first_seen'];
-        $object['Object']['last_seen'] = $objectToSave['Object']['last_seen'];
+        if (isset($objectToSave['Object']['first_seen'])) {
+            $object['Object']['first_seen'] = $objectToSave['Object']['first_seen'];
+        }
+        if (isset($objectToSave['Object']['last_seen'])) {
+            $object['Object']['last_seen'] = $objectToSave['Object']['last_seen'];
+        }
         $this->save($object);
         $checkFields = array('category', 'value', 'to_ids', 'distribution', 'sharing_group_id', 'comment');
         foreach ($objectToSave['Attribute'] as $newKey => $newAttribute) {

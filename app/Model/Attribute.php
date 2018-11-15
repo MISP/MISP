@@ -757,6 +757,20 @@ class Attribute extends AppModel
         }
     }
 
+    public function addFieldsBasedOnUpdate(&$fieldsAtt) {
+        if (!isset($this->AdminSetting)) {
+            $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        }
+
+        // check whether the DB have *_seen columns
+        $seenSupported = $this->AdminSetting->getSetting('seenOnAttributeAndObject');
+        if ($seenSupported) {
+            array_push($fieldsAtt, 'Attribute.first_seen', 'Attribute.last_seen');
+        }
+    }
+
+
+
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
@@ -3655,9 +3669,8 @@ class Attribute extends AppModel
             'sharing_group_id',
             'deleted',
             'disable_correlation',
-            'first_seen',
-            'last_seen'
         );
+        $this->addFieldsBasedOnUpdate($fieldList);
         if ($objectId) {
             $fieldList[] = 'object_id';
             $fieldList[] = 'object_relation';
