@@ -2866,6 +2866,15 @@ $(".eventViewAttributePopup").click(function() {
 	}
 });
 
+function flashErrorPopover() {
+	$('#popover_form').css( "minWidth", "200px");
+	$('#popover_form').html($('#flashErrorMessage').html());
+	$('#popover_form').show();
+	var left = ($(window).width() / 2) - ($('#popover_form').width() / 2);
+	$('#popover_form').css({'left': left + 'px'});
+	$("#gray_out").fadeIn();
+}
+
 $(".eventViewAttributeHover").mouseenter(function() {
 	$('.popover').remove();
 	type = $(this).attr('data-object-type');
