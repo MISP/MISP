@@ -156,6 +156,8 @@ class SharingGroup extends AppModel
                 array(
                     'fields' => array(
                         'SharingGroup.id',
+						'SharingGroup.uuid',
+						'SharingGroup.modified',
                         'SharingGroup.name',
                         'SharingGroup.releasability',
                         'SharingGroup.description',
@@ -187,7 +189,7 @@ class SharingGroup extends AppModel
 						'conditions' => array('id' => $sg['SharingGroup']['org_id'])
 					));
 				}
-				$sg['Organisation'] = $this->__sgoCache[$sg['SharingGroup']['org_id']];
+				$sg['Organisation'] = $this->__sgoCache[$sg['SharingGroup']['org_id']]['Organisation'];
 				if (!empty($sg['SharingGroupOrg'])) {
 					foreach ($sg['SharingGroupOrg'] as &$sgo) {
 						if (!isset($this->__sgoCache[$sgo['org_id']])) {
@@ -197,7 +199,9 @@ class SharingGroup extends AppModel
 								'conditions' => array('id' => $sgo['org_id'])
 							));
 						}
-						$sgo['Organisation'] = $this->__sgoCache[$sgo['org_id']];
+						if (!empty($this->__sgoCache[$sgo['org_id']]['Organisation'])) {
+							$sgo['Organisation'] = $this->__sgoCache[$sgo['org_id']]['Organisation'];
+						}
 					}
 				}
 			}

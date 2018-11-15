@@ -228,7 +228,7 @@ class ComplexTypeTool
     );
 
     // algorithms to run through in order
-    private $__checks = array('Hashes', 'Email', 'IP', 'DomainOrFilename', 'SimpleRegex', 'AS');
+    private $__checks = array('Hashes', 'Email', 'IP', 'DomainOrFilename', 'SimpleRegex', 'AS', 'BTC');
 
     private function __resolveType($raw_input)
     {
@@ -246,6 +246,14 @@ class ComplexTypeTool
         }
         return false;
     }
+
+	private function __checkForBTC($input)
+	{
+		if (preg_match("#^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$#i", $input['raw'])) {
+			return array('types' => array('btc'), 'categories' => array('Financial fraud'), 'to_ids' => true, 'default_type' => 'btc', 'value' => $input['raw']);
+        }
+		return false;
+	}
 
     private function __checkForEmail($input)
     {

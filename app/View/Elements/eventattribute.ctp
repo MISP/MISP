@@ -282,7 +282,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
     </div>
 <script type="text/javascript">
     var currentUri = "<?php echo isset($currentUri) ? h($currentUri) : '/events/viewEventAttributes/' . h($event['Event']['id']); ?>";
-    var ajaxResults = [];
+    var ajaxResults = {"hover": [], "persistent": []};
     var timer;
     var lastSelected = false;
     var deleted = <?php echo (!empty($deleted)) ? '1' : '0';?>;

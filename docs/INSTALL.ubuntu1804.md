@@ -123,7 +123,7 @@ sudo -u www-data git submodule foreach --recursive git config core.filemode fals
 sudo -u www-data git config core.filemode false
 
 # Create a python3 virtualenv
-sudo -u www-data virtualenv -p python3 ${PATH_TO_MISP}/MISP/venv
+sudo -u www-data virtualenv -p python3 ${PATH_TO_MISP}/venv
 
 # make pip happy
 sudo mkdir /var/www/.cache/
@@ -423,7 +423,6 @@ sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install maec lief python-magic 
 sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
 
 # Start misp-modules
-## /!\ Check wtf is going on with yara.
 sudo -u www-data misp-modules -l 127.0.0.1 -s &
 
 echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"

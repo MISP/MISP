@@ -19,24 +19,23 @@
 import sys, json, os, datetime
 import pymisp
 from stix2 import *
-from base64 import b64encode
 from misp2stix2_mapping import *
 from collections import defaultdict
 from copy import deepcopy
 
-misp_hash_types = ["authentihash", "ssdeep", "imphash", "md5", "sha1", "sha224",
-                   "sha256", "sha384", "sha512", "sha512/224","sha512/256","tlsh"]
-attack_pattern_galaxies_list = ['mitre-attack-pattern', 'mitre-enterprise-attack-attack-pattern',
-                                'mitre-mobile-attack-attack-pattern', 'mitre-pre-attack-attack-pattern']
-course_of_action_galaxies_list = ['mitre-course-of-action', 'mitre-enterprise-attack-course-of-action',
-                                  'mitre-mobile-attack-course-of-action']
-intrusion_set_galaxies_list = ['mitre-enterprise-attack-intrusion-set', 'mitre-mobile-attack-intrusion-set',
-                               'mitre-pre-attack-intrusion-set', 'mitre-intrusion-set']
-malware_galaxies_list = ['android', 'banker', 'stealer', 'backdoor', 'ransomware', 'mitre-malware',
-                         'mitre-enterprise-attack-malware', 'mitre-mobile-attack-malware']
-threat_actor_galaxies_list = ['threat-actor', 'microsoft-activity-group']
-tool_galaxies_list = ['botnet', 'rat', 'exploit-kit', 'tds', 'tool', 'mitre-tool',
-                      'mitre-enterprise-attack-tool', 'mitre-mobile-attack-tool']
+misp_hash_types = ("authentihash", "ssdeep", "imphash", "md5", "sha1", "sha224",
+                   "sha256", "sha384", "sha512", "sha512/224","sha512/256","tlsh")
+attack_pattern_galaxies_list = ('mitre-attack-pattern', 'mitre-enterprise-attack-attack-pattern',
+                                'mitre-mobile-attack-attack-pattern', 'mitre-pre-attack-attack-pattern')
+course_of_action_galaxies_list = ('mitre-course-of-action', 'mitre-enterprise-attack-course-of-action',
+                                  'mitre-mobile-attack-course-of-action')
+intrusion_set_galaxies_list = ('mitre-enterprise-attack-intrusion-set', 'mitre-mobile-attack-intrusion-set',
+                               'mitre-pre-attack-intrusion-set', 'mitre-intrusion-set')
+malware_galaxies_list = ('android', 'banker', 'stealer', 'backdoor', 'ransomware', 'mitre-malware',
+                         'mitre-enterprise-attack-malware', 'mitre-mobile-attack-malware')
+threat_actor_galaxies_list = ('threat-actor', 'microsoft-activity-group')
+tool_galaxies_list = ('botnet', 'rat', 'exploit-kit', 'tds', 'tool', 'mitre-tool',
+                      'mitre-enterprise-attack-tool', 'mitre-mobile-attack-tool')
 
 class StixBuilder():
     def __init__(self):
@@ -143,7 +142,8 @@ class StixBuilder():
             for galaxy in self.misp_event['Galaxy']:
                 self.parse_galaxy(galaxy, self.report_id)
         for source, targets in self.relationships.items():
-            if source.startswith('report'): continue
+            if source.startswith('report'):
+                continue
             source_type,_ = source.split('--')
             for target in targets:
                 target_type,_ = target.split('--')
@@ -197,7 +197,7 @@ class StixBuilder():
                 for reference in misp_object['ObjectReference']:
                     try:
                         referenced_object = reference['Attribute']
-                    except:
+                    except KeyError:
                         referenced_object = self.get_object_by_uuid(reference['referenced_uuid'])
                     object_references[reference['referenced_uuid']] = referenced_object
         return object_references
@@ -221,7 +221,7 @@ class StixBuilder():
                 self.add_indicator(attribute)
             else:
                 self.add_observed_data(attribute)
-        except:
+        except Exception:
             self.add_custom(attribute)
 
     def handle_usual_object_name(self, misp_object, to_ids):
@@ -236,7 +236,7 @@ class StixBuilder():
                 self.add_object_indicator(misp_object)
             else:
                 self.add_object_observable(misp_object)
-        except:
+        except Exception:
             self.add_object_custom(misp_object, to_ids)
 
     def handle_link(self, attribute):
@@ -250,7 +250,6 @@ class StixBuilder():
             to_ids_file, file_object = misp_object
             file_id = "file--{}".format(file_object['uuid'])
             to_ids_list = [to_ids_file]
-            object2create = defaultdict(list)
             for reference in file_object['ObjectReference']:
                 if reference['relationship_type'] == "included-in" and reference['Object']['name'] == "pe":
                     pe_uuid = reference['referenced_uuid']
@@ -329,7 +328,7 @@ class StixBuilder():
         galaxy_uuid = galaxy['GalaxyCluster'][0]['uuid']
         try:
             stix_type, to_call = self.galaxies_mapping[galaxy_type]
-        except:
+        except Exception:
             return
         if galaxy_uuid not in self.galaxies:
             to_call(galaxy)
@@ -382,7 +381,7 @@ class StixBuilder():
             return
         self.add_coa_stix_object(coa_args, coa_id)
 
-    def add_coa_stix_object(self, coa_args):
+    def add_coa_stix_object(self, coa_args, coa_id):
         coa_args['created_by_ref'] = self.identity_id
         course_of_action = CourseOfAction(**coa_args)
         self.append_object(course_of_action, coa_id)
@@ -722,7 +721,7 @@ class StixBuilder():
             self.parse_galaxies(attribute['Galaxy'], object_id)
             try:
                 stix_type = domainIpObjectMapping[attribute['type']]
-            except:
+            except KeyError:
                 continue
             pattern += mapping.format(stix_type, attribute['value'])
         return "[{}]".format(pattern[:-5])
@@ -762,7 +761,7 @@ class StixBuilder():
                         message['additional_header_fields'] = {'X-Mailer': attribute_value}
                 else:
                     message[mapping] = attribute_value
-            except:
+            except Exception:
                 mapping = "x_misp_{}_{}".format(attribute['type'], relation)
                 if relation in ('eml', 'screenshot'):
                     message[mapping] = {'value': attribute_value, 'data': attribute['data']}
@@ -788,7 +787,7 @@ class StixBuilder():
                 mapping = emailObjectMapping[relation]
                 stix_type = mapping['stix_type']
                 email_type = mapping['email_type']
-            except:
+            except KeyError:
                 email_type = 'message'
                 stix_type = "'x_misp_{}_{}'".format(attribute['type'], relation)
                 if relation in ('eml', 'screenshot'):
@@ -823,7 +822,7 @@ class StixBuilder():
             else:
                 try:
                     observable_type = fileMapping[attribute_type]
-                except:
+                except KeyError:
                     observable_type = "x_misp_{}_{}".format(attribute_type, attribute['object_relation'])
                 observable_file[observable_type] = attribute['value']
         if 'md5' in d_observable:
@@ -880,7 +879,7 @@ class StixBuilder():
             else:
                 try:
                     observable_type = ipPortObjectMapping[relation]
-                except:
+                except KeyError:
                     continue
                 observable[observable_type] = attribute_value
         ref_type = 'dst_ref'
@@ -891,7 +890,7 @@ class StixBuilder():
                     port_value = defineProtocols[str(observable[port])]
                     if port_value not in observable['protocols']:
                         observable['protocols'].append(port_value)
-                except:
+                except KeyError:
                     pass
             main_observable = observable
         else:
@@ -933,7 +932,7 @@ class StixBuilder():
                 try:
                     stix_type = ipPortObjectMapping[relation]
                     mapping_type = 'ip-port'
-                except:
+                except KeyError:
                     continue
             pattern += objectsMapping[mapping_type]['pattern'].format(stix_type, attribute_value)
         return "[{}]".format(pattern[:-5])
@@ -961,7 +960,7 @@ class StixBuilder():
             else:
                 try:
                     network_object[networkSocketMapping[relation]] = attribute['value']
-                except:
+                except KeyError:
                     continue
         if ip_src is not None:
             str_n = str(n)
@@ -1014,7 +1013,7 @@ class StixBuilder():
             else:
                 try:
                     pattern += mapping.format(networkSocketMapping[relation], attribute_value)
-                except:
+                except KeyError:
                     continue
         if ip_src is not None: pattern += ip_src
         elif domain_src is not None: pattern += domain_src
@@ -1062,7 +1061,7 @@ class StixBuilder():
             else:
                 try:
                     pattern += mapping.format(processMapping[relation], attribute['value'])
-                except:
+                except KeyError:
                     continue
         if child_refs: pattern += mapping.format('child_refs', child_refs)
         return "[{}]".format(pattern[:-5])
@@ -1092,7 +1091,7 @@ class StixBuilder():
             self.parse_galaxies(attribute['Galaxy'], object_id)
             try:
                 stix_type = regkeyMapping[attribute['object_relation']]
-            except:
+            except KeyError:
                 stix_type = "'x_misp_{}_{}'".format(attribute['type'], attribute['object_relation'])
             pattern += mapping.format(stix_type, attribute['value'])
         return "[{}]".format(pattern[:-5])
@@ -1120,7 +1119,7 @@ class StixBuilder():
             port = {'type': 'network-traffic', 'dst_ref': '1', 'protocols': ['tcp'], 'dst_port': port_value}
             try:
                 port['protocols'].append(defineProtocols[port_value])
-            except:
+            except KeyError:
                 pass
             if '1' in observable:
                 observable['2'] = port
@@ -1135,7 +1134,7 @@ class StixBuilder():
             attribute_type = attribute['type']
             try:
                 stix_type = urlMapping[attribute_type]
-            except:
+            except KeyError:
                 continue
             if attribute_type == 'port':
                 mapping = 'ip-port'
