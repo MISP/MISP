@@ -13,6 +13,7 @@
         public function construct($eventModel, $user, $seenSupported, $filterRules, $extended_view=0)
         {
             $this->__eventModel = $eventModel;
+            $this->__objectTemplateModel = $eventModel->Object->ObjectTemplate;
             $this->__user = $user;
             $this->__seenSupported = $seenSupported;
             $this->__filterRules = $filterRules;
@@ -113,7 +114,32 @@
                 if ($this->__seenSupported) {
                     $toPush_obj['first_seen'] = $obj['first_seen'];
                     $toPush_obj['last_seen'] = $obj['last_seen'];
-                }
+                } else { // only add object if their template contain first-seen or last-seen
+                    $template = $this->__objectTemplateModel->find('first', array(
+                        'conditions' => array('ObjectTemplate.uuid' => $obj['template_uuid']),
+                        'recursive' => -1,
+                        'contain' => array('ObjectTemplateElement' => array(
+                            'fields' => array('ObjectTemplateElement.object_relation', 'ObjectTemplateElement.type'),
+                            'conditions' => array('OR' => array(
+                                array('ObjectTemplateElement.object_relation' => 'first-seen'),
+                                array('ObjectTemplateElement.object_relation' => 'last-seen'),
+                            ))
+                        ))
+                    ));
+                    if (count($template['ObjectTemplateElement']) > 0) {
+                        $toPush_obj['first_seen'] = null;
+                        $toPush_obj['last_seen'] = null;
+                        $toPush_obj['first_seen_overwritten'] = null;
+                        $toPush_obj['last_seen_overwritten'] = null;
+
+                        //$toPush_obj['first_seen'] = '2018-07-15T18:32:33.857439';
+                        //$toPush_obj['last_seen'] = '2018-11-15T18:32:33.857439';
+                        //unset($toPush_obj['first_seen_overwritten']);
+                        //unset($toPush_obj['last_seen_overwritten']);
+                    } else {
+                        continue;
+                    }
+		}
 
                 foreach ($obj['Attribute'] as $obj_attr) {
                     if ($obj_attr['object_relation'] == 'first-seen') {

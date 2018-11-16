@@ -282,6 +282,26 @@ td.highlight3 {
 
 }
 
+.table-striped tbody > tr > td.objectAddField {
+    padding: 2px 3px;
+    line-height: normal;
+    display: inline-block;
+    position: relative;
+    top: -16px;
+    left: -1px;
+    color: white;
+    background-color: #1369a0;
+    border: 0px;
+    border-radius: 15px;
+    height: 12px;
+    width: 10px;
+}
+
+.table-striped tbody > tr > td.objectAddField:hover {
+    transform: scale(1.7);
+    cursor: pointer;
+}
+
 tr.highlightBlueSides {
 	border-left:2px solid #0088cc;
 	border-right:2px solid #0088cc;

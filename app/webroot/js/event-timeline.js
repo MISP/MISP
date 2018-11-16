@@ -138,7 +138,7 @@ function build_object_template(obj) {
 	if (!obj.seen_enabled) {
 		table.addClass('timestamp-obj');
 	}
-	var bolt_html = obj.overwrite_enabled ? " <i class=\"fa fa-bolt\" style=\"color: yellow; font-size: large;\" title=\"Object is overwritten by its attributes\">" : "";
+	var bolt_html = obj.overwrite_enabled ? " <i class=\"fa fa-bolt\" style=\"color: yellow; font-size: large;\" title=\"Object is (or can be) overwritten by its attributes\">" : "";
 	table.append($('<tr class="timeline-objectName"><th>'+obj.content+bolt_html+'</th><th></th></tr>'));
 	for (var attr of obj.Attribute) {
 		var overwritten = attr.contentType == "first-seen" || attr.contentType == "last-seen" ? " <i class=\"fa fa-bolt\" style=\"color: yellow;\" title=\"Overwrite object "+attr.contentType+"\"></i>" : "";
@@ -190,13 +190,25 @@ function quick_fetch_seen(itemType, seenType, item_id, callback) {
 function update_seen(itemType, seenType, item_id, moment, callback) {
 	var item = items_timeline.get(item_id);
 	var reflect = true;
+        var submitAction = "editField";
+        var valueFieldOverwrite = false;
 	// determine whether the object's attribute should be updated instead of the first/last_seen value
 	if (item[seenType+'_seen_overwritten'] !== undefined) {
 		item_id = item[seenType+'_seen_overwritten']
-		itemType = 'attributes'
-		var compiled_url_form = "/" + itemType + "/fetchEditForm/" + item_id + "/" + "value";
-		var compiled_field_form_id = "value_field";
-		reflect = false;
+		if (item_id !== null) { // update the value
+			itemType = 'attributes'
+			var compiled_url_form = "/" + itemType + "/fetchEditForm/" + item_id + "/" + "value";
+			var compiled_field_form_id = "value_field";
+			reflect = false;
+		} else { // value does not exist. Create an entry
+			itemType = 'objects';
+                        item_id = item.id;
+                        submitAction = "quickAddAttributeForm";
+			var compiled_url_form = "/" + itemType + "/" + submitAction + "/" + item_id + "/" + "first-seen";
+			var compiled_field_form_id = "quick_add_attribute_form";
+			valueFieldOverwrite = '#Attribute0Value';
+			reflect = false;
+		}
 	} else {
 		var compiled_url_form = "/" + itemType + "/fetchEditForm/" + item_id + "/" + seenType + "_seen";
 		var compiled_field_form_id = seenType+"_seen_field";
@@ -212,9 +224,13 @@ function update_seen(itemType, seenType, item_id, moment, callback) {
 		success: function (data, textStatus) {
 			var form = $(data);
 			$(container_timeline).append(form);
-			form.css({display: 'none'});
+			//form.css({display: 'none'});
 			var attr_id = item_id;
-			var field = form.find("#"+fieldIdItemType+"_"+attr_id+"_"+compiled_field_form_id);
+			if (valueFieldOverwrite === false) {
+				var field = form.find("#"+fieldIdItemType+"_"+attr_id+"_"+compiled_field_form_id);
+			} else {
+				var field = form.find(valueFieldOverwrite);
+			}
 			var the_time = momentISO;
 			field.val(the_time);
 			// submit the form
@@ -234,8 +250,12 @@ function update_seen(itemType, seenType, item_id, moment, callback) {
 					$(".loadingTimeline").hide();
 				},
 				type:"post",
-				url:"/" + itemType + "/" + "editField" + "/" + attr_id
+				//url:"/" + itemType + "/" + submitAction + "/" + attr_id
+				url: form.attr('action')
 			});
+		},
+		error: function() {
+		    console.log('Feature not supported.');
 		},
 		url: compiled_url_form,
 	});
@@ -378,6 +398,9 @@ function enable_timeline() {
 			$(".loadingTimeline").show();
 		},
 		success: function( data, textStatus, jQxhr ){
+			if (!data.seenSupported) { // *_seen fields are not supported by MISP
+				$('#seenNotEnabledBanner').show();
+			}
 			for (var item of data.items) {
 				item.className = item.group;
 				set_spanned_time(item);

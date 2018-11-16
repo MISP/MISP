@@ -13,6 +13,13 @@
 			<span id="timeline-display-badge" class="badge"></span>
 		</label>
 				
+		<span id="seenNotEnabledBanner" class="alert-danger center-in-network-header" style="border: 1px solid #fbeed5; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5); border-radius: 4px; padding: 4px; display:none">
+			<b>First_seen</b>/<b>Last_seen</b>
+			<?php echo __('feature is not supported by this instance.'); ?><sup class="fa fa-question" title="<?php echo __('Only objects with first-seen attribute in their template can be viewed and edited.'); ?>"></sup>
+			<?php echo __('You can update MISP to support it by clicking'); ?>
+			<a href="<?php echo $baseurl . '/servers/advancedUpdate/#seenOnAttributeAndObject'; ?>"><?php echo __('here'); ?></a>
+		</span>
+
 		<input type="text" id="timeline-typeahead" class="center-in-network-header network-typeahead flushright" data-provide="typeahead" size="20" placeholder="Search for an item">
 	</div>
 

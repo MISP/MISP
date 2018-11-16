@@ -149,5 +149,6 @@
         'child' => $attrKey == $lastElement ? 'last' : true
       ));
     }
+    echo '<tr><td class="fa fa-plus-circle objectAddField" title="' . __('Add an Object Attribute') .'" onclick="quickAddObjectAttribute"></td></tr>';
   }
 ?>

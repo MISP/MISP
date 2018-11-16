@@ -449,8 +449,7 @@ class ObjectsController extends AppController
             }
         }
         $validFields = array('comment', 'distribution');
-        $this->Attribute->addFieldsBasedOnUpdate($validFields);
-        //$this->MispObject->Attribute
+        $this->MispObject->Attribute->addFieldsBasedOnUpdate($validFields);
         $changed = false;
         if (empty($this->request->data['Object'])) {
             $this->request->data = array('Object' => $this->request->data);
@@ -499,7 +498,7 @@ class ObjectsController extends AppController
     public function fetchViewValue($id, $field = null)
     {
         $validFields = array('timestamp', 'comment', 'distribution');
-        $this->Attribute->addFieldsBasedOnUpdate($validFields);
+        $this->MispObject->Attribute->addFieldsBasedOnUpdate($validFields);
         if (!isset($field) || !in_array($field, $validFields)) {
             throw new MethodNotAllowedException('Invalid field requested.');
         }
@@ -537,7 +536,7 @@ class ObjectsController extends AppController
     public function fetchEditForm($id, $field = null)
     {
         $validFields = array('distribution', 'comment');
-        $this->Attribute->addFieldsBasedOnUpdate($validFields);
+        $this->MispObject->Attribute->addFieldsBasedOnUpdate($validFields);
         if (!isset($field) || !in_array($field, $validFields)) {
             throw new MethodNotAllowedException('Invalid field requested.');
         }
@@ -584,6 +583,69 @@ class ObjectsController extends AppController
         $this->set('object', $object['Object']);
         $fieldURL = ucfirst($field);
         $this->render('ajax/objectEdit' . $fieldURL . 'Form');
+    }
+
+    // return a form allowing to add an valid (from the template) object attribute to the object
+    public function quickAddAttributeForm($id, $fieldName = null) {
+        if (!$this->request->is('ajax')) {
+            throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
+        }
+        
+        if (!$this->request->is('post') && !$this->request->is('put')) {
+            if (!isset($fieldName)) {
+                throw new MethodNotAllowedException('No field requested.');
+            }
+            $this->MispObject->id = $id;
+            if (!$this->MispObject->exists()) {
+                throw new NotFoundException(__('Invalid object'));
+            }
+
+            $fields = array('template_uuid', 'template_version', 'id');
+            $params = array(
+                'conditions' => array('Object.id' => $id),
+                'fields' => $fields,
+                'flatten' => 1,
+            );
+
+            // fetchObjects restrict access based on user
+            $object = $this->MispObject->fetchObjects($this->Auth->user(), $params);
+            if (empty($object)) {
+                throw new NotFoundException(__('Invalid object'));
+            } else {
+                $object = $object[0];
+            }
+
+            $template = $this->MispObject->ObjectTemplate->find('first', array(
+                'conditions' => array(
+                    'ObjectTemplate.uuid' => $object['Object']['template_uuid'],
+                    'ObjectTemplate.version' => $object['Object']['template_version'],
+                ),
+                'recursive' => -1,
+                'flatten' => 1,
+                'contain' => array(
+                    'ObjectTemplateElement' => array('conditions' => array(
+                        'object_relation' => $fieldName
+                    ))
+                )
+            ));
+            $template = $this->MispObject->prepareTemplate($template, $object);
+
+            if (empty($template)) {
+                throw new NotFoundException(__('Invalid object'));
+            }
+
+            //debug($template);
+            $this->layout = 'ajax';
+            $this->set('object', $object['Object']);
+            $this->set('template', $template);
+            $distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());
+            $this->set('distributionData', $distributionData);
+            $this->render('ajax/quickAddAttributeForm');
+        } else {
+            debug('Youhou');
+            debug($this->request->data);
+            throw Exception();
+        }
     }
 
     public function delete($id, $hard = false)
