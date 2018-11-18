@@ -123,6 +123,7 @@ sudo -u www-data git submodule foreach --recursive git config core.filemode fals
 sudo -u www-data git config core.filemode false
 
 # Create a python3 virtualenv
+pip3 install virtualenv
 sudo -u www-data virtualenv -p python3 ${PATH_TO_MISP}/venv
 
 # make pip happy
