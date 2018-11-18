@@ -26,7 +26,7 @@ echo '-- Starting MISP restore process'
 
 FILE=./misp-backup.conf
 
-if [ -f $1 ];
+if [ ! -z $1 ] && [ -f $1 ];
 then 
     BackupFile=$1
 else

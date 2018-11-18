@@ -199,7 +199,9 @@ class SharingGroup extends AppModel
 								'conditions' => array('id' => $sgo['org_id'])
 							));
 						}
-						$sgo['Organisation'] = $this->__sgoCache[$sgo['org_id']];
+						if (!empty($this->__sgoCache[$sgo['org_id']]['Organisation'])) {
+							$sgo['Organisation'] = $this->__sgoCache[$sgo['org_id']]['Organisation'];
+						}
 					}
 				}
 			}
