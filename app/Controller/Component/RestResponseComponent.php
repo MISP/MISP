@@ -172,7 +172,7 @@ class RestResponseComponent extends Component
                 'optional' => array('url', 'name', 'authkey', 'json', 'push', 'pull', 'push_rules', 'pull_rules', 'submitted_cert', 'submitted_client_cert', 'remote_org_id')
             ),
 			'serverSettings' => array(
-				'description' => "Send a GET request to this endpoint to get a full diagnostic along with all currently set settings of the current instance."
+				'description' => "Send a GET request to this endpoint to get a full diagnostic along with all currently set settings of the current instance. This will also include the worker status"
 			)
         ),
         'Sighting' => array(
