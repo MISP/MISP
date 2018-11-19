@@ -1412,6 +1412,7 @@ class Event extends AppModel
 	                'category' => array('function' => 'set_filter_simple_attribute'),
 	                'type' => array('function' => 'set_filter_simple_attribute'),
 	                'tags' => array('function' => 'set_filter_tags', 'pop' => true),
+					'ignore' => array('function' => 'set_filter_ignore'),
 	                'uuid' => array('function' => 'set_filter_uuid'),
 					'deleted' => array('function' => 'set_filter_deleted'),
 					'to_ids' => array('function' => 'set_filter_to_ids'),
@@ -1705,6 +1706,10 @@ class Event extends AppModel
         }
 		if (!empty($options['includeRelatedTags'])) {
 			$options['includeGranularCorrelations'] = 1;
+		}
+		if (isset($options['ignore']) && empty($options['ignore'])) {
+			$conditions['AND'][] = array('Event.published' => 1);
+            $conditionsAttributes['AND'][] = array('Attribute.to_ids' => 1);
 		}
         $softDeletables = array('Attribute', 'Object', 'ObjectReference');
         if (isset($options['deleted']) && $options['deleted']) {
@@ -2234,8 +2239,17 @@ class Event extends AppModel
     public function set_filter_ignore(&$params, $conditions, $options)
     {
         if (empty($params['ignore'])) {
-            $conditions['AND']['Event.published'] = 1;
-            $conditions['AND']['Attribute.to_ids'] = 1;
+			if (empty($options['scope'])) {
+				$scope = 'Attribute';
+			} else {
+				$scope = $options['scope'];
+			}
+			if ($scope === 'Attribute') {
+				$conditions['AND']['Attribute.to_ids'] = 1;
+			} else {
+            	$conditions['AND']['Event.published'] = 1;
+			}
+
         }
         return $conditions;
     }
@@ -5461,7 +5475,7 @@ class Event extends AppModel
 				$filters['published'] = 1;
 			}
 		}
-		if (isset($filters['ignore'])) {
+		if (!empty($filters['ignore'])) {
 			$filters['to_ids'] = array(0, 1);
 			$filters['published'] = array(0, 1);
 		}
