@@ -243,7 +243,8 @@ class ACLComponent extends Component
                 "editField" => array('perm_add'),
                 "fetchEditForm" => array('perm_add'),
                 "fetchViewValue" => array('*'),
-                "quickAddAttributeForm" => array('perm_add')
+                "quickAddAttributeForm" => array('perm_add'),
+                "quickFetchTemplateWithValidObjectAttributes" => array('perm_add')
             ),
             'objectReferences' => array(
                 'add' => array('perm_add'),

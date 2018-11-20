@@ -562,6 +562,60 @@ function submitForm(type, id, field, context) {
 	return false;
 };
 
+function quickFetchValidObjectAttribute(objectId) {
+    var itemType = "objects";
+    var formUrl= "quickFetchTemplateWithValidObjectAttributes";
+    var compiledUrlForm = "/" + itemType + "/" + formUrl + "/" + objectId;
+    $.ajax({
+        beforeSend: function (XMLHttpRequest) {
+            $(".loading").show();
+        },
+        success:function (data, textStatus) {
+            $('#popover_form').html(data);
+            openPopup('#popover_form');
+            //handleGenericAjaxResponse(data);
+        },
+        error:function() {
+            showMessage('fail', 'Could not fetch allowed attribute type.');
+        },
+        complete:function() {
+            //$("#popover_form").fadeOut();
+            //$("#gray_out").fadeOut();
+            //$(".loading").hide();
+        },
+        type: "get",
+        url: compiledUrlForm
+    });
+    return false;
+}
+
+function fetchAddObjectAttributeForm(objectId, fieldName) {
+    var itemType = "objects";
+    var formUrl= "quickAddAttributeForm";
+    var compiledUrlForm = "/" + itemType + "/" + formUrl + "/" + objectId + "/" + fieldName;
+    $.ajax({
+        beforeSend: function (XMLHttpRequest) {
+            $(".loading").show();
+        },
+        success:function (data, textStatus) {
+            $('#popover_form').html(data);
+            openPopup('#popover_form');
+            //handleGenericAjaxResponse(data);
+        },
+        error:function() {
+            showMessage('fail', 'Could not fetch allowed attribute type.');
+        },
+        complete:function() {
+            //$("#popover_form").fadeOut();
+            //$("#gray_out").fadeOut();
+            //$(".loading").hide();
+        },
+        type: "get",
+        url: compiledUrlForm
+    });
+    return false;
+}
+
 function quickSubmitTagForm(event_id, tag_id) {
 	$('#EventTag').val(tag_id);
 	$.ajax({

@@ -292,7 +292,7 @@ class ObjectsController extends AppController
         $this->set('element', $element);
     }
 
-    public function edit($id)
+    public function edit($id, $onlyAddNewAttribute=false)
     {
         if (Validation::uuid($id)) {
             $conditions = array('Object.uuid' => $id);
@@ -358,7 +358,7 @@ class ObjectsController extends AppController
                 $this->request->data = array('Attribute' => $this->request->data);
             }
             $objectToSave = $this->MispObject->attributeCleanup($this->request->data);
-            $objectToSave = $this->MispObject->deltaMerge($object, $objectToSave);
+            $objectToSave = $this->MispObject->deltaMerge($object, $objectToSave, $onlyAddNewAttribute);
             // we pre-validate the attributes before we create an object at this point
             // This allows us to stop the process and return an error (API) or return
             //  to the add form
@@ -491,10 +491,6 @@ class ObjectsController extends AppController
         }
     }
 
-    public function addValueField()
-    {
-    }
-
     public function fetchViewValue($id, $field = null)
     {
         $validFields = array('timestamp', 'comment', 'distribution');
@@ -585,13 +581,71 @@ class ObjectsController extends AppController
         $this->render('ajax/objectEdit' . $fieldURL . 'Form');
     }
 
-    // return a form allowing to add an valid (from the template) object attribute to the object
-    public function quickAddAttributeForm($id, $fieldName = null) {
-        if (!$this->request->is('ajax')) {
-            throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
+    /* Construct a template with valid object attributes to add to an object */
+    public function quickFetchTemplateWithValidObjectAttributes($id) {
+        $this->MispObject->id = $id;
+        if (!$this->MispObject->exists()) {
+            throw new NotFoundException(__('Invalid object'));
         }
-        
-        if (!$this->request->is('post') && !$this->request->is('put')) {
+
+        $fields = array('template_uuid', 'template_version', 'id');
+        $params = array(
+            'conditions' => array('Object.id' => $id),
+            'fields' => $fields,
+            'flatten' => 1,
+        );
+
+        // fetchObjects restrict access based on user
+        $object = $this->MispObject->fetchObjects($this->Auth->user(), $params);
+        if (empty($object)) {
+            throw new NotFoundException(__('Invalid object'));
+        } else {
+            $object = $object[0];
+        }
+
+        // get object attributes already set
+        $objectRelation = array();
+        foreach($object['Attribute'] as $attr) {
+            $objectRelation[$attr['object_relation']] = 1;
+        }
+        $objectRelation = array_keys($objectRelation);
+
+        // get object attribute defined in the object's template
+        $template = $this->MispObject->ObjectTemplate->find('first', array(
+            'conditions' => array(
+                'ObjectTemplate.uuid' => $object['Object']['template_uuid'],
+                'ObjectTemplate.version' => $object['Object']['template_version'],
+            ),
+            'recursive' => -1,
+            'flatten' => 1,
+            'contain' => 'ObjectTemplateElement'
+        ));
+        if (empty($template)) {
+            throw new NotFoundException(__('Invalid template'));
+        }
+
+        // unset object invalid object attribute
+        foreach($template['ObjectTemplateElement'] as $i => $objAttr) {
+            if (in_array($objAttr['object_relation'], $objectRelation) && !$objAttr['multiple']) {
+                unset($template['ObjectTemplateElement'][$i]);
+            }
+        }
+
+        if ($this->request->is('get') || $this->request->is('post')) {
+            $this->set('template', $template);
+            $this->set('objectId', $object['Object']['id']);
+            $this->render('ajax/templateWithValidObjectAttributes');
+        } else {
+            return $template;
+        }
+    }
+
+    /**
+     * GET: Returns a form allowing to add a valid object attribute to an object
+     * POST/PUT: Add the attribute to the object
+     */
+    public function quickAddAttributeForm($id, $fieldName = null) {
+        if ($this->request->is('GET')) {
             if (!isset($fieldName)) {
                 throw new MethodNotAllowedException('No field requested.');
             }
@@ -600,7 +654,7 @@ class ObjectsController extends AppController
                 throw new NotFoundException(__('Invalid object'));
             }
 
-            $fields = array('template_uuid', 'template_version', 'id');
+            $fields = array('template_uuid', 'template_version', 'id', 'event_id');
             $params = array(
                 'conditions' => array('Object.id' => $id),
                 'fields' => $fields,
@@ -628,23 +682,33 @@ class ObjectsController extends AppController
                     ))
                 )
             ));
-            $template = $this->MispObject->prepareTemplate($template, $object);
-
             if (empty($template)) {
                 throw new NotFoundException(__('Invalid object'));
             }
+            
+            // check if fields can be added
+            foreach($object['Attribute'] as $i => $objAttr) {
+                $objectAttrFromTemplate = $template['ObjectTemplateElement'][0];
+                if ($objAttr['object_relation'] == $fieldName && !$objectAttrFromTemplate['multiple']) {
+                    throw new NotFoundException(__('Invalid field'));
+                }
+            }
 
-            //debug($template);
+            $template = $this->MispObject->prepareTemplate($template, $object);
+
             $this->layout = 'ajax';
             $this->set('object', $object['Object']);
             $this->set('template', $template);
             $distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());
             $this->set('distributionData', $distributionData);
+            $info = array();
+            foreach ($distributionData['levels'] as $key => $value) {
+                $info['distribution'][$key] = array('key' => $value, 'desc' => $this->MispObject->Event->Attribute->distributionDescriptions[$key]['formdesc']);
+            }
+            $this->set('info', $info);
             $this->render('ajax/quickAddAttributeForm');
-        } else {
-            debug('Youhou');
-            debug($this->request->data);
-            throw Exception();
+        } else if ($this->request->is('post') || $this->request->is('put')) {
+            $this->edit($this->request->data['Object']['id'], true);
         }
     }
 

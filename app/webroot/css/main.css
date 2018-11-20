@@ -287,8 +287,8 @@ td.highlight3 {
     line-height: normal;
     display: inline-block;
     position: relative;
-    top: -16px;
-    left: -1px;
+    top: -13px;
+    left: -4px;
     color: white;
     background-color: #1369a0;
     border: 0px;
@@ -843,6 +843,20 @@ a.proposal_link_red:hover {
 	line-height: 40px;
 	color: #333333;
 	border: 0;
+}
+
+.immutableAttributeDescription:before {
+    background: rgba(255, 255, 255, 0);
+    content: '';
+    margin-right: 5px;
+    margin-left: 2px;
+    border-left: 1px solid;
+    border-bottom: 1px solid;
+    height: 10px;
+    width: 5px;
+    position: relative;
+    display: block;
+    float: left;
 }
 
 .ajax_popover_form {
