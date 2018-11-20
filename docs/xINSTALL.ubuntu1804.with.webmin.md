@@ -3,14 +3,10 @@
 
 ### 0/ MISP Ubuntu 18.04-server install - status
 -------------------------
+!!! notice
+    Tested semi-working by @SteveClement on 20181120.
+
 {!generic/community.md!}
-
-#### Why Webmin/Virtualmin?
-Some may not be full time sysadmin and prefer a platform that once it has been setup works and is decently easy to manage.
-
-#### Assumptions
-Assuming you created the subdomanin misp.yourserver.tld to where MISP will be installed and that the user "misp" is in the sudoers group and that you have already configured SSL with Lets Encrypt on the subdomain.
-
 
 {!generic/globalVariables.md!}
 
@@ -20,6 +16,12 @@ PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
 VIRT_USER=misp.misp-vm.local
 PATH_TO_MISP=/home/${VIRT_USER}/public_html/MISP
 ```
+
+#### Why Webmin/Virtualmin?
+Some may not be full time sysadmin and prefer a platform that once it has been setup works and is decently easy to manage.
+
+#### Assumptions
+Assuming you created the subdomanin misp.yourserver.tld to where MISP will be installed and that the user "misp" is in the sudoers group and that you have already configured SSL with Lets Encrypt on the subdomain.
 
 ### 1/ Minimal Ubuntu install
 -------------------------
