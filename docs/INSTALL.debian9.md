@@ -391,7 +391,7 @@ sudo sed -i -e '$i \sudo -u www-data /var/www/MISP/venv/bin/misp-modules -l 127.
 sudo -u www-data bash $PATH_TO_MISP/app/Console/worker/start.sh
 
 # some misp-modules dependencies
-sudo apt-get install -y libpq5 libjpeg-dev libfuzzy-dev
+sudo apt-get install -y libfuzzy-dev python3-dev python3-pip libpq5 libjpeg-dev tesseract-ocr imagemagick
 
 sudo chmod 2775 /usr/local/src
 sudo chown root:staff /usr/local/src
