@@ -2898,6 +2898,20 @@ class Attribute extends AppModel
                 }
             }
             $results = $this->find('all', $params);
+			foreach ($results as $k => $result) {
+				if (!empty($result['AttributeTag'])) {
+					$tagCulled = false;
+					foreach ($result['AttributeTag'] as $k2 => $at) {
+						if (empty($at['Tag'])) {
+							unset($results[$k]['AttributeTag'][$k2]);
+							$tagCulled = true;
+						}
+					}
+					if ($tagCulled) {
+						$results[$k]['AttributeTag'] = array_values($results[$k]['AttributeTag']);
+					}
+				}
+			}
             if (!$loop) {
                 if (!empty($params['limit']) && count($results) < $params['limit']) {
                     $continue = false;
@@ -3764,7 +3778,7 @@ class Attribute extends AppModel
 				'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution'),
 				'withAttachments' => !empty($filters['withAttachments']) ? $filters['withAttachments'] : 0,
 				'enforceWarninglist' => !empty($filters['enforceWarninglist']) ? $filters['enforceWarninglist'] : 0,
-				'includeAllTags' => true,
+				'includeAllTags' => !empty($filters['includeAllTags']) ? $filters['includeAllTags'] : 0,
 				'flatten' => 1,
 				'includeEventUuid' => !empty($filters['includeEventUuid']) ? $filters['includeEventUuid'] : 0,
 				'includeEventTags' => !empty($filters['includeEventTags']) ? $filters['includeEventTags'] : 0
@@ -3852,5 +3866,5 @@ class Attribute extends AppModel
 		}
 		return true;
 	}
-	
+
 }
