@@ -9,76 +9,154 @@
 Some may not be full time sysadmin and prefer a platform that once it has been setup works and is decently easy to manage.
 
 #### Assumptions
-Assuming you created the subdomanin misp.yourserver.tld to where MISP will be installed and that the user "misp" is in the sudoers group and that you have already configured SSL with Lets Encrypt on the subdomain
+Assuming you created the subdomanin misp.yourserver.tld to where MISP will be installed and that the user "misp" is in the sudoers group and that you have already configured SSL with Lets Encrypt on the subdomain.
 
 
 {!generic/globalVariables.md!}
 
+```bash
+PHP_ETC_BASE=/etc/php/7.2
+PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
+VIRT_USER=misp.misp-vm.local
+PATH_TO_MISP=/home/${VIRT_USER}/public_html/MISP
+```
+
 ### 1/ Minimal Ubuntu install
 -------------------------
-# Make sure your system is up2date:
+
+#### Install a minimal Ubuntu 18.04-server system with the software:
+- OpenSSH server
+- This guide assumes a user name of 'misp' with sudo working
+
+{!generic/sudo_etckeeper.md!}
+
+{!generic/ethX.md!}
+
+#### Make sure your system is up2date
+```bash
 sudo apt-get update
 sudo apt-get upgrade
+```
 
-# Get Virtualmin
-wget http://software.virtualmin.com/gpl/scripts/install.sh
+#### Get Virtualmin
+```
+wget -O /tmp/install.sh http://software.virtualmin.com/gpl/scripts/install.sh
+```
 
-# Install it
-chmod +x install.sh
-./install.sh
+#### Install it
+```
+chmod +x /tmp/install.sh
+sudo /tmp/install.sh
+```
 
-# Grab a coffee while it does its magic
-
-2/ Configure basic Virtualmin environment
+### 2/ Configure basic Virtualmin environment
 ------------------------------
 Once the system is installed you can perform the following steps:
 
-# Install the dependencies: (some might already be installed)
-sudo apt-get install curl gcc git gnupg-agent make python openssl redis-server sudo vim zip
+#### Install the dependencies: (some might already be installed)
+```bash
+sudo apt-get install curl gcc git gnupg-agent make python openssl redis-server sudo vim zip virtualenv -y
+```
 
-# Stop MySQL and install MariaDB (a MySQL fork/alternative)
-# MariaDB will replace MySQL and it will work with the latests versions of Webmin without modifications
-# WARNING: Databases and data will be lost! It is assumed you are installing on a new server with no existing DBs
-# NOTE: at present, a simple...
-# 'sudo service mysql stop && sudo apt-get install mariadb-client mariadb-server'
-# ... doesn't work well with 18.04.1 so you should do the following:
-sudo apt purge mysql-client-5.7 mysql-client-core-5.7 mysql-common mysql-server-5.7 mysql-server-core-5.7 mysql-server
-# Issues may crop up if you leave MySQL configuration there so remove also config files in /etc/mysql.
-# Remove and cleanup packages
+#### Stop MySQL and install MariaDB (a MySQL fork/alternative)
+
+#### MariaDB will replace MySQL and it will work with the latests versions of Webmin without modifications
+!!! warning
+    Databases and data will be lost! It is assumed you are installing on a new server with no existing DBs
+
+!!! notice
+    At present, a simple...
+    ```bash
+    sudo service mysql stop && sudo apt-get install mariadb-client mariadb-server'
+    ```
+    ... doesn't work well with 18.04.1 so you should do the following:
+    ```bash
+    sudo apt purge mysql-client-5.7 mysql-client-core-5.7 mysql-common mysql-server-5.7 mysql-server-core-5.7 mysql-server
+    ```
+    ---> NOT VERIFIED, NEED TO CLARIFY <---
+
+Issues may arise if you leave the MySQL configuration in place, remove config files in /etc/mysql if needed.
+
+#### Remove and cleanup packages
+```bash
 sudo apt autoremove && sudo apt -f install
-# Add repositories for Mariadb 10.3 and install it
+```
+
+#### Add repositories for Mariadb 10.3 and install it
+```bash
 sudo apt-get install software-properties-common
 sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8
 sudo add-apt-repository 'deb [arch=amd64,arm64,ppc64el] http://mariadb.mirrors.ovh.net/MariaDB/repo/10.3/ubuntu bionic main'
 sudo apt update
-sudo apt install mariadb-server
+# Install MariaDB (a MySQL fork/alternative)
+sudo apt-get install mariadb-client mariadb-server -y
 
+# Make sure auth_socket.so is loaded
+grep auth_socket /etc/mysql/mariadb.conf.d/50-server.cnf
+## If not add this in the [mysqld] section
+### [mysqld]
+### plugin-load-add = auth_socket.so
+sudo systemctl restart mariadb.service
 
-# Secure the MariaDB installation (especially by setting a strong root password) if it hasn't been asked during the setup process.
-sudo mysql_secure_installation
+sudo apt install expect -y
 
-# Go through the post-installation Wizard and configure your misp.yourdomain.tld virtual server
-# That should create the misp user and related directories
-# Add the misp user to the sudo group
+# Add your credentials if needed, if sudo has NOPASS, comment out the relevant lines
+pw="Password1234"
 
-# Install PHP and dependencies
-sudo apt-get install libapache2-mod-php php php-cli php-gnupg php-dev php-json php-mysql php-opcache php-readline php-redis php-xml
-sudo pear channel-update pear.php.net
-sudo pear install Crypt_GPG
+expect -f - <<-EOF
+  set timeout 10
+
+  spawn sudo mysql_secure_installation
+  expect "*?assword*"
+  send -- "$pw\r"
+  expect "Enter current password for root (enter for none):"
+  send -- "\r"
+  expect "Set root password?"
+  send -- "y\r"
+  expect "New password:"
+  send -- "${DBPASSWORD_ADMIN}\r"
+  expect "Re-enter new password:"
+  send -- "${DBPASSWORD_ADMIN}\r"
+  expect "Remove anonymous users?"
+  send -- "y\r"
+  expect "Disallow root login remotely?"
+  send -- "y\r"
+  expect "Remove test database and access to it?"
+  send -- "y\r"
+  expect "Reload privilege tables now?"
+  send -- "y\r"
+  expect eof
+EOF
+sudo apt-get purge -y expect ; sudo apt autoremove -y
+```
+
+Go through the Webmin post-installation Wizard and configure your misp.yourdomain.tld virtual server
+
+That should create the 'misp' user and related directories
+Add the 'misp' user to the sudo group
+
+Also make sure the variable ${VIRT_USER} is set to the user you created when you created the virtual server. This might NOT be 'misp' but something completely different, like: 'misp.misp-vm.local' or 'misp.example.com' or 'misp-virtual'.
+
+#### Install PHP and dependencies
+```bash
+sudo apt-get install libapache2-mod-php php php-cli php-gnupg php-dev php-json php-mysql php-opcache php-readline php-redis php-xml php-mbstring -y
+```
 
 # Apply all changes
 sudo systemctl restart apache2
 
 ### 3/ MISP code
 ------------
-# Assuming you created the subdomanin misp.yourserver.tld
-# Download MISP using git in the /home/misp/public_html/ as misp
 
-sudo - misp
-# or log out root and log back in as misp
+Assuming you created the subdomain virtual server misp.yourserver.tld
+Download MISP using git in the /home/${VIRT_USER}/public_html/ as ${VIRT_USER}
 
-git clone https://github.com/MISP/MISP.git /home/misp/public_html/MISP
-cd /home/misp/public_html/MISP
+```
+sudo su - ${VIRT_USER}
+# or log out root and log back in as your virtual server user
+
+git clone https://github.com/MISP/MISP.git ${PATH_TO_MISP}
+cd ${PATH_TO_MISP}
 git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
 # if the last shortcut doesn't work, specify the latest version manually
 # example: git checkout tags/v2.4.XY
@@ -90,56 +168,68 @@ git submodule update --init --recursive
 # Make git ignore filesystem permission differences
 git submodule foreach --recursive git config core.filemode false
 
-# install Mitre's STIX and its dependencies by running the following commands:
-sudo apt-get install python3-dev python3-pip libxml2-dev libxslt1-dev zlib1g-dev python-setuptools python-pip
-cd /home/misp/public_html/MISP/app/files/scripts
+# Create a python3 virtualenv
+virtualenv -p python3 ${PATH_TO_MISP}/venv
+
+cd $PATH_TO_MISP/app/files/scripts
 git clone https://github.com/CybOXProject/python-cybox.git
 git clone https://github.com/STIXProject/python-stix.git
-cd /home/misp/public_html/MISP/app/files/scripts/python-cybox
-sudo python3 setup.py install
-cd /home/misp/public_html/MISP/app/files/scripts/python-stix
-sudo python3 setup.py install
+git clone https://github.com/MAECProject/python-maec.git
+cd $PATH_TO_MISP/app/files/scripts/python-cybox
+${PATH_TO_MISP}/venv/bin/pip install .
+cd $PATH_TO_MISP/app/files/scripts/python-stix
+${PATH_TO_MISP}/venv/bin/pip install .
+cd $PATH_TO_MISP/app/files/scripts/python-maec
+${PATH_TO_MISP}/venv/bin/pip install .
 
 # install mixbox to accommodate the new STIX dependencies:
-cd /home/misp/public_html/MISP/app/files/scripts/
+cd $PATH_TO_MISP/app/files/scripts/
 git clone https://github.com/CybOXProject/mixbox.git
-cd /home/misp/public_html/MISP/app/files/scripts/mixbox
-sudo python3 setup.py install
+cd $PATH_TO_MISP/app/files/scripts/mixbox
+${PATH_TO_MISP}/venv/bin/pip install .
 
 # install PyMISP
-pip install jsonschema
-cd /home/misp/public_html/MISP/PyMISP
-sudo python3 setup.py install
+cd $PATH_TO_MISP/PyMISP
+${PATH_TO_MISP}/venv/bin/pip install .
+```
 
-4/ CakePHP
+### 4/ CakePHP
 -----------
+```bash
 # CakePHP is included as a submodule of MISP
 
 # Install CakeResque along with its dependencies if you intend to use the built in background jobs:
-cd /home/misp/public_html/MISP/app
+cd ${PATH_TO_MISP}/app
 php composer.phar require kamisama/cake-resque:4.1.2
 php composer.phar config vendor-dir Vendor
 php composer.phar install
 
 # Enable CakeResque with php-redis
 sudo phpenmod redis
+sudo phpenmod gnupg
 
 # To use the scheduler worker for scheduled tasks, do the following:
-cp -fa /home/misp/public_html/MISP/INSTALL/setup/config.php /home/misp/public_html/MISP/app/Plugin/CakeResque/Config/config.php
+cp -fa ${PATH_TO_MISP}/INSTALL/setup/config.php ${PATH_TO_MISP}/app/Plugin/CakeResque/Config/config.php
 
+# If you have multiple MISP instances on the same system, don't forget to have a different Redis per MISP instance for the CakeResque workers
+# The default Redis port can be updated in Plugin/CakeResque/Config/config.php
+```
 
-5/ Set the permissions
+### 5/ Set the permissions
 ----------------------
 
+```bash
 # Check if the permissions are set correctly using the following commands:
-sudo chmod -R 770 /home/misp/public_html/MISP
-sudo chmod -R g+ws /home/misp/public_html/MISP/app/tmp
-sudo chmod -R g+ws /home/misp/public_html/MISP/app/files
-sudo chmod -R g+ws /home/misp/public_html/MISP/app/files/scripts/tmp
+sudo chown -R ${VIRT_USER}:${VIRT_USER} ${PATH_TO_MISP}
+sudo chmod -R 750 ${PATH_TO_MISP}
+sudo chmod -R g+ws ${PATH_TO_MISP}/app/tmp
+sudo chmod -R g+ws ${PATH_TO_MISP}/app/files
+sudo chmod -R g+ws ${PATH_TO_MISP}/app/files/scripts/tmp
+```
 
-
-6/ Create a database and user
+### 6/ Create a database and user
 -----------------------------
+```bash
 # Enter the mysql shell
 sudo mysql -u root -p
 
@@ -153,15 +243,15 @@ flush privileges;
 exit
 
 # Import the empty MISP database from MYSQL.sql
-mysql -u misp -p misp < /home/misp/public_html/MISP/INSTALL/MYSQL.sql
-# enter the password you set previously
+sudo -u ${VIRT_USER} cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
+```
 
 
-7/ Apache configuration
+### 7/ Apache configuration
 -----------------------
-# Most of it should have been done when you created the subdomain but add these changes as well
+Most of it should have been done when you created the subdomain but add these changes as well
 
-
+```bash
 # Under <VirtualHost <IP, FQDN, or *>:80>
 #        ServerName <your.FQDN.here>
 # add
@@ -187,17 +277,19 @@ mysql -u misp -p misp < /home/misp/public_html/MISP/INSTALL/MYSQL.sql
 # The rest should't require modifications. Restart Apache
 
 sudo service apache2 restart
+```
 
-9/ MISP configuration
+### 9/ MISP configuration
 ---------------------
-# There are 4 sample configuration files in /home/misp/public_html/MISP/app/Config that need to be copied
-cp -a /home/misp/public_html/MISP/app/Config/bootstrap.default.php /home/misp/public_html/MISP/app/Config/bootstrap.php
-cp -a /home/misp/public_html/MISP/app/Config/database.default.php /home/misp/public_html/MISP/app/Config/database.php
-cp -a /home/misp/public_html/MISP/app/Config/core.default.php /home/misp/public_html/MISP/app/Config/core.php
-cp -a /home/misp/public_html/MISP/app/Config/config.default.php /home/misp/public_html/MISP/app/Config/config.php
+```bash
+# There are 4 sample configuration files in ${PATH_TO_MISP}/app/Config that need to be copied
+cp -a ${PATH_TO_MISP}/app/Config/bootstrap.default.php ${PATH_TO_MISP}/app/Config/bootstrap.php
+cp -a ${PATH_TO_MISP}/app/Config/database.default.php ${PATH_TO_MISP}/app/Config/database.php
+cp -a ${PATH_TO_MISP}/app/Config/core.default.php ${PATH_TO_MISP}/app/Config/core.php
+cp -a ${PATH_TO_MISP}/app/Config/config.default.php ${PATH_TO_MISP}/app/Config/config.php
 
 # Configure the fields in the newly created files:
-vi /home/misp/public_html/MISP/app/Config/database.php
+vi ${PATH_TO_MISP}/app/Config/database.php
 # DATABASE_CONFIG has to be filled
 # With the default values provided in section 6, this would look like:
 # class DATABASE_CONFIG {
@@ -214,7 +306,7 @@ vi /home/misp/public_html/MISP/app/Config/database.php
 #   );
 #}
 
-# Important! Change the salt key in /home/misp/public_html/MISP/app/Config/config.php
+# Important! Change the salt key in ${PATH_TO_MISP}/app/Config/config.php
 # see line 7 (may change)
 # 'salt' => 'yoursaltkeyhere' 
 # The salt key must be a string at least 32 bytes long.
@@ -223,19 +315,40 @@ vi /home/misp/public_html/MISP/app/Config/database.php
 # delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
 
 # Change base url in config.php
-vi /home/misp/public_html/MISP/app/Config/config.php
+vi ${PATH_TO_MISP}/app/Config/config.php
 # example: 'baseurl' => 'https://<your.FQDN.here>',
 # alternatively, you can leave this field empty if you would like to use relative pathing in MISP
 # 'baseurl' => '',
 # 'email' => 'anemail@yourdomain.tld, set an email address that will be used for gpg
 
 # and make sure the file permissions are still OK
-chmod -R 750 /home/misp/public_html/MISP/app/Config
+chmod -R 750 ${PATH_TO_MISP}/app/Config
 
 # Generate a GPG encryption key.
-mkdir /home/misp/public_html/MISP/.gnupg
-chmod 700 /home/misp/public_html/MISP/.gnupg
 
+mkdir ${PATH_TO_MISP}/.gnupg
+chmod 700 ${PATH_TO_MISP}/.gnupg
+
+cat >/tmp/gen-key-script <<EOF
+    %echo Generating a default key
+    Key-Type: default
+    Key-Length: $GPG_KEY_LENGTH
+    Subkey-Type: default
+    Name-Real: $GPG_REAL_NAME
+    Name-Comment: $GPG_COMMENT
+    Name-Email: $GPG_EMAIL_ADDRESS
+    Expire-Date: 0
+    Passphrase: $GPG_PASSPHRASE
+    # Do a commit here, so that we can later print "done"
+    %commit
+    %echo done
+EOF
+
+gpg --homedir $PATH_TO_MISP/.gnupg --batch --gen-key /tmp/gen-key-script
+# The email address should match the one set in the config.php / set in the configuration menu in the administration menu configuration file
+
+# And export the public key to the webroot
+sh -c "gpg --homedir $PATH_TO_MISP/.gnupg --export --armor $GPG_EMAIL_ADDRESS" | tee $PATH_TO_MISP/app/webroot/gpg.asc
 
 # If you get no satisfaction with your entropy install this:
 sudo apt-get install haveged pv
@@ -246,17 +359,11 @@ haveged -n 0 | pv > /dev/null
 # It should start saying something like "Writing unlimited bytes to stdout"
 # let it run and go back to the previous shell
 
-gpg --homedir /home/misp/public_html/MISP/.gnupg --gen-key
-# The email address should match the one set in the config.php / set in the configuration menu in the administration menu configuration file
-
-# You can now Ctrel+C the running haveged in the other shell
+# You can now Ctrl+C the running haveged in the other shell
 # and return to the "install" shell
 
-# Export the public key to the webroot
-gpg --homedir /home/misp/public_html/MISP/.gnupg --export --armor YOUR-KEYS-EMAIL-HERE > /home/misp/public_html/MISP/app/webroot/gpg.asc
-
 # To make the background workers start on boot
-chmod +x /home/misp/public_html/MISP/app/Console/worker/start.sh
+chmod +x ${PATH_TO_MISP}/app/Console/worker/start.sh
 
 # Activate rc.local in systemd
 # Systemd developers, in their wisdom, decided to complicate things a bit so you'll have to
@@ -286,7 +393,7 @@ sudo vi /etc/rc.local
 #!/bin/bash
 
 # Then add this
-sudo -u misp bash /home/misp/public_html/MISP/app/Console/worker/start.sh
+sudo -u ${VIRT_USER} bash ${PATH_TO_MISP}/app/Console/worker/start.sh
 
 # If the file was empty add this as the last line
 exit 0
@@ -300,23 +407,24 @@ sudo systemctl enable rc-local
 #Start the rc-local compatibility layer and check if AOK
 sudo systemctl start rc-local.service
 sudo systemctl status rc-local.service
+```
 
 !!! notice
     Once done, have a look at the diagnostics
     If any of the directories that MISP uses to store files is not writeable to the apache user, change the permissions
     you can do this by running the following commands:
     ```
-    sudo chmod -R 770 /home/misp/public_html/MISP/<directory path with an indicated issue>
-    sudo chown -R misp:www-data /home/misp/public_html/MISP/<directory path with an indicated issue>
+    sudo chmod -R 770 ${PATH_TO_MISP}/<directory path with an indicated issue>
+    sudo chown -R misp:www-data ${PATH_TO_MISP}/<directory path with an indicated issue>
     ```
 
 !!! notice
     If anything goes wrong, make sure that you check MISP's logs for errors:
     ```
-    # /home/misp/public_html/MISP/app/tmp/logs/error.log
-    # /home/misp/public_html/MISP/app/tmp/logs/resque-worker-error.log
-    # /home/misp/public_html/MISP/app/tmp/logs/resque-scheduler-error.log
-    # /home/misp/public_html/MISP/app/tmp/logs/resque-2015-01-01.log // where the actual date is the current date
+    # ${PATH_TO_MISP}/app/tmp/logs/error.log
+    # ${PATH_TO_MISP}/app/tmp/logs/resque-worker-error.log
+    # ${PATH_TO_MISP}/app/tmp/logs/resque-scheduler-error.log
+    # ${PATH_TO_MISP}/app/tmp/logs/resque-2015-01-01.log // where the actual date is the current date
 ```
 
 {!generic/INSTALL.done.md!}

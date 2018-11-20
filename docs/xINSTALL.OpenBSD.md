@@ -225,7 +225,7 @@ doas rcctl enable httpd
 doas ln -sf /usr/local/bin/pip3.6 /usr/local/bin/pip
 doas ln -s /usr/local/bin/python3.6 /usr/local/bin/python
 doas pkg_add -v py-virtualenv
-doas mkdif /usr/local/virtualenvs
+doas mkdir /usr/local/virtualenvs
 doas virtualenv -ppython3 /usr/local/virtualenvs/MISP
 ```
 
