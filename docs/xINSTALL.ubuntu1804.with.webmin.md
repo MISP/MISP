@@ -433,6 +433,8 @@ sudo systemctl status rc-local.service
 
 {!generic/recommended.actions.md!}
 
+{!generic/hardening.md!}
+
 ### Optional features
 -----------------
 #### MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command

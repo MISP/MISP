@@ -480,3 +480,5 @@ sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install pyzmq
 {!generic/ssdeep-debian.md!}
 
 {!generic/mail_to_misp-debian.md!}
+
+{!generic/hardening.md!}

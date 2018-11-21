@@ -20,7 +20,7 @@ cmake .. && make
 sudo make install
 sudo ldconfig
 cd ../../mail_to_misp
-virtualenv -p python3 venv
+virtualenv -p python3.6 venv
 ./venv/bin/pip install -r requirements.txt
 cp mail_to_misp_config.py-example mail_to_misp_config.py
 
