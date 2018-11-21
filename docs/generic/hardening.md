@@ -24,3 +24,7 @@ Nevertheless here is a very rough **food for thoughts** bulletpoint list for you
 ## Resources
 
 [Debian Wiki Hardening](https://wiki.debian.org/Hardening)
+
+[CentOS Hardening](https://wiki.centos.org/HowTos/OS_Protection)
+
+[Some Linux hardening tips](https://www.cyberciti.biz/tips/linux-security.html)
