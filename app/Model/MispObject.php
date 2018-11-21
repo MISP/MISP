@@ -47,6 +47,17 @@ class MispObject extends AppModel
     );
 
     public $validate = array(
+		'uuid' => array(
+			'uuid' => array(
+				'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
+				'message' => 'Please provide a valid UUID'
+			),
+			'unique' => array(
+				'rule' => 'isUnique',
+				'message' => 'The UUID provided is not unique',
+				'required' => 'create'
+			)
+		)
     );
 
     public function beforeValidate($options = array())

@@ -650,7 +650,7 @@ class StixParser():
         return tags
 
     def parse_TLP_marking(self, marking):
-        return 'tlp:{}'.format(marking.color.lower())
+        return ['tlp:{}'.format(marking.color.lower())]
 
     ################################################################################
     ##          FUNCTIONS HANDLING PARSED DATA, USED BY BOTH SUBCLASSES.          ##
@@ -727,7 +727,7 @@ class StixParser():
     @staticmethod
     def fetch_uuid(object_id):
         try:
-            return "-".join(object_id.split("-")[1:])
+            return "-".join(object_id.split("-")[-5:])
         except Exception:
             return str(uuid.uuid4())
 

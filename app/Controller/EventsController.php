@@ -1268,7 +1268,8 @@ class EventsController extends AppController
                 }
             }
         }
-        $params = $this->Event->rearrangeEventForView($event);
+        $passedArgs = array('sort' => 'timestamp', 'direction' => 'desc');
+        $params = $this->Event->rearrangeEventForView($event, $passedArgs);
         $this->params->params['paging'] = array($this->modelClass => $params);
         $this->set('event', $event);
         $dataForView = array(
@@ -2731,7 +2732,9 @@ class EventsController extends AppController
 		} else {
 			$filename = 'misp.csv.filtered_results.csv';
 		}
-
+		if (!isset($filters['ignore'])) {
+			$filters['ignore'] = 0;
+		}
 		$final = $this->Event->restSearch($user, 'csv', $filters);
         // if it's a search, grab the attributeIDList from the session and get the IDs from it. Use those as the condition
         // We don't need to look out for permissions since that's filtered by the search itself
