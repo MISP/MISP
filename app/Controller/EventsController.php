@@ -4336,9 +4336,6 @@ class EventsController extends AppController
             throw new MethodNotAllowedException('Invalid type.');
         }
 
-        $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        $seenSupported = $this->AdminSetting->getSetting('seenOnAttributeAndObject');
-
         App::uses('EventTimelineTool', 'Tools');
         $grapher = new EventTimelineTool();
         $data = $this->request->is('post') ? $this->request->data : array();

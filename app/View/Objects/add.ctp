@@ -71,8 +71,12 @@
         ));
       ?>
     </dd>
-
-	<?php echo $this->element('form_seen_input'); ?>
+        
+<?php
+    if ($seenSupported) {
+	echo $this->element('form_seen_input');
+    }
+?>
 
   </dl>
 </div>

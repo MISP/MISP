@@ -266,6 +266,8 @@ class ObjectsController extends AppController
             $this->set('event', $event);
             $this->set('action', 'add');
             $this->set('template', $template);
+            $seenSupported = $this->MispObject->additionalFeatureEnabled('seenOnAttributeAndObject');
+            $this->set('seenSupported', $seenSupported);
         }
     }
 
@@ -432,6 +434,8 @@ class ObjectsController extends AppController
         $this->set('template', $template);
         $this->set('action', 'edit');
         $this->set('object', $object);
+        $seenSupported = $this->MispObject->additionalFeatureEnabled('seenOnAttributeAndObject');
+        $this->set('seenSupported', $seenSupported);
         $this->render('add');
     }
 
@@ -469,7 +473,7 @@ class ObjectsController extends AppController
             }
         }
         $validFields = array('comment', 'distribution');
-        $this->MispObject->Attribute->addFieldsBasedOnUpdate($validFields);
+        $this->MispObject->addFieldsBasedOnUpdate($validFields);
         $changed = false;
         if (empty($this->request->data['Object'])) {
             $this->request->data = array('Object' => $this->request->data);
@@ -514,7 +518,7 @@ class ObjectsController extends AppController
     public function fetchViewValue($id, $field = null)
     {
         $validFields = array('timestamp', 'comment', 'distribution');
-        $this->MispObject->Attribute->addFieldsBasedOnUpdate($validFields);
+        $this->MispObject->addFieldsBasedOnUpdate($validFields);
         if (!isset($field) || !in_array($field, $validFields)) {
             throw new MethodNotAllowedException('Invalid field requested.');
         }
@@ -552,7 +556,7 @@ class ObjectsController extends AppController
     public function fetchEditForm($id, $field = null)
     {
         $validFields = array('distribution', 'comment');
-        $this->MispObject->Attribute->addFieldsBasedOnUpdate($validFields);
+        $this->MispObject->addFieldsBasedOnUpdate($validFields);
         if (!isset($field) || !in_array($field, $validFields)) {
             throw new MethodNotAllowedException('Invalid field requested.');
         }

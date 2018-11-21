@@ -457,8 +457,8 @@ class RestResponseComponent extends Component
 		if (!$this->__setup) {
                     // add fields if applicable
                     $this->Attribute = ClassRegistry::init('Attribute');
-                    $this->Attribute->addFieldsBasedOnUpdate($this->__descriptions['Attribute']['add']['optional']);
-                    $this->Attribute->addFieldsBasedOnUpdate($this->__descriptions['Attribute']['edit']['optional']);
+                    $this->addFieldsBasedOnUpdate($this->__descriptions['Attribute']['add']['optional']);
+                    $this->addFieldsBasedOnUpdate($this->__descriptions['Attribute']['edit']['optional']);
 
 			$scopes = array('Event', 'Attribute', 'Sighting');
 			foreach ($scopes as $scope) {

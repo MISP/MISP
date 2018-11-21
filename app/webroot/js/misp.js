@@ -579,9 +579,7 @@ function quickFetchValidObjectAttribute(objectId) {
             showMessage('fail', 'Could not fetch allowed attribute type.');
         },
         complete:function() {
-            //$("#popover_form").fadeOut();
-            //$("#gray_out").fadeOut();
-            //$(".loading").hide();
+            $(".loading").hide();
         },
         type: "get",
         url: compiledUrlForm
@@ -600,15 +598,12 @@ function fetchAddObjectAttributeForm(objectId, fieldName) {
         success:function (data, textStatus) {
             $('#popover_form').html(data);
             openPopup('#popover_form');
-            //handleGenericAjaxResponse(data);
         },
         error:function() {
             showMessage('fail', 'Could not fetch allowed attribute type.');
         },
         complete:function() {
-            //$("#popover_form").fadeOut();
-            //$("#gray_out").fadeOut();
-            //$(".loading").hide();
+            $(".loading").hide();
         },
         type: "get",
         url: compiledUrlForm

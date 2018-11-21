@@ -650,6 +650,9 @@ class AppController extends Controller
         return $data;
     }
 
+
+
+
     // pass an action to this method for it to check the active user's access to the action
     public function checkAction($action = 'perm_sync')
     {

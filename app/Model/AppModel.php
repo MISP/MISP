@@ -1322,6 +1322,25 @@ class AppModel extends Model
         }
     }
 
+    public function addFieldsBasedOnUpdate(&$fieldsAtt, $context = null) {
+        if (is_null($context)) {
+            $alias = $this->alias;
+        } else {
+            $alias = $context;
+        }
+        if ($this->additionalFeatureEnabled('seenOnAttributeAndObject')) {
+            //  DB have *_seen columns
+            array_push($fieldsAtt, $alias . '.first_seen', $alias . '.last_seen');
+        }
+    }
+
+    public function additionalFeatureEnabled($featureName) {
+        if (!isset($this->AdminSetting)) {
+            $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        }
+        return $this->AdminSetting->getSetting('seenOnAttributeAndObject');
+    }
+
     public function checkMISPVersion()
     {
         App::uses('Folder', 'Utility');

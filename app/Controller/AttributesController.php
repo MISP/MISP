@@ -402,6 +402,8 @@ class AttributesController extends AppController
         $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
         $this->set('published', $events['Event']['published']);
         $this->set('action', $this->action);
+        $seenSupported = $this->Attribute->additionalFeatureEnabled('seenOnAttributeAndObject');
+        $this->set('seenSupported', $seenSupported);
     }
 
     public function download($id = null)
@@ -1067,6 +1069,8 @@ class AttributesController extends AppController
         $this->loadModel('Noticelist');
         $notice_list_triggers = $this->Noticelist->getTriggerData();
         $this->set('notice_list_triggers', json_encode($notice_list_triggers, true));
+        $seenSupported = $this->Attribute->additionalFeatureEnabled('seenOnAttributeAndObject');
+        $this->set('seenSupported', $seenSupported);
         $this->render('add');
     }
 
