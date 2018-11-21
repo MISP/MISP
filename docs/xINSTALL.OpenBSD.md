@@ -891,3 +891,5 @@ doas $CAKE Admin setSetting "Plugin.ZeroMQ_include_attachments" false
 doas $CAKE Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false
 doas $CAKE Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false
 ```
+
+{!generic/hardening.md!}

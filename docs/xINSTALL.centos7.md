@@ -507,3 +507,5 @@ sudo sed -i -e '$i \sudo -u apache /var/www/MISP/venv/bin/misp-modules -l 127.0.
 {!generic/INSTALL.done.md!}
 
 {!generic/recommended.actions.md!}
+
+{!generic/hardening.md!}

@@ -537,3 +537,5 @@ su -s /bin/bash apache -c 'scl enable rh-php71 rh-redis32 rh-mariadb102 /var/www
 !!! note 
     No other functions were tested after the conclusion of this install. There may be issue that aren't addressed<br />
     via this guide and will need additional investigation.
+
+{!generic/hardening.md!}
