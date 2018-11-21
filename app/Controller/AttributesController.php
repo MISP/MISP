@@ -910,7 +910,7 @@ class AttributesController extends AppController
                 }
                 if ($skipTimeCheck || $this->request->data['Attribute']['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
                     $recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment');
-                    $this->addFieldsBasedOnUpdate($recoverFields);
+                    $this->Attribute->addFieldsBasedOnUpdate($recoverFields);
                     foreach ($recoverFields as $rF) {
                         if (!isset($this->request->data['Attribute'][$rF])) {
                             $this->request->data['Attribute'][$rF] = $existingAttribute['Attribute'][$rF];
@@ -971,7 +971,7 @@ class AttributesController extends AppController
                 }
                 if ($this->_isRest() || $this->response->type() === 'application/json') {
                     $searchFields = array('id', 'type', 'to_ids', 'category', 'uuid', 'event_id', 'distribution', 'timestamp', 'comment', 'value', 'disable_correlation');
-                    $this->addFieldsBasedOnUpdate($searchFields);
+                    $this->Attribute->addFieldsBasedOnUpdate($searchFields);
                     $saved_attribute = $this->Attribute->find('first', array(
                             'conditions' => array('id' => $this->Attribute->id),
                             'recursive' => -1,
@@ -1107,7 +1107,7 @@ class AttributesController extends AppController
             $this->Attribute->Event->insertLock($this->Auth->user(), $this->Attribute->data['Attribute']['event_id']);
         }
         $validFields = array('value', 'category', 'type', 'comment', 'to_ids', 'distribution');
-        $this->addFieldsBasedOnUpdate($validFields);
+        $this->Attribute->addFieldsBasedOnUpdate($validFields);
         $changed = false;
         if (empty($this->request->data['Attribute'])) {
             $this->request->data = array('Attribute' => $this->request->data);
@@ -1595,7 +1595,7 @@ class AttributesController extends AppController
 				$this->request->data['ignore'] = 1;
 			}
 			$paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags');
-                        $this->addFieldsBasedOnUpdate($paramArray);
+                        $this->Attribute->addFieldsBasedOnUpdate($paramArray);
 	        $filterData = array(
 	            'request' => $this->request,
 	            'named_params' => $this->params['named'],
@@ -1779,7 +1779,7 @@ class AttributesController extends AppController
 
     public function restSearch($returnFormat = 'json', $value = false, $type = false, $category = false, $org = false, $tags = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $uuid = false, $publish_timestamp = false, $published = false, $timestamp = false, $enforceWarninglist = false, $to_ids = false, $deleted = false, $includeEventUuid = false, $event_timestamp = false, $threat_level_id = false) {
         $paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags');
-        $this->addFieldsBasedOnUpdate($paramArray);
+        $this->Attribute->addFieldsBasedOnUpdate($paramArray);
         $filterData = array(
             'request' => $this->request,
             'named_params' => $this->params['named'],
@@ -2221,7 +2221,7 @@ class AttributesController extends AppController
     public function fetchViewValue($id, $field = null)
     {
         $validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution', 'timestamp');
-        $this->addFieldsBasedOnUpdate($validFields);
+        $this->Attribute->addFieldsBasedOnUpdate($validFields);
         if (!isset($field) || !in_array($field, $validFields)) {
             throw new MethodNotAllowedException(__('Invalid field requested.'));
         }
@@ -2269,7 +2269,7 @@ class AttributesController extends AppController
     public function fetchEditForm($id, $field = null)
     {
         $validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution');
-        $this->addFieldsBasedOnUpdate($validFields);
+        $this->Attribute->addFieldsBasedOnUpdate($validFields);
         if (!isset($field) || !in_array($field, $validFields)) {
             throw new MethodNotAllowedException(__('Invalid field requested.'));
         }

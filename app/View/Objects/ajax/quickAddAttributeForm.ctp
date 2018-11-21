@@ -114,7 +114,12 @@
    </fieldset>
 
     <div class="overlay_spacing">
-        <?php echo $this->Form->button('Submit', array('class' => 'btn btn-primary')); ?>
+    <?php if ($ajax): ?>
+        <span id="submitButton" class="btn btn-primary" style="margin-bottom:5px;float:left;" title="<?php echo __('Submit'); ?>" role="button" tabindex="0" aria-label="<?php echo __('Submit'); ?>" onClick="submitPopoverForm('<?php echo h($object['id']); ?>', 'quickAddAttributeForm', <?php echo h($object['event_id']); ?>)"><?php echo __('Submit'); ?></span>
+    <?php else:
+            echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
+        endif;
+    ?>
         <span class="btn btn-inverse" style="float:right;" title="<?php echo __('Cancel'); ?>" role="button" tabindex="0" aria-label="<?php echo __('Cancel'); ?>" id="cancel_attribute_add"><?php echo __('Cancel'); ?></span>
     </div>
 

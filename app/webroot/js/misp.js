@@ -1050,6 +1050,9 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 		case 'addObjectReference':
 			url = "/objectReferences/add/" + context_id;
 			break;
+            case 'quickAddAttributeForm':
+                url = "/objects/quickAddAttributeForm/" + context_id;
+                break;
 	}
 	if (url !== null) {
 		// execute potential listener before submitting

@@ -1088,6 +1088,12 @@ class EventsController extends AppController
             }
         }
 
+        if (!isset($this->passedArgs['sort'])) {
+            $this->passedArgs['sort'] = 'timestamp';
+        }
+        if (!isset($this->passedArgs['direction'])) {
+            $this->passedArgs['direction'] = 'desc';
+        }
         $params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
         $this->params->params['paging'] = array($this->modelClass => $params);
         // workaround to get the event dates in to the attribute relations

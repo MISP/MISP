@@ -359,9 +359,11 @@ class ObjectsController extends AppController
             }
             $objectToSave = $this->MispObject->attributeCleanup($this->request->data);
             $objectToSave = $this->MispObject->deltaMerge($object, $objectToSave, $onlyAddNewAttribute);
+
             // we pre-validate the attributes before we create an object at this point
             // This allows us to stop the process and return an error (API) or return
             //  to the add form
+
             if (empty($error)) {
                 if ($this->_isRest()) {
                     if (is_numeric($objectToSave)) {
@@ -376,10 +378,28 @@ class ObjectsController extends AppController
                         return $this->RestResponse->saveFailResponse('Objects', 'add', false, $id, $this->response->type());
                     }
                 } else {
-                    $this->MispObject->Event->unpublishEvent($object['Object']['event_id']);
-                    $this->Flash->success('Object saved.');
-                    $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
+                    $message = 'Object attributes saved.';
+                    $error_message = 'Object attributes could not be saved.';
+                    if ($this->request->is('ajax')) {
+                        $this->autoRender = false;
+                        if (is_numeric($objectToSave)) {
+                            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)),'status' => 200, 'type' => 'json'));
+                        } else {
+                            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $error_message)),'status' => 200, 'type' => 'json'));
+                        }
+                    } else {
+                        if (is_numeric($objectToSave)) {
+                            $this->Flash->success($message);
+                            $this->MispObject->Event->unpublishEvent($object['Object']['event_id']);
+                        } else {
+                            $this->Flash->error($error_message);
+                        }
+                        $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
+                    }
                 }
+            } else {
+                $this->autoRender = false;
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'error' => $error)),'status' => 200, 'type' => 'json'));
             }
         } else {
             $enabledRows = array();
@@ -685,6 +705,9 @@ class ObjectsController extends AppController
             if (empty($template)) {
                 throw new NotFoundException(__('Invalid object'));
             }
+            if (empty($template['ObjectTemplateElement'])) {
+                throw new NotFoundException(__('Invalid fields') . ' `' . h($fieldName) . '`');
+            }
             
             // check if fields can be added
             foreach($object['Attribute'] as $i => $objAttr) {
@@ -708,7 +731,7 @@ class ObjectsController extends AppController
             $this->set('info', $info);
             $this->render('ajax/quickAddAttributeForm');
         } else if ($this->request->is('post') || $this->request->is('put')) {
-            $this->edit($this->request->data['Object']['id'], true);
+            return $this->edit($this->request->data['Object']['id'], true);
         }
     }
 

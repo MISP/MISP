@@ -767,6 +767,7 @@ class Attribute extends AppModel
         if ($seenSupported) {
             array_push($fieldsAtt, 'Attribute.first_seen', 'Attribute.last_seen');
         }
+        // this->alias // add string based on model
     }
 
 

@@ -591,6 +591,7 @@ class MispObject extends AppModel
                 $this->Event->Attribute->save($originalAttribute);
             }
         } else { // we only add new attribute
+            $this->Event->Attribute->create();
             $newAttribute = $objectToSave['Attribute'][0];
             $newAttribute['event_id'] = $object['Object']['event_id'];
             $newAttribute['object_id'] = $object['Object']['id'];
