@@ -1127,7 +1127,7 @@ class AppModel extends Model
                         ADD INDEX `first_seen` (`first_seen`),
                         ADD INDEX `last_seen` (`last_seen`),
                         ADD INDEX `comment` (`comment`(767))
-                    ";
+                    ;";
                 $sqlArray[] = "
                     ALTER TABLE `objects`
                         ADD `first_seen` DATETIME(6) NULL DEFAULT NULL,
