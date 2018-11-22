@@ -4343,6 +4343,7 @@ class EventsController extends AppController
 
         $extended = isset($this->params['named']['extended']) ? 1 : 0;
 
+        $seenSupported = $this->Event->additionalFeatureEnabled('seenOnAttributeAndObject');
         $grapher->construct($this->Event, $this->Auth->user(), $seenSupported, $dataFiltering, $extended);
         $json = $grapher->get_timeline($id);
 

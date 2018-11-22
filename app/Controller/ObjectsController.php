@@ -88,6 +88,8 @@ class ObjectsController extends AppController
         $this->set('template', $template);
         $this->set('object_id', $object_id);
         $this->set('event', $event);
+        $seenSupported = $this->MispObject->additionalFeatureEnabled('seenOnAttributeAndObject');
+        $this->set('seenSupported', $seenSupported);
         $this->set('data', $this->request->data);
     }
 
