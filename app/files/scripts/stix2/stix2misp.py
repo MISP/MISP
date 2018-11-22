@@ -947,7 +947,9 @@ class ExternalStixParser(StixParser):
                                    ('x509-certificate',): self.parse_x509_observable,
                                    ('url',): self.parse_url_observable,
                                    ('windows-registry-key',): self.parse_regkey_observable}
-        self.pattern_mapping = {('file',): self.parse_file_pattern,
+        self.pattern_mapping = {('domain-name', 'ipv4-addr', 'url'): self.parse_domain_ip_port_pattern,
+                                ('domain-name', 'ipv6-addr', 'url'): self.parse_domain_ip_port_pattern,
+                                ('file',): self.parse_file_pattern,
                                 ('network-traffic',): self.parse_network_traffic_pattern,
                                 ('process',): self.parse_process_pattern,
                                 ('windows-registry-key',): self.parse_regkey_pattern}
@@ -1069,6 +1071,14 @@ class ExternalStixParser(StixParser):
     def parse_domain_ip_observable(self, objects, uuid):
         attributes = self.attributes_from_domain_ip_observable(objects)
         self.handle_import_case(attributes, 'domain-ip', uuid)
+
+    def parse_domain_ip_port_pattern(self, pattern, uuid=None):
+        for p in pattern:
+            type_, value = p.split('=')
+            types.append(type_.strip())
+            values.append(value.strip().strip('\''))
+        pattern_types, pattern_values = self.get_types_and_values_from_pattern(pattern)
+        pattern = {type_.split(':')[0]: {}}
 
     def parse_email_observable(self, objects, uuid):
         to_ids = False
