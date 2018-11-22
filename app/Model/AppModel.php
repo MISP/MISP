@@ -70,7 +70,7 @@ class AppModel extends Model
         1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
         7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
         13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false,
-        21 => false, 22 => false, 23 => false, 24 => false, 25 => false
+        21 => false, 22 => false, 23 => false, 24 => false, 25 => false, 26 => false
     );
 
     public $advanced_updates_description = array(
@@ -1070,6 +1070,11 @@ class AppModel extends Model
 				$this->__addIndex('galaxy_clusters', 'uuid');
 				$this->__addIndex('galaxy_clusters', 'collection_uuid');
 				break;
+            case 26:
+                # missing index from update 2.4.85
+                $indexArray[] = array('attributes', 'deleted');
+                break;
+
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1099,7 +1104,7 @@ class AppModel extends Model
                         DROP INDEX object_id,
                         DROP INDEX object_relation,
                         DROP INDEX deleted
-                    ";
+                    ;";
                 $sqlArray[] =
                     "ALTER TABLE `attributes`
                         ADD COLUMN `first_seen` DATETIME(6) NULL DEFAULT NULL,
