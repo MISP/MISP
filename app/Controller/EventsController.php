@@ -4022,7 +4022,7 @@ class EventsController extends AppController
                     ),
                     'Forensic analysis' => array(
                         'url' => '/events/upload_analysis_file/'.$id,
-                        'text' => 'Forensic analysis - Mactime',
+                        'text' => '(Experimental) Forensic analysis - Mactime',
                         'ajax' => false,
                 )
             );
@@ -5141,7 +5141,7 @@ class EventsController extends AppController
         $this->set('eventId', $eventId);
         $this->set('file_uploaded', "0");
         $this->set('file_name', "");
-    
+
         if (!$this->userRole['perm_modify']) {
             throw new UnauthorizedException('You do not have permission to do that.');
         }
@@ -5166,7 +5166,7 @@ class EventsController extends AppController
                     'template_version' => 1,
                     'template_uuid' => '9297982e-be62-4772-a665-c91f5a8d639'
                 );
-                            
+
                 $object['Attribute'] = array(
                     [
                         "event_id" => $eventId,
@@ -5224,7 +5224,7 @@ class EventsController extends AppController
                         "data" => base64_encode($fileData),
                         "comment" => "Mactime source file"
                     ]
-                    
+
                     );
                 $this->loadModel('MispObject');
                 $ObjectResult = $this->MispObject->saveObject($object, $eventId, "", "");
@@ -5233,7 +5233,7 @@ class EventsController extends AppController
                     'fields' => array('Object.uuid','Object.id'),
                     'conditions' => array('Object.id' =>$ObjectResult)
                 ));
-                
+
                 if ($firstObject === 0) {
                     $objectRef['referenced_id'] = $PreviousObjRef['Object']['id'];
                     $objectRef['referenced_uuid'] = $PreviousObjRef['Object']['uuid'];

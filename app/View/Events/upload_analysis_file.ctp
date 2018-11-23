@@ -56,7 +56,7 @@
 						?>
 					</fieldset>
 				</div>
-				
+
 				<?php
 					echo $this->Form->button(__('Create Objects'), array('class' => 'btn btn-primary'));
 					echo $this->Form->end();
@@ -69,7 +69,7 @@
 			<h3>Select text for further analysis</h3>
 			<div id="textToSelect" class="raisedbox noselect">
 				<div id="fileContent" style="display:none;">
-					<p>	
+					<p>
 					<?php
 						if($file_uploaded == "1")
 						{
@@ -90,20 +90,19 @@
 					<tbody></tbody>
 				</table>
 			</div>
-			
+
 		</div>
 		<div style="clear:both;"></div>
 	</div>
-	
+
 </div>
 
 <?php
-echo $eventId;
 	$event['Event']['id'] = $eventId;
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'addAttribute', 'event' => $event));
 ?>
 <style>
-	.selectedLines td, 
+	.selectedLines td,
 	.selectedLines th {
 		border:solid 2px #0044cc;
 	}
@@ -127,10 +126,10 @@ var selText = clearText =fileContent = '';
 var linesArray = [];
 var rowSelected;
 $("#accordion1").accordion({
-	heightStyle: "content" 
+	heightStyle: "content"
     })
 $("#accordion2").accordion({
-	  heightStyle: "content" 
+	  heightStyle: "content"
     })
 if(afterUpload == 1)
 {
@@ -143,7 +142,7 @@ if(afterUpload == 1)
 	for(var i=0; i<linesArray.length;i++)
 	{
 		processString(linesArray[i]);
-		
+
 	}
 }
 $("input[type='checkbox']").change(function (e) {
@@ -164,7 +163,7 @@ $("input[type='checkbox']").change(function (e) {
 			}
 			i++;
 		}
-		
+
     });
 	if(i > 0)
 	{
@@ -174,9 +173,9 @@ $("input[type='checkbox']").change(function (e) {
 	}
 	else
 		$('#object_templates').hide();
-	
 
-	
+
+
 });
 
 
@@ -189,7 +188,7 @@ function processString(text)
 	//time expressions
 	var Regx2 = new RegExp("([01]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]");
 	var arr = Regx1.exec(text);
-	
+
 	if(Regx2.exec(text) != null)
 	{
 		if(arr != null)
@@ -197,7 +196,7 @@ function processString(text)
 			time_accessed = arr[0];
 			text = text.replace(arr[0],'').trim();
 		}
-		
+
 		text = text.replace(/[\n\r]/g, '').trim();
 		seperate_analysis = text.split(/[  ]+/);
 		size = seperate_analysis[0];
@@ -221,7 +220,7 @@ function processString(text)
 			activity += (activity != '')?',':'';
 			activity += "Modified";
 		}
-		
+
 		permissions = seperate_analysis[2];
 		filepath = seperate_analysis[6]
 		if(seperate_analysis[7])
@@ -236,12 +235,12 @@ function processString(text)
 				.append($('<td>').text(activity))
 				.append($('<td>').text(time_accessed))
 				.append($('<td>').text(permissions))
-				
-				
+
+
 		);
 	}
-	
-		
+
+
 }
 function unhighlight(){
  var fileTable = document.getElementById('individualLines');
