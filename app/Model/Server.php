@@ -2242,7 +2242,7 @@ class Server extends AppModel
         }
         $sgs = $this->Event->SharingGroup->find('all', array(
             'recursive' => -1,
-            'contain' => array('Organisation', 'SharingGroupOrg', 'SharingGroupServer')
+            'contain' => array('Organisation', 'SharingGroupOrg' => array('Organisation'), 'SharingGroupServer')
         ));
         $sgIds = array();
         foreach ($sgs as $k => $sg) {
