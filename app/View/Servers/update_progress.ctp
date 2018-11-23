@@ -15,7 +15,7 @@ if ($updateProgress['update_prog_tot'] !== 0 ) {
         <div class="" style="max-width: 1000px;">
             
             <div class="progress progress-striped" style="max-width: 1000px;">
-                <div id="pb-progress" class="bar" style="width: <?php echo h($percentage);?>%;"><?php echo h($percentage);?>%</div>
+                <div id="pb-progress" class="bar" style="font-weight: bold; width: <?php echo h($percentage);?>%;"><?php echo h($percentage);?>%</div>
                 <div id="pb-fail" class="bar" style="width: <?php echo h($percentageFail);?>%; background-color: #ee5f5b;"></div>
             </div>
 
@@ -49,6 +49,21 @@ if ($updateProgress['update_prog_tot'] !== 0 ) {
                             $rowClass =  'class="alert alert-danger"';
                             $rowIcon =  '<i id="icon-' . $i . '" class="fa fa-times-circle-o"></i>';
                         }
+
+                        if (isset($updateProgress['update_prog_msg']['time']['started'][$i])) {
+                            $datetimeStart = $updateProgress['update_prog_msg']['time']['started'][$i];
+                            if (isset($updateProgress['update_prog_msg']['time']['elapsed'][$i])) {
+                                $updateDuration = $updateProgress['update_prog_msg']['time']['elapsed'][$i];
+                            } else { // compute elapsed based on started
+                                $temp = new DateTime();
+                                $temp->sub(new DateTime($datetimeStart));
+                                $diff = $temp->diff(new DateTime($messages['time']['started'][$index]));
+                                $updateDuration = $diff->format('%H:%I:%S');
+                            }
+                        } else {
+                            $datetimeStart = null;
+                            $updateDuration = null;
+                        }
                     ?>
                         <tr id="row-<?php echo $i; ?>" <?php echo $rowClass; ?> >
                             <td><?php echo $rowIcon; ?></td>
@@ -58,6 +73,11 @@ if ($updateProgress['update_prog_tot'] !== 0 ) {
                                         <span class="foldable fa fa-terminal"></span>
                                         <?php echo __('Update ') . ($i+1); ?>
                                         <span class="inline-term"><?php echo h(substr($cmd, 0, 60)) . (strlen($cmd) > 60 ? '[...]' : '' );?></span>
+                                        <?php if (!is_null($datetimeStart)): ?>
+                                            <span class="label"><?php echo __('Started @ ') . h($datetimeStart); ?></span>
+                                            <span class="label"><?php echo __('Elasped Time @ ') . h($updateDuration); ?></span>
+                                        <?php endif; ?>
+
                                     </a>
                                     <div data-terminalid="<?php echo $i;?>" style="display: none; margin-top: 5px;">
                                         <div id="termcmd-<?php echo $i;?>" class="div-terminal">
