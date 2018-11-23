@@ -1390,17 +1390,17 @@ class UsersController extends AppController
         if ($isPostOrPut) {
             $recipient = $this->request->data['User']['recipient'];
         } else {
-            $recipient = isset($this->request->query['recipient']) ? $this->request->query['recipient'] : NULL;
+            $recipient = isset($this->request->query['recipient']) ? $this->request->query['recipient'] : null;
         }
         if ($isPostOrPut) {
             $recipientEmailList = $this->request->data['User']['recipientEmailList'];
         } else {
-            $recipientEmailList = isset($this->request->query['recipientEmailList']) ? $this->request->query['recipientEmailList'] : NULL;
+            $recipientEmailList = isset($this->request->query['recipientEmailList']) ? $this->request->query['recipientEmailList'] : null;
         }
         if ($isPostOrPut) {
             $orgNameList = $this->request->data['User']['orgNameList'];
         } else {
-            $orgNameList = isset($this->request->query['orgNameList']) ? $this->request->query['orgNameList'] : NULL;
+            $orgNameList = isset($this->request->query['orgNameList']) ? $this->request->query['orgNameList'] : null;
         }
 
         if (!is_null($recipient) && $recipient == 0) {
@@ -1408,7 +1408,7 @@ class UsersController extends AppController
                 throw new NotFoundException(__('Recipient email not provided'));
             }
             $conditions['id'] = $recipientEmailList;
-        } else if (!is_null($recipient) && $recipient == 2) {
+        } elseif (!is_null($recipient) && $recipient == 2) {
             if (is_null($orgNameList)) {
                 throw new NotFoundException(__('Recipient organisation not provided'));
             }
@@ -1562,15 +1562,15 @@ class UsersController extends AppController
         $params = array(
             'fields' => array('name'),
             'recursive' => -1,
-			'conditions' => array()
+            'conditions' => array()
         );
         if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
             $params['conditions'] = array('Organisation.id' => $this->Auth->user('org_id'));
         }
         $orgs = $this->User->Organisation->find('all', $params);
-		$local_orgs_params = $params;
-		$local_orgs_params['conditions']['Organisation.local'] = 1;
-		$local_orgs = $this->User->Organisation->find('all', $local_orgs_params);
+        $local_orgs_params = $params;
+        $local_orgs_params['conditions']['Organisation.local'] = 1;
+        $local_orgs = $this->User->Organisation->find('all', $local_orgs_params);
         $this->loadModel('Log');
         $year = date('Y');
         $month = date('n');
@@ -1596,10 +1596,10 @@ class UsersController extends AppController
         $stats['proposal_count'] = $this->User->Event->ShadowAttribute->find('count', array('recursive' => -1));
 
         $stats['user_count'] = $this->User->find('count', array('recursive' => -1));
-		$stats['user_count_pgp'] = $this->User->find('count', array('recursive' => -1, 'conditions' => array('User.gpgkey !=' => '')));
+        $stats['user_count_pgp'] = $this->User->find('count', array('recursive' => -1, 'conditions' => array('User.gpgkey !=' => '')));
         $stats['org_count'] = count($orgs);
-		$stats['local_org_count'] = count($local_orgs);
-		$stats['average_user_per_org'] = round($stats['user_count'] / $stats['local_org_count'], 1);
+        $stats['local_org_count'] = count($local_orgs);
+        $stats['average_user_per_org'] = round($stats['user_count'] / $stats['local_org_count'], 1);
 
         $this->loadModel('Thread');
         $stats['thread_count'] = $this->Thread->find('count', array('conditions' => array('Thread.post_count >' => 0), 'recursive' => -1));

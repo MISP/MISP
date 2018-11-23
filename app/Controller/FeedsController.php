@@ -127,9 +127,9 @@ class FeedsController extends AppController
         $tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
         $tags[0] = 'None';
         $this->set('tags', $tags);
-		if (empty($this->request->data['Feed']['fixed_event'])) {
-			$this->request->data['Feed']['fixed_event'] = 1;
-		}
+        if (empty($this->request->data['Feed']['fixed_event'])) {
+            $this->request->data['Feed']['fixed_event'] = 1;
+        }
         if ($this->request->is('post')) {
             if ($this->_isRest()) {
                 if (empty($this->request->data['Feed'])) {

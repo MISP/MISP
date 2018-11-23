@@ -48,7 +48,7 @@ class ACLComponent extends Component
                     'edit' => array('perm_add'),
                     'editField' => array('perm_add'),
                     'editSelected' => array('perm_add'),
-					'exportSearch' => array('*'),
+                    'exportSearch' => array('*'),
                     'fetchEditForm' => array('perm_add'),
                     'fetchViewValue' => array('*'),
                     'generateCorrelation' => array(),
@@ -186,7 +186,7 @@ class ACLComponent extends Component
             ),
             'galaxyClusters' => array(
                 'attachToEvent' => array('perm_tagger'),
-				'delete' => array('perm_site_admin'),
+                'delete' => array('perm_site_admin'),
                 'detach' => array('perm_tagger'),
                 'index' => array('*'),
                 'view' => array('*')
@@ -314,7 +314,7 @@ class ACLComponent extends Component
                     'edit' => array(),
                     'fetchServersForSG' => array('*'),
                     'filterEventIndex' => array(),
-					'getApiInfo' => array('*'),
+                    'getApiInfo' => array('*'),
                     'getGit' => array(),
                     'getInstanceUUID' => array('perm_sync'),
                     'getPyMISPVersion' => array('*'),
@@ -474,7 +474,7 @@ class ACLComponent extends Component
                     'view' => array('*'),
             ),
             'warninglists' => array(
-					'checkValue' => array('perm_auth'),
+                    'checkValue' => array('perm_auth'),
                     'delete' => array(),
                     'enableWarninglist' => array(),
                     'getToggleField' => array(),
@@ -549,9 +549,9 @@ class ACLComponent extends Component
 
     private function __error($code, $message, $soft = false)
     {
-		if ($soft) {
-			return $code;
-		}
+        if ($soft) {
+            return $code;
+        }
         switch ($code) {
             case 404:
                 throw new NotFoundException($message);

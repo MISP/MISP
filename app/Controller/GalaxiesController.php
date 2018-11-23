@@ -35,8 +35,8 @@ class GalaxiesController extends AppController
         if (!empty($this->params['named']['force'])) {
             $force = 1;
         } else {
-			$force = 0;
-		}
+            $force = 0;
+        }
         $result = $this->Galaxy->update($force);
         $message = 'Galaxies updated.';
         if ($this->_isRest()) {
