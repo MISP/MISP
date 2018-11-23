@@ -39,29 +39,29 @@ class Job extends AppModel
                 'org_id' => $user['Role']['perm_site_admin'] ? 0 : $user['org_id'],
                 'message' => 'Fetching events.',
         );
-		$this->save($data);
-		$id = $this->id;
-		$this->Event = ClassRegistry::init('Event');
-		if (in_array($type, array_keys($this->Event->export_types))) {
-			$process_id = CakeResque::enqueue(
-					'cache',
-					$shell . 'Shell',
-					array('cache', $user['id'], $id, $type),
-					true
-			);
-		} else if ($type === 'bro') {
+        $this->save($data);
+        $id = $this->id;
+        $this->Event = ClassRegistry::init('Event');
+        if (in_array($type, array_keys($this->Event->export_types))) {
+            $process_id = CakeResque::enqueue(
+                    'cache',
+                    $shell . 'Shell',
+                    array('cache', $user['id'], $id, $type),
+                    true
+            );
+        } elseif ($type === 'bro') {
             $extra = $type;
             $type = 'bro';
             $extra2 = isset($user['nids_sid']) ? $user['nids_sid'] : 0;
-			$process_id = CakeResque::enqueue(
-					'cache',
-					$shell . 'Shell',
-					array('cache' . $type, $user['id'], $id, $extra, $extra2),
-					true
-			);
+            $process_id = CakeResque::enqueue(
+                    'cache',
+                    $shell . 'Shell',
+                    array('cache' . $type, $user['id'], $id, $extra, $extra2),
+                    true
+            );
         } else {
-			throw new MethodNotAllowedException('Invalid export type.');
-		}
+            throw new MethodNotAllowedException('Invalid export type.');
+        }
         $this->saveField('process_id', $process_id);
         return $id;
     }
