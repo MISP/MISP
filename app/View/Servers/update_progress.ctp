@@ -61,8 +61,8 @@ if ($updateProgress['update_prog_tot'] !== 0 ) {
                                 $updateDuration = $diff->format('%H:%I:%S');
                             }
                         } else {
-                            $datetimeStart = null;
-                            $updateDuration = null;
+                            $datetimeStart = '';
+                            $updateDuration = '';
                         }
                     ?>
                         <tr id="row-<?php echo $i; ?>" <?php echo $rowClass; ?> >
@@ -73,10 +73,14 @@ if ($updateProgress['update_prog_tot'] !== 0 ) {
                                         <span class="foldable fa fa-terminal"></span>
                                         <?php echo __('Update ') . ($i+1); ?>
                                         <span class="inline-term"><?php echo h(substr($cmd, 0, 60)) . (strlen($cmd) > 60 ? '[...]' : '' );?></span>
-                                        <?php if (!is_null($datetimeStart)): ?>
-                                            <span class="label"><?php echo __('Started @ ') . h($datetimeStart); ?></span>
-                                            <span class="label"><?php echo __('Elasped Time @ ') . h($updateDuration); ?></span>
-                                        <?php endif; ?>
+                                        <span class="label">
+                                            <?php echo __('Started @ '); ?>
+                                            <span id="startedTime-<?php echo $i; ?>"><?php echo h($datetimeStart); ?></span>
+                                        </span>
+                                        <span class="label">
+                                            <?php echo __('Elapsed Time @ '); ?>
+                                            <span id="elapsedTime-<?php echo $i; ?>"><?php echo h($updateDuration); ?></span>
+                                        </span>
 
                                     </a>
                                     <div data-terminalid="<?php echo $i;?>" style="display: none; margin-top: 5px;">
@@ -191,7 +195,7 @@ if ($updateProgress['update_prog_tot'] !== 0 ) {
             }
 
             if (cur >= tot || failArray.indexOf(cur) != -1) {
-                clearInterval(pooler);
+                //clearInterval(pooler);
             }
         });
     }
@@ -206,6 +210,17 @@ if ($updateProgress['update_prog_tot'] !== 0 ) {
             var div = $('#termres-'+i);
             div.css('display', '');
             create_spans_from_message(div, msg);
+        });
+        messages.time.started.forEach(function(startedText, i) {
+            var elapsedText = messages.time.elapsed[i];
+            if (elapsedText === undefined) {
+                var diff = new Date((new Date()).getTime() - (new Date(startedText)).getTime());
+                elapsedText = pad(diff.getUTCHours(), 2)
+                    + ':' + pad(diff.getUTCMinutes(), 2)
+                    + ':' + pad(diff.getUTCSeconds(), 2);
+            }
+            console.log(elapsedText)
+            update_times(i, startedText, elapsedText)
         });
     }
 
@@ -260,4 +275,13 @@ if ($updateProgress['update_prog_tot'] !== 0 ) {
         var pbF = $('#pb-fail');
         pbF.css('width', percFail+'%');
     }
+
+    function update_times(i, startedText, elapsedText) {
+        var started = $('#startedTime-'+i);
+        var elapsed = $('#elapsedTime-'+i);
+        started.text(startedText);
+        elapsed.text(elapsedText);
+    }
+
+    function pad(num, size){ return ('000000000' + num).substr(-size); }
 </script>

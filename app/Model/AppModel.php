@@ -1147,9 +1147,9 @@ class AppModel extends Model
                 break;
 
             case 'testUpdate':
-                $sqlArray[] = "SELECT SLEEP(4);";
-                $sqlArray[] = "SELECT SLEEP(4);";
-                $sqlArray[] = "SELECT SLEEP(4);";
+                $sqlArray[] = "SELECT SLEEP(10);";
+                $sqlArray[] = "SELECT SLEEPsdcfsac(4);";
+                $sqlArray[] = "SELECT SLEEP(12);";
                 break;
 
             default:
@@ -1469,12 +1469,13 @@ class AppModel extends Model
         $this->AdminSetting->changeSetting('update_prog_cur', $current);
         if ($total !== false) {
             $this->AdminSetting->changeSetting('update_prog_tot', $total);
+        } else {
+            $messages = json_decode($this->AdminSetting->getSetting('update_prog_msg'), true);
+            $now = new DateTime();
+            $messages['time']['started'][$current] = $now->format('Y-m-d H:i:s');
+            $data = json_encode($messages);
+            $this->AdminSetting->changeSetting('update_prog_msg', $data);
         }
-        $messages = json_decode($this->AdminSetting->getSetting('update_prog_msg'), true);
-        $now = new DateTime();
-        $messages['time']['started'][$current] = $now->format('Y-m-d H:i:s');
-        $data = json_encode($messages);
-        $this->AdminSetting->changeSetting('update_prog_msg', $data);
     }
     
     private function __setUpdateError($index) {
