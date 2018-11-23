@@ -2976,9 +2976,17 @@ class EventsController extends AppController
     // the last 4 fields accept the following operators:
     // && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
     // ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-    public function restSearch($returnFormat = 'json', $value = false, $type = false, $category = false, $org = false, $tags = false, $searchall = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $metadata = false, $uuid = false, $publish_timestamp = false, $timestamp = false, $published = false, $enforceWarninglist = false, $sgReferenceOnly = false)
+    public function restSearch(
+		$returnFormat = 'json', $value = false, $type = false, $category = false, $org = false, $tags = false,
+		$searchall = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false,
+		$metadata = false, $uuid = false, $publish_timestamp = false, $timestamp = false, $published = false, $enforceWarninglist = false,
+		$sgReferenceOnly = false
+	)
     {
-        $paramArray = array('value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly');
+        $paramArray = array(
+			'value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments',
+			'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly'
+		);
         $filterData = array(
             'request' => $this->request,
             'named_params' => $this->params['named'],
@@ -3002,9 +3010,10 @@ class EventsController extends AppController
 		if ($returnFormat === 'download') {
 			$returnFormat = 'json';
 		}
-		$final = $this->Event->restSearch($user, $returnFormat, $filters);
+		$elementCounter = 0;
+		$final = $this->Event->restSearch($user, $returnFormat, $filters, false, false, $elementCounter);
 		$responseType = $this->Event->validFormats[$returnFormat][0];
-		return $this->RestResponse->viewData($final, $responseType, false, true);
+		return $this->RestResponse->viewData($final, $responseType, false, true, false, array('X-result-count' => $elementCounter));
     }
 
     public function downloadOpenIOCEvent($key, $eventid, $enforceWarninglist = false)

@@ -2796,6 +2796,38 @@ class Attribute extends AppModel
                 )
             )
         );
+		if ($options['includeProposals']) {
+			$this->bindModel(
+				array('hasMany' => array(
+						'ShadowAttribute' => array(
+							'className' => 'ShadowAttribute',
+							'foreignKey' => 'old_id',
+							'conditions' => array('ShadowAttribute.deleted' => 0)
+						)
+					)
+				)
+			);
+			$params['contain']['ShadowAttribute'] = array('fields' => array(
+				"id",
+				"old_id",
+				"event_id",
+				"type",
+				"category",
+				"value1",
+				"to_ids",
+				"uuid",
+				"value2",
+				"org_id",
+				"event_org_id",
+				"comment",
+				"event_uuid",
+				"deleted",
+				"timestamp",
+				"proposal_to_delete",
+				"disable_correlation",
+				"value"
+			));
+		}
         if (empty($options['includeAllTags'])) {
             $params['contain']['AttributeTag']['Tag']['conditions']['exportable'] = 1;
         }
@@ -3454,6 +3486,8 @@ class Attribute extends AppModel
         unset($attribute['id']);
         if (isset($attribute['encrypt'])) {
             $result = $this->handleMaliciousBase64($eventId, $attribute['value'], $attribute['data'], array('md5'));
+			$attribute['data'] = $result['data'];
+			$attribute['value'] = $attribute['value'] . '|' . $result['md5'];
         }
         $fieldList = $this->captureFields;
         $this->create();
@@ -3743,7 +3777,7 @@ class Attribute extends AppModel
 		return $conditions;
 	}
 
-	public function restSearch($user, $returnFormat, $filters, $paramsOnly = false, $jobId = false)
+	public function restSearch($user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0)
 	{
 		if (!isset($this->validFormats[$returnFormat][1])) {
 			throw new NotFoundException('Invalid output format.');
@@ -3781,7 +3815,8 @@ class Attribute extends AppModel
 				'includeAllTags' => !empty($filters['includeAllTags']) ? $filters['includeAllTags'] : 0,
 				'flatten' => 1,
 				'includeEventUuid' => !empty($filters['includeEventUuid']) ? $filters['includeEventUuid'] : 0,
-				'includeEventTags' => !empty($filters['includeEventTags']) ? $filters['includeEventTags'] : 0
+				'includeEventTags' => !empty($filters['includeEventTags']) ? $filters['includeEventTags'] : 0,
+				'includeProposals' => !empty($filters['includeProposals']) ? $filters['includeProposals'] : 0
 		);
 		if (isset($filters['include_event_uuid'])) {
 			$params['includeEventUuid'] = $filters['include_event_uuid'];
@@ -3829,7 +3864,7 @@ class Attribute extends AppModel
 			$loop = true;
 			$params['page'] = 1;
 		}
-		$this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams);
+		$this->__iteratedFetch($user, $params, $loop, $tmpfile, $exportTool, $exportToolParams, $elementCounter);
 		fwrite($tmpfile, $exportTool->footer($exportToolParams));
 		fseek($tmpfile, 0);
 		$final = fread($tmpfile, fstat($tmpfile)['size']);
@@ -3837,7 +3872,7 @@ class Attribute extends AppModel
 		return $final;
 	}
 
-	private function __iteratedFetch($user, &$params, &$loop, &$tmpfile, $exportTool, $exportToolParams) {
+	private function __iteratedFetch($user, &$params, &$loop, &$tmpfile, $exportTool, $exportToolParams, &$elementCounter = 0) {
 		$continue = true;
 		while ($continue) {
 			$this->Whitelist = ClassRegistry::init('Whitelist');
@@ -3848,6 +3883,7 @@ class Attribute extends AppModel
 			$i = 0;
 			$temp = '';
 			foreach ($results as $attribute) {
+				$elementCounter++;
 				$temp .= $exportTool->handler($attribute, $exportToolParams);
 				if ($temp !== '') {
 					if ($i != count($results) -1) {

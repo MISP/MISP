@@ -5454,7 +5454,7 @@ class Event extends AppModel
 		}
 	}
 
-	public function restSearch($user, $returnFormat, $filters, $paramsOnly = false, $jobId = false)
+	public function restSearch($user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0)
 	{
 		if (!isset($this->validFormats[$returnFormat][1])) {
 			throw new NotFoundException('Invalid output format.');
@@ -5534,6 +5534,7 @@ class Event extends AppModel
             );
 			if (!empty($result)) {
 				foreach ($result as $event) {
+					$elementCounter++;
 					if ($jobId && $i%10 == 0) {
 						$this->Job->saveField('progress', intval((100 * $i) / $eventCount));
 						$this->Job->saveField('message', 'Converting Event ' . $i . '/' . $eventCount . '.');

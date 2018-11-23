@@ -1769,7 +1769,7 @@ class AttributesController extends AppController
     }
 
     public function restSearch($returnFormat = 'json', $value = false, $type = false, $category = false, $org = false, $tags = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $uuid = false, $publish_timestamp = false, $published = false, $timestamp = false, $enforceWarninglist = false, $to_ids = false, $deleted = false, $includeEventUuid = false, $event_timestamp = false, $threat_level_id = false) {
-        $paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags');
+        $paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags', 'includeProposals');
         $filterData = array(
             'request' => $this->request,
             'named_params' => $this->params['named'],
@@ -1794,9 +1794,10 @@ class AttributesController extends AppController
 		if ($returnFormat === 'download') {
 			$returnFormat = 'json';
 		}
-		$final = $this->Attribute->restSearch($user, $returnFormat, $filters);
+		$elementCounter = 0;
+		$final = $this->Attribute->restSearch($user, $returnFormat, $filters, false, false, $elementCounter);
         $responseType = $validFormats[$returnFormat][0];
-        return $this->RestResponse->viewData($final, $responseType, false, true);
+        return $this->RestResponse->viewData($final, $responseType, false, true, false, array('X-result-count' => $elementCounter));
     }
 
     // returns an XML with attributes that belong to an event. The type of attributes to be returned can be restricted by type using the 3rd parameter.

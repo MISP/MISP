@@ -45,7 +45,7 @@ class RestResponseComponent extends Component
 					Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export).
 					This API allows pagination via the page and limit parameters.",
 				'mandatory' => array('returnFormat'),
-				'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo'),
+				'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'includeProposals'),
 				'params' => array()
 			)
         ),
@@ -352,7 +352,7 @@ class RestResponseComponent extends Component
         return $this->__sendResponse($response, 200, $format);
     }
 
-    private function __sendResponse($response, $code, $format = false, $raw = false, $download = false)
+    private function __sendResponse($response, $code, $format = false, $raw = false, $download = false, $headers = array())
     {
         if (strtolower($format) === 'application/xml' || strtolower($format) === 'xml') {
             if (!$raw) {
@@ -382,6 +382,11 @@ class RestResponseComponent extends Component
             $type = 'json';
         }
         $cakeResponse = new CakeResponse(array('body'=> $response, 'status' => $code, 'type' => $type));
+		if (!empty($headers)) {
+			foreach ($headers as $key => $value) {
+				$cakeResponse->header($key, $value);
+			}
+		}
         if ($download) {
             $cakeResponse->download($download);
         }
@@ -404,12 +409,12 @@ class RestResponseComponent extends Component
         return array('action' => $action, 'admin' => $admin);
     }
 
-    public function viewData($data, $format = false, $errors = false, $raw = false, $download = false)
+    public function viewData($data, $format = false, $errors = false, $raw = false, $download = false, $headers = array())
     {
         if (!empty($errors)) {
             $data['errors'] = $errors;
         }
-        return $this->__sendResponse($data, 200, $format, $raw, $download);
+        return $this->__sendResponse($data, 200, $format, $raw, $download, $headers);
     }
 
 	public function sendFile($path, $format = false, $download = false, $name = 'download') {
