@@ -1823,7 +1823,7 @@ class Server extends AppModel
             } elseif (is_string($eventIds)) {
                 return array('error' => array(2, $eventIds));
             }
-			$eventModel = ClassRegistry::init('Event');
+            $eventModel = ClassRegistry::init('Event');
             $local_event_ids = $eventModel->find('list', array(
                     'fields' => array('uuid'),
                     'recursive' => -1,
@@ -1919,7 +1919,8 @@ class Server extends AppModel
         $event = $eventModel->downloadEventFromServer(
                 $eventId,
                 $server
-        );;
+        );
+        ;
         if (!empty($event)) {
             if ($this->__checkIfEventIsBlockedBeforePull($event)) {
                 return false;
@@ -2004,27 +2005,27 @@ class Server extends AppModel
         // if we are downloading a single event, don't fetch all proposals
         $conditions = is_numeric($technique) ? array('Event.id' => $technique) : array();
         $eventIds = $this->__getEventIdListBasedOnPullTechnique($technique, $server);
-		if (!empty($eventIds['error'])) {
-			$errors = array(
-				'1' => __('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting.'),
-				'2' => $eventIds['error'][1],
-				'3' => __('Sorry, this is not yet implemented'),
-				'4' => __('Something went wrong while trying to pull')
-			);
-			$this->Log = ClassRegistry::init('Log');
-			$this->Log->create();
-			$this->Log->save(array(
-				'org' => $user['Organisation']['name'],
-				'model' => 'Server',
-				'model_id' => $id,
-				'email' => $user['email'],
-				'action' => 'error',
-				'user_id' => $user['id'],
-				'title' => 'Failed pull from ' . $server['Server']['url'] . ' initiated by ' . $email,
-				'change' => !empty($errors[$eventIds['error'][0]]) ? $errors[$eventIds['error'][0]] : __('Unknown issue.')
-			));
-			return !empty($errors[$eventIds['error'][0]]) ? $errors[$eventIds['error'][0]] : __('Unknown issue.');
-		}
+        if (!empty($eventIds['error'])) {
+            $errors = array(
+                '1' => __('Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting.'),
+                '2' => $eventIds['error'][1],
+                '3' => __('Sorry, this is not yet implemented'),
+                '4' => __('Something went wrong while trying to pull')
+            );
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            $this->Log->save(array(
+                'org' => $user['Organisation']['name'],
+                'model' => 'Server',
+                'model_id' => $id,
+                'email' => $user['email'],
+                'action' => 'error',
+                'user_id' => $user['id'],
+                'title' => 'Failed pull from ' . $server['Server']['url'] . ' initiated by ' . $email,
+                'change' => !empty($errors[$eventIds['error'][0]]) ? $errors[$eventIds['error'][0]] : __('Unknown issue.')
+            ));
+            return !empty($errors[$eventIds['error'][0]]) ? $errors[$eventIds['error'][0]] : __('Unknown issue.');
+        }
         $successes = array();
         $fails = array();
         // now process the $eventIds to pull each of the events sequentially
@@ -2039,22 +2040,22 @@ class Server extends AppModel
                 }
             }
         }
-		if (!empty($fails)) {
-			$this->Log = ClassRegistry::init('Log');
-			foreach ($fails as $eventid => $message) {
-				$this->Log->create();
-				$this->Log->save(array(
-					'org' => $user['Organisation']['name'],
-					'model' => 'Server',
-					'model_id' => $id,
-					'email' => $user['email'],
-					'action' => 'pull',
-					'user_id' => $user['id'],
-					'title' => 'Failed to pull event #' . $eventid . '.',
-					'change' => 'Reason:' . $message
-				));
-			}
-		}
+        if (!empty($fails)) {
+            $this->Log = ClassRegistry::init('Log');
+            foreach ($fails as $eventid => $message) {
+                $this->Log->create();
+                $this->Log->save(array(
+                    'org' => $user['Organisation']['name'],
+                    'model' => 'Server',
+                    'model_id' => $id,
+                    'email' => $user['email'],
+                    'action' => 'pull',
+                    'user_id' => $user['id'],
+                    'title' => 'Failed to pull event #' . $eventid . '.',
+                    'change' => 'Reason:' . $message
+                ));
+            }
+        }
         if ($jobId) {
             $job->saveField('message', 'Pulling proposals.');
         }
@@ -2063,7 +2064,7 @@ class Server extends AppModel
                 'recursive' => -1,
                 'conditions' => $conditions
         ));
-		$pulledProposals = array();
+        $pulledProposals = array();
         if (!empty($events)) {
             $proposals = $eventModel->downloadProposalsFromServer($events, $server);
             $pulledProposals = $this->__handlePulledProposals($proposals, $events, $job, $jobId, $eventModel, $user);
@@ -2201,32 +2202,32 @@ class Server extends AppModel
         $this->Event = ClassRegistry::init('Event');
         $this->read(null, $id);
         $url = $this->data['Server']['url'];
-		$push = $this->checkVersionCompatibility($id, $user);
-		if (isset($push['canPush']) && !$push['canPush']) {
-			$push = 'Remote instance is outdated.';
-		}
-		if (!is_array($push)) {
-			$message = sprintf('Push to server %s failed. Reason: %s', $id, $push);
-			$this->Log = ClassRegistry::init('Log');
-	        $this->Log->create();
-	        $this->Log->save(array(
-	                'org' => $user['Organisation']['name'],
-	                'model' => 'Server',
-	                'model_id' => $id,
-	                'email' => $user['email'],
-	                'action' => 'error',
-	                'user_id' => $user['id'],
-	                'title' => 'Failed: Push to ' . $url . ' initiated by ' . $user['email'],
-	                'change' => $message
-	        ));
-			if ($jobId) {
-				$job->id = $jobId;
-				$job->saveField('progress', 100);
-				$job->saveField('message', $message);
-				$job->saveField('status', 4);
-			}
-			return $push;
-		}
+        $push = $this->checkVersionCompatibility($id, $user);
+        if (isset($push['canPush']) && !$push['canPush']) {
+            $push = 'Remote instance is outdated.';
+        }
+        if (!is_array($push)) {
+            $message = sprintf('Push to server %s failed. Reason: %s', $id, $push);
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            $this->Log->save(array(
+                    'org' => $user['Organisation']['name'],
+                    'model' => 'Server',
+                    'model_id' => $id,
+                    'email' => $user['email'],
+                    'action' => 'error',
+                    'user_id' => $user['id'],
+                    'title' => 'Failed: Push to ' . $url . ' initiated by ' . $user['email'],
+                    'change' => $message
+            ));
+            if ($jobId) {
+                $job->id = $jobId;
+                $job->saveField('progress', 100);
+                $job->saveField('message', $message);
+                $job->saveField('status', 4);
+            }
+            return $push;
+        }
         if ("full" == $technique) {
             $eventid_conditions_key = 'Event.id >';
             $eventid_conditions_value = 0;
@@ -2360,7 +2361,7 @@ class Server extends AppModel
         } else {
             return array($successes, $fails);
         }
-		return true;
+        return true;
     }
 
     public function getEventIdsForPush($id, $HttpSocket, $eventIds, $user)
@@ -2719,10 +2720,9 @@ class Server extends AppModel
             } else {
                 return 'Binary file not executable. It is of type: ' . finfo_file($finfo, $value);
             }
-        }
-        else {
+        } else {
             return false;
-       }
+        }
     }
 
     public function testForWritableDir($value)
@@ -3403,34 +3403,34 @@ class Server extends AppModel
         try {
             $response = $HttpSocket->get($uri, '', $request);
         } catch (Exception $e) {
-			$error = $e->getMessage;
+            $error = $e->getMessage;
         }
-		if (!isset($response) || $response->code != '200') {
-			$this->Log = ClassRegistry::init('Log');
-			$this->Log->create();
-			if (isset($response->code)) {
-				$title = 'Error: Connection to the server has failed.' . (isset($response->code) ? ' Returned response code: ' . $response->code : '');
-			} else {
-				$title = 'Error: Connection to the server has failed. The returned exception\'s error message was: ' . $e->getMessage();
-			}
-			$this->Log->save(array(
-					'org' => $user['Organisation']['name'],
-					'model' => 'Server',
-					'model_id' => $id,
-					'email' => $user['email'],
-					'action' => 'error',
-					'user_id' => $user['id'],
-					'title' => $title
-			));
-			return $title;
-		}
+        if (!isset($response) || $response->code != '200') {
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            if (isset($response->code)) {
+                $title = 'Error: Connection to the server has failed.' . (isset($response->code) ? ' Returned response code: ' . $response->code : '');
+            } else {
+                $title = 'Error: Connection to the server has failed. The returned exception\'s error message was: ' . $e->getMessage();
+            }
+            $this->Log->save(array(
+                    'org' => $user['Organisation']['name'],
+                    'model' => 'Server',
+                    'model_id' => $id,
+                    'email' => $user['email'],
+                    'action' => 'error',
+                    'user_id' => $user['id'],
+                    'title' => $title
+            ));
+            return $title;
+        }
         $remoteVersion = json_decode($response->body, true);
         $canPush = isset($remoteVersion['perm_sync']) ? $remoteVersion['perm_sync'] : false;
         $remoteVersion = explode('.', $remoteVersion['version']);
         if (!isset($remoteVersion[0])) {
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
-			$message = __('Error: Server didn\'t send the expected response. This may be because the remote server version is outdated.');
+            $message = __('Error: Server didn\'t send the expected response. This may be because the remote server version is outdated.');
             $this->Log->save(array(
                     'org' => $user['Organisation']['name'],
                     'model' => 'Server',
@@ -3796,10 +3796,10 @@ class Server extends AppModel
             }
         }
         $worker_array['proc_accessible'] = $procAccessible;
-		$worker_array['controls'] = 1;
-		if (Configure::check('MISP.manage_workers')) {
-			$worker_array['controls'] = Configure::read('MISP.manage_workers');
-		}
+        $worker_array['controls'] = 1;
+        if (Configure::check('MISP.manage_workers')) {
+            $worker_array['controls'] = Configure::read('MISP.manage_workers');
+        }
         return $worker_array;
     }
 
