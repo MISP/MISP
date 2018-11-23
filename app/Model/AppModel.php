@@ -75,14 +75,23 @@ class AppModel extends Model
 
     public $advanced_updates_description = array(
         array(
-            'id' => 'seenOnAttributeAndObject',
+            'id' => 'seenOnAttributeAndObject', # id to be saved in admoin_table (use to check if done)
             'title' => 'First seen/Last seen Attribute table',
             'description' => 'Update the Attribute table to support first_seen and last_seen feature, with a microsecond resolution.',
+            'liveOff' => true, # should the instance be offline for users other than site_admin
+            'recommendBackup' => true, # should the update recommend backup
+            'exitOnError' => true, # should the update exit on error
+            'url' => '/servers/updateDatabase/seenOnAttributeAndObject/' # url pointing to the funcion performing the update
+        ),
+        array(
+            'id' => 'testUpdate',
+            'title' => 'Test Update',
+            'description' => 'Runs a test update',
             'liveOff' => true,
             'recommendBackup' => true,
             'exitOnError' => true,
-            'url' => '/servers/updateDatabase/seenOnAttributeAndObject/'
-        ),
+            'url' => '/servers/updateDatabase/testUpdate/'
+        )
     );
 
     public function afterSave($created, $options = array())
@@ -1137,6 +1146,12 @@ class AppModel extends Model
                 $indexArray[] = array('objects', 'last_seen');
                 break;
 
+            case 'testUpdate':
+                $sqlArray[] = "SELECT SLEEP(4);";
+                $sqlArray[] = "SELECT SLEEP(4);";
+                $sqlArray[] = "SELECT SLEEP(4);";
+                break;
+
             default:
                 return false;
                 break;
@@ -1455,6 +1470,11 @@ class AppModel extends Model
         if ($total !== false) {
             $this->AdminSetting->changeSetting('update_prog_tot', $total);
         }
+        $messages = json_decode($this->AdminSetting->getSetting('update_prog_msg'), true);
+        $now = new DateTime();
+        $messages['time']['started'][$current] = $now->format('Y-m-d H:i:s');
+        $data = json_encode($messages);
+        $this->AdminSetting->changeSetting('update_prog_msg', $data);
     }
     
     private function __setUpdateError($index) {
@@ -1473,13 +1493,16 @@ class AppModel extends Model
     }
 
     private function __setUpdateCmdMessages($messages) {
-        $data = array( 'cmd' => $messages, 'res' => array());
+        $data = array( 'cmd' => $messages, 'res' => array(), 'time' => array('started' => array(), 'elapsed' => array()));
         $this->AdminSetting->changeSetting('update_prog_msg', json_encode($data));
     }
 
     private function __setUpdateResMessages($index, $message) {
         $messages = json_decode($this->AdminSetting->getSetting('update_prog_msg'), true);
         $messages['res'][$index] = $message;
+        $temp = new DateTime();
+        $diff = $temp->diff(new DateTime($messages['time']['started'][$index]));
+        $messages['time']['elapsed'][$index] = $diff->format('%H:%I:%S');
         $data = json_encode($messages);
         $this->AdminSetting->changeSetting('update_prog_msg', $data);
     }
