@@ -18,7 +18,7 @@
                         $temp = array();
                         foreach($value as $field) {
                             if ($key === 'mandatory' || $key === 'optional') {
-                                $infoHtml =  '<i id="infofield-'. $field .'" class="fa fa-info restclient-infofield" style="margin-left: 5px;"></i>';
+                                $infoHtml =  '<i id="infofield-'. $field .'" class="fa fa-info restclient-infofield" style="margin-left: 5px; width: 12px; height: 12px;"></i>';
                             } else {
                                 $infoHtml = '';
                             }
