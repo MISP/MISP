@@ -2335,10 +2335,10 @@ class Server extends AppModel
         $this->syncProposals($HttpSocket, $this->data, null, null, $this->Event);
 
         if (!isset($successes)) {
-            $successes = null;
+            $successes = array();
         }
         if (!isset($fails)) {
-            $fails = null;
+            $fails = array();
         }
         $this->Log = ClassRegistry::init('Log');
         $this->Log->create();

@@ -337,6 +337,7 @@ su -s /bin/bash apache -c 'scl enable rh-php70 /var/www/MISP/app/Console/worker/
 vi /etc/rc.local
 # Add the following line at the end
 su -s /bin/bash apache -c 'scl enable rh-php70 /var/www/MISP/app/Console/worker/start.sh'
+```
 
 {!generic/MISP_CAKE_init_centos.md!}
 
@@ -344,3 +345,4 @@ su -s /bin/bash apache -c 'scl enable rh-php70 /var/www/MISP/app/Console/worker/
 
 {!generic/recommended.actions.md!}
 
+{!generic/hardening.md!}
