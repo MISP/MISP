@@ -2704,7 +2704,7 @@ class EventsController extends AppController
         return new CakeResponse(array('body'=> implode(PHP_EOL, $rules), 'status' => 200, 'type' => 'txt'));
     }
 
-    // csv function ***DEPRECATED***
+    // csv function (DEPCRECATED)
     // Usage: csv($key, $eventid)   - key can be a valid auth key or the string 'download'. Download requires the user to be logged in interactively and will generate a .csv file
     // $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
     // $ignore is a flag that allows the export tool to ignore the ids flag. 0 = only IDS signatures, 1 = everything.
@@ -2780,12 +2780,12 @@ class EventsController extends AppController
             $fileAccessTool = new FileAccessTool();
             $iocData = $fileAccessTool->readFromFile($this->data['Event']['submittedioc']['tmp_name'], $this->data['Event']['submittedioc']['size']);
 
-            // write
-            $attachments_dir = Configure::read('MISP.attachments_dir');
+	    // write
+	    $attachments_dir = Configure::read('MISP.attachments_dir');
             if (empty($attachments_dir)) {
-                $attachments_dir = $this->Event->getDefaultAttachments_dir();
-            }
-            $rootDir = $attachments_dir . DS . $id . DS;
+		    $attachments_dir = $this->Event->getDefaultAttachments_dir();
+	    }
+	    $rootDir = $attachments_dir . DS . $id . DS;
             App::uses('Folder', 'Utility');
             $dir = new Folder($rootDir . 'ioc', true);
             $destPath = $rootDir . 'ioc';
@@ -4019,7 +4019,12 @@ class EventsController extends AppController
                             'url' => '/attributes/add_threatconnect/' . $id,
                             'text' => 'ThreatConnect Import',
                             'ajax' => false
-                    )
+                    ),
+                    'Forensic analysis' => array(
+                        'url' => '/events/upload_analysis_file/'.$id,
+                        'text' => 'Forensic analysis - Mactime',
+                        'ajax' => false,
+                )
             );
             $this->loadModel('Module');
             $modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Import');
@@ -5129,5 +5134,126 @@ class EventsController extends AppController
             $response['extensions'][] = $extendedEvent['Event'];
         }
         return $this->RestResponse->viewData($response, $this->response->type());
+    }
+    public function upload_analysis_file($eventId)
+    {
+        $data = array();
+        $this->set('eventId', $eventId);
+        $this->set('file_uploaded', "0");
+        $this->set('file_name', "");
+    
+        if (!$this->userRole['perm_modify']) {
+            throw new UnauthorizedException('You do not have permission to do that.');
+        }
+
+        if ($this->request->is('post') && !empty($this->request['data']['Event']['analysis_file']['name'])) {
+            $this->set('file_uploaded', "1");
+            $this->set('file_name', $this->request['data']['Event']['analysis_file']['name']);
+            $this->set('file_content', file_get_contents($this->request['data']['Event']['analysis_file']['tmp_name']));
+
+        //$result = $this->Event->upload_mactime($this->Auth->user(), );
+        } elseif ($this->request->is('post') && $this->request['data']['SelectedData']['mactime_data']) {
+            $fileName = $this->request['data']['SelectedData']['mactime_file_name'];
+            $fileData = $this->request['data']['SelectedData']['mactime_file_content'];
+            $object = array();
+	    $data = json_decode($this->request['data']['SelectedData']['mactime_data'], true);
+	    $firstObject = 1;
+            foreach ($data as $objectData) {
+                $object['Object'] = array(
+                    'name' => 'mactime-timeline-analysis',
+                    'meta-category' => 'file',
+                    'description' => 'Mactime template, used in forensic investigations to describe the timeline of a file activity',
+                    'template_version' => 1,
+                    'template_uuid' => '9297982e-be62-4772-a665-c91f5a8d639'
+                );
+                            
+                $object['Attribute'] = array(
+                    [
+                        "event_id" => $eventId,
+                        "category"=> "Other",
+                        "type" => "text",
+                        "to_ids" => false,
+                        "distribution" => "5",
+                        "object_relation" => "filepath",
+                        "value" => $objectData['filepath']
+                    ],
+                    [
+                        "event_id" => $eventId,
+                        "category" => "Other",
+                        "type" => "datetime",
+                        "to_ids" => false,
+                        "distribution" => "5",
+                        "object_relation" => "datetime",
+                        "value" => $objectData['time_accessed']
+                    ],
+                    [
+                        "event_id" => $eventId,
+                        "category" => "Other",
+                        "type" => "text",
+                        "to_ids" => false,
+                        "distribution" => "5",
+                        "object_relation" => "fileSize",
+                        "value" => $objectData['file_size']
+                    ],
+                    [
+                        "event_id" => $eventId,
+                        "category" => "Other",
+                        "type" => "text",
+                        "to_ids" => false,
+                        "distribution" => "5",
+                        "object_relation" => "activityType",
+                        "value" => $objectData['activity_type']
+                    ],
+                    [
+                        "event_id" => $eventId,
+                        "category" => "Other",
+                        "type" => "text",
+                        "to_ids" => false,
+                        "distribution" => "5",
+                        "object_relation" => "filePermissions",
+                        "value" => $objectData['permissions']
+                    ],
+                    [
+                        "event_id" => $eventId,
+                        "category" => "External analysis",
+                        "type" => "attachment",
+                        "to_ids" => false,
+                        "distribution" => "5",
+                        "object_relation" => "file",
+                        "value" => $fileName,
+                        "data" => base64_encode($fileData),
+                        "comment" => "Mactime source file"
+                    ]
+                    
+                    );
+                $this->loadModel('MispObject');
+                $ObjectResult = $this->MispObject->saveObject($object, $eventId, "", "");
+                $temp = $this->MispObject->ObjectReference->Object->find('first', array(
+                    'recursive' => -1,
+                    'fields' => array('Object.uuid','Object.id'),
+                    'conditions' => array('Object.id' =>$ObjectResult)
+                ));
+                
+                if ($firstObject === 0) {
+                    $objectRef['referenced_id'] = $PreviousObjRef['Object']['id'];
+                    $objectRef['referenced_uuid'] = $PreviousObjRef['Object']['uuid'];
+                    $objectRef['object_id'] = $ObjectResult;
+                    $objectRef['relationship_type'] = "preceded-by";
+                    $this->loadModel('MispObject');
+                    $result = $this->MispObject->ObjectReference->captureReference($objectRef, $eventId, $this->Auth->user(), false);
+                    $objectRef['referenced_id'] = $temp['Object']['id'];
+                    $objectRef['referenced_uuid'] = $temp['Object']['uuid'];
+                    $objectRef['object_id'] = $PreviousObjRef['Object']['id'];
+                    $objectRef['relationship_type'] = "followed-by";
+                    $this->loadModel('MispObject');
+                    $result = $this->MispObject->ObjectReference->captureReference($objectRef, $eventId, $this->Auth->user(), false);
+                    $PreviousObjRef = $temp;
+                } else {
+                    $PreviousObjRef = $temp;
+                    $firstObject = 0;
+                }
+            }
+            $this->redirect('/events/view/' . $eventId);
+        }
     }
 }
