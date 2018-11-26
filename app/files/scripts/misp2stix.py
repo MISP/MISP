@@ -976,7 +976,7 @@ class StixBuilder(object):
             hostname = attributes_dict['host']
             observables.append(self.create_hostname_observable(hostname['value'], hostname['uuid']))
         if len(observables) == 1:
-            return observables[0]
+            return to_ids, observables[0]
         return to_ids, self.create_observable_composition(observables, misp_object['uuid'], "url")
 
     def parse_whois(self, misp_object):
