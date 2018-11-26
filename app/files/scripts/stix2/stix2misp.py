@@ -1124,7 +1124,7 @@ class ExternalStixParser(StixParser):
         self.handle_import_case(attributes, name, uuid)
 
     def parse_ip_port_observable(self, objects, uuid):
-        attributes = self.attributes_from_ip_por_observablet(objects)
+        attributes = self.attributes_from_ip_port_observable(objects)
         self.handle_import_case(attributes, 'ip-port', uuid)
 
     def parse_ip_port_or_network_socket_observable(self, objects, uuid):
