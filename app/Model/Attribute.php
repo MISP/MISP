@@ -3096,11 +3096,6 @@ class Attribute extends AppModel
         return false;
     }
 
-    public function generateRandomFileName()
-    {
-        return (new RandomTool())->random_str(false, 12);
-    }
-
     public function resolveHashType($hash)
     {
         $hashTypes = $this->hashTypes;

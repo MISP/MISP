@@ -1266,45 +1266,54 @@ class ServersController extends AppController
                 }
             } else {
                 $oldValue = Configure::read($setting);
-                $this->Server->serverSettingsSaveValue($setting, $this->request->data['Server']['value']);
+                $settingSaveResult = $this->Server->serverSettingsSaveValue($setting, $this->request->data['Server']['value']);
                 $this->Log->create();
-                $result = $this->Log->save(array(
-                        'org' => $this->Auth->user('Organisation')['name'],
-                        'model' => 'Server',
-                        'model_id' => 0,
-                        'email' => $this->Auth->user('email'),
-                        'action' => 'serverSettingsEdit',
-                        'user_id' => $this->Auth->user('id'),
-                        'title' => 'Server setting changed',
-                        'change' => $setting . ' (' . $oldValue . ') => (' . $this->request->data['Server']['value'] . ')',
-                ));
-                // execute after hook
-                if (isset($found['afterHook'])) {
-                    $afterResult = call_user_func_array(array($this->Server, $found['afterHook']), array($setting, $this->request->data['Server']['value']));
-                    if ($afterResult !== true) {
-                        $this->Log->create();
-                        $result = $this->Log->save(array(
-                                'org' => $this->Auth->user('Organisation')['name'],
-                                'model' => 'Server',
-                                'model_id' => 0,
-                                'email' => $this->Auth->user('email'),
-                                'action' => 'serverSettingsEdit',
-                                'user_id' => $this->Auth->user('id'),
-                                'title' => 'Server setting issue',
-                                'change' => 'There was an issue after setting a new setting. The error message returned is: ' . $afterResult,
-                        ));
-                        if ($this->_isRest) {
-                            return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, $afterResult, $this->response->type());
-                        } else {
-                            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $afterResult)), 'status'=>200, 'type' => 'json'));
-                        }
-                    }
-                }
-                if ($this->_isRest) {
-                    return $this->RestResponse->saveSuccessResponse('Servers', 'serverSettingsEdit', false, $this->response->type(), 'Field updated');
-                } else {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.')), 'status'=>200, 'type' => 'json'));
-                }
+				if ($settingSaveResult) {
+	                $result = $this->Log->save(array(
+	                        'org' => $this->Auth->user('Organisation')['name'],
+	                        'model' => 'Server',
+	                        'model_id' => 0,
+	                        'email' => $this->Auth->user('email'),
+	                        'action' => 'serverSettingsEdit',
+	                        'user_id' => $this->Auth->user('id'),
+	                        'title' => 'Server setting changed',
+	                        'change' => $setting . ' (' . $oldValue . ') => (' . $this->request->data['Server']['value'] . ')',
+	                ));
+	                // execute after hook
+	                if (isset($found['afterHook'])) {
+	                    $afterResult = call_user_func_array(array($this->Server, $found['afterHook']), array($setting, $this->request->data['Server']['value']));
+	                    if ($afterResult !== true) {
+	                        $this->Log->create();
+	                        $result = $this->Log->save(array(
+	                                'org' => $this->Auth->user('Organisation')['name'],
+	                                'model' => 'Server',
+	                                'model_id' => 0,
+	                                'email' => $this->Auth->user('email'),
+	                                'action' => 'serverSettingsEdit',
+	                                'user_id' => $this->Auth->user('id'),
+	                                'title' => 'Server setting issue',
+	                                'change' => 'There was an issue after setting a new setting. The error message returned is: ' . $afterResult,
+	                        ));
+	                        if ($this->_isRest) {
+	                            return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, $afterResult, $this->response->type());
+	                        } else {
+	                            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $afterResult)), 'status'=>200, 'type' => 'json'));
+	                        }
+	                    }
+	                }
+	                if ($this->_isRest()) {
+	                    return $this->RestResponse->saveSuccessResponse('Servers', 'serverSettingsEdit', false, $this->response->type(), 'Field updated');
+	                } else {
+	                    return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.')), 'status'=>200, 'type' => 'json'));
+	                }
+				} else {
+					if ($this->_isRest()) {
+						$message = __('Something went wrong. MISP tried to save a malformed config file. Setting change reverted.');
+						return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, $message, $this->response->type());
+	                } else {
+	                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $message)), 'status'=>200, 'type' => 'json'));
+	                }
+				}
             }
         }
     }
