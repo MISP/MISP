@@ -1,8 +1,8 @@
 <?php
 if (!$isSiteAdmin) exit();
-if ($updateProgress['update_prog_tot'] !== 0 ) {
-    $percentageFail = floor(count($updateProgress['update_prog_failed_num']) / $updateProgress['update_prog_tot']*100);
-    $percentage = floor($updateProgress['update_prog_cur'] / $updateProgress['update_prog_tot']*100);
+if ($updateProgress['tot'] !== 0 ) {
+    $percentageFail = floor(count($updateProgress['failed_num']) / $updateProgress['tot']*100);
+    $percentage = floor($updateProgress['cur'] / $updateProgress['tot']*100);
     //$percentage -= $percentageFail; // substract failed updates
 } else {
     $percentage = 100;
@@ -10,7 +10,7 @@ if ($updateProgress['update_prog_tot'] !== 0 ) {
 }
 ?>
 <div style="width: 50%;margin: 0 auto;">
-    <?php if (!is_null($updateProgress['update_prog_msg'])): ?>
+    <?php if (count($updateProgress['cmd']) > 0): ?>
         <h2><?php echo(__('Update progress'));?></h2>
         <div class="" style="max-width: 1000px;">
             
@@ -27,15 +27,15 @@ if ($updateProgress['update_prog_tot'] !== 0 ) {
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach($updateProgress['update_prog_msg']['cmd'] as $i => $cmd):
-                        if (isset($updateProgress['update_prog_msg']['res'][$i])) {
-                            $res = $updateProgress['update_prog_msg']['res'][$i];
+                    <?php foreach($updateProgress['cmd'] as $i => $cmd):
+                        if (isset($updateProgress['res'][$i])) {
+                            $res = $updateProgress['res'][$i];
                         } else {
                             $res = false;
                         }
-                        $rowDone = $i < $updateProgress['update_prog_cur'];
-                        $rowCurrent = $i === $updateProgress['update_prog_cur'];
-                        $rowFail = in_array($i, $updateProgress['update_prog_failed_num']);
+                        $rowDone = $i < $updateProgress['cur'];
+                        $rowCurrent = $i === $updateProgress['cur'];
+                        $rowFail = in_array($i, $updateProgress['failed_num']);
                         $rowClass = '';
                         $rowIcon =  '<i id="icon-' . $i . '" class="fa"></i>';
                         if ($rowDone) {
@@ -50,14 +50,14 @@ if ($updateProgress['update_prog_tot'] !== 0 ) {
                             $rowIcon =  '<i id="icon-' . $i . '" class="fa fa-times-circle-o"></i>';
                         }
 
-                        if (isset($updateProgress['update_prog_msg']['time']['started'][$i])) {
-                            $datetimeStart = $updateProgress['update_prog_msg']['time']['started'][$i];
-                            if (isset($updateProgress['update_prog_msg']['time']['elapsed'][$i])) {
-                                $updateDuration = $updateProgress['update_prog_msg']['time']['elapsed'][$i];
+                        if (isset($updateProgress['time']['started'][$i])) {
+                            $datetimeStart = $updateProgress['time']['started'][$i];
+                            if (isset($updateProgress['time']['elapsed'][$i])) {
+                                $updateDuration = $updateProgress['time']['elapsed'][$i];
                             } else { // compute elapsed based on started
                                 $temp = new DateTime();
-                                $temp->sub(new DateTime($datetimeStart));
-                                $diff = $temp->diff(new DateTime($messages['time']['started'][$index]));
+                                $temp->diff(new DateTime($datetimeStart));
+                                $diff = $temp->diff(new DateTime($updateProgress['time']['started'][$i]));
                                 $updateDuration = $diff->format('%H:%I:%S');
                             }
                         } else {
@@ -163,9 +163,9 @@ if ($updateProgress['update_prog_tot'] !== 0 ) {
     function update_state() {
         var url = "<?php echo $baseurl; ?>/servers/quickUpdateProgress";
         $.getJSON(url, function(data) {
-            var tot = parseInt(data['update_prog_tot']);
-            var cur = parseInt(data['update_prog_cur']);
-            var failArray = data['update_prog_failed_num'];
+            var tot = parseInt(data['tot']);
+            var cur = parseInt(data['cur']);
+            var failArray = data['failed_num'];
             for (var i=0; i<tot; i++) {
                 var term = $('div[data-terminalid='+i+']')
                 toggleVisiblity(i, true, false);   
@@ -187,7 +187,7 @@ if ($updateProgress['update_prog_tot'] !== 0 ) {
                     update_row_state(i, 3);
                 }
             }
-            update_messages(data['update_prog_msg']);
+            update_messages(data);
             if (tot > 0) {
                 var percFail = Math.round(failArray.length/tot*100);
                 //var perc = Math.round(cur/tot*100) - percFail;
