@@ -1444,62 +1444,72 @@ class AppModel extends Model
     }
 
     private function __setUpdateProgress($current, $total=false) {
-        $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        $this->AdminSetting->changeSetting('update_prog_cur', $current);
+        $updateProgress = $this->getUpdateProgress();
+        $updateProgress['cur'] = $current;
         if ($total !== false) {
-            $this->AdminSetting->changeSetting('update_prog_tot', $total);
+            $updateProgress['tot'] = $total;
         } else {
-            $messages = json_decode($this->AdminSetting->getSetting('update_prog_msg'), true);
             $now = new DateTime();
-            $messages['time']['started'][$current] = $now->format('Y-m-d H:i:s');
-            $data = json_encode($messages);
-            $this->AdminSetting->changeSetting('update_prog_msg', $data);
+            $updateProgress['time']['started'][$current] = $now->format('Y-m-d H:i:s');
         }
+        $this->__saveUpdateProgress($updateProgress);
     }
     
     private function __setUpdateError($index) {
-        $failArray = json_decode($this->AdminSetting->getSetting('update_prog_failed_num'), true);
-        $failArray[] = $index;
-        $data = json_encode($failArray);
-        $this->AdminSetting->changeSetting('update_prog_failed_num', $data);
+        $updateProgress = $this->getUpdateProgress();
+        $updateProgress['failed_num'][] = $index;
+        $this->__saveUpdateProgress($updateProgress);
     }
 
     private function __resetUpdateProgress() {
-        $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        $settingNames = array('update_prog_cur', 'update_prog_tot', 'update_prog_failed_num', 'update_prog_msg');
-        foreach($settingNames as $setting) {
-            $this->AdminSetting->changeSetting($setting, '');
-        }
+        $updateProgress = array(
+            'cmd' => array(),
+            'res' => array(),
+            'time' => array('started' => array(), 'elapsed' => array()),
+            'cur' => '',
+            'tot' => '',
+            'failed_num' => array()
+        );
+        $this->__saveUpdateProgress($updateProgress);
     }
 
     private function __setUpdateCmdMessages($messages) {
-        $data = array( 'cmd' => $messages, 'res' => array(), 'time' => array('started' => array(), 'elapsed' => array()));
-        $this->AdminSetting->changeSetting('update_prog_msg', json_encode($data));
+        $updateProgress = $this->getUpdateProgress();
+        $updateProgress['cmd'] = $messages;
+        $this->__saveUpdateProgress($updateProgress);
     }
 
     private function __setUpdateResMessages($index, $message) {
-        $messages = json_decode($this->AdminSetting->getSetting('update_prog_msg'), true);
-        $messages['res'][$index] = $message;
+        $updateProgress = $this->getUpdateProgress();
+        $updateProgress['res'][$index] = $message;
         $temp = new DateTime();
         $diff = $temp->diff(new DateTime($messages['time']['started'][$index]));
-        $messages['time']['elapsed'][$index] = $diff->format('%H:%I:%S');
-        $data = json_encode($messages);
-        $this->AdminSetting->changeSetting('update_prog_msg', $data);
+        $updateProgress['time']['elapsed'][$index] = $diff->format('%H:%I:%S');
+        $this->__saveUpdateProgress($updateProgress);
     }
 
     public function getUpdateProgress() {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        $updateProgress = array();
-        $settingNames = array('update_prog_cur', 'update_prog_tot');
-        foreach($settingNames as $setting) {
-            $value = $this->AdminSetting->getSetting($setting);
-            $value = $value !== false && $value !== '' ? intval($value) : -1;
+        $updateProgress = $this->AdminSetting->getSetting('update_progress');
+        if ($updateProgress !== false) {
+            $updateProgress = json_decode($updateProgress, true);
+        } else {
+            $this->__resetUpdateProgress();
+            $updateProgress = $this->AdminSetting->getSetting('update_progress');
+            $updateProgress = json_decode($updateProgress, true);
+        }
+        foreach($updateProgress as $setting => $value) {
+            if (!is_array($value)) {
+                $value = $value !== false && $value !== '' ? intval($value) : -1;
+            }
             $updateProgress[$setting] = $value;
         }
-        $updateProgress['update_prog_failed_num'] = json_decode($this->AdminSetting->getSetting('update_prog_failed_num'), true);
-        $updateProgress['update_prog_failed_num'] = is_null($updateProgress['update_prog_failed_num']) ? [] : $updateProgress['update_prog_failed_num'];
-        $updateProgress['update_prog_msg'] = json_decode($this->AdminSetting->getSetting('update_prog_msg'), true);
         return $updateProgress;
+    }
+    
+    private function __saveUpdateProgress($updateProgress) {
+        $data = json_encode($updateProgress);
+        $this->AdminSetting->changeSetting('update_progress', $data);
     }
 
     private function __queueCleanDB()
