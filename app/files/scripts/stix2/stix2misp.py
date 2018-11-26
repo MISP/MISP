@@ -950,6 +950,8 @@ class ExternalStixParser(StixParser):
         self.pattern_mapping = {('domain-name', 'ipv4-addr', 'url'): self.parse_domain_ip_port_pattern,
                                 ('domain-name', 'ipv6-addr', 'url'): self.parse_domain_ip_port_pattern,
                                 ('file',): self.parse_file_pattern,
+                                ('ipv4-addr',): self.parse_ip_address_pattern,
+                                ('ipv6-addr',): self.parse_ip_address_pattern,
                                 ('network-traffic',): self.parse_network_traffic_pattern,
                                 ('process',): self.parse_process_pattern,
                                 ('windows-registry-key',): self.parse_regkey_pattern}
@@ -1108,6 +1110,14 @@ class ExternalStixParser(StixParser):
             self.handle_pe_case(file.extensions['windows-pebinary-ext'], attributes, uuid)
         else:
             self.handle_import_case(attributes, file._type, uuid)
+
+    def parse_ip_address_pattern(self, pattern, uuid=None):
+        _, pattern_values = self.get_types_and_values_from_pattern(pattern)
+        attribute = {'to_ids': True}
+        if len(pattern_values) == 1:
+            attribute['uuid'] = uuid
+        for value in pattern_values:
+            self.misp_event.add_attribute('ip-dst', value, **attribute)
 
     def parse_ip_network_traffic_observable(self, objects, uuid):
         network_traffic = self.fetch_network_traffic_objects(objects)
