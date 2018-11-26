@@ -2796,7 +2796,7 @@ class Attribute extends AppModel
                 )
             )
         );
-        if ($options['includeProposals']) {
+        if (!empty($options['includeProposals'])) {
             $this->bindModel(
                 array('hasMany' => array(
                         'ShadowAttribute' => array(
