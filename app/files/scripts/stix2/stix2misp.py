@@ -44,7 +44,7 @@ class StixParser():
         self.filename = filename
         self.stix_version = version
         for object_type in special_parsing:
-            setattr(self, object_type, event.pop(object_type) if object_type in event else None)
+            setattr(self, object_type, event.pop(object_type) if object_type in event else {})
         self.event = event
         if args and args[0] is not None:
             self.add_original_file(args[0])
