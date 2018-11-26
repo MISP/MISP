@@ -3,7 +3,7 @@ if (!$isSiteAdmin) exit();
 if ($updateProgress['update_prog_tot'] !== 0 ) {
     $percentageFail = floor(count($updateProgress['update_prog_failed_num']) / $updateProgress['update_prog_tot']*100);
     $percentage = floor($updateProgress['update_prog_cur'] / $updateProgress['update_prog_tot']*100);
-    $percentage -= $percentageFail; // substract failed updates
+    //$percentage -= $percentageFail; // substract failed updates
 } else {
     $percentage = 100;
     $percentageFail = 0;
@@ -190,7 +190,8 @@ if ($updateProgress['update_prog_tot'] !== 0 ) {
             update_messages(data['update_prog_msg']);
             if (tot > 0) {
                 var percFail = Math.round(failArray.length/tot*100);
-                var perc = Math.round(cur/tot*100) - percFail;
+                //var perc = Math.round(cur/tot*100) - percFail;
+                var perc = Math.round(cur/tot*100);
                 update_pb(perc, percFail);
             }
 
@@ -202,6 +203,9 @@ if ($updateProgress['update_prog_tot'] !== 0 ) {
 
 
     function update_messages(messages) {
+        if (messages.cmd === undefined) {
+            return;
+        }
         messages.cmd.forEach(function(msg, i) {
             var div = $('#termcmd-'+i);
             create_spans_from_message(div, msg);
@@ -219,7 +223,6 @@ if ($updateProgress['update_prog_tot'] !== 0 ) {
                     + ':' + pad(diff.getUTCMinutes(), 2)
                     + ':' + pad(diff.getUTCSeconds(), 2);
             }
-            console.log(elapsedText)
             update_times(i, startedText, elapsedText)
         });
     }
