@@ -42,8 +42,8 @@
                 <th style="padding-left:0px;padding-right:0px;">&nbsp;</th>
             <?php endif;?>
             <th><?php echo $this->Paginator->sort('id');?></th>
-            <th><?php echo $this->Paginator->sort('enabled');?></th>
-            <th><?php echo $this->Paginator->sort('caching_enabled');?></th>
+            <th title="<?php echo __('Enable pulling the feed into your MISP as events/attributes.'); ?>"><?php echo $this->Paginator->sort('enabled');?></th>
+            <th title="<?php echo __('Enable caching the feed into Redis - allowing for correlations to the feed to be shown.'); ?>"><?php echo $this->Paginator->sort('caching_enabled');?></th>
             <th><?php echo $this->Paginator->sort('name');?></th>
             <th><?php echo $this->Paginator->sort('source_format', __('Feed Format'));?></th>
             <th><?php echo $this->Paginator->sort('provider');?></th>

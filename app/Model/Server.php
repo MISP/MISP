@@ -2242,7 +2242,7 @@ class Server extends AppModel
         }
         $sgs = $this->Event->SharingGroup->find('all', array(
             'recursive' => -1,
-            'contain' => array('Organisation', 'SharingGroupOrg', 'SharingGroupServer')
+            'contain' => array('Organisation', 'SharingGroupOrg' => array('Organisation'), 'SharingGroupServer')
         ));
         $sgIds = array();
         foreach ($sgs as $k => $sg) {
@@ -3158,6 +3158,7 @@ class Server extends AppModel
 
     public function serverSettingsSaveValue($setting, $value)
     {
+		copy(APP . 'Config' . DS . 'config.php', APP . 'Config' . DS . 'config.php.bk');
         $settingObject = $this->getCurrentServerSettings();
         foreach ($settingObject as $branchName => $branch) {
             if (!isset($branch['level'])) {
@@ -3203,7 +3204,17 @@ class Server extends AppModel
         if (function_exists('opcache_reset')) {
             opcache_reset();
         }
-        file_put_contents(APP . 'Config' . DS . 'config.php', $settingsString);
+		$randomFilename = $this->generateRandomFileName();
+		// To protect us from 2 admin users having a concurent file write to the config file, solar flares and the bogeyman
+        file_put_contents(APP . 'Config' . DS . $randomFilename, $settingsString);
+		rename(APP . 'Config' . DS . $randomFilename, APP . 'Config' . DS . 'config.php');
+		$config_saved = file_get_contents(APP . 'Config' . DS . 'config.php');
+		// if the saved config file is empty, restore the backup.
+		if (strlen($config_saved) < 20) {
+			copy(APP . 'Config' . DS . 'config.php.bk', APP . 'Config' . DS . 'config.php');
+			return false;
+		}
+		return true;
     }
 
     public function checkVersion($newest)

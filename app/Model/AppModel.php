@@ -23,6 +23,7 @@
 App::uses('Model', 'Model');
 App::uses('LogableBehavior', 'Assets.models/behaviors');
 App::uses('BlowfishPasswordHasher', 'Controller/Component/Auth');
+App::uses('RandomTool', 'Tools');
 class AppModel extends Model
 {
     public $name;
@@ -1894,4 +1895,9 @@ class AppModel extends Model
         }
         return true;
     }
+
+	public function generateRandomFileName()
+	{
+		return (new RandomTool())->random_str(false, 12);
+	}
 }
