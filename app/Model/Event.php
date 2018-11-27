@@ -1802,7 +1802,7 @@ class Event extends AppModel
         if ($flatten) {
             unset($params['contain']['Object']);
         }
-        if ($options['metadata']) {
+        if ($options['metadata'] !== "1") {
             unset($params['contain']['Attribute']);
             unset($params['contain']['ShadowAttribute']);
         }
