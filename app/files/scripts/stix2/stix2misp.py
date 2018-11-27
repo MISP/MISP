@@ -939,6 +939,8 @@ class ExternalStixParser(StixParser):
                                    ('email-addr', 'email-message', 'file'): self.parse_email_observable,
                                    ('email-message',): self.parse_email_observable,
                                    ('file',): self.parse_file_observable,
+                                   ('ipv4-addr',): self.parse_ip_address_observable,
+                                   ('ipv6-addr',): self.parse_ip_address_observable,
                                    ('ipv4-addr', 'network-traffic'): self.parse_ip_network_traffic_observable,
                                    ('ipv6-addr', 'network-traffic'): self.parse_ip_network_traffic_observable,
                                    ('mac-addr',): self.parse_mac_address_observable,
@@ -1110,6 +1112,13 @@ class ExternalStixParser(StixParser):
             self.handle_pe_case(file.extensions['windows-pebinary-ext'], attributes, uuid)
         else:
             self.handle_import_case(attributes, file._type, uuid)
+
+    def parse_ip_address_observable(self, objects, uuid):
+        attribute = {'to_ids': False}
+        if len(objects) == 1:
+            attribute['uuid'] = uuid
+        for observable in objects.values():
+            self.misp_event.add_attribute('ip-dst', observable.value, **attribute)
 
     def parse_ip_address_pattern(self, pattern, uuid=None):
         _, pattern_values = self.get_types_and_values_from_pattern(pattern)
