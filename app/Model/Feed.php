@@ -229,7 +229,7 @@ class Feed extends AppModel
             if ($doFetch) {
                 $fetchIssue = false;
                 try {
-					$request = $this->__createFeedRequest($feed['Feed']['headers']);
+                    $request = $this->__createFeedRequest($feed['Feed']['headers']);
                     $response = $this->__getRecursive($feed['Feed']['url'], '', $request);
                     //$response = $HttpSocket->get($feed['Feed']['url'], '', array());
                 } catch (Exception $e) {
@@ -478,10 +478,10 @@ class Feed extends AppModel
         if (isset($actions['edit']) && !empty($actions['edit'])) {
             foreach ($actions['edit'] as $editTarget) {
                 $uuid = $editTarget['uuid'];
+                $result = $this->__updateEventFromFeed($HttpSocket, $feed, $editTarget['uuid'], $editTarget['id'], $user, $filterRules);
                 if ($result === 'blocked') {
                     continue;
                 }
-                $result = $this->__updateEventFromFeed($HttpSocket, $feed, $editTarget['uuid'], $editTarget['id'], $user, $filterRules);
                 $this->__cleanupFile($feed, '/' . $uuid . '.json');
                 if ($result === true) {
                     $results['edit']['success'] = $uuid;
@@ -865,16 +865,16 @@ class Feed extends AppModel
             }
             $temp = $this->getFreetextFeed($this->data, $HttpSocket, $this->data['Feed']['source_format'], 'all');
             $data = array();
-			if (!empty($temp)) {
-	            foreach ($temp as $key => $value) {
-	                $data[] = array(
-	                    'category' => $value['category'],
-	                    'type' => $value['default_type'],
-	                    'value' => $value['value'],
-	                    'to_ids' => $value['to_ids']
-	                );
-	            }
-			}
+            if (!empty($temp)) {
+                foreach ($temp as $key => $value) {
+                    $data[] = array(
+                        'category' => $value['category'],
+                        'type' => $value['default_type'],
+                        'value' => $value['value'],
+                        'to_ids' => $value['to_ids']
+                    );
+                }
+            }
             if ($jobId) {
                 $job->saveField('progress', 50);
                 $job->saveField('message', 'Saving data.');
@@ -1227,7 +1227,7 @@ class Feed extends AppModel
         $feeds = $this->find('all', array(
             'recursive' => -1,
             'fields' => $fields,
-			'conditions' => array('Feed.caching_enabled' => 1)
+            'conditions' => array('Feed.caching_enabled' => 1)
         ));
         // we'll use this later for the intersect
         $fields[] = 'values';

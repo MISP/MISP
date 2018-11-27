@@ -144,6 +144,7 @@ number_sections_mapping = {'type': 'counter', 'relation': 'number-sections'}
 password_mapping = {'type': 'text', 'relation': 'password'}
 pe_type_mapping = {'type': 'text', 'relation': 'type'}
 pid_attribute_mapping = {'type': 'text', 'relation': 'pid'}
+process_command_line_mapping = {'type': 'text', 'relation': 'command-line'}
 process_creation_time_mapping = {'type': 'datetime', 'relation': 'creation-time'}
 process_name_mapping = {'type': 'text', 'relation': 'name'}
 regkey_name_attribute_mapping = {'type': 'text', 'relation': 'name'}
@@ -246,6 +247,8 @@ process_mapping = {'name': process_name_mapping,
                    'process:pid': pid_attribute_mapping,
                    'created': process_creation_time_mapping,
                    'process:created': process_creation_time_mapping,
+                   'command_line': process_command_line_mapping,
+                   'process:command_line': process_command_line_mapping,
                    'process:parent_ref': {'type': 'text', 'relation': 'parent-pid'},
                    'process:child_refs': {'type': 'text', 'relation': 'child-pid'}}
 
@@ -258,7 +261,8 @@ regkey_mapping = {'data': data_attribute_mapping,
                   'name': regkey_name_attribute_mapping,
                   'windows-registry-key:name': regkey_name_attribute_mapping,
                   'key': key_attribute_mapping,
-                  'windows-registry-key:key': key_attribute_mapping
+                  'windows-registry-key:key': key_attribute_mapping,
+                  'windows-registry-key:value': {'type': 'text', 'relation': 'hive'}
                   }
 
 url_mapping = {'url': url_attribute_mapping,
@@ -299,6 +303,7 @@ domain_pattern_mapping = {'value': {'type': 'domain'}}
 ip_pattern_mapping = {'value': {'type': 'ip-dst'}}
 
 external_pattern_mapping = {'domain-name': domain_pattern_mapping,
+                            'email-addr': {'value': {'type': 'email-dst'}},
                             'file': file_mapping,
                             'ipv4-addr': ip_pattern_mapping,
                             'ipv6-addr': ip_pattern_mapping,

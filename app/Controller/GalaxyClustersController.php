@@ -115,10 +115,18 @@ class GalaxyClustersController extends AppController
 
     public function view($id)
     {
+        $conditions = array('GalaxyCluster.id' => $id);
+        if (Validation::uuid($id)) {
+            $conditions = array('GalaxyCluster.uuid' => $id);
+        }
+        $contain = array('Galaxy');
+        if ($this->_isRest()) {
+            $contain[] = 'GalaxyElement';
+        }
         $cluster = $this->GalaxyCluster->find('first', array(
             'recursive' => -1,
-            'contain' => array('Galaxy'),
-            'conditions' => array('GalaxyCluster.id' => $id)
+            'contain' => $contain,
+            'conditions' => $conditions
         ));
         if (!empty($cluster)) {
             $galaxyType = $cluster['GalaxyCluster']['type'];
@@ -136,9 +144,15 @@ class GalaxyClustersController extends AppController
                 $cluster['GalaxyCluster']['tag_id'] = $tag['Tag']['id'];
             }
         }
-        $this->set('id', $id);
-        $this->set('galaxy_id', $cluster['Galaxy']['id']);
-        $this->set('cluster', $cluster);
+        if ($this->_isRest()) {
+            $cluster['GalaxyCluster']['Galaxy'] = $cluster['Galaxy'];
+            $cluster['GalaxyCluster']['GalaxyElement'] = $cluster['GalaxyElement'];
+            return $this->RestResponse->viewData(array('GalaxyCluster' => $cluster['GalaxyCluster']), $this->response->type());
+        } else {
+            $this->set('id', $id);
+            $this->set('galaxy_id', $cluster['Galaxy']['id']);
+            $this->set('cluster', $cluster);
+        }
     }
 
     public function attachToEvent($event_id, $tag_name)
@@ -272,43 +286,44 @@ class GalaxyClustersController extends AppController
         $this->redirect($this->referer());
     }
 
-	public function delete($id) {
-		{
-			if ($this->request->is('post')) {
-				$result = false;
-				$galaxy_cluster = $this->GalaxyCluster->find('first', array(
-					'recursive' => -1,
-					'conditions' => array('GalaxyCluster.id' => $id)
-				));
-				if (!empty($galaxy_cluster)) {
-					$result = $this->GalaxyCluster->delete($id, true);
-					$galaxy_id = $galaxy_cluster['GalaxyCluster']['galaxy_id'];
-				}
-				if ($result) {
-					$message = 'Galaxy cluster successfuly deleted.';
-					if ($this->_isRest()) {
-						return $this->RestResponse->saveSuccessResponse('GalaxyCluster', 'delete', $id, $this->response->type());
-					} else {
-						$this->Flash->success($message);
-						$this->redirect(array('controller' => 'galaxies', 'action' => 'view', $galaxy_id));
-					}
-				} else {
-					$message = 'Galaxy cluster could not be deleted.';
-					if ($this->_isRest()) {
-						return $this->RestResponse->saveFailResponse('GalaxyCluster', 'delete', $id, $message, $this->response->type());
-					} else {
-						$this->Flash->error($message);
-						$this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
-					}
-				}
-			} else {
-				if ($this->request->is('ajax')) {
-					$this->set('id', $id);
-					$this->render('ajax/galaxy_cluster_delete_confirmation');
-				} else {
-					throw new MethodNotAllowedException('This function can only be reached via AJAX.');
-				}
-			}
-		}
-	}
+    public function delete($id)
+    {
+        {
+            if ($this->request->is('post')) {
+                $result = false;
+                $galaxy_cluster = $this->GalaxyCluster->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => array('GalaxyCluster.id' => $id)
+                ));
+                if (!empty($galaxy_cluster)) {
+                    $result = $this->GalaxyCluster->delete($id, true);
+                    $galaxy_id = $galaxy_cluster['GalaxyCluster']['galaxy_id'];
+                }
+                if ($result) {
+                    $message = 'Galaxy cluster successfuly deleted.';
+                    if ($this->_isRest()) {
+                        return $this->RestResponse->saveSuccessResponse('GalaxyCluster', 'delete', $id, $this->response->type());
+                    } else {
+                        $this->Flash->success($message);
+                        $this->redirect(array('controller' => 'galaxies', 'action' => 'view', $galaxy_id));
+                    }
+                } else {
+                    $message = 'Galaxy cluster could not be deleted.';
+                    if ($this->_isRest()) {
+                        return $this->RestResponse->saveFailResponse('GalaxyCluster', 'delete', $id, $message, $this->response->type());
+                    } else {
+                        $this->Flash->error($message);
+                        $this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
+                    }
+                }
+            } else {
+                if ($this->request->is('ajax')) {
+                    $this->set('id', $id);
+                    $this->render('ajax/galaxy_cluster_delete_confirmation');
+                } else {
+                    throw new MethodNotAllowedException('This function can only be reached via AJAX.');
+                }
+            }
+        }
+    }
 }

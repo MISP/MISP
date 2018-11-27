@@ -43,7 +43,7 @@
             </select>
         </div>
         <div id="ServerLocalContainer" class="input select hiddenField" style="display:none;">
-            <label for="ServerLocal"><?php echo __('Local Organisation');?></label>
+            <label for="ServerLocal"><?php echo __('Owner of remote instance');?></label>
             <select id="ServerLocal">
                 <?php foreach ($localOrganisations as $k => $v) echo '<option value="' . $k . '">' . h($v) . '</option>'; ?>
             </select>

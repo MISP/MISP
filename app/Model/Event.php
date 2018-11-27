@@ -62,88 +62,88 @@ class Event extends AppModel
             'json' => array(
                     'extension' => '.json',
                     'type' => 'JSON',
-					'scope' => 'Event',
-					'requiresPublished' => 0,
-					'params' => array('includeAttachments' => 1, 'ignore' => 1, 'returnFormat' => 'json'),
+                    'scope' => 'Event',
+                    'requiresPublished' => 0,
+                    'params' => array('includeAttachments' => 1, 'ignore' => 1, 'returnFormat' => 'json'),
                     'description' => 'Click this to download all events and attributes that you have access to in MISP JSON format.',
             ),
             'xml' => array(
                     'extension' => '.xml',
                     'type' => 'XML',
-					'scope' => 'Event',
-					'params' => array('includeAttachments' => 1, 'ignore' => 1, 'returnFormat' => 'xml'),
+                    'scope' => 'Event',
+                    'params' => array('includeAttachments' => 1, 'ignore' => 1, 'returnFormat' => 'xml'),
                     'requiresPublished' => 0,
                     'description' => 'Click this to download all events and attributes that you have access to in MISP XML format.',
             ),
             'csv_sig' => array(
                     'extension' => '.csv',
                     'type' => 'CSV_Sig',
-					'scope' => 'Event',
-					'requiresPublished' => 1,
-					'params' => array('published' => 1, 'to_ids' => 1, 'returnFormat' => 'csv'),
+                    'scope' => 'Event',
+                    'requiresPublished' => 1,
+                    'params' => array('published' => 1, 'to_ids' => 1, 'returnFormat' => 'csv'),
                     'description' => 'Click this to download all attributes that are indicators and that you have access to <small>(except file attachments)</small> in CSV format.',
             ),
             'csv_all' => array(
                     'extension' => '.csv',
                     'type' => 'CSV_All',
-					'scope' => 'Event',
-					'requiresPublished' => 0,
-					'params' => array('ignore' => 1, 'returnFormat' => 'csv'),
-					'description' => 'Click this to download all attributes that you have access to <small>(except file attachments)</small> in CSV format.',
+                    'scope' => 'Event',
+                    'requiresPublished' => 0,
+                    'params' => array('ignore' => 1, 'returnFormat' => 'csv'),
+                    'description' => 'Click this to download all attributes that you have access to <small>(except file attachments)</small> in CSV format.',
             ),
             'suricata' => array(
                     'extension' => '.rules',
                     'type' => 'Suricata',
-					'scope' => 'Attribute',
-					'requiresPublished' => 1,
-					'params' => array('returnFormat' => 'suricata'),
+                    'scope' => 'Attribute',
+                    'requiresPublished' => 1,
+                    'params' => array('returnFormat' => 'suricata'),
                     'description' => 'Click this to download all network related attributes that you have access to under the Suricata rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
             ),
             'snort' => array(
                     'extension' => '.rules',
                     'type' => 'Snort',
-					'scope' => 'Attribute',
-					'requiresPublished' => 1,
-					'params' => array('returnFormat' => 'snort'),
+                    'scope' => 'Attribute',
+                    'requiresPublished' => 1,
+                    'params' => array('returnFormat' => 'snort'),
                     'description' => 'Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
             ),
             'bro' => array(
                     'extension' => '.intel',
                     'type' => 'Bro',
-					'scope' => 'Attribute',
-					'requiresPublished' => 1,
-					'params' => array('returnFormat' => 'bro'),
+                    'scope' => 'Attribute',
+                    'requiresPublished' => 1,
+                    'params' => array('returnFormat' => 'bro'),
                     'description' => 'Click this to download all network related attributes that you have access to under the Bro rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
             ),
             'stix' => array(
                     'extension' => '.xml',
                     'type' => 'STIX',
-					'scope' => 'Event',
-					'requiresPublished' => 1,
-					'params' => array('returnFormat' => 'stix', 'includeAttachments' => 1),
+                    'scope' => 'Event',
+                    'requiresPublished' => 1,
+                    'params' => array('returnFormat' => 'stix', 'includeAttachments' => 1),
                     'description' => 'Click this to download an a STIX document containing the STIX version of all events and attributes that you have access to.'
             ),
-			'stix2' => array(
-					'extension' => '.json',
-					'type' => 'STIX2',
-					'scope' => 'Event',
-					'requiresPublished' => 1,
-					'params' => array('returnFormat' => 'stix2', 'includeAttachments' => 1),
-					'description' => 'Click this to download an a STIX2 document containing the STIX2 version of all events and attributes that you have access to.'
-			),
+            'stix2' => array(
+                    'extension' => '.json',
+                    'type' => 'STIX2',
+                    'scope' => 'Event',
+                    'requiresPublished' => 1,
+                    'params' => array('returnFormat' => 'stix2', 'includeAttachments' => 1),
+                    'description' => 'Click this to download an a STIX2 document containing the STIX2 version of all events and attributes that you have access to.'
+            ),
             'rpz' => array(
                     'extension' => '.txt',
                     'type' => 'RPZ',
-					'scope' => 'Attribute',
-					'requiresPublished' => 1,
+                    'scope' => 'Attribute',
+                    'requiresPublished' => 1,
                     'params' => array('returnFormat' => 'rpz'),
                     'description' => 'Click this to download an RPZ Zone file generated from all ip-src/ip-dst, hostname, domain attributes. This can be useful for DNS level firewalling. Only published events and attributes marked as IDS Signature are exported.'
             ),
             'text' => array(
                     'extension' => '.txt',
                     'type' => 'TEXT',
-					'scope' => 'Attribute',
-					'requiresPublished' => 1,
+                    'scope' => 'Attribute',
+                    'requiresPublished' => 1,
                     'params' => array('returnFormat' => 'text', 'includeAttachments' => 1),
                     'description' => 'Click on one of the buttons below to download all the attributes with the matching type. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.'
             ),
@@ -160,7 +160,7 @@ class Event extends AppModel
         'csv' => array('csv', 'CsvExport', 'csv'),
         'stix' => array('xml', 'Stix1Export', 'xml'),
         'stix2' => array('json', 'Stix2Export', 'json'),
-		'cache' => array('txt', 'CacheExport', 'cache')
+        'cache' => array('txt', 'CacheExport', 'cache')
     );
 
     public $csv_event_context_fields_to_fetch = array(
@@ -367,8 +367,7 @@ class Event extends AppModel
         // only delete the file if it exists
         $attachments_dir = Configure::read('MISP.attachments_dir');
         if (empty($attachments_dir)) {
-            $my_server = ClassRegistry::init('Server');
-            $attachments_dir = $my_server->getDefaultAttachments_dir();
+            $attachments_dir = $this->getDefaultAttachments_dir();
         }
 
         // Things get a little funky here
@@ -741,15 +740,17 @@ class Event extends AppModel
         return $relatedEvents;
     }
 
-    public function getRelatedAttributes($user, $id = null, $sgids, $shadowAttribute = false)
+    public function getRelatedAttributes($user, $id = null, $sgids, $shadowAttribute = false, $scope = 'event')
     {
         $context = $shadowAttribute ? 'ShadowAttribute' : 'Attribute';
         $settings = array(
             'Attribute' => array('model' => 'Attribute', 'correlationModel' => 'Correlation', 'parentIdField' => '1_attribute_id'),
             'ShadowAttribute' => array('model' => 'ShadowAttribute', 'correlationModel' => 'ShadowAttributeCorrelation', 'parentIdField' => '1_shadow_attribute_id')
         );
-        if ($id == null) {
+        if ($scope === 'event' && $id == null) {
             $id = $this->data['Event']['id'];
+        } elseif ($scope === 'attribute' && $id == null) {
+            $id = $this->data['Attribute']['id'];
         }
         if (!isset($sgids) || empty($sgids)) {
             $sgids = array(-1);
@@ -758,7 +759,7 @@ class Event extends AppModel
         if (!$user['Role']['perm_site_admin']) {
             $conditionsCorrelation = array(
                     'AND' => array(
-                            $settings[$context]['correlationModel'] . '.1_event_id' => $id,
+                            $settings[$context]['correlationModel'] . '.1_' . $scope . '_id' => $id,
                             array(
                                     'OR' => array(
                                             $settings[$context]['correlationModel'] . '.org_id' => $user['org_id'],
@@ -803,7 +804,7 @@ class Event extends AppModel
                     )
             );
         } else {
-            $conditionsCorrelation = array($settings[$context]['correlationModel'] . '.1_event_id' => $id);
+            $conditionsCorrelation = array($settings[$context]['correlationModel'] . '.1_' . $scope . '_id' => $id);
         }
         $max_correlations = Configure::read('MISP.max_correlations_per_event');
         if (empty($max_correlations)) {
@@ -820,7 +821,7 @@ class Event extends AppModel
         foreach ($correlations as $k => $correlation) {
             $current = array(
                     'id' => $correlation[$settings[$context]['correlationModel']]['event_id'],
-					'attribute_id' => $correlation[$settings[$context]['correlationModel']]['attribute_id'],
+                    'attribute_id' => $correlation[$settings[$context]['correlationModel']]['attribute_id'],
                     'org_id' => $correlation[$settings[$context]['correlationModel']]['org_id'],
                     'info' => $correlation[$settings[$context]['correlationModel']]['info'],
                     'value' => $correlation[$settings[$context]['correlationModel']]['value'],
@@ -1306,160 +1307,161 @@ class Event extends AppModel
         return $conditions;
     }
 
-	public function set_filter_wildcard(&$params, $conditions, $options)
-	{
-		$tempConditions = array();
-		$tempConditions[] = array('Event.info LIKE' => $params['wildcard']);
-		$attributeParams = array('value1', 'value2', 'comment');
-		foreach ($attributeParams as $attributeParam) {
-			$subQueryOptions = array(
-				'conditions' => array('Attribute.' . $attributeParam . ' LIKE' => $params['wildcard']),
-				'fields' => array('event_id')
-			);
-			$tempConditions[] = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Event.id');
-		}
-		$tagScopes = array('Event', 'Attribute');
-		$this->AttributeTag = ClassRegistry::init('AttributeTag');
-		$tagIds = $this->AttributeTag->Tag->find('list', array(
-			'recursive' => -1,
-			'conditions' => array('Tag.name LIKE' => $params['wildcard']),
-			'fields' => array('Tag.id')
-		));
-		if (!empty($tagIds)) {
-			foreach ($tagScopes as $tagScope) {
-				$subQueryOptions = array(
-					'conditions' => array(
-						'tag_id' => $tagIds,
-					),
-					'fields' => array('event_id')
-				);
-				$tempConditions[] = $this->subQueryGenerator($this->{$tagScope . 'Tag'}, $subQueryOptions, 'Event.id');
-			}
-		}
-		return $tempConditions;
-	}
+    public function set_filter_wildcard(&$params, $conditions, $options)
+    {
+        $tempConditions = array();
+        $tempConditions[] = array('Event.info LIKE' => $params['wildcard']);
+        $attributeParams = array('value1', 'value2', 'comment');
+        foreach ($attributeParams as $attributeParam) {
+            $subQueryOptions = array(
+                'conditions' => array('Attribute.' . $attributeParam . ' LIKE' => $params['wildcard']),
+                'fields' => array('event_id')
+            );
+            $tempConditions[] = $this->subQueryGenerator($this->Attribute, $subQueryOptions, 'Event.id');
+        }
+        $tagScopes = array('Event', 'Attribute');
+        $this->AttributeTag = ClassRegistry::init('AttributeTag');
+        $tagIds = $this->AttributeTag->Tag->find('list', array(
+            'recursive' => -1,
+            'conditions' => array('Tag.name LIKE' => $params['wildcard']),
+            'fields' => array('Tag.id')
+        ));
+        if (!empty($tagIds)) {
+            foreach ($tagScopes as $tagScope) {
+                $subQueryOptions = array(
+                    'conditions' => array(
+                        'tag_id' => $tagIds,
+                    ),
+                    'fields' => array('event_id')
+                );
+                $tempConditions[] = $this->subQueryGenerator($this->{$tagScope . 'Tag'}, $subQueryOptions, 'Event.id');
+            }
+        }
+        return $tempConditions;
+    }
 
-	public function set_filter_wildcard_attributes(&$params, $conditions, $options)
-	{
-		$tempConditions = array();
-		$tempConditions[] = array('Event.info LIKE' => $params['wildcard']);
-		$attributeParams = array('value1', 'value2', 'comment');
-		foreach ($attributeParams as $attributeParam) {
-			$tempConditions[] = array('Attribute.' . $attributeParam . ' LIKE' => $params['wildcard']);
-		}
-		$tagScopes = array('Event', 'Attribute');
-		$this->AttributeTag = ClassRegistry::init('AttributeTag');
-		$tagIds = $this->AttributeTag->Tag->find('list', array(
-			'recursive' => -1,
-			'conditions' => array('Tag.name LIKE' => $params['wildcard']),
-			'fields' => array('Tag.id')
-		));
-		if (!empty($tagIds)) {
-			$subQueryOptions = array(
-				'conditions' => array(
-					'tag_id' => $tagIds,
-				),
-				'fields' => array('event_id')
-			);
-			$tempConditions[] = $this->subQueryGenerator($this->EventTag, $subQueryOptions, 'Attribute.event_id');
-			$subQueryOptions = array(
-				'conditions' => array(
-					'tag_id' => $tagIds,
-				),
-				'fields' => array('attribute_id')
-			);
-			$tempConditions[] = $this->subQueryGenerator($this->AttributeTag, $subQueryOptions, 'Attribute.id');
-		}
-		return $tempConditions;
-	}
+    public function set_filter_wildcard_attributes(&$params, $conditions, $options)
+    {
+        $tempConditions = array();
+        $tempConditions[] = array('Event.info LIKE' => $params['wildcard']);
+        $attributeParams = array('value1', 'value2', 'comment');
+        foreach ($attributeParams as $attributeParam) {
+            $tempConditions[] = array('Attribute.' . $attributeParam . ' LIKE' => $params['wildcard']);
+        }
+        $tagScopes = array('Event', 'Attribute');
+        $this->AttributeTag = ClassRegistry::init('AttributeTag');
+        $tagIds = $this->AttributeTag->Tag->find('list', array(
+            'recursive' => -1,
+            'conditions' => array('Tag.name LIKE' => $params['wildcard']),
+            'fields' => array('Tag.id')
+        ));
+        if (!empty($tagIds)) {
+            $subQueryOptions = array(
+                'conditions' => array(
+                    'tag_id' => $tagIds,
+                ),
+                'fields' => array('event_id')
+            );
+            $tempConditions[] = $this->subQueryGenerator($this->EventTag, $subQueryOptions, 'Attribute.event_id');
+            $subQueryOptions = array(
+                'conditions' => array(
+                    'tag_id' => $tagIds,
+                ),
+                'fields' => array('attribute_id')
+            );
+            $tempConditions[] = $this->subQueryGenerator($this->AttributeTag, $subQueryOptions, 'Attribute.id');
+        }
+        return $tempConditions;
+    }
 
     public function filterEventIds($user, &$params = array())
     {
         $conditions = $this->createEventConditions($user);
-		if (isset($params['wildcard'])) {
-			$temp = array();
-			$options = array(
-				'filter' => 'wildcard',
-				'scope' => 'Event',
-				'pop' => false,
-				'context' => 'Event'
-			);
-			$conditions['AND'][] = array('OR' => $this->set_filter_wildcard($params, $temp, $options));
-		} else {
-	        $simple_params = array(
-	            'Event' => array(
-	                'eventid' => array('function' => 'set_filter_eventid', 'pop' => true),
-					'eventinfo' => array('function' => 'set_filter_eventinfo'),
-	                'ignore' => array('function' => 'set_filter_ignore'),
-	                'tags' => array('function' => 'set_filter_tags'),
-	                'from' => array('function' => 'set_filter_timestamp', 'pop' => true),
-	                'to' => array('function' => 'set_filter_timestamp', 'pop' => true),
-	                'last' => array('function' => 'set_filter_timestamp', 'pop' => true),
-	                'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
-					'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
-	                'publish_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
-	                'org' => array('function' => 'set_filter_org', 'pop' => true),
-	                'uuid' => array('function' => 'set_filter_uuid', 'pop' => true),
-	                'published' => array('function' => 'set_filter_published', 'pop' => true)
-	            ),
-	            'Object' => array(
-	                'object_name' => array('function' => 'set_filter_object_name'),
-					'deleted' => array('function' => 'set_filter_deleted')
-	            ),
-	            'Attribute' => array(
-	                'value' => array('function' => 'set_filter_value', 'pop' => true),
-	                'category' => array('function' => 'set_filter_simple_attribute'),
-	                'type' => array('function' => 'set_filter_simple_attribute'),
-	                'tags' => array('function' => 'set_filter_tags', 'pop' => true),
-	                'uuid' => array('function' => 'set_filter_uuid'),
-					'deleted' => array('function' => 'set_filter_deleted'),
-					'to_ids' => array('function' => 'set_filter_to_ids'),
-					'comment' => array('function' => 'set_filter_comment')
-	            )
-	        );
-	        foreach ($params as $param => $paramData) {
-	            foreach ($simple_params as $scope => $simple_param_scoped) {
-	                if (isset($simple_param_scoped[$param]) && $params[$param] !== false) {
-	                    $options = array(
-	                        'filter' => $param,
-	                        'scope' => $scope,
-	                        'pop' => !empty($simple_param_scoped[$param]['pop']),
-							'context' => 'Event'
-	                    );
-	                    if ($scope === 'Event') {
-	                        $conditions = $this->{$simple_param_scoped[$param]['function']}($params, $conditions, $options);
-	                    } else {
-	                        $temp = array();
-	                        $temp = $this->{$simple_param_scoped[$param]['function']}($params, $temp, $options);
-	                        if (!empty($temp)) {
-	                            $subQueryOptions = array(
-	                                'conditions' => $temp,
-	                                'fields' => array(
-	                                    'event_id'
-	                                )
-	                            );
-	                            $conditions['AND'][] = $this->subQueryGenerator($this->{$scope}, $subQueryOptions, 'Event.id');
-	                        }
-	                    }
-	                }
-	            }
-	        }
-		}
-		$fields = array('Event.id');
-		if (!empty($params['include_attribute_count'])) {
-			$fields[] = 'Event.attribute_count';
-		}
-		$find_params = array(
-			'conditions' => $conditions,
+        if (isset($params['wildcard'])) {
+            $temp = array();
+            $options = array(
+                'filter' => 'wildcard',
+                'scope' => 'Event',
+                'pop' => false,
+                'context' => 'Event'
+            );
+            $conditions['AND'][] = array('OR' => $this->set_filter_wildcard($params, $temp, $options));
+        } else {
+            $simple_params = array(
+                'Event' => array(
+                    'eventid' => array('function' => 'set_filter_eventid', 'pop' => true),
+                    'eventinfo' => array('function' => 'set_filter_eventinfo'),
+                    'ignore' => array('function' => 'set_filter_ignore'),
+                    'tags' => array('function' => 'set_filter_tags'),
+                    'from' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                    'to' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                    'last' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                    'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                    'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                    'publish_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
+                    'org' => array('function' => 'set_filter_org', 'pop' => true),
+                    'uuid' => array('function' => 'set_filter_uuid', 'pop' => true),
+                    'published' => array('function' => 'set_filter_published', 'pop' => true)
+                ),
+                'Object' => array(
+                    'object_name' => array('function' => 'set_filter_object_name'),
+                    'deleted' => array('function' => 'set_filter_deleted')
+                ),
+                'Attribute' => array(
+                    'value' => array('function' => 'set_filter_value', 'pop' => true),
+                    'category' => array('function' => 'set_filter_simple_attribute'),
+                    'type' => array('function' => 'set_filter_simple_attribute'),
+                    'tags' => array('function' => 'set_filter_tags', 'pop' => true),
+                    'ignore' => array('function' => 'set_filter_ignore'),
+                    'uuid' => array('function' => 'set_filter_uuid'),
+                    'deleted' => array('function' => 'set_filter_deleted'),
+                    'to_ids' => array('function' => 'set_filter_to_ids'),
+                    'comment' => array('function' => 'set_filter_comment')
+                )
+            );
+            foreach ($params as $param => $paramData) {
+                foreach ($simple_params as $scope => $simple_param_scoped) {
+                    if (isset($simple_param_scoped[$param]) && $params[$param] !== false) {
+                        $options = array(
+                            'filter' => $param,
+                            'scope' => $scope,
+                            'pop' => !empty($simple_param_scoped[$param]['pop']),
+                            'context' => 'Event'
+                        );
+                        if ($scope === 'Event') {
+                            $conditions = $this->{$simple_param_scoped[$param]['function']}($params, $conditions, $options);
+                        } else {
+                            $temp = array();
+                            $temp = $this->{$simple_param_scoped[$param]['function']}($params, $temp, $options);
+                            if (!empty($temp)) {
+                                $subQueryOptions = array(
+                                    'conditions' => $temp,
+                                    'fields' => array(
+                                        'event_id'
+                                    )
+                                );
+                                $conditions['AND'][] = $this->subQueryGenerator($this->{$scope}, $subQueryOptions, 'Event.id');
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        $fields = array('Event.id');
+        if (!empty($params['include_attribute_count'])) {
+            $fields[] = 'Event.attribute_count';
+        }
+        $find_params = array(
+            'conditions' => $conditions,
             'recursive' => -1,
             'fields' => $fields
-		);
-		if (isset($params['limit'])) {
-			$find_params['limit'] = $params['limit'];
-			if (isset($params['page'])) {
-				$find_params['page'] = $params['page'];
-			}
-		}
+        );
+        if (isset($params['limit'])) {
+            $find_params['limit'] = $params['limit'];
+            if (isset($params['page'])) {
+                $find_params['page'] = $params['page'];
+            }
+        }
         $results = $this->find('list', $find_params);
         return $results;
     }
@@ -1577,7 +1579,7 @@ class Event extends AppModel
             'last',
             'to_ids',
             'includeAllTags',
-			'withAttachments',
+            'withAttachments',
             'includeAttachments',
             'event_uuid',
             'distribution',
@@ -1591,7 +1593,7 @@ class Event extends AppModel
             'eventsExtendingUuid',
             'extended',
             'excludeGalaxy',
-			'includeRelatedTags'
+            'includeRelatedTags'
         );
         if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
             $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
@@ -1702,9 +1704,13 @@ class Event extends AppModel
         if ($options['event_uuid']) {
             $conditions['AND'][] = array('Event.uuid' => $options['event_uuid']);
         }
-		if (!empty($options['includeRelatedTags'])) {
-			$options['includeGranularCorrelations'] = 1;
-		}
+        if (!empty($options['includeRelatedTags'])) {
+            $options['includeGranularCorrelations'] = 1;
+        }
+        if (isset($options['ignore']) && empty($options['ignore'])) {
+            $conditions['AND'][] = array('Event.published' => 1);
+            $conditionsAttributes['AND'][] = array('Attribute.to_ids' => 1);
+        }
         $softDeletables = array('Attribute', 'Object', 'ObjectReference');
         if (isset($options['deleted']) && $options['deleted']) {
             if (!$user['Role']['perm_sync']) {
@@ -1766,10 +1772,10 @@ class Event extends AppModel
                 'Attribute' => array(
                     'fields' => $fieldsAtt,
                     'conditions' => $conditionsAttributes,
-					'AttributeTag' => array(
-						'Tag' => array('conditions' => $tagConditions, 'order' => false),
-						'order' => false
-					),
+                    'AttributeTag' => array(
+                        'Tag' => array('conditions' => $tagConditions, 'order' => false),
+                        'order' => false
+                    ),
                     'order' => false
                 ),
                 'Object' => array(
@@ -1787,9 +1793,9 @@ class Event extends AppModel
                     'Org' => array('fields' => $fieldsOrg),
                     'order' => false
                 ),
-				'EventTag' => array(
-					'Tag' => array('conditions' => $tagConditions, 'order' => false),
-					'order' => false
+                'EventTag' => array(
+                    'Tag' => array('conditions' => $tagConditions, 'order' => false),
+                    'order' => false
                  )
             )
         );
@@ -1816,8 +1822,8 @@ class Event extends AppModel
             'Object' => array('name', 'meta-category')
         );
         foreach ($results as $eventKey => &$event) {
-			$this->__attachReferences($user, $event, $sgids, $fields);
-			$event = $this->Orgc->attachOrgsToEvent($event, $fieldsOrg);
+            $this->__attachReferences($user, $event, $sgids, $fields);
+            $event = $this->Orgc->attachOrgsToEvent($event, $fieldsOrg);
             if (!$options['sgReferenceOnly'] && $event['Event']['sharing_group_id']) {
                 $event['SharingGroup'] = $sharingGroupData[$event['Event']['sharing_group_id']]['SharingGroup'];
             }
@@ -1833,12 +1839,12 @@ class Event extends AppModel
             $results[$eventKey]['RelatedEvent'] = $this->getRelatedEvents($user, $event['Event']['id'], $sgids);
             // Let's also find all the relations for the attributes - this won't be in the xml export though
             if (!empty($options['includeGranularCorrelations'])) {
-				$results[$eventKey]['RelatedAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgids);
-				if (!empty($options['includeRelatedTags'])) {
-					$results[$eventKey] = $this->includeRelatedTags($results[$eventKey], $options);
-				}
-				$results[$eventKey]['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgids, true);
-			}
+                $results[$eventKey]['RelatedAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgids);
+                if (!empty($options['includeRelatedTags'])) {
+                    $results[$eventKey] = $this->includeRelatedTags($results[$eventKey], $options);
+                }
+                $results[$eventKey]['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgids, true);
+            }
             if (isset($event['ShadowAttribute']) && !empty($event['ShadowAttribute']) && isset($options['includeAttachments']) && $options['includeAttachments']) {
                 foreach ($event['ShadowAttribute'] as $k => $sa) {
                     if ($this->ShadowAttribute->typeIsAttachment($sa['type'])) {
@@ -1969,77 +1975,78 @@ class Event extends AppModel
         return $results;
     }
 
-	private function __cacheRelatedEventTags($eventTagCache, $relatedAttribute) {
-		if (empty($eventTagCache[$relatedAttribute['id']])) {
-			$params = array(
-				'contain' => array(
-					'Tag' => array(
-						'fields' => array(
-							'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value'
-						)
-					)
-				),
-				'recursive' => -1,
-				'conditions' => array(
-					'EventTag.event_id' => $relatedAttribute['id']
-				)
-			);
-			$eventTags = $this->EventTag->find('all', $params);
-			if (!empty($eventTags)) {
-				foreach ($eventTags as $et) {
-					if (!isset($eventTagCache[$relatedAttribute['id']][$et['Tag']['id']])) {
-						$eventTagCache[$relatedAttribute['id']][$et['Tag']['id']] = $et['Tag'];
-					}
-				}
-			}
-		}
-		return $eventTagCache;
-	}
+    private function __cacheRelatedEventTags($eventTagCache, $relatedAttribute)
+    {
+        if (empty($eventTagCache[$relatedAttribute['id']])) {
+            $params = array(
+                'contain' => array(
+                    'Tag' => array(
+                        'fields' => array(
+                            'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value'
+                        )
+                    )
+                ),
+                'recursive' => -1,
+                'conditions' => array(
+                    'EventTag.event_id' => $relatedAttribute['id']
+                )
+            );
+            $eventTags = $this->EventTag->find('all', $params);
+            if (!empty($eventTags)) {
+                foreach ($eventTags as $et) {
+                    if (!isset($eventTagCache[$relatedAttribute['id']][$et['Tag']['id']])) {
+                        $eventTagCache[$relatedAttribute['id']][$et['Tag']['id']] = $et['Tag'];
+                    }
+                }
+            }
+        }
+        return $eventTagCache;
+    }
 
-	public function includeRelatedTags($event, $options)
-	{
-		$eventTagCache = array();
-		$tags = array();
-		$includeAllTags = !empty($options['includeAllTags']);
-		foreach ($event['RelatedAttribute'] as $attributeId => $relatedAttributes) {
-			$attributePos = false;
-			foreach ($event['Attribute'] as $k => $attribute) {
-				if ($attribute['id'] == $attributeId) {
-					$attributePos = $k;
-					break;
-				}
-			}
-			foreach ($relatedAttributes as $relatedAttribute) {
-				$eventTagCache = $this->__cacheRelatedEventTags($eventTagCache, $relatedAttribute);
-				if (!empty($eventTagCache[$relatedAttribute['id']])) {
-					if (!isset($event['Attribute'][$attributePos]['RelatedTags'])) {
-						$event['Attribute'][$attributePos]['RelatedTags'] = array();
-					}
-					$event['Attribute'][$attributePos]['RelatedTags'] = array_merge($event['Attribute'][$attributePos]['RelatedTags'], $eventTagCache[$relatedAttribute['id']]);
-				}
-				$params = array(
-					'contain' => array(
-						'Tag' => array(
-							'fields' => array(
-								'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value'
-							)
-						)
-					),
-					'recursive' => -1,
-					'conditions' => array(
-						'AttributeTag.attribute_id' => $relatedAttribute['attribute_id']
-					)
-				);
-				$attributeTags = $this->Attribute->AttributeTag->find('all', $params);
-				if (!empty($attributeTags)) {
-					foreach($attributeTags as $at) {
-						$event['Attribute'][$attributePos]['RelatedTags'][$at['Tag']['id']] = $at['Tag'];
-					}
-				}
-			}
-		}
-		return $event;
-	}
+    public function includeRelatedTags($event, $options)
+    {
+        $eventTagCache = array();
+        $tags = array();
+        $includeAllTags = !empty($options['includeAllTags']);
+        foreach ($event['RelatedAttribute'] as $attributeId => $relatedAttributes) {
+            $attributePos = false;
+            foreach ($event['Attribute'] as $k => $attribute) {
+                if ($attribute['id'] == $attributeId) {
+                    $attributePos = $k;
+                    break;
+                }
+            }
+            foreach ($relatedAttributes as $relatedAttribute) {
+                $eventTagCache = $this->__cacheRelatedEventTags($eventTagCache, $relatedAttribute);
+                if (!empty($eventTagCache[$relatedAttribute['id']])) {
+                    if (!isset($event['Attribute'][$attributePos]['RelatedTags'])) {
+                        $event['Attribute'][$attributePos]['RelatedTags'] = array();
+                    }
+                    $event['Attribute'][$attributePos]['RelatedTags'] = array_merge($event['Attribute'][$attributePos]['RelatedTags'], $eventTagCache[$relatedAttribute['id']]);
+                }
+                $params = array(
+                    'contain' => array(
+                        'Tag' => array(
+                            'fields' => array(
+                                'Tag.id', 'Tag.name', 'Tag.colour', 'Tag.numerical_value'
+                            )
+                        )
+                    ),
+                    'recursive' => -1,
+                    'conditions' => array(
+                        'AttributeTag.attribute_id' => $relatedAttribute['attribute_id']
+                    )
+                );
+                $attributeTags = $this->Attribute->AttributeTag->find('all', $params);
+                if (!empty($attributeTags)) {
+                    foreach ($attributeTags as $at) {
+                        $event['Attribute'][$attributePos]['RelatedTags'][$at['Tag']['id']] = $at['Tag'];
+                    }
+                }
+            }
+        }
+        return $event;
+    }
 
     private function __mergeExtensions($user, $uuid, $event)
     {
@@ -2065,7 +2072,9 @@ class Event extends AppModel
 
     private function __attachSharingGroups($doAttach, $data, $sharingGroupData)
     {
-		if (!$doAttach) return $data;
+        if (!$doAttach) {
+            return $data;
+        }
         foreach ($data as $k => $v) {
             if ($v['distribution'] == 4) {
                 $data[$k]['SharingGroup'] = $sharingGroupData[$v['sharing_group_id']]['SharingGroup'];
@@ -2129,44 +2138,44 @@ class Event extends AppModel
     {
         if (!empty($params['org'])) {
             $params['org'] = $this->convert_filters($params['org']);
-			if (!empty($params['org']['OR'])) {
-				foreach ($params['org']['OR'] as $k => $org) {
-					if (!is_numeric($org)) {
-						$existingOrg = $this->Orgc->find('first', array(
-							'recursive' => -1,
-							'conditions' => array('Orgc.name' => $org),
-							'fields' => array('Orgc.name', 'Orgc.id')
-						));
-						if (empty($existingOrg)) {
-							$params['org']['OR'][$k] = -1;
-						} else {
-							$params['org']['OR'][$k] = $existingOrg['Orgc']['id'];
-						}
-					}
-				}
-			}
-			if (!empty($params['org']['NOT'])) {
-				$temp = array();
-				foreach ($params['org']['NOT'] as $org) {
-					if (!is_numeric($org)) {
-						$existingOrg = $this->Orgc->find('first', array(
-							'recursive' => -1,
-							'conditions' => array('Orgc.name' => $org),
-							'fields' => array('Orgc.name', 'Orgc.id')
-						));
-						if (!empty($existingOrg)) {
-							$temp[] = $existingOrg['Orgc']['id'];
-						}
-					} else {
-						$temp[] = $org;
-					}
-				}
-				if (!empty($temp)) {
-					$params['org']['NOT'] = $temp;
-				} else {
-					unset($params['org']['NOT']);
-				}
-			}
+            if (!empty($params['org']['OR'])) {
+                foreach ($params['org']['OR'] as $k => $org) {
+                    if (!is_numeric($org)) {
+                        $existingOrg = $this->Orgc->find('first', array(
+                            'recursive' => -1,
+                            'conditions' => array('Orgc.name' => $org),
+                            'fields' => array('Orgc.name', 'Orgc.id')
+                        ));
+                        if (empty($existingOrg)) {
+                            $params['org']['OR'][$k] = -1;
+                        } else {
+                            $params['org']['OR'][$k] = $existingOrg['Orgc']['id'];
+                        }
+                    }
+                }
+            }
+            if (!empty($params['org']['NOT'])) {
+                $temp = array();
+                foreach ($params['org']['NOT'] as $org) {
+                    if (!is_numeric($org)) {
+                        $existingOrg = $this->Orgc->find('first', array(
+                            'recursive' => -1,
+                            'conditions' => array('Orgc.name' => $org),
+                            'fields' => array('Orgc.name', 'Orgc.id')
+                        ));
+                        if (!empty($existingOrg)) {
+                            $temp[] = $existingOrg['Orgc']['id'];
+                        }
+                    } else {
+                        $temp[] = $org;
+                    }
+                }
+                if (!empty($temp)) {
+                    $params['org']['NOT'] = $temp;
+                } else {
+                    unset($params['org']['NOT']);
+                }
+            }
             $conditions = $this->generic_add_filter($conditions, $params['org'], 'Event.orgc_id');
         }
         return $conditions;
@@ -2181,14 +2190,14 @@ class Event extends AppModel
         return $conditions;
     }
 
-	public function set_filter_eventinfo(&$params, $conditions, $options)
-	{
-		if (!empty($params['eventinfo'])) {
-			$params['eventinfo'] = $this->convert_filters($params['eventinfo']);
-			$conditions = $this->generic_add_filter($conditions, $params['eventinfo'], 'Event.info');
-		}
-		return $conditions;
-	}
+    public function set_filter_eventinfo(&$params, $conditions, $options)
+    {
+        if (!empty($params['eventinfo'])) {
+            $params['eventinfo'] = $this->convert_filters($params['eventinfo']);
+            $conditions = $this->generic_add_filter($conditions, $params['eventinfo'], 'Event.info');
+        }
+        return $conditions;
+    }
 
     public function set_filter_uuid(&$params, $conditions, $options)
     {
@@ -2204,37 +2213,45 @@ class Event extends AppModel
         return $conditions;
     }
 
-	public function set_filter_deleted(&$params, $conditions, $options)
-	{
-		if (!empty($params['deleted'])) {
-			if (empty($options['scope'])) {
-				$scope = 'Attribute';
-			} else {
-				$scope = $options['scope'];
-			}
-			if ($params['deleted']) {
-				$conditions = $this->generic_add_filter($conditions, $params['deleted'], $scope . '.deleted');
-			}
-		}
-		return $conditions;
-	}
+    public function set_filter_deleted(&$params, $conditions, $options)
+    {
+        if (!empty($params['deleted'])) {
+            if (empty($options['scope'])) {
+                $scope = 'Attribute';
+            } else {
+                $scope = $options['scope'];
+            }
+            if ($params['deleted']) {
+                $conditions = $this->generic_add_filter($conditions, $params['deleted'], $scope . '.deleted');
+            }
+        }
+        return $conditions;
+    }
 
-	public function set_filter_to_ids(&$params, $conditions, $options)
-	{
-		if (isset($params['to_ids'])) {
-			if ($params['to_ids'] === 'exclude') {
-				$params['to_ids'] = 0;
-			}
-			$conditions['AND']['Attribute.to_ids'] = $params['to_ids'];
-		}
-		return $conditions;
-	}
+    public function set_filter_to_ids(&$params, $conditions, $options)
+    {
+        if (isset($params['to_ids'])) {
+            if ($params['to_ids'] === 'exclude') {
+                $params['to_ids'] = 0;
+            }
+            $conditions['AND']['Attribute.to_ids'] = $params['to_ids'];
+        }
+        return $conditions;
+    }
 
     public function set_filter_ignore(&$params, $conditions, $options)
     {
         if (empty($params['ignore'])) {
-            $conditions['AND']['Event.published'] = 1;
-            $conditions['AND']['Attribute.to_ids'] = 1;
+            if (empty($options['scope'])) {
+                $scope = 'Attribute';
+            } else {
+                $scope = $options['scope'];
+            }
+            if ($scope === 'Attribute') {
+                $conditions['AND']['Attribute.to_ids'] = 1;
+            } else {
+                $conditions['AND']['Event.published'] = 1;
+            }
         }
         return $conditions;
     }
@@ -2282,14 +2299,14 @@ class Event extends AppModel
         return $conditions;
     }
 
-	public function set_filter_comment(&$params, $conditions, $options)
-	{
-		if (!empty($params['comment'])) {
-			$params['comment'] = $this->convert_filters($params['comment']);
-			$conditions = $this->generic_add_filter($conditions, $params['comment'], 'Attribute.comment');
-		}
-		return $conditions;
-	}
+    public function set_filter_comment(&$params, $conditions, $options)
+    {
+        if (!empty($params['comment'])) {
+            $params['comment'] = $this->convert_filters($params['comment']);
+            $conditions = $this->generic_add_filter($conditions, $params['comment'], 'Attribute.comment');
+        }
+        return $conditions;
+    }
 
     public function set_filter_timestamp(&$params, $conditions, $options)
     {
@@ -2298,11 +2315,11 @@ class Event extends AppModel
         } elseif ($options['filter'] == 'to') {
             $conditions['AND']['Event.date <='] = $params['to'];
         } else {
-			if (empty($options['scope'])) {
-				$scope = 'Attribute';
-			} else {
-				$scope = $options['scope'];
-			}
+            if (empty($options['scope'])) {
+                $scope = 'Attribute';
+            } else {
+                $scope = $options['scope'];
+            }
             $filters = array(
                 'timestamp' => array(
                     $scope . '.timestamp'
@@ -2313,9 +2330,9 @@ class Event extends AppModel
                 'last' => array(
                     'Event.publish_timestamp'
                 ),
-				'event_timestamp' => array(
-					'Event.timestamp'
-				)
+                'event_timestamp' => array(
+                    'Event.timestamp'
+                )
             );
             foreach ($filters[$options['filter']] as $f) {
                 $conditions = $this->Attribute->setTimestampConditions($params[$options['filter']], $conditions, $f);
@@ -3176,10 +3193,10 @@ class Event extends AppModel
                     $this->EventTag->save($et);
                 }
             }
-			$parentEvent = $this->find('first', array(
-				'conditions' => array('Event.id' => $this->id),
-				'recursive' => -1
-			));
+            $parentEvent = $this->find('first', array(
+                'conditions' => array('Event.id' => $this->id),
+                'recursive' => -1
+            ));
             if (isset($data['Event']['Attribute']) && !empty($data['Event']['Attribute'])) {
                 foreach ($data['Event']['Attribute'] as $k => $attribute) {
                     $block = false;
@@ -3203,6 +3220,7 @@ class Event extends AppModel
                 }
                 $data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
             }
+            $referencesToCapture = array();
             if (!empty($data['Event']['Object'])) {
                 foreach ($data['Event']['Object'] as $object) {
                     $result = $this->Object->captureObject($object, $this->id, $user, $this->Log);
@@ -3210,10 +3228,19 @@ class Event extends AppModel
                 foreach ($data['Event']['Object'] as $object) {
                     if (isset($object['ObjectReference'])) {
                         foreach ($object['ObjectReference'] as $objectRef) {
-                            $result = $this->Object->ObjectReference->captureReference($objectRef, $this->id, $user, $this->Log);
+                            $objectRef['source_uuid'] = $object['uuid'];
+                            $referencesToCapture[] = $objectRef;
                         }
                     }
                 }
+            }
+            foreach ($referencesToCapture as $referenceToCapture) {
+                $result = $this->Object->ObjectReference->captureReference(
+                    $referenceToCapture,
+                    $this->id,
+                    $user,
+                    $this->Log
+                );
             }
             // zeroq: check if sightings are attached and add to event
             if (isset($data['Sighting']) && !empty($data['Sighting'])) {
@@ -3974,7 +4001,6 @@ class Event extends AppModel
 
     public function stix2($id, $tags, $attachments, $user, $returnType = 'json', $from = false, $to = false, $last = false, $jobId = false, $returnFile = false)
     {
-        $my_server = ClassRegistry::init('Server');
         $eventIDs = $this->Attribute->dissectArgs($id);
         $tagIDs = $this->Attribute->dissectArgs($tags);
         $idList = $this->getAccessibleEventIds($eventIDs[0], $eventIDs[1], $tagIDs[0], $tagIDs[1]);
@@ -3984,7 +4010,7 @@ class Event extends AppModel
         }
         $randomFileName = $this->generateRandomFileName();
         $scriptDir = APP . "files/scripts/";
-        $stix2_framing_cmd = $my_server->getPythonVersion() . ' ' . $scriptDir . 'misp_framing.py stix2 ' . escapeshellarg(CakeText::uuid()) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
+        $stix2_framing_cmd = $this->getPythonVersion() . ' ' . $scriptDir . 'misp_framing.py stix2 ' . escapeshellarg(CakeText::uuid()) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
         $stix2_framing = json_decode(shell_exec($stix2_framing_cmd), true);
         if (empty($stix2_framing)) {
             return array('success' => 0, 'message' => 'There was an issue generating the STIX 2.0 export.');
@@ -4019,7 +4045,7 @@ class Event extends AppModel
                 $tempFile->write($event);
                 unset($event);
                 $scriptFile = $scriptDir . "stix2/misp2stix2.py ";
-                $result = shell_exec($my_server->getPythonVersion() . ' ' . $scriptFile . $tempFile->path . ' 2>' . APP . 'tmp/logs/exec-errors.log');
+                $result = shell_exec($this->getPythonVersion() . ' ' . $scriptFile . $tempFile->path . ' 2>' . APP . 'tmp/logs/exec-errors.log');
                 $decoded = json_decode($result, true);
                 if (isset($decoded['success']) && $decoded['success'] == 1) {
                     $file = new File($tmpDir . $randomFileName . '.out', true, 0644);
@@ -4052,7 +4078,6 @@ class Event extends AppModel
 
     public function stix($id, $tags, $attachments, $user, $returnType = 'xml', $from = false, $to = false, $last = false, $jobId = false, $returnFile = false)
     {
-        $my_server = ClassRegistry::init('Server');
         $eventIDs = $this->Attribute->dissectArgs($id);
         $tagIDs = $this->Attribute->dissectArgs($tags);
         $idList = $this->getAccessibleEventIds($eventIDs[0], $eventIDs[1], $tagIDs[0], $tagIDs[1]);
@@ -4062,7 +4087,7 @@ class Event extends AppModel
         }
         $randomFileName = $this->generateRandomFileName();
         $tmpDir = APP . "files" . DS . "scripts";
-        $stix_framing_cmd = $my_server->getPythonVersion() . ' ' . $tmpDir . DS . 'misp_framing.py stix ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' ' . escapeshellarg($returnType) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
+        $stix_framing_cmd = $this->getPythonVersion() . ' ' . $tmpDir . DS . 'misp_framing.py stix ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' ' . escapeshellarg($returnType) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
         $stix_framing = json_decode(shell_exec($stix_framing_cmd), true);
         if (empty($stix_framing)) {
             return array('success' => 0, 'message' => 'There was an issue generating the STIX export.');
@@ -4106,7 +4131,7 @@ class Event extends AppModel
                 $tempFile->write($event);
                 unset($event);
                 $scriptFile = APP . "files" . DS . "scripts" . DS . "misp2stix.py";
-                $result = shell_exec($my_server->getPythonVersion() . ' ' . $scriptFile . ' ' . $randomFileName . ' ' . escapeshellarg($returnType) . ' ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' 2>' . APP . 'tmp/logs/exec-errors.log');
+                $result = shell_exec($this->getPythonVersion() . ' ' . $scriptFile . ' ' . $randomFileName . ' ' . escapeshellarg($returnType) . ' ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' 2>' . APP . 'tmp/logs/exec-errors.log');
                 // The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
                 // If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along
                 $decoded = json_decode($result, true);
@@ -4422,7 +4447,11 @@ class Event extends AppModel
             if (!empty($object['data'])) {
                 $object['image'] = $object['data'];
             } else {
-                $object['image'] = $this->Attribute->base64EncodeAttachment($object);
+                if ($object['objectType'] === 'proposal') {
+                    $object['image'] = $this->ShadowAttribute->base64EncodeAttachment($object);
+                } else {
+                    $object['image'] = $this->Attribute->base64EncodeAttachment($object);
+                }
             }
         }
         if (isset($object['distribution']) && $object['distribution'] != 4) {
@@ -4507,39 +4536,39 @@ class Event extends AppModel
         unset($event['Object']);
         unset($event['ShadowAttribute']);
         $referencedObjectFields = array('meta-category', 'name', 'uuid', 'id');
-		$objectReferenceCount = 0;
-		$referencedByArray = array();
+        $objectReferenceCount = 0;
+        $referencedByArray = array();
         foreach ($event['objects'] as $object) {
             if (!in_array($object['objectType'], array('attribute', 'object'))) {
                 continue;
             }
-			if (!empty($object['ObjectReference'])) {
+            if (!empty($object['ObjectReference'])) {
                 foreach ($object['ObjectReference'] as $reference) {
-					if (isset($reference['referenced_uuid'])) {
-						$referencedByArray[$reference['referenced_uuid']][$object['objectType']][] = array(
-							'meta-category' => $object['meta-category'],
-							'name' => $object['name'],
-							'uuid' => $object['uuid'],
-							'id' => $object['id'],
-							'object_type' => $object['objectType']
-						);
-					}
-				}
-			}
-		}
-		App::uses('CustomPaginationTool', 'Tools');
+                    if (isset($reference['referenced_uuid'])) {
+                        $referencedByArray[$reference['referenced_uuid']][$object['objectType']][] = array(
+                            'meta-category' => $object['meta-category'],
+                            'name' => $object['name'],
+                            'uuid' => $object['uuid'],
+                            'id' => $object['id'],
+                            'object_type' => $object['objectType']
+                        );
+                    }
+                }
+            }
+        }
+        App::uses('CustomPaginationTool', 'Tools');
         $customPagination = new CustomPaginationTool();
         if ($all) {
             $passedArgs['page'] = 0;
         }
         $params = $customPagination->applyRulesOnArray($event['objects'], $passedArgs, 'events', 'category');
-		foreach ($event['objects'] as $k => $object) {
-			if (isset($referencedByArray[$object['uuid']])) {
-				foreach ($referencedByArray[$object['uuid']] as $objectType => $references) {
-					$event['objects'][$k]['referenced_by'][$objectType] = $references;
-				}
-			}
-		}
+        foreach ($event['objects'] as $k => $object) {
+            if (isset($referencedByArray[$object['uuid']])) {
+                foreach ($referencedByArray[$object['uuid']] as $objectType => $references) {
+                    $event['objects'][$k]['referenced_by'][$objectType] = $references;
+                }
+            }
+        }
         $params['total_elements'] = count($event['objects']);
         $event['Event']['warnings'] = $eventWarnings;
         return $params;
@@ -5040,12 +5069,12 @@ class Event extends AppModel
         if ($stix_version == '2') {
             $scriptFile = APP . 'files/scripts/stix2/stix2misp.py';
             $tempFilePath = APP . 'files/scripts/tmp/' . $filename;
-            $shell_command = $this->Server->getPythonVersion() . ' ' . $scriptFile . ' ' . $tempFilePath;
+            $shell_command = $this->getPythonVersion() . ' ' . $scriptFile . ' ' . $tempFilePath;
             $output_path = $tempFilePath . '.stix2';
         } elseif ($stix_version == '1' || $stix_version == '1.1' || $stix_version == '1.2') {
             $scriptFile = APP . 'files/scripts/stix2misp.py';
             $tempFilePath = APP . 'files/scripts/tmp/' . $filename;
-            $shell_command = $this->Server->getPythonVersion() . ' ' . $scriptFile . ' ' . $filename;
+            $shell_command = $this->getPythonVersion() . ' ' . $scriptFile . ' ' . $filename;
             $output_path = $tempFilePath . '.json';
         } else {
             throw new MethodNotAllowedException('Invalid STIX version');
@@ -5185,6 +5214,9 @@ class Event extends AppModel
     public function massageTags($data, $dataType = 'Event', $excludeGalaxy = false)
     {
         $data['Galaxy'] = array();
+        if (empty($this->GalaxyCluster)) {
+            $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        }
         // unset empty event tags that got added because the tag wasn't exportable
         if (!empty($data[$dataType . 'Tag'])) {
             foreach ($data[$dataType . 'Tag'] as $k => &$dataTag) {
@@ -5244,370 +5276,371 @@ class Event extends AppModel
         return false;
     }
 
-	public function processFreeTextData($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false, $jobId = false)
-	{
-		$event = $this->find('first', array(
-			'conditions' => array('id' => $id),
-			'recursive' => -1,
-			'fields' => array('orgc_id', 'id', 'distribution', 'published', 'uuid'),
-		));
-		if (!$user['Role']['perm_site_admin'] && !empty($event) && $event['Event']['orgc_id'] != $user['org_id']) {
-			$objectType = 'ShadowAttribute';
-		} elseif ($user['Role']['perm_site_admin'] && isset($force) && $force) {
-			$objectType = 'ShadowAttribute';
-		} else {
-			$objectType = 'Attribute';
-		}
+    public function processFreeTextData($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false, $jobId = false)
+    {
+        $event = $this->find('first', array(
+            'conditions' => array('id' => $id),
+            'recursive' => -1,
+            'fields' => array('orgc_id', 'id', 'distribution', 'published', 'uuid'),
+        ));
+        if (!$user['Role']['perm_site_admin'] && !empty($event) && $event['Event']['orgc_id'] != $user['org_id']) {
+            $objectType = 'ShadowAttribute';
+        } elseif ($user['Role']['perm_site_admin'] && isset($force) && $force) {
+            $objectType = 'ShadowAttribute';
+        } else {
+            $objectType = 'Attribute';
+        }
 
-		if ($adhereToWarninglists) {
-			$this->Warninglist = ClassRegistry::init('Warninglist');
-			$warninglists = $this->Warninglist->fetchForEventView();
-		}
-		$saved = 0;
-		$failed = 0;
-		$attributeSources = array('attributes', 'ontheflyattributes');
-		$ontheflyattributes = array();
-		$i = 0;
-		$total = count($attributeSources);
-		if ($jobId) {
-			$this->Job = ClassRegistry::init('Job');
-			$this->Job->id = $jobId;
-		}
-		foreach ($attributeSources as $sourceKey => $source) {
-			foreach (${$source} as $k => $attribute) {
-				if ($attribute['type'] == 'ip-src/ip-dst') {
-					$types = array('ip-src', 'ip-dst');
-				} elseif ($attribute['type'] == 'ip-src|port/ip-dst|port') {
-					$types = array('ip-src|port', 'ip-dst|port');
-				} elseif ($attribute['type'] == 'malware-sample') {
-					if (!isset($attribute['data_is_handled']) || !$attribute['data_is_handled']) {
-						$result = $this->Attribute->handleMaliciousBase64($id, $attribute['value'], $attribute['data'], array('md5', 'sha1', 'sha256'), $objectType == 'ShadowAttribute' ? true : false);
-						if (!$result['success']) {
-							$failed++;
-							continue;
-						}
-						$attribute['data'] = $result['data'];
-						$shortValue = $attribute['value'];
-						$attribute['value'] = $shortValue . '|' . $result['md5'];
-						$additionalHashes = array('sha1', 'sha256');
-						foreach ($additionalHashes as $hash) {
-							$temp = $attribute;
-							$temp['type'] = 'filename|' . $hash;
-							$temp['value'] = $shortValue . '|' . $result[$hash];
-							unset($temp['data']);
-							$ontheflyattributes[] = $temp;
-						}
-					}
-					$types = array($attribute['type']);
-				} else {
-					$types = array($attribute['type']);
-				}
-				foreach ($types as $type) {
-					$this->$objectType->create();
-					$attribute['type'] = $type;
-					if (empty($attribute['comment'])) {
-						$attribute['comment'] = $default_comment;
-					}
-					$attribute['event_id'] = $id;
-					if ($objectType == 'ShadowAttribute') {
-						$attribute['org_id'] = $user['Role']['org_id'];
-						$attribute['event_org_id'] = $event['Event']['orgc_id'];
-						$attribute['email'] = $user['Role']['email'];
-						$attribute['event_uuid'] = $event['Event']['uuid'];
-					}
-					// adhere to the warninglist
-					if ($adhereToWarninglists) {
-						if (!$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute)) {
-							if ($adhereToWarninglists == 'soft') {
-								$attribute['to_ids'] = 0;
-							} else {
-								// just ignore the attribute
-								continue;
-							}
-						}
-					}
-					$AttributSave = $this->$objectType->save($attribute);
-					if ($AttributSave) {
-						// If Tags, attach each tags to attribute
-						if (!empty($attribute['tags'])) {
-							foreach (explode(",", $attribute['tags']) as $tagName) {
-								$this->Tag = ClassRegistry::init('Tag');
-								$TagId = $this->Tag->captureTag(array('name' => $tagName), array('Role' => $user['Role']));
-								$this->AttributeTag = ClassRegistry::init('AttributeTag');
-								if (!$this->AttributeTag->attachTagToAttribute($AttributSave['Attribute']['id'], $id, $TagId)) {
-									throw new MethodNotAllowedException(__('Could not add tags.'));
-								}
-							}
-						}
-						$saved++;
-					} else {
-						$lastError = $this->$objectType->validationErrors;
-						$failed++;
-					}
-				}
-				if ($jobId) {
+        if ($adhereToWarninglists) {
+            $this->Warninglist = ClassRegistry::init('Warninglist');
+            $warninglists = $this->Warninglist->fetchForEventView();
+        }
+        $saved = 0;
+        $failed = 0;
+        $attributeSources = array('attributes', 'ontheflyattributes');
+        $ontheflyattributes = array();
+        $i = 0;
+        $total = count($attributeSources);
+        if ($jobId) {
+            $this->Job = ClassRegistry::init('Job');
+            $this->Job->id = $jobId;
+        }
+        foreach ($attributeSources as $sourceKey => $source) {
+            foreach (${$source} as $k => $attribute) {
+                if ($attribute['type'] == 'ip-src/ip-dst') {
+                    $types = array('ip-src', 'ip-dst');
+                } elseif ($attribute['type'] == 'ip-src|port/ip-dst|port') {
+                    $types = array('ip-src|port', 'ip-dst|port');
+                } elseif ($attribute['type'] == 'malware-sample') {
+                    if (!isset($attribute['data_is_handled']) || !$attribute['data_is_handled']) {
+                        $result = $this->Attribute->handleMaliciousBase64($id, $attribute['value'], $attribute['data'], array('md5', 'sha1', 'sha256'), $objectType == 'ShadowAttribute' ? true : false);
+                        if (!$result['success']) {
+                            $failed++;
+                            continue;
+                        }
+                        $attribute['data'] = $result['data'];
+                        $shortValue = $attribute['value'];
+                        $attribute['value'] = $shortValue . '|' . $result['md5'];
+                        $additionalHashes = array('sha1', 'sha256');
+                        foreach ($additionalHashes as $hash) {
+                            $temp = $attribute;
+                            $temp['type'] = 'filename|' . $hash;
+                            $temp['value'] = $shortValue . '|' . $result[$hash];
+                            unset($temp['data']);
+                            $ontheflyattributes[] = $temp;
+                        }
+                    }
+                    $types = array($attribute['type']);
+                } else {
+                    $types = array($attribute['type']);
+                }
+                foreach ($types as $type) {
+                    $this->$objectType->create();
+                    $attribute['type'] = $type;
+                    if (empty($attribute['comment'])) {
+                        $attribute['comment'] = $default_comment;
+                    }
+                    $attribute['event_id'] = $id;
+                    if ($objectType == 'ShadowAttribute') {
+                        $attribute['org_id'] = $user['Role']['org_id'];
+                        $attribute['event_org_id'] = $event['Event']['orgc_id'];
+                        $attribute['email'] = $user['Role']['email'];
+                        $attribute['event_uuid'] = $event['Event']['uuid'];
+                    }
+                    // adhere to the warninglist
+                    if ($adhereToWarninglists) {
+                        if (!$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute)) {
+                            if ($adhereToWarninglists == 'soft') {
+                                $attribute['to_ids'] = 0;
+                            } else {
+                                // just ignore the attribute
+                                continue;
+                            }
+                        }
+                    }
+                    $AttributSave = $this->$objectType->save($attribute);
+                    if ($AttributSave) {
+                        // If Tags, attach each tags to attribute
+                        if (!empty($attribute['tags'])) {
+                            foreach (explode(",", $attribute['tags']) as $tagName) {
+                                $this->Tag = ClassRegistry::init('Tag');
+                                $TagId = $this->Tag->captureTag(array('name' => $tagName), array('Role' => $user['Role']));
+                                $this->AttributeTag = ClassRegistry::init('AttributeTag');
+                                if (!$this->AttributeTag->attachTagToAttribute($AttributSave['Attribute']['id'], $id, $TagId)) {
+                                    throw new MethodNotAllowedException(__('Could not add tags.'));
+                                }
+                            }
+                        }
+                        $saved++;
+                    } else {
+                        $lastError = $this->$objectType->validationErrors;
+                        $failed++;
+                    }
+                }
+                if ($jobId) {
                     if ($i % 20 == 0) {
-						$this->Job->saveField('message', 'Attribute ' . $i . '/' . $total);
+                        $this->Job->saveField('message', 'Attribute ' . $i . '/' . $total);
                         $this->Job->saveField('progress', $i * 80 / $total);
                     }
                 }
-			}
-		}
-		$emailResult = '';
-		$messageScope = $objectType == 'ShadowAttribute' ? 'proposals' : 'attributes';
-		if ($saved > 0) {
-			if ($objectType != 'ShadowAttribute') {
-				$event = $this->find('first', array(
-						'conditions' => array('Event.id' => $id),
-						'recursive' => -1
-				));
-				if ($event['Event']['published'] == 1) {
-					$event['Event']['published'] = 0;
-				}
-				$date = new DateTime();
-				$event['Event']['timestamp'] = $date->getTimestamp();
-				$this->save($event);
-			} else {
-				if (!$this->ShadowAttribute->sendProposalAlertEmail($id)) {
-					$emailResult = " but sending out the alert e-mails has failed for at least one recipient";
-				}
-			}
-		}
-		if ($failed > 0) {
-			if ($failed == 1) {
-				$message = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. Reason for the failure: ' . json_encode($lastError);
-			} else {
-				$message = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. This may be due to attributes with similar values already existing.';
-			}
-		} else {
-			$message = $saved . ' ' . $messageScope . ' created' . $emailResult . '.';
-		}
-		if ($jobId) {
-			if ($i % 20 == 0) {
-				$this->Job->saveField('message', 'Processing complete. ' . $message);
-				$this->Job->saveField('progress', 100);
-			}
-		}
-		return $message;
-	}
+            }
+        }
+        $emailResult = '';
+        $messageScope = $objectType == 'ShadowAttribute' ? 'proposals' : 'attributes';
+        if ($saved > 0) {
+            if ($objectType != 'ShadowAttribute') {
+                $event = $this->find('first', array(
+                        'conditions' => array('Event.id' => $id),
+                        'recursive' => -1
+                ));
+                if ($event['Event']['published'] == 1) {
+                    $event['Event']['published'] = 0;
+                }
+                $date = new DateTime();
+                $event['Event']['timestamp'] = $date->getTimestamp();
+                $this->save($event);
+            } else {
+                if (!$this->ShadowAttribute->sendProposalAlertEmail($id)) {
+                    $emailResult = " but sending out the alert e-mails has failed for at least one recipient";
+                }
+            }
+        }
+        if ($failed > 0) {
+            if ($failed == 1) {
+                $message = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. Reason for the failure: ' . json_encode($lastError);
+            } else {
+                $message = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. This may be due to attributes with similar values already existing.';
+            }
+        } else {
+            $message = $saved . ' ' . $messageScope . ' created' . $emailResult . '.';
+        }
+        if ($jobId) {
+            if ($i % 20 == 0) {
+                $this->Job->saveField('message', 'Processing complete. ' . $message);
+                $this->Job->saveField('progress', 100);
+            }
+        }
+        return $message;
+    }
 
-	public function processFreeTextDataRouter($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false)
-	{
-		if (Configure::read('MISP.background_jobs')) {
-			$job = ClassRegistry::init('Job');
-			$job->create();
-			$data = array(
-					'worker' => 'default',
-					'job_type' => 'process_freetext_data',
-					'job_input' => 'Event: ' . $id,
-					'status' => 0,
-					'retries' => 0,
-					'org_id' => $user['org_id'],
-					'org' => $user['Organisation']['name'],
-					'message' => 'Processing...',
-			);
-			$job->save($data);
-			$randomFileName = $this->generateRandomFileName() . '.json';
-			App::uses('Folder', 'Utility');
-			App::uses('File', 'Utility');
-			$tempdir = new Folder(APP . 'tmp/cache/ingest', true, 0755);
-			$tempFile = new File(APP . 'tmp/cache/ingest' . DS . $randomFileName, true, 0644);
-			$tempData = array(
-					'user' => $user,
-					'attributes' => $attributes,
-					'id' => $id,
-					'default_comment' => $default_comment,
-					'force' => $force,
-					'adhereToWarninglists' => $adhereToWarninglists,
-					'jobId' => $job->id
-			);
+    public function processFreeTextDataRouter($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false)
+    {
+        if (Configure::read('MISP.background_jobs')) {
+            $job = ClassRegistry::init('Job');
+            $job->create();
+            $data = array(
+                    'worker' => 'default',
+                    'job_type' => 'process_freetext_data',
+                    'job_input' => 'Event: ' . $id,
+                    'status' => 0,
+                    'retries' => 0,
+                    'org_id' => $user['org_id'],
+                    'org' => $user['Organisation']['name'],
+                    'message' => 'Processing...',
+            );
+            $job->save($data);
+            $randomFileName = $this->generateRandomFileName() . '.json';
+            App::uses('Folder', 'Utility');
+            App::uses('File', 'Utility');
+            $tempdir = new Folder(APP . 'tmp/cache/ingest', true, 0755);
+            $tempFile = new File(APP . 'tmp/cache/ingest' . DS . $randomFileName, true, 0644);
+            $tempData = array(
+                    'user' => $user,
+                    'attributes' => $attributes,
+                    'id' => $id,
+                    'default_comment' => $default_comment,
+                    'force' => $force,
+                    'adhereToWarninglists' => $adhereToWarninglists,
+                    'jobId' => $job->id
+            );
 
-			$writeResult = $tempFile->write(json_encode($tempData));
-			if (!$writeResult) {
-				return ($this->processFreeTextData($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false));
-			}
-			$tempFile->close();
-			$jobId = $job->id;
-			$process_id = CakeResque::enqueue(
-					'prio',
-					'EventShell',
-					array('processfreetext', $randomFileName),
-					true
-			);
-			$job->saveField('process_id', $process_id);
-			return 'Freetext ingestion queued for background processing. Attributes will be added to the event as they are being processed.';
-		} else {
-			return ($this->processFreeTextData($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false));
-		}
-	}
+            $writeResult = $tempFile->write(json_encode($tempData));
+            if (!$writeResult) {
+                return ($this->processFreeTextData($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false));
+            }
+            $tempFile->close();
+            $jobId = $job->id;
+            $process_id = CakeResque::enqueue(
+                    'prio',
+                    'EventShell',
+                    array('processfreetext', $randomFileName),
+                    true
+            );
+            $job->saveField('process_id', $process_id);
+            return 'Freetext ingestion queued for background processing. Attributes will be added to the event as they are being processed.';
+        } else {
+            return ($this->processFreeTextData($user, $attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false));
+        }
+    }
 
-	private function __attachReferences($user, &$event, $sgids, $fields)
-	{
-		if (!empty($event['Object'])) {
-			foreach ($event['Object'] as $k => $object) {
-				if (!empty($object['ObjectReference'])) {
-					foreach ($object['ObjectReference'] as $k2 => $reference) {
-						$type = array('Attribute', 'Object')[$reference['referenced_type']];
-						$temp = $this->{$type}->find('first', array(
-							'recursive' => -1,
-							'fields' => array_merge($fields['common'], $fields[array('Attribute', 'Object')[$reference['referenced_type']]]),
-							'conditions' => array('id' => $reference['referenced_id'])
-						));
-						if (!empty($temp)) {
-							if (!$user['Role']['perm_site_admin'] && $user['org_id'] != $event['Event']['orgc_id']) {
-								if ($temp[$type]['distribution'] == 0 || ($temp[$type]['distribution'] == 4 && !in_array($temp[$type]['sharing_group_id'], $sgsids))) {
-									unset($object['ObjectReference'][$k2]);
-									continue;
-								}
-							}
-							$event['Object'][$k]['ObjectReference'][$k2][$type] = $temp[$type];
-						}
-					}
-				}
-			}
-		}
-	}
+    private function __attachReferences($user, &$event, $sgids, $fields)
+    {
+        if (!empty($event['Object'])) {
+            foreach ($event['Object'] as $k => $object) {
+                if (!empty($object['ObjectReference'])) {
+                    foreach ($object['ObjectReference'] as $k2 => $reference) {
+                        $type = array('Attribute', 'Object')[$reference['referenced_type']];
+                        $temp = $this->{$type}->find('first', array(
+                            'recursive' => -1,
+                            'fields' => array_merge($fields['common'], $fields[array('Attribute', 'Object')[$reference['referenced_type']]]),
+                            'conditions' => array('id' => $reference['referenced_id'])
+                        ));
+                        if (!empty($temp)) {
+                            if (!$user['Role']['perm_site_admin'] && $user['org_id'] != $event['Event']['orgc_id']) {
+                                if ($temp[$type]['distribution'] == 0 || ($temp[$type]['distribution'] == 4 && !in_array($temp[$type]['sharing_group_id'], $sgsids))) {
+                                    unset($object['ObjectReference'][$k2]);
+                                    continue;
+                                }
+                            }
+                            $event['Object'][$k]['ObjectReference'][$k2][$type] = $temp[$type];
+                        }
+                    }
+                }
+            }
+        }
+    }
 
-	public function restSearch($user, $returnFormat, $filters, $paramsOnly = false, $jobId = false)
-	{
-		if (!isset($this->validFormats[$returnFormat][1])) {
-			throw new NotFoundException('Invalid output format.');
-		}
-		App::uses($this->validFormats[$returnFormat][1], 'Export');
-		$exportTool = new $this->validFormats[$returnFormat][1]();
+    public function restSearch($user, $returnFormat, $filters, $paramsOnly = false, $jobId = false, &$elementCounter = 0)
+    {
+        if (!isset($this->validFormats[$returnFormat][1])) {
+            throw new NotFoundException('Invalid output format.');
+        }
+        App::uses($this->validFormats[$returnFormat][1], 'Export');
+        $exportTool = new $this->validFormats[$returnFormat][1]();
 
-		if ($jobId) {
-			$this->Job = ClassRegistry::init('Job');
-			$this->Job->id = $jobId;
-		}
+        if ($jobId) {
+            $this->Job = ClassRegistry::init('Job');
+            $this->Job->id = $jobId;
+        }
 
-		if (empty($exportTool->non_restrictive_export)) {
-			if (!isset($filters['to_ids'])) {
-				$filters['to_ids'] = 1;
-			}
-			if (!isset($filters['published'])) {
-				$filters['published'] = 1;
-			}
-		}
-		if (isset($filters['ignore'])) {
-			$filters['to_ids'] = array(0, 1);
-			$filters['published'] = array(0, 1);
-		}
-		if (!empty($filters['quickFilter'])) {
-			$filters['searchall'] = $filters['quickFilter'];
-			if (!empty($filters['value'])) {
-				unset($filters['value']);
-			}
-		}
-		if (isset($filters['searchall'])) {
-			if (!empty($filters['value'])) {
-				$filters['wildcard'] = $filters['value'];
-			} else {
-				$filters['wildcard'] = $filters['searchall'];
-			}
-		}
-		$filters['include_attribute_count'] = 1;
+        if (empty($exportTool->non_restrictive_export)) {
+            if (!isset($filters['to_ids'])) {
+                $filters['to_ids'] = 1;
+            }
+            if (!isset($filters['published'])) {
+                $filters['published'] = 1;
+            }
+        }
+        if (!empty($filters['ignore'])) {
+            $filters['to_ids'] = array(0, 1);
+            $filters['published'] = array(0, 1);
+        }
+        if (!empty($filters['quickFilter'])) {
+            $filters['searchall'] = $filters['quickFilter'];
+            if (!empty($filters['value'])) {
+                unset($filters['value']);
+            }
+        }
+        if (isset($filters['searchall'])) {
+            if (!empty($filters['value'])) {
+                $filters['wildcard'] = $filters['value'];
+            } else {
+                $filters['wildcard'] = $filters['searchall'];
+            }
+        }
+        $filters['include_attribute_count'] = 1;
         $eventid = $this->filterEventIds($user, $filters);
         $eventCount = count($eventid);
-		$eventids_chunked = $this->__clusterEventIds($exportTool, $eventid);
-		unset($eventid);
-		if (!empty($exportTool->additional_params)) {
-			$filters = array_merge($filters, $exportTool->additional_params);
-		}
-		$exportToolParams = array(
-			'user' => $user,
-			'params' => array(),
-			'returnFormat' => $returnFormat,
-			'scope' => 'Event',
-			'filters' => $filters
-		);
-		if (empty($exportTool->non_restrictive_export)) {
-			if (!isset($filters['to_ids'])) {
-				$filters['to_ids'] = 1;
-			}
-			if (!isset($filters['published'])) {
-				$filters['published'] = 1;
-			}
-		}
-		$tmpfile = tmpfile();
-		fwrite($tmpfile, $exportTool->header($exportToolParams));
+        $eventids_chunked = $this->__clusterEventIds($exportTool, $eventid);
+        unset($eventid);
+        if (!empty($exportTool->additional_params)) {
+            $filters = array_merge($filters, $exportTool->additional_params);
+        }
+        $exportToolParams = array(
+            'user' => $user,
+            'params' => array(),
+            'returnFormat' => $returnFormat,
+            'scope' => 'Event',
+            'filters' => $filters
+        );
+        if (empty($exportTool->non_restrictive_export)) {
+            if (!isset($filters['to_ids'])) {
+                $filters['to_ids'] = 1;
+            }
+            if (!isset($filters['published'])) {
+                $filters['published'] = 1;
+            }
+        }
+        $tmpfile = tmpfile();
+        fwrite($tmpfile, $exportTool->header($exportToolParams));
         $i = 0;
-		if (!empty($filters['withAttachments'])) {
-			$filters['includeAttachments'] = 1;
-		}
-		$this->Whitelist = ClassRegistry::init('Whitelist');
+        if (!empty($filters['withAttachments'])) {
+            $filters['includeAttachments'] = 1;
+        }
+        $this->Whitelist = ClassRegistry::init('Whitelist');
         foreach ($eventids_chunked as $chunk_index => $chunk) {
             $filters['eventid'] = $chunk;
             if (!empty($filters['tags']['NOT'])) {
-              $filters['blockedAttributeTags'] = $filters['tags']['NOT'];
+                $filters['blockedAttributeTags'] = $filters['tags']['NOT'];
             }
             $result = $this->fetchEvent(
                 $user,
                 $filters,
                 true
             );
-			if (!empty($result)) {
-				foreach ($result as $event) {
-					if ($jobId && $i%10 == 0) {
-						$this->Job->saveField('progress', intval((100 * $i) / $eventCount));
-						$this->Job->saveField('message', 'Converting Event ' . $i . '/' . $eventCount . '.');
-					}
-	                $result = $this->Whitelist->removeWhitelistedFromArray($result, false);
-					$temp = $exportTool->handler($event, $exportToolParams);
-					if ($temp !== '') {
-						if ($i !== 0) {
-							$temp = $exportTool->separator($exportToolParams) . $temp;
-						}
-						fwrite($tmpfile, $temp);
-						$i++;
-					}
-				}
+            if (!empty($result)) {
+                foreach ($result as $event) {
+                    $elementCounter++;
+                    if ($jobId && $i%10 == 0) {
+                        $this->Job->saveField('progress', intval((100 * $i) / $eventCount));
+                        $this->Job->saveField('message', 'Converting Event ' . $i . '/' . $eventCount . '.');
+                    }
+                    $result = $this->Whitelist->removeWhitelistedFromArray($result, false);
+                    $temp = $exportTool->handler($event, $exportToolParams);
+                    if ($temp !== '') {
+                        if ($i !== 0) {
+                            $temp = $exportTool->separator($exportToolParams) . $temp;
+                        }
+                        fwrite($tmpfile, $temp);
+                        $i++;
+                    }
+                }
             }
         }
-		unset($result);
-		unset($temp);
-		fwrite($tmpfile, $exportTool->footer($exportToolParams));
-		fseek($tmpfile, 0);
-		$final = fread($tmpfile, fstat($tmpfile)['size']);
-		fclose($tmpfile);
-		return $final;
-	}
+        unset($result);
+        unset($temp);
+        fwrite($tmpfile, $exportTool->footer($exportToolParams));
+        fseek($tmpfile, 0);
+        $final = fread($tmpfile, fstat($tmpfile)['size']);
+        fclose($tmpfile);
+        return $final;
+    }
 
-	/*
-	 *  Receive a list of eventids in the id=>count format
-	 *  Chunk them by the attribute count to fit the memory limits
-	 *
-	 */
-	private function __clusterEventIds($exportTool, $eventIds)
-	{
-		$memory_in_mb = $this->Attribute->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
-		$memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : 100;
-		$limit = $memory_in_mb * $memory_scaling_factor;
-		$eventIdList = array();
-		$continue = true;
-		$i = 0;
-		$current_chunk_size = 0;
-		while (!empty($eventIds)) {
-			foreach ($eventIds as $id => $count) {
-				if ($current_chunk_size == 0 && $count > $limit) {
-					$eventIdList[$i][] = $id;
-					$current_chunk_size = $count;
-					unset($eventIds[$id]);
-					$i++;
-					break;
-				} else {
-					if (($current_chunk_size + $count) > $limit) {
-						$i++;
-						$current_chunk_size = 0;
-						break;
-					} else {
-						$current_chunk_size += $count;
-						$eventIdList[$i][] = $id;
-						unset($eventIds[$id]);
-					}
-				}
-			}
-		}
-		return $eventIdList;
-	}
+    /*
+     *  Receive a list of eventids in the id=>count format
+     *  Chunk them by the attribute count to fit the memory limits
+     *
+     */
+    private function __clusterEventIds($exportTool, $eventIds)
+    {
+        $memory_in_mb = $this->Attribute->convert_to_memory_limit_to_mb(ini_get('memory_limit'));
+        $memory_scaling_factor = isset($exportTool->memory_scaling_factor) ? $exportTool->memory_scaling_factor : 100;
+        $limit = $memory_in_mb * $memory_scaling_factor;
+        $eventIdList = array();
+        $continue = true;
+        $i = 0;
+        $current_chunk_size = 0;
+        while (!empty($eventIds)) {
+            foreach ($eventIds as $id => $count) {
+                if ($current_chunk_size == 0 && $count > $limit) {
+                    $eventIdList[$i][] = $id;
+                    $current_chunk_size = $count;
+                    unset($eventIds[$id]);
+                    $i++;
+                    break;
+                } else {
+                    if (($current_chunk_size + $count) > $limit) {
+                        $i++;
+                        $current_chunk_size = 0;
+                        break;
+                    } else {
+                        $current_chunk_size += $count;
+                        $eventIdList[$i][] = $id;
+                        unset($eventIds[$id]);
+                    }
+                }
+            }
+        }
+        return $eventIdList;
+    }
 }

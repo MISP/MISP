@@ -47,6 +47,17 @@ class MispObject extends AppModel
     );
 
     public $validate = array(
+        'uuid' => array(
+            'uuid' => array(
+                'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
+                'message' => 'Please provide a valid UUID'
+            ),
+            'unique' => array(
+                'rule' => 'isUnique',
+                'message' => 'The UUID provided is not unique',
+                'required' => 'create'
+            )
+        )
     );
 
     public function beforeValidate($options = array())
@@ -405,6 +416,7 @@ class MispObject extends AppModel
                                 }
                             }
                         }
+                        $v['disable_correlation'] = $request_item['disable_correlation'];
                         $template['ObjectTemplateElement'][] = $v;
                     } else {
                         $template['warnings'][] = 'Missing attribute type "' . $v['type'] . '" found. Omitted template element ("' . $template_object_elements[$k]['object_relation'] . '") that would not pass validation due to this.';
@@ -487,7 +499,7 @@ class MispObject extends AppModel
         $date = new DateTime();
         $object['Object']['timestamp'] = $date->getTimestamp();
         $this->save($object);
-        $checkFields = array('category', 'value', 'to_ids', 'distribution', 'sharing_group_id', 'comment');
+        $checkFields = array('category', 'value', 'to_ids', 'distribution', 'sharing_group_id', 'comment', 'disable_correlation');
         foreach ($objectToSave['Attribute'] as $newKey => $newAttribute) {
             foreach ($object['Attribute'] as $origKey => $originalAttribute) {
                 if (!empty($newAttribute['uuid'])) {
@@ -515,7 +527,8 @@ class MispObject extends AppModel
                                 'comment',
                                 'timestamp',
                                 'object_id',
-                                'event_id'
+                                'event_id',
+                                'disable_correlation'
                             ));
                         }
                         unset($object['Attribute'][$origKey]);

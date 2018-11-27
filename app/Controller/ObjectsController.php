@@ -194,6 +194,7 @@ class ObjectsController extends AppController
                 $error = 'Could not save the object as no attributes were set.';
             } else {
                 foreach ($object['Attribute'] as $k => $attribute) {
+                    unset($object['Attribute'][$k]['id']);
                     $object['Attribute'][$k]['event_id'] = $eventId;
                     $this->MispObject->Event->Attribute->set($attribute);
                     if (!$this->MispObject->Event->Attribute->validates()) {
@@ -220,6 +221,7 @@ class ObjectsController extends AppController
                     $error = $this->MispObject->ObjectTemplate->checkTemplateConformity($template, $object);
                 }
                 if ($error === true) {
+                    unset($object['Object']['id']);
                     $result = $this->MispObject->saveObject($object, $eventId, $template, $this->Auth->user(), $errorBehaviour = 'halt');
                     if (is_numeric($result)) {
                         $this->MispObject->Event->unpublishEvent($eventId);

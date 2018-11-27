@@ -201,8 +201,7 @@ class ShadowAttributesController extends AppController
     {
         $attachments_dir = Configure::read('MISP.attachments_dir');
         if (empty($attachments_dir)) {
-            $my_server = ClassRegistry::init('Server');
-            $attachments_dir = $my_server->getDefaultAttachments_dir();
+            $attachments_dir = $this->ShadowAttribute->getDefaultAttachments_dir();
         }
         $pathOld = $attachments_dir . DS . 'shadow' . DS . $shadowId;
         $pathNew = $attachments_dir . DS . $newId;
@@ -506,8 +505,7 @@ class ShadowAttributesController extends AppController
     {
         $attachments_dir = Configure::read('MISP.attachments_dir');
         if (empty($attachments_dir)) {
-            $my_server = ClassRegistry::init('Server');
-            $attachments_dir = $my_server->getDefaultAttachments_dir();
+            $attachments_dir = $this->ShadowAttribute->getDefaultAttachments_dir();
         }
         $path = $attachments_dir . DS . 'shadow' . DS . $shadowAttribute['event_id'] . DS;
         $file = $shadowAttribute['id'];

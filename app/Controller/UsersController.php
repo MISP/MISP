@@ -1375,70 +1375,110 @@ class UsersController extends AppController
         $this->set('user', $user);
     }
 
-    public function admin_email()
+    public function admin_email($isPreview=false)
     {
         if (!$this->_isAdmin()) {
             throw new MethodNotAllowedException();
         }
-        // User has filled in his contact form, send out the email.
-        if ($this->request->is('post') || $this->request->is('put')) {
-            $conditions = array();
-            if (!$this->_isSiteAdmin()) {
-                $conditions = array('org_id' => $this->Auth->user('org_id'));
-            }
-            if ($this->request->data['User']['recipient'] != 1) {
-                $conditions['id'] = $this->request->data['User']['recipientEmailList'];
-            }
-            $conditions['AND'][] = array('User.disabled' => 0);
-            $users = $this->User->find('all', array('recursive' => -1, 'order' => array('email ASC'), 'conditions' => $conditions));
-            $this->request->data['User']['message'] = $this->User->adminMessageResolve($this->request->data['User']['message']);
-            $failures = '';
-            foreach ($users as $user) {
-                $password = $this->User->generateRandomPassword();
-                $body = str_replace('$password', $password, $this->request->data['User']['message']);
-                $body = str_replace('$username', $user['User']['email'], $body);
-                $result = $this->User->sendEmail($user, $body, false, $this->request->data['User']['subject']);
-                // if sending successful and action was a password change, update the user's password.
-                if ($result && $this->request->data['User']['action'] != '0') {
-                    $this->User->id = $user['User']['id'];
-                    $this->User->saveField('password', $password);
-                    $this->User->saveField('change_pw', '1');
-                }
-                if (!$result) {
-                    if ($failures != '') {
-                        $failures .= ', ';
-                    }
-                    $failures .= $user['User']['email'];
-                }
-            }
-            if ($failures != '') {
-                $this->Flash->success(__('E-mails sent, but failed to deliver the messages to the following recipients: ' . $failures));
-            } else {
-                $this->Flash->success(__('E-mails sent.'));
-            }
-        }
+        $isPostOrPut = $this->request->is('post') || $this->request->is('put');
         $conditions = array();
         if (!$this->_isSiteAdmin()) {
             $conditions = array('org_id' => $this->Auth->user('org_id'));
         }
-        $conditions['User.disabled'] = 0;
-        $temp = $this->User->find('all', array('recursive' => -1, 'fields' => array('id', 'email'), 'order' => array('email ASC'), 'conditions' => $conditions));
-        $emails = array();
-        // save all the emails of the users and set it for the dropdown list in the form
-        foreach ($temp as $user) {
-            $emails[$user['User']['id']] = $user['User']['email'];
+
+        // harvest parameters
+        if ($isPostOrPut) {
+            $recipient = $this->request->data['User']['recipient'];
+        } else {
+            $recipient = isset($this->request->query['recipient']) ? $this->request->query['recipient'] : null;
         }
-        $this->set('users', $temp);
-        $this->set('recipientEmail', $emails);
-        $this->set('org', Configure::read('MISP.org'));
-        $textsToFetch = array('newUserText', 'passwordResetText');
-        $this->loadModel('Server');
-        foreach ($textsToFetch as $text) {
-            ${$text} = Configure::read('MISP.' . $text);
-            if (!${$text}) {
-                ${$text} = $this->Server->serverSettings['MISP'][$text]['value'];
+        if ($isPostOrPut) {
+            $recipientEmailList = $this->request->data['User']['recipientEmailList'];
+        } else {
+            $recipientEmailList = isset($this->request->query['recipientEmailList']) ? $this->request->query['recipientEmailList'] : null;
+        }
+        if ($isPostOrPut) {
+            $orgNameList = $this->request->data['User']['orgNameList'];
+        } else {
+            $orgNameList = isset($this->request->query['orgNameList']) ? $this->request->query['orgNameList'] : null;
+        }
+
+        if (!is_null($recipient) && $recipient == 0) {
+            if (is_null($recipientEmailList)) {
+                throw new NotFoundException(__('Recipient email not provided'));
             }
-            $this->set($text, ${$text});
+            $conditions['id'] = $recipientEmailList;
+        } elseif (!is_null($recipient) && $recipient == 2) {
+            if (is_null($orgNameList)) {
+                throw new NotFoundException(__('Recipient organisation not provided'));
+            }
+            $conditions['org_id'] = $orgNameList;
+        }
+        $conditions['AND'][] = array('User.disabled' => 0);
+
+        // Allow to mimic real form post
+        if ($isPreview) {
+            $users = $this->User->find('list', array('recursive' => -1, 'order' => array('email ASC'), 'conditions' => $conditions, 'fields' => array('email')));
+            $this->set('emails', $users);
+            $this->set('emailsCount', count($users));
+            $this->render('ajax/emailConfirmTemplate');
+        } else {
+            $users = $this->User->find('all', array('recursive' => -1, 'order' => array('email ASC'), 'conditions' => $conditions));
+            // User has filled in his contact form, send out the email.
+            if ($isPostOrPut) {
+                $this->request->data['User']['message'] = $this->User->adminMessageResolve($this->request->data['User']['message']);
+                $failures = '';
+                foreach ($users as $user) {
+                    $password = $this->User->generateRandomPassword();
+                    $body = str_replace('$password', $password, $this->request->data['User']['message']);
+                    $body = str_replace('$username', $user['User']['email'], $body);
+                    $result = $this->User->sendEmail($user, $body, false, $this->request->data['User']['subject']);
+                    // if sending successful and action was a password change, update the user's password.
+                    if ($result && $this->request->data['User']['action'] != '0') {
+                        $this->User->id = $user['User']['id'];
+                        $this->User->saveField('password', $password);
+                        $this->User->saveField('change_pw', '1');
+                    }
+                    if (!$result) {
+                        if ($failures != '') {
+                            $failures .= ', ';
+                        }
+                        $failures .= $user['User']['email'];
+                    }
+                }
+                if ($failures != '') {
+                    $this->Flash->success(__('E-mails sent, but failed to deliver the messages to the following recipients: ' . $failures));
+                } else {
+                    $this->Flash->success(__('E-mails sent.'));
+                }
+            }
+            $conditions = array();
+            if (!$this->_isSiteAdmin()) {
+                $conditions = array('org_id' => $this->Auth->user('org_id'));
+            }
+            $conditions['User.disabled'] = 0;
+            $temp = $this->User->find('all', array('recursive' => -1, 'fields' => array('id', 'email', 'Organisation.name'), 'order' => array('email ASC'), 'conditions' => $conditions, 'contain' => array('Organisation')));
+            $emails = array();
+            $orgName = array();
+            // save all the emails of the users and set it for the dropdown list in the form
+            foreach ($temp as $user) {
+                $emails[$user['User']['id']] = $user['User']['email'];
+                $orgName[$user['Organisation']['id']] = $user['Organisation']['name'];
+            }
+
+            $this->set('users', $temp);
+            $this->set('recipientEmail', $emails);
+            $this->set('orgName', $orgName);
+            $this->set('org', Configure::read('MISP.org'));
+            $textsToFetch = array('newUserText', 'passwordResetText');
+            $this->loadModel('Server');
+            foreach ($textsToFetch as $text) {
+                ${$text} = Configure::read('MISP.' . $text);
+                if (!${$text}) {
+                    ${$text} = $this->Server->serverSettings['MISP'][$text]['value'];
+                }
+                $this->set($text, ${$text});
+            }
         }
     }
 
@@ -1521,12 +1561,16 @@ class UsersController extends AppController
         // set all of the data up for the heatmaps
         $params = array(
             'fields' => array('name'),
-            'recursive' => -1
+            'recursive' => -1,
+            'conditions' => array()
         );
         if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
             $params['conditions'] = array('Organisation.id' => $this->Auth->user('org_id'));
         }
         $orgs = $this->User->Organisation->find('all', $params);
+        $local_orgs_params = $params;
+        $local_orgs_params['conditions']['Organisation.local'] = 1;
+        $local_orgs = $this->User->Organisation->find('all', $local_orgs_params);
         $this->loadModel('Log');
         $year = date('Y');
         $month = date('n');
@@ -1552,7 +1596,10 @@ class UsersController extends AppController
         $stats['proposal_count'] = $this->User->Event->ShadowAttribute->find('count', array('recursive' => -1));
 
         $stats['user_count'] = $this->User->find('count', array('recursive' => -1));
+        $stats['user_count_pgp'] = $this->User->find('count', array('recursive' => -1, 'conditions' => array('User.gpgkey !=' => '')));
         $stats['org_count'] = count($orgs);
+        $stats['local_org_count'] = count($local_orgs);
+        $stats['average_user_per_org'] = round($stats['user_count'] / $stats['local_org_count'], 1);
 
         $this->loadModel('Thread');
         $stats['thread_count'] = $this->Thread->find('count', array('conditions' => array('Thread.post_count >' => 0), 'recursive' => -1));

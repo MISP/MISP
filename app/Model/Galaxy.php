@@ -84,7 +84,7 @@ class Galaxy extends AppModel
             $template = array(
                 'source' => isset($cluster_package['source']) ? $cluster_package['source'] : '',
                 'authors' => json_encode(isset($cluster_package['authors']) ? $cluster_package['authors'] : array(), true),
-                'uuid' => isset($cluster_package['uuid']) ? $cluster_package['uuid'] : '',
+                'collection_uuid' => isset($cluster_package['uuid']) ? $cluster_package['uuid'] : '',
                 'galaxy_id' => $galaxies[$cluster_package['type']],
                 'type' => $cluster_package['type'],
                 'tag_name' => 'misp-galaxy:' . $cluster_package['type'] . '="'
@@ -106,8 +106,7 @@ class Galaxy extends AppModel
             // Delete all existing outdated clusters
             foreach ($cluster_package['values'] as $k => $cluster) {
                 if (empty($cluster['value'])) {
-                    debug($cluster);
-                    throw new Exception();
+                    continue;
                 }
                 if (isset($cluster['version'])) {
                 } elseif (!empty($cluster_package['version'])) {
@@ -130,6 +129,9 @@ class Galaxy extends AppModel
 
             // create all clusters
             foreach ($cluster_package['values'] as $cluster) {
+                if (empty($cluster['version'])) {
+                    $cluster['version'] = 1;
+                }
                 $template['version'] = $cluster['version'];
                 $this->GalaxyCluster->create();
                 $cluster_to_save = $template;
@@ -139,6 +141,9 @@ class Galaxy extends AppModel
                 }
                 $cluster_to_save['value'] = $cluster['value'];
                 $cluster_to_save['tag_name'] = $cluster_to_save['tag_name'] . $cluster['value'] . '"';
+                if (!empty($cluster['uuid'])) {
+                    $cluster_to_save['uuid'] = $cluster['uuid'];
+                }
                 unset($cluster['value']);
                 if (empty($cluster_to_save['description'])) {
                     $cluster_to_save['description'] = '';
@@ -343,6 +348,7 @@ class Galaxy extends AppModel
                 foreach ($galaxyElements as $element) {
                     if ($element['key'] == 'kill_chain') {
                         $kc = explode(":", $element['value'])[2];
+                        $attackClusters[$kc][] = $cluster;
                         $toBeAdded = true;
                     }
                     if ($element['key'] == 'external_id') {
@@ -350,7 +356,6 @@ class Galaxy extends AppModel
                     }
                 }
                 if ($toBeAdded) {
-                    $attackClusters[$kc][] = $cluster;
                     array_push($attackTactic['attackTags'], $cluster['tag_name']);
                 }
             }
