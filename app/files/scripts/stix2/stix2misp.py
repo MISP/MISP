@@ -44,7 +44,7 @@ class StixParser():
         self.filename = filename
         self.stix_version = version
         for object_type in special_parsing:
-            setattr(self, object_type, event.pop(object_type) if object_type in event else None)
+            setattr(self, object_type, event.pop(object_type) if object_type in event else {})
         self.event = event
         if args and args[0] is not None:
             self.add_original_file(args[0])
@@ -939,6 +939,8 @@ class ExternalStixParser(StixParser):
                                    ('email-addr', 'email-message', 'file'): self.parse_email_observable,
                                    ('email-message',): self.parse_email_observable,
                                    ('file',): self.parse_file_observable,
+                                   ('ipv4-addr',): self.parse_ip_address_observable,
+                                   ('ipv6-addr',): self.parse_ip_address_observable,
                                    ('ipv4-addr', 'network-traffic'): self.parse_ip_network_traffic_observable,
                                    ('ipv6-addr', 'network-traffic'): self.parse_ip_network_traffic_observable,
                                    ('mac-addr',): self.parse_mac_address_observable,
@@ -950,6 +952,8 @@ class ExternalStixParser(StixParser):
         self.pattern_mapping = {('domain-name', 'ipv4-addr', 'url'): self.parse_domain_ip_port_pattern,
                                 ('domain-name', 'ipv6-addr', 'url'): self.parse_domain_ip_port_pattern,
                                 ('file',): self.parse_file_pattern,
+                                ('ipv4-addr',): self.parse_ip_address_pattern,
+                                ('ipv6-addr',): self.parse_ip_address_pattern,
                                 ('network-traffic',): self.parse_network_traffic_pattern,
                                 ('process',): self.parse_process_pattern,
                                 ('windows-registry-key',): self.parse_regkey_pattern}
@@ -1109,6 +1113,21 @@ class ExternalStixParser(StixParser):
         else:
             self.handle_import_case(attributes, file._type, uuid)
 
+    def parse_ip_address_observable(self, objects, uuid):
+        attribute = {'to_ids': False}
+        if len(objects) == 1:
+            attribute['uuid'] = uuid
+        for observable in objects.values():
+            self.misp_event.add_attribute('ip-dst', observable.value, **attribute)
+
+    def parse_ip_address_pattern(self, pattern, uuid=None):
+        _, pattern_values = self.get_types_and_values_from_pattern(pattern)
+        attribute = {'to_ids': True}
+        if len(pattern_values) == 1:
+            attribute['uuid'] = uuid
+        for value in pattern_values:
+            self.misp_event.add_attribute('ip-dst', value, **attribute)
+
     def parse_ip_network_traffic_observable(self, objects, uuid):
         network_traffic = self.fetch_network_traffic_objects(objects)
         attributes = self.fill_observable_attributes(network_traffic, network_traffic_mapping)
@@ -1124,7 +1143,7 @@ class ExternalStixParser(StixParser):
         self.handle_import_case(attributes, name, uuid)
 
     def parse_ip_port_observable(self, objects, uuid):
-        attributes = self.attributes_from_ip_por_observablet(objects)
+        attributes = self.attributes_from_ip_port_observable(objects)
         self.handle_import_case(attributes, 'ip-port', uuid)
 
     def parse_ip_port_or_network_socket_observable(self, objects, uuid):
