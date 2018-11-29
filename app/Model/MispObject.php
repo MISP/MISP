@@ -518,12 +518,6 @@ class MispObject extends AppModel
                             $newAttribute['event_id'] = $object['Object']['event_id'];
                             $newAttribute['object_id'] = $object['Object']['id'];
                             $newAttribute['timestamp'] = $date->getTimestamp();
-							if (!isset($newAttribute['timestamp'])) {
-								$newAttribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
-								if ($newAttribute['distribution'] == 'event') {
-									$newAttribute['distribution'] = 5;
-								}
-							}
                             $result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array(
                                 'category',
                                 'value',
@@ -545,6 +539,12 @@ class MispObject extends AppModel
             $this->Event->Attribute->create();
             $newAttribute['event_id'] = $object['Object']['event_id'];
             $newAttribute['object_id'] = $object['Object']['id'];
+			if (!isset($newAttribute['timestamp'])) {
+				$newAttribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
+				if ($newAttribute['distribution'] == 'event') {
+					$newAttribute['distribution'] = 5;
+				}
+			}
             $this->Event->Attribute->save($newAttribute);
             $attributeArrays['add'][] = $newAttribute;
             unset($objectToSave['Attribute'][$newKey]);
