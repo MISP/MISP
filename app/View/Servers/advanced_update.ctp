@@ -1,10 +1,17 @@
 <?php
 if (!$isSiteAdmin) exit();
+$disabledBtnText = $updateLocked ? 'title="' . __('An update is already in progress...') . '" disabled' : 'title=' . __('Update');
 ?>
 
 <div class="index">
     <h2><?php echo __('Advanced Manual Update'); ?></h2>
-    
+
+    <?php if ($updateLocked): ?>
+        <div class='alert alert-danger'>
+            <?php echo __('An update is already in progress. Starting new updates is not possible until completion of the current update process.'); ?>
+        </div>
+    <?php endif; ?>
+   
     <div style="margin-bottom: 10px;">
         <a id="btnShowProgress" class="btn btn-inverse" href="<?php echo $baseurl; ?>/servers/updateProgress/"><?php echo __('Show Update Progress Page'); ?></a>
     </div>
@@ -35,7 +42,7 @@ if (!$isSiteAdmin) exit();
                     echo $this->Form->create(false, array( 'url' => $baseurl . $update['url'] . $url_param ));
                 ?>
 
-                    <span class="btn btn-warning submitButton" title="<?php echo __('Update: ') . h($update['title']); ?>" role="button" tabindex="0" aria-label="<?php echo __('Submit'); ?>"><?php echo __('Update: ') . h($update['title']); ?></span>
+                    <button class="btn btn-warning submitButton" <?php echo $disabledBtnText; ?> role="button" tabindex="0" aria-label="<?php echo __('Submit'); ?>"><?php echo __('Update: ') . h($update['title']); ?></button>
 
                 <?php
                     echo $this->Form->end();
