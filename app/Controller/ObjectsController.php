@@ -236,6 +236,10 @@ class ObjectsController extends AppController
                             'conditions' => array('Object.id' => $result),
                             'contain' => array('Attribute')
                         ));
+						if (!empty($object)) {
+							$object['Object']['Attribute'] = $object['Attribute'];
+							unset($object['Attribute']);
+						}
                         return $this->RestResponse->viewData($object, $this->response->type());
                     } else {
                         return $this->RestResponse->saveFailResponse('Objects', 'add', false, $error, $this->response->type());
