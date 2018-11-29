@@ -1572,8 +1572,6 @@ class AppModel extends Model
                 }
                 $updateWaitThreshold = intval($this->Server->serverSettings['MISP']['updateTimeThreshold']['value']);
             }
-            debug($updateWaitThreshold);
-            debug($diffSec);
 
             if ($diffSec < $updateWaitThreshold) {
                 return true;
