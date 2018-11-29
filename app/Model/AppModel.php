@@ -224,6 +224,11 @@ class AppModel extends Model
     // SQL scripts for updates
     public function updateDatabase($command, $liveOff=false, $exitOnError=false)
     {
+        // Exit if updates are locked
+        if ($this->isUpdateLocked()) {
+            return false;
+        }
+
         $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
         $dataSource = $dataSourceConfig['datasource'];
         $sqlArray = array();
@@ -1157,6 +1162,8 @@ class AppModel extends Model
         }
 
         $this->__resetUpdateProgress();
+        $now = new DateTime();
+        $this->__changeLockState($now->format('Y-m-d H:i:s'));
         // switch MISP instance live to false
         if ($liveOff) {
             $this->Server = Classregistry::init('Server');
@@ -1240,6 +1247,7 @@ class AppModel extends Model
         if (!$flagStop && $errorCount == 0) {
             $this->__postUpdate($command);
         }
+        $this->__changeLockState(false);
 
         return true;
     }
@@ -1489,7 +1497,9 @@ class AppModel extends Model
     }
 
     public function getUpdateProgress() {
-        $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        if (!isset($this->AdminSetting)) {
+            $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        }
         $updateProgress = $this->AdminSetting->getSetting('update_progress');
         if ($updateProgress !== false) {
             $updateProgress = json_decode($updateProgress, true);
@@ -1510,6 +1520,45 @@ class AppModel extends Model
     private function __saveUpdateProgress($updateProgress) {
         $data = json_encode($updateProgress);
         $this->AdminSetting->changeSetting('update_progress', $data);
+    }
+
+    private function __changeLockState($locked) {
+        $this->AdminSetting->changeSetting('update_locked', $locked);
+    }
+
+    private function getUpdateLockState() {
+        if (!isset($this->AdminSetting)) {
+            $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        }
+        $locked = $this->AdminSetting->getSetting('update_locked');
+        return is_null($locked) ? false : $locked;
+    }
+
+    public function isUpdateLocked() {
+        $lockState = $this->getUpdateLockState();
+        $lockState = $lockState === false ? false : $lockState;
+        if ($lockState !== false) {
+            // if lock is old, still allows the update
+            // This can be useful if the update process crashes
+            $lockDate = (new DateTime($lockState))->format('U');
+            $now = (new DateTime())->format('U');
+            $diffSec = $now - $lockDate;
+            if (Configure::read('MISP.updateTimeThreshold')) {
+                $updateWaitThreshold = intval(Configure::read('MISP.updateTimeThreshold'));
+            } else {
+                if (!isset($this->Server)) {
+                    $this->Server = ClassRegistry::init('Server');
+                }
+                $updateWaitThreshold = intval($this->Server->serverSettings['MISP']['updateTimeThreshold']['value']);
+            }
+            debug($updateWaitThreshold);
+            debug($diffSec);
+
+            if ($diffSec < $updateWaitThreshold) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private function __queueCleanDB()

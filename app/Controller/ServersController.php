@@ -1636,6 +1636,7 @@ class ServersController extends AppController
             }
         }
         $this->set('advancedUpdates', $updates);
+        $this->set('updateLocked', $this->Server->isUpdateLocked());
     }
 
     public function updateProgress()

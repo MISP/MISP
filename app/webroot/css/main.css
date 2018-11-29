@@ -21,6 +21,10 @@ button .full-width {
 	margin-bottom:10px;
 }
 
+form button.btn[disabled] {
+    cursor: not-allowed;
+}
+
 /*.close{
 	float:none;
 }*/
