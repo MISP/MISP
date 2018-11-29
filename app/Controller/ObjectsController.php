@@ -376,6 +376,10 @@ class ObjectsController extends AppController
                             'conditions' => array('Object.id' => $id),
                             'contain' => array('Attribute')
                         ));
+						if (!empty($objectToSave)) {
+							$objectToSave['Object']['Attribute'] = $objectToSave['Attribute'];
+							unset($objectToSave['Attribute']);
+						}
                         $this->MispObject->Event->unpublishEvent($object['Object']['event_id']);
                         return $this->RestResponse->viewData($objectToSave, $this->response->type());
                     } else {
