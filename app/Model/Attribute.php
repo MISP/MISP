@@ -3628,7 +3628,12 @@ class Attribute extends AppModel
                 ));
                 return 'Invalid sharing group choice.';
             }
-        }
+        } else if (!isset($attribute['distribution'])) {
+			$attribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
+			if ($attribute['distribution'] == 'event') {
+				$attribute['distribution'] = 5;
+			}
+		}
         $fieldList = array(
             'event_id',
             'category',
