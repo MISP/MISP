@@ -4,6 +4,9 @@
 sudo -E $RUN_PHP "$CAKE userInit -q"
 AUTH_KEY=$(mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM users;" | tail -1)
 
+# A small sleep to make sure all the db migrations are done, in case of copy-pasta
+sleep 30
+
 # Setup some more MISP default via cake CLI
 
 # Change base url, either with this CLI command or in the UI
