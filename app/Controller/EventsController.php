@@ -275,16 +275,25 @@ class EventsController extends AppController
         $urlparams = "";
         $overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal');
         $passedArgs = $this->passedArgs;
+
         if (isset($this->request->data)) {
             if (isset($this->request->data['request'])) {
                 $this->request->data = $this->request->data['request'];
             }
-            foreach ($overrideAbleParams as $oap) {
-                if (isset($this->request->data['search' . $oap])) {
-                    $this->request->data[$oap] = $this->request->data['search' . $oap];
-                }
-                if (isset($this->request->data[$oap])) {
-                    $passedArgs['search' . $oap] = $this->request->data[$oap];
+            foreach ($this->request->data as $rd => $val) {
+                $rdlowercase = strtolower($rd);
+                if (substr($rdlowercase, 0, 6) === 'search'){
+                    $searchTerm = substr($rdlowercase, 6);
+                    if (in_array($searchTerm, $overrideAbleParams)) {
+                        $this->request->data[$searchTerm] = $this->request->data[$rd];
+                        $passedArgs['search' . $searchTerm] = $this->request->data[$rd];
+                    }
+                } else {
+                    if (in_array($rdlowercase, $overrideAbleParams)) {
+                        $this->request->data[$rdlowercase] = $this->request->data[$rd];
+                        $passedArgs['search' . $rdlowercase] = $this->request->data[$rd];
+                        
+                    }
                 }
             }
         }
