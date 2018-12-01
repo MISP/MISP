@@ -236,7 +236,8 @@ class RestResponseComponent extends Component
             ),
 			'statistics' => array(
 				'description' => 'Simply GET the url endpoint to view the API output of the statistics API. Additional statistics are available via the following tab-options similar to the UI: data, orgs, users, tags, attributehistogram, sightings, attackMatrix',
-				'params' => array('tab')
+				'params' => array('tab'),
+				'http_method' => 'GET'
 			)
         ),
         'Warninglist' => array(
