@@ -621,7 +621,11 @@ class ObjectsController extends AppController
     public function quickFetchTemplateWithValidObjectAttributes($id) {
         $this->MispObject->id = $id;
         if (!$this->MispObject->exists()) {
-            throw new NotFoundException(__('Invalid object'));
+            if ($this->request->is('ajax')) {
+                return new CakeResponse(array('body'=> json_encode(array('fail' => true, 'errors' => 'Invalid object')), 'status'=>200, 'type' => 'json'));
+            } else {
+                throw new NotFoundException(__('Invalid object'));
+            }
         }
 
         $fields = array('template_uuid', 'template_version', 'id');
@@ -634,7 +638,11 @@ class ObjectsController extends AppController
         // fetchObjects restrict access based on user
         $object = $this->MispObject->fetchObjects($this->Auth->user(), $params);
         if (empty($object)) {
-            throw new NotFoundException(__('Invalid object'));
+            if ($this->request->is('ajax')) {
+                return new CakeResponse(array('body'=> json_encode(array('fail' => true, 'errors' => 'Invalid object')), 'status'=>200, 'type' => 'json'));
+            } else {
+                throw new NotFoundException(__('Invalid object'));
+            }
         } else {
             $object = $object[0];
         }
@@ -657,7 +665,11 @@ class ObjectsController extends AppController
             'contain' => 'ObjectTemplateElement'
         ));
         if (empty($template)) {
-            throw new NotFoundException(__('Invalid template'));
+            if ($this->request->is('ajax')) {
+                return new CakeResponse(array('body'=> json_encode(array('fail' => true, 'errors' => 'Invalid template')), 'status'=>200, 'type' => 'json'));
+            } else {
+                throw new NotFoundException(__('Invalid template'));
+            }
         }
 
         // unset object invalid object attribute

@@ -571,9 +571,12 @@ function quickFetchValidObjectAttribute(objectId) {
             $(".loading").show();
         },
         success:function (data, textStatus) {
-            $('#popover_form').html(data);
-            openPopup('#popover_form');
-            //handleGenericAjaxResponse(data);
+            if (data.fail !== undefined && data.fail) {
+                showMessage('fail', data.errors);
+            } else {
+                $('#popover_form').html(data);
+                openPopup('#popover_form');
+            }
         },
         error:function() {
             showMessage('fail', 'Could not fetch allowed attribute type.');
