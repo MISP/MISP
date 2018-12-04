@@ -31,10 +31,10 @@ class NewsController extends AppController
             }
         }
         $this->User->id = $this->Auth->user('id');
-		//if ($this->User->exists()) {
-        	$this->User->saveField('newsread', time());
-        	$this->set('newsItems', $newsItems);
-		//}
+        //if ($this->User->exists()) {
+        $this->User->saveField('newsread', time());
+        $this->set('newsItems', $newsItems);
+        //}
     }
 
     public function add()

@@ -17,7 +17,7 @@ class Whitelist extends AppModel
             ),
     );
 
-	public $whitelistedItems = false;
+    public $whitelistedItems = false;
 
     public $validate = array(
         'name' => array(
@@ -68,13 +68,13 @@ class Whitelist extends AppModel
 
     public function getBlockedValues()
     {
-		if ($this->whitelistedItems !== false) {
-	        $Whitelists = $this->find('all', array('fields' => array('name')));
-	        $this->whitelistedItems = array();
-	        foreach ($Whitelists as $item) {
-	            $this->whitelistedItems[] = $item['Whitelist']['name'];
-	        }
-		}
+        if ($this->whitelistedItems !== false) {
+            $Whitelists = $this->find('all', array('fields' => array('name')));
+            $this->whitelistedItems = array();
+            foreach ($Whitelists as $item) {
+                $this->whitelistedItems[] = $item['Whitelist']['name'];
+            }
+        }
         return $this->whitelistedItems;
     }
 
