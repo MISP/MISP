@@ -1062,6 +1062,18 @@ class ExternalStixParser(StixParser):
     ##                             PARSING FUNCTIONS.                             ##
     ################################################################################
 
+    @staticmethod
+    def  attributes_from_dict(values, mapping_dict, to_ids):
+        attributes = []
+        for type_, value in values.items():
+            try:
+                mapping = mapping_dict[type_]
+            except KeyError:
+                continue
+            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                               'value': value, 'to_ids': to_ids})
+        return attributes
+
     def handle_pe_case(self, extension, attributes, uuid):
         pe_uuid = self.parse_pe(extension)
         file_object = self.create_misp_object(attributes, 'file', uuid)
@@ -1077,12 +1089,12 @@ class ExternalStixParser(StixParser):
         self.handle_import_case(attributes, 'domain-ip', uuid)
 
     def parse_domain_ip_port_pattern(self, pattern, uuid=None):
+        values = {}
         for p in pattern:
             type_, value = p.split('=')
-            types.append(type_.strip())
-            values.append(value.strip().strip('\''))
-        pattern_types, pattern_values = self.get_types_and_values_from_pattern(pattern)
-        pattern = {type_.split(':')[0]: {}}
+            values[type_.strip().split(':')[0]] = value.strip().strip('\'')
+        attributes = self.attributes_from_dict(values, domain_ip_mapping, True)
+        self.handle_import_case(attributes, 'domain-ip', uuid)
 
     def parse_email_observable(self, objects, uuid):
         to_ids = False
