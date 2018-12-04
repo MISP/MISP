@@ -11,7 +11,7 @@
         SSLEngine On
         SSLCertificateFile /etc/ssl/private/misp.local.crt
         SSLCertificateKeyFile /etc/ssl/private/misp.local.key
-        SSLCertificateChainFile /etc/ssl/private/misp-chain.crt
+#        SSLCertificateChainFile /etc/ssl/private/misp-chain.crt
 
         LogLevel warn
         ErrorLog /var/log/apache2/misp.local_error.log

@@ -27,13 +27,13 @@ class EventBlacklistsController extends AppController
 
     public function index()
     {
-		$params = array();
-		$validParams = array('event_uuid', 'comment');
-		foreach ($validParams as $validParam) {
-			if (!empty($this->params['named'][$validParam])) {
-				$params[$validParam] = $this->params['named'][$validParam];
-			}
-		}
+        $params = array();
+        $validParams = array('event_uuid', 'comment');
+        foreach ($validParams as $validParam) {
+            if (!empty($this->params['named'][$validParam])) {
+                $params[$validParam] = $this->params['named'][$validParam];
+            }
+        }
         $this->BlackList->index($this->_isRest(), $params);
     }
 

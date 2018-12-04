@@ -4,7 +4,9 @@
 ### 0/ MISP Ubuntu 18.04-server install - status
 -------------------------
 !!! notice
-    Tested working by @SteveClement on 20181025 (works with **Ubuntu 18.10** too)
+    Tested working by @SteveClement on 20181120 (works with **Ubuntu 18.10** too)
+    As of 20181120 on **Ubuntu 19.04** you need to use Python 3.6 as LIEF with 3.7 is not "eggED" yet.
+    You will need to **sudo apt install python3.6-dev** to make everything work according to this guide.
 
 {!generic/community.md!}
 
@@ -53,7 +55,7 @@ Once the system is installed you can perform the following steps.
 # sudo add-apt-repository universe
 
 # Install the dependencies: (some might already be installed)
-sudo apt-get install curl gcc git gnupg-agent make python python3 openssl redis-server sudo vim zip -y
+sudo apt-get install curl gcc git gnupg-agent make python python3 openssl redis-server sudo vim zip virtualenv -y
 
 # Install MariaDB (a MySQL fork/alternative)
 sudo apt-get install mariadb-client mariadb-server -y
@@ -123,7 +125,9 @@ sudo -u www-data git submodule foreach --recursive git config core.filemode fals
 sudo -u www-data git config core.filemode false
 
 # Create a python3 virtualenv
-sudo -u www-data virtualenv -p python3 ${PATH_TO_MISP}/venv
+sudo apt-get install python3-pip
+pip3 install virtualenv
+sudo -u www-data virtualenv -p python3.6 ${PATH_TO_MISP}/venv
 
 # make pip happy
 sudo mkdir /var/www/.cache/
@@ -373,7 +377,7 @@ sudo -u www-data sh -c "gpg --homedir $PATH_TO_MISP/.gnupg --export --armor $GPG
     If entropy is not high enough, you can install havegd and then start the service
     ```bash
     sudo apt install haveged -y
-    sudo service havegd start
+    sudo service haveged start
     ```
 
 ```bash
@@ -423,7 +427,7 @@ sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install maec lief python-magic 
 sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
 
 # Start misp-modules
-sudo -u www-data misp-modules -l 127.0.0.1 -s &
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s &
 
 echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
 echo "User  (misp) DB Password: $DBPASSWORD_MISP"
@@ -447,6 +451,8 @@ sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install pyzmq
 {!generic/ssdeep-debian.md!}
 
 {!generic/mail_to_misp-debian.md!}
+
+{!generic/hardening.md!}
 
 #### misp-modules (section deprecated)
 -------------------------------

@@ -55,9 +55,7 @@
                 $branchColour = $branch == '2.4' ? 'green' : 'red bold';
             ?>
             <span class="<?php echo h($branchColour); ?>">
-                <?php
-                    echo h($branch);
-                ?>
+                <?=($branch == '2.4') ? h($branch) : "You are not on a branch, Update MISP will fail"; ?>
             </span>
         </span><br />
         <pre class="hidden green bold" id="gitResult"></pre>

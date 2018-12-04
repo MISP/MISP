@@ -129,9 +129,9 @@ class Galaxy extends AppModel
 
             // create all clusters
             foreach ($cluster_package['values'] as $cluster) {
-				if (empty($cluster['version'])) {
-					$cluster['version'] = 1;
-				}
+                if (empty($cluster['version'])) {
+                    $cluster['version'] = 1;
+                }
                 $template['version'] = $cluster['version'];
                 $this->GalaxyCluster->create();
                 $cluster_to_save = $template;
@@ -141,9 +141,9 @@ class Galaxy extends AppModel
                 }
                 $cluster_to_save['value'] = $cluster['value'];
                 $cluster_to_save['tag_name'] = $cluster_to_save['tag_name'] . $cluster['value'] . '"';
-				if (!empty($cluster['uuid'])) {
-					$cluster_to_save['uuid'] = $cluster['uuid'];
-				}
+                if (!empty($cluster['uuid'])) {
+                    $cluster_to_save['uuid'] = $cluster['uuid'];
+                }
                 unset($cluster['value']);
                 if (empty($cluster_to_save['description'])) {
                     $cluster_to_save['description'] = '';

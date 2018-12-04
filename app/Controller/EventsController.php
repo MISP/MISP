@@ -818,11 +818,11 @@ class EventsController extends AppController
         $this->set('analysisLevels', $this->Event->analysisLevels);
         $this->set('distributionLevels', $this->Event->distributionLevels);
         $this->set('shortDist', $this->Event->shortDist);
-		if ($this->params['ext'] === 'csv') {
-			App::uses('CsvExport', 'Export');
-			$export = new CsvExport();
-			return $this->RestResponse->viewData($export->eventIndex($events), 'csv');
-		}
+        if ($this->params['ext'] === 'csv') {
+            App::uses('CsvExport', 'Export');
+            $export = new CsvExport();
+            return $this->RestResponse->viewData($export->eventIndex($events), 'csv');
+        }
         if ($this->request->is('ajax')) {
             $this->autoRender = false;
             $this->layout = false;
@@ -1001,13 +1001,13 @@ class EventsController extends AppController
         }
         $conditions['includeFeedCorrelations'] = true;
         $conditions['includeAllTags'] = true;
-		$conditions['includeGranularCorrelations'] = 1;
-		if (!empty($this->params['named']['includeRelatedTags'])) {
-			$this->set('includeRelatedTags', 1);
-			$conditions['includeRelatedTags'] = 1;
-		} else {
-			$this->set('includeRelatedTags', 0);
-		}
+        $conditions['includeGranularCorrelations'] = 1;
+        if (!empty($this->params['named']['includeRelatedTags'])) {
+            $this->set('includeRelatedTags', 1);
+            $conditions['includeRelatedTags'] = 1;
+        } else {
+            $this->set('includeRelatedTags', 0);
+        }
         $results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
         if (empty($results)) {
             throw new NotFoundException(__('Invalid event'));
@@ -1164,7 +1164,7 @@ class EventsController extends AppController
         }
         $this->set('sightingTypes', $this->Sighting->type);
         $this->set('currentUri', $this->params->here);
-		$this->layout = false;
+        $this->layout = false;
         $this->render('/Elements/eventattribute');
     }
 
@@ -1386,7 +1386,7 @@ class EventsController extends AppController
         if (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) {
             $conditions['deleted'] = 1;
         }
-		if (isset($this->params['named']['includeRelatedTags']) && $this->params['named']['includeRelatedTags']) {
+        if (isset($this->params['named']['includeRelatedTags']) && $this->params['named']['includeRelatedTags']) {
             $conditions['includeRelatedTags'] = 1;
         }
         if (isset($this->params['named']['public']) && $this->params['named']['public']) {
@@ -1405,9 +1405,9 @@ class EventsController extends AppController
             $this->set('extended', 0);
         }
         $conditions['includeFeedCorrelations'] = true;
-		if (!$this->_isRest()) {
-			$conditions['includeGranularCorrelations'] = 1;
-		}
+        if (!$this->_isRest()) {
+            $conditions['includeGranularCorrelations'] = 1;
+        }
         $results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
         if (empty($results)) {
             throw new NotFoundException(__('Invalid event'));
@@ -1421,7 +1421,7 @@ class EventsController extends AppController
             $this->set('event', $event);
         }
         $this->set('deleted', isset($this->params['named']['deleted']) && $this->params['named']['deleted']);
-		$this->set('includeRelatedTags', (!empty($this->params['named']['includeRelatedTags'])) ? 1 : 0);
+        $this->set('includeRelatedTags', (!empty($this->params['named']['includeRelatedTags'])) ? 1 : 0);
         if (!$this->_isRest()) {
             $this->__viewUI($event, $continue, $fromEvent);
         }
@@ -1917,13 +1917,13 @@ class EventsController extends AppController
         // check if private and user not authorised to edit
         if (!$this->_isSiteAdmin() && !($this->userRole['perm_sync'] && $this->_isRest())) {
             if (($this->Event->data['Event']['orgc_id'] != $this->_checkOrg()) || !($this->userRole['perm_modify'])) {
-				$message = __('You are not authorised to do that. Please consider using the \'propose attribute\' feature.');
-				if ($this->_isRest()) {
-					throw new MethodNotAllowedException($message);
-				} else {
-	                $this->Flash->error($message);
-	                $this->redirect(array('controller' => 'events', 'action' => 'index'));
-				}
+                $message = __('You are not authorised to do that. Please consider using the \'propose attribute\' feature.');
+                if ($this->_isRest()) {
+                    throw new MethodNotAllowedException($message);
+                } else {
+                    $this->Flash->error($message);
+                    $this->redirect(array('controller' => 'events', 'action' => 'index'));
+                }
             }
         }
         if (!$this->_isRest()) {
@@ -2329,9 +2329,9 @@ class EventsController extends AppController
         $rpzSettings = $this->Server->retrieveCurrentSettings('Plugin', 'RPZ_');
         $this->set('rpzSettings', $rpzSettings);
         $this->set('hashTypes', array_keys($this->Event->Attribute->hashTypes));
-		if ($legacy) {
-			$this->render('legacy_automation');
-		}
+        if ($legacy) {
+            $this->render('legacy_automation');
+        }
     }
 
     public function export()
@@ -2710,7 +2710,7 @@ class EventsController extends AppController
         return new CakeResponse(array('body'=> implode(PHP_EOL, $rules), 'status' => 200, 'type' => 'txt'));
     }
 
-    // csv function ***DEPRECATED***
+    // csv function (DEPCRECATED)
     // Usage: csv($key, $eventid)   - key can be a valid auth key or the string 'download'. Download requires the user to be logged in interactively and will generate a .csv file
     // $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
     // $ignore is a flag that allows the export tool to ignore the ids flag. 0 = only IDS signatures, 1 = everything.
@@ -2733,13 +2733,15 @@ class EventsController extends AppController
         if ($user === false) {
             return $exception;
         }
-		if (!empty($eventid) && !is_array($eventid)) {
-        	$filename = 'misp.csv.event' . $eventid . '.csv';
-		} else {
-			$filename = 'misp.csv.filtered_results.csv';
-		}
-
-		$final = $this->Event->restSearch($user, 'csv', $filters);
+        if (!empty($eventid) && !is_array($eventid)) {
+            $filename = 'misp.csv.event' . $eventid . '.csv';
+        } else {
+            $filename = 'misp.csv.filtered_results.csv';
+        }
+        if (!isset($filters['ignore'])) {
+            $filters['ignore'] = 0;
+        }
+        $final = $this->Event->restSearch($user, 'csv', $filters);
         // if it's a search, grab the attributeIDList from the session and get the IDs from it. Use those as the condition
         // We don't need to look out for permissions since that's filtered by the search itself
         // We just want all the attributes found by the search
@@ -2784,12 +2786,12 @@ class EventsController extends AppController
             $fileAccessTool = new FileAccessTool();
             $iocData = $fileAccessTool->readFromFile($this->data['Event']['submittedioc']['tmp_name'], $this->data['Event']['submittedioc']['size']);
 
-            // write
-            $attachments_dir = Configure::read('MISP.attachments_dir');
+	    // write
+	    $attachments_dir = Configure::read('MISP.attachments_dir');
             if (empty($attachments_dir)) {
-                $attachments_dir = $this->Event->getDefaultAttachments_dir();
-            }
-            $rootDir = $attachments_dir . DS . $id . DS;
+		    $attachments_dir = $this->Event->getDefaultAttachments_dir();
+	    }
+	    $rootDir = $attachments_dir . DS . $id . DS;
             App::uses('Folder', 'Utility');
             $dir = new Folder($rootDir . 'ioc', true);
             $destPath = $rootDir . 'ioc';
@@ -2980,9 +2982,31 @@ class EventsController extends AppController
     // the last 4 fields accept the following operators:
     // && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
     // ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-    public function restSearch($returnFormat = 'json', $value = false, $type = false, $category = false, $org = false, $tags = false, $searchall = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $metadata = false, $uuid = false, $publish_timestamp = false, $timestamp = false, $published = false, $enforceWarninglist = false, $sgReferenceOnly = false)
-    {
-        $paramArray = array('value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly');
+    public function restSearch(
+        $returnFormat = 'json',
+        $value = false,
+        $type = false,
+        $category = false,
+        $org = false,
+        $tags = false,
+        $searchall = false,
+        $from = false,
+        $to = false,
+        $last = false,
+        $eventid = false,
+        $withAttachments = false,
+        $metadata = false,
+        $uuid = false,
+        $publish_timestamp = false,
+        $timestamp = false,
+        $published = false,
+        $enforceWarninglist = false,
+        $sgReferenceOnly = false
+    ) {
+        $paramArray = array(
+            'value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments',
+            'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly'
+        );
         $filterData = array(
             'request' => $this->request,
             'named_params' => $this->params['named'],
@@ -3003,12 +3027,13 @@ class EventsController extends AppController
         if (isset($filters['returnFormat'])) {
             $returnFormat = $filters['returnFormat'];
         }
-		if ($returnFormat === 'download') {
-			$returnFormat = 'json';
-		}
-		$final = $this->Event->restSearch($user, $returnFormat, $filters);
-		$responseType = $this->Event->validFormats[$returnFormat][0];
-		return $this->RestResponse->viewData($final, $responseType, false, true);
+        if ($returnFormat === 'download') {
+            $returnFormat = 'json';
+        }
+        $elementCounter = 0;
+        $final = $this->Event->restSearch($user, $returnFormat, $filters, false, false, $elementCounter);
+        $responseType = $this->Event->validFormats[$returnFormat][0];
+        return $this->RestResponse->viewData($final, $responseType, false, true, false, array('X-result-count' => $elementCounter));
     }
 
     public function downloadOpenIOCEvent($key, $eventid, $enforceWarninglist = false)
@@ -4000,7 +4025,12 @@ class EventsController extends AppController
                             'url' => '/attributes/add_threatconnect/' . $id,
                             'text' => 'ThreatConnect Import',
                             'ajax' => false
-                    )
+                    ),
+                    'Forensic analysis' => array(
+                        'url' => '/events/upload_analysis_file/'.$id,
+                        'text' => '(Experimental) Forensic analysis - Mactime',
+                        'ajax' => false,
+                )
             );
             $this->loadModel('Module');
             $modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Import');
@@ -4270,9 +4300,9 @@ class EventsController extends AppController
     public function viewGraph($id)
     {
         $event = $this->Event->fetchEvent($this->Auth->user(), array(
-			'eventid' => $id,
-			'includeGranularCorrelations' => 1
-		));
+            'eventid' => $id,
+            'includeGranularCorrelations' => 1
+        ));
         if (empty($event)) {
             throw new MethodNotAllowedException(__('Invalid Event.'));
         }
@@ -4285,8 +4315,8 @@ class EventsController extends AppController
     public function viewEventGraph()
     {
         $event = $this->Event->fetchEvent($this->Auth->user(), array(
-			'eventid' => $id
-		));
+            'eventid' => $id
+        ));
         if (empty($event)) {
             throw new MethodNotAllowedException(__('Invalid Event.'));
         }
@@ -5028,9 +5058,9 @@ class EventsController extends AppController
         $this->Event->insertLock($this->Auth->user(), $event['Event']['id']);
         if ($this->request->is('post')) {
             $modules = array();
-			if (!isset($this->request->data['Event'])) {
-				$this->request->data = array('Event' => $this->request->data);
-			}
+            if (!isset($this->request->data['Event'])) {
+                $this->request->data = array('Event' => $this->request->data);
+            }
             foreach ($this->request->data['Event'] as $module => $enabled) {
                 if ($enabled) {
                     $modules[] = $module;
@@ -5137,5 +5167,126 @@ class EventsController extends AppController
             $response['extensions'][] = $extendedEvent['Event'];
         }
         return $this->RestResponse->viewData($response, $this->response->type());
+    }
+    public function upload_analysis_file($eventId)
+    {
+        $data = array();
+        $this->set('eventId', $eventId);
+        $this->set('file_uploaded', "0");
+        $this->set('file_name', "");
+
+        if (!$this->userRole['perm_modify']) {
+            throw new UnauthorizedException('You do not have permission to do that.');
+        }
+
+        if ($this->request->is('post') && !empty($this->request['data']['Event']['analysis_file']['name'])) {
+            $this->set('file_uploaded', "1");
+            $this->set('file_name', $this->request['data']['Event']['analysis_file']['name']);
+            $this->set('file_content', file_get_contents($this->request['data']['Event']['analysis_file']['tmp_name']));
+
+        //$result = $this->Event->upload_mactime($this->Auth->user(), );
+        } elseif ($this->request->is('post') && $this->request['data']['SelectedData']['mactime_data']) {
+            $fileName = $this->request['data']['SelectedData']['mactime_file_name'];
+            $fileData = $this->request['data']['SelectedData']['mactime_file_content'];
+            $object = array();
+	    $data = json_decode($this->request['data']['SelectedData']['mactime_data'], true);
+	    $firstObject = 1;
+            foreach ($data as $objectData) {
+                $object['Object'] = array(
+                    'name' => 'mactime-timeline-analysis',
+                    'meta-category' => 'file',
+                    'description' => 'Mactime template, used in forensic investigations to describe the timeline of a file activity',
+                    'template_version' => 1,
+                    'template_uuid' => '9297982e-be62-4772-a665-c91f5a8d639'
+                );
+
+                $object['Attribute'] = array(
+                    [
+                        "event_id" => $eventId,
+                        "category"=> "Other",
+                        "type" => "text",
+                        "to_ids" => false,
+                        "distribution" => "5",
+                        "object_relation" => "filepath",
+                        "value" => $objectData['filepath']
+                    ],
+                    [
+                        "event_id" => $eventId,
+                        "category" => "Other",
+                        "type" => "datetime",
+                        "to_ids" => false,
+                        "distribution" => "5",
+                        "object_relation" => "datetime",
+                        "value" => $objectData['time_accessed']
+                    ],
+                    [
+                        "event_id" => $eventId,
+                        "category" => "Other",
+                        "type" => "text",
+                        "to_ids" => false,
+                        "distribution" => "5",
+                        "object_relation" => "fileSize",
+                        "value" => $objectData['file_size']
+                    ],
+                    [
+                        "event_id" => $eventId,
+                        "category" => "Other",
+                        "type" => "text",
+                        "to_ids" => false,
+                        "distribution" => "5",
+                        "object_relation" => "activityType",
+                        "value" => $objectData['activity_type']
+                    ],
+                    [
+                        "event_id" => $eventId,
+                        "category" => "Other",
+                        "type" => "text",
+                        "to_ids" => false,
+                        "distribution" => "5",
+                        "object_relation" => "filePermissions",
+                        "value" => $objectData['permissions']
+                    ],
+                    [
+                        "event_id" => $eventId,
+                        "category" => "External analysis",
+                        "type" => "attachment",
+                        "to_ids" => false,
+                        "distribution" => "5",
+                        "object_relation" => "file",
+                        "value" => $fileName,
+                        "data" => base64_encode($fileData),
+                        "comment" => "Mactime source file"
+                    ]
+
+                    );
+                $this->loadModel('MispObject');
+                $ObjectResult = $this->MispObject->saveObject($object, $eventId, "", "");
+                $temp = $this->MispObject->ObjectReference->Object->find('first', array(
+                    'recursive' => -1,
+                    'fields' => array('Object.uuid','Object.id'),
+                    'conditions' => array('Object.id' =>$ObjectResult)
+                ));
+
+                if ($firstObject === 0) {
+                    $objectRef['referenced_id'] = $PreviousObjRef['Object']['id'];
+                    $objectRef['referenced_uuid'] = $PreviousObjRef['Object']['uuid'];
+                    $objectRef['object_id'] = $ObjectResult;
+                    $objectRef['relationship_type'] = "preceded-by";
+                    $this->loadModel('MispObject');
+                    $result = $this->MispObject->ObjectReference->captureReference($objectRef, $eventId, $this->Auth->user(), false);
+                    $objectRef['referenced_id'] = $temp['Object']['id'];
+                    $objectRef['referenced_uuid'] = $temp['Object']['uuid'];
+                    $objectRef['object_id'] = $PreviousObjRef['Object']['id'];
+                    $objectRef['relationship_type'] = "followed-by";
+                    $this->loadModel('MispObject');
+                    $result = $this->MispObject->ObjectReference->captureReference($objectRef, $eventId, $this->Auth->user(), false);
+                    $PreviousObjRef = $temp;
+                } else {
+                    $PreviousObjRef = $temp;
+                    $firstObject = 0;
+                }
+            }
+            $this->redirect('/events/view/' . $eventId);
+        }
     }
 }

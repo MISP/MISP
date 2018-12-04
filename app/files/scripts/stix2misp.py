@@ -727,7 +727,7 @@ class StixParser():
     @staticmethod
     def fetch_uuid(object_id):
         try:
-            return "-".join(object_id.split("-")[1:])
+            return "-".join(object_id.split("-")[-5:])
         except Exception:
             return str(uuid.uuid4())
 
@@ -963,7 +963,7 @@ class ExternalStixParser(StixParser):
         self.set_timestamp_and_date()
         self.set_event_info()
         header = self.event.stix_header
-        if hasattr(header, 'description') and header.description:
+        if hasattr(header, 'description') and header.description.value:
             self.misp_event.add_attribute(**{'type': 'comment', 'value': header.description.value,
                                              'comment': 'Imported from STIX header description'})
         if hasattr(header, 'handling') and header.handling:

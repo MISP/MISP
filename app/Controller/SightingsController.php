@@ -146,7 +146,8 @@ class SightingsController extends AppController
         $this->render('/Sightings/ajax/advanced');
     }
 
-    public function quickAdd($id=false, $onvalue=false) {
+    public function quickAdd($id=false, $onvalue=false)
+    {
         if (!$this->userRole['perm_modify_org']) {
             throw new MethodNotAllowedException(__('You are not authorised to remove sightings data as you don\'t have permission to modify your organisation\'s data.'));
         }

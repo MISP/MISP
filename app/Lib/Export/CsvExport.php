@@ -31,8 +31,6 @@ class CsvExport
 			'Event' => array('fields' => array('Event.*'), 'EventTag' => 'Tag', 'Org.name', 'Orgc.name', 'ThreatLevel')
 		));
 		unset($params['fields']);
-		$params['includeEventUuid'] = 0;
-		$params['includeEventTags'] = 0;
 		$params['withAttachments'] = 0;
 		return $params;
 	}

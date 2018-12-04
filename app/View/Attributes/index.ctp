@@ -157,10 +157,10 @@ $(document).ready(function () {
     $('.screenshot').click(function() {
         screenshotPopup($(this).attr('src'), $(this).attr('title'));
     });
-<<<<<<< HEAD
 	$('.addGalaxy').click(function() {
 		addGalaxyListener(this);
 	});
+	/*
 	$('.sightings_advanced_add').click(function() {
 		var selected = [];
 		var object_context = $(this).data('object-context');
@@ -176,13 +176,13 @@ $(document).ready(function () {
 		url = "<?php echo $baseurl; ?>" + "/sightings/advanced/" + object_id + "/" + object_context;
 		genericPopup(url, '#screenshot_box');
 	});
+	*/
 	$('.correlation-toggle').click(function() {
 		var attribute_id = $(this).data('attribute-id');
 		getPopup(attribute_id, 'attributes', 'toggleCorrelation', '', '#confirmation_box');
 		return false;
 	});
 	popoverStartup();
-=======
     $(document).on('click', function (e) {
         //did not click a popover toggle or popover
         if ($(e.target).data('toggle') !== 'popover'
@@ -194,6 +194,5 @@ $(document).ready(function () {
             definedPopovers.popover('hide');
         }
     });
->>>>>>> 2adef5897cdb233c1541461a97b9b08f15ae5134
 });
 </script>

@@ -10,7 +10,7 @@ class XmlExport
 		if ($options['scope'] === 'Attribute') {
 			return $this->__attributeHandler($data, $options);
 		} else if($options['scope'] === 'Event') {
-			return $this->__eventsHandler($data, $options);
+			return $this->__eventHandler($data, $options);
 		} else if($options['scope'] === 'Sighting') {
 			return $this->__sightingsHandler($data, $options);
 		}

@@ -17,3 +17,7 @@ sudo grub-mkconfig -o /boot/grub/grub.cfg
     ```
     sudo sed -i "s/enp0s3/eth0/" /etc/netplan/50-cloud-init.yaml
     ```
+    OR on Ubuntu 19.04 (yay for changing this every 5 commits... #n00bs)
+    ```
+    sudo sed -i "s/enp0s3/eth0/" /etc/netplan/01-netcfg.yaml
+    ```
