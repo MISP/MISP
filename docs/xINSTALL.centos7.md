@@ -64,7 +64,7 @@ sudo yum install rh-php71 rh-php71-php-fpm rh-php71-php-devel rh-php71-php-mysql
 # https://www.softwarecollections.org/en/scls/rhscl/rh-python36/
 sudo yum install rh-python36 -y
 
-# rh-php71-php only provided mod_php for httpd24-httpd from SCL
+# rh-php71-php only provided mod_ssl mod_php for httpd24-httpd from SCL
 # if we want to use httpd from CentOS base we can use rh-php71-php-fpm instead
 sudo systemctl enable rh-php71-php-fpm.service
 sudo systemctl start  rh-php71-php-fpm.service
@@ -112,7 +112,7 @@ sudo -u apache git submodule foreach --recursive git config core.filemode false
 sudo -u apache $RUN_PYTHON "virtualenv -p python3 $PATH_TO_MISP/venv"
 sudo mkdir /usr/share/httpd/.cache
 sudo chown apache:apache /usr/share/httpd/.cache
-sudo -u apache $PATH_TO_MISP/venv/bin/pip install -U pip
+sudo -u apache $PATH_TO_MISP/venv/bin/pip install -U pip setuptools
 
 # install Mitre's STIX and its dependencies by running the following commands:
 sudo yum install python-importlib python-lxml python-dateutil python-six -y
@@ -305,7 +305,12 @@ sudo -u apache cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DB
 # Now configure your apache server with the DocumentRoot /var/www/MISP/app/webroot/
 # A sample vhost can be found in /var/www/MISP/INSTALL/apache.misp.centos7
 
-sudo cp /var/www/MISP/INSTALL/apache.misp.centos7 /etc/httpd/conf.d/misp.conf
+sudo cp /var/www/MISP/INSTALL/apache.misp.centos7.ssl /etc/httpd/conf.d/misp.ssl.conf
+
+# If a valid SSL certificate is not already created for the server, create a self-signed certificate:
+sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
+-subj "/C=${OPENSSL_C}/ST=${OPENSSL_ST}/L=${OPENSSL_L}/O=${OPENSSL_O}/OU=${OPENSSL_OU}/CN=${OPENSSL_CN}/emailAddress=${OPENSSL_EMAILADDRESS}" \
+-keyout /etc/pki/tls/private/misp.local.key -out /etc/pki/tls/certs/misp.local.crt
 
 # Since SELinux is enabled, we need to allow httpd to write to certain directories
 sudo chcon -t usr_t /var/www/MISP/venv
@@ -336,24 +341,16 @@ sudo systemctl start  httpd.service
 
 # Open a hole in the iptables firewall
 sudo firewall-cmd --zone=public --add-port=80/tcp --permanent
+sudo firewall-cmd --zone=public --add-port=443/tcp --permanent
 sudo firewall-cmd --reload
 
 # We seriously recommend using only HTTPS / SSL !
-# Add SSL support by running: yum install mod_ssl
+# Add SSL support by running: sudo yum install mod_ssl
 # Check out the apache.misp.ssl file for an example
 ```
 
 !!! warning
     To be fixed - Place holder
-
-```bash
-sudo mkdir /etc/ssl/private
-sudo chmod 700 /etc/ssl/private
-# If a valid SSL certificate is not already created for the server, create a self-signed certificate:
-sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
--subj "/C=${OPENSSL_C}/ST=${OPENSSL_ST}/L=${OPENSSL_L}/O=${OPENSSL_O}/OU=${OPENSSL_OU}/CN=${OPENSSL_CN}/emailAddress=${OPENSSL_EMAILADDRESS}" \
--keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt
-```
 
 
 ### 8/ Log rotation
@@ -484,9 +481,9 @@ cd /usr/local/src/
 git clone https://github.com/MISP/misp-modules.git
 cd misp-modules
 # pip install
-sudo $PATH_TO_MISP/venv/bin/pip install -I -r REQUIREMENTS
+sudo -u apache $PATH_TO_MISP/venv/bin/pip install -I -r REQUIREMENTS
 sudo -u apache $PATH_TO_MISP/venv/bin/pip install .
-sudo yum install rubygem-rouge -y
+sudo yum install rubygem-rouge rubygem-asciidoctor -y
 ##sudo gem install asciidoctor-pdf --pre
 
 # install STIX2.0 library to support STIX 2.0 export:

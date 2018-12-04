@@ -1631,18 +1631,14 @@ class ServersController extends AppController
             'url' => '/'
 
         );
-        foreach($updates as $i => $update) {
+        foreach($updates as $id => $update) {
             foreach($default_fields as $field => $value) {
                 if (!isset($update[$field])) {
-                    $updates[$i][$field] = $value;
+                    $updates[$id][$field] = $value;
                 }
             }
-            if (!isset($update['id'])) {
-                $updates[$i]['done'] =  false;
-            } else {
-                $done = $this->AdminSetting->getSetting($update['id']);
-                $updates[$i]['done'] =  $done !== false && $done == '1' ? true : false;
-            }
+            $done = $this->AdminSetting->getSetting($id);
+            $updates[$id]['done'] =  $done !== false && $done == '1' ? true : false;
         }
         $this->set('advancedUpdates', $updates);
         $this->set('updateLocked', $this->Server->isUpdateLocked());

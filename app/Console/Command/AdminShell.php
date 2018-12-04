@@ -2,7 +2,7 @@
 App::uses('AppShell', 'Console/Command');
 class AdminShell extends AppShell
 {
-	public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate');
+	public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist', 'Server', 'Organisation', 'AdminSetting', 'Galaxy', 'Taxonomy', 'Warninglist', 'Noticelist', 'ObjectTemplate', 'Bruteforce');
 
 	public function jobGenerateCorrelation() {
 		$jobId = $this->args[0];
@@ -190,4 +190,18 @@ class AdminShell extends AppShell
         }
     }
 
+	public function clearBruteforce()
+	{
+		$conditions = array('Bruteforce.username !=' => '');
+		if (!empty($this->args[0])) {
+            $conditions = array('Bruteforce.username' => $this->args[0]);
+        }
+		$result = $this->Bruteforce->deleteAll($conditions, false, false);
+		$target = empty($this->args[0]) ? 'all users' : $this->args[0];
+		if ($result) {
+			echo 'Brutefoce entries for ' . $target . ' deleted.' . PHP_EOL;
+		} else {
+			echo 'Something went wrong, could not delete bruteforce entries for ' . $target . '.' . PHP_EOL;
+		}
+	}
 }
