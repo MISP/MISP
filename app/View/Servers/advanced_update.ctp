@@ -16,7 +16,8 @@ $disabledBtnText = $updateLocked ? 'title="' . __('An update is already in progr
         <a id="btnShowProgress" class="btn btn-inverse" href="<?php echo $baseurl; ?>/servers/updateProgress/"><?php echo __('Show Update Progress Page'); ?></a>
     </div>
 
-    <?php foreach($advancedUpdates as $i => $update): ?>
+    <?php $i = 0; ?>
+    <?php foreach($advancedUpdates as $id => $update): ?>
         <div class="headerUpdateBlock">
             <h4><?php echo ($i+1) . '. ' . h($update['title']); ?></h4>
         </div>
@@ -53,6 +54,7 @@ $disabledBtnText = $updateLocked ? 'title="' . __('An update is already in progr
                 </div>
             <?php endif; ?>
         </div>
+        <?php $i++; ?>
     <?php endforeach; ?>
 </div>
 <?php

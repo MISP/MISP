@@ -75,23 +75,23 @@ class AppModel extends Model
     );
 
     public $advanced_updates_description = array(
-        array(
-            'id' => 'seenOnAttributeAndObject', # id to be saved in admoin_table (use to check if done)
+        'seenOnAttributeAndObject' => array(
             'title' => 'First seen/Last seen Attribute table',
             'description' => 'Update the Attribute table to support first_seen and last_seen feature, with a microsecond resolution.',
             'liveOff' => true, # should the instance be offline for users other than site_admin
             'recommendBackup' => true, # should the update recommend backup
             'exitOnError' => true, # should the update exit on error
-            'preUpdate' => 'seenOnAttributeAndObject', # Function to execute before the update. If it returns false, cancel the update
+            'record' => true, # should the update success be saved in the admin_table
+            'preUpdate' => 'seenOnAttributeAndObjectPreUpdate', # Function to execute before the update. If it throws an error, it cancels the update
             'url' => '/servers/updateDatabase/seenOnAttributeAndObject/' # url pointing to the funcion performing the update
         ),
-        array(
-            'id' => 'testUpdate',
+        'testUpdate' => array(
             'title' => 'Test Update',
             'description' => 'Runs a test update',
             'liveOff' => true,
             'recommendBackup' => true,
             'exitOnError' => true,
+            'preUpdate' => 'seenOnAttributeAndObjectPreUpdate', # Function to execute before the update. If it returns false, cancel the update
             'url' => '/servers/updateDatabase/testUpdate/'
         )
     );
@@ -1102,7 +1102,7 @@ class AppModel extends Model
                 $sqlArray[] = 'ALTER TABLE `threads` DROP `org`;';
                 $sqlArray[] = 'ALTER TABLE `users` DROP `org`;';
                 break;
-            case 'seenOnAttribute':
+            case 'seenOnAttributeAndObject':
                 $sqlArray[] =
                     "ALTER TABLE `attributes`
                         DROP INDEX uuid,
@@ -1182,6 +1182,13 @@ class AppModel extends Model
         foreach ($sqlArray as $i => $sql) {
             try {
                 $this->__setUpdateProgress($i, false);
+                if (isset($this->advanced_updates_description[$command])) {
+                    if (isset($this->advanced_updates_description[$command]['preUpdate'])) {
+                        $exitOnError = true;
+                        $funName = $this->advanced_updates_description[$command]['preUpdate'];
+                        $this->{$funName}();
+                    }
+                }
                 $this->query($sql);
                 $this->Log->create();
                 $this->Log->save(array(
@@ -1251,8 +1258,8 @@ class AppModel extends Model
 
     // check whether the adminSetting should be updated after the update
     private function __postUpdate($command) {
-        foreach($this->advanced_updates_description as $update) {
-            if ($update['id'] == $command) {
+        if (isset($this->advanced_updates_description[$command]['record'])) {
+            if($this->advanced_updates_description[$command]['record']) {
                 $this->AdminSetting->changeSetting($command, 1);
             }
         }
@@ -1406,6 +1413,27 @@ class AppModel extends Model
             return ucfirst($field) . ' cannot be empty.';
         }
         return true;
+    }
+
+    // Try to create a table with a datetime(6)
+    // Might fail on mysql < 5.6
+    public function seenOnAttributeAndObjectPreUpdate() {
+        $sqlArray[] = "CREATE TABLE IF NOT EXISTS testtable (
+            `testfield` DATETIME(6) NULL DEFAULT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+        try {
+            foreach($sqlArray as $i => $sql) {
+                $this->query($sql);
+            }
+        } catch (Exception $e) {
+            throw new Exception('Pre update test failed: ' . PHP_EOL . $sql . PHP_EOL . ' The returned error is: ' . $e->getMessage());
+        }
+        
+        // clean up
+        $sqlArray[] = "DROP TABLE testtable;";
+        foreach($sqlArray as $i => $sql) {
+            $this->query($sql);
+        }
     }
 
     public function runUpdates()
