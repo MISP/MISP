@@ -82,6 +82,7 @@ class AppModel extends Model
             'liveOff' => true, # should the instance be offline for users other than site_admin
             'recommendBackup' => true, # should the update recommend backup
             'exitOnError' => true, # should the update exit on error
+            'preUpdate' => 'seenOnAttributeAndObject', # Function to execute before the update. If it returns false, cancel the update
             'url' => '/servers/updateDatabase/seenOnAttributeAndObject/' # url pointing to the funcion performing the update
         ),
         array(
@@ -1533,6 +1534,7 @@ class AppModel extends Model
     public function isUpdateLocked() {
         $lockState = $this->getUpdateLockState();
         $lockState = $lockState === false ? false : $lockState;
+        $lockState = $lockState === '' ? false : $lockState;
         if ($lockState !== false) {
             // if lock is old, still allows the update
             // This can be useful if the update process crashes
