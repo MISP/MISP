@@ -47,6 +47,19 @@ class ObjectTemplatesController extends AppController
 
     public function view($id)
     {
+		if (Validation::uuid($id)) {
+			$temp = $this->ObjectTemplate->find('first', array(
+				'recursive' => -1,
+				'conditions' => array('ObjectTemplate.uuid' => $id),
+				'fields' => array('ObjectTemplate.id', 'ObjectTemplate.uuid')
+			));
+			if (empty($temp)) {
+				throw new NotFoundException(__('Invalid object template'));
+			}
+			$id = $temp['ObjectTemplate']['id'];
+		} elseif (!is_numeric($id)) {
+			throw new NotFoundException(__('Invalid object template id.'));
+		}
         $params = array(
             'recursive' => -1,
             'contain' => array(
