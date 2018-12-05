@@ -82,6 +82,7 @@ class AppModel extends Model
             'liveOff' => true, # should the instance be offline for users other than site_admin
             'recommendBackup' => true, # should the update recommend backup
             'exitOnError' => true, # should the update exit on error
+            'requirements' => 'MySQL version must be >= 5.6', # message stating the requirements necessary for the update
             'record' => true, # should the update success be saved in the admin_table
             'preUpdate' => 'seenOnAttributeAndObjectPreUpdate', # Function to execute before the update. If it throws an error, it cancels the update
             'url' => '/servers/updateDatabase/seenOnAttributeAndObject/' # url pointing to the funcion performing the update
@@ -1588,10 +1589,7 @@ class AppModel extends Model
     public function isUpdateLocked() {
         $lockState = $this->getUpdateLockState();
         $lockState = $lockState === false ? false : $lockState;
-<<<<<<< HEAD
-=======
         $lockState = $lockState === '' ? false : $lockState;
->>>>>>> advancedUpdate
         if ($lockState !== false) {
             // if lock is old, still allows the update
             // This can be useful if the update process crashes
