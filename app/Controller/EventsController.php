@@ -1697,6 +1697,9 @@ class EventsController extends AppController
         foreach ($this->Event->analysisLevels as $key => $value) {
             $info['analysis'][$key] = array('key' => $value, 'desc' => $this->Event->analysisDescriptions[$key]['formdesc']);
         }
+		if (!$this->_isRest()) {
+			$this->Flash->info(__('The event created will be visible to the organisations having an account on this platform, but not synchronised to other MISP instances until it is published.'));
+		}
         $this->set('info', $info);
         $this->set('analysisDescriptions', $this->Event->analysisDescriptions);
         $this->set('analysisLevels', $this->Event->analysisLevels);
