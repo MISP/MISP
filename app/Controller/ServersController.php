@@ -1628,6 +1628,7 @@ class ServersController extends AppController
             'liveOff' => true,
             'recommendBackup' => true,
             'exitOnError' => true,
+            'requirements' => '',
             'url' => '/'
 
         );
