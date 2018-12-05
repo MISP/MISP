@@ -25,6 +25,13 @@ $disabledBtnText = $updateLocked ? 'title="' . __('An update is already in progr
             <h5><?php echo h($update['description']); ?></h5>
 
             <?php if (!$update['done']): ?>
+
+                <?php if ($update['requirements'] !== ''): ?>
+                <div class="alert alert-warning">
+                    <i class="icon-warning-sign"></i> <?php echo h($update['requirements']); ?>
+                </div>
+                <?php endif; ?>
+
                 <?php if ($update['recommendBackup']): ?>
                 <div class="alert alert-block">
                     <i class="icon-warning-sign"></i> <?php echo __('Running this script may take a very long time depending of the size of your database. It is adviced that you <b>back your database up</b> before running it.'); ?>
@@ -33,7 +40,7 @@ $disabledBtnText = $updateLocked ? 'title="' . __('An update is already in progr
 
                 <?php if ($update['liveOff']): ?>
                 <div class="alert alert-info">
-                    <i class="icon-question-sign"></i> <?php echo __('Running this script will make this instance unusable during the time of upgrade.'); ?>
+                    <i class="icon-question-sign"></i> <?php echo __('Running this script will make this instance unusable for all users (not site-admin) during the time of upgrade.'); ?>
                 </div>
                 <?php endif; ?>
 
