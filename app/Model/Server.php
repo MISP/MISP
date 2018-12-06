@@ -3415,7 +3415,7 @@ class Server extends AppModel
         try {
             $response = $HttpSocket->get($uri, '', $request);
         } catch (Exception $e) {
-            $error = $e->getMessage;
+            $error = $e->getMessage();
         }
         if (!isset($response) || $response->code != '200') {
             $this->Log = ClassRegistry::init('Log');
