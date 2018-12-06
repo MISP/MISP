@@ -5079,7 +5079,7 @@ class Event extends AppModel
         } else {
             throw new MethodNotAllowedException('Invalid STIX version');
         }
-        $shell_command .=  ' ' . $original_file . ' ' . escapeshellarg(Configure::read('MISP.default_event_distribution')) . ' ' . escapeshellarg(Configure::read('MISP.default_attribute_distribution')) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
+        $shell_command .=  ' ' . escapeshellarg(Configure::read('MISP.default_event_distribution')) . ' ' . escapeshellarg(Configure::read('MISP.default_attribute_distribution')) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
         $result = shell_exec($shell_command);
         unlink($tempFilePath);
         if (trim($result) == '1') {
@@ -5090,6 +5090,7 @@ class Event extends AppModel
             $validationIssues = false;
             $result = $this->_add($data, true, $user, '', null, false, null, $created_id, $validationIssues);
             if ($result) {
+                $this->add_original_file($tempFilePath, $original_filename, $created_id, 'STIX 1.1');
                 return $created_id;
             }
             return $validationIssues;
@@ -5642,5 +5643,56 @@ class Event extends AppModel
             }
         }
         return $eventIdList;
+    }
+
+    public function add_original_file($file_path, $original_filename, $event_id, $format)
+    {
+        if (!Configure::check('MISP.default_attribute_distribution') || Configure::read('MISP.default_attribute_distribution') === 'event') {
+            $distribution = 5;
+        } else {
+            $distribution = Configure::read('MISP.default_attribute_distribution');
+        }
+        $this->MispObject->create();
+        $object = array(
+            'name' => 'original-imported-file',
+            'meta-category' => 'file',
+            'description' => 'Object describing the original file used to import data in MISP.',
+            'template_uuid' => '4cd560e9-2cfe-40a1-9964-7b2e797ecac5',
+            'template_version' => '2',
+            'event_id' => $event_id,
+            'distribution' => $distribution
+        );
+        $this->MispObject->save($object);
+        $object_id = $this->MispObject->id;
+        $file = file_get_contents($file_path);
+        $attributes = array(
+            array(
+                'type' => 'attachment',
+                'category' => 'External analysis',
+                'to_ids' => false,
+                'event_id' => $event_id,
+                'distribution' => $distribution,
+                'object_relation' => 'imported-sample',
+                'value' => $original_filename,
+                'data' => base64_encode($file),
+                'object_id' => $object_id,
+            ),
+            array(
+                'type' => 'text',
+                'category' => 'Other',
+                'to_ids' => false,
+                'uuid' => '5c08f00d-2174-4ab7-ad0d-1b1a011fb688',
+                'event_id' => $event_id,
+                'distribution' => $distribution,
+                'object_id' => $object_id,
+                'object_relation' => 'format',
+                'value' => 'STIX 1.1'
+            )
+        );
+        foreach ($attributes as $attribute) {
+            $this->Attribute->create();
+            $this->Attribute->save($attribute);
+        }
+        return true;
     }
 }

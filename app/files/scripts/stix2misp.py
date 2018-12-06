@@ -53,16 +53,14 @@ class StixParser():
     # Load data from STIX document, and other usefull data
     def load_event(self, args, filename, from_misp, stix_version):
         self.outputname = '{}.json'.format(filename)
-        if len(args) > 0 and args[0]:
-            self.add_original_file(filename, args[0], stix_version)
         try:
-            event_distribution = args[1]
+            event_distribution = args[0]
             if not isinstance(event_distribution, int):
                 event_distribution = int(event_distribution) if event_distribution.isdigit() else 5
         except IndexError:
             event_distribution = 5
         try:
-            attribute_distribution = args[2]
+            attribute_distribution = args[1]
             if attribute_distribution == 'event':
                 attribute_distribution = event_distribution
             elif not isinstance(attribute_distribution, int):
@@ -80,16 +78,6 @@ class StixParser():
         eventDict = self.misp_event.to_json()
         with open(self.outputname, 'wt', encoding='utf-8') as f:
             f.write(eventDict)
-
-    def add_original_file(self, filename, original_filename, version):
-        with open(filename, 'rb') as f:
-            sample = base64.b64encode(f.read()).decode('utf-8')
-        original_file = MISPObject('original-imported-file')
-        original_file.add_attribute(**{'type': 'attachment', 'value': original_filename,
-                                       'object_relation': 'imported-sample', 'data': sample})
-        original_file.add_attribute(**{'type': 'text', 'object_relation': 'format',
-                                       'value': 'STIX {}'.format(version)})
-        self.misp_event.add_object(**original_file)
 
     # Load the mapping dictionary for STIX object types
     def load_mapping(self):
