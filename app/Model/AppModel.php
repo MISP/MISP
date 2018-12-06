@@ -1361,14 +1361,30 @@ class AppModel extends Model
     }
 
     public function addFieldsBasedOnUpdate(&$fieldsAtt, $context = null) {
+        //if (is_null($context)) {
+        //    $alias = $this->alias;
+        //} else {
+        //    $alias = $context;
+        //}
+        //if ($this->additionalFeatureEnabled('seenOnAttributeAndObject')) {
+        //    //  DB have *_seen columns
+        //    $fs = (strlen($alias) > 0 ? $alias . '.' : '') . 'first_seen';
+        //    $ls = (strlen($alias) > 0 ? $alias . '.' : '') . 'last_seen';
+        //    array_push($fieldsAtt, $fs, $ls);
+        //}
+
         if (is_null($context)) {
+            $alias = '';
+        } else if ($context === true) {
             $alias = $this->alias;
         } else {
             $alias = $context;
         }
         if ($this->additionalFeatureEnabled('seenOnAttributeAndObject')) {
             //  DB have *_seen columns
-            array_push($fieldsAtt, $alias . '.first_seen', $alias . '.last_seen');
+            $fs = (strlen($alias) > 0 ? $alias . '.' : '') . 'first_seen';
+            $ls = (strlen($alias) > 0 ? $alias . '.' : '') . 'last_seen';
+            array_push($fieldsAtt, $fs, $ls);
         }
     }
 

@@ -48,20 +48,21 @@ var options = {
     editable: user_manipulation ? default_editable : false,
     tooltipOnItemUpdateTime: true,
     onRemove: function(item, callback) { // clear timestamps
-        update_seen(item.group+'s', 'first', item.id, null, callback);
-        update_seen(item.group+'s', 'last', item.id, null, callback);
+        update_seen(item, 'first', null, false, undefined);
+        update_seen(item, 'last', null, true, undefined);
         eventTimeline.setSelection([]);
         $('.timelineSelectionTooltip').remove()
-        return false;
     },
     onMove: function(item, callback) {
         var newStart = moment(item.start.toISOString());
         var newEnd = (item.end !== undefined && item.end !== null) ? moment(item.end.toISOString()) : null;
-        if (item.first_seen != newStart) {
-            update_seen(item.group+'s', 'first', item.id, newStart, callback);
+        var c1 = item.first_seen !== null ? !item.first_seen.isSame(newStart) : true;
+        var c2 = item.last_seen !== null ? !item.last_seen.isSame(newEnd) && item.seen_enabled : true;
+        if (c1) {
+            update_seen(item, 'first', newStart, !c2, undefined);
         }
-        if (item.last_seen != newEnd && item.seen_enabled) {
-            update_seen(item.group+'s', 'last', item.id, newEnd, callback);
+        if (c2) {
+            update_seen(item, 'last', newEnd, true, undefined);
         }
     }
 };
@@ -90,7 +91,7 @@ function generate_timeline_tooltip(itemID, target) {
     if (item.first_seen === undefined || item.first_seen === null) { // do not generate if first_seen not set
         return;
     }
-    if (isDefined(item.first_seen_overwritten) && isDefined(item.last_seen_overwritten)) { // do not generate if start and end comes from object attribute
+    if (isDefined(item.first_seen_overwrite) && isDefined(item.last_seen_overwrite)) { // do not generate if start and end comes from object attribute
         return;
     }
     var closest = $(target.closest(".vis-selected.vis-editable"));
@@ -109,13 +110,13 @@ function generate_timeline_tooltip(itemID, target) {
 function collapseItem() {
     var itemID = $(this).data('itemid');
     var item = items_timeline.get(itemID);
-    update_seen(item.group+'s', 'last', item.id, null, undefined);
+    update_seen(item, 'last', null, true, undefined);
 }
 function expandItem() {
     var itemID = $(this).data('itemid');
     var item = items_timeline.get(itemID);
     var newEnd = get_next_step(item.first_seen);
-    update_seen(item.group+'s', 'last', item.id, newEnd, undefined);
+    update_seen(item, 'last', newEnd, true, undefined);
 }
 
 function get_next_step(mom) {
@@ -158,93 +159,57 @@ function build_object_template(obj) {
     return html;
 }
 
-function reflect_change(itemType, seenType, item_id, rawValueUsed, object_id) {
-    updateIndex(scope_id, 'event'); // MISP function
-    //quick_fetch_seen(itemType, seenType, item_id, rawValueUsed, function(data) {
-    //    var updated_item;
-    //    if (object_id !== undefined) {
-    //      updated_item = items_timeline.get(object_id);
-    //    } else {
-    //      updated_item = items_timeline.get(item_id);
-    //    }
-    //      if (seenType == 'first') {
-    //          updated_item.first_seen = data;
-    //      } else if (seenType == 'last') {
-    //          updated_item.last_seen = data;
-    //      }
-    //      set_spanned_time(updated_item);
-    //      items_timeline.remove(updated_item.id);
-    //    console.log(updated_item);
-    //      items_timeline.add(updated_item);
-    //      updateIndex(scope_id, 'event'); // MISP function
-    //});
+function reflect_change(onIndex, itemType, itemId) {
+    if (onIndex) {
+        updateIndex(scope_id, 'event'); // MISP function
+    } else { // reflect change on item only
+        quick_fetch_seens(itemType, itemId, function(firstSeen, lastSeen) {
+            var updatedItem = items_timeline.get(itemId);
+            updatedItem.first_seen = firstSeen;
+            updatedItem.last_seen = lastSeen;
+            set_spanned_time(updatedItem);
+            items_timeline.remove(updatedItem.id);
+            items_timeline.add(updatedItem);
+        });
+    }
 }
 
-function quick_fetch_seen(itemType, seenType, item_id, rawValueUsed, callback) {
-    var url = "/" + itemType + "/fetchViewValue/" + item_id + "/" 
-    if (rawValueUsed) {
-        url += 'value';
-    } else {
-        url += seenType + "_seen"
-    }
-    $.ajax({
-        beforeSend: function (XMLHttpRequest) {
-            $(".loadingTimeline").show();
-        },
-        dataType:"html",
+function quick_fetch_seens(itemType, itemId, callback) {
+    var url = "/" + itemType + "/" + "fetchViewValue" + "/" + itemId + "/";
+    var dfs = $.ajax({
+        dataType: "html",
         cache: false,
-        success:function (data, textStatus) {
-            seenTime = data.replace('&nbsp;', '');
-            seenTime = seenTime == '' ? null : seenTime;
-            callback(seenTime);
+        success: function(data, textStatus) {
+            return data;
         },
-        complete: function () {
-            $(".loadingTimeline").hide();
+        url: url+"first_seen"
+    });
+    var dls = $.ajax({
+        dataType: "html",
+        cache: false,
+        success: function(data, textStatus) {
+            return data;
         },
-        url: url,
+        url: url+"last_seen"
+    });
+
+    $.when( dfs, dls).done(function(a1, a2) {
+        firstSeen = a1[0].replace('&nbsp;', '');
+        firstSeen = firstSeen == '' ? null : firstSeen;
+        lastSeen = a2[0].replace('&nbsp;', '');
+        lastSeen = lastSeen == '' ? null : lastSeen;
+        callback(firstSeen, lastSeen);
     });
 }
 
-function update_seen(itemType, seenType, item_id, moment, callback) {
-    var item = items_timeline.get(item_id);
-    var reflect = true;
-    var submitAction = "editField";
-    var valueFieldOverwrite = false;
-    // determine whether the object's attribute should be updated instead of the first/last_seen value
-    var item_id = item[seenType+'_seen_overwritten']
-    var rawValueUsed = false;
-    var object_id;
-    if (isDefined(item_id)) {
-        if (item_id !== null) { // update the value
-            itemType = 'attributes'
-            var compiled_url_form = "/" + itemType + "/fetchEditForm/" + item_id + "/" + "value";
-            var compiled_field_form_id = "value_field";
-            rawValueUsed = true;
-            object_id = item.id;
-        } else { // value does not exist. Create an entry
-            itemType = 'objects';
-            item_id = item.id;
-            submitAction = "quickAddAttributeForm";
-            var compiled_url_form = "/" + itemType + "/" + submitAction + "/" + item_id + "/" + "first-seen";
-            var compiled_field_form_id = "quick_add_attribute_form";
-            valueFieldOverwrite = '#Attribute0Value';
-        }
-    } else {
-        if (isDefined(item_id)) { // Object attribute exists, update the value
-            var compiled_url_form = "/" + itemType + "/fetchEditForm/" + item_id + "/" + seenType + "_seen";
-            var compiled_field_form_id = seenType+"_seen_field";
-        } else { // Object attribute does not exist, create the entry
-            reflect = true;
-            itemType = 'objects';
-            item_id = item.id;
-            submitAction = "quickAddAttributeForm";
-            var compiled_url_form = "/" + itemType + "/" + submitAction + "/" + item_id + "/" + seenType+'-seen';
-            var compiled_field_form_id = "quick_add_attribute_form";
-            valueFieldOverwrite = '#Attribute0Value';
-        }
-    }
-    var momentISO = moment !== null ? moment.toISOString() : null;
-    var fieldIdItemType = itemType.charAt(0).toUpperCase() + itemType.slice(1, -1); //  strip 's' and uppercase first char
+function update_seen(item, seenType, value, reflect, callback) {
+    var itemType = item.group + 's';
+    var momentISO = value !== null ? value.toISOString() : null;
+    fetch_form_and_submit(itemType, item, seenType, momentISO, reflect, callback);
+}
+
+function fetch_form_and_submit(itemType, item, seenType, value, reflect, callback) {
+    var url = "/" + itemType + "/fetchEditForm/" + item.id + "/" + seenType+"_seen";
     $.ajax({
         beforeSend: function (XMLHttpRequest) {
             $(".loadingTimeline").show();
@@ -255,21 +220,15 @@ function update_seen(itemType, seenType, item_id, moment, callback) {
             var form = $(data);
             $(container_timeline).append(form);
             form.css({display: 'none'});
-            var attr_id = item_id;
-            if (valueFieldOverwrite === false) {
-                var field = form.find("#"+fieldIdItemType+"_"+attr_id+"_"+compiled_field_form_id);
-            } else {
-                var field = form.find(valueFieldOverwrite);
-            }
-            var the_time = momentISO;
-            field.val(the_time);
+            var field = form.find('input[name*="' + seenType + '_seen"]');
+            field.val(value);
             // submit the form
             $.ajax({
                 data: form.serialize(),
                 cache: false,
                 success:function (data, textStatus) {
                     if (reflect) {
-                        reflect_change(itemType, seenType, item_id, rawValueUsed, rawValueUsed ? object_id : undefined);
+                        reflect_change(false, itemType, item.id);
                     }
                     form.remove()
                 },
@@ -278,18 +237,19 @@ function update_seen(itemType, seenType, item_id, moment, callback) {
                 },
                 complete: function () {
                     $(".loadingTimeline").hide();
+                    if (callback !== undefined) {
+                        callback();
+                    }
                 },
                 type:"post",
-                //url:"/" + itemType + "/" + submitAction + "/" + attr_id
                 url: form.attr('action')
             });
         },
         error: function() {
             console.log('Feature not supported.');
         },
-        url: compiled_url_form,
+        url: url,
     });
-
 }
 
 function timestampToMoment(timestamp) {
@@ -332,7 +292,12 @@ function set_spanned_time(item) {
         }
     }
     
-    if (item.first_seen_overwritten !== undefined && item.last_seen_overwritten !== undefined) {
+    if (
+        item.first_seen_overwrite !== undefined
+        && item.first_seen_overwrite !== false
+        && item.last_seen_overwrite !== undefined
+        && item.last_seen_overwrite !== false
+    ){
         var e = $.extend({}, default_editable);
         e.remove = false;
         item.editable = e;
