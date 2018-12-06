@@ -1417,7 +1417,7 @@ class EventsController extends AppController
         $this->set('deleted', isset($this->params['named']['deleted']) && $this->params['named']['deleted']);
         $this->set('includeRelatedTags', (!empty($this->params['named']['includeRelatedTags'])) ? 1 : 0);
         if (!$this->_isRest()) {
-			if ($this->_isSiteAdmin() && $this->Event->data['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
+			if ($this->_isSiteAdmin() && $results[0]['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
 				$this->Flash->info(__('You are currently logged in as a site administrator and editing an event not belonging to your organisation, which goes against the sharing model of MISP. Please only use this as a last resort and use normal user account for day to day work.'));
 			}
             $this->__viewUI($event, $continue, $fromEvent);
