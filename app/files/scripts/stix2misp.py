@@ -731,16 +731,16 @@ class StixParser():
 class StixFromMISPParser(StixParser):
     def __init__(self):
         super(StixFromMISPParser, self).__init__()
-        self.dates = []
-        self.timestamps = []
-        self.titles = []
+        self.dates = set()
+        self.timestamps = set()
+        self.titles = set()
 
     def build_misp_dict(self, event):
         for item in event.related_packages.related_package:
             package = item.item
             self.event = package.incidents[0]
-            self.set_timestamp_and_date()
-            self.set_event_info()
+            self.fetch_timestamp_and_date()
+            self.fetch_event_info()
             if self.event.related_indicators:
                 for indicator in self.event.related_indicators.indicator:
                     self.parse_misp_indicator(indicator)
@@ -758,7 +758,7 @@ class StixFromMISPParser(StixParser):
                         self.parse_vulnerability(ttp.exploit_targets.exploit_target)
                     # if ttp.handling:
                     #     self.parse_tlp_marking(ttp.handling)
-        self.set_distribution()
+        self.set_event_fields()
 
     # Return type & attributes (or value) of a Custom Object
     def handle_custom(self, properties):
@@ -929,15 +929,22 @@ class StixFromMISPParser(StixParser):
                 for vulnerability in exploit_target.item.vulnerabilities:
                     self.misp_event.add_attribute(**{'type': 'vulnerability', 'value': vulnerability.cve_id})
 
-    def set_event_info(self):
+    def fetch_event_info(self):
         info = self.get_event_info()
-        self.titles.append(info)
+        self.titles.add(info)
 
-    def set_timestamp_and_date(self):
+    def fetch_timestamp_and_date(self):
         if self.event.timestamp:
             date, timestamp = self.get_timestamp_and_date()
-            self.dates.append(date)
-            self.timestamps.append(timestamp)
+            self.dates.add(date)
+            self.timestamps.add(timestamp)
+
+    def set_event_fields(self):
+        self.set_distribution()
+        for field, misp_field in zip(['titles', 'dates', 'timestamps'], ['info', 'date', 'timestamp']):
+            attribute = list(getattr(self, field))
+            if len(attribute) == 1:
+                setattr(self.misp_event, misp_field, attribute[0])
 
 
 class ExternalStixParser(StixParser):
