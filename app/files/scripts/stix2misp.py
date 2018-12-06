@@ -963,7 +963,7 @@ class ExternalStixParser(StixParser):
         self.set_timestamp_and_date()
         self.set_event_info()
         header = self.event.stix_header
-        if hasattr(header, 'description') and hasattr(header.description, 'value'):
+        if hasattr(header, 'description') and hasattr(header.description, 'value') and header.description.value:
             self.misp_event.add_attribute(**{'type': 'comment', 'value': header.description.value,
                                              'comment': 'Imported from STIX header description'})
         if hasattr(header, 'handling') and header.handling:
