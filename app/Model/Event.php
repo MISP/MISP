@@ -5081,6 +5081,7 @@ class Event extends AppModel
         }
         $shell_command .=  ' ' . escapeshellarg(Configure::read('MISP.default_event_distribution')) . ' ' . escapeshellarg(Configure::read('MISP.default_attribute_distribution')) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
         $result = shell_exec($shell_command);
+        $tempFile = file_get_contents($tempFilePath);
         unlink($tempFilePath);
         if (trim($result) == '1') {
             $data = file_get_contents($output_path);
@@ -5090,7 +5091,7 @@ class Event extends AppModel
             $validationIssues = false;
             $result = $this->_add($data, true, $user, '', null, false, null, $created_id, $validationIssues);
             if ($result) {
-                $this->add_original_file($tempFilePath, $original_filename, $created_id, 'STIX 1.1');
+                $this->add_original_file($tempFile, $original_file, $created_id, 'STIX 1.1');
                 return $created_id;
             }
             return $validationIssues;
@@ -5645,14 +5646,14 @@ class Event extends AppModel
         return $eventIdList;
     }
 
-    public function add_original_file($file_path, $original_filename, $event_id, $format)
+    public function add_original_file($file, $original_filename, $event_id, $format)
     {
         if (!Configure::check('MISP.default_attribute_distribution') || Configure::read('MISP.default_attribute_distribution') === 'event') {
             $distribution = 5;
         } else {
             $distribution = Configure::read('MISP.default_attribute_distribution');
         }
-        $this->MispObject->create();
+        $this->Object->create();
         $object = array(
             'name' => 'original-imported-file',
             'meta-category' => 'file',
@@ -5662,9 +5663,8 @@ class Event extends AppModel
             'event_id' => $event_id,
             'distribution' => $distribution
         );
-        $this->MispObject->save($object);
-        $object_id = $this->MispObject->id;
-        $file = file_get_contents($file_path);
+        $this->Object->save($object);
+        $object_id = $this->Object->id;
         $attributes = array(
             array(
                 'type' => 'attachment',
@@ -5681,7 +5681,6 @@ class Event extends AppModel
                 'type' => 'text',
                 'category' => 'Other',
                 'to_ids' => false,
-                'uuid' => '5c08f00d-2174-4ab7-ad0d-1b1a011fb688',
                 'event_id' => $event_id,
                 'distribution' => $distribution,
                 'object_id' => $object_id,
