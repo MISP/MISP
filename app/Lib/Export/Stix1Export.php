@@ -14,12 +14,14 @@ class Stix1Export extends StixExport
         $this->__baseurl = escapeshellarg(Configure::read('MISP.baseurl'));
         $this->__org = escapeshellarg(Configure::read('MISP.org'));
         $framing_file = $this->__scripts_dir . 'misp_framing.py ';
-        return 'python3 ' . $framing_file . $this->__return_type . ' ' . $this->__baseurl . ' ' . $this->__org . ' xml' . $this->__end_of_cmd;
+        $my_server = ClassRegistry::init('Server');
+        return $my_server->getPythonVersion() . ' ' . $framing_file . $this->__return_type . ' ' . $this->__baseurl . ' ' . $this->__org . ' xml' . $this->__end_of_cmd;
     }
 
     protected function __parse_misp_events($filename)
     {
         $scriptFile = $this->__scripts_dir . $this->__script_name;
-        return shell_exec('python3 ' . $scriptFile . ' ' . $filename . ' xml ' . $this->__baseurl . ' ' . $this->__org . $this->__end_of_cmd);
+        $my_server = ClassRegistry::init('Server');
+        return shell_exec($my_server->getPythonVersion() . ' ' . $scriptFile . ' ' . $filename . ' xml ' . $this->__baseurl . ' ' . $this->__org . $this->__end_of_cmd);
     }
 }
