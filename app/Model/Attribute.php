@@ -578,10 +578,20 @@ class Attribute extends AppModel
                 $results[$k]['Attribute']['object_relation'] = '';
             }
             if (!empty($v['Attribute']['first_seen'])) {
-                $results[$k]['Attribute']['first_seen'] = DateTime::createFromFormat('Y-m-d H:i:s.u', $results[$k]['Attribute']['first_seen'])->format('Y-m-d\TH:i:s.uP');
+                $fs = $results[$k]['Attribute']['first_seen'];
+                $fs_sec = $fs / 1000000; // $fs is in micro (10^6)
+                $fs_micro = $fs % 1000000;
+                $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
+                $fs = $fs_sec . '.' . $fs_micro;
+                $results[$k]['Attribute']['first_seen'] = DateTime::createFromFormat('U.u', $fs)->format('Y-m-d\TH:i:s.uP');
             }
             if (!empty($v['Attribute']['last_seen'])) {
-                $results[$k]['Attribute']['last_seen'] = DateTime::createFromFormat('Y-m-d H:i:s.u', $results[$k]['Attribute']['last_seen'])->format('Y-m-d\TH:i:s.uP');
+                $ls = $results[$k]['Attribute']['last_seen'];
+                $ls_sec = $ls / 1000000; // $ls is in micro (10^6)
+                $ls_micro = $ls % 1000000;
+                $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
+                $ls = $ls_sec . '.' . $ls_micro;
+                $results[$k]['Attribute']['last_seen'] = DateTime::createFromFormat('U.u', $ls)->format('Y-m-d\TH:i:s.uP');
             }
         }
         return $results;
@@ -607,16 +617,24 @@ class Attribute extends AppModel
             }
         }
 
-        // convert into utc
+        // convert into utc and micro sec
         if (!empty($this->data['Attribute']['first_seen'])) {
             $d = new DateTime($this->data['Attribute']['first_seen']);
             $d->setTimezone(new DateTimeZone('GMT'));
-            $this->data['Attribute']['first_seen'] = $d->format('Y-m-d\TH:i:s.uP');
+            $fs_sec = $d->format('U');
+            $fs_micro = $d->format('u');
+            $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
+            $fs = $fs_sec . $fs_micro;
+            $this->data['Attribute']['first_seen'] = $fs;
         }
         if (!empty($this->data['Attribute']['last_seen'])) {
             $d = new DateTime($this->data['Attribute']['last_seen']);
             $d->setTimezone(new DateTimeZone('GMT'));
-            $this->data['Attribute']['last_seen'] = $d->format('Y-m-d\TH:i:s.uP');
+            $ls_sec = $d->format('U');
+            $ls_micro = $d->format('u');
+            $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
+            $ls = $ls_sec . $ls_micro;
+            $this->data['Attribute']['last_seen'] = $ls;
         }
 
         // update correlation... (only needed here if there's an update)

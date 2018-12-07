@@ -66,13 +66,45 @@ class MispObject extends AppModel
     {
         foreach ($results as $k => $v) {
             if (!empty($v[$this->alias]['first_seen'])) {
-                $results[$k][$this->alias]['first_seen'] = DateTime::createFromFormat('Y-m-d H:i:s.u', $results[$k][$this->alias]['first_seen'])->format('Y-m-d\TH:i:s.uP');
+                $fs = $results[$k][$this->alias]['first_seen'];
+                $fs_sec = $fs / 1000000; // $fs is in micro (10^6)
+                $fs_micro = $fs % 1000000;
+                $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
+                $fs = $fs_sec . '.' . $fs_micro;
+                $results[$k][$this->alias]['first_seen'] = DateTime::createFromFormat('U.u', $fs)->format('Y-m-d\TH:i:s.uP');
             }
             if (!empty($v[$this->alias]['last_seen'])) {
-                $results[$k][$this->alias]['last_seen'] = DateTime::createFromFormat('Y-m-d H:i:s.u', $results[$k][$this->alias]['last_seen'])->format('Y-m-d\TH:i:s.uP');
+                $ls = $results[$k][$this->alias]['last_seen'];
+                $ls_sec = $ls / 1000000; // $ls is in micro (10^6)
+                $ls_micro = $ls % 1000000;
+                $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
+                $ls = $ls_sec . '.' . $ls_micro;
+                $results[$k][$this->alias]['last_seen'] = DateTime::createFromFormat('U.u', $ls)->format('Y-m-d\TH:i:s.uP');
             }
         }
         return $results;
+    }
+
+    public function beforeSave($options = array()) {
+        // convert into utc and micro sec
+        if (!empty($this->data[$this->alias]['first_seen'])) {
+            $d = new DateTime($this->data[$this->alias]['first_seen']);
+            $d->setTimezone(new DateTimeZone('GMT'));
+            $fs_sec = $d->format('U');
+            $fs_micro = $d->format('u');
+            $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
+            $fs = $fs_sec . $fs_micro;
+            $this->data[$this->alias]['first_seen'] = $fs;
+        }
+        if (!empty($this->data[$this->alias]['last_seen'])) {
+            $d = new DateTime($this->data[$this->alias]['last_seen']);
+            $d->setTimezone(new DateTimeZone('GMT'));
+            $ls_sec = $d->format('U');
+            $ls_micro = $d->format('u');
+            $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
+            $ls = $ls_sec . $ls_micro;
+            $this->data[$this->alias]['last_seen'] = $ls;
+        }
     }
 
     public function beforeValidate($options = array())

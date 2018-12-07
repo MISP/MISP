@@ -1125,8 +1125,8 @@ class AppModel extends Model
                     ;";
                 $sqlArray[] =
                     "ALTER TABLE `attributes`
-                        ADD COLUMN `first_seen` DATETIME(6) NULL DEFAULT NULL,
-                        ADD COLUMN `last_seen` DATETIME(6) NULL DEFAULT NULL,
+                        ADD COLUMN `first_seen` BIGINT(20) NULL DEFAULT NULL,
+                        ADD COLUMN `last_seen` BIGINT(20) NULL DEFAULT NULL,
                         MODIFY comment TEXT COLLATE utf8_unicode_ci
                     ;";
                 $sqlArray[] = "
@@ -1147,8 +1147,8 @@ class AppModel extends Model
                     ;";
                 $sqlArray[] = "
                     ALTER TABLE `objects`
-                        ADD `first_seen` DATETIME(6) NULL DEFAULT NULL,
-                        ADD `last_seen` DATETIME(6) NULL DEFAULT NULL
+                        ADD `first_seen` BIGINT(20) NULL DEFAULT NULL,
+                        ADD `last_seen` BIGINT(20) NULL DEFAULT NULL
                     ;";
                 $indexArray[] = array('objects', 'first_seen');
                 $indexArray[] = array('objects', 'last_seen');
