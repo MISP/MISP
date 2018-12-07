@@ -517,6 +517,38 @@ class MispObject extends AppModel
         return $attributes;
     }
 
+    // delete first/last-seen object attribute and set object's meta accordingly
+    // set object's meta (fs/ls) and potentially delete objectAttributes
+    public function setObjectSeenMetaFromAttribute($object, $delete=false) {
+        if ( !$delete && isset($object['Object']['first-seen']) && isset($object['Object']['last-seen'])) {
+            return;
+        }
+        foreach($object['Attribute'] as $i => $attribute) {
+            if ($attribute['object_relation'] == 'first-seen') {
+                // set object meta if unset
+                if (!isset($object['Object']['first-seen'])) {
+                    $object['Object']['first-seen'] = $attribute['value'];
+                }
+                if ($delete) {
+                    $object['Attribute'][$i]['deleted'] = 1;
+                    $this->Event->Attribute->save($object['Attribute'][$i]);
+                }
+                continue;
+            }
+            if ($attribute['object_relation'] == 'last-seen') {
+                // set object meta if unset
+                if (!isset($object['Object']['last-seen'])) {
+                    $object['Object']['last-seen'] = $attribute['value'];
+                }
+                if ($delete) {
+                    $object['Attribute'][$i]['deleted'] = 1;
+                    $this->Event->Attribute->save($object['Attribute'][$i]);
+                }
+                continue;
+            }
+        }
+    }
+
     public function deltaMerge($object, $objectToSave, $onlyAddNewAttribute=false)
     {
         if (!isset($objectToSave['Object'])) {
@@ -553,6 +585,7 @@ class MispObject extends AppModel
         if (isset($objectToSave['Object']['last_seen'])) {
             $object['Object']['last_seen'] = $objectToSave['Object']['last_seen'];
         }
+        $this->setObjectSeenMetaFromAttribute($object, true);
         $this->save($object);
 
         if (!$onlyAddNewAttribute) {
@@ -593,6 +626,28 @@ class MispObject extends AppModel
                         }
                     }
                 }
+                if ($newAttribute != 'last-seen' && $newAttribute != 'first-seen') {
+                    $this->Event->Attribute->create();
+                    $newAttribute['event_id'] = $object['Object']['event_id'];
+                    $newAttribute['object_id'] = $object['Object']['id'];
+                    if (!isset($newAttribute['timestamp'])) {
+                        $newAttribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
+                        if ($newAttribute['distribution'] == 'event') {
+                            $newAttribute['distribution'] = 5;
+                        }
+                    }
+                    $this->Event->Attribute->save($newAttribute);
+                }
+                $attributeArrays['add'][] = $newAttribute;
+                unset($objectToSave['Attribute'][$newKey]);
+            }
+            foreach ($object['Attribute'] as $origKey => $originalAttribute) {
+                $originalAttribute['deleted'] = 1;
+                $this->Event->Attribute->save($originalAttribute);
+            }
+        } else { // we only add new attribute
+            $newAttribute = $objectToSave['Attribute'][0];
+            if ($newAttribute != 'last-seen' && $newAttribute != 'first-seen') {
                 $this->Event->Attribute->create();
                 $newAttribute['event_id'] = $object['Object']['event_id'];
                 $newAttribute['object_id'] = $object['Object']['id'];
@@ -602,26 +657,8 @@ class MispObject extends AppModel
                         $newAttribute['distribution'] = 5;
                     }
                 }
-                $this->Event->Attribute->save($newAttribute);
-                $attributeArrays['add'][] = $newAttribute;
-                unset($objectToSave['Attribute'][$newKey]);
+                $this->Attribute->saveAttributes(array($newAttribute));
             }
-            foreach ($object['Attribute'] as $origKey => $originalAttribute) {
-                $originalAttribute['deleted'] = 1;
-                $this->Event->Attribute->save($originalAttribute);
-            }
-        } else { // we only add new attribute
-            $this->Event->Attribute->create();
-            $newAttribute = $objectToSave['Attribute'][0];
-            $newAttribute['event_id'] = $object['Object']['event_id'];
-            $newAttribute['object_id'] = $object['Object']['id'];
-            if (!isset($newAttribute['timestamp'])) {
-                $newAttribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
-                if ($newAttribute['distribution'] == 'event') {
-                    $newAttribute['distribution'] = 5;
-                }
-            }
-            $this->Attribute->saveAttributes(array($newAttribute));
         }
         return $this->id;
     }

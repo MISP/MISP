@@ -49,7 +49,7 @@ var options = {
     tooltipOnItemUpdateTime: true,
     onRemove: function(item, callback) { // clear timestamps
         update_seen(item, 'first', null, false, undefined);
-        update_seen(item, 'last', null, true, undefined);
+        update_seen(item, 'last', null, false, function() { reflect_change(true); });
         eventTimeline.setSelection([]);
         $('.timelineSelectionTooltip').remove()
     },
@@ -88,10 +88,11 @@ function isDefined(element) {
 
 function generate_timeline_tooltip(itemID, target) {
     var item = items_timeline.get(itemID);
-    if (item.first_seen === undefined || item.first_seen === null) { // do not generate if first_seen not set
-        return;
-    }
-    if (isDefined(item.first_seen_overwrite) && isDefined(item.last_seen_overwrite)) { // do not generate if start and end comes from object attribute
+    if (
+        item.first_seen === undefined
+        || item.first_seen === null
+        || item.first_seen_overwrite
+    ) { // do not generate if first_seen not set
         return;
     }
     var closest = $(target.closest(".vis-selected.vis-editable"));
@@ -146,7 +147,7 @@ function build_object_template(obj) {
     var bolt_html = obj.overwrite_enabled ? " <i class=\"fa fa-bolt\" style=\"color: yellow; font-size: large;\" title=\"Object is (or can be) overwritten by its attributes\">" : "";
     table.append($('<tr class="timeline-objectName"><th>'+obj.content+bolt_html+'</th><th></th></tr>'));
     for (var attr of obj.Attribute) {
-        var overwritten = attr.contentType == "first-seen" || attr.contentType == "last-seen" ? " <i class=\"fa fa-bolt\" style=\"color: yellow;\" title=\"Overwrite object "+attr.contentType+"\"></i>" : "";
+        var overwritten = obj.overwrite_enabled && (attr.contentType == "first-seen" || attr.contentType == "last-seen") ? " <i class=\"fa fa-bolt\" style=\"color: yellow;\" title=\"Overwrite object "+attr.contentType+"\"></i>" : "";
         table.append(
             $('<tr>').append(
                 $('<td class="timeline-objectAttrType">' + attr.contentType + '</td>'
@@ -167,6 +168,11 @@ function reflect_change(onIndex, itemType, itemId) {
             var updatedItem = items_timeline.get(itemId);
             updatedItem.first_seen = firstSeen;
             updatedItem.last_seen = lastSeen;
+            updatedItem.first_seen_overwrite = false;
+            updatedItem.last_seen_overwrite = false;
+            var e = $.extend({}, default_editable);
+            e.remove = true;
+            updatedItem.editable = e;
             set_spanned_time(updatedItem);
             items_timeline.remove(updatedItem.id);
             items_timeline.add(updatedItem);
@@ -292,12 +298,7 @@ function set_spanned_time(item) {
         }
     }
     
-    if (
-        item.first_seen_overwrite !== undefined
-        && item.first_seen_overwrite !== false
-        && item.last_seen_overwrite !== undefined
-        && item.last_seen_overwrite !== false
-    ){
+    if (item.first_seen_overwrite === true || item.last_seen_overwrite === true) {
         var e = $.extend({}, default_editable);
         e.remove = false;
         item.editable = e;
@@ -460,7 +461,8 @@ function edit_item(id, callback) {
 }
 
 function handle_doubleClick(data) {
-    edit_item(data.item);
+    // should be replaced by keyboard shortcut: SHIFT+E ?
+    //edit_item(data.item);
 }
 
 function handle_not_seen_enabled(hide) {

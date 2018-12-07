@@ -118,33 +118,14 @@
                     $toPush_obj['last_seen_overwrite'] = false;
                 }
 
-                // overwrite seen of template contain *_seen
-                $template = $this->__objectTemplateModel->find('first', array(
-                    'conditions' => array('ObjectTemplate.uuid' => $obj['template_uuid']),
-                    'recursive' => -1,
-                    'contain' => array('ObjectTemplateElement' => array(
-                        'fields' => array('ObjectTemplateElement.object_relation', 'ObjectTemplateElement.type'),
-                        'conditions' => array('OR' => array(
-                            array('ObjectTemplateElement.object_relation' => 'first-seen'),
-                            array('ObjectTemplateElement.object_relation' => 'last-seen'),
-                        ))
-                    ))
-                ));
-                if (count($template['ObjectTemplateElement']) > 0) {
-                    $toPush_obj['first_seen_overwrite'] = true;
-                    $toPush_obj['last_seen_overwrite'] = true;
-                } else if (!$this->__seenSupported) { // seen not supported and template not valid
-                    continue;
-                }
-
                 foreach ($obj['Attribute'] as $obj_attr) {
                     // update *_seen based on object attribute
-                    if ($obj_attr['object_relation'] == 'first-seen') {
+                    if ($obj_attr['object_relation'] == 'first-seen' && is_null($toPush_obj['first_seen'])) {
                         $toPush_obj['first_seen'] = $obj_attr['value']; // replace first_seen of the object to seen of the element
-                        $toPush_obj['first_seen_overwrite'] = $obj_attr['id'];
-                    } elseif ($obj_attr['object_relation'] == 'last-seen') {
+                        $toPush_obj['first_seen_overwrite'] = true;
+                    } elseif ($obj_attr['object_relation'] == 'last-seen' && is_null($toPush_obj['last_seen'])) {
                         $toPush_obj['last_seen'] = $obj_attr['value']; // replace last_seen of the object to seen of the element
-                        $toPush_obj['last_seen_overwrite'] = $obj_attr['id'];
+                        $toPush_obj['last_seen_overwrite'] = true;
                     }
                     $toPush_attr = array(
                         'id' => $obj_attr['id'],

@@ -382,10 +382,10 @@ class ObjectsController extends AppController
                             'conditions' => array('Object.id' => $id),
                             'contain' => array('Attribute')
                         ));
-						if (!empty($objectToSave)) {
-							$objectToSave['Object']['Attribute'] = $objectToSave['Attribute'];
-							unset($objectToSave['Attribute']);
-						}
+                        if (!empty($objectToSave)) {
+                            $objectToSave['Object']['Attribute'] = $objectToSave['Attribute'];
+                            unset($objectToSave['Attribute']);
+                        }
                         $this->MispObject->Event->unpublishEvent($object['Object']['event_id']);
                         return $this->RestResponse->viewData($objectToSave, $this->response->type());
                     } else {
@@ -509,6 +509,7 @@ class ObjectsController extends AppController
         }
         $date = new DateTime();
         $object['Object']['timestamp'] = $date->getTimestamp();
+        $this->MispObject->setObjectSeenMetaFromAttribute($object, true);
         if ($this->MispObject->save($object)) {
             $event = $this->MispObject->Event->find('first', array(
                 'recursive' => -1,
