@@ -59,7 +59,15 @@ var options = {
         var c1 = item.first_seen !== null ? !item.first_seen.isSame(newStart) : true;
         var c2 = item.last_seen !== null ? !item.last_seen.isSame(newEnd) && item.seen_enabled : true;
         if (c1) {
-            update_seen(item, 'first', newStart, !c2, undefined);
+            if (item.first_seen === null) {
+                if (!c2) {
+                    update_seen(item, 'first', newStart, true, undefined);
+                } else {
+                    update_seen(item, 'first', newStart, false, function() { reflect_change(true); });
+                }
+            } else {
+                update_seen(item, 'first', newStart, !c2, undefined);
+            }
         }
         if (c2) {
             update_seen(item, 'last', newEnd, true, undefined);
