@@ -480,7 +480,10 @@ class AttributesController extends AppController
             $this->loadModel('Event');
             $this->Event->id = $this->request->data['Attribute']['event_id'];
             $this->Event->recursive = -1;
-            $this->Event->read();
+            $event = $this->Event->read();
+            if (empty($event)) {
+                throw new NotFoundException(__('Invalid Event.'));
+            }
             if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
                 throw new UnauthorizedException(__('You do not have permission to do that.'));
             }
@@ -645,6 +648,9 @@ class AttributesController extends AppController
         $this->set('sharingGroups', $sgs);
 
         $events = $this->Event->findById($eventId);
+        if (empty($events)) {
+            throw new NotFoundException(__('Invalid Event.'));
+        }
         $this->set('currentDist', $events['Event']['distribution']);
         $this->set('published', $events['Event']['published']);
     }
