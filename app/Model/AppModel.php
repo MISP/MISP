@@ -71,7 +71,8 @@ class AppModel extends Model
         1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
         7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
         13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false,
-        21 => false, 22 => false, 23 => false, 24 => false, 25 => false, 26 => false
+        21 => false, 22 => false, 23 => false, 24 => false, 25 => false, 26 => false,
+        27 => false
     );
 
     public $advanced_updates_description = array(
@@ -191,6 +192,8 @@ class AppModel extends Model
             case 23:
                 $this->__bumpReferences();
                 break;
+            case 27:
+                $this->updateDatabase('seenOnAttributeAndObject', true, true);
             default:
                 $this->updateDatabase($command);
                 break;
@@ -1457,11 +1460,10 @@ class AppModel extends Model
         return true;
     }
 
-    // Try to create a table with a datetime(6)
-    // Might fail on mysql < 5.6
+    // Try to create a table with a BIGINT(20)
     public function seenOnAttributeAndObjectPreUpdate() {
         $sqlArray[] = "CREATE TABLE IF NOT EXISTS testtable (
-            `testfield` DATETIME(6) NULL DEFAULT NULL
+            `testfield` BIGINT(6) NULL DEFAULT NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
         try {
             foreach($sqlArray as $i => $sql) {
@@ -1559,7 +1561,7 @@ class AppModel extends Model
         $updateProgress = $this->getUpdateProgress();
         $updateProgress['res'][$index] = $message;
         $temp = new DateTime();
-        $diff = $temp->diff(new DateTime($messages['time']['started'][$index]));
+        $diff = $temp->diff(new DateTime($message['time']['started'][$index]));
         $updateProgress['time']['elapsed'][$index] = $diff->format('%H:%I:%S');
         $this->__saveUpdateProgress($updateProgress);
     }
