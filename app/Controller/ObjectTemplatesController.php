@@ -25,7 +25,7 @@ class ObjectTemplatesController extends AppController
             'conditions' => array('ObjectTemplate.active' => 1),
             'fields' => array('id', 'meta-category', 'name', 'description', 'org_id'),
             'contain' => array('Organisation.name'),
-            'sort' => array('ObjectTemplate.name asc')
+            'order' => array('ObjectTemplate.name asc')
         ));
         $templates = array('all' => array());
         foreach ($templates_raw as $k => $template) {
@@ -47,19 +47,20 @@ class ObjectTemplatesController extends AppController
 
     public function view($id)
     {
-		if (Validation::uuid($id)) {
-			$temp = $this->ObjectTemplate->find('first', array(
-				'recursive' => -1,
-				'conditions' => array('ObjectTemplate.uuid' => $id),
-				'fields' => array('ObjectTemplate.id', 'ObjectTemplate.uuid')
-			));
-			if (empty($temp)) {
-				throw new NotFoundException(__('Invalid object template'));
-			}
-			$id = $temp['ObjectTemplate']['id'];
-		} elseif (!is_numeric($id)) {
-			throw new NotFoundException(__('Invalid object template id.'));
-		}
+        if (Validation::uuid($id)) {
+            $temp = $this->ObjectTemplate->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('ObjectTemplate.uuid' => $id),
+                'fields' => array('ObjectTemplate.id', 'ObjectTemplate.uuid'),
+                'order' => array('ObjectTemplate.version desc')
+            ));
+            if (empty($temp)) {
+                throw new NotFoundException(__('Invalid object template'));
+            }
+            $id = $temp['ObjectTemplate']['id'];
+        } elseif (!is_numeric($id)) {
+            throw new NotFoundException(__('Invalid object template id.'));
+        }
         $params = array(
             'recursive' => -1,
             'contain' => array(
