@@ -67,7 +67,7 @@ class MispObject extends AppModel
         foreach ($results as $k => $v) {
             if (!empty($v[$this->alias]['first_seen'])) {
                 $fs = $results[$k][$this->alias]['first_seen'];
-                $fs_sec = $fs / 1000000; // $fs is in micro (10^6)
+                $fs_sec = intval($fs / 1000000); // $fs is in micro (10^6)
                 $fs_micro = $fs % 1000000;
                 $fs_micro = str_pad($fs_micro, 6, "0", STR_PAD_LEFT);
                 $fs = $fs_sec . '.' . $fs_micro;
@@ -75,7 +75,7 @@ class MispObject extends AppModel
             }
             if (!empty($v[$this->alias]['last_seen'])) {
                 $ls = $results[$k][$this->alias]['last_seen'];
-                $ls_sec = $ls / 1000000; // $ls is in micro (10^6)
+                $ls_sec = intval($ls / 1000000); // $ls is in micro (10^6)
                 $ls_micro = $ls % 1000000;
                 $ls_micro = str_pad($ls_micro, 6, "0", STR_PAD_LEFT);
                 $ls = $ls_sec . '.' . $ls_micro;
