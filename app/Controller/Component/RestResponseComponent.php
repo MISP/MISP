@@ -1498,6 +1498,11 @@ class RestResponseComponent extends Component
             'recursive' => -1,
             'fields' => array('name')
         ));
+        foreach($tags as $i => $tag) {
+            $tagname = htmlspecialchars($tag);
+            $tags[$tagname] = $tagname;
+            unset($tags[$i]);
+        }
         $field['values'] = $tags;
     }
     private function __overwriteNationality($scope, &$field) {
