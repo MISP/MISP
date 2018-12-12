@@ -374,7 +374,7 @@ class RestResponseComponent extends Component
                     }
                 }
                 $response = array('response' => $response);
-                $response = Xml::build($response);
+                $response = Xml::fromArray($response, array('format' => 'tags'));
                 $response = $response->asXML();
             }
             $type = 'xml';
