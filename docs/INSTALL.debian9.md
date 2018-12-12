@@ -100,6 +100,7 @@ sudo a2dismod status
 sudo a2enmod ssl rewrite
 sudo a2dissite 000-default
 sudo a2ensite default-ssl
+sudo a2enmod headers
 
 # Switch to python3 by default (optional)
 

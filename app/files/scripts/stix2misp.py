@@ -53,16 +53,14 @@ class StixParser():
     # Load data from STIX document, and other usefull data
     def load_event(self, args, filename, from_misp, stix_version):
         self.outputname = '{}.json'.format(filename)
-        if len(args) > 0 and args[0]:
-            self.add_original_file(filename, args[0], stix_version)
         try:
-            event_distribution = args[1]
+            event_distribution = args[0]
             if not isinstance(event_distribution, int):
                 event_distribution = int(event_distribution) if event_distribution.isdigit() else 5
         except IndexError:
             event_distribution = 5
         try:
-            attribute_distribution = args[2]
+            attribute_distribution = args[1]
             if attribute_distribution == 'event':
                 attribute_distribution = event_distribution
             elif not isinstance(attribute_distribution, int):
@@ -80,16 +78,6 @@ class StixParser():
         eventDict = self.misp_event.to_json()
         with open(self.outputname, 'wt', encoding='utf-8') as f:
             f.write(eventDict)
-
-    def add_original_file(self, filename, original_filename, version):
-        with open(filename, 'rb') as f:
-            sample = base64.b64encode(f.read()).decode('utf-8')
-        original_file = MISPObject('original-imported-file')
-        original_file.add_attribute(**{'type': 'attachment', 'value': original_filename,
-                                       'object_relation': 'imported-sample', 'data': sample})
-        original_file.add_attribute(**{'type': 'text', 'object_relation': 'format',
-                                       'value': 'STIX {}'.format(version)})
-        self.misp_event.add_object(**original_file)
 
     # Load the mapping dictionary for STIX object types
     def load_mapping(self):
@@ -743,16 +731,16 @@ class StixParser():
 class StixFromMISPParser(StixParser):
     def __init__(self):
         super(StixFromMISPParser, self).__init__()
-        self.dates = []
-        self.timestamps = []
-        self.titles = []
+        self.dates = set()
+        self.timestamps = set()
+        self.titles = set()
 
     def build_misp_dict(self, event):
         for item in event.related_packages.related_package:
             package = item.item
             self.event = package.incidents[0]
-            self.set_timestamp_and_date()
-            self.set_event_info()
+            self.fetch_timestamp_and_date()
+            self.fetch_event_info()
             if self.event.related_indicators:
                 for indicator in self.event.related_indicators.indicator:
                     self.parse_misp_indicator(indicator)
@@ -770,7 +758,7 @@ class StixFromMISPParser(StixParser):
                         self.parse_vulnerability(ttp.exploit_targets.exploit_target)
                     # if ttp.handling:
                     #     self.parse_tlp_marking(ttp.handling)
-        self.set_distribution()
+        self.set_event_fields()
 
     # Return type & attributes (or value) of a Custom Object
     def handle_custom(self, properties):
@@ -816,9 +804,9 @@ class StixFromMISPParser(StixParser):
 
     # Parse STIX objects that we know will give MISP attributes
     def parse_misp_attribute_indicator(self, indicator):
-        misp_attribute = {'to_ids': True, 'category': str(indicator.relationship),
-                          'uuid': self.fetch_uuid(indicator.id_)}
         item = indicator.item
+        misp_attribute = {'to_ids': True, 'category': str(indicator.relationship),
+                          'uuid': self.fetch_uuid(item.id_)}
         misp_attribute['timestamp'] = self.getTimestampfromDate(item.timestamp)
         if item.observable:
             observable = item.observable
@@ -941,15 +929,22 @@ class StixFromMISPParser(StixParser):
                 for vulnerability in exploit_target.item.vulnerabilities:
                     self.misp_event.add_attribute(**{'type': 'vulnerability', 'value': vulnerability.cve_id})
 
-    def set_event_info(self):
+    def fetch_event_info(self):
         info = self.get_event_info()
-        self.titles.append(info)
+        self.titles.add(info)
 
-    def set_timestamp_and_date(self):
+    def fetch_timestamp_and_date(self):
         if self.event.timestamp:
             date, timestamp = self.get_timestamp_and_date()
-            self.dates.append(date)
-            self.timestamps.append(timestamp)
+            self.dates.add(date)
+            self.timestamps.add(timestamp)
+
+    def set_event_fields(self):
+        self.set_distribution()
+        for field, misp_field in zip(['titles', 'dates', 'timestamps'], ['info', 'date', 'timestamp']):
+            attribute = list(getattr(self, field))
+            if len(attribute) == 1:
+                setattr(self.misp_event, misp_field, attribute[0])
 
 
 class ExternalStixParser(StixParser):
@@ -963,7 +958,7 @@ class ExternalStixParser(StixParser):
         self.set_timestamp_and_date()
         self.set_event_info()
         header = self.event.stix_header
-        if hasattr(header, 'description') and hasattr(header.description, 'value'):
+        if hasattr(header, 'description') and hasattr(header.description, 'value') and header.description.value:
             self.misp_event.add_attribute(**{'type': 'comment', 'value': header.description.value,
                                              'comment': 'Imported from STIX header description'})
         if hasattr(header, 'handling') and header.handling:

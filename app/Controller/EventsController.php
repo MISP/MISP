@@ -1423,6 +1423,9 @@ class EventsController extends AppController
         $this->set('deleted', isset($this->params['named']['deleted']) && $this->params['named']['deleted']);
         $this->set('includeRelatedTags', (!empty($this->params['named']['includeRelatedTags'])) ? 1 : 0);
         if (!$this->_isRest()) {
+			if ($this->_isSiteAdmin() && $results[0]['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
+				$this->Flash->info(__('You are currently logged in as a site administrator and editing an event not belonging to your organisation, which goes against the sharing model of MISP. Please only use this as a last resort and use normal user account for day to day work.'));
+			}
             $this->__viewUI($event, $continue, $fromEvent);
         }
     }
@@ -1700,6 +1703,9 @@ class EventsController extends AppController
         foreach ($this->Event->analysisLevels as $key => $value) {
             $info['analysis'][$key] = array('key' => $value, 'desc' => $this->Event->analysisDescriptions[$key]['formdesc']);
         }
+		if (!$this->_isRest()) {
+			$this->Flash->info(__('The event created will be visible to the organisations having an account on this platform, but not synchronised to other MISP instances until it is published.'));
+		}
         $this->set('info', $info);
         $this->set('analysisDescriptions', $this->Event->analysisDescriptions);
         $this->set('analysisLevels', $this->Event->analysisLevels);
@@ -2032,7 +2038,7 @@ class EventsController extends AppController
         foreach ($this->Event->analysisLevels as $key => $value) {
             $info['analysis'][$key] = array('key' => $value, 'desc' => $this->Event->analysisDescriptions[$key]['formdesc']);
         }
-        $this->set('analysisLevels', $this->Event->analysisLevels);
+		$this->set('analysisLevels', $this->Event->analysisLevels);
 
         $this->set('info', $info);
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
@@ -5186,6 +5192,20 @@ class EventsController extends AppController
 
         //$result = $this->Event->upload_mactime($this->Auth->user(), );
         } elseif ($this->request->is('post') && $this->request['data']['SelectedData']['mactime_data']) {
+            // Find the event that is to be updated
+            if (Validation::uuid($eventId)) {
+                $eventFindParams['conditions']['Event.uuid'] = $eventId;
+            } elseif (is_numeric($eventId)) {
+                $eventFindParams['conditions']['Event.id'] = $eventId;
+            } else {
+                throw new NotFoundException(__('Invalid event.'));
+            }
+            $event = $this->Event->find('first', $eventFindParams);
+            if (empty($event) || (!$this->_isSiteAdmin() &&	$event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
+                throw new NotFoundException(__('Invalid event.'));
+            }
+            $eventId = $event['Event']['id'];
+
             $fileName = $this->request['data']['SelectedData']['mactime_file_name'];
             $fileData = $this->request['data']['SelectedData']['mactime_file_content'];
             $object = array();

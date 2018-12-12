@@ -485,6 +485,26 @@ function postActivationScripts(name, type, id, field, event) {
 	$(name + '_solid').hide();
 }
 
+function quickEditHover(td, type, id, field, event) {
+    var $td = $(td);
+    $td.find('#quickEditButton').remove(); // clean all similar if exist
+    var $div = $('<div id="quickEditButton"></div>');
+    $div.addClass('quick-edit-row-div');
+    var $span = $('<span></span>');
+    $span.addClass('fa-as-icon fa fa-edit');
+    $span.css('font-size', '12px');
+    $div.append($span);
+    $td.find("[id*=value_solid]").append($div);
+
+    $span.click(function() {
+        activateField(type, id, field, event);
+    });
+
+    $td.off('mouseleave').on('mouseleave', function() {
+        $div.remove();
+    });
+}
+
 function addSighting(type, attribute_id, event_id, page) {
 	$('#Sighting_' + attribute_id + '_type').val(type);
 	$.ajax({

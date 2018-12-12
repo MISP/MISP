@@ -811,6 +811,11 @@ class TagsController extends AppController
         }
         $result = $this->$objectType->$connectorObject->save($data);
         if ($result) {
+            if ($objectType === 'Attribute') {
+                $this->$objectType->Event->unpublishEvent($object['Event']['id']);
+            } else if ($objectType === 'Event') {
+                $this->Event->unpublishEvent($object['Event']['id']);
+            }
             $message = 'Tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully attached to ' . $objectType . '(' . $object[$objectType]['id'] . ').';
             return $this->RestResponse->saveSuccessResponse('Tags', 'attachTagToObject', false, $this->response->type(), $message);
         } else {

@@ -46,32 +46,20 @@ class StixParser():
         for object_type in special_parsing:
             setattr(self, object_type, event.pop(object_type) if object_type in event else {})
         self.event = event
-        if args and args[0] is not None:
-            self.add_original_file(args[0])
         try:
-            event_distribution = args[1]
+            event_distribution = args[0]
             if not isinstance(event_distribution, int):
                 event_distribution = int(event_distribution) if event_distribution.isdigit() else 5
         except IndexError:
             event_distribution = 5
         try:
-            attribute_distribution = args[2]
+            attribute_distribution = args[1]
             if attribute_distribution != 'event' and not isinstance(attribute_distribution, int):
                 attribute_distribution = int(attribute_distribution) if attribute_distribution.isdigit() else 5
         except IndexError:
             attribute_distribution = 5
         self.misp_event.distribution = event_distribution
         self._attribute_distribution = event_distribution if attribute_distribution == 'event' else attribute_distribution
-
-    def add_original_file(self, original_filename):
-        with open(self.filename, 'rb') as f:
-            sample = b64encode(f.read()).decode('utf-8')
-        original_file = MISPObject('original-imported-file')
-        original_file.add_attribute(**{'type': 'attachment', 'value': original_filename,
-                                       'object_relation': 'imported-sample', 'data': sample})
-        original_file.add_attribute(**{'type': 'text', 'object_relation': 'format',
-                                       'value': self.stix_version})
-        self.misp_event.add_object(**original_file)
 
     def general_handler(self):
         self.outputname = '{}.stix2'.format(self.filename)
@@ -1323,7 +1311,7 @@ def main(args):
     stix_event['relationship'] = defaultdict(list)
     filename = os.path.join(os.path.dirname(args[0]), args[1])
     with open(filename, 'rt', encoding='utf-8') as f:
-        event = stix2.parse(f.read(), allow_custom=True)
+        event = stix2.parse(f.read(), allow_custom=True, interoperability=True)
     for parsed_object in event.objects:
         try:
             object_type = parsed_object._type
