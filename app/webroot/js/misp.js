@@ -298,7 +298,10 @@ function acceptObject(type, id, event) {
 	});
 }
 
-function toggleCorrelation(id, skip_reload = false) {
+function toggleCorrelation(id, skip_reload) {
+    if (typeof skip_reload === "undefined") {
+        skip_reload = false;
+    }
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
