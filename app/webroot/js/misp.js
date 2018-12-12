@@ -454,11 +454,11 @@ function postActivationScripts(name, type, id, field, event) {
 }
 
 function quickEditHover(td, type, id, field, event) {
-    $td = $(td);
+    var $td = $(td);
     $td.find('#quickEditButton').remove(); // clean all similar if exist
-    $div = $('<div id="quickEditButton"></div>');
+    var $div = $('<div id="quickEditButton"></div>');
     $div.addClass('quick-edit-row-div');
-    $span = $('<span></span>');
+    var $span = $('<span></span>');
     $span.addClass('fa-as-icon fa fa-edit');
     $span.css('font-size', '12px');
     $div.append($span);
@@ -468,7 +468,7 @@ function quickEditHover(td, type, id, field, event) {
         activateField(type, id, field, event);
     });
 
-    $td.off('mouseleave').on('mouseleave', function(e) {
+    $td.off('mouseleave').on('mouseleave', function() {
         $div.remove();
     });
 }
