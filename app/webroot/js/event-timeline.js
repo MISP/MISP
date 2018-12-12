@@ -407,6 +407,7 @@ function enable_timeline() {
         success: function( data, textStatus, jQxhr ){
             if (!data.seenSupported) { // *_seen fields are not supported by MISP
                 $('#seenNotEnabledBanner').show();
+                return;
             }
             for (var item of data.items) {
                 item.className = item.group;

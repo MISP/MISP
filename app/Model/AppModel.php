@@ -1364,18 +1364,6 @@ class AppModel extends Model
     }
 
     public function addFieldsBasedOnUpdate(&$fieldsAtt, $context = null) {
-        //if (is_null($context)) {
-        //    $alias = $this->alias;
-        //} else {
-        //    $alias = $context;
-        //}
-        //if ($this->additionalFeatureEnabled('seenOnAttributeAndObject')) {
-        //    //  DB have *_seen columns
-        //    $fs = (strlen($alias) > 0 ? $alias . '.' : '') . 'first_seen';
-        //    $ls = (strlen($alias) > 0 ? $alias . '.' : '') . 'last_seen';
-        //    array_push($fieldsAtt, $fs, $ls);
-        //}
-
         if (is_null($context)) {
             $alias = '';
         } else if ($context === true) {
@@ -1395,7 +1383,16 @@ class AppModel extends Model
         if (!isset($this->AdminSetting)) {
             $this->AdminSetting = ClassRegistry::init('AdminSetting');
         }
-        return $this->AdminSetting->getSetting('seenOnAttributeAndObject');
+        $value = $this->AdminSetting->getSetting('seenOnAttributeAndObject');
+        if($value === false) {
+            return false;
+        } else if ($value === "0") {
+            return false;
+        } else if ($value === "1") {
+            return true;
+        } else {
+            return $value;
+        }
     }
 
     public function checkMISPVersion()
