@@ -174,9 +174,9 @@
         ));
       ?>
     </td>
-    <td class="showspaces bitwider">
+    <td class="showspaces bitwider" onmouseenter="quickEditHover(this, '<?php echo $editScope; ?>', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">
       <div id = "Attribute_<?php echo $object['id']; ?>_comment_placeholder" class = "inline-field-placeholder"></div>
-      <div id = "Attribute_<?php echo $object['id']; ?>_comment_solid" class="inline-field-solid" ondblclick="activateField('<?php echo $editScope; ?>', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">
+      <div id = "Attribute_<?php echo $object['id']; ?>_comment_solid" class="inline-field-solid">
         <?php echo nl2br(h($object['comment'])); ?>&nbsp;
       </div>
     </td>

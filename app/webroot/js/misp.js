@@ -462,7 +462,7 @@ function quickEditHover(td, type, id, field, event) {
     $span.addClass('fa-as-icon fa fa-edit');
     $span.css('font-size', '12px');
     $div.append($span);
-    $td.find("[id*=value_solid]").append($div);
+    $td.find("[id*=_solid]").append($div);
 
     $span.click(function() {
         activateField(type, id, field, event);
