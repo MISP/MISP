@@ -2855,11 +2855,14 @@ class AttributesController extends AppController
                 throw new NotFoundException(__('Invalid attribute'));
             }
             $this->Attribute->read();
+            if (!$this->_isSiteAdmin() && $this->Attribute->data['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
+                $fails++;
+                continue;
+            }
             if ($this->Attribute->data['Attribute']['deleted']) {
                 throw new NotFoundException(__('Invalid attribute'));
             }
             $eventId = $this->Attribute->data['Attribute']['event_id'];
-
             $this->Attribute->Event->recursive = -1;
             $event = $this->Attribute->Event->read(array(), $eventId);
             if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {

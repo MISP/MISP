@@ -99,13 +99,16 @@
         <?php echo h($object['type']); ?>
       </div>
     </td>
-    <td id="Attribute_<?php echo h($object['id']); ?>_container" class="showspaces limitedWidth shortish">
-      <div id="Attribute_<?php echo $object['id']; ?>_value_placeholder" class="inline-field-placeholder"></div>
-      <?php
-        if ('attachment' !== $object['type'] && 'malware-sample' !== $object['type']) $editable = ' ondblclick="activateField(\'' . $editScope . '\', \'' . $object['id'] . '\', \'value\', \'' . $event['Event']['id'] . '\');"';
-        else $editable = '';
-      ?>
-      <div id = "Attribute_<?php echo $object['id']; ?>_value_solid" class="inline-field-solid" <?php echo $editable; ?>>
+    <?php
+        if ('attachment' !== $object['type'] && 'malware-sample' !== $object['type']):
+            $editable = ' onmouseenter="quickEditHover(this, \'' . $editScope . '\', \'' . $object['id'] . '\', \'value\', \'' . $event['Event']['id'] . '\' );"';
+        else:
+            $editable = '';
+        endif;
+    ?>
+    <td id="Attribute_<?php echo h($object['id']); ?>_container" class="showspaces limitedWidth shortish" <?php echo $editable; ?>>
+    <div id="Attribute_<?php echo $object['id']; ?>_value_placeholder" class="inline-field-placeholder"></div>
+      <div id = "Attribute_<?php echo $object['id']; ?>_value_solid" class="inline-field-solid">
         <span>
         <?php
 			$spanExtra = '';
@@ -171,9 +174,9 @@
         ));
       ?>
     </td>
-    <td class="showspaces bitwider">
+    <td class="showspaces bitwider" onmouseenter="quickEditHover(this, '<?php echo $editScope; ?>', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">
       <div id = "Attribute_<?php echo $object['id']; ?>_comment_placeholder" class = "inline-field-placeholder"></div>
-      <div id = "Attribute_<?php echo $object['id']; ?>_comment_solid" class="inline-field-solid" ondblclick="activateField('<?php echo $editScope; ?>', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">
+      <div id = "Attribute_<?php echo $object['id']; ?>_comment_solid" class="inline-field-solid">
         <?php echo nl2br(h($object['comment'])); ?>&nbsp;
       </div>
     </td>

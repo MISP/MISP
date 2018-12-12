@@ -1311,7 +1311,7 @@ def main(args):
     stix_event['relationship'] = defaultdict(list)
     filename = os.path.join(os.path.dirname(args[0]), args[1])
     with open(filename, 'rt', encoding='utf-8') as f:
-        event = stix2.parse(f.read(), allow_custom=True)
+        event = stix2.parse(f.read(), allow_custom=True, interoperability=True)
     for parsed_object in event.objects:
         try:
             object_type = parsed_object._type
