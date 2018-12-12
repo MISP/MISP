@@ -5159,6 +5159,20 @@ class EventsController extends AppController
 
         //$result = $this->Event->upload_mactime($this->Auth->user(), );
         } elseif ($this->request->is('post') && $this->request['data']['SelectedData']['mactime_data']) {
+            // Find the event that is to be updated
+            if (Validation::uuid($eventId)) {
+                $eventFindParams['conditions']['Event.uuid'] = $eventId;
+            } elseif (is_numeric($eventId)) {
+                $eventFindParams['conditions']['Event.id'] = $eventId;
+            } else {
+                throw new NotFoundException(__('Invalid event.'));
+            }
+            $event = $this->Event->find('first', $eventFindParams);
+            if (empty($event) || (!$this->_isSiteAdmin() &&	$event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
+                throw new NotFoundException(__('Invalid event.'));
+            }
+            $eventId = $event['Event']['id'];
+
             $fileName = $this->request['data']['SelectedData']['mactime_file_name'];
             $fileData = $this->request['data']['SelectedData']['mactime_file_content'];
             $object = array();
