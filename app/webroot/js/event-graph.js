@@ -1434,8 +1434,13 @@ class DataHandler {
 		return $.getJSON( "/events/getObjectTemplate/templates.json", function( data ) {
 			for (var i in data) {
 				var template = data[i].ObjectTemplate;
+                                var requiredFields;
                                 // add both requiredOneOf and required field
-                                var requiredFields = template.requirements.requiredOneOf;
+                                if (template.requirements.requiredOneOf !== undefined) {
+                                    requiredFields = template.requirements.requiredOneOf;
+                                } else {
+                                    requiredFields = [];
+                                }
                                 if (template.requirements.required !== undefined) {
                                     requiredFields = requiredFields.concat(template.requirements.required);
                                 }
