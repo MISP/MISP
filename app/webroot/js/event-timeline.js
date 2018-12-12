@@ -374,6 +374,7 @@ function reload_timeline() {
                 }
             }
             items_timeline.add(data.items);
+            handle_not_seen_enabled($('#checkbox_timeline_display_hide_not_seen_enabled').val())
         },
         error: function( jqXhr, textStatus, errorThrown ){
             console.log( errorThrown );
@@ -508,7 +509,7 @@ $('#fullscreen-btn-timeline').click(function() {
 });
 
 // init_scope_menu
-var menu_scope_timeline;
+var menu_scope_timeline, menu_display_timeline;
 function init_popover() {
     menu_scope_timeline = new ContextualMenu({
         trigger_container: document.getElementById("timeline-scope"),
@@ -529,7 +530,7 @@ function init_popover() {
         default: "First seen/Last seen"
     });
 
-    var menu_display_timeline = new ContextualMenu({
+    menu_display_timeline = new ContextualMenu({
         trigger_container: document.getElementById("timeline-display"),
         bootstrap_popover: true,
         style: "z-index: 1",
