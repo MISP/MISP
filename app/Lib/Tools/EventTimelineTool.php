@@ -43,7 +43,7 @@
                 return $event;
             }
 
-            if (!empty($fullevent[0]['Object'])) {
+            if ($this->__seenSupported && !empty($fullevent[0]['Object'])) {
                 $event['Object'] = $fullevent[0]['Object'];
             } else {
                 $event['Object'] = array();
@@ -92,7 +92,7 @@
                     'event_id' => $attr['event_id'],
                     'group' => 'attribute',
                     'timestamp' => $attr['timestamp'],
-                    'first_seen' => $attr['first_seen'], // $attribute is empty if __seenSupported==false
+                    'first_seen' => $attr['first_seen'],
                     'last_seen' => $attr['last_seen'],
                 );
                 array_push($this->__json['items'], $toPush);
@@ -119,7 +119,7 @@
                 }
 
                 foreach ($obj['Attribute'] as $obj_attr) {
-                    // update *_seen based on object attribute
+                    // replaced *_seen based on object attribute
                     if ($obj_attr['object_relation'] == 'first-seen' && is_null($toPush_obj['first_seen'])) {
                         $toPush_obj['first_seen'] = $obj_attr['value']; // replace first_seen of the object to seen of the element
                         $toPush_obj['first_seen_overwrite'] = true;
