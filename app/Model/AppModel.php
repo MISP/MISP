@@ -1158,7 +1158,7 @@ class AppModel extends Model
                 break;
 
             case 'testUpdate':
-                $sqlArray[] = "SELECT SLEEP(10);";
+                $sqlArray[] = "SELECT SLEEP(20);";
                 $sqlArray[] = "SELECT SLEEPsdcfsac(4);";
                 $sqlArray[] = "SELECT SLEEP(12);";
                 break;

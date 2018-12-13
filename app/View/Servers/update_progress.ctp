@@ -115,6 +115,14 @@ if ($updateProgress['tot'] !== 0 ) {
                                         </div>
                                     </div>
                                 </div>
+
+                                <div id="single-update-progress-<?php echo $i;?>" class="single-update-progress hidden">
+                                    <div class="small-pb-in-td">
+                                        <div id="single-update-pb-<?php echo $i;?>" style="height: 100%; background: #149bdf; transition: width 0.6s ease;"></div>
+                                    </div>
+
+                                    <div id="small-state-text-<?php echo $i;?>" class="small-state-text-in-td badge" class="badge">Filling schema table</div>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -161,7 +169,7 @@ if ($updateProgress['tot'] !== 0 ) {
 
 
     function update_state() {
-        var url = "<?php echo $baseurl; ?>/servers/quickUpdateProgress";
+        var url = "<?php echo $baseurl; ?>/servers/updateProgress";
         $.getJSON(url, function(data) {
             var tot = parseInt(data['tot']);
             var cur = parseInt(data['cur']);
@@ -183,6 +191,7 @@ if ($updateProgress['tot'] !== 0 ) {
                         update_row_state(i, 1);
                         toggleVisiblity(i-1, true, true);   
                     }
+                    update_single_update_progress(i, data);
                 } else {
                     update_row_state(i, 3);
                 }
@@ -190,13 +199,12 @@ if ($updateProgress['tot'] !== 0 ) {
             update_messages(data);
             if (tot > 0) {
                 var percFail = Math.round(failArray.length/tot*100);
-                //var perc = Math.round(cur/tot*100) - percFail;
                 var perc = Math.round(cur/tot*100);
                 update_pb(perc, percFail);
             }
 
             if (cur >= tot || failArray.indexOf(cur) != -1) {
-                //clearInterval(pooler);
+                clearInterval(pooler);
             }
         });
     }
@@ -284,6 +292,18 @@ if ($updateProgress['tot'] !== 0 ) {
         var elapsed = $('#elapsedTime-'+i);
         started.text(startedText);
         elapsed.text(elapsedText);
+    }
+
+    function update_single_update_progress(i, data) {
+        $('.single-update-progress').hide();
+        var div = $('#single-update-progress-'+i);
+        var pb = div.find('#single-update-pb-'+i);
+        var state = div.find('#small-state-text-'+i);
+        div.show();
+        var perc = parseInt(data['process_list']['PROGRESS']);
+        perc = perc == 0 ? 1 : perc; // for UI, always set min progress to 1
+        pb.css('width', perc+'%');
+        state.text(data['process_list']['STATE']);
     }
 
     function pad(num, size){ return ('000000000' + num).substr(-size); }
