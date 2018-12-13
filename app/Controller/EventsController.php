@@ -783,8 +783,8 @@ class EventsController extends AppController
             } else {
                 foreach ($events as $key => $event) {
                     $events[$key] = $event['Event'];
-                    return $this->RestResponse->viewData($events, $this->response->type());
                 }
+                return $this->RestResponse->viewData($events, $this->response->type());
             }
         } else {
             $events = $this->paginate();
