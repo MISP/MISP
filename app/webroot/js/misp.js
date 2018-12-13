@@ -3222,7 +3222,10 @@ function quickSubmitGalaxyForm(event_id, cluster_id) {
 	return false;
 }
 
-function checkAndSetPublishedInfo(skip_reload=false) {
+function checkAndSetPublishedInfo(skip_reload) {
+	if (typeof skip_reload === "undefined") {
+		skip_reload = false;
+	}
 	var id = $('#hiddenSideMenuData').data('event-id');
 	if (id !== 'undefined' && !skip_reload) {
 		$.get( "/events/checkPublishedStatus/" + id, function(data) {
