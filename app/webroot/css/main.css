@@ -2203,6 +2203,7 @@ table.updateProgressTable .small-pb-in-td {
     position: relative;
     left: -8px;
     top: 26px;
+    background-color: #f3f3f3;
 }
 
 table.updateProgressTable .small-state-text-in-td {
