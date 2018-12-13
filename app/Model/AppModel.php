@@ -229,11 +229,37 @@ class AppModel extends Model
     }
 
     // SQL scripts for updates
-    public function updateDatabase($command, $liveOff=false, $exitOnError=false)
+    public function updateDatabase($command, $liveOff=false, $exitOnError=false, $useWorker=true)
     {
         // Exit if updates are locked
         if ($this->isUpdateLocked()) {
             return false;
+        }
+
+        // restart this function by a worker
+        if ($useWorker && Configure::read('MISP.background_jobs')) {
+            $job = ClassRegistry::init('Job');
+            $job->create();
+            $data = array(
+                    'worker' => 'prio',
+                    'job_type' => 'update_app',
+                    'job_input' => 'command: ' . $command,
+                    'status' => 0,
+                    'retries' => 0,
+                    'org_id' => '',
+                    'org' => '',
+                    'message' => 'Updating.',
+            );
+            $job->save($data);
+            $jobId = $job->id;
+            $process_id = CakeResque::enqueue(
+                    'prio',
+                    'ServerShell',
+                    array('updateApp', $jobId, $command, $liveOff, $exitOnError, false),
+                    true
+            );
+            $job->saveField('process_id', $process_id);
+            return true;
         }
 
         $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
@@ -1158,7 +1184,7 @@ class AppModel extends Model
                 break;
 
             case 'testUpdate':
-                $sqlArray[] = "SELECT SLEEP(20);";
+                $sqlArray[] = "SELECT SLEEP(10);";
                 $sqlArray[] = "SELECT SLEEPsdcfsac(4);";
                 $sqlArray[] = "SELECT SLEEP(12);";
                 break;
@@ -1558,7 +1584,7 @@ class AppModel extends Model
         $updateProgress = $this->getUpdateProgress();
         $updateProgress['res'][$index] = $message;
         $temp = new DateTime();
-        $diff = $temp->diff(new DateTime($message['time']['started'][$index]));
+        $diff = $temp->diff(new DateTime($updateProgress['time']['started'][$index]));
         $updateProgress['time']['elapsed'][$index] = $diff->format('%H:%I:%S');
         $this->__saveUpdateProgress($updateProgress);
     }

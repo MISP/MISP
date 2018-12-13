@@ -398,4 +398,18 @@ class ServerShell extends AppShell
 		$this->Task->id = $task['Task']['id'];
 		$this->Task->saveField('message', count($servers) . ' job(s) completed at ' . date('d/m/Y - H:i:s') . '.');
 	}
+
+    public function updateApp() {
+        $processId = $this->args[0];
+        $job = $this->Job->read(null, $processId);
+        $command = $this->args[1];
+        $liveOff = $this->args[2];
+        $exitOnError = $this->args[3];
+        $useWorker = $this->args[4];
+        $result = $this->Server->updateDatabase($command, $liveOff, $exitOnError, $useWorker);
+        $job['Job']['progress'] = 100;
+        $job['Job']['message'] = 'Update done';
+        $this->Job->save($job);
+    }
+
 }

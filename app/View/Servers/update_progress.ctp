@@ -56,8 +56,7 @@ if ($updateProgress['tot'] !== 0 ) {
                                 $updateDuration = $updateProgress['time']['elapsed'][$i];
                             } else { // compute elapsed based on started
                                 $temp = new DateTime();
-                                $temp->diff(new DateTime($datetimeStart));
-                                $diff = $temp->diff(new DateTime($updateProgress['time']['started'][$i]));
+                                $diff = $temp->diff(new DateTime($datetimeStart));
                                 $updateDuration = $diff->format('%H:%I:%S');
                             }
                         } else {
