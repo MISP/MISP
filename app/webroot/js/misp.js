@@ -631,7 +631,10 @@ function handleAjaxEditResponse(data, name, type, id, field, event) {
 	}
 }
 
-function handleGenericAjaxResponse(data, skip_reload = false) {
+function handleGenericAjaxResponse(data, skip_reload) {
+	if (typeof skip_reload === "undefined") {
+        skip_reload = false;
+    }
 	if (typeof data == 'string') {
 		responseArray = JSON.parse(data);
 	} else {
