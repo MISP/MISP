@@ -341,7 +341,6 @@ class ACLComponent extends Component
                     'update' => array(),
                     'advancedUpdate' => array(),
                     'updateProgress' => array(),
-                    'quickUpdateProgress' => array(),
                     'uploadFile' => array(),
                     'clearWorkerQueue' => array()
             ),

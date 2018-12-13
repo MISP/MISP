@@ -1651,16 +1651,22 @@ class ServersController extends AppController
             throw new MethodNotAllowedException('You are not authorised to do that.');
         }
         $updateProgress = $this->Server->getUpdateProgress();
-        $this->set('updateProgress', $updateProgress);
-    }
-
-    public function quickUpdateProgress()
-    {
-        if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException('You are not authorised to do that.');
+        $curCommand = $updateProgress['cmd'][$updateProgress['cur']];
+        // retreive current update process
+        $sqlInfo = $this->Server->query("SELECT * FROM INFORMATION_SCHEMA.PROCESSLIST WHERE INFO LIKE '%" . substr($curCommand, 0, -1) . "%';");
+        if (empty($sqlInfo)) {
+            $updateProgress['process_list'] = array();
+        } else {
+            $sqlInfo = $sqlInfo[0]['PROCESSLIST'];
+            $updateProgress['process_list'] = array();
+            $updateProgress['process_list']['STATE'] = isset($sqlInfo['STATE']) ? $sqlInfo['STATE'] : '';
+            $updateProgress['process_list']['PROGRESS'] = isset($sqlInfo['PROGRESS']) ? $sqlInfo['PROGRESS'] : 0;
         }
-        $updateProgress = $this->Server->getUpdateProgress();
-        return $this->RestResponse->viewData(h($updateProgress), $this->response->type());
+        if ($this->request->is('ajax')) {
+            return $this->RestResponse->viewData(h($updateProgress), $this->response->type());
+        } else {
+            $this->set('updateProgress', $updateProgress);
+        }
     }
 
     public function getInstanceUUID()

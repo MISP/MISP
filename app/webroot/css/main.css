@@ -2163,6 +2163,21 @@ table.updateProgressTable > tbody > tr > td:first-child {
     text-align: center;
 }
 
+table.updateProgressTable .small-pb-in-td {
+    width: calc(100% + 16px);
+    height: 4px;
+    position: relative;
+    left: -8px;
+    top: 26px;
+}
+
+table.updateProgressTable .small-state-text-in-td {
+    position: relative;
+    display: inline-block;
+    float: right;
+
+}
+
 #attackmatrix_div {
     border-color: #363636;
     overflow: visible;
