@@ -7,6 +7,9 @@ var mapping_text_to_id = new Map();
 var user_manipulation = $('#event_timeline').data('user-manipulation');
 var extended_text = $('#event_timeline').data('extended') == 1 ? "extended:1/" : "";
 var container_timeline = document.getElementById('event_timeline');
+var hardThreshold = 50;
+var softThreshold = 30;
+var timeline_disabled = false;
 var default_editable = {
     add: false,         // add new items by double tapping
     updateTime: true,   // drag items horizontally
@@ -406,6 +409,19 @@ function enable_timeline() {
             $(".loadingTimeline").show();
         },
         success: function( data, textStatus, jQxhr ){
+            if (data.items.length > hardThreshold) {
+                $('#eventtimeline_div').html('<div class="alert alert-danger" style="margin: 10px;">Timeline: To much data to show</div>');
+                timeline_disabled = true;
+                return;
+            } else if (data.items.length > softThreshold) {
+                var res = confirm('You are about to draw a lot ('+data.items.length+') of items in the timeline. Do you wish to continue?');
+                if (!res) {
+                    $('#eventtimeline_div').html('<div class="alert alert-danger" style="margin: 10px;">Timeline: To much data to show</div>');
+                    timeline_disabled = true;
+                    return;
+                }
+            }
+
             for (var item of data.items) {
                 item.className = item.group;
                 set_spanned_time(item);
@@ -507,6 +523,7 @@ $('#fullscreen-btn-timeline').click(function() {
 // init_scope_menu
 var menu_scope_timeline, menu_display_timeline;
 function init_popover() {
+    if (timeline_disabled) return;
     menu_scope_timeline = new ContextualMenu({
         trigger_container: document.getElementById("timeline-scope"),
         bootstrap_popover: true,
