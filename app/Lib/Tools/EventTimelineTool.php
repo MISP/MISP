@@ -10,15 +10,13 @@
         private $__related_events = array();
         private $__related_attributes = array();
 
-        public function construct($eventModel, $user, $seenSupported, $filterRules, $extended_view=0)
+        public function construct($eventModel, $user, $filterRules, $extended_view=0)
         {
             $this->__eventModel = $eventModel;
             $this->__objectTemplateModel = $eventModel->Object->ObjectTemplate;
             $this->__user = $user;
-            $this->__seenSupported = $seenSupported;
             $this->__filterRules = $filterRules;
             $this->__json = array();
-            $this->__json['seenSupported'] = $this->__seenSupported;
             $this->__extended_view = $extended_view;
             $this->__lookupTables = array(
                 'analysisLevels' => $this->__eventModel->analysisLevels,
@@ -43,18 +41,14 @@
                 return $event;
             }
 
-            if ($this->__seenSupported && !empty($fullevent[0]['Object'])) {
+            if (!empty($fullevent[0]['Object'])) {
                 $event['Object'] = $fullevent[0]['Object'];
             } else {
                 $event['Object'] = array();
             }
 
-            if ($this->__seenSupported) {
-                if (!empty($fullevent[0]['Attribute'])) {
-                    $event['Attribute'] = $fullevent[0]['Attribute'];
-                } else {
-                    $event['Attribute'] = array();
-                }
+            if (!empty($fullevent[0]['Attribute'])) {
+                $event['Attribute'] = $fullevent[0]['Attribute'];
             } else {
                 $event['Attribute'] = array();
             }
@@ -111,12 +105,10 @@
                     'Attribute' => array(),
                 );
 
-                if ($this->__seenSupported) {
-                    $toPush_obj['first_seen'] = $obj['first_seen'];
-                    $toPush_obj['last_seen'] = $obj['last_seen'];
-                    $toPush_obj['first_seen_overwrite'] = false;
-                    $toPush_obj['last_seen_overwrite'] = false;
-                }
+                $toPush_obj['first_seen'] = $obj['first_seen'];
+                $toPush_obj['last_seen'] = $obj['last_seen'];
+                $toPush_obj['first_seen_overwrite'] = false;
+                $toPush_obj['last_seen_overwrite'] = false;
 
                 foreach ($obj['Attribute'] as $obj_attr) {
                     // replaced *_seen based on object attribute

@@ -78,9 +78,7 @@
             echo $this->Form->input('batch_import', array(
                     'type' => 'checkbox'
             ));
-            if ($seenSupported) {
-                echo $this->element('form_seen_input');
-            }
+            echo $this->element('form_seen_input');
 
         ?>
         </div>

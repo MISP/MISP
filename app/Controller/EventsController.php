@@ -4379,8 +4379,7 @@ class EventsController extends AppController
 
         $extended = isset($this->params['named']['extended']) ? 1 : 0;
 
-        $seenSupported = $this->Event->additionalFeatureEnabled('seenOnAttributeAndObject');
-        $grapher->construct($this->Event, $this->Auth->user(), $seenSupported, $dataFiltering, $extended);
+        $grapher->construct($this->Event, $this->Auth->user(), $dataFiltering, $extended);
         $json = $grapher->get_timeline($id);
 
         array_walk_recursive($json, function (&$item, $key) {

@@ -3723,8 +3723,9 @@ class Attribute extends AppModel
             'sharing_group_id',
             'deleted',
             'disable_correlation',
+            'first_seen',
+            'last_seen'
         );
-        $this->addFieldsBasedOnUpdate($fieldList, 'Attribute');
         if ($objectId) {
             $fieldList[] = 'object_id';
             $fieldList[] = 'object_relation';

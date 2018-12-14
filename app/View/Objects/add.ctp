@@ -73,9 +73,7 @@
     </dd>
         
 <?php
-    if ($seenSupported) {
-	echo $this->element('form_seen_input');
-    }
+    echo $this->element('form_seen_input');
 ?>
 
   </dl>

@@ -1389,6 +1389,8 @@ class AppModel extends Model
         }
     }
 
+    /*
+     * Given an array, dynamically add fields. An historical example is given with the *_seen fields
     public function addFieldsBasedOnUpdate(&$fieldsAtt, $context = null) {
         if (is_null($context)) {
             $alias = '';
@@ -1404,7 +1406,10 @@ class AppModel extends Model
             array_push($fieldsAtt, $fs, $ls);
         }
     }
+    */
 
+    /*
+     * Check whether a feature is enabled (based on an update) or not. An historical example is given with the *_seen update
     public function additionalFeatureEnabled($featureName) {
         if (!isset($this->AdminSetting)) {
             $this->AdminSetting = ClassRegistry::init('AdminSetting');
@@ -1420,6 +1425,7 @@ class AppModel extends Model
             return $value;
         }
     }
+    */
 
     public function checkMISPVersion()
     {

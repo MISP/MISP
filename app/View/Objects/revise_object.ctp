@@ -38,10 +38,6 @@
             <td><?php echo h($data['Object']['comment']); ?></td>
           </tr>
           <tr>
-        <?php
-        if ($seenSupported):
-        ?>
-          <tr>
             <td class="bold"><?php echo __('First seen');?></td>
             <td><?php echo h($data['Object']['first_seen']); ?></td>
           </tr>
@@ -49,9 +45,6 @@
             <td class="bold"><?php echo __('Last seen');?></td>
             <td><?php echo h($data['Object']['last_seen']); ?></td>
           </tr>
-        <?php
-        endif;
-        ?>
             <table class="table table-condensed table-striped">
               <thead>
                 <th><?php echo __('Attribute');?></th>
