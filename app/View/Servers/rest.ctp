@@ -1,6 +1,7 @@
 <div class="servers form">
     <div style="position:absolute;right:40px;width:300px;top:90px;">
-        <label for="TemplateSelect">Templates</label>
+        <label for="TemplateSelect" style="display: inline-block">Templates</label>
+        <span id="showQB" class="btn btn-primary useCursorPointer" style="margin: 5px;" onclick="$('#qb-div').toggle()"><span class="fa fa-wrench"> Open Query Builder</span></span>
         <?php
             $options = '<option value="">None</option>';
               foreach($allValidApisFormated as $scope => $actions) {
@@ -14,15 +15,6 @@
         <div id="apiInfo" style="margin-top: 15px;"></div>
     </div>
 
-    <div style="position:absolute;left:770px;width:calc(100% - 1130px);top:100px;">
-        <div class="selected-path-container">
-            <h3 id="selected-path" >---</h3>
-        </div>
-        <div id="querybuilder"></div>
-            <button id="btn-inject" type="button" class="btn btn-success"><i class="fa fa-mail-forward" style="transform: scaleX(-1);"></i> Inject </button>
-            <button id="btn-apply" type="button" class="btn btn-default"><i class="fa fa-list-alt"></i> Show rules </button>
-    </div>
-    
     <?php echo $this->Form->create('Server');?>
     <fieldset>
         <legend><?php echo __('REST client');?></legend>
@@ -68,6 +60,19 @@
                     'default' => !empty($this->request->data['Server']['header']) ? $this->request->data['Server']['header'] : $header
             ));
         ?>
+
+        <div class="clear">
+            <div id="qb-div" class="dashboard_element hidden" style="max-width: calc(100% - 400px); max-width: calc(100% - 400px); padding: 10px; border: 1px solid #DCC896; margin: 10px; background-color: #fffcf6;">
+                <div class="selected-path-container">
+                    <h3 id="selected-path" >---</h3>
+                </div>
+                <div id="querybuilder"></div>
+                    <button id="btn-inject" type="button" class="btn btn-success"><i class="fa fa-mail-forward" style="transform: scaleX(-1);"></i> Inject </button>
+                    <button id="btn-apply" type="button" class="btn btn-default"><i class="fa fa-list-alt"></i> Show rules </button>
+            </div>
+        </div>
+
+
         <div class="input clear" style="width:100%;">
         <?php
             echo $this->Form->input('body', array(
