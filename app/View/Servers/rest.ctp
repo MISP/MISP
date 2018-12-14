@@ -139,13 +139,13 @@
 ?>
 
 <?php
-    echo $this->Html->script('/querybuilder/doT.js');
-    echo $this->Html->script('/querybuilder/extendext.js');
-    echo $this->Html->script('/querybuilder/moment.js');
-    echo $this->Html->css('/querybuilder/query-builder.default.css');
-    echo $this->Html->script('/querybuilder/query-builder.js');
-    echo $this->Html->css('/querybuilder/chosen.min.css');
-    echo $this->Html->script('/querybuilder/chosen.jquery.min.js');
+    echo $this->Html->script('doT');
+    echo $this->Html->script('extendext');
+    echo $this->Html->script('moment-with-locales');
+    echo $this->Html->css('query-builder.default');
+    echo $this->Html->script('query-builder');
+    echo $this->Html->css('chosen.min');
+    echo $this->Html->script('chosen.jquery.min');
 ?>
 <script type="text/javascript">
 	// tooltips
