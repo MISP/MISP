@@ -1255,7 +1255,7 @@ a.proposal_link_red:hover {
 .useCursorPointer {
 	cursor: pointer;
 	cursor: hand;
-        user-select: none;
+	user-select: none;
 }
 
 .underline {

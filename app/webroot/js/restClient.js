@@ -264,7 +264,6 @@ function addHoverInfo(url) {
                     if(apiInfo !== undefined && apiInfo !== '') {
                         $('#infofield-'+field).popover({
                             trigger: 'hover',
-                            //placement: 'right',
                             content: apiInfo,
                         });
                     } else { // no help, delete icon
