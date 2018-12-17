@@ -69,10 +69,9 @@ function setApiInfoBox(isTyping) {
         });
 
         $('#showQB').click(function() {
-            if (!$('#TemplateSelect').val() == '') {
-                $('#qb-div').toggle();
-            } else {
-                showMessage('fail', 'Pick a Templates first');
+            $('#qb-div').toggle();
+            if ($('#TemplateSelect').val() !== '') {
+                $('#TemplateSelect').trigger("change");
             }
         });
 
