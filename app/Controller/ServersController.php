@@ -1807,10 +1807,10 @@ misp.direct_call(relative_path, body)
         return $curl;
     }
 
-    public function getApiInfo() {
+    public function getApiInfo()
+    {
         $relative_path = $this->request->data['url'];
         $result = $this->RestResponse->getApiInfo($relative_path);
-        //$fieldsConstraint = $this->RestResponse->getFieldsConstraint($relative_path);
         if ($this->_isRest()) {
             return $result;
         } else {
