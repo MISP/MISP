@@ -34,6 +34,12 @@ function setApiInfoBox(isTyping) {
     var allValidApis;
     var fieldsConstraint;
     var querybuilderTool;
+
+    $('form').submit(function(e) {
+        $('#querybuilder').remove();
+        return true;
+    });
+
     $(document).ready(function () {
         insertRawRestResponse();
         $('.format-toggle-button').bind('click', function() {
