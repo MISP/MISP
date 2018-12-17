@@ -25,13 +25,10 @@
             echo $this->Html->css($css);
         }
         echo $this->Html->css('print', 'stylesheet', array('media' => 'print'));
-
-        echo $this->fetch('meta');
-        echo $this->fetch('css');
-        echo $this->fetch('script');
-
+        echo $this->Html->css('jquery-ui');
         echo $this->Html->script('jquery'); // Include jQuery library
         echo $this->Html->script('misp-touch'); // touch interface support
+        echo $this->Html->script('jquery-ui'); // UI support
     ?>
 
 </head>
@@ -59,7 +56,9 @@
         ?>
     </div>
     <div>
-        <?php echo $this->fetch('content'); ?>
+        <?php
+			echo $this->fetch('content');
+		?>
     </div>
     <?php
     echo $this->element('footer');
@@ -104,12 +103,17 @@
                 tabIsActive = true;
             });
         <?php
-            if (!Configure::read('MISP.disable_auto_logout')):  
+            if (!Configure::read('MISP.disable_auto_logout')):
         ?>
                 checkIfLoggedIn();
         <?php
             endif;
         ?>
+		if ($('.alert').text().indexOf("$flashErrorMessage") >= 0) {
+			//$('#flashErrorMessage').html()
+			var flashMessageLink = '<span class="useCursorPointer underline bold" onClick="flashErrorPopover();">here</span>';
+			$('.alert').html(($('.alert').html().replace("$flashErrorMessage", flashMessageLink)));
+		}
         });
     </script>
 </body>

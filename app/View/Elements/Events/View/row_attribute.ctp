@@ -1,5 +1,8 @@
 <?php
   $tr_class = '';
+  if (empty($context)) {
+	  $context = 'event';
+  }
   $linkClass = 'blue';
   if ($event['Event']['id'] != $object['event_id']) {
     if (!$isSiteAdmin && $event['extensionEvents'][$object['event_id']]['Orgc']['id'] != $me['org_id']) {
@@ -31,9 +34,9 @@
 ?>
 <tr id = "Attribute_<?php echo h($object['id']); ?>_tr" class="<?php echo $tr_class; ?>" tabindex="0">
   <?php
-    if ($mayModify || $extended):
+    if (($mayModify || !empty($extended)) && empty($disable_multi_select)):
   ?>
-      <td style="width:10px;" data-position="<?php echo h($object['objectType']) . '_' . h($object['id']); ?>">
+      <td style="width:10px;" data-position="<?php echo 'attribute_' . h($object['id']); ?>">
       <?php
         if ($mayModify):
       ?>
@@ -55,7 +58,7 @@
       <?php echo date('Y-m-d', $object['timestamp']); ?>
     </td>
     <?php
-      if ($extended):
+      if (!empty($extended)):
     ?>
       <td class="short">
         <?php echo '<a href="' . $baseurl . '/events/view/' . h($object['event_id']) . '">' . h($object['event_id']) . '</a>'; ?>
@@ -65,7 +68,7 @@
     ?>
     <td class="short">
       <?php
-        if ($extended):
+        if (!empty($extended)):
           if ($object['event_id'] != $event['Event']['id']):
             $extensionOrg = $event['extensionEvents'][$object['event_id']]['Orgc'];
             echo $this->OrgImg->getOrgImg(array('name' => $extensionOrg['name'], 'id' => $extensionOrg['id'], 'size' => 24));
@@ -96,13 +99,16 @@
         <?php echo h($object['type']); ?>
       </div>
     </td>
-    <td id="Attribute_<?php echo h($object['id']); ?>_container" class="showspaces limitedWidth shortish">
-      <div id="Attribute_<?php echo $object['id']; ?>_value_placeholder" class="inline-field-placeholder"></div>
-      <?php
-        if ('attachment' !== $object['type'] && 'malware-sample' !== $object['type']) $editable = ' ondblclick="activateField(\'' . $editScope . '\', \'' . $object['id'] . '\', \'value\', \'' . $event['Event']['id'] . '\');"';
-        else $editable = '';
-      ?>
-      <div id = "Attribute_<?php echo $object['id']; ?>_value_solid" class="inline-field-solid" <?php echo $editable; ?>>
+    <?php
+        if ('attachment' !== $object['type'] && 'malware-sample' !== $object['type']):
+            $editable = ' onmouseenter="quickEditHover(this, \'' . $editScope . '\', \'' . $object['id'] . '\', \'value\', \'' . $event['Event']['id'] . '\' );"';
+        else:
+            $editable = '';
+        endif;
+    ?>
+    <td id="Attribute_<?php echo h($object['id']); ?>_container" class="showspaces limitedWidth shortish" <?php echo $editable; ?>>
+    <div id="Attribute_<?php echo $object['id']; ?>_value_placeholder" class="inline-field-placeholder"></div>
+      <div id = "Attribute_<?php echo $object['id']; ?>_value_solid" class="inline-field-solid">
         <span>
         <?php
 			$spanExtra = '';
@@ -141,7 +147,7 @@
     </td>
     <td class="shortish">
       <div class="attributeTagContainer" id="#Attribute_<?php echo h($object['id']);?>_tr .attributeTagContainer">
-        <?php echo $this->element('ajaxAttributeTags', array('attributeId' => $object['id'], 'attributeTags' => $object['AttributeTag'], 'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id']) )); ?>
+        <?php echo $this->element('ajaxAttributeTags', array('attributeId' => $object['id'], 'attributeTags' => $object['AttributeTag'], 'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id']), 'context' => $context)); ?>
       </div>
     </td>
 	<?php
@@ -168,9 +174,9 @@
         ));
       ?>
     </td>
-    <td class="showspaces bitwider">
+    <td class="showspaces bitwider" onmouseenter="quickEditHover(this, '<?php echo $editScope; ?>', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">
       <div id = "Attribute_<?php echo $object['id']; ?>_comment_placeholder" class = "inline-field-placeholder"></div>
-      <div id = "Attribute_<?php echo $object['id']; ?>_comment_solid" class="inline-field-solid" ondblclick="activateField('<?php echo $editScope; ?>', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">
+      <div id = "Attribute_<?php echo $object['id']; ?>_comment_solid" class="inline-field-solid">
         <?php echo nl2br(h($object['comment'])); ?>&nbsp;
       </div>
     </td>
@@ -182,7 +188,7 @@
         data-attribute-id="<?php echo h($object['id']); ?>"
         <?php
           echo $object['disable_correlation'] ? '' : ' checked';
-          echo ($mayChangeCorrelation && !$event['Event']['disable_correlation']) ? '' : ' disabled';
+          echo ($mayChangeCorrelation && empty($event['Event']['disable_correlation'])) ? '' : ' disabled';
         ?>
       >
     </td>

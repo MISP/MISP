@@ -67,7 +67,6 @@ nav:
     - Home: 'index.md'
     - Install Guides:
       - 'Ubuntu 18.04': 'INSTALL.ubuntu1804.md'
-      - 'Ubuntu 18.04 \w webmin': 'INSTALL.ubuntu1804.with.webmin.md'
       - 'Debian stable': 'INSTALL.debian9.md'
       - 'Kali Linux': 'INSTALL.kali.md'
       - 'Redhat Enterprise Linux 7': 'INSTALL.rhel7.md'
@@ -77,6 +76,8 @@ nav:
       - 'Centos 7': 'xINSTALL.centos7.md'
       - 'Debian testing': 'xINSTALL.debian_testing.md'
       - 'Debian 9 \w postgresql': 'xINSTALL.debian9-postgresql.md'
+      - 'Ubuntu 18.04 \w webmin': 'xINSTALL.ubuntu1804.with.webmin.md'
+      - 'Tsurugi Linux': 'xINSTALL.tsurugi.md'
       - 'OpenBSD 6.4': 'xINSTALL.OpenBSD.md'
       - 'Redhat Enterprise Linux 7.6 (BETA)': 'xINSTALL.rhel7.md'
     - Config Guides:
@@ -88,6 +89,7 @@ nav:
     - Old guides:
       - '2.3 to 2.4 upgrade': 'archive/old-2_3to2_4-UPGRADE.md'
       - 'Ubuntu 16.04': 'archive/INSTALL.ubuntu1604.md'
+      - 'FreeBSD': 'archive/xINSTALL.FreeBSD.md'
     - About:
       - 'MISP Release Notes': 'Changelog.md'
       - 'License': 'license.md'

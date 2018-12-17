@@ -500,6 +500,13 @@ class TagsController extends AppController
             'contain' => array('Tag'),
             'fields' => array('Tag.id', 'Tag.colour', 'Tag.name'),
         ));
+        $this->loadModel('GalaxyCluster');
+        $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
+        foreach ($attributeTags as $k => $attributeTag) {
+            if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
+                unset($attributeTags[$k]);
+            }
+        }
         $event = $this->Tag->AttributeTag->Attribute->Event->find('first', array(
             'recursive' => -1,
             'fields' => array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.user_id'),
@@ -804,6 +811,11 @@ class TagsController extends AppController
         }
         $result = $this->$objectType->$connectorObject->save($data);
         if ($result) {
+            if ($objectType === 'Attribute') {
+                $this->$objectType->Event->unpublishEvent($object['Event']['id']);
+            } else if ($objectType === 'Event') {
+                $this->Event->unpublishEvent($object['Event']['id']);
+            }
             $message = 'Tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully attached to ' . $objectType . '(' . $object[$objectType]['id'] . ').';
             return $this->RestResponse->saveSuccessResponse('Tags', 'attachTagToObject', false, $this->response->type(), $message);
         } else {

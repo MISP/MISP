@@ -10,13 +10,15 @@ class Stix2Export extends StixExport
     protected function initiate_framing_params()
     {
         $framing_file = $this->__scripts_dir . 'misp_framing.py ';
-        return 'python3 ' . $framing_file . $this->__return_type . ' ' . escapeshellarg(CakeText::uuid()) . $this->__end_of_cmd;
+        $my_server = ClassRegistry::init('Server');
+        return $my_server->getPythonVersion() . ' ' . $framing_file . $this->__return_type . ' ' . escapeshellarg(CakeText::uuid()) . $this->__end_of_cmd;
     }
 
     protected function __parse_misp_events($filename)
     {
         $scriptFile = $this->__scripts_dir . $this->__script_name;
         $filename = $this->__scripts_dir . 'tmp/' . $filename;
-        return shell_exec('python3 ' . $scriptFile . ' ' . $filename . $this->__end_of_cmd);
+        $my_server = ClassRegistry::init('Server');
+        return shell_exec($my_server->getPythonVersion() . ' ' . $scriptFile . ' ' . $filename . $this->__end_of_cmd);
     }
 }

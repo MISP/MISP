@@ -51,7 +51,7 @@ sudo postfix reload
 ```bash
 sudo apt install -y \
 curl gcc git gnupg-agent make openssl redis-server vim zip libyara-dev \
-python3-setuptools python3-dev python3-pip python3-yara python3-redis python3-zmq virtualenv \
+python3-setuptools python3-dev python3-pip python3-redis python3-zmq virtualenv \
 mariadb-client \
 mariadb-server \
 apache2 apache2-doc apache2-utils \
@@ -100,6 +100,7 @@ sudo a2dismod status
 sudo a2enmod ssl rewrite
 sudo a2dissite 000-default
 sudo a2ensite default-ssl
+sudo a2enmod headers
 
 # Switch to python3 by default (optional)
 
@@ -391,7 +392,7 @@ sudo sed -i -e '$i \sudo -u www-data /var/www/MISP/venv/bin/misp-modules -l 127.
 sudo -u www-data bash $PATH_TO_MISP/app/Console/worker/start.sh
 
 # some misp-modules dependencies
-sudo apt-get install -y libpq5 libjpeg-dev libfuzzy-dev
+sudo apt-get install -y libfuzzy-dev python3-dev python3-pip libpq5 libjpeg-dev tesseract-ocr imagemagick
 
 sudo chmod 2775 /usr/local/src
 sudo chown root:staff /usr/local/src
@@ -399,8 +400,8 @@ cd /usr/local/src/
 git clone https://github.com/MISP/misp-modules.git
 cd misp-modules
 # pip install
-sudo -u www-data ${PATH_TO_MISP}/MISP/venv/bin/pip install -I -r REQUIREMENTS
-sudo -u www-data ${PATH_TO_MISP}/MISP/venv/bin/pip install .
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 sudo apt install ruby-pygments.rb -y
 sudo gem install asciidoctor-pdf --pre
 
@@ -412,7 +413,6 @@ sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install maec lief python-magic pat
 sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
 
 # Start misp-modules
-## /!\ Check wtf is going on with yara.
 sudo -u www-data ${PATH_TO_MISP}/venv/bin/misp-modules -l 0.0.0.0 -s &
 
 echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
@@ -455,7 +455,7 @@ sudo make install
 sudo pecl install ssdeep
 
 # You should add "extension=ssdeep.so" to mods-available - Check /etc/php for your current version
-echo "extension=ssdeep.so" | sudo tee /etc/php/7.2/mods-available/ssdeep.ini
+echo "extension=ssdeep.so" | sudo tee ${PHP_ETC_BASE}/mods-available/ssdeep.ini
 sudo phpenmod ssdeep
 sudo service apache2 restart
 ```
@@ -481,3 +481,5 @@ sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install pyzmq
 {!generic/ssdeep-debian.md!}
 
 {!generic/mail_to_misp-debian.md!}
+
+{!generic/hardening.md!}

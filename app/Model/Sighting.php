@@ -299,7 +299,7 @@ class Sighting extends AppModel
                     'source' => $source
             );
             // zeroq: allow setting a specific uuid
-            if($sighting_uuid) {
+            if ($sighting_uuid) {
                 $sighting['uuid'] = $sighting_uuid;
                 // check if sighting with given uuid already exists
                 $existing_sighting = $this->find('first', array(
@@ -468,7 +468,7 @@ class Sighting extends AppModel
             $timeCondition = array($filters['from'], $filters['to']);
             unset($filters['from']);
             unset($filters['to']);
-        } else if (isset($filters['last'])) {
+        } elseif (isset($filters['last'])) {
             $timeCondition = $filters['last'];
             unset($filters['last']);
         } else {
@@ -490,7 +490,7 @@ class Sighting extends AppModel
 
         if ($filters['context'] === 'attribute') {
             $conditions['Sighting.attribute_id'] = $filters['id'];
-        } else if ($filters['context'] === 'event') {
+        } elseif ($filters['context'] === 'event') {
             $conditions['Sighting.event_id'] = $filters['id'];
         }
 
@@ -508,29 +508,29 @@ class Sighting extends AppModel
         $allowedSightings = array();
         $additional_attribute_added = false;
         $additional_event_added = false;
-        foreach($sightings as $sid) {
+        foreach ($sightings as $sid) {
             $sight = $this->getSighting($sid, $user);
-	    if (!empty($sight)) {
-            	$sight['Sighting']['value'] = $sight['Sighting']['Attribute']['value'];
-            	// by default, do not include event and attribute
-            	if (!isset($filters['includeAttribute']) || !$filters['includeAttribute']) {
-            	    unset($sight["Sighting"]["Attribute"]);
-            	} else if (!$additional_attribute_added) {
-            	    $filters['requested_attributes'] = array_merge($filters['requested_attributes'], array('attribute_uuid', 'attribute_type', 'attribute_category', 'attribute_to_ids', 'attribute_value'));
-            	    $additional_attribute_added = true;
-            	}
-
-            	if (!isset($filters['includeEvent']) || !$filters['includeEvent']) {
-            	    unset($sight["Sighting"]["Event"]);
-            	} else if (!$additional_event_added) {
-            	    $filters['requested_attributes'] = array_merge($filters['requested_attributes'], array('event_uuid', 'event_orgc_id', 'event_org_id', 'event_info', 'event_Orgc_name'));
-            	    $additional_event_added = true;
-            	}
-
-            	if (!empty($sight)) {
-            	    array_push($allowedSightings, $sight);
-            	}
-	    }
+            if (!empty($sight)) {
+                $sight['Sighting']['value'] = $sight['Sighting']['Attribute']['value'];
+                // by default, do not include event and attribute
+                if (!isset($filters['includeAttribute']) || !$filters['includeAttribute']) {
+                    unset($sight["Sighting"]["Attribute"]);
+                } else if (!$additional_attribute_added) {
+                    $filters['requested_attributes'] = array_merge($filters['requested_attributes'], array('attribute_uuid', 'attribute_type', 'attribute_category', 'attribute_to_ids', 'attribute_value'));
+                    $additional_attribute_added = true;
+                }
+                
+                if (!isset($filters['includeEvent']) || !$filters['includeEvent']) {
+                    unset($sight["Sighting"]["Event"]);
+                } else if (!$additional_event_added) {
+                    $filters['requested_attributes'] = array_merge($filters['requested_attributes'], array('event_uuid', 'event_orgc_id', 'event_org_id', 'event_info', 'event_Orgc_name'));
+                    $additional_event_added = true;
+                }
+                
+                if (!empty($sight)) {
+                    array_push($allowedSightings, $sight);
+                }
+            }
         }
 
         $params = array(

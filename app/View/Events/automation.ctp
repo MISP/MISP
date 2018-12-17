@@ -1,7 +1,8 @@
 <div class="event index">
     <h2><?php echo __('Automation');?></h2>
     <p><?php echo __('Automation functionality is designed to automatically feed other tools and systems with the data in your MISP repository.
-    To to make this functionality available for automated tools an authentication key is used.');?><br/>
+    To to make this functionality available for automated tools an authentication key is used.');?>
+    <br />You can use the <a href="<?php echo $baseurl;?>/servers/rest">ReST client</a> to test your API queries against your MISP and export the resulting tuned queries as curl or python scripts.
     <strong><?php echo __('Make sure you keep your API key secret as it gives access to the all of the data that you normally have access to in MISP.');?></strong>
 	To view the old MISP automation page, click <a href="<?php echo $baseurl; ?>/events/automation/1">here</a>.
 	</p>
@@ -306,6 +307,21 @@
     <b>searchDatefrom</b>: <?php echo __('Filters on the date, anything newer than the given date in YYYY-MM-DD format is taken - non-negatable');?><br />
     <b>searchDateuntil</b>: <?php echo __('Filters on the date, anything older than the given date in YYYY-MM-DD format is taken - non-negatable');?><br /></p>
     <?php
+		$data = array(
+			'title' => __('Freetext Import API'),
+			'description' => array(
+				__('The freetext import tool is also exposed to the API.'),
+				__('Simply POST the contents to be parsed and either directly create attributes out of them or simply return the parsing results.'),
+				__('Use the boolean (0/1) adhere_to_warninglists and return_meta_attributes url parameters to filter out values tripping over a warninglist and to decide whether to save the attributes parsed or simply return them as meta attributes.'),
+				__('The contents of the POST body should be the text to be parsed.')
+			),
+			'url' => array(
+				$baseurl . '/[event_id]/[adhere_to_warninglists]/[return_meta_attributes]'
+			)
+		);
+		echo sprintf('<h3>%s</h3>', $data['title']);
+		echo sprintf('<p>%s</p>', implode(" ", $data['description']));
+		echo sprintf("<pre>%s</pre>", implode("\n", $data['url']));
         foreach ($command_line_functions as $clusterRef => $cluster) {
             echo sprintf('<a id="%s"></a><h3>%s</h3>', $clusterRef, $cluster['header']);
             echo sprintf('<p>%s:<br />', $cluster['description']);
@@ -314,6 +330,7 @@
             }
         }
     ?>
+
 </div>
 <?php
     echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'automation'));

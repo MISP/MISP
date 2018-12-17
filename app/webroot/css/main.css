@@ -1258,6 +1258,10 @@ a.proposal_link_red:hover {
         user-select: none;
 }
 
+.underline {
+	text-decoration: underline;
+}
+
 .template_general {
 	display:inline-block;
 	width: 100%;
@@ -2073,6 +2077,35 @@ table tr:hover .down-expand-button {
 	to {
 		transform: rotate(359deg);
 	}
+}
+
+.label-icon {
+    left: 5px;
+    position: relative;
+}
+
+.fa-as-icon {
+    font-size: 20px;
+    padding-left: 2px;
+    padding-top: 2px;
+    width: 18px;
+    height: 20px;
+    cursor: pointer;
+    background-image: unset;
+    text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white;
+    transition: background .2s linear;
+    color: black;
+}
+.fa-as-icon:hover {
+    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+    font-weight: 900;
+    font-size: 22px;
+    color: white;
+}
+
+.quick-edit-row-div {
+    display: inline-block;
+    position: relative;
 }
 
 #attackmatrix_div {

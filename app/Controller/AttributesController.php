@@ -59,14 +59,17 @@ class AttributesController extends AppController
     {
         $this->Attribute->recursive = -1;
         if (!$this->_isRest()) {
+            $this->paginate['recursive'] = -1;
             $this->paginate['contain'] = array(
                 'Event' => array(
-                    'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id')
+                    'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
+                    'Orgc' => array('fields' => array('Orgc.id', 'Orgc.name')),
+                    'Org' => array('fields' => array('Org.id', 'Org.name'))
                 ),
+                'AttributeTag' => array('Tag'),
                 'Object' => array(
                     'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
-                ),
-                'AttributeTag'
+                )
             );
             $this->Attribute->contain(array('AttributeTag' => array('Tag')));
         }
@@ -77,28 +80,6 @@ class AttributesController extends AppController
         }
         $org_ids = array();
         $tag_ids = array();
-        foreach ($attributes as $k => $attribute) {
-            if (empty($attribute['Event']['id'])) {
-                unset($attribute[$k]);
-                continue;
-            }
-            if ($attribute['Attribute']['type'] == 'attachment' && preg_match('/.*\.(jpg|png|jpeg|gif)$/i', $attribute['Attribute']['value'])) {
-                $attributes[$k]['Attribute']['image'] = $this->Attribute->base64EncodeAttachment($attribute['Attribute']);
-            }
-            if (!in_array($attribute['Event']['orgc_id'], $org_ids)) {
-                $org_ids[] = $attribute['Event']['orgc_id'];
-            }
-            if (!in_array($attribute['Event']['org_id'], $org_ids)) {
-                $org_ids[] = $attribute['Event']['org_id'];
-            }
-            if (!empty($attribute['AttributeTag'])) {
-                foreach ($attribute['AttributeTag'] as $k => $v) {
-                    if (!in_array($v['tag_id'], $tag_ids)) {
-                        $tag_ids[] = $v['tag_id'];
-                    }
-                }
-            }
-        }
         $orgs = $this->Attribute->Event->Orgc->find('list', array(
                 'conditions' => array('Orgc.id' => $org_ids),
                 'fields' => array('Orgc.id', 'Orgc.name')
@@ -110,21 +91,16 @@ class AttributesController extends AppController
                 'fields' => array('Tag.id', 'Tag.name', 'Tag.colour')
             ));
         }
-
-        foreach ($attributes as $k => $attribute) {
-            $attributes[$k]['Event']['Orgc'] = array('id' => $attribute['Event']['orgc_id'], 'name' => $orgs[$attribute['Event']['orgc_id']]);
-            $attributes[$k]['Event']['Org'] = array('id' => $attribute['Event']['org_id'], 'name' => $orgs[$attribute['Event']['org_id']]);
-            if (!empty($attribute['AttributeTag'])) {
-                foreach ($attribute['AttributeTag'] as $kat => $at) {
-                    foreach ($tags as $ktag => $tag) {
-                        if ($tag['Tag']['id'] == $at['tag_id']) {
-                            $attributes[$k]['AttributeTag'][$kat]['Tag'] = $tag['Tag'];
-                        }
-                    }
-                }
-            }
+        if (!$this->_isRest()) {
+            $temp = $this->__searchUI($attributes);
+            $this->loadModel('Galaxy');
+            $this->set('mitreAttackGalaxyId', $this->Galaxy->getMitreAttackGalaxyId());
+            $attributes = $temp[0];
+            $sightingsData = $temp[1];
+            $this->set('sightingsData', $sightingsData);
         }
         $this->set('orgs', $orgs);
+        $this->set('shortDist', $this->Attribute->shortDist);
         $this->set('attributes', $attributes);
         $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
         $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
@@ -190,9 +166,10 @@ class AttributesController extends AppController
                 } else {
                     $values = explode("\n", $this->request->data['Attribute']['value']);
                 }
+                $temp = $this->request->data['Attribute'];
                 foreach ($values as $value) {
-                    $this->request->data['Attribute']['value'] = $value;
-                    $attributes[] = $this->request->data['Attribute'];
+                    $temp['value'] = $value;
+                    $attributes[] = $temp;
                 }
             } else {
                 $attributes = $this->request->data['Attribute'];
@@ -318,18 +295,19 @@ class AttributesController extends AppController
                 if (empty($fails)) {
                     $message = 'Attributes saved.';
                 } else {
-                    if (count($attributes) > 1) {
+                    if ($attributeCount > 1) {
                         $failKeys = array_keys($fails);
                         foreach ($failKeys as $k => $v) {
                             $v = explode('_', $v);
-                            $failKeys[$k] = intval($v[1]) + 1;
+                            $failKeys[$k] = intval($v[1]);
                         }
-                        $message = 'Attributes saved, however, attributes ' . implode(', ', $failKeys) . ' could not be saved.';
+                        $failed = 1;
+                        $message = sprintf('Attributes saved, however, %s attributes could not be saved. Click %s for more info', count($fails), '$flashErrorMessage');
                     } else {
                         if (!empty($fails["attribute_0"])) {
                             foreach ($fails["attribute_0"] as $k => $v) {
                                 $failed = 1;
-                                $message = '$this->Flash->info [' . $k . ']: ' . $v[0];
+                                $message = $k . ': ' . $v[0];
                                 break;
                             }
                         } else {
@@ -337,6 +315,25 @@ class AttributesController extends AppController
                             $message = 'Attribute could not be saved.';
                         }
                     }
+                }
+                if (!empty($failKeys)) {
+                    $flashErrorMessage = array();
+                    $original_values = trim($this->request->data['Attribute']['value']);
+                    $original_values = explode("\n", $original_values);
+                    foreach ($original_values as $k => $original_value) {
+                        $original_value = trim($original_value);
+                        if (in_array($k, $failKeys)) {
+                            $reason = '';
+                            foreach ($fails["attribute_" . $k] as $failKey => $failData) {
+                                $reason = $failKey . ': ' . $failData[0];
+                            }
+                            $flashErrorMessage[] = '<span class="red bold">' . h($original_value) . '</span> (' . h($reason) . ')';
+                        } else {
+                            $flashErrorMessage[] = '<span class="green bold">' . h($original_value) . '</span>';
+                        }
+                    }
+                    $flashErrorMessage = implode('<br />', $flashErrorMessage);
+                    $this->Session->write('flashErrorMessage', $flashErrorMessage);
                 }
                 if ($this->request->is('ajax')) {
                     $this->autoRender = false;
@@ -483,7 +480,10 @@ class AttributesController extends AppController
             $this->loadModel('Event');
             $this->Event->id = $this->request->data['Attribute']['event_id'];
             $this->Event->recursive = -1;
-            $this->Event->read();
+            $event = $this->Event->read();
+            if (empty($event)) {
+                throw new NotFoundException(__('Invalid Event.'));
+            }
             if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
                 throw new UnauthorizedException(__('You do not have permission to do that.'));
             }
@@ -648,6 +648,9 @@ class AttributesController extends AppController
         $this->set('sharingGroups', $sgs);
 
         $events = $this->Event->findById($eventId);
+        if (empty($events)) {
+            throw new NotFoundException(__('Invalid Event.'));
+        }
         $this->set('currentDist', $events['Event']['distribution']);
         $this->set('published', $events['Event']['published']);
     }
@@ -877,8 +880,13 @@ class AttributesController extends AppController
                     || $this->userRole['perm_modify_org'])) {
                 // Allow the edit
             } else {
-                $this->Flash->error(__('Invalid attribute.'));
-                $this->redirect(array('controller' => 'events', 'action' => 'index'));
+                $message = __('Invalid attribute.');
+                if ($this->_isRest()) {
+                    throw new MethodNotAllowedException($message);
+                } else {
+                    $this->Flash->error($message);
+                    $this->redirect(array('controller' => 'events', 'action' => 'index'));
+                }
             }
         }
         if (!$this->_isRest()) {
@@ -1566,85 +1574,138 @@ class AttributesController extends AppController
 
     public function search($continue = false)
     {
-		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
-		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
-		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
-		if ($this->request->is('post')) {
-			if (isset($this->request->data['Attribute'])) {
-				$this->request->data = $this->request->data['Attribute'];
-			}
-			$checkForEmpty = array('value', 'tags', 'uuid', 'org', 'type', 'category');
-			foreach ($checkForEmpty as $field) {
-				if (empty($this->request->data[$field]) || $this->request->data[$field] === 'ALL') {
-					unset($this->request->data[$field]);
-				}
-			}
-			if (empty($this->request->data['to_ids'])) {
-				unset($this->request->data['to_ids']);
-				$this->request->data['ignore'] = 1;
-			}
-			$paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags');
-	        $filterData = array(
-	            'request' => $this->request,
-	            'named_params' => $this->params['named'],
-	            'paramArray' => $paramArray,
-	            'ordered_url_params' => compact($paramArray),
-				'additional_delimiters' => PHP_EOL
-	        );
-	        $exception = false;
-	        $filters = $this->_harvestParameters($filterData, $exception);
-	        unset($filterData);
-	        if ($filters === false) {
-	          return $exception;
-	        }
-			$this->Session->write('search_attributes_filters', json_encode($filters));
-		} else if ($continue === 'results') {
-			$filters = $this->Session->read('search_attributes_filters');
-			if (empty($filters)) {
-				$filters = array();
-			} else {
-				$filters = json_decode($filters, true);
-			}
-		} else {
-			$types = array('' => array('ALL' => 'ALL'), 'types' => array());
-			$types['types'] = array_merge($types['types'], $this->_arrayToValuesIndexArray(array_keys($this->Attribute->typeDefinitions)));
-			ksort($types['types']);
-			$this->set('types', $types);
-			// combobox for categories
-			$categories['categories'] = array_merge(array('ALL' => 'ALL'), $this->_arrayToValuesIndexArray(array_keys($this->Attribute->categoryDefinitions)));
-			$this->set('categories', $categories);
-			$this->Session->write('search_attributes_filters', null);
-		}
-		if (isset($filters)) {
-			$params = $this->Attribute->restSearch($this->Auth->user(), 'json', $filters, true);
-			$this->paginate = $params;
-			if (empty($this->paginate['limit'])) {
-				$this->paginate['limit'] = 60;
-			}
-			if (empty($this->paginate['page'])) {
-				$this->paginate['page'] = 1;
-			}
-			$this->paginate['recursive'] = -1;
-			$this->paginate['contain'] = array(
-				'Event' => array(
-                    'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id'),
-					'Orgc' => array('fields' => array('Orgc.id', 'Orgc.name')),
-					'Org' => array('fields' => array('Org.id', 'Org.name'))
+        $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
+        $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
+        $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
+        $this->set('shortDist', $this->Attribute->shortDist);
+        if ($this->request->is('post')) {
+            if (isset($this->request->data['Attribute'])) {
+                $this->request->data = $this->request->data['Attribute'];
+            }
+            $checkForEmpty = array('value', 'tags', 'uuid', 'org', 'type', 'category');
+            foreach ($checkForEmpty as $field) {
+                if (empty($this->request->data[$field]) || $this->request->data[$field] === 'ALL') {
+                    unset($this->request->data[$field]);
+                }
+            }
+            if (empty($this->request->data['to_ids'])) {
+                unset($this->request->data['to_ids']);
+                $this->request->data['ignore'] = 1;
+            }
+            $paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags');
+            $filterData = array(
+                'request' => $this->request,
+                'named_params' => $this->params['named'],
+                'paramArray' => $paramArray,
+                'ordered_url_params' => compact($paramArray),
+                'additional_delimiters' => PHP_EOL
+            );
+            $exception = false;
+            $filters = $this->_harvestParameters($filterData, $exception);
+            unset($filterData);
+            if ($filters === false) {
+                return $exception;
+            }
+            $this->Session->write('search_attributes_filters', json_encode($filters));
+        } elseif ($continue === 'results') {
+            $filters = $this->Session->read('search_attributes_filters');
+            if (empty($filters)) {
+                $filters = array();
+            } else {
+                $filters = json_decode($filters, true);
+            }
+        } else {
+            $types = array('' => array('ALL' => 'ALL'), 'types' => array());
+            $types['types'] = array_merge($types['types'], $this->_arrayToValuesIndexArray(array_keys($this->Attribute->typeDefinitions)));
+            ksort($types['types']);
+            $this->set('types', $types);
+            // combobox for categories
+            $categories['categories'] = array_merge(array('ALL' => 'ALL'), $this->_arrayToValuesIndexArray(array_keys($this->Attribute->categoryDefinitions)));
+            $this->set('categories', $categories);
+            $this->Session->write('search_attributes_filters', null);
+        }
+        if (isset($filters)) {
+            $params = $this->Attribute->restSearch($this->Auth->user(), 'json', $filters, true);
+            if (!isset($params['conditions']['Attribute.deleted'])) {
+                $params['conditions']['Attribute.deleted'] = 0;
+            }
+            $this->paginate = $params;
+            if (empty($this->paginate['limit'])) {
+                $this->paginate['limit'] = 60;
+            }
+            if (empty($this->paginate['page'])) {
+                $this->paginate['page'] = 1;
+            }
+            $this->paginate['recursive'] = -1;
+            $this->paginate['contain'] = array(
+                'Event' => array(
+                    'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id', 'Event.date'),
+                    'Orgc' => array('fields' => array('Orgc.id', 'Orgc.name')),
+                    'Org' => array('fields' => array('Org.id', 'Org.name'))
                 ),
-				'AttributeTag' => array('Tag'),
-				'Object' => array(
+                'AttributeTag' => array('Tag'),
+                'Object' => array(
                     'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
                 )
-			);
-			$attributes = $this->paginate();
-			$this->set('filters', $filters);
-			$this->set('attributes', $attributes);
-			$this->set('isSearch', 1);
-			$this->render('index');
-		}
+            );
+            $attributes = $this->paginate();
+            if (!$this->_isRest()) {
+                $temp = $this->__searchUI($attributes);
+                $this->loadModel('Galaxy');
+                $this->set('mitreAttackGalaxyId', $this->Galaxy->getMitreAttackGalaxyId());
+                $attributes = $temp[0];
+                $sightingsData = $temp[1];
+                $this->set('sightingsData', $sightingsData);
+            } else {
+                return $this->RestResponse->viewData($attributes, $this->response->type());
+            }
+            $this->set('filters', $filters);
+            $this->set('attributes', $attributes);
+            $this->set('isSearch', 1);
+            $this->render('index');
+        }
         if (isset($attributeTags)) {
             $this->set('attributeTags', $attributeTags);
         }
+    }
+
+    private function __searchUI($attributes)
+    {
+        $sightingsData = array();
+        $sgids = $this->Attribute->Event->cacheSgids($this->Auth->user(), true);
+        $this->Feed = ClassRegistry::init('Feed');
+        if (!empty($options['overrideLimit'])) {
+            $overrideLimit = true;
+        } else {
+            $overrideLimit = false;
+        }
+        $this->loadModel('GalaxyCluster');
+        $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
+        $this->loadModel('Sighting');
+        foreach ($attributes as $k => $attribute) {
+            $attributes[$k]['Attribute']['AttributeTag'] = $attributes[$k]['AttributeTag'];
+            $attributes[$k]['Attribute'] = $this->Attribute->Event->massageTags($attributes[$k]['Attribute'], 'Attribute');
+            unset($attributes[$k]['AttributeTag']);
+            foreach ($attributes[$k]['Attribute']['AttributeTag'] as $k2 => $attributeTag) {
+                if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
+                    unset($attributes[$k]['Attribute']['AttributeTag'][$k2]);
+                }
+            }
+            $sightingsData = array_merge(
+                $sightingsData,
+                $this->Sighting->attachToEvent($attribute, $this->Auth->user(), $attributes[$k]['Attribute']['id'], $extraConditions = false)
+            );
+            $correlations = $this->Attribute->Event->getRelatedAttributes($this->Auth->user(), $attributes[$k]['Attribute']['id'], false, false, 'attribute');
+            if (!empty($correlations)) {
+                $attributes[$k]['Attribute']['RelatedAttribute'] = $correlations[$attributes[$k]['Attribute']['id']];
+            }
+            $temp = $this->Feed->attachFeedCorrelations(array($attributes[$k]['Attribute']), $this->Auth->user, $attributes[$k]['Event'], $overrideLimit);
+            if (!empty($temp)) {
+                $attributes[$k]['Attribute'] = $temp[0];
+            }
+        }
+        $sightingsData = $this->Attribute->Event->getSightingData(array('Sighting' => $sightingsData));
+        return array($attributes, $sightingsData);
     }
 
     // If the checkbox for the alternate search is ticked, then this method is called to return the data to be represented
@@ -1714,35 +1775,37 @@ class AttributesController extends AppController
         $this->set('fails', $this->Attribute->checkComposites());
     }
 
-    public function restSearch($returnFormat = 'json', $value = false, $type = false, $category = false, $org = false, $tags = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $uuid = false, $publish_timestamp = false, $published = false, $timestamp = false, $enforceWarninglist = false, $to_ids = false, $deleted = false, $includeEventUuid = false, $event_timestamp = false, $threat_level_id = false) {
-        $paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags');
+    public function restSearch($returnFormat = 'json', $value = false, $type = false, $category = false, $org = false, $tags = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $uuid = false, $publish_timestamp = false, $published = false, $timestamp = false, $enforceWarninglist = false, $to_ids = false, $deleted = false, $includeEventUuid = false, $event_timestamp = false, $threat_level_id = false)
+    {
+        $paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags', 'includeProposals');
         $filterData = array(
             'request' => $this->request,
             'named_params' => $this->params['named'],
             'paramArray' => $paramArray,
             'ordered_url_params' => compact($paramArray)
         );
-		$validFormats = $this->Attribute->validFormats;
+        $validFormats = $this->Attribute->validFormats;
         $exception = false;
         $filters = $this->_harvestParameters($filterData, $exception);
         unset($filterData);
         if ($filters === false) {
-          return $exception;
+            return $exception;
         }
         $list = array();
         $user = $this->_getApiAuthUser($returnFormat, $exception);
         if ($user === false) {
-          return $exception;
+            return $exception;
         }
         if (isset($filters['returnFormat'])) {
-          $returnFormat = $filters['returnFormat'];
+            $returnFormat = $filters['returnFormat'];
         }
-		if ($returnFormat === 'download') {
-			$returnFormat = 'json';
-		}
-		$final = $this->Attribute->restSearch($user, $returnFormat, $filters);
+        if ($returnFormat === 'download') {
+            $returnFormat = 'json';
+        }
+        $elementCounter = 0;
+        $final = $this->Attribute->restSearch($user, $returnFormat, $filters, false, false, $elementCounter);
         $responseType = $validFormats[$returnFormat][0];
-        return $this->RestResponse->viewData($final, $responseType, false, true);
+        return $this->RestResponse->viewData($final, $responseType, false, true, false, array('X-result-count' => $elementCounter));
     }
 
     // returns an XML with attributes that belong to an event. The type of attributes to be returned can be restricted by type using the 3rd parameter.
@@ -2632,7 +2695,7 @@ class AttributesController extends AppController
         $this->redirect('/pages/display/administration');
     }
 
-    public function hoverEnrichment($id)
+    public function hoverEnrichment($id, $persistent = false)
     {
         $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'flatten' => 1));
         if (empty($attribute)) {
@@ -2665,6 +2728,9 @@ class AttributesController extends AppController
                 throw new MethodNotAllowedException(__('No valid enrichment options found for this attribute.'));
             }
             $data = array('module' => $type, $attribute[0]['Attribute']['type'] => $attribute[0]['Attribute']['value']);
+            if ($persistent) {
+                $data['persistent'] = 1;
+            }
             if (!empty($options)) {
                 $data['config'] = $options;
             }
@@ -2789,11 +2855,14 @@ class AttributesController extends AppController
                 throw new NotFoundException(__('Invalid attribute'));
             }
             $this->Attribute->read();
+            if (!$this->_isSiteAdmin() && $this->Attribute->data['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
+                $fails++;
+                continue;
+            }
             if ($this->Attribute->data['Attribute']['deleted']) {
                 throw new NotFoundException(__('Invalid attribute'));
             }
             $eventId = $this->Attribute->data['Attribute']['event_id'];
-
             $this->Attribute->Event->recursive = -1;
             $event = $this->Attribute->Event->read(array(), $eventId);
             if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
@@ -3025,19 +3094,18 @@ class AttributesController extends AppController
         return new CakeResponse(array('body'=>$counter, 'status'=>200));
     }
 
-	public function exportSearch($type = false)
-	{
-		if (empty($type)) {
-			$exports = array_keys($this->Attribute->validFormats);
-			$this->set('exports', $exports);
-			$this->render('ajax/exportSearch');
-		} else {
-			$filters = $this->Session->read('search_attributes_filters');
-			$filters = json_decode($filters, true);
-			$final = $this->Attribute->restSearch($this->Auth->user(), $type, $filters);
-			$responseType = $this->Attribute->validFormats[$type][0];
-			return $this->RestResponse->viewData($final, $responseType, false, true, 'search.' . $type . '.' . $responseType);
-		}
-	}
-
+    public function exportSearch($type = false)
+    {
+        if (empty($type)) {
+            $exports = array_keys($this->Attribute->validFormats);
+            $this->set('exports', $exports);
+            $this->render('ajax/exportSearch');
+        } else {
+            $filters = $this->Session->read('search_attributes_filters');
+            $filters = json_decode($filters, true);
+            $final = $this->Attribute->restSearch($this->Auth->user(), $type, $filters);
+            $responseType = $this->Attribute->validFormats[$type][0];
+            return $this->RestResponse->viewData($final, $responseType, false, true, 'search.' . $type . '.' . $responseType);
+        }
+    }
 }

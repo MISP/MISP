@@ -117,45 +117,45 @@ class WarninglistsController extends AppController
         }
     }
 
-	/*
-	 * toggle warninglists on or offset
-	 * Simply POST an ID or a list of IDs to toggle the current state
-	 * To control what state the warninglists should have after execution instead of just blindly toggling them, simply pass the enabled flag
-	 * Example:
-	 *   {"id": [5, 8], "enabled": 1}
+    /*
+     * toggle warninglists on or offset
+     * Simply POST an ID or a list of IDs to toggle the current state
+     * To control what state the warninglists should have after execution instead of just blindly toggling them, simply pass the enabled flag
+     * Example:
+     *   {"id": [5, 8], "enabled": 1}
      * Alternatively search by a substring in the warninglist's named, such as:
      *   {"name": ["%alexa%", "%iana%"], "enabled": 1}
-	 */
+     */
     public function toggleEnable()
     {
-		if (!$this->request->is('post')) {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'This function only accepts POST requests.')), 'status' => 200, 'type' => 'json'));
-		}
-		if (isset($this->request->data['Warninglist']['data'])) {
-			$id = $this->request->data['Warninglist']['data'];
-		} else {
-			if (!empty($this->request->data['id'])) {
-				$id = $this->request->data['id'];
-			} else if (!empty($this->request->data['name'])) {
-				if (!is_array($this->request->data['name'])) {
-					$names = array($this->request->data['name']);
-				} else {
-					$names = $this->request->data['name'];
-				}
-				$conditions = array();
-				foreach ($names as $k => $name) {
-					$conditions['OR'][] = array('LOWER(Warninglist.name) LIKE' => strtolower($name));
-				}
-				$id = $this->Warninglist->find('list', array(
-					'conditions' => $conditions,
-					'recursive' => -1,
-					'fields' => array('Warninglist.id', 'Warninglist.id')
-				));
-			}
-		}
-		if (isset($this->request->data['enabled'])) {
-			$enabled = $this->request->data['enabled'];
-		}
+        if (!$this->request->is('post')) {
+            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'This function only accepts POST requests.')), 'status' => 200, 'type' => 'json'));
+        }
+        if (isset($this->request->data['Warninglist']['data'])) {
+            $id = $this->request->data['Warninglist']['data'];
+        } else {
+            if (!empty($this->request->data['id'])) {
+                $id = $this->request->data['id'];
+            } elseif (!empty($this->request->data['name'])) {
+                if (!is_array($this->request->data['name'])) {
+                    $names = array($this->request->data['name']);
+                } else {
+                    $names = $this->request->data['name'];
+                }
+                $conditions = array();
+                foreach ($names as $k => $name) {
+                    $conditions['OR'][] = array('LOWER(Warninglist.name) LIKE' => strtolower($name));
+                }
+                $id = $this->Warninglist->find('list', array(
+                    'conditions' => $conditions,
+                    'recursive' => -1,
+                    'fields' => array('Warninglist.id', 'Warninglist.id')
+                ));
+            }
+        }
+        if (isset($this->request->data['enabled'])) {
+            $enabled = $this->request->data['enabled'];
+        }
         if (empty($id)) {
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist not found.')), 'status' => 200, 'type' => 'json'));
         }
@@ -163,28 +163,28 @@ class WarninglistsController extends AppController
         if (empty($currentState)) {
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist(s) not found.')), 'status' => 200, 'type' => 'json'));
         }
-		$success = 0;
-		foreach ($currentState as $warningList) {
-			if (isset($enabled)) {
-				$warningList['Warninglist']['enabled'] = $enabled;
-				$message = $enabled ? 'enabled' : 'disabled';
-			} else {
-		        if ($warningList['Warninglist']['enabled']) {
-		            $warningList['Warninglist']['enabled'] = 0;
-		            $message = 'disabled';
-		        } else {
-		            $warningList['Warninglist']['enabled'] = 1;
-		            $message = 'enabled';
-		        }
-				if (!isset($enabled) && count($currentState) > 1) {
-					$message = 'toggled';
-				}
-			}
-			if ($this->Warninglist->save($warningList)) {
-				$success += 1;
-			}
-			$this->Warninglist->regenerateWarninglistCaches($warningList['Warninglist']['id']);
-		}
+        $success = 0;
+        foreach ($currentState as $warningList) {
+            if (isset($enabled)) {
+                $warningList['Warninglist']['enabled'] = $enabled;
+                $message = $enabled ? 'enabled' : 'disabled';
+            } else {
+                if ($warningList['Warninglist']['enabled']) {
+                    $warningList['Warninglist']['enabled'] = 0;
+                    $message = 'disabled';
+                } else {
+                    $warningList['Warninglist']['enabled'] = 1;
+                    $message = 'enabled';
+                }
+                if (!isset($enabled) && count($currentState) > 1) {
+                    $message = 'toggled';
+                }
+            }
+            if ($this->Warninglist->save($warningList)) {
+                $success += 1;
+            }
+            $this->Warninglist->regenerateWarninglistCaches($warningList['Warninglist']['id']);
+        }
         if ($success) {
             $this->Warninglist->regenerateWarninglistCaches($id);
             return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $success . ' warninglist(s) ' . $message)), 'status' => 200, 'type' => 'json'));
@@ -259,33 +259,34 @@ class WarninglistsController extends AppController
         }
     }
 
-	public function checkValue() {
-		if ($this->request->is('post')) {
-			$warninglists = $this->Warninglist->getWarninglists(array());
-			if (empty($this->request->data)) {
-				throw new NotFoundException('No valid data received.');
-			}
-			$data = $this->request->data;
-			if (!is_array($data)) {
-				$data = array($data);
-			}
+    public function checkValue()
+    {
+        if ($this->request->is('post')) {
+            $warninglists = $this->Warninglist->getWarninglists(array());
+            if (empty($this->request->data)) {
+                throw new NotFoundException('No valid data received.');
+            }
+            $data = $this->request->data;
+            if (!is_array($data)) {
+                $data = array($data);
+            }
             if (array_key_exists('[]', $data)) {
                 $data = $data['[]'];
             }
-			$hits = array();
-			foreach ($data as $dataPoint) {
-				foreach ($warninglists as $warninglist) {
-					$listValues = $this->Warninglist->getWarninglistEntries($warninglist['Warninglist']['id']);
-					$listValues = array_combine($listValues, $listValues);
-					$result = $this->Warninglist->quickCheckValue($listValues, $dataPoint, $warninglist['Warninglist']['type']);
-					if ($result) {
-						$hits[$dataPoint][] = array('id' => $warninglist['Warninglist']['id'], 'name' => $warninglist['Warninglist']['name']);
-					}
-				}
-			}
-			return $this->RestResponse->viewData($hits, $this->response->type());
+            $hits = array();
+            foreach ($data as $dataPoint) {
+                foreach ($warninglists as $warninglist) {
+                    $listValues = $this->Warninglist->getWarninglistEntries($warninglist['Warninglist']['id']);
+                    $listValues = array_combine($listValues, $listValues);
+                    $result = $this->Warninglist->quickCheckValue($listValues, $dataPoint, $warninglist['Warninglist']['type']);
+                    if ($result) {
+                        $hits[$dataPoint][] = array('id' => $warninglist['Warninglist']['id'], 'name' => $warninglist['Warninglist']['name']);
+                    }
+                }
+            }
+            return $this->RestResponse->viewData($hits, $this->response->type());
         } else {
-			return $this->RestResponse->describe('Warninglists', 'checkValue', false, $this->response->type());
+            return $this->RestResponse->describe('Warninglists', 'checkValue', false, $this->response->type());
         }
-	}
+    }
 }
