@@ -1,7 +1,7 @@
 <div class="servers form">
     <div style="position:absolute;right:40px;width:300px;top:90px;">
         <label for="TemplateSelect" style="display: inline-block">Templates</label>
-        <span id="showQB" class="btn btn-primary useCursorPointer" style="margin: 5px;" onclick="$('#qb-div').toggle()"><span class="fa fa-wrench"> Open Query Builder</span></span>
+        <span id="showQB" class="btn btn-primary useCursorPointer" style="margin: 5px;"><span class="fa fa-wrench"> Query Builder</span></span>
         <?php
             $options = '<option value="">None</option>';
               foreach($allValidApisFormated as $scope => $actions) {

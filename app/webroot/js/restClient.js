@@ -68,6 +68,14 @@ function setApiInfoBox(isTyping) {
             }
         });
 
+        $('#showQB').click(function() {
+            if (!$('#TemplateSelect').val() == '') {
+                $('#qb-div').toggle();
+            } else {
+                showMessage('fail', 'Pick a Templates first');
+            }
+        });
+
         /* Query builder */
 
         // Fix for Bootstrap Datepicker
