@@ -289,6 +289,8 @@ class RestResponseComponent extends Component
                         $admin_routing = 'admin/';
                     }
                     $data['api_name'] = '[' . $controller . '] ' . $action;
+                    $data['controller'] = $controller;
+                    $data['action'] = $action;
                     $data['body'] = array();
                     $filter_types = array('mandatory', 'optional');
                     foreach ($filter_types as $filter_type) {
@@ -858,6 +860,12 @@ class RestResponseComponent extends Component
             'type' => 'integer',
             'values' => array(1 => 'True', 0 => 'False' ),
             'help' => 'Include tags of matching events in the response'
+        ),
+        'includeProposals' => array(
+            'input' => 'radio',
+            'type' => 'integer',
+            'values' => array(1 => 'True', 0 => 'False' ),
+            'help' => 'Include proposals of matching events in the response'
         ),
         'info' => array(
             'input' => 'text',
