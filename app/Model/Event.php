@@ -2213,6 +2213,20 @@ class Event extends AppModel
         return $conditions;
     }
 
+    public function set_filter_mixed_id(&$params, $conditions, $options)
+    {
+        if (!empty($params['mixed_id'])) {
+            $params['mixed_id'] = $this->convert_filters($params['mixed_id']);
+            if (!empty($options['scope']) || $options['scope'] === 'Event') {
+                $conditions = $this->generic_add_filter($conditions, $params['uuid'], 'Event.uuid');
+            }
+            if (!empty($options['scope']) || $options['scope'] === 'Attribute') {
+                $conditions = $this->generic_add_filter($conditions, $params['uuid'], 'Attribute.uuid');
+            }
+        }
+        return $conditions;
+    }
+
     public function set_filter_deleted(&$params, $conditions, $options)
     {
         if (!empty($params['deleted'])) {
