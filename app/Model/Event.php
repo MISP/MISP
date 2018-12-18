@@ -818,14 +818,29 @@ class Event extends AppModel
                 'limit' => $max_correlations
         ));
         $relatedAttributes = array();
+        $orgc_ids = array();
         foreach ($correlations as $k => $correlation) {
+            if (empty($orgc_ids[$correlation[$settings[$context]['correlationModel']]['event_id']])) {
+                $temp = $this->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => array('Event.id' => $correlation[$settings[$context]['correlationModel']]['event_id']),
+                    'fields' => array('Event.orgc_id')
+                ));
+                if (!empty($temp)) {
+                    $orgc_ids[$correlation[$settings[$context]['correlationModel']]['event_id']] = $temp['Event']['orgc_id'];
+                }
+            }
             $current = array(
                     'id' => $correlation[$settings[$context]['correlationModel']]['event_id'],
                     'attribute_id' => $correlation[$settings[$context]['correlationModel']]['attribute_id'],
-                    'org_id' => $correlation[$settings[$context]['correlationModel']]['org_id'],
                     'info' => $correlation[$settings[$context]['correlationModel']]['info'],
                     'value' => $correlation[$settings[$context]['correlationModel']]['value'],
             );
+            if (!empty($orgc_ids[$correlation[$settings[$context]['correlationModel']]['event_id']])) {
+                $current['org_id'] = $orgc_ids[$correlation[$settings[$context]['correlationModel']]['event_id']];
+            } else {
+                $current['org_id'] = 'unknown';
+            }
             if (empty($relatedAttributes[$correlation[$settings[$context]['correlationModel']][$settings[$context]['parentIdField']]]) || !in_array($current, $relatedAttributes[$correlation[$settings[$context]['correlationModel']][$settings[$context]['parentIdField']]])) {
                 $relatedAttributes[$correlation[$settings[$context]['correlationModel']][$settings[$context]['parentIdField']]][] = $current;
             }
