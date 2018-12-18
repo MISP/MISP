@@ -195,12 +195,12 @@ class RestResponseComponent extends Component
             'add' => array(
                 'description' => "POST a Sharing Group object in JSON format to this API to add a Sharing Group. The API will also try to capture attached organisations and servers if applicable to the current user.",
                 'mandatory' => array('AND' => array('name', 'releasability')),
-                'optional' => array('description', 'uuid', 'organisation_uuid (sync/site admin only)', 'active', 'created', 'modified', 'roaming', 'Server #FIXME API help display not working' => array('url', 'name', 'all_orgs'), 'Organisation' => array('uuid', 'name', 'extend'))
+                'optional' => array('description', 'uuid', 'organisation_uuid', 'active', 'created', 'modified', 'roaming', 'Server' => array('url', 'name', 'all_orgs'), 'Organisation' => array('uuid', 'name', 'extend'))
             ),
             'edit' => array(
                 'description' => "POST a Sharing Group object in JSON format to this API to edit a Sharing Group. The API will also try to capture attached organisations and servers if applicable to the current user.",
                 'mandatory' => array(),
-                'optional' => array('name', 'releasability', 'description', 'uuid', 'organisation_uuid (sync/site admin only)', 'active', 'created', 'modified', 'roaming', 'SharingGroupServer' => array('url', 'name', 'all_orgs'), 'SharingGroupOrg' => array('uuid', 'name', 'extend'))
+                'optional' => array('name', 'releasability', 'description', 'uuid', 'organisation_uuid', 'active', 'created', 'modified', 'roaming', 'SharingGroupServer' => array('url', 'name', 'all_orgs'), 'SharingGroupOrg' => array('uuid', 'name', 'extend'))
             )
         ),
         'Tag' => array(
@@ -990,10 +990,11 @@ class RestResponseComponent extends Component
             'operators' => array('equal'),
             'validation' => array('min' => 0, 'step' => 1),
         ),
-        'organisation_uuid (sync/site admin only)' => array(
+        'organisation_uuid' => array(
             'input' => 'text',
             'type' => 'string',
             'operators' => array('equal'),
+            'help' => '(sync/site admin only)'
         ),
         'override_ids' => array(
             'input' => 'radio',
