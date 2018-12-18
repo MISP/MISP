@@ -16,13 +16,20 @@
                             $value = $temp;
                         }
                         $temp = array();
-                        foreach($value as $field) {
+                        foreach($value as $k => $field) {
+                            $fieldName = $field;
+                            $infoHtml = '';
                             if ($key === 'mandatory' || $key === 'optional') {
-                                $infoHtml =  '<i id="infofield-'. $field .'" class="fa fa-info restclient-infofield" style="margin-left: 5px; width: 12px; height: 12px;"></i>';
-                            } else {
-                                $infoHtml = '';
+                                if (is_array($field)) {
+                                    foreach($field as $subfield) {
+                                        $infoHtml .=  '<i id="infofield-'. $subfield .'" class="fa fa-info restclient-infofield" style="margin-left: 5px; width: 12px; height: 12px;"></i>';
+                                    }
+                                    $fieldName = $k;
+                                } else {
+                                    $infoHtml =  '<i id="infofield-'. $field .'" class="fa fa-info restclient-infofield" style="margin-left: 5px; width: 12px; height: 12px;"></i>';
+                                }
                             }
-                            $temp[] = $field . $infoHtml;
+                            $temp[] = $fieldName . $infoHtml;
                         }
                         $value = implode('<br />', $temp);
                     } else {

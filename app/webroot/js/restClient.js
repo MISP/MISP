@@ -258,13 +258,34 @@ function addHoverInfo(url) {
 
     authorizedParamTypes.forEach(function(paramtype) {
         if (allValidApis[url][paramtype] !== undefined) {
-            allValidApis[url][paramtype].forEach(function(field) {
+            var validApi = allValidApis[url][paramtype];
+            if (!Array.isArray(validApi)) {
+                var k = Object.keys(validApi)[0];
+                if (k === 'AND' || k === 'OR') {
+                    validApi = validApi[k];
+                } else { // not an array, need to generate a new one (some api contain nested arrays: i.e. Org=>Array())
+                    validApi = [];
+                    for (var k in allValidApis[url][paramtype]){
+                        if (allValidApis[url][paramtype].hasOwnProperty(k)) {
+                            var v = allValidApis[url][paramtype][k];
+                            if (typeof v === 'string') {
+                                validApi.push(v);
+                            } else {
+                                v.forEach(function(v2) {
+                                    validApi.push(v2);
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            validApi.forEach(function(field) {
                 if (fieldsConstraint[url][field] !== undefined) { // add icon
                     var apiInfo = fieldsConstraint[url][field].help;
                     if(apiInfo !== undefined && apiInfo !== '') {
                         $('#infofield-'+field).popover({
                             trigger: 'hover',
-                            content: apiInfo,
+                            content: ''+field+':'+ apiInfo,
                         });
                     } else { // no help, delete icon
                         $('#infofield-'+field).remove();
