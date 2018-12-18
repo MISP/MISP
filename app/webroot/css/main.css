@@ -1665,6 +1665,7 @@ a.discrete {
 }
 
 .dashboard_element{
+	background-color: white;
 	border: 1px solid #0088cc;
 	border-radius: 5px;
 	box-shadow: 0px 0px 6px #B2B2B2;
