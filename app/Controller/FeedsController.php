@@ -393,10 +393,10 @@ class FeedsController extends AppController
             $message = __('Fetching the feed has successfuly completed.');
             if ($this->Feed->data['Feed']['source_format'] == 'misp') {
                 if (isset($result['add'])) {
-                    $message['result'] .= ' Downloaded ' . count($result['add']) . ' new event(s).';
+                    $message .= ' Downloaded ' . count($result['add']) . ' new event(s).';
                 }
                 if (isset($result['edit'])) {
-                    $message['result'] .= ' Updated ' . count($result['edit']) . ' event(s).';
+                    $message .= ' Updated ' . count($result['edit']) . ' event(s).';
                 }
             }
         }

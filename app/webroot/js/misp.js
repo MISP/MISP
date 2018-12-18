@@ -2,6 +2,13 @@ String.prototype.ucfirst = function() {
 	return this.charAt(0).toUpperCase() + this.slice(1);
 }
 
+if (!String.prototype.startsWith) {
+  String.prototype.startsWith = function(searchString, position) {
+    position = position || 0;
+    return this.indexOf(searchString, position) === position;
+  };
+}
+
 function deleteObject(type, action, id, event) {
 	var destination = 'attributes';
 	var alternateDestinations = ['shadow_attributes', 'template_elements', 'taxonomies', 'galaxy_clusters', 'objects', 'object_references'];
@@ -298,7 +305,10 @@ function acceptObject(type, id, event) {
 	});
 }
 
-function toggleCorrelation(id, skip_reload = false) {
+function toggleCorrelation(id, skip_reload) {
+    if (typeof skip_reload === "undefined") {
+        skip_reload = false;
+    }
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
@@ -451,6 +461,26 @@ function postActivationScripts(name, type, id, field, event) {
 	});
 
 	$(name + '_solid').hide();
+}
+
+function quickEditHover(td, type, id, field, event) {
+    var $td = $(td);
+    $td.find('#quickEditButton').remove(); // clean all similar if exist
+    var $div = $('<div id="quickEditButton"></div>');
+    $div.addClass('quick-edit-row-div');
+    var $span = $('<span></span>');
+    $span.addClass('fa-as-icon fa fa-edit');
+    $span.css('font-size', '12px');
+    $div.append($span);
+    $td.find("[id*=_solid]").append($div);
+
+    $span.click(function() {
+        activateField(type, id, field, event);
+    });
+
+    $td.off('mouseleave').on('mouseleave', function() {
+        $div.remove();
+    });
 }
 
 function addSighting(type, attribute_id, event_id, page) {
@@ -608,7 +638,10 @@ function handleAjaxEditResponse(data, name, type, id, field, event) {
 	}
 }
 
-function handleGenericAjaxResponse(data, skip_reload = false) {
+function handleGenericAjaxResponse(data, skip_reload) {
+	if (typeof skip_reload === "undefined") {
+        skip_reload = false;
+    }
 	if (typeof data == 'string') {
 		responseArray = JSON.parse(data);
 	} else {
@@ -3196,7 +3229,10 @@ function quickSubmitGalaxyForm(event_id, cluster_id) {
 	return false;
 }
 
-function checkAndSetPublishedInfo(skip_reload=false) {
+function checkAndSetPublishedInfo(skip_reload) {
+	if (typeof skip_reload === "undefined") {
+		skip_reload = false;
+	}
 	var id = $('#hiddenSideMenuData').data('event-id');
 	if (id !== 'undefined' && !skip_reload) {
 		$.get( "/events/checkPublishedStatus/" + id, function(data) {
