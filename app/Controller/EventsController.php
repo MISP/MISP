@@ -763,7 +763,23 @@ class EventsController extends AppController
                     }
                 }
                 $events = $this->GalaxyCluster->attachClustersToEventIndex($events);
-                $this->set('events', $events);
+                foreach ($events as $key => $event) {
+                    $temp = $events[$key]['Event'];
+                    $temp['Org'] = $event['Org'];
+                    $temp['Orgc'] = $event['Orgc'];
+                    unset($temp['user_id']);
+                    $rearrangeObjects = array('GalaxyCluster', 'EventTag', 'SharingGroup');
+                    foreach ($rearrangeObjects as $ro) {
+                        if (isset($event[$ro])) {
+                            $temp[$ro] = $event[$ro];
+                        }
+                    }
+                    $events[$key] = $temp;
+                }
+                if ($this->response->type() === 'application/xml') {
+                    $events = array('Event' => $events);
+                }
+                return $this->RestResponse->viewData($events, $this->response->type());
             } else {
                 foreach ($events as $key => $event) {
                     $events[$key] = $event['Event'];
@@ -5159,6 +5175,20 @@ class EventsController extends AppController
 
         //$result = $this->Event->upload_mactime($this->Auth->user(), );
         } elseif ($this->request->is('post') && $this->request['data']['SelectedData']['mactime_data']) {
+            // Find the event that is to be updated
+            if (Validation::uuid($eventId)) {
+                $eventFindParams['conditions']['Event.uuid'] = $eventId;
+            } elseif (is_numeric($eventId)) {
+                $eventFindParams['conditions']['Event.id'] = $eventId;
+            } else {
+                throw new NotFoundException(__('Invalid event.'));
+            }
+            $event = $this->Event->find('first', $eventFindParams);
+            if (empty($event) || (!$this->_isSiteAdmin() &&	$event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
+                throw new NotFoundException(__('Invalid event.'));
+            }
+            $eventId = $event['Event']['id'];
+
             $fileName = $this->request['data']['SelectedData']['mactime_file_name'];
             $fileData = $this->request['data']['SelectedData']['mactime_file_content'];
             $object = array();

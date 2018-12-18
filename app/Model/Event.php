@@ -5085,11 +5085,13 @@ class Event extends AppModel
             $tempFilePath = APP . 'files/scripts/tmp/' . $filename;
             $shell_command = $this->getPythonVersion() . ' ' . $scriptFile . ' ' . $tempFilePath;
             $output_path = $tempFilePath . '.stix2';
+            $stix_version = "STIX 2.0";
         } elseif ($stix_version == '1' || $stix_version == '1.1' || $stix_version == '1.2') {
             $scriptFile = APP . 'files/scripts/stix2misp.py';
             $tempFilePath = APP . 'files/scripts/tmp/' . $filename;
             $shell_command = $this->getPythonVersion() . ' ' . $scriptFile . ' ' . $filename;
             $output_path = $tempFilePath . '.json';
+            $stix_version = "STIX 1.1";
         } else {
             throw new MethodNotAllowedException('Invalid STIX version');
         }
@@ -5105,7 +5107,7 @@ class Event extends AppModel
             $validationIssues = false;
             $result = $this->_add($data, true, $user, '', null, false, null, $created_id, $validationIssues);
             if ($result) {
-                $this->add_original_file($tempFile, $original_file, $created_id, 'STIX 1.1');
+                $this->add_original_file($tempFile, $original_file, $created_id, $stix_version);
                 return $created_id;
             }
             return $validationIssues;
@@ -5699,7 +5701,7 @@ class Event extends AppModel
                 'distribution' => $distribution,
                 'object_id' => $object_id,
                 'object_relation' => 'format',
-                'value' => 'STIX 1.1'
+                'value' => $format
             )
         );
         foreach ($attributes as $attribute) {

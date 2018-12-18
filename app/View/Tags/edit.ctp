@@ -28,6 +28,7 @@
     <?php
         echo $this->Form->input('hide_tag', array(
             'type' => 'checkbox',
+            'label' => __('Unselectable Tag')
         ));
     ?>
     </fieldset>
