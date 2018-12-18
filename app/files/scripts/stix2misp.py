@@ -870,10 +870,10 @@ class StixFromMISPParser(StixParser):
         observable_id = observable.id_
         if object_type == "file":
             name = "registry-key" if "WinRegistryKey" in observable_id else "file"
+        elif "Custom" in observable_id:
+            name = observable_id.split("Custom")[0].split(":")[1]
         elif object_type == "network":
-            if "Custom" in observable_id:
-                name = observable_id.split("Custom")[0].split(":")[1]
-            elif "ObservableComposition" in observable_id:
+            if "ObservableComposition" in observable_id:
                 name = observable_id.split("_")[0].split(":")[1]
             else:
                 name = cybox_to_misp_object[observable_id.split('-')[0].split(':')[1]]
