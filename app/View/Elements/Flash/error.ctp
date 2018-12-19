@@ -10,7 +10,7 @@
                     if (isset($params['urlName'])) {
                         echo '<a href="' . h($params['url']) . '">' . h($params['urlName']) . '</a>';
                     } else {
-                        echo '<a href="' . h($params['url']) . '">' . 'url' . '</a>';
+                        echo '<a href="' . h($params['url']) . '">' .  h($params['url']) . '</a>';
                     }
                 }
 	    if ($this->Session->read('flashErrorMessage')) {
