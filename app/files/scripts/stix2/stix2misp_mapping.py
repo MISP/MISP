@@ -95,6 +95,7 @@ misp_types_mapping = {
     'sha512/224': parse_hash,
     'sha512/256': parse_hash,
     'tlsh': parse_hash,
+    'cdhash': parse_hash,
     'filename|authentihash': parse_filename_hash,
     'filename|ssdeep': parse_filename_hash,
     'filename|imphash': parse_filename_hash,
