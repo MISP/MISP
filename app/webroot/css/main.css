@@ -2213,6 +2213,13 @@ table.updateProgressTable .small-state-text-in-td {
 
 }
 
+.back-and-forth-animation {
+    position: relative;
+    animation: backandforthAnim 2.0s infinite;
+}
+
+@keyframes backandforthAnim {0% {left: 0;} 50% {left: calc(95%);} 100%{left: 0;}}
+
 .fa-as-icon {
     font-size: 20px;
     padding-left: 2px;

@@ -1651,16 +1651,26 @@ class ServersController extends AppController
             throw new MethodNotAllowedException('You are not authorised to do that.');
         }
         $updateProgress = $this->Server->getUpdateProgress();
-        $curCommand = $updateProgress['cmd'][$updateProgress['cur']];
-        // retreive current update process
-        $sqlInfo = $this->Server->query("SELECT * FROM INFORMATION_SCHEMA.PROCESSLIST WHERE INFO LIKE '%" . substr($curCommand, 0, -1) . "%';");
+        $curIndex = $updateProgress['cur'];
+        $curCommand = !isset($updateProgress['cmd'][$curIndex]) ? '' : $updateProgress['cmd'][$curIndex];
+        $lookupString = preg_replace('/\s{2,}/', '', substr($curCommand, 0, -1));
+        $sqlInfo = $this->Server->query("SELECT * FROM INFORMATION_SCHEMA.PROCESSLIST;");
+
         if (empty($sqlInfo)) {
             $updateProgress['process_list'] = array();
         } else {
-            $sqlInfo = $sqlInfo[0]['PROCESSLIST'];
+            // retreive current update process
+            foreach($sqlInfo as $row) {
+                if (preg_replace('/\s{2,}/', '', $row['PROCESSLIST']['INFO']) == $lookupString) {
+                    $sqlInfo = $row['PROCESSLIST'];
+                    break;
+                }
+            }
             $updateProgress['process_list'] = array();
             $updateProgress['process_list']['STATE'] = isset($sqlInfo['STATE']) ? $sqlInfo['STATE'] : '';
             $updateProgress['process_list']['PROGRESS'] = isset($sqlInfo['PROGRESS']) ? $sqlInfo['PROGRESS'] : 0;
+            $updateProgress['process_list']['STAGE'] = isset($sqlInfo['STAGE']) ? $sqlInfo['STAGE'] : 0;
+            $updateProgress['process_list']['MAX_STAGE'] = isset($sqlInfo['MAX_STAGE']) ? $sqlInfo['MAX_STAGE'] : 0;
         }
         if ($this->request->is('ajax')) {
             return $this->RestResponse->viewData(h($updateProgress), $this->response->type());

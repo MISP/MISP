@@ -82,7 +82,7 @@ class AppModel extends Model
             'description' => 'Update the Attribute table to support first_seen and last_seen feature, with a microsecond resolution.',
             'liveOff' => true, # should the instance be offline for users other than site_admin
             'recommendBackup' => true, # should the update recommend backup
-            'exitOnError' => true, # should the update exit on error
+            'exitOnError' => false, # should the update exit on error
             'requirements' => 'MySQL version must be >= 5.6', # message stating the requirements necessary for the update
             'record' => true, # should the update success be saved in the admin_table
             'preUpdate' => 'seenOnAttributeAndObjectPreUpdate', # Function to execute before the update. If it throws an error, it cancels the update
@@ -235,6 +235,7 @@ class AppModel extends Model
         if ($this->isUpdateLocked()) {
             return false;
         }
+        $this->__resetUpdateProgress();
 
         // restart this function by a worker
         if ($useWorker && Configure::read('MISP.background_jobs')) {
@@ -1150,7 +1151,8 @@ class AppModel extends Model
                         DROP INDEX value2,
                         DROP INDEX object_id,
                         DROP INDEX object_relation,
-                        DROP INDEX deleted
+                        DROP INDEX deleted,
+                        DROP INDEX comment
                     ;";
                 $sqlArray[] =
                     "ALTER TABLE `attributes`
@@ -1194,7 +1196,6 @@ class AppModel extends Model
                 break;
         }
 
-        $this->__resetUpdateProgress();
         $now = new DateTime();
         $this->__changeLockState($now->format('Y-m-d H:i:s'));
         // switch MISP instance live to false
@@ -1220,9 +1221,13 @@ class AppModel extends Model
                 $this->__setUpdateProgress($i, false);
                 if (isset($this->advanced_updates_description[$command])) {
                     if (isset($this->advanced_updates_description[$command]['preUpdate'])) {
-                        $exitOnError = true;
                         $funName = $this->advanced_updates_description[$command]['preUpdate'];
-                        $this->{$funName}();
+                        try {
+                            $this->{$funName}();
+                        } catch (Exception $e) {
+                            $exitOnError = true;
+                            throw new Exception($e->getMessage());
+                        }
                     }
                 }
                 $this->query($sql);
@@ -1609,7 +1614,7 @@ class AppModel extends Model
         }
         foreach($updateProgress as $setting => $value) {
             if (!is_array($value)) {
-                $value = $value !== false && $value !== '' ? intval($value) : -1;
+                $value = $value !== false && $value !== '' ? intval($value) : 0;
             }
             $updateProgress[$setting] = $value;
         }

@@ -2,8 +2,7 @@
 if (!$isSiteAdmin) exit();
 if ($updateProgress['tot'] !== 0 ) {
     $percentageFail = floor(count($updateProgress['failed_num']) / $updateProgress['tot']*100);
-    $percentage = floor($updateProgress['cur'] / $updateProgress['tot']*100);
-    //$percentage -= $percentageFail; // substract failed updates
+    $percentage = floor(($updateProgress['cur']) / $updateProgress['tot']*100);
 } else {
     $percentage = 100;
     $percentageFail = 0;
@@ -130,6 +129,11 @@ if ($updateProgress['tot'] !== 0 ) {
     </div>
     <?php else: ?>
         <h2><?php echo __('No update in progress'); ?></h2>
+        <script>
+            $(document).ready(function() {
+                setInterval(function() { location.reload(); }, 1000);
+            });
+        </script>
     <?php endif; ?>
 
 </div>
@@ -198,12 +202,13 @@ if ($updateProgress['tot'] !== 0 ) {
             update_messages(data);
             if (tot > 0) {
                 var percFail = Math.round(failArray.length/tot*100);
-                var perc = Math.round(cur/tot*100);
+                var perc = Math.round((cur)/tot*100);
                 update_pb(perc, percFail);
             }
 
-            if (cur >= tot || failArray.indexOf(cur) != -1) {
+            if ((cur+1) >= tot || failArray.indexOf(cur) != -1) {
                 clearInterval(pooler);
+                $('.single-update-progress').hide();
             }
         });
     }
@@ -300,9 +305,21 @@ if ($updateProgress['tot'] !== 0 ) {
         var state = div.find('#small-state-text-'+i);
         div.show();
         var perc = parseInt(data['process_list']['PROGRESS']);
-        perc = perc == 0 ? 1 : perc; // for UI, always set min progress to 1
+        if (data['process_list']['MAX_STAGE'] == 0) { // if MAX_STAGE == 0, progress could not be determined
+            perc = 5;
+            if (data['failed_num'].indexOf(data['cur']) >= 0) { // do not animate if failed
+                state.text('Failed');
+                perc = 0;
+            } else {
+                state.text('Unkown or No state');
+                pb.addClass('back-and-forth-animation');
+            }
+        } else {
+            perc = perc == 0 ? 1 : perc; // for UI, always set min progress to 1
+            pb.removeClass('back-and-forth-animation');
+            state.text(data['process_list']['STATE']);
+        }
         pb.css('width', perc+'%');
-        state.text(data['process_list']['STATE']);
     }
 
     function pad(num, size){ return ('000000000' + num).substr(-size); }
