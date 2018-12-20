@@ -46,6 +46,7 @@ class BroExport
         'sha512/224' => array('brotype' => 'FILE_HASH'),
         'sha512/256' => array('brotype' => 'FILE_HASH'),
         'tlsh' => array('brotype' => 'FILE_HASH'),
+        'cdhash' => array('brotype' => 'FILE_HASH'),
         'filename|authentihash' => array('brotype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
         'filename|ssdeep' => array('brotype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
         'filename|imphash' => array('brotype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
