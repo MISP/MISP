@@ -263,7 +263,7 @@ class StixBuilder():
                     to_ids_list.append(to_ids_section)
                     sections.append(section_object)
             if True in to_ids_list:
-                pattern = self.resolve_file_pattern(file_object['Attributes'], file_id)[1:-1]
+                pattern = self.resolve_file_pattern(file_object['Attribute'], file_id)[1:-1]
                 pattern += " AND {}".format(self.parse_pe_extensions_pattern(pe_object, sections))
                 self.add_object_indicator(file_object, pattern_arg="[{}]".format(pattern))
             else:
@@ -296,7 +296,7 @@ class StixBuilder():
         pattern = ""
         mapping = objectsMapping['file']['pattern']
         pe_mapping = "extensions.'windows-pebinary-ext'"
-        for attribute in pe_object['Attributes']:
+        for attribute in pe_object['Attribute']:
             try:
                 stix_type = "{}.{}".format(pe_mapping, peMapping[attribute['object_relation']])
             except KeyError:
