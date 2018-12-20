@@ -14,7 +14,14 @@ class TagCollection extends AppModel
                     'roleModel' => 'Role',
                     'roleKey' => 'role_id',
                     'change' => 'full'
-            )
+            ),
+            'Containable'
+    );
+
+    public $hasMany = array(
+        'TagCollectionElement' => array(
+            'dependent' => true
+        )
     );
 
     public $whitelistedItems = false;
@@ -30,4 +37,14 @@ class TagCollection extends AppModel
             ),
         )
     );
+
+    public function beforeValidate($options = array())
+    {
+        parent::beforeValidate();
+        // generate UUID if it doesn't exist
+        if (empty($this->data['TagCollection']['uuid'])) {
+            $this->data['TagCollection']['uuid'] = CakeText::uuid();
+        }
+        return true;
+    }
 }

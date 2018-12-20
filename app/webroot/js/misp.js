@@ -610,6 +610,31 @@ function quickSubmitAttributeTagForm(attribute_id, tag_id) {
 	return false;
 }
 
+function quickSubmitTagCollectionTagForm(tag_collection_id, tag_id) {
+	$('#TagCollectionTag').val(tag_id);
+	$.ajax({
+		data: $('#TagCollectionSelectTagForm').closest("form").serialize(),
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data, textStatus) {
+			handleGenericAjaxResponse(data);
+		},
+		error:function() {
+			showMessage('fail', 'Could not add tag.');
+			loadTagCollectionTags(tag_collection_id);
+		},
+		complete:function() {
+			$("#popover_form").fadeOut();
+			$("#gray_out").fadeOut();
+			$(".loading").hide();
+		},
+		type:"post",
+		url:"/tag_collections/addTag/" + tag_collection_id
+	});
+	return false;
+}
+
 function handleAjaxEditResponse(data, name, type, id, field, event) {
 	responseArray = data;
 	if (type == 'Attribute') {
@@ -841,6 +866,17 @@ function loadEventTags(id) {
 	});
 }
 
+function loadTagCollectionTags(id) {
+	$.ajax({
+		dataType:"html",
+		cache: false,
+		success:function (data, textStatus) {
+			$(".tagCollectionTagContainer").html(data);
+		},
+		url:"/tags/showEventTag/" + id,
+	});
+}
+
 function removeEventTag(event, tag) {
 	var answer = confirm("Are you sure you want to remove this tag from the event?");
 	if (answer) {
@@ -898,6 +934,8 @@ function removeObjectTag(context, object, tag) {
 			$("#gray_out").fadeOut();
 			if (context == 'Attribute') {
 				loadAttributeTags(object);
+            } else if (context == 'TagCollection') {
+
 			} else {
 				loadEventTags(object);
 			}

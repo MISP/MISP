@@ -6,20 +6,26 @@ class TagCollectionElement extends AppModel
 {
     public $useTable = 'tag_collection_elements';
 
-    public $displayField = 'name';
-
     public $actsAs = array(
             'Trim',
             'SysLogLogable.SysLogLogable' => array(
                     'roleModel' => 'Role',
                     'roleKey' => 'role_id',
                     'change' => 'full'
-            )
+            ),
+            'Containable'
     );
 
-    public $whitelistedItems = false;
+    public $belongsTo = array(
+        'TagCollection' => array(
+            'className' => 'TagCollection',
+        ),
+        'Tag' => array(
+            'className' => 'Tag',
+        )
+    );
 
     public $validate = array(
-        
+
     );
 }

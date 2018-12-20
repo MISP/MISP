@@ -519,6 +519,39 @@ class TagsController extends AppController
         $this->render('/Attributes/ajax/ajaxAttributeTags');
     }
 
+    public function showTagControllerTag($id)
+    {
+        $this->loadModel('TagCollection');
+        $tagCollection = $this->TagCollection->find('first', array(
+            'recursive' => -1,
+            'contain' => array('TagCollection'),
+            'conditions' => array('TagCollection.id' => $id)
+        ));
+        if (empty($tagCollection) || (!$this->_isSiteAdmin() && $tagCollection['org_id'] !== $this->Auth->user('org_id'))) {
+            throw new MethodNotAllowedException('Invalid tag_collection.');
+        }
+        $this->loadModel('GalaxyCluster');
+        $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.id', 'GalaxyCluster.tag_name')));
+        $this->helpers[] = 'TextColour';
+        $tags = $this->TagCollection->TagCollectionElement->find('all', array(
+                'conditions' => array(
+                        'tag_collection_id' => $id,
+                        'Tag.name !=' => $cluster_names
+                ),
+                'contain' => array('Tag'),
+                'fields' => array('Tag.id', 'Tag.colour', 'Tag.name'),
+        ));
+        $this->set('tags', $tags);
+        $event = $this->Tag->EventTag->Event->find('first', array(
+                'recursive' => -1,
+                'fields' => array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.user_id'),
+                'conditions' => array('Event.id' => $id)
+        ));
+        $this->set('event', $event);
+        $this->layout = 'ajax';
+        $this->render('/Events/ajax/ajaxTags');
+    }
+
     public function viewTag($id)
     {
         $tag = $this->Tag->find('first', array(
@@ -534,7 +567,7 @@ class TagsController extends AppController
     }
 
 
-    public function selectTaxonomy($id, $attributeTag = false)
+    public function selectTaxonomy($id, $scope = 'event')
     {
         if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) {
             throw new NotFoundException('You don\'t have permission to do that.');
@@ -548,16 +581,14 @@ class TagsController extends AppController
                 unset($options[$k]);
             }
         }
-        if ($attributeTag !== false) {
-            $this->set('attributeTag', true);
-        }
+        $this->set('scope', $scope);
         $this->set('object_id', $id);
         $this->set('options', $options);
         $this->set('favourites', $favourites);
         $this->render('ajax/taxonomy_choice');
     }
 
-    public function selectTag($id, $taxonomy_id, $attributeTag = false, $filterData = '')
+    public function selectTag($id, $taxonomy_id, $scope = 'event', $filterData = '')
     {
         if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) {
             throw new NotFoundException('You don\'t have permission to do that.');
@@ -587,10 +618,12 @@ class TagsController extends AppController
         } else {
             $taxonomies = $this->Taxonomy->getTaxonomy($taxonomy_id);
             $options = array();
-            foreach ($taxonomies['entries'] as $entry) {
-                if (!empty($entry['existing_tag']['Tag'])) {
-                    $options[$entry['existing_tag']['Tag']['id']] = $entry['existing_tag']['Tag']['name'];
-                    $expanded[$entry['existing_tag']['Tag']['id']] = $entry['expanded'];
+            if (!empty($taxonomies['entries'])) {
+                foreach ($taxonomies['entries'] as $entry) {
+                    if (!empty($entry['existing_tag']['Tag'])) {
+                        $options[$entry['existing_tag']['Tag']['id']] = $entry['existing_tag']['Tag']['name'];
+                        $expanded[$entry['existing_tag']['Tag']['id']] = $entry['expanded'];
+                    }
                 }
             }
         }
@@ -624,9 +657,7 @@ class TagsController extends AppController
             unset($options[$hidden_tag]);
             unset($expanded[$hidden_tag]);
         }
-        if ($attributeTag !== false && $attributeTag !== "false") {
-            $this->set('attributeTag', true);
-        }
+        $this->set('scope', $scope);
         $this->set('object_id', $id);
         foreach ($options as $k => $v) {
             if (substr($v, 0, strlen('misp-galaxy:')) === 'misp-galaxy:') {
