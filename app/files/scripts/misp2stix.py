@@ -347,7 +347,7 @@ class StixBuilder(object):
         pe_file_header = PEFileHeader()
         pe_sections = PESectionList()
         for reference in pe_object['ObjectReference']:
-            if reference['Object']['name'] == "pe-section":
+            if reference['Object']['name'] == "pe-section" and reference['referenced_uuid'] in self.objects_to_parse['pe_section']:
                 pe_section_object = self.objects_to_parse['pe-section'][reference['referenced_uuid']]
                 to_ids_section, section_dict = self.create_attributes_dict(pe_section_object['Attribute'])
                 to_ids_list.append(to_ids_section)

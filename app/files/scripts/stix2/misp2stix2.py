@@ -258,7 +258,7 @@ class StixBuilder():
             to_ids_list.append(to_ids_pe)
             sections = []
             for reference in pe_object['ObjectReference']:
-                if reference['Object']['name'] == "pe-section":
+                if reference['Object']['name'] == "pe-section"and reference['referenced_uuid'] in self.objects_to_parse['pe_section'] :
                     to_ids_section, section_object = self.objects_to_parse['pe-section'][reference['referenced_uuid']]
                     to_ids_list.append(to_ids_section)
                     sections.append(section_object)
