@@ -291,7 +291,11 @@ class StixBuilder():
                         d_section[peSectionMapping[relation]] = attribute['value']
                     except KeyError:
                         continue
+            if 'name' not in d_section:
+                d_section['name'] = 'Section {}'.format(sections.index(section))
             extension['sections'].append(WindowsPESection(**d_section))
+        if len(sections) != int(extension['number_of_sections']):
+            extension['number_of_sections'] = str(len(sections))
         return {"windows-pebinary-ext": extension}
 
     def parse_pe_extensions_pattern(self, pe_object, sections):
