@@ -227,7 +227,7 @@ class MispObject extends AppModel
         return $result;
     }
 
-    public function buildeventconditions($user, $sgids = false)
+    public function buildEventConditions($user, $sgids = false)
     {
         if ($user['Role']['perm_site_admin']) {
             return array();
@@ -677,9 +677,9 @@ class MispObject extends AppModel
                 $originalAttribute['deleted'] = 1;
                 $this->Event->Attribute->save($originalAttribute);
             }
-        } else { // we only add new attribute
+        } else { // we only add the new attribute
             $newAttribute = $objectToSave['Attribute'][0];
-            if ($newAttribute != 'last-seen' && $newAttribute != 'first-seen') {
+            if ($newAttribute != 'last-seen' && $newAttribute != 'first-seen') { // fs/ls should be added in the object's meta
                 $this->Event->Attribute->create();
                 $newAttribute['event_id'] = $object['Object']['event_id'];
                 $newAttribute['object_id'] = $object['Object']['id'];
