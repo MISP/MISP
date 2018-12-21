@@ -393,9 +393,9 @@ class ObjectsController extends AppController
                     if ($this->request->is('ajax')) {
                         $this->autoRender = false;
                         if (is_numeric($objectToSave)) {
-                            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)),'status' => 200, 'type' => 'json'));
+                            return $this->RestResponse->saveSuccessResponse('Objects', 'edit', $id, $this->response->type(), $message);
                         } else {
-                            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $error_message)),'status' => 200, 'type' => 'json'));
+                            return $this->RestResponse->saveFailResponse('Objects', 'edit', $id, $error_message, $this->response->type());
                         }
                     } else {
                         if (is_numeric($objectToSave)) {
@@ -409,7 +409,7 @@ class ObjectsController extends AppController
                 }
             } else {
                 $this->autoRender = false;
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'error' => $error)),'status' => 200, 'type' => 'json'));
+                return $this->RestResponse->saveFailResponse('Objects', 'edit', $id, $error, $this->response->type());
             }
         } else {
             $enabledRows = array();
@@ -463,7 +463,7 @@ class ObjectsController extends AppController
         }
         $this->MispObject->id = $id;
         if (!$this->MispObject->exists()) {
-            return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'Invalid object')), 'status'=>200, 'type' => 'json'));
+            return $this->RestResponse->saveFailResponse('Objects', 'edit', false, 'Invalid object', $this->response->type());
         }
         $this->MispObject->recursive = -1;
         $this->MispObject->contain('Event');
@@ -475,7 +475,7 @@ class ObjectsController extends AppController
             || $this->userRole['perm_modify_org'])) {
                 // Allow the edit
             } else {
-                return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'Invalid attribute')), 'status'=>200, 'type' => 'json'));
+                return $this->RestResponse->saveFailResponse('Objects', 'edit', false, 'Invalid attribute', $this->response->type());
             }
         }
         $validFields = array('comment', 'distribution', 'first_seen', 'last_seen');
@@ -492,13 +492,13 @@ class ObjectsController extends AppController
             }
             if ($object['Object'][$changedKey] == $changedField) {
                 $this->autoRender = false;
-                return new CakeResponse(array('body'=> json_encode(array('errors'=> array('value' => 'nochange'))), 'status'=>200, 'type' => 'json'));
+                return $this->RestResponse->saveSuccessResponse('Objects', 'edit', $id, $this->response->type(), 'nochange');
             }
             $object['Object'][$changedKey] = $changedField;
             $changed = true;
         }
         if (!$changed) {
-            return new CakeResponse(array('body'=> json_encode(array('errors'=> array('value' => 'nochange'))), 'status'=>200, 'type' => 'json'));
+            return $this->RestResponse->saveSuccessResponse('Objects', 'edit', $id, $this->response->type(), 'nochange');
         }
         $date = new DateTime();
         $object['Object']['timestamp'] = $date->getTimestamp();
@@ -514,10 +514,10 @@ class ObjectsController extends AppController
             $event['Event']['published'] = 0;
             $this->MispObject->Event->save($event, array('fieldList' => array('published', 'timestamp', 'info')));
             $this->autoRender = false;
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.', 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+            return $this->RestResponse->saveSuccessResponse('Objects', 'edit', $id, $this->response->type(), 'Field updated');
         } else {
             $this->autoRender = false;
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $this->MispObject->validationErrors)), 'status'=>200, 'type' => 'json'));
+            return $this->RestResponse->saveFailResponse('Objects', 'edit', false, $this->MispObject->validationErrors, $this->response->type());
         }
     }
 
@@ -614,7 +614,7 @@ class ObjectsController extends AppController
         $this->MispObject->id = $id;
         if (!$this->MispObject->exists()) {
             if ($this->request->is('ajax')) {
-                return new CakeResponse(array('body'=> json_encode(array('fail' => true, 'errors' => 'Invalid object')), 'status'=>200, 'type' => 'json'));
+                return $this->RestResponse->saveFailResponse('Objects', 'add', false, 'Invalid object', $this->response->type());
             } else {
                 throw new NotFoundException(__('Invalid object'));
             }
@@ -631,7 +631,7 @@ class ObjectsController extends AppController
         $object = $this->MispObject->fetchObjects($this->Auth->user(), $params);
         if (empty($object)) {
             if ($this->request->is('ajax')) {
-                return new CakeResponse(array('body'=> json_encode(array('fail' => true, 'errors' => 'Invalid object')), 'status'=>200, 'type' => 'json'));
+                return $this->RestResponse->saveFailResponse('Objects', 'add', false, 'Invalid object', $this->response->type());
             } else {
                 throw new NotFoundException(__('Invalid object'));
             }
@@ -658,7 +658,7 @@ class ObjectsController extends AppController
         ));
         if (empty($template)) {
             if ($this->request->is('ajax')) {
-                return new CakeResponse(array('body'=> json_encode(array('fail' => true, 'errors' => 'Invalid template')), 'status'=>200, 'type' => 'json'));
+                return $this->RestResponse->saveFailResponse('Objects', 'add', false, 'Invalid template', $this->response->type());
             } else {
                 throw new NotFoundException(__('Invalid template'));
             }
