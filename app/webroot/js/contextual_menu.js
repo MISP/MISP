@@ -152,7 +152,6 @@ class ContextualMenu {
             container: 'body',
             html: true,
             placement: "bottom",
-            //content: function () { var html=$(that.menu).clone(true).css('display', 'inline-block'); console.log(html); return html;}, // return contextual menu html
             content: function () { var html=$(that.menu); html.css('display', 'inline-block'); return html;}, // return contextual menu html
             trigger: "manual",
             template: '<div class="popover" id="popover-contextual-menu-'+this.trigger_container.id+'" role="tooltip" style="'+additional_styling+'"><div class="arrow"></div></h3><div class="popover-content"></div></div>'
