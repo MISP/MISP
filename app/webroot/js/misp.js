@@ -2831,6 +2831,24 @@ function filterAttributes(filter, id) {
 		filter = $('#attributesFilterField').val().trim();
 		url += filter.length > 0 ? "/searchFor:" + filter : "";
 	}
+
+	// keep sorted column and direction
+	var $a = $('#attributeList > table th > a.asc, #attributeList > table th > a.desc');
+	var filterUrl = $a.prop('href');
+	if ($a.length > 0) { // add the filter parameter
+		var regex_direction = /direction:(\w*)/g;
+		var regex_sort = /sort:(\w*)/g;
+		var sort = regex_sort.exec(filterUrl)[1];
+		var direction = regex_direction.exec(filterUrl)[1];
+		if (sort !== undefined) {
+			url += '/sort:' + sort;
+		}
+		if (direction !== undefined) {
+			direction = direction == 'asc' ? 'desc' : 'asc';
+			url += '/direction:' + direction;
+		}
+	}
+
 	if (deleted) url += '/deleted:true';
 	$.ajax({
 		type:"get",
