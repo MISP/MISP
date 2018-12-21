@@ -190,8 +190,7 @@ class StixBuilder():
         self.galaxies_mapping.update(dict.fromkeys(threat_actor_galaxies_list, ['threat-actor', self.add_threat_actor]))
         self.galaxies_mapping.update(dict.fromkeys(tool_galaxies_list, ['tool', self.add_tool]))
 
-    @staticmethod
-    def get_object_by_uuid(uuid):
+    def get_object_by_uuid(self, uuid):
         for _object in self.misp_event['Object']:
             if _object.get('uuid') and _object['uuid'] == uuid:
                 return _object
@@ -246,7 +245,7 @@ class StixBuilder():
             to_ids_list.append(to_ids_pe)
             sections = []
             for reference in pe_object['ObjectReference']:
-                if reference['Object']['name'] == "pe-section"and reference['referenced_uuid'] in self.objects_to_parse['pe_section'] :
+                if reference['Object']['name'] == "pe-section" and reference['referenced_uuid'] in self.objects_to_parse['pe-section']:
                     to_ids_section, section_object = self.objects_to_parse['pe-section'][reference['referenced_uuid']]
                     to_ids_list.append(to_ids_section)
                     sections.append(section_object)
@@ -255,20 +254,20 @@ class StixBuilder():
                 pattern += " AND {}".format(self.parse_pe_extensions_pattern(pe_object, sections))
                 self.add_object_indicator(file_object, pattern_arg="[{}]".format(pattern))
             else:
-                observable = self.resolve_file_observable(file_object['Attributes'], file_id)
-                observable['1']['extensions'] = self.parse_pe_extensions_observable(pe_object, sections)
+                observable = self.resolve_file_observable(file_object['Attribute'], file_id)
+                observable['0']['extensions'] = self.parse_pe_extensions_observable(pe_object, sections)
                 self.add_object_observable(file_object, observable_arg=observable)
 
     def parse_pe_extensions_observable(self, pe_object, sections):
         extension = defaultdict(list)
-        for attribute in pe_object['Attributes']:
+        for attribute in pe_object['Attribute']:
             try:
                 extension[peMapping[attribute['object_relation']]] = attribute['value']
             except KeyError:
                 extension["x_misp_{}_{}".format(attribute['type'], attribute['object_relation'].replace('-', '_'))] = attribute['value']
         for section in sections:
             d_section = defaultdict(dict)
-            for attribute in section['Attributes']:
+            for attribute in section['Attribute']:
                 relation = attribute['object_relation']
                 if relation in misp_hash_types:
                     d_section['hashes'][relation] = attribute['value']
@@ -293,7 +292,7 @@ class StixBuilder():
         n_section = 0
         for section in sections:
             section_mapping = "{}.sections[{}]".format(pe_mapping, str(n_section))
-            for attribute in section['Attributes']:
+            for attribute in section['Attribute']:
                 relation = attribute['object_relation']
                 if relation in misp_hash_types:
                     stix_type = "{}.hashes.'{}'".format(section_mapping, relation)
