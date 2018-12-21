@@ -874,7 +874,7 @@ class Server extends AppModel
                         ),
                         'updateTimeThreshold' => array(
                                 'level' => 1,
-                                'description' => __('Sets the minimum time before being able to re-trigger an update if the previous one failed. (safe guard to avoid started the same update multiple time)'), 
+                                'description' => __('Sets the minimum time before being able to re-trigger an update if the previous one failed. (safe guard to avoid starting the same update multiple time)'), 
                                 'value' => '600',
                                 'test' => 'testForNumeric',
                                 'type' => 'numeric',
