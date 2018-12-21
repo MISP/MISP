@@ -1164,7 +1164,6 @@ class AppModel extends Model
                         DROP INDEX object_id,
                         DROP INDEX object_relation,
                         DROP INDEX deleted,
-                        DROP INDEX comment
                     ;";
                 $sqlArray[] =
                     "ALTER TABLE `attributes`
