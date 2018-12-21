@@ -60,7 +60,7 @@
         </span><br />
         <pre class="hidden green bold" id="gitResult"></pre>
         <button title="<?php echo __('Pull the latest MISP version from github');?>" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "updateMISP();"><?php echo __('Update MISP');?></button>
-        <a title="<?php echo __('Click the following button to go to the advanced manual update page. This page lists all updates that are not performed automatically.'); ?>" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" href="<?php echo $baseurl; ?>/servers/advancedUpdate/"><?php echo __('Advanced Manual Update');?></a>
+        <a title="<?php echo __('Click the following button to go to the update progress page. This page lists all updates that are currently queued and executed.'); ?>" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" href="<?php echo $baseurl; ?>/servers/updateProgress/"><?php echo __('Update Progress');?></a>
     </div>
     <h3><?php echo __('Writeable Directories and files');?></h3>
     <p><?php echo __('The following directories and files have to be writeable for MISP to function properly. Make sure that the apache user has write privileges for the directories below.');?></p>
@@ -339,12 +339,9 @@
     </div><br />
     <span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Check for orphaned attribute');?>" title="<?php echo __('Check for orphaned attributes');?>" style="padding-top:1px;padding-bottom:1px;" onClick="checkOrphanedAttributes();"><?php echo __('Check for orphaned attributes');?></span><br /><br />
     <?php echo $this->Form->postButton(__('Remove orphaned attributes'), $baseurl . '/attributes/pruneOrphanedAttributes', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
-    <h3><?php echo __('Verify GnuPG keys');?></h3>
-    <p><?php echo __('Run a full validation of all GnuPG keys within this instance\'s userbase. The script will try to identify possible issues with each key and report back on the results.');?></p>
-    <span class="btn btn-inverse" onClick="location.href='<?php echo $baseurl;?>/users/verifyGPG';"><?php echo __('Verify GnuPG keys');?></span> (<?php echo __('Check whether every user\'s GnuPG key is usable');?>)</li>
-    <h3><?php echo __('Database cleanup scripts');?></h3>
-    <p><?php echo __('If you run into an issue with an infinite upgrade loop (when upgrading from version ~2.4.50) that ends up filling your database with upgrade script log messages, run the following script.');?></p>
-    <?php echo $this->Form->postButton(__('Prune upgrade logs'), $baseurl . '/logs/pruneUpdateLogs', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
+    <h3><?php echo __('Administrator On-demand Action');?></h3>
+    <p><?php echo __('Click the following button to go to the Administrator On-demand Action page.');?></p>
+    <span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick="location.href = '<?php echo $baseurl; ?>/servers/ondemandAction/';"><?php echo __('Administrator On-demand Action');?></span>
     <h3><?php echo __('Legacy Administrative Tools');?></h3>
     <p><?php echo __('Click the following button to go to the legacy administrative tools page. There should in general be no need to do this unless you are upgrading a very old MISP instance (<2.4), all updates are done automatically with more current versions.');?></p>
     <span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick="location.href = '<?php echo $baseurl; ?>/pages/display/administration';"><?php echo __('Legacy Administrative Tools');?></span>

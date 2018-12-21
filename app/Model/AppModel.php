@@ -75,8 +75,8 @@ class AppModel extends Model
         27 => false
     );
 
-    public $advanced_updates_description = array(
 
+    public $advanced_updates_description = array(
         'seenOnAttributeAndObject' => array(
             'title' => 'First seen/Last seen Attribute table',
             'description' => 'Update the Attribute table to support first_seen and last_seen feature, with a microsecond resolution.',
@@ -96,6 +96,19 @@ class AppModel extends Model
             'exitOnError' => true,
             'preUpdate' => 'seenOnAttributeAndObjectPreUpdate', # Function to execute before the update. If it returns false, cancel the update
             'url' => '/servers/updateDatabase/testUpdate/'
+        ),
+    );
+
+    public $actions_description = array(
+        'verifyGnuPGkeys' => array(
+            'title' => 'Verify GnuPG keys',
+            'description' => "Run a full validation of all GnuPG keys within this instance's userbase. The script will try to identify possible issues with each key and report back on the results.",
+            'url' => '/users/verifyGPG/'
+        ),
+        'databaseCleanupScripts' => array(
+            'title' => 'Database Cleanup Scripts',
+            'description' => 'If you run into an issue with an infinite upgrade loop (when upgrading from version ~2.4.50) that ends up filling your database with upgrade script log messages, run the following script.',
+            'url' => '/logs/pruneUpdateLogs/'
         )
     );
 

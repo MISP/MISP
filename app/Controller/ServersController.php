@@ -1616,32 +1616,33 @@ class ServersController extends AppController
         }
     }
 
-    public function advancedUpdate() {
+    public function ondemandAction() {
         if (!$this->_isSiteAdmin()) {
             throw new MethodNotAllowedException('You are not authorised to do that.');
         }
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
-        $updates = $this->Server->advanced_updates_description;
+        //$actions = $this->Server->advanced_updates_description;
+        $actions = $this->Server->actions_description;
         $default_fields = array(
             'title' => '',
             'description' => '',
-            'liveOff' => true,
-            'recommendBackup' => true,
-            'exitOnError' => true,
+            'liveOff' => false,
+            'recommendBackup' => false,
+            'exitOnError' => false,
             'requirements' => '',
             'url' => '/'
 
         );
-        foreach($updates as $id => $update) {
+        foreach($actions as $id => $action) {
             foreach($default_fields as $field => $value) {
-                if (!isset($update[$field])) {
-                    $updates[$id][$field] = $value;
+                if (!isset($action[$field])) {
+                    $actions[$id][$field] = $value;
                 }
             }
             $done = $this->AdminSetting->getSetting($id);
-            $updates[$id]['done'] =  $done !== false && $done == '1' ? true : false;
+            $actions[$id]['done'] =  $done !== false && $done == '1' ? true : false;
         }
-        $this->set('advancedUpdates', $updates);
+        $this->set('actions', $actions);
         $this->set('updateLocked', $this->Server->isUpdateLocked());
     }
 
