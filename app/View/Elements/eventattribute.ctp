@@ -383,6 +383,29 @@ attributes or the appropriate distribution level. If you think there is a mistak
             $(this).parent().children(':nth-child(2)').attr('aria-label', 'Switch to binary representation');
         }
     });
+    $(".eventViewAttributeHover").mouseenter(function() {
+    	$('.popover').remove();
+    	type = $(this).attr('data-object-type');
+    	id = $(this).attr('data-object-id');
+    	if (type + "_" + id in ajaxResults["hover"]) {
+    		$('#' + type + '_' + id + '_container').popover({
+    			title: 'Lookup results:',
+    			content: ajaxResults["hover"][type + "_" + id],
+    			placement: 'top',
+    			html: true,
+    			trigger: 'hover',
+    			container: 'body'
+    		}).popover('show');
+    	} else {
+    		timer = setTimeout(function() {
+    				runHoverLookup(type, id)
+    			},
+    			500
+    		);
+    	}
+    }).mouseleave(function() {
+    	clearTimeout(timer);
+    });
 </script>
 <?php
     echo $this->Js->writeBuffer();

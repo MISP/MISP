@@ -2087,8 +2087,6 @@ table tr:hover .down-expand-button {
     font-size: 20px;
     padding-left: 2px;
     padding-top: 2px;
-    width: 18px;
-    height: 20px;
     cursor: pointer;
     background-image: unset;
     text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white;
@@ -2103,6 +2101,7 @@ table tr:hover .down-expand-button {
 }
 
 .quick-edit-row-div {
+    line-height: normal;
     display: inline-block;
     position: relative;
 }
