@@ -1032,7 +1032,6 @@ class AppModel extends Model
 						PRIMARY KEY (`id`),
 						INDEX `noticelist_id` (`noticelist_id`)
 					) ENGINE=InnoDB DEFAULT CHARSET=utf8;';
-
                 break;
             case 9:
                 $sqlArray[] = 'ALTER TABLE galaxies ADD namespace varchar(255) COLLATE utf8_unicode_ci NOT NULL DEFAULT "misp";';
@@ -1232,15 +1231,14 @@ class AppModel extends Model
         foreach ($sqlArray as $i => $sql) {
             try {
                 $this->__setUpdateProgress($i, false);
-                if (isset($this->advanced_updates_description[$command])) {
-                    if (isset($this->advanced_updates_description[$command]['preUpdate'])) {
-                        $funName = $this->advanced_updates_description[$command]['preUpdate'];
-                        try {
-                            $this->{$funName}();
-                        } catch (Exception $e) {
-                            $exitOnError = true;
-                            throw new Exception($e->getMessage());
-                        }
+                // execute test before update. Exit if it fails
+                if (isset($this->advanced_updates_description[$command]['preUpdate'])) {
+                    $funName = $this->advanced_updates_description[$command]['preUpdate'];
+                    try {
+                        $this->{$funName}();
+                    } catch (Exception $e) {
+                        $exitOnError = true;
+                        throw new Exception($e->getMessage());
                     }
                 }
                 $this->query($sql);
@@ -1408,7 +1406,7 @@ class AppModel extends Model
     }
 
     /*
-     * Given an array, dynamically add fields. An historical example is given with the *_seen fields
+     * Given an array, dynamically add contextual fields. An historical example is given with the *_seen fields
     public function addFieldsBasedOnUpdate(&$fieldsAtt, $context = null) {
         if (is_null($context)) {
             $alias = '';
