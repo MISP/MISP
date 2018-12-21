@@ -126,7 +126,6 @@ class StixBuilder():
             self.load_objects_mapping()
             self.objects_to_parse = defaultdict(dict)
             misp_objects = self.misp_event['Object']
-            self.object_references = self.fetch_object_references(misp_objects)
             for misp_object in misp_objects:
                 name = misp_object['name']
                 if name == 'original-imported-file':
@@ -190,18 +189,6 @@ class StixBuilder():
         self.galaxies_mapping.update(dict.fromkeys(malware_galaxies_list, ['malware', self.add_malware]))
         self.galaxies_mapping.update(dict.fromkeys(threat_actor_galaxies_list, ['threat-actor', self.add_threat_actor]))
         self.galaxies_mapping.update(dict.fromkeys(tool_galaxies_list, ['tool', self.add_tool]))
-
-    def fetch_object_references(self, misp_objects):
-        object_references = {}
-        for misp_object in misp_objects:
-            if misp_object.get('ObjectReference') and not self.fetch_ids_flag(misp_object['Attribute']):
-                for reference in misp_object['ObjectReference']:
-                    try:
-                        referenced_object = reference['Attribute']
-                    except KeyError:
-                        referenced_object = self.get_object_by_uuid(reference['referenced_uuid'])
-                    object_references[reference['referenced_uuid']] = referenced_object
-        return object_references
 
     @staticmethod
     def get_object_by_uuid(uuid):
