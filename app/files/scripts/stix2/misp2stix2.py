@@ -325,7 +325,11 @@ class StixBuilder():
     @staticmethod
     def generate_galaxy_args(galaxy, b_killchain, b_alias, sdo_type):
         cluster = galaxy['GalaxyCluster'][0]
-        sdo_id = "{}--{}".format(sdo_type, cluster.get('collection_uuid'))
+        try:
+            cluster_uuid = cluster['collection_uuid']
+        except KeyError:
+            cluster_uuid = cluster['uuid']
+        sdo_id = "{}--{}".format(sdo_type, cluster_uuid)
         description = "{} | {}".format(galaxy['description'], cluster['description'])
         labels = ['misp:name=\"{}\"'.format(galaxy['name'])]
         sdo_args = {'id': sdo_id, 'type': sdo_type, 'name': cluster['value'], 'description': description}
