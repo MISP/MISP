@@ -94,7 +94,7 @@ class AppModel extends Model
             'liveOff' => true,
             'recommendBackup' => true,
             'exitOnError' => true,
-            'preUpdate' => 'seenOnAttributeAndObjectPreUpdate', # Function to execute before the update. If it returns false, cancel the update
+            'preUpdate' => 'failingPreUpdate', # Function to execute before the update. If it returns false, cancel the update
             'url' => '/servers/updateDatabase/testUpdate/'
         ),
     );
@@ -1238,9 +1238,11 @@ class AppModel extends Model
                         $this->{$funName}();
                     } catch (Exception $e) {
                         $exitOnError = true;
+                        $this->__setPreUpdateTestState(false);
                         throw new Exception($e->getMessage());
                     }
                 }
+                $this->__setPreUpdateTestState(true);
                 $this->query($sql);
                 $this->Log->create();
                 $this->Log->save(array(
@@ -1525,6 +1527,10 @@ class AppModel extends Model
         }
     }
 
+    public function failingPreUpdate() {
+        throw new Exception('Yolo fail');
+    }
+
     public function runUpdates()
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
@@ -1575,6 +1581,12 @@ class AppModel extends Model
             $now = new DateTime();
             $updateProgress['time']['started'][$current] = $now->format('Y-m-d H:i:s');
         }
+        $this->__saveUpdateProgress($updateProgress);
+    }
+
+    private function __setPreUpdateTestState($state) {
+        $updateProgress = $this->getUpdateProgress();
+        $updateProgress['preTestSuccess'] = $state;
         $this->__saveUpdateProgress($updateProgress);
     }
     

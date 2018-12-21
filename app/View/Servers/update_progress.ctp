@@ -7,11 +7,24 @@ if ($updateProgress['tot'] !== 0 ) {
     $percentage = 100;
     $percentageFail = 0;
 }
+
+if (isset($updateProgress['preTestSuccess']) && $updateProgress['preTestSuccess'] === false) {
+    $percentage = 0;
+    $percentageFail = 100;
+}
 ?>
 <div style="width: 50%;margin: 0 auto;">
     <?php if (count($updateProgress['cmd']) > 0): ?>
         <h2><?php echo(__('Update progress'));?></h2>
         <div class="" style="max-width: 1000px;">
+
+            <div>
+                <h5 style='display: inline-block'>Pre update test status:</h5>
+                <?php
+                    $icon = isset($updateProgress['preTestSuccess']) ? ($updateProgress['preTestSuccess'] ? 'fa-check' : 'fa-times') : 'fa-question-circle ';
+                ?>
+                    <i class='fa <?php echo($icon); ?>' style="font-size: x-large"></i>
+            </div>
             
             <div class="progress progress-striped" style="max-width: 1000px;">
                 <div id="pb-progress" class="bar" style="font-weight: bold; width: <?php echo h($percentage);?>%;"><?php echo h($percentage);?>%</div>
