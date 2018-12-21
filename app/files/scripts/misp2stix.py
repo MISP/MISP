@@ -78,7 +78,7 @@ non_indicator_attributes = ('text', 'comment', 'other', 'link', 'target-user', '
                             'target-org', 'target-location', 'target-external', 'vulnerability')
 
 hash_type_attributes = {"single": ("md5", "sha1", "sha224", "sha256", "sha384", "sha512", "sha512/224", "sha512/256",
-                                   "ssdeep", "imphash", "authentihash", "pehash", "tlsh", "x509-fingerprint-sha1"),
+                                   "ssdeep", "imphash", "authentihash", "pehash", "tlsh", "cdhash", "x509-fingerprint-sha1"),
                         "composite": ("filename|md5", "filename|sha1", "filename|sha224", "filename|sha256",
                                       "filename|sha384", "filename|sha512", "filename|sha512/224", "filename|sha512/256",
                                       "filename|authentihash", "filename|ssdeep", "filename|tlsh", "filename|imphash",
@@ -347,7 +347,7 @@ class StixBuilder(object):
         pe_file_header = PEFileHeader()
         pe_sections = PESectionList()
         for reference in pe_object['ObjectReference']:
-            if reference['Object']['name'] == "pe-section":
+            if reference['Object']['name'] == "pe-section" and reference['referenced_uuid'] in self.objects_to_parse['pe_section']:
                 pe_section_object = self.objects_to_parse['pe-section'][reference['referenced_uuid']]
                 to_ids_section, section_dict = self.create_attributes_dict(pe_section_object['Attribute'])
                 to_ids_list.append(to_ids_section)

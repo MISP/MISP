@@ -13,6 +13,18 @@ import re
 import subprocess
 
 
+def order_dict(dictionary):
+    result = {}
+    for k, v in sorted(dictionary.items()):
+        if isinstance(v, dict):
+            result[k] = order_dict(v)
+        elif isinstance(v, list):
+            result[k] = sorted(v)
+        else:
+            result[k] = v
+    return result
+
+
 def make_matrix_header(pos, max_cols):
     out = []
     out.append('|Category|')
@@ -211,8 +223,11 @@ for t in types:
     describe_types['result']['sane_defaults'][t]['default_category'] = type_definitions[t]['default_category']
     describe_types['result']['sane_defaults'][t]['to_ids'] = type_definitions[t]['to_ids']
 
+
+describe_types = order_dict(describe_types)
 with open('../../PyMISP/pymisp/data/describeTypes.json', 'w') as f:
     json.dump(describe_types, f, sort_keys=True, indent=2)
+    f.write('\n')
 
 
 print("\nPlease initiate the git commit and push for each repository!")
