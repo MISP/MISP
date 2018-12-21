@@ -345,7 +345,7 @@ class ACLComponent extends Component
                     'stopZeroMQServer' => array(),
                     'testConnection' => array('perm_sync'),
                     'update' => array(),
-                    'advancedUpdate' => array(),
+                    'ondemandAction' => array(),
                     'updateProgress' => array(),
                     'uploadFile' => array(),
                     'clearWorkerQueue' => array()
