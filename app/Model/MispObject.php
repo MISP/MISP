@@ -555,28 +555,30 @@ class MispObject extends AppModel
         if ( !$delete && isset($object['Object']['first-seen']) && isset($object['Object']['last-seen'])) {
             return;
         }
-        foreach($object['Attribute'] as $i => $attribute) {
-            if ($attribute['object_relation'] == 'first-seen') {
-                // set object meta if unset
-                if (!isset($object['Object']['first-seen'])) {
-                    $object['Object']['first-seen'] = $attribute['value'];
+        if (isset($object['Attribute'])) {
+            foreach($object['Attribute'] as $i => $attribute) {
+                if ($attribute['object_relation'] == 'first-seen') {
+                    // set object meta if unset
+                    if (!isset($object['Object']['first-seen'])) {
+                        $object['Object']['first-seen'] = $attribute['value'];
+                    }
+                    if ($delete) {
+                        $object['Attribute'][$i]['deleted'] = 1;
+                        $this->Event->Attribute->save($object['Attribute'][$i]);
+                    }
+                    continue;
                 }
-                if ($delete) {
-                    $object['Attribute'][$i]['deleted'] = 1;
-                    $this->Event->Attribute->save($object['Attribute'][$i]);
+                if ($attribute['object_relation'] == 'last-seen') {
+                    // set object meta if unset
+                    if (!isset($object['Object']['last-seen'])) {
+                        $object['Object']['last-seen'] = $attribute['value'];
+                    }
+                    if ($delete) {
+                        $object['Attribute'][$i]['deleted'] = 1;
+                        $this->Event->Attribute->save($object['Attribute'][$i]);
+                    }
+                    continue;
                 }
-                continue;
-            }
-            if ($attribute['object_relation'] == 'last-seen') {
-                // set object meta if unset
-                if (!isset($object['Object']['last-seen'])) {
-                    $object['Object']['last-seen'] = $attribute['value'];
-                }
-                if ($delete) {
-                    $object['Attribute'][$i]['deleted'] = 1;
-                    $this->Event->Attribute->save($object['Attribute'][$i]);
-                }
-                continue;
             }
         }
     }

@@ -84,9 +84,9 @@
       }
     ?>
   </td>
-  <td class="showspaces bitwider">
+  <td class="showspaces bitwider" onmouseenter="quickEditHover(this, 'Object', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">
       <div id = "Object_<?php echo $object['id']; ?>_comment_placeholder" class = "inline-field-placeholder"></div>
-      <div id = "Object_<?php echo $object['id']; ?>_comment_solid" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">
+      <div id = "Object_<?php echo $object['id']; ?>_comment_solid" class="inline-field-solid">
     <?php echo nl2br(h($object['comment'])); ?>&nbsp;
       </div>
   </td>

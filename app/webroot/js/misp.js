@@ -707,7 +707,8 @@ function handleAjaxEditResponse(data, name, type, id, field, event) {
 	responseArray = data;
 	if (type == 'Attribute') {
 		if (responseArray.saved) {
-			showMessage('success', responseArray.success);
+			var msg = responseArray.success !== undefined ? responseArray.success : responseArray.message;
+			showMessage('success', msg);
 			updateAttributeFieldOnSuccess(name, type, id, field, event);
 			updateAttributeFieldOnSuccess(name, type, id, 'timestamp', event);
 			eventUnpublish();
@@ -721,7 +722,8 @@ function handleAjaxEditResponse(data, name, type, id, field, event) {
 	}
 	if (type == 'Object') {
 		if (responseArray.saved) {
-			showMessage('success', responseArray.success);
+			var msg = responseArray.success !== undefined ? responseArray.success : responseArray.message;
+			showMessage('success', msg);
 			updateObjectFieldOnSuccess(name, type, id, field, event);
 			updateObjectFieldOnSuccess(name, type, id, 'timestamp', event);
 			eventUnpublish();

@@ -340,6 +340,7 @@ class RestResponseComponent extends Component
         if (isset($this->__convertActionToMessage[$controller][$action['action']])) {
             $stringifiedAction = $this->__convertActionToMessage[$controller][$action['action']];
         }
+        $response['saved'] = false;
         $response['name'] = 'Could not ' . $stringifiedAction . ' ' . Inflector::singularize($controller);
         $response['message'] = $response['name'];
         $response['url'] = $this->__generateURL($action, $controller, $id);
@@ -353,6 +354,7 @@ class RestResponseComponent extends Component
         if (!$message) {
             $message = Inflector::singularize($controller) . ' ' . $action['action'] . ((substr($action['action'], -1) == 'e') ? 'd' : 'ed');
         }
+        $response['saved'] = true;
         $response['name'] = $message;
         $response['message'] = $response['name'];
         $response['url'] = $this->__generateURL($action, $controller, $id);
