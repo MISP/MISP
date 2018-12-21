@@ -1910,15 +1910,17 @@ class Server extends AppModel
                 $fails[$eventId] = 'Failed (partially?) because of validation errors: '. json_encode($eventModel->validationErrors, true);
             }
         } else {
-            $tempUser = $user;
-            $tempUser['Role']['perm_site_admin'] = 0;
-            $result = $eventModel->_edit($event, $tempUser, $existingEvent['Event']['id'], $jobId, $passAlong);
-            if ($result === true) {
-                $successes[] = $eventId;
-            } elseif (isset($result['error'])) {
-                $fails[$eventId] = $result['error'];
+            if (!$existingEvent['Event']['locked'] && !$server['Server']['internal']) {
+                $fails[$eventId] = __('Blocked an edit to an event that was created locally. This can happen if a synchronised event that was created on this instance was modified by an administrator on the remote side.');
             } else {
-                $fails[$eventId] = json_encode($result);
+                $result = $eventModel->_edit($event, $user, $existingEvent['Event']['id'], $jobId, $passAlong);
+                if ($result === true) {
+                    $successes[] = $eventId;
+                } elseif (isset($result['error'])) {
+                    $fails[$eventId] = $result['error'];
+                } else {
+                    $fails[$eventId] = json_encode($result);
+                }
             }
         }
     }

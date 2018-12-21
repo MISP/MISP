@@ -558,12 +558,24 @@ class EventShell extends AppShell
 			$this->Job->save($data);
 			$jobId = $this->Job->id;
 		}
+		$job = $this->Job->read(null, $jobId);
 		$options = array(
 			'user' => $user,
 			'event_id' => $eventId,
 			'modules' => $modules
 		);
 		$result = $this->Event->enrichment($options);
+		$job['Job']['progress'] = 100;
+		$job['Job']['date_modified'] = date("y-m-d H:i:s");
+		if ($result) {
+			$job['Job']['message'] = 'Added ' . $result . ' attribute' . ($result > 1 ? 's.' : '.');
+		} else {
+			$job['Job']['message'] = 'Enrichment finished, but no attributes added.';
+		}
+		$this->Job->save($job);
+		$log = ClassRegistry::init('Log');
+		$log->create();
+		$log->createLogEntry($user, 'enrichment', 'Event', $eventId, 'Event (' . $eventId . '): enriched.', 'enriched () => (1)');
 	}
 
 	public function processfreetext() {

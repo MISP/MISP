@@ -763,7 +763,23 @@ class EventsController extends AppController
                     }
                 }
                 $events = $this->GalaxyCluster->attachClustersToEventIndex($events);
-                $this->set('events', $events);
+                foreach ($events as $key => $event) {
+                    $temp = $events[$key]['Event'];
+                    $temp['Org'] = $event['Org'];
+                    $temp['Orgc'] = $event['Orgc'];
+                    unset($temp['user_id']);
+                    $rearrangeObjects = array('GalaxyCluster', 'EventTag', 'SharingGroup');
+                    foreach ($rearrangeObjects as $ro) {
+                        if (isset($event[$ro])) {
+                            $temp[$ro] = $event[$ro];
+                        }
+                    }
+                    $events[$key] = $temp;
+                }
+                if ($this->response->type() === 'application/xml') {
+                    $events = array('Event' => $events);
+                }
+                return $this->RestResponse->viewData($events, $this->response->type());
             } else {
                 foreach ($events as $key => $event) {
                     $events[$key] = $event['Event'];
