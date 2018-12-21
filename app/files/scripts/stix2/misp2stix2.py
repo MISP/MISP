@@ -18,6 +18,7 @@
 
 import sys, json, os, datetime
 import pymisp
+import re
 from stix2 import *
 from misp2stix2_mapping import *
 from collections import defaultdict
@@ -255,11 +256,25 @@ class StixBuilder():
                 self.add_object_indicator(file_object, pattern_arg="[{}]".format(pattern))
             else:
                 observable = self.resolve_file_observable(file_object['Attribute'], file_id)
-                observable['0']['extensions'] = self.parse_pe_extensions_observable(pe_object, sections)
+                pe_type = self._get_pe_type_from_filename(observable['0'])
+                observable['0']['extensions'] = self.parse_pe_extensions_observable(pe_object, sections, pe_type)
                 self.add_object_observable(file_object, observable_arg=observable)
 
-    def parse_pe_extensions_observable(self, pe_object, sections):
+    @staticmethod
+    def _create_pe_type_test(observable, extension):
+        return [
+            ('name' in observable and observable['name'].endswith('.%s' % extension)),
+            ('mime_type' in observable and re.compile(".* .+{0}.+ .*|.* {0} .*".format(extension)).match(observable['mime_type'].lower()))]
+
+    def _get_pe_type_from_filename(self, observable):
+        for extension in ('exe', 'dll'):
+            if any(self._create_pe_type_test(observable, extension)):
+                return extension
+        return 'sys'
+
+    def parse_pe_extensions_observable(self, pe_object, sections, pe_type):
         extension = defaultdict(list)
+        extension['pe_type'] = pe_type
         for attribute in pe_object['Attribute']:
             try:
                 extension[peMapping[attribute['object_relation']]] = attribute['value']
