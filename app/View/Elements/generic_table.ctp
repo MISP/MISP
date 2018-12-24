@@ -31,9 +31,12 @@
         $action = ($header === 'Actions') ? ' class="actions"' : '';
         $table_headers .= '<th' . $action . '>' . $header_data . '</th>';
     }
-    $table_contents = $this->element($row_path, array(
-        'items' => $items
-    ));
+    $table_contents = '';
+    foreach ($items as $item) {
+        $table_contents .= $this->element($row_path, array(
+            'item' => $item
+        ));
+    }
     $table = sprintf(
         '<table class="table table-striped table-hover table-condensed">%s%s</table>',
         $table_headers,
