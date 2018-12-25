@@ -619,6 +619,7 @@ function quickSubmitTagCollectionTagForm(tag_collection_id, tag_id) {
 		},
 		success:function (data, textStatus) {
 			handleGenericAjaxResponse(data);
+            refreshTagCollectionRow(tag_collection_id);
 		},
 		error:function() {
 			showMessage('fail', 'Could not add tag.');
@@ -633,6 +634,20 @@ function quickSubmitTagCollectionTagForm(tag_collection_id, tag_id) {
 		url:"/tag_collections/addTag/" + tag_collection_id
 	});
 	return false;
+}
+
+function refreshTagCollectionRow(tag_collection_id) {
+    $.ajax({
+        type:"get",
+        url:"/tag_collections/getRow/" + tag_collection_id,
+        error:function() {
+            showMessage('fail', 'Could not fetch updates to the modified row.');
+        },
+        success: function (data, textStatus) {
+            $('[data-row-id="' + tag_collection_id + '"]').replaceWith(data);
+        }
+    });
+
 }
 
 function handleAjaxEditResponse(data, name, type, id, field, event) {
@@ -934,8 +949,8 @@ function removeObjectTag(context, object, tag) {
 			$("#gray_out").fadeOut();
 			if (context == 'Attribute') {
 				loadAttributeTags(object);
-            } else if (context == 'TagCollection') {
-
+            } else if (context == 'tag_collection') {
+                refreshTagCollectionRow(object);
 			} else {
 				loadEventTags(object);
 			}
