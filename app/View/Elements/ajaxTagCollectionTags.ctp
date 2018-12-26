@@ -4,7 +4,7 @@
 			$context = 'event';
 		}
         $full = $isAclTagger && $tagAccess;
-        foreach ($tagCollection['TagCollectionElement'] as $tag):
+        foreach ($tagCollection['TagCollectionTag'] as $tag):
             if (!isset($tag['Tag'])) $tag = array('Tag' => $tag);
             $tagClass = $full ? 'tagFirstHalf' : 'tag';
     ?>

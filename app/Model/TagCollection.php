@@ -19,7 +19,7 @@ class TagCollection extends AppModel
     );
 
     public $hasMany = array(
-        'TagCollectionElement' => array(
+        'TagCollectionTag' => array(
             'dependent' => true
         )
     );
@@ -46,5 +46,12 @@ class TagCollection extends AppModel
             $this->data['TagCollection']['uuid'] = CakeText::uuid();
         }
         return true;
+    }
+
+    public function fetchTagCollection($user, $params = array())
+    {
+        return $this->find('all', array(
+            $params
+        ));
     }
 }

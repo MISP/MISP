@@ -533,7 +533,7 @@ class TagsController extends AppController
         $this->loadModel('GalaxyCluster');
         $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.id', 'GalaxyCluster.tag_name')));
         $this->helpers[] = 'TextColour';
-        $tags = $this->TagCollection->TagCollectionElement->find('all', array(
+        $tags = $this->TagCollection->TagCollectionTag->find('all', array(
                 'conditions' => array(
                         'tag_collection_id' => $id,
                         'Tag.name !=' => $cluster_names
@@ -619,22 +619,22 @@ class TagsController extends AppController
             $tagCollections = $this->TagCollection->find('all', array(
                 'recursive' => -1,
                 'conditions' => $conditions,
-                'contain' => array('TagCollectionElement' => array('Tag'))
+                'contain' => array('TagCollectionTag' => array('Tag'))
             ));
             $options = array();
             $expanded = array();
             foreach ($tagCollections as &$tagCollection) {
                 $options[$tagCollection['TagCollection']['id']] = $tagCollection['TagCollection']['name'];
                 $expanded[$tagCollection['TagCollection']['id']] = empty($tagCollection['TagCollection']['description']) ? $tagCollection['TagCollection']['name'] : $tagCollection['TagCollection']['description'];
-                if (!empty($tagCollection['TagCollectionElement'])) {
+                if (!empty($tagCollection['TagCollectionTag'])) {
                     $tagList = array();
-                    foreach ($tagCollection['TagCollectionElement'] as $k => $tce) {
+                    foreach ($tagCollection['TagCollectionTag'] as $k => $tce) {
                         if (in_array($tce['tag_id'], $banned_tags)) {
-                            unset($tagCollection['TagCollectionElement'][$k]);
+                            unset($tagCollection['TagCollectionTag'][$k]);
                         } else {
                             $tagList[] = $tce['Tag']['name'];
                         }
-                        $tagCollection['TagCollectionElement'] = array_values($tagCollection['TagCollectionElement']);
+                        $tagCollection['TagCollectionTag'] = array_values($tagCollection['TagCollectionTag']);
                     }
                     $tagList = implode(', ', $tagList);
                     $expanded[$tagCollection['TagCollection']['id']] .= sprintf(' (%s)', $tagList);

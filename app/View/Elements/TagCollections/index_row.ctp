@@ -9,7 +9,7 @@
                     'ajaxTagCollectionTags',
                     array(
                         'attributeId' => $item['TagCollection']['id'],
-                        'attributeTags' => $item['TagCollectionElement'],
+                        'attributeTags' => $item['TagCollectionTag'],
                         'tagAccess' => ($isSiteAdmin || $me['org_id'] == $item['TagCollection']['org_id']),
                         'context' => 'tagCollection',
                         'tagCollection' => $item
