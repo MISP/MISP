@@ -107,9 +107,10 @@ class Server extends AppModel
                 'data' => array(
                     'getSettings' => 'MISP/app/Console/cake Admin getSetting [setting]',
                     'setSettings' => 'MISP/app/Console/cake Admin getSetting [setting] [value]',
-                    'getAuthkey' => 'MISP/app/Console/cake Admin [email]',
+                    'getAuthkey' => 'MISP/app/Console/cake Admin getAuthkey [email]',
                     'setBaseurl' => 'MISP/app/Console/cake Baseurl [baseurl]',
-                    'changePassword' => 'MISP/app/Console/cake Password [email] [new_password]'
+                    'changePassword' => 'MISP/app/Console/cake Password [email] [new_password]',
+					'clearBruteforce' => 'MISP/app/Console/cake Admin clearBruteforce [user_email]'
                 ),
                 'description' => __('Certain administrative tasks are exposed to the API, these help with maintaining and configuring MISP in an automated way / via external tools.'),
                 'header' => __('Administering MISP via the CLI')
@@ -1901,15 +1902,17 @@ class Server extends AppModel
                 $fails[$eventId] = 'Failed (partially?) because of validation errors: '. json_encode($eventModel->validationErrors, true);
             }
         } else {
-            $tempUser = $user;
-            $tempUser['Role']['perm_site_admin'] = 0;
-            $result = $eventModel->_edit($event, $tempUser, $existingEvent['Event']['id'], $jobId, $passAlong);
-            if ($result === true) {
-                $successes[] = $eventId;
-            } elseif (isset($result['error'])) {
-                $fails[$eventId] = $result['error'];
+            if (!$existingEvent['Event']['locked'] && !$server['Server']['internal']) {
+                $fails[$eventId] = __('Blocked an edit to an event that was created locally. This can happen if a synchronised event that was created on this instance was modified by an administrator on the remote side.');
             } else {
-                $fails[$eventId] = json_encode($result);
+                $result = $eventModel->_edit($event, $user, $existingEvent['Event']['id'], $jobId, $passAlong);
+                if ($result === true) {
+                    $successes[] = $eventId;
+                } elseif (isset($result['error'])) {
+                    $fails[$eventId] = $result['error'];
+                } else {
+                    $fails[$eventId] = json_encode($result);
+                }
             }
         }
     }
@@ -3414,7 +3417,7 @@ class Server extends AppModel
         try {
             $response = $HttpSocket->get($uri, '', $request);
         } catch (Exception $e) {
-            $error = $e->getMessage;
+            $error = $e->getMessage();
         }
         if (!isset($response) || $response->code != '200') {
             $this->Log = ClassRegistry::init('Log');

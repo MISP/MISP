@@ -170,9 +170,13 @@
 		});
 		$('#TemplateSelect').change(function() {
 			var selected_template = $('#TemplateSelect').val();
+			var http_method_for_rest = 'POST';
 			if (selected_template !== '') {
+				if (allValidApis[selected_template].http_method === 'GET') {
+					http_method_for_rest = 'GET';
+				}
 				$('#template_description').show();
-				$('#ServerMethod').val('POST');
+				$('#ServerMethod').val(http_method_for_rest);
 				$('#ServerUrl').val(allValidApis[selected_template].url);
 				$('#ServerBody').val(allValidApis[selected_template].body);
 				setApiInfoBox();

@@ -233,7 +233,12 @@ class RestResponseComponent extends Component
             'admin_quickEmail' => array(
                 'description' => "POST a body and a subject in a JSON to send an e-mail through MISP to the user ID given in the URL",
                 'mandatory' => array('subject', 'body')
-            )
+            ),
+			'statistics' => array(
+				'description' => 'Simply GET the url endpoint to view the API output of the statistics API. Additional statistics are available via the following tab-options similar to the UI: data, orgs, users, tags, attributehistogram, sightings, attackMatrix',
+				'params' => array('tab'),
+				'http_method' => 'GET'
+			)
         ),
         'Warninglist' => array(
             'checkValue' => array(
@@ -369,7 +374,7 @@ class RestResponseComponent extends Component
                     }
                 }
                 $response = array('response' => $response);
-                $response = Xml::build($response);
+                $response = Xml::fromArray($response, array('format' => 'tags'));
                 $response = $response->asXML();
             }
             $type = 'xml';

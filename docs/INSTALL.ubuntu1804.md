@@ -147,6 +147,9 @@ cd ${PATH_TO_MISP}/app/files/scripts/python-cybox
 sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 cd ${PATH_TO_MISP}/app/files/scripts/python-stix
 sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+# install STIX2.0 library to support STIX 2.0 export:
+cd ${PATH_TO_MISP}/cti-python-stix2
+sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 
 # install PyMISP
 cd ${PATH_TO_MISP}/PyMISP
@@ -418,9 +421,6 @@ sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
 sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 sudo apt install ruby-pygments.rb -y
 sudo gem install asciidoctor-pdf --pre
-
-# install STIX2.0 library to support STIX 2.0 export:
-sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install stix2
 
 # install additional dependencies for extended object generation and extraction
 sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install maec lief python-magic pathlib

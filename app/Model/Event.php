@@ -818,14 +818,29 @@ class Event extends AppModel
                 'limit' => $max_correlations
         ));
         $relatedAttributes = array();
+        $orgc_ids = array();
         foreach ($correlations as $k => $correlation) {
+            if (empty($orgc_ids[$correlation[$settings[$context]['correlationModel']]['event_id']])) {
+                $temp = $this->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => array('Event.id' => $correlation[$settings[$context]['correlationModel']]['event_id']),
+                    'fields' => array('Event.orgc_id')
+                ));
+                if (!empty($temp)) {
+                    $orgc_ids[$correlation[$settings[$context]['correlationModel']]['event_id']] = $temp['Event']['orgc_id'];
+                }
+            }
             $current = array(
                     'id' => $correlation[$settings[$context]['correlationModel']]['event_id'],
                     'attribute_id' => $correlation[$settings[$context]['correlationModel']]['attribute_id'],
-                    'org_id' => $correlation[$settings[$context]['correlationModel']]['org_id'],
                     'info' => $correlation[$settings[$context]['correlationModel']]['info'],
                     'value' => $correlation[$settings[$context]['correlationModel']]['value'],
             );
+            if (!empty($orgc_ids[$correlation[$settings[$context]['correlationModel']]['event_id']])) {
+                $current['org_id'] = $orgc_ids[$correlation[$settings[$context]['correlationModel']]['event_id']];
+            } else {
+                $current['org_id'] = 'unknown';
+            }
             if (empty($relatedAttributes[$correlation[$settings[$context]['correlationModel']][$settings[$context]['parentIdField']]]) || !in_array($current, $relatedAttributes[$correlation[$settings[$context]['correlationModel']][$settings[$context]['parentIdField']]])) {
                 $relatedAttributes[$correlation[$settings[$context]['correlationModel']][$settings[$context]['parentIdField']]][] = $current;
             }
@@ -2203,6 +2218,20 @@ class Event extends AppModel
     {
         if (!empty($params['uuid'])) {
             $params['uuid'] = $this->convert_filters($params['uuid']);
+            if (!empty($options['scope']) || $options['scope'] === 'Event') {
+                $conditions = $this->generic_add_filter($conditions, $params['uuid'], 'Event.uuid');
+            }
+            if (!empty($options['scope']) || $options['scope'] === 'Attribute') {
+                $conditions = $this->generic_add_filter($conditions, $params['uuid'], 'Attribute.uuid');
+            }
+        }
+        return $conditions;
+    }
+
+    public function set_filter_mixed_id(&$params, $conditions, $options)
+    {
+        if (!empty($params['mixed_id'])) {
+            $params['mixed_id'] = $this->convert_filters($params['mixed_id']);
             if (!empty($options['scope']) || $options['scope'] === 'Event') {
                 $conditions = $this->generic_add_filter($conditions, $params['uuid'], 'Event.uuid');
             }
@@ -5071,16 +5100,19 @@ class Event extends AppModel
             $tempFilePath = APP . 'files/scripts/tmp/' . $filename;
             $shell_command = $this->getPythonVersion() . ' ' . $scriptFile . ' ' . $tempFilePath;
             $output_path = $tempFilePath . '.stix2';
+            $stix_version = "STIX 2.0";
         } elseif ($stix_version == '1' || $stix_version == '1.1' || $stix_version == '1.2') {
             $scriptFile = APP . 'files/scripts/stix2misp.py';
             $tempFilePath = APP . 'files/scripts/tmp/' . $filename;
             $shell_command = $this->getPythonVersion() . ' ' . $scriptFile . ' ' . $filename;
             $output_path = $tempFilePath . '.json';
+            $stix_version = "STIX 1.1";
         } else {
             throw new MethodNotAllowedException('Invalid STIX version');
         }
-        $shell_command .=  ' ' . $original_file . ' ' . escapeshellarg(Configure::read('MISP.default_event_distribution')) . ' ' . escapeshellarg(Configure::read('MISP.default_attribute_distribution')) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
+        $shell_command .=  ' ' . escapeshellarg(Configure::read('MISP.default_event_distribution')) . ' ' . escapeshellarg(Configure::read('MISP.default_attribute_distribution')) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
         $result = shell_exec($shell_command);
+        $tempFile = file_get_contents($tempFilePath);
         unlink($tempFilePath);
         if (trim($result) == '1') {
             $data = file_get_contents($output_path);
@@ -5090,6 +5122,7 @@ class Event extends AppModel
             $validationIssues = false;
             $result = $this->_add($data, true, $user, '', null, false, null, $created_id, $validationIssues);
             if ($result) {
+                $this->add_original_file($tempFile, $original_file, $created_id, $stix_version);
                 return $created_id;
             }
             return $validationIssues;
@@ -5642,5 +5675,54 @@ class Event extends AppModel
             }
         }
         return $eventIdList;
+    }
+
+    public function add_original_file($file, $original_filename, $event_id, $format)
+    {
+        if (!Configure::check('MISP.default_attribute_distribution') || Configure::read('MISP.default_attribute_distribution') === 'event') {
+            $distribution = 5;
+        } else {
+            $distribution = Configure::read('MISP.default_attribute_distribution');
+        }
+        $this->Object->create();
+        $object = array(
+            'name' => 'original-imported-file',
+            'meta-category' => 'file',
+            'description' => 'Object describing the original file used to import data in MISP.',
+            'template_uuid' => '4cd560e9-2cfe-40a1-9964-7b2e797ecac5',
+            'template_version' => '2',
+            'event_id' => $event_id,
+            'distribution' => $distribution
+        );
+        $this->Object->save($object);
+        $object_id = $this->Object->id;
+        $attributes = array(
+            array(
+                'type' => 'attachment',
+                'category' => 'External analysis',
+                'to_ids' => false,
+                'event_id' => $event_id,
+                'distribution' => $distribution,
+                'object_relation' => 'imported-sample',
+                'value' => $original_filename,
+                'data' => base64_encode($file),
+                'object_id' => $object_id,
+            ),
+            array(
+                'type' => 'text',
+                'category' => 'Other',
+                'to_ids' => false,
+                'event_id' => $event_id,
+                'distribution' => $distribution,
+                'object_id' => $object_id,
+                'object_relation' => 'format',
+                'value' => $format
+            )
+        );
+        foreach ($attributes as $attribute) {
+            $this->Attribute->create();
+            $this->Attribute->save($attribute);
+        }
+        return true;
     }
 }

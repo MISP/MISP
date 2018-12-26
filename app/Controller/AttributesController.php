@@ -480,7 +480,10 @@ class AttributesController extends AppController
             $this->loadModel('Event');
             $this->Event->id = $this->request->data['Attribute']['event_id'];
             $this->Event->recursive = -1;
-            $this->Event->read();
+            $event = $this->Event->read();
+            if (empty($event)) {
+                throw new NotFoundException(__('Invalid Event.'));
+            }
             if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
                 throw new UnauthorizedException(__('You do not have permission to do that.'));
             }
@@ -645,6 +648,9 @@ class AttributesController extends AppController
         $this->set('sharingGroups', $sgs);
 
         $events = $this->Event->findById($eventId);
+        if (empty($events)) {
+            throw new NotFoundException(__('Invalid Event.'));
+        }
         $this->set('currentDist', $events['Event']['distribution']);
         $this->set('published', $events['Event']['published']);
     }
@@ -2849,11 +2855,14 @@ class AttributesController extends AppController
                 throw new NotFoundException(__('Invalid attribute'));
             }
             $this->Attribute->read();
+            if (!$this->_isSiteAdmin() && $this->Attribute->data['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
+                $fails++;
+                continue;
+            }
             if ($this->Attribute->data['Attribute']['deleted']) {
                 throw new NotFoundException(__('Invalid attribute'));
             }
             $eventId = $this->Attribute->data['Attribute']['event_id'];
-
             $this->Attribute->Event->recursive = -1;
             $event = $this->Attribute->Event->read(array(), $eventId);
             if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
@@ -3012,7 +3021,7 @@ class AttributesController extends AppController
 
     public function toggleCorrelation($id)
     {
-        if (!$this->_isSiteAdmin() && Configure.read('MISP.allow_disabling_correlation')) {
+        if (!$this->_isSiteAdmin() && Configure::read('MISP.allow_disabling_correlation')) {
             throw new MethodNotAllowedException(__('Disabling the correlation is not permitted on this instance.'));
         }
         $this->Attribute->id = $id;

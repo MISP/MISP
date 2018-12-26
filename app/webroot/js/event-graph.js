@@ -1434,7 +1434,17 @@ class DataHandler {
 		return $.getJSON( "/events/getObjectTemplate/templates.json", function( data ) {
 			for (var i in data) {
 				var template = data[i].ObjectTemplate;
-				dataHandler.mapping_uuid_to_template.set(template.uuid, template.requirements.requiredOneOf);
+                                var requiredFields;
+                                // add both requiredOneOf and required field
+                                if (template.requirements.requiredOneOf !== undefined) {
+                                    requiredFields = template.requirements.requiredOneOf;
+                                } else {
+                                    requiredFields = [];
+                                }
+                                if (template.requirements.required !== undefined) {
+                                    requiredFields = requiredFields.concat(template.requirements.required);
+                                }
+				dataHandler.mapping_uuid_to_template.set(template.uuid, requiredFields);
 			}
 		});
 	}

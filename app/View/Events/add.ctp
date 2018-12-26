@@ -1,8 +1,4 @@
 <div class="events form">
-    <div class="message">
-        <?php echo __('The event created %s, but not synchronised to other MISP instances until it is published.', (Configure::read('MISP.unpublishedprivate') ? __('will be restricted to your organisation') : __('will be visible to the organisations having an account on this platform')));?>
-    </div>
-
 <?php echo $this->Form->create('', array('type' => 'file'));?>
     <fieldset>
         <legend><?php echo __('Add Event');?></legend>
