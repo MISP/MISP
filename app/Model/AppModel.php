@@ -1073,7 +1073,7 @@ class AppModel extends Model
                     INDEX `user_id` (`user_id`),
                     INDEX `org_id` (`org_id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
-                $sqlArray[] = "CREATE TABLE IF NOT EXISTS tag_collection_elements (
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS tag_collection_tags (
                     `id` int(11) NOT NULL AUTO_INCREMENT,
                     `tag_collection_id` int(11) NOT NULL,
                     `tag_id` int(11) NOT NULL,
