@@ -179,55 +179,54 @@ class Galaxy extends AppModel
         return true;
     }
 
+    private function __attachClusterToEvent($user, $target_id, $cluster_id) {
+
+    }
+
     public function attachCluster($user, $target_type, $target_id, $cluster_id)
     {
+        $connectorModel = Inflector::camelize($target_type) . 'Tag';
         $cluster = $this->GalaxyCluster->find('first', array('recursive' => -1, 'conditions' => array('id' => $cluster_id), 'fields' => array('tag_name', 'id', 'value')));
         $this->Tag = ClassRegistry::init('Tag');
-        if ($target_type == 'event') {
-            $event = $this->Tag->EventTag->Event->fetchEvent($user, array('eventid' => $target_id, 'metadata' => 1));
-            if (empty($event)) {
-                throw new NotFoundException('Invalid event.');
-            }
-            $event = $event[0];
-            $tag_id = $this->Tag->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1), $user);
-            if ($tag_id === false) {
-                throw new MethodNotAllowedException('Could not attach cluster.');
-            }
-            $this->Tag->EventTag->create();
-            $existingTag = $this->Tag->EventTag->find('first', array('conditions' => array('event_id' => $target_id, 'tag_id' => $tag_id)));
-            if (!empty($existingTag)) {
-                return 'Cluster already attached.';
-            }
-            $result = $this->Tag->EventTag->save(array('event_id' => $target_id, 'tag_id' => $tag_id));
-        } elseif ($target_type == 'attribute') {
-            $attribute = $this->Tag->AttributeTag->Attribute->fetchAttributes($user, array('conditions' => array('Attribute.id' => $target_id), 'flatten' => 1));
-            if (empty($attribute)) {
-                throw new NotFoundException('Invalid attribute.');
-            }
-            $attribute = $attribute[0];
-            $tag_id = $this->Tag->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1), $user);
-            if ($tag_id === false) {
-                throw new MethodNotAllowedException('Could not attach cluster.');
-            }
-            $this->Tag->AttributeTag->create();
-            $existingTag = $this->Tag->AttributeTag->find('first', array('conditions' => array('attribute_id' => $target_id, 'tag_id' => $tag_id)));
-            if (!empty($existingTag)) {
-                return 'Cluster already attached.';
-            }
+        if ($target_type === 'event') {
+            $target = $this->Tag->EventTag->Event->fetchEvent($user, array('eventid' => $target_id, 'metadata' => 1));
+        } elseif ($target_type === 'attribute') {
+            $target = $this->Tag->AttributeTag->Attribute->fetchAttributes($user, array('conditions' => array('Attribute.id' => $target_id), 'flatten' => 1));
+        } elseif ($target_type === 'tag_collection') {
+            $target = $this->Tag->TagCollectionTag->TagCollection->fetchTagCollection($user, array('conditions' => array('TagCollection.id' => $target_id)));
+        }
+        if (empty($target)) {
+            throw new NotFoundException(__('Invalid %s.', $target_type));
+        }
+        $target = $target[0];
+        $tag_id = $this->Tag->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1), $user);
+        $existingTag = $this->Tag->$connectorModel->find('first', array('conditions' => array($target_type . '_id' => $target_id, 'tag_id' => $tag_id)));
+        if (!empty($existingTag)) {
+            return 'Cluster already attached.';
+        }
+        $this->Tag->$connectorModel->create();
+        $toSave = array($target_type . '_id' => $target_id, 'tag_id' => $tag_id);
+        if ($target_type === 'attribute') {
             $event = $this->Tag->EventTag->Event->find('first', array(
                 'conditions' => array(
-                    'Event.id' => $attribute['Attribute']['event_id']
+                    'Event.id' => $target['Attribute']['event_id']
                 ),
                 'recursive' => -1
             ));
-            $result = $this->Tag->AttributeTag->save(array('attribute_id' => $target_id, 'tag_id' => $tag_id, 'event_id' => $attribute['Attribute']['event_id']));
+            $toSave['event_id'] = $target['Attribute']['event_id'];
         }
+        $result = $this->Tag->$connectorModel->save($toSave);
         if ($result) {
-            $this->Tag->EventTag->Event->insertLock($user, $event['Event']['id']);
-            $event['Event']['published'] = 0;
-            $date = new DateTime();
-            $event['Event']['timestamp'] = $date->getTimestamp();
-            $this->Tag->EventTag->Event->save($event);
+            if ($target_type !== 'tag_collection') {
+                if ($target_type === 'event') {
+                    $event = $target;
+                }
+                $this->Tag->EventTag->Event->insertLock($user, $event['Event']['id']);
+                $event['Event']['published'] = 0;
+                $date = new DateTime();
+                $event['Event']['timestamp'] = $date->getTimestamp();
+                $this->Tag->EventTag->Event->save($event);
+            }
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
             $this->Log->save(array(
