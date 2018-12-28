@@ -57,7 +57,8 @@ CREATE TABLE public.attribute_tags (
     id bigint NOT NULL,
     attribute_id bigint NOT NULL,
     event_id bigint NOT NULL,
-    tag_id bigint NOT NULL
+    tag_id bigint NOT NULL,
+    deleted smallint NOT NULL DEFAULT 0,
 );
 
 
@@ -290,7 +291,8 @@ ALTER SEQUENCE public.event_locks_id_seq OWNED BY public.event_locks.id;
 CREATE TABLE public.event_tags (
     id bigint NOT NULL,
     event_id bigint NOT NULL,
-    tag_id bigint NOT NULL
+    tag_id bigint NOT NULL,
+    deleted smallint NOT NULL DEFAULT 0,
 );
 
 

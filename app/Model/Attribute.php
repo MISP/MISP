@@ -3681,6 +3681,33 @@ class Attribute extends AppModel
             ));
             return $this->validationErrors;
         } else {
+            // tag soft remover patch , only for "internal instance" -lm
+            if ($user['Server']['internal']) {
+            	$tagsList = $this->AttributeTag->find('all', array(
+            		'conditions' => array(
+                        'attribute_id' => $this->id,
+                        'AttributeTag.deleted' => 0, // tag softdeletion -lm
+                        ),
+                ));
+                foreach($tagsList as $t) {
+                	$t['AttributeTag']['deleted'] = 1;
+                        if ($this->AttributeTag->save($t['AttributeTag'])) {
+                        	$this->Log->create();
+                                $this->Log->save(array(
+                                   'org' => $user['Organisation']['name'],
+                                   'model' => 'Attribute',
+                                   'model_id' => $this->id,
+                                   'email' => $user['email'],
+                                   'action' => 'edit',
+                                   'user_id' => $user['id'],
+                                   'title' => 'Auto-SoftRemoved Attribute Tag ('.$t['Tag']['id'].') "'.$t['Tag']['name'].'" from event ('.$eventId.')',
+                                   'change' => 'Server Id '.$user['Server']['id'].' ('.$user['Server']['url'].') is an "Internal Instance"',
+                                ));
+        	        } 
+	        }
+            }
+            // end -lm
+
             if (isset($attribute['Tag']) && $user['Role']['perm_tagger']) {
                 foreach ($attribute['Tag'] as $tag) {
                     $tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);

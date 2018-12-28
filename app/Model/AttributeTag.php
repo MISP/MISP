@@ -74,8 +74,15 @@ class AttributeTag extends AppModel
         if (empty($existingAssociation)) {
             $this->create();
             if (!$this->save(array('attribute_id' => $attribute_id, 'event_id' => $event_id, 'tag_id' => $tag_id))) {
-                return false;
+	        return false;
+	    }
+         // tags softdelete patch -lm
+        } else if ($existingAssociation['AttributeTag']['deleted'] = 1) {
+            $existingAssociation['AttributeTag']['deleted'] = 0;
+            if (!$this->save($existingAssociation)) {
+		return false;
             }
+        // end -lm
         }
         return true;
     }
@@ -84,7 +91,10 @@ class AttributeTag extends AppModel
     {
         return $this->find('count', array(
             'recursive' => -1,
-            'conditions' => array('AttributeTag.tag_id' => $tag_id)
+	    'conditions' => array(
+		'AttributeTag.tag_id' => $tag_id,
+		'AttributeTag.deleted' => 0 // tags softdelete patch -lm
+  	    )
         ));
     }
 
