@@ -77,7 +77,7 @@ class AttributeTag extends AppModel
 	        return false;
 	    }
          // tags softdelete patch -lm
-        } else if ($existingAssociation['AttributeTag']['deleted'] = 1) {
+        } else if ($existingAssociation['AttributeTag']['deleted'] == 1) {
             $existingAssociation['AttributeTag']['deleted'] = 0;
             if (!$this->save($existingAssociation)) {
 		return false;

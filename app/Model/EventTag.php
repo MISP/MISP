@@ -102,7 +102,7 @@ class EventTag extends AppModel
                 return false;
             }
  	//tags softdelete patch -lm
-	} else if ($existingAssociation['EventTag']['deleted'] = 1) {
+	} else if ($existingAssociation['EventTag']['deleted'] == 1) {
 	    $existingAssociation['EventTag']['deleted'] = 0;
 	    if (!$this->save($existingAssociation)) {
 		return false;
