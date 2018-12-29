@@ -23,7 +23,7 @@
             echo $this->element('galaxyQuickViewMini', array(
               'mayModify' => true,
               'isAclTagger' => true,
-              'data' => array(),
+              'data' => $item['Galaxy'],
               'target_id' => h($item['TagCollection']['id']),
               'target_type' => 'tag_collection'
             ));

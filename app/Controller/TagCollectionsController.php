@@ -248,7 +248,13 @@ class TagCollectionsController extends AppController
 
     public function index()
     {
-        $this->set('list', $this->paginate());
+        $list = $this->paginate();
+        $this->loadModel('Event');
+        foreach ($list as $k => $tag_collection) {
+            $list[$k] = $this->Event->massageTags($tag_collection, $dataType = 'TagCollection');
+        }
+
+        $this->set('list', $list);
     }
 
     public function getRow($id)
