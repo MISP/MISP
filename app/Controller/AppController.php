@@ -69,6 +69,11 @@ class AppController extends Controller
         $name = str_replace('sController', '', $name);
         $name = str_replace('Controller', '', $name);
         $this->defaultModel = $name;
+
+	Resque::setBackend(
+	    Configure::read('MISP.redis_host') . ":" . Configure::read('MISP.redis_port'),
+	    Configure::read('MISP.redis_database')
+	);
     }
 
     public $components = array(
