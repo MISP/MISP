@@ -270,6 +270,9 @@ class WarninglistsController extends AppController
             if (!is_array($data)) {
                 $data = array($data);
             }
+            if (array_key_exists('[]', $data)) {
+                $data = $data['[]'];
+            }
             $hits = array();
             foreach ($data as $dataPoint) {
                 foreach ($warninglists as $warninglist) {
