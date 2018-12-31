@@ -1623,8 +1623,8 @@ class ServersController extends AppController
 
     public function rest()
     {
-        $allValidApis = $this->RestResponse->getAllApis($this->Auth->user(), $this);
-        $allValidApisFieldsContraint = $this->RestResponse->getAllApisFieldsConstraint($this->Auth->user(), $this);
+        $allValidApis = $this->RestResponse->getAllApis($this->Auth->user());
+        $allValidApisFieldsContraint = $this->RestResponse->getAllApisFieldsConstraint($this->Auth->user());
         if ($this->request->is('post')) {
             $request = $this->request->data;
             if (!empty($request['Server'])) {

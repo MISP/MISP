@@ -2,6 +2,8 @@
 
 class RestResponseComponent extends Component
 {
+    public $components = array('ACL');
+
     private $__convertActionToMessage = array(
         'SharingGroup' => array(
             'addOrg' => 'add Organisation to',
@@ -13,7 +15,7 @@ class RestResponseComponent extends Component
 
     private $___setup = false;
 
-    public $__descriptions = array(
+    private $__descriptions = array(
         'Attribute' => array(
             'add' => array(
                 'description' => "POST a MISP Attribute JSON to this API to create an Attribute.",
@@ -194,7 +196,7 @@ class RestResponseComponent extends Component
         'SharingGroup' => array(
             'add' => array(
                 'description' => "POST a Sharing Group object in JSON format to this API to add a Sharing Group. The API will also try to capture attached organisations and servers if applicable to the current user.",
-                'mandatory' => array('AND' => array('name', 'releasability')),
+                'mandatory' => array('name', 'releasability'),
                 'optional' => array('description', 'uuid', 'organisation_uuid', 'active', 'created', 'modified', 'roaming', 'Server' => array('url', 'name', 'all_orgs'), 'Organisation' => array('uuid', 'name', 'extend'))
             ),
             'edit' => array(
@@ -252,16 +254,16 @@ class RestResponseComponent extends Component
         )
     );
 
-    public $__scopedFieldsConstraint = array();
+    private $__scopedFieldsConstraint = array();
 
-    public function getAllApisFieldsConstraint($user, $Server)
+    public function getAllApisFieldsConstraint($user)
     {
         $this->__setup();
         $result = array();
         foreach ($this->__scopedFieldsConstraint as $controller => $actions) {
             $controller = Inflector::tableize($controller);
             foreach ($actions as $action => $data) {
-                if ($Server->ACL->checkAccess($user, $controller, $action, true) === true) {
+                if ($this->ACL->checkAccess($user, $controller, $action, true) === true) {
                     $admin_routing = '';
                     if (substr($action, 0, 6) === 'admin_') {
                         $action = substr($action, 6);
@@ -275,14 +277,14 @@ class RestResponseComponent extends Component
         return $result;
     }
 
-    public function getAllApis($user, $Server)
+    public function getAllApis($user)
     {
         $this->__setup();
         $result = array();
         foreach ($this->__descriptions as $controller => $actions) {
             $controller = Inflector::tableize($controller);
             foreach ($actions as $action => $data) {
-                if ($Server->ACL->checkAccess($user, $controller, $action, true) === true) {
+                if ($this->ACL->checkAccess($user, $controller, $action, true) === true) {
                     $admin_routing = '';
                     if (substr($action, 0, 6) === 'admin_') {
                         $action = substr($action, 6);
@@ -491,7 +493,8 @@ class RestResponseComponent extends Component
         return $this->__sendResponse($response, 200, $format);
     }
 
-    private function __setup() {
+    private function __setup()
+    {
         if (!$this->__setup) {
             $scopes = array('Event', 'Attribute', 'Sighting');
             foreach ($scopes as $scope) {
@@ -901,7 +904,7 @@ class RestResponseComponent extends Component
         'limit' => array(
             'input' => 'number',
             'type' => 'integer',
-            'operators' => array('equal', 'not_equal'),
+            'operators' => array('equal'),
             'validation' => array('min' => 0, 'step' => 1),
             'help' => 'Limit on the pagination'
         ),
@@ -1005,8 +1008,8 @@ class RestResponseComponent extends Component
         'page' => array(
             'input' => 'number',
             'type' => 'integer',
-            'operators' => array('equal', 'not_equal'),
-            'validation' => array('min' => 0, 'step' => 1),
+            'operators' => array('equal'),
+            'validation' => array('min' => 1, 'step' => 1),
             'help' => 'Page number for the pagination'
         ),
         'password' => array(
