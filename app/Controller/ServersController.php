@@ -821,6 +821,11 @@ class ServersController extends AppController
         return $this->Server->loadAvailableLanguages();
     }
 
+    private function __loadTagCollections()
+    {
+        return $this->Server->loadTagCollections($this->Auth->user());
+    }
+
     private function __loadLocalOrgs()
     {
         $this->loadModel('Organisation');
