@@ -3390,6 +3390,8 @@ class EventsController extends AppController
         }
         if ($success) {
             return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => __('Tag(s) added.'), 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+        } elseif (empty($fail)) {
+            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => __('All tags are already present, nothing to add.'), 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
         } else {
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $fail)), 'status'=>200, 'type' => 'json'));
         }
