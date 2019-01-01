@@ -71,7 +71,8 @@ class AppModel extends Model
         1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
         7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
         13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false,
-        21 => false, 22 => false, 23 => false, 24 => false, 25 => false, 26 => false
+        21 => false, 22 => false, 23 => false, 24 => false, 25 => false, 26 => false,
+        27 => false
     );
 
     public function afterSave($created, $options = array())
@@ -1081,6 +1082,9 @@ class AppModel extends Model
                     INDEX `uuid` (`tag_collection_id`),
                     INDEX `user_id` (`tag_id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                break;
+            case 27:
+                $sqlArray[] = 'ALTER TABLE `tags` CHANGE `org_id` `org_id` int(11) NOT NULL DEFAULT 0;';
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
