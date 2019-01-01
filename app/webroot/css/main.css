@@ -1255,6 +1255,7 @@ a.proposal_link_red:hover {
 .useCursorPointer {
 	cursor: pointer;
 	cursor: hand;
+	user-select: none;
 }
 
 .underline {
@@ -1664,6 +1665,7 @@ a.discrete {
 }
 
 .dashboard_element{
+	background-color: white;
 	border: 1px solid #0088cc;
 	border-radius: 5px;
 	box-shadow: 0px 0px 6px #B2B2B2;
@@ -2087,8 +2089,6 @@ table tr:hover .down-expand-button {
     font-size: 20px;
     padding-left: 2px;
     padding-top: 2px;
-    width: 18px;
-    height: 20px;
     cursor: pointer;
     background-image: unset;
     text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white;
@@ -2103,6 +2103,7 @@ table tr:hover .down-expand-button {
 }
 
 .quick-edit-row-div {
+    line-height: normal;
     display: inline-block;
     position: relative;
 }
@@ -2115,4 +2116,11 @@ table tr:hover .down-expand-button {
     margin-top: 30px;
     width: calc(100vw - 230px);
     min-width: 1400px;
+}
+
+.restclient-infofield {
+    margin-left: 2px;
+    font-size: smaller;
+    position: relative;
+    bottom: 4px;
 }

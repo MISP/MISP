@@ -2,6 +2,13 @@ String.prototype.ucfirst = function() {
 	return this.charAt(0).toUpperCase() + this.slice(1);
 }
 
+if (!String.prototype.startsWith) {
+  String.prototype.startsWith = function(searchString, position) {
+    position = position || 0;
+    return this.indexOf(searchString, position) === position;
+  };
+}
+
 function deleteObject(type, action, id, event) {
 	var destination = 'attributes';
 	var alternateDestinations = ['shadow_attributes', 'template_elements', 'taxonomies', 'galaxy_clusters', 'objects', 'object_references'];

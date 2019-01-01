@@ -162,6 +162,7 @@ class ObjectReferencesController extends AppController
                     $relationships[$v['ObjectRelationship']['name']] = $v['ObjectRelationship']['name'];
                 }
                 $relationships['custom'] = 'custom';
+                ksort($relationships);
                 $this->set('relationships', $relationships);
                 $this->set('event', $event);
                 $this->set('objectId', $objectId);

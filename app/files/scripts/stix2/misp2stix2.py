@@ -18,6 +18,7 @@
 
 import sys, json, os, datetime
 import pymisp
+import re
 from stix2 import *
 from misp2stix2_mapping import *
 from collections import defaultdict
@@ -85,7 +86,7 @@ class StixBuilder():
             report_args['labels'].append('misp:tool="misp2stix2"')
         if self.external_refs:
             report_args['external_references'] = self.external_refs
-        return Report(**report_args)
+        return Report(**report_args, interoperability=True)
 
     def __set_identity(self):
         org = self.misp_event['Orgc']
@@ -93,8 +94,8 @@ class StixBuilder():
         identity_id = 'identity--{}'.format(org_uuid)
         self.identity_id = identity_id
         if org_uuid not in self.orgs:
-            identity = Identity(type="identity", id=identity_id,
-                                name=org["name"], identity_class="organization")
+            identity = Identity(type="identity", id=identity_id, name=org["name"],
+                                identity_class="organization", interoperability=True)
             self.SDOs.append(identity)
             self.orgs.append(org_uuid)
             return 1
@@ -126,7 +127,6 @@ class StixBuilder():
             self.load_objects_mapping()
             self.objects_to_parse = defaultdict(dict)
             misp_objects = self.misp_event['Object']
-            self.object_references = self.fetch_object_references(misp_objects)
             for misp_object in misp_objects:
                 name = misp_object['name']
                 if name == 'original-imported-file':
@@ -152,7 +152,8 @@ class StixBuilder():
                 except KeyError:
                     # custom relationship (suggested by iglocska)
                     relation = "has"
-                relationship = Relationship(source_ref=source, target_ref=target, relationship_type=relation)
+                relationship = Relationship(source_ref=source, target_ref=target,
+                                            relationship_type=relation, interoperability=True)
                 self.append_object(relationship, relationship.id)
         report = self.eventReport()
         self.SDOs.insert(i, report)
@@ -190,20 +191,7 @@ class StixBuilder():
         self.galaxies_mapping.update(dict.fromkeys(threat_actor_galaxies_list, ['threat-actor', self.add_threat_actor]))
         self.galaxies_mapping.update(dict.fromkeys(tool_galaxies_list, ['tool', self.add_tool]))
 
-    def fetch_object_references(self, misp_objects):
-        object_references = {}
-        for misp_object in misp_objects:
-            if misp_object.get('ObjectReference') and not self.fetch_ids_flag(misp_object['Attribute']):
-                for reference in misp_object['ObjectReference']:
-                    try:
-                        referenced_object = reference['Attribute']
-                    except KeyError:
-                        referenced_object = self.get_object_by_uuid(reference['referenced_uuid'])
-                    object_references[reference['referenced_uuid']] = referenced_object
-        return object_references
-
-    @staticmethod
-    def get_object_by_uuid(uuid):
+    def get_object_by_uuid(self, uuid):
         for _object in self.misp_event['Object']:
             if _object.get('uuid') and _object['uuid'] == uuid:
                 return _object
@@ -258,29 +246,43 @@ class StixBuilder():
             to_ids_list.append(to_ids_pe)
             sections = []
             for reference in pe_object['ObjectReference']:
-                if reference['Object']['name'] == "pe-section":
+                if reference['Object']['name'] == "pe-section" and reference['referenced_uuid'] in self.objects_to_parse['pe-section']:
                     to_ids_section, section_object = self.objects_to_parse['pe-section'][reference['referenced_uuid']]
                     to_ids_list.append(to_ids_section)
                     sections.append(section_object)
             if True in to_ids_list:
-                pattern = self.resolve_file_pattern(file_object['Attributes'], file_id)[1:-1]
+                pattern = self.resolve_file_pattern(file_object['Attribute'], file_id)[1:-1]
                 pattern += " AND {}".format(self.parse_pe_extensions_pattern(pe_object, sections))
                 self.add_object_indicator(file_object, pattern_arg="[{}]".format(pattern))
             else:
-                observable = self.resolve_file_observable(file_object['Attributes'], file_id)
-                observable['1']['extensions'] = self.parse_pe_extensions_observable(pe_object, sections)
+                observable = self.resolve_file_observable(file_object['Attribute'], file_id)
+                pe_type = self._get_pe_type_from_filename(observable['0'])
+                observable['0']['extensions'] = self.parse_pe_extensions_observable(pe_object, sections, pe_type)
                 self.add_object_observable(file_object, observable_arg=observable)
 
-    def parse_pe_extensions_observable(self, pe_object, sections):
+    @staticmethod
+    def _create_pe_type_test(observable, extension):
+        return [
+            ('name' in observable and observable['name'].endswith('.%s' % extension)),
+            ('mime_type' in observable and re.compile(".* .+{0}.+ .*|.* {0} .*".format(extension)).match(observable['mime_type'].lower()))]
+
+    def _get_pe_type_from_filename(self, observable):
+        for extension in ('exe', 'dll'):
+            if any(self._create_pe_type_test(observable, extension)):
+                return extension
+        return 'sys'
+
+    def parse_pe_extensions_observable(self, pe_object, sections, pe_type):
         extension = defaultdict(list)
-        for attribute in pe_object['Attributes']:
+        extension['pe_type'] = pe_type
+        for attribute in pe_object['Attribute']:
             try:
                 extension[peMapping[attribute['object_relation']]] = attribute['value']
             except KeyError:
                 extension["x_misp_{}_{}".format(attribute['type'], attribute['object_relation'].replace('-', '_'))] = attribute['value']
         for section in sections:
             d_section = defaultdict(dict)
-            for attribute in section['Attributes']:
+            for attribute in section['Attribute']:
                 relation = attribute['object_relation']
                 if relation in misp_hash_types:
                     d_section['hashes'][relation] = attribute['value']
@@ -289,14 +291,18 @@ class StixBuilder():
                         d_section[peSectionMapping[relation]] = attribute['value']
                     except KeyError:
                         continue
+            if 'name' not in d_section:
+                d_section['name'] = 'Section {}'.format(sections.index(section))
             extension['sections'].append(WindowsPESection(**d_section))
+        if len(sections) != int(extension['number_of_sections']):
+            extension['number_of_sections'] = str(len(sections))
         return {"windows-pebinary-ext": extension}
 
     def parse_pe_extensions_pattern(self, pe_object, sections):
         pattern = ""
         mapping = objectsMapping['file']['pattern']
         pe_mapping = "extensions.'windows-pebinary-ext'"
-        for attribute in pe_object['Attributes']:
+        for attribute in pe_object['Attribute']:
             try:
                 stix_type = "{}.{}".format(pe_mapping, peMapping[attribute['object_relation']])
             except KeyError:
@@ -305,7 +311,7 @@ class StixBuilder():
         n_section = 0
         for section in sections:
             section_mapping = "{}.sections[{}]".format(pe_mapping, str(n_section))
-            for attribute in section['Attributes']:
+            for attribute in section['Attribute']:
                 relation = attribute['object_relation']
                 if relation in misp_hash_types:
                     stix_type = "{}.hashes.'{}'".format(section_mapping, relation)
@@ -338,7 +344,11 @@ class StixBuilder():
     @staticmethod
     def generate_galaxy_args(galaxy, b_killchain, b_alias, sdo_type):
         cluster = galaxy['GalaxyCluster'][0]
-        sdo_id = "{}--{}".format(sdo_type, cluster.get('uuid'))
+        try:
+            cluster_uuid = cluster['collection_uuid']
+        except KeyError:
+            cluster_uuid = cluster['uuid']
+        sdo_id = "{}--{}".format(sdo_type, cluster_uuid)
         description = "{} | {}".format(galaxy['description'], cluster['description'])
         labels = ['misp:name=\"{}\"'.format(galaxy['name'])]
         sdo_args = {'id': sdo_id, 'type': sdo_type, 'name': cluster['value'], 'description': description}
@@ -360,7 +370,7 @@ class StixBuilder():
     def add_attack_pattern(self, galaxy):
         a_p_args, a_p_id = self.generate_galaxy_args(galaxy, True, False, 'attack-pattern')
         a_p_args['created_by_ref'] = self.identity_id
-        attack_pattern = AttackPattern(**a_p_args)
+        attack_pattern = AttackPattern(**a_p_args, interoperability=True)
         self.append_object(attack_pattern, a_p_id)
 
     def add_course_of_action(self, misp_object):
@@ -383,7 +393,7 @@ class StixBuilder():
 
     def add_coa_stix_object(self, coa_args, coa_id):
         coa_args['created_by_ref'] = self.identity_id
-        course_of_action = CourseOfAction(**coa_args)
+        course_of_action = CourseOfAction(**coa_args, interoperability=True)
         self.append_object(course_of_action, coa_id)
 
     def add_custom(self, attribute):
@@ -417,7 +427,7 @@ class StixBuilder():
                           'identity_class': 'individual', 'created_by_ref': self.identity_id}
         if attribute.get('comment'):
             identity_args['description'] = attribute['comment']
-        identity = Identity(**identity_args)
+        identity = Identity(**identity_args, interoperability=True)
         self.append_object(identity, identity_id)
 
     def add_indicator(self, attribute):
@@ -438,19 +448,19 @@ class StixBuilder():
                     break
         if attribute.get('comment'):
             indicator_args['description'] = attribute['comment']
-        indicator = Indicator(**indicator_args)
+        indicator = Indicator(**indicator_args, interoperability=True)
         self.append_object(indicator, indicator_id)
 
     def add_intrusion_set(self, galaxy):
         i_s_args, i_s_id = self.generate_galaxy_args(galaxy, False, True, 'intrusion-set')
         i_s_args['created_by_ref'] = self.identity_id
-        intrusion_set = IntrusionSet(**i_s_args)
+        intrusion_set = IntrusionSet(**i_s_args, interoperability=True)
         self.append_object(intrusion_set, i_s_id)
 
     def add_malware(self, galaxy):
         malware_args, malware_id = self.generate_galaxy_args(galaxy, True, False, 'malware')
         malware_args['created_by_ref'] = self.identity_id
-        malware = Malware(**malware_args)
+        malware = Malware(**malware_args, interoperability=True)
         self.append_object(malware, malware_id)
 
     def add_observed_data(self, attribute):
@@ -464,19 +474,19 @@ class StixBuilder():
         observed_data_args = {'id': observed_data_id, 'type': 'observed-data', 'number_observed': 1,
                               'first_observed': timestamp, 'last_observed': timestamp, 'labels': labels,
                               'created_by_ref': self.identity_id, 'objects': observable}
-        observed_data = ObservedData(**observed_data_args)
+        observed_data = ObservedData(**observed_data_args, interoperability=True)
         self.append_object(observed_data, observed_data_id)
 
     def add_threat_actor(self, galaxy):
         t_a_args,  t_a_id = self.generate_galaxy_args(galaxy, False, True, 'threat-actor')
         t_a_args['created_by_ref'] = self.identity_id
-        threat_actor = ThreatActor(**t_a_args)
+        threat_actor = ThreatActor(**t_a_args, interoperability=True)
         self.append_object(threat_actor, t_a_id)
 
     def add_tool(self, galaxy):
         tool_args, tool_id = self.generate_galaxy_args(galaxy, True, False, 'tool')
         tool_args['created_by_ref'] = self.identity_id
-        tool = Tool(**tool_args)
+        tool = Tool(**tool_args, interoperability=True)
         self.append_object(tool, tool_id)
 
     def add_vulnerability(self, attribute):
@@ -487,7 +497,7 @@ class StixBuilder():
         vulnerability_args = {'id': vulnerability_id, 'type': 'vulnerability',
                               'name': name, 'external_references': vulnerability_data,
                               'created_by_ref': self.identity_id, 'labels': labels}
-        vulnerability = Vulnerability(**vulnerability_args)
+        vulnerability = Vulnerability(**vulnerability_args, interoperability=True)
         self.append_object(vulnerability, vulnerability_id)
 
     def add_vulnerability_from_galaxy(self, attribute):
@@ -506,7 +516,7 @@ class StixBuilder():
                               'name': name, 'external_references': vulnerability_data,
                               'created_by_ref': self.identity_id, 'labels': labels,
                               'description': description}
-        vulnerability = Vulnerability(**vulnerability_args)
+        vulnerability = Vulnerability(**vulnerability_args, interoperability=True)
         self.append_object(vulnerability, vulnerability_id)
 
     def add_object_custom(self, misp_object, to_ids):
@@ -550,7 +560,7 @@ class StixBuilder():
                           'labels': labels, 'description': misp_object['description'],
                           'pattern': pattern, 'kill_chain_phases': killchain,
                           'created_by_ref': self.identity_id, 'allow_custom': True}
-        indicator = Indicator(**indicator_args)
+        indicator = Indicator(**indicator_args, interoperability=True)
         self.append_object(indicator, indicator_id)
 
     def add_object_observable(self, misp_object, observable_arg=None):
@@ -569,7 +579,7 @@ class StixBuilder():
                               'first_observed': timestamp, 'last_observed': timestamp,
                               'created_by_ref': self.identity_id, 'allow_custom': True}
         try:
-            observed_data = ObservedData(**observed_data_args)
+            observed_data = ObservedData(**observed_data_args, interoperability=True)
         except exceptions.InvalidValueError:
             observed_data = self.fix_enumeration_issues(name, observed_data_args)
         self.append_object(observed_data, observed_data_id)
@@ -590,8 +600,8 @@ class StixBuilder():
                     current_dict[field] = enumeration_fails[field]
             for field in enumeration_fails:
                 current_dict.pop(field)
-            return ObservedData(**ns_args)
-        return ObservedData(**args)
+            return ObservedData(**ns_args, interoperability=True)
+        return ObservedData(**args, interoperability=True)
 
     def add_object_vulnerability(self, misp_object, to_ids):
         vulnerability_id = 'vulnerability--{}'.format(misp_object['uuid'])
@@ -600,7 +610,7 @@ class StixBuilder():
         vulnerability_args = {'id': vulnerability_id, 'type': 'vulnerability',
                               'name': name, 'created_by_ref': self.identity_id,
                               'labels': labels}
-        vulnerability = Vulnerability(**vulnerability_args)
+        vulnerability = Vulnerability(**vulnerability_args, interoperability=True)
         self.append_object(vulnerability, vulnerability_id)
 
     def append_object(self, stix_object, stix_object_id):
