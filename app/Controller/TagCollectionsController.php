@@ -6,7 +6,8 @@ class TagCollectionsController extends AppController
 {
     public $components = array(
         'Security',
-        'AdminCrud'
+        'AdminCrud',
+        'RequestHandler'
     );
 
     public $paginate = array(
@@ -15,7 +16,7 @@ class TagCollectionsController extends AppController
                     'TagCollection.name' => 'ASC'
             ),
             'recursive' => -1,
-            'contain' => array('TagCollectionTag' => array('Tag'))
+            'contain' => array('TagCollectionTag' => array('Tag'), 'User', 'Organisation')
     );
 
     public function add()
@@ -104,9 +105,35 @@ class TagCollectionsController extends AppController
         $this->render('add');
     }
 
-    public function delete()
+    public function delete($id)
     {
-
+        $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $id)));
+        if (empty($tagCollection)) {
+            throw new NotFoundException(__('Invalid tag collection.'));
+        }
+        $tagCollection = $tagCollection[0];
+        if ($this->TagCollection->checkAccess($this->Auth->user(), $tagCollection, 'write')) {
+            $result = $this->TagCollection->delete($id);
+            if ($result) {
+                $message = __('Tag collection deleted.');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveSuccessResponse('TagCollections', 'delete', false, $this->response->type(), $message);
+                } else {
+                    $this->Flash->success($message);
+                    $this->redirect('index');
+                }
+            } else {
+                $message = __('Tag collection could not be deleted.');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('TagCollections', 'delete', false, $message, $this->response->type());
+                } else {
+                    $this->Flash->error($message);
+                    $this->redirect('index');
+                }
+            }
+        } else {
+            throw new NotFoundException(__('You are not allowed to delete that.'));
+        }
     }
 
     public function addTag($id = false, $tag_id = false)
@@ -248,27 +275,69 @@ class TagCollectionsController extends AppController
 
     public function index()
     {
-        $list = $this->paginate();
+        //$this->Auth->user('Role')['perm_site_admin']);
+        $conditions = array();
+        if (!$this->_isSiteAdmin()) {
+            $conditions = array(
+                'OR' => array(
+                    'TagCollection.all_orgs' => 1,
+                    'TagCollection.org_id' => $this->Auth->user('org_id')
+                )
+            );
+            $this->paginate['conditions'] = $conditions;
+        }
+        if ($this->_isRest()) {
+            $params = array(
+                'recursive' => -1,
+                'contain' => array('TagCollectionTag' => array('Tag'), 'Organisation', 'User')
+            );
+            if (!empty($conditions)) {
+                $params['conditions'] = $conditions;
+            }
+            $namedParams = array('limit', 'page');
+            foreach ($namedParams as $namedParam) {
+                if (!empty($this->params['named'][$namedParam])) {
+                    $params['limit'] = $this->params['named'][$namedParam];
+                }
+            }
+            $list = $this->TagCollection->find('all', $params);
+        } else {
+            $list = $this->paginate();
+        }
         $this->loadModel('Event');
         foreach ($list as $k => $tag_collection) {
-            $list[$k] = $this->Event->massageTags($tag_collection, $dataType = 'TagCollection');
+            $list[$k] = $this->TagCollection->cullBlockedTags($this->Auth->user(), $tag_collection);
+            $list[$k] = $this->Event->massageTags($list[$k], 'TagCollection', false, true);
+            if (!$this->_isSiteAdmin() && $list[$k]['TagCollection']['org_id'] !== $this->Auth->user('org_id')) {
+                unset($list[$k]['User']);
+                unset($list[$k]['TagCollection']['user_id']);
+            }
         }
-
-        $this->set('list', $list);
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($list, $this->response->type());
+        } else {
+            $this->set('list', $list);
+        }
     }
 
     public function getRow($id)
     {
         $params = array(
             'recursive' => -1,
-            'contain' => array('TagCollectionTag' => array('Tag')),
+            'contain' => array('TagCollectionTag' => array('Tag'), 'User', 'Organisation'),
             'conditions' => array('TagCollection.id' => $id)
         );
         $item = $this->TagCollection->find('first', $params);
         if (empty($item)) {
             throw new NotFoundException('Invalid tag collection.');
         }
-        $this->set('item', $item);
+        if (!$this->_isSiteAdmin() && $item['TagCollection']['org_id'] !== $this->Auth->user('org_id')) {
+            unset($item['User']);
+            unset($item['TagCollection']['user_id']);
+        }
+        $this->loadModel('Event');
+        $item = $this->Event->massageTags($item, 'TagCollection', false, true);
         $this->layout = false;
+        $this->set('item', $item);
     }
 }

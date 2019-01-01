@@ -610,17 +610,10 @@ class TagsController extends AppController
                 ),
                 'fields' => array('Tag.id')
         ));
+        $this->set('taxonomy_id', $taxonomy_id);
         if ($taxonomy_id === 'collections') {
             $this->loadModel('TagCollection');
-            $conditions = array();
-            if (!$this->_isSiteAdmin()) {
-                $conditions['org_id'] = $this->Auth->user('org_id');
-            }
-            $tagCollections = $this->TagCollection->find('all', array(
-                'recursive' => -1,
-                'conditions' => $conditions,
-                'contain' => array('TagCollectionTag' => array('Tag'))
-            ));
+            $tagCollections = $this->TagCollection->fetchTagCollection($this->Auth->user());
             $options = array();
             $expanded = array();
             foreach ($tagCollections as &$tagCollection) {

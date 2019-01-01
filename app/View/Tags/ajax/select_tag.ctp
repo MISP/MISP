@@ -2,7 +2,7 @@
     <legend><?php echo __('Select Tag');?></legend>
     <div style="display:none;">
         <?php
-            if ($scope === 'attribute') {
+            if ($scope === 'attributes') {
                 echo $this->Form->create('Attribute', array('url' => '/attributes/addTag/' . $object_id, 'style' => 'margin:0px;'));
             } elseif ($scope === 'event') {
                 echo $this->Form->create('Event', array('url' => '/events/addTag/' . $object_id, 'style' => 'margin:0px;'));
@@ -19,18 +19,25 @@
     </div>
     <div class="popover_choice_main" id ="popover_choice_main">
         <table style="width:100%;">
-        <?php foreach ($options as $k => &$option): ?>
-            <tr style="border-top:1px solid black;" class="templateChoiceButton shown" id="field_<?php echo h($k); ?>">
+    <?php
+        foreach ($options as $k => &$option):
+            $choice_id = $k;
+            if ($taxonomy_id === 'collections') {
+                $choice_id = 'collection_' . $choice_id;
+            }
+    ?>
+
+            <tr style="border-top:1px solid black;" class="templateChoiceButton shown" id="field_<?php echo h($choice_id); ?>">
                 <?php
                     $onClickForm = 'quickSubmitTagForm';
-                    if ($scope === 'attribute') {
+                    if ($scope === 'attributes') {
                         $onClickForm = 'quickSubmitAttributeTagForm';
                     }
                     if ($scope === 'tag_collection') {
                         $onClickForm = 'quickSubmitTagCollectionTagForm';
                     }
                     echo '<td style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="' . $onClickForm .
-                        '(\'' . h($object_id) . '\', \'' . h($k) . '\');" title="' . h($expanded[$k]) . '" role="button" tabindex="0" aria-label="' .
+                        '(\'' . h($object_id) . '\', \'' . h($choice_id) . '\');" title="' . h($expanded[$k]) . '" role="button" tabindex="0" aria-label="' .
                         __('Attach tag') . ' ' . h($option) . '">' . h($option) . '</td>';
                 ?>
             </tr>

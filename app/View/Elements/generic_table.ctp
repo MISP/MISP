@@ -26,7 +26,11 @@
                 $header_data = $this->Paginator->sort($header);
             }
         } else {
-            $header_data = Inflector::humanize(h($header));
+            if (!empty($data['alias'])) {
+                $header_data = $data['alias'];
+            } else {
+                $header_data = Inflector::humanize(h($header));
+            }
         }
         $action = ($header === 'Actions') ? ' class="actions"' : '';
         $table_headers .= '<th' . $action . '>' . $header_data . '</th>';

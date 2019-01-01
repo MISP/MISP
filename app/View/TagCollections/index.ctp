@@ -8,6 +8,9 @@
             'name' => array('sort' => 1),
             'tags' => array(),
             'galaxies' => array(),
+            'all_orgs' => array(),
+            'org_id' => array('alias' => 'Organisation'),
+            'user_id' => array('alias' => 'User'),
             'description' => array(),
             'Actions' => array()
         ),

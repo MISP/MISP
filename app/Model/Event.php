@@ -5215,7 +5215,7 @@ class Event extends AppModel
         return $attributes_added;
     }
 
-    public function massageTags($data, $dataType = 'Event', $excludeGalaxy = false)
+    public function massageTags($data, $dataType = 'Event', $excludeGalaxy = false, $cullGalaxyTags = false)
     {
         $data['Galaxy'] = array();
         if (empty($this->GalaxyCluster)) {
@@ -5248,6 +5248,7 @@ class Event extends AppModel
                                 unset($temp['GalaxyCluster']['Galaxy']);
                                 $data['Galaxy'][count($data['Galaxy']) - 1]['GalaxyCluster'][] = $temp['GalaxyCluster'];
                             }
+                            unset($data[$dataType . 'Tag'][$k]);
                         }
                     }
                 }
