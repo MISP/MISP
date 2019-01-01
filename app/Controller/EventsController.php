@@ -3321,7 +3321,7 @@ class EventsController extends AppController
             if (preg_match('/^collection_[0-9]+$/i', $tag_id)) {
                 $tagChoice = explode('_', $tag_id)[1];
                 $this->loadModel('TagCollection');
-                $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('TagCollection.id' => $tag_id));
+                $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $tagChoice)));
                 if (empty($tagCollection)) {
                     return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
                 }
