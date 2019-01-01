@@ -50,8 +50,9 @@
                 echo sprintf(
                     '<tr style="border-bottom:1px solid black;" class="templateChoiceButton">%s</tr>',
                     sprintf(
-                        '<td style="padding-left:10px;padding-right:10px; text-align:center;width:100%%;" onClick="getPopup(\'%s/%s\', \'tags\', \'selectTag\');">%s: %s</td>',
+                        '<td style="padding-left:10px;padding-right:10px; text-align:center;width:100%%;" onClick="getPopup(\'%s/%s/%s\', \'tags\', \'selectTag\');">%s: %s</td>',
                         h($object_id),
+                        h($k),
                         h($scope),
                         __('Taxonomy Library'),
                         h($option)

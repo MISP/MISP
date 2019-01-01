@@ -1,5 +1,6 @@
 <div class="popover_choice select_tag">
     <legend><?php echo __('Select Tag');?></legend>
+    
     <div style="display:none;">
         <?php
             if ($scope === 'attributes') {
