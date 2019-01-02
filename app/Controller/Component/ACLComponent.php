@@ -404,6 +404,7 @@ class ACLComponent extends Component
                     'selectTaxonomy' => array('perm_tagger'),
                     'showEventTag' => array('*'),
                     'showAttributeTag' => array('*'),
+                    'showTagControllerTag' => array('*'),
                     'tagStatistics' => array('*'),
                     'view' => array('*'),
                     'viewGraph' => array('*'),
