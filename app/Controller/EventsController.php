@@ -1848,7 +1848,7 @@ class EventsController extends AppController
         $this->Event->read(null, $target_id);
         // check if private and user not authorised to edit
         if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !($this->userRole['perm_modify']))) {
-            $this->Flash->error(__('You are not authorised to do that. Please consider using the \'propose attribute\' feature.'));
+            $this->Flash->error(__("You are not authorised to do that. Please consider using the 'propose attribute' feature."));
             $this->redirect(array('action' => 'view', $target_id));
         }
         $this->Event->insertLock($this->Auth->user(), $target_id);
