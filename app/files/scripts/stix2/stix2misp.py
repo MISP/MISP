@@ -944,6 +944,7 @@ class ExternalStixParser(StixParser):
                                 ('ipv6-addr',): self.parse_ip_address_pattern,
                                 ('network-traffic',): self.parse_network_traffic_pattern,
                                 ('process',): self.parse_process_pattern,
+                                ('url',): self.parse_url_pattern,
                                 ('windows-registry-key',): self.parse_regkey_pattern}
         self.pattern_forbidden_relations = (' LIKE ', ' FOLLOWEDBY ', ' MATCHES ', ' ISSUBSET ', ' ISSUPERSET ', ' REPEATS ')
 
@@ -1050,6 +1051,14 @@ class ExternalStixParser(StixParser):
     ##                             PARSING FUNCTIONS.                             ##
     ################################################################################
 
+    def add_attributes_from_pattern(self, attribute_type, pattern, uuid):
+        _, pattern_values = self.get_types_and_values_from_pattern(pattern)
+        attribute = {'to_ids': True}
+        if len(pattern_values) == 1 and uuid is not None:
+            attribute['uuid'] = uuid
+        for value in pattern_values:
+            self.misp_event.add_attribute(attribute_type, value, **attribute)
+
     @staticmethod
     def  attributes_from_dict(values, mapping_dict, to_ids):
         attributes = []
@@ -1121,12 +1130,7 @@ class ExternalStixParser(StixParser):
             self.misp_event.add_attribute('ip-dst', observable.value, **attribute)
 
     def parse_ip_address_pattern(self, pattern, uuid=None):
-        _, pattern_values = self.get_types_and_values_from_pattern(pattern)
-        attribute = {'to_ids': True}
-        if len(pattern_values) == 1:
-            attribute['uuid'] = uuid
-        for value in pattern_values:
-            self.misp_event.add_attribute('ip-dst', value, **attribute)
+        self.add_attributes_from_pattern('ip-dst', pattern, uuid)
 
     def parse_ip_network_traffic_observable(self, objects, uuid):
         network_traffic = self.fetch_network_traffic_objects(objects)
@@ -1211,6 +1215,9 @@ class ExternalStixParser(StixParser):
     def parse_url_observable(self, objects, uuid):
         _object = objects['0']
         self.misp_event.add_attribute(**{'type': 'url', 'value': _object.value, 'uuid': uuid, 'to_ids': False})
+
+    def parse_url_pattern(self, pattern, uuid=None):
+        self.add_attributes_from_pattern('url', pattern, uuid)
 
     def parse_url_object_observable(self, objects, uuid):
         attributes = self.attributes_from_url_observable(objects)
