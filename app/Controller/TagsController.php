@@ -465,6 +465,7 @@ class TagsController extends AppController
         $tags = $this->EventTag->find('all', array(
                 'conditions' => array(
                         'event_id' => $id,
+			'deleted' => 0, // tag softdeletion -lm
                         'Tag.name !=' => $cluster_names
                 ),
                 'contain' => array('Tag'),
@@ -495,6 +496,7 @@ class TagsController extends AppController
 
         $attributeTags = $this->AttributeTag->find('all', array(
             'conditions' => array(
+		'deleted' => 0, // tag softdeletion -lm
                 'attribute_id' => $id
             ),
             'contain' => array('Tag'),

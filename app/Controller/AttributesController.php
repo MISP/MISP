@@ -2891,24 +2891,39 @@ class AttributesController extends AppController
                 'recursive' => -1,
             ));
             $this->autoRender = false;
-            if (!empty($found)) {
-                $fails++;
-                continue;
-            }
-            $this->Attribute->AttributeTag->create();
-            if ($this->Attribute->AttributeTag->save(array('attribute_id' => $id, 'tag_id' => $tag_id, 'event_id' => $eventId))) {
-                $event['Event']['published'] = 0;
-                $date = new DateTime();
-                $event['Event']['timestamp'] = $date->getTimestamp();
-                $this->Attribute->Event->save($event);
-                $this->Attribute->data['Attribute']['timestamp'] = $date->getTimestamp();
-                $this->Attribute->save($this->Attribute->data);
-                $log = ClassRegistry::init('Log');
-                $log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to attribute (' . $id . ')', 'Attribute (' . $id . ') tagged as Tag (' . $tag_id . ')');
-                $success++;
-            } else {
-                $fails++;
-            }
+                if (!empty($found)) { // implementing tag hard and soft deletion -lm
+                	$found['AttributeTag']['deleted'] = 0;
+                        if ($this->Attribute->AttributeTag->save($found['AttributeTag'])) {
+                        	$event['Event']['published'] = 0;
+                                $date = new DateTime();
+                                $event['Event']['timestamp'] = $date->getTimestamp();
+                                $this->Attribute->Event->save($event);
+                                $this->Attribute->data['Attribute']['timestamp'] = $date->getTimestamp();
+                                $this->Attribute->save($this->Attribute->data);
+                                $log = ClassRegistry::init('Log');
+                                $log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Re-attached existing tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to attribute (' . $id . ')', 'Attribute (' . $id . ') tagged as Tag (' . $tag_id . ')');
+                                $success++;
+                        } else {
+                                $fails++;
+                        }
+                        //$fails++;
+                        //continue;
+                } else {
+                        $this->Attribute->AttributeTag->create();
+                        if ($this->Attribute->AttributeTag->save(array('attribute_id' => $id, 'tag_id' => $tag_id, 'event_id' => $eventId))) {
+                                $event['Event']['published'] = 0;
+                                $date = new DateTime();
+                                $event['Event']['timestamp'] = $date->getTimestamp();
+                                $this->Attribute->Event->save($event);
+                                $this->Attribute->data['Attribute']['timestamp'] = $date->getTimestamp();
+                                $this->Attribute->save($this->Attribute->data);
+                                $log = ClassRegistry::init('Log');
+                                $log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to attribute (' . $id . ')', 'Attribute (' . $id . ') tagged as Tag (' . $tag_id . ')');
+                                $success++;
+                        } else {
+                        	$fails++;
+                	}
+        	} // end -lm
         }
         if ($fails == 0) {
             if ($success == 1) {
@@ -2930,7 +2945,7 @@ class AttributesController extends AppController
         }
     }
 
-    public function removeTag($id = false, $tag_id = false)
+    public function removeTag($id = false, $tag_id = false, $hard = false)
     {
         if (!$this->request->is('post')) {
             $this->set('id', $id);
@@ -3003,19 +3018,38 @@ class AttributesController extends AppController
                 'recursive' => -1,
                 'fields' => array('Tag.name')
             ));
-            if ($this->Attribute->AttributeTag->delete($attributeTag['AttributeTag']['id'])) {
-                $event['Event']['published'] = 0;
-                $date = new DateTime();
-                $event['Event']['timestamp'] = $date->getTimestamp();
-                $this->Attribute->Event->save($event);
-                $this->Attribute->data['Attribute']['timestamp'] = $date->getTimestamp();
-                $this->Attribute->save($this->Attribute->data);
-                $log = ClassRegistry::init('Log');
-                $log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from attribute (' . $id . ')', 'Attribute (' . $id . ') untagged of Tag (' . $tag_id . ')');
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag removed.', 'check_publish' => true)), 'status' => 200));
-            } else {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be removed.')), 'status' => 200, 'type' => 'json'));
+	    // implementing tag hard and soft deletion -lm
+ 	    if ($hard) {
+            	if ($this->Attribute->AttributeTag->delete($attributeTag['AttributeTag']['id'])) {
+                	$event['Event']['published'] = 0;
+                	$date = new DateTime();
+                        $event['Event']['timestamp'] = $date->getTimestamp();
+                        $this->Attribute->Event->save($event);
+                        $this->Attribute->data['Attribute']['timestamp'] = $date->getTimestamp();
+                        $this->Attribute->save($this->Attribute->data);
+                        $log = ClassRegistry::init('Log');
+                        $log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from attribute (' . $id . ')', 'Attribute (' . $id . ') untagged of Tag (' . $tag_id . ')');
+                        return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag removed.', 'check_publish' => true)), 'status' => 200));
+           	} else {
+                       return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be removed.')), 'status' => 200, 'type' => 'json'));
+                }
+	    } else {
+            	$attributeTag['AttributeTag']['deleted'] = 1;
+                if ($this->Attribute->AttributeTag->save($attributeTag['AttributeTag'])) {
+                	$event['Event']['published'] = 0;
+                        $date = new DateTime();
+                        $event['Event']['timestamp'] = $date->getTimestamp();
+                        $this->Attribute->Event->save($event);
+                        $this->Attribute->data['Attribute']['timestamp'] = $date->getTimestamp();
+                        $this->Attribute->save($this->Attribute->data);
+                        $log = ClassRegistry::init('Log');
+                        $log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Soft removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from attribute (' . $id . ')', 'Attribute (' . $id . ') untagged of Tag (' . $tag_id . ')');
+                        return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag removed.', 'check_publish' => true)), 'status' => 200));
+                } else {
+              		return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be removed.')), 'status' => 200, 'type' => 'json'));
+             	}
             }
+	    // end -lm
         }
     }
 

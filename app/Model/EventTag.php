@@ -101,7 +101,14 @@ class EventTag extends AppModel
             if (!$this->save(array('event_id' => $event_id, 'tag_id' => $tag_id))) {
                 return false;
             }
+ 	//tags softdelete patch -lm
+	} else if ($existingAssociation['EventTag']['deleted'] == 1) {
+	    $existingAssociation['EventTag']['deleted'] = 0;
+	    if (!$this->save($existingAssociation)) {
+		return false;
+	    }
         }
+	// end -lm
         return true;
     }
 
@@ -136,7 +143,10 @@ class EventTag extends AppModel
     {
         return $this->find('count', array(
             'recursive' => -1,
-            'conditions' => array('EventTag.tag_id' => $tag_id)
+  	    'conditions' => array(
+	    'EventTag.tag_id' => $tag_id, 
+	    'EventTag.deleted' => 0 // tags softdelete patch -lm
+	    ) 
         ));
     }
 

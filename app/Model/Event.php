@@ -519,7 +519,7 @@ class Event extends AppModel
             }
         }
         $tags = $this->EventTag->Tag->find('all', array(
-            'conditions' => array('Tag.id' => $tagsToFetch),
+            'conditions' => array('Tag.id' => $tagsToFetch), 
             'recursive' => -1,
             'order' => false
         ));
@@ -1564,6 +1564,7 @@ class Event extends AppModel
                     'fields' => array('Orgc.id', 'Orgc.uuid', 'Orgc.name')
                 ),
                 'EventTag' => array(
+		    'conditions' => array('deleted' => 0), // tags softdelete patch -lm
                     'Tag' => array('fields' => array('Tag.id', 'Tag.name', 'Tag.colour', 'Tag.exportable'))
                 )
             )
@@ -1788,6 +1789,7 @@ class Event extends AppModel
                     'fields' => $fieldsAtt,
                     'conditions' => $conditionsAttributes,
                     'AttributeTag' => array(
+			'conditions' => array('deleted' => 0), // tag softdelete patch -lm
                         'Tag' => array('conditions' => $tagConditions, 'order' => false),
                         'order' => false
                     ),
@@ -1809,6 +1811,7 @@ class Event extends AppModel
                     'order' => false
                 ),
                 'EventTag' => array(
+		    'conditions' => array('deleted' => 0), // tag softdelete patch -lm
                     'Tag' => array('conditions' => $tagConditions, 'order' => false),
                     'order' => false
                  )
@@ -2438,6 +2441,7 @@ class Event extends AppModel
                                 'fields' => array('id', 'name'),
                         ),
                         'EventTag' => array(
+				'conditions' => array('deleted' => 0), // tags softdelete patch -lm
                                 'Tag' => array(
                                         'fields' => array('id', 'name')
                                 )
@@ -3410,6 +3414,34 @@ class Event extends AppModel
                     }
                 }
             }
+	    // tags softdelete patch , only for "internal instance" -lm
+	    if ($user['Server']['internal']) {
+		$tagsList = $this->EventTag->find('all', array(
+	        	'conditions' => array(
+	               		'event_id' => $id,
+	               		'deleted' => 0, 
+                       		'Tag.name NOT LIKE ' => 'misp-galaxy:%', // ugly!!!
+                	),
+		        'contain' => array('Tag'),
+			));
+		foreach($tagsList as $t) {
+			$t['EventTag']['deleted'] = 1;
+			if ($this->EventTag->save($t['EventTag'])) {
+				$this->Log->create();
+				$this->Log->save(array(
+				'org' => $user['Organisation']['name'],
+				'model' => 'Event',
+				'model_id' => $this->id,
+				'email' => $user['email'],
+				'action' => 'edit',
+				'user_id' => $user['id'],
+				'title' => 'Auto-SoftRemoved Event tag ('.$t['Tag']['id'].') "'.$t['Tag']['name'].'" from event ('.$this->id.')',
+				'change' => 'Server Id: '.$user['Server']['id'].' ('.$user['Server']['url'].') is an "Internal Instance"',
+				));
+			}
+		}
+	    }
+	    // end -lm
             if (isset($data['Event']['EventTag'])) {
                 $data['Event']['Tag'] = $data['Event']['EventTag']['Tag'];
                 unset($data['Event']['EventTag']);
