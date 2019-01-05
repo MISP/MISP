@@ -163,7 +163,7 @@
 			);
 		}
 	?>
-    <td class="short">
+    <td class="short" id="attribute_<?php echo h($object['id']); ?>_galaxy">
       <?php
         echo $this->element('galaxyQuickViewMini', array(
           'mayModify' => $mayModify,
