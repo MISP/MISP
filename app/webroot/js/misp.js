@@ -567,11 +567,13 @@ function quickSubmitTagForm(event_id, tag_id) {
 		},
 		success:function (data, textStatus) {
 			loadEventTags(event_id);
+            loadGalaxies(event_id, 'event');
 			handleGenericAjaxResponse(data);
 		},
 		error:function() {
 			showMessage('fail', 'Could not add tag.');
 			loadEventTags(event_id);
+            loadGalaxies(event_id, 'event');
 		},
 		complete:function() {
 			$("#popover_form").fadeOut();
@@ -599,12 +601,14 @@ function quickSubmitAttributeTagForm(attribute_id, tag_id) {
 				updateIndex(0, 'event');
 			} else {
 				loadAttributeTags(attribute_id);
+                loadGalaxies(attribute_id, 'attribute');
 			}
 			handleGenericAjaxResponse(data);
 		},
 		error:function() {
 			showMessage('fail', 'Could not add tag.');
 			loadAttributeTags(attribute_id);
+            loadGalaxies(attribute_id, 'attribute');
 		},
 		complete:function() {
 			$("#popover_form").fadeOut();
