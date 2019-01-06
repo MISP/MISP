@@ -181,6 +181,7 @@ class ACLComponent extends Component
                 'selectGalaxy' => array('perm_tagger'),
                 'selectGalaxyNamespace' => array('perm_tagger'),
                 'selectCluster' => array('perm_tagger'),
+                'showGalaxies' => array('*'),
                 'update' => array(),
                 'view' => array('*'),
                 'viewGraph' => array('*')
@@ -382,6 +383,16 @@ class ACLComponent extends Component
                     'viewSightings' => array('perm_sighting'),
                     'quickAdd' => array('perm_sighting')
             ),
+            'tagCollections' => array(
+                    'add' => array('perm_tag_editor'),
+                    'addTag' => array('perm_tag_editor'),
+                    'delete' => array('perm_tag_editor'),
+                    'edit' => array('perm_tag_editor'),
+                    'getRow' => array('perm_tag_editor'),
+                    'index' => array('*'),
+                    'removeTag' => array('perm_tag_editor'),
+                    'view' => array('*')
+            ),
             'tags' => array(
                     'add' => array('perm_tag_editor'),
                     'attachTagToObject' => array('perm_tagger'),
@@ -394,6 +405,7 @@ class ACLComponent extends Component
                     'selectTaxonomy' => array('perm_tagger'),
                     'showEventTag' => array('*'),
                     'showAttributeTag' => array('*'),
+                    'showTagControllerTag' => array('*'),
                     'tagStatistics' => array('*'),
                     'view' => array('*'),
                     'viewGraph' => array('*'),

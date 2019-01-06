@@ -43,7 +43,7 @@
     });
 
     $('.clusterSelectChoice').click(function() {
-        quickSubmitGalaxyForm($(this).data('target-type') + '/' + $(this).data('target-id'), $(this).data('cluster-id'));
+        quickSubmitGalaxyForm($(this).data('target-id'), $(this).data('cluster-id'), $(this).data('target-type'));
     });
     $('#clusterFilterField').keyup(function() {
         var filterString =  $("#clusterFilterField").val().toLowerCase();

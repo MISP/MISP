@@ -1,11 +1,14 @@
 <div class="popover_choice select_tag">
     <legend><?php echo __('Select Tag');?></legend>
+    
     <div style="display:none;">
         <?php
-            if (isset($attributeTag)) {
+            if ($scope === 'attributes') {
                 echo $this->Form->create('Attribute', array('url' => '/attributes/addTag/' . $object_id, 'style' => 'margin:0px;'));
-            } else {
+            } elseif ($scope === 'event') {
                 echo $this->Form->create('Event', array('url' => '/events/addTag/' . $object_id, 'style' => 'margin:0px;'));
+            } elseif ($scope === 'tag_collection') {
+                echo $this->Form->create('TagCollection', array('url' => '/tag_collections/addTag/' . $object_id, 'style' => 'margin:0px;'));
             }
             echo $this->Form->input('attribute_ids', array('style' => 'display:none;', 'label' => false));
             echo $this->Form->input('tag', array('value' => 0));
@@ -17,18 +20,32 @@
     </div>
     <div class="popover_choice_main" id ="popover_choice_main">
         <table style="width:100%;">
-        <?php foreach ($options as $k => &$option): ?>
-            <tr style="border-top:1px solid black;" class="templateChoiceButton shown" id="field_<?php echo h($k); ?>">
-                <?php if (isset($attributeTag)): ?>
-                <td style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="quickSubmitAttributeTagForm('<?php echo h($object_id);?>', '<?php echo h($k); ?>');" title="<?php echo h($expanded[$k]);?>" role="button" tabindex="0" aria-label="Attach tag <?php echo h($option); ?>"><?php echo h($option); ?></td>
-                <?php else: ?>
-                <td style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="quickSubmitTagForm('<?php echo h($object_id);?>', '<?php echo h($k); ?>');" title="<?php echo h($expanded[$k]);?>" role="button" tabindex="0" aria-label="<?php echo __('Attach tag');?> <?php echo h($option); ?>"><?php echo h($option); ?></td>
-                <?php endif; ?>
+    <?php
+        foreach ($options as $k => &$option):
+            $choice_id = $k;
+            if ($taxonomy_id === 'collections') {
+                $choice_id = 'collection_' . $choice_id;
+            }
+    ?>
+
+            <tr style="border-top:1px solid black;" class="templateChoiceButton shown" id="field_<?php echo h($choice_id); ?>">
+                <?php
+                    $onClickForm = 'quickSubmitTagForm';
+                    if ($scope === 'attributes') {
+                        $onClickForm = 'quickSubmitAttributeTagForm';
+                    }
+                    if ($scope === 'tag_collection') {
+                        $onClickForm = 'quickSubmitTagCollectionTagForm';
+                    }
+                    echo '<td style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="' . $onClickForm .
+                        '(\'' . h($object_id) . '\', \'' . h($choice_id) . '\');" title="' . h($expanded[$k]) . '" role="button" tabindex="0" aria-label="' .
+                        __('Attach tag') . ' ' . h($option) . '">' . h($option) . '</td>';
+                ?>
             </tr>
         <?php endforeach; ?>
         </table>
     </div>
-    <div role="button" tabindex="0" aria-label="<?php echo __('Return to taxonomy selection');?>" class="popover-back useCursorPointer" onClick="getPopup('<?php echo h($object_id); if (isset($attributeTag)) echo '/true'; ?>', 'tags', 'selectTaxonomy');" title="<?php echo __('Select Taxonomy');?>"><?php echo __('Back to Taxonomy Selection');?></div>
+    <div role="button" tabindex="0" aria-label="<?php echo __('Return to taxonomy selection');?>" class="popover-back useCursorPointer" onClick="getPopup('<?php echo h($object_id) . '/' .  h($scope); ?>', 'tags', 'selectTaxonomy');" title="<?php echo __('Select Taxonomy');?>"><?php echo __('Back to Taxonomy Selection');?></div>
     <div role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm();"><?php echo __('Cancel');?></div>
 </div>
 <script type="text/javascript">

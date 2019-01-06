@@ -522,6 +522,15 @@ class Server extends AppModel
                                 'type' => 'string',
                                 'options' => array('1' => 'High', '2' => 'Medium', '3' => 'Low', '4' => 'undefined'),
                         ),
+                        'default_event_tag_collection' => array(
+                            'level' => 0,
+                            'description' => __('The tag collection to be applied to all events created manually.'),
+                            'value' => 0,
+                            'errorMessage' => '',
+                            'test' => 'testTagCollections',
+                            'type' => 'numeric',
+                            'optionsSource' => 'TagCollections',
+                        ),
                         'tagging' => array(
                                 'level' => 1,
                                 'description' => __('Enable the tagging feature of MISP. This is highly recommended.'),
@@ -2639,6 +2648,27 @@ class Server extends AppModel
         $languages = $this->loadAvailableLanguages();
         if (!isset($languages[$value])) {
             return 'Invalid language.';
+        }
+        return true;
+    }
+
+    public function loadTagCollections()
+    {
+        $this->TagCollection = ClassRegistry::init('TagCollection');
+        $user = array('Role' => array('perm_site_admin' => 1));
+        $tagCollections = $this->TagCollection->fetchTagCollection($user);
+        $options = array(0 => 'None');
+        foreach ($tagCollections as $tagCollection) {
+            $options[intval($tagCollection['TagCollection']['id'])] = $tagCollection['TagCollection']['name'];
+        }
+        return $options;
+    }
+
+    public function testTagCollections($value)
+    {
+        $tag_collections = $this->loadTagCollections();
+        if (!isset($tag_collections[intval($value)])) {
+            return 'Invalid tag_collection.';
         }
         return true;
     }

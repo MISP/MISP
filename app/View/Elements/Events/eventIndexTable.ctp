@@ -92,7 +92,6 @@
                 <?php
                     echo $this->OrgImg->getOrgImg(array('name' => $event['Orgc']['name'], 'id' => $event['Orgc']['id'], 'size' => 24));
                 ?>
-                &nbsp;
             </td>
         <?php endif;?>
         <?php if ($isSiteAdmin || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'))): ?>

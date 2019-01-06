@@ -173,8 +173,7 @@ class GalaxiesController extends AppController
     {
         $cluster_id = $this->request->data['Galaxy']['target_id'];
         $result = $this->Galaxy->attachCluster($this->Auth->user(), $target_type, $target_id, $cluster_id);
-        $this->Flash->info($result);
-        $this->redirect($this->referer());
+        return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $result, 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
     }
 
     public function attachMultipleClusters($target_id, $target_type = 'event')
@@ -203,5 +202,29 @@ class GalaxiesController extends AppController
         $this->set('id', $id);
         $this->set('galaxy_id', $cluster['Galaxy']['id']);
         $this->render('/Events/view_graph');
+    }
+
+    public function showGalaxies($id, $scope = 'event')
+    {
+        $this->layout = 'ajax';
+        $this->set('scope', $scope);
+        if ($scope == 'event') {
+            $this->loadModel('Event');
+            $object = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id, 'metadata' => 1));
+            if (empty($object)) {
+                throw new MethodNotAllowedException('Invalid event.');
+            }
+            $this->set('object', $object[0]);
+
+        } elseif ($scope == 'attribute') {
+            $this->loadModel('Attribute');
+            $object = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id)));
+            if (empty($object)) {
+                throw new MethodNotAllowedException('Invalid attribute.');
+            }
+            $object[0] = $this->Attribute->Event->massageTags($object[0], 'Attribute');
+        }
+        $this->set('object', $object[0]);
+        $this->render('/Events/ajax/ajaxGalaxies');
     }
 }

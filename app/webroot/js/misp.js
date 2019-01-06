@@ -567,11 +567,13 @@ function quickSubmitTagForm(event_id, tag_id) {
 		},
 		success:function (data, textStatus) {
 			loadEventTags(event_id);
+            loadGalaxies(event_id, 'event');
 			handleGenericAjaxResponse(data);
 		},
 		error:function() {
 			showMessage('fail', 'Could not add tag.');
 			loadEventTags(event_id);
+            loadGalaxies(event_id, 'event');
 		},
 		complete:function() {
 			$("#popover_form").fadeOut();
@@ -599,12 +601,14 @@ function quickSubmitAttributeTagForm(attribute_id, tag_id) {
 				updateIndex(0, 'event');
 			} else {
 				loadAttributeTags(attribute_id);
+                loadGalaxies(attribute_id, 'attribute');
 			}
 			handleGenericAjaxResponse(data);
 		},
 		error:function() {
 			showMessage('fail', 'Could not add tag.');
 			loadAttributeTags(attribute_id);
+            loadGalaxies(attribute_id, 'attribute');
 		},
 		complete:function() {
 			$("#popover_form").fadeOut();
@@ -615,6 +619,46 @@ function quickSubmitAttributeTagForm(attribute_id, tag_id) {
 		url:"/attributes/addTag/" + attribute_id
 	});
 	return false;
+}
+
+function quickSubmitTagCollectionTagForm(tag_collection_id, tag_id) {
+	$('#TagCollectionTag').val(tag_id);
+	$.ajax({
+		data: $('#TagCollectionSelectTagForm').closest("form").serialize(),
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data, textStatus) {
+			handleGenericAjaxResponse(data);
+            refreshTagCollectionRow(tag_collection_id);
+		},
+		error:function() {
+			showMessage('fail', 'Could not add tag.');
+			loadTagCollectionTags(tag_collection_id);
+		},
+		complete:function() {
+			$("#popover_form").fadeOut();
+			$("#gray_out").fadeOut();
+			$(".loading").hide();
+		},
+		type:"post",
+		url:"/tag_collections/addTag/" + tag_collection_id
+	});
+	return false;
+}
+
+function refreshTagCollectionRow(tag_collection_id) {
+    $.ajax({
+        type:"get",
+        url:"/tag_collections/getRow/" + tag_collection_id,
+        error:function() {
+            showMessage('fail', 'Could not fetch updates to the modified row.');
+        },
+        success: function (data, textStatus) {
+            $('[data-row-id="' + tag_collection_id + '"]').replaceWith(data);
+        }
+    });
+
 }
 
 function handleAjaxEditResponse(data, name, type, id, field, event) {
@@ -848,6 +892,32 @@ function loadEventTags(id) {
 	});
 }
 
+function loadGalaxies(id, scope) {
+	$.ajax({
+		dataType:"html",
+		cache: false,
+		success:function (data, textStatus) {
+            if (scope == 'event') {
+			    $("#galaxies_div").html(data);
+            } else if (scope == 'attribute') {
+                $("#attribute_" + id + "_galaxy").html(data);
+            }
+		},
+		url:"/galaxies/showGalaxies/" + id + "/" + scope,
+	});
+}
+
+function loadTagCollectionTags(id) {
+	$.ajax({
+		dataType:"html",
+		cache: false,
+		success:function (data, textStatus) {
+			$(".tagCollectionTagContainer").html(data);
+		},
+		url:"/tags/showEventTag/" + id,
+	});
+}
+
 function removeEventTag(event, tag) {
 	var answer = confirm("Are you sure you want to remove this tag from the event?");
 	if (answer) {
@@ -905,6 +975,8 @@ function removeObjectTag(context, object, tag) {
 			$("#gray_out").fadeOut();
 			if (context == 'Attribute') {
 				loadAttributeTags(object);
+            } else if (context == 'tag_collection') {
+                refreshTagCollectionRow(object);
 			} else {
 				loadEventTags(object);
 			}
@@ -3223,9 +3295,29 @@ function addGalaxyListener(id) {
 	getPopup(target_type + '/' + target_id, 'galaxies', 'selectGalaxyNamespace');
 }
 
-function quickSubmitGalaxyForm(event_id, cluster_id) {
+function quickSubmitGalaxyForm(scope, cluster_id, event_id) {
 	$('#GalaxyTargetId').val(cluster_id);
-	$('#GalaxySelectClusterForm').submit();
+	$.ajax({
+		data: $('#GalaxySelectClusterForm').closest("form").serialize(),
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data, textStatus) {
+			loadGalaxies(event_id, scope);
+			handleGenericAjaxResponse(data);
+		},
+		error:function() {
+			showMessage('fail', 'Could not add cluster.');
+			loadGalaxies(event_id, scope);
+		},
+		complete:function() {
+			$("#popover_form").fadeOut();
+			$("#gray_out").fadeOut();
+			$(".loading").hide();
+		},
+		type:"post",
+        url: "/galaxies/attachCluster/" + event_id + "/" + scope
+	});
 	return false;
 }
 
