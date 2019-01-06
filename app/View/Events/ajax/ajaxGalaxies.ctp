@@ -1,9 +1,9 @@
-<h4 class="blue"><?php echo __('Galaxies');?></h4>
 <?php
     $mayModify = (
         ($isAclModify && $object['Event']['orgc_id'] == $me['org_id'])
     );
     if ($scope == 'event') {
+        echo sprintf('<h4 class="blue">%s</h4>', __('Galaxies'));
         $element = 'galaxyQuickView';
     } else if ($scope == 'attribute') {
         $element = 'galaxyQuickViewMini';

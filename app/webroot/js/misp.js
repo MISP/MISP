@@ -895,7 +895,7 @@ function loadGalaxies(id, scope) {
 		success:function (data, textStatus) {
             if (scope == 'event') {
 			    $("#galaxies_div").html(data);
-            } else if ($scope == 'attribute') {
+            } else if (scope == 'attribute') {
                 $("#attribute_" + id + "_galaxy").html(data);
             }
 		},
