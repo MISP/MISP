@@ -304,6 +304,20 @@ class StixParser():
             if target not in self.galaxy:
                 misp_object.add_reference(target, reference.relationship_type)
 
+    def handle_single_attribute(self, attribute, uuid=None):
+        if uuid is not None:
+            if uuid in self.relationship:
+                galaxies = []
+                for reference in self.relationship[uuid]:
+                    target = reference.target_ref
+                    if target in self.galaxy:
+                        galaxy = self.galaxy[target]
+                        galaxies.append(self.parse_external_galaxy(galaxy['object']))
+                        galaxy['used'] = True
+                if galaxies:
+                    attribute['Galaxy'] = galaxies
+        self.misp_event.add_attribute(**attribute)
+
     def parse_complex_fields_observable_email(self, objects, to_ids):
         attributes = []
         addresses, files, message = self.split_observable_email_parts(objects)
@@ -535,18 +549,7 @@ class StixFromMISPParser(StixParser):
             value, data = value
             attribute['data'] = io.BytesIO(data.encode())
         attribute['value'] = value
-        if attribute_uuid in self.relationship:
-            galaxies = []
-            for reference in self.relationship[uuid]:
-                target = reference.target_ref
-                if target in self.galaxy:
-                    galaxy = self.galaxy[target]
-                    galaxy_object = galaxy['object']
-                    galaxies.append(self.parse_galaxy(galaxy_object, galaxy_object.get('labels')))
-                    galaxy['used'] = True
-            if galaxies:
-                attribute['Galaxy'] = galaxies
-        self.misp_event.add_attribute(**attribute)
+        self.handle_single_attribute(attribute, uuid=attribute_uuid)
 
     def parse_vulnerability(self, o, labels):
         if len(labels) > 2:
@@ -1056,8 +1059,12 @@ class ExternalStixParser(StixParser):
         attribute = {'to_ids': True}
         if len(pattern_values) == 1 and uuid is not None:
             attribute['uuid'] = uuid
-        for value in pattern_values:
-            self.misp_event.add_attribute(attribute_type, value, **attribute)
+            attribute['value'] = pattern_values[0]
+            attribute['type'] = attribute_type
+            self.handle_single_attribute(attribute, uuid=uuid)
+        else:
+            for value in pattern_values:
+                self.misp_event.add_attribute(attribute_type, value, **attribute)
 
     @staticmethod
     def  attributes_from_dict(values, mapping_dict, to_ids):
@@ -1282,19 +1289,8 @@ class ExternalStixParser(StixParser):
     def handle_import_case(self, attributes, name, uuid=None):
         if len(attributes) == 1:
             attribute = attributes[0]
-            if uuid is not None:
-                attribute['uuid'] = uuid
-                if uuid in self.relationship:
-                    galaxies = []
-                    for reference in self.relationship[uuid]:
-                        target = reference.target_ref
-                        if target in self.galaxy:
-                            galaxy = self.galaxy[target]
-                            galaxies.append(self.parse_external_galaxy(galaxy['object']))
-                            galaxy['used'] = True
-                    if galaxies:
-                        attribute['Galaxy'] = galaxies
-            self.misp_event.add_attribute(**attribute)
+            attribute['uuid'] = uuid
+            self.handle_single_attribute(attribute, uuid=uuid)
         else:
             self.object_case_import(attributes, name, uuid)
 
@@ -1306,6 +1302,7 @@ class ExternalStixParser(StixParser):
 
     def parse_galaxies(self, galaxy_object):
         return self.parse_external_galaxy(galaxy_object)
+
 
 def from_misp(reports):
     for _, o in reports.items():
