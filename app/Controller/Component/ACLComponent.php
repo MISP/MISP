@@ -181,6 +181,7 @@ class ACLComponent extends Component
                 'selectGalaxy' => array('perm_tagger'),
                 'selectGalaxyNamespace' => array('perm_tagger'),
                 'selectCluster' => array('perm_tagger'),
+                'showGalaxies' => array('*'),
                 'update' => array(),
                 'view' => array('*'),
                 'viewGraph' => array('*')
