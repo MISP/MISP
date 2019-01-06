@@ -171,8 +171,8 @@ class OrganisationsController extends AppController
                     } else {
                         $temp['Organisation'][$field] = $existingOrg['Organisation'][$field];
                     }
-                    $this->request->data = $temp;
                 }
+                $this->request->data = $temp;
             }
             $this->request->data['Organisation']['id'] = $id;
             if ($this->Organisation->save($this->request->data)) {
