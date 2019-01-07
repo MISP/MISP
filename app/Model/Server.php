@@ -3191,6 +3191,23 @@ class Server extends AppModel
 
     public function serverSettingsSaveValue($setting, $value)
     {
+        // validate if current config.php is intact:
+        $current = file_get_contents(APP . 'Config' . DS . 'config.php');
+        $current = trim($current);
+        if (strlen($current) < 20) {
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            $this->Log->save(array(
+                    'org' => 'SYSTEM',
+                    'model' => 'Server',
+                    'model_id' => $id,
+                    'email' => 'SYSTEM',
+                    'action' => 'error',
+                    'user_id' => 0,
+                    'title' => 'Error: Tried to modify server settings but current config is broken.',
+            ));
+            return false;
+        }
 		copy(APP . 'Config' . DS . 'config.php', APP . 'Config' . DS . 'config.php.bk');
         $settingObject = $this->getCurrentServerSettings();
         foreach ($settingObject as $branchName => $branch) {
@@ -3245,6 +3262,17 @@ class Server extends AppModel
 		// if the saved config file is empty, restore the backup.
 		if (strlen($config_saved) < 20) {
 			copy(APP . 'Config' . DS . 'config.php.bk', APP . 'Config' . DS . 'config.php');
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            $this->Log->save(array(
+                    'org' => 'SYSTEM',
+                    'model' => 'Server',
+                    'model_id' => $id,
+                    'email' => 'SYSTEM',
+                    'action' => 'error',
+                    'user_id' => 0,
+                    'title' => 'Error: Something went wrong saving the config file, reverted to backup file.',
+            ));
 			return false;
 		}
 		return true;
