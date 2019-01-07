@@ -309,7 +309,7 @@ class StixParser():
             if uuid in self.relationship:
                 galaxies = []
                 for reference in self.relationship[uuid]:
-                    target = reference.target_ref
+                    target = reference.target_ref.split('--')[1]
                     if target in self.galaxy:
                         galaxy = self.galaxy[target]
                         galaxies.append(self.parse_external_galaxy(galaxy['object']))
