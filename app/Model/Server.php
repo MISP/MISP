@@ -522,6 +522,15 @@ class Server extends AppModel
                                 'type' => 'string',
                                 'options' => array('1' => 'High', '2' => 'Medium', '3' => 'Low', '4' => 'undefined'),
                         ),
+                        'default_event_tag_collection' => array(
+                            'level' => 0,
+                            'description' => __('The tag collection to be applied to all events created manually.'),
+                            'value' => 0,
+                            'errorMessage' => '',
+                            'test' => 'testTagCollections',
+                            'type' => 'numeric',
+                            'optionsSource' => 'TagCollections',
+                        ),
                         'tagging' => array(
                                 'level' => 1,
                                 'description' => __('Enable the tagging feature of MISP. This is highly recommended.'),
@@ -2643,6 +2652,27 @@ class Server extends AppModel
         return true;
     }
 
+    public function loadTagCollections()
+    {
+        $this->TagCollection = ClassRegistry::init('TagCollection');
+        $user = array('Role' => array('perm_site_admin' => 1));
+        $tagCollections = $this->TagCollection->fetchTagCollection($user);
+        $options = array(0 => 'None');
+        foreach ($tagCollections as $tagCollection) {
+            $options[intval($tagCollection['TagCollection']['id'])] = $tagCollection['TagCollection']['name'];
+        }
+        return $options;
+    }
+
+    public function testTagCollections($value)
+    {
+        $tag_collections = $this->loadTagCollections();
+        if (!isset($tag_collections[intval($value)])) {
+            return 'Invalid tag_collection.';
+        }
+        return true;
+    }
+
     public function testForNumeric($value)
     {
         if (!is_numeric($value)) {
@@ -3161,6 +3191,23 @@ class Server extends AppModel
 
     public function serverSettingsSaveValue($setting, $value)
     {
+        // validate if current config.php is intact:
+        $current = file_get_contents(APP . 'Config' . DS . 'config.php');
+        $current = trim($current);
+        if (strlen($current) < 20) {
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            $this->Log->save(array(
+                    'org' => 'SYSTEM',
+                    'model' => 'Server',
+                    'model_id' => $id,
+                    'email' => 'SYSTEM',
+                    'action' => 'error',
+                    'user_id' => 0,
+                    'title' => 'Error: Tried to modify server settings but current config is broken.',
+            ));
+            return false;
+        }
 		copy(APP . 'Config' . DS . 'config.php', APP . 'Config' . DS . 'config.php.bk');
         $settingObject = $this->getCurrentServerSettings();
         foreach ($settingObject as $branchName => $branch) {
@@ -3215,6 +3262,17 @@ class Server extends AppModel
 		// if the saved config file is empty, restore the backup.
 		if (strlen($config_saved) < 20) {
 			copy(APP . 'Config' . DS . 'config.php.bk', APP . 'Config' . DS . 'config.php');
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            $this->Log->save(array(
+                    'org' => 'SYSTEM',
+                    'model' => 'Server',
+                    'model_id' => $id,
+                    'email' => 'SYSTEM',
+                    'action' => 'error',
+                    'user_id' => 0,
+                    'title' => 'Error: Something went wrong saving the config file, reverted to backup file.',
+            ));
 			return false;
 		}
 		return true;

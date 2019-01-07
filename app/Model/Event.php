@@ -3288,6 +3288,39 @@ class Event extends AppModel
                 }
                 $this->publish($this->getID(), $passAlong);
             }
+            if (empty($data['Event']['locked']) && !empty(Configure::read('MISP.default_event_tag_collection'))) {
+                $this->TagCollection = ClassRegistry::init('TagCollection');
+                $tagCollection = $this->TagCollection->fetchTagCollection($user, array('conditions' => array('TagCollection.id' => Configure::read('MISP.default_event_tag_collection'))));
+                if (!empty($tagCollection)) {
+                    $tag_id_list = array();
+                    foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
+                        $tag_id_list[] = $tagCollectionTag['tag_id'];
+                    }
+                    foreach ($tag_id_list as $tag_id) {
+                        $tag = $this->EventTag->Tag->find('first', array(
+                            'conditions' => array('Tag.id' => $tag_id),
+                            'recursive' => -1,
+                            'fields' => array('Tag.name')
+                        ));
+                        if (!empty($tag)) {
+                            $found = $this->EventTag->find('first', array(
+                                'conditions' => array(
+                                    'event_id' => $this->id,
+                                    'tag_id' => $tag_id
+                                ),
+                                'recursive' => -1,
+                            ));
+                            if (empty($found)) {
+                                $this->EventTag->create();
+                                if ($this->EventTag->save(array('event_id' => $this->id, 'tag_id' => $tag_id))) {
+                                    $log = ClassRegistry::init('Log');
+                                    $log->createLogEntry($user, 'tag', 'Event', $this->id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to event (' . $this->id . ')', 'Event (' . $this->id . ') tagged as Tag (' . $tag_id . ')');
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             return true;
         } else {
             $validationErrors['Event'] = $this->validationErrors;
@@ -5244,7 +5277,7 @@ class Event extends AppModel
         return $attributes_added;
     }
 
-    public function massageTags($data, $dataType = 'Event', $excludeGalaxy = false)
+    public function massageTags($data, $dataType = 'Event', $excludeGalaxy = false, $cullGalaxyTags = false)
     {
         $data['Galaxy'] = array();
         if (empty($this->GalaxyCluster)) {
@@ -5277,6 +5310,7 @@ class Event extends AppModel
                                 unset($temp['GalaxyCluster']['Galaxy']);
                                 $data['Galaxy'][count($data['Galaxy']) - 1]['GalaxyCluster'][] = $temp['GalaxyCluster'];
                             }
+                            unset($data[$dataType . 'Tag'][$k]);
                         }
                     }
                 }

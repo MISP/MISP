@@ -52,6 +52,9 @@ class Tag extends AppModel
         ),
         'AttributeTag' => array(
             'dependent' => true
+        ),
+        'TagCollectionTag' => array(
+            'dependent' => true
         )
     );
 

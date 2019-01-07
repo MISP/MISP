@@ -33,6 +33,7 @@
                             <li><a href="<?php echo $baseurl;?>/events/proposalEventIndex"><?php echo __('Events with proposals');?></a></li>
                             <li class="divider"></li>
                             <li><a href="<?php echo $baseurl;?>/tags/index"><?php echo __('List Tags');?></a></li>
+                            <li><a href="<?php echo $baseurl;?>/tag_collections/index"><?php echo __('List Tag Collections');?></a></li>
                             <?php if ($isAclTagEditor): ?>
                             <li><a href="<?php echo $baseurl;?>/tags/add"><?php echo __('Add Tag');?></a></li>
                             <?php endif; ?>

@@ -5,22 +5,61 @@
     </div>
     <div class="popover_choice_main" id ="popover_choice_main">
         <table style="width:100%;">
-        <?php if ($favourites): ?>
-            <tr style="border-bottom:1px solid black;" class="templateChoiceButton">
-                <td style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="getPopup('<?php echo h($object_id); ?>/favourites<?php if (isset($attributeTag)) echo '/true' ?>', 'tags', 'selectTag');"><?php echo __('Favourite Tags');?></td>
-            </tr>
-        <?php endif;?>
-            <tr style="border-bottom:1px solid black;" class="templateChoiceButton">
-                <td style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="getPopup('<?php echo h($object_id); ?>/0<?php if (isset($attributeTag)) echo '/true'; ?>', 'tags', 'selectTag');"><?php echo __('Custom Tags');?></td>
-            </tr>
-            <tr style="border-bottom:1px solid black;" class="templateChoiceButton">
-                <td id="allTags" style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" data-url="<?php echo h($object_id); ?>/all<?php if (isset($attributeTag)) echo '/true/'; else echo '/false/'; ?>" onClick="getPopup(this.getAttribute('data-url') + $('#filterField').val(), 'tags', 'selectTag');"><?php echo __('All Tags');?></td>
-            </tr>
-        <?php foreach ($options as $k => &$option): ?>
-            <tr style="border-bottom:1px solid black;" class="templateChoiceButton">
-                <td style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="getPopup('<?php echo h($object_id); ?>/<?php echo h($k); if (isset($attributeTag)) echo '/true'; ?>', 'tags', 'selectTag');"><?php echo __('Taxonomy Library');?>: <?php echo h($option); ?></td>
-            </tr>
-        <?php endforeach; ?>
+        <?php
+            if ($favourites) {
+                echo sprintf(
+                    '<tr style="border-bottom:1px solid black;" class="templateChoiceButton">%s</tr>',
+                    sprintf(
+                        '<td style="padding-left:10px;padding-right:10px; text-align:center;width:100%%;" onClick="getPopup(\'%s/favourites/%s\', \'tags\', \'selectTag\');">%s</td>',
+                        h($object_id),
+                        h($scope),
+                        __('Favourite Tags')
+                    )
+                );
+            }
+            if ($scope !== 'tag_collection') {
+                echo sprintf(
+                    '<tr style="border-bottom:1px solid black;" class="templateChoiceButton">%s</tr>',
+                    sprintf(
+                        '<td style="padding-left:10px;padding-right:10px; text-align:center;width:100%%;" onClick="getPopup(\'%s/collections/%s\', \'tags\', \'selectTag\');">%s</td>',
+                        h($object_id),
+                        h($scope),
+                        __('Tag Collections')
+                    )
+                );
+            }
+            echo sprintf(
+                '<tr style="border-bottom:1px solid black;" class="templateChoiceButton">%s</tr>',
+                sprintf(
+                    '<td style="padding-left:10px;padding-right:10px; text-align:center;width:100%%;" onClick="getPopup(\'%s/0/%s\', \'tags\', \'selectTag\');">%s</td>',
+                    h($object_id),
+                    h($scope),
+                    __('Custom Tags')
+                )
+            );
+            echo sprintf(
+                '<tr style="border-bottom:1px solid black;" class="templateChoiceButton">%s</tr>',
+                sprintf(
+                    '<td id="allTags" style="padding-left:10px;padding-right:10px; text-align:center;width:100%%;"  data-url="%s/all/%s" onClick="getPopup(this.getAttribute(\'data-url\') + $(\'#filterField\').val(), \'tags\', \'selectTag\');">%s</td>',
+                    h($object_id),
+                    h($scope),
+                    __('All Tags')
+                )
+            );
+            foreach ($options as $k => &$option) {
+                echo sprintf(
+                    '<tr style="border-bottom:1px solid black;" class="templateChoiceButton">%s</tr>',
+                    sprintf(
+                        '<td style="padding-left:10px;padding-right:10px; text-align:center;width:100%%;" onClick="getPopup(\'%s/%s/%s\', \'tags\', \'selectTag\');">%s: %s</td>',
+                        h($object_id),
+                        h($k),
+                        h($scope),
+                        __('Taxonomy Library'),
+                        h($option)
+                    )
+                );
+            }
+        ?>
         </table>
     </div>
     <div class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm();"><?php echo __('Cancel');?></div>
@@ -50,7 +89,7 @@
                 }
             }
         }, 500);
-        
+
     }
 
     $('#filterField').keyup(onKeyUp);

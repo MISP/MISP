@@ -71,7 +71,8 @@ class AppModel extends Model
         1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
         7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
         13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false,
-        21 => false, 22 => false, 23 => false, 24 => false, 25 => false
+        21 => false, 22 => false, 23 => false, 24 => false, 25 => false, 26 => false,
+        27 => false
     );
 
     public function afterSave($created, $options = array())
@@ -1058,6 +1059,32 @@ class AppModel extends Model
                 $this->__dropIndex('galaxy_clusters', 'uuid');
                 $this->__addIndex('galaxy_clusters', 'uuid');
                 $this->__addIndex('galaxy_clusters', 'collection_uuid');
+                break;
+            case 26:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS tag_collections (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+                    `user_id` int(11) NOT NULL,
+                    `org_id` int(11) NOT NULL,
+                    `name` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+                    `description` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+                    `all_orgs` tinyint(1) NOT NULL DEFAULT 0,
+                    PRIMARY KEY (id),
+                    INDEX `uuid` (`uuid`),
+                    INDEX `user_id` (`user_id`),
+                    INDEX `org_id` (`org_id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS tag_collection_tags (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `tag_collection_id` int(11) NOT NULL,
+                    `tag_id` int(11) NOT NULL,
+                    PRIMARY KEY (id),
+                    INDEX `uuid` (`tag_collection_id`),
+                    INDEX `user_id` (`tag_id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                break;
+            case 27:
+                $sqlArray[] = 'ALTER TABLE `tags` CHANGE `org_id` `org_id` int(11) NOT NULL DEFAULT 0;';
                 break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

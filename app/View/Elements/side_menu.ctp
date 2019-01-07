@@ -181,6 +181,25 @@
                     }
                 break;
 
+                case 'tag-collections':
+                    echo $this->element('/side_menu_link', array(
+                        'url' => '/tag_collections/index',
+                        'text' => __('List Tag Collections')
+                    ));
+                    if ($isAclTagEditor) {
+                        echo $this->element('/side_menu_link', array(
+                            'url' => '/tag_collections/add',
+                            'text' => __('Add Tag Collection')
+                        ));
+                        if (($menuItem === 'edit')) {
+                            echo $this->element('/side_menu_link', array(
+                                'url' => '/tag_collections/edit/' . $id,
+                                'text' => __('Add Tag Collection')
+                            ));
+                        }
+                    }
+                    break;
+
                 case 'event-collection':
                     echo $this->element('/side_menu_link', array(
                         'element_id' => 'index',
