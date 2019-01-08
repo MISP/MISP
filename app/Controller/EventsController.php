@@ -3292,6 +3292,18 @@ class EventsController extends AppController
         $this->set('count', $count);
     }
 
+    public function genericPicker() {
+        $this->set('options', array(
+            'require_choice' => true,
+            'pre_choices' => array(
+                'Tag Collections' => "'4/collections/attribute', 'tags', 'selectTag'",
+                'All Tags' => "4/all/attribute, 'tags', 'selectTag'",
+            )
+        ));
+        $this->set('items', array('item1', 'item2', 'item3'));
+        $this->render('/Elements/generic_picker');
+    }
+
     public function addTag($id = false, $tag_id = false)
     {
         if (!$this->request->is('post')) {

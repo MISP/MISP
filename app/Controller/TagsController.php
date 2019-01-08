@@ -585,7 +585,13 @@ class TagsController extends AppController
         $this->set('object_id', $id);
         $this->set('options', $options);
         $this->set('favourites', $favourites);
+        $this->set('scope', $scope);
         $this->render('ajax/taxonomy_choice');
+
+        // $this->set('options', array());
+        // $items = $options;
+        // $this->set('items', $items);
+        // $this->render('/Elements/generic_picker');
     }
 
     public function selectTag($id, $taxonomy_id, $scope = 'event', $filterData = '')

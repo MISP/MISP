@@ -1427,6 +1427,63 @@ function getPopup(id, context, target, admin, popupType) {
 	});
 }
 
+// Same as getPopup function but create a popover to populate first
+function popoverPopup(clicked, id, context, target, admin) {
+	var url = "";
+	if (typeof admin !== 'undefined' && admin != '') url+= "/admin";
+	if (context != '') {
+		url += "/" + context;
+	}
+	if (target != '') url += "/" + target;
+	if (id != '') url += "/" + id;
+
+	// popup handling //
+	var loadingHtml = '<div style="height: 75px; width: 75px;"><div class="spinner"></div><div class="loadingText">Loading</div></div>';
+	var closeButtonHtml = '<button type="button" class="close" onclick="$(this).closest(\'div.popover\').prev().popover(\'destroy\');">×</button>';
+	$clicked = $(clicked);
+	var title = $clicked.attr('title');
+	var origTitle = $clicked.attr('data-original-title');
+	if (title !== undefined && title !== "") {
+		title = title.replace(closeButtonHtml, '');
+		title = title.length == 0 ? '&nbsp;' : title;
+		$clicked.attr('title', title + closeButtonHtml);
+	} else if(title === "" && origTitle !== undefined) { //  preserve title
+		title = origTitle.replace(closeButtonHtml, '');
+		$clicked.attr('title', title + closeButtonHtml);
+	} else {
+		$clicked.attr('title', '&nbsp;' + closeButtonHtml);
+	}
+	if (!$clicked.data('popover')) {
+		$clicked.popover({
+			html: true,
+			trigger: 'manual',
+			content: loadingHtml
+		}).popover('show');
+	} else {
+		// $clicked.popover('show');
+	}
+	var popover = $clicked.data('popover');
+	var popoverBody = popover.$tip.find('.popover-content');
+
+	// actual request //
+	$.ajax({
+		dataType:"html",
+		async: true,
+		cache: false,
+		success:function (data, textStatus) {
+			if (popover.options.content !== data) {
+				popover.options.content =  data;
+				$clicked.popover('show');
+			}
+		},
+		error:function() {
+			popover.options.content =  '<div class="alert alert-error" style="margin-bottom: 0px;">Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).</div>';
+			$clicked.popover('show');
+		},
+		url: url
+	});
+}
+
 function simplePopup(url) {
 	$("#gray_out").fadeIn();
 	$.ajax({
