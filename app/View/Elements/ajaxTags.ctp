@@ -30,7 +30,7 @@
                 __('Add a tag'),
                 'btn btn-inverse noPrint',
                 'line-height:10px; padding: 4px 4px;',
-                'getPopup(\'' . h($event['Event']['id']) . '\', \'tags\', \'selectTaxonomy\');'
+                'popoverPopup(this, \'' . h($event['Event']['id']) . '\', \'tags\', \'selectTaxonomy\');'
             );
             $buttonData = vsprintf('<button id="%s" title="%s" role ="%s" tabindex="%s" aria-label="%s" class="%s" style="%s" onClick="%s">+</button>', $buttonVars);
         }

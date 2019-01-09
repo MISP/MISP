@@ -578,7 +578,9 @@ class TagsController extends AppController
         if ($favourites) {
             $choices[__('Favourite Tags')] = "/tags/selectTag/" . h($id) . "/favourites/" . h($scope);
         }
-        $choices[__('Tag Collections')] = "/tags/selectTag/" . h($id) . "/collections/" . h($scope);
+        if ($scope !== 'tag_collection') {
+            $choices[__('Tag Collections')] = "/tags/selectTag/" . h($id) . "/collections/" . h($scope);
+        }
         $choices[__('All Tags')] = "/tags/selectTag/" . h($id) . "/all/" . h($scope);
 
         $this->loadModel('Taxonomy');

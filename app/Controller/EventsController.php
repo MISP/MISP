@@ -3343,11 +3343,32 @@ class EventsController extends AppController
                     $tag_id_list[] = $tagCollectionTag['tag_id'];
                 }
             } else {
-                $tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
-                if (empty($tag)) {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
+                $tag_ids = json_decode($tag_id);
+                if ($tag_ids !== null) { // can decode json
+                    $tag_id_list = array();
+                    foreach ($tag_ids as $tag_id) {
+                        if (preg_match('/^collection_[0-9]+$/i', $tag_id)) {
+                            $tagChoice = explode('_', $tag_id)[1];
+                            $this->loadModel('TagCollection');
+                            $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $tagChoice)));
+                            if (empty($tagCollection)) {
+                                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
+                            }
+                            $tag_id_list = array();
+                            foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
+                                $tag_id_list[] = $tagCollectionTag['tag_id'];
+                            }
+                        } else {
+                            $tag_id_list[] = $tag_id;
+                        }
+                    }
+                } else {
+                    $tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
+                    if (empty($tag)) {
+                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
+                    }
+                    $tag_id = $tag['Tag']['id'];
                 }
-                $tag_id = $tag['Tag']['id'];
             }
         }
         $this->Event->recursive = -1;

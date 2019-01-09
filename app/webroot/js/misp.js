@@ -558,8 +558,9 @@ function submitForm(type, id, field, context) {
 	return false;
 };
 
-function quickSubmitTagForm(event_id, tag_id) {
-	$('#EventTag').val(tag_id);
+function quickSubmitTagForm(selected_tag_ids, addData) {
+	var event_id = addData.id;
+	$('#EventTag').val(JSON.stringify(selected_tag_ids));
 	$.ajax({
 		data: $('#EventSelectTagForm').closest("form").serialize(),
 		beforeSend: function (XMLHttpRequest) {
@@ -586,9 +587,8 @@ function quickSubmitTagForm(event_id, tag_id) {
 	return false;
 }
 
-// function quickSubmitAttributeTagForm(attribute_id, tag_id) {
 function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
-	attribute_id = addData.id;
+	var attribute_id = addData.id;
 	$('#AttributeTag').val(JSON.stringify(selected_tag_ids));
 	if (attribute_id == 'selected') {
 		$('#AttributeAttributeIds').val(getSelected());
@@ -623,8 +623,9 @@ function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
 	return false;
 }
 
-function quickSubmitTagCollectionTagForm(tag_collection_id, tag_id) {
-	$('#TagCollectionTag').val(tag_id);
+function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
+	var tag_collection_id = addData.id;
+	$('#TagCollectionTag').val(JSON.stringify(selected_tag_ids));
 	$.ajax({
 		data: $('#TagCollectionSelectTagForm').closest("form").serialize(),
 		beforeSend: function (XMLHttpRequest) {
