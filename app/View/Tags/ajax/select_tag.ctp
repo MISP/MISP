@@ -1,9 +1,9 @@
 <div class="popover_choice select_tag">
     <legend><?php echo __('Select Tag');?></legend>
-    
+
     <div style="display:none;">
         <?php
-            if ($scope === 'attributes') {
+            if ($scope === 'attribute') {
                 echo $this->Form->create('Attribute', array('url' => '/attributes/addTag/' . $object_id, 'style' => 'margin:0px;'));
             } elseif ($scope === 'event') {
                 echo $this->Form->create('Event', array('url' => '/events/addTag/' . $object_id, 'style' => 'margin:0px;'));
@@ -31,7 +31,7 @@
             <tr style="border-top:1px solid black;" class="templateChoiceButton shown" id="field_<?php echo h($choice_id); ?>">
                 <?php
                     $onClickForm = 'quickSubmitTagForm';
-                    if ($scope === 'attributes') {
+                    if ($scope === 'attribute') {
                         $onClickForm = 'quickSubmitAttributeTagForm';
                     }
                     if ($scope === 'tag_collection') {

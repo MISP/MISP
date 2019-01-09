@@ -48,12 +48,12 @@
         ?>
     </div>
     <div id="flashContainer" style="padding-top:<?php echo $topPadding; ?>px; !important;">
-        <?php
-            echo sprintf('<div id="main-view-container" class="container-fluid ">');
-            $flash = $this->Flash->render();
-            echo $flash;
-            echo '</div>';
-        ?>
+    	<div id="main-view-container" class="container-fluid ">
+            <?php
+                $flash = $this->Flash->render();
+                echo $flash;
+            ?>
+        </div>
     </div>
     <div>
         <?php
@@ -103,7 +103,7 @@
                 tabIsActive = true;
             });
         <?php
-            if (!Configure::read('MISP.disable_auto_logout')):
+            if (!Configure::read('MISP.disable_auto_logout') and $me):
         ?>
                 checkIfLoggedIn();
         <?php
