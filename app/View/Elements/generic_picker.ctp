@@ -2,6 +2,7 @@
 /**
 *   Generic select picker from JSON
 *   Required: $options, items
+*   Note: setting `require_choice` to true, disable items
 */
     $defaults_options = array(
         'select_options' => array(

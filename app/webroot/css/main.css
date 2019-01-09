@@ -894,6 +894,10 @@ a.proposal_link_red:hover {
 	padding-left:10px;
 }
 
+a.pill-pre-picker {
+	background-color: #0000000f;
+}
+
 .gray_out {
 	display:none;
 	width: 100%;

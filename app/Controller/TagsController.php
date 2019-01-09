@@ -572,26 +572,25 @@ class TagsController extends AppController
         if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) {
             throw new NotFoundException('You don\'t have permission to do that.');
         }
+
+        $choices = array();
         $favourites = $this->Tag->FavouriteTag->find('count', array('conditions' => array('FavouriteTag.user_id' => $this->Auth->user('id'))));
+        if ($favourites) {
+            $choices[__('Favourite Tags')] = "/tags/selectTag/" . h($id) . "/favourites/" . h($scope);
+        }
+        $choices[__('Tag Collections')] = "/tags/selectTag/" . h($id) . "/collections/" . h($scope);
+        $choices[__('All Tags')] = "/tags/selectTag/" . h($id) . "/all/" . h($scope);
+
         $this->loadModel('Taxonomy');
         $options = $this->Taxonomy->find('list', array('conditions' => array('enabled' => true), 'fields' => array('namespace'), 'order' => array('Taxonomy.namespace ASC')));
         foreach ($options as $k => $option) {
             $tags = $this->Taxonomy->getTaxonomyTags($k, false, true);
-            if (empty($tags)) {
-                unset($options[$k]);
+            if (!empty($tags)) {
+                $choices[__('Taxonomy Library') . ":" . h($option)] = "/tags/selectTag/" . h($id) . "/" . h($k) . "/" . h($scope);
             }
         }
-        $this->set('scope', $scope);
-        $this->set('object_id', $id);
-        $this->set('options', $options);
-        $this->set('favourites', $favourites);
-        $this->set('scope', $scope);
-        $this->render('ajax/taxonomy_choice');
-
-        // $this->set('options', array());
-        // $items = $options;
-        // $this->set('items', $items);
-        // $this->render('/Elements/generic_picker');
+        $this->set('choices', $choices);
+        $this->render('/Elements/generic_pre_picker');
     }
 
     public function selectTag($id, $taxonomy_id, $scope = 'event', $filterData = '')
