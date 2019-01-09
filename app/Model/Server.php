@@ -1160,7 +1160,7 @@ class Server extends AppModel
                                 'test' => 'testForNumeric',
                                 'type' => 'string'
                         ),
-                        'cookie_timeout' => array(
+                        'cookieTimeout' => array(
                                 'level' => 0,
                                 'description' => __('The expiration of the cookie (in MINUTES). The session timeout gets refreshed frequently, however the cookies do not. Generally it is recommended to have a much higher cookie_timeout than timeout.'),
                                 'value' => '',
