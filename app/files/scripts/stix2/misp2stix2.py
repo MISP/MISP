@@ -63,13 +63,7 @@ class StixBuilder():
     def eventReport(self):
         if not self.object_refs and self.links:
             self.add_custom(self.links.pop(0))
-        for link in self.links:
-            url = link['value']
-            source = "url"
-            if link.get('comment'):
-                source += " - {}".format(attribute['comment'])
-            external_ref = {'source_name': source, 'url': url}
-            self.external_refs.append(external_ref)
+        external_refs = [self.__parse_link(link) for link in self.links]
         report_args = {'type': 'report', 'id': self.report_id, 'name': self.misp_event['info'],
                        'created_by_ref': self.identity_id, 'created': self.misp_event['date'],
                        'published': self.get_datetime_from_timestamp(self.misp_event['publish_timestamp']),
@@ -84,9 +78,17 @@ class StixBuilder():
         else:
             report_args['labels'] = ['Threat-Report']
             report_args['labels'].append('misp:tool="misp2stix2"')
-        if self.external_refs:
-            report_args['external_references'] = self.external_refs
+        if external_refs:
+            report_args['external_references'] = external_refs
         return Report(**report_args, interoperability=True)
+
+    @staticmethod
+    def __parse_link(link):
+        url = link['value']
+        source = "url"
+        if link.get('comment'):
+            source += " - {}".format(attribute['comment'])
+        return {'source_name': source, 'url': url}
 
     def __set_identity(self):
         org = self.misp_event['Orgc']
@@ -113,7 +115,6 @@ class StixBuilder():
         self.report_id = "report--{}".format(self.misp_event['uuid'])
         self.SDOs = []
         self.object_refs = []
-        self.external_refs = []
         self.links = []
         self.relationships = defaultdict(list)
         i = self.__set_identity()
