@@ -1,3 +1,4 @@
+<!-- to delete if unused -->
 <div class="popover_choice  select_tag_source">
     <legend><?php echo __('Select Tag Source');?></legend>
     <div style="text-align:right;width:100%;" class="select_tag_search">

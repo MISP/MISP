@@ -5,7 +5,7 @@
 */
 
 /** Config **/
-$select_threshold = 3;
+$select_threshold = 6;
 
 /** Global **/
 $use_select = count($choices) > $select_threshold;
@@ -26,19 +26,29 @@ $use_select = count($choices) > $select_threshold;
             dataType:"html",
             async: true,
             cache: false,
+            beforeSend: function() {
+                var loadingHtml = '<div style="height: 40px; width: 40px; left: 50%; position: relative;"><div class="spinner" style="height: 30px; width: 30px;"></div></div>';
+                var $arrow = $clicked.closest('div.popover').find('div.arrow');
+                syncPopoverArrow($arrow, $wrapper, loadingHtml)
+            },
             success:function (data, textStatus) {
                 var $arrow = $clicked.closest('div.popover').find('div.arrow');
-                var ar_pos = $arrow.position();
-                $wrapper.html(data);
-                // redraw popover
-                $arrow.css('top', ar_pos.top + 'px');
-                $arrow.css('left', ar_pos.left + 'px');
+                syncPopoverArrow($arrow, $wrapper, data)
             },
             error:function() {
                 $wrapper.html('<div class="alert alert-error" style="margin-bottom: 0px;">Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).</div>');
             },
             url: $clicked.data('endpoint')
         });
+    }
+
+    // Used to keep the popover arrow at the correct place regardless of the popover content
+    function syncPopoverArrow($arrow, $wrapper, content) {
+        var ar_pos = $arrow.position();
+        $wrapper.html(content);
+        // redraw popover
+        $arrow.css('top', ar_pos.top + 'px');
+        $arrow.css('left', ar_pos.left + 'px');
     }
 
         <?php if ($use_select): ?>

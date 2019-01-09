@@ -638,13 +638,6 @@ class TagsController extends AppController
                     $expanded[$tagCollection['TagCollection']['id']] .= sprintf(' (%s)', $tagList);
                 }
             }
-            $this->set('scope', $scope);
-            $this->set('object_id', $id);
-            $this->set('options', $options);
-            $this->set('expanded', $expanded);
-            $this->set('custom', $taxonomy_id == 0 ? true : false);
-            $this->set('filterData', $filterData);
-            $this->render('ajax/select_tag');
         } else {
             if ($taxonomy_id === '0') {
                 $options = $this->Taxonomy->getAllTaxonomyTags(true);
@@ -693,19 +686,40 @@ class TagsController extends AppController
                 unset($options[$hidden_tag]);
                 unset($expanded[$hidden_tag]);
             }
-            $this->set('scope', $scope);
-            $this->set('object_id', $id);
-            foreach ($options as $k => $v) {
-                if (substr($v, 0, strlen('misp-galaxy:')) === 'misp-galaxy:') {
-                    unset($options[$k]);
-                }
-            }
-            $this->set('options', $options);
-            $this->set('expanded', $expanded);
-            $this->set('custom', $taxonomy_id == 0 ? true : false);
-            $this->set('filterData', $filterData);
-            $this->render('ajax/select_tag');
         }
+
+        $this->set('scope', $scope);
+        $this->set('object_id', $id);
+        $items = array();
+        foreach ($options as $k => $option) {
+            $choice_id = $k;
+            if ($taxonomy_id === 'collections') {
+                $choice_id = 'collection_' . $choice_id;
+            }
+
+            $onClickForm = 'quickSubmitTagForm';
+            if ($scope === 'attribute') {
+                $onClickForm = 'quickSubmitAttributeTagForm';
+            }
+            if ($scope === 'tag_collection') {
+                $onClickForm = 'quickSubmitTagCollectionTagForm';
+            }
+
+            $items[h($option)] = array(
+                'value' => h($choice_id),
+                'additionalData' => array(
+                    'id' => h($id)
+                )
+            );
+        }
+        $this->set('items', $items);
+        $this->set('options', array( // set chosen (select picker) options
+            'select_options' => array(
+                'multiple' => true,
+            ),
+            'functionName' => $onClickForm,
+        ));
+        $this->render('ajax/select_tag');
     }
 
     public function tagStatistics($percentage = false, $keysort = false)

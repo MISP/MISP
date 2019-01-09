@@ -586,8 +586,10 @@ function quickSubmitTagForm(event_id, tag_id) {
 	return false;
 }
 
-function quickSubmitAttributeTagForm(attribute_id, tag_id) {
-	$('#AttributeTag').val(tag_id);
+// function quickSubmitAttributeTagForm(attribute_id, tag_id) {
+function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
+	attribute_id = addData.id;
+	$('#AttributeTag').val(JSON.stringify(selected_tag_ids));
 	if (attribute_id == 'selected') {
 		$('#AttributeAttributeIds').val(getSelected());
 	}

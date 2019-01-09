@@ -896,6 +896,12 @@ a.proposal_link_red:hover {
 
 a.pill-pre-picker {
 	background-color: #0000000f;
+    font-weight: bold;
+    border: solid 1px #00000033;
+}
+
+.generic_picker {
+	margin: 10px;
 }
 
 .gray_out {
