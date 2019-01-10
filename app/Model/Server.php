@@ -1154,7 +1154,7 @@ class Server extends AppModel
                         ),
                         'timeout' => array(
                                 'level' => 0,
-                                'description' => __('The timeout duration of sessions (in MINUTES).'),
+                                'description' => __('The timeout duration of sessions (in MINUTES). 0 does not mean infinite for the PHP session handler, instead sessions will invalidate immediately.'),
                                 'value' => '',
                                 'errorMessage' => '',
                                 'test' => 'testForNumeric',
