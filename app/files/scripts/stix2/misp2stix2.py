@@ -95,7 +95,7 @@ class StixBuilder():
         url = link['value']
         source = "url"
         if link.get('comment'):
-            source += " - {}".format(attribute['comment'])
+            source += " - {}".format(link['comment'])
         return {'source_name': source, 'url': url}
 
     def add_all_markings(self):
