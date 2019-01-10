@@ -105,10 +105,19 @@ class GalaxiesController extends AppController
                 'namespace' => 'mitre-attack'
             )));
         }
-        $this->set('galaxies', $galaxies);
-        $this->set('target_id', $target_id);
-        $this->set('target_type', $target_type);
-        $this->render('ajax/galaxy_choice');
+
+        $choices = array();
+        $choices[__('All clusters')] = "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/0';
+        foreach ($galaxies as $galaxy) {
+            if ($galaxy['Galaxy']['id'] != -1) {
+                $choices[h($galaxy['Galaxy']['name'])] = "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/' . h($galaxy['Galaxy']['id']);
+            } else { // attackMatrix
+                // getMitreMatrixPopup('echo h($target_id) . "/" . h($target_type);')
+            }
+        }
+
+        $this->set('choices', $choices);
+        $this->render('/Elements/generic_pre_picker');
     }
 
     public function selectGalaxyNamespace($target_id, $target_type='event')
@@ -118,10 +127,15 @@ class GalaxiesController extends AppController
             'fields' => array('namespace', 'namespace'),
             'group' => array('namespace')
         ));
-        $this->set('namespaces', $namespaces);
-        $this->set('target_id', $target_id);
-        $this->set('target_type', $target_type);
-        $this->render('ajax/galaxy_namespace_choice');
+
+        $choices = array();
+        $choices[__('All namespaces')] = "/galaxies/selectGalaxy/" . h($target_id) . '/' . h($target_type) . '/0';
+        foreach ($namespaces as $namespace) {
+            $choices[h($namespace)] = "/galaxies/selectGalaxy/" . h($target_id) . '/' . h($target_type) . '/' . h($namespace);
+        }
+
+        $this->set('choices', $choices);
+        $this->render('/Elements/generic_pre_picker');
     }
 
     public function selectCluster($target_id, $target_type = 'event', $selectGalaxy = false)
@@ -162,10 +176,36 @@ class GalaxiesController extends AppController
             }
         }
         ksort($clusters);
-        $this->set('clusters', $clusters);
         $this->set('target_id', $target_id);
         $this->set('target_type', $target_type);
-        $this->set('lookup_table', $lookup_table);
+
+        $items = array();
+        foreach ($clusters as $namespace => $cluster_data) {
+            foreach ($cluster_data as $k => $cluster) {
+                $target_type = h($target_type);
+                $target_id = h($target_id);
+                $cluster_id = h($cluster['id']);
+                $title = __('Synonyms: ') . h($cluster['synonyms_string']);
+                $name = h($cluster['value']) . ' (' . h($cluster['type']) . ')';
+                $items[$name] = array(
+                    'value' => h($cluster_id),
+                    'title' => $title,
+                    'additionalData' => array(
+                        'target_id' => $target_id,
+                        'target_type' => $target_type,
+                    )
+                );
+            }
+        }
+        $onClickForm = 'quickSubmitGalaxyForm';
+
+        $this->set('items', $items);
+        $this->set('options', array( // set chosen (select picker) options
+            'select_options' => array(
+                'multiple' => true,
+            ),
+            'functionName' => $onClickForm,
+        ));
         $this->render('ajax/cluster_choice');
     }
 
@@ -178,13 +218,24 @@ class GalaxiesController extends AppController
 
     public function attachMultipleClusters($target_id, $target_type = 'event')
     {
-        $cluster_ids = json_decode($this->request->data['Galaxy']['target_ids'], true);
+        if (!empty($this->request->data['Galaxy']['target_ids'])) {
+            $cluster_ids = json_decode($this->request->data['Galaxy']['target_ids'], true);
+            if ($cluster_ids === null) {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'error' => __('Failed to parse request.'))), 'status'=>200, 'type' => 'json'));
+            }
+        } else {
+            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'error' => __('No clusters picked.'))), 'status'=>200, 'type' => 'json'));
+        }
         $result = "";
         foreach ($cluster_ids as $cluster_id) {
             $result = $this->Galaxy->attachCluster($this->Auth->user(), $target_type, $target_id, $cluster_id);
         }
-        $this->Flash->info($result);
-        $this->redirect($this->referer());
+        if ($this->request->is('ajax')) {
+            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $result, 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+        } else {
+            $this->Flash->info($result);
+            $this->redirect($this->referer());
+        }
     }
 
     public function viewGraph($id)

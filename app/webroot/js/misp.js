@@ -1450,7 +1450,7 @@ function popoverPopup(clicked, id, context, target, admin) {
 		title = title.replace(closeButtonHtml, '');
 		title = title.length == 0 ? '&nbsp;' : title;
 		$clicked.attr('title', title + closeButtonHtml);
-	} else if(title === "" && origTitle !== undefined) { //  preserve title
+	} else if(title === "" && origTitle !== undefined && origTitle !== "") { //  preserve title
 		title = origTitle.replace(closeButtonHtml, '');
 		$clicked.attr('title', title + closeButtonHtml);
 	} else {
@@ -3352,23 +3352,26 @@ $('.galaxy-toggle-button').click(function() {
 function addGalaxyListener(id) {
 	var target_type = $(id).data('target-type');
 	var target_id = $(id).data('target-id');
-	getPopup(target_type + '/' + target_id, 'galaxies', 'selectGalaxyNamespace');
+	popoverPopup(id, target_type + '/' + target_id, 'galaxies', 'selectGalaxyNamespace');
 }
 
-function quickSubmitGalaxyForm(scope, cluster_id, event_id) {
-	$('#GalaxyTargetId').val(cluster_id);
+// function quickSubmitGalaxyForm(scope, cluster_id, event_id) {
+function quickSubmitGalaxyForm(cluster_ids, additionalData) {
+	scope = additionalData['target_id'];
+	scope_id = additionalData['target_type'];
+	$('#GalaxyTargetIds').val(JSON.stringify(cluster_ids));
 	$.ajax({
 		data: $('#GalaxySelectClusterForm').closest("form").serialize(),
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
 		},
 		success:function (data, textStatus) {
-			loadGalaxies(event_id, scope);
+			loadGalaxies(scope_id, scope);
 			handleGenericAjaxResponse(data);
 		},
 		error:function() {
 			showMessage('fail', 'Could not add cluster.');
-			loadGalaxies(event_id, scope);
+			loadGalaxies(scope_id, scope);
 		},
 		complete:function() {
 			$("#popover_form").fadeOut();
@@ -3376,7 +3379,7 @@ function quickSubmitGalaxyForm(scope, cluster_id, event_id) {
 			$(".loading").hide();
 		},
 		type:"post",
-        url: "/galaxies/attachCluster/" + event_id + "/" + scope
+        url: "/galaxies/attachMultipleClusters/" + scope_id + "/" + scope
 	});
 	return false;
 }

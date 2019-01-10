@@ -11,13 +11,6 @@ $select_threshold = 6;
 $use_select = count($choices) > $select_threshold;
 ?>
 
-<?php
-    if ($use_select):
-        echo $this->Html->css('chosen.min');
-        echo $this->Html->script('chosen.jquery.min');
-    endif;
-?>
-
 <script>
     function addOptionsToSelect(clicked) {
         var $clicked = $(clicked);
@@ -78,7 +71,7 @@ $use_select = count($choices) > $select_threshold;
         $(document).ready(function() {
             setTimeout(function() { // let time for the popup to show
                 setupChosen("<?php echo $select_id; ?>");
-            }, 0);
+            }, 10);
         });
     </script>
 

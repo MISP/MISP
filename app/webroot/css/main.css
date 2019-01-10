@@ -904,6 +904,10 @@ a.pill-pre-picker {
 	margin: 10px;
 }
 
+.generic-picker-wrapper {
+	/* background-color: #8a8a8a50; */
+}
+
 .gray_out {
 	display:none;
 	width: 100%;

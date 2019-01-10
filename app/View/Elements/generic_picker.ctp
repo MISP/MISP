@@ -79,10 +79,6 @@
     <!-- </div> -->
 </div>
 
-<?php
-    echo $this->Html->css('chosen.min');
-    echo $this->Html->script('chosen.jquery.min');
-?>
 <script>
     $('document').ready(function() {
         var chosen_options = <?php echo json_encode($defaults['chosen_options']); ?>;

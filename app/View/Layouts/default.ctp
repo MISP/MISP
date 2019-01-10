@@ -29,6 +29,8 @@
         echo $this->Html->script('jquery'); // Include jQuery library
         echo $this->Html->script('misp-touch'); // touch interface support
         echo $this->Html->script('jquery-ui'); // UI support
+        echo $this->Html->css('chosen.min');
+        echo $this->Html->script('chosen.jquery.min');
     ?>
 
 </head>
