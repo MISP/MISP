@@ -86,6 +86,7 @@ class StixBuilder():
         if external_refs:
             report_args['external_references'] = external_refs
         self.add_all_markings()
+        self.add_all_relationships()
         report_args['object_refs'] = self.object_refs
         return Report(**report_args, interoperability=True)
 
@@ -102,6 +103,22 @@ class StixBuilder():
             marking_id = marking_args['id']
             marking = MarkingDefinition(**marking_args)
             self.append_object(marking, marking_id)
+
+    def add_all_relationships(self):
+        for source, targets in self.relationships.items():
+            if source.startswith('report'):
+                continue
+            source_type,_ = source.split('--')
+            for target in targets:
+                target_type,_ = target.split('--')
+                try:
+                    relation = relationshipsSpecifications[source_type][target_type]
+                except KeyError:
+                    # custom relationship (suggested by iglocska)
+                    relation = "has"
+                relationship = Relationship(source_ref=source, target_ref=target,
+                                            relationship_type=relation, interoperability=True)
+                self.append_object(relationship, relationship.id)
 
     def __set_identity(self):
         org = self.misp_event['Orgc']
@@ -156,20 +173,6 @@ class StixBuilder():
         if self.misp_event.get('Galaxy'):
             for galaxy in self.misp_event['Galaxy']:
                 self.parse_galaxy(galaxy, self.report_id)
-        for source, targets in self.relationships.items():
-            if source.startswith('report'):
-                continue
-            source_type,_ = source.split('--')
-            for target in targets:
-                target_type,_ = target.split('--')
-                try:
-                    relation = relationshipsSpecifications[source_type][target_type]
-                except KeyError:
-                    # custom relationship (suggested by iglocska)
-                    relation = "has"
-                relationship = Relationship(source_ref=source, target_ref=target,
-                                            relationship_type=relation, interoperability=True)
-                self.append_object(relationship, relationship.id)
         report = self.eventReport()
         self.SDOs.insert(i, report)
         return self.SDOs
