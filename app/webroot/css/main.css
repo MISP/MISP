@@ -895,17 +895,35 @@ a.proposal_link_red:hover {
 }
 
 a.pill-pre-picker {
-	background-color: #0000000f;
+	background-color: #fcfcfc;
     font-weight: bold;
     border: solid 1px #00000033;
 }
 
 .generic_picker {
-	margin: 10px;
+	display: inline-block;
+}
+
+.generic_picker ul.nav {
+	margin-bottom: 0px;
 }
 
 .generic-picker-wrapper {
-	/* background-color: #8a8a8a50; */
+	padding: 7px;
+	margin-top: 3px;
+	background-color: #65737e32;
+    border-radius: 7px;
+}
+.generic-picker-wrapper:before {
+	content: '';
+	margin-right: 5px;
+	margin-left: 2px;
+	border-left: 1px solid;
+	border-bottom: 1px solid;
+	height: 10px;
+	width: 5px;
+	display: inline-block;
+	float: left;
 }
 
 .gray_out {

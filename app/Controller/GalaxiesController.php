@@ -106,18 +106,22 @@ class GalaxiesController extends AppController
             )));
         }
 
-        $choices = array();
-        $choices[__('All clusters')] = "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/0';
+        $items = array();
+        $items[__('All clusters')] = "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/0';
         foreach ($galaxies as $galaxy) {
             if ($galaxy['Galaxy']['id'] != -1) {
-                $choices[h($galaxy['Galaxy']['name'])] = "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/' . h($galaxy['Galaxy']['id']);
+                $items[h($galaxy['Galaxy']['name'])] = "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/' . h($galaxy['Galaxy']['id']);
             } else { // attackMatrix
+                $items[h($galaxy['Galaxy']['name'])] = array(
+                    'functionName' => "getMitreMatrixPopup('" . h($target_id) . "/" . h($target_type) . "')",
+                    'isPill' => true
+                );
                 // getMitreMatrixPopup('echo h($target_id) . "/" . h($target_type);')
             }
         }
 
-        $this->set('choices', $choices);
-        $this->render('/Elements/generic_pre_picker');
+        $this->set('items', $items);
+        $this->render('/Elements/generic_picker');
     }
 
     public function selectGalaxyNamespace($target_id, $target_type='event')
@@ -128,14 +132,17 @@ class GalaxiesController extends AppController
             'group' => array('namespace')
         ));
 
-        $choices = array();
-        $choices[__('All namespaces')] = "/galaxies/selectGalaxy/" . h($target_id) . '/' . h($target_type) . '/0';
+        $items = array();
+        $items[__('All namespaces')] = "/galaxies/selectGalaxy/" . h($target_id) . '/' . h($target_type) . '/0';
         foreach ($namespaces as $namespace) {
-            $choices[h($namespace)] = "/galaxies/selectGalaxy/" . h($target_id) . '/' . h($target_type) . '/' . h($namespace);
+            $items[h($namespace)] = "/galaxies/selectGalaxy/" . h($target_id) . '/' . h($target_type) . '/' . h($namespace);
         }
 
-        $this->set('choices', $choices);
-        $this->render('/Elements/generic_pre_picker');
+        $this->set('items', $items);
+        $this->set('options', array( // set chosen (select picker) options
+            'multiple' => 0,
+        ));
+        $this->render('/Elements/generic_picker');
     }
 
     public function selectCluster($target_id, $target_type = 'event', $selectGalaxy = false)
@@ -201,10 +208,8 @@ class GalaxiesController extends AppController
 
         $this->set('items', $items);
         $this->set('options', array( // set chosen (select picker) options
-            'select_options' => array(
-                'multiple' => true,
-            ),
             'functionName' => $onClickForm,
+            'multiple' => -1,
         ));
         $this->render('ajax/cluster_choice');
     }

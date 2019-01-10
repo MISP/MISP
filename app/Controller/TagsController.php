@@ -573,26 +573,31 @@ class TagsController extends AppController
             throw new NotFoundException('You don\'t have permission to do that.');
         }
 
-        $choices = array();
+        $items = array();
         $favourites = $this->Tag->FavouriteTag->find('count', array('conditions' => array('FavouriteTag.user_id' => $this->Auth->user('id'))));
         if ($favourites) {
-            $choices[__('Favourite Tags')] = "/tags/selectTag/" . h($id) . "/favourites/" . h($scope);
+            $items[__('Favourite Tags')] = "/tags/selectTag/" . h($id) . "/favourites/" . h($scope);
         }
         if ($scope !== 'tag_collection') {
-            $choices[__('Tag Collections')] = "/tags/selectTag/" . h($id) . "/collections/" . h($scope);
+            $items[__('Tag Collections')] = "/tags/selectTag/" . h($id) . "/collections/" . h($scope);
         }
-        $choices[__('All Tags')] = "/tags/selectTag/" . h($id) . "/all/" . h($scope);
+        $items[__('All Tags')] = "/tags/selectTag/" . h($id) . "/all/" . h($scope);
 
         $this->loadModel('Taxonomy');
         $options = $this->Taxonomy->find('list', array('conditions' => array('enabled' => true), 'fields' => array('namespace'), 'order' => array('Taxonomy.namespace ASC')));
         foreach ($options as $k => $option) {
             $tags = $this->Taxonomy->getTaxonomyTags($k, false, true);
             if (!empty($tags)) {
-                $choices[__('Taxonomy Library') . ":" . h($option)] = "/tags/selectTag/" . h($id) . "/" . h($k) . "/" . h($scope);
+                $items[__('Taxonomy Library') . ":" . h($option)] = "/tags/selectTag/" . h($id) . "/" . h($k) . "/" . h($scope);
             }
         }
-        $this->set('choices', $choices);
-        $this->render('/Elements/generic_pre_picker');
+        $this->set('items', $items);
+        $this->set('options', array( // set chosen (select picker) options
+            'select_options' => array(
+                'multiple' => 0,
+            ),
+        ));
+        $this->render('/Elements/generic_picker');
     }
 
     public function selectTag($id, $taxonomy_id, $scope = 'event', $filterData = '')
@@ -716,10 +721,8 @@ class TagsController extends AppController
         }
         $this->set('items', $items);
         $this->set('options', array( // set chosen (select picker) options
-            'select_options' => array(
-                'multiple' => true,
-            ),
             'functionName' => $onClickForm,
+            'multiple' => -1,
         ));
         $this->render('ajax/select_tag');
     }
