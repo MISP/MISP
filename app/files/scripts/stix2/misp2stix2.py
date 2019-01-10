@@ -667,18 +667,19 @@ class StixBuilder():
 
     def create_marking(self, tag):
         id = 'marking-definition--%s' % uuid.uuid4()
-        _type, value = tag.split(':')
-        definition_type, marking = (_type, value) if _type == 'tlp' else ('statement', self._parse_tag(_type, value))
+        tag_list = tag.split(':')
+        namespace, predicate = tag_list if len(tag_list) == 2 else (tag_list[0], ":".join(tag_list[1:]))
+        definition_type, marking = (namespace, predicate) if namespace == 'tlp' else ('statement', self._parse_tag(namespace, predicate))
         self.markings[tag] = {'type': 'marking-definition', 'id': id, 'definition_type': definition_type,
                               'definition': {definition_type: marking}}
         return id
 
     @staticmethod
-    def _parse_tag(_type, value):
-        if '=' not in value:
-            return "{}: {}".format(_type, value)
-        identifier, value = value.split('=')
-        return "({}) {}: {}".format(_type, identifier, value.strip('"'))
+    def _parse_tag(namespace, predicate):
+        if '=' not in predicate:
+            return "{} = {}".format(namespace, predicate)
+        predicate, value = predicate.split('=')
+        return "({}) {} = {}".format(namespace, predicate, value.strip('"'))
 
     @staticmethod
     def define_observable(attribute_type, attribute_value):
