@@ -144,6 +144,10 @@ sudo -u apache git clone https://github.com/CybOXProject/mixbox.git
 cd /var/www/MISP/app/files/scripts/mixbox
 sudo -u apache $PATH_TO_MISP/venv/bin/pip install .
 
+# install STIX2.0 library to support STIX 2.0 export:
+cd /var/www/MISP/cti-python-stix2
+sudo -u apache $PATH_TO_MISP/venv/bin/pip install .
+
 # install PyMISP
 cd /var/www/MISP/PyMISP
 sudo -u apache $PATH_TO_MISP/venv/bin/pip install enum34
@@ -485,9 +489,6 @@ sudo -u apache $PATH_TO_MISP/venv/bin/pip install -I -r REQUIREMENTS
 sudo -u apache $PATH_TO_MISP/venv/bin/pip install .
 sudo yum install rubygem-rouge rubygem-asciidoctor -y
 ##sudo gem install asciidoctor-pdf --pre
-
-# install STIX2.0 library to support STIX 2.0 export:
-sudo -u apache $PATH_TO_MISP/venv/bin/pip install stix2
 
 # install additional dependencies for extended object generation and extraction
 sudo -u apache ${PATH_TO_MISP}/venv/bin/pip install maec lief python-magic pathlib

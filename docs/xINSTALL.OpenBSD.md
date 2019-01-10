@@ -347,7 +347,8 @@ cd /var/www/htdocs/MISP/PyMISP
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
 # install support for STIX 2.0
-doas /usr/local/virtualenvs/MISP/bin/pip install stix2
+cd /var/www/htdocs/MISP/cti-python-stix2
+doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
 # install python-magic, pydeep and maec
 doas /usr/local/virtualenvs/MISP/bin/pip install python-magic
