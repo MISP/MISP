@@ -147,13 +147,8 @@ function setupChosen(id) {
 
     // hack to add template into the div
     var $chosenContainer = $elem.parent().find('.chosen-container');
-    $elem.on('chosen:showing_dropdown keyup change', function() {
+    $elem.on('chosen:showing_dropdown chosen:searchdone keyup change', function() {
         redrawChosenWithTemplate($elem, $chosenContainer)
-    });
-    $chosenContainer.find('input.chosen-search-input').on('input', function() {
-        $chosenContainer.find('.chosen-results').one('DOMSubtreeModified', function() {
-            redrawChosenWithTemplate($elem, $chosenContainer)
-        });
     });
 }
 
