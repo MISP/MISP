@@ -41,6 +41,9 @@
         foreach ($options['select_options'] as $option => $value) {
             $select_html .= $option . '=' . $value . ' ';
         }
+        if (isset($options['functionName']) && $options['functionName'] !== "") {
+            $select_html .= ' data-functionname=' . $options['functionName'] .' ';
+        }
         return $select_html;
     }
 
@@ -90,15 +93,22 @@
                 // $param_html .= 'onclick="' . $param['functionName'] . '" ';
                 $param_html .= 'onclick="execAndClose(this, ' . $param['functionName'] . ')" ';
             } else { // fallback to default submit function
-                $param_html .= 'onclick="submitFunction(this, ' . $defaults['functionName'] . ')" ';
+                if ($defaults['functionName'] !== '') {
+                    $param_html .= 'onclick="submitFunction(this, ' . $defaults['functionName'] . ')" ';
+                } else {
+                    $param_html .= 'data-endpoint="' . h($param['value']) . '" ';
+                    $param_html .= 'onclick="fetchRequestedData(this)" ';
+                }
             }
 
             $additionalData = json_encode(array());
             foreach ($param as $paramName => $paramValue) {
                 if ($paramName === 'additionalData') {
                     $additionalData = json_encode($param['additionalData']);
-                } else if ($paramName === 'value'){
+                } else if ($paramName === 'value') {
                     $param_html .= 'value="' . h($paramValue) . '" ';
+                } else if ($paramName === 'template' || $paramName === 'templateData') {
+                    continue;
                 } else {
                     $param_html .= 'data-' . h($paramName). '="' . h($paramValue) . '" ';
                 }
@@ -118,8 +128,9 @@
         $pill_html .= '>';
         if (isset($param['img'])) {
             $pill_html .= '<img src="' . $param['img'] . '" style="margin-right: 5px; height: 14px;">';
-        } else if (isset($param['icon'])) {
-            $pill_html .= '<span class="fa ' . $param['icon'] . '" style="margin-right: 5px;"></span>';
+        } else if (isset($param['icon']) || isset($param['templateData']['icon'])) {
+            $icon = isset($param['icon']) ? $param['icon'] : $param['templateData']['icon'];
+            $pill_html .= '<span class="fa fa-' . $icon . '" style="margin-right: 5px;"></span>';
         }
         $pill_html .= h($name) . '</a>';
         $pill_html .= '</li>';
@@ -138,10 +149,16 @@ function setupChosen(id) {
     $elem.chosen(chosen_options);
     if (!$elem.prop('multiple')) { // not multiple, selection trigger next event
         $elem.change(function(event, selected) {
-            select = this;
-            $select = $(select);
-            $select.data('endpoint', selected.selected);
-            fetchRequestedData($select);
+            var fn = $elem.data('functionname');
+            if (fn !== undefined) {
+                fn = window[fn];
+                submitFunction(this, fn);
+            } else {
+                select = this;
+                $select = $(select);
+                $select.data('endpoint', selected.selected);
+                fetchRequestedData($select);
+            }
         });
     }
 

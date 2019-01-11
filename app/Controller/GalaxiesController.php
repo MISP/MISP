@@ -242,7 +242,7 @@ class GalaxiesController extends AppController
         $this->set('items', $items);
         $this->set('options', array( // set chosen (select picker) options
             'functionName' => $onClickForm,
-            'multiple' => -1,
+            'multiple' => '-1',
         ));
         $this->render('ajax/cluster_choice');
     }
@@ -265,6 +265,9 @@ class GalaxiesController extends AppController
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'error' => __('No clusters picked.'))), 'status'=>200, 'type' => 'json'));
         }
         $result = "";
+        if (!is_array($cluster_ids)) { // in case we only want to attach 1
+            $cluster_ids = array($cluster_ids);
+        }
         foreach ($cluster_ids as $cluster_id) {
             $result = $this->Galaxy->attachCluster($this->Auth->user(), $target_type, $target_id, $cluster_id);
         }
