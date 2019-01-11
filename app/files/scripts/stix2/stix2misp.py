@@ -22,13 +22,16 @@ import os
 import time
 import uuid
 import io
+import re
 import stix2
 from base64 import b64encode
-from pymisp import MISPEvent, MISPObject, __path__
+from pymisp import MISPEvent, MISPObject, MISPAttribute, __path__
+from pymisp.exceptions import PyMISPInvalidFormat
 from stix2misp_mapping import *
 from collections import defaultdict
 
-special_parsing = ('relationship', 'report', 'galaxy')
+TAG_REGEX = re.compile(r"\(.+\) .+ = .+")
+special_parsing = ('relationship', 'report', 'galaxy', 'marking-definition')
 galaxy_types = {'attack-pattern': 'Attack Pattern', 'intrusion-set': 'Intrusion Set',
                 'malware': 'Malware', 'threat-actor': 'Threat Actor', 'tool': 'Tool'}
 with open(os.path.join(__path__[0], 'data/describeTypes.json'), 'r') as f:
@@ -44,7 +47,7 @@ class StixParser():
         self.filename = filename
         self.stix_version = version
         for object_type in special_parsing:
-            setattr(self, object_type, event.pop(object_type) if object_type in event else {})
+            setattr(self, object_type.replace('-', '_'), event.pop(object_type) if object_type in event else {})
         self.event = event
         try:
             event_distribution = args[0]
@@ -68,6 +71,12 @@ class StixParser():
         for galaxy in self.galaxy.values():
             if galaxy['used'] == False:
                 self.misp_event['Galaxy'].append(self.parse_galaxies(galaxy['object']))
+        for marking in self.marking_definition.values():
+            if marking['used'] == False:
+                try:
+                    self.misp_event.add_tag(self.parse_marking(marking['object']))
+                except PyMISPInvalidFormat:
+                    continue
 
     def build_from_STIX_with_report(self):
         report_attributes = defaultdict(set)
@@ -151,6 +160,15 @@ class StixParser():
     ################################################################################
     ##                 PARSING FUNCTIONS USED BY BOTH SUBCLASSES.                 ##
     ################################################################################
+
+    def add_tag_in_attribute(self, attribute, marking_refs):
+        attribute = self.pyMISPify(attribute)
+        for marking in marking_refs:
+            marking_uuid = marking.split('--')[1]
+            marking = self.marking_definition[marking_uuid]
+            attribute.add_tag(self.parse_marking(marking['object']))
+            marking['used'] = True
+        return attribute
 
     @staticmethod
     def append_email_attribute(_type, value, to_ids):
@@ -392,6 +410,12 @@ class StixParser():
         return attributes
 
     @staticmethod
+    def pyMISPify(attribute_dict):
+        attribute = MISPAttribute()
+        attribute.from_dict(**attribute_dict)
+        return attribute
+
+    @staticmethod
     def split_observable_email_parts(observable):
         addresses = {}
         files = {}
@@ -486,6 +510,8 @@ class StixFromMISPParser(StixParser):
                      'value': o['x_misp_value'],
                      'category': self.get_misp_category(labels),
                      'uuid': o['id'].split('--')[1]}
+        if o.get('object_marking_refs'):
+            attribute = self.add_tag_in_attribute(attribute, o['object_marking_refs'])
         self.misp_event.add_attribute(**attribute)
 
     def parse_object(self, o, labels):
@@ -549,6 +575,8 @@ class StixFromMISPParser(StixParser):
             value, data = value
             attribute['data'] = io.BytesIO(data.encode())
         attribute['value'] = value
+        if hasattr(o, 'object_marking_refs'):
+            attribute = self.add_tag_in_attribute(attribute, o.object_marking_refs)
         self.handle_single_attribute(attribute, uuid=attribute_uuid)
 
     def parse_vulnerability(self, o, labels):
@@ -876,6 +904,18 @@ class StixFromMISPParser(StixParser):
         attribute_type = d_type[2]
         relation = "".join("{}-".format(t) for t in d_type[3:])
         return attribute_type, relation
+
+    @staticmethod
+    def parse_marking(marking):
+        marking_type = marking.definition_type
+        tag = getattr(marking.definition, marking_type)
+        if marking_type == 'tlp':
+            return "{}:{}".format(marking_type, tag)
+        if TAG_REGEX.match(tag):
+            predicate, value = tag.split(' = ')
+            namespace, predicate = predicate.split(') ')
+            return '{}:{}="{}"'.format(namespace[1:], predicate, value)
+        return ":".join(tag.split(' = '))
 
     @staticmethod
     def parse_pattern(pattern):
@@ -1303,6 +1343,12 @@ class ExternalStixParser(StixParser):
     def parse_galaxies(self, galaxy_object):
         return self.parse_external_galaxy(galaxy_object)
 
+    @staticmethod
+    def parse_marking(marking):
+        marking_type = marking.definition_type
+        if marking_type == 'tlp':
+            return "{}:{}".format(marking_type, getattr(marking.definition, marking_type))
+
 
 def from_misp(reports):
     for _, o in reports.items():
@@ -1330,6 +1376,9 @@ def main(args):
             if object_type in galaxy_types:
                 parsed_object = {'object': parsed_object, 'used': False}
                 object_type = 'galaxy'
+            elif object_type == 'marking-definition':
+                parsed_object = {'object': parsed_object, 'used': False}
+                object_type = object_type
             stix_event[object_type][uuid] = parsed_object
     if not stix_event:
         print(json.dumps({'success': 0, 'message': 'There is no valid STIX object to import'}))
