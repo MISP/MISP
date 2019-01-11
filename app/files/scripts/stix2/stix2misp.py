@@ -473,7 +473,7 @@ class StixFromMISPParser(StixParser):
         _, uuid = o.get('id').split('--')
         galaxy = {'type': galaxy_type, 'name': name, 'description': galaxy_description,
                   'GalaxyCluster': [{'type': galaxy_type, 'value':value, 'tag_name': tag,
-                                     'description': cluster_description, 'uuid': uuid}]}
+                                     'description': cluster_description, 'collection_uuid': uuid}]}
         return galaxy
 
     def parse_MISP_course_of_action(self, o, _):
