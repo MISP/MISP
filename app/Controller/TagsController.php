@@ -626,10 +626,11 @@ class TagsController extends AppController
         if ($taxonomy_id === 'collections') {
             $this->loadModel('TagCollection');
             $tagCollections = $this->TagCollection->fetchTagCollection($this->Auth->user());
-            $options = array();
+            $tags = array();
+            $inludedTagListString = array();
             $expanded = array();
             foreach ($tagCollections as &$tagCollection) {
-                $options[$tagCollection['TagCollection']['id']] = $tagCollection['TagCollection']['name'];
+                $tags[$tagCollection['TagCollection']['id']] = $tagCollection['TagCollection'];
                 $expanded[$tagCollection['TagCollection']['id']] = empty($tagCollection['TagCollection']['description']) ? $tagCollection['TagCollection']['name'] : $tagCollection['TagCollection']['description'];
                 if (!empty($tagCollection['TagCollectionTag'])) {
                     $tagList = array();
@@ -642,37 +643,44 @@ class TagsController extends AppController
                         $tagCollection['TagCollectionTag'] = array_values($tagCollection['TagCollectionTag']);
                     }
                     $tagList = implode(', ', $tagList);
+                    $inludedTagListString[$tagCollection['TagCollection']['id']] = $tagList;
                     $expanded[$tagCollection['TagCollection']['id']] .= sprintf(' (%s)', $tagList);
                 }
             }
         } else {
             if ($taxonomy_id === '0') {
-                $options = $this->Taxonomy->getAllTaxonomyTags(true);
-                $expanded = $options;
+                $tags = $this->Taxonomy->getAllTaxonomyTags(true);
+                $expanded = $tags;
             } elseif ($taxonomy_id === 'favourites') {
+                $tags = array();
                 $conditions = array('FavouriteTag.user_id' => $this->Auth->user('id'));
-                $tags = $this->Tag->FavouriteTag->find('all', array(
+                $favTags = $this->Tag->FavouriteTag->find('all', array(
                     'conditions' => $conditions,
                     'recursive' => -1,
-                    'contain' => array('Tag.name')
+                    'contain' => array('Tag')
                 ));
-                foreach ($tags as $tag) {
-                    $options[$tag['FavouriteTag']['tag_id']] = $tag['Tag']['name'];
-                    $expanded = $options;
+                foreach ($favTags as $favTag) {
+                    $tags[$favTag['FavouriteTag']['tag_id']] = $favTag['Tag'];
+                    $expanded = $tags;
                 }
             } elseif ($taxonomy_id === 'all') {
                 $conditions = array('Tag.org_id' => array(0, $this->Auth->user('org_id')));
                 $conditions = array('Tag.user_id' => array(0, $this->Auth->user('id')));
                 $conditions['Tag.hide_tag'] = 0;
-                $options = $this->Tag->find('list', array('fields' => array('Tag.name'), 'conditions' => $conditions));
-                $expanded = $options;
+                $allTags = $this->Tag->find('all', array('conditions' => $conditions, 'recursive' => -1));
+                $tags = array();
+                foreach ($allTags as $i => $tag) {
+                    $tags[$tag['Tag']['id']] = $tag['Tag'];
+                }
+                unset($allTags);
+                $expanded = $tags;
             } else {
                 $taxonomies = $this->Taxonomy->getTaxonomy($taxonomy_id);
-                $options = array();
+                $tags = array();
                 if (!empty($taxonomies['entries'])) {
                     foreach ($taxonomies['entries'] as $entry) {
                         if (!empty($entry['existing_tag']['Tag'])) {
-                            $options[$entry['existing_tag']['Tag']['id']] = $entry['existing_tag']['Tag']['name'];
+                            $tags[$entry['existing_tag']['Tag']['id']] = $entry['existing_tag']['Tag'];
                             $expanded[$entry['existing_tag']['Tag']['id']] = $entry['expanded'];
                         }
                     }
@@ -681,7 +689,7 @@ class TagsController extends AppController
             // Unset all tags that this user cannot use for tagging, determined by the org restriction on tags
             if (!$this->_isSiteAdmin()) {
                 foreach ($banned_tags as $banned_tag) {
-                    unset($options[$banned_tag]);
+                    unset($tags[$banned_tag]);
                     unset($expanded[$banned_tag]);
                 }
             }
@@ -690,15 +698,22 @@ class TagsController extends AppController
                     'fields' => array('Tag.id')
             ));
             foreach ($hidden_tags as $hidden_tag) {
-                unset($options[$hidden_tag]);
+                unset($tags[$hidden_tag]);
                 unset($expanded[$hidden_tag]);
             }
         }
 
         $this->set('scope', $scope);
         $this->set('object_id', $id);
+        App::uses('TextColourHelper', 'View/Helper');
+        $textColourHelper = new TextColourHelper(new View());
+        $tagTemplate = '<a href="#" class="tagComplete" style="background-color:{{=it.background}}; color:{{=it.color}}">{{=it.name}}</a>';
+        if ($taxonomy_id === 'collections') {
+            $tagTemplate .= '<div class="apply_css_arrow" style="padding-left: 5px; margin-top: 5px; font-size: smaller;"><i>{{=it.includes}}</i></div>';
+        }
         $items = array();
-        foreach ($options as $k => $option) {
+        foreach ($tags as $k => $tag) {
+            $tagName = $tag['name'];
             $choice_id = $k;
             if ($taxonomy_id === 'collections') {
                 $choice_id = 'collection_' . $choice_id;
@@ -712,12 +727,22 @@ class TagsController extends AppController
                 $onClickForm = 'quickSubmitTagCollectionTagForm';
             }
 
-            $items[h($option)] = array(
+            $items[h($tagName)] = array(
                 'value' => h($choice_id),
                 'additionalData' => array(
                     'id' => h($id)
+                ),
+                'template' => $tagTemplate,
+                'templateData' => array(
+                    'name' => h($tagName),
+                    'background' => h(isset($tag['colour']) ? $tag['colour'] : '#ffffff'),
+                    'color' => h(isset($tag['colour']) ? $textColourHelper->getTextColour($tag['colour']) : '#0088cc')
                 )
             );
+            if ($taxonomy_id === 'collections') {
+                $TagCollectionTag = __('Includes: ') . h($inludedTagListString[$tag['id']]);
+                $items[h($tagName)]['templateData']['includes'] = $TagCollectionTag;
+            }
         }
         $this->set('items', $items);
         $this->set('options', array( // set chosen (select picker) options

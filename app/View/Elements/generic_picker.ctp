@@ -170,7 +170,7 @@ function setupChosen(id) {
 }
 
 function redrawChosenWithTemplate($select, $chosenContainer) {
-    var $matches = $chosenContainer.find('.chosen-results .active-result, .chosen-single span');
+    var $matches = $chosenContainer.find('.chosen-results .active-result, .chosen-single span, .search-choice span');
     $matches.each(function() {
         var $item = $(this);
         var index = $item.data('option-array-index');
