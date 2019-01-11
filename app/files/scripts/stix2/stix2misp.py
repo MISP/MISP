@@ -543,8 +543,8 @@ class StixFromMISPParser(StixParser):
                 except Exception:
                     print('Error with attribute type {}:\n{}'.format(attribute_type, observable), file=sys.stderr)
                 attribute['to_ids'] = False
-        if 'description' in o:
-            attribute['comment'] = o.get('description')
+        if hasattr(o, 'description'):
+            attribute['comment'] = o.description
         if isinstance(value, tuple):
             value, data = value
             attribute['data'] = io.BytesIO(data.encode())
