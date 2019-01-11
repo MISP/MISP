@@ -707,12 +707,11 @@ class TagsController extends AppController
         $this->set('object_id', $id);
         App::uses('TextColourHelper', 'View/Helper');
         $textColourHelper = new TextColourHelper(new View());
-        $tagTemplate = '<a href="#" class="tagComplete" style="background-color:{{=it.background}}; color:{{=it.color}}">{{=it.name}}</a>';
-        if ($taxonomy_id === 'collections') {
-            $tagTemplate .= '<div class="apply_css_arrow" style="padding-left: 5px; margin-top: 5px; font-size: smaller;"><i>{{=it.includes}}</i></div>';
-        }
+
         $items = array();
         foreach ($tags as $k => $tag) {
+            $tagTemplate = '<a href="#" class="tagComplete" style="background-color:{{=it.background}}; color:{{=it.color}}">{{=it.name}}</a>';
+
             $tagName = $tag['name'];
             $choice_id = $k;
             if ($taxonomy_id === 'collections') {
@@ -727,6 +726,17 @@ class TagsController extends AppController
                 $onClickForm = 'quickSubmitTagCollectionTagForm';
             }
 
+            if (is_numeric($taxonomy_id) && $taxonomy_id > 0 && isset($expanded[$tag['id']])) {
+                if (strlen($expanded[$tag['id']]) < 50) {
+                    $tagTemplate .= '<i style="float:right; font-size: smaller;">{{=it.expanded}}</i>';
+                } else {
+                    $tagTemplate .= '<it class="fa fa-info-circle" style="float:right;" title="{{=it.expanded}}"></it>';
+                }
+            }
+            if ($taxonomy_id === 'collections') {
+                $tagTemplate .= '<div class="apply_css_arrow" style="padding-left: 5px; margin-top: 5px; font-size: smaller;"><i>{{=it.includes}}</i></div>';
+            }
+
             $items[h($tagName)] = array(
                 'value' => h($choice_id),
                 'additionalData' => array(
@@ -736,7 +746,8 @@ class TagsController extends AppController
                 'templateData' => array(
                     'name' => h($tagName),
                     'background' => h(isset($tag['colour']) ? $tag['colour'] : '#ffffff'),
-                    'color' => h(isset($tag['colour']) ? $textColourHelper->getTextColour($tag['colour']) : '#0088cc')
+                    'color' => h(isset($tag['colour']) ? $textColourHelper->getTextColour($tag['colour']) : '#0088cc'),
+                    'expanded' => $expanded[$tag['id']]
                 )
             );
             if ($taxonomy_id === 'collections') {

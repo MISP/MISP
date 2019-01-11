@@ -936,6 +936,9 @@ a.pill-pre-picker {
     margin-right: 5px;
 }
 
+.chosen-container .chosen-results li {
+    overflow: auto;
+}
 /* hacky hack: center selected item info icon */
 .chosen-container-single span it.fa, .chosen-single-with-deselect span it.fa {
     line-height: 24px;
