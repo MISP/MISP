@@ -38,7 +38,8 @@
 				$addTagButton = '&nbsp;';
 				if ($full) {
 					$addTagButton = sprintf(
-						'<button id="addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;" onClick="popoverPopup(this, %s);">+</button>',
+						'<button id="addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;" title="%s" onClick="popoverPopup(this, %s);">+</button>',
+                        __("Add tag"),
 						sprintf("'%s/attribute', 'tags', 'selectTaxonomy'", h($attributeId))
 					);
 				}

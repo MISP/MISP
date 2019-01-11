@@ -3,12 +3,6 @@
 *   Generic pre select picker from JSON
 *   Required: $choices
 */
-
-/** Config **/
-$select_threshold = 6;
-
-/** Global **/
-$use_select = count($choices) > $select_threshold;
 ?>
 
 <script>

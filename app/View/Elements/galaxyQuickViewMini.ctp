@@ -88,7 +88,7 @@
 <?php
     if ($isSiteAdmin || ($mayModify && $isAclTagger)):
 ?>
-        <span class="btn btn-inverse noPrint addGalaxy" data-target-type="<?php echo h($target_type);?>" data-target-id="<?php echo h($target_id); ?>" role="button" tabindex="0" aria-label="<?php echo __('Add new cluster');?>" style="padding: 1px 5px !important;font-size: 12px !important;"><?php echo __('Add');?></span>
+        <span class="btn btn-inverse noPrint addGalaxy" data-target-type="<?php echo h($target_type);?>" data-target-id="<?php echo h($target_id); ?>" role="button" tabindex="0" aria-label="<?php echo __('Add new cluster');?>" title="<?php echo __('Add new cluster');?>" style="padding: 1px 5px !important;font-size: 12px !important;"><?php echo __('Add');?></span>
 <?php
     endif;
 ?>

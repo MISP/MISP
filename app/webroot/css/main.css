@@ -909,21 +909,26 @@ a.pill-pre-picker {
 }
 
 .generic-picker-wrapper {
-	padding: 7px;
-	margin-top: 3px;
-	background-color: #65737e32;
+    padding: 7px;
+    margin-top: 3px;
+    background-color: #65737e32;
+    border: 1px #65737ec8 solid;
     border-radius: 7px;
 }
 .generic-picker-wrapper:before {
-	content: '';
-	margin-right: 5px;
-	margin-left: 2px;
-	border-left: 1px solid;
-	border-bottom: 1px solid;
-	height: 10px;
-	width: 5px;
-	display: inline-block;
-	float: left;
+    content: '';
+    margin-right: 5px;
+    margin-left: 2px;
+    border-left: 1px solid;
+    border-bottom: 1px solid;
+    height: 10px;
+    width: 5px;
+    display: inline-block;
+    float: left;
+}
+
+.active-result .fa:before {
+    margin-right: 5px;
 }
 
 .gray_out {

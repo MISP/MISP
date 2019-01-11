@@ -110,13 +110,21 @@ class GalaxiesController extends AppController
         $items[__('All clusters')] = "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/0';
         foreach ($galaxies as $galaxy) {
             if ($galaxy['Galaxy']['id'] != -1) {
-                $items[h($galaxy['Galaxy']['name'])] = "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/' . h($galaxy['Galaxy']['id']);
-            } else { // attackMatrix
-                $items[h($galaxy['Galaxy']['name'])] = array(
-                    'functionName' => "getMitreMatrixPopup('" . h($target_id) . "/" . h($target_type) . "')",
-                    'isPill' => true
+                $items[$galaxy['Galaxy']['name']] = array(
+                    'value' => "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/' . h($galaxy['Galaxy']['id']),
+                    'template' => '<it class="fa fa-{{=it.icon}}" style="margin-right: 5px;"></it>{{=it.name}}',
+                    'templateData' => array(
+                        'icon' => h($galaxy['Galaxy']['icon']),
+                        'name' => h($galaxy['Galaxy']['name'])
+                    )
                 );
-                // getMitreMatrixPopup('echo h($target_id) . "/" . h($target_type);')
+            } else { // attackMatrix
+                $items[$galaxy['Galaxy']['name']] = array(
+                    'functionName' => "getMitreMatrixPopup('" . h($target_id) . "/" . h($target_type) . "')",
+                    'isPill' => true,
+                    'img' => "/img/mitre-attack-icon.ico",
+                    // 'icon' => 'fa-filter'
+                );
             }
         }
 

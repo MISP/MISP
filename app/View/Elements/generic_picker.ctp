@@ -11,6 +11,7 @@
         ),
         'chosen_options' => array(
             'width' => '400px',
+            'search_contains' => true, // matches starting from anywhere within a word
             //'no_results_text' => '', // set to replace the default no result text after filtering
             //'max_selected_options' => 'Infinity' // set to replace the max selected options
             'disable_search_threshold' => 10,
@@ -56,6 +57,15 @@
             } else {
                 $additionalData = json_encode(array());
             }
+
+            if (isset($param['template'])) {
+                $option_html .= ' data-template=' . base64_encode($param['template']);
+            }
+            if (isset($param['templateData'])) {
+                $option_html .= ' data-templatedata=' . base64_encode(json_encode($param['templateData']));
+            }
+            debug($param['templateData']);
+
             $option_html .= ' data-additionaldata=' . $additionalData;
 
             if (in_array('disabled', $param)) {
@@ -74,7 +84,7 @@
         return $option_html;
     }
 
-    function add_link_params($name, $param, $defaults = array()) {
+    function add_link_params($name, $param, $defaults=array()) {
         $param_html = ' ';
         if (is_array($param)) { // add data as param
             if (isset($param['functionName'])) {
@@ -101,6 +111,21 @@
         }
         return $param_html;
     }
+
+    function add_pill($name, $param, $defaults=array()) {
+        $pill_html = '<li>';
+        $pill_html .= '<a href="#" data-toggle="pill" class="pill-pre-picker"';
+        $pill_html .= ' ' . add_link_params($name, $param, $defaults);
+        $pill_html .= '>';
+        if (isset($param['img'])) {
+            $pill_html .= '<img src="' . $param['img'] . '" style="margin-right: 5px; height: 14px;">';
+        } else if (isset($param['icon'])) {
+            $pill_html .= '<span class="fa ' . $param['icon'] . '" style="margin-right: 5px;"></span>';
+        }
+        $pill_html .= h($name) . '</a>';
+        $pill_html .= '</li>';
+        return $pill_html;
+    }
 ?>
 
 <script>
@@ -120,6 +145,32 @@ function setupChosen(id) {
             fetchRequestedData($select);
         });
     }
+
+    // hack to add template into the div
+    $elem.on('chosen:showing_dropdown keyup change', function() {
+        var $chosenContainer = $elem.parent().find('.chosen-container');
+        $chosenContainer
+            .find('.chosen-results .active-result, .chosen-single span')
+            .html(function() {
+                var $item = $(this);
+                var index = $item.data('option-array-index');
+                var $option;
+                if (index !== undefined) {
+                    $option = $elem.find('option:eq(' + index + ')');
+                } else {
+                    var text = $item.text();
+                    $option = $elem.find('option:contains(' + text + ')');
+                }
+                var template = $option.data('template');
+                if (template !== undefined && template !== '') {
+                    var template = atob(template);
+                    var temp = doT.template(template);
+                    var templateData = JSON.parse(atob($option.data('templatedata')));
+                    var res = temp(templateData);
+                    return res;
+                }
+            });
+    });
 }
 
 // Used to keep the popover arrow at the correct place regardless of the popover content
@@ -143,13 +194,16 @@ function fetchRequestedData(clicked) {
         beforeSend: function() {
             var loadingHtml = '<div style="height: 40px; width: 40px; left: 50%; position: relative;"><div class="spinner" style="height: 30px; width: 30px;"></div></div>';
             var $arrow = $clicked.closest('div.popover').find('div.arrow');
+            var $wrapper = $clicked.closest('div').find('div.generic-picker-wrapper');
             syncPopoverArrow($arrow, $wrapper, loadingHtml)
         },
         success:function (data, textStatus) {
+            $wrapper = $clicked.closest('div').find('div.generic-picker-wrapper');
             var $arrow = $clicked.closest('div.popover').find('div.arrow');
             syncPopoverArrow($arrow, $wrapper, data)
         },
         error:function() {
+            $wrapper = $clicked.closest('div').find('div.generic-picker-wrapper');
             $wrapper.html('<div class="alert alert-error" style="margin-bottom: 0px;">Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).</div>');
         },
         url: $clicked.data('endpoint')
@@ -198,11 +252,7 @@ function submitFunction(clicked, callback) {
             <ul class="nav nav-pills">
                 <?php foreach ($items as $name => $param): ?>
                     <?php if (isset($param['isPill']) && $param['isPill']):  ?>
-                    <li>
-                        <a href="#" data-toggle="pill" class="pill-pre-picker" <?php echo add_link_params($name, $param, $defaults); ?> >
-                            <?php echo h($name); ?>
-                        </a>
-                    </li>
+                        <?php echo add_pill($name, $param, $defaults); ?>
                     <?php endif; ?>
                 <?php endforeach; ?>
             </ul>
@@ -210,20 +260,14 @@ function submitFunction(clicked, callback) {
 
         <script>
             $(document).ready(function() {
-                setTimeout(function() { // let time for the popup to show
-                    setupChosen("<?php echo $select_id; ?>");
-                }, 10);
+                setupChosen("<?php echo $select_id; ?>");
             });
         </script>
 
     <?php else: ?>
         <ul class="nav nav-pills">
             <?php foreach ($items as $name => $param): ?>
-                <li>
-                    <a href="#" data-toggle="pill" class="pill-pre-picker" <?php echo add_link_params($name, $param, $defaults); ?> >
-                        <?php echo h($name); ?>
-                    </a>
-                </li>
+                <?php echo add_pill($name, $param, $defaults); ?>
             <?php endforeach; ?>
         </ul>
     <?php endif; ?>
