@@ -902,6 +902,7 @@ a.pill-pre-picker {
 
 .generic_picker {
 	display: inline-block;
+    min-width: 500px;
 }
 
 .generic_picker ul.nav {
@@ -929,6 +930,24 @@ a.pill-pre-picker {
 
 .active-result .fa:before {
     margin-right: 5px;
+}
+
+/* hacky hack: center selected item info icon */
+.chosen-container-single span it.fa, .chosen-single-with-deselect span it.fa {
+    line-height: 24px;
+    margin-right: 8px;
+}
+
+.apply_css_arrow:before {
+    content: '';
+    margin-right: 5px;
+    margin-left: 2px;
+    border-left: 1px solid;
+    border-bottom: 1px solid;
+    height: 10px;
+    width: 5px;
+    display: inline-block;
+    float: left;
 }
 
 .gray_out {

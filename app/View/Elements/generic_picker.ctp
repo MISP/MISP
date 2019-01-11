@@ -10,7 +10,7 @@
             //'placeholder' => '' // set to replace the default placeholder text
         ),
         'chosen_options' => array(
-            'width' => '400px',
+            'width' => '500px',
             'search_contains' => true, // matches starting from anywhere within a word
             //'no_results_text' => '', // set to replace the default no result text after filtering
             //'max_selected_options' => 'Infinity' // set to replace the max selected options
@@ -157,7 +157,7 @@ function setupChosen(id) {
                 var $option;
                 if (index !== undefined) {
                     $option = $elem.find('option:eq(' + index + ')');
-                } else {
+                } else { // if it is a `chosen-single span`, don't have index
                     var text = $item.text();
                     $option = $elem.find('option:contains(' + text + ')');
                 }

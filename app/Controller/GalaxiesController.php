@@ -110,12 +110,22 @@ class GalaxiesController extends AppController
         $items[__('All clusters')] = "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/0';
         foreach ($galaxies as $galaxy) {
             if ($galaxy['Galaxy']['id'] != -1) {
+                // construct option template
+                $galaxyTemplate = '<it class="fa fa-{{=it.icon}}" style="width: 22px;"></it>';
+                $galaxyTemplate .= '{{=it.name}}';
+                if (strlen($galaxy['Galaxy']['description']) < 50) {
+                    $galaxyTemplate .= '<i style="float:right; font-size: smaller;">{{=it.description}}</i>';
+                } else {
+                    $galaxyTemplate .= '<it class="fa fa-info-circle" style="float:right;" title="{{=it.description}}"></it>';
+                }
+
                 $items[$galaxy['Galaxy']['name']] = array(
                     'value' => "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/' . h($galaxy['Galaxy']['id']),
-                    'template' => '<it class="fa fa-{{=it.icon}}" style="margin-right: 5px;"></it>{{=it.name}}',
+                    'template' => $galaxyTemplate,
                     'templateData' => array(
                         'icon' => h($galaxy['Galaxy']['icon']),
-                        'name' => h($galaxy['Galaxy']['name'])
+                        'name' => h($galaxy['Galaxy']['name']),
+                        'description' => h($galaxy['Galaxy']['description'])
                     )
                 );
             } else { // attackMatrix
@@ -123,7 +133,6 @@ class GalaxiesController extends AppController
                     'functionName' => "getMitreMatrixPopup('" . h($target_id) . "/" . h($target_type) . "')",
                     'isPill' => true,
                     'img' => "/img/mitre-attack-icon.ico",
-                    // 'icon' => 'fa-filter'
                 );
             }
         }
@@ -197,17 +206,33 @@ class GalaxiesController extends AppController
         $items = array();
         foreach ($clusters as $namespace => $cluster_data) {
             foreach ($cluster_data as $k => $cluster) {
+                $clusterTemplate = '{{=it.name}}';
+                if (strlen($cluster['description']) < 50) {
+                    $clusterTemplate .= '<i style="float:right; font-size: smaller;">{{=it.description}}</i>';
+                } else {
+                    $clusterTemplate .= '<it class="fa fa-info-circle" style="float:right;" title="{{=it.description}}"></it>';
+                }
+                if ($cluster['synonyms_string'] !== "") {
+                    $clusterTemplate .= '<div class="apply_css_arrow" style="padding-left: 5px; font-size: smaller;"><i>{{=it.synonyms_string}}</i></div>';
+                }
+
                 $target_type = h($target_type);
                 $target_id = h($target_id);
                 $cluster_id = h($cluster['id']);
                 $title = __('Synonyms: ') . h($cluster['synonyms_string']);
-                $name = h($cluster['value']) . ' (' . h($cluster['type']) . ')';
+                $name = h($cluster['value']);
                 $items[$name] = array(
                     'value' => h($cluster_id),
                     'title' => $title,
                     'additionalData' => array(
                         'target_id' => $target_id,
                         'target_type' => $target_type,
+                    ),
+                    'template' => $clusterTemplate,
+                    'templateData' => array(
+                        'name' => $name,
+                        'description' => h($cluster['description']),
+                        'synonyms_string' => $title
                     )
                 );
             }
