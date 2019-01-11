@@ -64,7 +64,6 @@
             if (isset($param['templateData'])) {
                 $option_html .= ' data-templatedata=' . base64_encode(json_encode($param['templateData']));
             }
-            debug($param['templateData']);
 
             $option_html .= ' data-additionaldata=' . $additionalData;
 
@@ -147,30 +146,39 @@ function setupChosen(id) {
     }
 
     // hack to add template into the div
+    var $chosenContainer = $elem.parent().find('.chosen-container');
     $elem.on('chosen:showing_dropdown keyup change', function() {
-        var $chosenContainer = $elem.parent().find('.chosen-container');
-        $chosenContainer
-            .find('.chosen-results .active-result, .chosen-single span')
-            .html(function() {
-                var $item = $(this);
-                var index = $item.data('option-array-index');
-                var $option;
-                if (index !== undefined) {
-                    $option = $elem.find('option:eq(' + index + ')');
-                } else { // if it is a `chosen-single span`, don't have index
-                    var text = $item.text();
-                    $option = $elem.find('option:contains(' + text + ')');
-                }
-                var template = $option.data('template');
-                if (template !== undefined && template !== '') {
-                    var template = atob(template);
-                    var temp = doT.template(template);
-                    var templateData = JSON.parse(atob($option.data('templatedata')));
-                    var res = temp(templateData);
-                    return res;
-                }
-            });
+        redrawChosenWithTemplate($elem, $chosenContainer)
     });
+    $chosenContainer.find('input.chosen-search-input').on('input', function() {
+        $chosenContainer.find('.chosen-results').one('DOMSubtreeModified', function() {
+            redrawChosenWithTemplate($elem, $chosenContainer)
+        });
+    });
+}
+
+function redrawChosenWithTemplate($select, $chosenContainer) {
+    var $matches = $chosenContainer.find('.chosen-results .active-result, .chosen-single span');
+    $matches.each(function() {
+        var $item = $(this);
+        var index = $item.data('option-array-index');
+        var $option;
+        if (index !== undefined) {
+            $option = $select.find('option:eq(' + index + ')');
+        } else { // if it is a `chosen-single span`, don't have index
+            var text = $item.text();
+            $option = $select.find('option:contains(' + text + ')');
+        }
+        var template = $option.data('template');
+        var res = "";
+        if (template !== undefined && template !== '') {
+            var template = atob(template);
+            var temp = doT.template(template);
+            var templateData = JSON.parse(atob($option.data('templatedata')));
+            res = temp(templateData);
+            $item.html(res);
+        }
+    })
 }
 
 // Used to keep the popover arrow at the correct place regardless of the popover content
