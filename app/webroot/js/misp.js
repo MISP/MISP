@@ -3381,7 +3381,6 @@ function addGalaxyListener(id) {
 	popoverPopup(id, target_type + '/' + target_id, 'galaxies', 'selectGalaxyNamespace');
 }
 
-// function quickSubmitGalaxyForm(scope, cluster_id, event_id) {
 function quickSubmitGalaxyForm(cluster_ids, additionalData) {
 	scope = additionalData['target_id'];
 	scope_id = additionalData['target_type'];

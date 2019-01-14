@@ -253,6 +253,7 @@ function submitFunction(clicked, callback) {
         selected = $clicked.attr('value');
         additionalData = $clicked.data('additionaldata');
     }
+    execAndClose(clicked);
     callback(selected, additionalData);
 }
 </script>

@@ -710,7 +710,7 @@ class TagsController extends AppController
 
         $items = array();
         foreach ($tags as $k => $tag) {
-            $tagTemplate = '<a href="#" class="tagComplete" style="background-color:{{=it.background}}; color:{{=it.color}}">{{=it.name}}</a>';
+            $tagTemplate = '<span href="#" class="tagComplete" style="background-color:{{=it.background}}; color:{{=it.color}}">{{=it.name}}</span>';
 
             $tagName = $tag['name'];
             $choice_id = $k;
