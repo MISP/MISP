@@ -170,27 +170,33 @@ function setupChosen(id) {
 }
 
 function redrawChosenWithTemplate($select, $chosenContainer) {
-    var $matches = $chosenContainer.find('.chosen-results .active-result, .chosen-single span, .search-choice span');
-    $matches.each(function() {
-        var $item = $(this);
-        var index = $item.data('option-array-index');
-        var $option;
-        if (index !== undefined) {
-            $option = $select.find('option:eq(' + index + ')');
-        } else { // if it is a `chosen-single span`, don't have index
-            var text = $item.text();
-            $option = $select.find('option:contains(' + text + ')');
-        }
-        var template = $option.data('template');
-        var res = "";
-        if (template !== undefined && template !== '') {
-            var template = atob(template);
-            var temp = doT.template(template);
-            var templateData = JSON.parse(atob($option.data('templatedata')));
-            res = temp(templateData);
-            $item.html(res);
-        }
-    })
+    var optionLength = $select.find('option').length;
+    if (optionLength > 1000) {
+        $chosenContainer.parent().find('.generic-picker-wrapper-warning-text').show(0)
+    } else {
+        $chosenContainer.find('.generic-picker-wrapper-warning-text').hide(0)
+        var $matches = $chosenContainer.find('.chosen-results .active-result, .chosen-single span, .search-choice span');
+        $matches.each(function() {
+            var $item = $(this);
+            var index = $item.data('option-array-index');
+            var $option;
+            if (index !== undefined) {
+                $option = $select.find('option:eq(' + index + ')');
+            } else { // if it is a `chosen-single span`, don't have index
+                var text = $item.text();
+                $option = $select.find('option:contains(' + text + ')');
+            }
+            var template = $option.data('template');
+            var res = "";
+            if (template !== undefined && template !== '') {
+                var template = atob(template);
+                var temp = doT.template(template);
+                var templateData = JSON.parse(atob($option.data('templatedata')));
+                res = temp(templateData);
+                $item.html(res);
+            }
+        })
+    }
 }
 
 // Used to keep the popover arrow at the correct place regardless of the popover content
@@ -246,6 +252,10 @@ function submitFunction(clicked, callback) {
 </script>
 
 <div class="generic_picker">
+    <div class='generic-picker-wrapper-warning-text alert alert-error <?php echo (count($items) > 1000 ? '' : 'hidden'); ?>' style="margin-bottom: 5px;">
+        <i class="fa fa-exclamation-triangle"></i>
+        <?php echo __('Due to the large number of options, no contextual information is provided.'); ?>
+    </div>
     <?php if ($use_select): ?>
         <?php
         $select_id = h(uniqid()); // used to only register the listener on this select (allowing nesting)
