@@ -142,17 +142,18 @@ cd $PATH_TO_MISP/app/files/scripts
 sudo -u www-data git clone https://github.com/CybOXProject/python-cybox.git
 sudo -u www-data git clone https://github.com/STIXProject/python-stix.git
 sudo -u www-data git clone https://github.com/MAECProject/python-maec.git
+# install mixbox to accommodate the new STIX dependencies:
+sudo -u www-data git clone https://github.com/CybOXProject/mixbox.git
 cd $PATH_TO_MISP/app/files/scripts/python-cybox
 sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 cd $PATH_TO_MISP/app/files/scripts/python-stix
 sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 cd $PATH_TO_MISP/app/files/scripts/python-maec
 sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
-
-# install mixbox to accommodate the new STIX dependencies:
-cd $PATH_TO_MISP/app/files/scripts/
-sudo -u www-data git clone https://github.com/CybOXProject/mixbox.git
 cd $PATH_TO_MISP/app/files/scripts/mixbox
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+# install STIX 2.0 library to support STIX 2.0 export:
+cd $PATH_TO_MISP/cti-python-stix2
 sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 
 cd $PATH_TO_MISP
@@ -404,9 +405,6 @@ sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
 sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 sudo apt install ruby-pygments.rb -y
 sudo gem install asciidoctor-pdf --pre
-
-# install STIX2.0 library to support STIX 2.0 export:
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install stix2
 
 # install additional dependencies for extended object generation and extraction
 sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install maec lief python-magic pathlib
