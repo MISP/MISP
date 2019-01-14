@@ -1397,7 +1397,7 @@ function openPopup(id) {
 function openPopover(clicked, data) {
 	// popup handling //
 	var loadingHtml = '<div style="height: 75px; width: 75px;"><div class="spinner"></div><div class="loadingText">Loading</div></div>';
-	var closeButtonHtml = '<button type="button" class="close" onclick="$(this).closest(\'div.popover\').prev().popover(\'destroy\');">×</button>';
+	var closeButtonHtml = '<button type="button" class="close" style="margin-left: 5px;" onclick="$(this).closest(\'div.popover\').prev().popover(\'destroy\');">×</button>';
 	$clicked = $(clicked);
 	var title = $clicked.attr('title');
 	var origTitle = $clicked.attr('data-original-title');
@@ -1495,6 +1495,22 @@ function popoverPopup(clicked, id, context, target, admin) {
 		},
 		url: url
 	});
+}
+
+// create a confirm popover on the clicked html node.
+function popoverConfirm(clicked) {
+    var $clicked = $(clicked);
+	var popoverContent = '<div>';
+		popoverContent += '<span class="btn btn-primary" onclick=submitClosestForm(this)>Yes</span>';
+		popoverContent += '<span class="btn btn-inverse" style="float: right;" onclick=cancelPrompt()>Cancel</span>';
+	popoverContent += '</div>';
+	openPopover($clicked, popoverContent);
+}
+
+function submitClosestForm(clicked) {
+	$clicked = $(clicked);
+	$form = $clicked.closest('form');
+	$form.submit();
 }
 
 function simplePopup(url) {

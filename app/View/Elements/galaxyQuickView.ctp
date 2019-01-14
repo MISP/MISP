@@ -20,11 +20,9 @@
                     <a href="<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($cluster['tag_id']); ?>" class="icon-th-list" title="<?php echo __('View all events containing this cluster.');?>"></a>
                     <?php
                         if ($isSiteAdmin || ($mayModify && $isAclTagger)) {
-                            echo $this->Form->postLink('',
-                                $baseurl . '/galaxy_clusters/detach/' . ucfirst(h($target_id)) . '/' . h($target_type) . '/' . $cluster['tag_id'],
-                                array('class' => 'icon-trash', 'title' => __('Delete'), 'div' => false),
-                                __('Are you sure you want to detach %s from this event?', h($cluster['value']))
-                            );
+                            echo $this->Form->create(false, array('url' => $baseurl . '/galaxy_clusters/detach/' . ucfirst(h($target_id)) . '/' . h($target_type) . '/' . $cluster['tag_id'], 'style' => 'display: inline-block; margin: 0px;'));
+                            echo '<it href="#" class="icon-trash useCursorPointer" title="' . __('Are you sure you want to detach %s from this event?', h($cluster['value'])) . '" onclick="popoverConfirm(this)"></it>';
+                            echo $this->Form->end();
                         }
                     ?>
                     <div style="margin-left:15px;display:none;" class="blue galaxy_data">
