@@ -156,7 +156,13 @@ function setupChosen(id) {
             } else {
                 select = this;
                 $select = $(select);
-                $select.data('endpoint', selected.selected);
+                var endpoint;
+                if (selected !== undefined) {
+                    endpoint = selected.selected;
+                } else { //  for obscure reasons, `selected` variable is not set in some cases
+                    endpoint = $(event.target).val();
+                }
+                $select.data('endpoint', endpoint);
                 fetchRequestedData($select);
             }
         });

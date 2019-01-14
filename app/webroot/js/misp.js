@@ -109,6 +109,7 @@ function cancelPrompt(isolated) {
 	}
 	$("#confirmation_box").fadeOut();
 	$("#confirmation_box").empty();
+	$('.have-a-popover').popover('destroy');
 }
 
 function submitDeletion(context_id, action, type, id) {
@@ -956,10 +957,9 @@ function loadAttributeTags(id) {
 	});
 }
 
-function removeObjectTagPopup(context, object, tag) {
+function removeObjectTagPopup(clicked, context, object, tag) {
 	$.get( "/" + context + "s/removeTag/" + object + '/' + tag, function(data) {
-		$("#confirmation_box").html(data);
-		openPopup("#confirmation_box");
+		openPopover(clicked, data);
 	});
 }
 
@@ -1394,6 +1394,43 @@ function openPopup(id) {
 	$(id).fadeIn();
 }
 
+function openPopover(clicked, data) {
+	// popup handling //
+	var loadingHtml = '<div style="height: 75px; width: 75px;"><div class="spinner"></div><div class="loadingText">Loading</div></div>';
+	var closeButtonHtml = '<button type="button" class="close" onclick="$(this).closest(\'div.popover\').prev().popover(\'destroy\');">×</button>';
+	$clicked = $(clicked);
+	var title = $clicked.attr('title');
+	var origTitle = $clicked.attr('data-original-title');
+	if (title !== undefined && title !== "") {
+		title = title.replace(closeButtonHtml, '');
+		title = title.length == 0 ? '&nbsp;' : title;
+		$clicked.attr('title', title + closeButtonHtml);
+	} else if(title === "" && origTitle !== undefined && origTitle !== "") { //  preserve title
+		title = origTitle.replace(closeButtonHtml, '');
+		$clicked.attr('title', title + closeButtonHtml);
+	} else {
+		$clicked.attr('title', '&nbsp;' + closeButtonHtml);
+	}
+	if (!$clicked.data('popover')) {
+		$clicked.addClass('have-a-popover');
+		$clicked.popover({
+			html: true,
+			trigger: 'manual',
+			content: loadingHtml
+		}).popover('show');
+	} else {
+		// $clicked.popover('show');
+	}
+	var popover = $clicked.data('popover');
+
+	if (data === undefined) {
+		return popover
+	} else if (popover.options.content !== data) {
+		popover.options.content =  data;
+		$clicked.popover('show');
+	}
+}
+
 function getMitreMatrixPopup(id) {
 	cancelPopoverForm();
 	getPopup(scope_id + '/' + id, 'events', 'viewMitreAttackMatrix', '', '#popover_form_large');
@@ -1439,34 +1476,7 @@ function popoverPopup(clicked, id, context, target, admin) {
 	}
 	if (target != '') url += "/" + target;
 	if (id != '') url += "/" + id;
-
-	// popup handling //
-	var loadingHtml = '<div style="height: 75px; width: 75px;"><div class="spinner"></div><div class="loadingText">Loading</div></div>';
-	var closeButtonHtml = '<button type="button" class="close" onclick="$(this).closest(\'div.popover\').prev().popover(\'destroy\');">×</button>';
-	$clicked = $(clicked);
-	var title = $clicked.attr('title');
-	var origTitle = $clicked.attr('data-original-title');
-	if (title !== undefined && title !== "") {
-		title = title.replace(closeButtonHtml, '');
-		title = title.length == 0 ? '&nbsp;' : title;
-		$clicked.attr('title', title + closeButtonHtml);
-	} else if(title === "" && origTitle !== undefined && origTitle !== "") { //  preserve title
-		title = origTitle.replace(closeButtonHtml, '');
-		$clicked.attr('title', title + closeButtonHtml);
-	} else {
-		$clicked.attr('title', '&nbsp;' + closeButtonHtml);
-	}
-	if (!$clicked.data('popover')) {
-		$clicked.popover({
-			html: true,
-			trigger: 'manual',
-			content: loadingHtml
-		}).popover('show');
-	} else {
-		// $clicked.popover('show');
-	}
-	var popover = $clicked.data('popover');
-	var popoverBody = popover.$tip.find('.popover-content');
+	var popover = openPopover(clicked, undefined);
 
 	// actual request //
 	$.ajax({

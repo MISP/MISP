@@ -13,7 +13,7 @@
                 <?php
                     if ($full):
                 ?>
-                        <div class="tagSecondHalf useCursorPointer noPrint" title="<?php echo __('Remove tag');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove tag');?>" onClick="removeObjectTagPopup('tag_collection', '<?php echo h($tagCollection['TagCollection']['id']); ?>', '<?php echo h($tag['Tag']['id']); ?>');">x</div>
+                        <div class="tagSecondHalf useCursorPointer noPrint" title="<?php echo __('Remove tag');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove tag');?>" onClick="removeObjectTagPopup(this, 'tag_collection', '<?php echo h($tagCollection['TagCollection']['id']); ?>', '<?php echo h($tag['Tag']['id']); ?>');">x</div>
                 <?php
                     endif;
                 ?>
