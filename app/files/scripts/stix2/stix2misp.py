@@ -52,17 +52,19 @@ class StixParser():
         try:
             event_distribution = args[0]
             if not isinstance(event_distribution, int):
-                event_distribution = int(event_distribution) if event_distribution.isdigit() else 5
+                event_distribution = int(event_distribution) if event_distribution.isdigit() else 0
         except IndexError:
-            event_distribution = 5
+            event_distribution = 0
         try:
             attribute_distribution = args[1]
-            if attribute_distribution != 'event' and not isinstance(attribute_distribution, int):
+            if attribute_distribution == 'event':
+                attribute_distribution = 5
+            if not isinstance(attribute_distribution, int):
                 attribute_distribution = int(attribute_distribution) if attribute_distribution.isdigit() else 5
         except IndexError:
             attribute_distribution = 5
         self.misp_event.distribution = event_distribution
-        self._attribute_distribution = event_distribution if attribute_distribution == 'event' else attribute_distribution
+        self._attribute_distribution = attribute_distribution
 
     def general_handler(self):
         self.outputname = '{}.stix2'.format(self.filename)
