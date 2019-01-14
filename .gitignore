@@ -54,6 +54,8 @@ tools/mkdocs
 /app/files/scripts/tmp/*
 !/app/files/scripts/tmp/empty
 /app/files/scripts/stix2/*
+!/app/files/scripts/stix2/misp2stix2*.py
+!/app/files/scripts/stix2/stix2misp*.py
 !/app/files/empty
 /app/files/terms/*
 !/app/files/terms/empty
