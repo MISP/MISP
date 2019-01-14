@@ -221,7 +221,8 @@ class GalaxiesController extends AppController
                 $cluster_id = h($cluster['id']);
                 $title = __('Synonyms: ') . h($cluster['synonyms_string']);
                 $name = h($cluster['value']);
-                $items[$name] = array(
+                $optionName = h($cluster['value']) . ' (' . h($cluster['synonyms_string']) . ')';
+                $items[$optionName] = array(
                     'value' => h($cluster_id),
                     'title' => $title,
                     'additionalData' => array(
