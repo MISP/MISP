@@ -976,6 +976,7 @@ function removeObjectTag(context, object, tag) {
 		success:function (data, textStatus) {
 			$("#confirmation_box").fadeOut();
 			$("#gray_out").fadeOut();
+			cancelPrompt();
 			if (context == 'Attribute') {
 				loadAttributeTags(object);
             } else if (context == 'tag_collection') {
