@@ -1395,28 +1395,37 @@ function openPopup(id) {
 }
 
 function openPopover(clicked, data) {
-	// popup handling //
-	var loadingHtml = '<div style="height: 75px; width: 75px;"><div class="spinner"></div><div class="loadingText">Loading</div></div>';
-	var closeButtonHtml = '<button type="button" class="close" style="margin-left: 5px;" onclick="$(this).closest(\'div.popover\').prev().popover(\'destroy\');">×</button>';
+	/* popup handling */
 	$clicked = $(clicked);
+	var randomId = Math.random().toString(36).substr(2,9); // used to recover the button that triggered the popover (so that we can destroy the popover)
+	var loadingHtml = '<div style="height: 75px; width: 75px;"><div class="spinner"></div><div class="loadingText">Loading</div></div>';
+	$clicked.attr('data-dismissid', randomId);
+	var closeButtonHtml = '<button type="button" class="close" style="margin-left: 5px;" onclick="$(&apos;[data-dismissid=&quot;' + randomId + '&quot;]&apos;).popover(\'destroy\');">×</button>';
+
 	var title = $clicked.attr('title');
 	var origTitle = $clicked.attr('data-original-title');
 	if (title !== undefined && title !== "") {
-		title = title.replace(closeButtonHtml, '');
+		var index = title.indexOf('<button');
+		title = index > 0 ? title.substring(0, index) : title;
 		title = title.length == 0 ? '&nbsp;' : title;
 		$clicked.attr('title', title + closeButtonHtml);
 	} else if(title === "" && origTitle !== undefined && origTitle !== "") { //  preserve title
-		title = origTitle.replace(closeButtonHtml, '');
+		var index = origTitle.indexOf('<button');
+		origTitle = index > 0 ? origTitle.substring(0, index) : origTitle;
+		title = origTitle;
 		$clicked.attr('title', title + closeButtonHtml);
 	} else {
 		$clicked.attr('title', '&nbsp;' + closeButtonHtml);
 	}
+
 	if (!$clicked.data('popover')) {
 		$clicked.addClass('have-a-popover');
 		$clicked.popover({
 			html: true,
 			trigger: 'manual',
-			content: loadingHtml
+			content: loadingHtml,
+			container: 'body',
+			template: '<div class="popover" role="tooltip" data-dismissid="' + randomId + '"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"><div class="data-content"></div></div></div>'
 		}).popover('show');
 	} else {
 		// $clicked.popover('show');
@@ -1501,15 +1510,19 @@ function popoverPopup(clicked, id, context, target, admin) {
 function popoverConfirm(clicked) {
     var $clicked = $(clicked);
 	var popoverContent = '<div>';
-		popoverContent += '<span class="btn btn-primary" onclick=submitClosestForm(this)>Yes</span>';
+		popoverContent += '<span class="btn btn-primary" onclick=submitPopover(this)>Yes</span>';
 		popoverContent += '<span class="btn btn-inverse" style="float: right;" onclick=cancelPrompt()>Cancel</span>';
 	popoverContent += '</div>';
 	openPopover($clicked, popoverContent);
 }
 
-function submitClosestForm(clicked) {
+function submitPopover(clicked) {
 	$clicked = $(clicked);
 	$form = $clicked.closest('form');
+	if ($form.length === 0) { // popover container is body, submit from original node
+		var dismissid = $clicked.closest('div.popover').attr('data-dismissid');
+		$form = $('[data-dismissid="' + dismissid + '"]').closest('form');
+	}
 	$form.submit();
 }
 

@@ -90,7 +90,6 @@
         $param_html = ' ';
         if (is_array($param)) { // add data as param
             if (isset($param['functionName'])) {
-                // $param_html .= 'onclick="' . $param['functionName'] . '" ';
                 $param_html .= 'onclick="execAndClose(this, ' . $param['functionName'] . ')" ';
             } else { // fallback to default submit function
                 if ($defaults['functionName'] !== '') {
@@ -140,7 +139,8 @@
 
 <script>
 function execAndClose(elem, alreadyExecuted) {
-    $(elem).closest('div.popover').prev().popover('destroy');
+    var dismissid = $(elem).closest('div.popover').attr('data-dismissid');
+    $('[data-dismissid="' + dismissid + '"]').popover('destroy');
 }
 
 function setupChosen(id) {
