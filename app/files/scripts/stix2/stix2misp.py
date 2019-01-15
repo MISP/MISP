@@ -1129,7 +1129,7 @@ class ExternalStixParser(StixParser):
             attribute['value'] = pattern_values[0]
             attribute['type'] = attribute_type
             if marking:
-                attribute = add_tag_in_attribute(attribute, marking)
+                attribute = self.add_tag_in_attribute(attribute, marking)
             self.handle_single_attribute(attribute, uuid=uuid)
         else:
             if marking:
