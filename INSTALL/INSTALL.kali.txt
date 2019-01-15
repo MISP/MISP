@@ -12,6 +12,11 @@
 # /!\ Please read the installer script before randomly doing the above.
 # The script is tested on a plain vanilla Kali Linux Boot CD and installs quite a few dependencies.
 
+
+# Bug: /tmp/misp-kali.sh: line 142: pip3: command not found
+
+
+
 MISP_USER='misp'
 MISP_PASSWORD='Password1234'
 
@@ -19,8 +24,8 @@ function kaliOnRootR0ckz() {
   if [[ $EUID -ne 0 ]]; then
    echo "This script must be run as root"
    exit 1
-  elif [[ $(id misp >/dev/null; echo $?) -ne 0 ]]; then
-    useradd -s /bin/bash -m -G adm,cdrom,sudo,dip,plugdev,www-data misp
+  elif [[ $(id $MISP_USER >/dev/null; echo $?) -ne 0 ]]; then
+    useradd -s /bin/bash -m -G adm,cdrom,sudo,dip,plugdev,www-data $MISP_USER
     echo $MISP_USER:$MISP_PASSWORD | chpasswd
   else
     echo "User ${MISP_USER} exists, skipping creation"
@@ -66,7 +71,7 @@ function installMISPonKali() {
   post_max_size=50M
   max_execution_time=300
   memory_limit=512M
-  PHP_INI=/etc/php/7.2/apache2/php.ini
+  PHP_INI=/etc/php/7.3/apache2/php.ini
 
   # apt config
   export DEBIAN_FRONTEND=noninteractive
@@ -83,9 +88,9 @@ function installMISPonKali() {
   gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 0
   gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 0
   gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'nothing'
-  xset s 0 0
-  xset dpms 0 0
-  xset s off
+  xset s 0 0 2> /dev/null
+  xset dpms 0 0 2> /dev/null
+  xset s off 2> /dev/null
   apt update
   apt install -qy etckeeper
   # Skip dist-upgrade for now, pulls in 500+ updated packages
@@ -99,34 +104,35 @@ function installMISPonKali() {
   mariadb-client \
   mariadb-server \
   apache2 apache2-doc apache2-utils \
-  libapache2-mod-php7.2 php7.2 php7.2-cli  php7.2-mbstring php-pear php7.2-dev php7.2-json php7.2-xml php7.2-mysql php7.2-opcache php7.2-readline \
+  libapache2-mod-php7.3 php7.3 php7.3-cli  php7.3-mbstring php-pear php7.3-dev php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php-redis php-gnupg \
   python3-dev python3-pip libpq5 libjpeg-dev libfuzzy-dev ruby asciidoctor \
   libxml2-dev libxslt1-dev zlib1g-dev python3-setuptools expect
 
-  modprobe tpm-rng
-  echo tpm-rng >> /etc/modules
+  modprobe tpm-rng 2> /dev/null
+  if [ "$?" -eq "0" ]; then 
+    echo tpm-rng >> /etc/modules
+  fi
   apt install -qy rng-tools # This might fail on TPM grounds, enable the security chip in your BIOS
   service rng-tools start
 
-  systemctl restart mariadb.service
+  if [ "$?" -eq "1" ]; then 
+    apt purge -qy rng-tools
+    apt install havegd
+    /etc/init.d/haveged start
+  fi
+
+  phpenmod -v 7.3 redis
+  phpenmod -v 7.3 gnupg
+
+  systemctl restart mysql.service
 
   a2dismod status
   a2enmod ssl rewrite headers
   a2dissite 000-default
   a2ensite default-ssl
 
-  pear channel-update pear.php.net
-  pear install Crypt_GPG
-  pecl channel-update pecl.php.net
-
-  yes '' |pecl install redis
-
-  echo "extension=redis.so" | tee /etc/php/7.2/mods-available/redis.ini
-
-  phpenmod redis
-
-  update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1
-  update-alternatives --install /usr/bin/python python /usr/bin/python3.6 2
+  #update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1
+  #update-alternatives --install /usr/bin/python python /usr/bin/python3.6 2
 
   mkdir $PATH_TO_MISP
   chown www-data:www-data $PATH_TO_MISP
@@ -142,6 +148,9 @@ function installMISPonKali() {
   pip3 install .
   cd $PATH_TO_MISP/app/files/scripts/python-stix
   pip3 install .
+  # install STIX2.0 library to support STIX 2.0 export:
+  cd ${PATH_TO_MISP}/cti-python-stix2
+  pip3 install -I .
 
   cd $PATH_TO_MISP/app/files/scripts/
   $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
@@ -159,6 +168,11 @@ function installMISPonKali() {
 
   cd $PATH_TO_MISP/app
   mkdir /var/www/.composer ; chown www-data:www-data /var/www/.composer
+  # Update composer.phar
+  sudo -H -u www-data php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+  sudo -H -u www-data php -r "if (hash_file('SHA384', 'composer-setup.php') === '93b54496392c062774670ac18b134c3b3a95e5a5e5c8f1a9f115f203b75bf9a129d5daa8ba6a13e2cc8a1da0806388a8') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+  sudo -H -u www-data php composer-setup.php
+  sudo -H -u www-data php -r "unlink('composer-setup.php');"
   $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
   $SUDO_WWW php composer.phar config vendor-dir Vendor
   $SUDO_WWW php composer.phar install
@@ -504,7 +518,6 @@ function installMISPonKali() {
   pip3 install -I .
   pip3 install maec lief python-magic wand yara
   pip3 install git+https://github.com/kbandla/pydeep.git
-  pip3 install stix2
   gem install pygments.rb
   gem install asciidoctor-pdf --pre
   $SUDO_WWW misp-modules -l 0.0.0.0 -s &
@@ -515,6 +528,7 @@ function installMISPonKali() {
   chown -R $MISP_USER:$MISP_USER viper
   cd viper
   $SUDO git submodule update --init --recursive
+  pip3 install scrapy
   pip3 install -r requirements.txt
   pip3 uninstall yara -y
   $SUDO /usr/local/src/viper/viper-cli -h > /dev/null

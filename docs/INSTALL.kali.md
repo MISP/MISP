@@ -2,7 +2,7 @@
 ## for Kali Linux 2018.4
 # 0/ Quick MISP Instance on Kali Linux - Status
 
-This has been tested by @SteveClement on 20181113
+This has been tested by @SteveClement on 20190115
 
 # 1/ Prepare Kali with a MISP User
 
