@@ -1578,7 +1578,7 @@ class AttributesController extends AppController
         $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
         $this->set('shortDist', $this->Attribute->shortDist);
-        if ($this->request->is('post')) {
+        if ($this->request->is('post') || !empty($this->params['named']['tags'])) {
             if (isset($this->request->data['Attribute'])) {
                 $this->request->data = $this->request->data['Attribute'];
             }
