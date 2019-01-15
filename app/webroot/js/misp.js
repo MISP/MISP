@@ -695,6 +695,12 @@ function handleGenericAjaxResponse(data, skip_reload) {
 	} else {
 		responseArray = data;
 	}
+
+	// remove remaining popovers
+	cancelPrompt();
+	// in case the origin node has been deleted (e.g. tags)
+	$('.popover').remove();
+
 	if (responseArray.saved) {
 		showMessage('success', responseArray.success);
 		if (responseArray.hasOwnProperty('check_publish')) {
@@ -976,7 +982,6 @@ function removeObjectTag(context, object, tag) {
 		success:function (data, textStatus) {
 			$("#confirmation_box").fadeOut();
 			$("#gray_out").fadeOut();
-			cancelPrompt();
 			if (context == 'Attribute') {
 				loadAttributeTags(object);
             } else if (context == 'tag_collection') {
@@ -1403,22 +1408,6 @@ function openPopover(clicked, data) {
 	$clicked.attr('data-dismissid', randomId);
 	var closeButtonHtml = '<button type="button" class="close" style="margin-left: 5px;" onclick="$(&apos;[data-dismissid=&quot;' + randomId + '&quot;]&apos;).popover(\'destroy\');">×</button>';
 
-	var title = $clicked.attr('title');
-	var origTitle = $clicked.attr('data-original-title');
-	if (title !== undefined && title !== "") {
-		var index = title.indexOf('<button');
-		title = index > 0 ? title.substring(0, index) : title;
-		title = title.length == 0 ? '&nbsp;' : title;
-		$clicked.attr('title', title + closeButtonHtml);
-	} else if(title === "" && origTitle !== undefined && origTitle !== "") { //  preserve title
-		var index = origTitle.indexOf('<button');
-		origTitle = index > 0 ? origTitle.substring(0, index) : origTitle;
-		title = origTitle;
-		$clicked.attr('title', title + closeButtonHtml);
-	} else {
-		$clicked.attr('title', '&nbsp;' + closeButtonHtml);
-	}
-
 	if (!$clicked.data('popover')) {
 		$clicked.addClass('have-a-popover');
 		$clicked.popover({
@@ -1427,7 +1416,23 @@ function openPopover(clicked, data) {
 			content: loadingHtml,
 			container: 'body',
 			template: '<div class="popover" role="tooltip" data-dismissid="' + randomId + '"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"><div class="data-content"></div></div></div>'
-		}).popover('show');
+		})
+		.on('shown.bs.popover', function(event) {
+			var $this = $(this);
+			var title = $this.attr('title');
+			var popover = $('div.popover[data-dismissid="' + randomId + '"]');
+			title = title === "" ? $this.attr('data-original-title') : title;
+
+			if (title === "") {
+				title = "&nbsp;";
+				// adjust popover position (title was empty)
+				var top = popover.offset().top;
+				popover.css('top', (top-17) + 'px');
+			}
+			var popoverTitle = popover.find('h3.popover-title');
+			var origTitle = popoverTitle.html(title + closeButtonHtml);
+		})
+		.popover('show');
 	} else {
 		// $clicked.popover('show');
 	}
