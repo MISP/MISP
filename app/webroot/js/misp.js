@@ -3397,25 +3397,32 @@ $('.galaxy-toggle-button').click(function() {
 function addGalaxyListener(id) {
 	var target_type = $(id).data('target-type');
 	var target_id = $(id).data('target-id');
-	popoverPopup(id, target_type + '/' + target_id, 'galaxies', 'selectGalaxyNamespace');
+	popoverPopup(id, target_id + '/' + target_type, 'galaxies', 'selectGalaxyNamespace');
 }
 
 function quickSubmitGalaxyForm(cluster_ids, additionalData) {
-	scope = additionalData['target_id'];
-	scope_id = additionalData['target_type'];
+	var target_id = additionalData['target_id'];
+	var scope = additionalData['target_type'];
 	$('#GalaxyTargetIds').val(JSON.stringify(cluster_ids));
+	if (target_id == 'selected') {
+		$('#AttributeAttributeIds').val(getSelected());
+	}
 	$.ajax({
 		data: $('#GalaxySelectClusterForm').closest("form").serialize(),
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
 		},
 		success:function (data, textStatus) {
-			loadGalaxies(scope_id, scope);
-			handleGenericAjaxResponse(data);
+			if (target_id === 'selected') {
+				location.reload();
+			} else {
+				loadGalaxies(target_id, scope);
+				handleGenericAjaxResponse(data);
+			}
 		},
 		error:function() {
 			showMessage('fail', 'Could not add cluster.');
-			loadGalaxies(scope_id, scope);
+			loadGalaxies(target_id, scope);
 		},
 		complete:function() {
 			$("#popover_form").fadeOut();
@@ -3423,7 +3430,7 @@ function quickSubmitGalaxyForm(cluster_ids, additionalData) {
 			$(".loading").hide();
 		},
 		type:"post",
-        url: "/galaxies/attachMultipleClusters/" + scope_id + "/" + scope
+        url: "/galaxies/attachMultipleClusters/" + target_id + "/" + scope
 	});
 	return false;
 }
