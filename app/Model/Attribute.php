@@ -3836,7 +3836,7 @@ class Attribute extends AppModel
         $conditions = $this->buildFilterConditions($user, $filters);
         $params = array(
                 'conditions' => $conditions,
-                'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution'),
+                'fields' => array('Attribute.*', 'Event.org_id', 'Event.published', 'Event.publish_timestamp', 'Event.distribution'),
                 'withAttachments' => !empty($filters['withAttachments']) ? $filters['withAttachments'] : 0,
                 'enforceWarninglist' => !empty($filters['enforceWarninglist']) ? $filters['enforceWarninglist'] : 0,
                 'includeAllTags' => !empty($filters['includeAllTags']) ? $filters['includeAllTags'] : 0,
