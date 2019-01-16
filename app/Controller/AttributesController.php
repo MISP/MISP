@@ -1662,6 +1662,9 @@ class AttributesController extends AppController
             if (isset($filters['tags']) && !empty($filters['tags'])) {
                 // if the tag is passed by ID - show its name in the view
                 $this->loadModel('Tag');
+                if (!is_array($filters['tags'])) {
+                    $filters['tags'] = array($filters['tags']);
+                }
                 foreach ($filters['tags'] as $k => &$v) {
                     if (!is_numeric($v))
                         continue;
