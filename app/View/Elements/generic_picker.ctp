@@ -88,7 +88,7 @@ function redrawChosenWithTemplate($select, $chosenContainer) {
         $chosenContainer.parent().find('.generic-picker-wrapper-warning-text').show(0)
     } else {
         $chosenContainer.find('.generic-picker-wrapper-warning-text').hide(0)
-        var $matches = $chosenContainer.find('.chosen-results .active-result, .chosen-single span, .search-choice span');
+        var $matches = $chosenContainer.find('.chosen-results .active-result, .chosen-single > span, .search-choice > span');
         $matches.each(function() {
             var $item = $(this);
             var index = $item.data('option-array-index');
