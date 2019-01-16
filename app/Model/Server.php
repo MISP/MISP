@@ -110,7 +110,11 @@ class Server extends AppModel
                     'getAuthkey' => 'MISP/app/Console/cake Admin getAuthkey [email]',
                     'setBaseurl' => 'MISP/app/Console/cake Baseurl [baseurl]',
                     'changePassword' => 'MISP/app/Console/cake Password [email] [new_password]',
-					'clearBruteforce' => 'MISP/app/Console/cake Admin clearBruteforce [user_email]'
+					'clearBruteforce' => 'MISP/app/Console/cake Admin clearBruteforce [user_email]',
+                    'updateGalaxies' => 'MISP/app/Console/cake Admin updateGalaxies',
+                    'updateTaxonomies' => 'MISP/app/Console/cake Admin updateTaxonomies',
+                    'updateWarningLists' => 'MISP/app/Console/cake Admin updateWarningLists',
+                    'updateNoticeLists' => 'MISP/app/Console/cake Admin updateNoticeLists'
                 ),
                 'description' => __('Certain administrative tasks are exposed to the API, these help with maintaining and configuring MISP in an automated way / via external tools.'),
                 'header' => __('Administering MISP via the CLI')
@@ -1150,13 +1154,13 @@ class Server extends AppModel
                         ),
                         'timeout' => array(
                                 'level' => 0,
-                                'description' => __('The timeout duration of sessions (in MINUTES).'),
+                                'description' => __('The timeout duration of sessions (in MINUTES). 0 does not mean infinite for the PHP session handler, instead sessions will invalidate immediately.'),
                                 'value' => '',
                                 'errorMessage' => '',
                                 'test' => 'testForNumeric',
                                 'type' => 'string'
                         ),
-                        'cookie_timeout' => array(
+                        'cookieTimeout' => array(
                                 'level' => 0,
                                 'description' => __('The expiration of the cookie (in MINUTES). The session timeout gets refreshed frequently, however the cookies do not. Generally it is recommended to have a much higher cookie_timeout than timeout.'),
                                 'value' => '',

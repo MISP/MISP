@@ -641,9 +641,17 @@ class AppController extends Controller
                 $options['additional_delimiters'] = array($options['additional_delimiters']);
             }
             foreach ($data as $k => $v) {
-                $data[$k] = explode($options['additional_delimiters'][0], str_replace($options['additional_delimiters'], $options['additional_delimiters'][0], $v));
-                foreach ($data[$k] as $k2 => $value) {
-                    $data[$k][$k2] = trim($data[$k][$k2]);
+                $found = false;
+                foreach ($options['additional_delimiters'] as $delim) {
+                    if (strpos($v, $delim) !== false) {
+                        $found = true;
+                    }
+                }
+                if ($found) {
+                    $data[$k] = explode($options['additional_delimiters'][0], str_replace($options['additional_delimiters'], $options['additional_delimiters'][0], $v));
+                    foreach ($data[$k] as $k2 => $value) {
+                        $data[$k][$k2] = trim($data[$k][$k2]);
+                    }
                 }
             }
         }
