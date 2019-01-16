@@ -123,4 +123,99 @@ class AttributeTag extends AppModel
         }
         return array('scores' => $scores, 'maxScore' => $maxScore);
     }
+
+
+    // find all tags that belong to a list of attributes (contains in the same event)
+    public function getAttributesTags($requestedEventId, $attributeIds) {
+        if ($attributeIds === null) {
+            throw new NotFoundException(__('Invalid attributes'));
+        }
+
+        $allTags = array();
+        foreach ($attributeIds as $id) {
+            $this->Attribute->id = $id;
+            if (!$this->Attribute->exists()) {
+                continue;
+            }
+            $this->Attribute->read();
+            $eventId = $this->Attribute->data['Attribute']['event_id'];
+            if ($eventId != $requestedEventId) { // only takes tags of attributes belonging to the same event
+                continue;
+            }
+            $attributeTags = $this->find('all', array(
+                'conditions' => array(
+                    'attribute_id' => $id
+                ),
+                'contain' => array('Tag'),
+                'fields' => array('Tag.id', 'Tag.colour', 'Tag.name'),
+            ));
+            $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+            $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
+            foreach ($attributeTags as $k => $attributeTag) {
+                if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
+                    unset($attributeTags[$k]);
+                }
+            }
+            foreach ($attributeTags as $k => $attributeTag) {
+                $allTags[$attributeTag['Tag']['id']] = $attributeTag['Tag'];
+            }
+        }
+        return $allTags;
+    }
+
+    // find all galaxies that belong to a list of attributes (contains in the same event)
+    public function getAttributesClusters($requestedEventId, $attributeIds) {
+        if ($attributeIds === null) {
+            throw new NotFoundException(__('Invalid attributes'));
+        }
+
+        $allClusters = array();
+        foreach ($attributeIds as $id) {
+            $this->Attribute->id = $id;
+            if (!$this->Attribute->exists()) {
+                continue;
+            }
+            $this->Attribute->read();
+            $eventId = $this->Attribute->data['Attribute']['event_id'];
+            if ($eventId != $requestedEventId) { // only takes tags of attributes belonging to the same event
+                continue;
+            }
+            $attributeTags = $this->find('all', array(
+                'conditions' => array(
+                    'attribute_id' => $id
+                ),
+                'contain' => array('Tag'),
+                'fields' => array('Tag.id', 'Tag.colour', 'Tag.name'),
+            ));
+
+            $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+            $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
+
+            foreach ($attributeTags as $k => $attributeTag) {
+                if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
+                    $cluster = $this->GalaxyCluster->find('first', array(
+                            'conditions' => array('GalaxyCluster.tag_name' => $attributeTag['Tag']['name']),
+                            'fields' => array('value', 'description', 'type'),
+                            'contain' => array(
+                                'GalaxyElement' => array(
+                                    'conditions' => array('GalaxyElement.key' => 'synonyms')
+                                )
+                            ),
+                            'recursive' => -1
+                    ));
+
+                    // create synonym string
+                    $cluster['GalaxyCluster']['synonyms_string'] = array();
+                    foreach ($cluster['GalaxyElement'] as $element) {
+                        $cluster['GalaxyCluster']['synonyms_string'][] = $element['value'];
+                    }
+                    $cluster['GalaxyCluster']['synonyms_string'] = implode(', ', $cluster['GalaxyCluster']['synonyms_string']);
+                    unset($cluster['GalaxyElement']);
+                    $allClusters[$cluster['GalaxyCluster']['id']] = $cluster['GalaxyCluster'];
+                }
+            }
+        }
+        return $allClusters;
+    }
+
 }

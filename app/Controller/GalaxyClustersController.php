@@ -222,6 +222,8 @@ class GalaxyClustersController extends AppController
             $event_id = $attribute['Attribute']['event_id'];
         } elseif ($target_type == 'event') {
             $event_id = $target_id;
+        } elseif ($target_type === 'tag_collection') {
+            throw new MethodNotAllowedException('Method not implemented yet');
         } else {
             throw new MethodNotAllowedException('Invalid options');
         }

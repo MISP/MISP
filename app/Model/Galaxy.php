@@ -243,6 +243,112 @@ class Galaxy extends AppModel
         return 'Could not attach the cluster';
     }
 
+    public function detachCluster($user, $target_type, $target_id, $cluster_id) {
+        $cluster = $this->GalaxyCluster->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('id' => $cluster_id),
+            'fields' => array('tag_name', 'id', 'value')
+        ));
+        $this->Tag = ClassRegistry::init('Tag');
+        if ($target_type === 'event') {
+            $target = $this->Tag->EventTag->Event->fetchEvent($user, array('eventid' => $target_id, 'metadata' => 1));
+            if (empty($target)) {
+                throw new NotFoundException(__('Invalid %s.', $target_type));
+            }
+            $target = $target[0];
+            $event = $target;
+            $event_id = $target['Event']['id'];
+            $org_id = $event['Event']['org_id'];
+            $orgc_id = $event['Event']['orgc_id'];
+        } elseif ($target_type === 'attribute') {
+            $target = $this->Tag->AttributeTag->Attribute->fetchAttributes($user, array('conditions' => array('Attribute.id' => $target_id), 'flatten' => 1));
+            if (empty($target)) {
+                throw new NotFoundException(__('Invalid %s.', $target_type));
+            }
+            $target = $target[0];
+            $event_id = $target['Attribute']['event_id'];
+            $event = $this->Tag->EventTag->Event->fetchEvent($user, array('eventid' => $event_id, 'metadata' => 1));
+            if (empty($event)) {
+                throw new NotFoundException(__('Invalid event'));
+            }
+            $event = $event[0];
+            $org_id = $event['Event']['org_id'];
+            $orgc_id = $event['Event']['org_id'];
+        } elseif ($target_type === 'tag_collection') {
+            $target = $this->Tag->TagCollectionTag->TagCollection->fetchTagCollection($user, array('conditions' => array('TagCollection.id' => $target_id)));
+            if (empty($target)) {
+                throw new NotFoundException(__('Invalid %s.', $target_type));
+            }
+            $target = $target[0];
+            $org_id = $target['org_id'];
+            $orgc_id = $org_id;
+        }
+
+        if (!$user['Role']['perm_site_admin'] && !$user['Role']['perm_sync']) {
+            if (!$user['Role']['perm_tagger'] || ($user['org_id'] !== org_id && $user['org_id'] !== $orgc_id)) {
+                throw new MethodNotAllowedException('Invalid Event.');
+            }
+        }
+
+        $tag_id = $this->Tag->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1), $user);
+
+        if ($target_type == 'attribute') {
+            $existingTargetTag = $this->Tag->AttributeTag->find('first', array(
+                'conditions' => array('AttributeTag.tag_id' => $tag_id, 'AttributeTag.attribute_id' => $target_id),
+                'recursive' => -1,
+                'contain' => array('Tag')
+            ));
+        } elseif ($target_type == 'event') {
+            $existingTargetTag = $this->Tag->EventTag->find('first', array(
+                'conditions' => array('EventTag.tag_id' => $tag_id, 'EventTag.event_id' => $target_id),
+                'recursive' => -1,
+                'contain' => array('Tag')
+            ));
+        } elseif ($target_type == 'tag_collection') {
+            $existingTargetTag = $this->Tag->TagCollectionTag->TagCollection->find('first', array(
+                'conditions' => array('tag_id' => $tag_id, 'tag_collection_id' => $target_id),
+                'recursive' => -1,
+                'contain' => array('Tag')
+            ));
+        }
+
+        if (empty($existingTargetTag)) {
+            return 'Cluster not attached.';
+        } else {
+            if ($target_type == 'event') {
+                $result = $this->Tag->EventTag->delete($existingTargetTag['EventTag']['id']);
+            } elseif ($target_type == 'attribute') {
+                $result = $this->Tag->AttributeTag->delete($existingTargetTag['AttributeTag']['id']);
+            } elseif ($target_type == 'tag_collection') {
+                $result = $this->Tag->TagCollectionTag->delete($existingTargetTag['TagCollectionTag']['id']);
+            }
+
+            if ($result) {
+                if ($target_type !== 'tag_collection') {
+                    $this->Tag->EventTag->Event->insertLock($user, $event['Event']['id']);
+                    $event['Event']['published'] = 0;
+                    $date = new DateTime();
+                    $event['Event']['timestamp'] = $date->getTimestamp();
+                    $this->Tag->EventTag->Event->save($event);
+                }
+                $this->Log = ClassRegistry::init('Log');
+                $this->Log->create();
+                $this->Log->save(array(
+                    'org' => $user['Organisation']['name'],
+                    'model' => ucfirst($target_type),
+                    'model_id' => $target_id,
+                    'email' => $user['email'],
+                    'action' => 'galaxy',
+                    'title' => 'Attached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') to ' . $target_type . ' (' . $target_id . ')',
+                    'change' => ''
+                ));
+                return 'Cluster detached';
+            } else {
+                return 'Could not detach cluster';
+            }
+        }
+    }
+
     public function getMitreAttackGalaxyId($type="mitre-enterprise-attack-attack-pattern")
     {
         $galaxy = $this->find('first', array(

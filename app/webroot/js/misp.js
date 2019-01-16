@@ -848,7 +848,8 @@ function multiSelectAction(event, context) {
 }
 
 function editSelectedAttributes(event) {
-	simplePopup("/attributes/editSelected/" + event);
+	var selectedAttributeIds = getSelected();
+	simplePopup("/attributes/editSelected/" + event + "/" + selectedAttributeIds);
 }
 
 function addSelectedTaxonomies(taxonomy) {

@@ -19,6 +19,9 @@
         ),
         'multiple' => 0,
         'functionName' => '', // function to be called on submit
+        'submitButtonText' => 'Submit',
+        'disabledSubmitButton' => false, // wether to not draw the submit button
+        'flag_redraw_chosen' => false // should chosen picker be redraw at drawing time
     );
     /** prevent exception if not set **/
     $options = isset($options) ? $options : array();
@@ -35,106 +38,6 @@
         $select_threshold = 0;
     }
     $use_select = count($items) > $select_threshold;
-
-    function add_select_params($options) {
-        $select_html = '';
-        foreach ($options['select_options'] as $option => $value) {
-            $select_html .= $option . '=' . $value . ' ';
-        }
-        if (isset($options['functionName']) && $options['functionName'] !== "") {
-            $select_html .= ' data-functionname=' . $options['functionName'] .' ';
-        }
-        return $select_html;
-    }
-
-    function add_option($name, $param) {
-        $option_html = '<option';
-        if (is_array($param)) {
-            if (isset($param['value'])) {
-                $option_html .= ' value=' . h($param['value']);
-            } else {
-                $option_html .= ' value=' . h($name);
-            }
-            if (isset($param['additionalData'])) {
-                $additionalData = json_encode($param['additionalData']);
-            } else {
-                $additionalData = json_encode(array());
-            }
-
-            if (isset($param['template'])) {
-                $option_html .= ' data-template=' . base64_encode($param['template']);
-            }
-            if (isset($param['templateData'])) {
-                $option_html .= ' data-templatedata=' . base64_encode(json_encode($param['templateData']));
-            }
-
-            $option_html .= ' data-additionaldata=' . $additionalData;
-
-            if (in_array('disabled', $param)) {
-                $option_html .= ' disabled';
-            } else if (in_array('selected', $param)) { // nonsense to pre-select if disabled
-                $option_html .= ' selected';
-            }
-        } else {
-            $option_html .= ' value=' . h($param);
-        }
-        $option_html .= '>';
-
-        // $option_html .= is_array($param)? h($name) : h($param);
-        $option_html .= h($name);
-        $option_html .= '</option>';
-        return $option_html;
-    }
-
-    function add_link_params($name, $param, $defaults=array()) {
-        $param_html = ' ';
-        if (is_array($param)) { // add data as param
-            if (isset($param['functionName'])) {
-                $param_html .= 'onclick="execAndClose(this, ' . $param['functionName'] . ')" ';
-            } else { // fallback to default submit function
-                if ($defaults['functionName'] !== '') {
-                    $param_html .= 'onclick="submitFunction(this, ' . $defaults['functionName'] . ')" ';
-                } else {
-                    $param_html .= 'data-endpoint="' . h($param['value']) . '" ';
-                    $param_html .= 'onclick="fetchRequestedData(this)" ';
-                }
-            }
-
-            $additionalData = json_encode(array());
-            foreach ($param as $paramName => $paramValue) {
-                if ($paramName === 'additionalData') {
-                    $additionalData = json_encode($param['additionalData']);
-                } else if ($paramName === 'value') {
-                    $param_html .= 'value="' . h($paramValue) . '" ';
-                } else if ($paramName === 'template' || $paramName === 'templateData') {
-                    continue;
-                } else {
-                    $param_html .= 'data-' . h($paramName). '="' . h($paramValue) . '" ';
-                }
-            }
-            $param_html .= ' data-additionaldata=' . $additionalData;
-        } else { // param is a simple endpoint from which fetch data
-            $param_html .= 'data-endpoint="' . h($param) . '" ';
-            $param_html .= 'onclick="fetchRequestedData(this)" ';
-        }
-        return $param_html;
-    }
-
-    function add_pill($name, $param, $defaults=array()) {
-        $pill_html = '<li>';
-        $pill_html .= '<a href="#" data-toggle="pill" class="pill-pre-picker"';
-        $pill_html .= ' ' . add_link_params($name, $param, $defaults);
-        $pill_html .= '>';
-        if (isset($param['img'])) {
-            $pill_html .= '<img src="' . $param['img'] . '" style="margin-right: 5px; height: 14px;">';
-        } else if (isset($param['icon']) || isset($param['templateData']['icon'])) {
-            $icon = isset($param['icon']) ? $param['icon'] : $param['templateData']['icon'];
-            $pill_html .= '<span class="fa fa-' . $icon . '" style="margin-right: 5px;"></span>';
-        }
-        $pill_html .= h($name) . '</a>';
-        $pill_html .= '</li>';
-        return $pill_html;
-    }
 ?>
 
 <script>
@@ -143,7 +46,7 @@ function execAndClose(elem, alreadyExecuted) {
     $('[data-dismissid="' + dismissid + '"]').popover('destroy');
 }
 
-function setupChosen(id) {
+function setupChosen(id, redrawChosen) {
     var $elem = $('#'+id);
     var chosen_options = <?php echo json_encode($defaults['chosen_options']); ?>;
     $elem.chosen(chosen_options);
@@ -173,6 +76,10 @@ function setupChosen(id) {
     $elem.on('chosen:showing_dropdown chosen:searchdone keyup change', function() {
         redrawChosenWithTemplate($elem, $chosenContainer)
     });
+
+    if (redrawChosen) {
+        redrawChosenWithTemplate($elem, $chosenContainer);
+    }
 }
 
 function redrawChosenWithTemplate($select, $chosenContainer) {
@@ -268,7 +175,7 @@ function submitFunction(clicked, callback) {
         $select_id = h(uniqid()); // used to only register the listener on this select (allowing nesting)
         $flag_addPills = false;
         ?>
-        <select id="<?php echo $select_id; ?>" style="height: 20px; margin-bottom: 0px;" <?php echo h(add_select_params($defaults)); ?>>
+        <select id="<?php echo $select_id; ?>" style="height: 100px; margin-bottom: 0px;" <?php echo h($this->GenericPicker->add_select_params($defaults)); ?>>
             <option></option>
             <?php
                 foreach ($items as $name => $param) {
@@ -276,20 +183,20 @@ function submitFunction(clicked, callback) {
                         $flag_addPills = true;
                         continue;
                     } else {
-                        echo add_option($name, $param);
+                        echo $this->GenericPicker->add_option($name, $param, $defaults);
                     }
                 }
             ?>
         </select>
-        <?php if ($defaults['multiple'] != 0): ?>
-            <button class="btn btn-primary" onclick="submitFunction(this, <?php echo $defaults['functionName']; ?>)">submit</button>
+        <?php if ($defaults['multiple'] != 0 && !$defaults['disabledSubmitButton']): ?>
+            <button class="btn btn-primary" onclick="submitFunction(this, <?php echo $defaults['functionName']; ?>)"><?php echo h($defaults['submitButtonText']); ?></button>
         <?php endif; ?>
 
         <?php if ($flag_addPills): // add forced pills ?>
             <ul class="nav nav-pills">
                 <?php foreach ($items as $name => $param): ?>
                     <?php if (isset($param['isPill']) && $param['isPill']):  ?>
-                        <?php echo add_pill($name, $param, $defaults); ?>
+                        <?php echo $this->GenericPicker->add_pill($name, $param, $defaults); ?>
                     <?php endif; ?>
                 <?php endforeach; ?>
             </ul>
@@ -297,16 +204,18 @@ function submitFunction(clicked, callback) {
 
         <script>
             $(document).ready(function() {
-                setupChosen("<?php echo $select_id; ?>");
+                setupChosen("<?php echo $select_id; ?>", <?php echo ($defaults['flag_redraw_chosen'] === true ? 'true' : 'false') ?>);
             });
         </script>
 
-    <?php else: ?>
+    <?php elseif (count($items) > 0): ?>
         <ul class="nav nav-pills">
             <?php foreach ($items as $name => $param): ?>
-                <?php echo add_pill($name, $param, $defaults); ?>
+                <?php echo $this->GenericPicker->add_pill($name, $param, $defaults); ?>
             <?php endforeach; ?>
         </ul>
+    <?php else: ?>
+        <span style="margin-left: 15px;"><?php echo __('Nothing to pick'); ?></span>
     <?php endif; ?>
 
     <div class='generic-picker-wrapper hidden'></div>
