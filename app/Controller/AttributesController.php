@@ -1587,7 +1587,7 @@ class AttributesController extends AppController
             $galaxyTemplate = '<span href="#" class="tagComplete" style="background-color:{{=it.background}}; color:{{=it.color}}">{{=it.name}}</span>';
 
             // tags to remove
-            $tags = $this->Attribute->AttributeTag->getAttributesTags($id, $selectedAttributeIds);
+            $tags = $this->Attribute->AttributeTag->getAttributesTags($this->Auth->user(), $id, $selectedAttributeIds);
             $tagItemsRemove = array();
             foreach ($tags as $k => $tag) {
                 $tagName = $tag['name'];
@@ -1605,7 +1605,7 @@ class AttributesController extends AppController
             unset($tags);
 
             // clusters to remove
-            $clusters = $this->Attribute->AttributeTag->getAttributesClusters($id, $selectedAttributeIds);
+            $clusters = $this->Attribute->AttributeTag->getAttributesClusters($this->Auth->user(), $id, $selectedAttributeIds);
             $clusterItemsRemove = array();
             foreach ($clusters as $k => $cluster) {
                 $clusterTemplate = '{{=it.name}}';

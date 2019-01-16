@@ -110,25 +110,25 @@ function syncMassEditFormAndSubmit(btn) {
     var $input = $form.find('#AttributeTagsIdsRemove');
     var $select = $form.find('div[data-target="pickerContainerTagRemove"] select');
     var val = $select.val();
-    val = val !== null && val !== "" ? val : [];
+    val = val !== null && val !== "" && val !== undefined ? val : [];
     $input.val(JSON.stringify(val));
     // tag add
     $input = $form.find('#AttributeTagsIdsAdd');
     $select = $form.find('div[data-target="pickerContainerTagAdd"] select');
     val = $select.val();
-    val = val !== null && val !== "" ? val : [];
+    val = val !== null && val !== "" && val !== undefined ? val : [];
     $input.val(JSON.stringify(val));
     // cluster remove
     $input = $form.find('#AttributeClustersIdsRemove');
     $select = $form.find('div[data-target="pickerContainerClusterRemove"] select');
     val = $select.val();
-    val = val !== null && val !== "" ? val : [];
+    val = val !== null && val !== "" && val !== undefined ? val : [];
     $input.val(JSON.stringify(val));
     // cluster add
     $input = $form.find('#AttributeClustersIdsAdd');
     $select = $form.find('div[data-target="pickerContainerClusterAdd"] select');
     val = $select.val();
-    val = val !== null && val !== "" ? val : [];
+    val = val !== null && val !== "" && val !== undefined ? val : [];
     $input.val(JSON.stringify(val));
 
     submitPopoverForm('<?php echo $id;?>', 'massEdit');

@@ -126,19 +126,19 @@ class AttributeTag extends AppModel
 
 
     // find all tags that belong to a list of attributes (contains in the same event)
-    public function getAttributesTags($requestedEventId, $attributeIds) {
+    public function getAttributesTags($user, $requestedEventId, $attributeIds) {
         if ($attributeIds === null) {
             throw new NotFoundException(__('Invalid attributes'));
         }
 
         $allTags = array();
         foreach ($attributeIds as $id) {
-            $this->Attribute->id = $id;
-            if (!$this->Attribute->exists()) {
-                continue;
+            $attribute = $this->Attribute->fetchAttributes($user, array('conditions' => array('Attribute.id' => $id)));
+            if (empty($attribute)) {
+                throw new MethodNotAllowedException('Invalid attribute.');
             }
-            $this->Attribute->read();
-            $eventId = $this->Attribute->data['Attribute']['event_id'];
+
+            $eventId = $attribute[0]['Attribute']['event_id'];
             if ($eventId != $requestedEventId) { // only takes tags of attributes belonging to the same event
                 continue;
             }
@@ -164,19 +164,18 @@ class AttributeTag extends AppModel
     }
 
     // find all galaxies that belong to a list of attributes (contains in the same event)
-    public function getAttributesClusters($requestedEventId, $attributeIds) {
+    public function getAttributesClusters($user, $requestedEventId, $attributeIds) {
         if ($attributeIds === null) {
             throw new NotFoundException(__('Invalid attributes'));
         }
 
         $allClusters = array();
         foreach ($attributeIds as $id) {
-            $this->Attribute->id = $id;
-            if (!$this->Attribute->exists()) {
-                continue;
+            $attribute = $this->Attribute->fetchAttributes($user, array('conditions' => array('Attribute.id' => $id)));
+            if (empty($attribute)) {
+                throw new MethodNotAllowedException('Invalid attribute.');
             }
-            $this->Attribute->read();
-            $eventId = $this->Attribute->data['Attribute']['event_id'];
+            $eventId = $attribute[0]['Attribute']['event_id'];
             if ($eventId != $requestedEventId) { // only takes tags of attributes belonging to the same event
                 continue;
             }
