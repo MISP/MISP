@@ -4953,12 +4953,20 @@ class EventsController extends AppController
         $this->set('eventId', $eventId);
     }
 
-    public function exportModule($module, $id, $standard = false)
+    public function exportModule($module, $id_or_list_of_id, $standard = false)
     {
-        $result = $this->Event->export($this->Auth->user(), $module, array('eventid' => $id, 'standard' => $standard));
-        $this->response->body(base64_decode($result['data']));
+        $concatenatedResponse = "";
+        foreach (explode(",", $id_or_list_of_id) as $id) {
+            if (strlen($id) > 0) {
+                $result = $this->Event->export($this->Auth->user(), $module, array('eventid' => $id, 'standard' => $standard));
+                $concatenatedResponse = $concatenatedResponse . base64_decode($result['data']);
+            }
+        }
+
+        $filename_id = strpos($id_or_list_of_id, ",") !== false?"bulk":$id;
+        $this->response->body($concatenatedResponse);
         $this->response->type($result['response']);
-        $this->response->download('misp.event.' . $id . '.' . $module . '.export.' . $result['extension']);
+        $this->response->download('misp.event.' . $filename_id . '.' . $module . '.export.' . $result['extension']);
         return $this->response;
     }
 
