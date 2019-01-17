@@ -118,8 +118,10 @@ function syncPopoverArrow($arrow, $wrapper, content) {
     $wrapper.html(content);
     $wrapper.show();
     // redraw popover
-    $arrow.css('top', ar_pos.top + 'px');
-    $arrow.css('left', ar_pos.left + 'px');
+    if (ar_pos !== undefined) {
+        $arrow.css('top', ar_pos.top + 'px');
+        $arrow.css('left', ar_pos.left + 'px');
+    }
 }
 
 // can either call a function or fetch requested data
