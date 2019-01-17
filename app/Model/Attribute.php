@@ -3294,13 +3294,18 @@ class Attribute extends AppModel
     public function setTimestampConditions($timestamp, $conditions, $scope = 'Event.timestamp')
     {
         if (is_array($timestamp)) {
-            $timestamp[0] = $this->Event->resolveTimeDelta($timestamp[0]);
-            $timestamp[1] = $this->Event->resolveTimeDelta($timestamp[1]);
-            $conditions['AND'][] = array($scope . ' >=' => intval($timestamp[0]));
-            $conditions['AND'][] = array($scope . ' <=' => intval($timestamp[1]));
+            $timestamp[0] = intval($this->Event->resolveTimeDelta($timestamp[0]));
+            $timestamp[1] = intval($this->Event->resolveTimeDelta($timestamp[1]));
+            if ($timestamp[0] > $timestamp[1]) {
+                $temp = $timestamp[0];
+                $timestamp[0] = $timestamp[1];
+                $timestamp[1] = $temp;
+            }
+            $conditions['AND'][] = array($scope . ' >=' => $timestamp[0]);
+            $conditions['AND'][] = array($scope . ' <=' => $timestamp[1]);
         } else {
-            $timestamp = $this->Event->resolveTimeDelta($timestamp);
-            $conditions['AND'][] = array($scope . ' >=' => intval($timestamp));
+            $timestamp = intval($this->Event->resolveTimeDelta($timestamp));
+            $conditions['AND'][] = array($scope . ' >=' => $timestamp);
         }
         return $conditions;
     }
