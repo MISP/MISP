@@ -119,6 +119,7 @@ class TaxonomiesController extends AppController
                 'recursive' => -1,
                 'conditions' => array('Taxonomy.id' => $id),
         ));
+        $this->Taxonomy->disableTags($id);
         $taxonomy['Taxonomy']['enabled'] = 0;
         $this->Taxonomy->save($taxonomy);
         $this->Log = ClassRegistry::init('Log');
