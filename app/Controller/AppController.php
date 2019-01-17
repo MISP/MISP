@@ -46,7 +46,7 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg');
 
-    private $__queryVersion = '51';
+    private $__queryVersion = '52';
     public $pyMispVersion = '2.4.99';
     public $phpmin = '5.6.5';
     public $phprec = '7.0.16';
@@ -641,9 +641,17 @@ class AppController extends Controller
                 $options['additional_delimiters'] = array($options['additional_delimiters']);
             }
             foreach ($data as $k => $v) {
-                $data[$k] = explode($options['additional_delimiters'][0], str_replace($options['additional_delimiters'], $options['additional_delimiters'][0], $v));
-                foreach ($data[$k] as $k2 => $value) {
-                    $data[$k][$k2] = trim($data[$k][$k2]);
+                $found = false;
+                foreach ($options['additional_delimiters'] as $delim) {
+                    if (strpos($v, $delim) !== false) {
+                        $found = true;
+                    }
+                }
+                if ($found) {
+                    $data[$k] = explode($options['additional_delimiters'][0], str_replace($options['additional_delimiters'], $options['additional_delimiters'][0], $v));
+                    foreach ($data[$k] as $k2 => $value) {
+                        $data[$k][$k2] = trim($data[$k][$k2]);
+                    }
                 }
             }
         }

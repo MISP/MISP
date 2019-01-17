@@ -2200,7 +2200,23 @@ class Event extends AppModel
     {
         if (!empty($params['eventid']) && $params['eventid'] !== 'all') {
             $params['eventid'] = $this->convert_filters($params['eventid']);
-            $conditions = $this->generic_add_filter($conditions, $params['eventid'], 'Event.id');
+            $keys = array(
+                'uuid' => 'Event.uuid',
+                'id' => 'Event.id'
+            );
+            $id_params = array();
+            foreach ($params['eventid'] as $operand => $list) {
+                foreach ($list as $id) {
+                    if ($operand === 'OR') {
+                        $id_params['AND']['OR'][$keys[Validation::uuid($id) ? 'uuid' : 'id']][] = $id;
+                    } else if ($operand === 'AND') {
+                        $id_params['AND']['AND'][$keys[Validation::uuid($id) ? 'uuid' : 'id']][] = $id;
+                    } else {
+                        $id_params['AND']['NOT'][$keys[Validation::uuid($id) ? 'uuid' : 'id']][] = $id;
+                    }
+                }
+            }
+            $conditions['AND'][] = $id_params;
         }
         return $conditions;
     }
@@ -2218,10 +2234,10 @@ class Event extends AppModel
     {
         if (!empty($params['uuid'])) {
             $params['uuid'] = $this->convert_filters($params['uuid']);
-            if (!empty($options['scope']) || $options['scope'] === 'Event') {
+            if (!empty($options['scope']) && $options['scope'] === 'Event') {
                 $conditions = $this->generic_add_filter($conditions, $params['uuid'], 'Event.uuid');
             }
-            if (!empty($options['scope']) || $options['scope'] === 'Attribute') {
+            if (!empty($options['scope']) && $options['scope'] === 'Attribute') {
                 $conditions = $this->generic_add_filter($conditions, $params['uuid'], 'Attribute.uuid');
             }
         }
@@ -2232,10 +2248,10 @@ class Event extends AppModel
     {
         if (!empty($params['mixed_id'])) {
             $params['mixed_id'] = $this->convert_filters($params['mixed_id']);
-            if (!empty($options['scope']) || $options['scope'] === 'Event') {
+            if (!empty($options['scope']) && $options['scope'] === 'Event') {
                 $conditions = $this->generic_add_filter($conditions, $params['uuid'], 'Event.uuid');
             }
-            if (!empty($options['scope']) || $options['scope'] === 'Attribute') {
+            if (!empty($options['scope']) && $options['scope'] === 'Attribute') {
                 $conditions = $this->generic_add_filter($conditions, $params['uuid'], 'Attribute.uuid');
             }
         }

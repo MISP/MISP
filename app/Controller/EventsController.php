@@ -2145,6 +2145,42 @@ class EventsController extends AppController
         }
     }
 
+    public function unpublish($id = null)
+    {
+        $this->Event->id = $id;
+        if (!$this->Event->exists()) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $this->Event->recursive = -1;
+        $event = $this->Event->read(null, $id);
+        if (!$this->_isSiteAdmin()) {
+            if (!$this->userRole['perm_modify'] || $this->Auth->user('org_id') !== $this->Event->data['Event']['orgc_id']) {
+                throw new MethodNotAllowedException(__('You don\'t have the permission to do that.'));
+            }
+        }
+        $this->Event->insertLock($this->Auth->user(), $id);
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $fieldList = array('published', 'id', 'info');
+            $event['Event']['published'] = 0;
+            $result = $this->Event->save($event, array('fieldList' => $fieldList));
+            if ($result) {
+                $message = __('Event unpublished.');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveSuccessResponse('events', 'unpublish', $id, false, $message);
+                } else {
+                    $this->Flash->success($message);
+                    $this->redirect(array('action' => 'view', $id));
+                }
+            } else {
+                throw new MethodNotAllowedException('Could not unpublish event.');
+            }
+        } else {
+            $this->set('id', $id);
+            $this->set('type', 'unpublish');
+            $this->render('ajax/eventPublishConfirmationForm');
+        }
+    }
+
     // Publishes the event without sending an alert email
     public function publish($id = null)
     {

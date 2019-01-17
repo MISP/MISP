@@ -147,6 +147,8 @@ cd ${PATH_TO_MISP}/app/files/scripts/python-cybox
 sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 cd ${PATH_TO_MISP}/app/files/scripts/python-stix
 sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+cd $PATH_TO_MISP/app/files/scripts/python-maec
+sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 # install STIX2.0 library to support STIX 2.0 export:
 cd ${PATH_TO_MISP}/cti-python-stix2
 sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .

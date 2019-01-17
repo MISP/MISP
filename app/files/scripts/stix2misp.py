@@ -56,17 +56,17 @@ class StixParser():
         try:
             event_distribution = args[0]
             if not isinstance(event_distribution, int):
-                event_distribution = int(event_distribution) if event_distribution.isdigit() else 5
+                event_distribution = int(event_distribution) if event_distribution.isdigit() else 0
         except IndexError:
-            event_distribution = 5
+            event_distribution = 0
         try:
             attribute_distribution = args[1]
             if attribute_distribution == 'event':
-                attribute_distribution = event_distribution
+                attribute_distribution = 5
             elif not isinstance(attribute_distribution, int):
-                attribute_distribution = int(attribute_distribution) if attribute_distribution.isdigit() else event_distribution
+                attribute_distribution = int(attribute_distribution) if attribute_distribution.isdigit() else 5
         except IndexError:
-            attribute_distribution = event_distribution
+            attribute_distribution = 5
         self.misp_event.distribution = event_distribution
         self.__attribute_distribution = attribute_distribution
         self.from_misp = from_misp

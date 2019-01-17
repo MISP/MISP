@@ -118,6 +118,14 @@
                         'class' => 'publishButtons not-published ' . $publishButtons,
                         'text' => __('Publish (no email)')
                     ));
+                    echo $this->element('/side_menu_link', array(
+                        'onClick' => array(
+                            'function' => 'publishPopup',
+                            'params' => array($event['Event']['id'], 'unpublish')
+                        ),
+                        'class' => (1 == $event['Event']['published'] && $mayModify) ? '' : 'hidden',
+                        'text' => __('Unpublish')
+                    ));
                     if (Configure::read('MISP.delegation')) {
                         if ((Configure::read('MISP.unpublishedprivate') || (isset($event['Event']['distribution']) && $event['Event']['distribution'] == 0)) && (!isset($delegationRequest) || !$delegationRequest) && ($isSiteAdmin || (isset($isAclDelegate) && $isAclDelegate))) {
                             echo $this->element('/side_menu_link', array(

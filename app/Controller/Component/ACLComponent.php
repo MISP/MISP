@@ -139,6 +139,7 @@ class ACLComponent extends Component
                     'stix2' => array('*'),
                     'strposarray' => array(),
                     'toggleCorrelation' => array('perm_add'),
+                    'unpublish' => array('perm_modify'),
                     'updateGraph' => array('*'),
 					'upload_analysis_file' => array('perm_add'),
                     'upload_sample' => array('AND' => array('perm_auth', 'perm_add')),

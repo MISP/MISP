@@ -99,6 +99,13 @@ class RestResponseComponent extends Component
                 'optional' => array('source_format', 'url', 'name', 'enabled', 'caching_enabled', 'lookup_visible', 'provider', 'input_source', 'delete_local_file', 'headers', 'fixed_event', 'target_event', 'settings', 'publish', 'override_ids', 'delta_merge', 'distribution', 'sharing_group_id', 'tag_id', 'pull_rules', 'rules', 'event_id'),
                 'params' => array('feed_id')
             ),
+            'previewIndex' => array(
+                'description' => 'Sending a GET request to this endpoint will show the parsed feed in JSON format.',
+                'mandatory' => array(),
+                'optional' => array(),
+                'params' => array('feed_id'),
+                'http_method' => 'GET'
+            )
         ),
         'Log' => array(
             'admin_index' => array(

@@ -1747,7 +1747,7 @@ class AttributesController extends AppController
         $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
         $this->set('shortDist', $this->Attribute->shortDist);
-        if ($this->request->is('post')) {
+        if ($this->request->is('post') || !empty($this->request->params['named']['tags'])) {
             if (isset($this->request->data['Attribute'])) {
                 $this->request->data = $this->request->data['Attribute'];
             }
@@ -1827,6 +1827,25 @@ class AttributesController extends AppController
                 $this->set('sightingsData', $sightingsData);
             } else {
                 return $this->RestResponse->viewData($attributes, $this->response->type());
+            }
+            if (isset($filters['tags']) && !empty($filters['tags'])) {
+                // if the tag is passed by ID - show its name in the view
+                $this->loadModel('Tag');
+                if (!is_array($filters['tags'])) {
+                    $filters['tags'] = array($filters['tags']);
+                }
+                foreach ($filters['tags'] as $k => &$v) {
+                    if (!is_numeric($v))
+                        continue;
+                    $tag = $this->Tag->find('first', [
+                        'conditions' => ['Tag.id' => $v],
+                        'fields' => ['name'],
+                        'recursive' => -1
+                        ]);
+                    if (!empty($tag)) {
+                        $v = $tag['Tag']['name'];
+                    }
+                }
             }
             $this->set('filters', $filters);
             $this->set('attributes', $attributes);
