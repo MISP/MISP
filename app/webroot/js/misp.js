@@ -999,6 +999,11 @@ function removeObjectTag(context, object, tag) {
 	return false;
 }
 
+function redirectAddObject(templateId, additionalData) {
+	var eventId = additionalData['event_id'];
+	window.location = '/objects/add/' + eventId + '/' + templateId;
+}
+
 function clickCreateButton(event, type) {
 	var destination = 'attributes';
 	if (type == 'Proposal') destination = 'shadow_attributes';
