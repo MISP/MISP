@@ -1522,10 +1522,20 @@ function popoverPopup(clicked, id, context, target, admin) {
 function popoverConfirm(clicked) {
     var $clicked = $(clicked);
 	var popoverContent = '<div>';
-		popoverContent += '<span class="btn btn-primary" onclick=submitPopover(this)>Yes</span>';
-		popoverContent += '<span class="btn btn-inverse" style="float: right;" onclick=cancelPrompt()>Cancel</span>';
+		popoverContent += '<button id="popoverConfirmOK" class="btn btn-primary" onclick=submitPopover(this)>Yes</button>';
+		popoverContent += '<button class="btn btn-inverse" style="float: right;" onclick=cancelPrompt()>Cancel</button>';
 	popoverContent += '</div>';
 	openPopover($clicked, popoverContent);
+	$("#popoverConfirmOK")
+	.focus()
+	.bind("keydown", function(e) {
+		if (e.ctrlKey && (e.keyCode == 13 || e.keyCode == 10)) {
+			$(this).click();
+		}
+		if(e.keyCode == 27) { // ESC
+			$clicked.popover('destroy');
+		}
+	});
 }
 
 function submitPopover(clicked) {
