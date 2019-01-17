@@ -71,7 +71,7 @@
                 <?php
                     if ($isSiteAdmin || ($mayModify && $isAclTagger)) {
                         echo $this->Form->create(false, array('url' => $baseurl . '/galaxy_clusters/detach/' . ucfirst(h($target_id)) . '/' . h($target_type) . '/' . $cluster['tag_id'], 'style' => 'display: inline-block; margin: 0px;'));
-                        echo '<a href="#" class="icon-trash" title="' . __('Are you sure you want to detach %s from this %s?', h($cluster['value']), h($target_type)) . '" onclick="popoverConfirm(this)"></a>';
+                        echo '<span href="#" class="icon-trash useCursorPointer" title="' . __('Are you sure you want to detach %s from this %s?', h($cluster['value']), h($target_type)) . '" onclick="popoverConfirm(this)"></span>';
                         echo $this->Form->end();
                     }
                 ?>
