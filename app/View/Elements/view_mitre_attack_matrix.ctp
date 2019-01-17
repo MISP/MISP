@@ -1,3 +1,6 @@
+<?php
+    $clusetersNamesMapping = array(); // used to map name with id for the chosen select
+?>
 <div class="attack-matrix-options" style="right: initial; background: transparent;">
 <ul id="attack-matrix-tabscontroller" class="nav nav-tabs" style="margin-bottom: 2px;">
 <?php
@@ -78,6 +81,7 @@ foreach($attackTactic as $tactic):
                             $tagName = $clusters[$i]['tag_name'];
                             $score = empty($scores[$tagName]) ? 0 : $scores[$tagName];
                             $name = join(" ", array_slice(explode(" ", $clusters[$i]['value']), 0, -2)); // remove " - external_id"
+                            $clusetersNamesMapping[$clusterId] = $name;
                             $td .= ' class="heatCell matrix-interaction ' . ($pickingMode ? 'cell-picking"' : '"');
                             $td .= isset($colours[$tagName]) ? ' style="background: ' . h($colours[$tagName]) . '; color: ' . h($this->TextColour->getTextColour($colours[$tagName])) . '"' : '' ;
                             $td .= ' data-score="'.h($score).'"';
@@ -109,8 +113,18 @@ foreach($attackTactic as $tactic):
     </div>
 </div>
 
+
 <?php if($pickingMode): ?>
-<div role="button" tabindex="0" aria-label="<?php echo __('Submit');?>" title="<?php echo __('Submit');?>" class="templateChoiceButton btn-matrix-submit" onClick="cancelPopoverForm('#popover_form_large');"><?php echo __('Submit'); ?></div>
+<div style="padding: 5px;">
+    <select id="attack-matrix-chosen-select" style="width: 100%; margin: 0px;" multiple>
+        <?php
+        foreach ($clusetersNamesMapping as $clusterId => $clusterName) {
+            echo '<option value=' . h($clusterId) .'>' . h($clusterName) . '</option>';
+        }
+        ?>
+    </select>
+</div>
+<!-- <div role="button" tabindex="0" aria-label="<?php echo __('Submit');?>" title="<?php echo __('Submit');?>" class="templateChoiceButton btn-matrix-submit" onClick="cancelPopoverForm('#popover_form_large');"><?php echo __('Submit'); ?></div> -->
 <div role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm('#popover_form_large');"><?php echo __('Cancel'); ?></div>
 <?php endif; ?>
 
