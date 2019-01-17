@@ -85,7 +85,7 @@
 				var clusterId = selected.selected;
 				clusterId = clusterId === undefined ? selected.deselected : clusterId;
 				if (clusterId !== undefined) {
-					$option = $('td[data-cluster-id="' + clusterId + '"]');
+					var $option = $('td[data-cluster-id="' + clusterId + '"]');
 					pickCell($option, clusterId, false);
 				}
 			}
@@ -276,7 +276,7 @@
 	function pickCell(cell, clusterId, recurseChosen) {
 		recurseChosen = recurseChosen === undefined ? true : recurseChosen;
 
-		$cells = $('td[data-cluster-id="' + clusterId + '"]');
+		var $cells = $('td[data-cluster-id="' + clusterId + '"]');
 		if (!cell.hasClass('cell-picked')) {
 			pickedGalaxies.push(clusterId);
 			$cells.addClass('cell-picked');
@@ -288,7 +288,7 @@
 			$cells.removeClass('cell-picked');
 		}
 
-		$select = $('#attack-matrix-chosen-select');
+		var $select = $('#attack-matrix-chosen-select');
 		if (recurseChosen) {
 			$select.val(pickedGalaxies).trigger('chosen:updated');
 		}

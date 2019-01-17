@@ -1409,7 +1409,7 @@ function openPopup(id) {
 
 function openPopover(clicked, data) {
 	/* popup handling */
-	$clicked = $(clicked);
+	var $clicked = $(clicked);
 	var randomId = Math.random().toString(36).substr(2,9); // used to recover the button that triggered the popover (so that we can destroy the popover)
 	var loadingHtml = '<div style="height: 75px; width: 75px;"><div class="spinner"></div><div class="loadingText">Loading</div></div>';
 	$clicked.attr('data-dismissid', randomId);
@@ -1437,7 +1437,7 @@ function openPopover(clicked, data) {
 				popover.css('top', (top-17) + 'px');
 			}
 			var popoverTitle = popover.find('h3.popover-title');
-			var origTitle = popoverTitle.html(title + closeButtonHtml);
+			popoverTitle.html(title + closeButtonHtml);
 		})
 		.popover('show');
 	} else {
@@ -1540,8 +1540,8 @@ function popoverConfirm(clicked) {
 }
 
 function submitPopover(clicked) {
-	$clicked = $(clicked);
-	$form = $clicked.closest('form');
+	var $clicked = $(clicked);
+	var $form = $clicked.closest('form');
 	if ($form.length === 0) { // popover container is body, submit from original node
 		var dismissid = $clicked.closest('div.popover').attr('data-dismissid');
 		$form = $('[data-dismissid="' + dismissid + '"]').closest('form');
