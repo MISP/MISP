@@ -124,7 +124,6 @@ foreach($attackTactic as $tactic):
         ?>
     </select>
 </div>
-<!-- <div role="button" tabindex="0" aria-label="<?php echo __('Submit');?>" title="<?php echo __('Submit');?>" class="templateChoiceButton btn-matrix-submit" onClick="cancelPopoverForm('#popover_form_large');"><?php echo __('Submit'); ?></div> -->
 <div role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm('#popover_form_large');"><?php echo __('Cancel'); ?></div>
 <?php endif; ?>
 

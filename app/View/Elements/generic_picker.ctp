@@ -3,14 +3,13 @@
 *   Generic select picker
 */
     /** Config **/
-    $select_threshold = 6; // threshold on which pills will be replace by a select (unused if multiple is > 1)
+    $select_threshold = 6; // threshold above which pills will be replace by a select (unused if multiple is > 1)
     $defaults_options = array(
         'select_options' => array(
             // 'multiple' => '', // set to add possibility to pick multiple options in the select
             //'placeholder' => '' // set to replace the default placeholder text
         ),
         'chosen_options' => array(
-            // 'width' => '500px',
             'width' => '85%',
             'search_contains' => true, // matches starting from anywhere within a word
             //'no_results_text' => '', // set to replace the default no result text after filtering

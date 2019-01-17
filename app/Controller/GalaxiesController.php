@@ -179,25 +179,14 @@ class GalaxiesController extends AppController
                 'recursive' => -1
         ));
         $clusters = array();
-        $lookup_table = array();
         foreach ($data as $k => $cluster) {
             $cluster['GalaxyCluster']['synonyms_string'] = array();
             foreach ($cluster['GalaxyElement'] as $element) {
                 $cluster['GalaxyCluster']['synonyms_string'][] = $element['value'];
-                if (isset($lookup_table[$cluster['GalaxyCluster']['type']][$element['value']])) {
-                    $lookup_table[$cluster['GalaxyCluster']['type']][$element['value']][] = $cluster['GalaxyCluster']['id'];
-                } else {
-                    $lookup_table[$cluster['GalaxyCluster']['type']][$element['value']] = array($cluster['GalaxyCluster']['id']);
-                }
             }
             $cluster['GalaxyCluster']['synonyms_string'] = implode(', ', $cluster['GalaxyCluster']['synonyms_string']);
             unset($cluster['GalaxyElement']);
             $clusters[$cluster['GalaxyCluster']['type']][$cluster['GalaxyCluster']['value']] = $cluster['GalaxyCluster'];
-            if (isset($lookup_table[$cluster['GalaxyCluster']['type']][$cluster['GalaxyCluster']['value']])) {
-                $lookup_table[$cluster['GalaxyCluster']['type']][$cluster['GalaxyCluster']['value']][] = $cluster['GalaxyCluster']['id'];
-            } else {
-                $lookup_table[$cluster['GalaxyCluster']['type']][$cluster['GalaxyCluster']['value']] = array($cluster['GalaxyCluster']['id']);
-            }
         }
         ksort($clusters);
         $this->set('target_id', $target_id);
