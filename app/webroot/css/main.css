@@ -905,7 +905,7 @@ a.pill-pre-picker {
 }
 
 .generic_picker {
-	display: inline-block;
+    display: inline-block;
     min-width: 500px;
 }
 
