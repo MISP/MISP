@@ -181,7 +181,7 @@ class TagCollectionsController extends AppController
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid tag collection.')), 'status'=>200, 'type' => 'json'));
         }
         if (!$this->_isSiteAdmin()) {
-            if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $tag_collection['TagCollection']['org_id'])) {
+            if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $tagCollection['TagCollection']['org_id'])) {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
             }
         }
