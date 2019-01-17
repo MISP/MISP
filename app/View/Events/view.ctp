@@ -426,7 +426,7 @@ function enable_correlation_graph() {
 }
 
 function enable_attack_matrix() {
-    $.get("/events/viewMitreAttackMatrix/<?php echo h($event['Event']['id']); ?>", function(data) {
+    $.get("/events/viewMitreAttackMatrix/<?php echo h($event['Event']['id']); ?>/event/1", function(data) {
         $("#attackmatrix_div").html(data);
     });
 }

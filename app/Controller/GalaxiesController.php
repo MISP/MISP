@@ -130,7 +130,7 @@ class GalaxiesController extends AppController
                 );
             } else { // attackMatrix
                 $items[$galaxy['Galaxy']['name']] = array(
-                    'functionName' => "getMitreMatrixPopup('" . h($target_id) . "/" . h($target_type) . "')",
+                    'functionName' => "getMitreMatrixPopup('" . h($target_type) . "', '" . h($target_id) . "')",
                     'isPill' => true,
                     'img' => "/img/mitre-attack-icon.ico",
                 );

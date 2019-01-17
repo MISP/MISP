@@ -1452,9 +1452,9 @@ function openPopover(clicked, data) {
 	}
 }
 
-function getMitreMatrixPopup(id) {
+function getMitreMatrixPopup(scope_id, scope) {
 	cancelPopoverForm();
-	getPopup(scope_id + '/' + id, 'events', 'viewMitreAttackMatrix', '', '#popover_form_large');
+	getPopup(scope + '/' + scope_id, 'events', 'viewMitreAttackMatrix', '', '#popover_form_large');
 }
 
 function getPopup(id, context, target, admin, popupType) {

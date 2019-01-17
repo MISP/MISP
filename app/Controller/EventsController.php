@@ -4577,7 +4577,7 @@ class EventsController extends AppController
         return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
     }
 
-    public function viewMitreAttackMatrix($eventId, $itemType='event', $itemId=false)
+    public function viewMitreAttackMatrix($scope_id, $scope='event', $disable_picking=false)
     {
         $this->loadModel('Galaxy');
 
@@ -4586,6 +4586,23 @@ class EventsController extends AppController
         $attackTags = $attackTacticData['attackTags'];
         $killChainOrders = $attackTacticData['killChain'];
         $instanceUUID = $attackTacticData['instance-uuid'];
+
+        if ($scope == 'event') {
+            $eventId = $scope_id;
+        } elseif ($scope == 'attribute') {
+            $attribute = $this->Event->Attribute->fetchAttributesSimple($this->Auth->user(), array(
+                'conditions' => array('Attribute.id' => $scope_id)
+            ));
+            if (empty($attribute)) {
+                throw new Exception("Invalid Attribute.");
+            }
+            $attribute = $attribute[0];
+            $eventId = $attribute['Attribute']['event_id'];
+        } elseif ($scope == 'tag_collection') {
+            $eventId = 0; // no event_id for tag_collection, consider all events
+        } else {
+            throw new Exception("Invalid options.");
+        }
 
         $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores($eventId, $attackTags);
         $scoresDataEvent = $this->Event->EventTag->getTagScores($eventId, $attackTags);
@@ -4610,20 +4627,15 @@ class EventsController extends AppController
             $colours = $gradientTool->createGradientFromValues($scores);
 
             $this->set('eventId', $eventId);
-            $this->set('target_type', $itemType);
+            $this->set('target_type', $scope);
             $this->set('killChainOrders', $killChainOrders);
             $this->set('attackTactic', $attackTactic);
             $this->set('scores', $scores);
             $this->set('maxScore', $maxScore);
             $this->set('colours', $colours);
-
-            // picking mode
-            if ($itemId !== false) {
-                $this->set('pickingMode', true);
-                $this->set('target_id', $itemId);
-            } else {
-                $this->set('pickingMode', false);
-            }
+            $this->set('pickingMode', !$disable_picking);
+            $this->set('target_id', $scope_id);
+            $this->render('/Elements/view_mitre_attack_matrix');
         }
     }
 
