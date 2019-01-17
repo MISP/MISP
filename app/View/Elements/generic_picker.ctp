@@ -10,7 +10,8 @@
             //'placeholder' => '' // set to replace the default placeholder text
         ),
         'chosen_options' => array(
-            'width' => '500px',
+            // 'width' => '500px',
+            'width' => '85%',
             'search_contains' => true, // matches starting from anywhere within a word
             //'no_results_text' => '', // set to replace the default no result text after filtering
             //'max_selected_options' => 'Infinity' // set to replace the max selected options

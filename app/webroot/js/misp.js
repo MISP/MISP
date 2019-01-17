@@ -3422,8 +3422,12 @@ function quickSubmitGalaxyForm(cluster_ids, additionalData) {
 			if (target_id === 'selected') {
 				location.reload();
 			} else {
-				loadGalaxies(target_id, scope);
-				handleGenericAjaxResponse(data);
+				if (scope == 'tag_collection') {
+					location.reload();
+				} else {
+					loadGalaxies(target_id, scope);
+					handleGenericAjaxResponse(data);
+				}
 			}
 		},
 		error:function() {

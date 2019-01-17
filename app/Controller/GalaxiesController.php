@@ -325,6 +325,12 @@ class GalaxiesController extends AppController
                 throw new MethodNotAllowedException('Invalid attribute.');
             }
             $object[0] = $this->Attribute->Event->massageTags($object[0], 'Attribute');
+        } elseif ($scope == 'tag_collection') {
+            $this->loadModel('TagCollection');
+            $object = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $id)));
+            if (empty($object)) {
+                throw new MethodNotAllowedException('Invalid Tag Collection.');
+            }
         }
         $this->set('object', $object[0]);
         $this->render('/Events/ajax/ajaxGalaxies');
