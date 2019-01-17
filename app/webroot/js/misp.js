@@ -1499,6 +1499,7 @@ function popoverPopup(clicked, id, context, target, admin) {
 	if (target != '') url += "/" + target;
 	if (id != '') url += "/" + id;
 	var popover = openPopover(clicked, undefined);
+	$clicked = $(clicked);
 
 	// actual request //
 	$.ajax({
