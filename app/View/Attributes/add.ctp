@@ -78,6 +78,10 @@
             echo $this->Form->input('batch_import', array(
                     'type' => 'checkbox'
             ));
+            echo '<div class="input clear"></div>';
+            echo $this->Form->input('disable_correlation', array(
+                    'type' => 'checkbox'
+            ));
         ?>
         </div>
     </fieldset>
