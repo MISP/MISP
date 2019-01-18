@@ -1467,7 +1467,6 @@ class AttributesController extends AppController
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException(__('This method can only be accessed via AJAX.'));
         }
-
         if ($this->request->is('post')) {
             $event = $this->Attribute->Event->find('first', array(
                 'conditions' => array('id' => $id),
@@ -1637,45 +1636,18 @@ class AttributesController extends AppController
                 );
             }
             unset($clusters);
-
-            // tags to add
-            $banned_tags = $this->Attribute->AttributeTag->Tag->find('list', array(
-                'conditions' => array(
-                    'NOT' => array(
-                        'Tag.org_id' => array(
-                            0,
-                            $this->Auth->user('org_id')
-                        ),
-                        'Tag.user_id' => array(
-                            0,
-                            $this->Auth->user('id')
-                        )
-                    )
-                ),
-                'fields' => array('Tag.id')
-            ));
-            $conditions = array('Tag.org_id' => array(0, $this->Auth->user('org_id')));
-            $conditions = array('Tag.user_id' => array(0, $this->Auth->user('id')));
-            $conditions['Tag.hide_tag'] = 0;
+            $conditions = array();
+            if (!$this->_isSiteAdmin()) {
+                $conditions = array('Tag.org_id' => array(0, $this->Auth->user('org_id')));
+                $conditions = array('Tag.user_id' => array(0, $this->Auth->user('id')));
+                $conditions = array('Tag.hide_tag' => 0);
+            }
             $allTags = $this->Attribute->AttributeTag->Tag->find('all', array('conditions' => $conditions, 'recursive' => -1));
             $tags = array();
             foreach ($allTags as $i => $tag) {
                 $tags[$tag['Tag']['id']] = $tag['Tag'];
             }
             unset($allTags);
-            // Unset all tags that this user cannot use for tagging, determined by the org restriction on tags
-            if (!$this->_isSiteAdmin()) {
-                foreach ($banned_tags as $banned_tag) {
-                    unset($tags[$banned_tag]);
-                }
-            }
-            $hidden_tags = $this->Attribute->AttributeTag->Tag->find('list', array(
-                    'conditions' => array('Tag.hide_tag' => 1),
-                    'fields' => array('Tag.id')
-            ));
-            foreach ($hidden_tags as $hidden_tag) {
-                unset($tags[$hidden_tag]);
-            }
             $tagItemsAdd = array();
             foreach ($tags as $k => $tag) {
                 $tagName = $tag['name'];
