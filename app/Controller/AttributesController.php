@@ -1462,12 +1462,11 @@ class AttributesController extends AppController
         }
     }
 
-    public function editSelected($id)
+    public function editSelected($id, $selectedAttributeIds = "[]")
     {
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException(__('This method can only be accessed via AJAX.'));
         }
-
         if ($this->request->is('post')) {
             $event = $this->Attribute->Event->find('first', array(
                 'conditions' => array('id' => $id),
@@ -1488,7 +1487,18 @@ class AttributesController extends AppController
                 'recursive' => -1,
             ));
 
-            if ($this->request->data['Attribute']['to_ids'] == 2 && $this->request->data['Attribute']['distribution'] == 6 && $this->request->data['Attribute']['comment'] == null) {
+            $tags_ids_remove = json_decode($this->request->data['Attribute']['tags_ids_remove']);
+            $tags_ids_add = json_decode($this->request->data['Attribute']['tags_ids_add']);
+            $clusters_ids_remove = json_decode($this->request->data['Attribute']['clusters_ids_remove']);
+            $clusters_ids_add = json_decode($this->request->data['Attribute']['clusters_ids_add']);
+            $changeInTagOrCluster = ($tags_ids_remove !== null && count($tags_ids_remove) > 0)
+                || ($tags_ids_add === null || count($tags_ids_add) > 0)
+                || ($clusters_ids_remove === null || count($clusters_ids_remove) > 0)
+                || ($clusters_ids_add === null || count($clusters_ids_add) > 0);
+
+            $changeInAttribute = ($this->request->data['Attribute']['to_ids'] != 2) || ($this->request->data['Attribute']['distribution'] != 6) || ($this->request->data['Attribute']['comment'] != null);
+
+            if (!$changeInAttribute && !$changeInTagOrCluster) {
                 $this->autoRender = false;
                 return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
             }
@@ -1526,29 +1536,166 @@ class AttributesController extends AppController
                 $attributes[$key]['Attribute']['timestamp'] = $timestamp;
             }
 
-            if ($this->Attribute->saveMany($attributes)) {
-                if (!$this->_isRest()) {
-                    $this->Attribute->Event->insertLock($this->Auth->user(), $id);
+            if ($changeInAttribute) {
+                if ($this->Attribute->saveMany($attributes)) {
+                    if (!$this->_isRest()) {
+                        $this->Attribute->Event->insertLock($this->Auth->user(), $id);
+                    }
+                    $event['Event']['timestamp'] = $date->getTimestamp();
+                    $event['Event']['published'] = 0;
+                    $this->Attribute->Event->save($event, array('fieldList' => array('published', 'timestamp', 'info', 'id')));
+                    $this->autoRender = false;
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
+                } else {
+                    $this->autoRender = false;
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'validationErrors' => $this->Attribute->validationErrors)), 'status' => 200, 'type' => 'json'));
                 }
-                $event['Event']['timestamp'] = $date->getTimestamp();
-                $event['Event']['published'] = 0;
-                $this->Attribute->Event->save($event, array('fieldList' => array('published', 'timestamp', 'info', 'id')));
-                $this->autoRender = false;
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
-            } else {
-                $this->autoRender = false;
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'validationErrors' => $this->Attribute->validationErrors)), 'status' => 200, 'type' => 'json'));
             }
+
+            // apply changes in tag/cluster
+            foreach ($attributes as $key => $attribute) {
+                foreach ($tags_ids_remove as $t => $tag_id) {
+                    $this->removeTag($attributes[$key]['Attribute']['id'], $tag_id);
+                }
+                foreach ($tags_ids_add as $t => $tag_id) {
+                    $this->addTag($attributes[$key]['Attribute']['id'], $tag_id);
+                }
+                $this->Galaxy = ClassRegistry::init('Galaxy');
+                foreach ($clusters_ids_remove as $c => $cluster_id) {
+                    $this->Galaxy->detachCluster($this->Auth->user(), 'attribute', $attributes[$key]['Attribute']['id'], $cluster_id);
+                }
+                foreach ($clusters_ids_add as $c => $cluster_id) {
+                    $this->Galaxy->attachCluster($this->Auth->user(), 'attribute', $attributes[$key]['Attribute']['id'], $cluster_id);
+                }
+            }
+
+            return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
+
         } else {
             if (!isset($id)) {
                 throw new MethodNotAllowedException(__('No event ID provided.'));
             }
+            $selectedAttributeIds = json_decode($selectedAttributeIds);
+            if ($selectedAttributeIds === null) {
+                $selectedAttributeIds = array();
+            }
+
+            App::uses('TextColourHelper', 'View/Helper');
+            $textColourHelper = new TextColourHelper(new View());
+            $tagTemplate = '<span href="#" class="tagComplete" style="background-color:{{=it.background}}; color:{{=it.color}}">{{=it.name}}</span>';
+            $galaxyTemplate = '<span href="#" class="tagComplete" style="background-color:{{=it.background}}; color:{{=it.color}}">{{=it.name}}</span>';
+
+            // tags to remove
+            $tags = $this->Attribute->AttributeTag->getAttributesTags($this->Auth->user(), $id, $selectedAttributeIds);
+            $tagItemsRemove = array();
+            foreach ($tags as $k => $tag) {
+                $tagName = $tag['name'];
+                $tagItemsRemove[] = array(
+                    'name' => h($tagName),
+                    'value' => h($tag['id']),
+                    'template' => $tagTemplate,
+                    'templateData' => array(
+                        'name' => h($tagName),
+                        'background' => h(isset($tag['colour']) ? $tag['colour'] : '#ffffff'),
+                        'color' => h(isset($tag['colour']) ? $textColourHelper->getTextColour($tag['colour']) : '#0088cc')
+                    ),
+
+                );
+            }
+            unset($tags);
+
+            // clusters to remove
+            $clusters = $this->Attribute->AttributeTag->getAttributesClusters($this->Auth->user(), $id, $selectedAttributeIds);
+            $clusterItemsRemove = array();
+            foreach ($clusters as $k => $cluster) {
+                $clusterTemplate = '{{=it.name}}';
+                if (strlen($cluster['description']) < 50) {
+                    $clusterTemplate .= '<i style="float:right; font-size: smaller;">{{=it.description}}</i>';
+                } else {
+                    $clusterTemplate .= '<it class="fa fa-info-circle" style="float:right;" title="{{=it.description}}"></it>';
+                }
+                if ($cluster['synonyms_string'] !== "") {
+                    $clusterTemplate .= '<div class="apply_css_arrow" style="padding-left: 5px; font-size: smaller;"><i>{{=it.synonyms_string}}</i></div>';
+                }
+
+                $title = __('Synonyms: ') . h($cluster['synonyms_string']);
+                $name = h($cluster['value']);
+                $optionName = h($cluster['value']);
+                $optionName .= $cluster['synonyms_string'] !== '' ? ' (' . h($cluster['synonyms_string']) . ')' : '';
+
+                $clusterItemsRemove[] = array(
+                    'name' => $optionName,
+                    'value' => h($cluster['id']),
+                    'additionalData' => array(
+                        'event_id' => h($id),
+                    ),
+                    'template' => $clusterTemplate,
+                    'templateData' => array(
+                        'name' => $name,
+                        'description' => h($cluster['description']),
+                        'synonyms_string' => $title
+                    )
+                );
+            }
+            unset($clusters);
+            $conditions = array();
+            if (!$this->_isSiteAdmin()) {
+                $conditions = array('Tag.org_id' => array(0, $this->Auth->user('org_id')));
+                $conditions = array('Tag.user_id' => array(0, $this->Auth->user('id')));
+                $conditions = array('Tag.hide_tag' => 0);
+            }
+            $allTags = $this->Attribute->AttributeTag->Tag->find('all', array('conditions' => $conditions, 'recursive' => -1));
+            $tags = array();
+            foreach ($allTags as $i => $tag) {
+                $tags[$tag['Tag']['id']] = $tag['Tag'];
+            }
+            unset($allTags);
+            $tagItemsAdd = array();
+            foreach ($tags as $k => $tag) {
+                $tagName = $tag['name'];
+                $tagItemsAdd[] = array(
+                    'name' => h($tagName),
+                    'value' => h($tag['id']),
+                    'template' => $tagTemplate,
+                    'templateData' => array(
+                        'name' => h($tagName),
+                        'background' => h(isset($tag['colour']) ? $tag['colour'] : '#ffffff'),
+                        'color' => h(isset($tag['colour']) ? $textColourHelper->getTextColour($tag['colour']) : '#0088cc')
+                    ),
+
+                );
+            }
+
+            // clusters to add
+            $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+            $clusters = $this->GalaxyCluster->find('all', array(
+                'fields' => array('value', 'id'),
+                'recursive' => -1
+            ));
+            $clusterItemsAdd = array();
+            foreach ($clusters as $k => $cluster) {
+                $clusterItemsAdd[] = array(
+                    'name' => $cluster['GalaxyCluster']['value'],
+                    'value' => $cluster['GalaxyCluster']['id']
+                );
+            }
+            unset($clusters);
+
             $this->layout = 'ajax';
             $this->set('id', $id);
             $this->set('sgs', $this->Attribute->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true));
             $this->set('distributionLevels', $this->Attribute->distributionLevels);
             $this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
             $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
+            $this->set('tagItemsRemove', $tagItemsRemove);
+            $this->set('tagItemsAdd', $tagItemsAdd);
+            $this->set('clusterItemsAdd', $clusterItemsAdd);
+            $this->set('clusterItemsRemove', $clusterItemsRemove);
+            $this->set('options', array( // set chosen (select picker) options
+                'multiple' => -1,
+                'disabledSubmitButton' => true,
+                'flag_redraw_chosen' => true
+            ));
             $this->render('ajax/attributeEditMassForm');
         }
     }
@@ -2869,11 +3016,33 @@ class AttributesController extends AppController
                     $tag_id_list[] = $tagCollectionTag['tag_id'];
                 }
             } else {
-                $tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
-                if (empty($tag)) {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
+                // try to parse json array
+                $tag_ids = json_decode($tag_id);
+                if ($tag_ids !== null) { // can decode json
+                    $tag_id_list = array();
+                    foreach ($tag_ids as $tag_id) {
+                        if (preg_match('/^collection_[0-9]+$/i', $tag_id)) {
+                            $tagChoice = explode('_', $tag_id)[1];
+                            $this->loadModel('TagCollection');
+                            $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $tagChoice)));
+                            if (empty($tagCollection)) {
+                                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
+                            }
+                            $tag_id_list = array();
+                            foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
+                                $tag_id_list[] = $tagCollectionTag['tag_id'];
+                            }
+                        } else {
+                            $tag_id_list[] = $tag_id;
+                        }
+                    }
+                } else {
+                    $tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
+                    if (empty($tag)) {
+                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
+                    }
+                    $tag_id = $tag['Tag']['id'];
                 }
-                $tag_id = $tag['Tag']['id'];
             }
         }
         if (!isset($idList)) {

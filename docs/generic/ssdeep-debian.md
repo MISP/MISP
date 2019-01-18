@@ -5,7 +5,7 @@ cd /usr/local/src
 wget https://github.com/ssdeep-project/ssdeep/releases/download/release-2.14.1/ssdeep-2.14.1.tar.gz
 tar zxvf ssdeep-2.14.1.tar.gz
 cd ssdeep-2.14.1
-./configure
+./configure --datadir=/usr --prefix=/usr --localstatedir=/var --sysconfdir=/etc
 make
 sudo make install
 

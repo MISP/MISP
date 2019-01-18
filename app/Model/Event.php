@@ -5311,12 +5311,12 @@ class Event extends AppModel
                         $cluster = $this->GalaxyCluster->getCluster($dataTag['Tag']['name']);
                         if ($cluster) {
                             $found = false;
-                            foreach ($data['Galaxy'] as $k => $galaxy) {
+                            foreach ($data['Galaxy'] as $j => $galaxy) {
                                 if ($galaxy['id'] == $cluster['GalaxyCluster']['Galaxy']['id']) {
                                     $found = true;
                                     $temp = $cluster;
                                     unset($temp['GalaxyCluster']['Galaxy']);
-                                    $data['Galaxy'][$k]['GalaxyCluster'][] = $temp['GalaxyCluster'];
+                                    $data['Galaxy'][$j]['GalaxyCluster'][] = $temp['GalaxyCluster'];
                                     continue;
                                 }
                             }

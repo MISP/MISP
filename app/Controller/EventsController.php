@@ -3366,11 +3366,32 @@ class EventsController extends AppController
                     $tag_id_list[] = $tagCollectionTag['tag_id'];
                 }
             } else {
-                $tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
-                if (empty($tag)) {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
+                $tag_ids = json_decode($tag_id);
+                if ($tag_ids !== null) { // can decode json
+                    $tag_id_list = array();
+                    foreach ($tag_ids as $tag_id) {
+                        if (preg_match('/^collection_[0-9]+$/i', $tag_id)) {
+                            $tagChoice = explode('_', $tag_id)[1];
+                            $this->loadModel('TagCollection');
+                            $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $tagChoice)));
+                            if (empty($tagCollection)) {
+                                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
+                            }
+                            $tag_id_list = array();
+                            foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
+                                $tag_id_list[] = $tagCollectionTag['tag_id'];
+                            }
+                        } else {
+                            $tag_id_list[] = $tag_id;
+                        }
+                    }
+                } else {
+                    $tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
+                    if (empty($tag)) {
+                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
+                    }
+                    $tag_id = $tag['Tag']['id'];
                 }
-                $tag_id = $tag['Tag']['id'];
             }
         }
         $this->Event->recursive = -1;
@@ -4592,7 +4613,7 @@ class EventsController extends AppController
         return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
     }
 
-    public function viewMitreAttackMatrix($eventId, $itemType='event', $itemId=false)
+    public function viewMitreAttackMatrix($scope_id, $scope='event', $disable_picking=false)
     {
         $this->loadModel('Galaxy');
 
@@ -4601,6 +4622,24 @@ class EventsController extends AppController
         $attackTags = $attackTacticData['attackTags'];
         $killChainOrders = $attackTacticData['killChain'];
         $instanceUUID = $attackTacticData['instance-uuid'];
+
+        if ($scope == 'event') {
+            $eventId = $scope_id;
+        } elseif ($scope == 'attribute') {
+            $attribute = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
+                'conditions' => array('Attribute.id' => $scope_id),
+                'fields' => array('event_id')
+            ));
+            if (empty($attribute)) {
+                throw new Exception("Invalid Attribute.");
+            }
+            $attribute = $attribute[0];
+            $eventId = $attribute['Attribute']['event_id'];
+        } elseif ($scope == 'tag_collection') {
+            $eventId = 0; // no event_id for tag_collection, consider all events
+        } else {
+            throw new Exception("Invalid options.");
+        }
 
         $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores($eventId, $attackTags);
         $scoresDataEvent = $this->Event->EventTag->getTagScores($eventId, $attackTags);
@@ -4625,20 +4664,15 @@ class EventsController extends AppController
             $colours = $gradientTool->createGradientFromValues($scores);
 
             $this->set('eventId', $eventId);
-            $this->set('target_type', $itemType);
+            $this->set('target_type', $scope);
             $this->set('killChainOrders', $killChainOrders);
             $this->set('attackTactic', $attackTactic);
             $this->set('scores', $scores);
             $this->set('maxScore', $maxScore);
             $this->set('colours', $colours);
-
-            // picking mode
-            if ($itemId !== false) {
-                $this->set('pickingMode', true);
-                $this->set('target_id', $itemId);
-            } else {
-                $this->set('pickingMode', false);
-            }
+            $this->set('pickingMode', !$disable_picking);
+            $this->set('target_id', $scope_id);
+            $this->render('/Elements/view_mitre_attack_matrix');
         }
     }
 
