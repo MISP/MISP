@@ -127,7 +127,7 @@
                             'function' => 'publishPopup',
                             'params' => array($event['Event']['id'], 'unpublish')
                         ),
-                        'class' => (1 == $event['Event']['published'] && $mayModify) ? '' : 'hidden',
+                        'class' => (isset($event['Event']['published']) && (1 == $event['Event']['published'] && $mayModify)) ? '' : 'hidden',
                         'text' => __('Unpublish')
                     ));
                     if (Configure::read('MISP.delegation')) {
