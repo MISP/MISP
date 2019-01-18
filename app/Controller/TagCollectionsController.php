@@ -163,8 +163,20 @@ class TagCollectionsController extends AppController
         }
         if (!is_numeric($tag_id)) {
             $tag_ids = json_decode($tag_id);
-            if ($tag_ids !== null) { // can decode json
-                $tag_id_list = $tag_ids;
+            if ($tag_ids !== null && is_array($tag_ids)) { // can decode json
+                $tag_ids = $this->TagCollection->Tag->find('list', array(
+                    'conditions' => array(
+                        'AND' => array(
+                            $conditions,
+                            'Tag.id' => $tag_ids
+                        )
+                    ),
+                    'fields' => array('Tag.id', 'Tag.id')
+                ));
+                $tag_id_list = array_values($tag_ids);
+                if (empty($tag_id_list)) {
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag(s).')), 'status'=>200, 'type' => 'json'));
+                }
             } else {
                 $tag = $this->TagCollection->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
                 if (empty($tag)) {
