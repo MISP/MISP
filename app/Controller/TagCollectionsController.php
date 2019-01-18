@@ -156,19 +156,27 @@ class TagCollectionsController extends AppController
         if ($tag_id === false) {
             $tag_id = $this->request->data['tag'];
         }
-        $conditions = array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)));
+        $conditions = array();
         if (!$this->_isSiteAdmin()) {
             $conditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
             $conditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
         }
         if (!is_numeric($tag_id)) {
             $tag_ids = json_decode($tag_id);
+            $tag_lookups = array();
+            foreach ($tag_ids as $temp) {
+                if (is_numeric($temp)) {
+                    $tag_lookups['OR']['Tag.id'][] = $temp;
+                } else {
+                    $tag_lookups['OR']['LOWER(Tag.name) LIKE'][] = strtolower(trim($tag_id));
+                }
+            }
             if ($tag_ids !== null && is_array($tag_ids)) { // can decode json
-                $tag_ids = $this->TagCollection->Tag->find('list', array(
+                $tag_ids = $this->TagCollection->TagCollectionTag->Tag->find('list', array(
                     'conditions' => array(
                         'AND' => array(
                             $conditions,
-                            'Tag.id' => $tag_ids
+                            $tag_lookups
                         )
                     ),
                     'fields' => array('Tag.id', 'Tag.id')
@@ -178,7 +186,7 @@ class TagCollectionsController extends AppController
                     return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag(s).')), 'status'=>200, 'type' => 'json'));
                 }
             } else {
-                $tag = $this->TagCollection->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
+                $tag = $this->TagCollection->TagCollectionTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
                 if (empty($tag)) {
                     return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
                 }
@@ -197,7 +205,6 @@ class TagCollectionsController extends AppController
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
             }
         }
-
         $this->autoRender = false;
         $error = false;
         $success = false;
@@ -237,7 +244,7 @@ class TagCollectionsController extends AppController
             }
         }
         if ($success) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $success, 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $success)), 'status'=>200, 'type' => 'json'));
         } elseif (empty($fail)) {
             return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => __('All tags are already present, nothing to add.'), 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
         } else {
