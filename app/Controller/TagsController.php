@@ -668,9 +668,13 @@ class TagsController extends AppController
                 $conditions = array('Tag.user_id' => array(0, $this->Auth->user('id')));
                 $conditions['Tag.hide_tag'] = 0;
                 $allTags = $this->Tag->find('all', array('conditions' => $conditions, 'recursive' => -1));
+                $allTags = $this->Tag->EventTag->Event->massageTags(array('EventTag' => $allTags), 'Event', false);
+                $allTags = $allTags['EventTag'];
                 $tags = array();
                 foreach ($allTags as $i => $tag) {
-                    $tags[$tag['Tag']['id']] = $tag['Tag'];
+                    if (!empty($tag['Tag'])) {
+                        $tags[$tag['Tag']['id']] = $tag['Tag'];
+                    }
                 }
                 unset($allTags);
                 $expanded = $tags;
