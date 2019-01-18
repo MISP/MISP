@@ -747,7 +747,7 @@ class TagsController extends AppController
                     'name' => h($tagName),
                     'background' => h(isset($tag['colour']) ? $tag['colour'] : '#ffffff'),
                     'color' => h(isset($tag['colour']) ? $textColourHelper->getTextColour($tag['colour']) : '#0088cc'),
-                    'expanded' => $expanded[$tag['id']]
+                    'expanded' => h($expanded[$tag['id']])
                 )
             );
             if ($taxonomy_id === 'collections') {
