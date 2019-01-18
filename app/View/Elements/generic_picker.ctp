@@ -65,8 +65,13 @@ function setupChosen(id, redrawChosen) {
                 } else { //  for obscure reasons, `selected` variable is not set in some cases
                     endpoint = $(event.target).val();
                 }
-                $select.data('endpoint', endpoint);
-                fetchRequestedData($select);
+                if (endpoint === '') {
+                    $wrapper = $select.closest('div').find('div.generic-picker-wrapper');
+                    $wrapper.hide(0);
+                } else {
+                    $select.data('endpoint', endpoint);
+                    fetchRequestedData($select);
+                }
             }
         });
     }
