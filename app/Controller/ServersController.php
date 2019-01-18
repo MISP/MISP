@@ -236,6 +236,7 @@ class ServersController extends AppController
                     $defaults = array(
                         'push' => 0,
                         'pull' => 0,
+                        'caching_enabled' => 0,
                         'json' => '[]',
                         'push_rules' => '[]',
                         'pull_rules' => '[]',
@@ -422,7 +423,7 @@ class ServersController extends AppController
             }
             if (!$fail) {
                 // say what fields are to be updated
-                $fieldList = array('id', 'url', 'push', 'pull', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name' ,'self_signed', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal', 'skip_proxy');
+                $fieldList = array('id', 'url', 'push', 'pull', 'caching_enabled', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name' ,'self_signed', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal', 'skip_proxy');
                 $this->request->data['Server']['id'] = $id;
                 if (isset($this->request->data['Server']['authkey']) && "" != $this->request->data['Server']['authkey']) {
                     $fieldList[] = 'authkey';
@@ -1830,4 +1831,43 @@ misp.direct_call(relative_path, body)
         }
     }
 
+    public function cache($id = 'all')
+    {
+        if (Configure::read('MISP.background_jobs')) {
+            $this->loadModel('Job');
+            $this->Job->create();
+            $data = array(
+                    'worker' => 'default',
+                    'job_type' => 'cache_servers',
+                    'job_input' => intval($id) ? $id : 'all',
+                    'status' => 0,
+                    'retries' => 0,
+                    'org' => $this->Auth->user('Organisation')['name'],
+                    'message' => __('Starting server caching.'),
+            );
+            $this->Job->save($data);
+            $jobId = $this->Job->id;
+            $process_id = CakeResque::enqueue(
+                    'default',
+                    'ServerShell',
+                    array('cacheServer', $this->Auth->user('id'), $id, $jobId),
+                    true
+            );
+            $this->Job->saveField('process_id', $process_id);
+            $message = 'Server caching job initiated.';
+        } else {
+            $result = $this->Server->cacheServerInitiator($this->Auth->user(), $id);
+            if (!$result) {
+                $this->Flash->error(__('Caching the servers has failed.'));
+                $this->redirect(array('action' => 'index'));
+            }
+            $message = __('Caching the servers has successfully completed.');
+        }
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Server', 'cache', false, $this->response->type(), $message);
+        } else {
+            $this->Flash->error($message);
+            $this->redirect(array('action' => 'index'));
+        }
+    }
 }
