@@ -275,6 +275,7 @@
 
 	function pickCell(cell, clusterId, recurseChosen) {
 		recurseChosen = recurseChosen === undefined ? true : recurseChosen;
+		clusterId = parseInt(clusterId);
 
 		var $cells = $('td[data-cluster-id="' + clusterId + '"]');
 		if (!cell.hasClass('cell-picked')) {
