@@ -263,7 +263,6 @@
                 }
             }
             if (!empty($object['Server'])) {
-                $liContents = '';
                 foreach ($object['Server'] as $server) {
                     $popover = '';
                     foreach ($server as $k => $v) {
@@ -279,9 +278,10 @@
                         $popover .= '<span class=\'bold black\'>' . Inflector::humanize(h($k)) . '</span>: <span class="blue">' . $v . '</span><br />';
                     }
                     foreach ($server['event_uuids'] as $k => $event_uuid) {
+                        $liContents = '';
                         if ($isSiteAdmin) {
                             $liContents .= sprintf(
-                                '<a href="%s/servers/previewEvent/%s/%s" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>',
+                                '<a href="%s/servers/previewEvent/%s/%s" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>&nbsp;',
                                 $baseurl,
                                 h($server['id']),
                                 h($event_uuid),
@@ -294,11 +294,11 @@
                                 'S' . h($server['id']) . ':' . ($k + 1)
                             );
                         }
+                        echo sprintf(
+                            '<li style="padding-right: 0px; padding-left:0px;">%s</li>',
+                            $liContents
+                        );
                     }
-                    echo sprintf(
-                        '<li style="padding-right: 0px; padding-left:0px;">%s</li>',
-                        $liContents
-                    );
                 }
             }
         ?>

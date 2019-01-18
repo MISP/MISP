@@ -204,7 +204,7 @@ class ServerShell extends AppShell
             $jobId = $this->Job->id;
         }
         $this->Job->read(null, $jobId);
-        $result = $this->Server->cacheServerInitiator($user, $id, $jobId);
+        $result = $this->Server->cacheServerInitiator($user, $scope, $jobId);
         $this->Job->id = $jobId;
         if ($result !== true) {
             $message = 'Job Failed. Reason: ';

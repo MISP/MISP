@@ -1866,7 +1866,7 @@ misp.direct_call(relative_path, body)
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('Server', 'cache', false, $this->response->type(), $message);
         } else {
-            $this->Flash->error($message);
+            $this->Flash->info($message);
             $this->redirect(array('action' => 'index'));
         }
     }
