@@ -125,29 +125,20 @@ class AttributeTag extends AppModel
     }
 
 
-    // find all tags that belong to a list of attributes (contains in the same event)
+    // find all tags that belong to a list of attributes (contained in the same event)
     public function getAttributesTags($user, $requestedEventId, $attributeIds) {
-        if ($attributeIds === null) {
+        if (is_array($attributeIds) && empty($attributeIds)) {
             throw new NotFoundException(__('Invalid attributes'));
         }
 
         $allTags = array();
-        foreach ($attributeIds as $id) {
-            $attribute = $this->Attribute->fetchAttributes($user, array('conditions' => array('Attribute.id' => $id)));
-            if (empty($attribute)) {
-                throw new MethodNotAllowedException('Invalid attribute.');
-            }
-
-            $eventId = $attribute[0]['Attribute']['event_id'];
-            if ($eventId != $requestedEventId) { // only takes tags of attributes belonging to the same event
-                continue;
-            }
+        $attributes = $this->Attribute->fetchAttributes($user, array('conditions' => array('Attribute.id' => $attributeIds, 'Attribute.event_id' => $requestedEventId)));
+        foreach ($attributes as $attribute) {
             $attributeTags = $this->find('all', array(
                 'conditions' => array(
-                    'attribute_id' => $id
+                    'attribute_id' => $attribute['Attribute']['id']
                 ),
-                'contain' => array('Tag'),
-                'fields' => array('Tag.id', 'Tag.colour', 'Tag.name'),
+                'contain' => array('Tag.id', 'Tag.colour', 'Tag.name')
             ));
             $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
             $cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
