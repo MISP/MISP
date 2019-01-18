@@ -10,7 +10,7 @@
 
 ```bash
 cd /usr/local/src/
-sudo apt-get install -y cmake
+sudo apt-get install cmake -y
 git clone https://github.com/MISP/mail_to_misp.git
 git clone https://github.com/stricaud/faup.git
 cd faup
