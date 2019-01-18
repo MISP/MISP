@@ -4296,19 +4296,22 @@ class Server extends AppModel
         while ($continue) {
             $i++;
             $pipe = $redis->multi(Redis::PIPELINE);
-            $chunk_size = 10000;
+            $chunk_size = 100000;
             $data = $this->__getCachedAttributes($server, $HttpSocket, $chunk_size, $i);
+            $data = explode(PHP_EOL, trim($data));
             if (empty($data) || count($data) < $chunk_size) {
-                return true;
+                $continue = false;
             }
-            foreach ($data as $entry) {
-                list($value, $uuid) = explode(',', $entry);
-                $redis->sAdd('misp:server_cache:' . $server['Server']['id'], $value);
-                $redis->sAdd('misp:server_cache:combined', $value);
-                $redis->sAdd('misp:server_cache:event_uuid_lookup:' . $value, $server['Server']['id'] . '/' . $uuid);
+            if (!empty($data)) {
+                foreach ($data as $entry) {
+                    list($value, $uuid) = explode(',', $entry);
+                    $redis->sAdd('misp:server_cache:' . $server['Server']['id'], $value);
+                    $redis->sAdd('misp:server_cache:combined', $value);
+                    $redis->sAdd('misp:server_cache:event_uuid_lookup:' . $value, $server['Server']['id'] . '/' . $uuid);
+                }
             }
             if ($jobId) {
-                $job->saveField('message', 'Server ' . $server['Server']['id'] . ': ' . $i * $chunk_size . ' attributes cached.');
+                $job->saveField('message', 'Server ' . $server['Server']['id'] . ': ' . ((($i -1) * $chunk_size) + count($data)) . ' attributes cached.');
             }
             $pipe->exec();
         }
@@ -4319,7 +4322,7 @@ class Server extends AppModel
     {
         $filter_rules = array(
             'returnFormat' => 'cache',
-            'includeEventUuid',
+            'includeEventUuid' => 1,
             'page' => $i,
             'limit' => $chunk_size
         );
@@ -4330,5 +4333,117 @@ class Server extends AppModel
             return $e->getMessage();
         }
         return $response->body;
+    }
+
+    public function attachFeedCorrelations($objects, $user, &$event, $overrideLimit = false)
+    {
+        $redis = $this->setupRedis();
+        if ($redis !== false) {
+            $params = array(
+                'recursive' => -1,
+                'fields' => array('id', 'name', 'url', 'provider', 'source_format')
+            );
+            if (!$user['Role']['perm_site_admin']) {
+                $params['conditions'] = array('Server.caching_enabled' => 1);
+            }
+            $servers = $this->find('all', $params);
+            $counter = 0;
+            $hashTable = array();
+            $serverList = array();
+            $pipe = $redis->multi(Redis::PIPELINE);
+            $objectsWithServerHits = array();
+            $hashTable = array();
+            $hitIds = array();
+            $this->Event = ClassRegistry::init('Event');
+            $objectKeys = array();
+            foreach ($objects as $k => $object) {
+                if (in_array($object['type'], $this->Event->Attribute->getCompositeTypes())) {
+                    $value = explode('|', $object['value']);
+                    $hashTable[$k] = md5($value[0]);
+                    $objectKeys[] = $k;
+                } else {
+                    $hashTable[$k] = md5($object['value']);
+                }
+                $redis->sismember('misp:server_cache:combined', $hashTable[$k]);
+                $objectKeys[] = $k;
+            }
+            $results = array();
+            $results = $pipe->exec();
+            if (!$overrideLimit && count($objects) > 10000) {
+                foreach ($results as $k => $result) {
+                    if ($result) {
+                        if (isset($event['ServerCount'])) {
+                            $event['ServerCount']++;
+                        } else {
+                            $event['ServerCount'] = 1;
+                        }
+                        $objects[$k]['ServerHit'] = true;
+                    }
+                }
+            } else {
+                foreach ($results as $k => $result) {
+                    if ($result) {
+                        $hitIds[] = $k;
+                    }
+                }
+                foreach ($feeds as $k3 => $feed) {
+                    $pipe = $redis->multi(Redis::PIPELINE);
+                    foreach ($hitIds as $k2 => $k) {
+                        $redis->sismember('misp:feed_cache:' . $feed['Feed']['id'], $hashTable[$k]);
+                    }
+                    $feedHits = $pipe->exec();
+                    foreach ($feedHits as $k4 => $hit) {
+                        if ($hit) {
+                            if (!isset($event['Feed'][$feeds[$k3]['Feed']['id']]['id'])) {
+                                if (!isset($event['Feed'][$feeds[$k3]['Feed']['id']])) {
+                                    $event['Feed'][$feeds[$k3]['Feed']['id']] = array();
+                                }
+                                $event['Feed'][$feeds[$k3]['Feed']['id']] = array_merge($event['Feed'][$feeds[$k3]['Feed']['id']], $feed['Feed']);
+                            }
+                            $objects[$hitIds[$k4]]['Feed'][] = $feed['Feed'];
+                        }
+                    }
+                    if ($feed['Feed']['source_format'] == 'misp') {
+                        $pipe = $redis->multi(Redis::PIPELINE);
+                        $eventUuidHitPosition = array();
+                        $i = 0;
+                        foreach ($objects as $k => $object) {
+                            if (isset($object['Feed'])) {
+                                foreach ($object['Feed'] as $currentFeed) {
+                                    if ($feed['Feed']['id'] == $currentFeed['id']) {
+                                        $eventUuidHitPosition[$i] = $k;
+                                        $i++;
+                                        if (in_array($object['type'], $this->Event->Attribute->getCompositeTypes())) {
+                                            $value = explode('|', $object['value']);
+                                            $redis->smembers('misp:feed_cache:event_uuid_lookup:' . md5($value[0]));
+                                        } else {
+                                            $redis->smembers('misp:feed_cache:event_uuid_lookup:' . md5($object['value']));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        $mispFeedHits = $pipe->exec();
+                        foreach ($mispFeedHits as $feedhitPos => $f) {
+                            foreach ($f as $url) {
+                                $urlParts = explode('/', $url);
+                                if (empty($event['Feed'][$urlParts[0]]['event_uuids']) || !in_array($urlParts[1], $event['Feed'][$urlParts[0]]['event_uuids'])) {
+                                    $event['Feed'][$urlParts[0]]['event_uuids'][] = $urlParts[1];
+                                }
+                                foreach ($objects[$eventUuidHitPosition[$feedhitPos]]['Feed'] as $tempKey => $tempFeed) {
+                                    if ($tempFeed['id'] == $urlParts[0]) {
+                                        $objects[$eventUuidHitPosition[$feedhitPos]]['Feed'][$tempKey]['event_uuids'][] = $urlParts[1];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (!empty($event['Feed'])) {
+            $event['Feed'] = array_values($event['Feed']);
+        }
+        return $objects;
     }
 }

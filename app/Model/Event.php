@@ -1881,6 +1881,9 @@ class Event extends AppModel
                         $overrideLimit = false;
                     }
                     $event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute'], $user, $event['Event'], $overrideLimit);
+                    if ($user['org_id'] == Configure::read('MISP.host_org_id')) {
+                        $event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute'], $user, $event['Event'], $overrideLimit, 'Server');
+                    }
                 }
                 $event = $this->__filterBlockedAttributesByTags($event, $options, $user);
                 $event['Attribute'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['Attribute'], $sharingGroupData);
@@ -1964,6 +1967,9 @@ class Event extends AppModel
                         $overrideLimit = false;
                     }
                     $event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user, $event['Event'], $overrideLimit);
+                    if ($user['org_id'] == Configure::read('MISP.host_org_id')) {
+                        $event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user, $event['Event'], $overrideLimit, 'Server');
+                    }
                 }
             }
             $event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
