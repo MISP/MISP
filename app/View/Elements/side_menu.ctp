@@ -54,7 +54,7 @@
                             'text' => __('Add Attribute')
                         ));
                         echo '<li>';
-                            echo '<a href="#" onclick="popoverPopup(this, ' . h($event['Event']['id']) . ', \'objectTemplates\', \'objectChoice\')"> ' . __('Add Object') . '</a>';
+                            echo '<a href="#" onclick="popoverPopup(this, ' . h($event['Event']['id']) . ', \'objectTemplates\', \'objectMetaChoice\')"> ' . __('Add Object') . '</a>';
                         echo '</li>';
                         echo $this->element('/side_menu_link', array(
                             'element_id' => 'addAttachment',
