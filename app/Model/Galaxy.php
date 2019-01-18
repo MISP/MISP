@@ -285,8 +285,12 @@ class Galaxy extends AppModel
         }
 
         if (!$user['Role']['perm_site_admin'] && !$user['Role']['perm_sync']) {
-            if (!$user['Role']['perm_tagger'] || ($user['org_id'] !== org_id && $user['org_id'] !== $orgc_id)) {
-                throw new MethodNotAllowedException('Invalid Event.');
+            if (
+                ($scope === 'tag_collection' && !$user['Role']['perm_tag_editor']) ||
+                ($scope !== 'tag_collection' && !$user['Role']['perm_tagger']) ||
+                ($user['org_id'] !== $org_id && $user['org_id'] !== $orgc_id)
+            ) {
+                throw new MethodNotAllowedException('Invalid ' . Inflector::humanize($targe_type) . '.');
             }
         }
 
@@ -339,7 +343,7 @@ class Galaxy extends AppModel
                     'model_id' => $target_id,
                     'email' => $user['email'],
                     'action' => 'galaxy',
-                    'title' => 'Attached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') to ' . $target_type . ' (' . $target_id . ')',
+                    'title' => 'Detached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') to ' . $target_type . ' (' . $target_id . ')',
                     'change' => ''
                 ));
                 return 'Cluster detached';
