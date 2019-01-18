@@ -669,7 +669,8 @@ class TagsController extends AppController
                 $favTags = $this->Tag->FavouriteTag->find('all', array(
                     'conditions' => $conditions,
                     'recursive' => -1,
-                    'contain' => array('Tag')
+                    'contain' => array('Tag'),
+                    'order' => array('Tag.name asc')
                 ));
                 foreach ($favTags as $favTag) {
                     $tags[$favTag['FavouriteTag']['tag_id']] = $favTag['Tag'];
@@ -679,7 +680,7 @@ class TagsController extends AppController
                 $conditions = array('Tag.org_id' => array(0, $this->Auth->user('org_id')));
                 $conditions = array('Tag.user_id' => array(0, $this->Auth->user('id')));
                 $conditions['Tag.hide_tag'] = 0;
-                $allTags = $this->Tag->find('all', array('conditions' => $conditions, 'recursive' => -1));
+                $allTags = $this->Tag->find('all', array('conditions' => $conditions, 'recursive' => -1, 'order' => array('name asc')));
                 $allTags = $this->Tag->EventTag->Event->massageTags(array('EventTag' => $allTags), 'Event', false);
                 $allTags = $allTags['EventTag'];
                 $tags = array();

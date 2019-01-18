@@ -94,6 +94,7 @@ class GalaxiesController extends AppController
         $galaxies = $this->Galaxy->find('all', array(
             'recursive' => -1,
             'conditions' => $conditions,
+            'order' => array('name asc')
         ));
         if (!empty($tacticGalaxies)) {
             array_unshift($galaxies, array('Galaxy' => array(
@@ -151,7 +152,8 @@ class GalaxiesController extends AppController
         $namespaces = $this->Galaxy->find('list', array(
             'recursive' => -1,
             'fields' => array('namespace', 'namespace'),
-            'group' => array('namespace')
+            'group' => array('namespace'),
+            'order' => array('namespace asc')
         ));
 
         $items = array();
@@ -187,6 +189,7 @@ class GalaxiesController extends AppController
                         'conditions' => array('GalaxyElement.key' => 'synonyms')
                     )
                 ),
+                'order' => array('value asc'),
                 'recursive' => -1
         ));
         $clusters = array();
