@@ -16,81 +16,74 @@ class GenericPickerHelper extends AppHelper {
         return $select_html;
     }
 
-    function add_option($name, $param, $defaults) {
+    function add_option($param, $defaults) {
         $option_html = '<option';
-        if (is_array($param)) {
-            if (isset($param['value'])) {
-                $option_html .= ' value=' . h($param['value']);
-            } else {
-                $option_html .= ' value=' . h($name);
-            }
-            if (isset($param['additionalData'])) {
-                $additionalData = json_encode($param['additionalData']);
-            } else {
-                $additionalData = json_encode(array());
-            }
 
-            if (isset($param['template'])) {
-                $option_html .= ' data-template=' . base64_encode($param['template']);
-            }
-            if (isset($param['templateData'])) {
-                $option_html .= ' data-templatedata=' . base64_encode(json_encode($param['templateData']));
-            }
-
-            $option_html .= ' data-additionaldata=' . $additionalData;
-            if (isset($param['disabled']) && $param['disabled']) {
-                $option_html .= ' disabled';
-            } else if (isset($param['selected']) && $param['selected']) { // nonsense to pre-select if disabled
-                $option_html .= ' selected';
-            }
+        if (isset($param['value'])) {
+            $option_html .= ' value=' . h($param['value']);
         } else {
-            $option_html .= ' value=' . h($param);
+            $option_html .= ' value=' . h($param['name']);
         }
+        if (isset($param['additionalData'])) {
+            $additionalData = json_encode($param['additionalData']);
+        } else {
+            $additionalData = json_encode(array());
+        }
+
+        if (isset($param['template'])) {
+            $option_html .= ' data-template=' . base64_encode($param['template']);
+        }
+        if (isset($param['templateData'])) {
+            $option_html .= ' data-templatedata=' . base64_encode(json_encode($param['templateData']));
+        }
+
+        $option_html .= ' data-additionaldata=' . $additionalData;
+        if (isset($param['disabled']) && $param['disabled']) {
+            $option_html .= ' disabled';
+        } else if (isset($param['selected']) && $param['selected']) { // nonsense to pre-select if disabled
+            $option_html .= ' selected';
+        }
+
         $option_html .= '>';
 
-        $option_html .= h($name);
+        $option_html .= h($param['name']);
         $option_html .= '</option>';
         return $option_html;
     }
 
-    function add_link_params($name, $param, $defaults=array()) {
+    function add_link_params($param, $defaults=array()) {
         $param_html = ' ';
-        if (is_array($param)) { // add data as param
-            if (isset($param['functionName'])) {
-                $param_html .= 'onclick="execAndClose(this, ' . $param['functionName'] . ')" ';
-            } else { // fallback to default submit function
-                if ($defaults['functionName'] !== '') {
-                    $param_html .= 'onclick="submitFunction(this, ' . $defaults['functionName'] . ')" ';
-                } else {
-                    $param_html .= 'data-endpoint="' . h($param['value']) . '" ';
-                    $param_html .= 'onclick="fetchRequestedData(this)" ';
-                }
+        if (isset($param['functionName'])) {
+            $param_html .= 'onclick="execAndClose(this, ' . $param['functionName'] . ')" ';
+        } else { // fallback to default submit function
+            if ($defaults['functionName'] !== '') {
+                $param_html .= 'onclick="submitFunction(this, ' . $defaults['functionName'] . ')" ';
+            } else {
+                $param_html .= 'data-endpoint="' . h($param['value']) . '" ';
+                $param_html .= 'onclick="fetchRequestedData(this)" ';
             }
-
-            $additionalData = json_encode(array());
-            foreach ($param as $paramName => $paramValue) {
-                if ($paramName === 'additionalData') {
-                    $additionalData = json_encode($param['additionalData']);
-                } else if ($paramName === 'value') {
-                    $param_html .= 'value="' . h($paramValue) . '" ';
-                } else if ($paramName === 'template' || $paramName === 'templateData') {
-                    continue;
-                } else {
-                    $param_html .= 'data-' . h($paramName). '="' . h($paramValue) . '" ';
-                }
-            }
-            $param_html .= ' data-additionaldata=' . $additionalData;
-        } else { // param is a simple endpoint from which fetch data
-            $param_html .= 'data-endpoint="' . h($param) . '" ';
-            $param_html .= 'onclick="fetchRequestedData(this)" ';
         }
+
+        $additionalData = json_encode(array());
+        foreach ($param as $paramName => $paramValue) {
+            if ($paramName === 'additionalData') {
+                $additionalData = json_encode($param['additionalData']);
+            } else if ($paramName === 'value') {
+                $param_html .= 'value="' . h($paramValue) . '" ';
+            } else if ($paramName === 'template' || $paramName === 'templateData') {
+                continue;
+            } else {
+                $param_html .= 'data-' . h($paramName). '="' . h($paramValue) . '" ';
+            }
+        }
+        $param_html .= ' data-additionaldata=' . $additionalData;
         return $param_html;
     }
 
-    function add_pill($name, $param, $defaults=array()) {
+    function add_pill($param, $defaults=array()) {
         $pill_html = '<li>';
         $pill_html .= '<a href="#" data-toggle="pill" class="pill-pre-picker"';
-        $pill_html .= ' ' . $this->add_link_params($name, $param, $defaults);
+        $pill_html .= ' ' . $this->add_link_params($param, $defaults);
         $pill_html .= '>';
         if (isset($param['img'])) {
             $pill_html .= '<img src="' . $param['img'] . '" style="margin-right: 5px; height: 14px;">';
@@ -98,7 +91,7 @@ class GenericPickerHelper extends AppHelper {
             $icon = isset($param['icon']) ? $param['icon'] : $param['templateData']['icon'];
             $pill_html .= '<span class="fa fa-' . $icon . '" style="margin-right: 5px;"></span>';
         }
-        $pill_html .= h($name) . '</a>';
+        $pill_html .= h($param['name']) . '</a>';
         $pill_html .= '</li>';
         return $pill_html;
     }

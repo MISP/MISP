@@ -1590,7 +1590,8 @@ class AttributesController extends AppController
             $tagItemsRemove = array();
             foreach ($tags as $k => $tag) {
                 $tagName = $tag['name'];
-                $tagItemsRemove[h($tagName)] = array(
+                $tagItemsRemove[] = array(
+                    'name' => h($tagName),
                     'value' => h($tag['id']),
                     'template' => $tagTemplate,
                     'templateData' => array(
@@ -1622,7 +1623,8 @@ class AttributesController extends AppController
                 $optionName = h($cluster['value']);
                 $optionName .= $cluster['synonyms_string'] !== '' ? ' (' . h($cluster['synonyms_string']) . ')' : '';
 
-                $clusterItemsRemove[$optionName] = array(
+                $clusterItemsRemove[] = array(
+                    'name' => $optionName,
                     'value' => h($cluster['id']),
                     'additionalData' => array(
                         'event_id' => h($id),
@@ -1651,7 +1653,8 @@ class AttributesController extends AppController
             $tagItemsAdd = array();
             foreach ($tags as $k => $tag) {
                 $tagName = $tag['name'];
-                $tagItemsAdd[h($tagName)] = array(
+                $tagItemsAdd[] = array(
+                    'name' => h($tagName),
                     'value' => h($tag['id']),
                     'template' => $tagTemplate,
                     'templateData' => array(
@@ -1671,7 +1674,10 @@ class AttributesController extends AppController
             ));
             $clusterItemsAdd = array();
             foreach ($clusters as $k => $cluster) {
-                $clusterItemsAdd[$cluster['GalaxyCluster']['value']] = $cluster['GalaxyCluster']['id'];
+                $clusterItemsAdd[] = array(
+                    'name' => $cluster['GalaxyCluster']['value'],
+                    'value' => $cluster['GalaxyCluster']['id']
+                );
             }
             unset($clusters);
 

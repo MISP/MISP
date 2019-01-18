@@ -107,7 +107,10 @@ class GalaxiesController extends AppController
         }
 
         $items = array();
-        $items[__('All clusters')] = "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/0';
+        $items[] = array(
+            'name' => __('All clusters'),
+            'value' => "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/0'
+        );
         foreach ($galaxies as $galaxy) {
             if ($galaxy['Galaxy']['id'] != -1) {
                 // construct option template
@@ -119,7 +122,8 @@ class GalaxiesController extends AppController
                     $galaxyTemplate .= '<it class="fa fa-info-circle" style="float:right;" title="{{=it.description}}"></it>';
                 }
 
-                $items[$galaxy['Galaxy']['name']] = array(
+                $items[] = array(
+                    'name' => h($galaxy['Galaxy']['name']),
                     'value' => "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/' . h($galaxy['Galaxy']['id']),
                     'template' => $galaxyTemplate,
                     'templateData' => array(
@@ -129,7 +133,8 @@ class GalaxiesController extends AppController
                     )
                 );
             } else { // attackMatrix
-                $items[$galaxy['Galaxy']['name']] = array(
+                $items[] = array(
+                    'name' => $galaxy['Galaxy']['name'],
                     'functionName' => "getMitreMatrixPopup('" . h($target_type) . "', '" . h($target_id) . "')",
                     'isPill' => true,
                     'img' => "/img/mitre-attack-icon.ico",
@@ -150,9 +155,15 @@ class GalaxiesController extends AppController
         ));
 
         $items = array();
-        $items[__('All namespaces')] = "/galaxies/selectGalaxy/" . h($target_id) . '/' . h($target_type) . '/0';
+        $items[] = array(
+            'name' => __('All namespaces'),
+            'value' => "/galaxies/selectGalaxy/" . h($target_id) . '/' . h($target_type) . '/0'
+        );
         foreach ($namespaces as $namespace) {
-            $items[h($namespace)] = "/galaxies/selectGalaxy/" . h($target_id) . '/' . h($target_type) . '/' . h($namespace);
+            $items[] = array(
+                'name' => h($namespace),
+                'value' => "/galaxies/selectGalaxy/" . h($target_id) . '/' . h($target_type) . '/' . h($namespace)
+            );
         }
 
         $this->set('items', $items);
@@ -212,7 +223,8 @@ class GalaxiesController extends AppController
                 $name = h($cluster['value']);
                 $optionName = h($cluster['value']);
                 $optionName .= $cluster['synonyms_string'] !== '' ? ' (' . h($cluster['synonyms_string']) . ')' : '';
-                $items[$optionName] = array(
+                $items[] = array(
+                    'name' => $optionName,
                     'value' => h($cluster_id),
                     'title' => $title,
                     'additionalData' => array(

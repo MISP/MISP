@@ -576,19 +576,31 @@ class TagsController extends AppController
         $items = array();
         $favourites = $this->Tag->FavouriteTag->find('count', array('conditions' => array('FavouriteTag.user_id' => $this->Auth->user('id'))));
         if ($favourites) {
-            $items[__('Favourite Tags')] = "/tags/selectTag/" . h($id) . "/favourites/" . h($scope);
+            $items[] = array(
+                'name' => __('Favourite Tags'),
+                'value' => "/tags/selectTag/" . h($id) . "/favourites/" . h($scope)
+            );
         }
         if ($scope !== 'tag_collection') {
-            $items[__('Tag Collections')] = "/tags/selectTag/" . h($id) . "/collections/" . h($scope);
+            $items[] = array(
+                'name' => __('Tag Collections'),
+                'value' => "/tags/selectTag/" . h($id) . "/collections/" . h($scope)
+            );
         }
-        $items[__('All Tags')] = "/tags/selectTag/" . h($id) . "/all/" . h($scope);
+        $items[] = array(
+            'name' => __('All Tags'),
+            'value' => "/tags/selectTag/" . h($id) . "/all/" . h($scope)
+        );
 
         $this->loadModel('Taxonomy');
         $options = $this->Taxonomy->find('list', array('conditions' => array('enabled' => true), 'fields' => array('namespace'), 'order' => array('Taxonomy.namespace ASC')));
         foreach ($options as $k => $option) {
             $tags = $this->Taxonomy->getTaxonomyTags($k, false, true);
             if (!empty($tags)) {
-                $items[__('Taxonomy Library') . ":" . h($option)] = "/tags/selectTag/" . h($id) . "/" . h($k) . "/" . h($scope);
+                $items[] = array(
+                    'name' => __('Taxonomy Library') . ":" . h($option),
+                    'value' => "/tags/selectTag/" . h($id) . "/" . h($k) . "/" . h($scope)
+                );
             }
         }
         $this->set('items', $items);
@@ -741,7 +753,8 @@ class TagsController extends AppController
                 $tagTemplate .= '<div class="apply_css_arrow" style="padding-left: 5px; margin-top: 5px; font-size: smaller;"><i>{{=it.includes}}</i></div>';
             }
 
-            $items[h($tagName)] = array(
+            $itemParam = array(
+                'name' => h($tagName),
                 'value' => h($choice_id),
                 'additionalData' => array(
                     'id' => h($id)
@@ -756,8 +769,9 @@ class TagsController extends AppController
             );
             if ($taxonomy_id === 'collections') {
                 $TagCollectionTag = __('Includes: ') . h($inludedTagListString[$tag['id']]);
-                $items[h($tagName)]['templateData']['includes'] = $TagCollectionTag;
+                $itemParam['templateData']['includes'] = $TagCollectionTag;
             }
+            $items[] = $itemParam;
         }
         $this->set('items', $items);
         $this->set('options', array( // set chosen (select picker) options

@@ -185,12 +185,12 @@ function submitFunction(clicked, callback) {
         <select id="<?php echo $select_id; ?>" style="height: 100px; margin-bottom: 0px;" <?php echo h($this->GenericPicker->add_select_params($defaults)); ?>>
             <option></option>
             <?php
-                foreach ($items as $name => $param) {
+                foreach ($items as $k => $param) {
                     if (isset($param['isPill']) && $param['isPill']) {
                         $flag_addPills = true;
                         continue;
                     } else {
-                        echo $this->GenericPicker->add_option($name, $param, $defaults);
+                        echo $this->GenericPicker->add_option($param, $defaults);
                     }
                 }
             ?>
@@ -201,9 +201,9 @@ function submitFunction(clicked, callback) {
 
         <?php if ($flag_addPills): // add forced pills ?>
             <ul class="nav nav-pills">
-                <?php foreach ($items as $name => $param): ?>
+                <?php foreach ($items as $k => $param): ?>
                     <?php if (isset($param['isPill']) && $param['isPill']):  ?>
-                        <?php echo $this->GenericPicker->add_pill($name, $param, $defaults); ?>
+                        <?php echo $this->GenericPicker->add_pill($param, $defaults); ?>
                     <?php endif; ?>
                 <?php endforeach; ?>
             </ul>
@@ -217,8 +217,8 @@ function submitFunction(clicked, callback) {
 
     <?php elseif (count($items) > 0): ?>
         <ul class="nav nav-pills">
-            <?php foreach ($items as $name => $param): ?>
-                <?php echo $this->GenericPicker->add_pill($name, $param, $defaults); ?>
+            <?php foreach ($items as $k => $param): ?>
+                <?php echo $this->GenericPicker->add_pill($param, $defaults); ?>
             <?php endforeach; ?>
         </ul>
     <?php else: ?>

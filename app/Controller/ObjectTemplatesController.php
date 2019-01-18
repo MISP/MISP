@@ -39,7 +39,8 @@ class ObjectTemplatesController extends AppController
             }
             $chosenTemplate .= '<div class="apply_css_arrow" style="padding-left: 5px; margin-top: 5px; font-size: smaller;"><i>{{=it.metacateg}}</i></div>';
 
-            $items[$template['name']] = array(
+            $items[] = array(
+                'name' => $template['name'],
                 'value' => $template['id'],
                 'additionalData' => array('event_id' => h($event_id)),
                 'template' => $chosenTemplate,
