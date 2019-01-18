@@ -237,8 +237,10 @@ class GalaxyClustersController extends AppController
                 throw new MethodNotAllowedException('Invalid Tag Collection');
             }
             $tag_collection = $tag_collection[0];
-            if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $tag_collection['TagCollection']['org_id'])) {
-                throw new MethodNotAllowedException('Invalid Tag Collection');
+            if (!$this->_isSiteAdmin()) {
+                if (!$this->userRole['perm_tag_editor'] || $this->Auth->user('org_id') !== $tag_collection['TagCollection']['org_id']) {
+                    throw new MethodNotAllowedException('Invalid Tag Collection');
+                }
             }
         } else {
             $this->Event->id = $event_id;
