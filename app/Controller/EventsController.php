@@ -1414,9 +1414,17 @@ class EventsController extends AppController
         } else {
             $this->set('extended', 0);
         }
-        $conditions['includeFeedCorrelations'] = true;
+        $conditions['includeFeedCorrelations'] = 1;
         if (!$this->_isRest()) {
             $conditions['includeGranularCorrelations'] = 1;
+        }
+        if (!isset($this->params['named']['includeServerCorrelations'])) {
+            $conditions['includeServerCorrelations'] = 1;
+            if ($this->_isRest()) {
+                $conditions['includeServerCorrelations'] = 0;
+            }
+        } else {
+            $conditions['includeServerCorrelations'] = $this->params['named']['includeServerCorrelations'];
         }
         $results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
         if (empty($results)) {

@@ -179,6 +179,54 @@ class ServerShell extends AppShell
 		echo $outcome['message'] . PHP_EOL;
 	}
 
+    public function cacheServer() {
+        if (empty($this->args[0]) || empty($this->args[1])) {
+            die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['cacheServer'] . PHP_EOL);
+        }
+        $userId = $this->args[0];
+        $user = $this->User->getAuthUser($userId);
+        if (empty($user)) die('Invalid user.' . PHP_EOL);
+        $scope = $this->args[1];
+        if (!empty($this->args[2])) {
+            $jobId = $this->args[2];
+        } else {
+            $this->Job->create();
+            $data = array(
+                    'worker' => 'default',
+                    'job_type' => 'cache_servers',
+                    'job_input' => 'Server: ' . $id,
+                    'status' => 0,
+                    'retries' => 0,
+                    'org' => $user['Organisation']['name'],
+                    'message' => 'Starting server caching.',
+            );
+            $this->Job->save($data);
+            $jobId = $this->Job->id;
+        }
+        $this->Job->read(null, $jobId);
+        $result = $this->Server->cacheServerInitiator($user, $scope, $jobId);
+        $this->Job->id = $jobId;
+        if ($result !== true) {
+            $message = 'Job Failed. Reason: ';
+            $this->Job->save(array(
+                    'id' => $jobId,
+                    'message' => $message . $result,
+                    'progress' => 0,
+                    'status' => 3
+            ));
+        } else {
+            $message = 'Job done.';
+            $this->Job->save(array(
+                    'id' => $jobId,
+                    'message' => $message,
+                    'progress' => 100,
+                    'status' => 4
+            ));
+        }
+        echo $message . PHP_EOL;
+    }
+
+
 	public function cacheFeed() {
 		if (empty($this->args[0]) || empty($this->args[1])) {
 			die('Usage: ' . $this->Server->command_line_functions['console_automation_tasks']['data']['cacheFeed'] . PHP_EOL);

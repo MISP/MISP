@@ -208,53 +208,99 @@
     <td class="shortish">
       <ul class="inline" style="margin:0px;">
         <?php
-          if (!empty($object['Feed'])):
-            foreach ($object['Feed'] as $feed):
-              $popover = '';
-              foreach ($feed as $k => $v):
-                if ($k == 'id') continue;
-                if (is_array($v)) {
-                  foreach ($v as $k2 => $v2) {
-                    $v[$k2] = h($v2);
-                  }
-                  $v = implode('<br />', $v);
-                } else {
-                  $v = h($v);
+            if (!empty($object['Feed'])) {
+                foreach ($object['Feed'] as $feed) {
+                    $popover = '';
+                    foreach ($feed as $k => $v) {
+                        if ($k == 'id') continue;
+                        if (is_array($v)) {
+                            foreach ($v as $k2 => $v2) {
+                                $v[$k2] = h($v2);
+                            }
+                            $v = implode('<br />', $v);
+                        } else {
+                            $v = h($v);
+                        }
+                        $popover .= '<span class=\'bold black\'>' . Inflector::humanize(h($k)) . '</span>: <span class="blue">' . $v . '</span><br />';
+                    }
+                    $liContents = '';
+                    if ($isSiteAdmin) {
+                        if ($feed['source_format'] == 'misp') {
+                            $liContents .= sprintf(
+                                '<form action="%s/feeds/previewIndex/1" method="post" style="margin:0px;line-height:auto;">%s%s</form>',
+                                $baseurl,
+                                sprintf(
+                                    '<input type="hidden" name="data[Feed][eventid]" value="%s">',
+                                    h(json_encode($feed['event_uuids'], true))
+                                ),
+                                sprintf(
+                                    '<input type="submit" class="linkButton useCursorPointer" value="%s" data-toggle="popover" data-content="%s" data-trigger="hover" style="margin-right:3px;line-height:normal;vertical-align: text-top;" />',
+                                    h($feed['id']),
+                                    h($popover)
+                                )
+                            );
+                        } else {
+                            $liContents .= sprintf(
+                                '<form>%s</form>',
+                                sprintf(
+                                    '<a href="%s/feeds/previewIndex/%s" style="margin-right:3px;">%s</a>',
+                                    $baseurl,
+                                    h($feed['id']),
+                                    h($feed['id'])
+                                )
+                            );
+                        }
+                    } else {
+                        $liContents .= sprintf(
+                            '<span style="margin-right:3px;">%s</span>',
+                            h($feed['id'])
+                        );
+                    }
+                    echo sprintf(
+                        '<li style="padding-right: 0px; padding-left:0px;">%s</li>',
+                        $liContents
+                    );
                 }
-                $popover .= '<span class=\'bold black\'>' . Inflector::humanize(h($k)) . '</span>: <span class="blue">' . $v . '</span><br />';
-              endforeach;
-            ?>
-              <li style="padding-right: 0px; padding-left:0px;"><span>
-                <?php
-                  if ($isSiteAdmin):
-                    if ($feed['source_format'] == 'misp'):
-                  ?>
-                      <form action="<?php echo $baseurl; ?>/feeds/previewIndex/1" method="post" style="margin:0px;line-height:auto;">
-                        <input type="hidden" name="data[Feed][eventid]" value="<?php echo h(json_encode($feed['event_uuids'], true)); ?>">
-                        <input type="submit" class="linkButton useCursorPointer" value="<?php echo h($feed['id']); ?>" data-toggle="popover" data-content="<?php echo h($popover);?>" data-trigger="hover" style="margin-right:3px;line-height:normal;vertical-align: text-top;" />
-                      </form>
-                  <?php
-                    else:
-                  ?>
-                    <form>
-                      <a href="<?php echo $baseurl; ?>/feeds/previewIndex/<?php echo h($feed['id']); ?>" style="margin-right:3px;"><?php echo h($feed['id']); ?></a>
-                    </form>
-                  <?php
-                    endif;
-                  else:
-                ?>
-                  <span style="margin-right:3px;"><?php echo h($feed['id']);?></span>
-                <?php
-                  endif;
-                endforeach;
-                ?>
-              </li>
-        <?php
-          elseif (!empty($object['FeedHit'])):
-        ?>
-          <span class="icon-ok"></span>
-        <?php
-          endif;
+            }
+            if (!empty($object['Server'])) {
+                foreach ($object['Server'] as $server) {
+                    $popover = '';
+                    foreach ($server as $k => $v) {
+                        if ($k == 'id') continue;
+                        if (is_array($v)) {
+                            foreach ($v as $k2 => $v2) {
+                                $v[$k2] = h($v2);
+                            }
+                            $v = implode('<br />', $v);
+                        } else {
+                            $v = h($v);
+                        }
+                        $popover .= '<span class=\'bold black\'>' . Inflector::humanize(h($k)) . '</span>: <span class="blue">' . $v . '</span><br />';
+                    }
+                    foreach ($server['event_uuids'] as $k => $event_uuid) {
+                        $liContents = '';
+                        if ($isSiteAdmin) {
+                            $liContents .= sprintf(
+                                '<a href="%s/servers/previewEvent/%s/%s" data-toggle="popover" data-content="%s" data-trigger="hover">%s</a>&nbsp;',
+                                $baseurl,
+                                h($server['id']),
+                                h($event_uuid),
+                                h($popover),
+                                'S' . h($server['id']) . ':' . ($k + 1)
+                            );
+                        } else {
+                            $liContents .= sprintf(
+                                '<span style="margin-right:3px;">%s</span>',
+                                'S' . h($server['id']) . ':' . ($k + 1)
+                            );
+                        }
+                        echo sprintf(
+                            '<li style="padding-right: 0px; padding-left:0px;">%s</li>',
+                            $liContents
+                        );
+                    }
+                }
+            }
         ?>
       </ul>
     </td>

@@ -1882,6 +1882,15 @@ class Event extends AppModel
                     }
                     $event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute'], $user, $event['Event'], $overrideLimit);
                 }
+                if (!empty($options['includeServerCorrelations']) && $user['org_id'] == Configure::read('MISP.host_org_id')) {
+                    $this->Feed = ClassRegistry::init('Feed');
+                    if (!empty($options['overrideLimit'])) {
+                        $overrideLimit = true;
+                    } else {
+                        $overrideLimit = false;
+                    }
+                    $event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute'], $user, $event['Event'], $overrideLimit, 'Server');
+                }
                 $event = $this->__filterBlockedAttributesByTags($event, $options, $user);
                 $event['Attribute'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['Attribute'], $sharingGroupData);
                 foreach ($event['Attribute'] as $key => $attribute) {
@@ -1965,6 +1974,15 @@ class Event extends AppModel
                     }
                     $event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user, $event['Event'], $overrideLimit);
                 }
+            }
+            if (!empty($options['includeServerCorrelations']) && $user['org_id'] == Configure::read('MISP.host_org_id')) {
+                $this->Feed = ClassRegistry::init('Feed');
+                if (!empty($options['overrideLimit'])) {
+                    $overrideLimit = true;
+                } else {
+                    $overrideLimit = false;
+                }
+                $event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user, $event['Event'], $overrideLimit, 'Server');
             }
             $event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
             // remove proposals to attributes that we cannot see
