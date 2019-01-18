@@ -4,8 +4,8 @@
 ### 0/ MISP Ubuntu 18.04-server install - status
 -------------------------
 !!! notice
-    Tested working by @SteveClement on 20181120 (works with **Ubuntu 18.10** too)
-    As of 20181120 on **Ubuntu 19.04** you need to use Python 3.6 as LIEF with 3.7 is not "eggED" yet.
+    Tested working by @SteveClement on 20190118 (works with **Ubuntu 18.10** too)
+    As of 20190118 on **Ubuntu 19.04** you need to use Python 3.6 as LIEF with 3.7 is not "eggED" yet.
     You will need to **sudo apt install python3.6-dev** to make everything work according to this guide.
 
 {!generic/community.md!}
