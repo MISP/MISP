@@ -17,7 +17,7 @@ class ObjectTemplatesController extends AppController
             'recursive' => -1
     );
 
-    public function objectChoice($event_id)
+    public function objectChoice($event_id, $category=false)
     {
         $this->ObjectTemplate->populateIfEmpty($this->Auth->user());
         $templates_raw = $this->ObjectTemplate->find('all', array(
@@ -27,22 +27,37 @@ class ObjectTemplatesController extends AppController
             'contain' => array('Organisation.name'),
             'order' => array('ObjectTemplate.name asc')
         ));
-        $templates = array('all' => array());
-        foreach ($templates_raw as $k => $template) {
-            unset($template['ObjectTemplate']['meta-category']);
-            $template['ObjectTemplate']['org_name'] = $template['Organisation']['name'];
-            $templates[$templates_raw[$k]['ObjectTemplate']['meta-category']][] = $template['ObjectTemplate'];
-            $templates['all'][] = $template['ObjectTemplate'];
+
+        $items = array();
+        foreach($templates_raw as $template) {
+            $template = $template['ObjectTemplate'];
+            $chosenTemplate = '<span href="#">{{=it.name}}</span>';
+            if (strlen($template['description']) < 80) {
+                $chosenTemplate .= '<i style="float:right; font-size: smaller;">{{=it.description}}</i>';
+            } else {
+                $chosenTemplate .= '<it class="fa fa-info-circle" style="float:right;" title="{{=it.description}}"></it>';
+            }
+            $chosenTemplate .= '<div class="apply_css_arrow" style="padding-left: 5px; margin-top: 5px; font-size: smaller;"><i>{{=it.metacateg}}</i></div>';
+
+            $items[$template['name']] = array(
+                'value' => $template['id'],
+                'additionalData' => array('event_id' => h($event_id)),
+                'template' => $chosenTemplate,
+                'templateData' => array(
+                    'name' => h($template['name']),
+                    'description' => h($template['description']),
+                    'metacateg' => __('Category') . ': ' . h($template['meta-category'])
+                )
+            );
         }
-        foreach ($templates as $category => $template_list) {
-            $templates[$category] = Hash::sort($templates[$category], '{n}.name');
-        }
-        $template_categories = array_keys($templates);
-        $this->layout = false;
-        $this->set('template_categories', $template_categories);
-        $this->set('eventId', $event_id);
-        $this->set('templates', $templates);
-        $this->render('ajax/object_choice');
+
+        $fun = 'redirectAddObject';
+        $this->set('items', $items);
+        $this->set('options', array(
+            'functionName' => $fun,
+            'multiple' => 0,
+        ));
+        $this->render('/Elements/generic_picker');
     }
 
     public function view($id)

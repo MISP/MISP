@@ -53,13 +53,9 @@
                             'url' => '/attributes/add/' .  $event['Event']['id'],
                             'text' => __('Add Attribute')
                         ));
-                        echo $this->element('/side_menu_link', array(
-                            'onClick' => array(
-                                'function' => 'getPopup',
-                                'params' => array($event['Event']['id'], 'objectTemplates', 'objectChoice')
-                            ),
-                            'text' => __('Add Object')
-                        ));
+                        echo '<li>';
+                            echo '<a href="#" onclick="popoverPopup(this, ' . h($event['Event']['id']) . ', \'objectTemplates\', \'objectChoice\')"> ' . __('Add Object') . '</a>';
+                        echo '</li>';
                         echo $this->element('/side_menu_link', array(
                             'element_id' => 'addAttachment',
                             'url' => '/attributes/add_attachment/' .  $event['Event']['id'],

@@ -90,7 +90,7 @@
                 <hr />
         </div>
     </fieldset>
-    
+
     <?php
         $formats = array('Raw', 'JSON', 'HTML');
         if (!empty($data['code']) && $data['code'] < 300) {
@@ -110,7 +110,7 @@
             }
             echo '</div>';
         }
-    
+
         if (!empty($data['data'])):
             echo sprintf('<h3>%s</h3>', __('Response'));
             echo sprintf('<div><span class="bold">%s</span>: %d</div>', __('Response code'), h($data['code']));
@@ -148,8 +148,6 @@
     echo $this->Html->script('moment-with-locales');
     echo $this->Html->css('query-builder.default');
     echo $this->Html->script('query-builder');
-    echo $this->Html->css('chosen.min');
-    echo $this->Html->script('chosen.jquery.min');
     echo $this->Html->script('restClient');
 ?>
 

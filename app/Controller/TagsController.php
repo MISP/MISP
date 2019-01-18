@@ -572,20 +572,32 @@ class TagsController extends AppController
         if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) {
             throw new NotFoundException('You don\'t have permission to do that.');
         }
+
+        $items = array();
         $favourites = $this->Tag->FavouriteTag->find('count', array('conditions' => array('FavouriteTag.user_id' => $this->Auth->user('id'))));
+        if ($favourites) {
+            $items[__('Favourite Tags')] = "/tags/selectTag/" . h($id) . "/favourites/" . h($scope);
+        }
+        if ($scope !== 'tag_collection') {
+            $items[__('Tag Collections')] = "/tags/selectTag/" . h($id) . "/collections/" . h($scope);
+        }
+        $items[__('All Tags')] = "/tags/selectTag/" . h($id) . "/all/" . h($scope);
+
         $this->loadModel('Taxonomy');
         $options = $this->Taxonomy->find('list', array('conditions' => array('enabled' => true), 'fields' => array('namespace'), 'order' => array('Taxonomy.namespace ASC')));
         foreach ($options as $k => $option) {
             $tags = $this->Taxonomy->getTaxonomyTags($k, false, true);
-            if (empty($tags)) {
-                unset($options[$k]);
+            if (!empty($tags)) {
+                $items[__('Taxonomy Library') . ":" . h($option)] = "/tags/selectTag/" . h($id) . "/" . h($k) . "/" . h($scope);
             }
         }
-        $this->set('scope', $scope);
-        $this->set('object_id', $id);
-        $this->set('options', $options);
-        $this->set('favourites', $favourites);
-        $this->render('ajax/taxonomy_choice');
+        $this->set('items', $items);
+        $this->set('options', array( // set chosen (select picker) options
+            'select_options' => array(
+                'multiple' => 0,
+            ),
+        ));
+        $this->render('/Elements/generic_picker');
     }
 
     public function selectTag($id, $taxonomy_id, $scope = 'event', $filterData = '')
@@ -614,10 +626,11 @@ class TagsController extends AppController
         if ($taxonomy_id === 'collections') {
             $this->loadModel('TagCollection');
             $tagCollections = $this->TagCollection->fetchTagCollection($this->Auth->user());
-            $options = array();
+            $tags = array();
+            $inludedTagListString = array();
             $expanded = array();
             foreach ($tagCollections as &$tagCollection) {
-                $options[$tagCollection['TagCollection']['id']] = $tagCollection['TagCollection']['name'];
+                $tags[$tagCollection['TagCollection']['id']] = $tagCollection['TagCollection'];
                 $expanded[$tagCollection['TagCollection']['id']] = empty($tagCollection['TagCollection']['description']) ? $tagCollection['TagCollection']['name'] : $tagCollection['TagCollection']['description'];
                 if (!empty($tagCollection['TagCollectionTag'])) {
                     $tagList = array();
@@ -630,44 +643,44 @@ class TagsController extends AppController
                         $tagCollection['TagCollectionTag'] = array_values($tagCollection['TagCollectionTag']);
                     }
                     $tagList = implode(', ', $tagList);
+                    $inludedTagListString[$tagCollection['TagCollection']['id']] = $tagList;
                     $expanded[$tagCollection['TagCollection']['id']] .= sprintf(' (%s)', $tagList);
                 }
             }
-            $this->set('scope', $scope);
-            $this->set('object_id', $id);
-            $this->set('options', $options);
-            $this->set('expanded', $expanded);
-            $this->set('custom', $taxonomy_id == 0 ? true : false);
-            $this->set('filterData', $filterData);
-            $this->render('ajax/select_tag');
         } else {
             if ($taxonomy_id === '0') {
-                $options = $this->Taxonomy->getAllTaxonomyTags(true);
-                $expanded = $options;
+                $tags = $this->Taxonomy->getAllTaxonomyTags(true);
+                $expanded = $tags;
             } elseif ($taxonomy_id === 'favourites') {
+                $tags = array();
                 $conditions = array('FavouriteTag.user_id' => $this->Auth->user('id'));
-                $tags = $this->Tag->FavouriteTag->find('all', array(
+                $favTags = $this->Tag->FavouriteTag->find('all', array(
                     'conditions' => $conditions,
                     'recursive' => -1,
-                    'contain' => array('Tag.name')
+                    'contain' => array('Tag')
                 ));
-                foreach ($tags as $tag) {
-                    $options[$tag['FavouriteTag']['tag_id']] = $tag['Tag']['name'];
-                    $expanded = $options;
+                foreach ($favTags as $favTag) {
+                    $tags[$favTag['FavouriteTag']['tag_id']] = $favTag['Tag'];
+                    $expanded = $tags;
                 }
             } elseif ($taxonomy_id === 'all') {
                 $conditions = array('Tag.org_id' => array(0, $this->Auth->user('org_id')));
                 $conditions = array('Tag.user_id' => array(0, $this->Auth->user('id')));
                 $conditions['Tag.hide_tag'] = 0;
-                $options = $this->Tag->find('list', array('fields' => array('Tag.name'), 'conditions' => $conditions));
-                $expanded = $options;
+                $allTags = $this->Tag->find('all', array('conditions' => $conditions, 'recursive' => -1));
+                $tags = array();
+                foreach ($allTags as $i => $tag) {
+                    $tags[$tag['Tag']['id']] = $tag['Tag'];
+                }
+                unset($allTags);
+                $expanded = $tags;
             } else {
                 $taxonomies = $this->Taxonomy->getTaxonomy($taxonomy_id);
-                $options = array();
+                $tags = array();
                 if (!empty($taxonomies['entries'])) {
                     foreach ($taxonomies['entries'] as $entry) {
                         if (!empty($entry['existing_tag']['Tag'])) {
-                            $options[$entry['existing_tag']['Tag']['id']] = $entry['existing_tag']['Tag']['name'];
+                            $tags[$entry['existing_tag']['Tag']['id']] = $entry['existing_tag']['Tag'];
                             $expanded[$entry['existing_tag']['Tag']['id']] = $entry['expanded'];
                         }
                     }
@@ -676,7 +689,7 @@ class TagsController extends AppController
             // Unset all tags that this user cannot use for tagging, determined by the org restriction on tags
             if (!$this->_isSiteAdmin()) {
                 foreach ($banned_tags as $banned_tag) {
-                    unset($options[$banned_tag]);
+                    unset($tags[$banned_tag]);
                     unset($expanded[$banned_tag]);
                 }
             }
@@ -685,22 +698,69 @@ class TagsController extends AppController
                     'fields' => array('Tag.id')
             ));
             foreach ($hidden_tags as $hidden_tag) {
-                unset($options[$hidden_tag]);
+                unset($tags[$hidden_tag]);
                 unset($expanded[$hidden_tag]);
             }
-            $this->set('scope', $scope);
-            $this->set('object_id', $id);
-            foreach ($options as $k => $v) {
-                if (substr($v, 0, strlen('misp-galaxy:')) === 'misp-galaxy:') {
-                    unset($options[$k]);
+        }
+
+        $this->set('scope', $scope);
+        $this->set('object_id', $id);
+        App::uses('TextColourHelper', 'View/Helper');
+        $textColourHelper = new TextColourHelper(new View());
+
+        $items = array();
+        foreach ($tags as $k => $tag) {
+            $tagTemplate = '<span href="#" class="tagComplete" style="background-color:{{=it.background}}; color:{{=it.color}}">{{=it.name}}</span>';
+
+            $tagName = $tag['name'];
+            $choice_id = $k;
+            if ($taxonomy_id === 'collections') {
+                $choice_id = 'collection_' . $choice_id;
+            }
+
+            $onClickForm = 'quickSubmitTagForm';
+            if ($scope === 'attribute') {
+                $onClickForm = 'quickSubmitAttributeTagForm';
+            }
+            if ($scope === 'tag_collection') {
+                $onClickForm = 'quickSubmitTagCollectionTagForm';
+            }
+
+            if (is_numeric($taxonomy_id) && $taxonomy_id > 0 && isset($expanded[$tag['id']])) {
+                if (strlen($expanded[$tag['id']]) < 50) {
+                    $tagTemplate .= '<i style="float:right; font-size: smaller;">{{=it.expanded}}</i>';
+                } else {
+                    $tagTemplate .= '<it class="fa fa-info-circle" style="float:right;" title="{{=it.expanded}}"></it>';
                 }
             }
-            $this->set('options', $options);
-            $this->set('expanded', $expanded);
-            $this->set('custom', $taxonomy_id == 0 ? true : false);
-            $this->set('filterData', $filterData);
-            $this->render('ajax/select_tag');
+            if ($taxonomy_id === 'collections') {
+                $tagTemplate .= '<div class="apply_css_arrow" style="padding-left: 5px; margin-top: 5px; font-size: smaller;"><i>{{=it.includes}}</i></div>';
+            }
+
+            $items[h($tagName)] = array(
+                'value' => h($choice_id),
+                'additionalData' => array(
+                    'id' => h($id)
+                ),
+                'template' => $tagTemplate,
+                'templateData' => array(
+                    'name' => h($tagName),
+                    'background' => h(isset($tag['colour']) ? $tag['colour'] : '#ffffff'),
+                    'color' => h(isset($tag['colour']) ? $textColourHelper->getTextColour($tag['colour']) : '#0088cc'),
+                    'expanded' => h($expanded[$tag['id']])
+                )
+            );
+            if ($taxonomy_id === 'collections') {
+                $TagCollectionTag = __('Includes: ') . h($inludedTagListString[$tag['id']]);
+                $items[h($tagName)]['templateData']['includes'] = $TagCollectionTag;
+            }
         }
+        $this->set('items', $items);
+        $this->set('options', array( // set chosen (select picker) options
+            'functionName' => $onClickForm,
+            'multiple' => -1,
+        ));
+        $this->render('ajax/select_tag');
     }
 
     public function tagStatistics($percentage = false, $keysort = false)
