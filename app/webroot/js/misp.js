@@ -1439,7 +1439,13 @@ function openPopover(clicked, data) {
 			var popoverTitle = popover.find('h3.popover-title');
 			popoverTitle.html(title + closeButtonHtml);
 		})
-		.popover('show');
+		.popover('show')
+		.on('keydown.volatilePopover', function(e) {
+			if(e.keyCode == 27) { // ESC
+				$(this).popover('destroy');
+				$(this).off('keydown.volatilePopover');
+			}
+		});
 	} else {
 		// $clicked.popover('show');
 	}
