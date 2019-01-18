@@ -255,6 +255,7 @@ class ACLComponent extends Component
                 'delete' => array('perm_object_template'),
                 'getToggleField' => array(),
                 'objectChoice' => array('*'),
+                'objectMetaChoice' => array('perm_add'),
                 'view' => array('*'),
                 'viewElements' => array('*'),
                 'index' => array('*'),
@@ -311,6 +312,7 @@ class ACLComponent extends Component
             ),
             'servers' => array(
                     'add' => array(),
+                    'cache' => array('perm_site_admin'),
                     'checkout' => array(),
                     'delete' => array(),
                     'deleteFile' => array(),
