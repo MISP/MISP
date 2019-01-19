@@ -718,11 +718,7 @@ class StixBuilder():
         return "Undefined name"
 
     def handle_tags(self, tags):
-        markings = []
-        for tag in tags:
-            tag_name = tag['name']
-            markings.append(self.markings[tag_name]['id'] if tag_name in self.markings else self.create_marking(tag_name))
-        return markings
+        return [self.markings[tag]['id'] if tag in self.markings else self.create_marking(tag) for tag in tags]
 
     def resolve_asn_observable(self, attributes, object_id):
         asn = objectsMapping['asn']['observable']
