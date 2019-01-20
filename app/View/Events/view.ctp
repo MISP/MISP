@@ -164,8 +164,17 @@
                 <dt class="hidden"></dt><dd class="hidden"></dd>
                 <dt class="background-red bold not-published <?php echo ($event['Event']['published'] == 0) ? '' : 'hidden'; ?>"><?php echo __('Published');?></dt>
                 <dd class="background-red bold not-published <?php echo ($event['Event']['published'] == 0) ? '' : 'hidden'; ?>"><?php echo __('No');?></dd>
-                <dt class="bold published <?php echo ($event['Event']['published'] == 0) ? 'hidden' : ''; ?>"><?php echo __('Published');?></dt>
-                <dd class="green bold published <?php echo ($event['Event']['published'] == 0) ? 'hidden' : ''; ?>"><?php echo __('Yes');?></dd>
+                <?php
+                    $publish_status_class = ($event['Event']['published'] == 0) ? 'hidden' : '';
+                    echo sprintf(
+                        '<dt class="bold published %s">%s</dt><dd class="published %s"><span class="green bold">%s</span> (%s)</dd>',
+                        $publish_status_class,
+                        __('Published'),
+                        $publish_status_class,
+                        __('Yes'),
+                        (empty($event['Event']['publish_timestamp'])) ? 'N/A' :  date('Y-m-d H:i:s', ($event['Event']['publish_timestamp']))
+                    );
+                ?>
                 <dt><?php echo __('#Attributes');?></dt>
                 <dd><?php echo h($attribute_count);?></dd>
                 <dt><?php echo __('Last change');?></dt>
@@ -338,6 +347,35 @@
                 <?php
                     endif;
                 endif;
+                if (!empty($event['Server']) || !empty($event['Event']['ServerCount'])):
+            ?>
+                    <h3>Related Server</h3>
+            <?php
+                    if (!empty($event['Server'])):
+                        foreach ($event['Server'] as $relatedServer):
+                            $relatedData = array('Name' => $relatedServer['name'], 'URL' => $relatedServer['url']);
+                            $popover = '';
+                            foreach ($relatedData as $k => $v) {
+                                $popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
+                            }
+                ?>
+                                <span style="white-space: nowrap;">
+                                    <form action="<?php echo $baseurl; ?>/servers/previewIndex/<?php echo h($relatedServer['id']); ?>" method="post" style="margin:0px;">
+                                        <input type="hidden" name="data[Feed][eventid]" value="<?php echo h(json_encode($relatedServer['event_uuids'], true)); ?>">
+                                        <input type="submit" class="linkButton useCursorPointer" value="<?php echo h($relatedServer['name']) . ' (' . $relatedServer['id'] . ')'; ?>" data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover" />
+                                    </form>
+                                </span>
+                <?php
+                        endforeach;
+                    elseif (!empty($event['Event']['FeedCount'])):
+                ?>
+                        <span>
+                            <?php echo __('This event has ');?><span class="bold"><?php echo h($event['Event']['FeedCount']); ?></span>
+                            <?php echo __('correlations with data contained within the various feeds, however, due to the large number of attributes the actual feed correlations are not shown. Click <a href="%s\/overrideLimit:1">here</a> to refresh the page with the feed data loaded.', h($this->here));?>
+                     </span>
+                <?php
+                    endif;
+                endif;
             ?>
             <?php if (!empty($event['Event']['warnings'])): ?>
                 <div class="warning_container" style="width:80%;">
@@ -426,7 +464,7 @@ function enable_correlation_graph() {
 }
 
 function enable_attack_matrix() {
-    $.get("/events/viewMitreAttackMatrix/<?php echo h($event['Event']['id']); ?>", function(data) {
+    $.get("/events/viewMitreAttackMatrix/<?php echo h($event['Event']['id']); ?>/event/1", function(data) {
         $("#attackmatrix_div").html(data);
     });
 }

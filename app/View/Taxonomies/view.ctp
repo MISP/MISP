@@ -103,7 +103,7 @@
                 <?php
                     if ($item['existing_tag']):
                 ?>
-                        <a href='<?php echo $baseurl."/attributes/search/attributetag:". h($item['existing_tag']['Tag']['id']);?>'><?php echo count($item['existing_tag']['AttributeTag']);?></a>
+                        <a href='<?php echo $baseurl."/attributes/search/tags:". h($item['existing_tag']['Tag']['id']);?>'><?php echo count($item['existing_tag']['AttributeTag']);?></a>
                 <?php
                     else:
                         echo __('N/A');

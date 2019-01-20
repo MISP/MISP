@@ -894,6 +894,69 @@ a.proposal_link_red:hover {
 	padding-left:10px;
 }
 
+a.pill-pre-picker {
+    background-color: #fcfcfc;
+    font-weight: bold;
+    border: 1px #65737ec8 solid;
+}
+.nav-pills > .active > a.pill-pre-picker {
+    background-color: #65737e32;
+	color: #000;
+}
+
+.generic_picker {
+    display: inline-block;
+    min-width: 500px;
+}
+
+.generic_picker ul.nav {
+	margin-bottom: 0px;
+}
+
+.generic-picker-wrapper {
+    padding: 7px;
+    margin-top: 3px;
+    background-color: #65737e32;
+    border: 1px #65737ec8 solid;
+    border-radius: 7px;
+}
+.generic-picker-wrapper:before {
+    content: '';
+    margin-right: 5px;
+    margin-left: 2px;
+    border-left: 1px solid;
+    border-bottom: 1px solid;
+    height: 10px;
+    width: 5px;
+    display: inline-block;
+    float: left;
+}
+
+.active-result .fa:before {
+    margin-right: 5px;
+}
+
+.chosen-container .chosen-results li {
+    overflow: auto;
+}
+/* hacky hack: center selected item info icon */
+.chosen-container-single span it.fa, .chosen-single-with-deselect span it.fa {
+    line-height: 24px;
+    margin-right: 8px;
+}
+
+.apply_css_arrow:before {
+    content: '';
+    margin-right: 5px;
+    margin-left: 2px;
+    border-left: 1px solid;
+    border-bottom: 1px solid;
+    height: 10px;
+    width: 5px;
+    display: inline-block;
+    float: left;
+}
+
 .gray_out {
 	display:none;
 	width: 100%;

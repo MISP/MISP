@@ -1414,9 +1414,17 @@ class EventsController extends AppController
         } else {
             $this->set('extended', 0);
         }
-        $conditions['includeFeedCorrelations'] = true;
+        $conditions['includeFeedCorrelations'] = 1;
         if (!$this->_isRest()) {
             $conditions['includeGranularCorrelations'] = 1;
+        }
+        if (!isset($this->params['named']['includeServerCorrelations'])) {
+            $conditions['includeServerCorrelations'] = 1;
+            if ($this->_isRest()) {
+                $conditions['includeServerCorrelations'] = 0;
+            }
+        } else {
+            $conditions['includeServerCorrelations'] = $this->params['named']['includeServerCorrelations'];
         }
         $results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
         if (empty($results)) {
@@ -2142,6 +2150,42 @@ class EventsController extends AppController
             $this->request->data['Event']['id'] = json_encode($eventList);
             $this->set('idArray', $eventList);
             $this->render('ajax/eventDeleteConfirmationForm');
+        }
+    }
+
+    public function unpublish($id = null)
+    {
+        $this->Event->id = $id;
+        if (!$this->Event->exists()) {
+            throw new NotFoundException(__('Invalid event'));
+        }
+        $this->Event->recursive = -1;
+        $event = $this->Event->read(null, $id);
+        if (!$this->_isSiteAdmin()) {
+            if (!$this->userRole['perm_modify'] || $this->Auth->user('org_id') !== $this->Event->data['Event']['orgc_id']) {
+                throw new MethodNotAllowedException(__('You don\'t have the permission to do that.'));
+            }
+        }
+        $this->Event->insertLock($this->Auth->user(), $id);
+        if ($this->request->is('post') || $this->request->is('put')) {
+            $fieldList = array('published', 'id', 'info');
+            $event['Event']['published'] = 0;
+            $result = $this->Event->save($event, array('fieldList' => $fieldList));
+            if ($result) {
+                $message = __('Event unpublished.');
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveSuccessResponse('events', 'unpublish', $id, false, $message);
+                } else {
+                    $this->Flash->success($message);
+                    $this->redirect(array('action' => 'view', $id));
+                }
+            } else {
+                throw new MethodNotAllowedException('Could not unpublish event.');
+            }
+        } else {
+            $this->set('id', $id);
+            $this->set('type', 'unpublish');
+            $this->render('ajax/eventPublishConfirmationForm');
         }
     }
 
@@ -3330,11 +3374,32 @@ class EventsController extends AppController
                     $tag_id_list[] = $tagCollectionTag['tag_id'];
                 }
             } else {
-                $tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
-                if (empty($tag)) {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
+                $tag_ids = json_decode($tag_id);
+                if ($tag_ids !== null) { // can decode json
+                    $tag_id_list = array();
+                    foreach ($tag_ids as $tag_id) {
+                        if (preg_match('/^collection_[0-9]+$/i', $tag_id)) {
+                            $tagChoice = explode('_', $tag_id)[1];
+                            $this->loadModel('TagCollection');
+                            $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $tagChoice)));
+                            if (empty($tagCollection)) {
+                                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
+                            }
+                            $tag_id_list = array();
+                            foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
+                                $tag_id_list[] = $tagCollectionTag['tag_id'];
+                            }
+                        } else {
+                            $tag_id_list[] = $tag_id;
+                        }
+                    }
+                } else {
+                    $tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
+                    if (empty($tag)) {
+                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
+                    }
+                    $tag_id = $tag['Tag']['id'];
                 }
-                $tag_id = $tag['Tag']['id'];
             }
         }
         $this->Event->recursive = -1;
@@ -4556,7 +4621,7 @@ class EventsController extends AppController
         return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
     }
 
-    public function viewMitreAttackMatrix($eventId, $itemType='event', $itemId=false)
+    public function viewMitreAttackMatrix($scope_id, $scope='event', $disable_picking=false)
     {
         $this->loadModel('Galaxy');
 
@@ -4565,6 +4630,24 @@ class EventsController extends AppController
         $attackTags = $attackTacticData['attackTags'];
         $killChainOrders = $attackTacticData['killChain'];
         $instanceUUID = $attackTacticData['instance-uuid'];
+
+        if ($scope == 'event') {
+            $eventId = $scope_id;
+        } elseif ($scope == 'attribute') {
+            $attribute = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
+                'conditions' => array('Attribute.id' => $scope_id),
+                'fields' => array('event_id')
+            ));
+            if (empty($attribute)) {
+                throw new Exception("Invalid Attribute.");
+            }
+            $attribute = $attribute[0];
+            $eventId = $attribute['Attribute']['event_id'];
+        } elseif ($scope == 'tag_collection') {
+            $eventId = 0; // no event_id for tag_collection, consider all events
+        } else {
+            throw new Exception("Invalid options.");
+        }
 
         $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores($eventId, $attackTags);
         $scoresDataEvent = $this->Event->EventTag->getTagScores($eventId, $attackTags);
@@ -4589,20 +4672,15 @@ class EventsController extends AppController
             $colours = $gradientTool->createGradientFromValues($scores);
 
             $this->set('eventId', $eventId);
-            $this->set('target_type', $itemType);
+            $this->set('target_type', $scope);
             $this->set('killChainOrders', $killChainOrders);
             $this->set('attackTactic', $attackTactic);
             $this->set('scores', $scores);
             $this->set('maxScore', $maxScore);
             $this->set('colours', $colours);
-
-            // picking mode
-            if ($itemId !== false) {
-                $this->set('pickingMode', true);
-                $this->set('target_id', $itemId);
-            } else {
-                $this->set('pickingMode', false);
-            }
+            $this->set('pickingMode', !$disable_picking);
+            $this->set('target_id', $scope_id);
+            $this->render('/Elements/view_mitre_attack_matrix');
         }
     }
 

@@ -1882,6 +1882,15 @@ class Event extends AppModel
                     }
                     $event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute'], $user, $event['Event'], $overrideLimit);
                 }
+                if (!empty($options['includeServerCorrelations']) && $user['org_id'] == Configure::read('MISP.host_org_id')) {
+                    $this->Feed = ClassRegistry::init('Feed');
+                    if (!empty($options['overrideLimit'])) {
+                        $overrideLimit = true;
+                    } else {
+                        $overrideLimit = false;
+                    }
+                    $event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute'], $user, $event['Event'], $overrideLimit, 'Server');
+                }
                 $event = $this->__filterBlockedAttributesByTags($event, $options, $user);
                 $event['Attribute'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['Attribute'], $sharingGroupData);
                 foreach ($event['Attribute'] as $key => $attribute) {
@@ -1965,6 +1974,15 @@ class Event extends AppModel
                     }
                     $event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user, $event['Event'], $overrideLimit);
                 }
+            }
+            if (!empty($options['includeServerCorrelations']) && $user['org_id'] == Configure::read('MISP.host_org_id')) {
+                $this->Feed = ClassRegistry::init('Feed');
+                if (!empty($options['overrideLimit'])) {
+                    $overrideLimit = true;
+                } else {
+                    $overrideLimit = false;
+                }
+                $event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user, $event['Event'], $overrideLimit, 'Server');
             }
             $event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
             // remove proposals to attributes that we cannot see
@@ -2200,7 +2218,23 @@ class Event extends AppModel
     {
         if (!empty($params['eventid']) && $params['eventid'] !== 'all') {
             $params['eventid'] = $this->convert_filters($params['eventid']);
-            $conditions = $this->generic_add_filter($conditions, $params['eventid'], 'Event.id');
+            $keys = array(
+                'uuid' => 'Event.uuid',
+                'id' => 'Event.id'
+            );
+            $id_params = array();
+            foreach ($params['eventid'] as $operand => $list) {
+                foreach ($list as $id) {
+                    if ($operand === 'OR') {
+                        $id_params['AND']['OR'][$keys[Validation::uuid($id) ? 'uuid' : 'id']][] = $id;
+                    } else if ($operand === 'AND') {
+                        $id_params['AND']['AND'][$keys[Validation::uuid($id) ? 'uuid' : 'id']][] = $id;
+                    } else {
+                        $id_params['AND']['NOT'][$keys[Validation::uuid($id) ? 'uuid' : 'id']][] = $id;
+                    }
+                }
+            }
+            $conditions['AND'][] = $id_params;
         }
         return $conditions;
     }
@@ -2218,10 +2252,10 @@ class Event extends AppModel
     {
         if (!empty($params['uuid'])) {
             $params['uuid'] = $this->convert_filters($params['uuid']);
-            if (!empty($options['scope']) || $options['scope'] === 'Event') {
+            if (!empty($options['scope']) && $options['scope'] === 'Event') {
                 $conditions = $this->generic_add_filter($conditions, $params['uuid'], 'Event.uuid');
             }
-            if (!empty($options['scope']) || $options['scope'] === 'Attribute') {
+            if (!empty($options['scope']) && $options['scope'] === 'Attribute') {
                 $conditions = $this->generic_add_filter($conditions, $params['uuid'], 'Attribute.uuid');
             }
         }
@@ -2232,10 +2266,10 @@ class Event extends AppModel
     {
         if (!empty($params['mixed_id'])) {
             $params['mixed_id'] = $this->convert_filters($params['mixed_id']);
-            if (!empty($options['scope']) || $options['scope'] === 'Event') {
+            if (!empty($options['scope']) && $options['scope'] === 'Event') {
                 $conditions = $this->generic_add_filter($conditions, $params['uuid'], 'Event.uuid');
             }
-            if (!empty($options['scope']) || $options['scope'] === 'Attribute') {
+            if (!empty($options['scope']) && $options['scope'] === 'Attribute') {
                 $conditions = $this->generic_add_filter($conditions, $params['uuid'], 'Attribute.uuid');
             }
         }
@@ -5295,12 +5329,12 @@ class Event extends AppModel
                         $cluster = $this->GalaxyCluster->getCluster($dataTag['Tag']['name']);
                         if ($cluster) {
                             $found = false;
-                            foreach ($data['Galaxy'] as $k => $galaxy) {
+                            foreach ($data['Galaxy'] as $j => $galaxy) {
                                 if ($galaxy['id'] == $cluster['GalaxyCluster']['Galaxy']['id']) {
                                     $found = true;
                                     $temp = $cluster;
                                     unset($temp['GalaxyCluster']['Galaxy']);
-                                    $data['Galaxy'][$k]['GalaxyCluster'][] = $temp['GalaxyCluster'];
+                                    $data['Galaxy'][$j]['GalaxyCluster'][] = $temp['GalaxyCluster'];
                                     continue;
                                 }
                             }
