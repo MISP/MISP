@@ -38,7 +38,7 @@ malware_galaxies_list = ('android', 'banker', 'stealer', 'backdoor', 'ransomware
 threat_actor_galaxies_list = ('threat-actor', 'microsoft-activity-group')
 tool_galaxies_list = ('botnet', 'rat', 'exploit-kit', 'tds', 'tool', 'mitre-tool',
                       'mitre-enterprise-attack-tool', 'mitre-mobile-attack-tool')
-_MISP_event_tags = ('Threat-Report', 'misp:tool="misp2stix2"')
+_MISP_event_tags = ['Threat-Report', 'misp:tool="misp2stix2"']
 
 class StixBuilder():
     def __init__(self):
