@@ -23,13 +23,16 @@ class FeedsController extends AppController
     {
         parent::beforeFilter();
         $this->Security->unlockedActions = array('previewIndex');
-        if (!$this->_isSiteAdmin()) {
+        if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != Configure::read('MISP.host_org_id')) {
             throw new MethodNotAllowedException(__('You don\'t have the required privileges to do that.'));
         }
     }
 
     public function index()
     {
+        if (!$this->_isSiteAdmin() && !$this->Auth->user('org_id') == Configure::read('MISP.host_org_id')) {
+            throw NotAllowedException('You don\'t have access to this feature.');
+        }
         $this->Feed->load_default_feeds();
         $scope = isset($this->passedArgs['scope']) ? $this->passedArgs['scope'] : 'all';
         if ($scope !== 'all') {
@@ -77,6 +80,9 @@ class FeedsController extends AppController
 
     public function view($feedId)
     {
+        if (!$this->_isSiteAdmin() && !$this->Auth->user('org_id') == Configure::read('MISP.host_org_id')) {
+            throw NotAllowedException('You don\'t have access to this feature.');
+        }
         $feed = $this->Feed->find('first', array(
             'conditions' => array('Feed.id' => $feedId),
             'recursive' => -1,
@@ -500,6 +506,9 @@ class FeedsController extends AppController
 
     public function previewIndex($feedId)
     {
+        if (!$this->_isSiteAdmin() && !$this->Auth->user('org_id') == Configure::read('MISP.host_org_id')) {
+            throw NotAllowedException('You don\'t have access to this feature.');
+        }
         $this->Feed->id = $feedId;
         if (!$this->Feed->exists()) {
             throw new NotFoundException(__('Invalid feed.'));
@@ -680,6 +689,9 @@ class FeedsController extends AppController
 
     public function previewEvent($feedId, $eventUuid, $all = false)
     {
+        if (!$this->_isSiteAdmin() && !$this->Auth->user('org_id') == Configure::read('MISP.host_org_id')) {
+            throw NotAllowedException('You don\'t have access to this feature.');
+        }
         $this->Feed->id = $feedId;
         if (!$this->Feed->exists()) {
             throw new NotFoundException(__('Invalid feed.'));
@@ -839,6 +851,9 @@ class FeedsController extends AppController
 
     public function compareFeeds($id = false)
     {
+        if (!$this->_isSiteAdmin() && !$this->Auth->user('org_id') == Configure::read('MISP.host_org_id')) {
+            throw NotAllowedException('You don\'t have access to this feature.');
+        }
         $feeds = $this->Feed->compareFeeds($id);
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($feeds, $this->response->type());

@@ -4316,6 +4316,7 @@ class Server extends AppModel
             }
             $pipe->exec();
         }
+        $redis->set('misp:server_cache_timestamp:' . $server['Server']['id'], time());
         return true;
     }
 
@@ -4335,5 +4336,17 @@ class Server extends AppModel
             return $e->getMessage();
         }
         return $response->body;
+    }
+
+    public function attachServerCacheTimestamps($data)
+    {
+        $redis = $this->setupRedis();
+        if ($redis === false) {
+            return $data;
+        }
+        foreach ($data as $k => $v) {
+            $data[$k]['Server']['cache_timestamp'] = $redis->get('misp:server_cache_timestamp:' . $data[$k]['Server']['id']);
+        }
+        return $data;
     }
 }

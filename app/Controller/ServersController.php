@@ -54,14 +54,24 @@ class ServersController extends AppController
             $params = array(
                 'recursive' => -1,
                 'contain' => array(
-                    'Organisation' => array('Organisation.id', 'Organisation.name', 'Organisation.uuid', 'Organisation.nationality', 'Organisation.sector', 'Organisation.type'),
-                    'RemoteOrg' => array('RemoteOrg.id', 'RemoteOrg.name', 'RemoteOrg.uuid', 'RemoteOrg.nationality', 'RemoteOrg.sector', 'RemoteOrg.type'),
-                )
+                        'User' => array(
+                                'fields' => array('User.id', 'User.org_id', 'User.email'),
+                        ),
+                        'Organisation' => array(
+                                'fields' => array('Organisation.id', 'Organisation.name', 'Organisation.uuid', 'Organisation.nationality', 'Organisation.sector', 'Organisation.type'),
+                        ),
+                        'RemoteOrg' => array(
+                                'fields' => array('RemoteOrg.id', 'RemoteOrg.name', 'RemoteOrg.uuid', 'RemoteOrg.nationality', 'RemoteOrg.sector', 'RemoteOrg.type'),
+                        ),
+                ),
             );
             $servers = $this->Server->find('all', $params);
+            $servers = $this->Server->attachServerCacheTimestamps($servers);
             return $this->RestResponse->viewData($servers, $this->response->type());
         } else {
-            $this->set('servers', $this->paginate());
+            $servers = $this->paginate();
+            $servers = $this->Server->attachServerCacheTimestamps($servers);
+            $this->set('servers', $servers);
             $collection = array();
             $collection['orgs'] = $this->Server->Organisation->find('list', array(
                   'fields' => array('id', 'name'),
