@@ -73,7 +73,41 @@ foreach ($servers as $server):
         <td><span class="<?php echo ($server['Server']['internal']? 'icon-ok' : 'icon-remove'); ?>" title="<?php echo ($server['Server']['internal']? __('Internal instance that ignores distribution level degradation *WARNING: Only use this setting if you have several internal instances and the sync link is to an internal extension of the current MISP community*') : __('Normal sync link to an external MISP instance. Distribution degradation will follow the normal rules.')); ?>"></span></td>
         <td><span class="<?php echo ($server['Server']['push']? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$server['Server']['push'] || empty($ruleDescription['push'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?php echo $ruleDescription['push']; ?>"> (<?php echo __('Rules');?>)</span></td>
         <td><span class="<?php echo ($server['Server']['pull']? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$server['Server']['pull'] || empty($ruleDescription['pull'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?php echo $ruleDescription['pull']; ?>"> (<?php echo __('Rules');?>)</span></td>
-        <td><span class="<?php echo ($server['Server']['caching_enabled']? 'icon-ok' : 'icon-remove'); ?>"></span></td>
+        <td>
+            <?php
+                if ($server['Server']['caching_enabled']) {
+                    if (!empty($server['Server']['cache_timestamp'])) {
+                        $units = array('m', 'h', 'd');
+                        $intervals = array(60, 60, 24);
+                        $unit = 's';
+                        $last = time() - $server['Server']['cache_timestamp'];
+                        foreach ($units as $k => $v) {
+                            if ($last > $intervals[$k]) {
+                                $unit = $v;
+                                $last = floor($last / $intervals[$k]);
+                            } else {
+                                break;
+                            }
+                        }
+                        echo sprintf(
+                            '<span class="blue bold">%s%s%s</span> %s',
+                            __('Age: '),
+                            $last,
+                            $unit,
+                            '<span class="icon-ok"></span>'
+                        );
+                    } else {
+                        echo sprintf(
+                            '<span class="red bold">%s</span> %s',
+                            __('Not cached'),
+                            '<span class="icon-ok"></span>'
+                        );
+                    }
+                } else {
+                    echo '<span class="icon-remove"></span>';
+                }
+            ?>
+        </td>
         <td class="short"><span class="<?php echo ($server['Server']['unpublish_event'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
         <td class="short"><span class="<?php echo ($server['Server']['publish_without_email'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
         <td><?php echo h($server['Server']['url']); ?>&nbsp;</td>

@@ -407,6 +407,7 @@ class AppController extends Controller
             $this->set('me', $this->Auth->user());
             $this->set('isAdmin', $role['perm_admin']);
             $this->set('isSiteAdmin', $role['perm_site_admin']);
+            $this->set('hostOrgUser', $this->Auth->user('org_id') == Configure::read('MISP.host_org_id'));
             $this->set('isAclAdd', $role['perm_add']);
             $this->set('isAclModify', $role['perm_modify']);
             $this->set('isAclModifyOrg', $role['perm_modify_org']);

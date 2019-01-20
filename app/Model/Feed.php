@@ -1254,6 +1254,25 @@ class Feed extends AppModel
             $feeds[$k]['Feed']['values'] = $redis->sCard('misp:feed_cache:' . $feed['Feed']['id']);
         }
         $feeds = array_values($feeds);
+        $this->Server = ClassRegistry::init('Server');
+        $servers = $this->Server->find('all', array(
+            'recursive' => -1,
+            'fields' => array('id', 'url', 'name'),
+            'contain' => array('RemoteOrg' => array('fields' => array('RemoteOrg.id', 'RemoteOrg.name'))),
+            'conditions' => array('Server.caching_enabled')
+        ));
+        foreach ($servers as $k => $server) {
+            if (!$redis->exists('misp:server_cache:' . $server['Server']['id'])) {
+                unset($servers[$k]);
+                continue;
+            }
+            $servers[$k]['Server']['input_source'] = 'network';
+            $servers[$k]['Server']['source_format'] = 'misp';
+            $servers[$k]['Server']['provider'] = $servers[$k]['RemoteOrg']['name'];
+            $servers[$k]['Server']['default'] = false;
+            $servers[$k]['Server']['is_misp_server'] = true;
+            $servers[$k]['Server']['values'] = $redis->sCard('misp:server_cache:' . $server['Server']['id']);
+        }
         foreach ($feeds as $k => $feed) {
             foreach ($feeds as $k2 => $feed2) {
                 if ($k == $k2) {
@@ -1265,6 +1284,37 @@ class Feed extends AppModel
                     'overlap_percentage' => round(100 * count($intersect) / $feeds[$k]['Feed']['values']),
                 ));
             }
+            foreach ($servers as $k2 => $server) {
+                $intersect = $redis->sInter('misp:feed_cache:' . $feed['Feed']['id'], 'misp:server_cache:' . $server['Server']['id']);
+                $feeds[$k]['Feed']['ComparedFeed'][] = array_merge(array_intersect_key($server['Server'], $fields), array(
+                    'overlap_count' => count($intersect),
+                    'overlap_percentage' => round(100 * count($intersect) / $feeds[$k]['Feed']['values']),
+                ));
+            }
+        }
+        foreach ($servers as $k => $server) {
+            foreach ($feeds as $k2 => $feed2) {
+                $intersect = $redis->sInter('misp:server_cache:' . $server['Server']['id'], 'misp:feed_cache:' . $feed2['Feed']['id']);
+                $servers[$k]['Server']['ComparedFeed'][] = array_merge(array_intersect_key($feed2['Feed'], $fields), array(
+                    'overlap_count' => count($intersect),
+                    'overlap_percentage' => round(100 * count($intersect) / $servers[$k]['Server']['values']),
+                ));
+            }
+            foreach ($servers as $k2 => $server2) {
+                if ($k == $k2) {
+                    continue;
+                }
+                $intersect = $redis->sInter('misp:server_cache:' . $server['Server']['id'], 'misp:server_cache:' . $server2['Server']['id']);
+                $servers[$k]['Server']['ComparedFeed'][] = array_merge(array_intersect_key($server2['Server'], $fields), array(
+                    'overlap_count' => count($intersect),
+                    'overlap_percentage' => round(100 * count($intersect) / $servers[$k]['Server']['values']),
+                ));
+            }
+        }
+        foreach ($servers as $k => $server) {
+            $server['Feed'] = $server['Server'];
+            unset($server['Server']);
+            $feeds[] = $server;
         }
         return $feeds;
     }
