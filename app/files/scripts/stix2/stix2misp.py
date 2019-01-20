@@ -911,13 +911,7 @@ class StixFromMISPParser(StixParser):
     def parse_marking(marking):
         marking_type = marking.definition_type
         tag = getattr(marking.definition, marking_type)
-        if marking_type == 'tlp':
-            return "{}:{}".format(marking_type, tag)
-        if TAG_REGEX.match(tag):
-            predicate, value = tag.split(' = ')
-            namespace, predicate = predicate.split(') ')
-            return '{}:{}="{}"'.format(namespace[1:], predicate, value)
-        return ":".join(tag.split(' = '))
+        return "{}:{}".format(marking_type, tag)
 
     @staticmethod
     def parse_pattern(pattern):
