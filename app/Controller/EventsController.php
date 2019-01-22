@@ -3733,7 +3733,7 @@ class EventsController extends AppController
             } else {
                 $data = $this->request->data;
             }
-            $paramArray = array('id', 'withAttachment', 'tags', 'from', 'to', 'last');
+            $paramArray = array('id', 'withAttachments', 'tags', 'from', 'to', 'last');
             foreach ($paramArray as $p) {
                 if (isset($data['request'][$p])) {
                     ${$p} = $data['request'][$p];
@@ -4033,11 +4033,13 @@ class EventsController extends AppController
                     'checkbox_text' => 'Encode Attachments',
                     'checkbox_set' => '/events/stix/download/' . $id . '/true.json'
             ),
-            'stix_json' => array(
+            'stix2_json' => array(
                     'url' => '/events/stix2/download/' . $id . '.json',
                     'text' => 'STIX2 (requires the STIX 2 library)',
                     'requiresPublished' => false,
-                    'checkbox' => false
+                    'checkbox' => true,
+                    'checkbox_text' => 'Encode Attachments',
+                    'checkbox_set' => '/events/stix2/download/' . $id . '/1.json'
             ),
             'rpz' => array(
                     'url' => '/attributes/rpz/download/false/' . $id,
