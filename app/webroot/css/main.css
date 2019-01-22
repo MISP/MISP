@@ -932,6 +932,10 @@ a.pill-pre-picker {
     float: left;
 }
 
+.chosen-single .apply_css_arrow{
+	display: none !important;
+}
+
 .active-result .fa:before {
     margin-right: 5px;
 }
@@ -951,7 +955,7 @@ a.pill-pre-picker {
     margin-left: 2px;
     border-left: 1px solid;
     border-bottom: 1px solid;
-    height: 10px;
+    height: 7px;
     width: 5px;
     display: inline-block;
     float: left;

@@ -23,6 +23,15 @@
         'disabledSubmitButton' => false, // wether to not draw the submit button
         'flag_redraw_chosen' => false // should chosen picker be redraw at drawing time
     );
+    /**
+    * Supported default option in <Option> fields:
+    *   - name: The name of the item (will be used by the search algo)
+    *   - value: The value when sent when the item is selected
+    *   - template: The template to apply for custom chosen item
+    *   - templateData: Data that will be passed to the template construction function
+    *   - additionalData: Additional data to pass to the callback functionName
+    */
+
     /** prevent exception if not set **/
     $options = isset($options) ? $options : array();
     $items = isset($items) ? $items : array();
@@ -78,7 +87,7 @@ function setupChosen(id, redrawChosen) {
 
     // hack to add template into the div
     var $chosenContainer = $elem.parent().find('.chosen-container');
-    $elem.on('chosen:showing_dropdown chosen:searchdone keyup change', function() {
+    $elem.on('chosen:showing_dropdown chosen:searchdone chosen:picked keyup change', function() {
         redrawChosenWithTemplate($elem, $chosenContainer)
     });
 

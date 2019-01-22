@@ -45,24 +45,111 @@
                                 ));
                             ?>
                             <br />
-                            <select id="targetSelect" size="10" style="width:100%;height:200px;">
+
+                            <?php
+                                $items = array();
+                                if (!empty($event['Object'])){
+                                    $template = '<it class="fa fa-th-large"></it> ';
+                                    $template .= '{{=it.name}}';
+                                    $template .= '<it class="fa fa-info-circle" style="float:right;margin-top:5px;line-height:13px;" title="{{=it.attributes}}"></it>';
+                                    $template .= '<div class="apply_css_arrow" style="padding-left: 5px; font-size: smaller;"><i>{{=it.metaCategory}}</i></div>';
+
+                                    foreach ($event['Object'] as $object) {
+                                        $combinedFields = __('Object');
+                                        $combinedFields .= '/' . h($object['meta-category']);
+                                        $combinedFields .= '/' . h($object['name']);
+
+                                        $attributes = array();
+                                        $attributesValues = array();
+                                        foreach ($object['Attribute'] as $attribute) {
+                                            $combinedFields .= '/' . h($attribute['value']);
+                                            $attributesValues[] = h($attribute['value']);
+                                            $attributes[] = h($attribute['value']);
+                                            $combinedFields .= '/' . h($attribute['id']);
+                                        }
+                                        $attributesValues = implode(', ', $attributesValues);
+                                        $items[] = array(
+                                            'name' => $combinedFields,
+                                            'value' => h($object['uuid']),
+                                            'additionalData' => array(
+                                                'type' => 'Object'
+                                            ),
+                                            'template' => $template,
+                                            'templateData' => array(
+                                                'type' => __('Object'),
+                                                'name' => h($object['name']),
+                                                'metaCategory' => h($object['meta-category']),
+                                                'attributes' => h($attributesValues),
+                                            )
+                                        );
+                                    }
+                                }
+                                if (!empty($event['Attribute'])) {
+                                    $template = '{{=it.value}}';
+                                    $template .= '<it style="float: right;border: 1px solid #999; background-color: #ddd;border-radius: 5px;padding: 1px;margin-top: 5px; color:#000;line-height:13px;" class="chosen-single-hiddenXX">ids: <it style="margin-right: 0px;line-height:13px;" class="fa fa-{{=it.ids}}"></it></it>';
+                                    $template .= '<div class="apply_css_arrow" style="padding-left: 5px; font-size: smaller;"><i>{{=it.category}} :: {{=it.type}}</i></div>';
+                                    foreach ($event['Attribute'] as $attribute) {
+                                        $combinedFields = __('Attribute');
+                                        $combinedFields .= '/' . h($attribute['category']);
+                                        $combinedFields .= '/' . h($attribute['type']);
+                                        $combinedFields .= '/' . h($attribute['value']);
+                                        $combinedFields .= '/' . h($attribute['id']);
+                                        $items[] = array(
+                                            'name' => $combinedFields,
+                                            'value' => h($attribute['uuid']),
+                                            'additionalData' => array(
+                                                'type' => 'Attribute'
+                                            ),
+                                            'template' => $template,
+                                            'templateData' => array(
+                                                'value' => h($attribute['value']),
+                                                'category' => h($attribute['category']),
+                                                'type' => h($attribute['type']),
+                                                'ids' => $attribute['to_ids'] ? 'check' : 'times'
+                                            )
+                                        );
+                                    }
+                                }
+                                $options = array(
+                                    'functionName' => 'changeObjectReferenceSelectOption',
+                                    'chosen_options' => array('width' => '334px'),
+                                    'select_options' => array('data-targetselect' => 'targetSelect')
+                                );
+                                echo $this->element('generic_picker', array('items' => $items, 'options' => $options));
+                            ?>
+
+                            <!-- <select id="targetSelect" size="10" style="width:100%;height:200px;">
                                 <?php
                                     if (!empty($event['Object'])):
                                         foreach ($event['Object'] as $object):
+                                            $combinedFields = __('Object');
+                                            $combinedFields .= '/' . h($object['meta-category']);
+                                            $combinedFields .= '/' . h($object['name']);
+                                            foreach ($object['Attribute'] as $attribute) {
+                                                $combinedFields .= '/' . $attribute['value'];
+                                                $combinedFields .= '/' . $attribute['id'];
+                                            }
                                 ?>
-                                            <option class="selectOption" value="<?php echo h($object['uuid']);?>" data-type="Object"><?php echo __('Object');?>: <?php echo h($object['meta-category']) . '/' . h($object['name']); ?></option>
+                                            <option value="<?php echo h($object['uuid']);?>" data-type="Object"><?php echo $combinedFields; ?></option>
                                 <?php
                                         endforeach;
                                     endif;
                                     if (!empty($event['Attribute'])):
                                         foreach ($event['Attribute'] as $attribute):
+                                            $combinedFields = __('Attribute');
+                                            $combinedFields .= '/' . h($attribute['category']);
+                                            $combinedFields .= '/' . h($attribute['type']);
+                                            $combinedFields .= '/' . h($attribute['value']);
+                                            $combinedFields .= '/' . h($attribute['id']);
                                 ?>
-                                            <option class="selectOption" value="<?php echo h($attribute['uuid']);?>" data-type="Attribute"><?php echo __('Attribute');?>: <?php echo h($attribute['category']) . '/' . h($attribute['type']); ?></option>
+                                            <option class="selectOption" value="<?php echo h($attribute['uuid']);?>" data-type="Attribute"><?php echo $combinedFields; ?></option>
                                 <?php
                                         endforeach;
                                     endif;
                                 ?>
-                            </select>
+                            </select> -->
+
+
                         </div>
                         <div class="span6">
                             <label for="selectedData"><?php echo __('Target Details');?></label>
@@ -94,7 +181,7 @@
 <script type="text/javascript">
     var targetEvent = <?php echo json_encode($event); ?>;
     $(document).ready(function() {
-        $('#ObjectReferenceUuid').on('input', function() {
+        $('#ObjectReferenceReferencedUuid').on('input', function() {
             objectReferenceInput();
         });
         $(".selectOption").click(function() {
@@ -103,6 +190,8 @@
         $("#ObjectReferenceRelationshipTypeSelect").change(function() {
             objectReferenceCheckForCustomRelationship();
         });
+
+        $('#ObjectReferenceRelationshipTypeSelect').chosen({ width: "100%" });
     });
 </script>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts
