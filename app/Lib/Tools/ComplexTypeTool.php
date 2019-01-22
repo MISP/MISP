@@ -296,7 +296,11 @@ class ComplexTypeTool
         // check for hashes
         foreach ($this->__hexHashTypes as $k => $v) {
             if (strlen($input['raw']) == $k && preg_match("#[0-9a-f]{" . $k . "}$#i", $input['raw'])) {
-                return array('types' => $v['single'], 'to_ids' => true, 'default_type' => $v['single'][0], 'value' => $input['raw']);
+                $types = $v['single'];
+                if (!empty($this->__checkForBTC($input))) {
+                    $types[] = 'btc';
+                }
+                return array('types' => $types, 'to_ids' => true, 'default_type' => $v['single'][0], 'value' => $input['raw']);
             }
         }
         // ssdeep has a different pattern

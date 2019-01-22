@@ -245,6 +245,12 @@ ln -s ../php-fpm.d/timezone.ini /etc/opt/rh/rh-php71/php.d/99-timezone.ini
 cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResque/Config/config.php
 ```
 
+## 4.06/ Install Crypt_GPG and Console_CommandLine
+```bash
+sudo -H -u www-data pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
+sudo -H -u www-data pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
+```
+
 # 5/ Set file permissions
 ## 5.01/ Make sure the permissions are set correctly using the following commands as root:
 ```bash
