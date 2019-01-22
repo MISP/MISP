@@ -173,6 +173,7 @@ function submitFunction(clicked, callback) {
         selected = $clicked.attr('value');
         additionalData = $clicked.data('additionaldata');
     }
+    additionalData = JSON.parse(atob(additionalData));
     execAndClose(clicked);
     callback(selected, additionalData);
 }
@@ -202,7 +203,7 @@ function submitFunction(clicked, callback) {
             ?>
         </select>
         <?php if ($defaults['multiple'] != 0 && !$defaults['disabledSubmitButton']): ?>
-            <button class="btn btn-primary" onclick="submitFunction(this, <?php echo $defaults['functionName']; ?>)"><?php echo h($defaults['submitButtonText']); ?></button>
+            <button class="btn btn-primary" onclick="submitFunction(this, <?php echo h($defaults['functionName']); ?>)"><?php echo h($defaults['submitButtonText']); ?></button>
         <?php endif; ?>
 
         <?php if ($flag_addPills): // add forced pills ?>
@@ -217,7 +218,7 @@ function submitFunction(clicked, callback) {
 
         <script>
             $(document).ready(function() {
-                setupChosen("<?php echo $select_id; ?>", <?php echo ($defaults['flag_redraw_chosen'] === true ? 'true' : 'false') ?>);
+                setupChosen("<?php echo h($select_id); ?>", <?php echo ($defaults['flag_redraw_chosen'] === true ? 'true' : 'false') ?>);
             });
         </script>
 
