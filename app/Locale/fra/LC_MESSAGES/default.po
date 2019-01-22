@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2018-10-15 14:03\n"
+"PO-Revision-Date: 2019-01-22 21:22\n"
 "Last-Translator: SteveClement <steve@localhost.lu>\n"
 "Language-Team: French\n"
 "MIME-Version: 1.0\n"
@@ -6950,8 +6950,8 @@ msgid "This event has "
 msgstr "Cet événement a"
 
 #: View/Events/view.ctp:336
-msgid "correlations with data contained within the various feeds, however, due to the large number of attributes the actual feed correlations are not shown. Click <a href=\"%s\\/overrideLimit:1\">here</a> to refresh the page with the feed data loaded."
-msgstr "la corrélations avec les données obtenues depuis des flux variés, peut toutefois, en raison du grand nombre d'attributs ne sont pas affichés.Cliquez <a href=\"%s\\/overrideLimit:1\">ici</a> pour rafraichir la page avec les données de flux chargés."
+msgid "correlations with data contained within the various feeds, however, due to the large number of attributes the actual feed correlations are not shown. Click (<a href=\"%s\\/overrideLimit:1\">here</a> to refresh the page with the feed data loaded."
+msgstr "la corrélations avec les données obtenues depuis des flux variés, peut toutefois, en raison du grand nombre d'attributs ne sont pas affichés.Cliquez (<a href=\"%s\\/overrideLimit:1\">ici</a> pour rafraichir la page avec les données de flux chargés."
 
 #: View/Events/view.ctp:344
 msgid "Warning: Potential false positives"
