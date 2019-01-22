@@ -90,7 +90,11 @@ class GenericPickerHelper extends AppHelper {
             $icon = $param['icon'];
             $pill_html .= '<span class="fa fa-' . h($icon) . '" style="margin-right: 5px;"></span>';
         }
-        $pill_html .= h($param['name']) . '</a>';
+        $pill_html .= h($param['name']);
+        if (isset($param['template']['infoExtra'])) {
+            $pill_html .= $this->_View->element('genericPickerElements/info_extra', array('infoExtra' => $param['template']['infoExtra']));
+        }
+        $pill_html .= '</a>';
         $pill_html .= '</li>';
         return $pill_html;
     }

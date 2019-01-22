@@ -3,7 +3,7 @@
 *   Generic select picker
 */
     /** Config **/
-    $select_threshold = 0; // threshold above which pills will be replace by a select (unused if multiple is > 1)
+    $select_threshold = 7; // threshold above which pills will be replace by a select (unused if multiple is > 1)
     $defaults_options = array(
         'select_options' => array(
             // 'multiple' => '', // set to add possibility to pick multiple options in the select

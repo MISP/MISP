@@ -62,6 +62,7 @@ class ObjectTemplatesController extends AppController
 
         $items = array();
         foreach($templates_raw as $template) {
+            $template = $template['ObjectTemplate'];
             $items[] = array(
                 'name' => $template['name'],
                 'value' => $template['id'],
