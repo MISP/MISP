@@ -124,12 +124,13 @@ function installMISPonKali() {
   phpenmod -v 7.3 redis
   phpenmod -v 7.3 gnupg
 
-  systemctl restart mysql.service
-
   a2dismod status
-  a2enmod ssl rewrite headers
+  a2dismod php7.2
+  a2enmod ssl rewrite headers php7.3
   a2dissite 000-default
   a2ensite default-ssl
+
+  systemctl restart mysql.service
 
   #update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1
   #update-alternatives --install /usr/bin/python python /usr/bin/python3.6 2
