@@ -114,7 +114,7 @@
                         </div>
                         <div class="span6">
                             <label for="selectedData"><?php echo __('Target Details');?></label>
-                            <div class="redHighlightedBlock" id="targetData">
+                            <div class="greyHighlightedBlock" id="targetData">
                                 &nbsp;
                             </div>
                         </div>

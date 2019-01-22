@@ -1818,8 +1818,8 @@ a.discrete {
 	border-radius:5px;
 }
 
-.redHighlightedBlock {
-	border:1px solid red;
+.greyHighlightedBlock {
+	border:1px solid #cccccc;
 	background-color:white;
 	padding:5px;
 	border-radius:5px;
