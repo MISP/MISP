@@ -239,7 +239,7 @@
         ?>
     </table>
 </div>
-    <?php if ($emptyEvent): ?>
+    <?php if ($emptyEvent && (empty($attributeFilter) || $attributeFilter === 'all')): ?>
         <div class="background-red bold">
             <span>
             <?php

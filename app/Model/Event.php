@@ -4405,7 +4405,7 @@ class Event extends AppModel
         }
         $attribute = $this->__prepareGenericForView($attribute, $eventWarnings, $warningLists);
         if ($filterType === 'warning') {
-            if (empty($attribute['warnings'])) {
+            if (empty($attribute['warnings']) && empty($attribute['validationIssue'])) {
                 $include = false;
             }
         }

@@ -202,6 +202,16 @@
                             ));
                         }
                     }
+                    echo sprintf(
+                        '<li id="liexport"><a href="%s/tag_collections/index.json" download="tag_collections_all.json">%s</a></li>',
+                        $baseurl,
+                        __('Export Tag Collections')
+                    );
+                    echo sprintf(
+                        '<li id="liimport"><a href="%s/tag_collections/import">%s</a></li>',
+                        $baseurl,
+                        __('Import Tag Collections')
+                    );
                     break;
 
                 case 'event-collection':

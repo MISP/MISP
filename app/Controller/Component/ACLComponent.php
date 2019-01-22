@@ -392,6 +392,7 @@ class ACLComponent extends Component
                     'delete' => array('perm_tag_editor'),
                     'edit' => array('perm_tag_editor'),
                     'getRow' => array('perm_tag_editor'),
+                    'import' => array('perm_tag_editor'),
                     'index' => array('*'),
                     'removeTag' => array('perm_tag_editor'),
                     'view' => array('*')
