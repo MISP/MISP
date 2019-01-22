@@ -31,7 +31,9 @@ class GenericPickerHelper extends AppHelper {
         }
 
         if (isset($param['template'])) {
-            $option_html .= ' data-template=' . base64_encode($param['template']);
+            // $option_html .= ' data-template=' . base64_encode($param['template']);
+            $template = $this->build_template($param);
+            $option_html .= ' data-template=' . base64_encode($template);
         }
         if (isset($param['templateData'])) {
             $option_html .= ' data-templatedata=' . base64_encode(json_encode($param['templateData']));
@@ -94,6 +96,24 @@ class GenericPickerHelper extends AppHelper {
         $pill_html .= h($param['name']) . '</a>';
         $pill_html .= '</li>';
         return $pill_html;
+    }
+
+    function build_template($param) {
+        $template = "";
+        if(isset($param['template'])) {
+            $templateParam = $param['template'];
+            if (isset($templateParam['preIcon'])) {
+                $template .= $this->_View->element('genericPickerElements/pre_icon', array('preIcon' => $templateParam['preIcon']));
+            }
+            $template .= h($templateParam['name']);
+            if (isset($templateParam['infoExtra'])) {
+                $template .= $this->_View->element('genericPickerElements/info_extra', array('infoExtra' => $templateParam['infoExtra']));
+            }
+            if (isset($templateParam['infoContextual'])) {
+                $template .= $this->_View->element('genericPickerElements/info_contextual', array('infoContextual' => $templateParam['infoContextual']));
+            }
+        }
+        return $template;
     }
 }
 ?>

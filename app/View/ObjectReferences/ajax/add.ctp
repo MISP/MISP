@@ -49,11 +49,6 @@
                             <?php
                                 $items = array();
                                 if (!empty($event['Object'])){
-                                    $template = '<it class="fa fa-th-large"></it> ';
-                                    $template .= '{{=it.name}}';
-                                    $template .= '<it class="fa fa-info-circle" style="float:right;margin-top:5px;line-height:13px;" title="{{=it.attributes}}"></it>';
-                                    $template .= '<div class="apply_css_arrow" style="padding-left: 5px; font-size: smaller;"><i>{{=it.metaCategory}}</i></div>';
-
                                     foreach ($event['Object'] as $object) {
                                         $combinedFields = __('Object');
                                         $combinedFields .= '/' . h($object['meta-category']);
@@ -74,12 +69,11 @@
                                             'additionalData' => array(
                                                 'type' => 'Object'
                                             ),
-                                            'template' => $template,
-                                            'templateData' => array(
-                                                'type' => __('Object'),
-                                                'name' => h($object['name']),
-                                                'metaCategory' => h($object['meta-category']),
-                                                'attributes' => h($attributesValues),
+                                            'template' => array(
+                                                'name' => $object['name'],
+                                                'preIcon' => 'fa-th-large',
+                                                'infoExtra' => $attributesValues,
+                                                'infoContextual' => $object['meta-category']
                                             )
                                         );
                                     }
@@ -100,13 +94,15 @@
                                             'additionalData' => array(
                                                 'type' => 'Attribute'
                                             ),
-                                            'template' => $template,
-                                            'templateData' => array(
-                                                'value' => h($attribute['value']),
-                                                'category' => h($attribute['category']),
-                                                'type' => h($attribute['type']),
-                                                'ids' => $attribute['to_ids'] ? 'check' : 'times'
-                                            )
+                                            'template' => array(
+                                                'name' => $attribute['value'],
+                                                'infoExtra' => array(
+                                                    'type' => 'check',
+                                                    'checked' => $attribute['to_ids'],
+                                                    'text' => 'ids'
+                                                ),
+                                                'infoContextual' => $attribute['category'] . ' : ' . $attribute['type'],
+                                            ),
                                         );
                                     }
                                 }
@@ -117,38 +113,6 @@
                                 );
                                 echo $this->element('generic_picker', array('items' => $items, 'options' => $options));
                             ?>
-
-                            <!-- <select id="targetSelect" size="10" style="width:100%;height:200px;">
-                                <?php
-                                    if (!empty($event['Object'])):
-                                        foreach ($event['Object'] as $object):
-                                            $combinedFields = __('Object');
-                                            $combinedFields .= '/' . h($object['meta-category']);
-                                            $combinedFields .= '/' . h($object['name']);
-                                            foreach ($object['Attribute'] as $attribute) {
-                                                $combinedFields .= '/' . $attribute['value'];
-                                                $combinedFields .= '/' . $attribute['id'];
-                                            }
-                                ?>
-                                            <option value="<?php echo h($object['uuid']);?>" data-type="Object"><?php echo $combinedFields; ?></option>
-                                <?php
-                                        endforeach;
-                                    endif;
-                                    if (!empty($event['Attribute'])):
-                                        foreach ($event['Attribute'] as $attribute):
-                                            $combinedFields = __('Attribute');
-                                            $combinedFields .= '/' . h($attribute['category']);
-                                            $combinedFields .= '/' . h($attribute['type']);
-                                            $combinedFields .= '/' . h($attribute['value']);
-                                            $combinedFields .= '/' . h($attribute['id']);
-                                ?>
-                                            <option class="selectOption" value="<?php echo h($attribute['uuid']);?>" data-type="Attribute"><?php echo $combinedFields; ?></option>
-                                <?php
-                                        endforeach;
-                                    endif;
-                                ?>
-                            </select> -->
-
 
                         </div>
                         <div class="span6">

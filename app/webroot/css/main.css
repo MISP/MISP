@@ -932,12 +932,27 @@ a.pill-pre-picker {
     float: left;
 }
 
-.chosen-single .apply_css_arrow{
-	display: none !important;
+.generic-picker-item-element-check {
+	float: right;
+	border: 1px solid #999;
+	background-color: #ddd;
+	border-radius: 9px;
+	padding: 2px;
+	margin-top: 5px;
+	color: #fff;
+	line-height: 13px;
+}
+.generic-picker-item-element-check .fa:before {
+	margin-right: 0px;
 }
 
-.active-result .fa:before {
-    margin-right: 5px;
+.chosen-single .generic-picker-item-element-check {
+	margin-top: 2px;
+	margin-right: 5px;
+}
+
+.chosen-single .apply_css_arrow{
+	display: none !important;
 }
 
 .chosen-container .chosen-results li {
