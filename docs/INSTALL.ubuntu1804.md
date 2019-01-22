@@ -157,6 +157,10 @@ sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 # install PyMISP
 cd ${PATH_TO_MISP}/PyMISP
 sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+
+# Install Crypt_GPG and Console_CommandLine
+sudo -H -u www-data pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
+sudo -H -u www-data pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
 ```
 
 ### 4/ CakePHP
@@ -176,10 +180,6 @@ sudo -H -u www-data php composer.phar install
 # Enable CakeResque with php-redis
 sudo phpenmod redis
 sudo phpenmod gnupg
-
-# Install Crypt_GPG and Console_CommandLine
-sudo -H -u www-data pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
-sudo -H -u www-data pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
 
 # To use the scheduler worker for scheduled tasks, do the following:
 sudo -u www-data cp -fa ${PATH_TO_MISP}/INSTALL/setup/config.php ${PATH_TO_MISP}/app/Plugin/CakeResque/Config/config.php
