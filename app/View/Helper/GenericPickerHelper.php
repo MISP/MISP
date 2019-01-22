@@ -92,7 +92,7 @@ class GenericPickerHelper extends AppHelper {
         }
         $pill_html .= h($param['name']);
         if (isset($param['template']['infoExtra'])) {
-            $pill_html .= $this->_View->element('genericPickerElements/info_extra', array('infoExtra' => $param['template']['infoExtra']));
+            $pill_html .= $this->_View->element('genericPickerElements/info_extra', array('infoExtra' => $param['template']['infoExtra'], 'forceIcon' => true));
         }
         $pill_html .= '</a>';
         $pill_html .= '</li>';

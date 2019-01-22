@@ -1,17 +1,17 @@
 
 <?php if (!is_array($infoExtra)): ?>
-    <?php if (strlen($infoExtra) < 50): ?>
-        <i style="float:right; font-size: smaller;margin: 5px;"><?php echo h($infoExtra); ?></i>
+    <?php if (strlen($infoExtra) < 50 && !(isset($forceIcon) && $forceIcon)): ?>
+        <i style="float:right; font-size: smaller;margin-right: 5px;"><?php echo h($infoExtra); ?></i>
     <?php else: ?>
-        <it class="fa fa-info-circle" style="float:right;margin:5px;margin:5px;line-height:13px;" title="<?php echo h($infoExtra); ?>"></it>
+        <it class="fa fa-info-circle" style="float:right;margin-right: 5px;line-height:13px;" title="<?php echo h($infoExtra); ?>"></it>
     <?php endif; ?>
 
 <?php elseif (isset($infoExtra['type'])): // same as if infoExtra is not an array ?>
     <?php if ($infoExtra['type'] === 'text'): ?>
-        <?php if (strlen($infoExtra) < 50): ?>
-            <i style="float:right;font-size: smaller;margin: 5px;"><?php echo h($infoExtra); ?></i>
+        <?php if (strlen($infoExtra) < 50 && !(isset($forceIcon) && $forceIcon)): ?>
+            <i style="float:right;font-size: smaller;margin-right: 5px;"><?php echo h($infoExtra); ?></i>
         <?php else: ?>
-            <it class="fa fa-info-circle" style="float:right;margin:5px;line-height:13px; margin-right: 5px;" title="<?php echo h($infoExtra); ?>"></it>
+            <it class="fa fa-info-circle" style="float:right;line-height:13px;margin-top:5px;margin-right: 5px;" title="<?php echo h($infoExtra); ?>"></it>
         <?php endif; ?>
 
     <?php elseif ($infoExtra['type'] === 'check'): ?>
