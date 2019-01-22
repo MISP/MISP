@@ -62,24 +62,14 @@ class ObjectTemplatesController extends AppController
 
         $items = array();
         foreach($templates_raw as $template) {
-            $template = $template['ObjectTemplate'];
-            $chosenTemplate = '<span href="#">{{=it.name}}</span>';
-            if (strlen($template['description']) < 80) {
-                $chosenTemplate .= '<i style="float:right; font-size: smaller;">{{=it.description}}</i>';
-            } else {
-                $chosenTemplate .= '<it class="fa fa-info-circle" style="float:right;" title="{{=it.description}}"></it>';
-            }
-            $chosenTemplate .= '<div class="apply_css_arrow" style="padding-left: 5px; margin-top: 5px; font-size: smaller;"><i>{{=it.metacateg}}</i></div>';
-
             $items[] = array(
                 'name' => $template['name'],
                 'value' => $template['id'],
-                'additionalData' => array('event_id' => h($event_id)),
-                'template' => $chosenTemplate,
-                'templateData' => array(
-                    'name' => h($template['name']),
-                    'description' => h($template['description']),
-                    'metacateg' => __('Category') . ': ' . h($template['meta-category'])
+                'additionalData' => array('event_id' => $event_id),
+                'template' => array(
+                    'name' => $template['name'],
+                    'infoExtra' => $template['description'],
+                    'infoContextual' => $template['meta-category']
                 )
             );
         }

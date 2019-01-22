@@ -105,7 +105,7 @@ class GenericPickerHelper extends AppHelper {
             if (isset($templateParam['preIcon'])) {
                 $template .= $this->_View->element('genericPickerElements/pre_icon', array('preIcon' => $templateParam['preIcon']));
             }
-            $template .= h($templateParam['name']);
+            $template .= $this->_View->element('genericPickerElements/name', array('name' => $templateParam['name']));
             if (isset($templateParam['infoExtra'])) {
                 $template .= $this->_View->element('genericPickerElements/info_extra', array('infoExtra' => $templateParam['infoExtra']));
             }

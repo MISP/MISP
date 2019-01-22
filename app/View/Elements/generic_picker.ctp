@@ -117,9 +117,6 @@ function redrawChosenWithTemplate($select, $chosenContainer) {
             var res = "";
             if (template !== undefined && template !== '') {
                 var template = atob(template);
-                // var temp = doT.template(template);
-                // var templateData = JSON.parse(atob($option.data('templatedata')));
-                // res = temp(templateData);
                 $item.html(template);
             }
         })
