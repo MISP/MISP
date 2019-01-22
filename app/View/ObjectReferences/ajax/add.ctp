@@ -79,9 +79,6 @@
                                     }
                                 }
                                 if (!empty($event['Attribute'])) {
-                                    $template = '{{=it.value}}';
-                                    $template .= '<it style="float: right;border: 1px solid #999; background-color: #ddd;border-radius: 5px;padding: 1px;margin-top: 5px; color:#000;line-height:13px;" class="chosen-single-hiddenXX">ids: <it style="margin-right: 0px;line-height:13px;" class="fa fa-{{=it.ids}}"></it></it>';
-                                    $template .= '<div class="apply_css_arrow" style="padding-left: 5px; font-size: smaller;"><i>{{=it.category}} :: {{=it.type}}</i></div>';
                                     foreach ($event['Attribute'] as $attribute) {
                                         $combinedFields = __('Attribute');
                                         $combinedFields .= '/' . h($attribute['category']);
@@ -101,7 +98,7 @@
                                                     'checked' => $attribute['to_ids'],
                                                     'text' => 'ids'
                                                 ),
-                                                'infoContextual' => $attribute['category'] . ' : ' . $attribute['type'],
+                                                'infoContextual' => $attribute['category'] . ' :: ' . $attribute['type'],
                                             ),
                                         );
                                     }
