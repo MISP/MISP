@@ -2890,7 +2890,7 @@ class Attribute extends AppModel
             $params['conditions']['AND'][] = $options['conditions'];
         }
         if (empty($options['flatten'])) {
-            $params['conditions']['AND'][] = array('Attribute.object_id' => 0);
+            $params['conditions']['AND'][] = array('(Attribute.object_id + 0)' => 0);
         }
         if (isset($options['order'])) {
             $params['order'] = $options['order'];
@@ -2902,7 +2902,7 @@ class Attribute extends AppModel
             $options['enforceWarninglist'] = false;
         }
         if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) {
-            $params['conditions']['AND']['Attribute.deleted'] = 0;
+            $params['conditions']['AND']['(Attribute.deleted + 0)'] = 0;
         }
         if (isset($options['group'])) {
             $params['group'] = empty($options['group']) ? $options['group'] : false;
