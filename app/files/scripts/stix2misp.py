@@ -822,7 +822,7 @@ class StixFromMISPParser(StixParser):
         try:
             properties = observable.object_.properties
             if properties:
-                attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
+                attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties, title=observable.title)
                 if isinstance(attribute_value, (str, int)):
                     self.handle_attribute_case(attribute_type, attribute_value, compl_data, misp_attribute)
                 else:
