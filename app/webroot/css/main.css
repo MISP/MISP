@@ -951,6 +951,10 @@ a.pill-pre-picker {
 	margin-right: 5px;
 }
 
+.chosen-single .generic-picker-item-element-info {
+	margin-top: 5px;
+}
+
 .chosen-single .apply_css_arrow{
 	display: none !important;
 }
