@@ -909,6 +909,10 @@ a.pill-pre-picker {
     min-width: 500px;
 }
 
+.generic_picker .generic_picker {
+	margin-left: 10px;
+}
+
 .generic_picker ul.nav {
 	margin-bottom: 0px;
 }
@@ -928,8 +932,7 @@ a.pill-pre-picker {
     border-bottom: 1px solid;
     height: 10px;
     width: 5px;
-    display: inline-block;
-    float: left;
+	position: absolute;
 }
 
 .generic-picker-item-element-check {
