@@ -813,16 +813,16 @@ class StixFromMISPParser(StixParser):
             self.parse_misp_attribute(observable, misp_attribute, to_ids=True)
 
     def parse_misp_attribute_observable(self, observable):
-        misp_attribute = {'to_ids': False, 'category': str(observable.relationship),
-                          'uuid': self.fetch_uuid(observable.id_)}
         if observable.item:
+            misp_attribute = {'to_ids': False, 'category': str(observable.relationship),
+                              'uuid': self.fetch_uuid(observable.item.object_.id_)}
             self.parse_misp_attribute(observable.item, misp_attribute)
 
     def parse_misp_attribute(self, observable, misp_attribute, to_ids=False):
         try:
             properties = observable.object_.properties
             if properties:
-                attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
+                attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties, title=observable.title)
                 if isinstance(attribute_value, (str, int)):
                     self.handle_attribute_case(attribute_type, attribute_value, compl_data, misp_attribute)
                 else:
