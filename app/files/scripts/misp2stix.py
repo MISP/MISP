@@ -816,13 +816,16 @@ class StixBuilder(object):
                     break
             if to_parse:
                 return
-        to_ids, attributes_dict = self.create_attributes_dict(misp_object['Attribute'])
-        file_object = File()
-        self.fill_file_object(file_object, attributes_dict)
-        file_object.parent.id_ = "{}:FileObject-{}".format(self.namespace_prefix, uuid)
-        file_observable = Observable(file_object)
-        file_observable.id_ = "{}:File-{}".format(self.namespace_prefix, uuid)
-        return to_ids, file_observable
+        to_ids, attributes_dict = self.create_file_attributes_dict(misp_object['Attribute'])
+        if 'malware-sample' in attributes_dict:
+            malware_sample = attributes_dict.pop('malware-sample')
+            artifact_object = self.create_artifact_object(malware_sample['data'])
+            artifact_object.parent.id_ = f"{self.namespace_prefix}:ArtifactObject-{malware_sample['uuid']}"
+            artifact_observable = Observable(artifact_object)
+            artifact_observable.id_ = f"{self.namespace_prefix}:Artifact-{malware_sample['uuid']}"
+            file_observable = self.create_file_observable(attributes_dict, uuid)
+            return to_ids, self.create_observable_composition([artifact_observable, file_observable], uuid, 'file')
+        return to_ids, self.create_file_observable(attributes_dict, uuid)
 
     def parse_ip_port_object(self, misp_object):
         to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object['Attribute'], with_uuid=True)
@@ -1337,6 +1340,11 @@ class StixBuilder(object):
                 attributes_dict[attribute['object_relation']].append(attribute['value'])
         return to_ids, attributes_dict
 
+    def create_file_attributes_dict(self, attributes):
+        to_ids = self.fetch_ids_flags(attributes)
+        attributes_dict = {attribute['object_relation']: {field: attribute[field] for field in ('value', 'uuid', 'data')} if 'data' in attribute and attribute['data'] else attribute['value'] for attribute in attributes}
+        return to_ids, attributes_dict
+
     def create_x509_attributes_dict(self, attributes):
         to_ids = self.fetch_ids_flags(attributes)
         attributes_dict = defaultdict(dict)
@@ -1377,6 +1385,14 @@ class StixBuilder(object):
         file_object.file_name.condition = "Equals"
         file_object.parent.id_ = "{}:FileObject-{}".format(self.namespace_prefix, uuid)
         return file_object
+
+    def create_file_observable(self, attributes_dict, uuid):
+        file_object = File()
+        self.fill_file_object(file_object, attributes_dict)
+        file_object.parent.id_ = f"{self.namespace_prefix}:FileObject-{uuid}"
+        file_observable = Observable(file_object)
+        file_observable.id_ = f"{self.namespace_prefix}:File-{uuid}"
+        return file_observable
 
     def create_hostname_observable(self, value, uuid):
         hostname_object = self.create_hostname_object(value)
