@@ -444,7 +444,7 @@ class StixBuilder(object):
             entry_line = "attribute[{}][{}]: {}".format(attribute_category, attribute['type'], attribute['value'])
             self.add_journal_entry(entry_line)
 
-    def create_artifact_object(self, data, artifact=None):
+    def create_artifact_object(self, data):
         raw_artifact = RawArtifact(data)
         artifact = Artifact()
         artifact.raw_artifact = raw_artifact
