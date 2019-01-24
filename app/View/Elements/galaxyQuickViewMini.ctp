@@ -70,11 +70,9 @@
                 <a href="<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($cluster['tag_id']); ?>" class="icon-th-list" title="<?php echo __('View all events containing this cluster.');?>"></a>
                 <?php
                     if ($isSiteAdmin || ($mayModify && $isAclTagger)) {
-                        echo $this->Form->postLink('',
-                            $baseurl . '/galaxy_clusters/detach/' . ucfirst(h($target_id)) . '/' . h($target_type) . '/' . $cluster['tag_id'],
-                            array('class' => 'icon-trash', 'title' => 'Delete'),
-                            __('Are you sure you want to detach %s from this %s?', h($cluster['value']), h($target_type))
-                        );
+                        echo $this->Form->create(false, array('url' => $baseurl . '/galaxy_clusters/detach/' . ucfirst(h($target_id)) . '/' . h($target_type) . '/' . h($cluster['tag_id']), 'style' => 'display: inline-block; margin: 0px;'));
+                        echo '<span href="#" class="icon-trash useCursorPointer" title="' . __('Are you sure you want to detach %s from this %s?', h($cluster['value']), h($target_type)) . '" onclick="popoverConfirm(this)"></span>';
+                        echo $this->Form->end();
                     }
                 ?>
             </div>
@@ -88,7 +86,7 @@
 <?php
     if ($isSiteAdmin || ($mayModify && $isAclTagger)):
 ?>
-        <span class="btn btn-inverse noPrint addGalaxy" data-target-type="<?php echo h($target_type);?>" data-target-id="<?php echo h($target_id); ?>" role="button" tabindex="0" aria-label="<?php echo __('Add new cluster');?>" style="padding: 1px 5px !important;font-size: 12px !important;"><?php echo __('Add');?></span>
+        <span class="btn btn-inverse noPrint addGalaxy" data-target-type="<?php echo h($target_type);?>" data-target-id="<?php echo h($target_id); ?>" role="button" tabindex="0" aria-label="<?php echo __('Add new cluster');?>" title="<?php echo __('Add new cluster');?>" style="padding: 1px 5px !important;font-size: 12px !important;"><?php echo __('Add');?></span>
 <?php
     endif;
 ?>

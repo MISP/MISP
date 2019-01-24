@@ -20,13 +20,13 @@
 # - SSL certificates used by the web server
 #
 #
-# run ./misp-restore.sh  PATH_TO_ARCHIVE.tar.gz
+# sudo sh ./misp-restore.sh  PATH_TO_ARCHIVE.tar.gz
 # 
 echo '-- Starting MISP restore process'
 
 FILE=./misp-backup.conf
 
-if [ -f $1 ];
+if [ ! -z $1 ] && [ -f $1 ];
 then 
     BackupFile=$1
 else

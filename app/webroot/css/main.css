@@ -894,6 +894,69 @@ a.proposal_link_red:hover {
 	padding-left:10px;
 }
 
+a.pill-pre-picker {
+    background-color: #fcfcfc;
+    font-weight: bold;
+    border: 1px #65737ec8 solid;
+}
+.nav-pills > .active > a.pill-pre-picker {
+    background-color: #65737e32;
+	color: #000;
+}
+
+.generic_picker {
+    display: inline-block;
+    min-width: 500px;
+}
+
+.generic_picker ul.nav {
+	margin-bottom: 0px;
+}
+
+.generic-picker-wrapper {
+    padding: 7px;
+    margin-top: 3px;
+    background-color: #65737e32;
+    border: 1px #65737ec8 solid;
+    border-radius: 7px;
+}
+.generic-picker-wrapper:before {
+    content: '';
+    margin-right: 5px;
+    margin-left: 2px;
+    border-left: 1px solid;
+    border-bottom: 1px solid;
+    height: 10px;
+    width: 5px;
+    display: inline-block;
+    float: left;
+}
+
+.active-result .fa:before {
+    margin-right: 5px;
+}
+
+.chosen-container .chosen-results li {
+    overflow: auto;
+}
+/* hacky hack: center selected item info icon */
+.chosen-container-single span it.fa, .chosen-single-with-deselect span it.fa {
+    line-height: 24px;
+    margin-right: 8px;
+}
+
+.apply_css_arrow:before {
+    content: '';
+    margin-right: 5px;
+    margin-left: 2px;
+    border-left: 1px solid;
+    border-bottom: 1px solid;
+    height: 10px;
+    width: 5px;
+    display: inline-block;
+    float: left;
+}
+
 .gray_out {
 	display:none;
 	width: 100%;
@@ -1255,6 +1318,11 @@ a.proposal_link_red:hover {
 .useCursorPointer {
 	cursor: pointer;
 	cursor: hand;
+	user-select: none;
+}
+
+.underline {
+	text-decoration: underline;
 }
 
 .template_general {
@@ -1660,6 +1728,7 @@ a.discrete {
 }
 
 .dashboard_element{
+	background-color: white;
 	border: 1px solid #0088cc;
 	border-radius: 5px;
 	box-shadow: 0px 0px 6px #B2B2B2;
@@ -2074,6 +2143,34 @@ table tr:hover .down-expand-button {
 	}
 }
 
+.label-icon {
+    left: 5px;
+    position: relative;
+}
+
+.fa-as-icon {
+    font-size: 20px;
+    padding-left: 2px;
+    padding-top: 2px;
+    cursor: pointer;
+    background-image: unset;
+    text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white;
+    transition: background .2s linear;
+    color: black;
+}
+.fa-as-icon:hover {
+    text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+    font-weight: 900;
+    font-size: 22px;
+    color: white;
+}
+
+.quick-edit-row-div {
+    line-height: normal;
+    display: inline-block;
+    position: relative;
+}
+
 #attackmatrix_div {
     border-color: #363636;
     overflow: visible;
@@ -2082,4 +2179,11 @@ table tr:hover .down-expand-button {
     margin-top: 30px;
     width: calc(100vw - 230px);
     min-width: 1400px;
+}
+
+.restclient-infofield {
+    margin-left: 2px;
+    font-size: smaller;
+    position: relative;
+    bottom: 4px;
 }

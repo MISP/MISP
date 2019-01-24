@@ -273,31 +273,33 @@ class User extends AppModel
     {
         if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_user_notifications_enable')) {
             $pubSubTool = $this->getPubSubTool();
-            $user = $this->data;
-            if (!isset($user['User'])) {
-                $user['User'] = $user;
-            }
-            $action = $created ? 'edit' : 'add';
-            if (isset($user['User']['action'])) {
-                $action = $user['User']['action'];
-            }
-            if (isset($user['User']['id'])) {
-                $user = $this->find('first', array(
-                    'recursive' => -1,
-                    'conditons' => array('User.id' => $user['User']['id']),
-                    'fields' => array('id', 'email', 'last_login', 'org_id', 'termsaccepted', 'autoalert', 'newsread', 'disabled'),
-                    'contain' => array(
-                        'Organisation' => array(
-                            'fields' => array('Organisation.id', 'Organisation.name', 'Organisation.description', 'Organisation.uuid', 'Organisation.nationality', 'Organisation.sector', 'Organisation.type', 'Organisation.local')
+            if (!empty($this->data)) {
+                $user = $this->data;
+                if (!isset($user['User'])) {
+                    $user['User'] = $user;
+                }
+                $action = $created ? 'edit' : 'add';
+                if (isset($user['User']['action'])) {
+                    $action = $user['User']['action'];
+                }
+                if (isset($user['User']['id'])) {
+                    $user = $this->find('first', array(
+                        'recursive' => -1,
+                        'conditions' => array('User.id' => $user['User']['id']),
+                        'fields' => array('id', 'email', 'last_login', 'org_id', 'termsaccepted', 'autoalert', 'newsread', 'disabled'),
+                        'contain' => array(
+                            'Organisation' => array(
+                                'fields' => array('Organisation.id', 'Organisation.name', 'Organisation.description', 'Organisation.uuid', 'Organisation.nationality', 'Organisation.sector', 'Organisation.type', 'Organisation.local')
+                            )
                         )
-                    )
-                ));
+                    ));
+                }
+                if (isset($user['User']['password'])) {
+                    unset($user['User']['password']);
+                    unset($user['User']['confirm_password']);
+                }
+                $pubSubTool->modified($user, 'user', $action);
             }
-            if (isset($user['User']['password'])) {
-                unset($user['User']['password']);
-                unset($user['User']['confirm_password']);
-            }
-            $pubSubTool->modified($user, 'user', $action);
         }
         return true;
     }

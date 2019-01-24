@@ -2,6 +2,9 @@
 
 class OpeniocExport
 {
+	public $additional_params = array(
+		'flatten' => 1
+	);
 
     public function buildAll($user, $data, $scope = 'event')
     {
@@ -122,7 +125,7 @@ class OpeniocExport
 			$attribute['type'] = 'filename|md5';
 		}
 		if (strpos($attribute['type'], '|')) {
-			if ($this->mapping['composite'][$attribute['type']]) {
+			if (isset($this->mapping['composite'][$attribute['type']])) {
 				$temp .= $this->frameComposite($attribute);
 			}
 		} else {

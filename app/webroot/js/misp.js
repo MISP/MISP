@@ -2,9 +2,16 @@ String.prototype.ucfirst = function() {
 	return this.charAt(0).toUpperCase() + this.slice(1);
 }
 
+if (!String.prototype.startsWith) {
+  String.prototype.startsWith = function(searchString, position) {
+    position = position || 0;
+    return this.indexOf(searchString, position) === position;
+  };
+}
+
 function deleteObject(type, action, id, event) {
 	var destination = 'attributes';
-	var alternateDestinations = ['shadow_attributes', 'template_elements', 'taxonomies', 'objects', 'object_references'];
+	var alternateDestinations = ['shadow_attributes', 'template_elements', 'taxonomies', 'galaxy_clusters', 'objects', 'object_references'];
 	if (alternateDestinations.indexOf(type) > -1) destination = type;
 	else destination = type;
 	url = "/" + destination + "/" + action + "/" + id;
@@ -22,9 +29,39 @@ function quickDeleteSighting(id, rawId, context) {
 	});
 }
 
+function quickAddSighting(clicked, id, value) {
+    var btn = $(clicked);
+    var html = '<div>'
+        + '<button class="btn btn-primary" onclick="fetchAddSightingForm(\''+id+'\', false)">'+'id'+'</button>'
+        + '<button class="btn btn-primary" style="margin-left:5px;" onclick="fetchAddSightingForm(\''+id+'\', true)">'+value+'</button>'
+        + '</div>';
+    if (!btn.data('popover')) {
+        btn.popover({
+        	content: html,
+        	placement: 'left',
+        	html: true,
+        	trigger: 'click',
+        	container: 'body'
+        }).popover('show');
+    }
+}
+function fetchAddSightingForm(id, onvalue) {
+	var url = "/sightings/quickAdd/" + id;
+    if (onvalue) {
+        url = url + "/1";
+    } else {
+        url = url + "/0";
+    }
+	$.get(url, function(data) {
+		$("#confirmation_box").html(data);
+		openPopup("#confirmation_box");
+	});
+}
+
 function publishPopup(id, type) {
 	var action = "alert";
 	if (type == "publish") action = "publish";
+    if (type == "unpublish") action = "unpublish";
 	var destination = 'attributes';
 	$.get( "/events/" + action + "/" + id, function(data) {
 		$("#confirmation_box").html(data);
@@ -73,6 +110,7 @@ function cancelPrompt(isolated) {
 	}
 	$("#confirmation_box").fadeOut();
 	$("#confirmation_box").empty();
+	$('.have-a-popover').popover('destroy');
 }
 
 function submitDeletion(context_id, action, type, id) {
@@ -269,14 +307,17 @@ function acceptObject(type, id, event) {
 	});
 }
 
-function toggleCorrelation(id) {
+function toggleCorrelation(id, skip_reload) {
+    if (typeof skip_reload === "undefined") {
+        skip_reload = false;
+    }
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
 		},
 		data: $('#PromptForm').serialize(),
 		success:function (data, textStatus) {
-			handleGenericAjaxResponse(data);
+			handleGenericAjaxResponse(data, skip_reload);
 			$("#correlation_toggle_" + id).prop('checked', !$("#correlation_toggle_" + id).is(':checked'));
 		},
 		complete:function() {
@@ -301,6 +342,10 @@ function updateIndex(id, context, newPage) {
 	if (typeof newPage !== 'undefined') page = newPage;
 	var url, div;
 	if (context == 'event') {
+		if (typeof currentUri == 'undefined') {
+			location.reload();
+			return true;
+		}
 		url = currentUri;
 		div = "#attributes_div";
 	}
@@ -374,6 +419,7 @@ function activateField(type, id, field, event) {
 	});
 }
 
+
 function submitQuickTag(form) {
 	$('#' + form).submit();
 }
@@ -419,6 +465,26 @@ function postActivationScripts(name, type, id, field, event) {
 	$(name + '_solid').hide();
 }
 
+function quickEditHover(td, type, id, field, event) {
+    var $td = $(td);
+    $td.find('#quickEditButton').remove(); // clean all similar if exist
+    var $div = $('<div id="quickEditButton"></div>');
+    $div.addClass('quick-edit-row-div');
+    var $span = $('<span></span>');
+    $span.addClass('fa-as-icon fa fa-edit');
+    $span.css('font-size', '12px');
+    $div.append($span);
+    $td.find("[id*=_solid]").append($div);
+
+    $span.click(function() {
+        activateField(type, id, field, event);
+    });
+
+    $td.off('mouseleave').on('mouseleave', function() {
+        $div.remove();
+    });
+}
+
 function addSighting(type, attribute_id, event_id, page) {
 	$('#Sighting_' + attribute_id + '_type').val(type);
 	$.ajax({
@@ -431,7 +497,11 @@ function addSighting(type, attribute_id, event_id, page) {
 				$('.sightingsCounter').each(function( counter ) {
 					$(this).html(parseInt($(this).html()) + 1);
 				});
-				updateIndex(event_id, 'event');
+				if (typeof currentUri == 'undefined') {
+					location.reload();
+				} else {
+					updateIndex(event_id, 'event');
+				}
 			}
 		},
 		error:function() {
@@ -490,8 +560,9 @@ function submitForm(type, id, field, context) {
 	return false;
 };
 
-function quickSubmitTagForm(event_id, tag_id) {
-	$('#EventTag').val(tag_id);
+function quickSubmitTagForm(selected_tag_ids, addData) {
+	var event_id = addData.id;
+	$('#EventTag').val(JSON.stringify(selected_tag_ids));
 	$.ajax({
 		data: $('#EventSelectTagForm').closest("form").serialize(),
 		beforeSend: function (XMLHttpRequest) {
@@ -499,11 +570,13 @@ function quickSubmitTagForm(event_id, tag_id) {
 		},
 		success:function (data, textStatus) {
 			loadEventTags(event_id);
+            loadGalaxies(event_id, 'event');
 			handleGenericAjaxResponse(data);
 		},
 		error:function() {
 			showMessage('fail', 'Could not add tag.');
 			loadEventTags(event_id);
+            loadGalaxies(event_id, 'event');
 		},
 		complete:function() {
 			$("#popover_form").fadeOut();
@@ -516,8 +589,9 @@ function quickSubmitTagForm(event_id, tag_id) {
 	return false;
 }
 
-function quickSubmitAttributeTagForm(attribute_id, tag_id) {
-	$('#AttributeTag').val(tag_id);
+function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
+	var attribute_id = addData.id;
+	$('#AttributeTag').val(JSON.stringify(selected_tag_ids));
 	if (attribute_id == 'selected') {
 		$('#AttributeAttributeIds').val(getSelected());
 	}
@@ -531,12 +605,14 @@ function quickSubmitAttributeTagForm(attribute_id, tag_id) {
 				updateIndex(0, 'event');
 			} else {
 				loadAttributeTags(attribute_id);
+                loadGalaxies(attribute_id, 'attribute');
 			}
 			handleGenericAjaxResponse(data);
 		},
 		error:function() {
 			showMessage('fail', 'Could not add tag.');
 			loadAttributeTags(attribute_id);
+            loadGalaxies(attribute_id, 'attribute');
 		},
 		complete:function() {
 			$("#popover_form").fadeOut();
@@ -547,6 +623,47 @@ function quickSubmitAttributeTagForm(attribute_id, tag_id) {
 		url:"/attributes/addTag/" + attribute_id
 	});
 	return false;
+}
+
+function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
+	var tag_collection_id = addData.id;
+	$('#TagCollectionTag').val(JSON.stringify(selected_tag_ids));
+	$.ajax({
+		data: $('#TagCollectionSelectTagForm').closest("form").serialize(),
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data, textStatus) {
+			handleGenericAjaxResponse(data);
+            refreshTagCollectionRow(tag_collection_id);
+		},
+		error:function() {
+			showMessage('fail', 'Could not add tag.');
+			loadTagCollectionTags(tag_collection_id);
+		},
+		complete:function() {
+			$("#popover_form").fadeOut();
+			$("#gray_out").fadeOut();
+			$(".loading").hide();
+		},
+		type:"post",
+		url:"/tag_collections/addTag/" + tag_collection_id
+	});
+	return false;
+}
+
+function refreshTagCollectionRow(tag_collection_id) {
+    $.ajax({
+        type:"get",
+        url:"/tag_collections/getRow/" + tag_collection_id,
+        error:function() {
+            showMessage('fail', 'Could not fetch updates to the modified row.');
+        },
+        success: function (data, textStatus) {
+            $('[data-row-id="' + tag_collection_id + '"]').replaceWith(data);
+        }
+    });
+
 }
 
 function handleAjaxEditResponse(data, name, type, id, field, event) {
@@ -570,16 +687,25 @@ function handleAjaxEditResponse(data, name, type, id, field, event) {
 	}
 }
 
-function handleGenericAjaxResponse(data) {
+function handleGenericAjaxResponse(data, skip_reload) {
+	if (typeof skip_reload === "undefined") {
+        skip_reload = false;
+    }
 	if (typeof data == 'string') {
 		responseArray = JSON.parse(data);
 	} else {
 		responseArray = data;
 	}
+
+	// remove remaining popovers
+	cancelPrompt();
+	// in case the origin node has been deleted (e.g. tags)
+	$('.popover').remove();
+
 	if (responseArray.saved) {
 		showMessage('success', responseArray.success);
 		if (responseArray.hasOwnProperty('check_publish')) {
-			checkAndSetPublishedInfo();
+			checkAndSetPublishedInfo(skip_reload);
 		}
 		return true;
 	} else {
@@ -723,7 +849,8 @@ function multiSelectAction(event, context) {
 }
 
 function editSelectedAttributes(event) {
-	simplePopup("/attributes/editSelected/" + event);
+	var selectedAttributeIds = getSelected();
+	simplePopup("/attributes/editSelected/" + event + "/" + selectedAttributeIds);
 }
 
 function addSelectedTaxonomies(taxonomy) {
@@ -777,6 +904,32 @@ function loadEventTags(id) {
 	});
 }
 
+function loadGalaxies(id, scope) {
+	$.ajax({
+		dataType:"html",
+		cache: false,
+		success:function (data, textStatus) {
+            if (scope == 'event') {
+			    $("#galaxies_div").html(data);
+            } else if (scope == 'attribute') {
+                $("#attribute_" + id + "_galaxy").html(data);
+            }
+		},
+		url:"/galaxies/showGalaxies/" + id + "/" + scope,
+	});
+}
+
+function loadTagCollectionTags(id) {
+	$.ajax({
+		dataType:"html",
+		cache: false,
+		success:function (data, textStatus) {
+			$(".tagCollectionTagContainer").html(data);
+		},
+		url:"/tags/showEventTag/" + id,
+	});
+}
+
 function removeEventTag(event, tag) {
 	var answer = confirm("Are you sure you want to remove this tag from the event?");
 	if (answer) {
@@ -812,10 +965,9 @@ function loadAttributeTags(id) {
 	});
 }
 
-function removeObjectTagPopup(context, object, tag) {
+function removeObjectTagPopup(clicked, context, object, tag) {
 	$.get( "/" + context + "s/removeTag/" + object + '/' + tag, function(data) {
-		$("#confirmation_box").html(data);
-		openPopup("#confirmation_box");
+		openPopover(clicked, data);
 	});
 }
 
@@ -834,6 +986,8 @@ function removeObjectTag(context, object, tag) {
 			$("#gray_out").fadeOut();
 			if (context == 'Attribute') {
 				loadAttributeTags(object);
+            } else if (context == 'tag_collection') {
+                refreshTagCollectionRow(object);
 			} else {
 				loadEventTags(object);
 			}
@@ -844,6 +998,11 @@ function removeObjectTag(context, object, tag) {
 		}
 	});
 	return false;
+}
+
+function redirectAddObject(templateId, additionalData) {
+	var eventId = additionalData['event_id'];
+	window.location = '/objects/add/' + eventId + '/' + templateId;
 }
 
 function clickCreateButton(event, type) {
@@ -1248,9 +1407,61 @@ function openPopup(id) {
 	$(id).fadeIn();
 }
 
-function getMitreMatrixPopup(id) {
+function openPopover(clicked, data) {
+	/* popup handling */
+	var $clicked = $(clicked);
+	var randomId = Math.random().toString(36).substr(2,9); // used to recover the button that triggered the popover (so that we can destroy the popover)
+	var loadingHtml = '<div style="height: 75px; width: 75px;"><div class="spinner"></div><div class="loadingText">Loading</div></div>';
+	$clicked.attr('data-dismissid', randomId);
+	var closeButtonHtml = '<button type="button" class="close" style="margin-left: 5px;" onclick="$(&apos;[data-dismissid=&quot;' + randomId + '&quot;]&apos;).popover(\'destroy\');">×</button>';
+
+	if (!$clicked.data('popover')) {
+		$clicked.addClass('have-a-popover');
+		$clicked.popover({
+			html: true,
+			trigger: 'manual',
+			content: loadingHtml,
+			container: 'body',
+			template: '<div class="popover" role="tooltip" data-dismissid="' + randomId + '"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"><div class="data-content"></div></div></div>'
+		})
+		.on('shown.bs.popover', function(event) {
+			var $this = $(this);
+			var title = $this.attr('title');
+			var popover = $('div.popover[data-dismissid="' + randomId + '"]');
+			title = title === "" ? $this.attr('data-original-title') : title;
+
+			if (title === "") {
+				title = "&nbsp;";
+				// adjust popover position (title was empty)
+				var top = popover.offset().top;
+				popover.css('top', (top-17) + 'px');
+			}
+			var popoverTitle = popover.find('h3.popover-title');
+			popoverTitle.html(title + closeButtonHtml);
+		})
+		.popover('show')
+		.on('keydown.volatilePopover', function(e) {
+			if(e.keyCode == 27) { // ESC
+				$(this).popover('destroy');
+				$(this).off('keydown.volatilePopover');
+			}
+		});
+	} else {
+		// $clicked.popover('show');
+	}
+	var popover = $clicked.data('popover');
+
+	if (data === undefined) {
+		return popover
+	} else if (popover.options.content !== data) {
+		popover.options.content =  data;
+		$clicked.popover('show');
+	}
+}
+
+function getMitreMatrixPopup(scope_id, scope) {
 	cancelPopoverForm();
-	getPopup(scope_id + '/' + id, 'events', 'viewMitreAttackMatrix', '', '#popover_form_large');
+	getPopup(scope + '/' + scope_id, 'events', 'viewMitreAttackMatrix', '', '#popover_form_large');
 }
 
 function getPopup(id, context, target, admin, popupType) {
@@ -1282,6 +1493,67 @@ function getPopup(id, context, target, admin, popupType) {
 		},
 		url: url
 	});
+}
+
+// Same as getPopup function but create a popover to populate first
+function popoverPopup(clicked, id, context, target, admin) {
+	var url = "";
+	if (typeof admin !== 'undefined' && admin != '') url+= "/admin";
+	if (context != '') {
+		url += "/" + context;
+	}
+	if (target != '') url += "/" + target;
+	if (id != '') url += "/" + id;
+	var popover = openPopover(clicked, undefined);
+	$clicked = $(clicked);
+
+	// actual request //
+	$.ajax({
+		dataType:"html",
+		async: true,
+		cache: false,
+		success:function (data, textStatus) {
+			if (popover.options.content !== data) {
+				popover.options.content =  data;
+				$clicked.popover('show');
+			}
+		},
+		error:function() {
+			popover.options.content =  '<div class="alert alert-error" style="margin-bottom: 0px;">Something went wrong - the queried function returned an exception. Contact your administrator for further details (the exception has been logged).</div>';
+			$clicked.popover('show');
+		},
+		url: url
+	});
+}
+
+// create a confirm popover on the clicked html node.
+function popoverConfirm(clicked) {
+    var $clicked = $(clicked);
+	var popoverContent = '<div>';
+		popoverContent += '<button id="popoverConfirmOK" class="btn btn-primary" onclick=submitPopover(this)>Yes</button>';
+		popoverContent += '<button class="btn btn-inverse" style="float: right;" onclick=cancelPrompt()>Cancel</button>';
+	popoverContent += '</div>';
+	openPopover($clicked, popoverContent);
+	$("#popoverConfirmOK")
+	.focus()
+	.bind("keydown", function(e) {
+		if (e.ctrlKey && (e.keyCode == 13 || e.keyCode == 10)) {
+			$(this).click();
+		}
+		if(e.keyCode == 27) { // ESC
+			$clicked.popover('destroy');
+		}
+	});
+}
+
+function submitPopover(clicked) {
+	var $clicked = $(clicked);
+	var $form = $clicked.closest('form');
+	if ($form.length === 0) { // popover container is body, submit from original node
+		var dismissid = $clicked.closest('div.popover').attr('data-dismissid');
+		$form = $('[data-dismissid="' + dismissid + '"]').closest('form');
+	}
+	$form.submit();
 }
 
 function simplePopup(url) {
@@ -1458,7 +1730,7 @@ function indexEvaluateFiltering() {
 		} else {
 			$('#value_hasproposal').html("");
 		}
-		if (filtering.date.from != null || filtering.date.from != null) {
+		if (filtering.date.from != null) {
 			var text = "";
 			if (filtering.date.from != "") text = "From: " + $('<span>').text(filtering.date.from).html();
 			if (filtering.date.until != "") {
@@ -1666,7 +1938,7 @@ function indexAddRule(param) {
 			var operator = operators[escape($('#EventSearchbool').val())];
 			if (value != "" && filtering[param.data.param1][operator].indexOf(value) < 0) filtering[param.data.param1][operator].push(value);
 		}
-	} else if (filterContext = 'user') {
+	} else if (filterContext == 'user') {
 		if (differentFilters.indexOf(param.data.param1) != -1) {
 			var value = escape($('#UserSearch' + param.data.param1).val());
 			if (value != "") filtering[param.data.param1] = value;
@@ -2691,12 +2963,14 @@ function pivotObjectReferences(url, uuid) {
 	});
 }
 
-function toggleDeletedAttributes(url) {
+function toggleBoolFilter(url, param) {
 	url = url.replace(/view\//i, 'viewEventAttributes/');
-	if (url.indexOf('deleted:') > -1) {
-		url = url.replace(/\/deleted:[^\/]*/i, '');
+	if (url.indexOf(param) > -1) {
+		var replace = '\/' + param + ".+1";
+		var re = new RegExp(replace,"i");
+		url = url.replace(re, '');
 	} else {
-		url = url + '/deleted:true'
+		url = url + '/' + param + ':1'
 	}
 	$.ajax({
 		type:"get",
@@ -2770,7 +3044,7 @@ function toggleSettingSubGroup(group) {
 function runHoverLookup(type, id) {
 	$.ajax({
 		success:function (html) {
-			ajaxResults[type + "_" + id] = html;
+			ajaxResults["hover"][type + "_" + id] = html;
 			$('.popover').remove();
 			$('#' + type + '_' + id + '_container').popover({
 				title: 'Lookup results:',
@@ -2797,38 +3071,52 @@ $(".cortex-json").click(function() {
 
 // add the same as below for click popup
 $(".eventViewAttributePopup").click(function() {
+	$('#screenshot_box').empty();
 	type = $(this).attr('data-object-type');
 	id = $(this).attr('data-object-id');
-	if (!(type + "_" + id in ajaxResults)) {
+	if (!(type + "_" + id in ajaxResults["persistent"])) {
 		$.ajax({
 			success:function (html) {
-				ajaxResults[type + "_" + id] = html;
+				ajaxResults["persistent"][type + "_" + id] = html;
 			},
+			async: false,
 			cache: false,
-			url:"/attributes/hoverEnrichment/" + id,
+			url:"/attributes/hoverEnrichment/" + id + "/1",
 		});
 	}
-	if (type + "_" + id in ajaxResults) {
-		var enrichment_popover = ajaxResults[type + "_" + id];
+	if (type + "_" + id in ajaxResults["persistent"]) {
+		var enrichment_popover = ajaxResults["persistent"][type + "_" + id];
 		enrichment_popover += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
-		$('#screenshot_box').html(enrichment_popover);
+		$('#screenshot_box').html('<div class="screenshot_content">' + enrichment_popover + '</div>');
 		$('#screenshot_box').show();
 		$("#gray_out").fadeIn();
 		$('#screenshot_box').css({'padding': '5px'});
 		$('#screenshot_box').css( "maxWidth", ( $( window ).width() * 0.9 | 0 ) + "px" );
-		left = ($(window).width() / 2) - ($('#screenshot_box').width() / 2);
+		$('#screenshot_box').css( "maxHeight", ( $( window ).width() - 300 | 0 ) + "px" );
+		$('#screenshot_box').css( "overflow-y", "auto");
+
+		var left = ($(window).width() / 2) - ($('#screenshot_box').width() / 2);
 		$('#screenshot_box').css({'left': left + 'px'});
 	}
 });
+
+function flashErrorPopover() {
+	$('#popover_form').css( "minWidth", "200px");
+	$('#popover_form').html($('#flashErrorMessage').html());
+	$('#popover_form').show();
+	var left = ($(window).width() / 2) - ($('#popover_form').width() / 2);
+	$('#popover_form').css({'left': left + 'px'});
+	$("#gray_out").fadeIn();
+}
 
 $(".eventViewAttributeHover").mouseenter(function() {
 	$('.popover').remove();
 	type = $(this).attr('data-object-type');
 	id = $(this).attr('data-object-id');
-	if (type + "_" + id in ajaxResults) {
+	if (type + "_" + id in ajaxResults["hover"]) {
 		$('#' + type + '_' + id + '_container').popover({
 			title: 'Lookup results:',
-			content: ajaxResults[type + "_" + id],
+			content: ajaxResults["hover"][type + "_" + id],
 			placement: 'top',
 			html: true,
 			trigger: 'hover',
@@ -3133,26 +3421,64 @@ $('.galaxy-toggle-button').click(function() {
 function addGalaxyListener(id) {
 	var target_type = $(id).data('target-type');
 	var target_id = $(id).data('target-id');
-	getPopup(target_type + '/' + target_id, 'galaxies', 'selectGalaxyNamespace');
+	popoverPopup(id, target_id + '/' + target_type, 'galaxies', 'selectGalaxyNamespace');
 }
 
-function quickSubmitGalaxyForm(event_id, cluster_id) {
-	$('#GalaxyTargetId').val(cluster_id);
-	$('#GalaxySelectClusterForm').submit();
+function quickSubmitGalaxyForm(cluster_ids, additionalData) {
+	var target_id = additionalData['target_id'];
+	var scope = additionalData['target_type'];
+	$('#GalaxyTargetIds').val(JSON.stringify(cluster_ids));
+	if (target_id == 'selected') {
+		$('#AttributeAttributeIds').val(getSelected());
+	}
+	$.ajax({
+		data: $('#GalaxySelectClusterForm').closest("form").serialize(),
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data, textStatus) {
+			if (target_id === 'selected') {
+				location.reload();
+			} else {
+				if (scope == 'tag_collection') {
+					location.reload();
+				} else {
+					loadGalaxies(target_id, scope);
+					handleGenericAjaxResponse(data);
+				}
+			}
+		},
+		error:function() {
+			showMessage('fail', 'Could not add cluster.');
+			loadGalaxies(target_id, scope);
+		},
+		complete:function() {
+			$("#popover_form").fadeOut();
+			$("#gray_out").fadeOut();
+			$(".loading").hide();
+		},
+		type:"post",
+        url: "/galaxies/attachMultipleClusters/" + target_id + "/" + scope
+	});
 	return false;
 }
 
-function checkAndSetPublishedInfo() {
+function checkAndSetPublishedInfo(skip_reload) {
+	if (typeof skip_reload === "undefined") {
+		skip_reload = false;
+	}
 	var id = $('#hiddenSideMenuData').data('event-id');
-	$.get( "/events/checkPublishedStatus/" + id, function(data) {
-		if (data == 1) {
-			$('.published').removeClass('hidden');
-			$('.not-published').addClass('hidden');
-		} else {
-			$('.published').addClass('hidden');
-			$('.not-published').removeClass('hidden');
-		}
-	});
+	if (id !== 'undefined' && !skip_reload) {
+		$.get( "/events/checkPublishedStatus/" + id, function(data) {
+			if (data == 1) {
+				$('.published').removeClass('hidden');
+				$('.not-published').addClass('hidden');
+			} else {
+				$('.published').addClass('hidden');
+				$('.not-published').removeClass('hidden');
+			}
+		});
+	}
 }
 
 $(document).keyup(function(e){
@@ -3445,11 +3771,19 @@ $(document).ready(function() {
 
 function queryEventLock(event_id, user_org_id) {
 	if (tabIsActive) {
-		$.get( "/events/checkLocks/" + event_id, function(data) {
-			if ($('#event_lock_warning').length != 0) {
-				$('#event_lock_warning').remove();
+		$.ajax({
+			url: "/events/checkLocks/" + event_id,
+			type: "get",
+			success: function(data, statusText, xhr) {
+				 if (xhr.status == 200) {
+					 if ($('#event_lock_warning').length != 0) {
+ 						$('#event_lock_warning').remove();
+ 					}
+ 					if (data.startsWith('Warning:')) {
+ 						$('#main-view-container').append(data);
+ 					}
+				 }
 			}
-			$('#main-view-container').append(data);
 		});
 	}
 	setTimeout(function() { queryEventLock(event_id, user_org_id); }, 5000);

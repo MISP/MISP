@@ -52,6 +52,9 @@ class Tag extends AppModel
         ),
         'AttributeTag' => array(
             'dependent' => true
+        ),
+        'TagCollectionTag' => array(
+            'dependent' => true
         )
     );
 
@@ -197,7 +200,7 @@ class Tag extends AppModel
         $ids = array();
         $tag_ids = array();
         if (!is_array($array)) {
-          $array = array($array);
+            $array = array($array);
         }
         foreach ($array as $k => $tag) {
             if (is_numeric($tag)) {
@@ -208,7 +211,7 @@ class Tag extends AppModel
         $array = array_values($array);
         if (!empty($array)) {
             foreach ($array as $a) {
-                $conditions['OR'][] = array('LOWER(Tag.name) like' => strtolower($a));
+                $conditions['OR'][] = array('Tag.name like' => $a);
             }
             $params = array(
                     'recursive' => 1,

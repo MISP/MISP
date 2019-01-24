@@ -116,7 +116,7 @@ class OrganisationsController extends AppController
             }
             if ($this->Organisation->save($this->request->data)) {
                 if (isset($this->request->data['Organisation']['logo']['size']) && $this->request->data['Organisation']['logo']['size'] > 0 && $this->request->data['Organisation']['logo']['error'] == 0) {
-                    $filename = basename($this->request->data['Organisation']['id'] . '.png');
+                    $filename = basename($this->Organisation->id . '.png');
                     if (preg_match("/^[0-9a-z\-\_\.]*\.(png)$/i", $filename)) {
                         if (!empty($this->request->data['Organisation']['logo']['tmp_name']) && is_uploaded_file($this->request->data['Organisation']['logo']['tmp_name'])) {
                             $result = move_uploaded_file($this->request->data['Organisation']['logo']['tmp_name'], APP . 'webroot/img/orgs/' . $filename);
@@ -171,8 +171,8 @@ class OrganisationsController extends AppController
                     } else {
                         $temp['Organisation'][$field] = $existingOrg['Organisation'][$field];
                     }
-                    $this->request->data = $temp;
                 }
+                $this->request->data = $temp;
             }
             $this->request->data['Organisation']['id'] = $id;
             if ($this->Organisation->save($this->request->data)) {

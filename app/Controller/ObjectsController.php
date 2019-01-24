@@ -194,6 +194,7 @@ class ObjectsController extends AppController
                 $error = 'Could not save the object as no attributes were set.';
             } else {
                 foreach ($object['Attribute'] as $k => $attribute) {
+                    unset($object['Attribute'][$k]['id']);
                     $object['Attribute'][$k]['event_id'] = $eventId;
                     $this->MispObject->Event->Attribute->set($attribute);
                     if (!$this->MispObject->Event->Attribute->validates()) {
@@ -220,8 +221,9 @@ class ObjectsController extends AppController
                     $error = $this->MispObject->ObjectTemplate->checkTemplateConformity($template, $object);
                 }
                 if ($error === true) {
+                    unset($object['Object']['id']);
                     $result = $this->MispObject->saveObject($object, $eventId, $template, $this->Auth->user(), $errorBehaviour = 'halt');
-                    if ($result === true) {
+                    if (is_numeric($result)) {
                         $this->MispObject->Event->unpublishEvent($eventId);
                     }
                 } else {
@@ -234,6 +236,10 @@ class ObjectsController extends AppController
                             'conditions' => array('Object.id' => $result),
                             'contain' => array('Attribute')
                         ));
+						if (!empty($object)) {
+							$object['Object']['Attribute'] = $object['Attribute'];
+							unset($object['Attribute']);
+						}
                         return $this->RestResponse->viewData($object, $this->response->type());
                     } else {
                         return $this->RestResponse->saveFailResponse('Objects', 'add', false, $error, $this->response->type());
@@ -370,6 +376,10 @@ class ObjectsController extends AppController
                             'conditions' => array('Object.id' => $id),
                             'contain' => array('Attribute')
                         ));
+						if (!empty($objectToSave)) {
+							$objectToSave['Object']['Attribute'] = $objectToSave['Attribute'];
+							unset($objectToSave['Attribute']);
+						}
                         $this->MispObject->Event->unpublishEvent($object['Object']['event_id']);
                         return $this->RestResponse->viewData($objectToSave, $this->response->type());
                     } else {

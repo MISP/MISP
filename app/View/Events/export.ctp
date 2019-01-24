@@ -37,7 +37,7 @@
                 <td>
                     <?php
                         echo $type['description'];
-                        if ($type['canHaveAttachments']):
+                        if (!empty($type['params']['includeAttachments'])):
                             if (Configure::read('MISP.cached_attachments')):
                     ?>
                         <span class="green"> (<?php echo __('Attachments are enabled on this instance');?>)</span>

@@ -355,6 +355,19 @@ class Warninglist extends AppModel
         return false;
     }
 
+    public function quickCheckValue($listValues, $value, $type)
+    {
+        $typeMapping = array(
+            'cidr' => '__evalCIDRList',
+            'string' => '__evalString',
+            'substring' => '__evalSubString',
+            'hostname' => '__evalHostname',
+            'regex' => '__evalRegex'
+        );
+        $result = $this->{$typeMapping[$type]}($listValues, $value);
+        return (!empty($result) ? 1 : false);
+    }
+
     // This requires an IP type attribute in a non CIDR notation format
     // For the future we can expand this to look for CIDR overlaps?
     private function __evalCIDRList($listValues, $value)

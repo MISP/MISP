@@ -23,6 +23,7 @@
 App::uses('Model', 'Model');
 App::uses('LogableBehavior', 'Assets.models/behaviors');
 App::uses('BlowfishPasswordHasher', 'Controller/Component/Auth');
+App::uses('RandomTool', 'Tools');
 class AppModel extends Model
 {
     public $name;
@@ -69,8 +70,9 @@ class AppModel extends Model
     public $db_changes = array(
         1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false,
         7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
-        13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false, 
-	21 => false
+        13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false,
+        21 => false, 22 => false, 23 => false, 24 => false, 25 => false, 26 => false,
+        27 => false, 28 => false
     );
 
     public function afterSave($created, $options = array())
@@ -162,6 +164,9 @@ class AppModel extends Model
                 break;
             case 12:
                 $this->__forceSettings();
+                break;
+            case 23:
+                $this->__bumpReferences();
                 break;
             default:
                 $this->updateDatabase($command);
@@ -258,7 +263,7 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `users` ADD `external_auth_required` tinyint(1) NOT NULL DEFAULT 0;";
                 $sqlArray[] = 'ALTER TABLE `users` ADD `external_auth_key` text COLLATE utf8_bin;';
                 break;
-            case '24betaupdates':
+            case 'x24betaupdates':
                 $sqlArray = array();
                 $sqlArray[] = "ALTER TABLE `shadow_attributes` ADD  `proposal_to_delete` tinyint(1) NOT NULL DEFAULT 0;";
 
@@ -1040,6 +1045,50 @@ class AppModel extends Model
                 $sqlArray[] = 'ALTER TABLE `taxonomy_predicates` ADD COLUMN numerical_value int(11) NULL;';
                 $sqlArray[] = 'ALTER TABLE `taxonomy_entries` ADD COLUMN numerical_value int(11) NULL;';
                 break;
+            case 22:
+                $sqlArray[] = 'ALTER TABLE `object_references` MODIFY `deleted` tinyint(1) NOT NULL default 0;';
+                break;
+            case 24:
+                $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+                if (empty($this->GalaxyCluster->schema('collection_uuid'))) {
+                    $sqlArray[] = 'ALTER TABLE `galaxy_clusters` CHANGE `uuid` `collection_uuid` varchar(255) COLLATE utf8_bin NOT NULL;';
+                    $sqlArray[] = 'ALTER TABLE `galaxy_clusters` ADD COLUMN `uuid` varchar(255) COLLATE utf8_bin NOT NULL default \'\';';
+                }
+                break;
+            case 25:
+                $this->__dropIndex('galaxy_clusters', 'uuid');
+                $this->__addIndex('galaxy_clusters', 'uuid');
+                $this->__addIndex('galaxy_clusters', 'collection_uuid');
+                break;
+            case 26:
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS tag_collections (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+                    `user_id` int(11) NOT NULL,
+                    `org_id` int(11) NOT NULL,
+                    `name` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+                    `description` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+                    `all_orgs` tinyint(1) NOT NULL DEFAULT 0,
+                    PRIMARY KEY (id),
+                    INDEX `uuid` (`uuid`),
+                    INDEX `user_id` (`user_id`),
+                    INDEX `org_id` (`org_id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                $sqlArray[] = "CREATE TABLE IF NOT EXISTS tag_collection_tags (
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `tag_collection_id` int(11) NOT NULL,
+                    `tag_id` int(11) NOT NULL,
+                    PRIMARY KEY (id),
+                    INDEX `uuid` (`tag_collection_id`),
+                    INDEX `user_id` (`tag_id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                break;
+            case 27:
+                $sqlArray[] = 'ALTER TABLE `tags` CHANGE `org_id` `org_id` int(11) NOT NULL DEFAULT 0;';
+                break;
+            case 28:
+                $sqlArray[] = "ALTER TABLE `servers` ADD `caching_enabled` tinyint(1) NOT NULL DEFAULT 0;";
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1201,6 +1250,15 @@ class AppModel extends Model
         $version_array = json_decode($file->read(), true);
         $file->close();
         return $version_array;
+    }
+
+    public function getPythonVersion()
+    {
+        if (!empty(Configure::read('MISP.python_bin'))) {
+            return Configure::read('MISP.python_bin');
+        } else {
+            return 'python3';
+        }
     }
 
     public function validateAuthkey($value)
@@ -1685,12 +1743,18 @@ class AppModel extends Model
         }
         foreach ($filter as $operator => $filters) {
             $temp = array();
-			if (!is_array($filters)) {
-				$filters = array($filters);
-			}
+            if (!is_array($filters)) {
+                $filters = array($filters);
+            }
             foreach ($filters as $f) {
+                if ($f === -1) {
+                    foreach ($keys as $key) {
+                        $temp['OR'][$key][] = -1;
+                    }
+                    continue;
+                }
                 // split the filter params into two lists, one for substring searches one for exact ones
-                if ($f[strlen($f) - 1] === '%' || $f[0] === '%') {
+                if (is_string($f) && ($f[strlen($f) - 1] === '%' || $f[0] === '%')) {
                     foreach ($keys as $key) {
                         if ($operator === 'NOT') {
                             $temp[] = array($key . ' NOT LIKE' => $f);
@@ -1741,14 +1805,129 @@ class AppModel extends Model
         if (!isset($filter['OR']) && !isset($filter['NOT']) && !isset($filter['AND'])) {
             $temp = array();
             foreach ($filter as $param) {
-                if ($param[0] === '!') {
-                    $temp['NOT'][] = substr($param, 1);
-                } else {
-                    $temp['OR'][] = $param;
+                if (!empty($param)) {
+                    if ($param[0] === '!') {
+                        $temp['NOT'][] = substr($param, 1);
+                    } else {
+                        $temp['OR'][] = $param;
+                    }
                 }
             }
             $filter = $temp;
         }
         return $filter;
     }
+
+    public function convert_to_memory_limit_to_mb($val)
+    {
+        $val = trim($val);
+        if ($val == -1) {
+            // default to 8GB if no limit is set
+            return 8 * 1024;
+        }
+        $unit = $val[strlen($val)-1];
+        if (is_numeric($unit)) {
+            $unit = 'b';
+        } else {
+            $val = intval($val);
+        }
+        $unit = strtolower($unit);
+        switch ($unit) {
+            case 'g':
+                $val *= 1024;
+                // no break
+            case 'm':
+                $val *= 1024;
+                // no break
+            case 'k':
+                $val *= 1024;
+        }
+        return $val / (1024 * 1024);
+    }
+
+    public function getDefaultAttachments_dir()
+    {
+        return APP . 'files';
+    }
+
+    public function getDefaultTmp_dir()
+    {
+        return sys_get_temp_dir();
+    }
+
+    private function __bumpReferences()
+    {
+        $this->Event = ClassRegistry::init('Event');
+        $this->AdminSetting = ClassRegistry::init('AdminSetting');
+        $existingSetting = $this->AdminSetting->find('first', array(
+            'conditions' => array('AdminSetting.setting' => 'update_23')
+        ));
+        if (empty($existingSetting)) {
+            $this->AdminSetting->create();
+            $data = array(
+                'setting' => 'update_23',
+                'value' => 1
+            );
+            $this->AdminSetting->save($data);
+            $references = $this->Event->Object->ObjectReference->find('list', array(
+                'recursive' => -1,
+                'fields' => array('ObjectReference.event_id', 'ObjectReference.event_id'),
+                'group' => array('ObjectReference.event_id')
+            ));
+            $event_ids = array();
+            $object_ids = array();
+            foreach ($references as $reference) {
+                $event = $this->Event->find('first', array(
+                    'conditions' => array(
+                        'Event.id' => $reference,
+                        'Event.locked' => 0
+                    ),
+                    'recursive' => -1,
+                    'fields' => array('Event.id', 'Event.locked')
+                ));
+                if (!empty($event)) {
+                    $event_ids[] = $event['Event']['id'];
+                    $event_references = $this->Event->Object->ObjectReference->find('list', array(
+                        'conditions' => array('ObjectReference.event_id' => $reference),
+                        'recursive' => -1,
+                        'fields' => array('ObjectReference.object_id', 'ObjectReference.object_id')
+                    ));
+                    $object_ids = array_merge($object_ids, array_values($event_references));
+                }
+            }
+            if (!empty($object_ids)) {
+                $this->Event->Object->updateAll(
+                    array(
+                    'Object.timestamp' => 'Object.timestamp + 1'
+                    ),
+                    array('Object.id' => $object_ids)
+                );
+                $this->Event->updateAll(
+                    array(
+                    'Event.timestamp' => 'Event.timestamp + 1'
+                    ),
+                    array('Event.id' => $event_ids)
+                );
+            }
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            $entry = array(
+                    'org' => 'SYSTEM',
+                    'model' => 'Server',
+                    'model_id' => 0,
+                    'email' => 'SYSTEM',
+                    'action' => 'update_database',
+                    'user_id' => 0,
+                    'title' => 'Bumped the timestamps of locked events containing object references.',
+                    'change' => sprintf('Event timestamps updated: %s; Object timestamps updated: %s', count($event_ids), count($object_ids))
+            );
+            $this->Log->save($entry);
+        }
+        return true;
+    }
+
+	public function generateRandomFileName()
+	{
+		return (new RandomTool())->random_str(false, 12);
+	}
 }

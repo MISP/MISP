@@ -79,6 +79,7 @@
             <td class="short action-links">
                 <?php echo $this->Html->link('', array('controller' => 'galaxies', 'action' => 'viewGraph', $item['GalaxyCluster']['id']), array('class' => 'fa fa-share-alt', 'title' => 'View graph'));?>
                 <?php echo $this->Html->link('', array('action' => 'view', $item['GalaxyCluster']['id']), array('class' => 'icon-list-alt', 'title' => 'View'));?>
+				<span class="icon-trash useCursorPointer" title="<?php echo __('Delete galaxy cluster');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete galaxy cluster');?>" onClick="deleteObject('galaxy_clusters', 'delete', '<?php echo h($item['GalaxyCluster']['id']); ?>', '<?php echo h($item['GalaxyCluster']['id']); ?>');"></span>
             </td>
         </tr>
     <?php

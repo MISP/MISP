@@ -1,7 +1,8 @@
 <div class="event index">
     <h2><?php echo __('Automation');?></h2>
     <p><?php echo __('Automation functionality is designed to automatically feed other tools and systems with the data in your MISP repository.
-    To to make this functionality available for automated tools an authentication key is used.');?><br/>
+    To to make this functionality available for automated tools an authentication key is used.');?>
+    <br />You can use the <a href="<?php echo $baseurl;?>/servers/rest">ReST client</a> to test your API queries against your MISP and export the resulting tuned queries as curl or python scripts.
     <strong><?php echo __('Make sure you keep your API key secret as it gives access to the all of the data that you normally have access to in MISP.');?></strong>
 	To view the old MISP automation page, click <a href="<?php echo $baseurl; ?>/events/automation/1">here</a>.
 	</p>
@@ -10,6 +11,7 @@
     </p>
 	<?php
 		$data = array(
+			'title' => __('Search'),
 			'description' => array(
 				__('It is possible to search the database for attributes based on a list of criteria.'),
 				__('To return an event or a list of events in a desired format, use the following syntax'),
@@ -17,6 +19,8 @@
 			),
 			'parameters' => array(
 				"returnFormat" => __('Set the return format of the search (Currently supported: json, xml, openioc, suricata, snort - more formats are being moved to restSearch with the goal being that all searches happen through this API). Can be passed as the first parameter after restSearch or via the JSON payload.'),
+				"limit" => __('Limit the number of results returned, depending on the scope (for example 10 attributes or 10 full events).'),
+				"page" => __('If a limit is set, sets the page to be returned. page 3, limit 100 will return records 201->300).'),
 				"value" => __('Search for the given value in the attributes\' value field.'),
 				"type" => __('The attribute type, any valid MISP attribute type is accepted.'),
 				"category" => __('The attribute category, any valid MISP attribute category is accepted.'),
@@ -37,14 +41,19 @@
 				"to_ids" => __('By default (0) all attributes are returned that match the other filter parameters, irregardless of their to_ids setting. To restrict the returned data set to to_ids only attributes set this parameter to 1. You can only use the special "exclude" setting to only return attributes that have the to_ids flag disabled.'),
 				"deleted" => __('If this parameter is set to 1, it will return soft-deleted attributes along with active ones. By using "only" as a parameter it will limit the returned data set to soft-deleted data only.'),
 				"includeEventUuid" => __('Instead of just including the event ID, also include the event UUID in each of the attributes.'),
-				"event_timestamp" => __('Only return attributes from events that have received a modification after the given timestamp.')
+				"event_timestamp" => __('Only return attributes from events that have received a modification after the given timestamp.'),
+				"sgReferenceOnly" => __('If this flag is set, sharing group objects will not be included, instead only the sharing group ID is set.'),
+				"eventinfo" => __("Filter on the event's info field."),
+				"searchall" => __("Search for a full or a substring (delimited by % for substrings) in the event info, event tags, attribute tags, attribute values or attribute comment fields."),
+				"requested_attributes" => __("CSV only, select the fields that you wish to include in the CSV export. By setting event level fields additionally, includeContext is not required to get event metadata."),
+				"includeContext" => __("CSV only, add additional event level data to the export. The additional fields can be added via requested_attributes too with more granularity.")
 			),
 			'url' => array(
 				$baseurl . '/attributes/restSearch',
 				$baseurl . '/events/restSearch'
 			)
 		);
-		echo sprintf('<h3>%s</h3>', __('Search'));
+		echo sprintf('<h3>%s</h3>', $data['title']);
 		echo sprintf('<p>%s</p>', implode(" ", $data['description']));
 		echo sprintf("<pre>%s</pre>", implode("\n", $data['url']));
 		foreach ($data['parameters'] as $k => $v) {
@@ -67,85 +76,17 @@
 		echo sprintf('<p>%s</p>URL:<pre>%s</pre>Headers:<pre>%s</pre>Body:<pre class="red">%s</pre>', $description, $url, $headers, $body);
 	?>
 
-    <h3><?php echo __('CSV Export');?></h3>
-    <p><?php echo __('An automatic export of attributes is available as CSV. Only attributes that are flagged "to_ids" will get exported.');?></p>
-    <p><?php echo __('You can configure your tools to automatically download the following file');?>:</p>
-    <pre><?php echo $baseurl;?>/events/csv/download/</pre>
-    <p><?php echo __('You can specify additional flags for CSV exports as follows');?>:</p>
-    <pre><?php echo $baseurl;?>/events/csv/download/[eventid]/[ignore]/[tags]/[category]/[type]/[includeContext]/[from]/[to]/[last]/[headerless]/[enforceWarninglist]</pre>
-    <p>
-    <b>eventid</b>: <?php echo __('Restrict the download to a single event');?><br />
-    <b>ignore</b>: <?php echo __('Setting this flag to true will include attributes that are not marked "to_ids".');?><br />
-    <b>tags</b>: <?php echo __('To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a \'!\'.
-    You can also chain several tag commands together with the \'&amp;&amp;\' operator. Please be aware the colons (:) cannot be used in the tag search.
-    Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use');?>:<br />
+    <h3><?php echo __('CSV specific parameters for the restSearch APIs');?></h3>
+	<p>
+		<b>requested_attributes</b>: <?php echo __('Limit the list of fields to be returned in the CSV.');?><br />
+	    <b>includeContext</b>: <?php echo __('Include the event level meta-data with each attribute.');?><br />
+	    <b>headerless</b>: <?php echo __('The CSV created when this setting is set to true will not contain the header row.'); ?>
     </p>
-    <p><?php echo __('For example, to only download a csv generated of the "domain" type and the "Network activity" category attributes all events except for the one and further restricting it to events that are tagged "tag1" or "tag2" but not "tag3", only allowing attributes that are IDS flagged use the following syntax');?>:</p>
-    <pre><?php echo $baseurl;?>/events/csv/download/false/false/tag1&amp;&amp;tag2&amp;&amp;!tag3/Network%20activity/domain</pre>
-    <p>
-    <b>category</b>: <?php echo __('The attribute category, any valid MISP attribute category is accepted.');?><br />
-    <b>type</b>: <?php echo __('The attribute type, any valid MISP attribute type is accepted.');?><br />
-    <b>includeContext</b>: <?php echo __('Include the event data with each attribute.');?><br />
-    <b>from</b>: <?php echo __('Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.');?><br />
-    <b>to</b>: <?php echo __('Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.');?><br />
-    <b>last</b>: <?php echo __('Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m).This filter will use the published timestamp of the event.');?><br />
-    <b>headerless</b>: <?php echo __('The CSV created when this setting is set to true will not contain the header row.
-    <b>enforceWarninglist</b>: All attributes that have a hit on a warninglist will be excluded.');?>
-    </p>
-    <p><?php echo __('The keywords false or null should be used for optional empty parameters in the URL.');?></p>
-    <p><?php echo __('To export the attributes of all events that are of the type "domain", use the following syntax');?>:</p>
-    <pre><?php echo $baseurl;?>/events/csv/download/false/false/false/false/domain</pre>
 
-    <h3><?php echo __('STIX export');?></h3>
-    <p><?php echo __('You can export MISP events in Mitre\'s STIX format (to read more about STIX, click <a href="https://stix.mitre.org/">here</a>). The STIX XML export is currently very slow and can lead to timeouts with larger events or collections of events. The JSON return format does not suffer from this issue. Usage');?>:</p>
-    <pre><?php echo $baseurl;?>/events/stix/download</pre>
-    <p><?php echo __('Search parameters can be passed to the function via URL parameters or by POSTing an XML or JSON object (depending on the return type). The following parameters can be passed to the STIX export tool: <code>id</code>, <code>withAttachments</code>, <code>tags</code>. Both <code>id</code> and <code>tags</code> can use the <code>&amp;&amp;</code> (and) and <code>!</code> (not) operators to build queries. Using the URL parameters, the syntax is as follows');?>:</p>
-    <pre><?php echo $baseurl;?>/events/stix/download/[id]/[withAttachments]/[tags]/[from]/[to]/[last]</pre>
+    <h3><?php echo __('RPZ specific parameters for the restSearch APIs');?></h3>
+    <p><?php echo __('>You can export RPZ zone files for DNS level firewalling by using the RPZ export functionality of MISP. The file generated will include all of the IDS flagged domain, hostname and IP-src/IP-dst attribute values that you have access to.');?></p>
     <p>
-    <b>id</b>: <?php echo __('The event\'s ID');?><br />
-    <b>withAttachments</b>: <?php echo __('Encode attachments where applicable');?><br />
-    <b>tags</b>: <?php echo __('To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a \'!\'.
-    You can also chain several tag commands together with the \'&amp;&amp;\' operator. Please be aware the colons (:) cannot be used in the tag search.
-    Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use');?>:<br />
-    </p>
-    <pre><?php echo $baseurl;?>/events/stix/download/false/true/tag1&amp;&amp;tag2&amp;&amp;!tag3</pre>
-    <p>
-    <b>from</b>: <?php echo __('Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.');?><br />
-    <b>to</b>: <?php echo __('Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.');?><br />
-    <b>last</b>: <?php echo __('Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m). This filter will use the published timestamp of the event.');?><br />
-    </p>
-    <p><?php echo __('You can post an XML or JSON object containing additional parameters in the following formats');?>:</p>
-    <p>JSON:</p>
-    <pre><?php echo $baseurl;?>/events/stix/download.json</pre>
-    <code>{"request": {"id":["!51","!62"],"withAttachment":false,"tags":["APT1","!OSINT"],"from":false,"to":"2015-02-15"}}</code><br /><br />
-    <p>XML:</p>
-    <pre><?php echo $baseurl;?>/events/stix/download</pre>
-    <code>&lt;request&gt;&lt;id&gt;!51&lt;/id&gt;&lt;id&gt;!62&lt;/id&gt;&lt;withAttachment&gt;false&lt;/withAttachment&gt;&lt;tags&gt;APT1&lt;/tags&gt;&lt;tags&gt;!OSINT&lt;/tags&gt;&lt;from&gt;false&lt;/from&gt;&lt;to&gt;2015-02-15&lt;/to&gt;&lt;/request&gt;</code><br /><br />
-    <h4><?php echo __('Various ways to narrow down the search results of the STIX export');?></h4>
-    <p><?php echo __('For example, to retrieve all events tagged "APT1" but excluding events tagged "OSINT" and excluding events #51 and #62 without any attachments');?>:
-    <pre><?php echo $baseurl;?>/events/stix/download/!51&amp;&amp;!62/false/APT1&amp;&amp;!OSINT/2015-02-15</pre>
-    <p><?php echo __('To export the same events using a POST request use');?>:</p>
-    <pre><?php echo $baseurl;?>/events/stix/download.json</pre>
-    <p><?php echo __('Together with this JSON object in the POST message');?>:</p>
-    <code>{"request": {"id":["!51","!62"],"tags":["APT1","!OSINT"],"from":"2015-02-15"}}</code><br /><br />
-    <p><?php echo __('XML is automagically assumed when using the stix export');?>:</p>
-    <pre><?php echo $baseurl;?>/events/stix/download</pre>
-    <p><?php echo __('The same search could be accomplished using the following POSTed XML object (note that ampersands need to be escaped, or alternatively separate id and tag elements can be used)');?>: </p>
-    <code>&lt;request&gt;&lt;id&gt;!51&lt;/id&gt;&lt;id&gt;!62&lt;/id&gt;&lt;tags&gt;APT1&lt;/tags&gt;&lt;tags&gt;!OSINT&lt;/tags&gt;&lt;from&gt;2015-02-15&lt;/from&gt;&lt;/request&gt;</code>
 
-    <h3><?php echo __('RPZ export');?></h3>
-    <p<?php echo __('>You can export RPZ zone files for DNS level firewalling by using the RPZ export functionality of MISP. The file generated will include all of the IDS flagged domain, hostname and IP-src/IP-dst attribute values that you have access to.');?></p>
-    <p><?php echo __('It is possible to further restrict the exported values using the following filters');?>:</p>
-    <p>
-        <b>tags</b>: <?php echo __('To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a \'!\'.
-            You can also chain several tag commands together with the \'&amp;&amp;\' operator. Please be aware the colons (:) cannot be used in the tag search when passed through the url.
-        ');?>
-            <?php echo __('Use semicolons instead (the search will automatically search for colons instead)');?>.<br />
-        <b>id</b>: <?php echo __('The event\'s ID');?><br />
-        <b>from</b>: <?php echo __('Events with the date set to a date after the one specified in the from field (format: 2015-02-03)');?><br />
-        <b>to</b>: <?php echo __('Events with the date set to a date before the one specified in the to field (format: 2015-02-03)');?><br />
-        <b>enforceWarninglist</b>: <?php echo __('All attributes that have a hit on a warninglist will be excluded.');?>
-    </p>
     <p><?php echo __('MISP will inject header values into the zone file as well as define the action taken for each of the values that can all be overriden. By default these values are either the default values shipped with the application, or ones that are overriden by your site administrator. The values are as follows');?>:</p>
     <?php foreach ($rpzSettings as $k => $v): ?>
     <b><?php echo h($k);?></b>: <?php echo h($v);?><br />
@@ -366,6 +307,21 @@
     <b>searchDatefrom</b>: <?php echo __('Filters on the date, anything newer than the given date in YYYY-MM-DD format is taken - non-negatable');?><br />
     <b>searchDateuntil</b>: <?php echo __('Filters on the date, anything older than the given date in YYYY-MM-DD format is taken - non-negatable');?><br /></p>
     <?php
+		$data = array(
+			'title' => __('Freetext Import API'),
+			'description' => array(
+				__('The freetext import tool is also exposed to the API.'),
+				__('Simply POST the contents to be parsed and either directly create attributes out of them or simply return the parsing results.'),
+				__('Use the boolean (0/1) adhere_to_warninglists and return_meta_attributes url parameters to filter out values tripping over a warninglist and to decide whether to save the attributes parsed or simply return them as meta attributes.'),
+				__('The contents of the POST body should be the text to be parsed.')
+			),
+			'url' => array(
+				$baseurl . '/[event_id]/[adhere_to_warninglists]/[return_meta_attributes]'
+			)
+		);
+		echo sprintf('<h3>%s</h3>', $data['title']);
+		echo sprintf('<p>%s</p>', implode(" ", $data['description']));
+		echo sprintf("<pre>%s</pre>", implode("\n", $data['url']));
         foreach ($command_line_functions as $clusterRef => $cluster) {
             echo sprintf('<a id="%s"></a><h3>%s</h3>', $clusterRef, $cluster['header']);
             echo sprintf('<p>%s:<br />', $cluster['description']);
@@ -374,6 +330,7 @@
             }
         }
     ?>
+
 </div>
 <?php
     echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'automation'));

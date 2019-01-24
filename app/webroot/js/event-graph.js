@@ -37,7 +37,7 @@ class EventGraph {
 		// Should be replaced later on.
 		this.mapping_meta_fa = new Map();
 		this.mapping_meta_fa.set('file', {"meta-category": "file","fa_text": "file","fa-hex": "f15b"});
-		this.mapping_meta_fa.set('financial', {"meta-category": "financial","fa_text": "money-bil-alt","fa-hex": "f3d1"});
+		this.mapping_meta_fa.set('financial', {"meta-category": "financial","fa_text": "money-bil-alt","fa-hex": "f09d"});
 		this.mapping_meta_fa.set('network', {"meta-category": "network","fa_text": "server","fa-hex": "f233"});
 		this.mapping_meta_fa.set('misc', {"meta-category": "misc","fa_text": "cube","fa-hex": "f1b2"}); // Also considered as default
 		// FIXME
@@ -1434,7 +1434,17 @@ class DataHandler {
 		return $.getJSON( "/events/getObjectTemplate/templates.json", function( data ) {
 			for (var i in data) {
 				var template = data[i].ObjectTemplate;
-				dataHandler.mapping_uuid_to_template.set(template.uuid, template.requirements.requiredOneOf);
+                                var requiredFields;
+                                // add both requiredOneOf and required field
+                                if (template.requirements.requiredOneOf !== undefined) {
+                                    requiredFields = template.requirements.requiredOneOf;
+                                } else {
+                                    requiredFields = [];
+                                }
+                                if (template.requirements.required !== undefined) {
+                                    requiredFields = requiredFields.concat(template.requirements.required);
+                                }
+				dataHandler.mapping_uuid_to_template.set(template.uuid, requiredFields);
 			}
 		});
 	}

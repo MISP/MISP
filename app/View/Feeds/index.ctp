@@ -42,8 +42,8 @@
                 <th style="padding-left:0px;padding-right:0px;">&nbsp;</th>
             <?php endif;?>
             <th><?php echo $this->Paginator->sort('id');?></th>
-            <th><?php echo $this->Paginator->sort('enabled');?></th>
-            <th><?php echo $this->Paginator->sort('caching_enabled');?></th>
+            <th title="<?php echo __('Enable pulling the feed into your MISP as events/attributes.'); ?>"><?php echo $this->Paginator->sort('enabled');?></th>
+            <th title="<?php echo __('Enable caching the feed into Redis - allowing for correlations to the feed to be shown.'); ?>"><?php echo $this->Paginator->sort('caching_enabled');?></th>
             <th><?php echo $this->Paginator->sort('name');?></th>
             <th><?php echo $this->Paginator->sort('source_format', __('Feed Format'));?></th>
             <th><?php echo $this->Paginator->sort('provider');?></th>
@@ -196,7 +196,7 @@ foreach ($feeds as $item):
                 else:
                     echo __('Not cached');
                 endif;
-                if ($item['Feed']['caching_enabled']):
+                if ($item['Feed']['caching_enabled'] && $isSiteAdmin):
             ?>
                     <a href="<?php echo $baseurl;?>/feeds/cacheFeeds/<?php echo h($item['Feed']['id']); ?>" title="Cache feed"><span class="icon-download-alt"></span></a>
             <?php
@@ -206,12 +206,14 @@ foreach ($feeds as $item):
         <td class="short action-links">
             <?php
                 echo $this->Html->link('', array('action' => 'previewIndex', $item['Feed']['id']), array('class' => 'icon-search', 'title' => __('Explore the events remotely')));
-                if (!isset($item['Feed']['event_error'])) {
+                if (!isset($item['Feed']['event_error']) && $isSiteAdmin) {
                     if ($item['Feed']['enabled']) echo $this->Html->link('', array('action' => 'fetchFromFeed', $item['Feed']['id']), array('class' => 'icon-download', 'title' => __('Fetch all events')));
                 }
+                if ($isSiteAdmin):
             ?>
-            <a href="<?php echo $baseurl;?>/feeds/edit/<?php echo h($item['Feed']['id']); ?>"><span class="icon-edit" title="Edit">&nbsp;</span></a>
-            <?php echo $this->Form->postLink('', array('action' => 'delete', h($item['Feed']['id'])), array('class' => 'icon-trash', 'title' => __('Delete')), __('Are you sure you want to permanently remove the feed (%s)?', h($item['Feed']['name']))); ?>
+                <a href="<?php echo $baseurl;?>/feeds/edit/<?php echo h($item['Feed']['id']); ?>"><span class="icon-edit" title="Edit">&nbsp;</span></a>
+                <?php echo $this->Form->postLink('', array('action' => 'delete', h($item['Feed']['id'])), array('class' => 'icon-trash', 'title' => __('Delete')), __('Are you sure you want to permanently remove the feed (%s)?', h($item['Feed']['name']))); ?>
+            <?php endif; ?>
             <a href="<?php echo $baseurl;?>/feeds/view/<?php echo h($item['Feed']['id']); ?>.json" title="<?php echo __('Download feed metadata as JSON');?>" download><span class="fa fa-cloud-download black"></span></a>
         </td>
     </tr><?php

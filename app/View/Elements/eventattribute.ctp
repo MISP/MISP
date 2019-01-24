@@ -116,7 +116,8 @@
     <div class="tabMenu tabMenuEditBlock noPrint">
         <span id="create-button" title="<?php echo __('Add attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Add attribute');?>" class="icon-plus useCursorPointer" onClick="clickCreateButton(<?php echo $event['Event']['id']; ?>, '<?php echo $possibleAction; ?>');"></span>
         <span id="multi-edit-button" title="<?php echo __('Edit selected Attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Edit selected Attributes');?>" class="hidden icon-edit mass-select useCursorPointer" onClick="editSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
-        <span id="multi-tag-button" title="<?php echo __('Tag selected Attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Tag selected Attributes');?>" class="hidden icon-tag mass-select useCursorPointer" onClick="getPopup('selected/true', 'tags', 'selectTaxonomy');"></span>
+        <span id="multi-tag-button" title="<?php echo __('Tag selected Attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Tag selected Attributes');?>" class="hidden icon-tag mass-select useCursorPointer" onClick="popoverPopup(this, 'selected/attribute', 'tags', 'selectTaxonomy');"></span>
+        <span id="multi-galaxy-button" title="<?php echo __('Add new cluster to selected Attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Add new cluster to selected Attributes');?>" class="hidden icon-rebel fa-rebel mass-select useCursorPointer" style="font: normal normal normal 14px/1 FontAwesome; vertical-align: top;" onClick="popoverPopup(this, 'selected/attribute', 'galaxies', 'selectGalaxyNamespace');"></span>
         <span id="multi-delete-button" title="<?php echo __('Delete selected Attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete selected Attributes');?>" class="hidden icon-trash mass-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'deleteAttributes');"></span>
         <span id="multi-accept-button" title="<?php echo __('Accept selected Proposals');?>" role="button" tabindex="0" aria-label="<?php echo __('Accept selected Proposals');?>" class="hidden icon-ok mass-proposal-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'acceptProposals');"></span>
         <span id="multi-discard-button" title="<?php echo __('Discard selected Proposals');?>" role="button" tabindex="0" aria-label="<?php echo __('Discard selected Proposals');?>" class="hidden icon-remove mass-proposal-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'discardProposals');"></span>
@@ -149,9 +150,10 @@
         <div id="filter_correlation" title="<?php echo __('Only show correlating attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Only show correlating attributes');?>" class="attribute_filter_text<?php if ($attributeFilter == 'correlation') echo '_active'; ?>" onClick="filterAttributes('correlation', '<?php echo h($event['Event']['id']); ?>');">Correlation</div>
         <div id="filter_warning" title="<?php echo __('Only show potentially false positive attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Only show potentially false positive attributes');?>" class="attribute_filter_text<?php if ($attributeFilter == 'warning') echo '_active'; ?>" onClick="filterAttributes('warning', '<?php echo h($event['Event']['id']); ?>');"><?php echo __('Warnings');?></div>
         <?php if ($me['Role']['perm_sync'] || $event['Orgc']['id'] == $me['org_id']): ?>
-            <div id="filter_deleted" title="<?php echo __('Include deleted attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Include deleted attributes');?>" class="attribute_filter_text<?php if ($deleted) echo '_active'; ?>" onClick="toggleDeletedAttributes('<?php echo $urlHere;?>');"><?php echo __('Include deleted attributes');?></div>
+            <div id="filter_deleted" title="<?php echo __('Include deleted attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Include deleted attributes');?>" class="attribute_filter_text<?php if ($deleted) echo '_active'; ?>" onClick="toggleBoolFilter('<?php echo $urlHere;?>', 'deleted');"><?php echo __('Deleted');?></div>
         <?php endif; ?>
-        <div id="show_context" title="<?php echo __('Show attribute context fields');?>" role="button" tabindex="0" aria-label="<?php echo __('Show attribute context fields');?>" class="attribute_filter_text" onClick="toggleContextFields();"><?php echo __('Show context fields');?></div>
+        <div id="show_context" title="<?php echo __('Show attribute context fields');?>" role="button" tabindex="0" aria-label="<?php echo __('Show attribute context fields');?>" class="attribute_filter_text" onClick="toggleContextFields();"><?php echo __('Context');?></div>
+		<div id="show_correlating_tags" title="<?php echo __('Also display the tags derived from correlations');?>" role="button" tabindex="0" aria-label="<?php echo __('Also display the tags derived from correlations');?>" class="attribute_filter_text<?php if ($includeRelatedTags) echo '_active'; ?>" onClick="toggleBoolFilter('<?php echo $urlHere;?>', 'includeRelatedTags');"><?php echo __('Related Tags');?></div>
         <div title="input filter" tabindex="0" aria-label="input filter" class="attribute_filter_text" style="padding-top:0px;">
             <input type="text" id="attributesFilterField" style="height:20px;padding:0px;margin:0px;" class="form-control" data-eventid="<?php echo h($event['Event']['id']); ?>" value="<?php if ($filtered) echo h($passedArgsArray['all']); ?>"></input>
                 <span id="attributesFilterButton" role="button" class="icon-search" tabindex="0" aria-label="<?php echo __('Filter on attributes value');?>" onClick="filterAttributes('value', '<?php echo h($event['Event']['id']); ?>');"></span>
@@ -186,6 +188,12 @@
             <th><?php echo $this->Paginator->sort('type');?></th>
             <th><?php echo $this->Paginator->sort('value');?></th>
             <th><?php echo __('Tags');?></th>
+			<?php
+				if ($includeRelatedTags) {
+					echo sprintf('<th>%s</th>', __('Related Tags'));
+				}
+				$fieldCount += 1;
+			?>
             <th><?php echo __('Galaxies');?></th>
             <th><?php echo $this->Paginator->sort('comment');?></th>
             <th><?php echo __('Correlate');?></th>
@@ -213,7 +221,8 @@
                     'mayModify' => $mayModify,
                     'mayChangeCorrelation' => $mayChangeCorrelation,
                     'page' => $page,
-                    'fieldCount' => $fieldCount
+                    'fieldCount' => $fieldCount,
+					'includeRelatedTags' => !empty($includeRelatedTags) ? 1 : 0
                 ));
                 if (!empty($focus) && ($object['objectType'] == 'object' || $object['objectType'] == 'attribute') && $object['uuid'] == $focus) {
                     $focusedRow = $k;
@@ -230,7 +239,7 @@
         ?>
     </table>
 </div>
-    <?php if ($emptyEvent): ?>
+    <?php if ($emptyEvent && (empty($attributeFilter) || $attributeFilter === 'all')): ?>
         <div class="background-red bold">
             <span>
             <?php
@@ -274,10 +283,11 @@ attributes or the appropriate distribution level. If you think there is a mistak
     </div>
 <script type="text/javascript">
     var currentUri = "<?php echo isset($currentUri) ? h($currentUri) : '/events/viewEventAttributes/' . h($event['Event']['id']); ?>";
-    var ajaxResults = [];
+    var ajaxResults = {"hover": [], "persistent": []};
     var timer;
     var lastSelected = false;
-    var deleted = <?php echo (isset($deleted) && $deleted) ? 'true' : 'false';?>;
+    var deleted = <?php echo (!empty($deleted)) ? '1' : '0';?>;
+	var includeRelatedTags = <?php echo (!empty($includeRelatedTags)) ? '1' : '0';?>;
     $(document).ready(function() {
         $('.addGalaxy').click(function() {
             addGalaxyListener(this);
@@ -373,6 +383,29 @@ attributes or the appropriate distribution level. If you think there is a mistak
             $(this).parent().children(':nth-child(2)').attr('data-original-title', 'Switch to binary representation');
             $(this).parent().children(':nth-child(2)').attr('aria-label', 'Switch to binary representation');
         }
+    });
+    $(".eventViewAttributeHover").mouseenter(function() {
+    	$('.popover').remove();
+    	type = $(this).attr('data-object-type');
+    	id = $(this).attr('data-object-id');
+    	if (type + "_" + id in ajaxResults["hover"]) {
+    		$('#' + type + '_' + id + '_container').popover({
+    			title: 'Lookup results:',
+    			content: ajaxResults["hover"][type + "_" + id],
+    			placement: 'top',
+    			html: true,
+    			trigger: 'hover',
+    			container: 'body'
+    		}).popover('show');
+    	} else {
+    		timer = setTimeout(function() {
+    				runHoverLookup(type, id)
+    			},
+    			500
+    		);
+    	}
+    }).mouseleave(function() {
+    	clearTimeout(timer);
     });
 </script>
 <?php

@@ -38,6 +38,12 @@ class Sighting extends AppModel
         2 => 'expiration'
     );
 
+    public $validFormats = array(
+        'json' => array('json', 'JsonExport', 'json'),
+        'xml' => array('xml', 'XmlExport', 'xml'),
+        'csv' => array('csv', 'CsvExport', 'csv')
+    );
+
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
@@ -120,6 +126,12 @@ class Sighting extends AppModel
         if (empty($sighting)) {
             return array();
         }
+
+        if (!isset($event)) {
+            $event = array('Event' => $sighting['Event']);
+        }
+
+        $ownEvent = false;
         if ($user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id']) {
             $ownEvent = true;
         }
@@ -287,7 +299,7 @@ class Sighting extends AppModel
                     'source' => $source
             );
             // zeroq: allow setting a specific uuid
-            if($sighting_uuid) {
+            if ($sighting_uuid) {
                 $sighting['uuid'] = $sighting_uuid;
                 // check if sighting with given uuid already exists
                 $existing_sighting = $this->find('first', array(
@@ -323,7 +335,7 @@ class Sighting extends AppModel
         $tempFile->close();
         $scriptFile = APP . "files" . DS . "scripts" . DS . "stixsighting2misp.py";
         // Execute the python script and point it to the temporary filename
-        $result = shell_exec('python3 ' . $scriptFile . ' ' . $randomFileName);
+        $result = shell_exec($this->getPythonVersion() . ' ' . $scriptFile . ' ' . $randomFileName);
         // The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
         // If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along
         $result = json_decode($result, true);
@@ -441,5 +453,123 @@ class Sighting extends AppModel
             }
         }
         return $sightingsRearranged;
+    }
+
+    public function restSearch($user, $returnFormat, $filters)
+    {
+        if (!isset($this->validFormats[$returnFormat][1])) {
+            throw new NotFoundException('Invalid output format.');
+        }
+        App::uses($this->validFormats[$returnFormat][1], 'Export');
+        $exportTool = new $this->validFormats[$returnFormat][1]();
+
+        // construct filtering conditions
+        if (isset($filters['from']) && isset($filters['to'])) {
+            $timeCondition = array($filters['from'], $filters['to']);
+            unset($filters['from']);
+            unset($filters['to']);
+        } elseif (isset($filters['last'])) {
+            $timeCondition = $filters['last'];
+            unset($filters['last']);
+        } else {
+            $timeCondition = '30d';
+        }
+        $conditions = $this->Attribute->setTimestampConditions($timeCondition, array(), $scope = 'Sighting.date_sighting');
+
+        if (isset($filters['type'])) {
+            $conditions['Sighting.type'] = $filters['type'];
+        }
+
+        if (isset($filters['org_id'])) {
+            $conditions['Sighting.org_id'] = $filters['org_id'];
+        }
+
+        if (isset($filters['source'])) {
+            $conditions['Sighting.source'] = $filters['source'];
+        }
+
+        if ($filters['context'] === 'attribute') {
+            $conditions['Sighting.attribute_id'] = $filters['id'];
+        } elseif ($filters['context'] === 'event') {
+            $conditions['Sighting.event_id'] = $filters['id'];
+        }
+
+        // fetch sightings matching the query
+        $sightings = $this->find('list', array(
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'fields' => array('id'),
+        ));
+        $sightings = array_values($sightings);
+
+        $filters['requested_attributes'] = array('id', 'attribute_id', 'event_id', 'org_id', 'date_sighting', 'uuid', 'source', 'type');
+
+        // apply ACL and sighting policies
+        $allowedSightings = array();
+        $additional_attribute_added = false;
+        $additional_event_added = false;
+        foreach ($sightings as $sid) {
+            $sight = $this->getSighting($sid, $user);
+            if (!empty($sight)) {
+                $sight['Sighting']['value'] = $sight['Sighting']['Attribute']['value'];
+                // by default, do not include event and attribute
+                if (!isset($filters['includeAttribute']) || !$filters['includeAttribute']) {
+                    unset($sight["Sighting"]["Attribute"]);
+                } else if (!$additional_attribute_added) {
+                    $filters['requested_attributes'] = array_merge($filters['requested_attributes'], array('attribute_uuid', 'attribute_type', 'attribute_category', 'attribute_to_ids', 'attribute_value'));
+                    $additional_attribute_added = true;
+                }
+                
+                if (!isset($filters['includeEvent']) || !$filters['includeEvent']) {
+                    unset($sight["Sighting"]["Event"]);
+                } else if (!$additional_event_added) {
+                    $filters['requested_attributes'] = array_merge($filters['requested_attributes'], array('event_uuid', 'event_orgc_id', 'event_org_id', 'event_info', 'event_Orgc_name'));
+                    $additional_event_added = true;
+                }
+                
+                if (!empty($sight)) {
+                    array_push($allowedSightings, $sight);
+                }
+            }
+        }
+
+        $params = array(
+            'conditions' => array(), //result already filtered
+        );
+
+        if (!isset($this->validFormats[$returnFormat])) {
+            // this is where the new code path for the export modules will go
+            throw new MethodNotFoundException('Invalid export format.');
+        }
+
+        $exportToolParams = array(
+            'user' => $user,
+            'params' => $params,
+            'returnFormat' => $returnFormat,
+            'scope' => 'Sighting',
+            'filters' => $filters
+        );
+
+        $tmpfile = tmpfile();
+        fwrite($tmpfile, $exportTool->header($exportToolParams));
+
+        $temp = '';
+        $i = 0;
+        foreach ($allowedSightings as $sighting) {
+            $temp .= $exportTool->handler($sighting, $exportToolParams);
+            if ($temp !== '') {
+                if ($i != count($allowedSightings) -1) {
+                    $temp .= $exportTool->separator($exportToolParams);
+                }
+            }
+            $i++;
+        }
+        fwrite($tmpfile, $temp);
+
+        fwrite($tmpfile, $exportTool->footer($exportToolParams));
+        fseek($tmpfile, 0);
+        $final = fread($tmpfile, fstat($tmpfile)['size']);
+        fclose($tmpfile);
+        return $final;
     }
 }

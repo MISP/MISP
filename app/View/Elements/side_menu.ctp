@@ -53,13 +53,9 @@
                             'url' => '/attributes/add/' .  $event['Event']['id'],
                             'text' => __('Add Attribute')
                         ));
-                        echo $this->element('/side_menu_link', array(
-                            'onClick' => array(
-                                'function' => 'getPopup',
-                                'params' => array($event['Event']['id'], 'objectTemplates', 'objectChoice')
-                            ),
-                            'text' => __('Add Object')
-                        ));
+                        echo '<li>';
+                            echo '<a href="#" onclick="popoverPopup(this, ' . h($event['Event']['id']) . ', \'objectTemplates\', \'objectMetaChoice\')"> ' . __('Add Object') . '</a>';
+                        echo '</li>';
                         echo $this->element('/side_menu_link', array(
                             'element_id' => 'addAttachment',
                             'url' => '/attributes/add_attachment/' .  $event['Event']['id'],
@@ -122,6 +118,14 @@
                         'class' => 'publishButtons not-published ' . $publishButtons,
                         'text' => __('Publish (no email)')
                     ));
+                    echo $this->element('/side_menu_link', array(
+                        'onClick' => array(
+                            'function' => 'publishPopup',
+                            'params' => array($event['Event']['id'], 'unpublish')
+                        ),
+                        'class' => (isset($event['Event']['published']) && (1 == $event['Event']['published'] && $mayModify)) ? '' : 'hidden',
+                        'text' => __('Unpublish')
+                    ));
                     if (Configure::read('MISP.delegation')) {
                         if ((Configure::read('MISP.unpublishedprivate') || (isset($event['Event']['distribution']) && $event['Event']['distribution'] == 0)) && (!isset($delegationRequest) || !$delegationRequest) && ($isSiteAdmin || (isset($isAclDelegate) && $isAclDelegate))) {
                             echo $this->element('/side_menu_link', array(
@@ -181,6 +185,35 @@
                     }
                 break;
 
+                case 'tag-collections':
+                    echo $this->element('/side_menu_link', array(
+                        'url' => '/tag_collections/index',
+                        'text' => __('List Tag Collections')
+                    ));
+                    if ($isAclTagEditor) {
+                        echo $this->element('/side_menu_link', array(
+                            'url' => '/tag_collections/add',
+                            'text' => __('Add Tag Collection')
+                        ));
+                        if (($menuItem === 'edit')) {
+                            echo $this->element('/side_menu_link', array(
+                                'url' => '/tag_collections/edit/' . $id,
+                                'text' => __('Add Tag Collection')
+                            ));
+                        }
+                    }
+                    echo sprintf(
+                        '<li id="liexport"><a href="%s/tag_collections/index.json" download="tag_collections_all.json">%s</a></li>',
+                        $baseurl,
+                        __('Export Tag Collections')
+                    );
+                    echo sprintf(
+                        '<li id="liimport"><a href="%s/tag_collections/import">%s</a></li>',
+                        $baseurl,
+                        __('Import Tag Collections')
+                    );
+                    break;
+
                 case 'event-collection':
                     echo $this->element('/side_menu_link', array(
                         'element_id' => 'index',
@@ -219,18 +252,13 @@
                     ));
                     if ($menuItem == 'searchAttributes2') {
                         echo $this->element('/side_menu_divider');
-                        echo $this->element('/side_menu_link', array(
-                            'url' => '/events/downloadSearchResult.json',
-                            'text' => __('Download results as JSON')
-                        ));
-                        echo $this->element('/side_menu_link', array(
-                            'url' => '/events/downloadSearchResult.xml',
-                            'text' => __('Download results as XML')
-                        ));
-                        echo $this->element('/side_menu_link', array(
-                            'url' => '/events/csv/download/search',
-                            'text' => __('Download results as CSV')
-                        ));
+						echo $this->element('/side_menu_link', array(
+							'onClick' => array(
+								'function' => 'getPopup',
+								'params' => array(0, 'attributes', 'exportSearch')
+							),
+							'text' => __('Download as...')
+						));
                     }
                     echo $this->element('/side_menu_divider');
                     echo $this->element('/side_menu_link', array(
@@ -338,24 +366,42 @@
                 break;
 
                 case 'sync':
-                    if ($menuItem === 'previewEvent' && $isSiteAdmin) : ?>
-                    <li class="active"><?php echo $this->Html->link(__('Explore Remote Event'), array('controller' => 'servers', 'action' => 'previewEvent', h($server['Server']['id']), h($event['Event']['id']))); ?></li>
-                    <li><?php echo $this->Form->postLink(__('Fetch This Event'), '/servers/pull/' . $server['Server']['id'] . '/' . $event['Event']['id'], null, __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Server.id'))); ?></li>
-                    <li><?php echo $this->Html->link(__('Explore Remote Server'), array('controller' => 'servers', 'action' => 'previewIndex', h($server['Server']['id']))); ?></li>
-                    <?php endif;
-                    if ($menuItem === 'previewIndex' && $isSiteAdmin) : ?>
-                    <li class="active"><?php echo $this->Html->link(__('Explore Remote Server'), array('controller' => 'servers', 'action' => 'previewIndex', h($id))); ?></li>
-                    <?php endif; ?>
-                    <?php if ($menuItem === 'edit' && $isSiteAdmin): ?>
-                    <li class="active"><?php echo $this->Html->link(__('Edit Server'), array('controller' => 'servers', 'action' => 'edit')); ?></li>
-                    <li><?php echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $this->Form->value('Server.id')), null, __('Are you sure you want to delete # %s?', $this->Form->value('Server.id'))); ?></li>
-                    <li class="divider"></li>
-                    <?php endif; ?>
-                    <li id='liindex'><?php echo $this->Html->link(__('List Servers'), array('controller' => 'servers', 'action' => 'index'));?></li>
-                    <?php if ($isSiteAdmin): ?>
-                    <li id='liadd'><?php echo $this->Html->link(__('New Server'), array('controller' => 'servers', 'action' => 'add')); ?></li>
-                    <?php endif;?>
-                    <?php
+                    if ($menuItem === 'previewEvent' && ($isSiteAdmin || $hostOrg)) {
+                        echo sprintf(
+                            '<li>%s</li><li class="active">%s</li>',
+                            $this->Html->link(__('Explore Remote Server'), array('controller' => 'servers', 'action' => 'previewIndex', h($server['Server']['id']))),
+                            $this->Html->link(__('Explore Remote Event'), array('controller' => 'servers', 'action' => 'previewEvent', h($server['Server']['id']), h($event['Event']['id'])))
+                        );
+                    }
+                    if ($menuItem === 'previewEvent' && $isSiteAdmin) {
+                        echo sprintf(
+                            '<li>%s</li>',
+                            $this->Form->postLink(__('Fetch This Event'), '/servers/pull/' . $server['Server']['id'] . '/' . $event['Event']['id'], null, __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Server.id')))
+                        );
+                    }
+                    if ($menuItem === 'previewIndex' && ($isSiteAdmin || $hostOrg)) {
+                        echo sprintf(
+                            '<li class="active">%s</li>',
+                            $this->Html->link(__('Explore Remote Server'), array('controller' => 'servers', 'action' => 'previewIndex', h($id)))
+                        );
+                    }
+                    if ($menuItem === 'edit' && $isSiteAdmin) {
+                        echo sprintf(
+                            '<li class="active">%s</li><li>%s</li><li class="divider"></li>',
+                            $this->Html->link(__('Edit Server'), array('controller' => 'servers', 'action' => 'edit')),
+                            $this->Form->postLink(__('Delete'), array('action' => 'delete', $this->Form->value('Server.id')), null, __('Are you sure you want to delete # %s?', $this->Form->value('Server.id')))
+                        );
+                    }
+                    echo sprintf(
+                        '<li id="liindex">%s</li>',
+                        $this->Html->link(__('List Servers'), array('controller' => 'servers', 'action' => 'index'))
+                    );
+                    if ($isSiteAdmin) {
+                        echo sprintf(
+                            '<li id="liadd">%s</li>',
+                            $this->Html->link(__('New Server'), array('controller' => 'servers', 'action' => 'add'))
+                        );
+                    }
                 break;
 
                 case 'admin':
@@ -497,19 +543,54 @@
                     endif;
                 break;
 
-                case 'feeds': ?>
-                    <li id='liindex'><a href="<?php echo $baseurl;?>/feeds/index"><?php echo __('List Feeds');?></a></li>
-                    <li id='liadd'><a href="<?php echo $baseurl;?>/feeds/add"><?php echo __('Add Feed');?></a></li>
-                    <li id='liadd'><a href="<?php echo $baseurl;?>/feeds/importFeeds"><?php echo __('Import Feeds from JSON');?></a></li>
-                    <li id='licompare'><a href="<?php echo $baseurl;?>/feeds/compareFeeds"><?php echo __('Feed overlap analysis matrix');?></a></li>
-                    <li id='liexport'><a href="<?php echo $baseurl;?>/feeds/index.json" download="feed_index.json"><?php echo __('Export Feed settings');?></a></li>
-                    <?php if ($menuItem === 'edit'): ?>
-                        <li class="active"><a href="#"><?php echo __('Edit Feed');?></a></li>
-                    <?php elseif ($menuItem === 'previewIndex'): ?>
-                        <li id='lipreviewIndex'><a href="<?php echo $baseurl;?>/feeds/previewIndex/<?php echo h($feed['Feed']['id']); ?>"><?php echo __('PreviewIndex');?></a></li>
-                    <?php elseif ($menuItem === 'previewEvent'): ?>
-                        <li id='lipreviewEvent'><a href="<?php echo $baseurl;?>/feeds/previewEvent/<?php echo h($feed['Feed']['id']); ?>/<?php echo h($id);?>"><?php echo __('PreviewEvent');?></a></li>
-                    <?php endif;
+                case 'feeds':
+                    echo sprintf(
+                        '<li id="liindex"><a href="%s/feeds/index">%s</a></li>',
+                        $baseurl,
+                        __('List Feeds')
+                    );
+                    if ($isSiteAdmin) {
+                        echo sprintf(
+                            '<li id="liadd"><a href="%s/feeds/add">%s</a></li>',
+                            $baseurl,
+                            __('Add Feed')
+                        );
+                        echo sprintf(
+                            '<li id="liimport"><a href="%s/feeds/importFeeds">%s</a></li>',
+                            $baseurl,
+                            __('Import Feeds from JSON')
+                        );
+                    }
+                    echo sprintf(
+                        '<li id="licompare"><a href="%s/feeds/compareFeeds">%s</a></li>',
+                        $baseurl,
+                        __('Feed overlap analysis matrix')
+                    );
+                    echo sprintf(
+                        '<li id="liexport"><a href="%s/feeds/index.json" download="feed_index.json">%s</a></li>',
+                        $baseurl,
+                        __('Export Feed settings')
+                    );
+                    if ($isSiteAdmin) {
+                        if ($menuItem === 'edit') {
+                            echo '<li class="active"><a href="#">' . __('Edit Feed') . '</a></li>';
+                        } else if ($menuItem === 'previewIndex') {
+                            echo sprintf(
+                                '<li id="lipreviewIndex"><a href="%s/feeds/previewIndex/%s"></a></li>',
+                                $baseurl,
+                                h($feed['Feed']['id']),
+                                __('PreviewIndex')
+                            );
+                        } else if ($menuItem === 'previewEvent') {
+                            echo sprintf(
+                                '<li id="lipreviewEvent"><a href="%s/feeds/previewEvent/%s/%s">%s</a></li>',
+                                $baseurl,
+                                h($feed['Feed']['id']),
+                                h($id),
+                                __('PreviewEvent')
+                            );
+                        }
+                    }
                 break;
 
                 case 'news': ?>

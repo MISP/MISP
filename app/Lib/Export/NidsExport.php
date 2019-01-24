@@ -15,7 +15,8 @@ class NidsExport
 			'Event' => array(
 				'fields' => array('threat_level_id')
 			)
-		)
+		),
+		'flatten' => 1
 	);
 
 	public function handler($data, $options = array())
