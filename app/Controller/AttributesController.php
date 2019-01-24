@@ -1580,26 +1580,22 @@ class AttributesController extends AppController
                 $selectedAttributeIds = array();
             }
 
-            App::uses('TextColourHelper', 'View/Helper');
-            $textColourHelper = new TextColourHelper(new View());
-            $tagTemplate = '<span href="#" class="tagComplete" style="background-color:{{=it.background}}; color:{{=it.color}}">{{=it.name}}</span>';
-            $galaxyTemplate = '<span href="#" class="tagComplete" style="background-color:{{=it.background}}; color:{{=it.color}}">{{=it.name}}</span>';
-
             // tags to remove
             $tags = $this->Attribute->AttributeTag->getAttributesTags($this->Auth->user(), $id, $selectedAttributeIds);
             $tagItemsRemove = array();
             foreach ($tags as $k => $tag) {
                 $tagName = $tag['name'];
                 $tagItemsRemove[] = array(
-                    'name' => h($tagName),
-                    'value' => h($tag['id']),
-                    'template' => $tagTemplate,
-                    'templateData' => array(
-                        'name' => h($tagName),
-                        'background' => h(isset($tag['colour']) ? $tag['colour'] : '#ffffff'),
-                        'color' => h(isset($tag['colour']) ? $textColourHelper->getTextColour($tag['colour']) : '#0088cc')
-                    ),
-
+                    'name' => $tagName,
+                    'value' => $tag['id'],
+                    'template' => array(
+                        'name' => array(
+                            'name' => $tagName,
+                            'label' => array(
+                                'background' => isset($tag['colour']) ? $tag['colour'] : '#ffffff'
+                            )
+                        ),
+                    )
                 );
             }
             unset($tags);
@@ -1608,32 +1604,21 @@ class AttributesController extends AppController
             $clusters = $this->Attribute->AttributeTag->getAttributesClusters($this->Auth->user(), $id, $selectedAttributeIds);
             $clusterItemsRemove = array();
             foreach ($clusters as $k => $cluster) {
-                $clusterTemplate = '{{=it.name}}';
-                if (strlen($cluster['description']) < 50) {
-                    $clusterTemplate .= '<i style="float:right; font-size: smaller;">{{=it.description}}</i>';
-                } else {
-                    $clusterTemplate .= '<it class="fa fa-info-circle" style="float:right;" title="{{=it.description}}"></it>';
-                }
-                if ($cluster['synonyms_string'] !== "") {
-                    $clusterTemplate .= '<div class="apply_css_arrow" style="padding-left: 5px; font-size: smaller;"><i>{{=it.synonyms_string}}</i></div>';
-                }
-
-                $title = __('Synonyms: ') . h($cluster['synonyms_string']);
-                $name = h($cluster['value']);
-                $optionName = h($cluster['value']);
-                $optionName .= $cluster['synonyms_string'] !== '' ? ' (' . h($cluster['synonyms_string']) . ')' : '';
+                $title = __('Synonyms: ') . $cluster['synonyms_string'];
+                $name = $cluster['value'];
+                $optionName = $cluster['value'];
+                $optionName .= $cluster['synonyms_string'] !== '' ? ' (' . $cluster['synonyms_string'] . ')' : '';
 
                 $clusterItemsRemove[] = array(
                     'name' => $optionName,
-                    'value' => h($cluster['id']),
+                    'value' => $cluster['id'],
                     'additionalData' => array(
-                        'event_id' => h($id),
+                        'event_id' => $id,
                     ),
-                    'template' => $clusterTemplate,
-                    'templateData' => array(
+                    'template' => array(
                         'name' => $name,
-                        'description' => h($cluster['description']),
-                        'synonyms_string' => $title
+                        'infoExtra' => $cluster['description'],
+                        'infoContextual' => $title
                     )
                 );
             }
@@ -1654,14 +1639,16 @@ class AttributesController extends AppController
             foreach ($tags as $k => $tag) {
                 $tagName = $tag['name'];
                 $tagItemsAdd[] = array(
-                    'name' => h($tagName),
-                    'value' => h($tag['id']),
-                    'template' => $tagTemplate,
-                    'templateData' => array(
-                        'name' => h($tagName),
-                        'background' => h(isset($tag['colour']) ? $tag['colour'] : '#ffffff'),
-                        'color' => h(isset($tag['colour']) ? $textColourHelper->getTextColour($tag['colour']) : '#0088cc')
-                    ),
+                    'name' => $tagName,
+                    'value' => $tag['id'],
+                    'template' => array(
+                        'name' => array(
+                            'name' => $tagName,
+                            'label' => array(
+                                'background' => isset($tag['colour']) ? $tag['colour'] : '#ffffff'
+                            )
+                        ),
+                    )
 
                 );
             }

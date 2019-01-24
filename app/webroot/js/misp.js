@@ -3614,11 +3614,13 @@ function enableDisableObjectRows(rows) {
 
 function objectReferenceInput() {
 	var types = ["Attribute", "Object"];
+	var $targetSelect = $('[data-targetselect="targetSelect"]');
 	for (var type in types) {
 		for (var k in targetEvent[types[type]]) {
 			if (targetEvent[types[type]][k]['uuid'] == $('#ObjectReferenceReferencedUuid').val()) {
-				$('#targetSelect').val($('#ObjectReferenceReferencedUuid').val());
-				changeObjectReferenceSelectOption();
+				$targetSelect.val($('#ObjectReferenceReferencedUuid').val());
+				changeObjectReferenceSelectOption($('#ObjectReferenceReferencedUuid').val(), {type: types[type]});
+				$targetSelect.trigger('chosen:updated');
 			}
 		}
 	}
@@ -3654,11 +3656,10 @@ function add_basic_auth() {
 	$('#basicAuthForm').hide();
 }
 
-function changeObjectReferenceSelectOption() {
-	var object = $('#targetSelect option:selected');
-	var uuid = $(object).val();
+function changeObjectReferenceSelectOption(selected, additionalData) {
+	var uuid = selected;
+	var type = additionalData.type;
 	$('#ObjectReferenceReferencedUuid').val(uuid);
-	var type = $(object).data('type');
 	if (type == "Attribute") {
 		$('#targetData').html("");
 		for (var k in targetEvent[type][uuid]) {
