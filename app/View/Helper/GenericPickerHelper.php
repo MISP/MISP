@@ -31,7 +31,6 @@ class GenericPickerHelper extends AppHelper {
         }
 
         if (isset($param['template'])) {
-            // $option_html .= ' data-template=' . base64_encode($param['template']);
             $template = $this->build_template($param);
             $option_html .= ' data-template=' . base64_encode($template);
         }
