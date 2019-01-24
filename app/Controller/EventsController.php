@@ -4639,7 +4639,8 @@ class EventsController extends AppController
         } elseif ($scope == 'attribute') {
             $attribute = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
                 'conditions' => array('Attribute.id' => $scope_id),
-                'fields' => array('event_id')
+                'fields' => array('event_id'),
+                'flatten' => 1,
             ));
             if (empty($attribute)) {
                 throw new Exception("Invalid Attribute.");

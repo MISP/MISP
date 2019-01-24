@@ -8,10 +8,10 @@ class GenericPickerHelper extends AppHelper {
     function add_select_params($options) {
         $select_html = '';
         foreach ($options['select_options'] as $option => $value) {
-            $select_html .= $option . '=' . $value . ' ';
+            $select_html .= h($option) . '=' . h($value) . ' ';
         }
         if (isset($options['functionName']) && $options['functionName'] !== "") {
-            $select_html .= ' data-functionname=' . $options['functionName'] .' ';
+            $select_html .= ' data-functionname=' . h($options['functionName']) .' ';
         }
         return $select_html;
     }
@@ -31,13 +31,11 @@ class GenericPickerHelper extends AppHelper {
         }
 
         if (isset($param['template'])) {
-            $option_html .= ' data-template=' . base64_encode($param['template']);
-        }
-        if (isset($param['templateData'])) {
-            $option_html .= ' data-templatedata=' . base64_encode(json_encode($param['templateData']));
+            $template = $this->build_template($param);
+            $option_html .= ' data-template=' . base64_encode($template);
         }
 
-        $option_html .= ' data-additionaldata=' . $additionalData;
+        $option_html .= ' data-additionaldata=' . base64_encode($additionalData);
         if (isset($param['disabled']) && $param['disabled']) {
             $option_html .= ' disabled';
         } else if (isset($param['selected']) && $param['selected']) { // nonsense to pre-select if disabled
@@ -54,10 +52,10 @@ class GenericPickerHelper extends AppHelper {
     function add_link_params($param, $defaults=array()) {
         $param_html = ' ';
         if (isset($param['functionName'])) {
-            $param_html .= 'onclick="execAndClose(this, ' . $param['functionName'] . ')" ';
+            $param_html .= 'onclick="execAndClose(this, ' . h($param['functionName']) . ')" ';
         } else { // fallback to default submit function
             if ($defaults['functionName'] !== '') {
-                $param_html .= 'onclick="submitFunction(this, ' . $defaults['functionName'] . ')" ';
+                $param_html .= 'onclick="submitFunction(this, ' . h($defaults['functionName']) . ')" ';
             } else {
                 $param_html .= 'data-endpoint="' . h($param['value']) . '" ';
                 $param_html .= 'onclick="fetchRequestedData(this)" ';
@@ -70,13 +68,13 @@ class GenericPickerHelper extends AppHelper {
                 $additionalData = json_encode($param['additionalData']);
             } else if ($paramName === 'value') {
                 $param_html .= 'value="' . h($paramValue) . '" ';
-            } else if ($paramName === 'template' || $paramName === 'templateData') {
+            } else if ($paramName === 'template') {
                 continue;
             } else {
                 $param_html .= 'data-' . h($paramName). '="' . h($paramValue) . '" ';
             }
         }
-        $param_html .= ' data-additionaldata=' . $additionalData;
+        $param_html .= ' data-additionaldata=' . base64_encode($additionalData);
         return $param_html;
     }
 
@@ -86,14 +84,36 @@ class GenericPickerHelper extends AppHelper {
         $pill_html .= ' ' . $this->add_link_params($param, $defaults);
         $pill_html .= '>';
         if (isset($param['img'])) {
-            $pill_html .= '<img src="' . $param['img'] . '" style="margin-right: 5px; height: 14px;">';
-        } else if (isset($param['icon']) || isset($param['templateData']['icon'])) {
-            $icon = isset($param['icon']) ? $param['icon'] : $param['templateData']['icon'];
-            $pill_html .= '<span class="fa fa-' . $icon . '" style="margin-right: 5px;"></span>';
+            $pill_html .= '<img src="' . h($param['img']) . '" style="margin-right: 5px; height: 14px;">';
+        } else if (isset($param['icon'])) {
+            $icon = $param['icon'];
+            $pill_html .= '<span class="fa fa-' . h($icon) . '" style="margin-right: 5px;"></span>';
         }
-        $pill_html .= h($param['name']) . '</a>';
+        $pill_html .= h($param['name']);
+        if (isset($param['template']['infoExtra'])) {
+            $pill_html .= $this->_View->element('genericPickerElements/info_extra', array('infoExtra' => $param['template']['infoExtra'], 'forceIcon' => true));
+        }
+        $pill_html .= '</a>';
         $pill_html .= '</li>';
         return $pill_html;
+    }
+
+    function build_template($param) {
+        $template = "";
+        if(isset($param['template'])) {
+            $templateParam = $param['template'];
+            if (isset($templateParam['preIcon'])) {
+                $template .= $this->_View->element('genericPickerElements/pre_icon', array('preIcon' => $templateParam['preIcon']));
+            }
+            $template .= $this->_View->element('genericPickerElements/name', array('name' => $templateParam['name']));
+            if (isset($templateParam['infoExtra'])) {
+                $template .= $this->_View->element('genericPickerElements/info_extra', array('infoExtra' => $templateParam['infoExtra']));
+            }
+            if (isset($templateParam['infoContextual'])) {
+                $template .= $this->_View->element('genericPickerElements/info_contextual', array('infoContextual' => $templateParam['infoContextual']));
+            }
+        }
+        return $template;
     }
 }
 ?>

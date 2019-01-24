@@ -909,6 +909,10 @@ a.pill-pre-picker {
     min-width: 500px;
 }
 
+.generic_picker .generic_picker {
+	margin-left: 10px;
+}
+
 .generic_picker ul.nav {
 	margin-bottom: 0px;
 }
@@ -928,12 +932,34 @@ a.pill-pre-picker {
     border-bottom: 1px solid;
     height: 10px;
     width: 5px;
-    display: inline-block;
-    float: left;
+	position: absolute;
 }
 
-.active-result .fa:before {
-    margin-right: 5px;
+.generic-picker-item-element-check {
+	float: right;
+	border: 1px solid #999;
+	background-color: #ddd;
+	border-radius: 9px;
+	padding: 2px;
+	margin-top: 5px;
+	color: #fff;
+	line-height: 13px;
+}
+.generic-picker-item-element-check .fa:before {
+	margin-right: 0px;
+}
+
+.chosen-single .generic-picker-item-element-check {
+	margin-top: 2px;
+	margin-right: 5px;
+}
+
+.chosen-single .generic-picker-item-element-info {
+	margin-top: 5px;
+}
+
+.chosen-single .apply_css_arrow{
+	display: none !important;
 }
 
 .chosen-container .chosen-results li {
@@ -951,7 +977,7 @@ a.pill-pre-picker {
     margin-left: 2px;
     border-left: 1px solid;
     border-bottom: 1px solid;
-    height: 10px;
+    height: 7px;
     width: 5px;
     display: inline-block;
     float: left;
@@ -1799,8 +1825,8 @@ a.discrete {
 	border-radius:5px;
 }
 
-.redHighlightedBlock {
-	border:1px solid red;
+.greyHighlightedBlock {
+	border:1px solid #cccccc;
 	background-color:white;
 	padding:5px;
 	border-radius:5px;
