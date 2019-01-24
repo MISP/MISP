@@ -50,9 +50,11 @@
                                 $items = array();
                                 if (!empty($event['Object'])){
                                     foreach ($event['Object'] as $object) {
-                                        $combinedFields = __('Object');
-                                        $combinedFields .= '/' . h($object['meta-category']);
-                                        $combinedFields .= '/' . h($object['name']);
+                                        $combinedFields = sprintf('%s/%s/%s',
+                                            __('Object'),
+                                            h($object['meta-category']),
+                                            h($object['name'])
+                                        );
 
                                         $attributes = array();
                                         $attributesValues = array();
@@ -80,11 +82,13 @@
                                 }
                                 if (!empty($event['Attribute'])) {
                                     foreach ($event['Attribute'] as $attribute) {
-                                        $combinedFields = __('Attribute');
-                                        $combinedFields .= '/' . h($attribute['category']);
-                                        $combinedFields .= '/' . h($attribute['type']);
-                                        $combinedFields .= '/' . h($attribute['value']);
-                                        $combinedFields .= '/' . h($attribute['id']);
+                                        $combinedFields = sprintf('%s/%s/%s/%s/%s',
+                                            __('Attribute'),
+                                            h($attribute['category']),
+                                            h($attribute['type']),
+                                            h($attribute['value']),
+                                            h($attribute['id'])
+                                        );
                                         $items[] = array(
                                             'name' => $combinedFields,
                                             'value' => h($attribute['uuid']),
