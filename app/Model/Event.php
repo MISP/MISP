@@ -4216,6 +4216,16 @@ class Event extends AppModel
                             $attribute['data'] = $encodedFile;
                         }
                     }
+                    if (!empty($event[0]['Attribute'])) {
+                        foreach ($event[0]['Object'] as &$object) {
+                            foreach ($object['Attribute'] as &$attribute) {
+                                if ($this->Attribute->typeIsAttachment($attribute['type'])) {
+                                    $encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
+                                    $attribute['data'] = $encodedFile;
+                                }
+                            }
+                        }
+                    }
                 }
                 $event[0]['Tag'] = array();
                 foreach ($event[0]['EventTag'] as $tag) {
