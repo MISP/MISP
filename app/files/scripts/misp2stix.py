@@ -823,6 +823,9 @@ class StixBuilder(object):
             artifact_object.parent.id_ = f"{self.namespace_prefix}:ArtifactObject-{malware_sample['uuid']}"
             artifact_observable = Observable(artifact_object)
             artifact_observable.id_ = f"{self.namespace_prefix}:Artifact-{malware_sample['uuid']}"
+            for key, value in zip(('filename', 'md5'), malware_sample['value'].split('|')):
+                if key not in attributes_dict:
+                    attributes_dict[key] = value
             file_observable = self.create_file_observable(attributes_dict, uuid)
             return to_ids, self.create_observable_composition([artifact_observable, file_observable], uuid, 'file')
         return to_ids, self.create_file_observable(attributes_dict, uuid)
