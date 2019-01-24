@@ -173,9 +173,11 @@ function submitFunction(clicked, callback) {
         selected = $clicked.attr('value');
         additionalData = $clicked.data('additionaldata');
     }
-    additionalData = JSON.parse(atob(additionalData));
-    execAndClose(clicked);
-    callback(selected, additionalData);
+    if (additionalData !== undefined) {
+        additionalData = JSON.parse(atob(additionalData));
+        execAndClose(clicked);
+        callback(selected, additionalData);
+    }
 }
 </script>
 
