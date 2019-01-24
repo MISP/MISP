@@ -23,6 +23,15 @@
         'disabledSubmitButton' => false, // wether to not draw the submit button
         'flag_redraw_chosen' => false // should chosen picker be redraw at drawing time
     );
+    /**
+    * Supported default option in <Option> fields:
+    *   - name: The name of the item (will be used by the search algo)
+    *   - value: The value when sent when the item is selected
+    *   - template: The template to apply for custom chosen item
+    *   - templateData: Data that will be passed to the template construction function
+    *   - additionalData: Additional data to pass to the callback functionName
+    */
+
     /** prevent exception if not set **/
     $options = isset($options) ? $options : array();
     $items = isset($items) ? $items : array();
@@ -78,7 +87,7 @@ function setupChosen(id, redrawChosen) {
 
     // hack to add template into the div
     var $chosenContainer = $elem.parent().find('.chosen-container');
-    $elem.on('chosen:showing_dropdown chosen:searchdone keyup change', function() {
+    $elem.on('chosen:showing_dropdown chosen:searchdone chosen:picked keyup change', function() {
         redrawChosenWithTemplate($elem, $chosenContainer)
     });
 
@@ -108,10 +117,7 @@ function redrawChosenWithTemplate($select, $chosenContainer) {
             var res = "";
             if (template !== undefined && template !== '') {
                 var template = atob(template);
-                var temp = doT.template(template);
-                var templateData = JSON.parse(atob($option.data('templatedata')));
-                res = temp(templateData);
-                $item.html(res);
+                $item.html(template);
             }
         })
     }
@@ -167,6 +173,7 @@ function submitFunction(clicked, callback) {
         selected = $clicked.attr('value');
         additionalData = $clicked.data('additionaldata');
     }
+    additionalData = JSON.parse(atob(additionalData));
     execAndClose(clicked);
     callback(selected, additionalData);
 }
@@ -196,7 +203,7 @@ function submitFunction(clicked, callback) {
             ?>
         </select>
         <?php if ($defaults['multiple'] != 0 && !$defaults['disabledSubmitButton']): ?>
-            <button class="btn btn-primary" onclick="submitFunction(this, <?php echo $defaults['functionName']; ?>)"><?php echo h($defaults['submitButtonText']); ?></button>
+            <button class="btn btn-primary" onclick="submitFunction(this, <?php echo h($defaults['functionName']); ?>)"><?php echo h($defaults['submitButtonText']); ?></button>
         <?php endif; ?>
 
         <?php if ($flag_addPills): // add forced pills ?>
@@ -211,7 +218,7 @@ function submitFunction(clicked, callback) {
 
         <script>
             $(document).ready(function() {
-                setupChosen("<?php echo $select_id; ?>", <?php echo ($defaults['flag_redraw_chosen'] === true ? 'true' : 'false') ?>);
+                setupChosen("<?php echo h($select_id); ?>", <?php echo ($defaults['flag_redraw_chosen'] === true ? 'true' : 'false') ?>);
             });
         </script>
 
