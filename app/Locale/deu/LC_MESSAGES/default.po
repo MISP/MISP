@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2018-10-15 23:35\n"
+"PO-Revision-Date: 2019-01-22 21:23\n"
 "Last-Translator: SteveClement <steve@localhost.lu>\n"
 "Language-Team: German\n"
 "MIME-Version: 1.0\n"
@@ -61,7 +61,7 @@ msgstr "Sie haben keine Berechtigung dieses Event anzuzeigen."
 
 #: Controller/AttributesController.php:472
 msgid "Attribute not an attachment or malware-sample"
-msgstr "Attribut ist keine Anlage oder Malware-Sample"
+msgstr "Attribut ist kein Anhang oder Malware-Sample"
 
 #: Controller/AttributesController.php:504;677
 #: Controller/ShadowAttributesController.php:548
@@ -220,7 +220,7 @@ msgstr "Ungültiges Event-ID-Format."
 #: Controller/AttributesController.php:2645
 #: Controller/ShadowAttributesController.php:1254
 msgid "All done. "
-msgstr "Alles erledigt. "
+msgstr "Fertig. "
 
 #: Controller/AttributesController.php:2677;2724
 #: Controller/ShadowAttributesController.php:1062
@@ -1819,19 +1819,19 @@ msgstr "Einstellung des Bereichs für Sightings für das generieren von Graphen.
 
 #: Model/Server.php:1465
 msgid "Enable this functionality if you would like to handle the authentication via an external tool and authenticate with MISP using a custom header."
-msgstr ""
+msgstr "Aktivieren Sie diese Funktion, falls Sie die Authentifizierung mit MISP durch ein externes Tool und custom Header handhaben möchten."
 
 #: Model/Server.php:1475
 msgid "Set the header that MISP should look for here. If left empty it will default to the Authorization header."
-msgstr ""
+msgstr "Stellen Sie hier die Kopfzeile ein, nach der MISP hier suchen soll. Ohne weitere Angabe wird als Default nach der Authorisierungskopfzeile gesucht."
 
 #: Model/Server.php:1484
 msgid "Use a header namespace for the auth header - default setting is enabled"
-msgstr ""
+msgstr "Verwenden Sie einen Namespace (Namensbereich) für den Authentifizierungsheader - Standardeinstellung ist aktiviert"
 
 #: Model/Server.php:1493
 msgid "The default header namespace for the auth header - default setting is HTTP_"
-msgstr ""
+msgstr "Der Standard Namespace für den Authentifizierungsheader - Standardeinstellung ist HTTP"
 
 #: Model/Server.php:1502
 msgid "If this setting is enabled then the only way to authenticate will be using the custom header. Altnertatively you can run in mixed mode that will log users in via the header if found, otherwise users will be redirected to the normal login page."
@@ -1847,7 +1847,7 @@ msgstr ""
 
 #: Model/Server.php:1529
 msgid "Disable the logout button for users authenticate with the external auth mechanism."
-msgstr ""
+msgstr "Deaktivieren Sie den Logout-Button für User, die sich extern authentifizieren."
 
 #: Model/Server.php:1537
 msgid "Enable/disable the enrichment services"
@@ -3909,7 +3909,7 @@ msgstr ""
 
 #: View/Elements/side_menu.ctp:533
 msgid "Update Galaxies"
-msgstr ""
+msgstr "Galaxien aktualisieren"
 
 #: View/Elements/side_menu.ctp:533
 msgid "Are you sure you want to reimport all galaxies from the submodule?"
@@ -3943,7 +3943,7 @@ msgstr ""
 #: View/Layouts/default.ctp:84
 #: View/Layouts/graph.ctp:84
 msgid "Loading"
-msgstr ""
+msgstr "Lädt"
 
 #: View/Elements/view_event_distribution_graph.ctp:17
 msgid "Elements having lower distribution level than the event"
@@ -6931,7 +6931,7 @@ msgid "This event has "
 msgstr ""
 
 #: View/Events/view.ctp:336
-msgid "correlations with data contained within the various feeds, however, due to the large number of attributes the actual feed correlations are not shown. Click <a href=\"%s\\/overrideLimit:1\">here</a> to refresh the page with the feed data loaded."
+msgid "correlations with data contained within the various feeds, however, due to the large number of attributes the actual feed correlations are not shown. Click (<a href=\"%s\\/overrideLimit:1\">here</a> to refresh the page with the feed data loaded."
 msgstr ""
 
 #: View/Events/view.ctp:344
@@ -12487,7 +12487,7 @@ msgstr ""
 #: View/Users/admin_add.ctp:88
 #: View/Users/admin_edit.ctp:78
 msgid "Disable this user account"
-msgstr ""
+msgstr "Diesen Useraccount deaktivieren"
 
 #: View/Users/admin_add.ctp:90
 msgid "Send credentials automatically"
