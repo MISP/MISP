@@ -4216,7 +4216,7 @@ class Event extends AppModel
                             $attribute['data'] = $encodedFile;
                         }
                     }
-                    if (!empty($event[0]['Attribute'])) {
+                    if (!empty($event[0]['Object'])) {
                         foreach ($event[0]['Object'] as &$object) {
                             foreach ($object['Attribute'] as &$attribute) {
                                 if ($this->Attribute->typeIsAttachment($attribute['type'])) {
