@@ -1324,7 +1324,7 @@ class StixBuilder(object):
         to_ids = self.fetch_ids_flags(attributes)
         if with_uuid:
             return to_ids, {attribute['object_relation']: {'value': attribute['value'], 'uuid': attribute['uuid']} for attribute in attributes}
-        return to_ids, attributes_dict = {attribute['object_relation']: attribute['value'] for attribute in attributes}
+        return to_ids, {attribute['object_relation']: attribute['value'] for attribute in attributes}
 
     def create_attributes_dict_multiple(self, attributes, with_uuid=False):
         to_ids = self.fetch_ids_flags(attributes)
