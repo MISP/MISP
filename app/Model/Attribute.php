@@ -1804,7 +1804,7 @@ class Attribute extends AppModel
                     ),
                     'Attribute.disable_correlation' => 0,
                     'Event.disable_correlation' => 0,
-                    'Attribute.deleted' => 0
+                    '(Attribute.deleted + 0)' => 0
                 );
                 if (!empty($extraConditions)) {
                     $conditions['OR'][] = $extraConditions;
