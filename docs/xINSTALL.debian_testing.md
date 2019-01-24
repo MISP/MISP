@@ -422,7 +422,8 @@ sudo apt install ruby-pygments.rb -y
 sudo gem install asciidoctor-pdf --pre
 
 # install STIX2.0 library to support STIX 2.0 export:
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install stix2
+cd ${PATH_TO_MISP}/cti-python-stix2
+sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install -I .
 
 # install additional dependencies for extended object generation and extraction
 sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install maec lief python-magic pathlib
@@ -501,5 +502,7 @@ sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install pyzmq
 {!generic/ssdeep-debian.md!}
 
 {!generic/mail_to_misp-debian.md!}
+
+{!generic/upgrading.md!}
 
 {!generic/hardening.md!}
