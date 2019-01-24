@@ -17,8 +17,75 @@
 
 
 
-MISP_USER='misp'
-MISP_PASSWORD='Password1234'
+function checkFlavour() {
+  FLAVOUR=$(lsb_release -s -i |tr [A-Z] [a-z])
+}
+
+function space() {
+  echo "-----------------------------------------------------------------------"
+}
+
+function usage() {
+  echo "Please specify what type of MISP if you want to install."
+  space
+  echo "${0} -c | Install ONLY MISP Core"
+  echo "                    -V | Core + Viper"
+  echo "                    -M | Core + MISP modules"
+  echo "                    -D | Core + MISP dashboard"
+  echo "                    -m | Core + Mail 2 MISP"
+  echo "                    -A | Install all of the above"
+  space
+  echo "                    -C | Only do pre-install checks and exit"
+  space
+  echo "Options can be combined: ${0} -V -D # Will install Core+Viper+Dashboard"
+  space
+}
+
+function checkID() {
+  if [[ $EUID == 0 ]]; then
+   echo "This script cannot be run as a root"
+   exit 1
+  elif [[ $(id $MISP_USER >/dev/null; echo $?) -ne 0 ]]; then
+    echo "There is NO user called '$MISP_USER' create a user '$MISP_USER' or continue as $USER? (y/n) "
+    read ANSWER
+    ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
+    if [[ $ANSWER == "y" ]]; then
+      useradd -s /bin/bash -m -G adm,cdrom,sudo,dip,plugdev,www-data $MISP_USER
+      echo $MISP_USER:$MISP_PASSWORD | chpasswd
+      echo "User $MISP_USER added, password is: $MISP_PASSWORD"
+    elif [[ $ANSWER == "n" ]]; then
+      echo "Using $USER as install user, hope that is what you want."
+      MISP_USER=$USER
+    else
+      echo "yes or no was asked, try again."
+      exit 1
+    fi
+  else
+    echo "User ${MISP_USER} exists, skipping creation"
+  fi
+}
+
+function checkSudo() {
+sudo -H -u $MISP_USER ls -la /tmp > /dev/null 2> /dev/null
+if [[ $? -ne 0 ]]; then
+  echo "sudo seems to be not installed or working, please fix this before continuing the installation."
+  echo "apt install sudo # As root should be enough, make sure the $MISP_USER is able to run sudo."
+  exit 1
+fi
+}
+
+function checkUsrLocalSrc() {
+if [[ -e /usr/local/src ]]; then
+  if [[ -w /usr/local/src ]]; then
+    echo "Good, /usr/local/src exists and is writeable as $MISP_USER"
+  else
+    echo -n "/usr/local/src need to be writeable by $MISP_USER, permission to fix? (y/n)"
+    read ANSWER
+    ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
+  fi
+fi
+
+}
 
 function kaliOnRootR0ckz() {
   if [[ $EUID -ne 0 ]]; then
@@ -32,7 +99,11 @@ function kaliOnRootR0ckz() {
   fi
 }
 
-function installMISPonKali() {
+function MISPvars() {
+  # Local non-root MISP user
+  MISP_USER='misp'
+  MISP_PASSWORD='Password1234'
+
   # MISP configuration variables
   PATH_TO_MISP='/var/www/MISP'
   MISP_BASEURL='https://misp.local'
@@ -82,8 +153,10 @@ function installMISPonKali() {
 
   echo "Admin (${DBUSER_ADMIN}) DB Password: ${DBPASSWORD_ADMIN}"
   echo "User  (${DBUSER_MISP}) DB Password: ${DBPASSWORD_MISP}"
+}
 
-  echo "-----------------------------------------------------------------------"
+function installMISPonKali() {
+  space
   echo "Disabling sleep etc…"
   gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 0
   gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 0
@@ -666,8 +739,19 @@ exit 0' | tee /etc/init.d/redis-server
   echo "sudo postfix reload"
   echo "-------------------------------------------------------------------------"
   echo "Enjoy using MISP. For any issues see here: https://github.com/MISP/MISP/issues"
-  su - misp
+  su - ${MISP_USER}
 }
 
-kaliOnRootR0ckz
-installMISPonKali
+if [[ $# -ne 1 || $0 != "/tmp/misp-kali.sh" ]]; then
+  usage
+  exit 
+fi
+
+checkFlavour
+MISPvars
+
+if [ "${FLAVOUR}" == "kali" ]; then
+  kaliOnRootR0ckz
+  installMISPonKali
+  exit
+fi
