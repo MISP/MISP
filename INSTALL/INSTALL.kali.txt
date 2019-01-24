@@ -117,7 +117,7 @@ function installMISPonKali() {
 
   if [ "$?" -eq "1" ]; then 
     apt purge -qy rng-tools
-    apt install havegd
+    apt install -qy haveged
     /etc/init.d/haveged start
   fi
 
@@ -135,12 +135,82 @@ function installMISPonKali() {
   #update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1
   #update-alternatives --install /usr/bin/python python /usr/bin/python3.6 2
 
+  # As of 20190124 redis-server init.d scripts are broken and need to be replaced
+  mv /etc/init.d/redis-server /etc/init.d/redis-server_`date +%Y%m%d`
+
+  echo '#! /bin/sh
+### BEGIN INIT INFO
+# Provides:		redis-server
+# Required-Start:	$syslog
+# Required-Stop:	$syslog
+# Should-Start:		$local_fs
+# Should-Stop:		$local_fs
+# Default-Start:	2 3 4 5
+# Default-Stop:		0 1 6
+# Short-Description:	redis-server - Persistent key-value db
+# Description:		redis-server - Persistent key-value db
+### END INIT INFO
+
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+DAEMON=/usr/bin/redis-server
+DAEMON_ARGS=/etc/redis/redis.conf
+NAME=redis-server
+DESC=redis-server
+PIDFILE=/var/run/redis.pid
+
+test -x $DAEMON || exit 0
+test -x $DAEMONBOOTSTRAP || exit 0
+
+set -e
+
+case "$1" in
+  start)
+	echo -n "Starting $DESC: "
+	touch $PIDFILE
+	chown redis:redis $PIDFILE
+	if start-stop-daemon --start --quiet --umask 007 --pidfile $PIDFILE --chuid redis:redis --exec $DAEMON -- $DAEMON_ARGS
+	then
+		echo "$NAME."
+	else
+		echo "failed"
+	fi
+	;;
+  stop)
+	echo -n "Stopping $DESC: "
+	if start-stop-daemon --stop --retry 10 --quiet --oknodo --pidfile $PIDFILE --exec $DAEMON
+	then
+		echo "$NAME."
+	else
+		echo "failed"
+	fi
+	rm -f $PIDFILE
+	;;
+
+  restart|force-reload)
+	${0} stop
+	${0} start
+	;;
+  *)
+	echo "Usage: /etc/init.d/$NAME {start|stop|restart|force-reload}" >&2
+	exit 1
+	;;
+esac
+
+exit 0' | tee /etc/init.d/redis-server
+  chmod 755 /etc/init.d/redis-server
+  /etc/init.d/redis-server start
+
   mkdir $PATH_TO_MISP
   chown www-data:www-data $PATH_TO_MISP
   cd $PATH_TO_MISP
   $SUDO_WWW git clone https://github.com/MISP/MISP.git $PATH_TO_MISP
 
   $SUDO_WWW git config core.filemode false
+
+  cd $PATH_TO_MISP
+  $SUDO_WWW git submodule update --init --recursive
+  # Make git ignore filesystem permission differences for submodules
+  $SUDO_WWW git submodule foreach --recursive git config core.filemode false
 
   cd $PATH_TO_MISP/app/files/scripts
   $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
@@ -157,11 +227,6 @@ function installMISPonKali() {
   $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
   cd $PATH_TO_MISP/app/files/scripts/mixbox
   pip3 install .
-
-  cd $PATH_TO_MISP
-  $SUDO_WWW git submodule update --init --recursive
-  # Make git ignore filesystem permission differences for submodules
-  $SUDO_WWW git submodule foreach --recursive git config core.filemode false
 
   # install PyMISP
   cd $PATH_TO_MISP/PyMISP
@@ -499,7 +564,8 @@ function installMISPonKali() {
   $CAKE Admin setSetting "Session.timeout" 600
   $CAKE Admin setSetting "Session.cookie_timeout" 3600
   $CAKE Live $MISP_LIVE
-  $CAKE Admin updateGalaxies
+  #$CAKE Admin updateGalaxies
+  curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/galaxies/update
   $CAKE Admin updateTaxonomies
   #$CAKE Admin updateWarningLists
   curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/warninglists/update
