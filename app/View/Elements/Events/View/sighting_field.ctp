@@ -29,7 +29,7 @@
 <td class="short">
   <?php
     if (!empty($sightingsData['csv'][$object['id']])) {
-      echo $this->element('sparkline', array('id' => $object['id'], 'csv' => $sightingsData['csv'][$object['id']]));
+      echo $this->element('sparkline', array('scope' => 'object', 'id' => $object['id'], 'csv' => $sightingsData['csv'][$object['id']]));
     }
   ?>
 </td>

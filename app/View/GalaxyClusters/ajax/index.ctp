@@ -62,7 +62,7 @@
                 &nbsp;
             </td>
             <td class="shortish">
-                <?php echo $this->element('sparkline', array('id' => $item['GalaxyCluster']['id'], 'csv' => $csv[$k])); ?>
+                <?php echo $this->element('sparkline', array('scope' => 'cluster', 'id' => $item['GalaxyCluster']['id'], 'csv' => $csv[$k])); ?>
             </td>
             <td class="short">
                 <?php

@@ -1,4 +1,4 @@
-# Requirements: mkdocs >1.x && mkdocs-material
+# Requirements: mkdocs >1.x && mkdocs-material && markdown_include
 
 # Project information
 site_name: MISP Install Documentation

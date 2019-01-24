@@ -215,7 +215,7 @@
                 <dd>
                     <?php
                         if (!empty($sightingsData['csv']['event'])) {
-                            echo $this->element('sparkline', array('id' => $event['Event']['id'], 'csv' => $sightingsData['csv']['event']));
+                            echo $this->element('sparkline', array('scope' => 'event', 'id' => $event['Event']['id'], 'csv' => $sightingsData['csv']['event']));
                         } else {
                             echo '&nbsp';
                         }
