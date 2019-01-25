@@ -2219,7 +2219,7 @@ class Attribute extends AppModel
             $conditions['AND'][] = array('Event.id' => $eventId);
         } elseif ($tags !== false) {
             $passed_param = array('tags' => $tags);
-            $conditions = $this->set_filter_tags($passed_params, $conditions);
+            $conditions = $this->set_filter_tags($passed_param, $conditions, array('scope' => 'Attribute'));
         }
         $attributes = $this->fetchAttributes($user, array(
                 'conditions' => $conditions,
