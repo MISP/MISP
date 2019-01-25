@@ -186,6 +186,7 @@ class StixParser():
     # Define type & value of an attribute or object in MISP
     def handle_attribute_type(self, properties, is_object=False, title=None, observable_id=None):
         xsi_type = properties._XSI_TYPE
+        print(xsi_type)
         # try:
         args = [properties]
         if xsi_type in ("FileObjectType", "PDFFileObjectType", "WindowsFileObjectType"):
@@ -215,7 +216,7 @@ class StixParser():
     @staticmethod
     def handle_attachment(properties, title):
         if properties.hashes:
-            return "malware-sample", "{}|{}".format(title, properties.hashes[0], properties.raw_artifact.value)
+            return "malware-sample", "{}|{}".format(title, properties.hashes[0]), properties.raw_artifact.value
         return stix2misp_mapping.eventTypes[properties._XSI_TYPE]['type'], title, properties.raw_artifact.value
 
     # Return type & attributes of a credential object
