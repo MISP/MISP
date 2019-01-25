@@ -2821,6 +2821,7 @@ class Attribute extends AppModel
                 )
             )
         );
+
         if (!empty($options['includeProposals'])) {
             $this->bindModel(
                 array('hasMany' => array(
@@ -3766,7 +3767,7 @@ class Attribute extends AppModel
                     'value' => array('function' => 'set_filter_value'),
                     'category' => array('function' => 'set_filter_simple_attribute'),
                     'type' => array('function' => 'set_filter_simple_attribute'),
-                    'tags' => array('function' => 'set_filter_tags'),
+                    'tags' => array('function' => 'set_filter_tags', 'pop' => true),
                     'uuid' => array('function' => 'set_filter_uuid'),
                     'deleted' => array('function' => 'set_filter_deleted'),
                     'timestamp' => array('function' => 'set_filter_timestamp'),
@@ -3779,6 +3780,7 @@ class Attribute extends AppModel
                     'ignore' => array('function' => 'set_filter_ignore'),
                     'from' => array('function' => 'set_filter_timestamp'),
                     'to' => array('function' => 'set_filter_timestamp'),
+                    'tags' => array('function' => 'set_filter_tags'),
                     'last' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
