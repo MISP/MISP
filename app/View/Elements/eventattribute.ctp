@@ -178,9 +178,7 @@
         </div>
     </div>
 
-    <div id="eventFilteringQBWrapper" style="padding: 5px; display: none; border: 1px solid #dddddd; border-bottom: 0px;">
-        <div id="eventFilteringQB"></div>
-    </div>
+    <?php echo $this->element('/Events/View/eventFilteringQBWrapper'); ?>
 
     <table class="table table-striped table-condensed">
         <tr>
