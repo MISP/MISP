@@ -894,6 +894,11 @@ a.proposal_link_red:hover {
 	padding-left:10px;
 }
 
+#eventFilteringQB .rules-group-container {
+	background-color: #00000077;
+	border-color: #222222;
+}
+
 a.pill-pre-picker {
     background-color: #fcfcfc;
     font-weight: bold;
