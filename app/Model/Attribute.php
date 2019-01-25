@@ -3796,7 +3796,7 @@ class Attribute extends AppModel
             );
             foreach ($params as $param => $paramData) {
                 foreach ($simple_params as $scope => $simple_param_scoped) {
-                    if (isset($simple_param_scoped[$param]) && $params[$param] !== false) {
+                    if (isset($simple_param_scoped[$param]) && isset($params[$param]) && $params[$param] !== false) {
                         $options = array(
                             'filter' => $param,
                             'scope' => $scope,
