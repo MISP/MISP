@@ -887,7 +887,7 @@ class StixFromMISPParser(StixParser):
     def fill_misp_object(self, item, name, to_ids=False):
         uuid = self.fetch_uuid(item.id_)
         if any(((hasattr(item, 'observable') and hasattr(item.observable, 'observable_composition')),
-                hasattr(item, 'observable_composition'))):
+                (hasattr(item, 'observable_composition') and item.observable_composition))):
             misp_object = MISPObject(name)
             misp_object.uuid = uuid
             if to_ids:
