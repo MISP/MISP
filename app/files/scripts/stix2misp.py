@@ -856,13 +856,12 @@ class StixFromMISPParser(StixParser):
 
     # Parse STIX object that we know will give MISP objects
     def parse_misp_object_indicator(self, indicator):
-        object_type = str(indicator.relationship)
         item = indicator.item
         name = item.title.split(' ')[0]
         if name not in ('passive-dns'):
             self.fill_misp_object(item, name, to_ids=True)
         else:
-            if object_type != "misc":
+            if str(indicator.relationship) != "misc":
                 print("Unparsed Object type: {}".format(name), file=sys.stderr)
 
     def parse_misp_object_observable(self, observable):
