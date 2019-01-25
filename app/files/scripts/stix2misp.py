@@ -648,7 +648,7 @@ class StixParser():
     # The value returned by the indicators or observables parser is of type str or int
     # Thus we can add an attribute in the MISP event with the type & value
     def handle_attribute_case(self, attribute_type, attribute_value, data, attribute):
-        if attribute_type == 'attachment':
+        if attribute_type in ('attachment', 'malware-sample'):
             attribute['data'] = data
         elif attribute_type == 'text':
             attribute['comment'] = data
