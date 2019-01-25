@@ -8,13 +8,9 @@
 #1/ Prepare Kali with a MISP User
 #--------------------------------
 # To install MISP on Kali copy paste this in your r00t shell:
-# wget -O /tmp/misp-kali.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.kali.txt && bash /tmp/misp-kali.sh
+# wget -O /tmp/misp-kali.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh && bash /tmp/misp-kali.sh
 # /!\ Please read the installer script before randomly doing the above.
 # The script is tested on a plain vanilla Kali Linux Boot CD and installs quite a few dependencies.
-
-
-# Bug: /tmp/misp-kali.sh: line 142: pip3: command not found
-
 
 
 function checkFlavour() {
@@ -742,7 +738,7 @@ exit 0' | tee /etc/init.d/redis-server
   su - ${MISP_USER}
 }
 
-if [[ $# -ne 1 || $0 != "/tmp/misp-kali.sh" ]]; then
+if [[ $# -ne 1 && $0 != "/tmp/misp-kali.sh" ]]; then
   usage
   exit 
 fi
