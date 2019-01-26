@@ -82,7 +82,15 @@
 	    <b>includeContext</b>: <?php echo __('Include the event level meta-data with each attribute.');?><br />
 	    <b>headerless</b>: <?php echo __('The CSV created when this setting is set to true will not contain the header row.'); ?>
     </p>
-
+    <?php
+        echo '<h3>' . __('URL parameters') . '</h3>';
+        echo sprintf(
+            '<p>%s</p><pre>%s</pre><p>%s</p>',
+            __('It is also possible to pass all of the above parameters via URL parameters, however this is HIGHLY discouraged. If you however have no other options, simply pass the parameters in the following fashion:'),
+            $baseurl . '/attributes/restSearch/returnFormat:text/tags:!tlp:red||!tlp:amber||tlp:green||tlp:white/publish_timestamp:14d||7d',
+            'As you can see above, "||" can be used to add more values to a "list" and all parameters are passed as key:value components to the URL. Keep in mind, certain special characters in URLs can cause issues, your searches may end up being leaked to logs in transit and there are length limitations to take into account. Use this as a last resort.'
+        );
+    ?>
     <h3><?php echo __('RPZ specific parameters for the restSearch APIs');?></h3>
     <p><?php echo __('>You can export RPZ zone files for DNS level firewalling by using the RPZ export functionality of MISP. The file generated will include all of the IDS flagged domain, hostname and IP-src/IP-dst attribute values that you have access to.');?></p>
     <p>
