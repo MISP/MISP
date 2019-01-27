@@ -628,13 +628,16 @@ class AppController extends Controller
                     $data[$p] = str_replace(';', ':', $data[$p]);
                 }
                 if (isset($options['named_params'][$p])) {
-                    $data[$p] = $options['named_params'][$p];
+                    $data[$p] = str_replace(';', ':', $options['named_params'][$p]);
                 }
             }
         }
         foreach ($data as $k => $v) {
             if (!is_array($data[$k])) {
                 $data[$k] = trim($data[$k]);
+                if (strpos($data[$k], '||')) {
+                    $data[$k] = explode('||', $data[$k]);
+                }
             }
         }
         if (!empty($options['additional_delimiters'])) {

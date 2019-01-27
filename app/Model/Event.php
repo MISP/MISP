@@ -5785,6 +5785,7 @@ class Event extends AppModel
                 'value' => $original_filename,
                 'data' => base64_encode($file),
                 'object_id' => $object_id,
+                'disable_correlation' => true
             ),
             array(
                 'type' => 'text',
@@ -5794,7 +5795,8 @@ class Event extends AppModel
                 'distribution' => $distribution,
                 'object_id' => $object_id,
                 'object_relation' => 'format',
-                'value' => $format
+                'value' => $format,
+                'disable_correlation' => true
             )
         );
         foreach ($attributes as $attribute) {
