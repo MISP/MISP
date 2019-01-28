@@ -742,9 +742,6 @@ class TagsController extends AppController
             $itemParam = array(
                 'name' => $tagName,
                 'value' => $choice_id,
-                'additionalData' => array(
-                    'id' => $id
-                ),
                 'template' => array(
                     'name' => array(
                         'name' => $tagName,
@@ -764,6 +761,11 @@ class TagsController extends AppController
         $this->set('options', array( // set chosen (select picker) options
             'functionName' => $onClickForm,
             'multiple' => -1,
+            'select_options' => array(
+                'additionalData' => array(
+                    'id' => $id
+                ),
+            ),
         ));
         $this->render('ajax/select_tag');
     }

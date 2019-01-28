@@ -214,10 +214,6 @@ class GalaxiesController extends AppController
                 $itemParam = array(
                     'name' => $optionName,
                     'value' => $cluster['id'],
-                    'additionalData' => array(
-                        'target_id' => $target_id,
-                        'target_type' => $target_type,
-                    ),
                     'template' => array(
                         'name' => $name,
                         'infoExtra' => $cluster['description'],
@@ -227,6 +223,7 @@ class GalaxiesController extends AppController
                     $itemParam['template']['infoContextual'] = $synom;
                 }
                 $items[] = $itemParam;
+                unset($cluster_data[$k]);
             }
         }
         $onClickForm = 'quickSubmitGalaxyForm';
@@ -237,6 +234,12 @@ class GalaxiesController extends AppController
             $this->set('options', array( // set chosen (select picker) options
                 'functionName' => $onClickForm,
                 'multiple' => '-1',
+                'select_options' => array(
+                    'additionalData' => array(
+                        'target_id' => $target_id,
+                        'target_type' => $target_type,
+                    )
+                ),
             ));
             $this->render('ajax/cluster_choice');
         }
@@ -313,7 +316,7 @@ class GalaxiesController extends AppController
 
         } elseif ($scope == 'attribute') {
             $this->loadModel('Attribute');
-            $object = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id)));
+            $object = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'flatten' => 1));
             if (empty($object)) {
                 throw new MethodNotAllowedException('Invalid attribute.');
             }

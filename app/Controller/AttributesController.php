@@ -1604,23 +1604,23 @@ class AttributesController extends AppController
             $clusters = $this->Attribute->AttributeTag->getAttributesClusters($this->Auth->user(), $id, $selectedAttributeIds);
             $clusterItemsRemove = array();
             foreach ($clusters as $k => $cluster) {
-                $title = __('Synonyms: ') . $cluster['synonyms_string'];
                 $name = $cluster['value'];
                 $optionName = $cluster['value'];
                 $optionName .= $cluster['synonyms_string'] !== '' ? ' (' . $cluster['synonyms_string'] . ')' : '';
 
-                $clusterItemsRemove[] = array(
+                $temp = array(
                     'name' => $optionName,
                     'value' => $cluster['id'],
-                    'additionalData' => array(
-                        'event_id' => $id,
-                    ),
                     'template' => array(
                         'name' => $name,
                         'infoExtra' => $cluster['description'],
                         'infoContextual' => $title
                     )
                 );
+                if ($cluster['synonyms_string'] !== '') {
+                    $temp['infoContextual'] = __('Synonyms: ') . $cluster['synonyms_string'];
+                }
+                $clusterItemsRemove[] = $temp;
             }
             unset($clusters);
             $conditions = array();
@@ -1681,7 +1681,12 @@ class AttributesController extends AppController
             $this->set('options', array( // set chosen (select picker) options
                 'multiple' => -1,
                 'disabledSubmitButton' => true,
-                'flag_redraw_chosen' => true
+                'flag_redraw_chosen' => true,
+                'select_options' => array(
+                    'additionalData' => array(
+                        'event_id' => $id,
+                    ),
+                ),
             ));
             $this->render('ajax/attributeEditMassForm');
         }
