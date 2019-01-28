@@ -2219,7 +2219,7 @@ class Attribute extends AppModel
             $conditions['AND'][] = array('Event.id' => $eventId);
         } elseif ($tags !== false) {
             $passed_param = array('tags' => $tags);
-            $conditions = $this->set_filter_tags($passed_params, $conditions);
+            $conditions = $this->set_filter_tags($passed_param, $conditions, array('scope' => 'Attribute'));
         }
         $attributes = $this->fetchAttributes($user, array(
                 'conditions' => $conditions,
@@ -3796,7 +3796,7 @@ class Attribute extends AppModel
             );
             foreach ($params as $param => $paramData) {
                 foreach ($simple_params as $scope => $simple_param_scoped) {
-                    if (isset($simple_param_scoped[$param]) && $params[$param] !== false) {
+                    if (isset($simple_param_scoped[$param]) && isset($params[$param]) && $params[$param] !== false) {
                         $options = array(
                             'filter' => $param,
                             'scope' => $scope,

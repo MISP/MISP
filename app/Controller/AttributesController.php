@@ -1604,23 +1604,23 @@ class AttributesController extends AppController
             $clusters = $this->Attribute->AttributeTag->getAttributesClusters($this->Auth->user(), $id, $selectedAttributeIds);
             $clusterItemsRemove = array();
             foreach ($clusters as $k => $cluster) {
-                $title = __('Synonyms: ') . $cluster['synonyms_string'];
                 $name = $cluster['value'];
                 $optionName = $cluster['value'];
                 $optionName .= $cluster['synonyms_string'] !== '' ? ' (' . $cluster['synonyms_string'] . ')' : '';
 
-                $clusterItemsRemove[] = array(
+                $temp = array(
                     'name' => $optionName,
                     'value' => $cluster['id'],
-                    'additionalData' => array(
-                        'event_id' => $id,
-                    ),
                     'template' => array(
                         'name' => $name,
                         'infoExtra' => $cluster['description'],
                         'infoContextual' => $title
                     )
                 );
+                if ($cluster['synonyms_string'] !== '') {
+                    $temp['infoContextual'] = __('Synonyms: ') . $cluster['synonyms_string'];
+                }
+                $clusterItemsRemove[] = $temp;
             }
             unset($clusters);
             $conditions = array();
@@ -1681,7 +1681,12 @@ class AttributesController extends AppController
             $this->set('options', array( // set chosen (select picker) options
                 'multiple' => -1,
                 'disabledSubmitButton' => true,
-                'flag_redraw_chosen' => true
+                'flag_redraw_chosen' => true,
+                'select_options' => array(
+                    'additionalData' => array(
+                        'event_id' => $id,
+                    ),
+                ),
             ));
             $this->render('ajax/attributeEditMassForm');
         }
@@ -1930,7 +1935,7 @@ class AttributesController extends AppController
 
     public function restSearch($returnFormat = 'json', $value = false, $type = false, $category = false, $org = false, $tags = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $uuid = false, $publish_timestamp = false, $published = false, $timestamp = false, $enforceWarninglist = false, $to_ids = false, $deleted = false, $includeEventUuid = false, $event_timestamp = false, $threat_level_id = false)
     {
-        $paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags', 'includeProposals');
+        $paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags', 'includeProposals', 'returnFormat', 'published');
         $filterData = array(
             'request' => $this->request,
             'named_params' => $this->params['named'],

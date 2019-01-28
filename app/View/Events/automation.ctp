@@ -29,19 +29,19 @@
 				"quickfilter" => __('Enabling this (by passing "1" as the argument) will make the search ignore all of the other arguments, except for the auth key and value. MISP will return an xml / json (depending on the header sent) of all events that have a sub-string match on value in the event info, event orgc, or any of the attribute value1 / value2 fields, or in the attribute comment.'),
 				"from" => __('Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.'),
 				"to" => __('Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.'),
-				"last" => __('Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m). This filter will use the published timestamp of the event.'),
 				"eventid" => __('The events that should be included / excluded from the search'),
 				"withAttachments" => __('If set, encodes the attachments / zipped malware samples as base64 in the data field within each attribute'),
 				"metadata" => __('Only the metadata (event, tags, relations) is returned, attributes and proposals are omitted.'),
 				"uuid" => __('Restrict the results by uuid.'),
-				"publish_timestamp" => __('Restrict the results by the last publish timestamp (newer than).'),
-				"timestamp" => __('Restrict the results by the timestamp (last edit). Any event with a timestamp newer than the given timestamp will be returned. In case you are dealing with /attributes as scope, the attribute\'s timestamp will be used for the lookup.'),
+				"publish_timestamp" => __('Restrict the results by the timestamp of the last publishing of the event. The input can be a timetamp or a short-hand time description (7d or 24h for example). You can also pass a list with two values to set a time range (for example ["14d", "7d"]).'),
+                "last" => __('(Deprecated synonym for publish_timestamp) Restrict the results by the timestamp of the last publishing of the event. The input can be a timetamp or a short-hand time description (7d or 24h for example). You can also pass a list with two values to set a time range (for example ["14d", "7d"]).'),
+				"timestamp" => __('Restrict the results by the timestamp (last edit). Any event with a timestamp newer than the given timestamp will be returned. In case you are dealing with /attributes as scope, the attribute\'s timestamp will be used for the lookup. The input can be a timetamp or a short-hand time description (7d or 24h for example). You can also pass a list with two values to set a time range (for example ["14d", "7d"]).'),
 				"published" => __('Set whether published or unpublished events should be returned. Do not set the parameter if you want both.'),
 				"enforceWarninglist" => __('Remove any attributes from the result that would cause a hit on a warninglist entry.'),
 				"to_ids" => __('By default (0) all attributes are returned that match the other filter parameters, irregardless of their to_ids setting. To restrict the returned data set to to_ids only attributes set this parameter to 1. You can only use the special "exclude" setting to only return attributes that have the to_ids flag disabled.'),
 				"deleted" => __('If this parameter is set to 1, it will return soft-deleted attributes along with active ones. By using "only" as a parameter it will limit the returned data set to soft-deleted data only.'),
 				"includeEventUuid" => __('Instead of just including the event ID, also include the event UUID in each of the attributes.'),
-				"event_timestamp" => __('Only return attributes from events that have received a modification after the given timestamp.'),
+				"event_timestamp" => __('Only return attributes from events that have received a modification after the given timestamp. The input can be a timetamp or a short-hand time description (7d or 24h for example). You can also pass a list with two values to set a time range (for example ["14d", "7d"]).'),
 				"sgReferenceOnly" => __('If this flag is set, sharing group objects will not be included, instead only the sharing group ID is set.'),
 				"eventinfo" => __("Filter on the event's info field."),
 				"searchall" => __("Search for a full or a substring (delimited by % for substrings) in the event info, event tags, attribute tags, attribute values or attribute comment fields."),
@@ -82,7 +82,15 @@
 	    <b>includeContext</b>: <?php echo __('Include the event level meta-data with each attribute.');?><br />
 	    <b>headerless</b>: <?php echo __('The CSV created when this setting is set to true will not contain the header row.'); ?>
     </p>
-
+    <?php
+        echo '<h3>' . __('URL parameters') . '</h3>';
+        echo sprintf(
+            '<p>%s</p><pre>%s</pre><p>%s</p>',
+            __('It is also possible to pass all of the above parameters via URL parameters, however this is HIGHLY discouraged. If you however have no other options, simply pass the parameters in the following fashion:'),
+            $baseurl . '/attributes/restSearch/returnFormat:text/tags:!tlp:red||!tlp:amber||tlp:green||tlp:white/publish_timestamp:14d||7d',
+            'As you can see above, "||" can be used to add more values to a "list" and all parameters are passed as key:value components to the URL. Keep in mind, certain special characters in URLs can cause issues, your searches may end up being leaked to logs in transit and there are length limitations to take into account. Use this as a last resort.'
+        );
+    ?>
     <h3><?php echo __('RPZ specific parameters for the restSearch APIs');?></h3>
     <p><?php echo __('>You can export RPZ zone files for DNS level firewalling by using the RPZ export functionality of MISP. The file generated will include all of the IDS flagged domain, hostname and IP-src/IP-dst attribute values that you have access to.');?></p>
     <p>

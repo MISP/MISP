@@ -215,7 +215,7 @@ class StixParser():
     @staticmethod
     def handle_attachment(properties, title):
         if properties.hashes:
-            return "malware-sample", "{}|{}".format(title, properties.hashes[0], properties.raw_artifact.value)
+            return "malware-sample", "{}|{}".format(title, properties.hashes[0]), properties.raw_artifact.value
         return stix2misp_mapping.eventTypes[properties._XSI_TYPE]['type'], title, properties.raw_artifact.value
 
     # Return type & attributes of a credential object
@@ -647,7 +647,7 @@ class StixParser():
     # The value returned by the indicators or observables parser is of type str or int
     # Thus we can add an attribute in the MISP event with the type & value
     def handle_attribute_case(self, attribute_type, attribute_value, data, attribute):
-        if attribute_type == 'attachment':
+        if attribute_type in ('attachment', 'malware-sample'):
             attribute['data'] = data
         elif attribute_type == 'text':
             attribute['comment'] = data
@@ -855,13 +855,12 @@ class StixFromMISPParser(StixParser):
 
     # Parse STIX object that we know will give MISP objects
     def parse_misp_object_indicator(self, indicator):
-        object_type = str(indicator.relationship)
         item = indicator.item
         name = item.title.split(' ')[0]
         if name not in ('passive-dns'):
             self.fill_misp_object(item, name, to_ids=True)
         else:
-            if object_type != "misc":
+            if str(indicator.relationship) != "misc":
                 print("Unparsed Object type: {}".format(name), file=sys.stderr)
 
     def parse_misp_object_observable(self, observable):
@@ -887,7 +886,8 @@ class StixFromMISPParser(StixParser):
     # Create a MISP object, its attributes, and add it in the MISP event
     def fill_misp_object(self, item, name, to_ids=False):
         uuid = self.fetch_uuid(item.id_)
-        try:
+        if any(((hasattr(item, 'observable') and hasattr(item.observable, 'observable_composition')),
+                (hasattr(item, 'observable_composition') and item.observable_composition))):
             misp_object = MISPObject(name)
             misp_object.uuid = uuid
             if to_ids:
@@ -895,16 +895,34 @@ class StixFromMISPParser(StixParser):
                 misp_object.timestamp = self.getTimestampfromDate(item.timestamp)
             else:
                 observables = item.observable_composition.observables
-            for observable in observables:
-                properties = observable.object_.properties
-                misp_attribute = MISPAttribute()
-                misp_attribute.type, misp_attribute.value, misp_attribute.object_relation = self.handle_attribute_type(properties, is_object=True, observable_id=observable.id_)
-                misp_attribute.to_ids = to_ids
-                misp_object.add_attribute(**misp_attribute)
+            args = (misp_object, observables, to_ids)
+            self.handle_file_composition(*args) if name == 'file' else self.handle_composition(*args)
             self.misp_event.add_object(**misp_object)
-        except AttributeError:
+        else:
             properties = item.observable.object_.properties if to_ids else item.object_.properties
             self.parse_observable(properties, to_ids, uuid)
+
+    def  handle_file_composition(self, misp_object, observables, to_ids):
+        for observable in observables:
+            attribute_type, attribute_value, compl_data = self.handle_attribute_type(observable.object_.properties, title=observable.title)
+            if isinstance(attribute_value, str):
+                misp_object.add_attribute(**{'type': attribute_type, 'value': attribute_value,
+                                             'object_relation': attribute_type, 'to_ids': to_ids,
+                                             'data': compl_data})
+            else:
+                for attribute in attribute_value:
+                    attribute['to_ids'] = to_ids
+                    misp_object.add_attribute(**attribute)
+        return misp_object
+
+    def handle_composition(self, misp_object, observables, to_ids):
+        for observable in observables:
+            properties = observable.object_.properties
+            misp_attribute = MISPAttribute()
+            misp_attribute.type, misp_attribute.value, misp_attribute.object_relation = self.handle_attribute_type(properties, is_object=True, observable_id=observable.id_)
+            misp_attribute.to_ids = to_ids
+            misp_object.add_attribute(**misp_attribute)
+        return misp_object
 
     # Create a MISP attribute and add it in its MISP object
     def parse_observable(self, properties, to_ids, uuid):
