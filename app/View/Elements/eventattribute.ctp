@@ -178,7 +178,7 @@
         </div>
     </div>
 
-    <?php echo $this->element('/Events/View/eventFilteringQBWrapper'); ?>
+    <?php echo $this->element('/Events/View/eventFilteringQueryBuilder'); ?>
 
     <table class="table table-striped table-condensed">
         <tr>
