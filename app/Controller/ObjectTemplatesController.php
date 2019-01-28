@@ -66,7 +66,6 @@ class ObjectTemplatesController extends AppController
             $items[] = array(
                 'name' => $template['name'],
                 'value' => $template['id'],
-                'additionalData' => array('event_id' => $event_id),
                 'template' => array(
                     'name' => $template['name'],
                     'infoExtra' => $template['description'],
@@ -80,6 +79,9 @@ class ObjectTemplatesController extends AppController
         $this->set('options', array(
             'functionName' => $fun,
             'multiple' => 0,
+            'select_options' => array(
+                'additionalData' => array('event_id' => $event_id),
+            ),
         ));
         $this->render('/Elements/generic_picker');
     }

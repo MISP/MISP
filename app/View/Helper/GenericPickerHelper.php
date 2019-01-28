@@ -6,13 +6,21 @@ App::uses('AppHelper', 'View/Helper');
 class GenericPickerHelper extends AppHelper {
 
     function add_select_params($options) {
+        if (isset($options['select_options']['additionalData'])) {
+            $additionalData = json_encode($options['select_options']['additionalData']);
+            unset($options['select_options']['additionalData']);
+        } else {
+            $additionalData = json_encode(array());
+        }
+
         $select_html = '';
         foreach ($options['select_options'] as $option => $value) {
             $select_html .= sprintf('%s=%s ', h($option), h($value));
         }
         if (isset($options['functionName']) && $options['functionName'] !== "") {
-            $select_html .= sprintf('data-functionname==%s ', h($options['functionName']));
+            $select_html .= sprintf('data-functionname=%s ', h($options['functionName']));
         }
+        $select_html .= sprintf(' data-additionaldata=%s', base64_encode($additionalData));
         return $select_html;
     }
 
@@ -24,18 +32,7 @@ class GenericPickerHelper extends AppHelper {
         } else {
             $option_html .= sprintf(' value=%s', h($param['name']));
         }
-        if (isset($param['additionalData'])) {
-            $additionalData = json_encode($param['additionalData']);
-        } else {
-            $additionalData = json_encode(array());
-        }
 
-        if (isset($param['template']) && !$countThresholdReached) { // template should not be built if to many elements
-            $template = $this->build_template($param);
-            $option_html .= sprintf(' data-template="%s"', base64_encode($template));
-        }
-
-        $option_html .= sprintf(' data-additionaldata="%s"', base64_encode($additionalData));
         if (isset($param['disabled']) && $param['disabled']) {
             $option_html .= ' disabled';
         } else if (isset($param['selected']) && $param['selected']) { // nonsense to pre-select if disabled
@@ -64,9 +61,7 @@ class GenericPickerHelper extends AppHelper {
 
         $additionalData = json_encode(array());
         foreach ($param as $paramName => $paramValue) {
-            if ($paramName === 'additionalData') {
-                $additionalData = json_encode($param['additionalData']);
-            } else if ($paramName === 'value') {
+            if ($paramName === 'value') {
                 $param_html .= sprintf('value="%s" ', h($paramValue));
             } else if ($paramName === 'template') {
                 continue;
@@ -74,7 +69,6 @@ class GenericPickerHelper extends AppHelper {
                 $param_html .= sprintf('data-%s="%s" ', h($paramName), h($paramValue));
             }
         }
-        $param_html .= sprintf(' data-additionaldata="%s"', base64_encode($additionalData));
         return $param_html;
     }
 
