@@ -173,21 +173,25 @@ class GalaxiesController extends AppController
         }
         $data = $this->Galaxy->GalaxyCluster->find('all', array(
                 'conditions' => $conditions,
-                'fields' => array('value', 'description', 'source', 'type'),
-                'contain' => array(
-                    'GalaxyElement' => array(
-                        'conditions' => array('GalaxyElement.key' => 'synonyms')
-                    )
-                ),
+                'fields' => array('value', 'description', 'source', 'type', 'id'),
                 'order' => array('value asc'),
                 'recursive' => -1
         ));
         $clusters = array();
         foreach ($data as $k => $cluster) {
+            $temp = $this->Galaxy->GalaxyCluster->GalaxyElement->find('all', array(
+                'conditions' => array(
+                    'GalaxyElement.galaxy_cluster_id' => $cluster['GalaxyCluster']['id'],
+                    'GalaxyElement.key' => 'synonyms'
+                ),
+                'recursive' => -1
+            ));
             $cluster['GalaxyCluster']['synonyms_string'] = array();
-            foreach ($cluster['GalaxyElement'] as $element) {
-                $cluster['GalaxyCluster']['synonyms_string'][] = $element['value'];
+            foreach ($temp as $element) {
+                $cluster['GalaxyCluster']['synonyms_string'][] = $element['GalaxyElement']['value'];
+                $cluster['GalaxyElement'][] = $element['GalaxyElement'];
             }
+            unset($temp);
             $cluster['GalaxyCluster']['synonyms_string'] = implode(', ', $cluster['GalaxyCluster']['synonyms_string']);
             unset($cluster['GalaxyElement']);
             $clusters[$cluster['GalaxyCluster']['type']][$cluster['GalaxyCluster']['value']] = $cluster['GalaxyCluster'];
