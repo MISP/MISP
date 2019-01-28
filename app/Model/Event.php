@@ -4127,7 +4127,7 @@ class Event extends AppModel
         if ($event_ids) {
             foreach ($event_ids as $event_id) {
                 $tempFile = new File($tmpDir . $randomFileName, true, 0644);
-                $event = $this->fetchEvent($user, array('eventid' => $event_id, 'includeAttachments' => 1));
+                $event = $this->fetchEvent($user, array('eventid' => $event_id, 'includeAttachments' => $attachments));
                 if (empty($event)) {
                     continue;
                 }
@@ -4205,27 +4205,9 @@ class Event extends AppModel
         if ($event_ids) {
             foreach ($event_ids as $event_id) {
                 $tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
-                $event = $this->fetchEvent($user, array('eventid' => $event_id));
+                $event = $this->fetchEvent($user, array('eventid' => $event_id, 'includeAttachments' => $attachments));
                 if (empty($event)) {
                     continue;
-                }
-                if ($attachments == "yes" || $attachments == "true" || $attachments == 1) {
-                    foreach ($event[0]['Attribute'] as &$attribute) {
-                        if ($this->Attribute->typeIsAttachment($attribute['type'])) {
-                            $encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
-                            $attribute['data'] = $encodedFile;
-                        }
-                    }
-                    if (!empty($event[0]['Object'])) {
-                        foreach ($event[0]['Object'] as &$object) {
-                            foreach ($object['Attribute'] as &$attribute) {
-                                if ($this->Attribute->typeIsAttachment($attribute['type'])) {
-                                    $encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
-                                    $attribute['data'] = $encodedFile;
-                                }
-                            }
-                        }
-                    }
                 }
                 $event[0]['Tag'] = array();
                 foreach ($event[0]['EventTag'] as $tag) {
