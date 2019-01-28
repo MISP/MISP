@@ -230,13 +230,16 @@ class GalaxiesController extends AppController
             }
         }
         $onClickForm = 'quickSubmitGalaxyForm';
-
-        $this->set('items', $items);
-        $this->set('options', array( // set chosen (select picker) options
-            'functionName' => $onClickForm,
-            'multiple' => '-1',
-        ));
-        $this->render('ajax/cluster_choice');
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($items, $this->response->type());
+        } else {
+            $this->set('items', $items);
+            $this->set('options', array( // set chosen (select picker) options
+                'functionName' => $onClickForm,
+                'multiple' => '-1',
+            ));
+            $this->render('ajax/cluster_choice');
+        }
     }
 
     public function attachCluster($target_id, $target_type = 'event')
