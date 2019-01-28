@@ -8,21 +8,21 @@ class GenericPickerHelper extends AppHelper {
     function add_select_params($options) {
         $select_html = '';
         foreach ($options['select_options'] as $option => $value) {
-            $select_html .= h($option) . '=' . h($value) . ' ';
+            $select_html .= sprintf('%s=%s ', h($option), h($value));
         }
         if (isset($options['functionName']) && $options['functionName'] !== "") {
-            $select_html .= ' data-functionname=' . h($options['functionName']) .' ';
+            $select_html .= sprintf('data-functionname==%s ', h($options['functionName']));
         }
         return $select_html;
     }
 
-    function add_option($param, $defaults) {
+    function add_option($param, $defaults, $countThresholdReached) {
         $option_html = '<option';
 
         if (isset($param['value'])) {
-            $option_html .= ' value=' . h($param['value']);
+            $option_html .= sprintf(' value=%s',  h($param['value']));
         } else {
-            $option_html .= ' value=' . h($param['name']);
+            $option_html .= sprintf(' value=%s', h($param['name']));
         }
         if (isset($param['additionalData'])) {
             $additionalData = json_encode($param['additionalData']);
@@ -30,12 +30,12 @@ class GenericPickerHelper extends AppHelper {
             $additionalData = json_encode(array());
         }
 
-        if (isset($param['template'])) {
+        if (isset($param['template']) && !$countThresholdReached) { // template should not be built if to many elements
             $template = $this->build_template($param);
-            $option_html .= ' data-template=' . base64_encode($template);
+            $option_html .= sprintf(' data-template="%s"', base64_encode($template));
         }
 
-        $option_html .= ' data-additionaldata=' . base64_encode($additionalData);
+        $option_html .= sprintf(' data-additionaldata="%s"', base64_encode($additionalData));
         if (isset($param['disabled']) && $param['disabled']) {
             $option_html .= ' disabled';
         } else if (isset($param['selected']) && $param['selected']) { // nonsense to pre-select if disabled
@@ -52,13 +52,13 @@ class GenericPickerHelper extends AppHelper {
     function add_link_params($param, $defaults=array()) {
         $param_html = ' ';
         if (isset($param['functionName'])) {
-            $param_html .= 'onclick="execAndClose(this, ' . h($param['functionName']) . ')" ';
+            $param_html .= sprintf('onclick="execAndClose(this, %s)" ', h($param['functionName']));
         } else { // fallback to default submit function
             if ($defaults['functionName'] !== '') {
                 $param_html .= 'onclick="submitFunction(this, ' . h($defaults['functionName']) . ')" ';
+                $param_html .= sprintf('onclick="submitFunction(this, %s)" ', h($defaults['functionName']));
             } else {
-                $param_html .= 'data-endpoint="' . h($param['value']) . '" ';
-                $param_html .= 'onclick="fetchRequestedData(this)" ';
+                $param_html .= sprintf('data-endpoint="%s" onclick="fetchRequestedData(this)" ', h($param['value']));
             }
         }
 
@@ -67,22 +67,21 @@ class GenericPickerHelper extends AppHelper {
             if ($paramName === 'additionalData') {
                 $additionalData = json_encode($param['additionalData']);
             } else if ($paramName === 'value') {
-                $param_html .= 'value="' . h($paramValue) . '" ';
+                $param_html .= sprintf('value="%s" ', h($paramValue));
             } else if ($paramName === 'template') {
                 continue;
             } else {
-                $param_html .= 'data-' . h($paramName). '="' . h($paramValue) . '" ';
+                $param_html .= sprintf('data-%s="%s" ', h($paramName), h($paramValue));
             }
         }
-        $param_html .= ' data-additionaldata=' . base64_encode($additionalData);
+        $param_html .= sprintf(' data-additionaldata="%s"', base64_encode($additionalData));
         return $param_html;
     }
 
     function add_pill($param, $defaults=array()) {
         $pill_html = '<li>';
         $pill_html .= '<a href="#" data-toggle="pill" class="pill-pre-picker"';
-        $pill_html .= ' ' . $this->add_link_params($param, $defaults);
-        $pill_html .= '>';
+        $pill_html .= ' ' . $this->add_link_params($param, $defaults) . '>';
         if (isset($param['img'])) {
             $pill_html .= '<img src="' . h($param['img']) . '" style="margin-right: 5px; height: 14px;">';
         } else if (isset($param['icon'])) {

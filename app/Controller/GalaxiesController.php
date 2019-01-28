@@ -223,6 +223,7 @@ class GalaxiesController extends AppController
                     $itemParam['template']['infoContextual'] = $synom;
                 }
                 $items[] = $itemParam;
+                unset($cluster_data[$k]);
             }
         }
         $onClickForm = 'quickSubmitGalaxyForm';

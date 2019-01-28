@@ -47,6 +47,7 @@
         $select_threshold = 0;
     }
     $use_select = count($items) > $select_threshold;
+    $countThresholdReached = count($items) > 1000;
 ?>
 
 <script>
@@ -182,7 +183,7 @@ function submitFunction(clicked, callback) {
 </script>
 
 <div class="generic_picker">
-    <div class='generic-picker-wrapper-warning-text alert alert-error <?php echo (count($items) > 1000 ? '' : 'hidden'); ?>' style="margin-bottom: 5px;">
+    <div class='generic-picker-wrapper-warning-text alert alert-error <?php echo ($countThresholdReached ? '' : 'hidden'); ?>' style="margin-bottom: 5px;">
         <i class="fa fa-exclamation-triangle"></i>
         <?php echo __('Due to the large number of options, no contextual information is provided.'); ?>
     </div>
@@ -199,7 +200,7 @@ function submitFunction(clicked, callback) {
                         $flag_addPills = true;
                         continue;
                     } else {
-                        echo $this->GenericPicker->add_option($param, $defaults);
+                        echo $this->GenericPicker->add_option($param, $defaults, $countThresholdReached);
                     }
                 }
             ?>
