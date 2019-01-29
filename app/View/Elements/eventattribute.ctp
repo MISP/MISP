@@ -159,16 +159,6 @@
             <?php echo __('Filtering tool'); ?>
         </div>
 
-        <?php
-        echo $this->Html->script('doT');
-        echo $this->Html->script('extendext');
-        echo $this->Html->script('moment-with-locales');
-        echo $this->Html->css('query-builder.default');
-        echo $this->Html->script('query-builder');
-        ?>
-
-
-
         <div title="input filter" tabindex="0" aria-label="input filter" class="attribute_filter_text" style="padding-top:0px;">
             <input type="text" id="attributesFilterField" style="height:20px;padding:0px;margin:0px;" class="form-control" data-eventid="<?php echo h($event['Event']['id']); ?>" value="<?php if ($filtered) echo h($passedArgsArray['all']); ?>"></input>
                 <span id="attributesFilterButton" role="button" class="icon-search" tabindex="0" aria-label="<?php echo __('Filter on attributes value');?>" onClick="filterAttributes('value', '<?php echo h($event['Event']['id']); ?>');"></span>

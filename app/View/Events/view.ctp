@@ -33,6 +33,11 @@
         }
     }
     echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
+    echo $this->Html->script('doT');
+    echo $this->Html->script('extendext');
+    echo $this->Html->script('moment-with-locales');
+    echo $this->Html->css('query-builder.default');
+    echo $this->Html->script('query-builder');
 ?>
 <div class="events view">
     <?php
