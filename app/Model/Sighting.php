@@ -268,6 +268,9 @@ class Sighting extends AppModel
             if (!$values) {
                 return 'No valid attributes found.';
             }
+            if (!is_array($values)) {
+                $values = array($values);
+            }
             foreach ($values as $value) {
                 foreach (array('value1', 'value2') as $field) {
                     $conditions['OR'][] = array(
@@ -519,14 +522,14 @@ class Sighting extends AppModel
                     $filters['requested_attributes'] = array_merge($filters['requested_attributes'], array('attribute_uuid', 'attribute_type', 'attribute_category', 'attribute_to_ids', 'attribute_value'));
                     $additional_attribute_added = true;
                 }
-                
+
                 if (!isset($filters['includeEvent']) || !$filters['includeEvent']) {
                     unset($sight["Sighting"]["Event"]);
                 } else if (!$additional_event_added) {
                     $filters['requested_attributes'] = array_merge($filters['requested_attributes'], array('event_uuid', 'event_orgc_id', 'event_org_id', 'event_info', 'event_Orgc_name'));
                     $additional_event_added = true;
                 }
-                
+
                 if (!empty($sight)) {
                     array_push($allowedSightings, $sight);
                 }
