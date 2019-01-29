@@ -1410,7 +1410,7 @@ function openPopup(id) {
 function openPopover(clicked, data) {
 	/* popup handling */
 	var $clicked = $(clicked);
-	var randomId = Math.random().toString(36).substr(2,9); // used to recover the button that triggered the popover (so that we can destroy the popover)
+	var randomId = $clicked.attr('data-dismissid') !== undefined ? $clicked.attr('data-dismissid') : Math.random().toString(36).substr(2,9); // used to recover the button that triggered the popover (so that we can destroy the popover)
 	var loadingHtml = '<div style="height: 75px; width: 75px;"><div class="spinner"></div><div class="loadingText">Loading</div></div>';
 	$clicked.attr('data-dismissid', randomId);
 	var closeButtonHtml = '<button type="button" class="close" style="margin-left: 5px;" onclick="$(&apos;[data-dismissid=&quot;' + randomId + '&quot;]&apos;).popover(\'destroy\');">×</button>';
