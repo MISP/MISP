@@ -29,24 +29,8 @@ function quickDeleteSighting(id, rawId, context) {
 	});
 }
 
-function quickAddSighting(clicked, id, value) {
-    var btn = $(clicked);
-    var html = '<div>'
-        + '<button class="btn btn-primary" onclick="fetchAddSightingForm(\''+id+'\', false)">'+'id'+'</button>'
-        + '<button class="btn btn-primary" style="margin-left:5px;" onclick="fetchAddSightingForm(\''+id+'\', true)">'+value+'</button>'
-        + '</div>';
-    if (!btn.data('popover')) {
-        btn.popover({
-        	content: html,
-        	placement: 'left',
-        	html: true,
-        	trigger: 'click',
-        	container: 'body'
-        }).popover('show');
-    }
-}
-function fetchAddSightingForm(id, onvalue) {
-	var url = "/sightings/quickAdd/" + id;
+function fetchAddSightingForm(type, attribute_id, page, onvalue) {
+	var url = "/sightings/quickAdd/" + attribute_id + "/" + type;
     if (onvalue) {
         url = url + "/1";
     } else {
@@ -56,6 +40,15 @@ function fetchAddSightingForm(id, onvalue) {
 		$("#confirmation_box").html(data);
 		openPopup("#confirmation_box");
 	});
+}
+
+function flexibleAddSighting(clicked, type, attribute_id, event_id, value, page) {
+	$clicked = $(clicked);
+	var html = '<div>'
+		+ '<button class="btn btn-primary" onclick="addSighting(\'' + type + '\', \'' + attribute_id + '\', \'' + event_id + '\', \'' + page + '\')">'+'id'+'</button>'
+		+ '<button class="btn btn-primary" style="margin-left:5px;" onclick="fetchAddSightingForm(\'' + type + '\', \'' + attribute_id + '\', \'' + page + '\', true)">' + value + '</button>'
+		+ '</div>';
+	openPopover(clicked, html);
 }
 
 function publishPopup(id, type) {
@@ -1410,7 +1403,7 @@ function openPopup(id) {
 function openPopover(clicked, data) {
 	/* popup handling */
 	var $clicked = $(clicked);
-	var randomId = Math.random().toString(36).substr(2,9); // used to recover the button that triggered the popover (so that we can destroy the popover)
+	var randomId = $clicked.attr('data-dismissid') !== undefined ? $clicked.attr('data-dismissid') : Math.random().toString(36).substr(2,9); // used to recover the button that triggered the popover (so that we can destroy the popover)
 	var loadingHtml = '<div style="height: 75px; width: 75px;"><div class="spinner"></div><div class="loadingText">Loading</div></div>';
 	$clicked.attr('data-dismissid', randomId);
 	var closeButtonHtml = '<button type="button" class="close" style="margin-left: 5px;" onclick="$(&apos;[data-dismissid=&quot;' + randomId + '&quot;]&apos;).popover(\'destroy\');">×</button>';
