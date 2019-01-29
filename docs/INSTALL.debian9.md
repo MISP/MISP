@@ -101,16 +101,6 @@ sudo a2enmod ssl rewrite
 sudo a2dissite 000-default
 sudo a2ensite default-ssl
 sudo a2enmod headers
-
-# Switch to python3 by default (optional)
-
-sudo update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1
-sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.5 2
-```
-
-To flip between the 2 pythons use *update-alternatives*
-```bash
-sudo update-alternatives --config python
 ```
 
 #### Apply all changes
