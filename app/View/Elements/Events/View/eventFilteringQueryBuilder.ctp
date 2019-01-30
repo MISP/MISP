@@ -229,6 +229,10 @@ function triggerEventFilteringTool(clicked) {
             not: false,
             rules: [
                 {
+                    field: 'searchFor',
+                    id: 'searchFor'
+                },
+                {
                     field: 'attributeFilter',
                     id: 'attributeFilter',
                     value: '<?php echo !isset($filteringData['category']) ?  'all' : h($filteringData['category']) ?>'
@@ -299,10 +303,6 @@ function triggerEventFilteringTool(clicked) {
                         id: 'attributeType',
                         value: '<?php reset($attribute_types); echo key($attribute_types); ?>',
                     }]
-                },
-                {
-                    field: 'searchFor',
-                    id: 'searchFor'
                 }
             ],
             flags: {
@@ -332,7 +332,7 @@ function triggerEventFilteringTool(clicked) {
 
     $('#eventFilteringQBSubmit').off('click').on('click', function() {
         $button = $(this);
-        var rules = querybuilderTool.getRules();
+        var rules = querybuilderTool.getRules({ skip_empty: true });
         performQuery(rules);
     });
 
@@ -363,7 +363,7 @@ function triggerEventFilteringTool(clicked) {
     }
 
     function updateURL() {
-        var rules = querybuilderTool.getRules();
+        var rules = querybuilderTool.getRules({ skip_empty: true, allow_invalid: true });
         var res = cleanRules(rules);
         var url = "/events/view/<?php echo h($event['Event']['id']); ?>" + buildURL(res);
         $('#eventFilteringQBLinkInput').val(url);
