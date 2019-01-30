@@ -42,13 +42,13 @@ function fetchAddSightingForm(type, attribute_id, page, onvalue) {
 	});
 }
 
-function flexibleAddSighting(clicked, type, attribute_id, event_id, value, page) {
+function flexibleAddSighting(clicked, type, attribute_id, event_id, value, page, placement) {
 	$clicked = $(clicked);
 	var html = '<div>'
 		+ '<button class="btn btn-primary" onclick="addSighting(\'' + type + '\', \'' + attribute_id + '\', \'' + event_id + '\', \'' + page + '\')">'+'id'+'</button>'
 		+ '<button class="btn btn-primary" style="margin-left:5px;" onclick="fetchAddSightingForm(\'' + type + '\', \'' + attribute_id + '\', \'' + page + '\', true)">' + value + '</button>'
 		+ '</div>';
-	openPopover(clicked, html);
+	openPopover(clicked, html, true, placement);
 }
 
 function publishPopup(id, type) {
@@ -1400,7 +1400,9 @@ function openPopup(id) {
 	$(id).fadeIn();
 }
 
-function openPopover(clicked, data) {
+function openPopover(clicked, data, hover, placement) {
+	hover = hover === undefined ? false : hover;
+	placement = placement === undefined ? 'right' : placement;
 	/* popup handling */
 	var $clicked = $(clicked);
 	var randomId = $clicked.attr('data-dismissid') !== undefined ? $clicked.attr('data-dismissid') : Math.random().toString(36).substr(2,9); // used to recover the button that triggered the popover (so that we can destroy the popover)
@@ -1412,6 +1414,7 @@ function openPopover(clicked, data) {
 		$clicked.addClass('have-a-popover');
 		$clicked.popover({
 			html: true,
+			placement: placement,
 			trigger: 'manual',
 			content: loadingHtml,
 			container: 'body',
@@ -1432,13 +1435,34 @@ function openPopover(clicked, data) {
 			var popoverTitle = popover.find('h3.popover-title');
 			popoverTitle.html(title + closeButtonHtml);
 		})
-		.popover('show')
 		.on('keydown.volatilePopover', function(e) {
 			if(e.keyCode == 27) { // ESC
 				$(this).popover('destroy');
 				$(this).off('keydown.volatilePopover');
 			}
 		});
+
+		if (hover) {
+			$clicked.on('mouseenter', function() {
+				var _this = this;
+				$clicked.popover('show');
+				$(".popover").on("mouseleave", function() { // close popover when leaving it
+					$(_this).popover('hide');
+				});
+			})
+			.on('mouseleave', function() { // close popover if button not hovered (timeout)
+				var _this = this;
+				setTimeout(function() {
+					if ($('.popover:hover').length == 0 && !$(_this).is(":hover")) {
+						$(_this).popover('hide');
+					}
+				},
+				300);
+			});
+		} else {
+			$clicked.popover('show');
+		}
+
 	} else {
 		// $clicked.popover('show');
 	}
