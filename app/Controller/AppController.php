@@ -333,7 +333,9 @@ class AppController extends Controller
             }
         } else {
             if (!($this->params['controller'] === 'users' && $this->params['action'] === 'login')) {
-                $this->Session->write('pre_login_requested_url', $this->here);
+                if (!$this->request->is('ajax')) {
+                    $this->Session->write('pre_login_requested_url', $this->here);
+                }
                 $this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
             }
         }
