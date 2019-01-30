@@ -4,6 +4,10 @@
 ### 0/ MISP CentOS 7 Minimal NetInstall - Status
 --------------------------------------------
 
+{!generic/community.md!}
+
+{!generic/rhelVScentos.md!}
+
 !!! notice
     Semi-maintained and tested by @SteveClement, CentOS 7.5-1804 on 20181113<br />
     It is still considered experimental as not everything works seemlessly.
