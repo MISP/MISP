@@ -332,7 +332,7 @@ function triggerEventFilteringTool(clicked) {
 
     $('#eventFilteringQBSubmit').off('click').on('click', function() {
         $button = $(this);
-        var rules = querybuilderTool.getRules({ skip_empty: true });
+        var rules = querybuilderTool.getRules({ skip_empty: true, allow_invalid: true });
         performQuery(rules);
     });
 
