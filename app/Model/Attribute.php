@@ -2909,7 +2909,7 @@ class Attribute extends AppModel
             $params['group'] = empty($options['group']) ? $options['group'] : false;
         }
         if (Configure::read('MISP.unpublishedprivate')) {
-            $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id']));
+            $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id'], 'Event.org_id' => $user['org_id']));
         }
         if (!empty($options['list'])) {
             if (!empty($options['event_ids'])) {

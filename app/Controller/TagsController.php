@@ -941,6 +941,13 @@ class TagsController extends AppController
         }
         $result = $this->$objectType->$connectorObject->save($data);
         if ($result) {
+            $tempObject = $this->$objectType->find('first', array(
+                'recursive' => -1,
+                'conditions' => array($objectType . '.id' => $object[$objectType]['id'])
+            ));
+            $date = new DateTime();
+            $tempObject[$objectType]['timestamp'] = $date->getTimestamp();
+            $this->$objectType->save($tempObject);
             if ($objectType === 'Attribute') {
                 $this->$objectType->Event->unpublishEvent($object['Event']['id']);
             } else if ($objectType === 'Event') {
