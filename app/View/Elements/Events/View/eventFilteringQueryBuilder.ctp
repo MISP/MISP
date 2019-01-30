@@ -1,6 +1,10 @@
 <div id="eventFilteringQBWrapper" style="padding: 5px; display: none; border: 1px solid #dddddd; border-bottom: 0px;">
     <div id="eventFilteringQB"></div>
-    <button id="eventFilteringQBSubmit" type="button" class="btn btn-inverse" style="display:block; margin-left:auto; margin-right: 0"> <i class="fa fa-filter"></i> Filter </button>
+    <div style="display: flex; justify-content: flex-end">
+            <input id="eventFilteringQBLinkInput" class="form-control"></input>
+            <button id="eventFilteringQBLinkCopy" type="button" class="btn btn-inverse" style="margin-right: 5px; margin-left: 5px;" onclick="clickMessage(this);"> <i class="fa fa-clipboard"></i> Copy to clipboard </button>
+            <button id="eventFilteringQBSubmit" type="button" class="btn btn-inverse" style=""> <i class="fa fa-filter"></i> Filter </button>
+    </div>
 </div>
 <?php
 ?>
@@ -318,6 +322,10 @@ function triggerEventFilteringTool(clicked) {
     var $ev = $('#eventFilteringQB');
     var querybuilderTool = $ev.queryBuilder(qbOptions);
     querybuilderTool = querybuilderTool[0].queryBuilder;
+
+    querybuilderTool.on('rulesChanged', function() {
+        updateURL();
+    });
     $wrapper.toggle('blind', 100, { direction: 'up' });
     // remove outer OR condition
     $ev.find('#eventFilteringQB_group_0 > .rules-group-header input[value="OR"]').parent().remove();
@@ -329,6 +337,10 @@ function triggerEventFilteringTool(clicked) {
         performQuery(rules);
     });
 
+    $('#eventFilteringQBLinkCopy').off('click').on('click', function() {
+        copyToClipboard($('#eventFilteringQBLinkInput'));
+    });
+    updateURL();
 
     function recursiveInject(result, rules) {
         if (rules.rules === undefined) { // add to result
@@ -351,8 +363,15 @@ function triggerEventFilteringTool(clicked) {
         }
     }
 
+    function updateURL() {
+        var rules = querybuilderTool.getRules();
+        var res = cleanRules(rules);
+        var url = "/events/view/<?php echo h($event['Event']['id']); ?>" + buildURL(res);
+        $('#eventFilteringQBLinkInput').val(url);
+    }
+
     function buildURL(res) {
-        var url = "/events/viewEventAttributes/<?php echo h($event['Event']['id']); ?>";
+        var url = "";
         Object.keys(res).forEach(function(k) {
             var v = res[k];
             url += "/" + k + ":" + v;
@@ -360,7 +379,7 @@ function triggerEventFilteringTool(clicked) {
         return url;
     }
 
-    function performQuery(rules) {
+    function cleanRules(rules) {
         var res = {};
         recursiveInject(res, rules);
         // clean up invalid and unset
@@ -370,8 +389,13 @@ function triggerEventFilteringTool(clicked) {
                 delete res[k];
             }
         });
+        return res;
+    }
 
-        url = buildURL(res);
+    function performQuery(rules) {
+        var res = cleanRules(rules);
+
+        var url = "/events/viewEventAttributes/<?php echo h($event['Event']['id']); ?>" + buildURL(res);
         $.ajax({
     		type:"get",
     		url: url,
@@ -388,5 +412,27 @@ function triggerEventFilteringTool(clicked) {
     	});
     }
 
+
+}
+
+function copyToClipboard(element) {
+    var $temp = $("<input id='xxx'>");
+    $("body").append($temp);
+    $temp.val($(element).val()).select();
+    document.execCommand("copy");
+    $temp.remove();
+}
+
+function clickMessage(clicked) {
+    $clicked = $(clicked);
+    $clicked.tooltip({
+        title: 'Copied!',
+        trigger: 'manual',
+        container: 'body'
+    })
+    .tooltip('show');
+    setTimeout(function () {
+        $clicked.tooltip('destroy');
+    }, 2000);
 }
 </script>
