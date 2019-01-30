@@ -21,7 +21,6 @@ function triggerEventFilteringTool(clicked) {
         },
         allow_empty: true,
         display_empty_filter: false,
-        conditions: ['OR', 'AND'],
         lang: {
             operators: {
                 equal: 'show',
@@ -225,7 +224,7 @@ function triggerEventFilteringTool(clicked) {
                 }
             },
         ],
-        rules: rules = {
+        rules: {
             condition: 'AND',
             not: false,
             rules: [
@@ -279,7 +278,8 @@ function triggerEventFilteringTool(clicked) {
                     condition: 'OR',
                     not: false,
                     flags: {
-                        no_add_group: true
+                        no_add_group: true,
+                        condition_readonly: true,
                     },
                     rules: [{
                         field: 'objectType',
@@ -291,7 +291,8 @@ function triggerEventFilteringTool(clicked) {
                     condition: 'OR',
                     not: false,
                     flags: {
-                        no_add_group: true
+                        no_add_group: true,
+                        condition_readonly: true,
                     },
                     rules: [{
                         field: 'attributeType',
@@ -305,7 +306,8 @@ function triggerEventFilteringTool(clicked) {
                 }
             ],
             flags: {
-                no_add_group: true
+                no_add_group: true,
+                condition_readonly: true,
             }
         },
         icons: {
@@ -327,9 +329,6 @@ function triggerEventFilteringTool(clicked) {
         updateURL();
     });
     $wrapper.toggle('blind', 100, { direction: 'up' });
-    // remove outer OR condition
-    $ev.find('#eventFilteringQB_group_0 > .rules-group-header input[value="OR"]').parent().remove();
-    $ev.find('#eventFilteringQB_group_0 > .rules-group-body input[value="AND"]').parent().remove();
 
     $('#eventFilteringQBSubmit').off('click').on('click', function() {
         $button = $(this);
