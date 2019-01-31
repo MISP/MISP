@@ -824,7 +824,7 @@ class ShadowAttributesController extends AppController
             $id = $temp['Attribute']['id'];
         }
 
-        $existingAttribute = $this->ShadowAttribute->Event->Attribute->fetchAttributes($this->Auth->user(), array('Attriute.id' => $id));
+        $existingAttribute = $this->ShadowAttribute->Event->Attribute->fetchAttributes($this->Auth->user(), array('Attribute.id' => $id));
         if (empty($existingAttribute)) {
             throw new NotFoundException(__('Invalid attribute.'));
         }
@@ -861,6 +861,7 @@ class ShadowAttributesController extends AppController
             if (empty($existingAttribute)) {
                 throw new NotFoundException(__('Invalid Attribute'));
             }
+            $existingAttribute = $existingAttribute[0];
             $this->set('id', $id);
             $this->set('event_id', $existingAttribute['Attribute']['event_id']);
             $this->render('ajax/deletionProposalConfirmationForm');
