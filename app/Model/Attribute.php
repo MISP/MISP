@@ -1344,6 +1344,7 @@ class Attribute extends AppModel
             case 'authentihash':
             case 'imphash':
             case 'tlsh':
+            case 'anonymised':
             case 'cdhash':
             case 'email-src':
             case 'email-dst':
