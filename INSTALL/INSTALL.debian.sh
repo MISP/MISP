@@ -13,12 +13,16 @@
 # The script is tested on a plain vanilla Kali Linux Boot CD and installs quite a few dependencies.
 
 
-function checkFlavour() {
+checkFlavour () {
   FLAVOUR=$(lsb_release -s -i |tr [A-Z] [a-z])
 }
 
-function space() {
-  echo "-----------------------------------------------------------------------"
+space () {
+  num=80
+  for i in `seq 1 $num`; do
+    echo -n "-"
+  done
+  echo ""
 }
 
 function usage() {
@@ -151,21 +155,14 @@ function MISPvars() {
   echo "User  (${DBUSER_MISP}) DB Password: ${DBPASSWORD_MISP}"
 }
 
-function installMISPonKali() {
-  space
-  echo "Disabling sleep etc…"
-  gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 0
-  gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 0
-  gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'nothing'
-  xset s 0 0 2> /dev/null
-  xset dpms 0 0 2> /dev/null
-  xset s off 2> /dev/null
+installDeps () {
   apt update
   apt install -qy etckeeper
   # Skip dist-upgrade for now, pulls in 500+ updated packages
   #sudo apt -y dist-upgrade
   git config --global user.email "root@kali.lan"
   git config --global user.name "Root User"
+
   apt install -qy postfix
 
   apt install -qy \
@@ -177,6 +174,11 @@ function installMISPonKali() {
   python3-dev python3-pip libpq5 libjpeg-dev libfuzzy-dev ruby asciidoctor \
   libxml2-dev libxslt1-dev zlib1g-dev python3-setuptools expect
 
+  installRNG
+
+}
+
+installRNG () {
   modprobe tpm-rng 2> /dev/null
   if [ "$?" -eq "0" ]; then 
     echo tpm-rng >> /etc/modules
@@ -189,21 +191,9 @@ function installMISPonKali() {
     apt install -qy haveged
     /etc/init.d/haveged start
   fi
+}
 
-  phpenmod -v 7.3 redis
-  phpenmod -v 7.3 gnupg
-
-  a2dismod status
-  a2dismod php7.2
-  a2enmod ssl rewrite headers php7.3
-  a2dissite 000-default
-  a2ensite default-ssl
-
-  systemctl restart mysql.service
-
-  #update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1
-  #update-alternatives --install /usr/bin/python python /usr/bin/python3.6 2
-
+fixRedis () {
   # As of 20190124 redis-server init.d scripts are broken and need to be replaced
   mv /etc/init.d/redis-server /etc/init.d/redis-server_`date +%Y%m%d`
 
@@ -268,6 +258,32 @@ esac
 exit 0' | tee /etc/init.d/redis-server
   chmod 755 /etc/init.d/redis-server
   /etc/init.d/redis-server start
+}
+
+function installMISPonKali() {
+  space
+  echo "Disabling sleep etc…"
+  gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 0 2> /dev/null
+  gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 0 2> /dev/null
+  gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'nothing' 2> /dev/null
+  xset s 0 0 2> /dev/null
+  xset dpms 0 0 2> /dev/null
+  xset s off 2> /dev/null
+
+  installDeps
+
+  phpenmod -v 7.3 redis
+  phpenmod -v 7.3 gnupg
+
+  a2dismod status
+  a2dismod php7.2
+  a2enmod ssl rewrite headers php7.3
+  a2dissite 000-default
+  a2ensite default-ssl
+
+  systemctl restart mysql.service
+
+  fixRedis
 
   mkdir $PATH_TO_MISP
   chown www-data:www-data $PATH_TO_MISP
@@ -284,6 +300,8 @@ exit 0' | tee /etc/init.d/redis-server
   cd $PATH_TO_MISP/app/files/scripts
   $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
   $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
+  $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
+
   cd $PATH_TO_MISP/app/files/scripts/python-cybox
   pip3 install .
   cd $PATH_TO_MISP/app/files/scripts/python-stix
@@ -291,26 +309,17 @@ exit 0' | tee /etc/init.d/redis-server
   # install STIX2.0 library to support STIX 2.0 export:
   cd ${PATH_TO_MISP}/cti-python-stix2
   pip3 install -I .
-
-  cd $PATH_TO_MISP/app/files/scripts/
-  $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
   cd $PATH_TO_MISP/app/files/scripts/mixbox
   pip3 install .
-
   # install PyMISP
   cd $PATH_TO_MISP/PyMISP
   pip3 install .
 
-  cd $PATH_TO_MISP/app
-  mkdir /var/www/.composer ; chown www-data:www-data /var/www/.composer
-  # Update composer.phar
-  sudo -H -u www-data php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-  sudo -H -u www-data php -r "if (hash_file('SHA384', 'composer-setup.php') === '93b54496392c062774670ac18b134c3b3a95e5a5e5c8f1a9f115f203b75bf9a129d5daa8ba6a13e2cc8a1da0806388a8') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
-  sudo -H -u www-data php composer-setup.php
-  sudo -H -u www-data php -r "unlink('composer-setup.php');"
-  $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
-  $SUDO_WWW php composer.phar config vendor-dir Vendor
-  $SUDO_WWW php composer.phar install
+  # Install Crypt_GPG and Console_CommandLine
+  pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
+  pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
+
+  composer73
 
   $SUDO_WWW cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
 
@@ -347,9 +356,7 @@ exit 0' | tee /etc/init.d/redis-server
     mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant all privileges on $DBNAME.* to '$DBUSER_MISP'@'localhost';"
     mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "flush privileges;"
 
-    update-rc.d mysql enable
-    update-rc.d apache2 enable
-    update-rc.d redis-server enable
+    enableServices
 
     $SUDO_WWW cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP $DBNAME
 
@@ -379,31 +386,56 @@ exit 0' | tee /etc/init.d/redis-server
   -subj "/C=${OPENSSL_C}/ST=${OPENSSL_ST}/L=${OPENSSL_L}/O=${OPENSSL_O}/OU=${OPENSSL_OU}/CN=${OPENSSL_CN}/emailAddress=${OPENSSL_EMAILADDRESS}" \
   -keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt
 
-  if [ ! -e /etc/rc.local ]
-  then
-      echo '#!/bin/sh -e' | tee -a /etc/rc.local
-      echo 'exit 0' | tee -a /etc/rc.local
-      chmod u+x /etc/rc.local
-  fi
+  genApacheConf
 
-  cd /var/www
-  mkdir misp-dashboard
-  chown www-data:www-data misp-dashboard
-  $SUDO_WWW git clone https://github.com/MISP/misp-dashboard.git
-  cd misp-dashboard
-  /var/www/misp-dashboard/install_dependencies.sh
-  sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/config/config.cfg
-  sed -i -e '$i \sudo -u www-data bash /var/www/misp-dashboard/start_all.sh\n' /etc/rc.local
-  sed -i -e '$i \sudo -u misp /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 &\n' /etc/rc.local
-  sed -i -e '$i \git_dirs="/usr/local/src/misp-modules/ /var/www/misp-dashboard /usr/local/src/faup /usr/local/src/mail_to_misp /usr/local/src/misp-modules /usr/local/src/viper /var/www/misp-dashboard"\n' /etc/rc.local
-  sed -i -e '$i \for d in $git_dirs; do\n' /etc/rc.local
-  sed -i -e '$i \    echo "Updating ${d}"\n' /etc/rc.local
-  sed -i -e '$i \    cd $d && sudo git pull &\n' /etc/rc.local
-  sed -i -e '$i \done\n' /etc/rc.local
-  $SUDO_WWW bash /var/www/misp-dashboard/start_all.sh
+  echo "127.0.0.1 misp.local" | tee -a /etc/hosts
 
-  apt install libapache2-mod-wsgi-py3 -y
+  mispDashboard
 
+  a2dissite default-ssl
+  a2ensite misp-ssl
+
+  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
+  do
+      sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
+  done
+
+  systemctl restart apache2
+
+  cp $PATH_TO_MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
+  chmod 0640 /etc/logrotate.d/misp
+
+  $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/bootstrap.default.php $PATH_TO_MISP/app/Config/bootstrap.php
+  $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/core.default.php $PATH_TO_MISP/app/Config/core.php
+  $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/config.default.php $PATH_TO_MISP/app/Config/config.php
+
+  chown -R www-data:www-data $PATH_TO_MISP/app/Config
+  chmod -R 750 $PATH_TO_MISP/app/Config
+
+  setupGnuPG
+
+  chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
+
+  coreCAKE
+
+  updateGOWNT
+
+  genRCLOCAL
+
+  gitPullAllRCLOCAL
+
+  mispmodules
+
+  viper
+
+  permissions
+
+  theEnd
+}
+
+## start func
+
+genApacheConf () {
   echo "<VirtualHost _default_:80>
           ServerAdmin admin@localhost.lu
           ServerName misp.local
@@ -441,9 +473,53 @@ exit 0' | tee /etc/init.d/redis-server
           Header set X-Content-Type-Options nosniff
           Header set X-Frame-Options DENY
   </VirtualHost>" | tee /etc/apache2/sites-available/misp-ssl.conf
+}
 
-  echo "127.0.0.1 misp.local" | tee -a /etc/hosts
+gitPullAllRCLOCAL () {
+  sed -i -e '$i \git_dirs="/usr/local/src/misp-modules/ /var/www/misp-dashboard /usr/local/src/faup /usr/local/src/mail_to_misp /usr/local/src/misp-modules /usr/local/src/viper /var/www/misp-dashboard"\n' /etc/rc.local
+  sed -i -e '$i \for d in $git_dirs; do\n' /etc/rc.local
+  sed -i -e '$i \    echo "Updating ${d}"\n' /etc/rc.local
+  sed -i -e '$i \    cd $d && sudo git pull &\n' /etc/rc.local
+  sed -i -e '$i \done\n' /etc/rc.local
+}
 
+composer72 () {
+  cd $PATH_TO_MISP/app
+  mkdir /var/www/.composer ; chown www-data:www-data /var/www/.composer
+  $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
+  $SUDO_WWW php composer.phar config vendor-dir Vendor
+  $SUDO_WWW php composer.phar install
+}
+
+composer73 () {
+  cd $PATH_TO_MISP/app
+  mkdir /var/www/.composer ; chown www-data:www-data /var/www/.composer
+  # Update composer.phar
+  sudo -H -u www-data php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+  sudo -H -u www-data php -r "if (hash_file('SHA384', 'composer-setup.php') === '93b54496392c062774670ac18b134c3b3a95e5a5e5c8f1a9f115f203b75bf9a129d5daa8ba6a13e2cc8a1da0806388a8') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+  sudo -H -u www-data php composer-setup.php
+  sudo -H -u www-data php -r "unlink('composer-setup.php');"
+  $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
+  $SUDO_WWW php composer.phar config vendor-dir Vendor
+  $SUDO_WWW php composer.phar install
+}
+enableServices () {
+    update-rc.d mysql enable
+    update-rc.d apache2 enable
+    update-rc.d redis-server enable
+  }
+
+mispDashboard () {
+  cd /var/www
+  mkdir misp-dashboard
+  chown www-data:www-data misp-dashboard
+  $SUDO_WWW git clone https://github.com/MISP/misp-dashboard.git
+  cd misp-dashboard
+  /var/www/misp-dashboard/install_dependencies.sh
+  sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/config/config.cfg
+  sed -i -e '$i \sudo -u www-data bash /var/www/misp-dashboard/start_all.sh\n' /etc/rc.local
+  $SUDO_WWW bash /var/www/misp-dashboard/start_all.sh
+  apt install libapache2-mod-wsgi-py3 -y
   echo "<VirtualHost *:8001>
       ServerAdmin admin@misp.local
       ServerName misp.local
@@ -485,52 +561,14 @@ exit 0' | tee /etc/init.d/redis-server
       CustomLog /var/log/apache2/misp-dashboard.local_access.log combined
       ServerSignature Off
   </VirtualHost>" | tee /etc/apache2/sites-available/misp-dashboard.conf
-
-  a2dissite default-ssl
-  a2ensite misp-ssl
   a2ensite misp-dashboard
+}
 
-  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
-  do
-      sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
-  done
-
-  systemctl restart apache2
-
-  cp $PATH_TO_MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
-  chmod 0640 /etc/logrotate.d/misp
-
-  $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/bootstrap.default.php $PATH_TO_MISP/app/Config/bootstrap.php
-  $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/core.default.php $PATH_TO_MISP/app/Config/core.php
-  $SUDO_WWW cp -a $PATH_TO_MISP/app/Config/config.default.php $PATH_TO_MISP/app/Config/config.php
-
-  chown -R www-data:www-data $PATH_TO_MISP/app/Config
-  chmod -R 750 $PATH_TO_MISP/app/Config
+coreCAKE () {
   $CAKE Live $MISP_LIVE
   $CAKE Baseurl $MISP_BASEURL
 
-  echo "%echo Generating a default key
-      Key-Type: default
-      Key-Length: $GPG_KEY_LENGTH
-      Subkey-Type: default
-      Name-Real: $GPG_REAL_NAME
-      Name-Comment: $GPG_COMMENT
-      Name-Email: $GPG_EMAIL_ADDRESS
-      Expire-Date: 0
-      Passphrase: $GPG_PASSPHRASE
-      # Do a commit here, so that we can later print "done"
-      %commit
-  %echo done" > /tmp/gen-key-script
-
-  $SUDO_WWW gpg --homedir $PATH_TO_MISP/.gnupg --batch --gen-key /tmp/gen-key-script
-
-  $SUDO_WWW sh -c "gpg --homedir $PATH_TO_MISP/.gnupg --export --armor $GPG_EMAIL_ADDRESS" | $SUDO_WWW tee $PATH_TO_MISP/app/webroot/gpg.asc
-
-  chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
-
   $CAKE userInit -q
-
-  AUTH_KEY=$(mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM users;" | tail -1)
 
   $CAKE Admin setSetting "Plugin.ZeroMQ_enable" true
   $CAKE Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" true
@@ -633,17 +671,56 @@ exit 0' | tee /etc/init.d/redis-server
   $CAKE Admin setSetting "Session.timeout" 600
   $CAKE Admin setSetting "Session.cookie_timeout" 3600
   $CAKE Live $MISP_LIVE
+}
+
+setupGnuPG () {
+  echo "%echo Generating a default key
+      Key-Type: default
+      Key-Length: $GPG_KEY_LENGTH
+      Subkey-Type: default
+      Name-Real: $GPG_REAL_NAME
+      Name-Comment: $GPG_COMMENT
+      Name-Email: $GPG_EMAIL_ADDRESS
+      Expire-Date: 0
+      Passphrase: $GPG_PASSPHRASE
+      # Do a commit here, so that we can later print "done"
+      %commit
+  %echo done" > /tmp/gen-key-script
+
+  $SUDO_WWW gpg --homedir $PATH_TO_MISP/.gnupg --batch --gen-key /tmp/gen-key-script
+
+  $SUDO_WWW sh -c "gpg --homedir $PATH_TO_MISP/.gnupg --export --armor $GPG_EMAIL_ADDRESS" | $SUDO_WWW tee $PATH_TO_MISP/app/webroot/gpg.asc
+}
+
+updateGOWNT () {
+  AUTH_KEY=$(mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM users;" | tail -1)
+
+  # TODO: Fix updateGalaxies
   #$CAKE Admin updateGalaxies
   curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/galaxies/update
   $CAKE Admin updateTaxonomies
+  # TODO: Fix updateWarningLists
   #$CAKE Admin updateWarningLists
   curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/warninglists/update
   curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/noticelists/update
   curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/objectTemplates/update
+}
+
+genRCLOCAL () {
+  if [ ! -e /etc/rc.local ]
+  then
+      echo '#!/bin/sh -e' | tee -a /etc/rc.local
+      echo 'exit 0' | tee -a /etc/rc.local
+      chmod u+x /etc/rc.local
+  fi
+
   sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
   sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
   sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
   sed -i -e '$i \sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh\n' /etc/rc.local
+}
+
+mispmodules () {
   sed -i -e '$i \sudo -u www-data misp-modules -l 0.0.0.0 -s &\n' /etc/rc.local
   $SUDO_WWW bash $PATH_TO_MISP/app/Console/worker/start.sh
   cd /usr/local/src/
@@ -657,6 +734,9 @@ exit 0' | tee /etc/init.d/redis-server
   gem install pygments.rb
   gem install asciidoctor-pdf --pre
   $SUDO_WWW misp-modules -l 0.0.0.0 -s &
+}
+
+viper () {
   cd /usr/local/src/
   apt-get install -y libssl-dev swig python3-ssdeep p7zip-full unrar-free sqlite python3-pyclamd exiftool radare2
   pip3 install SQLAlchemy PrettyTable python-magic
@@ -676,17 +756,22 @@ exit 0' | tee /etc/init.d/redis-server
 
   while [ "$(sqlite3 /home/${MISP_USER}/.viper/admin.db 'UPDATE auth_user SET password="pbkdf2_sha256$100000$iXgEJh8hz7Cf$vfdDAwLX8tko1t0M1TLTtGlxERkNnltUnMhbv56wK/U="'; echo $?)" -ne "0" ]; do
     # FIXME This might lead to a race condition, the while loop is sub-par
-   chown $MISP_USER:$MISP_USER /home/${MISP_USER}/.viper/admin.db
+    chown $MISP_USER:$MISP_USER /home/${MISP_USER}/.viper/admin.db
     echo "Updating viper-web admin password, giving process time to start-up, sleeping 5, 4, 3,…"
     sleep 6
   done
+  sed -i -e '$i \sudo -u misp /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 &\n' /etc/rc.local
+}
 
+permissions () {
   chown -R www-data:www-data $PATH_TO_MISP
   chmod -R 750 $PATH_TO_MISP
   chmod -R g+ws $PATH_TO_MISP/app/tmp
   chmod -R g+ws $PATH_TO_MISP/app/files
   chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
+}
 
+mail2misp () {
   # TODO: fix faup
   cd /usr/local/src/
   apt-get install -y cmake
@@ -705,35 +790,38 @@ exit 0' | tee /etc/init.d/redis-server
   $SUDO cp mail_to_misp_config.py-example mail_to_misp_config.py
   sed -i "s/^misp_url\ =\ 'YOUR_MISP_URL'/misp_url\ =\ 'http:\/\/localhost'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
   sed -i "s/^misp_key\ =\ 'YOUR_KEY_HERE'/misp_key\ =\ '$AUTH_KEY'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
+}
+
+theEnd () {
   echo ""
   echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" > /home/${MISP_USER}/mysql.txt
   echo "User  (misp) DB Password: $DBPASSWORD_MISP" >> /home/${MISP_USER}/mysql.txt
   echo "Authkey: $AUTH_KEY" > /home/${MISP_USER}/MISP-authkey.txt
 
   clear
-  echo "-------------------------------------------------------------------------"
+  space
   echo "MISP Installed, access here: https://misp.local"
   echo "User: admin@admin.test"
   echo "Password: admin"
   echo "MISP Dashboard, access here: http://misp.local:8001"
-  echo "-------------------------------------------------------------------------"
+  space
   cat /home/${MISP_USER}/mysql.txt
   cat /home/${MISP_USER}/MISP-authkey.txt
-  echo "-------------------------------------------------------------------------"
+  space
   echo "The LOCAL system credentials:"
   echo "User: ${MISP_USER}"
   echo "Password: ${MISP_PASSWORD}"
-  echo "-------------------------------------------------------------------------"
+  space
   echo "viper-web installed, access here: http://misp.local:8888"
   echo "viper-cli configured with your MISP Site Admin Auth Key"
   echo "User: admin"
   echo "Password: Password1234"
-  echo "-------------------------------------------------------------------------"
+  space
   echo "To enable outgoing mails via postfix set a permissive SMTP server for the domains you want to contact:"
   echo ""
   echo "sudo postconf -e 'relayhost = example.com'"
   echo "sudo postfix reload"
-  echo "-------------------------------------------------------------------------"
+  space
   echo "Enjoy using MISP. For any issues see here: https://github.com/MISP/MISP/issues"
   su - ${MISP_USER}
 }
