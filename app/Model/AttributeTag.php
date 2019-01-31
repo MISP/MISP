@@ -62,6 +62,11 @@ class AttributeTag extends AppModel
         }
     }
 
+    public function softDelete($id)
+    {
+        $this->delete($id);
+    }
+
     public function attachTagToAttribute($attribute_id, $event_id, $tag_id)
     {
         $existingAssociation = $this->find('first', array(
