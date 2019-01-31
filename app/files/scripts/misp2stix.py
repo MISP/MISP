@@ -817,7 +817,7 @@ class StixBuilder(object):
             if to_parse:
                 return
         to_ids, attributes_dict = self.create_file_attributes_dict(misp_object['Attribute'])
-        if 'malware-sample' in attributes_dict:
+        if 'malware-sample' in attributes_dict and isinstance(attribute_dict['malware-sample'], dict):
             malware_sample = attributes_dict.pop('malware-sample')
             filename, md5 = malware_sample['value'].split('|')
             artifact_object = self.create_artifact_object(malware_sample['data'])
