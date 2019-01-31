@@ -12,6 +12,8 @@
 # /!\ Please read the installer script before randomly doing the above.
 # The script is tested on a plain vanilla Kali Linux Boot CD and installs quite a few dependencies.
 
+# Leave empty for NO debug messages.
+DEBUG=
 
 checkFlavour () {
   FLAVOUR=$(lsb_release -s -i |tr [A-Z] [a-z])
@@ -23,6 +25,14 @@ space () {
     echo -n "-"
   done
   echo ""
+}
+
+debug () {
+  echo $1
+  if [ ! -z $DEBUG ]; then
+    echo "Debug Mode, press enter to continue..."
+    read
+  fi
 }
 
 function usage() {
@@ -262,7 +272,7 @@ exit 0' | tee /etc/init.d/redis-server
 
 function installMISPonKali() {
   space
-  echo "Disabling sleep etc…"
+  debug "Disabling sleep etc…"
   gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 0 2> /dev/null
   gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 0 2> /dev/null
   gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'nothing' 2> /dev/null
@@ -270,21 +280,27 @@ function installMISPonKali() {
   xset dpms 0 0 2> /dev/null
   xset s off 2> /dev/null
 
+  debug "Installing dependencies"
   installDeps
 
+  debug "Enabling redis and gnupg modules"
   phpenmod -v 7.3 redis
   phpenmod -v 7.3 gnupg
 
+  debug "Apache2 ops: dismod: status php7.2 - dissite: 000-default enmod: ssl rewrite headers php7.3 ensite: default-ssl"
   a2dismod status
   a2dismod php7.2
   a2enmod ssl rewrite headers php7.3
   a2dissite 000-default
   a2ensite default-ssl
 
+  debug "Restarting mysql.service"
   systemctl restart mysql.service
 
+  debug "Fixing redis rc script on Kali"
   fixRedis
 
+  debug "git clone, submodule update everything"
   mkdir $PATH_TO_MISP
   chown www-data:www-data $PATH_TO_MISP
   cd $PATH_TO_MISP
@@ -302,23 +318,31 @@ function installMISPonKali() {
   $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
   $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
 
+  debug "Installing python-cybox"
   cd $PATH_TO_MISP/app/files/scripts/python-cybox
   pip3 install .
+  debug "Installing python-stix"
   cd $PATH_TO_MISP/app/files/scripts/python-stix
   pip3 install .
   # install STIX2.0 library to support STIX 2.0 export:
+  debug "Installing cti-python-stix2"
   cd ${PATH_TO_MISP}/cti-python-stix2
   pip3 install -I .
+  debug "Installing mixbox"
   cd $PATH_TO_MISP/app/files/scripts/mixbox
   pip3 install .
   # install PyMISP
+  debug "Installing PyMISP"
   cd $PATH_TO_MISP/PyMISP
   pip3 install .
 
   # Install Crypt_GPG and Console_CommandLine
+  debug "Installing pear Console_CommandLine"
   pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
+  debug "Installing pear Crypt_GPG"
   pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
 
+  debug "Installing composer with php 7.3 updates"
   composer73
 
   $SUDO_WWW cp -fa $PATH_TO_MISP/INSTALL/setup/config.php $PATH_TO_MISP/app/Plugin/CakeResque/Config/config.php
@@ -329,6 +353,7 @@ function installMISPonKali() {
   chmod -R g+ws $PATH_TO_MISP/app/files
   chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
 
+  debug "Setting up database"
   if [ ! -e /var/lib/mysql/misp/users.ibd ]; then
     echo "
       set timeout 10
@@ -382,16 +407,20 @@ function installMISPonKali() {
     sleep 3
   fi
 
+  debug "Generating Certificate"
   openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
   -subj "/C=${OPENSSL_C}/ST=${OPENSSL_ST}/L=${OPENSSL_L}/O=${OPENSSL_O}/OU=${OPENSSL_OU}/CN=${OPENSSL_CN}/emailAddress=${OPENSSL_EMAILADDRESS}" \
   -keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt
 
+  debug "Generating Apache Conf"
   genApacheConf
 
   echo "127.0.0.1 misp.local" | tee -a /etc/hosts
 
+  debug "Installing MISP dashboard"
   mispDashboard
 
+  debug "Disabling site default-ssl, enabling misp-ssl"
   a2dissite default-ssl
   a2ensite misp-ssl
 
@@ -400,8 +429,10 @@ function installMISPonKali() {
       sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
   done
 
+  debug "Restarting Apache2"
   systemctl restart apache2
 
+  debug "Setting up logrotate"
   cp $PATH_TO_MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
   chmod 0640 /etc/logrotate.d/misp
 
@@ -412,24 +443,32 @@ function installMISPonKali() {
   chown -R www-data:www-data $PATH_TO_MISP/app/Config
   chmod -R 750 $PATH_TO_MISP/app/Config
 
+  debug "Setting up GnuPG"
   setupGnuPG
 
   chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
 
+  debug "Running Core Cake commands"
   coreCAKE
 
+  debug "Update: Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies"
   updateGOWNT
 
+  debug "Generating rc.local"
   genRCLOCAL
 
   gitPullAllRCLOCAL
 
+  debug "Installing misp-modules"
   mispmodules
 
+  debug "Installing Viper"
   viper
 
+  debug "Setting permissions"
   permissions
 
+  debug "Running Then End!"
   theEnd
 }
 
@@ -738,22 +777,32 @@ mispmodules () {
 
 viper () {
   cd /usr/local/src/
+  debug "Installing Viper dependencies"
   apt-get install -y libssl-dev swig python3-ssdeep p7zip-full unrar-free sqlite python3-pyclamd exiftool radare2
   pip3 install SQLAlchemy PrettyTable python-magic
+  debug "Cloning Viper"
   git clone https://github.com/viper-framework/viper.git
   chown -R $MISP_USER:$MISP_USER viper
   cd viper
+  debug "Submodule update"
   $SUDO git submodule update --init --recursive
+  debug "pip install scrapy"
   pip3 install scrapy
+  debug "pip install reqs"
   pip3 install -r requirements.txt
+  debug "pip uninstall yara"
   pip3 uninstall yara -y
+  debug "Launching viper-cli"
   $SUDO /usr/local/src/viper/viper-cli -h > /dev/null
+  debug "Launching viper-web"
   $SUDO /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 &
   echo 'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/src/viper:/var/www/MISP/app/Console"' |tee /etc/environment
   echo ". /etc/environment" >> /home/${MISP_USER}/.profile
+  debug "Setting misp_url/misp_key"
   $SUDO sed -i "s/^misp_url\ =/misp_url\ =\ http:\/\/localhost/g" /home/${MISP_USER}/.viper/viper.conf
   $SUDO sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" /home/${MISP_USER}/.viper/viper.conf
 
+  debug "Fixing admin.db with default password"
   while [ "$(sqlite3 /home/${MISP_USER}/.viper/admin.db 'UPDATE auth_user SET password="pbkdf2_sha256$100000$iXgEJh8hz7Cf$vfdDAwLX8tko1t0M1TLTtGlxERkNnltUnMhbv56wK/U="'; echo $?)" -ne "0" ]; do
     # FIXME This might lead to a race condition, the while loop is sub-par
     chown $MISP_USER:$MISP_USER /home/${MISP_USER}/.viper/admin.db
@@ -826,12 +875,15 @@ theEnd () {
   su - ${MISP_USER}
 }
 
+debug "Checking for parameters or Kali Install"
 if [[ $# -ne 1 && $0 != "/tmp/misp-kali.sh" ]]; then
   usage
   exit 
 fi
 
+debug "Checking flavour"
 checkFlavour
+debug "Setting MISP variables"
 MISPvars
 
 if [ "${FLAVOUR}" == "kali" ]; then
