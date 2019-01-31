@@ -1655,13 +1655,10 @@ class EventsController extends AppController
                         }
                         // REST users want to see the newly created event
                         $results = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $created_id));
-                        $event = $results[0];
                         if (!empty($validationErrors)) {
-                            $event['errors'] = $validationErrors;
+                            $results[0]['errors'] = $validationErrors;
                         }
-                        $this->set('event', $event);
-                        $this->render('view');
-                        return true;
+                        return $this->RestResponse->viewData($results[0], $this->response->type());
                     } else {
                         // redirect to the view of the newly created event
                         $this->Flash->success(__('The event has been saved'));
