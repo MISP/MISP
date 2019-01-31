@@ -535,7 +535,7 @@ composer73 () {
   mkdir /var/www/.composer ; chown www-data:www-data /var/www/.composer
   # Update composer.phar
   sudo -H -u www-data php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-  sudo -H -u www-data php -r "if (hash_file('SHA384', 'composer-setup.php') === '93b54496392c062774670ac18b134c3b3a95e5a5e5c8f1a9f115f203b75bf9a129d5daa8ba6a13e2cc8a1da0806388a8') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+  sudo -H -u www-data php -r "if (hash_file('SHA384', 'composer-setup.php') === '48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
   sudo -H -u www-data php composer-setup.php
   sudo -H -u www-data php -r "unlink('composer-setup.php');"
   $SUDO_WWW php composer.phar require kamisama/cake-resque:4.1.2
