@@ -824,7 +824,7 @@ class ShadowAttributesController extends AppController
             $id = $temp['Attribute']['id'];
         }
 
-        $existingAttribute = $this->ShadowAttribute->Event->Attribute->fetchAttributes($this->Auth->user(), array('Attribute.id' => $id));
+        $existingAttribute = $this->ShadowAttribute->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id)));
         if (empty($existingAttribute)) {
             throw new NotFoundException(__('Invalid attribute.'));
         }
@@ -833,6 +833,7 @@ class ShadowAttributesController extends AppController
             if (empty($existingAttribute)) {
                 return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Invalid Attribute.')), 'status'=>200, 'type' => 'json'));
             }
+            $existingAttribute = $existingAttribute[0];
             $this->ShadowAttribute->create();
             $sa = array(
                     'old_id' => $existingAttribute['Attribute']['id'],
