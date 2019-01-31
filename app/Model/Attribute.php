@@ -418,8 +418,7 @@ class Attribute extends AppModel
             'malware-sample' => 'Payload delivery',
             'cortex' => 'External analysis',
             'dns-soa-email' => 'Attribution',
-            'boolean' => 'Other',
-            'anonymised' => 'Other'
+            'boolean' => 'Other'
     );
 
     // typeGroupings are a mapping to high level groups for attributes
