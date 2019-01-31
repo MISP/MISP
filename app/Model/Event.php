@@ -4377,12 +4377,22 @@ class Event extends AppModel
             } else if ($filterType['proposal'] == 2 && !empty($attribute['ShadowAttribute'])) { // `exclude`
                 $include = false;
             }
+
             /* correlation */
             if ($filterType['correlation'] == 0) { // `both`
                 // pass, do not consider as `both` is selected
             } else if ($filterType['correlation'] == 1 && !in_array($attribute['id'], $correlatedAttributes)) { // `include only`
                 $include = false;
             } else if ($filterType['correlation'] == 2 && in_array($attribute['id'], $correlatedAttributes)) { // `exclude`
+                $include = false;
+            }
+
+            /* deleted */
+            if ($filterType['deleted'] == 0) { // `both`
+                // pass, do not consider as `both` is selected
+            } else if ($filterType['deleted'] == 1 && $attribute['deleted'] != 1) {
+                $include = false;
+            } else if ($filterType['deleted'] == 2 && $attribute['deleted'] == 1) {
                 $include = false;
             }
 
@@ -4441,7 +4451,7 @@ class Event extends AppModel
         }
 
         $include = $filterType['proposal'] != 2;
-        
+
         /* correlation */
         if ($filterType['correlation'] == 0) { // `both`
             // pass, do not consider as `both` is selected
@@ -4632,7 +4642,8 @@ class Event extends AppModel
             'attributeFilter' => isset($passedArgs['attributeFilter']) ? $passedArgs['attributeFilter'] : 'all',
             'proposal' => isset($passedArgs['proposal']) ? $passedArgs['proposal'] : 0,
             'correlation' => isset($passedArgs['correlation']) ? $passedArgs['correlation'] : 0,
-            'warning' => isset($passedArgs['warning']) ? $passedArgs['warning'] : 0
+            'warning' => isset($passedArgs['warning']) ? $passedArgs['warning'] : 0,
+            'deleted' => isset($passedArgs['deleted']) ? $passedArgs['deleted'] : 0
         );
         // update proposal, correlation and warning accordingly
         if (in_array($filterType['attributeFilter'], array('proposal', 'correlation', 'warning'))) {

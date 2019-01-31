@@ -133,6 +133,7 @@ function triggerEventFilteringTool(clicked) {
                     2: "Connected community",
                     3: "All communities",
                     4: "Sharing group",
+                    5: "Inherit",
                 }
             },
             {
@@ -260,7 +261,7 @@ function triggerEventFilteringTool(clicked) {
                 {
                     field: 'deleted',
                     id: 'deleted',
-                    value: <?php echo isset($filters['deleted']) ? $filters['deleted'] : 0; ?>
+                    value: <?php echo isset($filters['deleted']) ? $filters['deleted'] : 2; ?>
                 },
                 {
                     field: 'includeRelatedTags',
@@ -271,7 +272,7 @@ function triggerEventFilteringTool(clicked) {
                     field: 'distribution',
                     id: 'distribution',
                     operator: 'in',
-                    value: <?php echo isset($filters['distribution']) ? json_encode($filters['distribution']) : json_encode(array(0, 1, 2, 3, 4)); ?>
+                    value: <?php echo isset($filters['distribution']) ? json_encode($filters['distribution']) : json_encode(array(0, 1, 2, 3, 4, 5)); ?>
                 },
                 {
                     field: 'taggedAttributes',

@@ -1023,7 +1023,7 @@ class EventsController extends AppController
         if (!empty($filters['overrideLimit'])) {
             $conditions['overrideLimit'] = 1;
         }
-        if (isset($filters['deleted']) && $filters['deleted']) {
+        if (isset($filters['deleted'])) {
             $conditions['deleted'] = 1;
         }
         $conditions['includeFeedCorrelations'] = true;
@@ -1035,12 +1035,20 @@ class EventsController extends AppController
         } else {
             $this->set('includeRelatedTags', 0);
         }
+
         $results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
         if (empty($results)) {
             throw new NotFoundException(__('Invalid event'));
         }
         $event = $results[0];
 
+        if (isset($filters['distribution'])) {
+            if (!is_array($filters['distribution'])) {
+                $filters['distribution'] = array($filters['distribution']);
+            }
+            $temp = implode('|', $filters['distribution']);
+            $this->applyQueryString($event, $temp, 'distribution');
+        }
         if (isset($filters['searchFor']) && $filters['searchFor'] !== '') {
             $this->applyQueryString($event, $filters['searchFor']);
             $this->set('passedArgsArray', array('all' => $filters['searchFor']));
@@ -1070,12 +1078,9 @@ class EventsController extends AppController
             }
         }
         if (empty($this->passedArgs['sort'])) {
-            // $this->passedArgs['sort'] = 'timestamp';
-            // $this->passedArgs['direction'] = 'desc';
             $filters['sort'] = 'timestamp';
             $filters['direction'] = 'desc';
         }
-        // $params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
         $params = $this->Event->rearrangeEventForView($event, $filters, $all);
         $this->params->params['paging'] = array($this->modelClass => $params);
         // workaround to get the event dates in to the attribute relations
@@ -1128,7 +1133,7 @@ class EventsController extends AppController
             $cortex_modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Cortex');
             $this->set('cortex_modules', $cortex_modules);
         }
-        $this->set('deleted', (!empty($filters['deleted'])) ? 1 : 0);
+        $this->set('deleted', isset($filters['deleted']) ? ($filters['deleted'] == 2 ? 0 : 1) : 0);
         $this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
         $this->set('attributeFilter', isset($filters['attributeFilter']) ? $filters['attributeFilter'] : 'all');
         $this->set('filters', $filters);
@@ -1266,9 +1271,15 @@ class EventsController extends AppController
                 }
             }
         }
-        // $passedArgs = array('sort' => 'timestamp', 'direction' => 'desc');
         $filters['sort'] = 'timestamp';
         $filters['direction'] = 'desc';
+        if (isset($filters['distribution'])) {
+            if (!is_array($filters['distribution'])) {
+                $filters['distribution'] = array($filters['distribution']);
+            }
+            $temp = implode('|', $filters['distribution']);
+            $this->applyQueryString($event, $temp, 'distribution');
+        }
         $params = $this->Event->rearrangeEventForView($event, $filters);
         $this->params->params['paging'] = array($this->modelClass => $params);
         $this->set('event', $event);
@@ -1378,7 +1389,7 @@ class EventsController extends AppController
         } else {
             $conditions['includeAttachments'] = true;
         }
-        if (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) {
+        if (isset($this->params['named']['deleted'])) {
             $conditions['deleted'] = 1;
         }
         if (isset($this->params['named']['includeRelatedTags']) && $this->params['named']['includeRelatedTags']) {
@@ -1427,7 +1438,7 @@ class EventsController extends AppController
         if ($this->_isRest()) {
             $this->set('event', $event);
         }
-        $this->set('deleted', isset($this->params['named']['deleted']) && $this->params['named']['deleted']);
+        $this->set('deleted', isset($this->params['named']['deleted']) ? ($this->params['named']['deleted'] == 2 ? 0 : 1) : 0);
         $this->set('includeRelatedTags', (!empty($this->params['named']['includeRelatedTags'])) ? 1 : 0);
         if (!$this->_isRest()) {
 			if ($this->_isSiteAdmin() && $results[0]['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
