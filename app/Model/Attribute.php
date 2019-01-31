@@ -295,7 +295,7 @@ class Attribute extends AppModel
             'mobile-application-id' => array('desc' => 'The application id of a mobile application', 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'cortex' => array('desc' => 'Cortex analysis result', 'default_category' => 'External analysis', 'to_ids' => 0),
             'boolean' => array('desc' => 'Boolean value - to be used in objects', 'default_category' => 'Other', 'to_ids' => 0),
-            'anonymised' => array('desc' => 'Anonymised value - described with the anonymisation object via a relationship', 'default_category' => 'Other', 'to_ids' =>0)
+            'anonymised' => array('desc' => 'Anonymised value - described with the anonymisation object via a relationship',  'formdesc' => 'Anonymised value - described with the anonymisation object via a relationship.' , 'default_category' => 'Other', 'to_ids' => 0)
             // Not convinced about this.
             //'url-regex' => array('desc' => '', 'default_category' => 'Person', 'to_ids' => 0),
     );
