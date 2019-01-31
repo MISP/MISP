@@ -4368,17 +4368,34 @@ class Event extends AppModel
     ) {
         $attribute['objectType'] = 'attribute';
         $include = true;
-        if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) {
-            if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) {
+        if ($filterType) {
+            /* proposal */
+            if ($filterType['proposal'] == 0) { // `both`
+                // pass, do not consider as `both` is selected
+            } else if ($filterType['proposal'] == 1 && empty($attribute['ShadowAttribute'])) { // `include only`
+                $include = false;
+            } else if ($filterType['proposal'] == 2 && !empty($attribute['ShadowAttribute'])) { // `exclude`
+                $include = false;
+            }
+            /* correlation */
+            if ($filterType['correlation'] == 0) { // `both`
+                // pass, do not consider as `both` is selected
+            } else if ($filterType['correlation'] == 1 && !in_array($attribute['id'], $correlatedAttributes)) { // `include only`
+                $include = false;
+            } else if ($filterType['correlation'] == 2 && in_array($attribute['id'], $correlatedAttributes)) { // `exclude`
+                $include = false;
+            }
+
+            /* TypeGroupings */
+            if (
+                $filterType['attributeFilter'] != 'all'
+                && isset($this->Attribute->typeGroupings[$filterType['attributeFilter']])
+                && !in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType['attributeFilter']])
+            ) {
                 $include = false;
             }
         }
-        if ($filterType === 'proposal' && empty($attribute['ShadowAttribute'])) {
-            $include = false;
-        }
-        if ($filterType === 'correlation' && !in_array($attribute['id'], $correlatedAttributes)) {
-            $include = false;
-        }
+
         if (!empty($attribute['ShadowAttribute'])) {
             $temp = array();
             foreach ($attribute['ShadowAttribute'] as $k => $proposal) {
@@ -4396,8 +4413,14 @@ class Event extends AppModel
             $attribute['ShadowAttribute'] = $temp;
         }
         $attribute = $this->__prepareGenericForView($attribute, $eventWarnings, $warningLists);
-        if ($filterType === 'warning') {
-            if (empty($attribute['warnings']) && empty($attribute['validationIssue'])) {
+
+        /* warning */
+        if ($filterType) {
+            if ($filterType['warning'] == 0) { // `both`
+                // pass, do not consider as `both` is selected
+            } else if ($filterType['warning'] == 1 && empty($attribute['warnings']) && empty($attribute['validationIssue'])) { // `include only`
+                $include = false;
+            } else if ($filterType['warning'] == 2 && !(empty($attribute['warnings']) && empty($attribute['validationIssue']))) { // `exclude`
                 $include = false;
             }
         }
@@ -4417,18 +4440,34 @@ class Event extends AppModel
             $proposal['objectType'] = 'proposal';
         }
 
-        $include = true;
-        if ($filterType === 'correlation' && !in_array($proposal['id'], $correlatedShadowAttributes)) {
+        $include = $filterType['proposal'] != 2;
+        
+        /* correlation */
+        if ($filterType['correlation'] == 0) { // `both`
+            // pass, do not consider as `both` is selected
+        } else if ($filterType['correlation'] == 1 && !in_array($proposal['id'], $correlatedShadowAttributes)) { // `include only`
+            $include = false;
+        } else if ($filterType['correlation'] == 2 && in_array($proposal['id'], $correlatedShadowAttributes)) { // `exclude`
             $include = false;
         }
-        if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) {
-            if (!in_array($proposal['type'], $this->Attribute->typeGroupings[$filterType])) {
-                $include = false;
-            }
+
+        /* TypeGroupings */
+        if (
+            $filterType['attributeFilter'] != 'all'
+            && isset($this->Attribute->typeGroupings[$filterType['attributeFilter']])
+            && !in_array($proposal['type'], $this->Attribute->typeGroupings[$filterType['attributeFilter']])
+        ) {
+            $include = false;
         }
         $proposal = $this->__prepareGenericForView($proposal, $eventWarnings, $warningLists);
-        if ($filterType === 'warning') {
-            if (empty($proposal['warnings'])) {
+
+        /* warning */
+        if ($filterType) {
+            if ($filterType['warning'] == 0) { // `both`
+                // pass, do not consider as `both` is selected
+            } else if ($filterType['warning'] == 1 && empty($proposal['warnings']) && empty($proposal['validationIssue'])) { // `include only`
+                $include = false;
+            } else if ($filterType['warning'] == 2 && !(empty($proposal['warnings']) && empty($proposal['validationIssue']))) { // `exclude`
                 $include = false;
             }
         }
@@ -4446,10 +4485,8 @@ class Event extends AppModel
         $object['category'] = $object['meta-category'];
         $proposal['objectType'] = 'object';
         // filters depend on child objects
-        $include = empty($filterType) || $filterType == 'object' || $object['meta-category'] === $filterType;
-        if ($filterType === 'correlation' || $filterType === 'proposal') {
-            $include = $this->__checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes);
-        }
+        $include = $this->__checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes);
+
         if (!empty($object['Attribute'])) {
             $temp = array();
             foreach ($object['Attribute'] as $k => $proposal) {
@@ -4467,59 +4504,84 @@ class Event extends AppModel
             }
             $object['Attribute'] = $temp;
         }
-        if ($filterType === 'warning') {
-            $include = $this->__checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes);
-        }
+
         return array('include' => $include, 'data' => $object);
     }
 
     private function __checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes)
     {
-        $include = false;
-        switch ($filterType) {
-            case 'warning':
-                if (!empty($object['Attribute'])) {
-                    foreach ($object['Attribute'] as $k => $attribute) {
-                        if (!empty($attribute['warnings'])) {
-                            $include = true;
-                        }
-                        if (!empty($attribute['ShadowAttribute'])) {
-                            foreach ($attribute['ShadowAttribute'] as $shadowAttribute) {
-                                if (!empty($shadowAttribute['warnings'])) {
-                                    $include = true;
-                                }
-                            }
-                        }
-                    }
-                }
-                break;
-            case 'correlation':
-                if (!empty($object['Attribute'])) {
-                    foreach ($object['Attribute'] as $k => $attribute) {
-                        if (in_array($attribute['id'], $correlatedAttributes)) {
-                            $include = true;
-                        } else {
-                            if (!empty($attribute['ShadowAttribute'])) {
-                                foreach ($attribute['ShadowAttribute'] as $k => $shadowAttribute) {
-                                    if (in_array($shadowAttribute['id'], $correlatedShadowAttributes)) {
-                                        $include = true;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                break;
-            case 'proposal':
-                if (!empty($object['Attribute'])) {
-                    foreach ($object['Attribute'] as $k => $attribute) {
-                        if (!empty($attribute['ShadowAttribute'])) {
-                            $include = true;
-                        }
-                    }
-                }
-                break;
+        $include = true;
+
+        if (empty($object['Attribute'])) { // reject empty object
+            $include = false;
+            return $include;
         }
+
+        /* proposal */
+        if ($filterType['proposal'] == 0) { // `both`
+            // pass, do not consider as `both` is selected
+        } else if ($filterType['proposal'] == 1 || $filterType['proposal'] == 2) {
+            $flagKeep = false;
+            foreach ($object['Attribute'] as $k => $attribute) { // check if object contains at least 1 proposal
+                if (!empty($attribute['ShadowAttribute'])) {
+                    $flagKeep = true && ($filterType['proposal'] == 1); // do not keep if proposal are excluded
+                    break;
+                }
+            }
+            if (!$flagKeep) {
+                $include = false;
+                return $include;
+            }
+        }
+
+        /* warning */
+        if ($filterType['warning'] == 0) { // `both`
+            // pass, do not consider as `both` is selected
+        } else if ($filterType['warning'] == 1 || $filterType['warning'] == 2) {
+            $flagKeep = false;
+            foreach ($object['Attribute'] as $k => $attribute) { // check if object contains at least 1 warning
+                if (!empty($attribute['warnings'])) {
+                    $flagKeep = true && ($filterType['warning'] == 1); // do not keep if warning are excluded
+                }
+                if (!$flagKeep && !empty($attribute['ShadowAttribute'])) {
+                    foreach ($attribute['ShadowAttribute'] as $shadowAttribute) {
+                        if (!empty($shadowAttribute['warnings'])) {
+                            $flagKeep = true && ($filterType['warning'] == 1); // do not keep if warning are excluded
+                            break;
+                        }
+                    }
+                }
+            }
+            if (!$flagKeep) {
+                $include = false;
+                return $include;
+            }
+        }
+
+        /* correlation */
+        if ($filterType['correlation'] == 0) { // `both`
+            // pass, do not consider as `both` is selected
+        } else if ($filterType['correlation'] == 1 || $filterType['correlation'] == 2) {
+            $flagKeep = false;
+            foreach ($object['Attribute'] as $k => $attribute) { // check if object contains at least 1 warning
+                if (in_array($attribute['id'], $correlatedAttributes)) {
+                    $flagKeep = true && ($filterType['warning'] == 1); // do not keep if warning are excluded
+                }
+                if (!$flagKeep && !empty($attribute['ShadowAttribute'])) {
+                    foreach ($attribute['ShadowAttribute'] as $k => $shadowAttribute) {
+                        if (in_array($shadowAttribute['id'], $correlatedShadowAttributes)) {
+                            $flagKeep = true && ($filterType['warning'] == 1); // do not keep if warning are excluded
+                            break;
+                        }
+                    }
+                }
+            }
+            if (!$flagKeep) {
+                $include = false;
+                return $include;
+            }
+        }
+
         return $include;
     }
 
@@ -4566,14 +4628,17 @@ class Event extends AppModel
                 unset($event['Event'][$k]);
             }
         }
-        $filterType = false;
-        if (isset($passedArgs['attributeFilter'])) {
-            if (in_array($passedArgs['attributeFilter'], array_keys($this->Attribute->typeGroupings)) || in_array($passedArgs['attributeFilter'], array('proposal', 'correlation', 'warning'))) {
-                $filterType = $passedArgs['attributeFilter'];
-            } else {
-                unset($passedArgs['attributeFilter']);
-            }
+        $filterType = array(
+            'attributeFilter' => isset($passedArgs['attributeFilter']) ? $passedArgs['attributeFilter'] : 'all',
+            'proposal' => isset($passedArgs['proposal']) ? $passedArgs['proposal'] : 0,
+            'correlation' => isset($passedArgs['correlation']) ? $passedArgs['correlation'] : 0,
+            'warning' => isset($passedArgs['warning']) ? $passedArgs['warning'] : 0
+        );
+        // update proposal, correlation and warning accordingly
+        if (in_array($filterType['attributeFilter'], array('proposal', 'correlation', 'warning'))) {
+            $filterType[$filterType['attributeFilter']] = 1;
         }
+
         $eventArray = array();
         $eventWarnings = array();
         $correlatedAttributes = isset($event['RelatedAttribute']) ? array_keys($event['RelatedAttribute']) : array();

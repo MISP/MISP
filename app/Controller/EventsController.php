@@ -44,6 +44,8 @@ class EventsController extends AppController
         $this->Auth->allow('stix');
         $this->Auth->allow('stix2');
 
+        $this->Security->unlockedActions[] = 'viewEventAttributes';
+
         // TODO Audit, activate logable in a Controller
         if (count($this->uses) && $this->{$this->modelClass}->Behaviors->attached('SysLogLogable')) {
             $this->{$this->modelClass}->setUserData($this->activeUser);
@@ -999,26 +1001,35 @@ class EventsController extends AppController
 
     public function viewEventAttributes($id, $all = false)
     {
-        if (isset($this->params['named']['focus'])) {
-            $this->set('focus', $this->params['named']['focus']);
+        $paramArray = array('searchFor', 'attributeFilter', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'distribution', 'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite');
+        $filterData = array(
+            'request' => $this->request,
+            'paramArray' => $paramArray,
+            'named_params' => $this->params['named']
+        );
+        $exception = false;
+        $filters = $this->_harvestParameters($filterData, $exception);
+
+        if (isset($filters['focus'])) {
+            $this->set('focus', $filters['focus']);
         }
         $conditions = array('eventid' => $id);
-        if (isset($this->params['named']['extended'])) {
+        if (isset($filters['extended'])) {
             $conditions['extended'] = 1;
             $this->set('extended', 1);
         } else {
             $this->set('extended', 0);
         }
-        if (!empty($this->params['named']['overrideLimit'])) {
+        if (!empty($filters['overrideLimit'])) {
             $conditions['overrideLimit'] = 1;
         }
-        if (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) {
+        if (isset($filters['deleted']) && $filters['deleted']) {
             $conditions['deleted'] = 1;
         }
         $conditions['includeFeedCorrelations'] = true;
         $conditions['includeAllTags'] = true;
         $conditions['includeGranularCorrelations'] = 1;
-        if (!empty($this->params['named']['includeRelatedTags'])) {
+        if (!empty($filters['includeRelatedTags'])) {
             $this->set('includeRelatedTags', 1);
             $conditions['includeRelatedTags'] = 1;
         } else {
@@ -1030,54 +1041,9 @@ class EventsController extends AppController
         }
         $event = $results[0];
 
-        if (isset($this->params['named']['searchFor'])) {
-            // filtering on specific columns is specified
-            if (!empty($this->params['named']['filterColumnsOverwrite'])) {
-                $filterColumns = $this->params['named']['filterColumnsOverwrite'];
-                $filterValue = array_map('trim', explode(",", $filterColumns));
-            } else {
-                $filterColumns = empty(Configure::read('MISP.event_view_filter_fields')) ? 'id, uuid, value, comment, type, category, Tag.name' : Configure::read('MISP.event_view_filter_fields');
-                $filterValue = array_map('trim', explode(",", $filterColumns));
-                $validFilters = array('id', 'uuid', 'value', 'comment', 'type', 'category', 'Tag.name');
-                foreach ($filterValue as $k => $v) {
-                    if (!in_array($v, $validFilters)) {
-                        unset($filterValue[$k]);
-                    }
-                }
-            }
-
-            // search in all attributes
-            foreach ($event['Attribute'] as $k => $attribute) {
-                if (!$this->__valueInFieldAttribute($attribute, $filterValue, $this->params['named']['searchFor'])) {
-                    unset($event['Attribute'][$k]);
-                }
-            }
-            $event['Attribute'] = array_values($event['Attribute']);
-
-            // search in all attributes
-            foreach ($event['ShadowAttribute'] as $k => $proposals) {
-                if (!$this->__valueInFieldAttribute($proposals, $filterValue, $this->params['named']['searchFor'])) {
-                    unset($event['ShadowAttribute'][$k]);
-                }
-            }
-            $event['ShadowAttribute'] = array_values($event['ShadowAttribute']);
-
-            // search for all attributes in object
-            foreach ($event['Object'] as $k => $object) {
-                foreach ($object['Attribute'] as $k2 => $attribute) {
-                    if (!$this->__valueInFieldAttribute($attribute, $filterValue, $this->params['named']['searchFor'])) {
-                        unset($event['Object'][$k]['Attribute'][$k2]);
-                    }
-                }
-                if (count($event['Object'][$k]['Attribute']) == 0) {
-                    // remove object if empty
-                    unset($event['Object'][$k]);
-                } else {
-                    $event['Object'][$k]['Attribute'] = array_values($event['Object'][$k]['Attribute']);
-                }
-            }
-            $event['Object'] = array_values($event['Object']);
-            $this->set('passedArgsArray', array('all' => $this->params['named']['searchFor']));
+        if (isset($filters['searchFor']) && $filters['searchFor'] !== '') {
+            $this->applyQueryString($event, $filters['searchFor']);
+            $this->set('passedArgsArray', array('all' => $filters['searchFor']));
         }
         $emptyEvent = (empty($event['Object']) && empty($event['Attribute']));
         $this->set('emptyEvent', $emptyEvent);
@@ -1104,10 +1070,13 @@ class EventsController extends AppController
             }
         }
         if (empty($this->passedArgs['sort'])) {
-            $this->passedArgs['sort'] = 'timestamp';
-            $this->passedArgs['direction'] = 'desc';
+            // $this->passedArgs['sort'] = 'timestamp';
+            // $this->passedArgs['direction'] = 'desc';
+            $filters['sort'] = 'timestamp';
+            $filters['direction'] = 'desc';
         }
-        $params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
+        // $params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
+        $params = $this->Event->rearrangeEventForView($event, $filters, $all);
         $this->params->params['paging'] = array($this->modelClass => $params);
         // workaround to get the event dates in to the attribute relations
         $relatedDates = array();
@@ -1159,9 +1128,10 @@ class EventsController extends AppController
             $cortex_modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Cortex');
             $this->set('cortex_modules', $cortex_modules);
         }
-        $this->set('deleted', (!empty($this->params['named']['deleted'])) ? 1 : 0);
+        $this->set('deleted', (!empty($filters['deleted'])) ? 1 : 0);
         $this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
-        $this->set('attributeFilter', isset($this->params['named']['attributeFilter']) ? $this->params['named']['attributeFilter'] : 'all');
+        $this->set('attributeFilter', isset($filters['attributeFilter']) ? $filters['attributeFilter'] : 'all');
+        $this->set('filters', $filters);
         $this->disableCache();
         $this->layout = 'ajax';
         $this->loadModel('Sighting');
@@ -1183,6 +1153,15 @@ class EventsController extends AppController
 
     private function __viewUI($event, $continue, $fromEvent)
     {
+        $paramArray = array('searchFor', 'attributeFilter', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'distribution', 'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite');
+        $filterData = array(
+            'request' => $this->request,
+            'paramArray' => $paramArray,
+            'named_params' => $this->params['named']
+        );
+        $exception = false;
+        $filters = $this->_harvestParameters($filterData, $exception);
+
         $this->loadModel('GalaxyCluster');
         if (!$this->_isRest()) {
             //$attack = $this->GalaxyCluster->Galaxy->constructAttackReport($event);
@@ -1287,8 +1266,10 @@ class EventsController extends AppController
                 }
             }
         }
-        $passedArgs = array('sort' => 'timestamp', 'direction' => 'desc');
-        $params = $this->Event->rearrangeEventForView($event, $passedArgs);
+        // $passedArgs = array('sort' => 'timestamp', 'direction' => 'desc');
+        $filters['sort'] = 'timestamp';
+        $filters['direction'] = 'desc';
+        $params = $this->Event->rearrangeEventForView($event, $filters);
         $this->params->params['paging'] = array($this->modelClass => $params);
         $this->set('event', $event);
         $dataForView = array(
@@ -1366,6 +1347,7 @@ class EventsController extends AppController
         ));
         $this->set('orgTable', $orgTable);
         $this->set('currentUri', $attributeUri);
+        $this->set('filters', $filters);
         $this->set('mitreAttackGalaxyId', $this->Event->GalaxyCluster->Galaxy->getMitreAttackGalaxyId());
     }
 
@@ -1438,6 +1420,10 @@ class EventsController extends AppController
             $results[0]['User']['email'] = $this->User->field('email', array('id' => $results[0]['Event']['user_id']));
         }
         $event = $results[0];
+        if (isset($this->params['named']['searchFor']) && $this->params['named']['searchFor'] !== '') {
+            $this->applyQueryString($event, $this->params['named']['searchFor']);
+        }
+
         if ($this->_isRest()) {
             $this->set('event', $event);
         }
@@ -1531,6 +1517,54 @@ class EventsController extends AppController
         $this->Session->write('pivot_thread', $pivot);
         $pivot = $this->__arrangePivotVertical($pivot);
         $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId, true, $eventId));
+    }
+
+    private function applyQueryString(&$event, $searchFor, $filterColumnsOverwrite=false) {
+        // filtering on specific columns is specified
+        if ($filterColumnsOverwrite !== false) {
+            $filterValue = array_map('trim', explode(",", $filterColumnsOverwrite));
+        } else {
+            $filterColumnsOverwrite = empty(Configure::read('MISP.event_view_filter_fields')) ? 'id, uuid, value, comment, type, category, Tag.name' : Configure::read('MISP.event_view_filter_fields');
+            $filterValue = array_map('trim', explode(",", $filterColumnsOverwrite));
+            $validFilters = array('id', 'uuid', 'value', 'comment', 'type', 'category', 'Tag.name');
+            foreach ($filterValue as $k => $v) {
+                if (!in_array($v, $validFilters)) {
+                    unset($filterValue[$k]);
+                }
+            }
+        }
+
+        // search in all attributes
+        foreach ($event['Attribute'] as $k => $attribute) {
+            if (!$this->__valueInFieldAttribute($attribute, $filterValue, $searchFor)) {
+                unset($event['Attribute'][$k]);
+            }
+        }
+        $event['Attribute'] = array_values($event['Attribute']);
+
+        // search in all attributes
+        foreach ($event['ShadowAttribute'] as $k => $proposals) {
+            if (!$this->__valueInFieldAttribute($proposals, $filterValue, $searchFor)) {
+                unset($event['ShadowAttribute'][$k]);
+            }
+        }
+        $event['ShadowAttribute'] = array_values($event['ShadowAttribute']);
+
+        // search for all attributes in object
+        foreach ($event['Object'] as $k => $object) {
+            foreach ($object['Attribute'] as $k2 => $attribute) {
+                if (!$this->__valueInFieldAttribute($attribute, $filterValue, $searchFor)) {
+                    unset($event['Object'][$k]['Attribute'][$k2]);
+                }
+            }
+            if (count($event['Object'][$k]['Attribute']) == 0) {
+                // remove object if empty
+                unset($event['Object'][$k]);
+            } else {
+                $event['Object'][$k]['Attribute'] = array_values($event['Object'][$k]['Attribute']);
+            }
+        }
+        $event['Object'] = array_values($event['Object']);
     }
 
     private function __removeChildren(&$pivot, $id)

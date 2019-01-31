@@ -1,7 +1,7 @@
 <div id="eventFilteringQBWrapper" style="padding: 5px; display: none; border: 1px solid #dddddd; border-bottom: 0px;">
     <div id="eventFilteringQB"></div>
     <div style="display: flex; justify-content: flex-end">
-            <input id="eventFilteringQBLinkInput" class="form-control"></input>
+            <input id="eventFilteringQBLinkInput" class="form-control" style="width: 500px;"></input>
             <button id="eventFilteringQBLinkCopy" type="button" class="btn btn-inverse" style="margin-right: 5px; margin-left: 5px;" onclick="clickMessage(this);"> <i class="fa fa-clipboard"></i> Copy to clipboard </button>
             <button id="eventFilteringQBSubmit" type="button" class="btn btn-inverse" style=""> <i class="fa fa-filter"></i> Filter </button>
     </div>
@@ -165,46 +165,46 @@ function triggerEventFilteringTool(clicked) {
                     2: "Attributes with galaxy"
                 }
             },
-            {
-                "input": "select",
-                "type": "string",
-                "operators": [
-                    "equal",
-                ],
-                "unique": false,
-                "id": "objectType",
-                "label": "Object Types",
-                <?php
-                    $object_types = array();
-                    foreach ($event['objects'] as $k => $object) {
-                        if ($object['objectType'] == 'object') {
-                            $object_types[$object['name']] = $object['name'];
-                        }
-                    }
-                    ksort($object_types);
-                ?>
-                "values": <?php echo json_encode($object_types); ?>
-            },
-            {
-                "input": "select",
-                "type": "string",
-                "operators": [
-                    "equal",
-                ],
-                "unique": false,
-                "id": "attributeType",
-                "label": "Attribute Types",
-                <?php
-                    $attribute_types = array();
-                    foreach ($event['objects'] as $k => $attribute) {
-                        if ($attribute['objectType'] == 'attribute') {
-                            $attribute_types[$attribute['type']] = $attribute['type'];
-                        }
-                    }
-                    ksort($attribute_types);
-                ?>
-                "values": <?php echo json_encode($attribute_types); ?>
-            },
+            // {
+            //     "input": "select",
+            //     "type": "string",
+            //     "operators": [
+            //         "equal",
+            //     ],
+            //     "unique": false,
+            //     "id": "objectType",
+            //     "label": "Object Types",
+            //     <?php
+            //         $object_types = array();
+            //         foreach ($event['objects'] as $k => $object) {
+            //             if ($object['objectType'] == 'object') {
+            //                 $object_types[$object['name']] = $object['name'];
+            //             }
+            //         }
+            //         ksort($object_types);
+            //     ?>
+            //     "values": <?php //echo json_encode($object_types); ?>
+            // },
+            // {
+            //     "input": "select",
+            //     "type": "string",
+            //     "operators": [
+            //         "equal",
+            //     ],
+            //     "unique": false,
+            //     "id": "attributeType",
+            //     "label": "Attribute Types",
+            //     <?php
+            //         $attribute_types = array();
+            //         foreach ($event['objects'] as $k => $attribute) {
+            //             if ($attribute['objectType'] == 'attribute') {
+            //                 $attribute_types[$attribute['type']] = $attribute['type'];
+            //             }
+            //         }
+            //         ksort($attribute_types);
+            //     ?>
+            //     "values": <?php //echo json_encode($attribute_types); ?>
+            // },
             {
                 "input": "text",
                 "type": "string",
@@ -230,80 +230,85 @@ function triggerEventFilteringTool(clicked) {
             rules: [
                 {
                     field: 'searchFor',
-                    id: 'searchFor'
+                    id: 'searchFor',
+                    value: "<?php echo isset($filters['searchFor']) ? $filters['searchFor'] : ''; ?>"
                 },
                 {
                     field: 'attributeFilter',
                     id: 'attributeFilter',
-                    value: '<?php echo !isset($filteringData['category']) ?  'all' : h($filteringData['category']) ?>'
+                    <?php if (isset($filters['attributeFilter'])): ?>
+                        value: "<?php echo in_array($filters['attributeFilter'], array('all', 'network', 'financial', 'file')) ? $filters['attributeFilter'] : 'all'; ?>"
+                    <?php else: ?>
+                        value: "<?php echo 'all'; ?>"
+                    <?php endif; ?>
                 },
                 {
                     field: 'proposal',
                     id: 'proposal',
-                    value: 0,
+                    value: <?php echo isset($filters['proposal']) ? $filters['proposal'] : 0; ?>
                 },
                 {
                     field: 'correlation',
                     id: 'correlation',
-                    value: 0,
+                    value: <?php echo isset($filters['correlation']) ? $filters['correlation'] : 0; ?>
                 },
                 {
                     field: 'warning',
                     id: 'warning',
-                    value: 0,
+                    value: <?php echo isset($filters['warning']) ? $filters['warning'] : 0; ?>
                 },
                 {
                     field: 'deleted',
                     id: 'deleted',
-                    value: 0,
+                    value: <?php echo isset($filters['deleted']) ? $filters['deleted'] : 0; ?>
                 },
                 {
                     field: 'includeRelatedTags',
                     id: 'includeRelatedTags',
-                    value: 0,
+                    value: <?php echo isset($filters['includeRelatedTags']) ? $filters['includeRelatedTags'] : 0; ?>
                 },
                 {
                     field: 'distribution',
                     id: 'distribution',
                     operator: 'in',
-                    value: [0, 1, 2, 3, 4],
+                    value: <?php echo isset($filters['distribution']) ? json_encode($filters['distribution']) : json_encode(array(0, 1, 2, 3, 4)); ?>
                 },
                 {
                     field: 'taggedAttributes',
                     id: 'taggedAttributes',
-                    value: 0,
+                    value: <?php echo isset($filters['taggedAttributes']) ? $filters['taggedAttributes'] : 0; ?>
                 },
                 {
                     field: 'galaxyAttachedAttributes',
                     id: 'galaxyAttachedAttributes',
-                    value: 0,
+                    value: <?php echo isset($filters['galaxyAttachedAttributes']) ? $filters['galaxyAttachedAttributes'] : 0; ?>
                 },
-                {
-                    condition: 'OR',
-                    not: false,
-                    flags: {
-                        no_add_group: true,
-                        condition_readonly: true,
-                    },
-                    rules: [{
-                        field: 'objectType',
-                        id: 'objectType',
-                        value: '<?php reset($object_types); echo key($object_types); ?>',
-                    }]
-                },
-                {
-                    condition: 'OR',
-                    not: false,
-                    flags: {
-                        no_add_group: true,
-                        condition_readonly: true,
-                    },
-                    rules: [{
-                        field: 'attributeType',
-                        id: 'attributeType',
-                        value: '<?php reset($attribute_types); echo key($attribute_types); ?>',
-                    }]
-                }
+                // {
+                //     condition: 'OR',
+                //     not: false,
+                //     flags: {
+                //         no_add_group: true,
+                //         condition_readonly: true,
+                //     },
+                //     rules: [{
+                //         field: 'objectType',
+                //         id: 'objectType',
+                //         value: '<?php //reset($object_types); echo key($object_types); ?>',
+                //     }]
+                // },
+                // {
+                //     condition: 'OR',
+                //     not: false,
+                //     flags: {
+                //         no_add_group: true,
+                //         condition_readonly: true,
+                //     },
+                //     rules: [{
+                //         field: 'attributeType',
+                //         id: 'attributeType',
+                //         value: '<?php //reset($attribute_types); echo key($attribute_types); ?>',
+                //     }]
+                // }
             ],
             flags: {
                 no_add_group: true,
@@ -319,7 +324,7 @@ function triggerEventFilteringTool(clicked) {
         },
     };
 
-
+    var filters = <?php echo json_encode($filters); ?>;
     var $wrapper = $('#eventFilteringQBWrapper');
     var $ev = $('#eventFilteringQB');
     var querybuilderTool = $ev.queryBuilder(qbOptions);
@@ -373,6 +378,10 @@ function triggerEventFilteringTool(clicked) {
         var url = "";
         Object.keys(res).forEach(function(k) {
             var v = res[k];
+            if (Array.isArray(v)) {
+                // v = JSON.stringify(v);
+                v = v.join('||');
+            }
             url += "/" + k + ":" + v;
         });
         return url;
@@ -394,10 +403,13 @@ function triggerEventFilteringTool(clicked) {
     function performQuery(rules) {
         var res = cleanRules(rules);
 
-        var url = "/events/viewEventAttributes/<?php echo h($event['Event']['id']); ?>" + buildURL(res);
+        // var url = "/events/viewEventAttributes/<?php echo h($event['Event']['id']); ?>" + buildURL(res);
+        var url = "/events/viewEventAttributes/<?php echo h($event['Event']['id']); ?>";
+
         $.ajax({
-    		type:"get",
+    		type:"post",
     		url: url,
+            data: res,
     		beforeSend: function (XMLHttpRequest) {
     			$(".loading").show();
     		},
