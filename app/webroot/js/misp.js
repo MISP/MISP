@@ -45,8 +45,8 @@ function fetchAddSightingForm(type, attribute_id, page, onvalue) {
 function flexibleAddSighting(clicked, type, attribute_id, event_id, value, page, placement) {
 	$clicked = $(clicked);
 	var html = '<div>'
-		+ '<button class="btn btn-primary" onclick="addSighting(\'' + type + '\', \'' + attribute_id + '\', \'' + event_id + '\', \'' + page + '\')">'+'id'+'</button>'
-		+ '<button class="btn btn-primary" style="margin-left:5px;" onclick="fetchAddSightingForm(\'' + type + '\', \'' + attribute_id + '\', \'' + page + '\', true)">' + value + '</button>'
+		+ '<button class="btn btn-primary" onclick="addSighting(\'' + type + '\', \'' + attribute_id + '\', \'' + event_id + '\', \'' + page + '\')">This attribute</button>'
+		+ '<button class="btn btn-primary" style="margin-left:5px;" onclick="fetchAddSightingForm(\'' + type + '\', \'' + attribute_id + '\', \'' + page + '\', true)">Global value</button>'
 		+ '</div>';
 	openPopover(clicked, html, true, placement);
 }

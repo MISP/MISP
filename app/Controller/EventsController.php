@@ -3804,6 +3804,9 @@ class EventsController extends AppController
             } else {
                 $data = $this->request->data;
             }
+            if (!isset($data['request'])) {
+                $data = array('request' => $data);
+            }
             $paramArray = array('id', 'withAttachment', 'tags', 'from', 'to', 'last');
             foreach ($paramArray as $p) {
                 if (isset($data['request'][$p])) {
@@ -3853,7 +3856,7 @@ class EventsController extends AppController
             }
             $this->set('data', $result['data']);
         } else {
-            throw new Exception(h($result['message']));
+            throw new BadRequestException(h($result['message']));
         }
     }
 
