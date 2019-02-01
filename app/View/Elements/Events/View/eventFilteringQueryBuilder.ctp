@@ -378,7 +378,7 @@ function triggerEventFilteringTool(clicked) {
     function updateURL() {
         var rules = querybuilderTool.getRules({ skip_empty: true, allow_invalid: true });
         var res = cleanRules(rules);
-        var url = "/events/view/<?php echo h($event['Event']['id']); ?>" + buildURL(res);
+        var url = "<?php echo $baseurl; ?>/events/view/<?php echo h($event['Event']['id']); ?>" + buildURL(res);
         $('#eventFilteringQBLinkInput').val(url);
     }
 
@@ -411,7 +411,6 @@ function triggerEventFilteringTool(clicked) {
     function performQuery(rules) {
         var res = cleanRules(rules);
 
-        // var url = "/events/viewEventAttributes/<?php echo h($event['Event']['id']); ?>" + buildURL(res);
         var url = "/events/viewEventAttributes/<?php echo h($event['Event']['id']); ?>";
 
         $.ajax({
