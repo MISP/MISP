@@ -1586,13 +1586,15 @@ class EventsController extends AppController
     private function __checkIfAdvancedFiltering($filters) {
         $advancedFilteringActive = array_diff_key($filters, array('sort'=>0, 'direction'=>0, 'focus'=>0, 'extended'=>0, 'overrideLimit'=>0, 'filterColumnsOverwrite'=>0, 'attributeFilter'=>0));
         if (count($advancedFilteringActive) > 0) {
-            if (
+            if (count(array_diff_key($advancedFilteringActive, array('deleted', 'includeRelatedTags'))) > 0) {
+                $res =  true;
+            } else if (
                 (isset($advancedFilteringActive['deleted']) && $advancedFilteringActive['deleted'] == 2)
                 || (isset($advancedFilteringActive['includeRelatedTags']) && $advancedFilteringActive['includeRelatedTags'] == 2)
             ) {
-                $res = true;
+                $res =  true;
             } else {
-                $res = false;
+                $res =  false;
             }
         } else {
             $res = false;
