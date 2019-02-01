@@ -4372,28 +4372,31 @@ class Event extends AppModel
             /* proposal */
             if ($filterType['proposal'] == 0) { // `both`
                 // pass, do not consider as `both` is selected
-            } else if ($filterType['proposal'] == 1 && empty($attribute['ShadowAttribute'])) { // `include only`
-                $include = false;
-            } else if ($filterType['proposal'] == 2 && !empty($attribute['ShadowAttribute'])) { // `exclude`
-                $include = false;
+            } else if (!empty($attribute['ShadowAttribute'])) { // `include only`
+                $include = $include && ($filterType['proposal'] == 1);
+            } else { // `exclude`
+                $include = $include && ($filterType['proposal'] == 2);
             }
 
             /* correlation */
             if ($filterType['correlation'] == 0) { // `both`
+                // debug($include);
                 // pass, do not consider as `both` is selected
-            } else if ($filterType['correlation'] == 1 && !in_array($attribute['id'], $correlatedAttributes)) { // `include only`
-                $include = false;
-            } else if ($filterType['correlation'] == 2 && in_array($attribute['id'], $correlatedAttributes)) { // `exclude`
-                $include = false;
+            } else if (in_array($attribute['id'], $correlatedAttributes)) { // `include only`
+                // debug($include);
+                $include = $include && ($filterType['correlation'] == 1);
+            } else { // `exclude`
+                // debug($include);
+                $include = $include && ($filterType['correlation'] == 2);
             }
 
             /* deleted */
             if ($filterType['deleted'] == 0) { // `both`
                 // pass, do not consider as `both` is selected
-            } else if ($filterType['deleted'] == 1 && $attribute['deleted'] != 1) {
-                $include = false;
-            } else if ($filterType['deleted'] == 2 && $attribute['deleted'] == 1) {
-                $include = false;
+            } else if ($attribute['deleted'] == 1) { // `include only`
+                $include = $include && ($filterType['deleted'] == 1);
+            } else { // `exclude`
+                $include = $include && ($filterType['deleted'] == 2);
             }
 
             /* TypeGroupings */
@@ -4428,10 +4431,10 @@ class Event extends AppModel
         if ($filterType) {
             if ($filterType['warning'] == 0) { // `both`
                 // pass, do not consider as `both` is selected
-            } else if ($filterType['warning'] == 1 && empty($attribute['warnings']) && empty($attribute['validationIssue'])) { // `include only`
-                $include = false;
-            } else if ($filterType['warning'] == 2 && !(empty($attribute['warnings']) && empty($attribute['validationIssue']))) { // `exclude`
-                $include = false;
+            } else if (!empty($attribute['warnings']) || !empty($attribute['validationIssue'])) { // `include only`
+                $include = $include && ($filterType['warning'] == 1);
+            } else { // `exclude`
+                $include = $include && ($filterType['warning'] == 2);
             }
         }
         return array('include' => $include, 'data' => $attribute);
@@ -4455,10 +4458,10 @@ class Event extends AppModel
         /* correlation */
         if ($filterType['correlation'] == 0) { // `both`
             // pass, do not consider as `both` is selected
-        } else if ($filterType['correlation'] == 1 && !in_array($proposal['id'], $correlatedShadowAttributes)) { // `include only`
-            $include = false;
-        } else if ($filterType['correlation'] == 2 && in_array($proposal['id'], $correlatedShadowAttributes)) { // `exclude`
-            $include = false;
+        } else if (in_array($proposal['id'], $correlatedShadowAttributes)) { // `include only`
+            $include = $include && ($filterType['correlation'] == 1);
+        } else { // `exclude`
+            $include = $include && ($filterType['correlation'] == 2);
         }
 
         /* TypeGroupings */
@@ -4475,10 +4478,10 @@ class Event extends AppModel
         if ($filterType) {
             if ($filterType['warning'] == 0) { // `both`
                 // pass, do not consider as `both` is selected
-            } else if ($filterType['warning'] == 1 && empty($proposal['warnings']) && empty($proposal['validationIssue'])) { // `include only`
-                $include = false;
-            } else if ($filterType['warning'] == 2 && !(empty($proposal['warnings']) && empty($proposal['validationIssue']))) { // `exclude`
-                $include = false;
+            } else if (!empty($proposal['warnings']) || !empty($proposal['validationIssue'])) { // `include only`
+                $include = $include && ($filterType['correlation'] == 1);
+            } else { // `exclude`
+                $include = $include && ($filterType['correlation'] == 2);
             }
         }
         return array('include' => $include, 'data' => $proposal);
@@ -4494,14 +4497,8 @@ class Event extends AppModel
     ) {
         $object['category'] = $object['meta-category'];
         $proposal['objectType'] = 'object';
-        // filters depend on child objects
+
         $include = empty($filterType['attributeFilter']) || $filterType['attributeFilter'] == 'object' || $filterType['attributeFilter'] == 'all' || $object['meta-category'] === $filterType['attributeFilter'];
-        if (in_array($filterType['attributeFilter'], array('correlation', 'proposal'))
-            || $filterType['correlation'] != 0
-            || $filterType['proposal'] != 0
-        ) {
-            $include = $this->__checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes);
-        }
 
         if (!empty($object['Attribute'])) {
             $temp = array();
@@ -4521,9 +4518,15 @@ class Event extends AppModel
             $object['Attribute'] = $temp;
         }
 
-        if ($filterType['attributeFilter'] === 'warning' || $filterType['warning'] != 0) {
+        // filters depend on child objects
+        if (in_array($filterType['attributeFilter'], array('correlation', 'proposal', 'warning'))
+            || $filterType['correlation'] != 0
+            || $filterType['proposal'] != 0
+            || $filterType['warning'] != 0
+        ) {
             $include = $this->__checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes);
         }
+
         return array('include' => $include, 'data' => $object);
     }
 
