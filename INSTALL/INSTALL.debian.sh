@@ -979,8 +979,64 @@ checkFlavour
 debug "Setting MISP variables"
 MISPvars
 
+ 
+if [ "${FLAVOUR}" == "ubuntu" ]; then
+  RELEASE=$(lsb_release -s -r| tr [A-Z] [a-z])
+  if [ "${RELEASE}" == "18.04" ]; then
+    echo "Install on Ubuntu 18.04 LTS fully supported."
+    echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
+  fi
+  if [ "${RELEASE}" == "18.10" ]; then
+    echo "Install on Ubuntu 18.10 not supported, bye."
+    exit 1
+  fi
+  if [ "${RELEASE}" == "19.04" ]; then
+    echo "Install on Ubuntu 19.04 not supported, bye"
+    exit 1
+  fi
+  if [ "${RELEASE}" == "19.10" ]; then
+    echo "Install on Ubuntu 19.10 not supported, bye"
+    exit 1
+  fi
+  echo "Installation done!"
+  exit 0
+fi
+
+if [ "${FLAVOUR}" == "debian" ]; then
+  CODE=$(lsb_release -s -c| tr [A-Z] [a-z])
+  if [ "${CODE}" == "buster" ]; then
+    echo "Install on Debian testing fully supported."
+    echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
+  fi
+  if [ "${CODE}" == "sid" ]; then
+    echo "Install on Debian unstable not fully supported."
+    echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
+  fi
+  if [ "${CODE}" == "stretch" ]; then
+    echo "Install on Debian stable fully supported."
+    echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
+  fi
+  echo "Installation done!"
+  exit 0
+fi
+
+if [ "${FLAVOUR}" == "tsurugi" ]; then
+  CODE=$(lsb_release -s -c| tr [A-Z] [a-z])
+  if [ "${CODE}" == "bamboo" ]; then
+    echo "Install on Tsurugi Lab semi-supported."
+    echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
+  fi
+  if [ "${CODE}" == "soy sauce" ]; then
+    echo "Install on Tsurugi Acquire semi-supported."
+    echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
+  fi
+  echo "Installation done!"
+  exit 0
+fi
+
 if [ "${FLAVOUR}" == "kali" ]; then
   kaliOnRootR0ckz
   installMISPonKali
-  exit
+  echo "Installation done!"
+  exit 0
 fi
