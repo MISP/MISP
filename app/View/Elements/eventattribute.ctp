@@ -154,9 +154,12 @@
         <?php endif; ?>
         <div id="show_context" title="<?php echo __('Show attribute context fields');?>" role="button" tabindex="0" aria-label="<?php echo __('Show attribute context fields');?>" class="attribute_filter_text" onClick="toggleContextFields();"><?php echo __('Context');?></div>
 		<div id="show_correlating_tags" title="<?php echo __('Also display the tags derived from correlations');?>" role="button" tabindex="0" aria-label="<?php echo __('Also display the tags derived from correlations');?>" class="attribute_filter_text<?php if ($includeRelatedTags) echo '_active'; ?>" onClick="toggleBoolFilter('<?php echo $urlHere;?>', 'includeRelatedTags');"><?php echo __('Related Tags');?></div>
-        <div class="attribute_filter_text btn-inverse btn" style="padding: 0px 6px;font-size: 12px;margin: 0px 2px;" onclick="triggerEventFilteringTool(this)">
+        <div class="attribute_filter_text btn-<?php echo ($advancedFilteringActive ? 'success' : 'inverse'); ?> btn" style="padding: 0px 6px;font-size: 12px;margin: 0px 2px;font-weight: bold;" onclick="triggerEventFilteringTool(this)">
             <it class="fa fa-filter"></it>
             <?php echo __('Filtering tool'); ?>
+            <?php if($advancedFilteringActive): ?>
+                <span class="badge badge-warning" title="<?php echo h($advancedFilteringRemovedElements) . __(' element(s) passed the filtering')?>"><?php echo h($advancedFilteringRemovedElements) ?></span>
+            <?php endif; ?>
         </div>
 
         <div title="input filter" tabindex="0" aria-label="input filter" class="attribute_filter_text" style="padding-top:0px;">

@@ -1047,10 +1047,10 @@ class EventsController extends AppController
                 $filters['distribution'] = array($filters['distribution']);
             }
             $temp = implode('|', $filters['distribution']);
-            $this->applyQueryString($event, $temp, 'distribution');
+            $this->__applyQueryString($event, $temp, 'distribution');
         }
         if (isset($filters['searchFor']) && $filters['searchFor'] !== '') {
-            $this->applyQueryString($event, $filters['searchFor']);
+            $this->__applyQueryString($event, $filters['searchFor']);
             $this->set('passedArgsArray', array('all' => $filters['searchFor']));
         }
         $emptyEvent = (empty($event['Object']) && empty($event['Attribute']));
@@ -1137,6 +1137,8 @@ class EventsController extends AppController
         $this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
         $this->set('attributeFilter', isset($filters['attributeFilter']) ? $filters['attributeFilter'] : 'all');
         $this->set('filters', $filters);
+        $this->set('advancedFilteringActive', $this->__checkIfAdvancedFiltering($filters) ? 1 : 0);
+        $this->set('advancedFilteringRemovedElements', count($event['objects']));
         $this->disableCache();
         $this->layout = 'ajax';
         $this->loadModel('Sighting');
@@ -1278,7 +1280,7 @@ class EventsController extends AppController
                 $filters['distribution'] = array($filters['distribution']);
             }
             $temp = implode('|', $filters['distribution']);
-            $this->applyQueryString($event, $temp, 'distribution');
+            $this->__applyQueryString($event, $temp, 'distribution');
         }
         $params = $this->Event->rearrangeEventForView($event, $filters);
         $this->params->params['paging'] = array($this->modelClass => $params);
@@ -1359,6 +1361,8 @@ class EventsController extends AppController
         $this->set('orgTable', $orgTable);
         $this->set('currentUri', $attributeUri);
         $this->set('filters', $filters);
+        $this->set('advancedFilteringActive', $this->__checkIfAdvancedFiltering($filters) ? 1 : 0);
+        $this->set('advancedFilteringRemovedElements', count($event['objects']));
         $this->set('mitreAttackGalaxyId', $this->Event->GalaxyCluster->Galaxy->getMitreAttackGalaxyId());
     }
 
@@ -1390,7 +1394,7 @@ class EventsController extends AppController
             $conditions['includeAttachments'] = true;
         }
         if (isset($this->params['named']['deleted'])) {
-            $conditions['deleted'] = $filters['deleted'] == 2 ? 0 : 1;
+            $conditions['deleted'] = $this->params['named']['deleted'] == 2 ? 0 : 1;
         }
         if (isset($this->params['named']['includeRelatedTags']) && $this->params['named']['includeRelatedTags']) {
             $conditions['includeRelatedTags'] = 1;
@@ -1432,7 +1436,7 @@ class EventsController extends AppController
         }
         $event = $results[0];
         if (isset($this->params['named']['searchFor']) && $this->params['named']['searchFor'] !== '') {
-            $this->applyQueryString($event, $this->params['named']['searchFor']);
+            $this->__applyQueryString($event, $this->params['named']['searchFor']);
         }
 
         if ($this->_isRest()) {
@@ -1530,7 +1534,7 @@ class EventsController extends AppController
         $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId, true, $eventId));
     }
 
-    private function applyQueryString(&$event, $searchFor, $filterColumnsOverwrite=false) {
+    private function __applyQueryString(&$event, $searchFor, $filterColumnsOverwrite=false) {
         // filtering on specific columns is specified
         if ($filterColumnsOverwrite !== false) {
             $filterValue = array_map('trim', explode(",", $filterColumnsOverwrite));
@@ -1576,6 +1580,24 @@ class EventsController extends AppController
             }
         }
         $event['Object'] = array_values($event['Object']);
+    }
+
+    // look in the parameters if we are doing advanced filtering or not
+    private function __checkIfAdvancedFiltering($filters) {
+        $advancedFilteringActive = array_diff_key($filters, array('sort'=>0, 'direction'=>0, 'focus'=>0, 'extended'=>0, 'overrideLimit'=>0, 'filterColumnsOverwrite'=>0, 'attributeFilter'=>0));
+        if (count($advancedFilteringActive) > 0) {
+            if (
+                (isset($advancedFilteringActive['deleted']) && $advancedFilteringActive['deleted'] == 2)
+                || (isset($advancedFilteringActive['includeRelatedTags']) && $advancedFilteringActive['includeRelatedTags'] == 2)
+            ) {
+                $res = true;
+            } else {
+                $res = false;
+            }
+        } else {
+            $res = false;
+        }
+        return $res;
     }
 
     private function __removeChildren(&$pivot, $id)
