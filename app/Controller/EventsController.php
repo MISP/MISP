@@ -1137,8 +1137,9 @@ class EventsController extends AppController
         $this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
         $this->set('attributeFilter', isset($filters['attributeFilter']) ? $filters['attributeFilter'] : 'all');
         $this->set('filters', $filters);
-        $this->set('advancedFilteringActive', $this->__checkIfAdvancedFiltering($filters) ? 1 : 0);
-        $this->set('advancedFilteringRemovedElements', count($event['objects']));
+        $advancedFiltering = $this->__checkIfAdvancedFiltering($filters);
+        $this->set('advancedFilteringActive', $advancedFiltering['active'] ? 1 : 0);
+        $this->set('advancedFilteringActiveRules', $advancedFiltering['activeRules']);
         $this->disableCache();
         $this->layout = 'ajax';
         $this->loadModel('Sighting');
@@ -1361,8 +1362,9 @@ class EventsController extends AppController
         $this->set('orgTable', $orgTable);
         $this->set('currentUri', $attributeUri);
         $this->set('filters', $filters);
-        $this->set('advancedFilteringActive', $this->__checkIfAdvancedFiltering($filters) ? 1 : 0);
-        $this->set('advancedFilteringRemovedElements', count($event['objects']));
+        $advancedFiltering = $this->__checkIfAdvancedFiltering($filters);
+        $this->set('advancedFilteringActive', $advancedFiltering['active'] ? 1 : 0);
+        $this->set('advancedFilteringActiveRules', $advancedFiltering['activeRules']);
         $this->set('mitreAttackGalaxyId', $this->Event->GalaxyCluster->Galaxy->getMitreAttackGalaxyId());
     }
 
@@ -1599,7 +1601,26 @@ class EventsController extends AppController
         } else {
             $res = false;
         }
-        return $res;
+
+        unset($filters['sort']);
+        unset($filters['direction']);
+        $defaultRules =  array(
+            'searchFor' => '',
+            'attributeFilter' => 'all',
+            'proposal' => '0',
+            'correlation' => '0',
+            'warning' => '0',
+            'deleted' => '2',
+            'includeRelatedTags' => '0',
+            'distribution' => array('0', '1', '2', '3', '4', '5')
+        );
+        $activeRules = 0;
+        foreach ($filters as $k => $v) {
+            if ($defaultRules[$k] != $v) {
+                $activeRules++;
+            }
+        }
+        return array('active' => $res, 'activeRules' => $activeRules);
     }
 
     private function __removeChildren(&$pivot, $id)

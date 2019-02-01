@@ -158,7 +158,7 @@
             <it class="fa fa-filter"></it>
             <?php echo __('Filtering tool'); ?>
             <?php if($advancedFilteringActive): ?>
-                <span class="badge badge-warning" title="<?php echo h($advancedFilteringRemovedElements) . __(' element(s) passed the filtering')?>"><?php echo h($advancedFilteringRemovedElements) ?></span>
+                <span class="badge badge-warning" title="<?php echo h($advancedFilteringActiveRules) . __(' active rule(s)')?>"><?php echo h($advancedFilteringActiveRules) ?></span>
             <?php endif; ?>
         </div>
 
