@@ -413,4 +413,211 @@ class Tag extends AppModel
         }
         return $events;
     }
+
+    public function fixMitreTags($user)
+    {
+        $full_print_buffer = '';
+        $this->GalaxyCluster = Classregistry::init('GalaxyCluster');
+        // first find all tags that are the bad tags:
+        // - the enterprise-, pre- and mobile-attack
+        // - the old version of the MITRE tag (without Txx, Pxx, ...)
+        $mitre_categories = array('attack-pattern', 'course-of-action', 'intrusion-set', 'malware', 'mitre-tool');
+        $mitre_stages = array('enterprise-attack', 'pre-attack', 'mobile-attack');
+        $cluster_names = $this->GalaxyCluster->find('list', 
+            array('fields' => array('GalaxyCluster.tag_name'), 
+                  'group' => array('GalaxyCluster.id', 'GalaxyCluster.tag_name'),
+                  'conditions' => array('GalaxyCluster.tag_name LIKE' => 'misp-galaxy:mitre-%')
+              ));
+        // this is a mapping to keep track of what old tag we need to change (key) to what new tag(value)
+        // key = old_tag_id, value = new_tag_name
+        $mappings = array();
+        // First find all tags which are the old format, but who's string needs to be updated
+        // Example: mitre-malware="XAgentOSX" => mitre-malware="XAgentOSX - S0161" 
+        // Once found we will add these to a mapping
+        foreach ($mitre_categories as $category) {
+            $tag_start = 'misp-galaxy:mitre-' . $category;
+            // print("<h2>### Searching for $category</h2>");
+            $tags = $this->find('all', array(
+                'conditions' => array('Tag.name LIKE' => $tag_start . '=%'),
+                'recursive' => -1));
+            // print_r($tags);
+            foreach ($tags as $tag) {
+                $old_tag_name = $tag['Tag']['name'];
+                $old_tag_id = $tag['Tag']['id'];
+                $old_tag_name_without_quote = rtrim($old_tag_name, '"') . ' -';
+                foreach ($cluster_names as $cluster_name) {
+                    // print("Searching for $old_tag_name in $cluster_name<br>");
+                    if (strstr($cluster_name, $old_tag_name_without_quote)) {
+                        // print("FOUND - $old_tag_name - $cluster_name<br/>");
+                        $mappings[$old_tag_id] = $cluster_name;
+                        break;
+                    }
+                }
+            }
+        }
+        // Now find all tags that are from the enterprise, pre-attack and mobile-attack galaxies
+        foreach ($mitre_stages as $stage) {
+            foreach ($mitre_categories as $category) {
+                $tag_start = 'misp-galaxy:mitre-' . $stage . '-' . $category;
+                // print("<h2>### Searching for $stage-$category</h2>");
+                $tags = $this->find('all', array(
+                    'conditions' => array('Tag.name LIKE' => $tag_start . '=%'),
+                    'recursive' => -1));
+                // print_r($tags);
+                foreach ($tags as $tag) {
+                    $old_tag_name = $tag['Tag']['name'];
+                    $old_tag_id = $tag['Tag']['id'];
+                    $new_tag_name = str_replace($stage.'-', '', $old_tag_name);
+                    // print("Changing $old_tag_name to $new_tag_name<br/>");
+                    if (in_array($new_tag_name, $cluster_names)) {
+                        // valid tag as it exists in the galaxies, add to mapping
+                        $mappings[$old_tag_id] = $new_tag_name;
+                    } else {
+                        // invalid tag, do some more magic
+                        // print("Invalid new tag ! $old_tag_name to $new_tag_name<br/>");
+                        $old_tag_name_without_quote = rtrim($new_tag_name, '"');
+                        $found = false;
+                        foreach ($cluster_names as $cluster_name) {
+                            // print("Searching for $old_tag_name in $cluster_name<br>");
+                            if (strstr($cluster_name, $old_tag_name_without_quote)) {
+                                // print("-> FOUND - $old_tag_name - $cluster_name<br/>");
+                                $mappings[$old_tag_id] = $cluster_name;
+                                $found = true;
+                                break;
+                            }
+                        }
+                        if (!$found) {
+                            print("Issue with tag, could not find a substitution, skipping: $old_tag_name<br/>");
+                        }
+                    }
+
+                }
+            }
+        }
+        $full_print_buffer .= "<h2>Mappings</h2>";
+        $full_print_buffer .= "<pre>". print_r($mappings, true) . "</pre>";
+        // now we know which tags (they keys of the mapping) need to be changed
+        // find all events and attributes using these tags and update them with the new version
+        $this->EventTag = Classregistry::init('EventTag');
+        $this->AttributeTag = Classregistry::init('AttributeTag');
+        $this->Event = Classregistry::init('Event');
+        $this->Attribute = Classregistry::init('Attribute');
+        $full_print_buffer .= "<h2>Conversion</h2>";
+        foreach ($mappings as $old_tag_id => $new_tag_name) {
+            $print_buffer = "";
+            $print_buffer .= "$old_tag_id => $new_tag_name<br/>";
+            $changed = False;
+            $new_tag = array(
+                'name' => $new_tag_name,
+                'colour' => '#0088cc');
+            $new_tag_id = $this->captureTag($new_tag, $user);
+            $print_buffer .= "&nbsp; New tag id $new_tag_id<br>";
+            //
+            // Events
+            //
+            $ets = $this->EventTag->find('all', array(
+                'recursive' => -1,
+                'conditions' => array('tag_id' => $old_tag_id),
+                'contain' => array('Event')
+            ));
+            foreach ($ets as $et) {
+                $event = $et['Event'];
+                // skip events that are not from this instance or are locked (coming form another MISP)
+                if ($event['locked'] || $event['org_id'] != $event['orgc_id']) {
+                    $print_buffer .= "&nbsp; Skipping event ".$event['id']."... not from here<br>";
+                    continue;
+                }
+                $changed = True;
+
+                // remove the old EventTag
+                $print_buffer .= "&nbsp; Deleting event_tag ".$et['EventTag']['id']." for event ".$event['id']."<br>";
+                $this->EventTag->softDelete($et['EventTag']['id']);
+
+                // add the new Tag to the event
+                $new_et = array('EventTag' => array(
+                    'event_id' => $event['id'],
+                    'tag_id' => $new_tag_id
+                ));
+
+                // check if the tag is already attached to the event - WARNING if data structures change this might break
+                $exists = $this->EventTag->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => $new_et['EventTag']));
+                if (empty($exists)) {
+                    // tag not yet associated with event
+                    $print_buffer .= "&nbsp; Saving new tag association: event_id=".$event['id']." tag_id=".$new_tag_id."<br>";
+                    $this->EventTag->save($new_et);
+                    // increment the Event timestamp and save the event
+                    $print_buffer .= "&nbsp; Saving the event with incremented timestamp<br>";
+                    $event['timestamp'] += 1;
+                    $this->Event->save($event);
+                } else {
+                    $print_buffer .= "&nbsp; Not adding new tag as it's already associated to the event:  event_id=".$event['id']." tag_id=".$new_tag_id."<br>";
+                }
+            }
+
+            //
+            // Attributes with tags
+            //
+            // find all AttributeTags for this specific tag. We do not load the attribute immediately as it's faster/better to only do this additional lookup when needed. (data we need to change)
+            $ats = $this->AttributeTag->find('all', array(
+                'recursive' => -1,
+                'conditions' => array('tag_id' => $old_tag_id),
+            ));
+            foreach ($ats as $at) {
+                // $print_buffer .= "&nbsp; ".print_r($at, true)."<br>";
+                $event = $this->Event->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => array('id' => $at['AttributeTag']['event_id'])
+                ))['Event'];
+                // $print_buffer .= "<pre>".print_r($event, true)."</pre>";
+                // skip events that are not from this instance or are locked (coming form another MISP)
+                if ($event['locked'] || $event['org_id'] != $event['orgc_id']) {
+                    $print_buffer .= "&nbsp; Skipping attribute for event ".$event['id']."... not from here<br>";
+                    continue;
+                }
+                $attribute = $this->Attribute->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => array('id' => $at['AttributeTag']['attribute_id'])
+                ))['Attribute'];
+                $changed = True;
+
+                // remove the old AttributeTag
+                $print_buffer .= "&nbsp; Deleting attribute_tag ".$at['AttributeTag']['id']." for attribute ".$attribute['id']." for event ".$event['id']."<br>";
+                $this->AttributeTag->softDelete($at['AttributeTag']['id']);
+
+                // add the new Tag to the event
+                $new_at = array('AttributeTag' => array(
+                    'event_id' => $event['id'],
+                    'attribute_id' => $attribute['id'],
+                    'tag_id' => $new_tag_id
+                ));
+                // check if the tag is already attached to the event - WARNING if data structures change this might break
+                $exists = $this->AttributeTag->find('first', array(
+                    'recursive' => -1,
+                    'conditions' => $new_at['AttributeTag']));
+                if (empty($exists)) {
+                    // tag not yet associated with attribute
+                    $print_buffer .= "&nbsp; Saving new tag association: attribute_id=".$attribute['id']." event_id=".$event['id']." tag_id=".$new_tag_id."<br>";
+                    $this->AttributeTag->save($new_at);
+                    // increment the Attribute/Event timestamp and save them
+                    $print_buffer .= "&nbsp; Saving the attribute/event with incremented timestamp<br>";
+                    $attribute['timestamp'] += 1;
+                    $this->Attribute->save($attribute);
+                    $event['timestamp'] += 1;
+                    $this->Event->save($event);
+                } else {
+                    $print_buffer .= "&nbsp; Not adding new tag as it's already associated to the attribute: attribute_id=".$attribute['id']."  event_id=".$event['id']." tag_id=".$new_tag_id."<br>";
+                }
+            }
+
+            if ($changed) {
+                $full_print_buffer .= $print_buffer;
+            } else {
+                // print("Tag has no 'unlocked' events or attributes: $old_tag_id => $new_tag_name<br/>");
+                // $full_print_buffer .= $print_buffer;
+            }
+        }
+        return $full_print_buffer;
+    }
 }

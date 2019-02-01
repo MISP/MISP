@@ -32,7 +32,7 @@
     SSLEngine On
     SSLCertificateFile /etc/pki/tls/certs/misp.local.crt
     SSLCertificateKeyFile /etc/pki/tls/private/misp.local.key
-#    SSLCertificateChainFile /etc/pki/tls/certs/misp-chain.crt
+    SSLCertificateChainFile /etc/pki/tls/certs/misp-chain.crt
 
     LogLevel warn
     ErrorLog /var/log/httpd/misp.local_error.log

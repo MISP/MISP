@@ -3,7 +3,7 @@
 
 ## 0/ Overview and Assumptions
 
-{!generic/community.md!}
+{!generic/rhelVScentos.md!}
 
 !!! warning
     The core MISP team cannot verify if this guide is working or not. Please help us in keeping it up to date and accurate.
