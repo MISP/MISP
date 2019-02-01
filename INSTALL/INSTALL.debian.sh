@@ -205,7 +205,6 @@ MISPvars () {
   post_max_size=50M
   max_execution_time=300
   memory_limit=512M
-  PHP_INI=/etc/php/7.3/apache2/php.ini
 
   # apt config
   export DEBIAN_FRONTEND=noninteractive
@@ -216,6 +215,31 @@ MISPvars () {
 
   echo "Admin (${DBUSER_ADMIN}) DB Password: ${DBPASSWORD_ADMIN}"
   echo "User  (${DBUSER_MISP}) DB Password: ${DBPASSWORD_MISP}"
+}
+
+# Install Php 7.3 deps
+installDepsPhp73 () {
+  PHP_ETC_BASE=/etc/php/7.3
+  PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
+  sudo apt install -qy \
+  libapache2-mod-php7.3 \
+  php7.3 php7.3-cli \
+  php7.3-dev \
+  php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
+  php-pear \
+  php-redis php-gnupg
+}
+
+# Install Php 7.3 deps
+installDepsPhp72 () {
+  PHP_ETC_BASE=/etc/php/7.2
+  PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
+  sudo apt install -qy \
+  libapache2-mod-php \
+  php php-cli \
+  php-dev \
+  php-json php-xml php-mysql php-opcache php-readline php-mbstring \
+  php-redis php-gnupg
 }
 
 # Installing core dependencies
@@ -240,7 +264,6 @@ installDeps () {
   mariadb-client \
   mariadb-server \
   apache2 apache2-doc apache2-utils \
-  libapache2-mod-php7.3 php7.3 php7.3-cli  php7.3-mbstring php-pear php7.3-dev php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php-redis php-gnupg \
   python3-dev python3-pip libpq5 libjpeg-dev libfuzzy-dev ruby asciidoctor \
   libxml2-dev libxslt1-dev zlib1g-dev python3-setuptools expect
 
@@ -652,7 +675,7 @@ mispmodules () {
 viper () {
   cd /usr/local/src/
   debug "Installing Viper dependencies"
-  apt-get install -y libssl-dev swig python3-ssdeep p7zip-full unrar-free sqlite python3-pyclamd exiftool radare2
+  apt-get install -y libssl-dev swig python3-ssdeep p7zip-full unrar-free sqlite python3-pyclamd exiftool radare2 libffi-dev
   pip3 install SQLAlchemy PrettyTable python-magic
   debug "Cloning Viper"
   git clone https://github.com/viper-framework/viper.git
@@ -754,8 +777,17 @@ theEnd () {
   su - ${MISP_USER}
 }
 
+installMISPcore () {
+  space
+  echo "Proceeding with the installation of MISP core"
+  space
+
+
+}
+
 # Main Kalin Install function
 installMISPonKali () {
+  # Set custom Kali only variables
   space
   debug "Disabling sleep etc…"
   gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 0 2> /dev/null
@@ -766,6 +798,7 @@ installMISPonKali () {
   xset s off 2> /dev/null
 
   debug "Installing dependencies"
+  installDepsPhp73
   installDeps
 
   debug "Enabling redis and gnupg modules"
@@ -802,6 +835,13 @@ installMISPonKali () {
   $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
   $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
   $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
+
+  mkdir /var/www/.cache/
+
+  MISP_USER_HOME=$(sudo -Hiu misp env | grep HOME |cut -f 2 -d=)
+  mkdir $MISP_USER_HOME/.cache
+  chown $MISP_USER:$MISP_USER ~$MISP_USER_HOME/.cache
+  chown www-data:www-data /var/www/.cache
 
   debug "Installing python-cybox"
   cd $PATH_TO_MISP/app/files/scripts/python-cybox
