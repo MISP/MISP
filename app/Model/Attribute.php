@@ -1164,6 +1164,7 @@ class Attribute extends AppModel
             case 'snort':
             case 'bro':
             case 'zeek':
+            case 'anonymised':
             case 'pattern-in-file':
             case 'pattern-in-traffic':
             case 'pattern-in-memory':
@@ -1299,7 +1300,6 @@ class Attribute extends AppModel
             case 'bank-account-nr':
             case 'aba-rtn':
             case 'prtn':
-            case 'anonymised':
             case 'phone-number':
             case 'whois-registrant-phone':
                 if (is_numeric($value)) {
