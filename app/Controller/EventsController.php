@@ -4024,12 +4024,12 @@ class EventsController extends AppController
                     'checkbox_set' => '/events/csv/download/' . $id . '/1/0/0/0/1'
             ),
             'stix_xml' => array(
-                    'url' => '/events/stix/download/' . $id . '.xml',
+                    'url' => '/events/restSearch/stix/eventid:' . $id,
                     'text' => 'STIX XML (metadata + all attributes)',
                     'requiresPublished' => true,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/restSearch/stix/eventid:' . $id . '/includeAttachments:1'
+                    'checkbox_set' => '/events/restSearch/stix/eventid:' . $id . '/withAttachments:1'
             ),
             'stix_json' => array(
                     'url' => '/events/stix/download/' . $id . '.json',
@@ -4040,12 +4040,12 @@ class EventsController extends AppController
                     'checkbox_set' => '/events/stix/download/' . $id . '/true.json'
             ),
             'stix2_json' => array(
-                    'url' => '/events/stix2/download/' . $id . '.json',
+                    'url' => '/events/restSearch/stix2/eventid:' . $id,
                     'text' => 'STIX2 (requires the STIX 2 library)',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/stix2/download/' . $id . '/1.json'
+                    'checkbox_set' => '/events/restSearch/stix2/eventid:' . $id . '/withAttachments:1'
             ),
             'rpz' => array(
                     'url' => '/attributes/rpz/download/false/' . $id,

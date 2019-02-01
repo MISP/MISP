@@ -5,6 +5,8 @@
 
 {!generic/community.md!}
 
+{!generic/rhelVScentos.md!}
+
 !!! warning
     The core MISP team cannot verify if this guide is working or not. Please help us in keeping it up to date and accurate.
     Thus we also have difficulties in supporting RHEL issues but will do a best effort on a similar yet slightly different setup.
