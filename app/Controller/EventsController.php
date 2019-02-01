@@ -1024,7 +1024,7 @@ class EventsController extends AppController
             $conditions['overrideLimit'] = 1;
         }
         if (isset($filters['deleted'])) {
-            $conditions['deleted'] = 1;
+            $conditions['deleted'] = $filters['deleted'] == 2 ? 0 : 1;
         }
         $conditions['includeFeedCorrelations'] = true;
         $conditions['includeAllTags'] = true;
@@ -1390,7 +1390,7 @@ class EventsController extends AppController
             $conditions['includeAttachments'] = true;
         }
         if (isset($this->params['named']['deleted'])) {
-            $conditions['deleted'] = 1;
+            $conditions['deleted'] = $filters['deleted'] == 2 ? 0 : 1;
         }
         if (isset($this->params['named']['includeRelatedTags']) && $this->params['named']['includeRelatedTags']) {
             $conditions['includeRelatedTags'] = 1;

@@ -4495,7 +4495,13 @@ class Event extends AppModel
         $object['category'] = $object['meta-category'];
         $proposal['objectType'] = 'object';
         // filters depend on child objects
-        $include = $this->__checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes);
+        $include = empty($filterType['attributeFilter']) || $filterType['attributeFilter'] == 'object' || $filterType['attributeFilter'] == 'all' || $object['meta-category'] === $filterType['attributeFilter'];
+        if (in_array($filterType['attributeFilter'], array('correlation', 'proposal'))
+            || $filterType['correlation'] != 0
+            || $filterType['proposal'] != 0
+        ) {
+            $include = $this->__checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes);
+        }
 
         if (!empty($object['Attribute'])) {
             $temp = array();
@@ -4515,6 +4521,9 @@ class Event extends AppModel
             $object['Attribute'] = $temp;
         }
 
+        if ($filterType['attributeFilter'] === 'warning' || $filterType['warning'] != 0) {
+            $include = $this->__checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes);
+        }
         return array('include' => $include, 'data' => $object);
     }
 
@@ -4575,12 +4584,12 @@ class Event extends AppModel
             $flagKeep = false;
             foreach ($object['Attribute'] as $k => $attribute) { // check if object contains at least 1 warning
                 if (in_array($attribute['id'], $correlatedAttributes)) {
-                    $flagKeep = true && ($filterType['warning'] == 1); // do not keep if warning are excluded
+                    $flagKeep = true && ($filterType['correlation'] == 1); // do not keep if warning are excluded
                 }
                 if (!$flagKeep && !empty($attribute['ShadowAttribute'])) {
                     foreach ($attribute['ShadowAttribute'] as $k => $shadowAttribute) {
                         if (in_array($shadowAttribute['id'], $correlatedShadowAttributes)) {
-                            $flagKeep = true && ($filterType['warning'] == 1); // do not keep if warning are excluded
+                            $flagKeep = true && ($filterType['correlation'] == 1); // do not keep if warning are excluded
                             break;
                         }
                     }
