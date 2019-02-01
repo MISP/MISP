@@ -4380,13 +4380,10 @@ class Event extends AppModel
 
             /* correlation */
             if ($filterType['correlation'] == 0) { // `both`
-                // debug($include);
                 // pass, do not consider as `both` is selected
             } else if (in_array($attribute['id'], $correlatedAttributes)) { // `include only`
-                // debug($include);
                 $include = $include && ($filterType['correlation'] == 1);
             } else { // `exclude`
-                // debug($include);
                 $include = $include && ($filterType['correlation'] == 2);
             }
 
