@@ -159,8 +159,8 @@ cd ${PATH_TO_MISP}/PyMISP
 sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 
 # Install Crypt_GPG and Console_CommandLine
-sudo -H -u www-data pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
-sudo -H -u www-data pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
+sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
+sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
 ```
 
 ### 4/ CakePHP
