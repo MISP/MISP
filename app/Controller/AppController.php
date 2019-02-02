@@ -48,7 +48,7 @@ class AppController extends Controller
 
     private $__queryVersion = '54';
     public $pyMispVersion = '2.4.101';
-    public $phpmin = '5.6.5';
+    public $phpmin = '7.0.16';
     public $phprec = '7.0.16';
 
     public $baseurl = '';
