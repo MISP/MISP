@@ -3046,7 +3046,7 @@ class EventsController extends AppController
     // && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
     // ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
     public function restSearch(
-        $returnFormat = 'json',
+        $returnFormat = false,
         $value = false,
         $type = false,
         $category = false,
@@ -3068,7 +3068,8 @@ class EventsController extends AppController
     ) {
         $paramArray = array(
             'value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments',
-            'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly'
+            'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'returnFormat',
+            'limit', 'page', 'requested_attributes', 'includeContext', 'headerless'
         );
         $filterData = array(
             'request' => $this->request,
@@ -3087,10 +3088,9 @@ class EventsController extends AppController
         if ($user === false) {
             return $exception;
         }
-        if (isset($filters['returnFormat'])) {
+        if (!empty($filters['returnFormat'])) {
             $returnFormat = $filters['returnFormat'];
-        }
-        if ($returnFormat === 'download') {
+        } else if (empty($filters['returnFormat']) || $filters['returnFormat'] === 'download'){
             $returnFormat = 'json';
         }
         $elementCounter = 0;
