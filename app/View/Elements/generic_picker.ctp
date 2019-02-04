@@ -115,7 +115,10 @@ function redrawChosenWithTemplate($select, $chosenContainer) {
                 $option = $select.find('option:eq(' + index + ')');
             } else { // if it is a `chosen-single span`, don't have index
                 var text = $item.text();
-                $option = $select.find('option:contains(' + text + ')');
+                $option = $select.find('option').filter(function(index) {
+                    var temp = $.trim($(this).text());
+                    return temp === text;
+                });
             }
             var template = options_templates[$select.attr('id')][$option.val()];
             var res = "";
