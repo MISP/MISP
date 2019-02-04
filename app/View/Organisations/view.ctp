@@ -3,6 +3,7 @@
     <div class="span10"><h2><?php  echo __('Organisation ') . h($org['Organisation']['name']);?></h2></div>
     <div class="span2"><div style="float:right;"><?php echo $this->OrgImg->getOrgImg(array('name' => $org['Organisation']['name'], 'id' => $org['Organisation']['id'], 'size' => 48)); ?></div></div>
 </div>
+<div>
     <dl style="width:600px;">
         <dt><?php echo __('Id'); ?></dt>
         <dd>
@@ -89,6 +90,7 @@
             endforeach;
         ?>
     </dl>
+</div>
     <br />
     <?php if ($local): ?>
         <button id="button_description" class="btn btn-inverse toggle-left qet orgViewButton" onClick="organisationViewContent('description', '<?php echo $id;?>');"><?php echo __('Description');?></button>
