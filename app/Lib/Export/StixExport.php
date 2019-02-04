@@ -21,7 +21,9 @@ class StixExport
     {
         $attributes_count = count($data['Attribute']);
         foreach ($data['Object'] as $_object) {
-            $attributes_count += count($_object['Attribute']);
+            if (isset($_object['Attribute'])) {
+                $attributes_count += count($_object['Attribute']);
+            }
         }
         App::uses('JSONConverterTool', 'Tools');
         $converter = new JSONConverterTool();
