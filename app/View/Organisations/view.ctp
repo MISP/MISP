@@ -78,7 +78,7 @@
         <?php
             $optionalFields = array('sector' => 'Sector', 'nationality' => 'Nationality', 'type' => 'Organisation type', 'contacts' => 'Contact information');
             foreach ($optionalFields as $k => $field):
-                if (!empty($org['Organisation'][$k])):
+                if (!empty(trim($org['Organisation'][$k]))):
         ?>
                     <dt><?php echo $field; ?></dt>
                     <dd>
