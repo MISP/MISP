@@ -212,7 +212,7 @@ function triggerEventFilteringTool(clicked) {
                 "operators": [
                     "equal",
                 ],
-                "unique": false,
+                "unique": true,
                 "id": "searchFor",
                 "label": "Search in Attribute",
                 <?php
