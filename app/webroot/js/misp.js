@@ -29,24 +29,8 @@ function quickDeleteSighting(id, rawId, context) {
 	});
 }
 
-function quickAddSighting(clicked, id, value) {
-    var btn = $(clicked);
-    var html = '<div>'
-        + '<button class="btn btn-primary" onclick="fetchAddSightingForm(\''+id+'\', false)">'+'id'+'</button>'
-        + '<button class="btn btn-primary" style="margin-left:5px;" onclick="fetchAddSightingForm(\''+id+'\', true)">'+value+'</button>'
-        + '</div>';
-    if (!btn.data('popover')) {
-        btn.popover({
-        	content: html,
-        	placement: 'left',
-        	html: true,
-        	trigger: 'click',
-        	container: 'body'
-        }).popover('show');
-    }
-}
-function fetchAddSightingForm(id, onvalue) {
-	var url = "/sightings/quickAdd/" + id;
+function fetchAddSightingForm(type, attribute_id, page, onvalue) {
+	var url = "/sightings/quickAdd/" + attribute_id + "/" + type;
     if (onvalue) {
         url = url + "/1";
     } else {
@@ -56,6 +40,15 @@ function fetchAddSightingForm(id, onvalue) {
 		$("#confirmation_box").html(data);
 		openPopup("#confirmation_box");
 	});
+}
+
+function flexibleAddSighting(clicked, type, attribute_id, event_id, value, page, placement) {
+	$clicked = $(clicked);
+	var html = '<div>'
+		+ '<button class="btn btn-primary" onclick="addSighting(\'' + type + '\', \'' + attribute_id + '\', \'' + event_id + '\', \'' + page + '\')">This attribute</button>'
+		+ '<button class="btn btn-primary" style="margin-left:5px;" onclick="fetchAddSightingForm(\'' + type + '\', \'' + attribute_id + '\', \'' + page + '\', true)">Global value</button>'
+		+ '</div>';
+	openPopover(clicked, html, true, placement);
 }
 
 function publishPopup(id, type) {
@@ -1407,10 +1400,12 @@ function openPopup(id) {
 	$(id).fadeIn();
 }
 
-function openPopover(clicked, data) {
+function openPopover(clicked, data, hover, placement) {
+	hover = hover === undefined ? false : hover;
+	placement = placement === undefined ? 'right' : placement;
 	/* popup handling */
 	var $clicked = $(clicked);
-	var randomId = Math.random().toString(36).substr(2,9); // used to recover the button that triggered the popover (so that we can destroy the popover)
+	var randomId = $clicked.attr('data-dismissid') !== undefined ? $clicked.attr('data-dismissid') : Math.random().toString(36).substr(2,9); // used to recover the button that triggered the popover (so that we can destroy the popover)
 	var loadingHtml = '<div style="height: 75px; width: 75px;"><div class="spinner"></div><div class="loadingText">Loading</div></div>';
 	$clicked.attr('data-dismissid', randomId);
 	var closeButtonHtml = '<button type="button" class="close" style="margin-left: 5px;" onclick="$(&apos;[data-dismissid=&quot;' + randomId + '&quot;]&apos;).popover(\'destroy\');">×</button>';
@@ -1419,6 +1414,7 @@ function openPopover(clicked, data) {
 		$clicked.addClass('have-a-popover');
 		$clicked.popover({
 			html: true,
+			placement: placement,
 			trigger: 'manual',
 			content: loadingHtml,
 			container: 'body',
@@ -1439,13 +1435,34 @@ function openPopover(clicked, data) {
 			var popoverTitle = popover.find('h3.popover-title');
 			popoverTitle.html(title + closeButtonHtml);
 		})
-		.popover('show')
 		.on('keydown.volatilePopover', function(e) {
 			if(e.keyCode == 27) { // ESC
 				$(this).popover('destroy');
 				$(this).off('keydown.volatilePopover');
 			}
 		});
+
+		if (hover) {
+			$clicked.on('mouseenter', function() {
+				var _this = this;
+				$clicked.popover('show');
+				$(".popover").on("mouseleave", function() { // close popover when leaving it
+					$(_this).popover('hide');
+				});
+			})
+			.on('mouseleave', function() { // close popover if button not hovered (timeout)
+				var _this = this;
+				setTimeout(function() {
+					if ($('.popover:hover').length == 0 && !$(_this).is(":hover")) {
+						$(_this).popover('hide');
+					}
+				},
+				300);
+			});
+		} else {
+			$clicked.popover('show');
+		}
+
 	} else {
 		// $clicked.popover('show');
 	}
@@ -3614,11 +3631,13 @@ function enableDisableObjectRows(rows) {
 
 function objectReferenceInput() {
 	var types = ["Attribute", "Object"];
+	var $targetSelect = $('[data-targetselect="targetSelect"]');
 	for (var type in types) {
 		for (var k in targetEvent[types[type]]) {
 			if (targetEvent[types[type]][k]['uuid'] == $('#ObjectReferenceReferencedUuid').val()) {
-				$('#targetSelect').val($('#ObjectReferenceReferencedUuid').val());
-				changeObjectReferenceSelectOption();
+				$targetSelect.val($('#ObjectReferenceReferencedUuid').val());
+				changeObjectReferenceSelectOption($('#ObjectReferenceReferencedUuid').val(), {type: types[type]});
+				$targetSelect.trigger('chosen:updated');
 			}
 		}
 	}
@@ -3654,11 +3673,10 @@ function add_basic_auth() {
 	$('#basicAuthForm').hide();
 }
 
-function changeObjectReferenceSelectOption() {
-	var object = $('#targetSelect option:selected');
-	var uuid = $(object).val();
+function changeObjectReferenceSelectOption(selected, additionalData) {
+	var uuid = selected;
+	var type = additionalData.type;
 	$('#ObjectReferenceReferencedUuid').val(uuid);
-	var type = $(object).data('type');
 	if (type == "Attribute") {
 		$('#targetData').html("");
 		for (var k in targetEvent[type][uuid]) {

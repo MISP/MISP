@@ -114,29 +114,19 @@ class GalaxiesController extends AppController
         );
         foreach ($galaxies as $galaxy) {
             if ($galaxy['Galaxy']['id'] != -1) {
-                // construct option template
-                $galaxyTemplate = '<it class="fa fa-{{=it.icon}}" style="width: 22px;"></it>';
-                $galaxyTemplate .= '{{=it.name}}';
-                if (strlen($galaxy['Galaxy']['description']) < 50) {
-                    $galaxyTemplate .= '<i style="float:right; font-size: smaller;">{{=it.description}}</i>';
-                } else {
-                    $galaxyTemplate .= '<it class="fa fa-info-circle" style="float:right;" title="{{=it.description}}"></it>';
-                }
-
                 $items[] = array(
                     'name' => h($galaxy['Galaxy']['name']),
-                    'value' => "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/' . h($galaxy['Galaxy']['id']),
-                    'template' => $galaxyTemplate,
-                    'templateData' => array(
-                        'icon' => h($galaxy['Galaxy']['icon']),
-                        'name' => h($galaxy['Galaxy']['name']),
-                        'description' => h($galaxy['Galaxy']['description'])
+                    'value' => "/galaxies/selectCluster/" . $target_id . '/' . $target_type . '/' . $galaxy['Galaxy']['id'],
+                    'template' => array(
+                        'preIcon' => 'fa-' . $galaxy['Galaxy']['icon'],
+                        'name' => $galaxy['Galaxy']['name'],
+                        'infoExtra' => $galaxy['Galaxy']['description'],
                     )
                 );
             } else { // attackMatrix
                 $items[] = array(
                     'name' => $galaxy['Galaxy']['name'],
-                    'functionName' => "getMitreMatrixPopup('" . h($target_type) . "', '" . h($target_id) . "')",
+                    'functionName' => "getMitreMatrixPopup('" . $target_type . "', '" . $target_id . "')",
                     'isPill' => true,
                     'img' => "/img/mitre-attack-icon.ico",
                 );
@@ -159,12 +149,12 @@ class GalaxiesController extends AppController
         $items = array();
         $items[] = array(
             'name' => __('All namespaces'),
-            'value' => "/galaxies/selectGalaxy/" . h($target_id) . '/' . h($target_type) . '/0'
+            'value' => "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/0'
         );
         foreach ($namespaces as $namespace) {
             $items[] = array(
-                'name' => h($namespace),
-                'value' => "/galaxies/selectGalaxy/" . h($target_id) . '/' . h($target_type) . '/' . h($namespace)
+                'name' => $namespace,
+                'value' => "/galaxies/selectGalaxy/" . $target_id . '/' . $target_type . '/' . $namespace
             );
         }
 
@@ -183,21 +173,25 @@ class GalaxiesController extends AppController
         }
         $data = $this->Galaxy->GalaxyCluster->find('all', array(
                 'conditions' => $conditions,
-                'fields' => array('value', 'description', 'source', 'type'),
-                'contain' => array(
-                    'GalaxyElement' => array(
-                        'conditions' => array('GalaxyElement.key' => 'synonyms')
-                    )
-                ),
+                'fields' => array('value', 'description', 'source', 'type', 'id'),
                 'order' => array('value asc'),
                 'recursive' => -1
         ));
         $clusters = array();
         foreach ($data as $k => $cluster) {
+            $temp = $this->Galaxy->GalaxyCluster->GalaxyElement->find('all', array(
+                'conditions' => array(
+                    'GalaxyElement.galaxy_cluster_id' => $cluster['GalaxyCluster']['id'],
+                    'GalaxyElement.key' => 'synonyms'
+                ),
+                'recursive' => -1
+            ));
             $cluster['GalaxyCluster']['synonyms_string'] = array();
-            foreach ($cluster['GalaxyElement'] as $element) {
-                $cluster['GalaxyCluster']['synonyms_string'][] = $element['value'];
+            foreach ($temp as $element) {
+                $cluster['GalaxyCluster']['synonyms_string'][] = $element['GalaxyElement']['value'];
+                $cluster['GalaxyElement'][] = $element['GalaxyElement'];
             }
+            unset($temp);
             $cluster['GalaxyCluster']['synonyms_string'] = implode(', ', $cluster['GalaxyCluster']['synonyms_string']);
             unset($cluster['GalaxyElement']);
             $clusters[$cluster['GalaxyCluster']['type']][$cluster['GalaxyCluster']['value']] = $cluster['GalaxyCluster'];
@@ -209,48 +203,46 @@ class GalaxiesController extends AppController
         $items = array();
         foreach ($clusters as $namespace => $cluster_data) {
             foreach ($cluster_data as $k => $cluster) {
-                $clusterTemplate = '{{=it.name}}';
-                if (strlen($cluster['description']) < 50) {
-                    $clusterTemplate .= '<i style="float:right; font-size: smaller;">{{=it.description}}</i>';
+                $name = $cluster['value'];
+                $optionName = $cluster['value'];
+                if ($cluster['synonyms_string'] !== '') {
+                    $synom = __('Synonyms: ') . $cluster['synonyms_string'];
+                    $optionName .= $cluster['synonyms_string'] !== '' ? ' (' . $cluster['synonyms_string'] . ')' : '';
                 } else {
-                    $clusterTemplate .= '<it class="fa fa-info-circle" style="float:right;" title="{{=it.description}}"></it>';
+                    $synom = '';
                 }
-                if ($cluster['synonyms_string'] !== "") {
-                    $clusterTemplate .= '<div class="apply_css_arrow" style="padding-left: 5px; font-size: smaller;"><i>{{=it.synonyms_string}}</i></div>';
-                }
-
-                $target_type = h($target_type);
-                $target_id = h($target_id);
-                $cluster_id = h($cluster['id']);
-                $title = __('Synonyms: ') . h($cluster['synonyms_string']);
-                $name = h($cluster['value']);
-                $optionName = h($cluster['value']);
-                $optionName .= $cluster['synonyms_string'] !== '' ? ' (' . h($cluster['synonyms_string']) . ')' : '';
-                $items[] = array(
+                $itemParam = array(
                     'name' => $optionName,
-                    'value' => h($cluster_id),
-                    'title' => $title,
-                    'additionalData' => array(
-                        'target_id' => $target_id,
-                        'target_type' => $target_type,
-                    ),
-                    'template' => $clusterTemplate,
-                    'templateData' => array(
+                    'value' => $cluster['id'],
+                    'template' => array(
                         'name' => $name,
-                        'description' => h($cluster['description']),
-                        'synonyms_string' => $title
+                        'infoExtra' => $cluster['description'],
                     )
                 );
+                if ($cluster['synonyms_string'] !== '') {
+                    $itemParam['template']['infoContextual'] = $synom;
+                }
+                $items[] = $itemParam;
+                unset($cluster_data[$k]);
             }
         }
         $onClickForm = 'quickSubmitGalaxyForm';
-
-        $this->set('items', $items);
-        $this->set('options', array( // set chosen (select picker) options
-            'functionName' => $onClickForm,
-            'multiple' => '-1',
-        ));
-        $this->render('ajax/cluster_choice');
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($items, $this->response->type());
+        } else {
+            $this->set('items', $items);
+            $this->set('options', array( // set chosen (select picker) options
+                'functionName' => $onClickForm,
+                'multiple' => '-1',
+                'select_options' => array(
+                    'additionalData' => array(
+                        'target_id' => $target_id,
+                        'target_type' => $target_type,
+                    )
+                ),
+            ));
+            $this->render('ajax/cluster_choice');
+        }
     }
 
     public function attachCluster($target_id, $target_type = 'event')
@@ -324,7 +316,7 @@ class GalaxiesController extends AppController
 
         } elseif ($scope == 'attribute') {
             $this->loadModel('Attribute');
-            $object = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id)));
+            $object = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'flatten' => 1));
             if (empty($object)) {
                 throw new MethodNotAllowedException('Invalid attribute.');
             }

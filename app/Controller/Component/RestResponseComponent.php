@@ -1338,7 +1338,8 @@ class RestResponseComponent extends Component
             'input' => 'text',
             'type' => 'string',
             'operators' => array('equal'),
-            'help' => 'An array containing values to sight. i.e. `[v1, v2]`',
+            'unique' => false,
+            'help' => 'Placeholder containing values to sight',
         ),
         'withAttachments' => array(
             'input' => 'radio',

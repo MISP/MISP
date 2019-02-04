@@ -6,38 +6,33 @@ App::uses('AppHelper', 'View/Helper');
 class GenericPickerHelper extends AppHelper {
 
     function add_select_params($options) {
-        $select_html = '';
-        foreach ($options['select_options'] as $option => $value) {
-            $select_html .= $option . '=' . $value . ' ';
-        }
-        if (isset($options['functionName']) && $options['functionName'] !== "") {
-            $select_html .= ' data-functionname=' . $options['functionName'] .' ';
-        }
-        return $select_html;
-    }
-
-    function add_option($param, $defaults) {
-        $option_html = '<option';
-
-        if (isset($param['value'])) {
-            $option_html .= ' value=' . h($param['value']);
-        } else {
-            $option_html .= ' value=' . h($param['name']);
-        }
-        if (isset($param['additionalData'])) {
-            $additionalData = json_encode($param['additionalData']);
+        if (isset($options['select_options']['additionalData'])) {
+            $additionalData = json_encode($options['select_options']['additionalData']);
+            unset($options['select_options']['additionalData']);
         } else {
             $additionalData = json_encode(array());
         }
 
-        if (isset($param['template'])) {
-            $option_html .= ' data-template=' . base64_encode($param['template']);
+        $select_html = '';
+        foreach ($options['select_options'] as $option => $value) {
+            $select_html .= sprintf('%s=%s ', h($option), h($value));
         }
-        if (isset($param['templateData'])) {
-            $option_html .= ' data-templatedata=' . base64_encode(json_encode($param['templateData']));
+        if (isset($options['functionName']) && $options['functionName'] !== "") {
+            $select_html .= sprintf('data-functionname=%s ', h($options['functionName']));
+        }
+        $select_html .= sprintf(' data-additionaldata=%s', base64_encode($additionalData));
+        return $select_html;
+    }
+
+    function add_option($param, $defaults, $countThresholdReached) {
+        $option_html = '<option';
+
+        if (isset($param['value'])) {
+            $option_html .= sprintf(' value=%s',  h($param['value']));
+        } else {
+            $option_html .= sprintf(' value=%s', h($param['name']));
         }
 
-        $option_html .= ' data-additionaldata=' . $additionalData;
         if (isset($param['disabled']) && $param['disabled']) {
             $option_html .= ' disabled';
         } else if (isset($param['selected']) && $param['selected']) { // nonsense to pre-select if disabled
@@ -54,46 +49,64 @@ class GenericPickerHelper extends AppHelper {
     function add_link_params($param, $defaults=array()) {
         $param_html = ' ';
         if (isset($param['functionName'])) {
-            $param_html .= 'onclick="execAndClose(this, ' . $param['functionName'] . ')" ';
+            $param_html .= sprintf('onclick="execAndClose(this, %s)" ', h($param['functionName']));
         } else { // fallback to default submit function
             if ($defaults['functionName'] !== '') {
-                $param_html .= 'onclick="submitFunction(this, ' . $defaults['functionName'] . ')" ';
+                $param_html .= 'onclick="submitFunction(this, ' . h($defaults['functionName']) . ')" ';
+                $param_html .= sprintf('onclick="submitFunction(this, %s)" ', h($defaults['functionName']));
             } else {
-                $param_html .= 'data-endpoint="' . h($param['value']) . '" ';
-                $param_html .= 'onclick="fetchRequestedData(this)" ';
+                $param_html .= sprintf('data-endpoint="%s" onclick="fetchRequestedData(this)" ', h($param['value']));
             }
         }
 
         $additionalData = json_encode(array());
         foreach ($param as $paramName => $paramValue) {
-            if ($paramName === 'additionalData') {
-                $additionalData = json_encode($param['additionalData']);
-            } else if ($paramName === 'value') {
-                $param_html .= 'value="' . h($paramValue) . '" ';
-            } else if ($paramName === 'template' || $paramName === 'templateData') {
+            if ($paramName === 'value') {
+                $param_html .= sprintf('value="%s" ', h($paramValue));
+            } else if ($paramName === 'template') {
                 continue;
             } else {
-                $param_html .= 'data-' . h($paramName). '="' . h($paramValue) . '" ';
+                $param_html .= sprintf('data-%s="%s" ', h($paramName), h($paramValue));
             }
         }
-        $param_html .= ' data-additionaldata=' . $additionalData;
         return $param_html;
     }
 
     function add_pill($param, $defaults=array()) {
         $pill_html = '<li>';
         $pill_html .= '<a href="#" data-toggle="pill" class="pill-pre-picker"';
-        $pill_html .= ' ' . $this->add_link_params($param, $defaults);
-        $pill_html .= '>';
+        $pill_html .= ' ' . $this->add_link_params($param, $defaults) . '>';
         if (isset($param['img'])) {
-            $pill_html .= '<img src="' . $param['img'] . '" style="margin-right: 5px; height: 14px;">';
-        } else if (isset($param['icon']) || isset($param['templateData']['icon'])) {
-            $icon = isset($param['icon']) ? $param['icon'] : $param['templateData']['icon'];
-            $pill_html .= '<span class="fa fa-' . $icon . '" style="margin-right: 5px;"></span>';
+            $pill_html .= '<img src="' . h($param['img']) . '" style="margin-right: 5px; height: 14px;">';
+        } else if (isset($param['icon'])) {
+            $icon = $param['icon'];
+            $pill_html .= '<span class="fa fa-' . h($icon) . '" style="margin-right: 5px;"></span>';
         }
-        $pill_html .= h($param['name']) . '</a>';
+        $pill_html .= h($param['name']);
+        if (isset($param['template']['infoExtra'])) {
+            $pill_html .= $this->_View->element('genericPickerElements/info_extra', array('infoExtra' => $param['template']['infoExtra'], 'forceIcon' => true));
+        }
+        $pill_html .= '</a>';
         $pill_html .= '</li>';
         return $pill_html;
+    }
+
+    function build_template($param) {
+        $template = "";
+        if(isset($param['template'])) {
+            $templateParam = $param['template'];
+            if (isset($templateParam['preIcon'])) {
+                $template .= $this->_View->element('genericPickerElements/pre_icon', array('preIcon' => $templateParam['preIcon']));
+            }
+            $template .= $this->_View->element('genericPickerElements/name', array('name' => $templateParam['name']));
+            if (isset($templateParam['infoExtra'])) {
+                $template .= $this->_View->element('genericPickerElements/info_extra', array('infoExtra' => $templateParam['infoExtra']));
+            }
+            if (isset($templateParam['infoContextual'])) {
+                $template .= $this->_View->element('genericPickerElements/info_contextual', array('infoContextual' => $templateParam['infoContextual']));
+            }
+        }
+        return $template;
     }
 }
 ?>

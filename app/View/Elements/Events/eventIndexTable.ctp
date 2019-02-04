@@ -155,7 +155,7 @@
                         else $tagText = h($tag['Tag']['name']);
                     }
                 ?>
-                    <span class="tag useCursorPointer" style="margin-bottom:3px;background-color:<?php echo h($tag['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>;" title="<?php echo h($tag['Tag']['name']); ?>" onClick="document.location.href='<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($tag['Tag']['id']);?>';"><?php echo $tagText; ?></span>
+                    <a class="tag useCursorPointer" style="margin-bottom:3px;background-color:<?php echo h($tag['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>;" title="<?php echo h($tag['Tag']['name']); ?>" onClick="document.location.href='<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($tag['Tag']['id']);?>';"><?php echo $tagText; ?></a>
                 <?php endforeach; ?>
             </td>
         <?php endif; ?>

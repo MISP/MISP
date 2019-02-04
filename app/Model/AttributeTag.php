@@ -62,6 +62,11 @@ class AttributeTag extends AppModel
         }
     }
 
+    public function softDelete($id)
+    {
+        $this->delete($id);
+    }
+
     public function attachTagToAttribute($attribute_id, $event_id, $tag_id)
     {
         $existingAssociation = $this->find('first', array(
@@ -132,7 +137,10 @@ class AttributeTag extends AppModel
         }
 
         $allTags = array();
-        $attributes = $this->Attribute->fetchAttributes($user, array('conditions' => array('Attribute.id' => $attributeIds, 'Attribute.event_id' => $requestedEventId)));
+        $attributes = $this->Attribute->fetchAttributes($user, array(
+            'conditions' => array('Attribute.id' => $attributeIds, 'Attribute.event_id' => $requestedEventId),
+            'flatten' => 1,
+        ));
         foreach ($attributes as $attribute) {
             $attributeTags = $this->find('all', array(
                 'conditions' => array(
@@ -162,13 +170,12 @@ class AttributeTag extends AppModel
 
         $allClusters = array();
         foreach ($attributeIds as $id) {
-            $attribute = $this->Attribute->fetchAttributes($user, array('conditions' => array('Attribute.id' => $id)));
+            $attribute = $this->Attribute->fetchAttributes($user, array(
+                'conditions' => array('Attribute.id' => $id, 'Attribute.event_id' => $requestedEventId),
+                'flatten' => 1,
+            ));
             if (empty($attribute)) {
                 throw new MethodNotAllowedException('Invalid attribute.');
-            }
-            $eventId = $attribute[0]['Attribute']['event_id'];
-            if ($eventId != $requestedEventId) { // only takes tags of attributes belonging to the same event
-                continue;
             }
             $attributeTags = $this->find('all', array(
                 'conditions' => array(

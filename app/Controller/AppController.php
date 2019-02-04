@@ -47,8 +47,8 @@ class AppController extends Controller
     public $helpers = array('Utility', 'OrgImg');
 
     private $__queryVersion = '54';
-    public $pyMispVersion = '2.4.99';
-    public $phpmin = '5.6.5';
+    public $pyMispVersion = '2.4.102';
+    public $phpmin = '7.0.16';
     public $phprec = '7.0.16';
 
     public $baseurl = '';
@@ -333,6 +333,9 @@ class AppController extends Controller
             }
         } else {
             if (!($this->params['controller'] === 'users' && $this->params['action'] === 'login')) {
+                if (!$this->request->is('ajax')) {
+                    $this->Session->write('pre_login_requested_url', $this->here);
+                }
                 $this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
             }
         }
@@ -628,13 +631,16 @@ class AppController extends Controller
                     $data[$p] = str_replace(';', ':', $data[$p]);
                 }
                 if (isset($options['named_params'][$p])) {
-                    $data[$p] = $options['named_params'][$p];
+                    $data[$p] = str_replace(';', ':', $options['named_params'][$p]);
                 }
             }
         }
         foreach ($data as $k => $v) {
             if (!is_array($data[$k])) {
                 $data[$k] = trim($data[$k]);
+                if (strpos($data[$k], '||')) {
+                    $data[$k] = explode('||', $data[$k]);
+                }
             }
         }
         if (!empty($options['additional_delimiters'])) {

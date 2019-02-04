@@ -35,6 +35,7 @@ install:
     - sudo pip3.6 install --upgrade pip setuptools requests
     - hash -r
     - sudo pip3.6 install --upgrade -r requirements.txt
+    - sudo pip3.6 install pipenv
     - phpenv rehash
     - pushd app
     - composer install
@@ -111,20 +112,18 @@ script:
     - ./curl_tests.sh $AUTH
     - popd
     - pushd PyMISP
-    - sudo pip3.6 install nose python-dateutil
-    - sudo pip3.6 install git+https://github.com/kbandla/pydeep.git
-    - sudo pip3.6 install -e .[fileobjects,neo,openioc,virustotal]
+    - pipenv install -d
     - pushd tests
     - git clone https://github.com/viper-framework/viper-test-files.git
     - popd
-    - python3.6 tests/test.py
-    - python3.6 tests/test_mispevent.py
-    - python3.6 tests/test_offline.py
-    - python3.6 tests/testlive_comprehensive.py
+    - pipenv run python tests/test.py
+    - pipenv run python tests/test_mispevent.py
+    - pipenv run python tests/test_offline.py
+    - pipenv run python tests/testlive_comprehensive.py
     - popd
     - cp PyMISP/tests/keys.py PyMISP/examples/events/
     - pushd PyMISP/examples/events/
-    - python3.6 ./create_massive_dummy_events.py -l 5 -a 30
+    - pipenv run python ./create_massive_dummy_events.py -l 5 -a 30
     - popd
     - pushd app/files/feed-metadata
     - jsonschema -i defaults.json schema.json

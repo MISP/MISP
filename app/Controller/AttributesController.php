@@ -1580,26 +1580,22 @@ class AttributesController extends AppController
                 $selectedAttributeIds = array();
             }
 
-            App::uses('TextColourHelper', 'View/Helper');
-            $textColourHelper = new TextColourHelper(new View());
-            $tagTemplate = '<span href="#" class="tagComplete" style="background-color:{{=it.background}}; color:{{=it.color}}">{{=it.name}}</span>';
-            $galaxyTemplate = '<span href="#" class="tagComplete" style="background-color:{{=it.background}}; color:{{=it.color}}">{{=it.name}}</span>';
-
             // tags to remove
             $tags = $this->Attribute->AttributeTag->getAttributesTags($this->Auth->user(), $id, $selectedAttributeIds);
             $tagItemsRemove = array();
             foreach ($tags as $k => $tag) {
                 $tagName = $tag['name'];
                 $tagItemsRemove[] = array(
-                    'name' => h($tagName),
-                    'value' => h($tag['id']),
-                    'template' => $tagTemplate,
-                    'templateData' => array(
-                        'name' => h($tagName),
-                        'background' => h(isset($tag['colour']) ? $tag['colour'] : '#ffffff'),
-                        'color' => h(isset($tag['colour']) ? $textColourHelper->getTextColour($tag['colour']) : '#0088cc')
-                    ),
-
+                    'name' => $tagName,
+                    'value' => $tag['id'],
+                    'template' => array(
+                        'name' => array(
+                            'name' => $tagName,
+                            'label' => array(
+                                'background' => isset($tag['colour']) ? $tag['colour'] : '#ffffff'
+                            )
+                        ),
+                    )
                 );
             }
             unset($tags);
@@ -1608,34 +1604,23 @@ class AttributesController extends AppController
             $clusters = $this->Attribute->AttributeTag->getAttributesClusters($this->Auth->user(), $id, $selectedAttributeIds);
             $clusterItemsRemove = array();
             foreach ($clusters as $k => $cluster) {
-                $clusterTemplate = '{{=it.name}}';
-                if (strlen($cluster['description']) < 50) {
-                    $clusterTemplate .= '<i style="float:right; font-size: smaller;">{{=it.description}}</i>';
-                } else {
-                    $clusterTemplate .= '<it class="fa fa-info-circle" style="float:right;" title="{{=it.description}}"></it>';
-                }
-                if ($cluster['synonyms_string'] !== "") {
-                    $clusterTemplate .= '<div class="apply_css_arrow" style="padding-left: 5px; font-size: smaller;"><i>{{=it.synonyms_string}}</i></div>';
-                }
+                $name = $cluster['value'];
+                $optionName = $cluster['value'];
+                $optionName .= $cluster['synonyms_string'] !== '' ? ' (' . $cluster['synonyms_string'] . ')' : '';
 
-                $title = __('Synonyms: ') . h($cluster['synonyms_string']);
-                $name = h($cluster['value']);
-                $optionName = h($cluster['value']);
-                $optionName .= $cluster['synonyms_string'] !== '' ? ' (' . h($cluster['synonyms_string']) . ')' : '';
-
-                $clusterItemsRemove[] = array(
+                $temp = array(
                     'name' => $optionName,
-                    'value' => h($cluster['id']),
-                    'additionalData' => array(
-                        'event_id' => h($id),
-                    ),
-                    'template' => $clusterTemplate,
-                    'templateData' => array(
+                    'value' => $cluster['id'],
+                    'template' => array(
                         'name' => $name,
-                        'description' => h($cluster['description']),
-                        'synonyms_string' => $title
+                        'infoExtra' => $cluster['description'],
+                        'infoContextual' => $title
                     )
                 );
+                if ($cluster['synonyms_string'] !== '') {
+                    $temp['infoContextual'] = __('Synonyms: ') . $cluster['synonyms_string'];
+                }
+                $clusterItemsRemove[] = $temp;
             }
             unset($clusters);
             $conditions = array();
@@ -1654,14 +1639,16 @@ class AttributesController extends AppController
             foreach ($tags as $k => $tag) {
                 $tagName = $tag['name'];
                 $tagItemsAdd[] = array(
-                    'name' => h($tagName),
-                    'value' => h($tag['id']),
-                    'template' => $tagTemplate,
-                    'templateData' => array(
-                        'name' => h($tagName),
-                        'background' => h(isset($tag['colour']) ? $tag['colour'] : '#ffffff'),
-                        'color' => h(isset($tag['colour']) ? $textColourHelper->getTextColour($tag['colour']) : '#0088cc')
-                    ),
+                    'name' => $tagName,
+                    'value' => $tag['id'],
+                    'template' => array(
+                        'name' => array(
+                            'name' => $tagName,
+                            'label' => array(
+                                'background' => isset($tag['colour']) ? $tag['colour'] : '#ffffff'
+                            )
+                        ),
+                    )
 
                 );
             }
@@ -1694,7 +1681,12 @@ class AttributesController extends AppController
             $this->set('options', array( // set chosen (select picker) options
                 'multiple' => -1,
                 'disabledSubmitButton' => true,
-                'flag_redraw_chosen' => true
+                'flag_redraw_chosen' => true,
+                'select_options' => array(
+                    'additionalData' => array(
+                        'event_id' => $id,
+                    ),
+                ),
             ));
             $this->render('ajax/attributeEditMassForm');
         }
@@ -1941,9 +1933,18 @@ class AttributesController extends AppController
         $this->set('fails', $this->Attribute->checkComposites());
     }
 
-    public function restSearch($returnFormat = 'json', $value = false, $type = false, $category = false, $org = false, $tags = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $uuid = false, $publish_timestamp = false, $published = false, $timestamp = false, $enforceWarninglist = false, $to_ids = false, $deleted = false, $includeEventUuid = false, $event_timestamp = false, $threat_level_id = false)
+    public function restSearch(
+        $returnFormat = false, $value = false, $type = false, $category = false, $org = false, $tags = false, $from = false,
+        $to = false, $last = false, $eventid = false, $withAttachments = false, $uuid = false, $publish_timestamp = false, $published = false,
+        $timestamp = false, $enforceWarninglist = false, $to_ids = false, $deleted = false, $includeEventUuid = false, $event_timestamp = false,
+        $threat_level_id = false
+    )
     {
-        $paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags', 'includeProposals');
+        $paramArray = array(
+            'value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachbocsi ments', 'uuid', 'publish_timestamp',
+            'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags',
+            'includeProposals', 'returnFormat', 'published', 'limit', 'page', 'requested_attributes', 'includeContext', 'headerless'
+        );
         $filterData = array(
             'request' => $this->request,
             'named_params' => $this->params['named'],
@@ -1964,6 +1965,8 @@ class AttributesController extends AppController
         }
         if (isset($filters['returnFormat'])) {
             $returnFormat = $filters['returnFormat'];
+        } else {
+            $returnFormat = 'json';
         }
         if ($returnFormat === 'download') {
             $returnFormat = 'json';
@@ -3028,7 +3031,6 @@ class AttributesController extends AppController
                             if (empty($tagCollection)) {
                                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
                             }
-                            $tag_id_list = array();
                             foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
                                 $tag_id_list[] = $tagCollectionTag['tag_id'];
                             }

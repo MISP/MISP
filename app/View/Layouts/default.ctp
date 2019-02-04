@@ -31,7 +31,6 @@
         echo $this->Html->script('jquery-ui'); // UI support
         echo $this->Html->css('chosen.min');
         echo $this->Html->script('chosen.jquery.min');
-        echo $this->Html->script('doT');
     ?>
 
 </head>

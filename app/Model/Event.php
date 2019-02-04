@@ -4127,7 +4127,7 @@ class Event extends AppModel
         if ($event_ids) {
             foreach ($event_ids as $event_id) {
                 $tempFile = new File($tmpDir . $randomFileName, true, 0644);
-                $event = $this->fetchEvent($user, array('eventid' => $event_id, 'includeAttachments' => 1));
+                $event = $this->fetchEvent($user, array('eventid' => $event_id, 'includeAttachments' => $attachments));
                 if (empty($event)) {
                     continue;
                 }
@@ -4205,17 +4205,9 @@ class Event extends AppModel
         if ($event_ids) {
             foreach ($event_ids as $event_id) {
                 $tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
-                $event = $this->fetchEvent($user, array('eventid' => $event_id));
+                $event = $this->fetchEvent($user, array('eventid' => $event_id, 'includeAttachments' => $attachments));
                 if (empty($event)) {
                     continue;
-                }
-                if ($attachments == "yes" || $attachments == "true" || $attachments == 1) {
-                    foreach ($event[0]['Attribute'] as &$attribute) {
-                        if ($this->Attribute->typeIsAttachment($attribute['type'])) {
-                            $encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
-                            $attribute['data'] = $encodedFile;
-                        }
-                    }
                 }
                 $event[0]['Tag'] = array();
                 foreach ($event[0]['EventTag'] as $tag) {
@@ -5775,6 +5767,7 @@ class Event extends AppModel
                 'value' => $original_filename,
                 'data' => base64_encode($file),
                 'object_id' => $object_id,
+                'disable_correlation' => true
             ),
             array(
                 'type' => 'text',
@@ -5784,7 +5777,8 @@ class Event extends AppModel
                 'distribution' => $distribution,
                 'object_id' => $object_id,
                 'object_relation' => 'format',
-                'value' => $format
+                'value' => $format,
+                'disable_correlation' => true
             )
         );
         foreach ($attributes as $attribute) {

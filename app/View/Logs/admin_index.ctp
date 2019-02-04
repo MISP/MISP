@@ -44,7 +44,7 @@
     <div class="tabMenuFixedContainer" style="display:inline-block;margin-left:50px;">
         <?php foreach ($validFilters as $filterName => $filterData): ?>
         <span class="tabMenuFixed tabMenuSides useCursorPointer <?php echo $filterName == $filter ? 'background-lightblue' : ''; ?>">
-            <span id="myOrgButton" title="<?php echo __('Modify filters');?>" role="button" tabindex="0" aria-label="<?php echo __('Modify filters');?>" onClick="window.location.href='<?php echo $baseurl; ?>/admin/logs/index/filter:<?php echo h($filterName); ?>';"><?php echo h($filterData['name']);?></span>
+            <span id="myOrgButton" title="<?php echo __('Modify filters');?>" role="button" tabindex="0" aria-label="<?php echo h($filterData['name']);?>" onClick="window.location.href='<?php echo $baseurl; ?>/admin/logs/index/filter:<?php echo h($filterName); ?>';"><?php echo h($filterData['name']);?></span>
         </span>
         <?php endforeach; ?>
     </div>

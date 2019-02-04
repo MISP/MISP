@@ -68,6 +68,10 @@
                 ?>
                 &nbsp;
             </dd>
+            <dt><?php echo __('Creation time'); ?></dt>
+            <dd><?php echo h($org['Organisation']['date_created']); ?></dd>
+            <dt><?php echo __('Last modified'); ?></dt>
+            <dd><?php echo h($org['Organisation']['date_modified']); ?></dd>
         <?php endif;?>
         <?php
             $optionalFields = array('sector' => 'Sector', 'nationality' => 'Nationality', 'type' => 'Organisation type', 'contacts' => 'Contact information');

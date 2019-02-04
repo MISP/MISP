@@ -106,7 +106,7 @@ class Server extends AppModel
             'console_admin_tasks' => array(
                 'data' => array(
                     'getSettings' => 'MISP/app/Console/cake Admin getSetting [setting]',
-                    'setSettings' => 'MISP/app/Console/cake Admin getSetting [setting] [value]',
+                    'setSettings' => 'MISP/app/Console/cake Admin setSetting [setting] [value]',
                     'getAuthkey' => 'MISP/app/Console/cake Admin getAuthkey [email]',
                     'setBaseurl' => 'MISP/app/Console/cake Baseurl [baseurl]',
                     'changePassword' => 'MISP/app/Console/cake Password [email] [new_password]',
@@ -3158,7 +3158,7 @@ class Server extends AppModel
 
     public function customAuthBeforeHook($setting, $value)
     {
-        if ($value) {
+        if (!empty($value)) {
             $this->updateDatabase('addCustomAuth');
         }
         $this->cleanCacheFiles();
@@ -3191,6 +3191,122 @@ class Server extends AppModel
             }
         }
         return $value;
+    }
+
+    public function getSettingData($setting_name)
+    {
+        // invalidate config.php from php opcode cache
+        if (function_exists('opcache_reset')) {
+            opcache_reset();
+        }
+        if (strpos($setting_name, 'Plugin.Enrichment') !== false || strpos($setting_name, 'Plugin.Import') !== false || strpos($setting_name, 'Plugin.Export') !== false || strpos($setting_name, 'Plugin.Cortex') !== false) {
+            $serverSettings = $this->getCurrentServerSettings();
+        } else {
+            $serverSettings = $this->serverSettings;
+        }
+        $relevantSettings = (array_intersect_key(Configure::read(), $serverSettings));
+        $setting = false;
+        foreach ($serverSettings as $k => $s) {
+            if (isset($s['branch'])) {
+                foreach ($s as $ek => $es) {
+                    if ($ek != 'branch') {
+                        if ($setting_name == $k . '.' . $ek) {
+                            $setting = $es;
+                            continue 2;
+                        }
+                    }
+                }
+            } else {
+                if ($setting_name == $k) {
+                    $setting = $s;
+                    continue;
+                }
+            }
+        }
+        if (!empty($setting)) {
+            $setting['name'] = $setting_name;
+        }
+        return $setting;
+    }
+
+    public function serverSettingsEditValue($user, $setting, $value, $forceSave = false)
+    {
+        if (isset($setting['beforeHook'])) {
+            $beforeResult = call_user_func_array(array($this, $setting['beforeHook']), array($setting['name'], $value));
+            if ($beforeResult !== true) {
+                $this->Log = ClassRegistry::init('Log');
+                $this->Log->create();
+                $result = $this->Log->save(array(
+                        'org' => $user['Organisation']['name'],
+                        'model' => 'Server',
+                        'model_id' => 0,
+                        'email' => $user['email'],
+                        'action' => 'serverSettingsEdit',
+                        'user_id' => $user['id'],
+                        'title' => 'Server setting issue',
+                        'change' => 'There was an issue witch changing ' . $setting['name'] . ' to ' . $value  . '. The error message returned is: ' . $beforeResult . 'No changes were made.',
+                ));
+                return $beforeResult;
+            }
+        }
+        $value = trim($value);
+        if ($setting['type'] == 'boolean') {
+            $value = ($value ? true : false);
+        }
+        if ($setting['type'] == 'numeric') {
+            $value = intval($value);
+        }
+        if (!empty($setting['test'])) {
+            $testResult = $this->{$setting['test']}($value);
+        } else {
+            $testResult = true;  # No test defined for this setting: cannot fail
+        }
+        if (!$forceSave && $testResult !== true) {
+            if ($testResult === false) {
+                $errorMessage = $setting['errorMessage'];
+            } else {
+                $errorMessage = $testResult;
+            }
+            return $errorMessage;
+        } else {
+            $oldValue = Configure::read($setting['name']);
+            $settingSaveResult = $this->serverSettingsSaveValue($setting['name'], $value);
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            if ($settingSaveResult) {
+                $result = $this->Log->save(array(
+                        'org' => $user['Organisation']['name'],
+                        'model' => 'Server',
+                        'model_id' => 0,
+                        'email' => $user['email'],
+                        'action' => 'serverSettingsEdit',
+                        'user_id' => $user['id'],
+                        'title' => 'Server setting changed',
+                        'change' => $setting['name'] . ' (' . $oldValue . ') => (' . $value . ')',
+                ));
+                // execute after hook
+                if (isset($setting['afterHook'])) {
+                    $afterResult = call_user_func_array(array($this, $setting['afterHook']), array($setting['name'], $value));
+                    if ($afterResult !== true) {
+                        $this->Log->create();
+                        $result = $this->Log->save(array(
+                                'org' => $user['Organisation']['name'],
+                                'model' => 'Server',
+                                'model_id' => 0,
+                                'email' => $user['email'],
+                                'action' => 'serverSettingsEdit',
+                                'user_id' => $user['id'],
+                                'title' => 'Server setting issue',
+                                'change' => 'There was an issue after setting a new setting. The error message returned is: ' . $afterResult,
+                        ));
+                        return $afterResult;
+                    }
+                }
+                return true;
+            } else {
+                return __('Something went wrong. MISP tried to save a malformed config file. Setting change reverted.');
+            }
+        }
     }
 
     public function serverSettingsSaveValue($setting, $value)

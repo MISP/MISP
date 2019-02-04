@@ -215,7 +215,7 @@
                 <dd>
                     <?php
                         if (!empty($sightingsData['csv']['event'])) {
-                            echo $this->element('sparkline', array('id' => $event['Event']['id'], 'csv' => $sightingsData['csv']['event']));
+                            echo $this->element('sparkline', array('scope' => 'event', 'id' => $event['Event']['id'], 'csv' => $sightingsData['csv']['event']));
                         } else {
                             echo '&nbsp';
                         }
@@ -360,10 +360,7 @@
                             }
                 ?>
                                 <span style="white-space: nowrap;">
-                                    <form action="<?php echo $baseurl; ?>/servers/previewIndex/<?php echo h($relatedServer['id']); ?>" method="post" style="margin:0px;">
-                                        <input type="hidden" name="data[Feed][eventid]" value="<?php echo h(json_encode($relatedServer['event_uuids'], true)); ?>">
-                                        <input type="submit" class="linkButton useCursorPointer" value="<?php echo h($relatedServer['name']) . ' (' . $relatedServer['id'] . ')'; ?>" data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover" />
-                                    </form>
+                                    <a href="<?php echo $baseurl; ?>/servers/previewIndex/<?php echo h($relatedServer['id']); ?>" class="linkButton useCursorPointer" data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover"><?php echo h($relatedServer['name']) . ' (' . $relatedServer['id'] . ')'; ?></a>&nbsp;
                                 </span>
                 <?php
                         endforeach;

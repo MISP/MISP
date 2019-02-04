@@ -372,7 +372,7 @@ class Feed extends AppModel
             $results = $pipe->exec();
             if (!$overrideLimit && count($objects) > 10000) {
                 foreach ($results as $k => $result) {
-                    if ($result) {
+                    if ($result && empty($objects[$k]['disable_correlation'])) {
                         if (isset($event['FeedCount'])) {
                             $event['FeedCount']++;
                         } else {
@@ -383,7 +383,7 @@ class Feed extends AppModel
                 }
             } else {
                 foreach ($results as $k => $result) {
-                    if ($result) {
+                    if ($result && empty($objects[$k]['disable_correlation'])) {
                         $hitIds[] = $k;
                     }
                 }
