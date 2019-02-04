@@ -20,7 +20,7 @@ App::uses('AppHelper', 'View/Helper');
 					<a href="/organisations/view/<?php echo empty($options['id']) ? h($options['name']) : h($options['id']); ?>">
 	          <img
 	            src="/img/orgs/<?php echo $imgOption; ?>"
-	            title = "<?php echo isset($imgOptions['name']) ? h($imgOptions['name']) : h($imgOptions['id']); ?>"
+	            title = "<?php echo isset($options['name']) ? h($options['name']) : h($options['id']); ?>"
 	            style = "<?php echo 'width:' . h($size) . 'px; height:' . h($size) . 'px'; ?>"
 	          />
 					</a>
