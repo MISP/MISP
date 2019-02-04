@@ -6,70 +6,38 @@
 <div>
     <dl style="width:600px;">
         <dt><?php echo __('Id'); ?></dt>
-        <dd>
-            <?php echo h($org['Organisation']['id']); ?>
-            &nbsp;
-        </dd>
+        <dd><?php echo h($org['Organisation']['id']); ?>&nbsp;</dd>
         <dt><?php echo 'Organisation name'; ?></dt>
-        <dd>
-            <?php echo h($org['Organisation']['name']); ?>
-            &nbsp;
-        </dd>
+        <dd><?php echo h($org['Organisation']['name']); ?>&nbsp;</dd>
         <dt><?php echo __('Local or remote'); ?></dt>
-        <dd>
-            <?php
-                if ($org['Organisation']['local']):
-            ?>
-                <span class="green bold"><?php echo __('Local');?></span>
-            <?php
-                else:
-            ?>
-                <span class="red bold"><?php echo __('Remote');?></span>
-            <?php
-                endif;
-            ?>
-            &nbsp;
-        </dd>
-        <dt><?php echo __('Description'); ?></dt>
-        <dd>
-            <?php echo h($org['Organisation']['description']); ?>
-            &nbsp;
-        </dd>
         <?php
-            if (!empty($org['Organisation']['restricted_to_domain'])):
+            echo sprintf(
+                '<dd><span class="%s bold">%s</span></dd>',
+                $org['Organisation']['local'] ? 'green' : 'red',
+                $org['Organisation']['local'] ? __('Local') : __('Remote')
+            );
         ?>
-                <dt><?php echo __('E-mail domain restrictions'); ?></dt>
-                <dd style="min-height:40px;">
-                    <?php
-                        $domains = $org['Organisation']['restricted_to_domain'];
-                        foreach ($domains as $k => $domain):
-                            $domains[$k] = h($domain);
-                        endforeach;
-                        $domains = implode("<br />", $domains);
-                        echo $domains;
-                    ?>
-                    &nbsp;
-                </dd>
+        <dt><?php echo __('Description'); ?></dt>
+        <dd><?php echo h($org['Organisation']['description']); ?>&nbsp;</dd>
         <?php
-            endif;
+            if (!empty($org['Organisation']['restricted_to_domain'])) {
+                $domains = $org['Organisation']['restricted_to_domain'];
+                foreach ($domains as $k => $domain) {
+                    $domains[$k] = h($domain);
+                }
+                $domains = implode("<br />", $domains);
+                echo sprintf(
+                    '<dt>%s</dt><dd>%s</dd>',
+                    __('E-mail domain restrictions'),
+                    $domains
+                );
+            }
         ?>
         <dt><?php echo __('Uuid'); ?></dt>
-        <dd>
-            <?php echo h($org['Organisation']['uuid']); ?>
-            &nbsp;
-        </dd>
+        <dd><?php echo h($org['Organisation']['uuid']); ?>&nbsp;</dd>
         <?php if ($isSiteAdmin): ?>
             <dt><?php echo __('Created by'); ?></dt>
-            <dd>
-                <?php
-                if (isset($org['Organisation']['created_by_email'])) {
-                    echo h($org['Organisation']['created_by_email']);
-                } else {
-                    echo __("Unknown");
-                }
-                ?>
-                &nbsp;
-            </dd>
+            <dd><?php echo isset($org['Organisation']['created_by_email']) ? h($org['Organisation']['created_by_email']) : __("Unknown"); ?></dd>
             <dt><?php echo __('Creation time'); ?></dt>
             <dd><?php echo h($org['Organisation']['date_created']); ?>&nbsp;</dd>
             <dt><?php echo __('Last modified'); ?></dt>
@@ -81,10 +49,7 @@
                 if (!empty(trim($org['Organisation'][$k]))):
         ?>
                     <dt><?php echo $field; ?></dt>
-                    <dd>
-                        <?php echo h($org['Organisation'][$k]); ?>
-                        &nbsp;
-                    </dd>
+                    <dd><?php echo trim(h($org['Organisation'][$k])); ?>&nbsp;</dd>
         <?php
                 endif;
             endforeach;
