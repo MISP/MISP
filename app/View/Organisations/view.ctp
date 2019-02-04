@@ -34,14 +34,14 @@
             }
         ?>
         <dt><?php echo __('Uuid'); ?></dt>
-        <dd><?php echo h($org['Organisation']['uuid']); ?>&nbsp;</dd>
+        <dd><?php echo !empty(trim($org['Organisation']['uuid'])) ? h($org['Organisation']['uuid']) : "&nbsp;"; ?></dd>
         <?php if ($isSiteAdmin): ?>
             <dt><?php echo __('Created by'); ?></dt>
             <dd><?php echo isset($org['Organisation']['created_by_email']) ? h($org['Organisation']['created_by_email']) : __("Unknown"); ?></dd>
             <dt><?php echo __('Creation time'); ?></dt>
-            <dd><?php echo h($org['Organisation']['date_created']); ?>&nbsp;</dd>
+            <dd><?php echo h($org['Organisation']['date_created']); ?></dd>
             <dt><?php echo __('Last modified'); ?></dt>
-            <dd><?php echo h($org['Organisation']['date_modified']); ?>&nbsp;</dd>
+            <dd><?php echo h($org['Organisation']['date_modified']); ?></dd>
         <?php endif;?>
         <?php
             $optionalFields = array('sector' => 'Sector', 'nationality' => 'Nationality', 'type' => 'Organisation type', 'contacts' => 'Contact information');
@@ -49,7 +49,7 @@
                 if (!empty(trim($org['Organisation'][$k]))):
         ?>
                     <dt><?php echo $field; ?></dt>
-                    <dd><?php echo trim(h($org['Organisation'][$k])); ?>&nbsp;</dd>
+                    <dd><?php echo trim(h($org['Organisation'][$k])); ?></dd>
         <?php
                 endif;
             endforeach;
