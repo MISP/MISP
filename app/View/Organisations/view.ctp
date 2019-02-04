@@ -33,7 +33,7 @@
                 );
             }
         ?>
-        <dt><?php echo __('Uuid'); ?></dt>
+        <dt><?php echo __('UUID'); ?></dt>
         <dd><?php echo !empty(trim($org['Organisation']['uuid'])) ? h($org['Organisation']['uuid']) : "&nbsp;"; ?></dd>
         <?php if ($isSiteAdmin): ?>
             <dt><?php echo __('Created by'); ?></dt>
