@@ -47,6 +47,7 @@
                         $domains = implode("<br />", $domains);
                         echo $domains;
                     ?>
+                    &nbsp;
                 </dd>
         <?php
             endif;
@@ -69,9 +70,9 @@
                 &nbsp;
             </dd>
             <dt><?php echo __('Creation time'); ?></dt>
-            <dd><?php echo h($org['Organisation']['date_created']); ?></dd>
+            <dd><?php echo h($org['Organisation']['date_created']); ?>&nbsp;</dd>
             <dt><?php echo __('Last modified'); ?></dt>
-            <dd><?php echo h($org['Organisation']['date_modified']); ?></dd>
+            <dd><?php echo h($org['Organisation']['date_modified']); ?>&nbsp;</dd>
         <?php endif;?>
         <?php
             $optionalFields = array('sector' => 'Sector', 'nationality' => 'Nationality', 'type' => 'Organisation type', 'contacts' => 'Contact information');
