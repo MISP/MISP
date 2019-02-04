@@ -91,8 +91,8 @@ function setupChosen(id, redrawChosen) {
 
     // hack to add template into the div
     var $chosenContainer = $elem.parent().find('.chosen-container');
-    $elem.on('chosen:showing_dropdown chosen:searchdone chosen:picked keyup change', function() {
-        redrawChosenWithTemplate($elem, $chosenContainer)
+    $elem.on('chosen:searchdone chosen:picked keyup change', function(e) {
+        redrawChosenWithTemplate($elem, $chosenContainer, e.type)
     });
 
     if (redrawChosen) {
@@ -100,13 +100,19 @@ function setupChosen(id, redrawChosen) {
     }
 }
 
-function redrawChosenWithTemplate($select, $chosenContainer) {
+function redrawChosenWithTemplate($select, $chosenContainer, eventType) {
     var optionLength = $select.find('option').length;
     if (optionLength > 1000) {
         $chosenContainer.parent().find('.generic-picker-wrapper-warning-text').show(0)
     } else {
+        console.log(eventType);
         $chosenContainer.find('.generic-picker-wrapper-warning-text').hide(0)
-        var $matches = $chosenContainer.find('.chosen-results .active-result, .chosen-single > span, .search-choice > span');
+        var $matches;
+        if (eventType == 'chosen:picked' || eventType == 'change') {
+            $matches = $chosenContainer.find('.chosen-single > span, .search-choice > span');
+        } else {
+            $matches = $chosenContainer.find('.chosen-results .active-result');
+        }
         $matches.each(function() {
             var $item = $(this);
             var index = $item.data('option-array-index');
