@@ -3046,7 +3046,7 @@ class EventsController extends AppController
     // && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
     // ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
     public function restSearch(
-        $returnFormat = 'json',
+        $returnFormat = false,
         $value = false,
         $type = false,
         $category = false,
@@ -3068,7 +3068,8 @@ class EventsController extends AppController
     ) {
         $paramArray = array(
             'value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments',
-            'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly'
+            'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'returnFormat',
+            'limit', 'page', 'requested_attributes', 'includeContext', 'headerless'
         );
         $filterData = array(
             'request' => $this->request,
@@ -3087,10 +3088,9 @@ class EventsController extends AppController
         if ($user === false) {
             return $exception;
         }
-        if (isset($filters['returnFormat'])) {
+        if (!empty($filters['returnFormat'])) {
             $returnFormat = $filters['returnFormat'];
-        }
-        if ($returnFormat === 'download') {
+        } else if (empty($filters['returnFormat']) || $filters['returnFormat'] === 'download'){
             $returnFormat = 'json';
         }
         $elementCounter = 0;
@@ -4024,12 +4024,12 @@ class EventsController extends AppController
                     'checkbox_set' => '/events/csv/download/' . $id . '/1/0/0/0/1'
             ),
             'stix_xml' => array(
-                    'url' => '/events/stix/download/' . $id . '.xml',
+                    'url' => '/events/restSearch/stix/eventid:' . $id,
                     'text' => 'STIX XML (metadata + all attributes)',
                     'requiresPublished' => true,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/stix/download/' . $id . '/true.xml'
+                    'checkbox_set' => '/events/restSearch/stix/eventid:' . $id . '/withAttachments:1'
             ),
             'stix_json' => array(
                     'url' => '/events/stix/download/' . $id . '.json',
@@ -4040,12 +4040,12 @@ class EventsController extends AppController
                     'checkbox_set' => '/events/stix/download/' . $id . '/true.json'
             ),
             'stix2_json' => array(
-                    'url' => '/events/stix2/download/' . $id . '.json',
+                    'url' => '/events/restSearch/stix2/eventid:' . $id,
                     'text' => 'STIX2 (requires the STIX 2 library)',
                     'requiresPublished' => false,
                     'checkbox' => true,
                     'checkbox_text' => 'Encode Attachments',
-                    'checkbox_set' => '/events/stix2/download/' . $id . '/1.json'
+                    'checkbox_set' => '/events/restSearch/stix2/eventid:' . $id . '/withAttachments:1'
             ),
             'rpz' => array(
                     'url' => '/attributes/rpz/download/false/' . $id,
