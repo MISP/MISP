@@ -219,7 +219,7 @@ function triggerEventFilteringTool(clicked) {
                 $searchableFields = array('id', 'uuid', 'value', 'comment', 'type', 'category', 'Tag.name');
                 $searchableFields = implode(', ', $searchableFields);
                 ?>
-                "description": "Searchable Attribute fields: <b><?php echo $searchableFields; ?></b>",
+                "description": "Searchable Attribute fields: <b><?php echo h($searchableFields); ?></b>",
                 "validation": {
                     "allow_empty_value": true
                 }
@@ -232,13 +232,13 @@ function triggerEventFilteringTool(clicked) {
                 {
                     field: 'searchFor',
                     id: 'searchFor',
-                    value: "<?php echo isset($filters['searchFor']) ? $filters['searchFor'] : ''; ?>"
+                    value: $('<div />').html("<?php echo isset($filters['searchFor']) ? h($filters['searchFor']) : ''; ?>").text()
                 },
                 {
                     field: 'attributeFilter',
                     id: 'attributeFilter',
                     <?php if (isset($filters['attributeFilter'])): ?>
-                        value: "<?php echo in_array($filters['attributeFilter'], array('all', 'network', 'financial', 'file')) ? $filters['attributeFilter'] : 'all'; ?>"
+                        value: "<?php echo in_array($filters['attributeFilter'], array('all', 'network', 'financial', 'file')) ? h($filters['attributeFilter']) : 'all'; ?>"
                     <?php else: ?>
                         value: "<?php echo 'all'; ?>"
                     <?php endif; ?>
@@ -246,27 +246,27 @@ function triggerEventFilteringTool(clicked) {
                 {
                     field: 'proposal',
                     id: 'proposal',
-                    value: <?php echo isset($filters['proposal']) ? $filters['proposal'] : 0; ?>
+                    value: <?php echo isset($filters['proposal']) ? h($filters['proposal']) : 0; ?>
                 },
                 {
                     field: 'correlation',
                     id: 'correlation',
-                    value: <?php echo isset($filters['correlation']) ? $filters['correlation'] : 0; ?>
+                    value: <?php echo isset($filters['correlation']) ? h($filters['correlation']) : 0; ?>
                 },
                 {
                     field: 'warning',
                     id: 'warning',
-                    value: <?php echo isset($filters['warning']) ? $filters['warning'] : 0; ?>
+                    value: <?php echo isset($filters['warning']) ? h($filters['warning']) : 0; ?>
                 },
                 {
                     field: 'deleted',
                     id: 'deleted',
-                    value: <?php echo isset($filters['deleted']) ? $filters['deleted'] : 2; ?>
+                    value: <?php echo isset($filters['deleted']) ? h($filters['deleted']) : 2; ?>
                 },
                 {
                     field: 'includeRelatedTags',
                     id: 'includeRelatedTags',
-                    value: <?php echo isset($filters['includeRelatedTags']) ? $filters['includeRelatedTags'] : 0; ?>
+                    value: <?php echo isset($filters['includeRelatedTags']) ? h($filters['includeRelatedTags']) : 0; ?>
                 },
                 {
                     field: 'distribution',
@@ -277,12 +277,12 @@ function triggerEventFilteringTool(clicked) {
                 // {
                 //     field: 'taggedAttributes',
                 //     id: 'taggedAttributes',
-                //     value: <?php echo isset($filters['taggedAttributes']) ? $filters['taggedAttributes'] : 0; ?>
+                //     value: <?php echo isset($filters['taggedAttributes']) ? h($filters['taggedAttributes']) : 0; ?>
                 // },
                 // {
                 //     field: 'galaxyAttachedAttributes',
                 //     id: 'galaxyAttachedAttributes',
-                //     value: <?php echo isset($filters['galaxyAttachedAttributes']) ? $filters['galaxyAttachedAttributes'] : 0; ?>
+                //     value: <?php echo isset($filters['galaxyAttachedAttributes']) ? h($filters['galaxyAttachedAttributes']) : 0; ?>
                 // },
                 // {
                 //     condition: 'OR',
