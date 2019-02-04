@@ -1050,7 +1050,11 @@ class EventsController extends AppController
             $this->__applyQueryString($event, $temp, 'distribution');
         }
         if (isset($filters['searchFor']) && $filters['searchFor'] !== '') {
-            $this->__applyQueryString($event, $filters['searchFor']);
+            if (isset($filters['filterColumnsOverwrite'])) {
+                $this->__applyQueryString($event, $filters['searchFor'], $filters['filterColumnsOverwrite']);
+            } else {
+                $this->__applyQueryString($event, $filters['searchFor']);
+            }
             $this->set('passedArgsArray', array('all' => $filters['searchFor']));
         }
         $emptyEvent = (empty($event['Object']) && empty($event['Attribute']));
@@ -1616,7 +1620,7 @@ class EventsController extends AppController
         );
         $activeRules = 0;
         foreach ($filters as $k => $v) {
-            if ($defaultRules[$k] != $v) {
+            if (isset($defaultRules[$k]) && $defaultRules[$k] != $v) {
                 $activeRules++;
             }
         }

@@ -354,27 +354,6 @@ function triggerEventFilteringTool(clicked) {
 
     updateURL();
 
-    function recursiveInject(result, rules) {
-        if (rules.rules === undefined) { // add to result
-            var field = rules.field;
-            var value = rules.value;
-            if (result.hasOwnProperty(field)) {
-                if (Array.isArray(result[field])) {
-                    result[field].push(value);
-                } else {
-                    result[field] = [result[field], value];
-                }
-            } else {
-                result[field] = value;
-            }
-        }
-        else if (Array.isArray(rules.rules)) {
-            rules.rules.forEach(function(subrules) {
-               recursiveInject(result, subrules) ;
-            });
-        }
-    }
-
     function updateURL() {
         var rules = querybuilderTool.getRules({ skip_empty: true, allow_invalid: true });
         var res = cleanRules(rules);
@@ -395,42 +374,61 @@ function triggerEventFilteringTool(clicked) {
         return url;
     }
 
-    function cleanRules(rules) {
-        var res = {};
-        recursiveInject(res, rules);
-        // clean up invalid and unset
-        Object.keys(res).forEach(function(k) {
-            var v = res[k];
-            if (v === undefined || v === '') {
-                delete res[k];
+}
+
+function recursiveInject(result, rules) {
+    if (rules.rules === undefined) { // add to result
+        var field = rules.field;
+        var value = rules.value;
+        if (result.hasOwnProperty(field)) {
+            if (Array.isArray(result[field])) {
+                result[field].push(value);
+            } else {
+                result[field] = [result[field], value];
             }
+        } else {
+            result[field] = value;
+        }
+    }
+    else if (Array.isArray(rules.rules)) {
+        rules.rules.forEach(function(subrules) {
+           recursiveInject(result, subrules) ;
         });
-        return res;
     }
+}
 
-    function performQuery(rules) {
-        var res = cleanRules(rules);
+function cleanRules(rules) {
+    var res = {};
+    recursiveInject(res, rules);
+    // clean up invalid and unset
+    Object.keys(res).forEach(function(k) {
+        var v = res[k];
+        if (v === undefined || v === '') {
+            delete res[k];
+        }
+    });
+    return res;
+}
 
-        var url = "/events/viewEventAttributes/<?php echo h($event['Event']['id']); ?>";
+function performQuery(rules) {
+    var res = cleanRules(rules);
 
-        $.ajax({
-    		type:"post",
-    		url: url,
-            data: res,
-    		beforeSend: function (XMLHttpRequest) {
-    			$(".loading").show();
-    		},
-    		success:function (data) {
-    			$("#attributes_div").html(data);
-    			$(".loading").hide();
-    		},
-    		error:function() {
-    			showMessage('fail', 'Something went wrong - could not fetch attributes.');
-    		}
-    	});
-    }
-
-
+    var url = "/events/viewEventAttributes/<?php echo h($event['Event']['id']); ?>";
+    $.ajax({
+        type:"post",
+        url: url,
+        data: res,
+        beforeSend: function (XMLHttpRequest) {
+            $(".loading").show();
+        },
+        success:function (data) {
+            $("#attributes_div").html(data);
+            $(".loading").hide();
+        },
+        error:function() {
+            showMessage('fail', 'Something went wrong - could not fetch attributes.');
+        }
+    });
 }
 
 function copyToClipboard(element) {

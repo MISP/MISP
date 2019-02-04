@@ -2965,7 +2965,6 @@ function filterAttributes(filter, id) {
 
 function pivotObjectReferences(url, uuid) {
 	url += '/focus:' + uuid;
-	console.log(url);
 	$.ajax({
 		type:"get",
 		url:url,
