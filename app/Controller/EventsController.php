@@ -3088,9 +3088,12 @@ class EventsController extends AppController
         if ($user === false) {
             return $exception;
         }
-        if (!empty($filters['returnFormat'])) {
+        if (isset($filters['returnFormat'])) {
             $returnFormat = $filters['returnFormat'];
-        } else if (empty($filters['returnFormat']) || $filters['returnFormat'] === 'download'){
+        } else {
+            $returnFormat = 'json';
+        }
+        if ($returnFormat === 'download') {
             $returnFormat = 'json';
         }
         $elementCounter = 0;

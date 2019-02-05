@@ -370,7 +370,7 @@ dt {
 dd {
 	float:left;
 	vertical-align: top;
-	width: calc(100% - 150px);
+	width: calc(100% - 151px);
 	padding: 0;
 	margin: 0;
 }
