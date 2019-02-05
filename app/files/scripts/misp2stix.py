@@ -822,9 +822,9 @@ class StixBuilder(object):
             filename, md5 = malware_sample['value'].split('|')
             artifact_object = self.create_artifact_object(malware_sample['data'])
             artifact_object.hashes = HashList(Hash(hash_value=md5, exact=True))
-            artifact_object.parent.id_ = f"{self.namespace_prefix}:ArtifactObject-{malware_sample['uuid']}"
+            artifact_object.parent.id_ = "{self.namespace_prefix}:ArtifactObject-{malware_sample['uuid']}"
             artifact_observable = Observable(artifact_object)
-            artifact_observable.id_ = f"{self.namespace_prefix}:Artifact-{malware_sample['uuid']}"
+            artifact_observable.id_ = "{self.namespace_prefix}:Artifact-{malware_sample['uuid']}"
             artifact_observable.title = filename
             file_observable = self.create_file_observable(attributes_dict, uuid)
             return to_ids, self.create_observable_composition([artifact_observable, file_observable], uuid, 'file')
@@ -1387,9 +1387,9 @@ class StixBuilder(object):
     def create_file_observable(self, attributes_dict, uuid):
         file_object = File()
         self.fill_file_object(file_object, attributes_dict)
-        file_object.parent.id_ = f"{self.namespace_prefix}:FileObject-{uuid}"
+        file_object.parent.id_ = "{self.namespace_prefix}:FileObject-{uuid}"
         file_observable = Observable(file_object)
-        file_observable.id_ = f"{self.namespace_prefix}:File-{uuid}"
+        file_observable.id_ = "{self.namespace_prefix}:File-{uuid}"
         return file_observable
 
     def create_hostname_observable(self, value, uuid):
