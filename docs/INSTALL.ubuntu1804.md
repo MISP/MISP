@@ -13,8 +13,10 @@
 {!generic/globalVariables.md!}
 
 ```bash
+# <snippet-begin 1_php-vars.sh>
 PHP_ETC_BASE=/etc/php/7.2
 PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
+# <snippet-end 1_php-vars.sh>
 ```
 
 ### 1/ Minimal Ubuntu install
@@ -30,13 +32,17 @@ PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
 
 #### Make sure your system is up2date
 ```bash
+# <snippet-begin apt-upgrade.sh>
 sudo apt-get update
 sudo apt-get upgrade
+# <snippet-end apt-upgrade.sh>
 ```
 
 #### install postfix, there will be some questions.
 ```bash
-sudo apt-get install postfix -y
+# <snippet-begin postfix.sh>
+sudo apt-get install postfix dialog -y
+# <snippet-begin postfix.sh>
 ```
 
 !!! notice
@@ -463,3 +469,11 @@ sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install pyzmq
     If you want to add the misp modules functionality, follow the setup procedure described in misp-modules:<br />
     https://github.com/MISP/misp-modules#how-to-install-and-start-misp-modules<br />
     Then the enrichment, export and import modules can be enabled in MISP via the settings.
+
+# INSTALL.debian.sh
+
+!!! notice
+    The following section is an administrative section that is used by the "[INSTALL.debian.sh](https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh)" script.
+    Please ignore.
+
+{!generic/supportFunctions.md!}
