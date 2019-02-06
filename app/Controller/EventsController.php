@@ -1714,12 +1714,7 @@ class EventsController extends AppController
                             throw new NotFoundException(__('Event already exists, if you would like to edit it, use the url in the location header.'));
                         }
                         // # TODO i18n?
-                        $this->set('name', 'Add event failed.');
-                        $this->set('message', 'The event could not be saved.');
-                        $this->set('errors', $validationErrors);
-                        $this->set('url', '/events/add');
-                        $this->set('_serialize', array('name', 'message', 'url', 'errors'));
-                        return false;
+                        return $this->RestResponse->saveFailResponse('Events', 'add', false, $validationErrors, $this->response->type());
                     } else {
                         if ($add === 'blocked') {
                             $this->Flash->error(__('A blacklist entry is blocking you from creating any events. Please contact the administration team of this instance') . (Configure::read('MISP.contact') ? ' at ' . Configure::read('MISP.contact') : '') . '.');
@@ -2025,13 +2020,9 @@ class EventsController extends AppController
                         if (isset($result['error'])) {
                             $errors = $result['error'];
                         } else {
-                            $errors = $converter->arrayPrinter($result);
+                            $errors = $result;
                         }
-                        $this->set('name', 'Edit event failed.');
-                        $this->set('message', $message);
-                        $this->set('errors', $errors);
-                        $this->set('url', '/events/edit/' . $id);
-                        $this->set('_serialize', array('name', 'message', 'url', 'errors'));
+                        return $this->RestResponse->saveFailResponse('Events', 'edit', $id, $errors, $this->response->type());
                     } else {
                         $this->set(array('message' => $message,'_serialize' => array('message')));	// $this->Event->validationErrors
                         $this->render('edit');
