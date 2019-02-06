@@ -1930,4 +1930,29 @@ class AppModel extends Model
 	{
 		return (new RandomTool())->random_str(false, 12);
 	}
+
+    public function resolveTimeDelta($delta)
+    {
+        if (is_numeric($delta)) {
+            return $delta;
+        }
+        $multiplierArray = array('d' => 86400, 'h' => 3600, 'm' => 60, 's' => 1);
+        $multiplier = $multiplierArray['d'];
+        $lastChar = strtolower(substr($delta, -1));
+        if (!is_numeric($lastChar) && array_key_exists($lastChar, $multiplierArray)) {
+            $multiplier = $multiplierArray[$lastChar];
+            $delta = substr($delta, 0, -1);
+        } else if(strtotime($delta) !== false) {
+            debug(strtotime($delta));
+            return strtotime($delta);
+        } else {
+            // invalid filter, make sure we don't return anything
+            return time() + 1;
+        }
+        if (!is_numeric($delta)) {
+            // Same here. (returning false dumps the whole database)
+            return time() + 1;
+        }
+        return time() - ($delta * $multiplier);
+    }
 }

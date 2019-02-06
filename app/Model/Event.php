@@ -4336,28 +4336,6 @@ class Event extends AppModel
         return (preg_match('/^[0-9]{4}-(0[1-9]|1[012])-(0[1-9]|1[0-9]|2[0-9]|3[01])$/', $date)) ? $date : false;
     }
 
-    public function resolveTimeDelta($delta)
-    {
-        if (is_numeric($delta)) {
-            return $delta;
-        }
-        $multiplierArray = array('d' => 86400, 'h' => 3600, 'm' => 60, 's' => 1);
-        $multiplier = $multiplierArray['d'];
-        $lastChar = strtolower(substr($delta, -1));
-        if (!is_numeric($lastChar) && array_key_exists($lastChar, $multiplierArray)) {
-            $multiplier = $multiplierArray[$lastChar];
-            $delta = substr($delta, 0, -1);
-        } else {
-            // invalid filter, make sure we don't return anything
-            return time() + 1;
-        }
-        if (!is_numeric($delta)) {
-            // Same here. (returning false dumps the whole database)
-            return time() + 1;
-        }
-        return time() - ($delta * $multiplier);
-    }
-
     private function __prepareAttributeForView(
         $attribute,
         $correlatedAttributes,
