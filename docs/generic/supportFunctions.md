@@ -379,8 +379,5 @@ enableServices () {
     update-rc.d apache2 enable
     update-rc.d redis-server enable
 }
-
-source misp-dashboard.sh
-
 # <snippet-begin 0_support-functions.sh>
 ```
