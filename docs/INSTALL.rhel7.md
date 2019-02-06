@@ -506,13 +506,14 @@ scl enable devtoolset-7 rh-python36 'bash -c "cmake3 \
 .."'
 make -j3
 cd api/python
-# before you run setup.py it may be a good idea to switch off your Internet connection ; otherwise pip will try to fetch lief from Github which may cause issues later
 scl enable rh-python36 'python3 setup.py install || :'
+# when running setup.py, pip will download and install remote LIEF packages that will prevent MISP from detecting the packages that you compiled ; remove them
+find /opt/rh/rh-python36/root/ -name "*lief*" -exec rm -rf {} \;
 ```
 
 ## 11.04/ Test lief installation, if no error, package installed
 ```bash
-python
+scl enable rh-python36 python3
 >> import lief
 ```
 
