@@ -28,7 +28,7 @@
                 $domains = implode("<br />", $domains);
                 echo sprintf(
                     '<dt>%s</dt><dd>%s</dd>',
-                    __('E-mail domain restrictions'),
+                    __('Domain restrictions'),
                     $domains
                 );
             }
