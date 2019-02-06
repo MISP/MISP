@@ -177,11 +177,18 @@
                 ?>
                 <dt><?php echo __('#Attributes');?></dt>
                 <dd><?php echo h($attribute_count);?></dd>
+                <dt><?php echo __('First recorded change');?></dt>
+                <dd>
+                    <?php echo date('Y-m-d H:i:s', $event['Event']['timestamp']);; ?>
+                    &nbsp;
+                </dd>
                 <dt><?php echo __('Last change');?></dt>
                 <dd>
                     <?php echo date('Y-m-d H:i:s', $event['Event']['timestamp']);; ?>
                     &nbsp;
                 </dd>
+                <dt><?php echo __('Modification map'); ?></dt>
+                <dd><?php echo $this->element('sparkline', array('scope' => 'modification', 'id' => $event['Event']['id'], 'csv' => $modificationMapCSV));?></dd>
                 <dt><?php echo __('Extends');?></dt>
                 <dd style="word-wrap: break-word;">
                     <?php

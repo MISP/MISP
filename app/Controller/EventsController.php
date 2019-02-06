@@ -1269,16 +1269,36 @@ class EventsController extends AppController
                 unset($event['EventTag'][$k]);
             }
         }
+        $startDate = null;
+        $modificationMap = array();
         foreach ($event['Attribute'] as $k => $attribute) {
+            if ($startDate === null || $attribute['timestamp'] < $startDate) {
+                $startDate = $attribute['timestamp'];
+            }
+            $modDate = date("Y-m-d", $attribute['timestamp']);
+            $modificationMap[$modDate] = empty($modificationMap[$modDate])? 1 : $modificationMap[date("Y-m-d", $attribute['timestamp'])] + 1;
             foreach ($attribute['AttributeTag'] as $k2 => $attributeTag) {
                 if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
                     unset($event['Attribute'][$k]['AttributeTag'][$k2]);
                 }
             }
         }
+        $startDate = $event['Event']['timestamp'];
+        $modDate = date("Y-m-d", $event['Event']['timestamp']);
+        $modificationMap[$modDate] = 1;
         foreach ($event['Object'] as $k => $object) {
+            if ($startDate === null || $object['timestamp'] < $startDate) {
+                $startDate = $object['timestamp'];
+            }
+            $modDate = date("Y-m-d", $object['timestamp']);
+            $modificationMap[$modDate] = empty($modificationMap[$modDate])? 1 : $modificationMap[date("Y-m-d", $object['timestamp'])] + 1;
             if (!empty($object['Attribute'])) {
                 foreach ($object['Attribute'] as $k2 => $attribute) {
+                    if ($startDate === null || $attribute['timestamp'] < $startDate) {
+                        $startDate = $attribute['timestamp'];
+                    }
+                    $modDate = date("Y-m-d", $attribute['timestamp']);
+                    $modificationMap[$modDate] = empty($modificationMap[$modDate])? 1 : $modificationMap[date("Y-m-d", $attribute['timestamp'])] + 1;
                     foreach ($attribute['AttributeTag'] as $k3 => $attributeTag) {
                         if (in_array($attributeTag['Tag']['name'], $cluster_names)) {
                             unset($event['Object'][$k]['Attribute'][$k2]['AttributeTag'][$k3]);
@@ -1287,6 +1307,24 @@ class EventsController extends AppController
                 }
             }
         }
+        $modificationMapCSV = 'Date,Close\n';
+        $startDate = array_keys($modificationMap);
+        sort($startDate);
+        $startDate = $startDate[0];
+        $this->set('startDate', $startDate);
+        $to = date('Y-m-d', time());
+        if ((strtotime($to) - 172800) > $startDate) {
+            $startDate = date('Y-m-d', strtotime($to) - 172800);
+        }
+        for ($date = $startDate; strtotime($date) <= strtotime($to); $date = date('Y-m-d', strtotime("+1 day", strtotime($date)))) {
+
+            if (isset($modificationMap[$date])) {
+                $modificationMapCSV .= $date . ',' . $modificationMap[$date] . '\n';
+            } else {
+                $modificationMapCSV .= $date . ',0\n';
+            }
+        }
+        unset($modificationMap);
         $passedArgs = array('sort' => 'timestamp', 'direction' => 'desc');
         $params = $this->Event->rearrangeEventForView($event, $passedArgs);
         $this->params->params['paging'] = array($this->modelClass => $params);
@@ -1367,6 +1405,7 @@ class EventsController extends AppController
         $this->set('orgTable', $orgTable);
         $this->set('currentUri', $attributeUri);
         $this->set('mitreAttackGalaxyId', $this->Event->GalaxyCluster->Galaxy->getMitreAttackGalaxyId());
+        $this->set('modificationMapCSV', $modificationMapCSV);
     }
 
     public function view($id = null, $continue=false, $fromEvent=null)
