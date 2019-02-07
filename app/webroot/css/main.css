@@ -2213,3 +2213,26 @@ table tr:hover .down-expand-button {
     position: relative;
     bottom: 4px;
 }
+
+.meta_table {
+    table-layout: fixed;
+    padding: 0;
+    margin: 0;
+}
+
+.meta_table_key {
+    width: 150px;
+    font-weight: bold;
+    padding: 0;
+    margin: 0;
+    text-align: left;
+}
+.meta_table_value {
+    padding: 0;
+    margin: 0;
+    text-align: left;
+}
+
+.break-word {
+    word-wrap: break-word;
+}
