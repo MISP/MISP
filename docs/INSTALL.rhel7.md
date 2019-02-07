@@ -332,6 +332,7 @@ firewall-cmd --reload
     Check out the apache.misp.ssl file for an example
 
 # 8/ Log Rotation
+## 8.01/ Enable log rotation
 MISP saves the stdout and stderr of it's workers in /var/www/MISP/app/tmp/logs
 To rotate these logs install the supplied logrotate script:
 ```
@@ -339,13 +340,13 @@ cp INSTALL/misp.logrotate /etc/logrotate.d/misp
 chmod 0640 /etc/logrotate.d/misp
 ```
 
-## 8.01/ Allow logrotate to work under SELinux and modify the log files
+## 8.02/ Allow logrotate to work under SELinux and modify the log files
 ```bash
 semanage fcontext -a -t httpd_log_t "/var/www/MISP/app/tmp/logs(/.*)?"
 chcon -R -t httpd_log_t /var/www/MISP/app/tmp/logs
 ```
 
-## 8.02/ Allow logrotate to read /var/www
+## 8.03/ Allow logrotate to read /var/www
 ```bash
 checkmodule -M -m -o /tmp/misplogrotate.mod INSTALL/misplogrotate.te
 semodule_package -o /tmp/misplogrotate.pp -m /tmp/misplogrotate.mod
