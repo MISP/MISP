@@ -92,7 +92,7 @@ systemctl enable --now rh-mariadb102-mariadb.service
     This guide installs PHP 7.1 from SCL
 
 !!! warning
-    [PHP 5.6 will be EOL in December 2018](https://secure.php.net/supported-versions.php). Please update accordingly. In future only PHP7 will be supported.
+    [PHP 5.6 and 7.0 aren't supported since December 2018](https://secure.php.net/supported-versions.php). Please update accordingly. In the future only PHP7 will be supported.
 
 ## 2.04/ Install PHP 7.1 from SCL
 ```bash
