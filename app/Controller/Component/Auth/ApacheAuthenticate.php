@@ -51,7 +51,9 @@ class ApacheAuthenticate extends BaseAuthenticate
         $ldaprdn = Configure::read('ApacheSecureAuth.ldapReaderUser');     // DN ou RDN LDAP
         $ldappass = Configure::read('ApacheSecureAuth.ldapReaderPassword');
         $ldapSearchFilter = Configure::read('ApacheSecureAuth.ldapSearchFilter');
+
         // LDAP connection
+        ldap_set_option(NULL, LDAP_OPT_NETWORK_TIMEOUT, Configure::read('ApacheSecureAuth.ldapNetworkTimeout', -1));
         $ldapconn = ldap_connect(Configure::read('ApacheSecureAuth.ldapServer'))
                 or die('LDAP server connection failed');
 
