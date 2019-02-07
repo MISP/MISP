@@ -25,7 +25,7 @@ The following assumptions with regard to this installation have been made.
 
 ## 1.2/ Configure system hostname
 ```bash
-sudo hostnamectl set-hostname misp # You're choice, in a production environment, it's best to use a FQDN
+sudo hostnamectl set-hostname misp # Your choice, in a production environment, it's best to use a FQDN
 ```
 
 ## 1.3/ Register the system for updates with Red Hat Subscription Manager
