@@ -84,8 +84,7 @@ yum install rh-mariadb102
 
 ## 2.03/ Start the MariaDB service and enable it to start on boot
 ```bash
-systemctl start rh-mariadb102-mariadb.service
-systemctl enable rh-mariadb102-mariadb.service
+systemctl enable --now rh-mariadb102-mariadb.service
 ```
 
 !!! note
@@ -105,8 +104,7 @@ yum install rh-php71 rh-php71-php-fpm rh-php71-php-devel rh-php71-php-mysqlnd rh
 
 ## 2.05/ Start the PHP FPM service and enable to start on boot
 ```bash
-systemctl start rh-php71-php-fpm.service
-systemctl enable rh-php71-php-fpm.service
+systemctl enable --now rh-php71-php-fpm.service
 ```
 
 ## 2.06/ Install redis 3.2 from SCL
@@ -116,22 +114,17 @@ yum install rh-redis32
 
 ## 2.07/ Start redis service and enable to start on boot
 ```bash
-systemctl start rh-redis32-redis.service
-systemctl enable rh-redis32-redis.service
-```
-
-## 2.08/ Start a SCL shell with rh-mariadb102 rh-php71 and rh-redis32 enabled
-```bash
-scl enable rh-mariadb102 rh-php71 rh-redis32 bash
+systemctl enable --now rh-redis32-redis.service
 ```
 
 ## 2.08/ Secure the MariaDB installation, run the following command and follow the prompts
 ```bash
-mysql_secure_installation
+scl enable rh-mariadb102 'mysql_secure_installation'
 ```
 
 ## 2.10/ Update the PHP extension repository and install required package
 ```bash
+scl enable rh-php71 rh-redis32 bash
 pear channel-update pear.php.net
 pear install Crypt_GPG
 ```
@@ -139,8 +132,7 @@ pear install Crypt_GPG
 ## 2.11/ Install haveged and enable to start on boot to provide entropy for GPG
 ```bash
 yum install haveged
-systemctl start haveged
-systemctl enable haveged
+systemctl enable --now haveged
 ```
 
 ## 2.12/ Install Python 3.6 from SCL
@@ -228,7 +220,7 @@ php composer.phar install
 
 ## 4.03/ Install and configure php redis connector through pecl
 ```bash
-pecl install redis
+scl enable rh-php71 'pecl install redis'
 echo "extension=redis.so" > /etc/opt/rh/rh-php71/php-fpm.d/redis.ini
 ln -s ../php-fpm.d/redis.ini /etc/opt/rh/rh-php71/php.d/99-redis.ini
 systemctl restart rh-php71-php-fpm.service
@@ -276,7 +268,7 @@ systemctl restart rh-mariadb102-mariadb
 
 ## 6.02/ Start MariaDB shell and create database
 ```bash
-mysql -u root -p
+scl enable rh-mariadb102 'mysql -u root -p'
 ```
 
 ```
@@ -316,8 +308,7 @@ setsebool -P httpd_can_network_connect on
 
 ## 7.03/ Enable and start the httpd service
 ```bash
-systemctl enable httpd.service
-systemctl start httpd.service
+systemctl enable --now httpd.service
 ```
 
 ## 7.04/ Open a hole in the firewalld service
