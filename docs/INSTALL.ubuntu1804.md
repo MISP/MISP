@@ -13,6 +13,7 @@
 {!generic/globalVariables.md!}
 
 ```bash
+## TODO: Move this away, this should be done depending on using php7.2 or php7.3
 # <snippet-begin 1_php-vars.sh>
 PHP_ETC_BASE=/etc/php/7.2
 PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
@@ -406,37 +407,18 @@ fi
 
 {!generic/MISP_CAKE_init.md!}
 
+{!generic/misp-modules-debian.md!}
+
+
 ```bash
 # Add the following lines before the last line (exit 0). Make sure that you replace www-data with your apache user:
 sudo sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
 sudo sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
 sudo sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
 sudo sed -i -e '$i \sudo -u www-data bash ${PATH_TO_MISP}/app/Console/worker/start.sh > /tmp/worker_start_rc.local.log\n' /etc/rc.local
-sudo sed -i -e '$i \sudo -u www-data ${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s > /tmp/misp-modules_rc.local.log &\n' /etc/rc.local
 
 # Start the workers
 sudo -u www-data bash $PATH_TO_MISP/app/Console/worker/start.sh
-
-# some misp-modules dependencies
-sudo apt-get install libpq5 libjpeg-dev libfuzzy-dev -y
-
-sudo chmod 2775 /usr/local/src
-sudo chown root:staff /usr/local/src
-cd /usr/local/src/
-git clone https://github.com/MISP/misp-modules.git
-cd misp-modules
-# pip install
-sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
-sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
-sudo apt install ruby-pygments.rb -y
-sudo gem install asciidoctor-pdf --pre
-
-# install additional dependencies for extended object generation and extraction
-sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install maec lief python-magic pathlib
-sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
-
-# Start misp-modules
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s &
 
 echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"
 echo "User  (misp) DB Password: $DBPASSWORD_MISP"

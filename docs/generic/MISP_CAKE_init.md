@@ -8,22 +8,6 @@ coreCAKE () {
 
   $CAKE userInit -q
 
-  $CAKE Admin setSetting "Plugin.ZeroMQ_enable" true
-  $CAKE Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" true
-  $CAKE Admin setSetting "Plugin.ZeroMQ_object_notifications_enable" true
-  $CAKE Admin setSetting "Plugin.ZeroMQ_object_reference_notifications_enable" true
-  $CAKE Admin setSetting "Plugin.ZeroMQ_attribute_notifications_enable" true
-  $CAKE Admin setSetting "Plugin.ZeroMQ_sighting_notifications_enable" true
-  $CAKE Admin setSetting "Plugin.ZeroMQ_user_notifications_enable" true
-  $CAKE Admin setSetting "Plugin.ZeroMQ_organisation_notifications_enable" true
-  $CAKE Admin setSetting "Plugin.ZeroMQ_port" 50000
-  $CAKE Admin setSetting "Plugin.ZeroMQ_redis_host" "localhost"
-  $CAKE Admin setSetting "Plugin.ZeroMQ_redis_port" 6379
-  $CAKE Admin setSetting "Plugin.ZeroMQ_redis_database" 1
-  $CAKE Admin setSetting "Plugin.ZeroMQ_redis_namespace" "mispq"
-  $CAKE Admin setSetting "Plugin.ZeroMQ_include_attachments" false
-  $CAKE Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false
-  $CAKE Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false
   $CAKE Admin setSetting "GnuPG.email" "admin@admin.test"
   $CAKE Admin setSetting "GnuPG.homedir" "/var/www/MISP/.gnupg"
   $CAKE Admin setSetting "GnuPG.password" "Password1234"

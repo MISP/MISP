@@ -63,9 +63,9 @@ mispDashboard () {
   # Add misp-dashboard to rc.local to start on boot.
   sudo sed -i -e '$i \sudo -u www-data bash /var/www/misp-dashboard/start_all.sh > /tmp/misp-dashboard_rc.local.log\n' /etc/rc.local
 }
-# <snippet-end misp-dashboard.sh>
+# <snippet-end 0_misp-dashboard.sh>
 
-# <snippet-start misp-dashboard-cake.sh>
+# <snippet-start 0_misp-dashboard-cake.sh>
 dashboardCAKE () {
   # Enable ZeroMQ for misp-dashboard
   sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_enable" true
@@ -85,5 +85,5 @@ dashboardCAKE () {
   sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false
   sudo -H -u www-data $CAKE Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false
 }
-# <snippet-end misp-dashboard-cake.sh>
+# <snippet-end 0_misp-dashboard-cake.sh>
 ```
