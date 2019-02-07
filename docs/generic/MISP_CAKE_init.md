@@ -1,5 +1,121 @@
 #### Initialize MISP configuration and set some defaults
 ```bash
+# <snippet-start core-cake.sh>
+# Core cake commands
+coreCAKE () {
+  $CAKE Live $MISP_LIVE
+  $CAKE Baseurl $MISP_BASEURL
+
+  $CAKE userInit -q
+
+  $CAKE Admin setSetting "Plugin.ZeroMQ_enable" true
+  $CAKE Admin setSetting "Plugin.ZeroMQ_event_notifications_enable" true
+  $CAKE Admin setSetting "Plugin.ZeroMQ_object_notifications_enable" true
+  $CAKE Admin setSetting "Plugin.ZeroMQ_object_reference_notifications_enable" true
+  $CAKE Admin setSetting "Plugin.ZeroMQ_attribute_notifications_enable" true
+  $CAKE Admin setSetting "Plugin.ZeroMQ_sighting_notifications_enable" true
+  $CAKE Admin setSetting "Plugin.ZeroMQ_user_notifications_enable" true
+  $CAKE Admin setSetting "Plugin.ZeroMQ_organisation_notifications_enable" true
+  $CAKE Admin setSetting "Plugin.ZeroMQ_port" 50000
+  $CAKE Admin setSetting "Plugin.ZeroMQ_redis_host" "localhost"
+  $CAKE Admin setSetting "Plugin.ZeroMQ_redis_port" 6379
+  $CAKE Admin setSetting "Plugin.ZeroMQ_redis_database" 1
+  $CAKE Admin setSetting "Plugin.ZeroMQ_redis_namespace" "mispq"
+  $CAKE Admin setSetting "Plugin.ZeroMQ_include_attachments" false
+  $CAKE Admin setSetting "Plugin.ZeroMQ_tag_notifications_enable" false
+  $CAKE Admin setSetting "Plugin.ZeroMQ_audit_notifications_enable" false
+  $CAKE Admin setSetting "GnuPG.email" "admin@admin.test"
+  $CAKE Admin setSetting "GnuPG.homedir" "/var/www/MISP/.gnupg"
+  $CAKE Admin setSetting "GnuPG.password" "Password1234"
+  $CAKE Admin setSetting "Plugin.Enrichment_services_enable" true
+  $CAKE Admin setSetting "Plugin.Enrichment_hover_enable" true
+  $CAKE Admin setSetting "Plugin.Enrichment_timeout" 300
+  $CAKE Admin setSetting "Plugin.Enrichment_hover_timeout" 150
+  $CAKE Admin setSetting "Plugin.Enrichment_cve_enabled" true
+  $CAKE Admin setSetting "Plugin.Enrichment_dns_enabled" true
+  $CAKE Admin setSetting "Plugin.Enrichment_services_url" "http://127.0.0.1"
+  $CAKE Admin setSetting "Plugin.Enrichment_services_port" 6666
+  $CAKE Admin setSetting "Plugin.Import_services_enable" true
+  $CAKE Admin setSetting "Plugin.Import_services_url" "http://127.0.0.1"
+  $CAKE Admin setSetting "Plugin.Import_services_port" 6666
+  $CAKE Admin setSetting "Plugin.Import_timeout" 300
+  $CAKE Admin setSetting "Plugin.Import_ocr_enabled" true
+  $CAKE Admin setSetting "Plugin.Import_csvimport_enabled" true
+  $CAKE Admin setSetting "Plugin.Export_services_enable" true
+  $CAKE Admin setSetting "Plugin.Export_services_url" "http://127.0.0.1"
+  $CAKE Admin setSetting "Plugin.Export_services_port" 6666
+  $CAKE Admin setSetting "Plugin.Export_timeout" 300
+  $CAKE Admin setSetting "Plugin.Export_pdfexport_enabled" true
+  $CAKE Admin setSetting "MISP.host_org_id" 1
+  $CAKE Admin setSetting "MISP.email" "info@admin.test"
+  $CAKE Admin setSetting "MISP.disable_emailing" false
+  $CAKE Admin setSetting "MISP.contact" "info@admin.test"
+  $CAKE Admin setSetting "MISP.disablerestalert" true
+  $CAKE Admin setSetting "MISP.showCorrelationsOnIndex" true
+  $CAKE Admin setSetting "Plugin.Cortex_services_enable" false
+  $CAKE Admin setSetting "Plugin.Cortex_services_url" "http://127.0.0.1"
+  $CAKE Admin setSetting "Plugin.Cortex_services_port" 9000
+  $CAKE Admin setSetting "Plugin.Cortex_timeout" 120
+  $CAKE Admin setSetting "Plugin.Cortex_services_url" "http://127.0.0.1"
+  $CAKE Admin setSetting "Plugin.Cortex_services_port" 9000
+  $CAKE Admin setSetting "Plugin.Cortex_services_timeout" 120
+  $CAKE Admin setSetting "Plugin.Cortex_services_authkey" ""
+  $CAKE Admin setSetting "Plugin.Cortex_ssl_verify_peer" false
+  $CAKE Admin setSetting "Plugin.Cortex_ssl_verify_host" false
+  $CAKE Admin setSetting "Plugin.Cortex_ssl_allow_self_signed" true
+  $CAKE Admin setSetting "Plugin.Sightings_policy" 0
+  $CAKE Admin setSetting "Plugin.Sightings_anonymise" false
+  $CAKE Admin setSetting "Plugin.Sightings_range" 365
+  $CAKE Admin setSetting "Plugin.CustomAuth_disable_logout" false
+  $CAKE Admin setSetting "Plugin.RPZ_policy" "DROP"
+  $CAKE Admin setSetting "Plugin.RPZ_walled_garden" "127.0.0.1"
+  $CAKE Admin setSetting "Plugin.RPZ_serial" "\$date00"
+  $CAKE Admin setSetting "Plugin.RPZ_refresh" "2h"
+  $CAKE Admin setSetting "Plugin.RPZ_retry" "30m"
+  $CAKE Admin setSetting "Plugin.RPZ_expiry" "30d"
+  $CAKE Admin setSetting "Plugin.RPZ_minimum_ttl" "1h"
+  $CAKE Admin setSetting "Plugin.RPZ_ttl" "1w"
+  $CAKE Admin setSetting "Plugin.RPZ_ns" "localhost."
+  $CAKE Admin setSetting "Plugin.RPZ_ns_alt" ""
+  $CAKE Admin setSetting "Plugin.RPZ_email" "root.localhost"
+  $CAKE Admin setSetting "MISP.language" "eng"
+  $CAKE Admin setSetting "MISP.proposals_block_attributes" false
+  $CAKE Admin setSetting "MISP.redis_host" "127.0.0.1"
+  $CAKE Admin setSetting "MISP.redis_port" 6379
+  $CAKE Admin setSetting "MISP.redis_database" 13
+  $CAKE Admin setSetting "MISP.redis_password" ""
+  $CAKE Admin setSetting "MISP.ssdeep_correlation_threshold" 40
+  $CAKE Admin setSetting "MISP.extended_alert_subject" false
+  $CAKE Admin setSetting "MISP.default_event_threat_level" 4
+  $CAKE Admin setSetting "MISP.newUserText" "Dear new MISP user,\\n\\nWe would hereby like to welcome you to the \$org MISP community.\\n\\n Use the credentials below to log into MISP at \$misp, where you will be prompted to manually change your password to something of your own choice.\\n\\nUsername: \$username\\nPassword: \$password\\n\\nIf you have any questions, don't hesitate to contact us at: \$contact.\\n\\nBest regards,\\nYour \$org MISP support team"
+  $CAKE Admin setSetting "MISP.passwordResetText" "Dear MISP user,\\n\\nA password reset has been triggered for your account. Use the below provided temporary password to log into MISP at \$misp, where you will be prompted to manually change your password to something of your own choice.\\n\\nUsername: \$username\\nYour temporary password: \$password\\n\\nIf you have any questions, don't hesitate to contact us at: \$contact.\\n\\nBest regards,\\nYour \$org MISP support team"
+  $CAKE Admin setSetting "MISP.enableEventBlacklisting" true
+  $CAKE Admin setSetting "MISP.enableOrgBlacklisting" true
+  $CAKE Admin setSetting "MISP.log_client_ip" false
+  $CAKE Admin setSetting "MISP.log_auth" false
+  $CAKE Admin setSetting "MISP.disableUserSelfManagement" false
+  $CAKE Admin setSetting "MISP.block_event_alert" false
+  $CAKE Admin setSetting "MISP.block_event_alert_tag" "no-alerts=\"true\""
+  $CAKE Admin setSetting "MISP.block_old_event_alert" false
+  $CAKE Admin setSetting "MISP.block_old_event_alert_age" ""
+  $CAKE Admin setSetting "MISP.incoming_tags_disabled_by_default" false
+  $CAKE Admin setSetting "MISP.footermidleft" "This is an autogenerated install"
+  $CAKE Admin setSetting "MISP.footermidright" "Please configure accordingly and do not use in production"
+  $CAKE Admin setSetting "MISP.welcome_text_top" "Autogenerated install, please configure and harden accordingly"
+  $CAKE Admin setSetting "MISP.welcome_text_bottom" "Welcome to MISP on Kali"
+  $CAKE Admin setSetting "Security.password_policy_length" 12
+  $CAKE Admin setSetting "Security.password_policy_complexity" '/^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/'
+  $CAKE Admin setSetting "Session.autoRegenerate" 0
+  $CAKE Admin setSetting "Session.timeout" 600
+  $CAKE Admin setSetting "Session.cookie_timeout" 3600
+  $CAKE Live $MISP_LIVE
+}
+# <snippet-end core-cake.sh>
+```
+
+
+
+```bash
 # Default Cake path
 export CAKE="$PATH_TO_MISP/app/Console/cake"
 # Initialize user and fetch Auth Key
