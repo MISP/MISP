@@ -25,16 +25,20 @@ import io
 import re
 import stix2
 from base64 import b64encode
-from pymisp import MISPEvent, MISPObject, MISPAttribute, __path__
-from pymisp.exceptions import PyMISPInvalidFormat
 from stix2misp_mapping import *
 from collections import defaultdict
 
+_MISP_dir = "/".join([p for p in os.path.dirname(os.path.realpath(__file__)).split('/')[:-4]])
+_PyMISP_dir = '{_MISP_dir}/PyMISP/pymisp'.format(_MISP_dir=_MISP_dir)
+_MISP_objects_path = '{_MISP_dir}/app/files/misp-objects/objects'.format(_MISP_dir=_MISP_dir)
+sys.path.append(_PyMISP_dir)
+from pymisp.mispevent import MISPEvent, MISPObject, MISPAttribute
+from pymisp.exceptions import PyMISPInvalidFormat
 TAG_REGEX = re.compile(r"\(.+\) .+ = .+")
 special_parsing = ('relationship', 'report', 'galaxy', 'marking-definition')
 galaxy_types = {'attack-pattern': 'Attack Pattern', 'intrusion-set': 'Intrusion Set',
                 'malware': 'Malware', 'threat-actor': 'Threat Actor', 'tool': 'Tool'}
-with open(os.path.join(__path__[0], 'data/describeTypes.json'), 'r') as f:
+with open('{_PyMISP_dir}/data/describeTypes.json'.format(_PyMISP_dir=_PyMISP_dir), 'r') as f:
     misp_types = json.loads(f.read())['result'].get('types')
 
 class StixParser():
@@ -359,7 +363,7 @@ class StixParser():
         return attributes, message
 
     def parse_course_of_action(self, o):
-        misp_object = MISPObject('course-of-action')
+        misp_object = MISPObject('course-of-action', misp_objects_path_custom=_MISP_objects_path)
         if 'name' in o:
             attribute = {'type': 'text', 'object_relation': 'name', 'value': o.get('name')}
             misp_object.add_attribute(**attribute)
@@ -383,12 +387,12 @@ class StixParser():
         return attributes
 
     def parse_pe(self, extension):
-        pe = MISPObject('pe')
+        pe = MISPObject('pe', misp_objects_path_custom=_MISP_objects_path)
         pe_uuid = str(uuid.uuid4())
         pe.uuid = pe_uuid
         self.fill_object_attributes_observable(pe, pe_mapping, extension)
         for section in extension['sections']:
-            pe_section = MISPObject('pe-section')
+            pe_section = MISPObject('pe-section', misp_objects_path_custom=_MISP_objects_path)
             if 'hashes' in section:
                 for h_type, h_value in section['hashes'].items():
                     h_type = h_type.lower().replace('-', '')
@@ -489,7 +493,7 @@ class StixFromMISPParser(StixParser):
 
     def parse_custom_object(self, o, labels):
         name = o['type'].split('x-misp-object-')[1]
-        misp_object = MISPObject(name)
+        misp_object = MISPObject(name, misp_objects_path_custom=_MISP_objects_path)
         misp_object.timestamp = self.getTimestampfromDate(o['x_misp_timestamp'])
         misp_object.uuid = o['id'].split('--')[1]
         try:
@@ -521,7 +525,7 @@ class StixFromMISPParser(StixParser):
         name = 'file' if object_type == 'WindowsPEBinaryFile' else object_type
         object_category = self.get_misp_category(labels)
         stix_type = o._type
-        misp_object = MISPObject(name)
+        misp_object = MISPObject(name, misp_objects_path_custom=_MISP_objects_path)
         uuid = o.id.split('--')[1]
         misp_object.uuid = uuid
         misp_object['meta-category'] = object_category
@@ -679,7 +683,7 @@ class StixFromMISPParser(StixParser):
     def pattern_pe(self, pattern):
         attributes = []
         sections = defaultdict(dict)
-        pe = MISPObject('pe')
+        pe = MISPObject('pe', misp_objects_path_custom=_MISP_objects_path)
         pe_uuid = str(uuid.uuid4())
         pe.uuid = pe_uuid
         for p in pattern:
@@ -717,7 +721,7 @@ class StixFromMISPParser(StixParser):
                             attributes.append({'type': attribute_type, 'object_relation': relation,
                                                'value': p_value, 'to_ids': True})
         for _, section in sections.items():
-            pe_section = MISPObject('pe-section')
+            pe_section = MISPObject('pe-section', misp_objects_path_custom=_MISP_objects_path)
             for stix_type, value in section.items():
                 if 'hashes.' in stix_type:
                     h_type = stix_type.split('.')[1]
@@ -1305,7 +1309,7 @@ class ExternalStixParser(StixParser):
 
     @staticmethod
     def create_misp_object(attributes, name, uuid=None):
-        misp_object = MISPObject(name)
+        misp_object = MISPObject(name, misp_objects_path_custom=_MISP_objects_path)
         if uuid is not None:
             misp_object.uuid = uuid
         for attribute in attributes:
