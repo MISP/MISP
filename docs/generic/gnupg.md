@@ -2,7 +2,7 @@
 # <snippet-begin 2_gnupg.sh>
 # Generate GnuPG key
 setupGnuPG () {
-  if [ -ne $PATH_TO_MISP/.gnupg ]; then
+  if [ ! -d $PATH_TO_MISP/.gnupg ]; then
     # The email address should match the one set in the config.php
     # set in the configuration menu in the administration menu configuration file
     echo "%echo Generating a default key
