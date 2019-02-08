@@ -25,7 +25,7 @@ The following assumptions with regard to this installation have been made.
 
 ## 1.2/ Configure system hostname
 ```bash
-sudo hostnamectl set-hostname misp # You're choice, in a production environment, it's best to use a FQDN
+sudo hostnamectl set-hostname misp # Your choice, in a production environment, it's best to use a FQDN
 ```
 
 ## 1.3/ Register the system for updates with Red Hat Subscription Manager
@@ -38,8 +38,7 @@ sudo subscription-manager register --auto-attach # register your system to an ac
 sudo subscription-manager refresh 
 sudo subscription-manager repos --enable rhel-7-server-optional-rpms
 sudo subscription-manager repos --enable rhel-7-server-extras-rpms
-# This fails on a Trial subscription, it seems.
-##sudo subscription-manager repos --enable rhel-server-rhscl-7-rpms
+sudo subscription-manager repos --enable rhel-server-rhscl-7-rpms
 ```
 
 ### 1.5a/ OPTIONAL: Install the deltarpm package to help reduce download size when installing updates
@@ -64,11 +63,6 @@ yum update -y
 yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y
 ```
 
-## 1.7/ Install the SCL repo
-```bash
-yum install centos-release-scl
-```
-
 # 2/ Install Dependencies
 Once the system is installed and updated, the following steps can be performed as root
 
@@ -84,8 +78,7 @@ yum install rh-mariadb102
 
 ## 2.03/ Start the MariaDB service and enable it to start on boot
 ```bash
-systemctl start rh-mariadb102-mariadb.service
-systemctl enable rh-mariadb102-mariadb.service
+systemctl enable --now rh-mariadb102-mariadb.service
 ```
 
 !!! note
@@ -93,7 +86,7 @@ systemctl enable rh-mariadb102-mariadb.service
     This guide installs PHP 7.1 from SCL
 
 !!! warning
-    [PHP 5.6 will be EOL in December 2018](https://secure.php.net/supported-versions.php). Please update accordingly. In future only PHP7 will be supported.
+    [PHP 5.6 and 7.0 aren't supported since December 2018](https://secure.php.net/supported-versions.php). Please update accordingly. In the future only PHP7 will be supported.
 
 ## 2.04/ Install PHP 7.1 from SCL
 ```bash
@@ -105,8 +98,7 @@ yum install rh-php71 rh-php71-php-fpm rh-php71-php-devel rh-php71-php-mysqlnd rh
 
 ## 2.05/ Start the PHP FPM service and enable to start on boot
 ```bash
-systemctl start rh-php71-php-fpm.service
-systemctl enable rh-php71-php-fpm.service
+systemctl enable --now rh-php71-php-fpm.service
 ```
 
 ## 2.06/ Install redis 3.2 from SCL
@@ -116,22 +108,17 @@ yum install rh-redis32
 
 ## 2.07/ Start redis service and enable to start on boot
 ```bash
-systemctl start rh-redis32-redis.service
-systemctl enable rh-redis32-redis.service
-```
-
-## 2.08/ Start a SCL shell with rh-mariadb102 rh-php71 and rh-redis32 enabled
-```bash
-scl enable rh-mariadb102 rh-php71 rh-redis32 bash
+systemctl enable --now rh-redis32-redis.service
 ```
 
 ## 2.08/ Secure the MariaDB installation, run the following command and follow the prompts
 ```bash
-mysql_secure_installation
+scl enable rh-mariadb102 'mysql_secure_installation'
 ```
 
 ## 2.10/ Update the PHP extension repository and install required package
 ```bash
+scl enable rh-php71 rh-redis32 bash
 pear channel-update pear.php.net
 pear install Crypt_GPG
 ```
@@ -139,8 +126,7 @@ pear install Crypt_GPG
 ## 2.11/ Install haveged and enable to start on boot to provide entropy for GPG
 ```bash
 yum install haveged
-systemctl start haveged
-systemctl enable haveged
+systemctl enable --now haveged
 ```
 
 ## 2.12/ Install Python 3.6 from SCL
@@ -228,7 +214,7 @@ php composer.phar install
 
 ## 4.03/ Install and configure php redis connector through pecl
 ```bash
-pecl install redis
+scl enable rh-php71 'pecl install redis'
 echo "extension=redis.so" > /etc/opt/rh/rh-php71/php-fpm.d/redis.ini
 ln -s ../php-fpm.d/redis.ini /etc/opt/rh/rh-php71/php.d/99-redis.ini
 systemctl restart rh-php71-php-fpm.service
@@ -276,7 +262,7 @@ systemctl restart rh-mariadb102-mariadb
 
 ## 6.02/ Start MariaDB shell and create database
 ```bash
-mysql -u root -p
+scl enable rh-mariadb102 'mysql -u root -p'
 ```
 
 ```
@@ -316,8 +302,7 @@ setsebool -P httpd_can_network_connect on
 
 ## 7.03/ Enable and start the httpd service
 ```bash
-systemctl enable httpd.service
-systemctl start httpd.service
+systemctl enable --now httpd.service
 ```
 
 ## 7.04/ Open a hole in the firewalld service
@@ -332,6 +317,7 @@ firewall-cmd --reload
     Check out the apache.misp.ssl file for an example
 
 # 8/ Log Rotation
+## 8.01/ Enable log rotation
 MISP saves the stdout and stderr of it's workers in /var/www/MISP/app/tmp/logs
 To rotate these logs install the supplied logrotate script:
 ```
@@ -339,13 +325,13 @@ cp INSTALL/misp.logrotate /etc/logrotate.d/misp
 chmod 0640 /etc/logrotate.d/misp
 ```
 
-## 8.01/ Allow logrotate to work under SELinux and modify the log files
+## 8.02/ Allow logrotate to work under SELinux and modify the log files
 ```bash
 semanage fcontext -a -t httpd_log_t "/var/www/MISP/app/tmp/logs(/.*)?"
 chcon -R -t httpd_log_t /var/www/MISP/app/tmp/logs
 ```
 
-## 8.02/ Allow logrotate to read /var/www
+## 8.03/ Allow logrotate to read /var/www
 ```bash
 checkmodule -M -m -o /tmp/misplogrotate.mod INSTALL/misplogrotate.te
 semodule_package -o /tmp/misplogrotate.pp -m /tmp/misplogrotate.mod
@@ -486,46 +472,34 @@ scl enable rh-python36 pip3 install pymisp
 yum install devtoolset-7 cmake3
 ```
 
-## 11.02/ Enable devtoolset-7
+## 11.02/ Create the directory and download the source code
 ```bash
-scl enable devtoolset-7 bash
+cd /var/www/MISP/app/files/scripts
+git clone --branch master --single-branch https://github.com/lief-project/LIEF.git lief
 ```
 
-## 11.03/ Set env variable, create directories and download source code
+## 11.03/ Compile lief and install it
 ```bash
-mkdir -p /tmp/LIEF
-mkdir -p /tmp/LIEF_INSTALL
-export LIEF_TMP=/tmp/LIEF
-export LIEF_INSTALL=/tmp/LIEF_INSTALL
-export LIEF_BRANCH=master
-cd $LIEF_TMP
-git clone --branch $LIEF_BRANCH --single-branch https://github.com/lief-project/LIEF.git LIEF
-```
-
-## 11.04/ Compile lief and install
-```bash
-cd $LIEF_TMP/LIEF
-mkdir -p build
+cd /var/www/MISP/app/files/scripts/lief
+mkdir build
 cd build
-scl enable devtoolset-7 'bash -c "cmake3 \
+scl enable devtoolset-7 rh-python36 'bash -c "cmake3 \
 -DLIEF_PYTHON_API=on \
 -DLIEF_DOC=off \
 -DCMAKE_INSTALL_PREFIX=$LIEF_INSTALL \
 -DCMAKE_BUILD_TYPE=Release \
--DPYTHON_VERSION=2.7 \
+-DPYTHON_VERSION=3.6 \
 .."'
 make -j3
 cd api/python
-scl enable rh-python36 python3 setup.py install || :
-# you can ignore the error about finding suitable distribution
-cd $LIEF_TMP/LIEF/build
-make install
-make package
+scl enable rh-python36 'python3 setup.py install || :'
+# when running setup.py, pip will download and install remote LIEF packages that will prevent MISP from detecting the packages that you compiled ; remove them
+find /opt/rh/rh-python36/root/ -name "*lief*" -exec rm -rf {} \;
 ```
 
-## 11.05/ Test lief installation, if no error, package installed
+## 11.04/ Test lief installation, if no error, package installed
 ```bash
-python
+scl enable rh-python36 python3
 >> import lief
 ```
 
