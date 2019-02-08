@@ -152,6 +152,9 @@ installMISPonKali () {
 
   debug "Installing dependencies"
   apt update
+  while [ $? -ne 0 ]; do
+    apt update 2> /dev/null > /dev/null
+  done
   installDepsPhp73
   installDeps
 
