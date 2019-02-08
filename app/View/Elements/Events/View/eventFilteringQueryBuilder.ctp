@@ -136,36 +136,28 @@ function triggerEventFilteringTool(clicked) {
                     5: "Inherit",
                 }
             },
-            // {
-            //     "input": "radio",
-            //     "type": "integer",
-            //     "operators": [
-            //         "equal",
-            //     ],
-            //     "unique": true,
-            //     "id": "taggedAttributes",
-            //     "label": "Tags",
-            //     "values": {
-            //         0: "Both",
-            //         1: "Untagged Attribute",
-            //         2: "Tagged Attribute"
-            //     }
-            // },
-            // {
-            //     "input": "radio",
-            //     "type": "integer",
-            //     "operators": [
-            //         "equal",
-            //     ],
-            //     "unique": true,
-            //     "id": "galaxyAttachedAttributes",
-            //     "label": "Galaxies",
-            //     "values": {
-            //         0: "Both",
-            //         1: "Attributes without galaxy",
-            //         2: "Attributes with galaxy"
-            //     }
-            // },
+            {
+                "input": "select",
+                "type": "string",
+                "operators": [
+                    "equal",
+                ],
+                "unique": true,
+                "id": "taggedAttributes",
+                "label": "Tags",
+                "values": <?php echo json_encode(array()); ?>
+            },
+            {
+                "input": "select",
+                "type": "string",
+                "operators": [
+                    "equal",
+                ],
+                "unique": true,
+                "id": "galaxyAttachedAttributes",
+                "label": "Galaxies",
+                "values": <?php echo json_encode(array()); ?>
+            },
             // {
             //     "input": "select",
             //     "type": "string",
@@ -274,16 +266,16 @@ function triggerEventFilteringTool(clicked) {
                     operator: 'in',
                     value: <?php echo isset($filters['distribution']) ? json_encode($filters['distribution']) : json_encode(array(0, 1, 2, 3, 4, 5)); ?>
                 },
-                // {
-                //     field: 'taggedAttributes',
-                //     id: 'taggedAttributes',
-                //     value: <?php echo isset($filters['taggedAttributes']) ? h($filters['taggedAttributes']) : 0; ?>
-                // },
-                // {
-                //     field: 'galaxyAttachedAttributes',
-                //     id: 'galaxyAttachedAttributes',
-                //     value: <?php echo isset($filters['galaxyAttachedAttributes']) ? h($filters['galaxyAttachedAttributes']) : 0; ?>
-                // },
+                {
+                    field: 'taggedAttributes',
+                    id: 'taggedAttributes',
+                    value: <?php echo isset($filters['taggedAttributes']) ? h($filters['taggedAttributes']) : 0; ?>
+                },
+                {
+                    field: 'galaxyAttachedAttributes',
+                    id: 'galaxyAttachedAttributes',
+                    value: <?php echo isset($filters['galaxyAttachedAttributes']) ? h($filters['galaxyAttachedAttributes']) : 0; ?>
+                },
                 // {
                 //     condition: 'OR',
                 //     not: false,
