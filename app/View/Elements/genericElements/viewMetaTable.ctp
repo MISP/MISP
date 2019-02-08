@@ -8,6 +8,7 @@
             'key_title' => 'title for hover-descriptions',
             'value' => 'raw value to use',
             'html' => 'raw html to echo - needs to be pre-sanitised',
+            'boolean' => 'pass a value to evaluate as empty() and subsequently use a simple yes/no boolean field'
             'element' => 'element name to use as value',
             'element_params' => array(parameters to be passed to the element),
             'class' => 'classes appended to both the key and value',
@@ -26,22 +27,28 @@
         $rows[] = sprintf(
             '<tr><td class="%s" title="%s">%s</td><td class="%s">%s</td></tr>',
             sprintf(
-                    'meta_table_key %s %s',
-                    empty($row['class']) ? '' : h($row['class']),
-                    empty($row['key_class']) ? '' : h($row['key_class'])
+                'meta_table_key %s %s',
+                empty($row['class']) ? '' : h($row['class']),
+                empty($row['key_class']) ? '' : h($row['key_class'])
             ),
             empty($row['key_title']) ? '' : h($row['key_title']),
             empty($row['key']) ? 'Undefined' : h($row['key']),
             sprintf(
-                    'meta_table_value %s %s',
-                    empty($row['class']) ? '' : h($row['class']),
-                    empty($row['value_class']) ? '' : h($row['value_class'])
+                'meta_table_value %s %s',
+                empty($row['class']) ? '' : h($row['class']),
+                empty($row['value_class']) ? '' : h($row['value_class'])
             ),
             sprintf(
-                    '%s%s%s',
-                    empty($row['value']) ? '' : h($row['value']),
-                    empty($row['html']) ? '' : $row['html'],
-                    empty($element) ? '' : $element
+                '%s%s%s%s',
+                !isset($row['boolean']) ? '' : sprintf(
+                    '<span class="%s">%s</span>',
+                    (empty($row['class']) && empty($row['value_class'])) ?
+                        (empty($row['boolean']) ? 'bold red' : 'bold green') : '',
+                    empty($row['boolean']) ? 'No' : 'Yes'
+                ),
+                empty($row['value']) ? '' : h($row['value']),
+                empty($row['html']) ? '' : $row['html'],
+                empty($element) ? '' : $element
             )
         );
     }
