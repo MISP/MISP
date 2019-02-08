@@ -322,6 +322,9 @@ installMISPonKali () {
   chown -R www-data:www-data $PATH_TO_MISP/app/Config
   chmod -R 750 $PATH_TO_MISP/app/Config
 
+  debug "Generating rc.local"
+  genRCLOCAL
+
   debug "Setting up GnuPG"
   setupGnuPG
 
@@ -332,9 +335,6 @@ installMISPonKali () {
 
   debug "Update: Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies"
   updateGOWNT
-
-  debug "Generating rc.local"
-  genRCLOCAL
 
   gitPullAllRCLOCAL
 

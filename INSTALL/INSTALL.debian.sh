@@ -739,7 +739,7 @@ updateGOWNT () {
 
 # Generate GnuPG key
 setupGnuPG () {
-  if [ -ne $PATH_TO_MISP/.gnupg ]; then
+  if [ ! -d $PATH_TO_MISP/.gnupg ]; then
     # The email address should match the one set in the config.php
     # set in the configuration menu in the administration menu configuration file
     echo "%echo Generating a default key
@@ -1202,6 +1202,9 @@ installMISPonKali () {
   chown -R www-data:www-data $PATH_TO_MISP/app/Config
   chmod -R 750 $PATH_TO_MISP/app/Config
 
+  debug "Generating rc.local"
+  genRCLOCAL
+
   debug "Setting up GnuPG"
   setupGnuPG
 
@@ -1212,9 +1215,6 @@ installMISPonKali () {
 
   debug "Update: Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies"
   updateGOWNT
-
-  debug "Generating rc.local"
-  genRCLOCAL
 
   gitPullAllRCLOCAL
 
