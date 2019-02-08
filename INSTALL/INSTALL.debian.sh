@@ -29,7 +29,7 @@
 # $   xsnippet . ../../docs/${f}
 # $ done
 #
-# $ for f in `echo globalVariables.md mail_to_misp-debian.md MISP_CAKE_init.md misp-dashboard-debian.md misp-modules.md ssdeep-debian.md sudo_etckeeper.md supportFunctions.md viper-debian.md`; do
+# $ for f in `echo globalVariables.md mail_to_misp-debian.md MISP_CAKE_init.md misp-dashboard-debian.md misp-modules-debian.md gnupg.md ssdeep-debian.md sudo_etckeeper.md supportFunctions.md viper-debian.md`; do
 # $   xsnippet . ../../docs/generic/${f}
 # $ done
 #
