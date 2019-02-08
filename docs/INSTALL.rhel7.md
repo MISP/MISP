@@ -38,8 +38,7 @@ sudo subscription-manager register --auto-attach # register your system to an ac
 sudo subscription-manager refresh 
 sudo subscription-manager repos --enable rhel-7-server-optional-rpms
 sudo subscription-manager repos --enable rhel-7-server-extras-rpms
-# This fails on a Trial subscription, it seems.
-##sudo subscription-manager repos --enable rhel-server-rhscl-7-rpms
+sudo subscription-manager repos --enable rhel-server-rhscl-7-rpms
 ```
 
 ### 1.5a/ OPTIONAL: Install the deltarpm package to help reduce download size when installing updates
@@ -62,11 +61,6 @@ yum update -y
 ## 1.6/ Install the EPEL repo
 ```bash
 yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y
-```
-
-## 1.7/ Install the SCL repo
-```bash
-yum install centos-release-scl
 ```
 
 # 2/ Install Dependencies
