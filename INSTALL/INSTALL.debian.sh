@@ -908,7 +908,8 @@ viper () {
   debug "Installing Viper dependencies"
   sudo apt-get install \
     libssl-dev swig python3-ssdeep p7zip-full unrar-free sqlite python3-pyclamd exiftool radare2 \
-    python3-magic python3-sqlalchemy python3-prettytable libffi-dev - "Cloning Viper"
+    python3-magic python3-sqlalchemy python3-prettytable libffi-dev
+  debug "Cloning Viper"
   git clone https://github.com/viper-framework/viper.git
   chown -R $MISP_USER:$MISP_USER viper
   cd viper
@@ -1031,11 +1032,20 @@ installMISPcore () {
   space
   echo "Proceeding with the installation of MISP core"
   space
+  checkSudoKeeper
+  # add-user.sh
+  sudo apt update
+  # postfix.sh
+  installDeps # doubleCheck
+  # Mysql install functions
+  # misp code function
+
+
 }
 
 # Main Kalin Install function
 installMISPonKali () {
-  # Set custom Kali only variables
+  # Set custom Kali only variables and tweaks
   space
   debug "Disabling sleep etc…"
   gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 0 2> /dev/null
@@ -1050,7 +1060,6 @@ installMISPonKali () {
     apt update 2> /dev/null > /dev/null && DONE=0
   done
   unset DONE
-  installDepsPhp73
   installDeps
 
   debug "Enabling redis and gnupg modules"
@@ -1095,9 +1104,10 @@ installMISPonKali () {
   chown $MISP_USER:$MISP_USER ~$MISP_USER_HOME/.cache
   chown www-data:www-data /var/www/.cache
 
-  debug "Installing python-cybox"
+  debug "Setting up main MISP virtualenv"
   sudo -u www-data virtualenv -p python3 ${PATH_TO_MISP}/venv
 
+  debug "Installing python-cybox"
   cd $PATH_TO_MISP/app/files/scripts/python-cybox
   sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
   debug "Installing python-stix"
@@ -1306,14 +1316,17 @@ if [ "${FLAVOUR}" == "debian" ]; then
   if [ "${CODE}" == "buster" ]; then
     echo "Install on Debian testing fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
+    installDepsPhp73
   fi
   if [ "${CODE}" == "sid" ]; then
     echo "Install on Debian unstable not fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
+    installDepsPhp73
   fi
   if [ "${CODE}" == "stretch" ]; then
     echo "Install on Debian stable fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
+    installDepsPhp72
   fi
   echo "Installation done!"
   exit 0
@@ -1335,6 +1348,7 @@ fi
 
 if [ "${FLAVOUR}" == "kali" ]; then
   kaliOnRootR0ckz
+  installDepsPhp73
   installMISPonKali
   echo "Installation done!"
   exit 0
