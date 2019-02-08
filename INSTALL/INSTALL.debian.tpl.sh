@@ -201,22 +201,24 @@ installMISPonKali () {
   chown www-data:www-data /var/www/.cache
 
   debug "Installing python-cybox"
+  sudo -u www-data virtualenv -p python3 ${PATH_TO_MISP}/venv
+
   cd $PATH_TO_MISP/app/files/scripts/python-cybox
-  pip3 install .
+  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
   debug "Installing python-stix"
   cd $PATH_TO_MISP/app/files/scripts/python-stix
-  pip3 install .
+  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
   # install STIX2.0 library to support STIX 2.0 export:
   debug "Installing cti-python-stix2"
   cd ${PATH_TO_MISP}/cti-python-stix2
-  pip3 install -I .
+  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install -I .
   debug "Installing mixbox"
   cd $PATH_TO_MISP/app/files/scripts/mixbox
-  pip3 install .
+  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
   # install PyMISP
   debug "Installing PyMISP"
   cd $PATH_TO_MISP/PyMISP
-  pip3 install .
+  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 
   # Install Crypt_GPG and Console_CommandLine
   debug "Installing pear Console_CommandLine"
@@ -335,6 +337,7 @@ installMISPonKali () {
 
   debug "Running Core Cake commands"
   coreCAKE
+  sudo -H -u www-data $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
 
   debug "Update: Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies"
   updateGOWNT
