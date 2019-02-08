@@ -362,29 +362,9 @@ class DATABASE_CONFIG {
 sudo chown -R www-data:www-data ${PATH_TO_MISP}/app/Config
 sudo chmod -R 750 ${PATH_TO_MISP}/app/Config
 
-# Generate a GPG encryption key.
-
-cat >/tmp/gen-key-script <<EOF
-    %echo Generating a default key
-    Key-Type: default
-    Key-Length: $GPG_KEY_LENGTH
-    Subkey-Type: default
-    Name-Real: $GPG_REAL_NAME
-    Name-Comment: $GPG_COMMENT
-    Name-Email: $GPG_EMAIL_ADDRESS
-    Expire-Date: 0
-    Passphrase: $GPG_PASSPHRASE
-    # Do a commit here, so that we can later print "done"
-    %commit
-    %echo done
-EOF
-
-sudo -u www-data gpg --homedir $PATH_TO_MISP/.gnupg --batch --gen-key /tmp/gen-key-script
-# The email address should match the one set in the config.php / set in the configuration menu in the administration menu configuration file
-
-# And export the public key to the webroot
-sudo -u www-data sh -c "gpg --homedir $PATH_TO_MISP/.gnupg --export --armor $GPG_EMAIL_ADDRESS" | sudo -u www-data tee $PATH_TO_MISP/app/webroot/gpg.asc
 ```
+
+{!generic/gnupg.gpg!}
 
 !!! notice
     If entropy is not high enough, you can install havegd and then start the service

@@ -379,5 +379,66 @@ enableServices () {
     update-rc.d apache2 enable
     update-rc.d redis-server enable
 }
+
+# Generate rc.local
+genRCLOCAL () {
+  if [ ! -e /etc/rc.local ]; then
+      echo '#!/bin/sh -e' | tee -a /etc/rc.local
+      echo 'exit 0' | tee -a /etc/rc.local
+      chmod u+x /etc/rc.local
+  fi
+
+  sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
+  sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
+  sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
+  sed -i -e '$i \sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh\n' /etc/rc.local
+}
+
+# Main function to fix permissions to something sane
+permissions () {
+  chown -R www-data:www-data $PATH_TO_MISP
+  chmod -R 750 $PATH_TO_MISP
+  chmod -R g+ws $PATH_TO_MISP/app/tmp
+  chmod -R g+ws $PATH_TO_MISP/app/files
+  chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
+}
+
+# Final function to let the user know what happened
+theEnd () {
+  space
+  echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" > /home/${MISP_USER}/mysql.txt
+  echo "User  (misp) DB Password: $DBPASSWORD_MISP" >> /home/${MISP_USER}/mysql.txt
+  echo "Authkey: $AUTH_KEY" > /home/${MISP_USER}/MISP-authkey.txt
+
+  clear
+  space
+  echo "MISP Installed, access here: https://misp.local"
+  echo "User: admin@admin.test"
+  echo "Password: admin"
+  echo "MISP Dashboard, access here: http://misp.local:8001"
+  space
+  echo "The following files were created and need either protection or removal (shred on the CLI)"
+  echo "/home/${MISP_USER}/mysql.txt"
+  echo "/home/${MISP_USER}/MISP-authkey.txt"
+  cat /home/${MISP_USER}/mysql.txt
+  cat /home/${MISP_USER}/MISP-authkey.txt
+  space
+  echo "The LOCAL system credentials:"
+  echo "User: ${MISP_USER}"
+  echo "Password: ${MISP_PASSWORD}"
+  space
+  echo "viper-web installed, access here: http://misp.local:8888"
+  echo "viper-cli configured with your MISP Site Admin Auth Key"
+  echo "User: admin"
+  echo "Password: Password1234"
+  space
+  echo "To enable outgoing mails via postfix set a permissive SMTP server for the domains you want to contact:"
+  space
+  echo "sudo postconf -e 'relayhost = example.com'"
+  echo "sudo postfix reload"
+  space
+  echo "Enjoy using MISP. For any issues see here: https://github.com/MISP/MISP/issues"
+  su - ${MISP_USER}
+}
 # <snippet-begin 0_support-functions.sh>
 ```

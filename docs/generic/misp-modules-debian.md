@@ -2,6 +2,23 @@
 
 ```bash
 # <snippet-start misp-modules.sh>
+# Main MISP Modules install function
+mispmodules () {
+  sed -i -e '$i \sudo -u www-data misp-modules -l 0.0.0.0 -s &\n' /etc/rc.local
+  $SUDO_WWW bash $PATH_TO_MISP/app/Console/worker/start.sh
+  cd /usr/local/src/
+  git clone https://github.com/MISP/misp-modules.git
+  cd misp-modules
+  # pip3 install
+  pip3 install -I -r REQUIREMENTS
+  pip3 install -I .
+  pip3 install maec lief python-magic wand yara
+  pip3 install git+https://github.com/kbandla/pydeep.git
+  gem install pygments.rb
+  gem install asciidoctor-pdf --pre
+  $SUDO_WWW misp-modules -l 0.0.0.0 -s &
+}
+
 sudo sed -i -e '$i \sudo -u www-data ${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s > /tmp/misp-modules_rc.local.log &\n' /etc/rc.local
 
 # some misp-modules dependencies
