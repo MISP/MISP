@@ -478,46 +478,34 @@ scl enable rh-python36 pip3 install pymisp
 yum install devtoolset-7 cmake3
 ```
 
-## 11.02/ Enable devtoolset-7
+## 11.02/ Create the directory and download the source code
 ```bash
-scl enable devtoolset-7 bash
+cd /var/www/MISP/app/files/scripts
+git clone --branch master --single-branch https://github.com/lief-project/LIEF.git lief
 ```
 
-## 11.03/ Set env variable, create directories and download source code
+## 11.03/ Compile lief and install it
 ```bash
-mkdir -p /tmp/LIEF
-mkdir -p /tmp/LIEF_INSTALL
-export LIEF_TMP=/tmp/LIEF
-export LIEF_INSTALL=/tmp/LIEF_INSTALL
-export LIEF_BRANCH=master
-cd $LIEF_TMP
-git clone --branch $LIEF_BRANCH --single-branch https://github.com/lief-project/LIEF.git LIEF
-```
-
-## 11.04/ Compile lief and install
-```bash
-cd $LIEF_TMP/LIEF
-mkdir -p build
+cd /var/www/MISP/app/files/scripts/lief
+mkdir build
 cd build
-scl enable devtoolset-7 'bash -c "cmake3 \
+scl enable devtoolset-7 rh-python36 'bash -c "cmake3 \
 -DLIEF_PYTHON_API=on \
 -DLIEF_DOC=off \
 -DCMAKE_INSTALL_PREFIX=$LIEF_INSTALL \
 -DCMAKE_BUILD_TYPE=Release \
--DPYTHON_VERSION=2.7 \
+-DPYTHON_VERSION=3.6 \
 .."'
 make -j3
 cd api/python
-scl enable rh-python36 python3 setup.py install || :
-# you can ignore the error about finding suitable distribution
-cd $LIEF_TMP/LIEF/build
-make install
-make package
+scl enable rh-python36 'python3 setup.py install || :'
+# when running setup.py, pip will download and install remote LIEF packages that will prevent MISP from detecting the packages that you compiled ; remove them
+find /opt/rh/rh-python36/root/ -name "*lief*" -exec rm -rf {} \;
 ```
 
-## 11.05/ Test lief installation, if no error, package installed
+## 11.04/ Test lief installation, if no error, package installed
 ```bash
-python
+scl enable rh-python36 python3
 >> import lief
 ```
 
