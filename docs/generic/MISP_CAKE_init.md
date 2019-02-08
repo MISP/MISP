@@ -1,6 +1,6 @@
 #### Initialize MISP configuration and set some defaults
 ```bash
-# <snippet-start core-cake.sh>
+# <snippet-begin 2_core-cake.sh>
 # Core cake commands
 coreCAKE () {
   sudo -H -u www-data -E $CAKE userInit -q
@@ -159,5 +159,5 @@ updateGOWNT () {
   ##sudo -H -u www-data $CAKE Admin updateObjectTemplates
   curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/objectTemplates/update
 }
-# <snippet-end core-cake.sh>
+# <snippet-end 2_core-cake.sh>
 ```

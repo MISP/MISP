@@ -9,7 +9,7 @@
     ```
 
 ```bash
-# <snippet-begin viper.sh>
+# <snippet-begin 6_viper.sh>
 # Main Viper install function
 viper () {
   cd /usr/local/src/
@@ -63,5 +63,5 @@ viper () {
   # Add viper-web to rc.local to be started on boot
   sudo sed -i -e '$i \sudo -u misp /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 > /tmp/viper-web_rc.local.log &\n' /etc/rc.local
 }
-# <snippet-end viper.sh>
+# <snippet-end 6_viper.sh>
 ```

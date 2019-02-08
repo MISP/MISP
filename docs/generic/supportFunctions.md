@@ -135,7 +135,16 @@ if [[ -e /usr/local/src ]]; then
     echo -n "/usr/local/src need to be writeable by $MISP_USER, permission to fix? (y/n)"
     read ANSWER
     ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
+    if [ "$ANSWER" == "y" ]; then
+      sudo chmod 2775 /usr/local/src
+      sudo chown root:staff /usr/local/src
+    fi
   fi
+else
+  echo "/usr/local/src does not exist, creating."
+  mkdir /usr/local/src
+  sudo chmod 2775 /usr/local/src
+  sudo chown root:staff /usr/local/src
 fi
 
 }
@@ -440,5 +449,5 @@ theEnd () {
   echo "Enjoy using MISP. For any issues see here: https://github.com/MISP/MISP/issues"
   su - ${MISP_USER}
 }
-# <snippet-begin 0_support-functions.sh>
+# <snippet-end 0_support-functions.sh>
 ```

@@ -14,18 +14,17 @@ checkSudoKeeper () {
     sudo apt install etckeeper -y
   fi
 }
-# <snippet-begin 0_sudoKeeper.sh>
+# <snippet-end 0_sudoKeeper.sh>
 ```
 
 ##### add the misp user to staff and www-data (mandatory)
 ```bash
-# <snippet-begin apt-upgrade.sh>
+# <snippet-begin add-user.sh>
 # Add the user to the staff group to be able to write to /usr/local/src
 # TODO: Fix this, user misp might not exist
 sudo adduser misp staff
 sudo adduser misp www-data
-# TODO: FIXME: this breaks a script...
-sudo su - misp
-# <snippet-begin apt-upgrade.sh>
+# <snippet-end add-user.sh>
+# Logout and back in to make the group changes take effect.
 logout
 ```

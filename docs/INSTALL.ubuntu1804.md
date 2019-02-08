@@ -14,10 +14,10 @@
 
 ```bash
 ## TODO: Move this away, this should be done depending on using php7.2 or php7.3
-# <snippet-begin 1_php-vars.sh>
+# <snippet-begin php-vars.sh>
 PHP_ETC_BASE=/etc/php/7.2
 PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
-# <snippet-end 1_php-vars.sh>
+# <snippet-end php-vars.sh>
 ```
 
 ### 1/ Minimal Ubuntu install
@@ -43,7 +43,7 @@ sudo apt-get upgrade
 ```bash
 # <snippet-begin postfix.sh>
 sudo apt-get install postfix dialog -y
-# <snippet-begin postfix.sh>
+# <snippet-end postfix.sh>
 ```
 
 !!! notice

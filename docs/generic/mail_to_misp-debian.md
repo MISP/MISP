@@ -9,7 +9,7 @@
     ```
 
 ```bash
-#<snippet-begin mail_to_misp.sh>
+# <snippet-begin 5_mail_to_misp.sh>
 # Main mail2misp install function
 mail2misp () {
   cd /usr/local/src/
@@ -34,5 +34,5 @@ mail2misp () {
   sed -i "s/^misp_url\ =\ 'YOUR_MISP_URL'/misp_url\ =\ 'https:\/\/localhost'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
   sed -i "s/^misp_key\ =\ 'YOUR_KEY_HERE'/misp_key\ =\ '${AUTH_KEY}'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
 }
-#<snippet-end mail_to_misp.sh>
+# <snippet-end 5_mail_to_misp.sh>
 ```
