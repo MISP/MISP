@@ -33,9 +33,22 @@
 # $   xsnippet . ../../docs/generic/${f}
 # $ done
 #
+# TODO: Fix the below
 # $ for f in `echo ls [0-9]_*`; do
 # $   perl -pe 's/## ${f} ##/`cat ${f}`/ge' -i INSTALL.debian.sh
 # $ done
+#
+# Temporary copy/paste holder
+# $ perl -pe 's/## 0_global-vars.sh ##/`cat 0_global-vars.sh`/ge' -i INSTALL.debian.sh
+# $ perl -pe 's/## 0_sudoKeeper.sh ##/`cat 0_sudoKeeper.sh`/ge' -i INSTALL.debian.sh
+# $ perl -pe 's/## 0_support-functions.sh ##/`cat 0_support-functions.sh`/ge' -i INSTALL.debian.sh
+# $ perl -pe 's/## 2_gnupg.sh ##/`cat 2_gnupg.sh`/ge' -i INSTALL.debian.sh
+# $ perl -pe 's/## 2_core-cake.sh ##/`cat 2_core-cake.sh`/ge' -i INSTALL.debian.sh
+# $ perl -pe 's/## 3_misp-modules.sh ##/`cat 3_misp-modules.sh`/ge' -i INSTALL.debian.sh
+# $ perl -pe 's/## 4_misp-dashboard-cake.sh ##/`cat 4_misp-dashboard-cake.sh`/ge' -i INSTALL.debian.sh
+# $ perl -pe 's/## 4_misp-dashboard.sh ##/`cat 4_misp-dashboard.sh`/ge' -i INSTALL.debian.sh
+# $ perl -pe 's/## 5_mail_to_misp.sh ##/`cat 5_mail_to_misp.sh`/ge' -i INSTALL.debian.sh
+# $ perl -pe 's/## 6_viper.sh ##/`cat 6_viper.sh`/ge' -i INSTALL.debian.sh
 
 ### BEGIN AUTOMATED SECTION ###
 
