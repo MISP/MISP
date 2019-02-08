@@ -60,7 +60,7 @@
 ### Script files that do NOT have a #_name.sh are scripts that have NO functions. This is by design.
 
 ## 0_global-vars.sh ##
-## 0_suport-functions.sh ##
+## 0_support-functions.sh ##
 ## 0_sudoKeeper.sh ##
 ## 2_core-cake.sh ##
 ## 2_gnupg.sh ##
