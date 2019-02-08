@@ -22,33 +22,9 @@
 #--------------------------------------------------------
 # To generate this script yourself, the following steps need to be taken.
 # $ git clone https://github.com/SteveClement/xsnippet.git
-# Make sure xsnippet resides somewhere in your $PATH
+# Make sure xsnippet resides somewhere in your $PATH - It is a shell script so a simple, copy to somewhere sane is enough.
 # $ git clone https://github.com/MISP/MISP.git
-# $ cd MISP/INSTALL ; mkdir installer ; cd installer
-# $ for f in `echo INSTALL.ubuntu1804.md INSTALL.debian9.md INSTALL.kali.md xINSTALL.debian_testing.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md`; do
-# $   xsnippet . ../../docs/${f}
-# $ done
-#
-# $ for f in `echo globalVariables.md mail_to_misp-debian.md MISP_CAKE_init.md misp-dashboard-debian.md misp-modules-debian.md gnupg.md ssdeep-debian.md sudo_etckeeper.md supportFunctions.md viper-debian.md`; do
-# $   xsnippet . ../../docs/generic/${f}
-# $ done
-#
-# TODO: Fix the below
-# $ for f in `echo ls [0-9]_*`; do
-# $   perl -pe 's/## ${f} ##/`cat ${f}`/ge' -i INSTALL.debian.sh
-# $ done
-#
-# Temporary copy/paste holder
-# $ perl -pe 's/^## 0_global-vars.sh ##/`cat 0_global-vars.sh`/ge' -i INSTALL.debian.sh
-# $ perl -pe 's/^## 0_sudoKeeper.sh ##/`cat 0_sudoKeeper.sh`/ge' -i INSTALL.debian.sh
-# $ perl -pe 's/^## 0_support-functions.sh ##/`cat 0_support-functions.sh`/ge' -i INSTALL.debian.sh
-# $ perl -pe 's/^## 2_gnupg.sh ##/`cat 2_gnupg.sh`/ge' -i INSTALL.debian.sh
-# $ perl -pe 's/^## 2_core-cake.sh ##/`cat 2_core-cake.sh`/ge' -i INSTALL.debian.sh
-# $ perl -pe 's/^## 3_misp-modules.sh ##/`cat 3_misp-modules.sh`/ge' -i INSTALL.debian.sh
-# $ perl -pe 's/^## 4_misp-dashboard-cake.sh ##/`cat 4_misp-dashboard-cake.sh`/ge' -i INSTALL.debian.sh
-# $ perl -pe 's/^## 4_misp-dashboard.sh ##/`cat 4_misp-dashboard.sh`/ge' -i INSTALL.debian.sh
-# $ perl -pe 's/^## 5_mail_to_misp.sh ##/`cat 5_mail_to_misp.sh`/ge' -i INSTALL.debian.sh
-# $ perl -pe 's/^## 6_viper.sh ##/`cat 6_viper.sh`/ge' -i INSTALL.debian.sh
+# $ cd MISP/INSTALL ; ./INSTALL.debian.tpl.sh
 
 ### BEGIN AUTOMATED SECTION ###
 
@@ -76,6 +52,51 @@
 ## interfaces.sh ##
 
 ### END AUTOMATED SECTION ###
+
+generateInstaller () {
+  # This function will generate the main installer.
+  # It is a helper function for the maintainers for the installer.
+
+  if [ ! -f $(which xsnippet) ]; then
+    echo 'xsnippet is NOT installed. Clone the repository below and copy the xsnippet shell script somehwere in your $PATH'
+    echo "git clone https://github.com/SteveClement/xsnippet.git"
+    exit 1
+  fi
+
+  mkdir installer ; cd installer
+  cp ../INSTALL.debian.tpl.sh .
+
+  for f in `echo INSTALL.ubuntu1804.md INSTALL.debian9.md INSTALL.kali.md xINSTALL.debian_testing.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md`; do
+    xsnippet . ../../docs/${f}
+  done
+
+  for f in `echo globalVariables.md mail_to_misp-debian.md MISP_CAKE_init.md misp-dashboard-debian.md misp-modules-debian.md gnupg.md ssdeep-debian.md sudo_etckeeper.md supportFunctions.md viper-debian.md`; do
+    xsnippet . ../../docs/generic/${f}
+  done
+
+  # TODO: Fix the below
+  # $ for f in `echo ls [0-9]_*`; do
+  # $   perl -pe 's/## ${f} ##/`cat ${f}`/ge' -i INSTALL.debian.sh
+  # $ done
+  #
+  # Temporary copy/paste holder
+  perl -pe 's/^## 0_global-vars.sh ##/`cat 0_global-vars.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 0_sudoKeeper.sh ##/`cat 0_sudoKeeper.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 0_support-functions.sh ##/`cat 0_support-functions.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 2_gnupg.sh ##/`cat 2_gnupg.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 2_core-cake.sh ##/`cat 2_core-cake.sh`/ge' -i INSTALL.debian.tpl.tpl.sh
+  perl -pe 's/^## 3_misp-modules.sh ##/`cat 3_misp-modules.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 4_misp-dashboard-cake.sh ##/`cat 4_misp-dashboard-cake.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 4_misp-dashboard.sh ##/`cat 4_misp-dashboard.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 5_mail_to_misp.sh ##/`cat 5_mail_to_misp.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 6_viper.sh ##/`cat 6_viper.sh`/ge' -i INSTALL.debian.tpl.sh
+
+  cp INSTALL.debian.tpl.sh ../INSTALL.debian.sh
+  cd ..
+  rm -rf installer
+  echo "Generated INSTALL.debian.sh"
+  exit 0
+}
 
 installMISPcore () {
   space
@@ -296,6 +317,10 @@ installMISPonKali () {
   theEnd
 }
 
+debug "Checking if we are run as the installer template"
+if [[ $0 == "./INSTALL.debian.tpl.sh" ]]; then
+  generateInstaller
+fi
 
 debug "Checking for parameters or Kali Install"
 if [[ $# -ne 1 && $0 != "/tmp/misp-kali.sh" ]]; then
