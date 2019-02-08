@@ -890,7 +890,7 @@ class StixFromMISPParser(StixParser):
     # Create a MISP object, its attributes, and add it in the MISP event
     def fill_misp_object(self, item, name, to_ids=False):
         uuid = self.fetch_uuid(item.id_)
-        if any(((hasattr(item, 'observable') and hasattr(item.observable, 'observable_composition')),
+        if any(((hasattr(item, 'observable') and hasattr(item.observable, 'observable_composition') and item.observable.observable_composition),
                 (hasattr(item, 'observable_composition') and item.observable_composition))):
             misp_object = MISPObject(name, misp_objects_path_custom=_MISP_objects_path)
             misp_object.uuid = uuid
