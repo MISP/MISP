@@ -183,6 +183,7 @@ installRNG () {
 installDepsPhp73 () {
   PHP_ETC_BASE=/etc/php/7.3
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
+  SLEEP=3
   while [ "$DONE" != "0" ]; do
     sudo apt install -qy \
     libapache2-mod-php7.3 \
@@ -191,6 +192,9 @@ installDepsPhp73 () {
     php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
     php-pear \
     php-redis php-gnupg 2> /dev/null > /dev/null && DONE=0
+    echo "apt is locked, waiting $SLEEP seconds."
+    sleep $SLEEP
+    SLEEP=$[$SLEEP+3]
   done
   unset DONE
 }
