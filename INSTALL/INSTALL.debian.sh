@@ -33,27 +33,35 @@
 # $   xsnippet . ../../docs/generic/${f}
 # $ done
 #
-# $ for f in `echo ls [0-9]*`; do
-# $   cat $f >> INSTALL.debian.sh
+# $ for f in `echo ls [0-9]_*`; do
+# $   echo $f
+# $   sed -e "s/$f/$(sed 's:/:\\/:g' $f)/" INSTALL.debian.sh
 # $ done
-#
-# This will populate the 'installer' directory with a bunch of shell scripts that can be stitched together.
 
 ### BEGIN AUTOMATED SECTION ###
 
 # ToC:
 #
 
+### Dev Note: In theory the order does not matter as everything is a self-contained function.
+### That said, ideally leave the order as is and do NOT change the lines as they are place-holders.
+### Script files that do NOT have a #_name.sh are scripts that have NO functions. This is by design.
+
+## 0_global-vars.sh ##
 ## 0_suport-functions.sh ##
 ## 0_sudoKeeper.sh ##
-## 0_global-vars.sh ##
-## 0_misp-dashboard.sh ##
-## 0_misp-dashboard-cake.sh ##
-## core-cake.sh ##
-## gnupg.sh ##
-## misp-modules.sh ##
-## viper.sh ##
-## mail_to_misp.sh ##
+## 2_core-cake.sh ##
+## 2_gnupg.sh ##
+## 3_misp-modules.sh ##
+## 4_misp-dashboard.sh ##
+## 4_misp-dashboard-cake.sh ##
+## 5_mail_to_misp.sh ##
+## 6_viper.sh ##
+
+# No functions scripts:
+## apt-upgrade.sh ##
+## postfix.sh ##
+## interfaces.sh ##
 
 ### END AUTOMATED SECTION ###
 
