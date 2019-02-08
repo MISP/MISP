@@ -304,13 +304,16 @@ installRNG () {
 installDepsPhp73 () {
   PHP_ETC_BASE=/etc/php/7.3
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
-  sudo apt install -qy \
-  libapache2-mod-php7.3 \
-  php7.3 php7.3-cli \
-  php7.3-dev \
-  php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
-  php-pear \
-  php-redis php-gnupg
+  while [ "$DONE" != "0" ]; do
+    sudo apt install -qy \
+    libapache2-mod-php7.3 \
+    php7.3 php7.3-cli \
+    php7.3-dev \
+    php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
+    php-pear \
+    php-redis php-gnupg 2> /dev/null > /dev/null && DONE=0
+  done
+  unset DONE
 }
 
 # Install Php 7.2 deps
@@ -1039,10 +1042,10 @@ installMISPonKali () {
   xset s off 2> /dev/null
 
   debug "Installing dependencies"
-  apt update
-  while [ $? -ne 0 ]; do
-    apt update 2> /dev/null > /dev/null
+  while [ "$DONE" != "0" ]; do
+    apt update 2> /dev/null > /dev/null && DONE=0
   done
+  unset DONE
   installDepsPhp73
   installDeps
 
