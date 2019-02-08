@@ -46,7 +46,7 @@ viper () {
   if [ -f /home/${MISP_USER}/.viper/viper.conf ]; then
     VIPER_HOME="/home/${MISP_USER}/.viper"
   else
-    VIPER_HOME="~/.viper"
+    VIPER_HOME="${HOME}/.viper"
   fi
 
   debug "Setting misp_url/misp_key"
