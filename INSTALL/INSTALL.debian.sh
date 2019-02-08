@@ -34,8 +34,7 @@
 # $ done
 #
 # $ for f in `echo ls [0-9]_*`; do
-# $   echo $f
-# $   sed -e "s/$f/$(sed 's:/:\\/:g' $f)/" INSTALL.debian.sh
+# $   perl -pe 's/## ${f} ##/`cat ${f}`/ge' -i INSTALL.debian.sh
 # $ done
 
 ### BEGIN AUTOMATED SECTION ###
