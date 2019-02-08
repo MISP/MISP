@@ -47,7 +47,7 @@ setOpt () {
 
 # Extract debian flavour
 checkFlavour () {
-  if [ -ne $(which lsb_release) ]; then
+  if [ ! -f $(which lsb_release) ]; then
     sudo apt install lsb-release -y
   fi
 
@@ -84,7 +84,7 @@ containsElement () {
 # Check locale
 checkLocale () {
 
-  if [ -ne /etc/default/locale ]; then
+  if [ ! -f /etc/default/locale ]; then
     sudo apt install locales -y
     sudo locale-gen en_US.UTF-8
     sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
@@ -161,11 +161,6 @@ kaliOnRootR0ckz () {
     # TODO: Make sure we consider this further down the road
     echo "User ${MISP_USER} exists, skipping creation"
   fi
-}
-
-# Setting generic MISP variables share by all flavours
-MISPvars () {
-  source 0_global-vars.sh
 }
 
 # Test and install software RNG

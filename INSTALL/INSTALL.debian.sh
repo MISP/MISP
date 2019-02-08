@@ -96,6 +96,7 @@ installMISPonKali () {
   xset s off 2> /dev/null
 
   debug "Installing dependencies"
+  apt update
   installDepsPhp73
   installDeps
 
