@@ -1,13 +1,6 @@
 #### Install mail to misp
 --------------------
 
-!!! warning
-    mail_to_misp has **lief** as a dependency, lief only has an .egg for Python3.6 NOT Python3.7<br />
-    If you have python3.7 installed make sure **virtualenv** uses **python3.6**<br />
-    ```bash
-    virtualenv -p python3.6 venv
-    ```
-
 ```bash
 # <snippet-begin 5_mail_to_misp.sh>
 # Main mail2misp install function
@@ -27,7 +20,8 @@ mail2misp () {
   sudo make install
   sudo ldconfig
   cd ../../mail_to_misp
-  virtualenv -p python3.6 venv
+  virtualenv -p python3 venv
+  ./venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
   ./venv/bin/pip install -r requirements.txt
   cp mail_to_misp_config.py-example mail_to_misp_config.py
   ##$SUDO cp mail_to_misp_config.py-example mail_to_misp_config.py

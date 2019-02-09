@@ -5,9 +5,9 @@
 # <snippet-begin 0_sudoKeeper.sh>
 # check if sudo is installed
 checkSudoKeeper () {
-  if [ -ne $(which sudo) ]; then
-    su -c "apt install -y etckeeper"
-    su -c "apt install -y sudo"
+  if [[ ! -f $(which sudo) ]]; then
+    su -c "apt install etckeeper -y"
+    su -c "apt install sudo -y"
     # TODO: Fix this, user misp might not exist
     su -c "adduser misp sudo"
   else

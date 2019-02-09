@@ -4,6 +4,9 @@
 # <snippet-begin 0_global-vars.sh>
 # Setting generic MISP variables shared by all flavours
 MISPvars () {
+  # debug alias to make sure people are not confused when blindly copy pasting blobs of code
+  alias debug=echo
+
   # Local non-root MISP user
   MISP_USER='misp'
   MISP_PASSWORD='Password1234'
@@ -56,9 +59,12 @@ MISPvars () {
   # apt config
   export DEBIAN_FRONTEND=noninteractive
 
+  # set the web server user
+  WWW_USER="www-data"
+
   # sudo config to run $LUSER commands
-  SUDO_USER="sudo -u ${MISP_USER}"
-  SUDO_WWW="sudo -u www-data"
+  SUDO_USER="sudo -H -u ${MISP_USER}"
+  SUDO_WWW="sudo -H -u ${WWW_USER}"
 
   echo "Admin (${DBUSER_ADMIN}) DB Password: ${DBPASSWORD_ADMIN}"
   echo "User  (${DBUSER_MISP}) DB Password: ${DBPASSWORD_MISP}"

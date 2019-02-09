@@ -59,11 +59,24 @@
 # ToC #
 #
 #### BEGIN AUTOMATED SECTION ####
+#
 ## 0_global-vars.sh ##
 ## 0_support-functions.sh ##
+## 0_apt-upgrade.sh ##
 ## 0_sudoKeeper.sh ##
+## 0_installCoreDeps.sh ##
+## 0_installDepsPhp73.sh ##
+## 0_installDepsPhp72.sh ##
+## 1_prepareDB.sh ##
+## 1_apacheConfig.sh ##
+## 1_mispCoreInstall.sh ##
+## 1_installCake.sh ##
+## 2_permissions.sh ##
+## 2_configMISP.sh ##
 ## 2_core-cake.sh ##
 ## 2_gnupg.sh ##
+## 2_logRotation.sh ##
+## 2_backgroundWorkers.sh ##
 ## 3_misp-modules.sh ##
 ## 4_misp-dashboard.sh ##
 ## 4_misp-dashboard-cake.sh ##
@@ -74,7 +87,7 @@
 ## apt-upgrade.sh ##
 ## postfix.sh ##
 ## interfaces.sh ##
-
+#
 ### END AUTOMATED SECTION ###
 
 # This function will generate the main installer.
@@ -106,9 +119,21 @@ generateInstaller () {
   #
   # Temporary copy/paste holder
   perl -pe 's/^## 0_global-vars.sh ##/`cat 0_global-vars.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 0_apt-upgrade.sh ##/`cat 0_apt-upgrade.sh`/ge' -i INSTALL.debian.tpl.sh
   perl -pe 's/^## 0_sudoKeeper.sh ##/`cat 0_sudoKeeper.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 0_installCoreDeps.sh ##/`cat 0_installCoreDeps.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 0_installDepsPhp73.sh ##/`cat 0_installDepsPhp73.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 0_installDepsPhp72.sh ##/`cat 0_installDepsPhp72.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 1_prepareDB.sh ##/`cat 1_prepareDB.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 1_apacheConfig.sh ##/`cat 1_apacheConfig.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 1_mispCoreInstall.sh ##/`cat 1_mispCoreInstall.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 1_installCake.sh ##/`cat 1_installCake.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 2_permissions.sh ##/`cat 2_permissions.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 2_configMISP.sh ##/`cat 2_configMISP.sh`/ge' -i INSTALL.debian.tpl.sh
   perl -pe 's/^## 0_support-functions.sh ##/`cat 0_support-functions.sh`/ge' -i INSTALL.debian.tpl.sh
   perl -pe 's/^## 2_gnupg.sh ##/`cat 2_gnupg.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 2_logRotation.sh ##/`cat 2_logRotation.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 2_backgroundWorkers.sh ##/`cat 2_backgroundWorkers.sh`/ge' -i INSTALL.debian.tpl.sh
   perl -pe 's/^## 2_core-cake.sh ##/`cat 2_core-cake.sh`/ge' -i INSTALL.debian.tpl.sh
   perl -pe 's/^## 3_misp-modules.sh ##/`cat 3_misp-modules.sh`/ge' -i INSTALL.debian.tpl.sh
   perl -pe 's/^## 4_misp-dashboard-cake.sh ##/`cat 4_misp-dashboard-cake.sh`/ge' -i INSTALL.debian.tpl.sh
@@ -119,15 +144,18 @@ generateInstaller () {
   cp INSTALL.debian.tpl.sh ../INSTALL.debian.sh
   cd ..
   rm -rf installer
-  echo "Generated INSTALL.debian.sh"
+  echo -e "${LBLUE}Generated INSTALL.debian.sh${NC}"
   exit 0
 }
 
 # Simple debug function with message
+
+# Make sure no alias exists
+if [[ $(type -t debug) == "alias" ]]; then unalias debug; fi
 debug () {
-  echo $1
+  echo -e "${GREEN}$1${NC}"
   if [ ! -z $DEBUG ]; then
-    echo "Debug Mode, press enter to continue..."
+    echo -e "${RED}Debug Mode${NC}, press ${LBLUE}enter${NC} to continue..."
     read
   fi
 }
@@ -144,26 +172,43 @@ installMISPcore () {
   # Mysql install functions
   # misp code function
 
-
+## From test install:
+  aptUpgrade
+  checkSudoKeeper
+  # <snippet-begin add-user.sh>
+  # logout (run SUDO_USER in installer)
+  # <snippet-begin postfix.sh>
+  MISPvars
+  installCoredDeps
+  installDepsPhp72
+  installCore
+  installCake
+  permissions
+  prepareDB
+  apacheConfig
+  logRotation
+  configMISP
+  setupGnuPG
+  backgroundWorkers
+  coreCAKE
+  updateGOWNT 
+  checkUsrLocalSrc
+  mispmodules
+  sudo -H -u www-data $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
 }
 
 # Main Kalin Install function
 installMISPonKali () {
+  # Kali might have a bug on installs where libc6 is not up to date, this forces bash and libc to update
+  kaliUpgrade
+  # Kali uses php-7.3
+  installDepsPhp73
   # Set custom Kali only variables and tweaks
   space
-  debug "Disabling sleep etc…"
-  gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 0 2> /dev/null
-  gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 0 2> /dev/null
-  gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'nothing' 2> /dev/null
-  xset s 0 0 2> /dev/null
-  xset dpms 0 0 2> /dev/null
-  xset s off 2> /dev/null
+  # The following disables sleep on kali/gnome
+  disableSleep
 
   debug "Installing dependencies"
-  while [ "$DONE" != "0" ]; do
-    apt update 2> /dev/null > /dev/null && DONE=0
-  done
-  unset DONE
   installDeps
 
   debug "Enabling redis and gnupg modules"
@@ -203,12 +248,19 @@ installMISPonKali () {
 
   mkdir /var/www/.cache/
 
-  MISP_USER_HOME=$(sudo -Hiu misp env | grep HOME |cut -f 2 -d=)
+  MISP_USER_HOME=$(sudo -Hiu $MISP_USER env | grep HOME |cut -f 2 -d=)
   mkdir $MISP_USER_HOME/.cache
-  chown $MISP_USER:$MISP_USER ~$MISP_USER_HOME/.cache
+  chown $MISP_USER:$MISP_USER $MISP_USER_HOME/.cache
   chown www-data:www-data /var/www/.cache
 
+  debug "Generating rc.local"
+  genRCLOCAL
+
+  debug "Installing MISP dashboard"
+  mispDashboard
+
   debug "Setting up main MISP virtualenv"
+  # Needs virtualenv
   sudo -u www-data virtualenv -p python3 ${PATH_TO_MISP}/venv
 
   debug "Installing python-cybox"
@@ -310,9 +362,6 @@ installMISPonKali () {
 
   echo "127.0.0.1 misp.local" | tee -a /etc/hosts
 
-  debug "Installing MISP dashboard"
-  mispDashboard
-
   debug "Disabling site default-ssl, enabling misp-ssl"
   a2dissite default-ssl
   a2ensite misp-ssl
@@ -336,9 +385,6 @@ installMISPonKali () {
   chown -R www-data:www-data $PATH_TO_MISP/app/Config
   chmod -R 750 $PATH_TO_MISP/app/Config
 
-  debug "Generating rc.local"
-  genRCLOCAL
-
   debug "Setting up GnuPG"
   setupGnuPG
 
@@ -346,6 +392,7 @@ installMISPonKali () {
 
   debug "Running Core Cake commands"
   coreCAKE
+  dashboardCake
   sudo -H -u www-data $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
 
   debug "Update: Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies"
@@ -452,7 +499,6 @@ fi
 
 if [ "${FLAVOUR}" == "kali" ]; then
   kaliOnRootR0ckz
-  installDepsPhp73
   installMISPonKali
   echo "Installation done!"
   exit 0
