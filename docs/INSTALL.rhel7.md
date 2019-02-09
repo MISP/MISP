@@ -260,7 +260,7 @@ echo bind-address=127.0.0.1 >> /etc/opt/rh/rh-mariadb102/my.cnf.d/bind-address.c
 systemctl restart rh-mariadb102-mariadb
 ```
 
-## 6.02/ Start MariaDB shell and create database
+## 6.02/ Start a MariaDB shell and create the database
 ```bash
 scl enable rh-mariadb102 'mysql -u root -p'
 ```
@@ -398,30 +398,40 @@ chcon -R -t httpd_sys_rw_content_t /var/www/MISP/.gnupg
     The email address should match the one set in the config.php configuration file
     Make sure that you use the same settings in the MISP Server Settings tool
 
-## 9.05/ export the public key to the webroot
+## 9.05/ Export the public key to the webroot
 ```bash
 sudo -u apache gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR-EMAIL > /var/www/MISP/app/webroot/gpg.asc
 ```
 
-## 9.06/ Start the workers to enable background jobs
+## 9.06/ Use MISP's background workers
+### 9.06a/ Create a systemd unit for the workers
+Create the following file :
+`/etc/systemd/system/misp-workers.service`
+```
+[Unit]
+Description=MISP's background workers
+After=rh-mariadb102-mariadb.service rh-redis32-redis.service rh-php71-php-fpm.service
+
+[Service]
+Type=forking
+User=apache
+Group=apache
+ExecStart=/usr/bin/scl enable rh-php71 rh-redis32 rh-mariadb102 /var/www/MISP/app/Console/worker/start.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+Make the workers' script executable and reload the systemd units :
 ```bash
 chmod +x /var/www/MISP/app/Console/worker/start.sh
-su -s /bin/bash apache -c 'scl enable rh-php71 rh-redis32 rh-mariadb102 /var/www/MISP/app/Console/worker/start.sh'
+systemctl daemon-reload
 ```
 
-## 9.07a/ To make the background workers start on boot
+### 9.06b/ Start the workers and enable them on boot
 ```bash
-vi /etc/rc.local
-```
-
-## 9.07b/ Add the following line at the end
-```bash
-su -s /bin/bash apache -c 'scl enable rh-php71 rh-redis32 rh-mariadb102 /var/www/MISP/app/Console/worker/start.sh'
-```
-
-## 9.07c/ and make sure it will execute
-```bash
-chmod +x /etc/rc.local
+systemctl enable --now misp-workers.service
 ```
 
 {!generic/INSTALL.done.md!}
@@ -453,15 +463,9 @@ post_max_size = 50M
 systemctl restart rh-php71-php-fpm
 ```
 
-## 10.04/ Install pymisp and pydeep for Advanced Attachment handler
+## 10.04/ Install pydeep and pymisp
 ```bash
-pip install pymisp
-pip install git+https://github.com/kbandla/pydeep.git
-```
-
-## 10.05/ Install pymisp also in Python 3
-```bash
-scl enable rh-python36 pip3 install pymisp
+scl enable rh-python36 'python3 -m pip install pymisp git+https://github.com/kbandla/pydeep.git'
 ```
 
 # 11/ LIEF Installation
