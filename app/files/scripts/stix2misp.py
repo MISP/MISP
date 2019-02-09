@@ -24,9 +24,14 @@ import base64
 import stix2misp_mapping
 import stix.extensions.marking.ais
 from operator import attrgetter
-from pymisp import MISPEvent, MISPObject, MISPAttribute, __path__
 from stix.core import STIXPackage
 from collections import defaultdict
+
+_MISP_dir = "/".join([p for p in os.path.dirname(os.path.realpath(__file__)).split('/')[:-3]])
+_PyMISP_dir = '{_MISP_dir}/PyMISP/pymisp'.format(_MISP_dir=_MISP_dir)
+_MISP_objects_path = '{_MISP_dir}/app/files/misp-objects/objects'.format(_MISP_dir=_MISP_dir)
+sys.path.append(_PyMISP_dir)
+from pymisp.mispevent import MISPEvent, MISPObject, MISPAttribute
 
 cybox_to_misp_object = {"Account": "credential", "AutonomousSystem": "asn",
                         "EmailMessage": "email", "NetworkConnection": "network-connection",
@@ -35,8 +40,7 @@ cybox_to_misp_object = {"Account": "credential", "AutonomousSystem": "asn",
 
 threat_level_mapping = {'High': '1', 'Medium': '2', 'Low': '3', 'Undefined': '4'}
 
-descFilename = os.path.join(__path__[0], 'data/describeTypes.json')
-with open(descFilename, 'r') as f:
+with open("{_PyMISP_dir}/data/describeTypes.json".format(_PyMISP_dir=_PyMISP_dir), 'r') as f:
     categories = json.loads(f.read())['result'].get('categories')
 
 class StixParser():
@@ -421,7 +425,7 @@ class StixParser():
             for connection in properties.network_connection_list:
                 object_name, object_attributes, _ = self.handle_network_connection(connection)
                 object_uuid = str(uuid.uuid4())
-                misp_object = MISPObject(object_name)
+                misp_object = MISPObject(object_name, misp_objects_path_custom=_MISP_objects_path)
                 misp_object.uuid = object_uuid
                 for attribute in object_attributes:
                     misp_object.add_attribute(**attribute)
@@ -559,13 +563,13 @@ class StixParser():
     # Parse attributes of a portable executable, create the corresponding object,
     # and return its uuid to build the reference for the file object generated at the same time
     def parse_pe(self, properties):
-        misp_object = MISPObject('pe')
+        misp_object = MISPObject('pe', misp_objects_path_custom=_MISP_objects_path)
         filename = properties.file_name.value
         for attr in ('internal-filename', 'original-filename'):
             misp_object.add_attribute(**dict(zip(('type', 'value', 'object_relation'),('filename', filename, attr))))
         if properties.headers:
             headers = properties.headers
-            header_object = MISPObject('pe-section')
+            header_object = MISPObject('pe-section', misp_objects_path_custom=_MISP_objects_path)
             if headers.entropy:
                 header_object.add_attribute(**{"type": "float", "object_relation": "entropy",
                                                "value": headers.entropy.value.value})
@@ -590,7 +594,7 @@ class StixParser():
     # Parse attributes of a portable executable section, create the corresponding object,
     # and return its uuid to build the reference for the pe object generated at the same time
     def parse_pe_section(self, section):
-        section_object = MISPObject('pe-section')
+        section_object = MISPObject('pe-section', misp_objects_path_custom=_MISP_objects_path)
         header_hashes = section.header_hashes
         for h in header_hashes:
             hash_type, hash_value, hash_relation = self.handle_hashes_attribute(h)
@@ -656,7 +660,7 @@ class StixParser():
     # The value returned by the indicators or observables parser is a list of dictionaries
     # These dictionaries are the attributes we add in an object, itself added in the MISP event
     def handle_object_case(self, attribute_type, attribute_value, compl_data, to_ids=False, object_uuid=None):
-        misp_object = MISPObject(attribute_type)
+        misp_object = MISPObject(attribute_type, misp_objects_path_custom=_MISP_objects_path)
         if object_uuid:
             misp_object.uuid = object_uuid
         for attribute in attribute_value:
@@ -886,9 +890,9 @@ class StixFromMISPParser(StixParser):
     # Create a MISP object, its attributes, and add it in the MISP event
     def fill_misp_object(self, item, name, to_ids=False):
         uuid = self.fetch_uuid(item.id_)
-        if any(((hasattr(item, 'observable') and hasattr(item.observable, 'observable_composition')),
+        if any(((hasattr(item, 'observable') and hasattr(item.observable, 'observable_composition') and item.observable.observable_composition),
                 (hasattr(item, 'observable_composition') and item.observable_composition))):
-            misp_object = MISPObject(name)
+            misp_object = MISPObject(name, misp_objects_path_custom=_MISP_objects_path)
             misp_object.uuid = uuid
             if to_ids:
                 observables = item.observable.observable_composition.observables
@@ -1021,7 +1025,7 @@ class ExternalStixParser(StixParser):
     # Parse the courses of action field of an external STIX document
     def parse_coa(self, courses_of_action):
         for coa in courses_of_action:
-            misp_object = MISPObject('course-of-action')
+            misp_object = MISPObject('course-of-action', misp_objects_path_custom=_MISP_objects_path)
             if coa.title:
                 attribute = {'type': 'text', 'object_relation': 'name',
                              'value': coa.title}
@@ -1151,7 +1155,7 @@ class ExternalStixParser(StixParser):
             ip_reference = domain_dict['related']
             domain_attribute = domain_dict['data']
             if ip_reference in self.dns_objects['ip']:
-                misp_object = MISPObject('passive-dns')
+                misp_object = MISPObject('passive-dns', misp_objects_path_custom=_MISP_objects_path)
                 domain_attribute['object_relation'] = "rrname"
                 misp_object.add_attribute(**domain_attribute)
                 ip = self.dns_objects['ip'][ip_reference]['value']
