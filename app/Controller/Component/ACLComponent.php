@@ -405,6 +405,7 @@ class ACLComponent extends Component
                     'index' => array('*'),
                     'quickAdd' => array('perm_tag_editor'),
                     'removeTagFromObject' => array('perm_tagger'),
+                    'search' => array('*'),
                     'selectTag' => array('perm_tagger'),
                     'selectTaxonomy' => array('perm_tagger'),
                     'showEventTag' => array('*'),
