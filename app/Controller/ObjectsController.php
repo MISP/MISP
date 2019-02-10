@@ -42,7 +42,7 @@ class ObjectsController extends AppController
             )
         ));
         $event = $this->MispObject->Event->find('first', $eventFindParams);
-        if (empty($event) || (!$this->_isSiteAdmin() &&	$event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
+        if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
             throw new NotFoundException(__('Invalid event.'));
         }
         $sharing_groups = array();
@@ -140,7 +140,7 @@ class ObjectsController extends AppController
             throw new NotFoundException(__('Invalid event.'));
         }
         $event = $this->MispObject->Event->find('first', $eventFindParams);
-        if (empty($event) || (!$this->_isSiteAdmin() &&	$event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
+        if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
             throw new NotFoundException(__('Invalid event.'));
         }
         $eventId = $event['Event']['id'];
@@ -236,10 +236,10 @@ class ObjectsController extends AppController
                             'conditions' => array('Object.id' => $result),
                             'contain' => array('Attribute')
                         ));
-						if (!empty($object)) {
-							$object['Object']['Attribute'] = $object['Attribute'];
-							unset($object['Attribute']);
-						}
+                        if (!empty($object)) {
+                            $object['Object']['Attribute'] = $object['Attribute'];
+                            unset($object['Attribute']);
+                        }
                         return $this->RestResponse->viewData($object, $this->response->type());
                     } else {
                         return $this->RestResponse->saveFailResponse('Objects', 'add', false, $error, $this->response->type());
@@ -330,7 +330,7 @@ class ObjectsController extends AppController
         );
 
         $event = $this->MispObject->Event->find('first', $eventFindParams);
-        if (empty($event) || (!$this->_isSiteAdmin() &&	$event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
+        if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
             throw new NotFoundException(__('Invalid object.'));
         }
         if (!$this->_isRest()) {
@@ -376,10 +376,10 @@ class ObjectsController extends AppController
                             'conditions' => array('Object.id' => $id),
                             'contain' => array('Attribute')
                         ));
-						if (!empty($objectToSave)) {
-							$objectToSave['Object']['Attribute'] = $objectToSave['Attribute'];
-							unset($objectToSave['Attribute']);
-						}
+                        if (!empty($objectToSave)) {
+                            $objectToSave['Object']['Attribute'] = $objectToSave['Attribute'];
+                            unset($objectToSave['Attribute']);
+                        }
                         $this->MispObject->Event->unpublishEvent($object['Object']['event_id']);
                         return $this->RestResponse->viewData($objectToSave, $this->response->type());
                     } else {

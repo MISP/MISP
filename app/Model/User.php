@@ -853,7 +853,7 @@ class User extends AppModel
         // Sign the body
         require_once 'Crypt/GPG.php';
         try {
-            $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'gpgconf' => Configure::read('GnuPG.gpgconf'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg'), 'debug'));	// , 'debug' => true
+            $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'gpgconf' => Configure::read('GnuPG.gpgconf'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg'), 'debug'));   // , 'debug' => true
             if (Configure::read('GnuPG.sign')) {
                 $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
                 $body = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
