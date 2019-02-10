@@ -65,6 +65,9 @@ MISPvars () {
   # debug alias to make sure people are not confused when blindly copy pasting blobs of code
   alias debug=echo
 
+  # checkAptLock alias to make sure people are not confused when blindly copy pasting blobs of code
+  alias checkAptLock="echo 'Function used in Installer to make sure apt is not locked'"
+
   # Local non-root MISP user
   MISP_USER='misp'
   MISP_PASSWORD='Password1234'
@@ -184,6 +187,7 @@ setOpt () {
 # Extract debian flavour
 checkFlavour () {
   if [ ! -f $(which lsb_release) ]; then
+    checkAptLock
     sudo apt install lsb-release -y
   fi
 
@@ -215,6 +219,7 @@ containsElement () {
 checkLocale () {
   # If locale is missing, generate and install a common UTF-8
   if [ ! -f /etc/default/locale ]; then
+    checkAptLock
     sudo apt install locales -y
     sudo locale-gen en_US.UTF-8
     sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
@@ -263,31 +268,34 @@ checkID () {
 
 # check is /usr/local/src is RW by misp user
 checkUsrLocalSrc () {
-if [[ -e /usr/local/src ]]; then
-  if [[ -w /usr/local/src ]]; then
-    echo "Good, /usr/local/src exists and is writeable as $MISP_USER"
-  else
-    # TODO: The below might be shorter, more elegant and more modern
-    #[[ -n $KALI ]] || [[ -n $UNATTENDED ]] && echo "Just do it" 
-    if [ "$KALI" == "1" -o "$UNATTENDED" == "1" ]; then
-      ANSWER="y"
+  echo ""
+  if [[ -e /usr/local/src ]]; then
+    if [[ -w /usr/local/src ]]; then
+      echo "Good, /usr/local/src exists and is writeable as $MISP_USER"
     else
-      echo -n "/usr/local/src need to be writeable by $MISP_USER, permission to fix? (y/n)"
-      read ANSWER
-      ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
+      # TODO: The below might be shorter, more elegant and more modern
+      #[[ -n $KALI ]] || [[ -n $UNATTENDED ]] && echo "Just do it" 
+      if [ "$KALI" == "1" -o "$UNATTENDED" == "1" ]; then
+        ANSWER="y"
+      else
+        space
+        echo "/usr/local/src need to be writeable by $MISP_USER for misp-modules, viper etc."
+        echo -n "Permission to fix? (y/n) "
+        space
+        read ANSWER
+        ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
+      fi
+      if [ "$ANSWER" == "y" ]; then
+        sudo chmod 2775 /usr/local/src
+        sudo chown root:staff /usr/local/src
+      fi
     fi
-    if [ "$ANSWER" == "y" ]; then
-      sudo chmod 2775 /usr/local/src
-      sudo chown root:staff /usr/local/src
-    fi
+  else
+    echo "/usr/local/src does not exist, creating."
+    mkdir /usr/local/src
+    sudo chmod 2775 /usr/local/src
+    sudo chown root:staff /usr/local/src
   fi
-else
-  echo "/usr/local/src does not exist, creating."
-  mkdir /usr/local/src
-  sudo chmod 2775 /usr/local/src
-  sudo chown root:staff /usr/local/src
-fi
-
 }
 
 # Because Kali is l33t we make sure we run as root
@@ -310,6 +318,7 @@ installRNG () {
   if [ "$?" -eq "0" ]; then 
     echo tpm-rng >> /etc/modules
   fi
+  checkAptLock
   apt install -qy rng-tools # This might fail on TPM grounds, enable the security chip in your BIOS
   service rng-tools start
 
@@ -322,15 +331,9 @@ installRNG () {
 
 # Kali upgrade
 kaliUpgrade () {
-  SLEEP=3
   sudo apt update
-  while [ "$DONE" != "0" ]; do
-    sudo DEBIAN_FRONTEND=noninteractive apt install --only-upgrade bash libc6 -y && DONE=0
-    echo -e "${LBLUE}apt${NC} is maybe ${RED}locked${NC}, waiting ${RED}$SLEEP${NC} seconds."
-    sleep $SLEEP
-    SLEEP=$[$SLEEP+3]
-  done
-  unset DONE
+  checkAptLock
+  sudo DEBIAN_FRONTEND=noninteractive apt install --only-upgrade bash libc6 -y
 }
 
 # Disables sleep
@@ -344,20 +347,11 @@ disableSleep () {
   xset s off 2> /dev/null
 }
 
-# Install Php 7.3 deps
-installDepsPhp73 () {
-  PHP_ETC_BASE=/etc/php/7.3
-  PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
+if [[ $(type -t checkAptLock) == "alias" ]]; then unalias checkAptLock; fi
+checkAptLock () {
   SLEEP=3
-  sudo apt update
   while [ "$DONE" != "0" ]; do
-    sudo apt install -qy \
-    libapache2-mod-php7.3 \
-    php7.3 php7.3-cli \
-    php7.3-dev \
-    php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
-    php-pear \
-    php-redis php-gnupg 2> /dev/null > /dev/null && DONE=0
+    sudo apt-get check 2> /dev/null > /dev/null && DONE=0
     echo -e "${LBLUE}apt${NC} is maybe ${RED}locked${NC}, waiting ${RED}$SLEEP${NC} seconds."
     sleep $SLEEP
     SLEEP=$[$SLEEP+3]
@@ -365,8 +359,24 @@ installDepsPhp73 () {
   unset DONE
 }
 
+# Install Php 7.3 deps
+installDepsPhp73 () {
+  PHP_ETC_BASE=/etc/php/7.3
+  PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
+  sudo apt update
+  checkAptLock
+  sudo apt install -qy \
+  libapache2-mod-php7.3 \
+  php7.3 php7.3-cli \
+  php7.3-dev \
+  php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
+  php-pear \
+  php-redis php-gnupg
+}
+
 # Installing core dependencies
 installDeps () {
+  checkAptLock
   sudo apt update
   sudo apt install -qy etckeeper
   # Skip dist-upgrade for now, pulls in 500+ updated packages
@@ -598,6 +608,7 @@ theEnd () {
 }
 
 aptUpgrade () {
+  checkAptLock
   sudo apt-get update
   sudo apt-get upgrade -y
 }
@@ -616,7 +627,7 @@ checkSudoKeeper () {
 
 installCoredDeps () {
   # Install the dependencies: (some might already be installed)
-  sudo apt-get install curl gcc git gpg-agent make python python3 openssl redis-server sudo vim zip virtualenv -y
+  sudo apt-get install curl gcc git gpg-agent make python python3 openssl redis-server sudo vim zip virtualenv libfuzzy-dev -y
 
   # Install MariaDB (a MySQL fork/alternative)
   sudo apt-get install mariadb-client mariadb-server -y
@@ -635,21 +646,15 @@ installCoredDeps () {
 installDepsPhp73 () {
   PHP_ETC_BASE=/etc/php/7.3
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
-  SLEEP=3
   sudo apt update
-  while [ "$DONE" != "0" ]; do
-    sudo apt install -qy \
-    libapache2-mod-php7.3 \
-    php7.3 php7.3-cli \
-    php7.3-dev \
-    php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
-    php-pear \
-    php-redis php-gnupg 2> /dev/null > /dev/null && DONE=0
-    echo -e "${LBLUE}apt${NC} is maybe ${RED}locked${NC}, waiting ${RED}$SLEEP${NC} seconds."
-    sleep $SLEEP
-    SLEEP=$[$SLEEP+3]
-  done
-  unset DONE
+  checkAptLock
+  sudo apt install -qy \
+  libapache2-mod-php7.3 \
+  php7.3 php7.3-cli \
+  php7.3-dev \
+  php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
+  php-pear \
+  php-redis php-gnupg
 }
 
 # Install Php 7.2 dependencies

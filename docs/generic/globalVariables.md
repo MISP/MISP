@@ -7,6 +7,9 @@ MISPvars () {
   # debug alias to make sure people are not confused when blindly copy pasting blobs of code
   alias debug=echo
 
+  # checkAptLock alias to make sure people are not confused when blindly copy pasting blobs of code
+  alias checkAptLock="echo 'Function used in Installer to make sure apt is not locked'"
+
   # Local non-root MISP user
   MISP_USER='misp'
   MISP_PASSWORD='Password1234'
