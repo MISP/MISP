@@ -1305,7 +1305,7 @@ class AppModel extends Model
         return true;
     }
 
-    public function runUpdates()
+    public function runUpdates($verbose = false)
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $db = ConnectionManager::getDataSource('default');
@@ -1330,12 +1330,18 @@ class AppModel extends Model
             $updates = $this->__findUpgrades($db_version['AdminSetting']['value']);
             if (!empty($updates)) {
                 foreach ($updates as $update => $temp) {
+                    if ($verbose) {
+                        echo str_pad('Executing ' . $update, 30, '.');
+                    }
                     $this->updateMISP($update);
                     if ($temp) {
                         $requiresLogout = true;
                     }
                     $db_version['AdminSetting']['value'] = $update;
                     $this->AdminSetting->save($db_version);
+                    if ($verbose) {
+                        echo "\033[32mDone\033[0m" . PHP_EOL;
+                    }
                 }
                 $this->__queueCleanDB();
             }
