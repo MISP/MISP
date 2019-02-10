@@ -1034,4 +1034,43 @@ class TagsController extends AppController
         $this->set('id', $id);
         $this->render('/Events/view_graph');
     }
+
+    public function search($tag = false)
+    {
+        if (isset($this->request->data['Tag'])) {
+            $this->request->data = $this->request->data['Tag'];
+        }
+        if (!empty($this->request->data['tag'])) {
+            $tag = $this->request->data['tag'];
+        } else if (!empty($this->request->data)) {
+            $tag = $this->request->data;
+        }
+        if (is_array($tag)) {
+            foreach ($tag as $k => $t) {
+                $tag[$k] = strtolower($t);
+            }
+        } else {
+            $tag = strtolower($tag);
+        }
+        $conditions = array(
+            'LOWER(Tag.name) LIKE ' => $tag
+        );
+        $tags = $this->Tag->find('all', array(
+            'conditions' => $conditions,
+            'recursive' => -1
+        ));
+        $this->loadModel('GalaxyCluster');
+        $this->loadModel('Taxonomy');
+        foreach ($tags as $k => $t) {
+            $taxonomy = $this->Taxonomy->getTaxonomyForTag($t['Tag']['name'], true);
+            if (!empty($taxonomy)) {
+                $tags[$k]['Taxonomy'] = $taxonomy['Taxonomy'];
+            }
+            $cluster = $this->GalaxyCluster->getCluster($t['Tag']['name']);
+            if (!empty($cluster)) {
+                $tags[$k]['GalaxyCluster'] = $cluster['GalaxyCluster'];
+            }
+        }
+        return $this->RestResponse->viewData($tags, $this->response->type());
+    }
 }
