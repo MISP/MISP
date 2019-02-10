@@ -442,15 +442,6 @@ else
   checkOpt unattended && echo "${GREEN}unattended${NC} install selected"
 fi
 
-echo "Core: $CORE"
-echo "Viper: $VIPER"
-echo "Modules: $MODULES"
-echo "Dashboard: $DASBOARD"
-echo "All: $ALL"
-echo "Pre: $PRE"
-echo "Mail2: $MAIL2"
-echo "Unattended: $UNATTENDED"
-
 debug "Checking flavour"
 checkFlavour
 debug "Setting MISP variables"

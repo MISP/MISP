@@ -14,15 +14,14 @@ mispmodules () {
   # pip install
   debug "install lief"
   sudo chgrp www-data .
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I .
   sudo chgrp staff .
   sudo apt install ruby-pygments.rb -y
   sudo gem install asciidoctor-pdf --pre
+
   # install additional dependencies for extended object generation and extraction
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install maec python-magic wand yara pathlib
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install wand yara pathlib
   # Start misp-modules
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s &
 

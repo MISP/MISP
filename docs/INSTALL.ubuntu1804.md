@@ -141,6 +141,15 @@ installCore () {
   cd ${PATH_TO_MISP}/PyMISP
   sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 
+  # install pydeep
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
+
+  # install lief
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+
+  # install python-magic
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic
+
   # Install Crypt_GPG and Console_CommandLine
   sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
   sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml

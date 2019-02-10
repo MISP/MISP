@@ -777,6 +777,15 @@ installCore () {
   cd ${PATH_TO_MISP}/PyMISP
   sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 
+  # install pydeep
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
+
+  # install lief
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+
+  # install python-magic
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic
+
   # Install Crypt_GPG and Console_CommandLine
   sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
   sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
@@ -1043,15 +1052,14 @@ mispmodules () {
   # pip install
   debug "install lief"
   sudo chgrp www-data .
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I .
   sudo chgrp staff .
   sudo apt install ruby-pygments.rb -y
   sudo gem install asciidoctor-pdf --pre
+
   # install additional dependencies for extended object generation and extraction
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install maec python-magic wand yara pathlib
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install wand yara pathlib
   # Start misp-modules
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s &
 
@@ -1620,15 +1628,6 @@ else
   checkOpt pre && echo "${GREEN}Pre-flight checks${NC} selected"
   checkOpt unattended && echo "${GREEN}unattended${NC} install selected"
 fi
-
-echo "Core: $CORE"
-echo "Viper: $VIPER"
-echo "Modules: $MODULES"
-echo "Dashboard: $DASBOARD"
-echo "All: $ALL"
-echo "Pre: $PRE"
-echo "Mail2: $MAIL2"
-echo "Unattended: $UNATTENDED"
 
 debug "Checking flavour"
 checkFlavour
