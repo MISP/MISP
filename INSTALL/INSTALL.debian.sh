@@ -114,15 +114,12 @@ MISPvars () {
   max_execution_time=300
   memory_limit=512M
 
-  # apt config
-  export DEBIAN_FRONTEND=noninteractive
-
   # set the web server user
   WWW_USER="www-data"
 
   # sudo config to run $LUSER commands
-  SUDO_USER="sudo -H -u ${MISP_USER}"
-  SUDO_WWW="sudo -H -u ${WWW_USER}"
+  SUDO_USER="sudo -H -u ${MISP_USER} "
+  SUDO_WWW="sudo -H -u ${WWW_USER} "
 
   echo "Admin (${DBUSER_ADMIN}) DB Password: ${DBPASSWORD_ADMIN}"
   echo "User  (${DBUSER_MISP}) DB Password: ${DBPASSWORD_MISP}"
@@ -156,6 +153,8 @@ usage () {
   space
   echo "                    -C | Only do pre-install checks and exit" # pre
   space
+  echo "                    -U | Do an unattanded Install, no questions asked" # UNATTENDED
+  space
   echo "Options can be combined: ${0} -V -D # Will install Core+Viper+Dashboard"
   space
 }
@@ -170,13 +169,14 @@ setOpt () {
   for o in $@; do 
     option=$(
     case "$o" in
-      ("-c") echo "core" ;;
-      ("-V") echo "viper" ;;
-      ("-M") echo "modules" ;;
-      ("-D") echo "dashboard" ;;
-      ("-m") echo "mail2" ;;
-      ("-A") echo "all" ;;
-      ("-C") echo "pre" ;;
+      ("-c") echo "core"; CORE=1 ;;
+      ("-V") echo "viper"; VIPER=1 ;;
+      ("-M") echo "modules"; MODULES=1 ;;
+      ("-D") echo "dashboard"; DASHBOARD=1 ;;
+      ("-m") echo "mail2"; MAIL2=1 ;;
+      ("-A") echo "all"; ALL=1 ;;
+      ("-C") echo "pre"; PRE=1 ;;
+      ("-U") echo "unattended"; UNATTENDED=1 ;;
       #(*) echo "$o is not a valid argument" ;;
     esac)
     options+=($option)
@@ -269,9 +269,15 @@ if [[ -e /usr/local/src ]]; then
   if [[ -w /usr/local/src ]]; then
     echo "Good, /usr/local/src exists and is writeable as $MISP_USER"
   else
-    echo -n "/usr/local/src need to be writeable by $MISP_USER, permission to fix? (y/n)"
-    read ANSWER
-    ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
+    # TODO: The below might be shorter, more elegant and more modern
+    #[[ -n $KALI ]] || [[ -n $UNATTENDED ]] && echo "Just do it" 
+    if [ "$KALI" == "1" -o "$UNATTENDED" == "1" ]; then
+      ANSWER="y"
+    else
+      echo -n "/usr/local/src need to be writeable by $MISP_USER, permission to fix? (y/n)"
+      read ANSWER
+      ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
+    fi
     if [ "$ANSWER" == "y" ]; then
       sudo chmod 2775 /usr/local/src
       sudo chown root:staff /usr/local/src
@@ -321,7 +327,7 @@ kaliUpgrade () {
   SLEEP=3
   sudo apt update
   while [ "$DONE" != "0" ]; do
-    sudo apt install --only-upgrade bash libc6 -y && DONE=0
+    sudo DEBIAN_FRONTEND=noninteractive apt install --only-upgrade bash libc6 -y && DONE=0
     echo -e "${LBLUE}apt${NC} is maybe ${RED}locked${NC}, waiting ${RED}$SLEEP${NC} seconds."
     sleep $SLEEP
     SLEEP=$[$SLEEP+3]
@@ -376,7 +382,7 @@ installDeps () {
     git config --global user.name "Root User"
   fi
 
-  sudo apt install -qy postfix
+  [[ -n $KALI ]] || [[ -n $UNATTENDED ]] && sudo DEBIAN_FRONTEND=noninteractive apt install -qy postfix || sudo apt install -qy postfix
 
   sudo apt install -qy \
   curl gcc git gnupg-agent make openssl redis-server neovim zip libyara-dev python3-yara python3-redis python3-zmq \
@@ -848,6 +854,9 @@ configMISP () {
 coreCAKE () {
   $SUDO_WWW -E $CAKE userInit -q
 
+  # This makes sure all Database upgrades are done, without logging in.
+  $SUDO_WWW $CAKE Admin updateDatabase
+
   # Setup some more MISP default via cake CLI
 
   # Tune global time outs
@@ -873,7 +882,7 @@ coreCAKE () {
   $SUDO_WWW $CAKE Admin setSetting "MISP.contact" "info@admin.test"
   $SUDO_WWW $CAKE Admin setSetting "MISP.disablerestalert" true
   $SUDO_WWW $CAKE Admin setSetting "MISP.showCorrelationsOnIndex" true
-  #$SUDO_WWW $CAKE Admin setSetting "MISP.default_event_tag_collection" 0
+  $SUDO_WWW $CAKE Admin setSetting "MISP.default_event_tag_collection" 0
 
   # Provisional Cortex tunes
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_services_enable" false
@@ -1092,8 +1101,6 @@ mispDashboard () {
   sudo sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/config/config.cfg
   sudo sed -i '/Listen 80/a Listen 0.0.0.0:8001' /etc/apache2/ports.conf
   sudo apt install libapache2-mod-wsgi-py3 -y
-  $SUDO_WWW bash /var/www/misp-dashboard/start_all.sh
-  sudo apt install libapache2-mod-wsgi-py3 -y
   echo "<VirtualHost *:8001>
       ServerAdmin admin@misp.local
       ServerName misp.local
@@ -1135,8 +1142,13 @@ mispDashboard () {
       CustomLog /var/log/apache2/misp-dashboard.local_access.log combined
       ServerSignature Off
   </VirtualHost>" | sudo tee /etc/apache2/sites-available/misp-dashboard.conf
+
+  # Enable misp-dashboard in apache and reload
   sudo a2ensite misp-dashboard
   sudo systemctl reload apache2
+
+  # Needs to be started after apache2 is reloaded so the port status check works
+  $SUDO_WWW bash /var/www/misp-dashboard/start_all.sh
 
   # Add misp-dashboard to rc.local to start on boot.
   sudo sed -i -e '$i \sudo -u www-data bash /var/www/misp-dashboard/start_all.sh > /tmp/misp-dashboard_rc.local.log\n' /etc/rc.local
@@ -1329,15 +1341,15 @@ debug () {
   fi
 }
 
-installMISPcore () {
+installMISP () {
   space
   echo "Proceeding with the installation of MISP core"
   space
-  checkSudoKeeper
+  ##checkSudoKeeper
   # add-user.sh
-  sudo apt update
+  ##sudo apt update
   # postfix.sh
-  installDeps # doubleCheck
+  ##installDeps # doubleCheck
   # Mysql install functions
   # misp code function
 
@@ -1362,7 +1374,11 @@ installMISPcore () {
   coreCAKE
   updateGOWNT 
   checkUsrLocalSrc
-  mispmodules
+  [[ -n $MODULES ]] || [[ -n $ALL ]] && mispmodules
+  [[ -n $VIPER ]] && viper
+  [[ -n $DASHBOARD ]] && dashboard
+  [[ -n $MAIL2 ]] && mail2
+
   sudo -H -u www-data $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
 }
 
@@ -1569,6 +1585,8 @@ installMISPonKali () {
 
   gitPullAllRCLOCAL
 
+  checkUsrLocalSrc
+
   debug "Installing misp-modules"
   mispmodules
 
@@ -1593,27 +1611,29 @@ if [[ $# -ne 1 && $0 != "/tmp/misp-kali.sh" ]]; then
   exit 
 else
   debug "Setting install options with given parameters."
+  # The setOpt/checkOpt function lives in generic/supportFunctions.md
   setOpt $@
-  checkOpt core && echo "core selected"
-  checkOpt viper && echo "viper selected"
-  checkOpt modules && echo "modules selected"
-  checkOpt dashboard && echo "dashboard selected"
-  checkOpt mail2 && echo "mail2 selected"
-  checkOpt all && echo "all selected"
-  checkOpt pre && echo "pre selected"
+  checkOpt core && echo "${LBLUE}MISP${NC} ${GREEN}core${NC} selected"
+  checkOpt viper && echo "${GREEN}Viper${NC} selected"
+  checkOpt modules && echo "${LBLUE}MISP${NC} ${GREEN}modules${NC} selected"
+  checkOpt dashboard && echo "${LBLUE}MISP${NC} ${GREEN}dashboard${NC} selected"
+  checkOpt mail2 && echo "${GREEN}Mail 2${NC} ${LBLUE}MISP${NC} selected"
+  checkOpt all && echo "${GREEN}All options${NC} selected"
+  checkOpt pre && echo "${GREEN}Pre-flight checks${NC} selected"
+  checkOpt unattended && echo "${GREEN}unattended${NC} install selected"
 fi
 
 debug "Checking flavour"
 checkFlavour
 debug "Setting MISP variables"
 MISPvars
-
  
 if [ "${FLAVOUR}" == "ubuntu" ]; then
   RELEASE=$(lsb_release -s -r| tr [A-Z] [a-z])
   if [ "${RELEASE}" == "18.04" ]; then
     echo "Install on Ubuntu 18.04 LTS fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
+    installMISP
   fi
   if [ "${RELEASE}" == "18.10" ]; then
     echo "Install on Ubuntu 18.10 not supported, bye."
@@ -1667,6 +1687,7 @@ if [ "${FLAVOUR}" == "tsurugi" ]; then
 fi
 
 if [ "${FLAVOUR}" == "kali" ]; then
+  KALI=1
   kaliOnRootR0ckz
   installMISPonKali
   echo "Installation done!"

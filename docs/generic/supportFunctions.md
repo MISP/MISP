@@ -28,6 +28,8 @@ usage () {
   space
   echo "                    -C | Only do pre-install checks and exit" # pre
   space
+  echo "                    -U | Do an unattanded Install, no questions asked" # UNATTENDED
+  space
   echo "Options can be combined: ${0} -V -D # Will install Core+Viper+Dashboard"
   space
 }
@@ -42,13 +44,14 @@ setOpt () {
   for o in $@; do 
     option=$(
     case "$o" in
-      ("-c") echo "core" ;;
-      ("-V") echo "viper" ;;
-      ("-M") echo "modules" ;;
-      ("-D") echo "dashboard" ;;
-      ("-m") echo "mail2" ;;
-      ("-A") echo "all" ;;
-      ("-C") echo "pre" ;;
+      ("-c") echo "core"; CORE=1 ;;
+      ("-V") echo "viper"; VIPER=1 ;;
+      ("-M") echo "modules"; MODULES=1 ;;
+      ("-D") echo "dashboard"; DASHBOARD=1 ;;
+      ("-m") echo "mail2"; MAIL2=1 ;;
+      ("-A") echo "all"; ALL=1 ;;
+      ("-C") echo "pre"; PRE=1 ;;
+      ("-U") echo "unattended"; UNATTENDED=1 ;;
       #(*) echo "$o is not a valid argument" ;;
     esac)
     options+=($option)
@@ -141,9 +144,15 @@ if [[ -e /usr/local/src ]]; then
   if [[ -w /usr/local/src ]]; then
     echo "Good, /usr/local/src exists and is writeable as $MISP_USER"
   else
-    echo -n "/usr/local/src need to be writeable by $MISP_USER, permission to fix? (y/n)"
-    read ANSWER
-    ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
+    # TODO: The below might be shorter, more elegant and more modern
+    #[[ -n $KALI ]] || [[ -n $UNATTENDED ]] && echo "Just do it" 
+    if [ "$KALI" == "1" -o "$UNATTENDED" == "1" ]; then
+      ANSWER="y"
+    else
+      echo -n "/usr/local/src need to be writeable by $MISP_USER, permission to fix? (y/n)"
+      read ANSWER
+      ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
+    fi
     if [ "$ANSWER" == "y" ]; then
       sudo chmod 2775 /usr/local/src
       sudo chown root:staff /usr/local/src
@@ -193,7 +202,7 @@ kaliUpgrade () {
   SLEEP=3
   sudo apt update
   while [ "$DONE" != "0" ]; do
-    sudo apt install --only-upgrade bash libc6 -y && DONE=0
+    sudo DEBIAN_FRONTEND=noninteractive apt install --only-upgrade bash libc6 -y && DONE=0
     echo -e "${LBLUE}apt${NC} is maybe ${RED}locked${NC}, waiting ${RED}$SLEEP${NC} seconds."
     sleep $SLEEP
     SLEEP=$[$SLEEP+3]
@@ -250,7 +259,7 @@ installDeps () {
     git config --global user.name "Root User"
   fi
 
-  sudo apt install -qy postfix
+  [[ -n $KALI ]] || [[ -n $UNATTENDED ]] && sudo DEBIAN_FRONTEND=noninteractive apt install -qy postfix || sudo apt install -qy postfix
 
   sudo apt install -qy \
   curl gcc git gnupg-agent make openssl redis-server neovim zip libyara-dev python3-yara python3-redis python3-zmq \

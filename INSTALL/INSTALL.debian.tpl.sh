@@ -160,15 +160,15 @@ debug () {
   fi
 }
 
-installMISPcore () {
+installMISP () {
   space
   echo "Proceeding with the installation of MISP core"
   space
-  checkSudoKeeper
+  ##checkSudoKeeper
   # add-user.sh
-  sudo apt update
+  ##sudo apt update
   # postfix.sh
-  installDeps # doubleCheck
+  ##installDeps # doubleCheck
   # Mysql install functions
   # misp code function
 
@@ -193,7 +193,11 @@ installMISPcore () {
   coreCAKE
   updateGOWNT 
   checkUsrLocalSrc
-  mispmodules
+  [[ -n $MODULES ]] || [[ -n $ALL ]] && mispmodules
+  [[ -n $VIPER ]] && viper
+  [[ -n $DASHBOARD ]] && dashboard
+  [[ -n $MAIL2 ]] && mail2
+
   sudo -H -u www-data $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
 }
 
@@ -400,6 +404,8 @@ installMISPonKali () {
 
   gitPullAllRCLOCAL
 
+  checkUsrLocalSrc
+
   debug "Installing misp-modules"
   mispmodules
 
@@ -424,27 +430,29 @@ if [[ $# -ne 1 && $0 != "/tmp/misp-kali.sh" ]]; then
   exit 
 else
   debug "Setting install options with given parameters."
+  # The setOpt/checkOpt function lives in generic/supportFunctions.md
   setOpt $@
-  checkOpt core && echo "core selected"
-  checkOpt viper && echo "viper selected"
-  checkOpt modules && echo "modules selected"
-  checkOpt dashboard && echo "dashboard selected"
-  checkOpt mail2 && echo "mail2 selected"
-  checkOpt all && echo "all selected"
-  checkOpt pre && echo "pre selected"
+  checkOpt core && echo "${LBLUE}MISP${NC} ${GREEN}core${NC} selected"
+  checkOpt viper && echo "${GREEN}Viper${NC} selected"
+  checkOpt modules && echo "${LBLUE}MISP${NC} ${GREEN}modules${NC} selected"
+  checkOpt dashboard && echo "${LBLUE}MISP${NC} ${GREEN}dashboard${NC} selected"
+  checkOpt mail2 && echo "${GREEN}Mail 2${NC} ${LBLUE}MISP${NC} selected"
+  checkOpt all && echo "${GREEN}All options${NC} selected"
+  checkOpt pre && echo "${GREEN}Pre-flight checks${NC} selected"
+  checkOpt unattended && echo "${GREEN}unattended${NC} install selected"
 fi
 
 debug "Checking flavour"
 checkFlavour
 debug "Setting MISP variables"
 MISPvars
-
  
 if [ "${FLAVOUR}" == "ubuntu" ]; then
   RELEASE=$(lsb_release -s -r| tr [A-Z] [a-z])
   if [ "${RELEASE}" == "18.04" ]; then
     echo "Install on Ubuntu 18.04 LTS fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
+    installMISP
   fi
   if [ "${RELEASE}" == "18.10" ]; then
     echo "Install on Ubuntu 18.10 not supported, bye."
@@ -498,6 +506,7 @@ if [ "${FLAVOUR}" == "tsurugi" ]; then
 fi
 
 if [ "${FLAVOUR}" == "kali" ]; then
+  KALI=1
   kaliOnRootR0ckz
   installMISPonKali
   echo "Installation done!"

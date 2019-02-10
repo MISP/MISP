@@ -5,6 +5,9 @@
 coreCAKE () {
   $SUDO_WWW -E $CAKE userInit -q
 
+  # This makes sure all Database upgrades are done, without logging in.
+  $SUDO_WWW $CAKE Admin updateDatabase
+
   # Setup some more MISP default via cake CLI
 
   # Tune global time outs
@@ -30,7 +33,7 @@ coreCAKE () {
   $SUDO_WWW $CAKE Admin setSetting "MISP.contact" "info@admin.test"
   $SUDO_WWW $CAKE Admin setSetting "MISP.disablerestalert" true
   $SUDO_WWW $CAKE Admin setSetting "MISP.showCorrelationsOnIndex" true
-  #$SUDO_WWW $CAKE Admin setSetting "MISP.default_event_tag_collection" 0
+  $SUDO_WWW $CAKE Admin setSetting "MISP.default_event_tag_collection" 0
 
   # Provisional Cortex tunes
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_services_enable" false

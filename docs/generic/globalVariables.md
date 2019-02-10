@@ -56,15 +56,12 @@ MISPvars () {
   max_execution_time=300
   memory_limit=512M
 
-  # apt config
-  export DEBIAN_FRONTEND=noninteractive
-
   # set the web server user
   WWW_USER="www-data"
 
   # sudo config to run $LUSER commands
-  SUDO_USER="sudo -H -u ${MISP_USER}"
-  SUDO_WWW="sudo -H -u ${WWW_USER}"
+  SUDO_USER="sudo -H -u ${MISP_USER} "
+  SUDO_WWW="sudo -H -u ${WWW_USER} "
 
   echo "Admin (${DBUSER_ADMIN}) DB Password: ${DBPASSWORD_ADMIN}"
   echo "User  (${DBUSER_MISP}) DB Password: ${DBPASSWORD_MISP}"

@@ -14,8 +14,6 @@ mispDashboard () {
   sudo sed -i "s/^host\ =\ localhost/host\ =\ 0.0.0.0/g" /var/www/misp-dashboard/config/config.cfg
   sudo sed -i '/Listen 80/a Listen 0.0.0.0:8001' /etc/apache2/ports.conf
   sudo apt install libapache2-mod-wsgi-py3 -y
-  $SUDO_WWW bash /var/www/misp-dashboard/start_all.sh
-  sudo apt install libapache2-mod-wsgi-py3 -y
   echo "<VirtualHost *:8001>
       ServerAdmin admin@misp.local
       ServerName misp.local
@@ -57,8 +55,13 @@ mispDashboard () {
       CustomLog /var/log/apache2/misp-dashboard.local_access.log combined
       ServerSignature Off
   </VirtualHost>" | sudo tee /etc/apache2/sites-available/misp-dashboard.conf
+
+  # Enable misp-dashboard in apache and reload
   sudo a2ensite misp-dashboard
   sudo systemctl reload apache2
+
+  # Needs to be started after apache2 is reloaded so the port status check works
+  $SUDO_WWW bash /var/www/misp-dashboard/start_all.sh
 
   # Add misp-dashboard to rc.local to start on boot.
   sudo sed -i -e '$i \sudo -u www-data bash /var/www/misp-dashboard/start_all.sh > /tmp/misp-dashboard_rc.local.log\n' /etc/rc.local
