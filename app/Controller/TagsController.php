@@ -1045,21 +1045,33 @@ class TagsController extends AppController
         } else if (!empty($this->request->data)) {
             $tag = $this->request->data;
         }
-        if (is_array($tag)) {
-            foreach ($tag as $k => $t) {
-                $tag[$k] = strtolower($t);
-            }
-        } else {
-            $tag = strtolower($tag);
+        if (!is_array($tag)) {
+            $tag = array($tag);
         }
-        $conditions = array(
-            'LOWER(Tag.name) LIKE ' => $tag
-        );
+        foreach ($tag as $k => $t) {
+            $tag[$k] = strtolower($t);
+        }
+        $this->loadModel('GalaxyCluster');
+        $conditions = array('GalaxyElement.key' => 'synonyms', 'OR' => array());
+        foreach ($tag as $k => $t) {
+            $conditions['OR'][] = array('LOWER(GalaxyElement.value) LIKE' => $t);
+        }
+        $elements = $this->GalaxyCluster->GalaxyElement->find('all', array(
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'contain' => array('GalaxyCluster.tag_name')
+        ));
+        foreach ($elements as $element) {
+            $tag[] = strtolower($element['GalaxyCluster']['tag_name']);
+        }
+        $conditions = array();
+        foreach ($tag as $k => $t) {
+            $conditions['OR'][] = array('LOWER(Tag.name) LIKE' => $t);
+        }
         $tags = $this->Tag->find('all', array(
             'conditions' => $conditions,
             'recursive' => -1
         ));
-        $this->loadModel('GalaxyCluster');
         $this->loadModel('Taxonomy');
         foreach ($tags as $k => $t) {
             $taxonomy = $this->Taxonomy->getTaxonomyForTag($t['Tag']['name'], true);
