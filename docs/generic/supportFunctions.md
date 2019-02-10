@@ -42,7 +42,6 @@ checkOpt () {
 setOpt () {
   options=()
   for o in $@; do 
-    option=$(
     case "$o" in
       ("-c") echo "core"; CORE=1 ;;
       ("-V") echo "viper"; VIPER=1 ;;
@@ -53,8 +52,7 @@ setOpt () {
       ("-C") echo "pre"; PRE=1 ;;
       ("-U") echo "unattended"; UNATTENDED=1 ;;
       #(*) echo "$o is not a valid argument" ;;
-    esac)
-    options+=($option)
+    esac
   done
 }
 

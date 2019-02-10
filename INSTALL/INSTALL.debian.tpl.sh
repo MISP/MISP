@@ -425,7 +425,7 @@ if [[ $0 == "./INSTALL.debian.tpl.sh" ]]; then
 fi
 
 debug "Checking for parameters or Kali Install"
-if [[ $# -ne 1 && $0 != "/tmp/misp-kali.sh" ]]; then
+if [[ $# == 0 && $0 != "/tmp/misp-kali.sh" ]]; then
   usage
   exit 
 else
@@ -441,6 +441,15 @@ else
   checkOpt pre && echo "${GREEN}Pre-flight checks${NC} selected"
   checkOpt unattended && echo "${GREEN}unattended${NC} install selected"
 fi
+
+echo "Core: $CORE"
+echo "Viper: $VIPER"
+echo "Modules: $MODULES"
+echo "Dashboard: $DASBOARD"
+echo "All: $ALL"
+echo "Pre: $PRE"
+echo "Mail2: $MAIL2"
+echo "Unattended: $UNATTENDED"
 
 debug "Checking flavour"
 checkFlavour
