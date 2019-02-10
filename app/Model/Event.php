@@ -5314,7 +5314,9 @@ class Event extends AppModel
                                 unset($temp['GalaxyCluster']['Galaxy']);
                                 $data['Galaxy'][count($data['Galaxy']) - 1]['GalaxyCluster'][] = $temp['GalaxyCluster'];
                             }
-                            unset($data[$dataType . 'Tag'][$k]);
+                            if ($cullGalaxyTags) {
+                                unset($data[$dataType . 'Tag'][$k]);
+                            }
                         }
                     }
                 }
