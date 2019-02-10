@@ -299,7 +299,7 @@ class Event extends AppModel
         'Attribute' => array(
             'className' => 'Attribute',
             'foreignKey' => 'event_id',
-            'dependent' => true,	// cascade deletes
+            'dependent' => true,    // cascade deletes
             'conditions' => '',
             'fields' => '',
             'order' => array('Attribute.category ASC', 'Attribute.type ASC'),
@@ -312,7 +312,7 @@ class Event extends AppModel
         'ShadowAttribute' => array(
             'className' => 'ShadowAttribute',
             'foreignKey' => 'event_id',
-            'dependent' => true,	// cascade deletes
+            'dependent' => true,    // cascade deletes
             'conditions' => '',
             'fields' => '',
             'order' => array('ShadowAttribute.old_id DESC', 'ShadowAttribute.old_id DESC'),
@@ -982,7 +982,7 @@ class Event extends AppModel
     private function __handleRestfulEventToServerResponse($response, &$newLocation, &$newTextBody)
     {
         switch ($response->code) {
-            case '200':	// 200 (OK) + entity-action-result
+            case '200': // 200 (OK) + entity-action-result
                 if ($response->isOk()) {
                     $newTextBody = $response->body();
                     return true;
@@ -1253,7 +1253,7 @@ class Event extends AppModel
             )
         );
         if ($thread_id) {
-            $relations[] = 	array(
+            $relations[] =  array(
                 'table' => 'posts',
                 'foreign_key' => 'thread_id',
                 'value' => $thread_id
@@ -2801,7 +2801,7 @@ class Event extends AppModel
         if (!empty($bodyTempOther)) {
             $body .= "\n";
         }
-        $body .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
+        $body .= $bodyTempOther;    // append the 'other' attribute types to the bottom.
         $body .= '==============================================' . "\n";
         return $body;
     }
@@ -2919,7 +2919,7 @@ class Event extends AppModel
             }
         }
         $bodyevent .= "\n";
-        $bodyevent .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
+        $bodyevent .= $bodyTempOther;   // append the 'other' attribute types to the bottom.
         return array($bodyevent, $body);
     }
 
@@ -3127,7 +3127,7 @@ class Event extends AppModel
             // Workaround for different structure in XML/array than what CakePHP expects
             $data = $this->cleanupEventArrayFromXML($data);
             // the event_id field is not set (normal) so make sure no validation errors are thrown
-            // LATER do this with	$this->validator()->remove('event_id');
+            // LATER do this with   $this->validator()->remove('event_id');
             unset($this->Attribute->validate['event_id']); // otherwise gives bugs because event_id is not set
             unset($this->Attribute->validate['value']['uniqueValue']); // unset this - we are saving a new event, there are no values to compare against and event_id is not set in the attributes
         }
@@ -3515,49 +3515,49 @@ class Event extends AppModel
             }
             // if published -> do the actual publishing
             if ((!empty($data['Event']['published']) && 1 == $data['Event']['published'])) {
-			    // The edited event is from a remote server ?
-				if ($passAlong) {
-					$this->Server = ClassRegistry::init('Server');
-					$server = $this->Server->find('first', array(
-					    'conditions' => array(
-						    'Server.id' => $passAlong
-						),
-						'recursive' => -1,
-						'fields' => array(
-						    'Server.name',
-							'Server.id',
-							'Server.unpublish_event',
-							'Server.publish_without_email'
-						)
-					));
-					if ($server['Server']['publish_without_email'] == 0) {
-					    $st = "enabled";
-					} else {
-					    $st = "disabled";
-					}
-					$this->Log->create();
-					$this->Log->save(array(
-					    'org' => $user['Organisation']['name'],
-						'model' => 'Event',
-						'model_id' => $saveResult['Event']['id'],
-						'email' => $user['email'],
-						'action' => 'add',
-						'user_id' => $user['id'],
-						'title' => 'Event edited from Server(' . $server['Server']['id'] . ') - "' . $server['Server']['name'] . '" - Notification by mail ' . $st,
-						'change' => ''
+                // The edited event is from a remote server ?
+                if ($passAlong) {
+                    $this->Server = ClassRegistry::init('Server');
+                    $server = $this->Server->find('first', array(
+                        'conditions' => array(
+                            'Server.id' => $passAlong
+                        ),
+                        'recursive' => -1,
+                        'fields' => array(
+                            'Server.name',
+                            'Server.id',
+                            'Server.unpublish_event',
+                            'Server.publish_without_email'
+                        )
                     ));
-				} else {
-				    $this->Log->create();
-					$this->Log->save(array(
-						'org' => $user['Organisation']['name'],
-						'model' => 'Event',
-					    'model_id' => $saveResult['Event']['id'],
-						'email' => $user['email'],
-						'action' => 'add',
-						'user_id' => $user['id'],
-						'title' => 'Event edited (locally)',
-						'change' => ''
-					));
+                    if ($server['Server']['publish_without_email'] == 0) {
+                        $st = "enabled";
+                    } else {
+                        $st = "disabled";
+                    }
+                    $this->Log->create();
+                    $this->Log->save(array(
+                        'org' => $user['Organisation']['name'],
+                        'model' => 'Event',
+                        'model_id' => $saveResult['Event']['id'],
+                        'email' => $user['email'],
+                        'action' => 'add',
+                        'user_id' => $user['id'],
+                        'title' => 'Event edited from Server(' . $server['Server']['id'] . ') - "' . $server['Server']['name'] . '" - Notification by mail ' . $st,
+                        'change' => ''
+                    ));
+                } else {
+                    $this->Log->create();
+                    $this->Log->save(array(
+                        'org' => $user['Organisation']['name'],
+                        'model' => 'Event',
+                        'model_id' => $saveResult['Event']['id'],
+                        'email' => $user['email'],
+                        'action' => 'add',
+                        'user_id' => $user['id'],
+                        'title' => 'Event edited (locally)',
+                        'change' => ''
+                    ));
                 }
                 // do the necessary actions to publish the event (email, upload,...)
                 if ((true != Configure::read('MISP.disablerestalert')) && (empty($server) || $server['Server']['publish_without_email'] == 0)) {
@@ -5314,7 +5314,9 @@ class Event extends AppModel
                                 unset($temp['GalaxyCluster']['Galaxy']);
                                 $data['Galaxy'][count($data['Galaxy']) - 1]['GalaxyCluster'][] = $temp['GalaxyCluster'];
                             }
-                            unset($data[$dataType . 'Tag'][$k]);
+                            if ($cullGalaxyTags) {
+                                unset($data[$dataType . 'Tag'][$k]);
+                            }
                         }
                     }
                 }

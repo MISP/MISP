@@ -14,7 +14,7 @@ class EventsController extends AppController
 
     public $paginate = array(
             'limit' => 60,
-            'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
             'order' => array(
                     'Event.timestamp' => 'DESC'
             ),
@@ -1483,9 +1483,9 @@ class EventsController extends AppController
         $this->set('deleted', isset($this->params['named']['deleted']) && $this->params['named']['deleted']);
         $this->set('includeRelatedTags', (!empty($this->params['named']['includeRelatedTags'])) ? 1 : 0);
         if (!$this->_isRest()) {
-			if ($this->_isSiteAdmin() && $results[0]['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
-				$this->Flash->info(__('You are currently logged in as a site administrator and editing an event not belonging to your organisation, which goes against the sharing model of MISP. Please only use this as a last resort and use normal user account for day to day work.'));
-			}
+            if ($this->_isSiteAdmin() && $results[0]['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
+                $this->Flash->info(__('You are currently logged in as a site administrator and editing an event not belonging to your organisation, which goes against the sharing model of MISP. Please only use this as a last resort and use normal user account for day to day work.'));
+            }
             $this->__viewUI($event, $continue, $fromEvent);
         }
     }
@@ -1758,9 +1758,9 @@ class EventsController extends AppController
         foreach ($this->Event->analysisLevels as $key => $value) {
             $info['analysis'][$key] = array('key' => $value, 'desc' => $this->Event->analysisDescriptions[$key]['formdesc']);
         }
-		if (!$this->_isRest()) {
-			$this->Flash->info(__('The event created will be visible to the organisations having an account on this platform, but not synchronised to other MISP instances until it is published.'));
-		}
+        if (!$this->_isRest()) {
+            $this->Flash->info(__('The event created will be visible to the organisations having an account on this platform, but not synchronised to other MISP instances until it is published.'));
+        }
         $this->set('info', $info);
         $this->set('analysisDescriptions', $this->Event->analysisDescriptions);
         $this->set('analysisLevels', $this->Event->analysisLevels);
@@ -2024,7 +2024,7 @@ class EventsController extends AppController
                         }
                         return $this->RestResponse->saveFailResponse('Events', 'edit', $id, $errors, $this->response->type());
                     } else {
-                        $this->set(array('message' => $message,'_serialize' => array('message')));	// $this->Event->validationErrors
+                        $this->set(array('message' => $message,'_serialize' => array('message')));  // $this->Event->validationErrors
                         $this->render('edit');
                     }
                     return false;
@@ -2089,7 +2089,7 @@ class EventsController extends AppController
         foreach ($this->Event->analysisLevels as $key => $value) {
             $info['analysis'][$key] = array('key' => $value, 'desc' => $this->Event->analysisDescriptions[$key]['formdesc']);
         }
-		$this->set('analysisLevels', $this->Event->analysisLevels);
+        $this->set('analysisLevels', $this->Event->analysisLevels);
 
         $this->set('info', $info);
         $this->set('eventDescriptions', $this->Event->fieldDescriptions);
@@ -2717,7 +2717,7 @@ class EventsController extends AppController
         if ($format != 'snort' && $format != 'suricata') {
             $format = 'suricata'; // default format
         }
-        $this->response->type('txt');	// set the content type
+        $this->response->type('txt');   // set the content type
         $filename = 'misp.' . $format . '.rules';
         if ($id) {
             $filename = 'misp.' . $format . '.event' . $id . '.rules';
@@ -2783,7 +2783,7 @@ class EventsController extends AppController
         if ($last) {
             $last = $this->Event->resolveTimeDelta($last);
         }
-        $this->response->type('txt');	// set the content type
+        $this->response->type('txt');   // set the content type
         $this->header('Content-Disposition: download; filename="misp.' . $type . '.rules"');
         $this->layout = 'text/default';
         if ($key != 'download') {
@@ -2879,12 +2879,12 @@ class EventsController extends AppController
             $fileAccessTool = new FileAccessTool();
             $iocData = $fileAccessTool->readFromFile($this->data['Event']['submittedioc']['tmp_name'], $this->data['Event']['submittedioc']['size']);
 
-	    // write
-	    $attachments_dir = Configure::read('MISP.attachments_dir');
+        // write
+        $attachments_dir = Configure::read('MISP.attachments_dir');
             if (empty($attachments_dir)) {
-		    $attachments_dir = $this->Event->getDefaultAttachments_dir();
-	    }
-	    $rootDir = $attachments_dir . DS . $id . DS;
+            $attachments_dir = $this->Event->getDefaultAttachments_dir();
+        }
+        $rootDir = $attachments_dir . DS . $id . DS;
             App::uses('Folder', 'Utility');
             $dir = new Folder($rootDir . 'ioc', true);
             $destPath = $rootDir . 'ioc';
@@ -3136,7 +3136,7 @@ class EventsController extends AppController
     {
         // return a downloadable text file called misp.openIOC.<eventId>.ioc for individual events
         // TODO implement mass download of all events - maybe in a zip file?
-        $this->response->type('text');	// set the content type
+        $this->response->type('text');  // set the content type
         if ($eventid == null) {
             throw new Exception(__('Not yet implemented'));
         }
@@ -3876,7 +3876,7 @@ class EventsController extends AppController
             $returnType = 'json';
         } else {
             $returnType = 'xml';
-            $this->response->type('xml');	// set the content type
+            $this->response->type('xml');   // set the content type
             $this->layout = 'xml/default';
         }
         $result = $this->Event->stix($id, $tags, $withAttachments, $this->Auth->user(), $returnType, $from, $to, $last);
@@ -4743,7 +4743,7 @@ class EventsController extends AppController
         $this->set('tags', $tagNames);
         $this->paginate = array(
             'limit' => 60,
-            'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
             'order' => array(
                     'Event.timestamp' => 'DESC'
             ),
@@ -5334,7 +5334,7 @@ class EventsController extends AppController
                 throw new NotFoundException(__('Invalid event.'));
             }
             $event = $this->Event->find('first', $eventFindParams);
-            if (empty($event) || (!$this->_isSiteAdmin() &&	$event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
+            if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
                 throw new NotFoundException(__('Invalid event.'));
             }
             $eventId = $event['Event']['id'];
@@ -5342,8 +5342,8 @@ class EventsController extends AppController
             $fileName = $this->request['data']['SelectedData']['mactime_file_name'];
             $fileData = $this->request['data']['SelectedData']['mactime_file_content'];
             $object = array();
-	    $data = json_decode($this->request['data']['SelectedData']['mactime_data'], true);
-	    $firstObject = 1;
+        $data = json_decode($this->request['data']['SelectedData']['mactime_data'], true);
+        $firstObject = 1;
             foreach ($data as $objectData) {
                 $object['Object'] = array(
                     'name' => 'mactime-timeline-analysis',

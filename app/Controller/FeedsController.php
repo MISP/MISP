@@ -4,7 +4,7 @@ App::uses('Xml', 'Utility');
 
 class FeedsController extends AppController
 {
-    public $components = array('Security' ,'RequestHandler');	// XXX ACL component
+    public $components = array('Security' ,'RequestHandler');   // XXX ACL component
 
     public $paginate = array(
             'limit' => 60,

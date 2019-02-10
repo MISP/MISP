@@ -10,7 +10,7 @@ class Whitelist extends AppModel
 
     public $actsAs = array(
             'Trim',
-            'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+            'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
                     'roleModel' => 'Role',
                     'roleKey' => 'role_id',
                     'change' => 'full'
@@ -26,7 +26,7 @@ class Whitelist extends AppModel
             ),
             'userdefined' => array(
                 'rule' => array('validateValue'),
-                'message' => 'Name not in the right format. Whitelist entries have to be enclosed by a valid php delimiter (which can be most non-alphanumeric / non-whitespace character). Format: "/8.8.8.8/" Please double check the name.',				//'allowEmpty' => false,
+                'message' => 'Name not in the right format. Whitelist entries have to be enclosed by a valid php delimiter (which can be most non-alphanumeric / non-whitespace character). Format: "/8.8.8.8/" Please double check the name.',             //'allowEmpty' => false,
                 //'allowEmpty' => false,
                 //'required' => true,
                 //'last' => false, // Stop validation after this rule

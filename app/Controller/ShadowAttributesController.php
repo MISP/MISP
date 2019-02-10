@@ -347,7 +347,7 @@ class ShadowAttributesController extends AppController
             if (!$this->_isRest() && (isset($this->request->data['ShadowAttribute']['batch_import']) && $this->request->data['ShadowAttribute']['batch_import'] == 1)) {
                 // make array from value field
                 $attributes = explode("\n", $this->request->data['ShadowAttribute']['value']);
-                $fails = "";	// will be used to keep a list of the lines that failed or succeeded
+                $fails = "";    // will be used to keep a list of the lines that failed or succeeded
                 $successes = "";
                 // TODO loopholes
                 // the value null value thing
