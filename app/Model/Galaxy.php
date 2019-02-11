@@ -353,7 +353,7 @@ class Galaxy extends AppModel
         }
     }
 
-    public function getMitreAttackGalaxyId($type="mitre-enterprise-attack-attack-pattern")
+    public function getMitreAttackGalaxyId($type="mitre-attack-pattern")
     {
         $galaxy = $this->find('first', array(
                 'recursive' => -1,
@@ -379,18 +379,18 @@ class Galaxy extends AppModel
             'command-and-control'
         );
         $killChainOrderMobile = array(
+            'initial-access',
             'persistence',
             'privilege-escalation',
             'defense-evasion',
             'credential-access',
             'discovery',
             'lateral-movement',
-            'effects', 'collection',
+            'effects',
+            'collection',
             'exfiltration',
-            'command-and-control',
-            'general-network-based',
-            'cellular-network-based',
-            'could-based'
+            'network-effects',
+            'remote-service-effects'
         );
         $killChainOrderPre = array(
             'priority-definition-planning',
@@ -408,16 +408,15 @@ class Galaxy extends AppModel
             'build-capabilities',
             'test-capabilities',
             'stage-capabilities',
-            'app-delivery-via-authorized-app-store',
-            'app-delivery-via-other-means',
-            'exploit-via-cellular-network',
-            'exploit-via-internet',
         );
 
         $killChainOrders = array(
-            'mitre-enterprise-attack-attack-pattern' => $killChainOrderEnterprise,
-            'mitre-mobile-attack-attack-pattern' => $killChainOrderMobile,
-            'mitre-pre-attack-attack-pattern' => $killChainOrderPre,
+            'mitre-attack' => $killChainOrderEnterprise,
+            'mitre-mobile-attack' => $killChainOrderMobile,
+            'mitre-pre-attack' => $killChainOrderPre,
+            // 'mitre-attack-pattern' => $killChainOrderEnterprise,
+            // 'mitre-mobile-attack-pattern' => $killChainOrderMobile,
+            // 'mitre-pre-attack-pattern' => $killChainOrderPre,
         );
 
         $expectedDescription = 'ATT&CK Tactic';
@@ -442,37 +441,57 @@ class Galaxy extends AppModel
             'instance-uuid' => $mispUUID
         );
 
-        foreach ($galaxies as $galaxy) {
-            $galaxyType = $galaxy['Galaxy']['type'];
-            $clusters = $galaxy['GalaxyCluster'];
-            $attackClusters = array();
-            // add cluster if kill_chain is present
-            foreach ($clusters as $cluster) {
-                if (empty($cluster['GalaxyElement'])) {
-                    continue;
+        if (!empty($galaxies)) {
+            $galaxy = $galaxies[0];
+        } else {
+            $galaxy = array();
+        }
+
+        $clusters = $galaxy['GalaxyCluster'];
+        $attackClusters = array();
+
+        foreach ($clusters as $cluster) {
+            if (empty($cluster['GalaxyElement'])) {
+                continue;
+            }
+            $toBeAdded = false;
+            $clusterType = $cluster['type'];
+            $galaxyElements = $cluster['GalaxyElement'];
+            foreach ($galaxyElements as $element) {
+                // add cluster if kill_chain is present
+                if ($element['key'] == 'kill_chain') {
+                    $kc = explode(":", $element['value']);
+                    $galaxyType = $kc[0];
+                    $kc = $kc[1];
+                    $attackClusters[$galaxyType][$kc][] = $cluster;
+                    $toBeAdded = true;
                 }
-                $toBeAdded = false;
-                $clusterType = $cluster['type'];
-                $galaxyElements = $cluster['GalaxyElement'];
-                foreach ($galaxyElements as $element) {
-                    if ($element['key'] == 'kill_chain') {
-                        $kc = explode(":", $element['value'])[2];
-                        $attackClusters[$kc][] = $cluster;
-                        $toBeAdded = true;
-                    }
-                    if ($element['key'] == 'external_id') {
-                        $cluster['external_id'] = $element['value'];
-                    }
+                if ($element['key'] == 'external_id') {
+                    $cluster['external_id'] = $element['value'];
                 }
                 if ($toBeAdded) {
                     array_push($attackTactic['attackTags'], $cluster['tag_name']);
                 }
             }
-            $attackTactic['attackTactic'][$galaxyType] = array(
-                'clusters' => $attackClusters,
-                'galaxy' => $galaxy['Galaxy'],
-            );
+
+            $attackTactic['attackTactic'] = $attackClusters;
+            $attackTactic['galaxy'] = $galaxy['Galaxy'];
         }
+
+        foreach ($attackTactic['attackTactic'] as $k => $v) {
+            foreach ($attackTactic['attackTactic'][$k] as $kc => $v2) {
+                // sort clusters in the kill chains
+                usort(
+                    $attackTactic['attackTactic'][$k][$kc],
+                    function($a, $b) {
+                        return strcmp($a['value'], $b['value']);
+                    }
+                );
+            }
+            // ksort($attackTactic['attackTactic'][$k]);
+        }
+        // debug(array_keys($attackTactic));
+        // throw new \Exception("Error Processing Request", 1);
 
         return $attackTactic;
     }

@@ -4,11 +4,11 @@
 <div class="attack-matrix-options" style="right: initial; background: transparent;">
 <ul id="attack-matrix-tabscontroller" class="nav nav-tabs" style="margin-bottom: 2px;">
 <?php
-$enterpriseTag = "mitre-enterprise-attack-attack-pattern";
-foreach($attackTactic as $tactic):
-    $galaxy = $tactic['galaxy'];
+$enterpriseTag = "mitre-attack-pattern";
+$defaultTabName = "mitre-attack";
+foreach($attackTactic as $tabName => $tactic):
 ?>
-    <li class="tactic <?php echo $galaxy['type']==$enterpriseTag ? "active" : ""; ?>"><span href="#tabMatrix-<?php echo h($galaxy['type']); ?>" data-toggle="tab" style="padding-top: 3px; padding-bottom: 3px;"><?php echo h($galaxy['name']); ?></span></li>
+    <li class="tactic <?php echo $tabName==$defaultTabName ? "active" : ""; ?>"><span href="#tabMatrix-<?php echo h($tabName); ?>" data-toggle="tab" style="padding-top: 3px; padding-bottom: 3px;"><?php echo h($tabName); ?></span></li>
 <?php endforeach; ?>
 </ul>
 </div>
@@ -40,47 +40,44 @@ foreach($attackTactic as $tactic):
 
 <div id="matrix_container" class="fixed-table-container-inner" style="max-height: 670px;" data-picking-mode="<?php echo $pickingMode ? 'true' : 'false'; ?>">
     <div class="tab-content">
-    <?php foreach($attackTactic as $galaxy):
-    $galaxyType = $galaxy['galaxy']['type'];
-    ?>
-    <div class="tab-pane <?php echo $galaxyType==$enterpriseTag ? "active" : ""; ?>" id="tabMatrix-<?php echo h($galaxyType); ?>">
-    <div class="header-background"></div>
-    <div class="fixed-table-container-inner" style="max-height: 670px;">
-    <table class="table table-condensed matrix-table">
-    <thead>
-    <tr>
-    <?php
-        foreach($killChainOrders[$galaxyType] as $kc):
-            $name = str_replace("-", " ", $kc);
-    ?>
-        <th>
-            <?php echo h(ucfirst($name)); ?>
-            <div class="th-inner"><?php echo h(ucfirst($name)); ?></div>
-        </th>
+    <?php foreach($attackTactic as $tabName => $tactic): ?>
+        <div class="tab-pane <?php echo $tabName==$defaultTabName ? "active" : ""; ?>" id="tabMatrix-<?php echo h($tabName); ?>">
+        <div class="header-background"></div>
+        <div class="fixed-table-container-inner" style="max-height: 670px;">
+        <table class="table table-condensed matrix-table">
+        <thead>
+        <tr>
+        <?php
+            foreach($killChainOrders[$tabName] as $kc):
+                $name = str_replace("-", " ", $kc);
+        ?>
+            <th>
+                <?php echo h(ucfirst($name)); ?>
+                <div class="th-inner"><?php echo h(ucfirst($name)); ?></div>
+            </th>
 
-    <?php endforeach; ?>
-    </tr>
-    </thead>
-    <tbody style="overflow-y: scroll;">
-    <?php
-        $added = false;
-        $i = 0;
-        do {
-            $added = false;
-            echo '<tr>';
-                $killChainOrder = $killChainOrders[$galaxyType];
-                $attackClusters = $galaxy['clusters'];
-                foreach($killChainOrder as $kc) {
-                    if(!isset($attackClusters[$kc])) { // undefined index
-                        $td = '<td class="">';
-                    } else {
-                        $clusters = $attackClusters[$kc];
-                        $td = '<td ';
-                        if ($i < count($clusters)) {
-                            $clusterId = $clusters[$i]['id'];
-                            $tagName = $clusters[$i]['tag_name'];
+        <?php endforeach; ?>
+        </tr>
+        </thead>
+        <tbody style="overflow-y: scroll;">
+            <?php
+                $body = '';
+                $added = false;
+                $i = 0;
+                do {
+                    $tr = '<tr>';
+                    $added = false;
+                    foreach($killChainOrders[$tabName] as $kc) {
+                        if (isset($tactic[$kc][$i])) {
+                            $added = true;
+                            $td = '<td';
+                            $cell = $tactic[$kc][$i];
+
+
+                            $clusterId = $cell['id'];
+                            $tagName = $cell['tag_name'];
                             $score = empty($scores[$tagName]) ? 0 : $scores[$tagName];
-                            $name = join(" ", array_slice(explode(" ", $clusters[$i]['value']), 0, -2)); // remove " - external_id"
+                            $name = join(" ", array_slice(explode(" ", $cell['value']), 0, -2)); // remove " - external_id"
                             $clusetersNamesMapping[$clusterId] = $name;
                             $td .= ' class="heatCell matrix-interaction ' . ($pickingMode ? 'cell-picking"' : '"');
                             $td .= isset($colours[$tagName]) ? ' style="background: ' . h($colours[$tagName]) . '; color: ' . h($this->TextColour->getTextColour($colours[$tagName])) . '"' : '' ;
@@ -91,22 +88,23 @@ foreach($attackTactic as $tactic):
                                 $td .= ' data-target-type="attribute"';
                                 $td .= ' data-target-id="'.h($target_id).'"';
                             }
-                            $td .= ' title="'.h($clusters[$i]['external_id']).'"';
+                            $td .= ' title="'.h($cell['external_id']).'"';
                             $td .= '>' . h($name);
-                            $added = true;
-                        } else {
-                            $td .= 'class="">';
+
+                        } else { // empty cell
+                            $td = '<td style="border: none;">';
                         }
+                        $td .=  '</td>';
+                        $tr .= $td;
                     }
-                    $td .=  '</td>';
-                    echo $td;
-                }
-            echo '</tr>';
-            $i++;
-        } while($added);
-    ?>
-    </tbody>
-    </table>
+                    $tr .= '</tr>';
+                    $body .= $tr;
+                    $i++;
+                } while($added);
+                echo $body;
+            ?>
+        </tbody>
+        </table>
     </div>
     </div>
     <?php endforeach; ?>

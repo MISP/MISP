@@ -1,11 +1,11 @@
 .matrix-table td {
-    border-top: none;
+    border: 1px solid #e2e2e2;
 }
 
 .matrix-table th {
     padding: 0px 5px;
     color: transparent;
-    line-height: 12px;
+    line-height: 0px;
 }
 
 .matrix-table thead > tr {
@@ -17,6 +17,9 @@
 .matrix-table tbody {
     /*height: 670px;*/
     overflow-y: scroll;
+    /* display: inline-block;
+    position: relative; */
+    top: -23px;
 }
 
 table.matrix-table {

@@ -33,6 +33,7 @@
         }
     }
     echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
+    echo $this->Html->css('attack_matrix');
 ?>
 <div class="events view">
     <?php
