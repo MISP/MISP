@@ -130,36 +130,53 @@ MISPvars () {
 
 # Leave empty for NO debug messages, if run with set -x or bash -x it will enable DEBUG by default
 DEBUG=
+
 case "$-" in
   *x*)  NO_PROGRESS=1; DEBUG=1 ;;
   *)    NO_PROGRESS=0 ;;
 esac
-# Some colors for easier debug
+
+# Some colors for easier debug and better UX (not colorblind compatible, PR welcome)
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 LBLUE='\033[1;34m'
+YELLOW='\033[0;33m'
+HIDDEN='\e[8m'
 NC='\033[0m'
-
 
 # Function Section
 
 ## Usage of this script
 usage () {
-  echo "Please specify what type of MISP if you want to install."
   space
-  echo "${0} -c | Install ONLY MISP Core"                   # core
-  echo "                    -V | Core + Viper"              # viper
-  echo "                    -M | Core + MISP modules"       # modules
-  echo "                    -D | Core + MISP dashboard"     # dashboard
-  echo "                    -m | Core + Mail 2 MISP"        # mail2
-  echo "                    -A | Install all of the above"  # all
+  echo -e "Please specify what type of ${LBLUE}MISP${NC} setup you want to install."
   space
-  echo "                    -C | Only do pre-install checks and exit" # pre
+  echo -e "${0} -c | Install ONLY ${LBLUE}MISP${NC} Core"                   # core
+  echo -e "                -M | Core + ${LBLUE}MISP${NC} modules"       # modules
+  echo -e "                -D | Core + ${LBLUE}MISP${NC} dashboard"     # dashboard
+  echo -e "                -V | Core + Viper"                           # viper
+  echo -e "                -m | Core + Mail 2 ${LBLUE}MISP${NC}"        # mail2
+  echo -e "                -A | Install ${YELLOW}all${NC} of the above" # all
   space
-  echo "                    -U | Do an unattanded Install, no questions asked" # UNATTENDED
+  echo -e "                -C | Only do ${YELLOW}pre-install checks and exit${NC}" # pre
   space
-  echo "Options can be combined: ${0} -V -D # Will install Core+Viper+Dashboard"
+  echo -e "                -U | Do an unattanded Install, no questions asked"      # UNATTENDED
   space
+  echo -e "${HIDDEN}Some parameters want to be hidden: ${NC}"
+  echo -e "${HIDDEN}        -f | Force test install on current Ubuntu LTS schim, add -B for 18.04 -> 18.10, or -BB 18.10 -> 19.10)${NC}"
+  echo -e "Options can be combined: ${0} -V -D # Will install Core+Viper+Dashboard"
+  space
+  echo -e "Recommended is either a barebone MISP install (ideal for syncing from other instances) or"
+  echo -e "MISP + modules - ${0} -M"
+  space
+}
+
+# Check if element is contained in array
+containsElement () {
+  local e match="$1"
+  shift
+  for e; do [[ "$e" == "$match" ]] && return 0; done
+  return 1
 }
 
 checkOpt () {
@@ -205,14 +222,6 @@ space () {
     echo -n "-"
   done
   echo ""
-}
-
-# Check if element is contained in array
-containsElement () {
-  local e match="$1"
-  shift
-  for e; do [[ "$e" == "$match" ]] && return 0; done
-  return 1
 }
 
 # Check locale
@@ -264,6 +273,12 @@ checkID () {
     sudo adduser $MISP_USER staff
     sudo adduser $MISP_USER www-data
   fi
+}
+
+# pre-install check to make sure what we will be installing on, is ready and not a half installed system
+preInstall () {
+  echo -e "${RED}Place-holder, not implemented yet."
+  exit
 }
 
 # check is /usr/local/src is RW by misp user
@@ -1661,11 +1676,8 @@ fi
 
 space
 debug "Setting MISP variables"
-space
 MISPvars
-space
 debug "Checking Linux distribution and flavour..."
-space
 checkFlavour
 
 debug "Checking for parameters or Unattended Kali Install"
@@ -1685,6 +1697,8 @@ else
   checkOpt pre && echo "${GREEN}Pre-flight checks${NC} selected"
   checkOpt unattended && echo "${GREEN}unattended${NC} install selected"
 fi
+
+[[ -n $PRE ]] && preInstall
 
 # If Ubuntu is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "ubuntu" ]; then

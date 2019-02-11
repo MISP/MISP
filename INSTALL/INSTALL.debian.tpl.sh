@@ -467,11 +467,8 @@ fi
 
 space
 debug "Setting MISP variables"
-space
 MISPvars
-space
 debug "Checking Linux distribution and flavour..."
-space
 checkFlavour
 
 debug "Checking for parameters or Unattended Kali Install"
@@ -491,6 +488,8 @@ else
   checkOpt pre && echo "${GREEN}Pre-flight checks${NC} selected"
   checkOpt unattended && echo "${GREEN}unattended${NC} install selected"
 fi
+
+[[ -n $PRE ]] && preInstall
 
 # If Ubuntu is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "ubuntu" ]; then
