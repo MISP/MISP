@@ -240,16 +240,9 @@ sudo -H -u www-data pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/
 # 5/ Set file permissions
 ## 5.01/ Make sure the permissions are set correctly using the following commands as root:
 ```bash
-chown -R root:apache /var/www/MISP
+chown -R apache:apache /var/www/MISP
 find /var/www/MISP -type d -exec chmod g=rx {} \;
 chmod -R g+r,o= /var/www/MISP
-chown apache:apache /var/www/MISP/app/files
-chown apache:apache /var/www/MISP/app/files/terms
-chown apache:apache /var/www/MISP/app/files/scripts/tmp
-chown apache:apache /var/www/MISP/app/Plugin/CakeResque/tmp
-chown -R apache:apache /var/www/MISP/app/tmp
-chown -R apache:apache /var/www/MISP/app/webroot/img/orgs
-chown -R apache:apache /var/www/MISP/app/webroot/img/custom
 ```
 
 # 6/ Create database and user
