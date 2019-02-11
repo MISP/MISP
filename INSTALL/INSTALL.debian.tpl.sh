@@ -153,53 +153,92 @@ generateInstaller () {
 # Make sure no alias exists
 if [[ $(type -t debug) == "alias" ]]; then unalias debug; fi
 debug () {
-  echo -e "${GREEN}$1${NC}"
+  echo -e "${RED}Next step:${NC} ${GREEN}$1${NC}"
   if [ ! -z $DEBUG ]; then
     echo -e "${RED}Debug Mode${NC}, press ${LBLUE}enter${NC} to continue..."
     read
   fi
 }
 
-installMISP () {
+installMISPubuntuSupported () {
   space
   echo "Proceeding with the installation of MISP core"
   space
-  ##checkSudoKeeper
-  # add-user.sh
-  ##sudo apt update
-  # postfix.sh
-  ##installDeps # doubleCheck
-  # Mysql install functions
-  # misp code function
 
-## From test install:
+  # Upgrade system to make sure we install  the latest packages - functionLocation('')
   aptUpgrade
-  checkSudoKeeper
-  # <snippet-begin add-user.sh>
-  # logout (run SUDO_USER in installer)
-  # <snippet-begin postfix.sh>
-  MISPvars
-  installCoredDeps
-  installDepsPhp72
-  installCore
-  installCake
-  permissions
-  prepareDB
-  apacheConfig
-  logRotation
-  configMISP
-  setupGnuPG
-  backgroundWorkers
-  coreCAKE
-  updateGOWNT 
-  checkUsrLocalSrc
-  [[ -n $MODULES ]]   || [[ -n $ALL ]] && mispmodules
-  [[ -n $VIPER ]]     || [[ -n $ALL ]] && viper
-  [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && dashboard
-  [[ -n $MAIL2 ]]     || [[ -n $ALL ]] && mail2
 
+  # Check if sudo is installed and etckeeper - functionLocation('')
+  checkSudoKeeper
+
+  # TODO: Double check how the user is added and subsequently used during the install.
+  # TODO: Work on possibility to install as user X and install MISP for user Y
+  # TODO: Check if logout needed. (run SUDO_USER in installer)
+  # <snippet-begin add-user.sh>
+  # TODO: Double check how to properly handle postfix
+  # <snippet-begin postfix.sh>
+
+  # Pull in all possible MISP Environment variables - functionLocation('')
+  MISPvars
+
+  # Install Core Dependencies - functionLocation('')
+  installCoredDeps
+
+  # Install PHP 7.2 Dependencies - functionLocation('')
+  installDepsPhp72
+
+  # Install Core MISP - functionLocation('')
+  installCore
+
+  # Install PHP Cake - functionLocation('')
+  installCake
+
+  # Make sure permissions are sane - functionLocation('')
+  permissions
+
+  # TODO: Mysql install functions, make it upgrade safe, double check
+  # Setup Databse - functionLocation('')
+  prepareDB
+
+  # Roll Apache Config - functionLocation('')
+  apacheConfig
+
+  # Setup log logrotate - functionLocation('')
+  logRotation
+
+  # Generate MISP Config files - functionLocation('')
+  configMISP
+
+  # Generate GnuPG key - functionLocation('')
+  setupGnuPG
+
+  # Setup and start background workers - functionLocation('')
+  backgroundWorkers
+
+  # Run cake CLI for the core installation - functionLocation('')
+  coreCAKE
+  # TODO: Move this to Core Cake
   sudo -H -u www-data $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
 
+  # Update Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies - functionLocation('')
+  updateGOWNT 
+
+  # Check if /usr/local/src is writeable by target install user - functionLocation('')
+  checkUsrLocalSrc
+
+  # Install misp-modules - functionLocation('')
+  [[ -n $MODULES ]]   || [[ -n $ALL ]] && mispmodules
+
+  # Install Viper - functionLocation('')
+  [[ -n $VIPER ]]     || [[ -n $ALL ]] && viper
+
+  # Install misp-dashboard - functionLocation('')
+  [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && dashboard
+
+  # Install Mail2MISP - functionLocation('')
+  [[ -n $MAIL2 ]]     || [[ -n $ALL ]] && mail2
+
+  # Run final script to inform the User what happened - functionLocation('')
   theEnd
 }
 
@@ -426,7 +465,16 @@ if [[ $0 == "./INSTALL.debian.tpl.sh" ]]; then
   generateInstaller
 fi
 
-debug "Checking for parameters or Kali Install"
+space
+debug "Setting MISP variables"
+space
+MISPvars
+space
+debug "Checking Linux distribution and flavour..."
+space
+checkFlavour
+
+debug "Checking for parameters or Unattended Kali Install"
 if [[ $# == 0 && $0 != "/tmp/misp-kali.sh" ]]; then
   usage
   exit 
@@ -444,21 +492,17 @@ else
   checkOpt unattended && echo "${GREEN}unattended${NC} install selected"
 fi
 
-debug "Checking flavour"
-checkFlavour
-debug "Setting MISP variables"
-MISPvars
- 
+# If Ubuntu is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "ubuntu" ]; then
   RELEASE=$(lsb_release -s -r| tr [A-Z] [a-z])
   if [ "${RELEASE}" == "18.04" ]; then
     echo "Install on Ubuntu 18.04 LTS fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
-    installMISP
+    installMISPubuntuSupported
   fi
   if [ "${RELEASE}" == "18.10" ]; then
-    echo "Install on Ubuntu 18.10 not supported, bye."
-    exit 1
+    echo "Install on Ubuntu 18.10 partially supported, bye."
+    installMISPubuntuSupported
   fi
   if [ "${RELEASE}" == "19.04" ]; then
     echo "Install on Ubuntu 19.04 not supported, bye"
@@ -472,6 +516,7 @@ if [ "${FLAVOUR}" == "ubuntu" ]; then
   exit 0
 fi
 
+# If Debian is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "debian" ]; then
   CODE=$(lsb_release -s -c| tr [A-Z] [a-z])
   if [ "${CODE}" == "buster" ]; then
@@ -493,24 +538,26 @@ if [ "${FLAVOUR}" == "debian" ]; then
   exit 0
 fi
 
+# If Tsurugi is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "tsurugi" ]; then
   CODE=$(lsb_release -s -c| tr [A-Z] [a-z])
   if [ "${CODE}" == "bamboo" ]; then
-    echo "Install on Tsurugi Lab semi-supported."
+    echo "Install on Tsurugi Lab partially supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
   fi
   if [ "${CODE}" == "soy sauce" ]; then
-    echo "Install on Tsurugi Acquire semi-supported."
+    echo "Install on Tsurugi Acquire partially supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
   fi
   echo "Installation done!"
   exit 0
 fi
 
+# If Kali Linux is detected, run the acccording scripts
 if [ "${FLAVOUR}" == "kali" ]; then
   KALI=1
   kaliOnRootR0ckz
   installMISPonKali
   echo "Installation done!"
-  exit 0
+  exit
 fi

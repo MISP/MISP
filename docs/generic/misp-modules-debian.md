@@ -6,15 +6,17 @@
 mispmodules () {
   sudo sed -i -e '$i \sudo -u www-data ${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s > /tmp/misp-modules_rc.local.log &\n' /etc/rc.local
   cd /usr/local/src/
-## TODO: checkUsrLocalSrc
+## TODO: checkUsrLocalSrc in main doc
   git clone https://github.com/MISP/misp-modules.git
   cd misp-modules
   # some misp-modules dependencies
   sudo apt-get install libpq5 libjpeg-dev libfuzzy-dev -y
   # pip install
   debug "install lief"
-  sudo chgrp www-data .
+  # If you build an egg, the user you build it as need write permissions in the CWD
+  sudo chgrp $WWW_USER .
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
+  sudo chgrp staff .
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I .
   sudo chgrp staff .
   sudo apt install ruby-pygments.rb -y
@@ -54,7 +56,6 @@ mispmodules () {
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Export_services_port" 6666
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Export_timeout" 300
   $SUDO_WWW $CAKE Admin setSetting "Plugin.Export_pdfexport_enabled" true
-
 }
 # <snippet-end 3_misp-modules.sh>
 ```

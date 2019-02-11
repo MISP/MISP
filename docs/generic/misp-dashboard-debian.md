@@ -58,7 +58,7 @@ mispDashboard () {
 
   # Enable misp-dashboard in apache and reload
   sudo a2ensite misp-dashboard
-  sudo systemctl reload apache2
+  sudo systemctl restart apache2
 
   # Needs to be started after apache2 is reloaded so the port status check works
   $SUDO_WWW bash /var/www/misp-dashboard/start_all.sh

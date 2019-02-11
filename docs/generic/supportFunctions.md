@@ -142,7 +142,8 @@ checkID () {
 checkUsrLocalSrc () {
   echo ""
   if [[ -e /usr/local/src ]]; then
-    if [[ -w /usr/local/src ]]; then
+    WRITEABLE=$(sudo -H -u $MISP_USER touch /usr/local/src 2> /dev/null ; echo $?)
+    if [[ "$WRITEABLE" == "0" ]]; then
       echo "Good, /usr/local/src exists and is writeable as $MISP_USER"
     else
       # TODO: The below might be shorter, more elegant and more modern
