@@ -193,12 +193,14 @@ installMISP () {
   coreCAKE
   updateGOWNT 
   checkUsrLocalSrc
-  [[ -n $MODULES ]] || [[ -n $ALL ]] && mispmodules
-  [[ -n $VIPER ]] && viper
-  [[ -n $DASHBOARD ]] && dashboard
-  [[ -n $MAIL2 ]] && mail2
+  [[ -n $MODULES ]]   || [[ -n $ALL ]] && mispmodules
+  [[ -n $VIPER ]]     || [[ -n $ALL ]] && viper
+  [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && dashboard
+  [[ -n $MAIL2 ]]     || [[ -n $ALL ]] && mail2
 
   sudo -H -u www-data $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
+
+  theEnd
 }
 
 # Main Kalin Install function
