@@ -255,7 +255,7 @@ installMISPubuntuSupported () {
   [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && mispDashboard ; dashboardCAKE
 
   # Install Mail2MISP - functionLocation('')
-  [[ -n $MAIL2 ]]     || [[ -n $ALL ]] && mail2
+  [[ -n $MAIL2 ]]     || [[ -n $ALL ]] && mail2misp
 
   # Run final script to inform the User what happened - functionLocation('')
   theEnd
