@@ -29,7 +29,7 @@ App::uses('AppHelper', 'View/Helper');
                 }
             } else {
                 $result = sprintf(
-                    '<a href="/organisations/view/%s">\<span class="welcome" style="float:left">%s</span></a>',
+                    '<a href="/organisations/view/%s"><span class="welcome" style="float:left">%s</span></a>',
                     (empty($options['id']) ? h($options['name']) : h($options['id'])),
                     h($options['name'])
                 );
