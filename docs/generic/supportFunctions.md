@@ -8,15 +8,7 @@ case "$-" in
   *)    NO_PROGRESS=0 ;;
 esac
 
-# Some colors for easier debug and better UX (not colorblind compatible, PR welcome)
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-LBLUE='\033[1;34m'
-YELLOW='\033[0;33m'
-HIDDEN='\e[8m'
-NC='\033[0m'
-
-# Function Section
+## Function Section ##
 
 ## Usage of this script
 usage () {
@@ -24,22 +16,23 @@ usage () {
   echo -e "Please specify what type of ${LBLUE}MISP${NC} setup you want to install."
   space
   echo -e "${0} -c | Install ONLY ${LBLUE}MISP${NC} Core"                   # core
-  echo -e "                -M | Core + ${LBLUE}MISP${NC} modules"       # modules
-  echo -e "                -D | Core + ${LBLUE}MISP${NC} dashboard"     # dashboard
-  echo -e "                -V | Core + Viper"                           # viper
-  echo -e "                -m | Core + Mail 2 ${LBLUE}MISP${NC}"        # mail2
+  echo -e "                -M | ${LBLUE}MISP${NC} modules"       # modules
+  echo -e "                -D | ${LBLUE}MISP${NC} dashboard"     # dashboard
+  echo -e "                -V | Viper"                           # viper
+  echo -e "                -m | Mail 2 ${LBLUE}MISP${NC}"        # mail2
   echo -e "                -A | Install ${YELLOW}all${NC} of the above" # all
   space
   echo -e "                -C | Only do ${YELLOW}pre-install checks and exit${NC}" # pre
   space
-  echo -e "                -U | Do an unattanded Install, no questions asked"      # UNATTENDED
+  echo -e "                -u | Do an unattanded Install, no questions asked"      # UNATTENDED
+  echo -e "${HIDDEN}       -U | Attempt and upgrade of selected item${NC}"         # UPGRADE
   space
   echo -e "${HIDDEN}Some parameters want to be hidden: ${NC}"
-  echo -e "${HIDDEN}        -f | Force test install on current Ubuntu LTS schim, add -B for 18.04 -> 18.10, or -BB 18.10 -> 19.10)${NC}"
-  echo -e "Options can be combined: ${0} -V -D # Will install Core+Viper+Dashboard"
+  echo -e "${HIDDEN}       -f | Force test install on current Ubuntu LTS schim, add -B for 18.04 -> 18.10, or -BB 18.10 -> 19.10)${NC}" # FORCE
+  echo -e "Options can be combined: ${0} -c -V -D # Will install Core+Viper+Dashboard"
   space
   echo -e "Recommended is either a barebone MISP install (ideal for syncing from other instances) or"
-  echo -e "MISP + modules - ${0} -M"
+  echo -e "MISP + modules - ${0} -c -M"
   space
 }
 
@@ -67,7 +60,9 @@ setOpt () {
       ("-m") echo "mail2"; MAIL2=1 ;;
       ("-A") echo "all"; ALL=1 ;;
       ("-C") echo "pre"; PRE=1 ;;
-      ("-U") echo "unattended"; UNATTENDED=1 ;;
+      ("-U") echo "upgrade"; UPGRADE=1 ;;
+      ("-u") echo "unattended"; UNATTENDED=1 ;;
+      ("-f") echo "force"; FORCE=1 ;;
       #(*) echo "$o is not a valid argument" ;;
     esac
   done
@@ -81,6 +76,16 @@ checkFlavour () {
   fi
 
   FLAVOUR=$(lsb_release -s -i |tr [A-Z] [a-z])
+}
+
+# Extract manufacturer
+checkManufacturer () {
+  if [ ! -f $(which dmidecode) ]; then
+    checkAptLock
+    sudo apt install dmidecode -y
+  fi
+  MANUFACTURER=$(sudo dmidecode -s system-manufacturer)
+  echo $MANUFACTURER
 }
 
 # Dynamic horizontal spacer
@@ -149,7 +154,13 @@ checkID () {
 
 # pre-install check to make sure what we will be installing on, is ready and not a half installed system
 preInstall () {
-  echo -e "${RED}Place-holder, not implemented yet."
+  echo -e "${RED}Place-holder, not implemented yet.${NC}"
+  exit
+}
+
+# Upgrade function
+upgrade () {
+  echo -e "${RED}Place-holder, not implemented yet.${NC}"
   exit
 }
 
@@ -186,6 +197,11 @@ checkUsrLocalSrc () {
   fi
 }
 
+kaliSpaceSaver () {
+  # Future function in case Kali overlay on LiveCD is full
+  echo "${RED}Not implement${NC}"
+}
+
 # Because Kali is l33t we make sure we run as root
 kaliOnRootR0ckz () {
   if [[ $EUID -ne 0 ]]; then
@@ -197,6 +213,33 @@ kaliOnRootR0ckz () {
   else
     # TODO: Make sure we consider this further down the road
     echo "User ${MISP_USER} exists, skipping creation"
+  fi
+}
+
+setBaseURL () {
+  if [[ $(checkManufacturer) != "innotek GmbH" ]]; then
+    debug "We guess that this is a physical machine and cannot possibly guess what the MISP_BASEURL might be."
+    if [[ "$UNATTENDED" != "1" ]]; then 
+      echo "You can now enter your own BASE_URL, if you wish to NOT do that, the BASE_URL will be empty, which will work, but ideally you configure it afterwards."
+      echo "Do you want to change it now? (y/n) "
+      read ANSWER
+      ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
+      if [[ $ANSWER == "y" ]]; then
+        echo "Please enter the Base URL, e.g: 'https://example.org'"
+        echo -n "Enter Base URL: "
+        read MISP_BASEURL
+      else
+        MISP_BASEURL='""'
+      fi
+    else
+        MISP_BASEURL="https://misp.local"
+        # Webserver configuration
+        FQDN='misp.local'
+    fi
+  else
+      MISP_BASEURL='https://localhost:8443'
+    # Webserver configuration
+    FQDN='localhost.localdomain'
   fi
 }
 
@@ -222,6 +265,7 @@ kaliUpgrade () {
   sudo apt update
   checkAptLock
   sudo DEBIAN_FRONTEND=noninteractive apt install --only-upgrade bash libc6 -y
+  sudo DEBIAN_FRONTEND=noninteractive apt autoremove -y
 }
 
 # Disables sleep
@@ -230,12 +274,20 @@ disableSleep () {
   gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 0 2> /dev/null
   gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 0 2> /dev/null
   gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'nothing' 2> /dev/null
+  setterm -blank 0 -powersave off -powerdown 0
   xset s 0 0 2> /dev/null
   xset dpms 0 0 2> /dev/null
+  xset dpms force off
   xset s off 2> /dev/null
+  service sleepd stop
+  kill $(lsof | grep 'sleepd' | awk '{print $2}')
+  checkAptLock
+  apt install gnome-shell-extension-caffeine
 }
 
+# Remove alias if present
 if [[ $(type -t checkAptLock) == "alias" ]]; then unalias checkAptLock; fi
+# Simple function to make sure APT is not locked
 checkAptLock () {
   SLEEP=3
   while [ "$DONE" != "0" ]; do
@@ -499,5 +551,6 @@ theEnd () {
     sudo su - ${MISP_USER}
   fi
 }
+## End Function Section Nothing allowed in .md after this line ##
 # <snippet-end 0_support-functions.sh>
 ```

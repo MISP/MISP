@@ -92,6 +92,17 @@
 
 # This function will generate the main installer.
 # It is a helper function for the maintainers for the installer.
+
+colors () {
+  # Some colors for easier debug and better UX (not colorblind compatible, PR welcome)
+  RED='\033[0;31m'
+  GREEN='\033[0;32m'
+  LBLUE='\033[1;34m'
+  YELLOW='\033[0;33m'
+  HIDDEN='\e[8m'
+  NC='\033[0m'
+}
+
 generateInstaller () {
   if [ ! -f $(which xsnippet) ]; then
     echo 'xsnippet is NOT installed. Clone the repository below and copy the xsnippet shell script somehwere in your $PATH'
@@ -172,11 +183,14 @@ installMISPubuntuSupported () {
   echo "Proceeding with the installation of MISP core"
   space
 
+  debug "Setting Base URL"
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && setBaseURL
+
   # Upgrade system to make sure we install  the latest packages - functionLocation('')
-  aptUpgrade
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && aptUpgrade
 
   # Check if sudo is installed and etckeeper - functionLocation('')
-  checkSudoKeeper
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && checkSudoKeeper
 
   # TODO: Double check how the user is added and subsequently used during the install.
   # TODO: Work on possibility to install as user X and install MISP for user Y
@@ -186,50 +200,50 @@ installMISPubuntuSupported () {
   # <snippet-begin postfix.sh>
 
   # Pull in all possible MISP Environment variables - functionLocation('')
-  MISPvars
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && MISPvars
 
   # Install Core Dependencies - functionLocation('')
-  installCoredDeps
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && installCoredDeps
 
   # Install PHP 7.2 Dependencies - functionLocation('')
-  installDepsPhp72
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
 
   # Install Core MISP - functionLocation('')
-  installCore
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && installCore
 
   # Install PHP Cake - functionLocation('')
-  installCake
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && installCake
 
   # Make sure permissions are sane - functionLocation('')
-  permissions
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && permissions
 
   # TODO: Mysql install functions, make it upgrade safe, double check
   # Setup Databse - functionLocation('')
-  prepareDB
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && prepareDB
 
   # Roll Apache Config - functionLocation('')
-  apacheConfig
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && apacheConfig
 
   # Setup log logrotate - functionLocation('')
-  logRotation
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && logRotation
 
   # Generate MISP Config files - functionLocation('')
-  configMISP
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && configMISP
 
   # Generate GnuPG key - functionLocation('')
-  setupGnuPG
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && setupGnuPG
 
   # Setup and start background workers - functionLocation('')
-  backgroundWorkers
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && backgroundWorkers
 
   # Run cake CLI for the core installation - functionLocation('')
-  coreCAKE
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && coreCAKE
 
   # Update Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies - functionLocation('')
-  updateGOWNT 
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && updateGOWNT 
 
   # Check if /usr/local/src is writeable by target install user - functionLocation('')
-  checkUsrLocalSrc
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && checkUsrLocalSrc
 
   # Install misp-modules - functionLocation('')
   [[ -n $MODULES ]]   || [[ -n $ALL ]] && mispmodules
@@ -238,7 +252,7 @@ installMISPubuntuSupported () {
   [[ -n $VIPER ]]     || [[ -n $ALL ]] && viper
 
   # Install misp-dashboard - functionLocation('')
-  [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && dashboard
+  [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && mispDashboard ; dashboardCAKE
 
   # Install Mail2MISP - functionLocation('')
   [[ -n $MAIL2 ]]     || [[ -n $ALL ]] && mail2
@@ -463,7 +477,7 @@ installMISPonKali () {
 
   debug "Running Core Cake commands"
   coreCAKE
-  dashboardCake
+  dashboardCAKE
 
   debug "Update: Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies"
   updateGOWNT
@@ -485,6 +499,9 @@ installMISPonKali () {
   theEnd
 }
 
+## End Function Section ##
+
+colors
 debug "Checking if we are run as the installer template"
 if [[ "$0" == "./INSTALL.debian.tpl.sh" || "$(echo $0 |grep -o -e 'INSTALL.debian.tpl.sh')" == "INSTALL.debian.tpl.sh" ]]; then
   generateInstaller
@@ -512,9 +529,23 @@ else
   checkOpt all && echo "${GREEN}All options${NC} selected"
   checkOpt pre && echo "${GREEN}Pre-flight checks${NC} selected"
   checkOpt unattended && echo "${GREEN}unattended${NC} install selected"
+  checkOpt upgrade && echo "${GREEN}upgrade${NC} install selected"
+  checkOpt force && echo "${GREEN}force${NC} install selected"
+
+  # Check if at least core is selected if no other options that do not require core are set
+  if [[ "$CORE" != "1" && "$ALL" != "1" && "$UPGRADE" != "1" && "$PRE" != "1" && "$0" != "/tmp/misp-kali.sh" ]]; then
+    space
+    usage
+    echo "You need to at least select core, or -A to install everything."
+    echo "$0 -c # Is the minima for install options"
+    exit 1
+  fi
 fi
 
+# Add upgrade option to do upgrade pre flight
 [[ -n $PRE ]] && preInstall
+
+[[ -n $UPGRADE ]] && upgrade
 
 # If Ubuntu is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "ubuntu" ]; then

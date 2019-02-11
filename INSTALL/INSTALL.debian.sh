@@ -62,30 +62,25 @@
 #
 # Setting generic MISP variables shared by all flavours
 MISPvars () {
-  # debug alias to make sure people are not confused when blindly copy pasting blobs of code
-  alias debug=echo
-
-  # checkAptLock alias to make sure people are not confused when blindly copy pasting blobs of code
-  alias checkAptLock="echo 'Function used in Installer to make sure apt is not locked'"
-
   # Local non-root MISP user
   MISP_USER='misp'
   MISP_PASSWORD='Password1234'
 
+  # The web server user
+  WWW_USER="www-data"
+
   # MISP configuration variables
   PATH_TO_MISP='/var/www/MISP'
-  # Todo: IF run from CLI set MISP_BASEURL accordingly
-  if [ true ]; then
-    MISP_BASEURL='https://misp.local'
-    # Webserver configuration
-    FQDN='misp.local'
-  else
-    MISP_BASEURL='""'
-    # Webserver configuration
-    FQDN='localhost'
+
+  if [ -z "$FQDN" ]; then
+    FQDN="misp.local"
   fi
+
+  if [ -z "$MISP_BASEURL" ]; then
+    MISP_BASEURL='""'
+  fi
+
   MISP_LIVE='1'
-  CAKE="$PATH_TO_MISP/app/Console/cake"
 
   # Database configuration
   DBHOST='localhost'
@@ -111,21 +106,26 @@ MISPvars () {
   GPG_KEY_LENGTH='2048'
   GPG_PASSPHRASE='Password1234'
 
+  # debug alias to make sure people are not confused when blindly copy pasting blobs of code
+  alias debug=echo
+
+  # checkAptLock alias to make sure people are not confused when blindly copy pasting blobs of code
+  alias checkAptLock="echo 'Function used in Installer to make sure apt is not locked'"
+
   # php.ini configuration
   upload_max_filesize=50M
   post_max_size=50M
   max_execution_time=300
   memory_limit=512M
 
-  # set the web server user
-  WWW_USER="www-data"
+  CAKE="$PATH_TO_MISP/app/Console/cake"
 
   # sudo config to run $LUSER commands
   SUDO_USER="sudo -H -u ${MISP_USER} "
   SUDO_WWW="sudo -H -u ${WWW_USER} "
 
-  echo "Admin (${DBUSER_ADMIN}) DB Password: ${DBPASSWORD_ADMIN}"
-  echo "User  (${DBUSER_MISP}) DB Password: ${DBPASSWORD_MISP}"
+  debug "Admin (${DBUSER_ADMIN}) DB Password: ${DBPASSWORD_ADMIN}"
+  debug "User  (${DBUSER_MISP}) DB Password: ${DBPASSWORD_MISP}"
 }
 
 # Leave empty for NO debug messages, if run with set -x or bash -x it will enable DEBUG by default
@@ -136,15 +136,7 @@ case "$-" in
   *)    NO_PROGRESS=0 ;;
 esac
 
-# Some colors for easier debug and better UX (not colorblind compatible, PR welcome)
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-LBLUE='\033[1;34m'
-YELLOW='\033[0;33m'
-HIDDEN='\e[8m'
-NC='\033[0m'
-
-# Function Section
+## Function Section ##
 
 ## Usage of this script
 usage () {
@@ -152,22 +144,23 @@ usage () {
   echo -e "Please specify what type of ${LBLUE}MISP${NC} setup you want to install."
   space
   echo -e "${0} -c | Install ONLY ${LBLUE}MISP${NC} Core"                   # core
-  echo -e "                -M | Core + ${LBLUE}MISP${NC} modules"       # modules
-  echo -e "                -D | Core + ${LBLUE}MISP${NC} dashboard"     # dashboard
-  echo -e "                -V | Core + Viper"                           # viper
-  echo -e "                -m | Core + Mail 2 ${LBLUE}MISP${NC}"        # mail2
+  echo -e "                -M | ${LBLUE}MISP${NC} modules"       # modules
+  echo -e "                -D | ${LBLUE}MISP${NC} dashboard"     # dashboard
+  echo -e "                -V | Viper"                           # viper
+  echo -e "                -m | Mail 2 ${LBLUE}MISP${NC}"        # mail2
   echo -e "                -A | Install ${YELLOW}all${NC} of the above" # all
   space
   echo -e "                -C | Only do ${YELLOW}pre-install checks and exit${NC}" # pre
   space
-  echo -e "                -U | Do an unattanded Install, no questions asked"      # UNATTENDED
+  echo -e "                -u | Do an unattanded Install, no questions asked"      # UNATTENDED
+  echo -e "${HIDDEN}       -U | Attempt and upgrade of selected item${NC}"         # UPGRADE
   space
   echo -e "${HIDDEN}Some parameters want to be hidden: ${NC}"
-  echo -e "${HIDDEN}        -f | Force test install on current Ubuntu LTS schim, add -B for 18.04 -> 18.10, or -BB 18.10 -> 19.10)${NC}"
-  echo -e "Options can be combined: ${0} -V -D # Will install Core+Viper+Dashboard"
+  echo -e "${HIDDEN}       -f | Force test install on current Ubuntu LTS schim, add -B for 18.04 -> 18.10, or -BB 18.10 -> 19.10)${NC}" # FORCE
+  echo -e "Options can be combined: ${0} -c -V -D # Will install Core+Viper+Dashboard"
   space
   echo -e "Recommended is either a barebone MISP install (ideal for syncing from other instances) or"
-  echo -e "MISP + modules - ${0} -M"
+  echo -e "MISP + modules - ${0} -c -M"
   space
 }
 
@@ -195,7 +188,9 @@ setOpt () {
       ("-m") echo "mail2"; MAIL2=1 ;;
       ("-A") echo "all"; ALL=1 ;;
       ("-C") echo "pre"; PRE=1 ;;
-      ("-U") echo "unattended"; UNATTENDED=1 ;;
+      ("-U") echo "upgrade"; UPGRADE=1 ;;
+      ("-u") echo "unattended"; UNATTENDED=1 ;;
+      ("-f") echo "force"; FORCE=1 ;;
       #(*) echo "$o is not a valid argument" ;;
     esac
   done
@@ -209,6 +204,16 @@ checkFlavour () {
   fi
 
   FLAVOUR=$(lsb_release -s -i |tr [A-Z] [a-z])
+}
+
+# Extract manufacturer
+checkManufacturer () {
+  if [ ! -f $(which dmidecode) ]; then
+    checkAptLock
+    sudo apt install dmidecode -y
+  fi
+  MANUFACTURER=$(sudo dmidecode -s system-manufacturer)
+  echo $MANUFACTURER
 }
 
 # Dynamic horizontal spacer
@@ -277,7 +282,13 @@ checkID () {
 
 # pre-install check to make sure what we will be installing on, is ready and not a half installed system
 preInstall () {
-  echo -e "${RED}Place-holder, not implemented yet."
+  echo -e "${RED}Place-holder, not implemented yet.${NC}"
+  exit
+}
+
+# Upgrade function
+upgrade () {
+  echo -e "${RED}Place-holder, not implemented yet.${NC}"
   exit
 }
 
@@ -314,6 +325,11 @@ checkUsrLocalSrc () {
   fi
 }
 
+kaliSpaceSaver () {
+  # Future function in case Kali overlay on LiveCD is full
+  echo "${RED}Not implement${NC}"
+}
+
 # Because Kali is l33t we make sure we run as root
 kaliOnRootR0ckz () {
   if [[ $EUID -ne 0 ]]; then
@@ -325,6 +341,33 @@ kaliOnRootR0ckz () {
   else
     # TODO: Make sure we consider this further down the road
     echo "User ${MISP_USER} exists, skipping creation"
+  fi
+}
+
+setBaseURL () {
+  if [[ $(checkManufacturer) != "innotek GmbH" ]]; then
+    debug "We guess that this is a physical machine and cannot possibly guess what the MISP_BASEURL might be."
+    if [[ "$UNATTENDED" != "1" ]]; then 
+      echo "You can now enter your own BASE_URL, if you wish to NOT do that, the BASE_URL will be empty, which will work, but ideally you configure it afterwards."
+      echo "Do you want to change it now? (y/n) "
+      read ANSWER
+      ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
+      if [[ $ANSWER == "y" ]]; then
+        echo "Please enter the Base URL, e.g: 'https://example.org'"
+        echo -n "Enter Base URL: "
+        read MISP_BASEURL
+      else
+        MISP_BASEURL='""'
+      fi
+    else
+        MISP_BASEURL="https://misp.local"
+        # Webserver configuration
+        FQDN='misp.local'
+    fi
+  else
+      MISP_BASEURL='https://localhost:8443'
+    # Webserver configuration
+    FQDN='localhost.localdomain'
   fi
 }
 
@@ -350,6 +393,7 @@ kaliUpgrade () {
   sudo apt update
   checkAptLock
   sudo DEBIAN_FRONTEND=noninteractive apt install --only-upgrade bash libc6 -y
+  sudo DEBIAN_FRONTEND=noninteractive apt autoremove -y
 }
 
 # Disables sleep
@@ -358,12 +402,20 @@ disableSleep () {
   gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 0 2> /dev/null
   gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 0 2> /dev/null
   gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'nothing' 2> /dev/null
+  setterm -blank 0 -powersave off -powerdown 0
   xset s 0 0 2> /dev/null
   xset dpms 0 0 2> /dev/null
+  xset dpms force off
   xset s off 2> /dev/null
+  service sleepd stop
+  kill $(lsof | grep 'sleepd' | awk '{print $2}')
+  checkAptLock
+  apt install gnome-shell-extension-caffeine
 }
 
+# Remove alias if present
 if [[ $(type -t checkAptLock) == "alias" ]]; then unalias checkAptLock; fi
+# Simple function to make sure APT is not locked
 checkAptLock () {
   SLEEP=3
   while [ "$DONE" != "0" ]; do
@@ -625,6 +677,7 @@ theEnd () {
     sudo su - ${MISP_USER}
   fi
 }
+## End Function Section Nothing allowed in .md after this line ##
 
 aptUpgrade () {
   checkAptLock
@@ -1307,6 +1360,17 @@ viper () {
 
 # This function will generate the main installer.
 # It is a helper function for the maintainers for the installer.
+
+colors () {
+  # Some colors for easier debug and better UX (not colorblind compatible, PR welcome)
+  RED='\033[0;31m'
+  GREEN='\033[0;32m'
+  LBLUE='\033[1;34m'
+  YELLOW='\033[0;33m'
+  HIDDEN='\e[8m'
+  NC='\033[0m'
+}
+
 generateInstaller () {
   if [ ! -f $(which xsnippet) ]; then
     echo 'xsnippet is NOT installed. Clone the repository below and copy the xsnippet shell script somehwere in your $PATH'
@@ -1387,11 +1451,14 @@ installMISPubuntuSupported () {
   echo "Proceeding with the installation of MISP core"
   space
 
+  debug "Setting Base URL"
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && setBaseURL
+
   # Upgrade system to make sure we install  the latest packages - functionLocation('')
-  aptUpgrade
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && aptUpgrade
 
   # Check if sudo is installed and etckeeper - functionLocation('')
-  checkSudoKeeper
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && checkSudoKeeper
 
   # TODO: Double check how the user is added and subsequently used during the install.
   # TODO: Work on possibility to install as user X and install MISP for user Y
@@ -1401,50 +1468,50 @@ installMISPubuntuSupported () {
   # <snippet-begin postfix.sh>
 
   # Pull in all possible MISP Environment variables - functionLocation('')
-  MISPvars
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && MISPvars
 
   # Install Core Dependencies - functionLocation('')
-  installCoredDeps
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && installCoredDeps
 
   # Install PHP 7.2 Dependencies - functionLocation('')
-  installDepsPhp72
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
 
   # Install Core MISP - functionLocation('')
-  installCore
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && installCore
 
   # Install PHP Cake - functionLocation('')
-  installCake
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && installCake
 
   # Make sure permissions are sane - functionLocation('')
-  permissions
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && permissions
 
   # TODO: Mysql install functions, make it upgrade safe, double check
   # Setup Databse - functionLocation('')
-  prepareDB
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && prepareDB
 
   # Roll Apache Config - functionLocation('')
-  apacheConfig
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && apacheConfig
 
   # Setup log logrotate - functionLocation('')
-  logRotation
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && logRotation
 
   # Generate MISP Config files - functionLocation('')
-  configMISP
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && configMISP
 
   # Generate GnuPG key - functionLocation('')
-  setupGnuPG
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && setupGnuPG
 
   # Setup and start background workers - functionLocation('')
-  backgroundWorkers
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && backgroundWorkers
 
   # Run cake CLI for the core installation - functionLocation('')
-  coreCAKE
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && coreCAKE
 
   # Update Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies - functionLocation('')
-  updateGOWNT 
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && updateGOWNT 
 
   # Check if /usr/local/src is writeable by target install user - functionLocation('')
-  checkUsrLocalSrc
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && checkUsrLocalSrc
 
   # Install misp-modules - functionLocation('')
   [[ -n $MODULES ]]   || [[ -n $ALL ]] && mispmodules
@@ -1453,7 +1520,7 @@ installMISPubuntuSupported () {
   [[ -n $VIPER ]]     || [[ -n $ALL ]] && viper
 
   # Install misp-dashboard - functionLocation('')
-  [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && dashboard
+  [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && mispDashboard ; dashboardCAKE
 
   # Install Mail2MISP - functionLocation('')
   [[ -n $MAIL2 ]]     || [[ -n $ALL ]] && mail2
@@ -1678,7 +1745,7 @@ installMISPonKali () {
 
   debug "Running Core Cake commands"
   coreCAKE
-  dashboardCake
+  dashboardCAKE
 
   debug "Update: Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies"
   updateGOWNT
@@ -1700,6 +1767,9 @@ installMISPonKali () {
   theEnd
 }
 
+## End Function Section ##
+
+colors
 debug "Checking if we are run as the installer template"
 if [[ "$0" == "./INSTALL.debian.tpl.sh" || "$(echo $0 |grep -o -e 'INSTALL.debian.tpl.sh')" == "INSTALL.debian.tpl.sh" ]]; then
   generateInstaller
@@ -1727,9 +1797,23 @@ else
   checkOpt all && echo "${GREEN}All options${NC} selected"
   checkOpt pre && echo "${GREEN}Pre-flight checks${NC} selected"
   checkOpt unattended && echo "${GREEN}unattended${NC} install selected"
+  checkOpt upgrade && echo "${GREEN}upgrade${NC} install selected"
+  checkOpt force && echo "${GREEN}force${NC} install selected"
+
+  # Check if at least core is selected if no other options that do not require core are set
+  if [[ "$CORE" != "1" && "$ALL" != "1" && "$UPGRADE" != "1" && "$PRE" != "1" && "$0" != "/tmp/misp-kali.sh" ]]; then
+    space
+    usage
+    echo "You need to at least select core, or -A to install everything."
+    echo "$0 -c # Is the minima for install options"
+    exit 1
+  fi
 fi
 
+# Add upgrade option to do upgrade pre flight
 [[ -n $PRE ]] && preInstall
+
+[[ -n $UPGRADE ]] && upgrade
 
 # If Ubuntu is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "ubuntu" ]; then

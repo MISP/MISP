@@ -4,30 +4,25 @@
 # <snippet-begin 0_global-vars.sh>
 # Setting generic MISP variables shared by all flavours
 MISPvars () {
-  # debug alias to make sure people are not confused when blindly copy pasting blobs of code
-  alias debug=echo
-
-  # checkAptLock alias to make sure people are not confused when blindly copy pasting blobs of code
-  alias checkAptLock="echo 'Function used in Installer to make sure apt is not locked'"
-
   # Local non-root MISP user
   MISP_USER='misp'
   MISP_PASSWORD='Password1234'
 
+  # The web server user
+  WWW_USER="www-data"
+
   # MISP configuration variables
   PATH_TO_MISP='/var/www/MISP'
-  # Todo: IF run from CLI set MISP_BASEURL accordingly
-  if [ true ]; then
-    MISP_BASEURL='https://misp.local'
-    # Webserver configuration
-    FQDN='misp.local'
-  else
-    MISP_BASEURL='""'
-    # Webserver configuration
-    FQDN='localhost'
+
+  if [ -z "$FQDN" ]; then
+    FQDN="misp.local"
   fi
+
+  if [ -z "$MISP_BASEURL" ]; then
+    MISP_BASEURL='""'
+  fi
+
   MISP_LIVE='1'
-  CAKE="$PATH_TO_MISP/app/Console/cake"
 
   # Database configuration
   DBHOST='localhost'
@@ -53,21 +48,26 @@ MISPvars () {
   GPG_KEY_LENGTH='2048'
   GPG_PASSPHRASE='Password1234'
 
+  # debug alias to make sure people are not confused when blindly copy pasting blobs of code
+  alias debug=echo
+
+  # checkAptLock alias to make sure people are not confused when blindly copy pasting blobs of code
+  alias checkAptLock="echo 'Function used in Installer to make sure apt is not locked'"
+
   # php.ini configuration
   upload_max_filesize=50M
   post_max_size=50M
   max_execution_time=300
   memory_limit=512M
 
-  # set the web server user
-  WWW_USER="www-data"
+  CAKE="$PATH_TO_MISP/app/Console/cake"
 
   # sudo config to run $LUSER commands
   SUDO_USER="sudo -H -u ${MISP_USER} "
   SUDO_WWW="sudo -H -u ${WWW_USER} "
 
-  echo "Admin (${DBUSER_ADMIN}) DB Password: ${DBPASSWORD_ADMIN}"
-  echo "User  (${DBUSER_MISP}) DB Password: ${DBPASSWORD_MISP}"
+  debug "Admin (${DBUSER_ADMIN}) DB Password: ${DBPASSWORD_ADMIN}"
+  debug "User  (${DBUSER_MISP}) DB Password: ${DBPASSWORD_MISP}"
 }
 # <snippet-end 0_global-vars.sh>
 ```
