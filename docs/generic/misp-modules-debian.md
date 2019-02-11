@@ -12,14 +12,11 @@ mispmodules () {
   cd misp-modules
   # some misp-modules dependencies
   sudo apt-get install libpq5 libjpeg-dev libfuzzy-dev -y
-  # pip install
-  debug "install lief"
   # If you build an egg, the user you build it as need write permissions in the CWD
   sudo chgrp $WWW_USER .
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
   sudo chgrp staff .
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I .
-  sudo chgrp staff .
   sudo apt install ruby-pygments.rb -y
   sudo gem install asciidoctor-pdf --pre
 
