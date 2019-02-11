@@ -646,32 +646,37 @@ theEnd () {
 
   clear
   space
-  echo "MISP Installed, access here: https://misp.local"
+  echo -e "${LBLUE}MISP${NC} Installed, access here: ${BASE_URL}"
+  echo
   echo "User: admin@admin.test"
   echo "Password: admin"
-  echo "MISP Dashboard, access here: http://misp.local:8001"
   space
-  echo "The following files were created and need either protection or removal (shred on the CLI)"
+  [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && echo -e "${LBLUE}MISP${NC} Dashboard, access here: ${BASE_URL}:8001"
+  [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && space
+  [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-web installed, access here: ${BASE_URL}:8888"
+  [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-cli configured with your ${LBLUE}MISP${NC} ${RED}Site Admin Auth Key${NC}"
+  [[ -n $VIPER ]] || [[ -n $ALL ]] && echo
+  [[ -n $VIPER ]] || [[ -n $ALL ]] && echo "User: admin"
+  [[ -n $VIPER ]] || [[ -n $ALL ]] && echo "Password: Password1234"
+  [[ -n $VIPER ]] || [[ -n $ALL ]] && space
+  echo -e "The following files were created and need either ${RED}protection or removal${NC} (${YELLOW}shred${NC} on the CLI)"
   echo "/home/${MISP_USER}/mysql.txt"
-  echo "/home/${MISP_USER}/MISP-authkey.txt"
+  echo -e "${RED}Contents:${NC}"
   cat /home/${MISP_USER}/mysql.txt
+  echo "/home/${MISP_USER}/MISP-authkey.txt"
+  echo -e "${RED}Contents:${NC}"
   cat /home/${MISP_USER}/MISP-authkey.txt
   space
-  echo "The LOCAL system credentials:"
+  echo -e "The ${RED}LOCAL${NC} system credentials:"
   echo "User: ${MISP_USER}"
-  echo "Password: ${MISP_PASSWORD}"
-  space
-  echo "viper-web installed, access here: http://misp.local:8888"
-  echo "viper-cli configured with your MISP Site Admin Auth Key"
-  echo "User: admin"
-  echo "Password: Password1234"
+  echo "Password: ${MISP_PASSWORD} # Or the password you used of your custom user"
   space
   echo "To enable outgoing mails via postfix set a permissive SMTP server for the domains you want to contact:"
-  space
+  echo
   echo "sudo postconf -e 'relayhost = example.com'"
   echo "sudo postfix reload"
   space
-  echo "Enjoy using MISP. For any issues see here: https://github.com/MISP/MISP/issues"
+  echo -e "Enjoy using ${LBLUE}MISP${NC}. For any issues see here: https://github.com/MISP/MISP/issues"
 
   if [[ "$USER" != "$MISP_USER" ]]; then
     sudo su - ${MISP_USER}
