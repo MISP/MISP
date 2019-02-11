@@ -288,6 +288,8 @@ installMISPonKali () {
   $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
   $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
   $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
+  $SUDO_WWW git clone https://github.com/MAECProject/python-maec.git
+
 
   mkdir /var/www/.cache/
 
