@@ -4,6 +4,8 @@
 # <snippet-begin 4_misp-dashboard.sh>
 # Main MISP Dashboard install function
 mispDashboard () {
+  # Install pyzmq to main MISP venv
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install pyzmq
   cd /var/www
   sudo mkdir misp-dashboard
   sudo chown www-data:www-data misp-dashboard

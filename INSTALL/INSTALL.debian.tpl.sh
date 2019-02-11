@@ -217,8 +217,6 @@ installMISPubuntuSupported () {
 
   # Run cake CLI for the core installation - functionLocation('')
   coreCAKE
-  # TODO: Move this to Core Cake
-  sudo -H -u www-data $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
 
   # Update Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies - functionLocation('')
   updateGOWNT 
@@ -311,26 +309,44 @@ installMISPonKali () {
   debug "Installing python-cybox"
   cd $PATH_TO_MISP/app/files/scripts/python-cybox
   sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+
   debug "Installing python-stix"
   cd $PATH_TO_MISP/app/files/scripts/python-stix
   sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
-  # install STIX2.0 library to support STIX 2.0 export:
+
+  debug "Install maec"
+  cd $PATH_TO_MISP/app/files/scripts/python-maec
+  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+
+  # install STIX2.0 library to support STIX 2.0 export
   debug "Installing cti-python-stix2"
   cd ${PATH_TO_MISP}/cti-python-stix2
   sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install -I .
+
   debug "Installing mixbox"
   cd $PATH_TO_MISP/app/files/scripts/mixbox
   sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+
   # install PyMISP
   debug "Installing PyMISP"
   cd $PATH_TO_MISP/PyMISP
   sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+
+  # install pydeep
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
+
+  # install lief
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+
+  # install python-magic
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic
 
   # Install Crypt_GPG and Console_CommandLine
   debug "Installing pear Console_CommandLine"
   pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
   debug "Installing pear Crypt_GPG"
   pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
+
 
   debug "Installing composer with php 7.3 updates"
   composer73
@@ -434,11 +450,11 @@ installMISPonKali () {
   setupGnuPG
 
   chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
+  sudo $PATH_TO_MISP/app/Console/worker/start.sh
 
   debug "Running Core Cake commands"
   coreCAKE
   dashboardCake
-  sudo -H -u www-data $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
 
   debug "Update: Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies"
   updateGOWNT

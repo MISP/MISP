@@ -10,6 +10,9 @@ coreCAKE () {
 
   # Setup some more MISP default via cake CLI
 
+  # The default install is Python in a virtualenv, setting accordingly
+  $SUDO_WWW $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
+
   # Tune global time outs
   $SUDO_WWW $CAKE Admin setSetting "Session.autoRegenerate" 0
   $SUDO_WWW $CAKE Admin setSetting "Session.timeout" 600
