@@ -4720,7 +4720,8 @@ class EventsController extends AppController
             $this->set('attackTactic', $attackTactic);
             $this->set('scores', $scores);
             $this->set('maxScore', $maxScore);
-            $this->set('colours', $colours);
+            $this->set('colours', $colours['mapping']);
+            $this->set('interpolation', $colours['interpolation']);
             $this->set('pickingMode', !$disable_picking);
             $this->set('target_id', $scope_id);
             $this->render('/Elements/view_mitre_attack_matrix');

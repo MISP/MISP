@@ -1,5 +1,10 @@
 <?php
     $clusetersNamesMapping = array(); // used to map name with id for the chosen select
+    foreach ($interpolation as $k => $colArr) {
+        $col = str_pad(dechex($colArr[0]), 2, '0', STR_PAD_LEFT) . str_pad(dechex($colArr[1]), 2, '0', STR_PAD_LEFT) . str_pad(dechex($colArr[2]), 2, '0', STR_PAD_LEFT);
+        $interpolation[$k] = '#' . $col;
+    }
+    $colorScale = implode($interpolation, ', ');
 ?>
 <div class="attack-matrix-options" style="right: initial; background: transparent;">
 <ul id="attack-matrix-tabscontroller" class="nav nav-tabs" style="margin-bottom: 2px;">
@@ -24,7 +29,8 @@ foreach($attackTactic as $tabName => $tactic):
     </span>
     <div>
     <span>0</span>
-    <div id="matrix-heatmap-legend"></div>
+
+    <div id="matrix-heatmap-legend" style="background: linear-gradient(to right, white, <?php echo $colorScale ?>);"></div>
     <span id="matrix-heatmap-maxval"><?php echo h($maxScore); ?></span>
     </div>
     <label style="display: inline-block; margin-left: 30px;"><input type="checkbox" id="checkbox_attackMatrix_showAll" checked><span class="fa fa-filter"><?php echo __('Show all');?></span></input></label>

@@ -1887,7 +1887,8 @@ class UsersController extends AppController
             $this->set('attackTactic', $attackTactic);
             $this->set('scores', $scores);
             $this->set('maxScore', $maxScore);
-            $this->set('colours', $colours);
+            $this->set('colours', $colours['mapping']);
+            $this->set('interpolation', $colours['interpolation']);
             $this->set('pickingMode', false);
 
             $this->render('statistics_attackmatrix');

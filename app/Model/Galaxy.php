@@ -414,9 +414,6 @@ class Galaxy extends AppModel
             'mitre-attack' => $killChainOrderEnterprise,
             'mitre-mobile-attack' => $killChainOrderMobile,
             'mitre-pre-attack' => $killChainOrderPre,
-            // 'mitre-attack-pattern' => $killChainOrderEnterprise,
-            // 'mitre-mobile-attack-pattern' => $killChainOrderMobile,
-            // 'mitre-pre-attack-pattern' => $killChainOrderPre,
         );
 
         $expectedDescription = 'ATT&CK Tactic';
@@ -488,10 +485,7 @@ class Galaxy extends AppModel
                     }
                 );
             }
-            // ksort($attackTactic['attackTactic'][$k]);
         }
-        // debug(array_keys($attackTactic));
-        // throw new \Exception("Error Processing Request", 1);
 
         return $attackTactic;
     }

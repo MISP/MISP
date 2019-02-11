@@ -105,7 +105,7 @@ div.th-inner {
 #matrix-heatmap-legend {
     width: 300px;
     height: 10px;
-    background: linear-gradient(to right, white, #0000FF);
+    /* background: linear-gradient(to right, white, #0000FF); */
 }
 
 .attack-matrix-options div {
