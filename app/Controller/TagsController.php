@@ -293,7 +293,7 @@ class TagsController extends AppController
             if ($this->Tag->save($this->request->data)) {
                 if ($this->_isRest()) {
                     $tag = $this->Tag->find('first', array(
-                        'contidions' => array(
+                        'conditions' => array(
                             'Tag.id' => $id
                         ),
                         'recursive' => -1
