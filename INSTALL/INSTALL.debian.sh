@@ -620,7 +620,10 @@ theEnd () {
   echo "sudo postfix reload"
   space
   echo "Enjoy using MISP. For any issues see here: https://github.com/MISP/MISP/issues"
-  su - ${MISP_USER}
+
+  if [[ "$USER" != "$MISP_USER" ]]; then
+    sudo su - ${MISP_USER}
+  fi
 }
 
 aptUpgrade () {
@@ -1311,6 +1314,13 @@ generateInstaller () {
     exit 1
   fi
 
+  if [[ $(echo $0 |grep -e '^\.\/') != "./INSTALL.debian.tpl.sh" ]]; then
+    echo -e "${RED}iAmError!${NC}"
+    echo -e "To generate the installer call it with './INSTALL.debian.tpl.sh' otherwise things will break."
+    echo -e "You called: ${RED}$0${NC}"
+    exit 1
+  fi
+
   mkdir installer ; cd installer
   cp ../INSTALL.debian.tpl.sh .
 
@@ -1691,7 +1701,7 @@ installMISPonKali () {
 }
 
 debug "Checking if we are run as the installer template"
-if [[ $0 == "./INSTALL.debian.tpl.sh" ]]; then
+if [[ "$0" == "./INSTALL.debian.tpl.sh" || "$(echo $0 |grep -o -e 'INSTALL.debian.tpl.sh')" == "INSTALL.debian.tpl.sh" ]]; then
   generateInstaller
 fi
 

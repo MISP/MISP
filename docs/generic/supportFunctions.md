@@ -494,7 +494,10 @@ theEnd () {
   echo "sudo postfix reload"
   space
   echo "Enjoy using MISP. For any issues see here: https://github.com/MISP/MISP/issues"
-  su - ${MISP_USER}
+
+  if [[ "$USER" != "$MISP_USER" ]]; then
+    sudo su - ${MISP_USER}
+  fi
 }
 # <snippet-end 0_support-functions.sh>
 ```
