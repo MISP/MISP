@@ -145,6 +145,9 @@ git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
 # example: git checkout tags/v2.4.XY
 # the message regarding a "detached HEAD state" is expected behaviour
 # (you only have to create a new branch, if you want to change stuff and do a pull request for example)
+git submodule update --init --recursive
+# Make git ignore filesystem permission differences for submodules
+git submodule foreach --recursive git config core.filemode false
 ```
 
 ## 3.02/ Make git ignore filesystem permission differences
@@ -152,9 +155,8 @@ git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
 git config core.filemode false
 ```
 
-## 3.03/ Install Mitre's STIX and its dependencies by running the following commands
+## 3.03/ Install Mitre's STIX, STIX2 and their dependencies by running the following commands
 ```bash
-pip install importlib
 yum install python-six
 cd /var/www/MISP/app/files/scripts
 git clone https://github.com/CybOXProject/python-cybox.git
@@ -168,7 +170,10 @@ scl enable rh-python36 'python3 setup.py install'
 cd /var/www/MISP/app/files/scripts/python-stix
 git config core.filemode false
 scl enable rh-python36 'python3 setup.py install'
+cd /var/www/MISP/cti-python-stix2
+scl enable rh-python36 'python3 setup.py install'
 ```
+
 
 ## 3.04/ Install mixbox to accommodate the new STIX dependencies
 ```bash
@@ -188,23 +193,7 @@ systemctl restart rh-php71-php-fpm.service
 ```
 
 # 4/ CakePHP
-
-## 4.01/ CakePHP is now included as a submodule of MISP
-
-!!! note
-    Execute the following commands to let git fetch it ignore this
-    ```
-    message: No submodule mapping found in .gitmodules for path 'app/Plugin/CakeResque'
-    ```
-
-```bash
-cd /var/www/MISP
-git submodule update --init --recursive
-# Make git ignore filesystem permission differences for submodules
-git submodule foreach --recursive git config core.filemode false
-```
-
-## 4.02/ Install CakeResque along with its dependencies if you intend to use the built in background jobs
+## 4.01/ Install CakeResque along with its dependencies if you intend to use the built in background jobs
 ```bash
 cd /var/www/MISP/app
 php composer.phar require kamisama/cake-resque:4.1.2
@@ -212,7 +201,7 @@ php composer.phar config vendor-dir Vendor
 php composer.phar install
 ```
 
-## 4.03/ Install and configure php redis connector through pecl
+## 4.02/ Install and configure php redis connector through pecl
 ```bash
 scl enable rh-php71 'pecl install redis'
 echo "extension=redis.so" > /etc/opt/rh/rh-php71/php-fpm.d/redis.ini
@@ -220,18 +209,18 @@ ln -s ../php-fpm.d/redis.ini /etc/opt/rh/rh-php71/php.d/99-redis.ini
 systemctl restart rh-php71-php-fpm.service
 ```
 
-## 4.04/ Set a timezone in php.ini
+## 4.03/ Set a timezone in php.ini
 ```bash
 echo 'date.timezone = "Australia/Sydney"' > /etc/opt/rh/rh-php71/php-fpm.d/timezone.ini
 ln -s ../php-fpm.d/timezone.ini /etc/opt/rh/rh-php71/php.d/99-timezone.ini
 ```
 
-## 4.05/ To use the scheduler worker for scheduled tasks, do the following:
+## 4.04/ To use the scheduler worker for scheduled tasks, do the following:
 ```bash
 cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResque/Config/config.php
 ```
 
-## 4.06/ Install Crypt_GPG and Console_CommandLine
+## 4.05/ Install Crypt_GPG and Console_CommandLine
 ```bash
 sudo -H -u www-data pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
 sudo -H -u www-data pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
