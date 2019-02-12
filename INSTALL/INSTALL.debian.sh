@@ -140,14 +140,22 @@ esac
 
 ## Usage of this script
 usage () {
+  if [ "$0" == "bash" ]; then
+    WEB_INSTALL=1
+    SCRIPT_NAME="Web Installer Command"
+  else
+    SCRIPT_NAME=$0
+  fi
+
   space
   echo -e "Please specify what type of ${LBLUE}MISP${NC} setup you want to install."
   space
-  echo -e "${0} -c | Install ONLY ${LBLUE}MISP${NC} Core"                   # core
-  echo -e "                -M | ${LBLUE}MISP${NC} modules"       # modules
-  echo -e "                -D | ${LBLUE}MISP${NC} dashboard"     # dashboard
-  echo -e "                -V | Viper"                           # viper
-  echo -e "                -m | Mail 2 ${LBLUE}MISP${NC}"        # mail2
+  echo -e "${SCRIPT_NAME} -c | Install ONLY ${LBLUE}MISP${NC} Core"                   # core
+  echo -e "                -M | ${LBLUE}MISP${NC} modules"        # modules
+  echo -e "                -D | ${LBLUE}MISP${NC} dashboard"      # dashboard
+  echo -e "                -V | Viper"                            # viper
+  echo -e "                -m | Mail 2 ${LBLUE}MISP${NC}"         # mail2
+  echo -e "                -S | Experimental ssdeep correlations" # ssdeep
   echo -e "                -A | Install ${YELLOW}all${NC} of the above" # all
   space
   echo -e "                -C | Only do ${YELLOW}pre-install checks and exit${NC}" # pre
@@ -157,10 +165,10 @@ usage () {
   space
   echo -e "${HIDDEN}Some parameters want to be hidden: ${NC}"
   echo -e "${HIDDEN}       -f | Force test install on current Ubuntu LTS schim, add -B for 18.04 -> 18.10, or -BB 18.10 -> 19.10)${NC}" # FORCE
-  echo -e "Options can be combined: ${0} -c -V -D # Will install Core+Viper+Dashboard"
+  echo -e "Options can be combined: ${SCRIPT_NAME} -c -V -D # Will install Core+Viper+Dashboard"
   space
   echo -e "Recommended is either a barebone MISP install (ideal for syncing from other instances) or"
-  echo -e "MISP + modules - ${0} -c -M"
+  echo -e "MISP + modules - ${SCRIPT_NAME} -c -M"
   space
 }
 
@@ -186,12 +194,13 @@ setOpt () {
       ("-M") echo "modules"; MODULES=1 ;;
       ("-D") echo "dashboard"; DASHBOARD=1 ;;
       ("-m") echo "mail2"; MAIL2=1 ;;
+      ("-S") echo "ssdeep"; SSDEEP=1 ;;
       ("-A") echo "all"; ALL=1 ;;
       ("-C") echo "pre"; PRE=1 ;;
       ("-U") echo "upgrade"; UPGRADE=1 ;;
       ("-u") echo "unattended"; UNATTENDED=1 ;;
       ("-f") echo "force"; FORCE=1 ;;
-      #(*) echo "$o is not a valid argument" ;;
+      (*) echo "$o is not a valid argument"; exit 1 ;;
     esac
   done
 }
@@ -253,23 +262,25 @@ checkFail () {
 checkID () {
   if [[ $EUID == 0 ]]; then
    echo "This script cannot be run as a root"
-   exit 1
-  elif [[ $(id $MISP_USER >/dev/null; echo $?) -ne 0 ]]; then
-    echo "There is NO user called '$MISP_USER' create a user '$MISP_USER' or continue as $USER? (y/n) "
-    read ANSWER
-    ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
-    if [[ $ANSWER == "y" ]]; then
-      sudo useradd -s /bin/bash -m -G adm,cdrom,sudo,dip,plugdev,www-data,staff $MISP_USER
-      echo $MISP_USER:$MISP_PASSWORD | sudo chpasswd
-      echo "User $MISP_USER added, password is: $MISP_PASSWORD"
-    elif [[ $ANSWER == "n" ]]; then
-      echo "Using $USER as install user, hope that is what you want."
-      echo "${RED}Adding $USER to groups www-data and staff${NC}"
-      MISP_USER=$USER
-      sudo adduser $MISP_USER staff
+     exit 1
+     elif [[ $(id $MISP_USER >/dev/null; echo $?) -ne 0 ]]; then
+     echo "There is NO user called '$MISP_USER' create a user '$MISP_USER' or continue as $USER? (y/n) "
+     read ANSWER
+     ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
+     if [[ $ANSWER == "y" ]]; then
+       sudo useradd -s /bin/bash -m -G adm,cdrom,sudo,dip,plugdev,www-data,staff $MISP_USER
+         echo $MISP_USER:$MISP_PASSWORD | sudo chpasswd
+         echo "User $MISP_USER added, password is: $MISP_PASSWORD"
+         elif [[ $ANSWER == "n" ]]; then
+         echo "Using $USER as install user, hope that is what you want."
+         echo "${RED}Adding $USER to groups www-data and staff${NC}"
+         MISP_USER=$USER
+         sudo adduser $MISP_USER staff
+         sudo adduser $MISP_USER www-data
+     else
+       echo "yes or no was asked, try again."
+         sudo adduser $MISP_USER staff
       sudo adduser $MISP_USER www-data
-    else
-      echo "yes or no was asked, try again."
       exit 1
     fi
   else
@@ -1292,6 +1303,24 @@ mail2misp () {
   sed -i "s/^misp_key\ =\ 'YOUR_KEY_HERE'/misp_key\ =\ '${AUTH_KEY}'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
 }
 
+ssdeep () {
+  cd /usr/local/src
+  wget https://github.com/ssdeep-project/ssdeep/releases/download/release-2.14.1/ssdeep-2.14.1.tar.gz
+  tar zxvf ssdeep-2.14.1.tar.gz
+  cd ssdeep-2.14.1
+  ./configure --datadir=/usr --prefix=/usr --localstatedir=/var --sysconfdir=/etc
+  make
+  sudo make install
+
+  #installing ssdeep_php
+  sudo pecl install ssdeep
+
+  # You should add "extension=ssdeep.so" to mods-available - Check /etc/php for your current version
+  echo "extension=ssdeep.so" | sudo tee ${PHP_ETC_BASE}/mods-available/ssdeep.ini
+  sudo phpenmod ssdeep
+  sudo service apache2 restart
+}
+
 # Main Viper install function
 viper () {
   cd /usr/local/src/
@@ -1431,6 +1460,7 @@ generateInstaller () {
   perl -pe 's/^## 4_misp-dashboard.sh ##/`cat 4_misp-dashboard.sh`/ge' -i INSTALL.debian.tpl.sh
   perl -pe 's/^## 5_mail_to_misp.sh ##/`cat 5_mail_to_misp.sh`/ge' -i INSTALL.debian.tpl.sh
   perl -pe 's/^## 6_viper.sh ##/`cat 6_viper.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 6_ssdeep.sh ##/`cat 6_ssdeep.sh`/ge' -i INSTALL.debian.tpl.sh
 
   cp INSTALL.debian.tpl.sh ../INSTALL.debian.sh
   cd ..
@@ -1745,6 +1775,7 @@ installMISPonKali () {
   debug "Setting up GnuPG"
   setupGnuPG
 
+  debug "Starting workers"
   chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
   sudo $PATH_TO_MISP/app/Console/worker/start.sh
 
@@ -1765,12 +1796,16 @@ installMISPonKali () {
   debug "Installing Viper"
   viper
 
+  debug "Installing ssdeep"
+  ssdeep
+
   debug "Setting permissions"
   permissions
 
   debug "Running Then End!"
   theEnd
 }
+# End installMISPonKali ()
 
 ## End Function Section ##
 

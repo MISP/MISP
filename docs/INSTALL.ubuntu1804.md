@@ -1,15 +1,32 @@
 # INSTALLATION INSTRUCTIONS
 ## for Ubuntu 18.04.1-server
 
+### -1/ Installer and Manual install instructions
+
+Make sure you are reading the parsed version of this Document. When in doubt [click here](https://misp.github.io/MISP/INSTALL.ubuntu1804/).
+
+To install MISP on a fresh Ubuntu install all you need to do is:
+
+```bash
+# Please check the installer options first to make the best choice for your install
+curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s
+
+# This will install MISP Core and misp-modules (recommended)
+curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s -- -c -M
+```
+
 ### 0/ MISP Ubuntu 18.04-server install - status
 -------------------------
 !!! notice
-    Tested working by [@SteveClement](https://twitter.com/SteveClement) on 20190209 (works with **Ubuntu 18.10** too)
+    Installer tested working by [@SteveClement](https://twitter.com/SteveClement) on 20190212 (works with **Ubuntu 18.10** too)
 
 !!! notice
     This document also serves as a source for the [INSTALL-misp.sh](https://github.com/MISP/MISP/blob/2.4/INSTALL/INSTALL.debian.sh) script.
     Which explains why you will see the use of shell *functions* in various steps.
     Henceforth the document will also follow a more logical flow. In the sense that all the dependencies are installed first then config files are generated, etc...
+
+!!! notice
+    If the next line is `[!generic/core.md!]()` [click here](https://misp.github.io/MISP/INSTALL.ubuntu1804/).
 
 {!generic/core.md!}
 

@@ -81,6 +81,7 @@
 ## 4_misp-dashboard.sh ##
 ## 4_misp-dashboard-cake.sh ##
 ## 5_mail_to_misp.sh ##
+## 6_ssdeep.sh ##
 ## 6_viper.sh ##
 
 # No functions scripts:
@@ -158,6 +159,7 @@ generateInstaller () {
   perl -pe 's/^## 4_misp-dashboard.sh ##/`cat 4_misp-dashboard.sh`/ge' -i INSTALL.debian.tpl.sh
   perl -pe 's/^## 5_mail_to_misp.sh ##/`cat 5_mail_to_misp.sh`/ge' -i INSTALL.debian.tpl.sh
   perl -pe 's/^## 6_viper.sh ##/`cat 6_viper.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 6_ssdeep.sh ##/`cat 6_ssdeep.sh`/ge' -i INSTALL.debian.tpl.sh
 
   cp INSTALL.debian.tpl.sh ../INSTALL.debian.sh
   cd ..
@@ -472,6 +474,7 @@ installMISPonKali () {
   debug "Setting up GnuPG"
   setupGnuPG
 
+  debug "Starting workers"
   chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
   sudo $PATH_TO_MISP/app/Console/worker/start.sh
 
@@ -492,12 +495,16 @@ installMISPonKali () {
   debug "Installing Viper"
   viper
 
+  debug "Installing ssdeep"
+  ssdeep
+
   debug "Setting permissions"
   permissions
 
   debug "Running Then End!"
   theEnd
 }
+# End installMISPonKali ()
 
 ## End Function Section ##
 
