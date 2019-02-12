@@ -87,210 +87,210 @@
                     )
                 );
             }
-            if (!empty($contributors)) {
-                $contributorsContent = '';
-                foreach ($contributors as $k => $entry) {
-                    $contributorsContent .= sprintf(
-                        '<a href="%s" style="margin-right:2px;text-decoration: none;">%s</a>',
-                        $baseurl."/logs/event_index/".$event['Event']['id'].'/'.h($entry),
-                        $this->element('img', array('id' => $entry, 'imgSize' => 24, 'imgStyle' => true))
-                    );
-                }
-                $table_data[] = array(
-                    'key' => __('Contributors'),
-                    'html' => $contributorsContent
-                );
-            }
-            if (isset($event['User']['email']) && ($isSiteAdmin || ($isAdmin && $me['org_id'] == $event['Event']['org_id']))) {
-                $table_data[] = array(
-                    'key' => __('Email'),
-                    'value' => h($event['User']['email'])
+        }
+        if (!empty($contributors)) {
+            $contributorsContent = '';
+            foreach ($contributors as $k => $entry) {
+                $contributorsContent .= sprintf(
+                    '<a href="%s" style="margin-right:2px;text-decoration: none;">%s</a>',
+                    $baseurl."/logs/event_index/".$event['Event']['id'].'/'.h($entry),
+                    $this->element('img', array('id' => $entry, 'imgSize' => 24, 'imgStyle' => true))
                 );
             }
             $table_data[] = array(
-                'key' => __('Tags'),
-                'html' => sprintf(
-                    '<span class="eventTagContainer">%s</span>',
-                    $this->element(
-                        'ajaxTags',
-                        array(
-                            'event' => $event,
-                            'tags' => $event['EventTag'],
-                            'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['orgc_id'])
-                        )
+                'key' => __('Contributors'),
+                'html' => $contributorsContent
+            );
+        }
+        if (isset($event['User']['email']) && ($isSiteAdmin || ($isAdmin && $me['org_id'] == $event['Event']['org_id']))) {
+            $table_data[] = array(
+                'key' => __('Email'),
+                'value' => h($event['User']['email'])
+            );
+        }
+        $table_data[] = array(
+            'key' => __('Tags'),
+            'html' => sprintf(
+                '<span class="eventTagContainer">%s</span>',
+                $this->element(
+                    'ajaxTags',
+                    array(
+                        'event' => $event,
+                        'tags' => $event['EventTag'],
+                        'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['orgc_id'])
                     )
                 )
-            );
+            )
+        );
+        $table_data[] = array(
+            'key' => __('Date'),
+            'value' => $event['Event']['date']
+        );
+        $table_data[] = array(
+            'key' => __('Threat Level'),
+            'key_title' => $eventDescriptions['threat_level_id']['desc'],
+            'value' => $event['ThreatLevel']['name']
+        );
+        $table_data[] = array(
+            'key' => __('Analysis'),
+            'key_title' => $eventDescriptions['analysis']['desc'],
+            'value' => $analysisLevels[$event['Event']['analysis']]
+        );
+        $table_data[] = array(
+            'key' => __('Distribution'),
+            'value_class' => ($event['Event']['distribution'] == 0) ? 'privateRedText' : '',
+            'html' => sprintf(
+                '%s %s',
+                ($event['Event']['distribution'] == 4) ?
+                    sprintf('<a href="%s%s">%s</a>', $baseurl . '/sharing_groups/view/', h($event['SharingGroup']['id']), h($event['SharingGroup']['name'])) :
+                    h($distributionLevels[$event['Event']['distribution']]),
+                sprintf(
+                    '<span class="%s" data-object-id="%s" data-object-context="event" data-shown="false"></span><div style="display: none">%s</div>',
+                    'useCursorPointer fa fa-info-circle distribution_graph',
+                    h($event['Event']['id']),
+                    $this->element('view_event_distribution_graph')
+                )
+            )
+        );
+        $table_data[] = array(
+            'key' => __('Info'),
+            'value' => $event['Event']['info']
+        );
+        $table_data[] = array(
+            'key' => __('Published'),
+            'class' => ($event['Event']['published'] == 0) ? 'background-red bold not-published' : 'published',
+            'class_value' => ($event['Event']['published'] == 0) ? '' : 'green',
+            'html' => ($event['Event']['published'] == 0) ? 'No' : '<span class="green bold">Yes</span>' . ((empty($event['Event']['publish_timestamp'])) ? 'N/A' :  ' (' . date('Y-m-d H:i:s', ($event['Event']['publish_timestamp'])) . ')')
+        );
+        $table_data[] = array(
+            'key' => __('#Attributes'),
+            'value' => $attribute_count
+        );
+        $table_data[] = array(
+            'key' => __('First recorded change'),
+            'value' => date('Y-m-d H:i:s', $event['Event']['timestamp'])
+        );
+        $table_data[] = array(
+            'key' => __('Last change'),
+            'value' => date('Y-m-d H:i:s', $event['Event']['timestamp'])
+        );
+        $table_data[] = array(
+            'key' => __('Modification map'),
+            'element' => 'sparkline',
+            'element_params' => array('scope' => 'modification', 'id' => $event['Event']['id'], 'csv' => $modificationMapCSV)
+        );
+        if (!empty($extendedEvent) || !empty($event['Event']['extends_uuid'])) {
             $table_data[] = array(
-                'key' => __('Date'),
-                'value' => $event['Event']['date']
-            );
-            $table_data[] = array(
-                'key' => __('Threat Level'),
-                'key_title' => $eventDescriptions['threat_level_id']['desc'],
-                'value' => $event['ThreatLevel']['name']
-            );
-            $table_data[] = array(
-                'key' => __('Analysis'),
-                'key_title' => $eventDescriptions['analysis']['desc'],
-                'value' => $analysisLevels[$event['Event']['analysis']]
-            );
-            $table_data[] = array(
-                'key' => __('Distribution'),
-                'value_class' => ($event['Event']['distribution'] == 0) ? 'privateRedText' : '',
-                'html' => sprintf(
-                    '%s %s',
-                    ($event['Event']['distribution'] == 4) ?
-                        sprintf('<a href="%s%s">%s</a>', $baseurl . '/sharing_groups/view/', h($event['SharingGroup']['id']), h($event['SharingGroup']['name'])) :
-                        h($distributionLevels[$event['Event']['distribution']]),
+                'key' => __('Extends'),
+                'value_class' => 'break-word',
+                'html' => (!empty($extendedEvent) && is_array($extendedEvent)) ?
                     sprintf(
-                        '<span class="%s" data-object-id="%s" data-object-context="event" data-shown="false"></span><div style="display: none">%s</div>',
-                        'useCursorPointer fa fa-info-circle distribution_graph',
-                        h($event['Event']['id']),
-                        $this->element('view_event_distribution_graph')
+                        '<span>%s (<a href="%s">%s</a>): %s</span>',
+                        __('Event'),
+                        $baseurl . '/events/view/' . h($extendedEvent[0]['Event']['id']),
+                        h($extendedEvent[0]['Event']['id']),
+                        h($extendedEvent[0]['Event']['info'])
+                    ) :
+                    h($event['Event']['extends_uuid'])
+            );
+        }
+        $extended_by = '';
+        if (!empty($extensions)) {
+            foreach ($extensions as $extension) {
+                $extended_by .= sprintf('<span>%s (<a href="%s">%s</a>): %s</span>', __('Event'), $baseurl . '/events/view/' . h($extension['Event']['id']), h($extension['Event']['id']), h($extension['Event']['info'])) . '<br />';
+            }
+            $table_data[] = array(
+                'key' => __('Extended by'),
+                'value_class' => 'break-word',
+                'html' => sprintf(
+                    '%s %s %s %s',
+                    $extended_by,
+                    sprintf(
+                        'Currently in %s view.',
+                        $extended ? __('extended') : __('atomic')
+                    ),
+                    sprintf(
+                        '<a href="%s/events/view/%s%s"><span class="icon-refresh"></span></a>',
+                        $baseurl,
+                        $event['Event']['id'],
+                        $extended ? '' : '/extended:1'
                     )
                 )
             );
+        }
+        $table_data[] = array(
+            'key' => __('Sightings'),
+            'element' => '/Events/View/eventSightingValue',
+            'element_params' => array(
+                'sightingPopover' => $sightingPopover,
+                'event' => $event,
+                'ownSightings' => empty($ownSightings) ? array() : $ownSightings
+            )
+        );
+        if (!empty($sightingsData['csv']['event'])) {
             $table_data[] = array(
-                'key' => __('Info'),
-                'value' => $event['Event']['info']
-            );
-            $table_data[] = array(
-                'key' => __('Published'),
-                'class' => ($event['Event']['published'] == 0) ? 'background-red bold not-published' : 'published',
-                'class_value' => ($event['Event']['published'] == 0) ? '' : 'green',
-                'html' => ($event['Event']['published'] == 0) ? 'No' : '<span class="green bold">Yes</span>' . ((empty($event['Event']['publish_timestamp'])) ? 'N/A' :  ' (' . date('Y-m-d H:i:s', ($event['Event']['publish_timestamp'])) . ')')
-            );
-            $table_data[] = array(
-                'key' => __('#Attributes'),
-                'value' => $attribute_count
-            );
-            $table_data[] = array(
-                'key' => __('First recorded change'),
-                'value' => date('Y-m-d H:i:s', $event['Event']['timestamp'])
-            );
-            $table_data[] = array(
-                'key' => __('Last change'),
-                'value' => date('Y-m-d H:i:s', $event['Event']['timestamp'])
-            );
-            $table_data[] = array(
-                'key' => __('Modification map'),
+                'key' => __('Activity'),
                 'element' => 'sparkline',
-                'element_params' => array('scope' => 'modification', 'id' => $event['Event']['id'], 'csv' => $modificationMapCSV)
+                'element_params' => array('scope' => 'event', 'id' => $event['Event']['id'], 'csv' => $sightingsData['csv']['event'])
             );
-            if (!empty($extendedEvent) || !empty($event['Event']['extends_uuid'])) {
-                $table_data[] = array(
-                    'key' => __('Extends'),
-                    'value_class' => 'break-word',
-                    'html' => (!empty($extendedEvent) && is_array($extendedEvent)) ?
-                        sprintf(
-                            '<span>%s (<a href="%s">%s</a>): %s</span>',
-                            __('Event'),
-                            $baseurl . '/events/view/' . h($extendedEvent[0]['Event']['id']),
-                            h($extendedEvent[0]['Event']['id']),
-                            h($extendedEvent[0]['Event']['info'])
-                        ) :
-                        h($event['Event']['extends_uuid'])
-                );
-            }
-            $extended_by = '';
-            if (!empty($extensions)) {
-                foreach ($extensions as $extension) {
-                    $extended_by .= sprintf('<span>%s (<a href="%s">%s</a>): %s</span>', __('Event'), $baseurl . '/events/view/' . h($extension['Event']['id']), h($extension['Event']['id']), h($extension['Event']['info'])) . '<br />';
-                }
-                $table_data[] = array(
-                    'key' => __('Extended by'),
-                    'value_class' => 'break-word',
-                    'html' => sprintf(
-                        '%s %s %s %s',
-                        $extended_by,
-                        sprintf(
-                            'Currently in %s view.',
-                            $extended ? __('extended') : __('atomic')
-                        ),
-                        sprintf(
-                            '<a href="%s/events/view/%s%s"><span class="icon-refresh"></span></a>',
-                            $baseurl,
-                            $event['Event']['id'],
-                            $extended ? '' : '/extended:1'
-                        )
-                    )
-                );
-            }
-            $table_data[] = array(
-                'key' => __('Sightings'),
-                'element' => '/Events/View/eventSightingValue',
-                'element_params' => array(
-                    'sightingPopover' => $sightingPopover,
-                    'event' => $event,
-                    'ownSightings' => empty($ownSightings) ? array() : $ownSightings
-                )
-            );
-            if (!empty($sightingsData['csv']['event'])) {
-                $table_data[] = array(
-                    'key' => __('Activity'),
-                    'element' => 'sparkline',
-                    'element_params' => array('scope' => 'event', 'id' => $event['Event']['id'], 'csv' => $sightingsData['csv']['event'])
-                );
-            }
-            if (!empty($delegationRequest)) {
-                if ($isSiteAdmin || $me['org_id'] == $delegationRequest['EventDelegation']['org_id']) {
-                    if ($isSiteAdmin) {
-                        $message = sprintf(
-                            '%s has requested that %s take over this event.',
-                            h($delegationRequest['RequesterOrg']['name']),
-                            h($delegationRequest['Org']['name'])
-                        );
-                    } else {
-                        $message = sprintf(
-                            '%s has requested that you take over this event.',
-                            h($delegationRequest['RequesterOrg']['name'])
-                        );
-                    }
-                } else {
+        }
+        if (!empty($delegationRequest)) {
+            if ($isSiteAdmin || $me['org_id'] == $delegationRequest['EventDelegation']['org_id']) {
+                if ($isSiteAdmin) {
                     $message = sprintf(
-                        'You have requested that %s take over this event.',
+                        '%s has requested that %s take over this event.',
+                        h($delegationRequest['RequesterOrg']['name']),
                         h($delegationRequest['Org']['name'])
                     );
+                } else {
+                    $message = sprintf(
+                        '%s has requested that you take over this event.',
+                        h($delegationRequest['RequesterOrg']['name'])
+                    );
                 }
+            } else {
+                $message = sprintf(
+                    'You have requested that %s take over this event.',
+                    h($delegationRequest['Org']['name'])
+                );
+            }
+            $table_data[] = array(
+                'key' => __('Delegation request'),
+                'class' => 'background-red bold',
+                'html' => sprintf(
+                    '%s (%s)',
+                    $message,
+                    sprintf (
+                        '<a href="#" style="color:white;" onClick="genericPopup(%s);">%s</a>',
+                        sprintf(
+                            "'%s/eventDelegations/view/%s', '#confirmation_box'",
+                            $baseurl,
+                            h($delegationRequest['EventDelegation']['id'])
+                        ),
+                        __('View request details')
+                    )
+                )
+            );
+            if (!Configure::read('MISP.completely_disable_correlation') && Configure::read('MISP.allow_disabling_correlation')) {
                 $table_data[] = array(
-                    'key' => __('Delegation request'),
-                    'class' => 'background-red bold',
+                    'key' => __('Correlation'),
+                    'class' => $event['Event']['disable_correlation'] ? 'background-red bold' : '',
                     'html' => sprintf(
-                        '%s (%s)',
-                        $message,
-                        sprintf (
-                            '<a href="#" style="color:white;" onClick="genericPopup(%s);">%s</a>',
+                        '%s%s',
+                        $event['Event']['disable_correlation'] ? __('Disabled') : __('Enabled'),
+                        (!$mayModify && !$isSiteAdmin) ? '' : sprintf(
                             sprintf(
-                                "'%s/eventDelegations/view/%s', '#confirmation_box'",
-                                $baseurl,
-                                h($delegationRequest['EventDelegation']['id'])
-                            ),
-                            __('View request details')
+                                ' (<a onClick="getPopup(%s);" style="%scursor:pointer;font-weight:normal;">%s</a>)',
+                                sprintf(
+                                    "'%s', 'events', 'toggleCorrelation', '', '#confirmation_box'",
+                                    h($event['Event']['id'])
+                                ),
+                                $event['Event']['disable_correlation'] ? 'color:white;' : '',
+                                $event['Event']['disable_correlation'] ? __('enable') : __('disable')
+                            )
                         )
                     )
                 );
-                if (!Configure::read('MISP.completely_disable_correlation') && Configure::read('MISP.allow_disabling_correlation')) {
-                    $table_data[] = array(
-                        'key' => __('Correlation'),
-                        'class' => $event['Event']['disable_correlation'] ? 'background-red bold' : '',
-                        'html' => sprintf(
-                            '%s%s',
-                            $event['Event']['disable_correlation'] ? __('Disabled') : __('Enabled'),
-                            (!$mayModify && !$isSiteAdmin) ? '' : sprintf(
-                                sprintf(
-                                    ' (<a onClick="getPopup(%s);" style="%scursor:pointer;font-weight:normal;">%s</a>)',
-                                    sprintf(
-                                        "'%s', 'events', 'toggleCorrelation', '', '#confirmation_box'",
-                                        h($event['Event']['id'])
-                                    ),
-                                    $event['Event']['disable_correlation'] ? 'color:white;' : '',
-                                    $event['Event']['disable_correlation'] ? __('enable') : __('disable')
-                                )
-                            )
-                        )
-                    );
-                }
             }
         }
 

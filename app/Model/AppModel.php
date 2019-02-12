@@ -229,16 +229,16 @@ class AppModel extends Model
                 break;
             case 'addSightings':
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS sightings (
-				id int(11) NOT NULL AUTO_INCREMENT,
-				attribute_id int(11) NOT NULL,
-				event_id int(11) NOT NULL,
-				org_id int(11) NOT NULL,
-				date_sighting bigint(20) NOT NULL,
-				PRIMARY KEY (id),
-				INDEX attribute_id (attribute_id),
-				INDEX event_id (event_id),
-				INDEX org_id (org_id)
-				) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
+                id int(11) NOT NULL AUTO_INCREMENT,
+                attribute_id int(11) NOT NULL,
+                event_id int(11) NOT NULL,
+                org_id int(11) NOT NULL,
+                date_sighting bigint(20) NOT NULL,
+                PRIMARY KEY (id),
+                INDEX attribute_id (attribute_id),
+                INDEX event_id (event_id),
+                INDEX org_id (org_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
                 break;
             case 'makeAttributeUUIDsUnique':
                 $this->__dropIndex('attributes', 'uuid');
@@ -270,31 +270,31 @@ class AppModel extends Model
                 $sqlArray[] = 'ALTER TABLE `logs` MODIFY  `change` text COLLATE utf8_bin NOT NULL;';
 
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS `taxonomies` (
-					`id` int(11) NOT NULL AUTO_INCREMENT,
-					`namespace` varchar(255) COLLATE utf8_bin NOT NULL,
-					`description` text COLLATE utf8_bin NOT NULL,
-					`version` int(11) NOT NULL,
-					`enabled` tinyint(1) NOT NULL DEFAULT 0,
-					PRIMARY KEY (`id`)
-					) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `namespace` varchar(255) COLLATE utf8_bin NOT NULL,
+                    `description` text COLLATE utf8_bin NOT NULL,
+                    `version` int(11) NOT NULL,
+                    `enabled` tinyint(1) NOT NULL DEFAULT 0,
+                    PRIMARY KEY (`id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
 
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS `taxonomy_entries` (
-					`id` int(11) NOT NULL AUTO_INCREMENT,
-					`taxonomy_predicate_id` int(11) NOT NULL,
-					`value` text COLLATE utf8_bin NOT NULL,
-					`expanded` text COLLATE utf8_bin NOT NULL,
-					PRIMARY KEY (`id`),
-					KEY `taxonomy_predicate_id` (`taxonomy_predicate_id`)
-					) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `taxonomy_predicate_id` int(11) NOT NULL,
+                    `value` text COLLATE utf8_bin NOT NULL,
+                    `expanded` text COLLATE utf8_bin NOT NULL,
+                    PRIMARY KEY (`id`),
+                    KEY `taxonomy_predicate_id` (`taxonomy_predicate_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
 
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS `taxonomy_predicates` (
-					`id` int(11) NOT NULL AUTO_INCREMENT,
-					`taxonomy_id` int(11) NOT NULL,
-					`value` text COLLATE utf8_bin NOT NULL,
-					`expanded` text COLLATE utf8_bin NOT NULL,
-					PRIMARY KEY (`id`),
-					KEY `taxonomy_id` (`taxonomy_id`)
-					) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `taxonomy_id` int(11) NOT NULL,
+                    `value` text COLLATE utf8_bin NOT NULL,
+                    `expanded` text COLLATE utf8_bin NOT NULL,
+                    PRIMARY KEY (`id`),
+                    KEY `taxonomy_id` (`taxonomy_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
 
                 $sqlArray[] = 'ALTER TABLE `jobs` ADD  `org` text COLLATE utf8_bin NOT NULL;';
 
@@ -358,70 +358,70 @@ class AppModel extends Model
                 break;
             case 'adminTable':
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS `admin_settings` (
-					`id` int(11) NOT NULL AUTO_INCREMENT,
-					`setting` varchar(255) COLLATE utf8_bin NOT NULL,
-					`value` text COLLATE utf8_bin NOT NULL,
-					PRIMARY KEY (`id`)
-				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `setting` varchar(255) COLLATE utf8_bin NOT NULL,
+                    `value` text COLLATE utf8_bin NOT NULL,
+                    PRIMARY KEY (`id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 $sqlArray[] = "INSERT INTO `admin_settings` (`setting`, `value`) VALUES ('db_version', '2.4.0');";
                 break;
             case '2.4.18':
                 $sqlArray[] = "ALTER TABLE `users` ADD `current_login` INT(11) DEFAULT 0;";
                 $sqlArray[] = "ALTER TABLE `users` ADD `last_login` INT(11) DEFAULT 0;";
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS `event_delegations` (
-					`id` int(11) NOT NULL AUTO_INCREMENT,
-					`org_id` int(11) NOT NULL,
-					`requester_org_id` int(11) NOT NULL,
-					`event_id` int(11) NOT NULL,
-					`message` text,
-					`distribution` tinyint(4) NOT NULL DEFAULT  '-1',
-					`sharing_group_id` int(11),
-					PRIMARY KEY (`id`),
-					KEY `org_id` (`org_id`),
-					KEY `event_id` (`event_id`)
-					) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `org_id` int(11) NOT NULL,
+                    `requester_org_id` int(11) NOT NULL,
+                    `event_id` int(11) NOT NULL,
+                    `message` text,
+                    `distribution` tinyint(4) NOT NULL DEFAULT  '-1',
+                    `sharing_group_id` int(11),
+                    PRIMARY KEY (`id`),
+                    KEY `org_id` (`org_id`),
+                    KEY `event_id` (`event_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 break;
             case '2.4.19':
                 $sqlArray[] = "DELETE FROM `shadow_attributes` WHERE `event_uuid` = '';";
                 break;
             case '2.4.20':
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS `shadow_attribute_correlations` (
-					`id` int(11) NOT NULL AUTO_INCREMENT,
-					`org_id` int(11) NOT NULL,
-					`value` text NOT NULL,
-					`distribution` tinyint(4) NOT NULL,
-					`a_distribution` tinyint(4) NOT NULL,
-					`sharing_group_id` int(11),
-					`a_sharing_group_id` int(11),
-					`attribute_id` int(11) NOT NULL,
-					`1_shadow_attribute_id` int(11) NOT NULL,
-					`event_id` int(11) NOT NULL,
-					`1_event_id` int(11) NOT NULL,
-					`info` text COLLATE utf8_bin NOT NULL,
-					PRIMARY KEY (`id`),
-					KEY `org_id` (`org_id`),
-					KEY `attribute_id` (`attribute_id`),
-					KEY `a_sharing_group_id` (`a_sharing_group_id`),
-					KEY `event_id` (`event_id`),
-					KEY `1_event_id` (`event_id`),
-					KEY `sharing_group_id` (`sharing_group_id`),
-					KEY `1_shadow_attribute_id` (`1_shadow_attribute_id`)
-					) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `org_id` int(11) NOT NULL,
+                    `value` text NOT NULL,
+                    `distribution` tinyint(4) NOT NULL,
+                    `a_distribution` tinyint(4) NOT NULL,
+                    `sharing_group_id` int(11),
+                    `a_sharing_group_id` int(11),
+                    `attribute_id` int(11) NOT NULL,
+                    `1_shadow_attribute_id` int(11) NOT NULL,
+                    `event_id` int(11) NOT NULL,
+                    `1_event_id` int(11) NOT NULL,
+                    `info` text COLLATE utf8_bin NOT NULL,
+                    PRIMARY KEY (`id`),
+                    KEY `org_id` (`org_id`),
+                    KEY `attribute_id` (`attribute_id`),
+                    KEY `a_sharing_group_id` (`a_sharing_group_id`),
+                    KEY `event_id` (`event_id`),
+                    KEY `1_event_id` (`event_id`),
+                    KEY `sharing_group_id` (`sharing_group_id`),
+                    KEY `1_shadow_attribute_id` (`1_shadow_attribute_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 break;
             case '2.4.25':
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS `feeds` (
-					`id` int(11) NOT NULL AUTO_INCREMENT,
-					`name` varchar(255) COLLATE utf8_bin NOT NULL,
-					`provider` varchar(255) COLLATE utf8_bin NOT NULL,
-					`url` varchar(255) COLLATE utf8_bin NOT NULL,
-					`rules` text COLLATE utf8_bin NOT NULL,
-					`enabled` BOOLEAN NOT NULL,
-					`distribution` tinyint(4) NOT NULL,
-					`sharing_group_id` int(11) NOT NULL,
-					`tag_id` int(11) NOT NULL,
-					`default` tinyint(1) NOT NULL,
-					PRIMARY KEY (`id`)
-					) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `name` varchar(255) COLLATE utf8_bin NOT NULL,
+                    `provider` varchar(255) COLLATE utf8_bin NOT NULL,
+                    `url` varchar(255) COLLATE utf8_bin NOT NULL,
+                    `rules` text COLLATE utf8_bin NOT NULL,
+                    `enabled` BOOLEAN NOT NULL,
+                    `distribution` tinyint(4) NOT NULL,
+                    `sharing_group_id` int(11) NOT NULL,
+                    `tag_id` int(11) NOT NULL,
+                    `default` tinyint(1) NOT NULL,
+                    PRIMARY KEY (`id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 break;
             case '2.4.32':
                 $sqlArray[] = "ALTER TABLE `roles` ADD `perm_tag_editor` tinyint(1) NOT NULL DEFAULT 0;";
@@ -432,27 +432,27 @@ class AppModel extends Model
                 break;
             case '2.4.38':
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS `warninglists` (
-					`id` int(11) NOT NULL AUTO_INCREMENT,
-					`name` varchar(255) COLLATE utf8_bin NOT NULL,
-					`type` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT 'string',
-					`description` text COLLATE utf8_bin NOT NULL,
-					`version` int(11) NOT NULL DEFAULT 1,
-					`enabled` tinyint(1) NOT NULL DEFAULT 0,
-					`warninglist_entry_count` int(11) unsigned DEFAULT NULL,
-					PRIMARY KEY (`id`)
-					) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `name` varchar(255) COLLATE utf8_bin NOT NULL,
+                    `type` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT 'string',
+                    `description` text COLLATE utf8_bin NOT NULL,
+                    `version` int(11) NOT NULL DEFAULT 1,
+                    `enabled` tinyint(1) NOT NULL DEFAULT 0,
+                    `warninglist_entry_count` int(11) unsigned DEFAULT NULL,
+                    PRIMARY KEY (`id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS `warninglist_entries` (
-					`id` int(11) NOT NULL AUTO_INCREMENT,
-					`value` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-					`warninglist_id` int(11) NOT NULL,
-					PRIMARY KEY (`id`)
-					) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `value` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+                    `warninglist_id` int(11) NOT NULL,
+                    PRIMARY KEY (`id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS `warninglist_types` (
-					`id` int(11) NOT NULL AUTO_INCREMENT,
-					`type` varchar(255) COLLATE utf8_bin NOT NULL,
-					`warninglist_id` int(11) NOT NULL,
-					PRIMARY KEY (`id`)
-					) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `type` varchar(255) COLLATE utf8_bin NOT NULL,
+                    `warninglist_id` int(11) NOT NULL,
+                    PRIMARY KEY (`id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 break;
             case '2.4.39':
                 $sqlArray[] = "ALTER TABLE `users` ADD `certif_public` longtext COLLATE utf8_bin AFTER `gpgkey`;";
@@ -460,13 +460,13 @@ class AppModel extends Model
                 break;
             case '2.4.40':
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS `favourite_tags` (
-					`id` int(11) NOT NULL AUTO_INCREMENT,
-					`tag_id` int(11) NOT NULL,
-					`user_id` int(11) NOT NULL,
-					PRIMARY KEY (`id`),
-					INDEX `user_id` (`user_id`),
-					INDEX `tag_id` (`tag_id`)
-					) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `tag_id` int(11) NOT NULL,
+                    `user_id` int(11) NOT NULL,
+                    PRIMARY KEY (`id`),
+                    INDEX `user_id` (`user_id`),
+                    INDEX `tag_id` (`tag_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 break;
             case '2.4.42':
                 $sqlArray[] = "ALTER TABLE `attributes` ADD `deleted` tinyint(1) NOT NULL DEFAULT 0;";
@@ -478,13 +478,13 @@ class AppModel extends Model
                 $sqlArray[] = 'ALTER TABLE `users` CHANGE `newsread` `newsread` int(11) unsigned;';
                 $sqlArray[] = 'UPDATE `users` SET `newsread` = 0;';
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS `news` (
-					`id` int(11) NOT NULL AUTO_INCREMENT,
-					`message` text COLLATE utf8_bin NOT NULL,
-					`title` text COLLATE utf8_bin NOT NULL,
-					`user_id` int(11) NOT NULL,
-					`date_created` int(11) unsigned NOT NULL,
-					PRIMARY KEY (`id`)
-					) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `message` text COLLATE utf8_bin NOT NULL,
+                    `title` text COLLATE utf8_bin NOT NULL,
+                    `user_id` int(11) NOT NULL,
+                    `date_created` int(11) unsigned NOT NULL,
+                    PRIMARY KEY (`id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 break;
             case '2.4.49':
                 // table: users
@@ -557,14 +557,14 @@ class AppModel extends Model
             case '2.4.56':
                 $sqlArray[] =
                     "CREATE TABLE IF NOT EXISTS galaxies (
-					`id` int(11) NOT NULL AUTO_INCREMENT,
-					`uuid` varchar(255) COLLATE utf8_bin NOT NULL,
-					`name` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
-					`type` varchar(255) COLLATE utf8_bin NOT NULL,
-					`description` text COLLATE utf8_bin NOT NULL,
-					`version` varchar(255) COLLATE utf8_bin NOT NULL,
-					PRIMARY KEY (id)
-					) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(255) COLLATE utf8_bin NOT NULL,
+                    `name` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
+                    `type` varchar(255) COLLATE utf8_bin NOT NULL,
+                    `description` text COLLATE utf8_bin NOT NULL,
+                    `version` varchar(255) COLLATE utf8_bin NOT NULL,
+                    PRIMARY KEY (id)
+                    ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
 
                 $this->__addIndex('galaxies', 'name');
                 $this->__addIndex('galaxies', 'uuid');
@@ -572,17 +572,17 @@ class AppModel extends Model
 
                 $sqlArray[] =
                     "CREATE TABLE IF NOT EXISTS galaxy_clusters (
-					`id` int(11) NOT NULL AUTO_INCREMENT,
-					`uuid` varchar(255) COLLATE utf8_bin NOT NULL,
-					`type` varchar(255) COLLATE utf8_bin NOT NULL,
-					`value` text COLLATE utf8_bin NOT NULL,
-					`tag_name` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
-					`description` text COLLATE utf8_bin NOT NULL,
-					`galaxy_id` int(11) NOT NULL,
-					`source` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
-					`authors` text COLLATE utf8_bin NOT NULL,
-					PRIMARY KEY (id)
-					) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(255) COLLATE utf8_bin NOT NULL,
+                    `type` varchar(255) COLLATE utf8_bin NOT NULL,
+                    `value` text COLLATE utf8_bin NOT NULL,
+                    `tag_name` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
+                    `description` text COLLATE utf8_bin NOT NULL,
+                    `galaxy_id` int(11) NOT NULL,
+                    `source` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
+                    `authors` text COLLATE utf8_bin NOT NULL,
+                    PRIMARY KEY (id)
+                    ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
 
                 $this->__addIndex('galaxy_clusters', 'value', 255);
                 $this->__addIndex('galaxy_clusters', 'tag_name');
@@ -591,26 +591,26 @@ class AppModel extends Model
 
                 $sqlArray[] =
                     "CREATE TABLE IF NOT EXISTS galaxy_elements (
-					`id` int(11) NOT NULL AUTO_INCREMENT,
-					`galaxy_cluster_id` int(11) NOT NULL,
-					`key` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
-					`value` text COLLATE utf8_bin NOT NULL,
-					PRIMARY KEY (id)
-					) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `galaxy_cluster_id` int(11) NOT NULL,
+                    `key` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
+                    `value` text COLLATE utf8_bin NOT NULL,
+                    PRIMARY KEY (id)
+                    ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
 
                 $this->__addIndex('galaxy_elements', 'key');
                 $this->__addIndex('galaxy_elements', 'value', 255);
 
                 $sqlArray[] =
                     "CREATE TABLE IF NOT EXISTS galaxy_reference (
-					`id` int(11) NOT NULL AUTO_INCREMENT,
-					`galaxy_cluster_id` int(11) NOT NULL,
-					`referenced_galaxy_cluster_id` int(11) NOT NULL,
-					`referenced_galaxy_cluster_uuid` varchar(255) COLLATE utf8_bin NOT NULL,
-					`referenced_galaxy_cluster_type` text COLLATE utf8_bin NOT NULL,
-					`referenced_galaxy_cluster_value` text COLLATE utf8_bin NOT NULL,
-					PRIMARY KEY (id)
-					) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `galaxy_cluster_id` int(11) NOT NULL,
+                    `referenced_galaxy_cluster_id` int(11) NOT NULL,
+                    `referenced_galaxy_cluster_uuid` varchar(255) COLLATE utf8_bin NOT NULL,
+                    `referenced_galaxy_cluster_type` text COLLATE utf8_bin NOT NULL,
+                    `referenced_galaxy_cluster_value` text COLLATE utf8_bin NOT NULL,
+                    PRIMARY KEY (id)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
 
                 $this->__addIndex('galaxy_reference', 'galaxy_cluster_id');
                 $this->__addIndex('galaxy_reference', 'referenced_galaxy_cluster_id');
@@ -636,23 +636,23 @@ class AppModel extends Model
             case '2.4.60':
                 if ($dataSource == 'Database/Mysql') {
                     $sqlArray[] = 'CREATE TABLE IF NOT EXISTS `attribute_tags` (
-								`id` int(11) NOT NULL AUTO_INCREMENT,
-								`attribute_id` int(11) NOT NULL,
-								`event_id` int(11) NOT NULL,
-								`tag_id` int(11) NOT NULL,
-								PRIMARY KEY (`id`)
-							) ENGINE=InnoDB DEFAULT CHARSET=utf8;';
+                                `id` int(11) NOT NULL AUTO_INCREMENT,
+                                `attribute_id` int(11) NOT NULL,
+                                `event_id` int(11) NOT NULL,
+                                `tag_id` int(11) NOT NULL,
+                                PRIMARY KEY (`id`)
+                            ) ENGINE=InnoDB DEFAULT CHARSET=utf8;';
                     $sqlArray[] = 'ALTER TABLE `attribute_tags` ADD INDEX `attribute_id` (`attribute_id`);';
                     $sqlArray[] = 'ALTER TABLE `attribute_tags` ADD INDEX `event_id` (`event_id`);';
                     $sqlArray[] = 'ALTER TABLE `attribute_tags` ADD INDEX `tag_id` (`tag_id`);';
                 } elseif ($dataSource == 'Database/Postgres') {
                     $sqlArray[] = 'CREATE TABLE IF NOT EXISTS attribute_tags (
-								id bigserial NOT NULL,
-								attribute_id bigint NOT NULL,
-								event_id bigint NOT NULL,
-								tag_id bigint NOT NULL,
-								PRIMARY KEY (id)
-							);';
+                                id bigserial NOT NULL,
+                                attribute_id bigint NOT NULL,
+                                event_id bigint NOT NULL,
+                                tag_id bigint NOT NULL,
+                                PRIMARY KEY (id)
+                            );';
                     $sqlArray[] = 'CREATE INDEX idx_attribute_tags_attribute_id ON attribute_tags (attribute_id);';
                     $sqlArray[] = 'CREATE INDEX idx_attribute_tags_event_id ON attribute_tags (event_id);';
                     $sqlArray[] = 'CREATE INDEX idx_attribute_tags_tag_id ON attribute_tags (tag_id);';
@@ -718,26 +718,26 @@ class AppModel extends Model
             case '2.4.68':
                 $sqlArray[] = 'ALTER TABLE events CHANGE attribute_count attribute_count int(11) unsigned DEFAULT 0;';
                 $sqlArray[] = 'CREATE TABLE IF NOT EXISTS `event_blacklists` (
-				  `id` int(11) NOT NULL AUTO_INCREMENT,
-				  `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
-				  `created` datetime NOT NULL,
-				  `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-				  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-				  `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
-				  PRIMARY KEY (`id`)
-				) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;';
+                  `id` int(11) NOT NULL AUTO_INCREMENT,
+                  `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+                  `created` datetime NOT NULL,
+                  `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+                  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+                  `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+                  PRIMARY KEY (`id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;';
                 $indexArray[] = array('event_blacklists', 'event_uuid');
                 $indexArray[] = array('event_blacklists', 'event_orgc');
                 $sqlArray[] = 'CREATE TABLE IF NOT EXISTS `org_blacklists` (
-				  `id` int(11) NOT NULL AUTO_INCREMENT,
-				  `org_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
-				  `created` datetime NOT NULL,
-				  `org_name` varchar(255) COLLATE utf8_bin NOT NULL,
-				  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-				  PRIMARY KEY (`id`),
-				  INDEX `org_uuid` (`org_uuid`),
-				  INDEX `org_name` (`org_name`)
-				) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;';
+                  `id` int(11) NOT NULL AUTO_INCREMENT,
+                  `org_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+                  `created` datetime NOT NULL,
+                  `org_name` varchar(255) COLLATE utf8_bin NOT NULL,
+                  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+                  PRIMARY KEY (`id`),
+                  INDEX `org_uuid` (`org_uuid`),
+                  INDEX `org_name` (`org_name`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;';
                 $indexArray[] = array('org_blacklists', 'org_uuid');
                 $indexArray[] = array('org_blacklists', 'org_name');
                 $sqlArray[] = "ALTER TABLE shadow_attributes CHANGE proposal_to_delete proposal_to_delete BOOLEAN DEFAULT 0";
@@ -777,100 +777,100 @@ class AppModel extends Model
                 break;
             case '2.4.80':
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS objects (
-					`id` int(11) NOT NULL AUTO_INCREMENT,
-					`name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-					`meta-category` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-					`description` text CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-					`template_uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
-					`template_version` int(11) NOT NULL,
-					`event_id` int(11) NOT NULL,
-					`uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
-					`timestamp` int(11) NOT NULL DEFAULT 0,
-					`distribution` tinyint(4) NOT NULL DEFAULT 0,
-					`sharing_group_id` int(11),
-					`comment` text COLLATE utf8_bin NOT NULL,
-					`deleted` TINYINT(1) NOT NULL DEFAULT 0,
-					PRIMARY KEY (id),
-					INDEX `name` (`name`),
-					INDEX `template_uuid` (`template_uuid`),
-					INDEX `template_version` (`template_version`),
-					INDEX `meta-category` (`meta-category`),
-					INDEX `event_id` (`event_id`),
-					INDEX `uuid` (`uuid`),
-					INDEX `timestamp` (`timestamp`),
-					INDEX `distribution` (`distribution`),
-					INDEX `sharing_group_id` (`sharing_group_id`)
-				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+                    `meta-category` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+                    `description` text CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+                    `template_uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+                    `template_version` int(11) NOT NULL,
+                    `event_id` int(11) NOT NULL,
+                    `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+                    `timestamp` int(11) NOT NULL DEFAULT 0,
+                    `distribution` tinyint(4) NOT NULL DEFAULT 0,
+                    `sharing_group_id` int(11),
+                    `comment` text COLLATE utf8_bin NOT NULL,
+                    `deleted` TINYINT(1) NOT NULL DEFAULT 0,
+                    PRIMARY KEY (id),
+                    INDEX `name` (`name`),
+                    INDEX `template_uuid` (`template_uuid`),
+                    INDEX `template_version` (`template_version`),
+                    INDEX `meta-category` (`meta-category`),
+                    INDEX `event_id` (`event_id`),
+                    INDEX `uuid` (`uuid`),
+                    INDEX `timestamp` (`timestamp`),
+                    INDEX `distribution` (`distribution`),
+                    INDEX `sharing_group_id` (`sharing_group_id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS object_references (
-					`id` int(11) NOT NULL AUTO_INCREMENT,
-					`uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
-					`timestamp` int(11) NOT NULL DEFAULT 0,
-					`object_id` int(11) NOT NULL,
-					`event_id` int(11) NOT NULL,
-					`object_uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
-					`referenced_uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
-					`referenced_id` int(11) NOT NULL,
-					`referenced_type` int(11) NOT NULL DEFAULT 0,
-					`relationship_type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-					`comment` text COLLATE utf8_bin NOT NULL,
-					`deleted` TINYINT(1) NOT NULL DEFAULT 0,
-					PRIMARY KEY (id),
-					INDEX `object_uuid` (`object_uuid`),
-				  INDEX `referenced_uuid` (`referenced_uuid`),
-				  INDEX `timestamp` (`timestamp`),
-				  INDEX `object_id` (`object_id`),
-				  INDEX `referenced_id` (`referenced_id`),
-				  INDEX `relationship_type` (`relationship_type`)
-				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+                    `timestamp` int(11) NOT NULL DEFAULT 0,
+                    `object_id` int(11) NOT NULL,
+                    `event_id` int(11) NOT NULL,
+                    `object_uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+                    `referenced_uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+                    `referenced_id` int(11) NOT NULL,
+                    `referenced_type` int(11) NOT NULL DEFAULT 0,
+                    `relationship_type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+                    `comment` text COLLATE utf8_bin NOT NULL,
+                    `deleted` TINYINT(1) NOT NULL DEFAULT 0,
+                    PRIMARY KEY (id),
+                    INDEX `object_uuid` (`object_uuid`),
+                  INDEX `referenced_uuid` (`referenced_uuid`),
+                  INDEX `timestamp` (`timestamp`),
+                  INDEX `object_id` (`object_id`),
+                  INDEX `referenced_id` (`referenced_id`),
+                  INDEX `relationship_type` (`relationship_type`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS object_relationships (
-					`id` int(11) NOT NULL AUTO_INCREMENT,
-					`version` int(11) NOT NULL,
-					`name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-					`description` text COLLATE utf8_bin NOT NULL,
-					`format` text COLLATE utf8_bin NOT NULL,
-					PRIMARY KEY (id),
-					INDEX `name` (`name`)
-				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `version` int(11) NOT NULL,
+                    `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+                    `description` text COLLATE utf8_bin NOT NULL,
+                    `format` text COLLATE utf8_bin NOT NULL,
+                    PRIMARY KEY (id),
+                    INDEX `name` (`name`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 
 
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS object_templates (
-					`id` int(11) NOT NULL AUTO_INCREMENT,
-					`user_id` int(11) NOT NULL,
-					`org_id` int(11) NOT NULL,
-					`uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
-					`name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-					`meta-category` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-					`description` text COLLATE utf8_bin,
-					`version` int(11) NOT NULL,
-					`requirements` text COLLATE utf8_bin,
-					`fixed` tinyint(1) NOT NULL DEFAULT 0,
-					`active` tinyint(1) NOT NULL DEFAULT 0,
-					PRIMARY KEY (id),
-					INDEX `user_id` (`user_id`),
-					INDEX `org_id` (`org_id`),
-					INDEX `uuid` (`uuid`),
-					INDEX `name` (`name`),
-					INDEX `meta-category` (`meta-category`)
-				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `user_id` int(11) NOT NULL,
+                    `org_id` int(11) NOT NULL,
+                    `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+                    `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+                    `meta-category` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+                    `description` text COLLATE utf8_bin,
+                    `version` int(11) NOT NULL,
+                    `requirements` text COLLATE utf8_bin,
+                    `fixed` tinyint(1) NOT NULL DEFAULT 0,
+                    `active` tinyint(1) NOT NULL DEFAULT 0,
+                    PRIMARY KEY (id),
+                    INDEX `user_id` (`user_id`),
+                    INDEX `org_id` (`org_id`),
+                    INDEX `uuid` (`uuid`),
+                    INDEX `name` (`name`),
+                    INDEX `meta-category` (`meta-category`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS object_template_elements (
-					`id` int(11) NOT NULL AUTO_INCREMENT,
-					`object_template_id` int(11) NOT NULL,
-					`object_relation` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-					`type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-					`ui-priority` int(11) NOT NULL,
-					`categories` text COLLATE utf8_bin,
-					`sane_default` text COLLATE utf8_bin,
-					`values_list` text COLLATE utf8_bin,
-					`description` text COLLATE utf8_bin,
-					`disable_correlation` tinyint(1) NOT NULL DEFAULT 0,
-					`multiple` tinyint(1) NOT NULL DEFAULT 0,
-					PRIMARY KEY (id),
-					INDEX `object_relation` (`object_relation`),
-					INDEX `type` (`type`)
-				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `object_template_id` int(11) NOT NULL,
+                    `object_relation` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+                    `type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+                    `ui-priority` int(11) NOT NULL,
+                    `categories` text COLLATE utf8_bin,
+                    `sane_default` text COLLATE utf8_bin,
+                    `values_list` text COLLATE utf8_bin,
+                    `description` text COLLATE utf8_bin,
+                    `disable_correlation` tinyint(1) NOT NULL DEFAULT 0,
+                    `multiple` tinyint(1) NOT NULL DEFAULT 0,
+                    PRIMARY KEY (id),
+                    INDEX `object_relation` (`object_relation`),
+                    INDEX `type` (`type`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 
                 $sqlArray[] = 'ALTER TABLE `logs` CHANGE `model` `model` VARCHAR(80) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL;';
                 $sqlArray[] = 'ALTER TABLE `logs` CHANGE `action` `action` VARCHAR(80) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL;';
@@ -921,11 +921,11 @@ class AppModel extends Model
                 break;
             case 3:
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS `fuzzy_correlate_ssdeep` (
-  											`id` int(11) NOT NULL AUTO_INCREMENT,
-  											`chunk` varchar(12) NOT NULL,
-  											`attribute_id` int(11) NOT NULL,
-  											PRIMARY KEY (`id`)
-											) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                                            `id` int(11) NOT NULL AUTO_INCREMENT,
+                                            `chunk` varchar(12) NOT NULL,
+                                            `attribute_id` int(11) NOT NULL,
+                                            PRIMARY KEY (`id`)
+                                            ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 $this->__addIndex('fuzzy_correlate_ssdeep', 'chunk');
                 $this->__addIndex('fuzzy_correlate_ssdeep', 'attribute_id');
                 break;
@@ -943,24 +943,24 @@ class AppModel extends Model
                 break;
             case 7:
                 $sqlArray[] = 'CREATE TABLE IF NOT EXISTS `noticelists` (
-						`id` int(11) NOT NULL AUTO_INCREMENT,
-						`name` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
-						`expanded_name` text COLLATE utf8_unicode_ci NOT NULL,
-						`ref` text COLLATE utf8_unicode_ci,
-						`geographical_area` varchar(255) COLLATE utf8_unicode_ci,
-						`version` int(11) NOT NULL DEFAULT 1,
-						`enabled` tinyint(1) NOT NULL DEFAULT 0,
-						PRIMARY KEY (`id`),
-						INDEX `name` (`name`),
-						INDEX `geographical_area` (`geographical_area`)
-					) ENGINE=InnoDB DEFAULT CHARSET=utf8;';
+                        `id` int(11) NOT NULL AUTO_INCREMENT,
+                        `name` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+                        `expanded_name` text COLLATE utf8_unicode_ci NOT NULL,
+                        `ref` text COLLATE utf8_unicode_ci,
+                        `geographical_area` varchar(255) COLLATE utf8_unicode_ci,
+                        `version` int(11) NOT NULL DEFAULT 1,
+                        `enabled` tinyint(1) NOT NULL DEFAULT 0,
+                        PRIMARY KEY (`id`),
+                        INDEX `name` (`name`),
+                        INDEX `geographical_area` (`geographical_area`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8;';
                 $sqlArray[] = 'CREATE TABLE IF NOT EXISTS `noticelist_entries` (
-						`id` int(11) NOT NULL AUTO_INCREMENT,
-						`noticelist_id` int(11) NOT NULL,
-						`data` text COLLATE utf8_unicode_ci NOT NULL,
-						PRIMARY KEY (`id`),
-						INDEX `noticelist_id` (`noticelist_id`)
-					) ENGINE=InnoDB DEFAULT CHARSET=utf8;';
+                        `id` int(11) NOT NULL AUTO_INCREMENT,
+                        `noticelist_id` int(11) NOT NULL,
+                        `data` text COLLATE utf8_unicode_ci NOT NULL,
+                        PRIMARY KEY (`id`),
+                        INDEX `noticelist_id` (`noticelist_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8;';
             break;
             case 9:
                 $sqlArray[] = 'ALTER TABLE galaxies ADD namespace varchar(255) COLLATE utf8_unicode_ci NOT NULL DEFAULT "misp";';
@@ -971,63 +971,63 @@ class AppModel extends Model
                 break;
             case 11:
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS event_locks (
-					`id` int(11) NOT NULL AUTO_INCREMENT,
-					`event_id` int(11) NOT NULL,
-					`user_id` int(11) NOT NULL,
-					`timestamp` int(11) NOT NULL DEFAULT 0,
-					PRIMARY KEY (id),
-					INDEX `event_id` (`event_id`),
-					INDEX `user_id` (`user_id`),
-					INDEX `timestamp` (`timestamp`)
-				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `event_id` int(11) NOT NULL,
+                    `user_id` int(11) NOT NULL,
+                    `timestamp` int(11) NOT NULL DEFAULT 0,
+                    PRIMARY KEY (id),
+                    INDEX `event_id` (`event_id`),
+                    INDEX `user_id` (`user_id`),
+                    INDEX `timestamp` (`timestamp`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 break;
             case 12:
                 $sqlArray[] = "ALTER TABLE `servers` ADD `skip_proxy` tinyint(1) NOT NULL DEFAULT 0;";
                 break;
             case 13:
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS event_graph (
-					`id` int(11) NOT NULL AUTO_INCREMENT,
-					`event_id` int(11) NOT NULL,
-					`user_id` int(11) NOT NULL,
-					`org_id` int(11) NOT NULL,
-					`timestamp` int(11) NOT NULL DEFAULT 0,
-					`network_name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-					`network_json` MEDIUMTEXT NOT NULL,
-					`preview_img` MEDIUMTEXT,
-					PRIMARY KEY (id),
-					INDEX `event_id` (`event_id`),
-					INDEX `user_id` (`user_id`),
-					INDEX `org_id` (`org_id`),
-					INDEX `timestamp` (`timestamp`)
-				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `event_id` int(11) NOT NULL,
+                    `user_id` int(11) NOT NULL,
+                    `org_id` int(11) NOT NULL,
+                    `timestamp` int(11) NOT NULL DEFAULT 0,
+                    `network_name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+                    `network_json` MEDIUMTEXT NOT NULL,
+                    `preview_img` MEDIUMTEXT,
+                    PRIMARY KEY (id),
+                    INDEX `event_id` (`event_id`),
+                    INDEX `user_id` (`user_id`),
+                    INDEX `org_id` (`org_id`),
+                    INDEX `timestamp` (`timestamp`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 break;
             case 14:
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS `user_settings` (
-					`id` int(11) NOT NULL AUTO_INCREMENT,
-					`setting` varchar(255) COLLATE utf8_bin NOT NULL,
-					`value` text COLLATE utf8_bin NOT NULL,
-					`user_id` int(11) NOT NULL,
-					INDEX `setting` (`setting`),
-					INDEX `user_id` (`user_id`),
-					PRIMARY KEY (`id`)
-				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `setting` varchar(255) COLLATE utf8_bin NOT NULL,
+                    `value` text COLLATE utf8_bin NOT NULL,
+                    `user_id` int(11) NOT NULL,
+                    INDEX `setting` (`setting`),
+                    INDEX `user_id` (`user_id`),
+                    PRIMARY KEY (`id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 break;
             case 15:
                 $sqlArray[] = "CREATE TABLE IF NOT EXISTS event_graph (
-					`id` int(11) NOT NULL AUTO_INCREMENT,
-					`event_id` int(11) NOT NULL,
-					`user_id` int(11) NOT NULL,
-					`org_id` int(11) NOT NULL,
-					`timestamp` int(11) NOT NULL DEFAULT 0,
-					`network_name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-					`network_json` MEDIUMTEXT NOT NULL,
-					`preview_img` MEDIUMTEXT,
-					PRIMARY KEY (id),
-					INDEX `event_id` (`event_id`),
-					INDEX `user_id` (`user_id`),
-					INDEX `org_id` (`org_id`),
-					INDEX `timestamp` (`timestamp`)
-				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+                    `id` int(11) NOT NULL AUTO_INCREMENT,
+                    `event_id` int(11) NOT NULL,
+                    `user_id` int(11) NOT NULL,
+                    `org_id` int(11) NOT NULL,
+                    `timestamp` int(11) NOT NULL DEFAULT 0,
+                    `network_name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+                    `network_json` MEDIUMTEXT NOT NULL,
+                    `preview_img` MEDIUMTEXT,
+                    PRIMARY KEY (id),
+                    INDEX `event_id` (`event_id`),
+                    INDEX `user_id` (`user_id`),
+                    INDEX `org_id` (`org_id`),
+                    INDEX `timestamp` (`timestamp`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 break;
             case 18:
                 $sqlArray[] = 'ALTER TABLE `taxonomy_predicates` ADD COLUMN description text CHARACTER SET UTF8 collate utf8_bin;';
@@ -1305,7 +1305,7 @@ class AppModel extends Model
         return true;
     }
 
-    public function runUpdates()
+    public function runUpdates($verbose = false)
     {
         $this->AdminSetting = ClassRegistry::init('AdminSetting');
         $db = ConnectionManager::getDataSource('default');
@@ -1330,12 +1330,18 @@ class AppModel extends Model
             $updates = $this->__findUpgrades($db_version['AdminSetting']['value']);
             if (!empty($updates)) {
                 foreach ($updates as $update => $temp) {
+                    if ($verbose) {
+                        echo str_pad('Executing ' . $update, 30, '.');
+                    }
                     $this->updateMISP($update);
                     if ($temp) {
                         $requiresLogout = true;
                     }
                     $db_version['AdminSetting']['value'] = $update;
                     $this->AdminSetting->save($db_version);
+                    if ($verbose) {
+                        echo "\033[32mDone\033[0m" . PHP_EOL;
+                    }
                 }
                 $this->__queueCleanDB();
             }
@@ -1926,10 +1932,10 @@ class AppModel extends Model
         return true;
     }
 
-	public function generateRandomFileName()
-	{
-		return (new RandomTool())->random_str(false, 12);
-	}
+    public function generateRandomFileName()
+    {
+        return (new RandomTool())->random_str(false, 12);
+    }
 
     public function resolveTimeDelta($delta)
     {

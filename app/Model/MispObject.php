@@ -11,7 +11,7 @@ class MispObject extends AppModel
 
     public $actsAs = array(
             'Containable',
-            'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+            'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
                 'userModel' => 'User',
                 'userKey' => 'user_id',
                 'change' => 'full'),
@@ -539,12 +539,12 @@ class MispObject extends AppModel
             $this->Event->Attribute->create();
             $newAttribute['event_id'] = $object['Object']['event_id'];
             $newAttribute['object_id'] = $object['Object']['id'];
-			if (!isset($newAttribute['timestamp'])) {
-				$newAttribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
-				if ($newAttribute['distribution'] == 'event') {
-					$newAttribute['distribution'] = 5;
-				}
-			}
+            if (!isset($newAttribute['timestamp'])) {
+                $newAttribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
+                if ($newAttribute['distribution'] == 'event') {
+                    $newAttribute['distribution'] = 5;
+                }
+            }
             $this->Event->Attribute->save($newAttribute);
             $attributeArrays['add'][] = $newAttribute;
             unset($objectToSave['Attribute'][$newKey]);
