@@ -1290,7 +1290,7 @@ dashboardCAKE () {
 # Main mail2misp install function
 mail2misp () {
   cd /usr/local/src/
-  sudo apt-get install cmake -y
+  sudo apt-get install cmake libcaca-dev -y
   $SUDO_USER git clone https://github.com/MISP/mail_to_misp.git
   $SUDO_USER git clone git://github.com/stricaud/faup.git faup
   sudo chown -R ${MISP_USER}:${MISP_USER} faup mail_to_misp
