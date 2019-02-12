@@ -1883,13 +1883,15 @@ class UsersController extends AppController
             $colours = $gradientTool->createGradientFromValues($scores);
 
             $this->set('target_type', 'attribute');
-            $this->set('killChainOrders', $killChainOrders);
-            $this->set('attackTactic', $attackTactic);
+            $this->set('columnOrders', $killChainOrders);
+            $this->set('tabs', $attackTactic);
             $this->set('scores', $scores);
             $this->set('maxScore', $maxScore);
             $this->set('colours', $colours['mapping']);
             $this->set('interpolation', $colours['interpolation']);
             $this->set('pickingMode', false);
+            $this->set('defaultTabName', "mitre-attack");
+            $this->set('removeTrailling', 2);
 
             $this->render('statistics_attackmatrix');
         }

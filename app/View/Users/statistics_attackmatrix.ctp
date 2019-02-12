@@ -7,10 +7,10 @@
 
 <div id="attackmatrix_div" style="position: relative; border: solid 1px;" class="statistics_attack_matrix">
     <?php
-        echo $this->element('view_mitre_attack_matrix');
+        echo $this->element('view_matrix');
     ?>
 </div>
-    
+
 </div>
 
 <?php
