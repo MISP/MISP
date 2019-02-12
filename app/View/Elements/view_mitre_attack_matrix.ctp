@@ -3,6 +3,9 @@
     foreach ($interpolation as $k => $colArr) {
         $col = str_pad(dechex($colArr[0]), 2, '0', STR_PAD_LEFT) . str_pad(dechex($colArr[1]), 2, '0', STR_PAD_LEFT) . str_pad(dechex($colArr[2]), 2, '0', STR_PAD_LEFT);
         $interpolation[$k] = '#' . $col;
+        if ($k == 0) { // force small area on white
+            $interpolation[$k] .= ' 3%';
+        }
     }
     $colorScale = implode($interpolation, ', ');
 ?>
@@ -28,10 +31,9 @@ foreach($attackTactic as $tabName => $tactic):
     <span class="fa fa-caret-down"></span>
     </span>
     <div>
-    <span>0</span>
-
-    <div id="matrix-heatmap-legend" style="background: linear-gradient(to right, white, <?php echo $colorScale ?>);"></div>
-    <span id="matrix-heatmap-maxval"><?php echo h($maxScore); ?></span>
+        <span>0</span>
+        <div id="matrix-heatmap-legend" style="background: linear-gradient(to right, white 0%, <?php echo $colorScale ?>);"></div>
+        <span id="matrix-heatmap-maxval"><?php echo h($maxScore); ?></span>
     </div>
     <label style="display: inline-block; margin-left: 30px;"><input type="checkbox" id="checkbox_attackMatrix_showAll" checked><span class="fa fa-filter"><?php echo __('Show all');?></span></input></label>
 </div>

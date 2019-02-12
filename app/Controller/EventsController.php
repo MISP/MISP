@@ -4694,11 +4694,14 @@ class EventsController extends AppController
 
         $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores($eventId, $attackTags);
         $scoresDataEvent = $this->Event->EventTag->getTagScores($eventId, $attackTags);
+        $maxScore = 0;
         $scoresData = array();
         foreach (array_keys($scoresDataAttr['scores'] + $scoresDataEvent['scores']) as $key) {
-            $scoresData[$key] = (isset($scoresDataAttr['scores'][$key]) ? $scoresDataAttr['scores'][$key] : 0) + (isset($scoresDataEvent['scores'][$key]) ? $scoresDataEvent['scores'][$key] : 0);
+            $sum = (isset($scoresDataAttr['scores'][$key]) ? $scoresDataAttr['scores'][$key] : 0) + (isset($scoresDataEvent['scores'][$key]) ? $scoresDataEvent['scores'][$key] : 0);
+            $scoresData[$key] = $sum;
+            $maxScore = max($maxScore, $sum);
         }
-        $maxScore = max($scoresDataAttr['maxScore'], $scoresDataEvent['maxScore']);
+
         $scores = $scoresData;
 
         if ($this->_isRest()) {
