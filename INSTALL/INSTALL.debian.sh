@@ -261,25 +261,30 @@ checkFail () {
 # Check if misp user is present and if run as root
 checkID () {
   if [[ $EUID == 0 ]]; then
-   echo "This script cannot be run as a root"
-     exit 1
-     elif [[ $(id $MISP_USER >/dev/null; echo $?) -ne 0 ]]; then
-     echo "There is NO user called '$MISP_USER' create a user '$MISP_USER' or continue as $USER? (y/n) "
-     read ANSWER
-     ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
-     if [[ $ANSWER == "y" ]]; then
-       sudo useradd -s /bin/bash -m -G adm,cdrom,sudo,dip,plugdev,www-data,staff $MISP_USER
-         echo $MISP_USER:$MISP_PASSWORD | sudo chpasswd
-         echo "User $MISP_USER added, password is: $MISP_PASSWORD"
-         elif [[ $ANSWER == "n" ]]; then
-         echo "Using $USER as install user, hope that is what you want."
-         echo "${RED}Adding $USER to groups www-data and staff${NC}"
-         MISP_USER=$USER
-         sudo adduser $MISP_USER staff
-         sudo adduser $MISP_USER www-data
-     else
-       echo "yes or no was asked, try again."
-         sudo adduser $MISP_USER staff
+    echo "This script cannot be run as a root"
+    exit 1
+  elif [[ $(id $MISP_USER >/dev/null; echo $?) -ne 0 ]]; then
+    if [[ "$UNATTENDED" != "1" ]]; then 
+      echo "There is NO user called '$MISP_USER' create a user '$MISP_USER' or continue as $USER? (y/n) "
+      read ANSWER
+      ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
+    else
+      ANSWER="y"
+    fi
+
+    if [[ $ANSWER == "y" ]]; then
+      sudo useradd -s /bin/bash -m -G adm,cdrom,sudo,dip,plugdev,www-data,staff $MISP_USER
+      echo $MISP_USER:$MISP_PASSWORD | sudo chpasswd
+      echo "User $MISP_USER added, password is: $MISP_PASSWORD"
+    elif [[ $ANSWER == "n" ]]; then
+      echo "Using $USER as install user, hope that is what you want."
+      echo "${RED}Adding $USER to groups www-data and staff${NC}"
+      MISP_USER=$USER
+      sudo adduser $MISP_USER staff
+      sudo adduser $MISP_USER www-data
+    else
+      echo "yes or no was asked, try again."
+      sudo adduser $MISP_USER staff
       sudo adduser $MISP_USER www-data
       exit 1
     fi
@@ -375,8 +380,12 @@ setBaseURL () {
         # Webserver configuration
         FQDN='misp.local'
     fi
+  elif [[ $KALI == "1" ]]; then
+    MISP_BASEURL="https://misp.local"
+    # Webserver configuration
+    FQDN='misp.local'
   else
-      MISP_BASEURL='https://localhost:8443'
+    MISP_BASEURL='https://localhost:8443'
     # Webserver configuration
     FQDN='localhost.localdomain'
   fi
@@ -1142,12 +1151,13 @@ mispmodules () {
   sudo sed -i -e '$i \sudo -u www-data /var/www/MISP/venv/bin/misp-modules -l 127.0.0.1 -s > /tmp/misp-modules_rc.local.log &\n' /etc/rc.local
   cd /usr/local/src/
   ## TODO: checkUsrLocalSrc in main doc
-  git clone https://github.com/MISP/misp-modules.git
+  $SUDO_USER git clone https://github.com/MISP/misp-modules.git
   cd misp-modules
   # some misp-modules dependencies
   sudo apt-get install libpq5 libjpeg-dev libfuzzy-dev -y
   # If you build an egg, the user you build it as need write permissions in the CWD
   sudo chgrp $WWW_USER .
+  sudo chmod g+w .
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
   sudo chgrp staff .
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I .
@@ -1281,35 +1291,35 @@ dashboardCAKE () {
 mail2misp () {
   cd /usr/local/src/
   sudo apt-get install cmake -y
-  git clone https://github.com/MISP/mail_to_misp.git
-  git clone git://github.com/stricaud/faup.git faup
+  $SUDO_USER git clone https://github.com/MISP/mail_to_misp.git
+  $SUDO_USER git clone git://github.com/stricaud/faup.git faup
   sudo chown -R ${MISP_USER}:${MISP_USER} faup mail_to_misp
   cd faup
   # TODO Check permissions
   ##$SUDO mkdir -p build
-  mkdir -p build
+  $SUDO_USER mkdir -p build
   cd build
-  cmake .. && make
+  $SUDO_USER cmake .. && $SUDO_USER make
   ##$SUDO cmake .. && $SUDO make
   sudo make install
   sudo ldconfig
   cd ../../mail_to_misp
-  virtualenv -p python3 venv
-  ./venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
-  ./venv/bin/pip install -r requirements.txt
-  cp mail_to_misp_config.py-example mail_to_misp_config.py
+  $SUDO_USER virtualenv -p python3 venv
+  $SUDO_USER ./venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+  $SUDO_USER ./venv/bin/pip install -r requirements.txt
+  $SUDO_USER cp mail_to_misp_config.py-example mail_to_misp_config.py
   ##$SUDO cp mail_to_misp_config.py-example mail_to_misp_config.py
-  sed -i "s/^misp_url\ =\ 'YOUR_MISP_URL'/misp_url\ =\ 'https:\/\/localhost'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
-  sed -i "s/^misp_key\ =\ 'YOUR_KEY_HERE'/misp_key\ =\ '${AUTH_KEY}'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
+  $SUDO_USER sed -i "s/^misp_url\ =\ 'YOUR_MISP_URL'/misp_url\ =\ 'https:\/\/localhost'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
+  $SUDO_USER sed -i "s/^misp_key\ =\ 'YOUR_KEY_HERE'/misp_key\ =\ '${AUTH_KEY}'/g" /usr/local/src/mail_to_misp/mail_to_misp_config.py
 }
 
 ssdeep () {
   cd /usr/local/src
-  wget https://github.com/ssdeep-project/ssdeep/releases/download/release-2.14.1/ssdeep-2.14.1.tar.gz
-  tar zxvf ssdeep-2.14.1.tar.gz
+  $SUDO_USER wget https://github.com/ssdeep-project/ssdeep/releases/download/release-2.14.1/ssdeep-2.14.1.tar.gz
+  $SUDO_USER tar zxvf ssdeep-2.14.1.tar.gz
   cd ssdeep-2.14.1
-  ./configure --datadir=/usr --prefix=/usr --localstatedir=/var --sysconfdir=/etc
-  make
+  $SUDO_USER ./configure --datadir=/usr --prefix=/usr --localstatedir=/var --sysconfdir=/etc
+  $SUDO_USER make
   sudo make install
 
   #installing ssdeep_php
@@ -1329,27 +1339,27 @@ viper () {
     libssl-dev swig python3-ssdeep p7zip-full unrar-free sqlite python3-pyclamd exiftool radare2 \
     python3-magic python3-sqlalchemy python3-prettytable libffi-dev -y
   debug "Cloning Viper"
-  git clone https://github.com/viper-framework/viper.git
-  chown -R $MISP_USER:$MISP_USER viper
+  $SUDO_USER git clone https://github.com/viper-framework/viper.git
+  sudo chown -R $MISP_USER:$MISP_USER viper
   cd viper
   debug "Creating virtualenv"
-  virtualenv -p python3 venv
+  $SUDO_USER virtualenv -p python3 venv
   debug "Submodule update"
   # TODO: Check for current user install permissions
-  git submodule update --init --recursive
+  $SUDO_USER git submodule update --init --recursive
   ##$SUDO git submodule update --init --recursive
   debug "Pip install deps"
-  ./venv/bin/pip install SQLAlchemy PrettyTable python-magic
+  $SUDO_USER ./venv/bin/pip install SQLAlchemy PrettyTable python-magic
   debug "pip install scrapy"
-  ./venv/bin/pip install scrapy
+  $SUDO_USER ./venv/bin/pip install scrapy
   debug "install lief"
-  ./venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+  $SUDO_USER ./venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
   debug "pip install reqs"
-  ./venv/bin/pip install -r requirements.txt
-  sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-cli
-  sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-web
+  $SUDO_USER ./venv/bin/pip install -r requirements.txt
+  $SUDO_USER sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-cli
+  $SUDO_USER sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-web
   debug "pip uninstall yara"
-  ./venv/bin/pip uninstall yara -y
+  $SUDO_USER ./venv/bin/pip uninstall yara -y
   debug "Launching viper-cli"
   # TODO: Perms
   #$SUDO /usr/local/src/viper/viper-cli -h > /dev/null
@@ -1369,13 +1379,13 @@ viper () {
   fi
 
   debug "Setting misp_url/misp_key"
-  sed -i "s/^misp_url\ =/misp_url\ =\ http:\/\/localhost/g" ${VIPER_HOME}/viper.conf
-  sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" ${VIPER_HOME}/viper.conf
+  $SUDO_USER sed -i "s/^misp_url\ =/misp_url\ =\ http:\/\/localhost/g" ${VIPER_HOME}/viper.conf
+  $SUDO_USER sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" ${VIPER_HOME}/viper.conf
   # Reset admin password to: admin/Password1234
   debug "Fixing admin.db with default password"
   while [ "$(sqlite3 ${VIPER_HOME}/admin.db 'UPDATE auth_user SET password="pbkdf2_sha256$100000$iXgEJh8hz7Cf$vfdDAwLX8tko1t0M1TLTtGlxERkNnltUnMhbv56wK/U="'; echo $?)" -ne "0" ]; do
     # FIXME This might lead to a race condition, the while loop is sub-par
-    chown $MISP_USER:$MISP_USER ${VIPER_HOME}/admin.db
+    sudo chown $MISP_USER:$MISP_USER ${VIPER_HOME}/admin.db
     echo "Updating viper-web admin password, giving process time to start-up, sleeping 5, 4, 3,…"
     sleep 6
   done
@@ -1505,6 +1515,9 @@ installMISPubuntuSupported () {
   # Pull in all possible MISP Environment variables - functionLocation('')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && MISPvars
 
+  echo "Checking if run as root and $MISP_USER is present"
+  checkID
+
   # Install Core Dependencies - functionLocation('')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && installCoredDeps
 
@@ -1553,6 +1566,9 @@ installMISPubuntuSupported () {
 
   # Install Viper - functionLocation('')
   [[ -n $VIPER ]]     || [[ -n $ALL ]] && viper
+
+  # Install ssdeep - functionLocation('')
+  [[ -n $SSDEEP ]]     || [[ -n $ALL ]] && ssdeep
 
   # Install misp-dashboard - functionLocation('')
   [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && mispDashboard ; dashboardCAKE
@@ -1777,7 +1793,7 @@ installMISPonKali () {
 
   debug "Starting workers"
   chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
-  sudo $PATH_TO_MISP/app/Console/worker/start.sh
+  $SUDO_WWW $PATH_TO_MISP/app/Console/worker/start.sh
 
   debug "Running Core Cake commands"
   coreCAKE
@@ -1798,6 +1814,7 @@ installMISPonKali () {
 
   debug "Installing ssdeep"
   ssdeep
+  phpenmod -v 7.3 ssdeep
 
   debug "Setting permissions"
   permissions

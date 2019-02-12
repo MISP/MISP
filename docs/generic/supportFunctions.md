@@ -133,25 +133,30 @@ checkFail () {
 # Check if misp user is present and if run as root
 checkID () {
   if [[ $EUID == 0 ]]; then
-   echo "This script cannot be run as a root"
-     exit 1
-     elif [[ $(id $MISP_USER >/dev/null; echo $?) -ne 0 ]]; then
-     echo "There is NO user called '$MISP_USER' create a user '$MISP_USER' or continue as $USER? (y/n) "
-     read ANSWER
-     ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
-     if [[ $ANSWER == "y" ]]; then
-       sudo useradd -s /bin/bash -m -G adm,cdrom,sudo,dip,plugdev,www-data,staff $MISP_USER
-         echo $MISP_USER:$MISP_PASSWORD | sudo chpasswd
-         echo "User $MISP_USER added, password is: $MISP_PASSWORD"
-         elif [[ $ANSWER == "n" ]]; then
-         echo "Using $USER as install user, hope that is what you want."
-         echo "${RED}Adding $USER to groups www-data and staff${NC}"
-         MISP_USER=$USER
-         sudo adduser $MISP_USER staff
-         sudo adduser $MISP_USER www-data
-     else
-       echo "yes or no was asked, try again."
-         sudo adduser $MISP_USER staff
+    echo "This script cannot be run as a root"
+    exit 1
+  elif [[ $(id $MISP_USER >/dev/null; echo $?) -ne 0 ]]; then
+    if [[ "$UNATTENDED" != "1" ]]; then 
+      echo "There is NO user called '$MISP_USER' create a user '$MISP_USER' or continue as $USER? (y/n) "
+      read ANSWER
+      ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
+    else
+      ANSWER="y"
+    fi
+
+    if [[ $ANSWER == "y" ]]; then
+      sudo useradd -s /bin/bash -m -G adm,cdrom,sudo,dip,plugdev,www-data,staff $MISP_USER
+      echo $MISP_USER:$MISP_PASSWORD | sudo chpasswd
+      echo "User $MISP_USER added, password is: $MISP_PASSWORD"
+    elif [[ $ANSWER == "n" ]]; then
+      echo "Using $USER as install user, hope that is what you want."
+      echo "${RED}Adding $USER to groups www-data and staff${NC}"
+      MISP_USER=$USER
+      sudo adduser $MISP_USER staff
+      sudo adduser $MISP_USER www-data
+    else
+      echo "yes or no was asked, try again."
+      sudo adduser $MISP_USER staff
       sudo adduser $MISP_USER www-data
       exit 1
     fi
@@ -247,8 +252,12 @@ setBaseURL () {
         # Webserver configuration
         FQDN='misp.local'
     fi
+  elif [[ $KALI == "1" ]]; then
+    MISP_BASEURL="https://misp.local"
+    # Webserver configuration
+    FQDN='misp.local'
   else
-      MISP_BASEURL='https://localhost:8443'
+    MISP_BASEURL='https://localhost:8443'
     # Webserver configuration
     FQDN='localhost.localdomain'
   fi

@@ -11,27 +11,27 @@ viper () {
     libssl-dev swig python3-ssdeep p7zip-full unrar-free sqlite python3-pyclamd exiftool radare2 \
     python3-magic python3-sqlalchemy python3-prettytable libffi-dev -y
   debug "Cloning Viper"
-  git clone https://github.com/viper-framework/viper.git
-  chown -R $MISP_USER:$MISP_USER viper
+  $SUDO_USER git clone https://github.com/viper-framework/viper.git
+  sudo chown -R $MISP_USER:$MISP_USER viper
   cd viper
   debug "Creating virtualenv"
-  virtualenv -p python3 venv
+  $SUDO_USER virtualenv -p python3 venv
   debug "Submodule update"
   # TODO: Check for current user install permissions
-  git submodule update --init --recursive
+  $SUDO_USER git submodule update --init --recursive
   ##$SUDO git submodule update --init --recursive
   debug "Pip install deps"
-  ./venv/bin/pip install SQLAlchemy PrettyTable python-magic
+  $SUDO_USER ./venv/bin/pip install SQLAlchemy PrettyTable python-magic
   debug "pip install scrapy"
-  ./venv/bin/pip install scrapy
+  $SUDO_USER ./venv/bin/pip install scrapy
   debug "install lief"
-  ./venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+  $SUDO_USER ./venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
   debug "pip install reqs"
-  ./venv/bin/pip install -r requirements.txt
-  sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-cli
-  sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-web
+  $SUDO_USER ./venv/bin/pip install -r requirements.txt
+  $SUDO_USER sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-cli
+  $SUDO_USER sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-web
   debug "pip uninstall yara"
-  ./venv/bin/pip uninstall yara -y
+  $SUDO_USER ./venv/bin/pip uninstall yara -y
   debug "Launching viper-cli"
   # TODO: Perms
   #$SUDO /usr/local/src/viper/viper-cli -h > /dev/null
@@ -51,13 +51,13 @@ viper () {
   fi
 
   debug "Setting misp_url/misp_key"
-  sed -i "s/^misp_url\ =/misp_url\ =\ http:\/\/localhost/g" ${VIPER_HOME}/viper.conf
-  sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" ${VIPER_HOME}/viper.conf
+  $SUDO_USER sed -i "s/^misp_url\ =/misp_url\ =\ http:\/\/localhost/g" ${VIPER_HOME}/viper.conf
+  $SUDO_USER sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" ${VIPER_HOME}/viper.conf
   # Reset admin password to: admin/Password1234
   debug "Fixing admin.db with default password"
   while [ "$(sqlite3 ${VIPER_HOME}/admin.db 'UPDATE auth_user SET password="pbkdf2_sha256$100000$iXgEJh8hz7Cf$vfdDAwLX8tko1t0M1TLTtGlxERkNnltUnMhbv56wK/U="'; echo $?)" -ne "0" ]; do
     # FIXME This might lead to a race condition, the while loop is sub-par
-    chown $MISP_USER:$MISP_USER ${VIPER_HOME}/admin.db
+    sudo chown $MISP_USER:$MISP_USER ${VIPER_HOME}/admin.db
     echo "Updating viper-web admin password, giving process time to start-up, sleeping 5, 4, 3,…"
     sleep 6
   done

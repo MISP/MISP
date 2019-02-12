@@ -204,6 +204,9 @@ installMISPubuntuSupported () {
   # Pull in all possible MISP Environment variables - functionLocation('')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && MISPvars
 
+  echo "Checking if run as root and $MISP_USER is present"
+  checkID
+
   # Install Core Dependencies - functionLocation('')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && installCoredDeps
 
@@ -252,6 +255,9 @@ installMISPubuntuSupported () {
 
   # Install Viper - functionLocation('')
   [[ -n $VIPER ]]     || [[ -n $ALL ]] && viper
+
+  # Install ssdeep - functionLocation('')
+  [[ -n $SSDEEP ]]     || [[ -n $ALL ]] && ssdeep
 
   # Install misp-dashboard - functionLocation('')
   [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && mispDashboard ; dashboardCAKE
@@ -476,7 +482,7 @@ installMISPonKali () {
 
   debug "Starting workers"
   chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
-  sudo $PATH_TO_MISP/app/Console/worker/start.sh
+  $SUDO_WWW $PATH_TO_MISP/app/Console/worker/start.sh
 
   debug "Running Core Cake commands"
   coreCAKE
@@ -497,6 +503,7 @@ installMISPonKali () {
 
   debug "Installing ssdeep"
   ssdeep
+  phpenmod -v 7.3 ssdeep
 
   debug "Setting permissions"
   permissions
