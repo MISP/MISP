@@ -106,11 +106,12 @@ class Server extends AppModel
             'console_admin_tasks' => array(
                 'data' => array(
                     'getSettings' => 'MISP/app/Console/cake Admin getSetting [setting]',
-                    'setSettings' => 'MISP/app/Console/cake Admin getSetting [setting] [value]',
+                    'setSettings' => 'MISP/app/Console/cake Admin setSetting [setting] [value]',
                     'getAuthkey' => 'MISP/app/Console/cake Admin getAuthkey [email]',
                     'setBaseurl' => 'MISP/app/Console/cake Baseurl [baseurl]',
                     'changePassword' => 'MISP/app/Console/cake Password [email] [new_password]',
-					'clearBruteforce' => 'MISP/app/Console/cake Admin clearBruteforce [user_email]',
+                    'clearBruteforce' => 'MISP/app/Console/cake Admin clearBruteforce [user_email]',
+                    'updateDatabase' => 'MISP/app/Console/cake Admin updateDatabase',
                     'updateGalaxies' => 'MISP/app/Console/cake Admin updateGalaxies',
                     'updateTaxonomies' => 'MISP/app/Console/cake Admin updateTaxonomies',
                     'updateWarningLists' => 'MISP/app/Console/cake Admin updateWarningLists',
@@ -3158,7 +3159,7 @@ class Server extends AppModel
 
     public function customAuthBeforeHook($setting, $value)
     {
-        if ($value) {
+        if (!empty($value)) {
             $this->updateDatabase('addCustomAuth');
         }
         $this->cleanCacheFiles();
@@ -3193,6 +3194,122 @@ class Server extends AppModel
         return $value;
     }
 
+    public function getSettingData($setting_name)
+    {
+        // invalidate config.php from php opcode cache
+        if (function_exists('opcache_reset')) {
+            opcache_reset();
+        }
+        if (strpos($setting_name, 'Plugin.Enrichment') !== false || strpos($setting_name, 'Plugin.Import') !== false || strpos($setting_name, 'Plugin.Export') !== false || strpos($setting_name, 'Plugin.Cortex') !== false) {
+            $serverSettings = $this->getCurrentServerSettings();
+        } else {
+            $serverSettings = $this->serverSettings;
+        }
+        $relevantSettings = (array_intersect_key(Configure::read(), $serverSettings));
+        $setting = false;
+        foreach ($serverSettings as $k => $s) {
+            if (isset($s['branch'])) {
+                foreach ($s as $ek => $es) {
+                    if ($ek != 'branch') {
+                        if ($setting_name == $k . '.' . $ek) {
+                            $setting = $es;
+                            continue 2;
+                        }
+                    }
+                }
+            } else {
+                if ($setting_name == $k) {
+                    $setting = $s;
+                    continue;
+                }
+            }
+        }
+        if (!empty($setting)) {
+            $setting['name'] = $setting_name;
+        }
+        return $setting;
+    }
+
+    public function serverSettingsEditValue($user, $setting, $value, $forceSave = false)
+    {
+        if (isset($setting['beforeHook'])) {
+            $beforeResult = call_user_func_array(array($this, $setting['beforeHook']), array($setting['name'], $value));
+            if ($beforeResult !== true) {
+                $this->Log = ClassRegistry::init('Log');
+                $this->Log->create();
+                $result = $this->Log->save(array(
+                        'org' => $user['Organisation']['name'],
+                        'model' => 'Server',
+                        'model_id' => 0,
+                        'email' => $user['email'],
+                        'action' => 'serverSettingsEdit',
+                        'user_id' => $user['id'],
+                        'title' => 'Server setting issue',
+                        'change' => 'There was an issue witch changing ' . $setting['name'] . ' to ' . $value  . '. The error message returned is: ' . $beforeResult . 'No changes were made.',
+                ));
+                return $beforeResult;
+            }
+        }
+        $value = trim($value);
+        if ($setting['type'] == 'boolean') {
+            $value = ($value ? true : false);
+        }
+        if ($setting['type'] == 'numeric') {
+            $value = intval($value);
+        }
+        if (!empty($setting['test'])) {
+            $testResult = $this->{$setting['test']}($value);
+        } else {
+            $testResult = true;  # No test defined for this setting: cannot fail
+        }
+        if (!$forceSave && $testResult !== true) {
+            if ($testResult === false) {
+                $errorMessage = $setting['errorMessage'];
+            } else {
+                $errorMessage = $testResult;
+            }
+            return $errorMessage;
+        } else {
+            $oldValue = Configure::read($setting['name']);
+            $settingSaveResult = $this->serverSettingsSaveValue($setting['name'], $value);
+            $this->Log = ClassRegistry::init('Log');
+            $this->Log->create();
+            if ($settingSaveResult) {
+                $result = $this->Log->save(array(
+                        'org' => $user['Organisation']['name'],
+                        'model' => 'Server',
+                        'model_id' => 0,
+                        'email' => $user['email'],
+                        'action' => 'serverSettingsEdit',
+                        'user_id' => $user['id'],
+                        'title' => 'Server setting changed',
+                        'change' => $setting['name'] . ' (' . $oldValue . ') => (' . $value . ')',
+                ));
+                // execute after hook
+                if (isset($setting['afterHook'])) {
+                    $afterResult = call_user_func_array(array($this, $setting['afterHook']), array($setting['name'], $value));
+                    if ($afterResult !== true) {
+                        $this->Log->create();
+                        $result = $this->Log->save(array(
+                                'org' => $user['Organisation']['name'],
+                                'model' => 'Server',
+                                'model_id' => 0,
+                                'email' => $user['email'],
+                                'action' => 'serverSettingsEdit',
+                                'user_id' => $user['id'],
+                                'title' => 'Server setting issue',
+                                'change' => 'There was an issue after setting a new setting. The error message returned is: ' . $afterResult,
+                        ));
+                        return $afterResult;
+                    }
+                }
+                return true;
+            } else {
+                return __('Something went wrong. MISP tried to save a malformed config file. Setting change reverted.');
+            }
+        }
+    }
+
     public function serverSettingsSaveValue($setting, $value)
     {
         // validate if current config.php is intact:
@@ -3212,7 +3329,7 @@ class Server extends AppModel
             ));
             return false;
         }
-		copy(APP . 'Config' . DS . 'config.php', APP . 'Config' . DS . 'config.php.bk');
+        copy(APP . 'Config' . DS . 'config.php', APP . 'Config' . DS . 'config.php.bk');
         $settingObject = $this->getCurrentServerSettings();
         foreach ($settingObject as $branchName => $branch) {
             if (!isset($branch['level'])) {
@@ -3258,14 +3375,14 @@ class Server extends AppModel
         if (function_exists('opcache_reset')) {
             opcache_reset();
         }
-		$randomFilename = $this->generateRandomFileName();
-		// To protect us from 2 admin users having a concurent file write to the config file, solar flares and the bogeyman
+        $randomFilename = $this->generateRandomFileName();
+        // To protect us from 2 admin users having a concurent file write to the config file, solar flares and the bogeyman
         file_put_contents(APP . 'Config' . DS . $randomFilename, $settingsString);
-		rename(APP . 'Config' . DS . $randomFilename, APP . 'Config' . DS . 'config.php');
-		$config_saved = file_get_contents(APP . 'Config' . DS . 'config.php');
-		// if the saved config file is empty, restore the backup.
-		if (strlen($config_saved) < 20) {
-			copy(APP . 'Config' . DS . 'config.php.bk', APP . 'Config' . DS . 'config.php');
+        rename(APP . 'Config' . DS . $randomFilename, APP . 'Config' . DS . 'config.php');
+        $config_saved = file_get_contents(APP . 'Config' . DS . 'config.php');
+        // if the saved config file is empty, restore the backup.
+        if (strlen($config_saved) < 20) {
+            copy(APP . 'Config' . DS . 'config.php.bk', APP . 'Config' . DS . 'config.php');
             $this->Log = ClassRegistry::init('Log');
             $this->Log->create();
             $this->Log->save(array(
@@ -3277,9 +3394,9 @@ class Server extends AppModel
                     'user_id' => 0,
                     'title' => 'Error: Something went wrong saving the config file, reverted to backup file.',
             ));
-			return false;
-		}
-		return true;
+            return false;
+        }
+        return true;
     }
 
     public function checkVersion($newest)
@@ -3661,15 +3778,15 @@ class Server extends AppModel
         return $readableFiles;
     }
 
-    public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion, &$maecVersion, &$pymispVersion)
+    public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion, &$maecVersion, &$stix2Version, &$pymispVersion)
     {
         $result = array();
-        $expected = array('stix' => '1.2.0.6', 'cybox' => '2.1.0.18.dev0', 'mixbox' => '1.0.3', 'maec' => '4.1.0.14', 'pymisp' => '>2.4.93');
+        $expected = array('stix' => '1.2.0.6', 'cybox' => '2.1.0.18.dev0', 'mixbox' => '1.0.3', 'maec' => '4.1.0.14', 'stix2' => '1.1.1', 'pymisp' => '>2.4.93');
         // check if the STIX and Cybox libraries are working using the test script stixtest.py
         $scriptResult = shell_exec($this->getPythonVersion() . ' ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
         $scriptResult = json_decode($scriptResult, true);
         if ($scriptResult == null) {
-            return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']), 'mixbox' => array('expected' => $expected['mixbox']), 'maec' => array('expected' => $expected['maec']), 'pymisp' => array('expected' => $expected['pymisp']));
+            return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']), 'mixbox' => array('expected' => $expected['mixbox']), 'maec' => array('expected' => $expected['maec']), 'stix2' => array('expected' => $expected['stix2']), 'pymisp' => array('expected' => $expected['pymisp']));
         }
         $scriptResult['operational'] = $scriptResult['success'];
         if ($scriptResult['operational'] == 0) {
@@ -3777,7 +3894,7 @@ class Server extends AppModel
             $syncTool = new SyncTool();
             try {
                 $HttpSocket = $syncTool->setupHttpSocket();
-                $proxyResponse = $HttpSocket->get('http://www.example.com/');
+                $proxyResponse = $HttpSocket->get('https://www.github.com/');
             } catch (Exception $e) {
                 $proxyStatus = 2;
             }
@@ -4246,5 +4363,107 @@ class Server extends AppModel
             shell_exec($prepend . APP . 'Console' . DS . 'worker' . DS . 'start.sh > /dev/null 2>&1 &');
         }
         return true;
+    }
+
+    public function cacheServerInitiator($user, $id = 'all', $jobId = false)
+    {
+        $params = array(
+            'conditions' => array('caching_enabled' => 1),
+            'recursive' => -1
+        );
+        $redis = $this->setupRedis();
+        if ($redis === false) {
+            return 'Redis not reachable.';
+        }
+        if ($id !== 'all') {
+            $params['conditions']['Server.id'] = $id;
+        } else {
+            $redis->del('misp:server_cache:combined');
+            $redis->del('misp:server_cache:event_uuid_lookup:');
+        }
+        $servers = $this->find('all', $params);
+        if ($jobId) {
+            $job = ClassRegistry::init('Job');
+            $job->id = $jobId;
+            if (!$job->exists()) {
+                $jobId = false;
+            }
+        }
+        foreach ($servers as $k => $server) {
+            $this->__cacheInstance($server, $redis, $jobId);
+            if ($jobId) {
+                $job->saveField('progress', 100 * $k / count($servers));
+                $job->saveField('message', 'Server ' . $server['Server']['id'] . ' cached.');
+            }
+        }
+        return true;
+    }
+
+    private function __cacheInstance($server, $redis, $jobId = false)
+    {
+        $continue = true;
+        $i = 0;
+        if ($jobId) {
+            $job = ClassRegistry::init('Job');
+            $job->id = $jobId;
+        }
+        $redis->del('misp:server_cache:' . $server['Server']['id']);
+        $HttpSocket = null;
+        $HttpSocket = $this->setupHttpSocket($server, $HttpSocket);
+        while ($continue) {
+            $i++;
+            $pipe = $redis->multi(Redis::PIPELINE);
+            $chunk_size = 50000;
+            $data = $this->__getCachedAttributes($server, $HttpSocket, $chunk_size, $i);
+            if (empty(trim($data))) {
+                $continue = false;
+            } else {
+                $data = explode(PHP_EOL, trim($data));
+                foreach ($data as $entry) {
+                    list($value, $uuid) = explode(',', $entry);
+                    if (!empty($value)) {
+                        $redis->sAdd('misp:server_cache:' . $server['Server']['id'], $value);
+                        $redis->sAdd('misp:server_cache:combined', $value);
+                        $redis->sAdd('misp:server_cache:event_uuid_lookup:' . $value, $server['Server']['id'] . '/' . $uuid);
+                    }
+                }
+            }
+            if ($jobId) {
+                $job->saveField('message', 'Server ' . $server['Server']['id'] . ': ' . ((($i -1) * $chunk_size) + count($data)) . ' attributes cached.');
+            }
+            $pipe->exec();
+        }
+        $redis->set('misp:server_cache_timestamp:' . $server['Server']['id'], time());
+        return true;
+    }
+
+    private function __getCachedAttributes($server, $HttpSocket, $chunk_size, $i)
+    {
+        $filter_rules = array(
+            'returnFormat' => 'cache',
+            'includeEventUuid' => 1,
+            'page' => $i,
+            'limit' => $chunk_size
+        );
+        debug($filter_rules);
+        $request = $this->setupSyncRequest($server);
+        try {
+            $response = $HttpSocket->post($server['Server']['url'] . '/attributes/restSearch.json', json_encode($filter_rules), $request);
+        } catch (SocketException $e) {
+            return $e->getMessage();
+        }
+        return $response->body;
+    }
+
+    public function attachServerCacheTimestamps($data)
+    {
+        $redis = $this->setupRedis();
+        if ($redis === false) {
+            return $data;
+        }
+        foreach ($data as $k => $v) {
+            $data[$k]['Server']['cache_timestamp'] = $redis->get('misp:server_cache_timestamp:' . $data[$k]['Server']['id']);
+        }
+        return $data;
     }
 }

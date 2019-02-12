@@ -4,8 +4,8 @@
 ### 0/ MISP Ubuntu 18.04-server install - status
 -------------------------
 !!! notice
-    Tested working by @SteveClement on 20181120 (works with **Ubuntu 18.10** too)
-    As of 20181120 on **Ubuntu 19.04** you need to use Python 3.6 as LIEF with 3.7 is not "eggED" yet.
+    Tested working by @SteveClement on 20190118 (works with **Ubuntu 18.10** too)
+    As of 20190118 on **Ubuntu 19.04** you need to use Python 3.6 as LIEF with 3.7 is not "eggED" yet.
     You will need to **sudo apt install python3.6-dev** to make everything work according to this guide.
 
 {!generic/community.md!}
@@ -38,6 +38,7 @@ sudo apt-get upgrade
 ```bash
 sudo apt-get install postfix -y
 ```
+
 !!! notice
     Postfix Configuration: Satellite system<br />
     change the relay server later with:
@@ -55,7 +56,7 @@ Once the system is installed you can perform the following steps.
 # sudo add-apt-repository universe
 
 # Install the dependencies: (some might already be installed)
-sudo apt-get install curl gcc git gnupg-agent make python python3 openssl redis-server sudo vim zip virtualenv -y
+sudo apt-get install curl gcc git gpg-agent make python python3 openssl redis-server sudo vim zip virtualenv -y
 
 # Install MariaDB (a MySQL fork/alternative)
 sudo apt-get install mariadb-client mariadb-server -y
@@ -68,7 +69,7 @@ pw="Password1234"
 expect -f - <<-EOF
   set timeout 10
 
-  spawn sudo mysql_secure_installation
+  spawn sudo -k mysql_secure_installation
   expect "*?assword*"
   send -- "$pw\r"
   expect "Enter current password for root (enter for none):"
@@ -125,7 +126,7 @@ sudo -u www-data git submodule foreach --recursive git config core.filemode fals
 sudo -u www-data git config core.filemode false
 
 # Create a python3 virtualenv
-sudo apt-get install python3-pip
+sudo apt-get install python3-pip -y
 pip3 install virtualenv
 sudo -u www-data virtualenv -p python3.6 ${PATH_TO_MISP}/venv
 
@@ -148,7 +149,7 @@ sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 cd ${PATH_TO_MISP}/app/files/scripts/python-stix
 sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 cd $PATH_TO_MISP/app/files/scripts/python-maec
-sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 # install STIX2.0 library to support STIX 2.0 export:
 cd ${PATH_TO_MISP}/cti-python-stix2
 sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
@@ -156,6 +157,10 @@ sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 # install PyMISP
 cd ${PATH_TO_MISP}/PyMISP
 sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+
+# Install Crypt_GPG and Console_CommandLine
+sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
+sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
 ```
 
 ### 4/ CakePHP
@@ -192,11 +197,12 @@ sudo chown -R www-data:www-data ${PATH_TO_MISP}
 sudo chmod -R 750 ${PATH_TO_MISP}
 sudo chmod -R g+ws ${PATH_TO_MISP}/app/tmp
 sudo chmod -R g+ws ${PATH_TO_MISP}/app/files
-sudo chmod -R g+ws ${PATH_TO_MISP}/app/files/scripts/tmp
 ```
 
 ### 6/ Create a database and user
 -----------------------------
+
+#### Manual procedure:
 ```bash
 # Enter the mysql shell
 sudo mysql -u root -p
@@ -210,7 +216,7 @@ MariaDB [(none)]> flush privileges;
 MariaDB [(none)]> exit
 ```
 
-#### copy/paste:
+#### Same as Manual but for copy/paste foo:
 ```bash
 sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "create database $DBNAME;"
 sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant usage on *.* to $DBNAME@localhost identified by '$DBPASSWORD_MISP';"
@@ -227,11 +233,6 @@ sudo -u www-data cat $PATH_TO_MISP/INSTALL/MYSQL.sql | mysql -u $DBUSER_MISP -p$
 ### 7/ Apache configuration
 -----------------------
 Now configure your Apache webserver with the DocumentRoot ${PATH_TO_MISP}/app/webroot/
-
-#### Apache version 2.2 config:
-```bash
-sudo cp ${PATH_TO_MISP}/INSTALL/apache.22.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
-```
 
 #### Apache version 2.4 config:
 ```bash
@@ -411,7 +412,7 @@ sudo sed -i -e '$i \sudo -u www-data ${PATH_TO_MISP}/venv/bin/misp-modules -l 12
 sudo -u www-data bash $PATH_TO_MISP/app/Console/worker/start.sh
 
 # some misp-modules dependencies
-sudo apt-get install -y libpq5 libjpeg-dev libfuzzy-dev
+sudo apt-get install libpq5 libjpeg-dev libfuzzy-dev -y
 
 sudo chmod 2775 /usr/local/src
 sudo chown root:staff /usr/local/src

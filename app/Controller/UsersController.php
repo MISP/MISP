@@ -1065,7 +1065,11 @@ class UsersController extends AppController
     public function routeafterlogin()
     {
         // Events list
-        $this->redirect(array('controller' => 'events', 'action' => 'index'));
+        $url = $this->Session->consume('pre_login_requested_url');
+        if (empty($url)) {
+            $url = array('controller' => 'events', 'action' => 'index');
+        }
+        $this->redirect($url);
     }
 
     public function logout()

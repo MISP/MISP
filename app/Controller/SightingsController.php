@@ -12,7 +12,7 @@ class SightingsController extends AppController
 
     public $paginate = array(
             'limit' => 60,
-            'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
             'order' => array('Sighting.date_sighting' => 'DESC'),
     );
 
@@ -146,7 +146,7 @@ class SightingsController extends AppController
         $this->render('/Sightings/ajax/advanced');
     }
 
-    public function quickAdd($id=false, $onvalue=false)
+    public function quickAdd($id=false, $type=1, $onvalue=false)
     {
         if (!$this->userRole['perm_modify_org']) {
             throw new MethodNotAllowedException(__('You are not authorised to remove sightings data as you don\'t have permission to modify your organisation\'s data.'));
@@ -167,6 +167,7 @@ class SightingsController extends AppController
                 }
                 $this->set('value', $attribute['value']);
                 $this->set('event_id', $attribute['event_id']);
+                $this->set('sighting_type', $type);
                 $this->set('onvalue', $onvalue);
                 $this->render('ajax/quickAddConfirmationForm');
             }

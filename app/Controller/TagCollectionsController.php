@@ -16,7 +16,24 @@ class TagCollectionsController extends AppController
                     'TagCollection.name' => 'ASC'
             ),
             'recursive' => -1,
-            'contain' => array('TagCollectionTag' => array('Tag'), 'User', 'Organisation')
+            'contain' => array(
+                'TagCollectionTag' => array(
+                    'Tag'
+                ),
+                'Organisation' => array(
+                    'fields' => array(
+                        'Organisation.id',
+                        'Organisation.name',
+                        'Organisation.uuid'
+                    )
+                ),
+                'User' => array(
+                    'fields' => array(
+                        'User.email',
+                        'User.id'
+                    )
+                )
+            )
     );
 
     public function add()
@@ -53,9 +70,81 @@ class TagCollectionsController extends AppController
         $this->set('action', 'add');
     }
 
-    public function view()
+    public function import()
     {
+        if ($this->request->is('post')) {
+            if (isset($this->request->data['TagCollection']['json'])) {
+                $data = json_decode($this->request->data['TagCollection']['json'], true);
+            } else {
+                $data = $this->request->data;
+            }
+            $results = $this->TagCollection->import($data, $this->Auth->user());
+            if ($results['successes'] > 0) {
+                $flashType = 'success';
+                $message = sprintf(
+                    __('%s new tag collections added.'),
+                    $results['successes']
+                );
+            } else {
+                $flashType = 'info';
+                $message = 'No new tag_collections to add.';
+            }
+            if ($results['fails']) {
+                $message .= sprintf(
+                    ' %s tag collections could not be added (possibly because they already exist)',
+                    $results['fails']
+                );
+            }
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveSuccessResponse('TagCollection', 'import', false, $this->response->type(), $message);
+            } else {
+                $this->Flash->{$flashType}($message);
+                $this->redirect(array('controller' => 'TagCollection', 'action' => 'index'));
+            }
+        }
+    }
 
+    public function view($id)
+    {
+        $conditions = array();
+        if (!$this->_isSiteAdmin()) {
+            $conditions = array(
+                'OR' => array(
+                    'TagCollection.all_orgs' => 1,
+                    'TagCollection.org_id' => $this->Auth->user('org_id')
+                )
+            );
+            $this->paginate['conditions'] = $conditions;
+        }
+        $conditions['TagCollection.id'] = $id;
+        $params = array(
+            'recursive' => -1,
+            'contain' => array('TagCollectionTag' => array('Tag'), 'Organisation' => array('fields' => array('id', 'name', 'uuid')), 'User' => array('fields' => array('User.id', 'User.email')))
+        );
+        if (!empty($conditions)) {
+            $params['conditions'] = $conditions;
+        }
+        $collection = $this->TagCollection->find('first', $params);
+        if (empty($collection)) {
+            throw new NotFoundException('Invalid Tag Collection');
+        }
+        $collection = $this->TagCollection->cullBlockedTags($this->Auth->user(), $collection);
+        $this->loadModel('Event');
+        $collection = $this->Event->massageTags($collection, 'TagCollection', false, true);
+        if (!$this->_isSiteAdmin() && $collection['TagCollection']['org_id'] !== $this->Auth->user('org_id')) {
+            unset($collection['User']);
+            unset($collection['TagCollection']['user_id']);
+        }
+        if (!empty($collection['TagCollectionTag'])) {
+            foreach ($collection['TagCollectionTag'] as $k => $tct) {
+                $collection['TagCollectionTag'][$k]['Tag'] = array(
+                    'id' => $tct['Tag']['id'],
+                    'name' => $tct['Tag']['name'],
+                    'colour' => $tct['Tag']['colour']
+                );
+            }
+        }
+        return $this->RestResponse->viewData($collection, $this->response->type());
     }
 
     public function edit($id)
@@ -120,7 +209,7 @@ class TagCollectionsController extends AppController
                     return $this->RestResponse->saveSuccessResponse('TagCollections', 'delete', false, $this->response->type(), $message);
                 } else {
                     $this->Flash->success($message);
-                    $this->redirect('index');
+                    $this->redirect(array('action' => 'index'));
                 }
             } else {
                 $message = __('Tag collection could not be deleted.');
@@ -128,7 +217,7 @@ class TagCollectionsController extends AppController
                     return $this->RestResponse->saveFailResponse('TagCollections', 'delete', false, $message, $this->response->type());
                 } else {
                     $this->Flash->error($message);
-                    $this->redirect('index');
+                    $this->redirect(array('action' => 'index'));
                 }
             }
         } else {
@@ -156,17 +245,42 @@ class TagCollectionsController extends AppController
         if ($tag_id === false) {
             $tag_id = $this->request->data['tag'];
         }
-        $conditions = array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)));
+        $conditions = array();
         if (!$this->_isSiteAdmin()) {
             $conditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
             $conditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
         }
         if (!is_numeric($tag_id)) {
-            $tag = $this->TagCollection->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
-            if (empty($tag)) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
+            $tag_ids = json_decode($tag_id);
+            $tag_lookups = array();
+            foreach ($tag_ids as $temp) {
+                if (is_numeric($temp)) {
+                    $tag_lookups['OR']['Tag.id'][] = $temp;
+                } else {
+                    $tag_lookups['OR']['LOWER(Tag.name) LIKE'][] = strtolower(trim($tag_id));
+                }
             }
-            $tag_id = $tag['Tag']['id'];
+            if ($tag_ids !== null && is_array($tag_ids)) { // can decode json
+                $tag_ids = $this->TagCollection->TagCollectionTag->Tag->find('list', array(
+                    'conditions' => array(
+                        'AND' => array(
+                            $conditions,
+                            $tag_lookups
+                        )
+                    ),
+                    'fields' => array('Tag.id', 'Tag.id')
+                ));
+                $tag_id_list = array_values($tag_ids);
+                if (empty($tag_id_list)) {
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag(s).')), 'status'=>200, 'type' => 'json'));
+                }
+            } else {
+                $tag = $this->TagCollection->TagCollectionTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
+                if (empty($tag)) {
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
+                }
+                $tag_id = $tag['Tag']['id'];
+            }
         }
         $tagCollection = $this->TagCollection->find('first', array(
             'recursive' => -1,
@@ -176,37 +290,54 @@ class TagCollectionsController extends AppController
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid tag collection.')), 'status'=>200, 'type' => 'json'));
         }
         if (!$this->_isSiteAdmin()) {
-            if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $tag_collection['TagCollection']['org_id'])) {
+            if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $tagCollection['TagCollection']['org_id'])) {
                 return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
             }
         }
-        $this->TagCollection->TagCollectionTag->Tag->id = $tag_id;
-        if (!$this->TagCollection->TagCollectionTag->Tag->exists()) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
-        }
-        $tag = $this->TagCollection->TagCollectionTag->Tag->find('first', array(
-            'conditions' => array('Tag.id' => $tag_id),
-            'recursive' => -1,
-            'fields' => array('Tag.name')
-        ));
-        $found = $this->TagCollection->TagCollectionTag->find('first', array(
-            'conditions' => array(
-                'tag_collection_id' => $id,
-                'tag_id' => $tag_id
-            ),
-            'recursive' => -1,
-        ));
         $this->autoRender = false;
-        if (!empty($found)) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag is already attached to this collection.')), 'status'=>200, 'type' => 'json'));
+        $error = false;
+        $success = false;
+        if (empty($tag_id_list)) {
+            $tag_id_list = array($tag_id);
         }
-        $this->TagCollection->TagCollectionTag->create();
-        if ($this->TagCollection->TagCollectionTag->save(array('tag_collection_id' => $id, 'tag_id' => $tag_id))) {
-            $log = ClassRegistry::init('Log');
-            $log->createLogEntry($this->Auth->user(), 'tag', 'TagCollection', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to collection (' . $id . ')', 'Event (' . $id . ') tagged as Tag (' . $tag_id . ')');
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag added.')), 'status'=>200, 'type' => 'json'));
+
+        foreach ($tag_id_list as $tag_id) {
+            $this->TagCollection->TagCollectionTag->Tag->id = $tag_id;
+            if (!$this->TagCollection->TagCollectionTag->Tag->exists()) {
+                $error = __('Invalid Tag.');
+                continue;
+            }
+            $tag = $this->TagCollection->TagCollectionTag->Tag->find('first', array(
+                'conditions' => array('Tag.id' => $tag_id),
+                'recursive' => -1,
+                'fields' => array('Tag.name')
+            ));
+            $found = $this->TagCollection->TagCollectionTag->find('first', array(
+                'conditions' => array(
+                    'tag_collection_id' => $id,
+                    'tag_id' => $tag_id
+                ),
+                'recursive' => -1,
+            ));
+            if (!empty($found)) {
+                $error = __('Tag is already attached to this event.');
+                continue;
+            }
+            $this->TagCollection->TagCollectionTag->create();
+            if ($this->TagCollection->TagCollectionTag->save(array('tag_collection_id' => $id, 'tag_id' => $tag_id))) {
+                $log = ClassRegistry::init('Log');
+                $log->createLogEntry($this->Auth->user(), 'tag', 'TagCollection', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to collection (' . $id . ')', 'Event (' . $id . ') tagged as Tag (' . $tag_id . ')');
+                $success = __('Tag(s) added.');
+            } else {
+                $fail = __('Tag(s) could not be added.');
+            }
+        }
+        if ($success) {
+            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $success)), 'status'=>200, 'type' => 'json'));
+        } elseif (empty($fail)) {
+            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => __('All tags are already present, nothing to add.'), 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
         } else {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be added.')), 'status'=>200, 'type' => 'json'));
+            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $fail)), 'status'=>200, 'type' => 'json'));
         }
     }
 
@@ -289,7 +420,24 @@ class TagCollectionsController extends AppController
         if ($this->_isRest()) {
             $params = array(
                 'recursive' => -1,
-                'contain' => array('TagCollectionTag' => array('Tag'), 'Organisation', 'User')
+                'contain' => array(
+                    'TagCollectionTag' => array(
+                        'Tag'
+                    ),
+                    'Organisation' => array(
+                        'fields' => array(
+                            'Organisation.id',
+                            'Organisation.name',
+                            'Organisation.uuid'
+                        )
+                    ),
+                    'User' => array(
+                        'fields' => array(
+                            'User.email',
+                            'User.id'
+                        )
+                    )
+                )
             );
             if (!empty($conditions)) {
                 $params['conditions'] = $conditions;
@@ -311,6 +459,15 @@ class TagCollectionsController extends AppController
             if (!$this->_isSiteAdmin() && $list[$k]['TagCollection']['org_id'] !== $this->Auth->user('org_id')) {
                 unset($list[$k]['User']);
                 unset($list[$k]['TagCollection']['user_id']);
+            }
+            if (!empty($list[$k]['TagCollectionTag'])) {
+                foreach ($list[$k]['TagCollectionTag'] as $k2 => $tct) {
+                    $list[$k]['TagCollectionTag'][$k2]['Tag'] = array(
+                        'id' => $tct['Tag']['id'],
+                        'name' => $tct['Tag']['name'],
+                        'colour' => $tct['Tag']['colour']
+                    );
+                }
             }
         }
         if ($this->_isRest()) {

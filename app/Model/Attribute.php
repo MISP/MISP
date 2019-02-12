@@ -10,10 +10,10 @@ class Attribute extends AppModel
 {
     public $combinedKeys = array('event_id', 'category', 'type');
 
-    public $name = 'Attribute';				// TODO general
+    public $name = 'Attribute';             // TODO general
 
     public $actsAs = array(
-        'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+        'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
             'userModel' => 'User',
             'userKey' => 'user_id',
             'change' => 'full'),
@@ -72,7 +72,8 @@ class Attribute extends AppModel
             'port',
             'nationality',
             'cortex',
-            'boolean'
+            'boolean',
+            'anonymised'
     );
 
     public $primaryOnlyCorrelatingTypes = array(
@@ -160,6 +161,7 @@ class Attribute extends AppModel
             'AS' => array('desc' => 'Autonomous system', 'default_category' => 'Network activity', 'to_ids' => 0),
             'snort' => array('desc' => 'An IDS rule in Snort rule-format', 'formdesc' => "An IDS rule in Snort rule-format. This rule will be automatically rewritten in the NIDS exports.", 'default_category' => 'Network activity', 'to_ids' => 1),
             'bro' => array('desc' => 'An NIDS rule in the Bro rule-format', 'formdesc' => "An NIDS rule in the Bro rule-format.", 'default_category' => 'Network activity', 'to_ids' => 1),
+            'zeek' => array('desc' => 'An NIDS rule in the Zeek rule-format', 'formdesc' => "An NIDS rule in the Zeek rule-format.", 'default_category' => 'Network activity', 'to_ids' => 1),
             'pattern-in-file' => array('desc' => 'Pattern in file that identifies the malware', 'default_category' => 'Payload installation', 'to_ids' => 1),
             'pattern-in-traffic' => array('desc' => 'Pattern in network traffic that identifies the malware', 'default_category' => 'Network activity', 'to_ids' => 1),
             'pattern-in-memory' => array('desc' => 'Pattern in memory dump that identifies the malware', 'default_category' => 'Payload installation', 'to_ids' => 1),
@@ -292,7 +294,8 @@ class Attribute extends AppModel
             'passenger-name-record-locator-number' => array('desc' => 'The Passenger Name Record Locator is a key under which the reservation for a trip is stored in the system. The PNR contains, among other data, the name, flight segments and address of the passenger. It is defined by a combination of five or six letters and numbers.', 'default_category' => 'Person', 'to_ids' => 0),
             'mobile-application-id' => array('desc' => 'The application id of a mobile application', 'default_category' => 'Payload delivery', 'to_ids' => 1),
             'cortex' => array('desc' => 'Cortex analysis result', 'default_category' => 'External analysis', 'to_ids' => 0),
-            'boolean' => array('desc' => 'Boolean value - to be used in objects', 'default_category' => 'Other', 'to_ids' => 0)
+            'boolean' => array('desc' => 'Boolean value - to be used in objects', 'default_category' => 'Other', 'to_ids' => 0),
+            'anonymised' => array('desc' => 'Anonymised value - described with the anonymisation object via a relationship',  'formdesc' => 'Anonymised value - described with the anonymisation object via a relationship.' , 'default_category' => 'Other', 'to_ids' => 0)
             // Not convinced about this.
             //'url-regex' => array('desc' => '', 'default_category' => 'Person', 'to_ids' => 0),
     );
@@ -302,76 +305,76 @@ class Attribute extends AppModel
     public $categoryDefinitions = array(
             'Internal reference' => array(
                     'desc' => 'Reference used by the publishing party (e.g. ticket number)',
-                    'types' => array('text', 'link', 'comment', 'other', 'hex')
+                    'types' => array('text', 'link', 'comment', 'other', 'hex', 'anonymised')
                     ),
             'Targeting data' => array(
                     'desc' => 'Internal Attack Targeting and Compromise Information',
                     'formdesc' => 'Targeting information to include recipient email, infected machines, department, and or locations.',
-                    'types' => array('target-user', 'target-email', 'target-machine', 'target-org', 'target-location', 'target-external', 'comment')
+                    'types' => array('target-user', 'target-email', 'target-machine', 'target-org', 'target-location', 'target-external', 'comment', 'anonymised')
                     ),
             'Antivirus detection' => array(
                     'desc' => 'All the info about how the malware is detected by the antivirus products',
                     'formdesc' => 'List of anti-virus vendors detecting the malware or information on detection performance (e.g. 13/43 or 67%). Attachment with list of detection or link to VirusTotal could be placed here as well.',
-                    'types' => array('link', 'comment', 'text', 'hex', 'attachment', 'other')
+                    'types' => array('link', 'comment', 'text', 'hex', 'attachment', 'other', 'anonymised')
                     ),
             'Payload delivery' => array(
                     'desc' => 'Information about how the malware is delivered',
                     'formdesc' => 'Information about the way the malware payload is initially delivered, for example information about the email or web-site, vulnerability used, originating IP etc. Malware sample itself should be attached here.',
-                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'mac-address', 'mac-eui-64', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'email-body', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'stix2-pattern', 'yara', 'sigma', 'mime-type', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5', 'other', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'mobile-application-id', 'whois-registrant-email')
+                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'mac-address', 'mac-eui-64', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'email-body', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'stix2-pattern', 'yara', 'sigma', 'mime-type', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5', 'other', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'mobile-application-id', 'whois-registrant-email', 'anonymised')
                     ),
             'Artifacts dropped' => array(
                     'desc' => 'Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system',
-                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy','filename|pehash', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory','pdb', 'stix2-pattern', 'yara', 'sigma', 'attachment', 'malware-sample', 'named pipe', 'mutex', 'windows-scheduled-task', 'windows-service-name', 'windows-service-displayname', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'other', 'cookie', 'gene', 'mime-type')
+                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy','filename|pehash', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory','pdb', 'stix2-pattern', 'yara', 'sigma', 'attachment', 'malware-sample', 'named pipe', 'mutex', 'windows-scheduled-task', 'windows-service-name', 'windows-service-displayname', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'other', 'cookie', 'gene', 'mime-type', 'anonymised')
                     ),
             'Payload installation' => array(
                     'desc' => 'Info on where the malware gets installed in the system',
                     'formdesc' => 'Location where the payload was placed in the system and the way it was installed. For example, a filename|md5 type attribute can be added here like this: c:\\windows\\system32\\malicious.exe|41d8cd98f00b204e9800998ecf8427e.',
-                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'stix2-pattern', 'yara', 'sigma', 'vulnerability', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'mobile-application-id', 'other', 'mime-type')
+                    'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'stix2-pattern', 'yara', 'sigma', 'vulnerability', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'mobile-application-id', 'other', 'mime-type', 'anonymised')
                     ),
             'Persistence mechanism' => array(
                     'desc' => 'Mechanisms used by the malware to start at boot',
                     'formdesc' => 'Mechanisms used by the malware to start at boot. This could be a registry key, legitimate driver modification, LNK file in startup',
-                    'types' => array('filename', 'regkey', 'regkey|value', 'comment', 'text', 'other', 'hex')
+                    'types' => array('filename', 'regkey', 'regkey|value', 'comment', 'text', 'other', 'hex', 'anonymised')
                     ),
             'Network activity' => array(
                     'desc' => 'Information about network traffic generated by the malware',
-                    'types' => array('ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'port', 'hostname', 'domain', 'domain|ip', 'mac-address', 'mac-eui-64', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-file', 'stix2-pattern', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5', 'other', 'hex', 'cookie', 'hostname|port', 'bro')
+                    'types' => array('ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'port', 'hostname', 'domain', 'domain|ip', 'mac-address', 'mac-eui-64', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-file', 'stix2-pattern', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5', 'other', 'hex', 'cookie', 'hostname|port', 'bro', 'zeek', 'anonymised')
                     ),
             'Payload type' => array(
                     'desc' => 'Information about the final payload(s)',
                     'formdesc' => 'Information about the final payload(s). Can contain a function of the payload, e.g. keylogger, RAT, or a name if identified, such as Poison Ivy.',
-                    'types' => array('comment', 'text', 'other')
+                    'types' => array('comment', 'text', 'other', 'anonymised')
                     ),
             'Attribution' => array(
                     'desc' => 'Identification of the group, organisation, or country behind the attack',
-                    'types' => array('threat-actor', 'campaign-name', 'campaign-id', 'whois-registrant-phone', 'whois-registrant-email', 'whois-registrant-name', 'whois-registrant-org', 'whois-registrar', 'whois-creation-date','comment', 'text', 'x509-fingerprint-sha1','x509-fingerprint-md5', 'x509-fingerprint-sha256', 'other', 'dns-soa-email')
+                    'types' => array('threat-actor', 'campaign-name', 'campaign-id', 'whois-registrant-phone', 'whois-registrant-email', 'whois-registrant-name', 'whois-registrant-org', 'whois-registrar', 'whois-creation-date','comment', 'text', 'x509-fingerprint-sha1','x509-fingerprint-md5', 'x509-fingerprint-sha256', 'other', 'dns-soa-email', 'anonymised')
                     ),
             'External analysis' => array(
                     'desc' => 'Any other result from additional analysis of the malware like tools output',
                     'formdesc' => 'Any other result from additional analysis of the malware like tools output Examples: pdf-parser output, automated sandbox analysis, reverse engineering report.',
-                    'types' => array('md5', 'sha1', 'sha256','filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'mac-address', 'mac-eui-64', 'hostname', 'domain', 'domain|ip', 'url', 'user-agent', 'regkey', 'regkey|value', 'AS', 'snort', 'bro','pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'vulnerability', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5', 'github-repository', 'other', 'cortex')
+                    'types' => array('md5', 'sha1', 'sha256','filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'mac-address', 'mac-eui-64', 'hostname', 'domain', 'domain|ip', 'url', 'user-agent', 'regkey', 'regkey|value', 'AS', 'snort', 'bro', 'zeek', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'vulnerability', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'x509-fingerprint-sha1', 'x509-fingerprint-md5', 'x509-fingerprint-sha256', 'ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5', 'github-repository', 'other', 'cortex', 'anonymised')
                     ),
             'Financial fraud' => array(
                     'desc' => 'Financial Fraud indicators',
                     'formdesc' => 'Financial Fraud indicators, for example: IBAN Numbers, BIC codes, Credit card numbers, etc.',
-                    'types' => array('btc', 'xmr', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number', 'comment', 'text', 'other', 'hex'),
+                    'types' => array('btc', 'xmr', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number', 'comment', 'text', 'other', 'hex', 'anonymised'),
                     ),
             'Support Tool' => array(
                     'desc' => 'Tools supporting analysis or detection of the event',
-                    'types' => array('link', 'text', 'attachment', 'comment', 'other', 'hex')
+                    'types' => array('link', 'text', 'attachment', 'comment', 'other', 'hex', 'anonymised')
             ),
             'Social network' => array(
                     'desc' => 'Social networks and platforms',
                     // email-src and email-dst or should we go with a new email type that is neither / both?
-                    'types' => array('github-username', 'github-repository', 'github-organisation', 'jabber-id', 'twitter-id', 'email-src', 'email-dst', 'comment', 'text', 'other', 'whois-registrant-email')
+                    'types' => array('github-username', 'github-repository', 'github-organisation', 'jabber-id', 'twitter-id', 'email-src', 'email-dst', 'comment', 'text', 'other', 'whois-registrant-email', 'anonymised')
             ),
             'Person' => array(
                     'desc' => 'A human being - natural person',
-                    'types' => array('first-name', 'middle-name', 'last-name', 'date-of-birth', 'place-of-birth', 'gender', 'passport-number', 'passport-country', 'passport-expiration', 'redress-number', 'nationality', 'visa-number', 'issue-date-of-the-visa', 'primary-residence', 'country-of-residence', 'special-service-request', 'frequent-flyer-number', 'travel-details', 'payment-details', 'place-port-of-original-embarkation', 'place-port-of-clearance', 'place-port-of-onward-foreign-destination', 'passenger-name-record-locator-number', 'comment', 'text', 'other', 'phone-number', 'identity-card-number')
+                    'types' => array('first-name', 'middle-name', 'last-name', 'date-of-birth', 'place-of-birth', 'gender', 'passport-number', 'passport-country', 'passport-expiration', 'redress-number', 'nationality', 'visa-number', 'issue-date-of-the-visa', 'primary-residence', 'country-of-residence', 'special-service-request', 'frequent-flyer-number', 'travel-details', 'payment-details', 'place-port-of-original-embarkation', 'place-port-of-clearance', 'place-port-of-onward-foreign-destination', 'passenger-name-record-locator-number', 'comment', 'text', 'other', 'phone-number', 'identity-card-number', 'anonymised')
             ),
             'Other' => array(
                     'desc' => 'Attributes that are not part of any other category or are meant to be used as a component in MISP objects in the future',
-                    'types' => array('comment', 'text', 'other', 'size-in-bytes', 'counter', 'datetime', 'cpe', 'port', 'float', 'hex', 'phone-number', 'boolean')
+                    'types' => array('comment', 'text', 'other', 'size-in-bytes', 'counter', 'datetime', 'cpe', 'port', 'float', 'hex', 'phone-number', 'boolean', 'anonymised')
                     )
     );
 
@@ -424,7 +427,7 @@ class Attribute extends AppModel
     // This helps generate quick filtering for the event view, but we may reuse this and enhance it in the future for other uses (such as the API?)
     public $typeGroupings = array(
         'file' => array('attachment', 'pattern-in-file', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy', 'authentihash', 'pehash', 'tlsh', 'cdhash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'malware-sample', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-fingerprint-md5'),
-        'network' => array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port', 'mac-address', 'mac-eui-64', 'hostname', 'hostname|port', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'bro','pattern-in-traffic', 'x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256','ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5'),
+        'network' => array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port', 'mac-address', 'mac-eui-64', 'hostname', 'hostname|port', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'bro', 'zeek',  'pattern-in-traffic', 'x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256','ja3-fingerprint-md5', 'hassh-md5', 'hasshserver-md5'),
         'financial' => array('btc', 'xmr', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number')
     );
 
@@ -1160,6 +1163,8 @@ class Attribute extends AppModel
             case 'AS':
             case 'snort':
             case 'bro':
+            case 'zeek':
+            case 'anonymised':
             case 'pattern-in-file':
             case 'pattern-in-traffic':
             case 'pattern-in-memory':
@@ -1339,6 +1344,7 @@ class Attribute extends AppModel
             case 'authentihash':
             case 'imphash':
             case 'tlsh':
+            case 'anonymised':
             case 'cdhash':
             case 'email-src':
             case 'email-dst':
@@ -1460,7 +1466,7 @@ class Attribute extends AppModel
     {
         // build the list of composite Attribute.type dynamically by checking if type contains a |
         // default composite types
-        $compositeTypes = array('malware-sample');	// TODO hardcoded composite
+        $compositeTypes = array('malware-sample');  // TODO hardcoded composite
         // dynamically generated list
         foreach (array_keys($this->typeDefinitions) as $type) {
             $pieces = explode('|', $type);
@@ -1595,11 +1601,11 @@ class Attribute extends AppModel
         } else {
             // Plebian filesystem operations
             $rootDir = $attachments_dir . DS . $attribute['event_id'];
-            $dir = new Folder($rootDir, true);						// create directory structure
+            $dir = new Folder($rootDir, true);                      // create directory structure
             $destpath = $rootDir . DS . $attribute['id'];
-            $file = new File($destpath, true);						// create the file
-            $decodedData = base64_decode($attribute['data']);		// decode
-            if ($file->write($decodedData)) {						// save the data
+            $file = new File($destpath, true);                      // create the file
+            $decodedData = base64_decode($attribute['data']);       // decode
+            if ($file->write($decodedData)) {                       // save the data
                 return true;
             } else {
                 // error
@@ -1804,7 +1810,7 @@ class Attribute extends AppModel
                     ),
                     'Attribute.disable_correlation' => 0,
                     'Event.disable_correlation' => 0,
-                    'Attribute.deleted' => 0
+                    '(Attribute.deleted + 0)' => 0
                 );
                 if (!empty($extraConditions)) {
                     $conditions['OR'][] = $extraConditions;
@@ -2219,7 +2225,7 @@ class Attribute extends AppModel
             $conditions['AND'][] = array('Event.id' => $eventId);
         } elseif ($tags !== false) {
             $passed_param = array('tags' => $tags);
-            $conditions = $this->set_filter_tags($passed_params, $conditions);
+            $conditions = $this->set_filter_tags($passed_param, $conditions, array('scope' => 'Attribute'));
         }
         $attributes = $this->fetchAttributes($user, array(
                 'conditions' => $conditions,
@@ -2821,6 +2827,7 @@ class Attribute extends AppModel
                 )
             )
         );
+
         if (!empty($options['includeProposals'])) {
             $this->bindModel(
                 array('hasMany' => array(
@@ -2890,7 +2897,7 @@ class Attribute extends AppModel
             $params['conditions']['AND'][] = $options['conditions'];
         }
         if (empty($options['flatten'])) {
-            $params['conditions']['AND'][] = array('Attribute.object_id' => 0);
+            $params['conditions']['AND'][] = array('(Attribute.object_id + 0)' => 0);
         }
         if (isset($options['order'])) {
             $params['order'] = $options['order'];
@@ -2902,13 +2909,13 @@ class Attribute extends AppModel
             $options['enforceWarninglist'] = false;
         }
         if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) {
-            $params['conditions']['AND']['Attribute.deleted'] = 0;
+            $params['conditions']['AND']['(Attribute.deleted + 0)'] = 0;
         }
         if (isset($options['group'])) {
             $params['group'] = empty($options['group']) ? $options['group'] : false;
         }
         if (Configure::read('MISP.unpublishedprivate')) {
-            $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id']));
+            $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id'], 'Event.org_id' => $user['org_id']));
         }
         if (!empty($options['list'])) {
             if (!empty($options['event_ids'])) {
@@ -3294,13 +3301,18 @@ class Attribute extends AppModel
     public function setTimestampConditions($timestamp, $conditions, $scope = 'Event.timestamp')
     {
         if (is_array($timestamp)) {
-            $timestamp[0] = $this->Event->resolveTimeDelta($timestamp[0]);
-            $timestamp[1] = $this->Event->resolveTimeDelta($timestamp[1]);
-            $conditions['AND'][] = array($scope . ' >=' => intval($timestamp[0]));
-            $conditions['AND'][] = array($scope . ' <=' => intval($timestamp[1]));
+            $timestamp[0] = intval($this->Event->resolveTimeDelta($timestamp[0]));
+            $timestamp[1] = intval($this->Event->resolveTimeDelta($timestamp[1]));
+            if ($timestamp[0] > $timestamp[1]) {
+                $temp = $timestamp[0];
+                $timestamp[0] = $timestamp[1];
+                $timestamp[1] = $temp;
+            }
+            $conditions['AND'][] = array($scope . ' >=' => $timestamp[0]);
+            $conditions['AND'][] = array($scope . ' <=' => $timestamp[1]);
         } else {
-            $timestamp = $this->Event->resolveTimeDelta($timestamp);
-            $conditions['AND'][] = array($scope . ' >=' => intval($timestamp));
+            $timestamp = intval($this->Event->resolveTimeDelta($timestamp));
+            $conditions['AND'][] = array($scope . ' >=' => $timestamp);
         }
         return $conditions;
     }
@@ -3654,11 +3666,11 @@ class Attribute extends AppModel
                 return 'Invalid sharing group choice.';
             }
         } else if (!isset($attribute['distribution'])) {
-			$attribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
-			if ($attribute['distribution'] == 'event') {
-				$attribute['distribution'] = 5;
-			}
-		}
+            $attribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
+            if ($attribute['distribution'] == 'event') {
+                $attribute['distribution'] = 5;
+            }
+        }
         $fieldList = array(
             'event_id',
             'category',
@@ -3761,7 +3773,7 @@ class Attribute extends AppModel
                     'value' => array('function' => 'set_filter_value'),
                     'category' => array('function' => 'set_filter_simple_attribute'),
                     'type' => array('function' => 'set_filter_simple_attribute'),
-                    'tags' => array('function' => 'set_filter_tags'),
+                    'tags' => array('function' => 'set_filter_tags', 'pop' => true),
                     'uuid' => array('function' => 'set_filter_uuid'),
                     'deleted' => array('function' => 'set_filter_deleted'),
                     'timestamp' => array('function' => 'set_filter_timestamp'),
@@ -3774,6 +3786,7 @@ class Attribute extends AppModel
                     'ignore' => array('function' => 'set_filter_ignore'),
                     'from' => array('function' => 'set_filter_timestamp'),
                     'to' => array('function' => 'set_filter_timestamp'),
+                    'tags' => array('function' => 'set_filter_tags'),
                     'last' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
                     'event_timestamp' => array('function' => 'set_filter_timestamp', 'pop' => true),
@@ -3789,7 +3802,7 @@ class Attribute extends AppModel
             );
             foreach ($params as $param => $paramData) {
                 foreach ($simple_params as $scope => $simple_param_scoped) {
-                    if (isset($simple_param_scoped[$param]) && $params[$param] !== false) {
+                    if (isset($simple_param_scoped[$param]) && isset($params[$param]) && $params[$param] !== false) {
                         $options = array(
                             'filter' => $param,
                             'scope' => $scope,

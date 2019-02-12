@@ -17,32 +17,73 @@ class ObjectTemplatesController extends AppController
             'recursive' => -1
     );
 
-    public function objectChoice($event_id)
-    {
-        $this->ObjectTemplate->populateIfEmpty($this->Auth->user());
-        $templates_raw = $this->ObjectTemplate->find('all', array(
+    public function objectMetaChoice($event_id) {
+        $metas = $this->ObjectTemplate->find('list', array(
             'recursive' => -1,
             'conditions' => array('ObjectTemplate.active' => 1),
+            'fields' => array('meta-category'),
+            'group' => array('ObjectTemplate.meta-category'),
+            'order' => array('ObjectTemplate.meta-category asc')
+        ));
+
+        $items = array();
+        $items[] = array(
+            'name' => __('All Objects'),
+            'value' => "/ObjectTemplates/objectChoice/" . h($event_id) . "/" . "0"
+        );
+        foreach($metas as $meta) {
+            $items[] = array(
+                'name' => $meta,
+                'value' => "/ObjectTemplates/objectChoice/" . h($event_id) . "/" . h($meta)
+            );
+        }
+
+        $this->set('items', $items);
+        $this->set('options', array(
+            'multiple' => 0,
+        ));
+        $this->render('/Elements/generic_picker');
+    }
+
+    public function objectChoice($event_id, $category=false)
+    {
+        $this->ObjectTemplate->populateIfEmpty($this->Auth->user());
+        $conditions = array('ObjectTemplate.active' => 1);
+        if ($category !== false && $category !== "0") {
+            $conditions['meta-category'] = $category;
+        }
+        $templates_raw = $this->ObjectTemplate->find('all', array(
+            'recursive' => -1,
+            'conditions' => $conditions,
             'fields' => array('id', 'meta-category', 'name', 'description', 'org_id'),
             'contain' => array('Organisation.name'),
             'order' => array('ObjectTemplate.name asc')
         ));
-        $templates = array('all' => array());
-        foreach ($templates_raw as $k => $template) {
-            unset($template['ObjectTemplate']['meta-category']);
-            $template['ObjectTemplate']['org_name'] = $template['Organisation']['name'];
-            $templates[$templates_raw[$k]['ObjectTemplate']['meta-category']][] = $template['ObjectTemplate'];
-            $templates['all'][] = $template['ObjectTemplate'];
+
+        $items = array();
+        foreach($templates_raw as $template) {
+            $template = $template['ObjectTemplate'];
+            $items[] = array(
+                'name' => $template['name'],
+                'value' => $template['id'],
+                'template' => array(
+                    'name' => $template['name'],
+                    'infoExtra' => $template['description'],
+                    'infoContextual' => $template['meta-category']
+                )
+            );
         }
-        foreach ($templates as $category => $template_list) {
-            $templates[$category] = Hash::sort($templates[$category], '{n}.name');
-        }
-        $template_categories = array_keys($templates);
-        $this->layout = false;
-        $this->set('template_categories', $template_categories);
-        $this->set('eventId', $event_id);
-        $this->set('templates', $templates);
-        $this->render('ajax/object_choice');
+
+        $fun = 'redirectAddObject';
+        $this->set('items', $items);
+        $this->set('options', array(
+            'functionName' => $fun,
+            'multiple' => 0,
+            'select_options' => array(
+                'additionalData' => array('event_id' => $event_id),
+            ),
+        ));
+        $this->render('/Elements/generic_picker');
     }
 
     public function view($id)

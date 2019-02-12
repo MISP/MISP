@@ -116,7 +116,8 @@
     <div class="tabMenu tabMenuEditBlock noPrint">
         <span id="create-button" title="<?php echo __('Add attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Add attribute');?>" class="icon-plus useCursorPointer" onClick="clickCreateButton(<?php echo $event['Event']['id']; ?>, '<?php echo $possibleAction; ?>');"></span>
         <span id="multi-edit-button" title="<?php echo __('Edit selected Attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Edit selected Attributes');?>" class="hidden icon-edit mass-select useCursorPointer" onClick="editSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
-        <span id="multi-tag-button" title="<?php echo __('Tag selected Attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Tag selected Attributes');?>" class="hidden icon-tag mass-select useCursorPointer" onClick="getPopup('selected/attribute', 'tags', 'selectTaxonomy');"></span>
+        <span id="multi-tag-button" title="<?php echo __('Tag selected Attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Tag selected Attributes');?>" class="hidden icon-tag mass-select useCursorPointer" onClick="popoverPopup(this, 'selected/attribute', 'tags', 'selectTaxonomy');"></span>
+        <span id="multi-galaxy-button" title="<?php echo __('Add new cluster to selected Attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Add new cluster to selected Attributes');?>" class="hidden icon-rebel fa-rebel mass-select useCursorPointer" style="font: normal normal normal 14px/1 FontAwesome; vertical-align: top;" onClick="popoverPopup(this, 'selected/attribute', 'galaxies', 'selectGalaxyNamespace');"></span>
         <span id="multi-delete-button" title="<?php echo __('Delete selected Attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete selected Attributes');?>" class="hidden icon-trash mass-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'deleteAttributes');"></span>
         <span id="multi-accept-button" title="<?php echo __('Accept selected Proposals');?>" role="button" tabindex="0" aria-label="<?php echo __('Accept selected Proposals');?>" class="hidden icon-ok mass-proposal-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'acceptProposals');"></span>
         <span id="multi-discard-button" title="<?php echo __('Discard selected Proposals');?>" role="button" tabindex="0" aria-label="<?php echo __('Discard selected Proposals');?>" class="hidden icon-remove mass-proposal-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'discardProposals');"></span>
@@ -238,7 +239,7 @@
         ?>
     </table>
 </div>
-    <?php if ($emptyEvent): ?>
+    <?php if ($emptyEvent && (empty($attributeFilter) || $attributeFilter === 'all')): ?>
         <div class="background-red bold">
             <span>
             <?php

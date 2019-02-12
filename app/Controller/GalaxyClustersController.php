@@ -7,7 +7,7 @@ class GalaxyClustersController extends AppController
 
     public $paginate = array(
             'limit' => 60,
-            'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
             'recursive' => -1,
             'order' => array(
                 'GalaxyCluster.value' => 'ASC'
@@ -222,20 +222,40 @@ class GalaxyClustersController extends AppController
             $event_id = $attribute['Attribute']['event_id'];
         } elseif ($target_type == 'event') {
             $event_id = $target_id;
+        } elseif ($target_type === 'tag_collection') {
+            // pass
         } else {
             throw new MethodNotAllowedException('Invalid options');
         }
-        $this->Event->id = $event_id;
-        $this->Event->recursive = -1;
-        $event = $this->Event->read(array(), $event_id);
-        if (empty($event)) {
-            throw new MethodNotAllowedException('Invalid Event.');
-        }
-        if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
-            if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
+
+        if ($target_type === 'tag_collection') {
+            $tag_collection = $this->GalaxyCluster->Tag->TagCollectionTag->TagCollection->fetchTagCollection($this->Auth->user(), array(
+                'conditions' => array('TagCollection.id' => $target_id),
+                'contain' => array('Organisation', 'TagCollectionTag' => array('Tag'))
+            ));
+            if (empty($tag_collection)) {
+                throw new MethodNotAllowedException('Invalid Tag Collection');
+            }
+            $tag_collection = $tag_collection[0];
+            if (!$this->_isSiteAdmin()) {
+                if (!$this->userRole['perm_tag_editor'] || $this->Auth->user('org_id') !== $tag_collection['TagCollection']['org_id']) {
+                    throw new MethodNotAllowedException('Invalid Tag Collection');
+                }
+            }
+        } else {
+            $this->Event->id = $event_id;
+            $this->Event->recursive = -1;
+            $event = $this->Event->read(array(), $event_id);
+            if (empty($event)) {
                 throw new MethodNotAllowedException('Invalid Event.');
             }
+            if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
+                if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
+                    throw new MethodNotAllowedException('Invalid Event.');
+                }
+            }
         }
+
         if ($target_type == 'attribute') {
             $existingTargetTag = $this->Event->Attribute->AttributeTag->find('first', array(
                 'conditions' => array('AttributeTag.tag_id' => $tag_id, 'AttributeTag.attribute_id' => $target_id),
@@ -245,6 +265,12 @@ class GalaxyClustersController extends AppController
         } elseif ($target_type == 'event') {
             $existingTargetTag = $this->Event->EventTag->find('first', array(
                 'conditions' => array('EventTag.tag_id' => $tag_id, 'EventTag.event_id' => $target_id),
+                'recursive' => -1,
+                'contain' => array('Tag')
+            ));
+        } elseif ($target_type == 'tag_collection') {
+            $existingTargetTag = $this->GalaxyCluster->Tag->TagCollectionTag->find('first', array(
+                'conditions' => array('TagCollectionTag.tag_id' => $tag_id, 'TagCollectionTag.tag_collection_id' => $target_id),
                 'recursive' => -1,
                 'contain' => array('Tag')
             ));
@@ -261,6 +287,8 @@ class GalaxyClustersController extends AppController
                 $result = $this->Event->EventTag->delete($existingTargetTag['EventTag']['id']);
             } elseif ($target_type == 'attribute') {
                 $result = $this->Event->Attribute->AttributeTag->delete($existingTargetTag['AttributeTag']['id']);
+            } elseif ($target_type == 'tag_collection') {
+                $result = $this->GalaxyCluster->Tag->TagCollectionTag->delete($existingTargetTag['TagCollectionTag']['id']);
             }
             if ($result) {
                 $event['Event']['published'] = 0;

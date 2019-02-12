@@ -3,19 +3,22 @@
     echo $this->Form->create('Event', array('style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => '/events/' . $type . '/' . $id));
     $extraTitle = "";
     if ($type == 'publish') $extraTitle = ' (no email)';
+    $message = __('Publish Event%s', $extraTitle);
+    if ($type === 'unpublish') {
+        $message = __('Unpublish Event%s', $extraTitle);
+    }
     ?>
-    <legend><?php echo __('Publish Event%s', $extraTitle);?></legend>
+
+    <legend><?php echo $message;?></legend>
     <div style="padding-left:5px;padding-right:5px;padding-bottom:5px;">
         <?php
-            if ($type == 'alert'):
-        ?>
-                <p><?php echo __('Are you sure this event is complete and everyone should be informed?');?></p>
-        <?php
-            else:
-        ?>
-                <p><?php echo __('Publish but do NOT send alert email? Only for minor changes!');?></p>
-        <?php
-            endif;
+            if ($type == 'alert') {
+                echo '<p>' . __('Are you sure this event is complete and everyone should be informed?') . '</p>';
+            } else if ($type === 'unpublish') {
+                echo '<p>' . __('Are you sure you wish to unpublish the event?') . '</p>';
+            } else {
+                echo '<p>' . __('Publish but do NOT send alert email? Only for minor changes!') . '</p>';
+            }
         ?>
         <table>
             <tr>

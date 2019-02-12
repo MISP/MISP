@@ -117,15 +117,17 @@
                         </ul>
                     </li>
 
-                    <?php if ($isAclSync || $isAdmin): ?>
+                    <?php if ($isAclSync || $isAdmin || $hostOrgUser): ?>
                     <li class="dropdown">
                         <a class="dropdown-toggle" data-toggle="dropdown" href="#">
                             <?php echo __('Sync Actions');?>
                             <b class="caret"></b>
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a href="<?php echo $baseurl;?>/servers/index"><?php echo __('List Servers');?></a></li>
-                            <?php if ($isSiteAdmin): ?>
+                            <?php if ($isAclSync || $isAdmin): ?>
+                                <li><a href="<?php echo $baseurl;?>/servers/index"><?php echo __('List Servers');?></a></li>
+                            <?php endif; ?>
+                            <?php if ($isSiteAdmin || $hostOrgUser): ?>
                                 <li><a href="<?php echo $baseurl;?>/feeds/index"><?php echo __('List Feeds');?></a></li>
                             <?php endif;?>
                         </ul>

@@ -5,7 +5,7 @@ Modified version of http://www.tnoda.com/blog/2013-12-19
   echo $this->Html->script('d3');
   //echo $this->Html->css('sightingstyle');
 ?>
-<div id="spark_<?php echo h($id); ?>"></div>
+<div id="spark_<?php echo (isset($scope) ? h($scope) . '_' : ''); ?><?php echo h($id); ?>"></div>
 <script>
   var width = 100;
   var height = 25;
@@ -43,6 +43,6 @@ Modified version of http://www.tnoda.com/blog/2013-12-19
   var myData = "<?php echo isset($csv) ? $csv : ''; ?>";
   if (myData != '') {
     var data = d3.csv.parse(myData);
-    sparkline('#spark_<?php echo h($id); ?>', data);
+    sparkline('#spark_<?php echo (isset($scope) ? h($scope) . '_' : ''); ?><?php echo h($id); ?>', data);
   }
 </script>

@@ -370,7 +370,7 @@ dt {
 dd {
 	float:left;
 	vertical-align: top;
-	width: calc(100% - 150px);
+	width: calc(100% - 151px);
 	padding: 0;
 	margin: 0;
 }
@@ -892,6 +892,95 @@ a.proposal_link_red:hover {
 
 .ajax_popover_form .add_attribute_fields {
 	padding-left:10px;
+}
+
+a.pill-pre-picker {
+    background-color: #fcfcfc;
+    font-weight: bold;
+    border: 1px #65737ec8 solid;
+}
+.nav-pills > .active > a.pill-pre-picker {
+    background-color: #65737e32;
+	color: #000;
+}
+
+.generic_picker {
+    display: inline-block;
+    min-width: 500px;
+}
+
+.generic_picker .generic_picker {
+	margin-left: 10px;
+}
+
+.generic_picker ul.nav {
+	margin-bottom: 0px;
+}
+
+.generic-picker-wrapper {
+    padding: 7px;
+    margin-top: 3px;
+    background-color: #65737e32;
+    border: 1px #65737ec8 solid;
+    border-radius: 7px;
+}
+.generic-picker-wrapper:before {
+    content: '';
+    margin-right: 5px;
+    margin-left: 2px;
+    border-left: 1px solid;
+    border-bottom: 1px solid;
+    height: 10px;
+    width: 5px;
+	position: absolute;
+}
+
+.generic-picker-item-element-check {
+	float: right;
+	border: 1px solid #999;
+	background-color: #ddd;
+	border-radius: 9px;
+	padding: 2px;
+	margin-top: 5px;
+	color: #fff;
+	line-height: 13px;
+}
+.generic-picker-item-element-check .fa:before {
+	margin-right: 0px;
+}
+
+.chosen-single .generic-picker-item-element-check {
+	margin-top: 2px;
+	margin-right: 5px;
+}
+
+.chosen-single .generic-picker-item-element-info {
+	margin-top: 5px;
+}
+
+.chosen-single .apply_css_arrow{
+	display: none !important;
+}
+
+.chosen-container .chosen-results li {
+    overflow: auto;
+}
+/* hacky hack: center selected item info icon */
+.chosen-container-single span it.fa, .chosen-single-with-deselect span it.fa {
+    line-height: 24px;
+    margin-right: 8px;
+}
+
+.apply_css_arrow:before {
+    content: '';
+    margin-right: 5px;
+    margin-left: 2px;
+    border-left: 1px solid;
+    border-bottom: 1px solid;
+    height: 7px;
+    width: 5px;
+    display: inline-block;
+    float: left;
 }
 
 .gray_out {
@@ -1736,8 +1825,8 @@ a.discrete {
 	border-radius:5px;
 }
 
-.redHighlightedBlock {
-	border:1px solid red;
+.greyHighlightedBlock {
+	border:1px solid #cccccc;
 	background-color:white;
 	padding:5px;
 	border-radius:5px;
@@ -2123,4 +2212,27 @@ table tr:hover .down-expand-button {
     font-size: smaller;
     position: relative;
     bottom: 4px;
+}
+
+.meta_table {
+    table-layout: fixed;
+    padding: 0;
+    margin: 0;
+}
+
+.meta_table_key {
+    width: 150px;
+    font-weight: bold;
+    padding: 0;
+    margin: 0;
+    text-align: left;
+}
+.meta_table_value {
+    padding: 0;
+    margin: 0;
+    text-align: left;
+}
+
+.break-word {
+    word-wrap: break-word;
 }

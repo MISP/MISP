@@ -46,9 +46,9 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg');
 
-    private $__queryVersion = '51';
-    public $pyMispVersion = '2.4.99';
-    public $phpmin = '5.6.5';
+    private $__queryVersion = '57';
+    public $pyMispVersion = '2.4.102';
+    public $phpmin = '7.0.16';
     public $phprec = '7.0.16';
 
     public $baseurl = '';
@@ -333,6 +333,9 @@ class AppController extends Controller
             }
         } else {
             if (!($this->params['controller'] === 'users' && $this->params['action'] === 'login')) {
+                if (!$this->request->is('ajax')) {
+                    $this->Session->write('pre_login_requested_url', $this->here);
+                }
                 $this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
             }
         }
@@ -407,6 +410,7 @@ class AppController extends Controller
             $this->set('me', $this->Auth->user());
             $this->set('isAdmin', $role['perm_admin']);
             $this->set('isSiteAdmin', $role['perm_site_admin']);
+            $this->set('hostOrgUser', $this->Auth->user('org_id') == Configure::read('MISP.host_org_id'));
             $this->set('isAclAdd', $role['perm_add']);
             $this->set('isAclModify', $role['perm_modify']);
             $this->set('isAclModifyOrg', $role['perm_modify_org']);
@@ -627,13 +631,16 @@ class AppController extends Controller
                     $data[$p] = str_replace(';', ':', $data[$p]);
                 }
                 if (isset($options['named_params'][$p])) {
-                    $data[$p] = $options['named_params'][$p];
+                    $data[$p] = str_replace(';', ':', $options['named_params'][$p]);
                 }
             }
         }
         foreach ($data as $k => $v) {
             if (!is_array($data[$k])) {
                 $data[$k] = trim($data[$k]);
+                if (strpos($data[$k], '||')) {
+                    $data[$k] = explode('||', $data[$k]);
+                }
             }
         }
         if (!empty($options['additional_delimiters'])) {
@@ -641,9 +648,17 @@ class AppController extends Controller
                 $options['additional_delimiters'] = array($options['additional_delimiters']);
             }
             foreach ($data as $k => $v) {
-                $data[$k] = explode($options['additional_delimiters'][0], str_replace($options['additional_delimiters'], $options['additional_delimiters'][0], $v));
-                foreach ($data[$k] as $k2 => $value) {
-                    $data[$k][$k2] = trim($data[$k][$k2]);
+                $found = false;
+                foreach ($options['additional_delimiters'] as $delim) {
+                    if (strpos($v, $delim) !== false) {
+                        $found = true;
+                    }
+                }
+                if ($found) {
+                    $data[$k] = explode($options['additional_delimiters'][0], str_replace($options['additional_delimiters'], $options['additional_delimiters'][0], $v));
+                    foreach ($data[$k] as $k2 => $value) {
+                        $data[$k][$k2] = trim($data[$k][$k2]);
+                    }
                 }
             }
         }

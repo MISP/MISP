@@ -1,7 +1,7 @@
 !!! warning
     If you have installed the recommended Python 3 virtualenv to the recommended place of **${PATH_TO_MISP}/venv** set the following MISP configurable
     ```bash
-    sudo $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
+    sudo -H -u www-data $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
     ```
     or on CentOS
     ```bash

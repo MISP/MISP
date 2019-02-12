@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2018-10-15 23:37\n"
+"PO-Revision-Date: 2019-01-22 21:26\n"
 "Last-Translator: SteveClement <steve@localhost.lu>\n"
 "Language-Team: Portuguese, Brazilian\n"
 "MIME-Version: 1.0\n"
@@ -6931,7 +6931,7 @@ msgid "This event has "
 msgstr ""
 
 #: View/Events/view.ctp:336
-msgid "correlations with data contained within the various feeds, however, due to the large number of attributes the actual feed correlations are not shown. Click <a href=\"%s\\/overrideLimit:1\">here</a> to refresh the page with the feed data loaded."
+msgid "correlations with data contained within the various feeds, however, due to the large number of attributes the actual feed correlations are not shown. Click (<a href=\"%s\\/overrideLimit:1\">here</a> to refresh the page with the feed data loaded."
 msgstr ""
 
 #: View/Events/view.ctp:344

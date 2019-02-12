@@ -7,7 +7,7 @@ class TaxonomiesController extends AppController
 
     public $paginate = array(
             'limit' => 60,
-            'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
             'contain' => array(
                 'TaxonomyPredicate' => array(
                     'fields' => array('TaxonomyPredicate.id'),
@@ -119,6 +119,7 @@ class TaxonomiesController extends AppController
                 'recursive' => -1,
                 'conditions' => array('Taxonomy.id' => $id),
         ));
+        $this->Taxonomy->disableTags($id);
         $taxonomy['Taxonomy']['enabled'] = 0;
         $this->Taxonomy->save($taxonomy);
         $this->Log = ClassRegistry::init('Log');
