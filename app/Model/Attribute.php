@@ -10,10 +10,10 @@ class Attribute extends AppModel
 {
     public $combinedKeys = array('event_id', 'category', 'type');
 
-    public $name = 'Attribute';				// TODO general
+    public $name = 'Attribute';             // TODO general
 
     public $actsAs = array(
-        'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+        'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
             'userModel' => 'User',
             'userKey' => 'user_id',
             'change' => 'full'),
@@ -1466,7 +1466,7 @@ class Attribute extends AppModel
     {
         // build the list of composite Attribute.type dynamically by checking if type contains a |
         // default composite types
-        $compositeTypes = array('malware-sample');	// TODO hardcoded composite
+        $compositeTypes = array('malware-sample');  // TODO hardcoded composite
         // dynamically generated list
         foreach (array_keys($this->typeDefinitions) as $type) {
             $pieces = explode('|', $type);
@@ -1601,11 +1601,11 @@ class Attribute extends AppModel
         } else {
             // Plebian filesystem operations
             $rootDir = $attachments_dir . DS . $attribute['event_id'];
-            $dir = new Folder($rootDir, true);						// create directory structure
+            $dir = new Folder($rootDir, true);                      // create directory structure
             $destpath = $rootDir . DS . $attribute['id'];
-            $file = new File($destpath, true);						// create the file
-            $decodedData = base64_decode($attribute['data']);		// decode
-            if ($file->write($decodedData)) {						// save the data
+            $file = new File($destpath, true);                      // create the file
+            $decodedData = base64_decode($attribute['data']);       // decode
+            if ($file->write($decodedData)) {                       // save the data
                 return true;
             } else {
                 // error
@@ -3666,11 +3666,11 @@ class Attribute extends AppModel
                 return 'Invalid sharing group choice.';
             }
         } else if (!isset($attribute['distribution'])) {
-			$attribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
-			if ($attribute['distribution'] == 'event') {
-				$attribute['distribution'] = 5;
-			}
-		}
+            $attribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
+            if ($attribute['distribution'] == 'event') {
+                $attribute['distribution'] = 5;
+            }
+        }
         $fieldList = array(
             'event_id',
             'category',

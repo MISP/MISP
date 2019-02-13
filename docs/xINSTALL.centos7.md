@@ -371,6 +371,9 @@ sudo chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/tmp
 # Allow httpd to connect to the redis server and php-fpm over tcp/ip
 sudo setsebool -P httpd_can_network_connect on
 
+# Allow httpd to send emails from php
+sudo setsebool -P httpd_can_sendmail on
+
 # Enable and start the httpd service
 sudo systemctl enable httpd.service
 sudo systemctl start  httpd.service

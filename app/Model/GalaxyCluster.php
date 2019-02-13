@@ -28,7 +28,7 @@ class GalaxyCluster extends AppModel
 
     public $hasMany = array(
         'GalaxyElement' => array('dependent' => true),
-    //	'GalaxyReference'
+    //  'GalaxyReference'
     );
 
     public function beforeValidate($options = array())

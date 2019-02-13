@@ -370,7 +370,7 @@ dt {
 dd {
 	float:left;
 	vertical-align: top;
-	width: calc(100% - 150px);
+	width: calc(100% - 151px);
 	padding: 0;
 	margin: 0;
 }
@@ -2217,4 +2217,27 @@ table tr:hover .down-expand-button {
     font-size: smaller;
     position: relative;
     bottom: 4px;
+}
+
+.meta_table {
+    table-layout: fixed;
+    padding: 0;
+    margin: 0;
+}
+
+.meta_table_key {
+    width: 150px;
+    font-weight: bold;
+    padding: 0;
+    margin: 0;
+    text-align: left;
+}
+.meta_table_value {
+    padding: 0;
+    margin: 0;
+    text-align: left;
+}
+
+.break-word {
+    word-wrap: break-word;
 }
