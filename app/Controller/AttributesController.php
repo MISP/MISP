@@ -1606,15 +1606,15 @@ class AttributesController extends AppController
             foreach ($clusters as $k => $cluster) {
                 $name = $cluster['value'];
                 $optionName = $cluster['value'];
-                $optionName .= $cluster['synonyms_string'] !== '' ? ' (' . $cluster['synonyms_string'] . ')' : '';
+                $synom = $cluster['synonyms_string'] !== '' ? ' (' . $cluster['synonyms_string'] . ')' : '';
+                $optionName .= $synom;
 
                 $temp = array(
                     'name' => $optionName,
                     'value' => $cluster['id'],
                     'template' => array(
                         'name' => $name,
-                        'infoExtra' => $cluster['description'],
-                        'infoContextual' => $title
+                        'infoExtra' => $cluster['description']
                     )
                 );
                 if ($cluster['synonyms_string'] !== '') {
