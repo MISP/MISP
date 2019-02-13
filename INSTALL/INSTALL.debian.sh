@@ -284,6 +284,7 @@ progress () {
 
 # Check locale
 checkLocale () {
+  debug "Checking Locale"
   # If locale is missing, generate and install a common UTF-8
   if [ ! -f /etc/default/locale ]; then
     checkAptLock
@@ -722,14 +723,14 @@ theEnd () {
   echo "User: admin@admin.test"
   echo "Password: admin"
   space
-  [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && echo -e "${LBLUE}MISP${NC} Dashboard, access here: ${MISP_BASEURL}:8001"
-  [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && space
-  [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-web installed, access here: ${MISP_BASEURL}:8888"
-  [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-cli configured with your ${LBLUE}MISP${NC} ${RED}Site Admin Auth Key${NC}"
-  [[ -n $VIPER ]] || [[ -n $ALL ]] && echo
-  [[ -n $VIPER ]] || [[ -n $ALL ]] && echo "User: admin"
-  [[ -n $VIPER ]] || [[ -n $ALL ]] && echo "Password: Password1234"
-  [[ -n $VIPER ]] || [[ -n $ALL ]] && space
+  [[ -n $KALI ]] || [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && echo -e "${LBLUE}MISP${NC} Dashboard, access here: ${MISP_BASEURL}:8001"
+  [[ -n $KALI ]] || [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && space
+  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-web installed, access here: ${MISP_BASEURL}:8888"
+  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-cli configured with your ${LBLUE}MISP${NC} ${RED}Site Admin Auth Key${NC}"
+  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo
+  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo "User: admin"
+  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && echo "Password: Password1234"
+  [[ -n $KALI ]] || [[ -n $VIPER ]] || [[ -n $ALL ]] && space
   echo -e "The following files were created and need either ${RED}protection or removal${NC} (${YELLOW}shred${NC} on the CLI)"
   echo "/home/${MISP_USER}/mysql.txt"
   echo -e "${RED}Contents:${NC}"
@@ -1577,6 +1578,7 @@ installMISPubuntuSupported () {
   echo "Proceeding with the installation of MISP core"
   space
 
+  # Set locale if not set - functionLocation('generic/supportFunctions.md')
   debug "Checking Locale"
   checkLocale
 
@@ -1708,10 +1710,15 @@ installMISPonKali () {
   # Kali might have a bug on installs where libc6 is not up to date, this forces bash and libc to update - functionLocation('')
   kaliUpgrade 2> /dev/null > /dev/null
 
-  debug "Checking Locale"
+  # Set locale if not set - functionLocation('generic/supportFunctions.md')
   checkLocale
+
+  # Set Base URL - functionLocation('generic/supportFunctions.md')
+  setBaseURL
+
   # Install PHP 7.3 Dependencies - functionLocation('generic/supportFunctions.md')
   installDepsPhp73 2> /dev/null > /dev/null
+
   # Set custom Kali only variables and tweaks
   space
   # The following disables sleep on kali/gnome
