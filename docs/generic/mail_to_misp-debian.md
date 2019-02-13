@@ -5,6 +5,7 @@
 # <snippet-begin 5_mail_to_misp.sh>
 # Main mail2misp install function
 mail2misp () {
+  debug "Installing Mail2${LBLUE}MISP${NC}"
   cd /usr/local/src/
   sudo apt-get install cmake libcaca-dev -y
   $SUDO_USER git clone https://github.com/MISP/mail_to_misp.git

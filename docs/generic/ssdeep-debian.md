@@ -3,6 +3,7 @@
 ```bash
 # <snippet-begin 6_ssdeep.sh>
 ssdeep () {
+  debug "Install ssdeep 2.14.1"
   cd /usr/local/src
   $SUDO_USER wget https://github.com/ssdeep-project/ssdeep/releases/download/release-2.14.1/ssdeep-2.14.1.tar.gz
   $SUDO_USER tar zxvf ssdeep-2.14.1.tar.gz

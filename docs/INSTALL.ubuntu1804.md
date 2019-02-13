@@ -41,6 +41,7 @@ curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debia
 ```bash
 # <snippet-begin 0_apt-upgrade.sh>
 aptUpgrade () {
+  debug "Upgrading system"
   checkAptLock
   sudo apt-get update
   sudo apt-get upgrade -y
@@ -75,6 +76,7 @@ Once the system is installed you can perform the following steps.
 ```bash
 # <snippet-begin 0_installCoreDeps.sh>
 installCoredDeps () {
+  debug "Installing core dependencies"
   # Install the dependencies: (some might already be installed)
   sudo apt-get install curl gcc git gpg-agent make python python3 openssl redis-server sudo vim zip virtualenv libfuzzy-dev -y
 
@@ -95,6 +97,7 @@ installCoredDeps () {
 # <snippet-begin 0_installDepsPhp72.sh>
 # Install Php 7.2 dependencies
 installDepsPhp72 () {
+  debug "Installing PHP 7.2 dependencies"
   PHP_ETC_BASE=/etc/php/7.2
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
   sudo apt update
@@ -118,6 +121,7 @@ installDepsPhp72 () {
 ```bash
 # <snippet-begin 1_mispCoreInstall.sh>
 installCore () {
+  debug "Installing ${LBLUE}MISP${NC} core"
   # Download MISP using git in the /var/www/ directory.
   sudo mkdir ${PATH_TO_MISP}
   sudo chown www-data:www-data ${PATH_TO_MISP}
@@ -181,6 +185,7 @@ installCore () {
 ```bash
 # <snippet-begin 1_installCake.sh>
 installCake () {
+  debug "Installing CakePHP"
   # Once done, install CakeResque along with its dependencies 
   # if you intend to use the built in background jobs:
   cd ${PATH_TO_MISP}/app
@@ -211,6 +216,7 @@ installCake () {
 # <snippet-begin 2_permissions.sh>
 # Main function to fix permissions to something sane
 permissions () {
+  debug "Setting permissions"
   sudo chown -R ${WWW_USER}:${WWW_USER} ${PATH_TO_MISP}
   sudo chmod -R 750 ${PATH_TO_MISP}
   sudo chmod -R g+ws ${PATH_TO_MISP}/app/tmp
@@ -228,6 +234,7 @@ permissions () {
 ```bash
 # <snippet-begin 1_prepareDB.sh>
 prepareDB () {
+  debug "Setting up database"
   # Add your credentials if needed, if sudo has NOPASS, comment out the relevant lines
   pw=$MISP_PASSWORD
 
@@ -281,6 +288,7 @@ Now configure your Apache webserver with the DocumentRoot ${PATH_TO_MISP}/app/we
 ```bash
 # <snippet-begin 1_apacheConfig.sh>
 apacheConfig () {
+  debug "Generating Apache config"
   sudo cp ${PATH_TO_MISP}/INSTALL/apache.24.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
 
   # If a valid SSL certificate is not already created for the server,
@@ -370,6 +378,7 @@ logRotation () {
 ```bash
 # <snippet-begin 2_configMISP.sh>
 configMISP () {
+  debug "Generating ${LBLUE}MISP${NC} config files"
   # There are 4 sample configuration files in ${PATH_TO_MISP}/app/Config that need to be copied
   sudo -u www-data cp -a ${PATH_TO_MISP}/app/Config/bootstrap.default.php ${PATH_TO_MISP}/app/Config/bootstrap.php
   sudo -u www-data cp -a ${PATH_TO_MISP}/app/Config/database.default.php ${PATH_TO_MISP}/app/Config/database.php
@@ -418,6 +427,7 @@ configMISP () {
 ```bash
 # <snippet-begin 2_backgroundWorkers.sh>
 backgroundWorkers () {
+  debug "Setting up background workers"
   # To make the background workers start on boot
   sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
   if [ ! -e /etc/rc.local ]

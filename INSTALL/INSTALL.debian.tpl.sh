@@ -190,19 +190,15 @@ installMISPubuntuSupported () {
   echo "Proceeding with the installation of MISP core"
   space
 
-  spin &
-  SPIN_PID=$!
-  trap "kill -9 $SPIN_PID" `seq 0 15`
-
-  debug "Setting Base URL"
+  # Set Base URL - functionLocation('generic/supportFunctions.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && setBaseURL
   progress 4
 
-  # Upgrade system to make sure we install  the latest packages - functionLocation('')
+  # Upgrade system to make sure we install  the latest packages - functionLocation('INSTALL.ubuntu1804.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && aptUpgrade 2> /dev/null > /dev/null
   progress 4
 
-  # Check if sudo is installed and etckeeper - functionLocation('')
+  # Check if sudo is installed and etckeeper - functionLocation('generic/sudo_etckeeper.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && checkSudoKeeper 2> /dev/null > /dev/null
   progress 4
 
@@ -213,92 +209,106 @@ installMISPubuntuSupported () {
   # TODO: Double check how to properly handle postfix
   # <snippet-begin postfix.sh>
 
-  # Pull in all possible MISP Environment variables - functionLocation('')
+  # Pull in all possible MISP Environment variables - functionLocation('generic/globalVariables.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && MISPvars
   progress 4
 
-  echo "Checking if run as root and $MISP_USER is present"
+  # Check if MISP user is installed and we do not run as root - functionLocation('generic/supportFunctions.md')
   checkID
   progress 4
 
-  # Install Core Dependencies - functionLocation('')
+  # Starting friendly UI spinner
+  spin &
+  SPIN_PID=$!
+  disown
+  trap "kill -9 $SPIN_PID" `seq 0 15`
+
+  # Install Core Dependencies - functionLocation('INSTALL.ubuntu1804.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && installCoredDeps 2> /dev/null > /dev/null
   progress 4
 
-  # Install PHP 7.2 Dependencies - functionLocation('')
+  # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72 2> /dev/null > /dev/null
   progress 4
 
-  # Install Core MISP - functionLocation('')
+  # Install Core MISP - functionLocation('INSTALL.ubuntu1804.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && installCore
   progress 4
 
-  # Install PHP Cake - functionLocation('')
+  # Install PHP Cake - functionLocation('INSTALL.ubuntu1804.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && installCake
   progress 4
 
-  # Make sure permissions are sane - functionLocation('')
+  # Make sure permissions are sane - functionLocation('INSTALL.ubuntu1804.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && permissions 2> /dev/null > /dev/null
   progress 4
 
   # TODO: Mysql install functions, make it upgrade safe, double check
-  # Setup Databse - functionLocation('')
+  # Setup Databse - functionLocation('INSTALL.ubuntu1804.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && prepareDB 2> /dev/null > /dev/null
   progress 4
 
-  # Roll Apache Config - functionLocation('')
+  # Roll Apache Config - functionLocation('INSTALL.ubuntu1804.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && apacheConfig 2> /dev/null > /dev/null
   progress 4
 
-  # Setup log logrotate - functionLocation('')
+  # Setup log logrotate - functionLocation('INSTALL.ubuntu1804.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && logRotation 2> /dev/null > /dev/null
   progress 4
 
-  # Generate MISP Config files - functionLocation('')
+  # Generate MISP Config files - functionLocation('INSTALL.ubuntu1804.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && configMISP 2> /dev/null > /dev/null
   progress 4
 
-  # Generate GnuPG key - functionLocation('')
+  # Generate GnuPG key - functionLocation('generic/gnupg.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && setupGnuPG 2> /dev/null > /dev/null
   progress 4
 
-  # Setup and start background workers - functionLocation('')
+  # Setup and start background workers - functionLocation('INSTALL.ubuntu1804.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && backgroundWorkers 2> /dev/null > /dev/null
   progress 4
 
-  # Run cake CLI for the core installation - functionLocation('')
+  # Run cake CLI for the core installation - functionLocation('generic/MISP_CAKE_init.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && coreCAKE 2> /dev/null > /dev/null
   progress 4
 
-  # Update Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies - functionLocation('')
+  # Update Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies - functionLocation('generic/MISP_CAKE_init.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && updateGOWNT 2> /dev/null > /dev/null
   progress 4
 
-  # Check if /usr/local/src is writeable by target install user - functionLocation('')
+  # Disable spinner
+  (kill $SPIN_PID 2>&1) >/dev/null
+
+  # Check if /usr/local/src is writeable by target install user - functionLocation('generic/supportFunctions.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && checkUsrLocalSrc
   progress 4
 
-  # Install misp-modules - functionLocation('')
+  spin &
+  SPIN_PID=$!
+  disown
+  trap "kill -9 $SPIN_PID" `seq 0 15`
+
+  # Install misp-modules - functionLocation('generic/misp-modules-debian.md')
   [[ -n $MODULES ]]   || [[ -n $ALL ]] && mispmodules
   progress 4
 
-  # Install Viper - functionLocation('')
+  # Install Viper - functionLocation('generic/viper-debian.md')
   [[ -n $VIPER ]]     || [[ -n $ALL ]] && viper
   progress 4
 
-  # Install ssdeep - functionLocation('')
+  # Install ssdeep - functionLocation('generic/ssdeep-debian.md')
   [[ -n $SSDEEP ]]     || [[ -n $ALL ]] && ssdeep
   progress 4
 
-  # Install misp-dashboard - functionLocation('')
+  # Install misp-dashboard - functionLocation('generic/misp-dashboard-debian.md')
   [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && mispDashboard ; dashboardCAKE 2> /dev/null > /dev/null
   progress 4
 
-  # Install Mail2MISP - functionLocation('')
+  # Install Mail2MISP - functionLocation('generic/mail_to_misp-debian.md')
   [[ -n $MAIL2 ]]     || [[ -n $ALL ]] && mail2misp
   progress 100
 
-  # Run final script to inform the User what happened - functionLocation('')
+  # Run final script to inform the User what happened - functionLocation('generic/supportFunctions.md')
   theEnd
 }
 

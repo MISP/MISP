@@ -3,6 +3,7 @@
 # <snippet-begin 2_core-cake.sh>
 # Core cake commands
 coreCAKE () {
+  debug "Running core Cake commands to set sane defaults for ${LBLUE}MISP${NC}"
   $SUDO_WWW -E $CAKE userInit -q
 
   # This makes sure all Database upgrades are done, without logging in.
@@ -115,6 +116,7 @@ coreCAKE () {
 
 # This updates Galaxies, ObjectTemplates, Warninglists, Noticelists, Templates
 updateGOWNT () {
+  debug "Updating Galaxies, ObjectTemplates, Warninglists, Noticelists and Templates"
   AUTH_KEY=$(mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM users;" | tail -1)
 
   # Update the galaxies…

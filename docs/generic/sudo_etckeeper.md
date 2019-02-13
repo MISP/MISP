@@ -5,6 +5,7 @@
 # <snippet-begin 0_sudoKeeper.sh>
 # check if sudo is installed
 checkSudoKeeper () {
+  echo "Checking for sudo and installing etckeeper"
   if [[ ! -f $(which sudo) ]]; then
     su -c "apt install etckeeper -y"
     su -c "apt install sudo -y"

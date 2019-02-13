@@ -129,7 +129,6 @@ spin()
 # Progress bar
 progress () {
   bar="#"
-  echo $progress
   if [[ $progress -ge 100 ]]; then
     echo -ne "#####################################################################################################  (100%)\r"
     return
@@ -164,6 +163,7 @@ checkFail () {
 
 # Check if misp user is present and if run as root
 checkID () {
+  debug "Checking if run as root and $MISP_USER is present"
   if [[ $EUID == 0 ]]; then
     echo "This script cannot be run as a root"
     exit 1
@@ -182,7 +182,7 @@ checkID () {
       echo "User $MISP_USER added, password is: $MISP_PASSWORD"
     elif [[ $ANSWER == "n" ]]; then
       echo "Using $USER as install user, hope that is what you want."
-      echo "${RED}Adding $USER to groups www-data and staff${NC}"
+      echo -e "${RED}Adding $USER to groups www-data and staff${NC}"
       MISP_USER=$USER
       sudo adduser $MISP_USER staff
       sudo adduser $MISP_USER www-data
@@ -194,7 +194,7 @@ checkID () {
     fi
   else
     echo "User ${MISP_USER} exists, skipping creation"
-    echo "${RED}Adding $MISP_USER to groups www-data and staff${NC}"
+    echo -e "${RED}Adding $MISP_USER to groups www-data and staff${NC}"
     sudo adduser $MISP_USER staff
     sudo adduser $MISP_USER www-data
   fi
@@ -265,6 +265,7 @@ kaliOnRootR0ckz () {
 }
 
 setBaseURL () {
+  debug "Setting Base URL"
   if [[ $(checkManufacturer) != "innotek GmbH" ]]; then
     debug "We guess that this is a physical machine and cannot possibly guess what the MISP_BASEURL might be."
     if [[ "$UNATTENDED" != "1" ]]; then 
@@ -297,18 +298,18 @@ setBaseURL () {
 
 # Test and install software RNG
 installRNG () {
-  modprobe tpm-rng 2> /dev/null
+  sudo modprobe tpm-rng 2> /dev/null
   if [ "$?" -eq "0" ]; then 
-    echo tpm-rng >> /etc/modules
+    echo tpm-rng | sudo tee -a /etc/modules
   fi
   checkAptLock
-  apt install -qy rng-tools # This might fail on TPM grounds, enable the security chip in your BIOS
-  service rng-tools start
+  sudo apt install -qy rng-tools # This might fail on TPM grounds, enable the security chip in your BIOS
+  sudo service rng-tools start
 
   if [ "$?" -eq "1" ]; then 
-    apt purge -qy rng-tools
-    apt install -qy haveged
-    /etc/init.d/haveged start
+    sudo apt purge -qy rng-tools
+    sudo apt install -qy haveged
+    sudo /etc/init.d/haveged start
   fi
 }
 
@@ -322,7 +323,7 @@ kaliUpgrade () {
 
 # Disables sleep
 disableSleep () {
-  debug "Disabling sleep etc if run from a Laptop as the install might take some time…"
+  debug "Disabling sleep etc if run from a Laptop as the install might take some time…" > /dev/tty
   gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 0 2> /dev/null
   gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 0 2> /dev/null
   gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type nothing 2> /dev/null
@@ -346,7 +347,7 @@ checkAptLock () {
   SLEEP=3
   while [ "$DONE" != "0" ]; do
     sudo apt-get check 2> /dev/null > /dev/null && DONE=0
-    echo -e "${LBLUE}apt${NC} is maybe ${RED}locked${NC}, waiting ${RED}$SLEEP${NC} seconds."
+    echo -e "${LBLUE}apt${NC} is maybe ${RED}locked${NC}, waiting ${RED}$SLEEP${NC} seconds." > /dev/tty
     sleep $SLEEP
     SLEEP=$[$SLEEP+3]
   done
@@ -356,6 +357,7 @@ checkAptLock () {
 # <snippet-begin 0_installDepsPhp73.sh>
 # Install Php 7.3 deps
 installDepsPhp73 () {
+  debug "Installing PHP 7.3 dependencies"
   PHP_ETC_BASE=/etc/php/7.3
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
   sudo apt update

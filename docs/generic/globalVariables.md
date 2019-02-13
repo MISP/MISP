@@ -2,8 +2,8 @@
 
 ```bash
 # <snippet-begin 0_global-vars.sh>
-# Setting generic MISP variables shared by all flavours
 MISPvars () {
+  debug "Setting generic ${LBLUE}MISP${NC} variables shared by all flavours"
   # Local non-root MISP user
   MISP_USER='misp'
   MISP_PASSWORD='Password1234'
@@ -49,7 +49,7 @@ MISPvars () {
   GPG_PASSPHRASE='Password1234'
 
   # debug alias to make sure people are not confused when blindly copy pasting blobs of code
-  alias debug=echo
+  alias debug="echo -e"
 
   # checkAptLock alias to make sure people are not confused when blindly copy pasting blobs of code
   alias checkAptLock="echo 'Function used in Installer to make sure apt is not locked'"
@@ -66,8 +66,9 @@ MISPvars () {
   SUDO_USER="sudo -H -u ${MISP_USER} "
   SUDO_WWW="sudo -H -u ${WWW_USER} "
 
-  debug "Admin (${DBUSER_ADMIN}) DB Password: ${DBPASSWORD_ADMIN}"
-  debug "User  (${DBUSER_MISP}) DB Password: ${DBPASSWORD_MISP}"
+  echo "The following DB Passwords were generated..."
+  echo "Admin (${DBUSER_ADMIN}) DB Password: ${DBPASSWORD_ADMIN}"
+  echo "User  (${DBUSER_MISP}) DB Password: ${DBPASSWORD_MISP}"
 }
 # <snippet-end 0_global-vars.sh>
 ```

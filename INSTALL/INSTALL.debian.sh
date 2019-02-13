@@ -60,8 +60,8 @@
 #
 #### BEGIN AUTOMATED SECTION ####
 #
-# Setting generic MISP variables shared by all flavours
 MISPvars () {
+  debug "Setting generic ${LBLUE}MISP${NC} variables shared by all flavours"
   # Local non-root MISP user
   MISP_USER='misp'
   MISP_PASSWORD='Password1234'
@@ -107,7 +107,7 @@ MISPvars () {
   GPG_PASSPHRASE='Password1234'
 
   # debug alias to make sure people are not confused when blindly copy pasting blobs of code
-  alias debug=echo
+  alias debug="echo -e"
 
   # checkAptLock alias to make sure people are not confused when blindly copy pasting blobs of code
   alias checkAptLock="echo 'Function used in Installer to make sure apt is not locked'"
@@ -124,8 +124,9 @@ MISPvars () {
   SUDO_USER="sudo -H -u ${MISP_USER} "
   SUDO_WWW="sudo -H -u ${WWW_USER} "
 
-  debug "Admin (${DBUSER_ADMIN}) DB Password: ${DBPASSWORD_ADMIN}"
-  debug "User  (${DBUSER_MISP}) DB Password: ${DBPASSWORD_MISP}"
+  echo "The following DB Passwords were generated..."
+  echo "Admin (${DBUSER_ADMIN}) DB Password: ${DBPASSWORD_ADMIN}"
+  echo "User  (${DBUSER_MISP}) DB Password: ${DBPASSWORD_MISP}"
 }
 
 # Leave empty for NO debug messages, if run with set -x or bash -x it will enable DEBUG by default
@@ -257,7 +258,6 @@ spin()
 # Progress bar
 progress () {
   bar="#"
-  echo $progress
   if [[ $progress -ge 100 ]]; then
     echo -ne "#####################################################################################################  (100%)\r"
     return
@@ -292,6 +292,7 @@ checkFail () {
 
 # Check if misp user is present and if run as root
 checkID () {
+  debug "Checking if run as root and $MISP_USER is present"
   if [[ $EUID == 0 ]]; then
     echo "This script cannot be run as a root"
     exit 1
@@ -310,7 +311,7 @@ checkID () {
       echo "User $MISP_USER added, password is: $MISP_PASSWORD"
     elif [[ $ANSWER == "n" ]]; then
       echo "Using $USER as install user, hope that is what you want."
-      echo "${RED}Adding $USER to groups www-data and staff${NC}"
+      echo -e "${RED}Adding $USER to groups www-data and staff${NC}"
       MISP_USER=$USER
       sudo adduser $MISP_USER staff
       sudo adduser $MISP_USER www-data
@@ -322,7 +323,7 @@ checkID () {
     fi
   else
     echo "User ${MISP_USER} exists, skipping creation"
-    echo "${RED}Adding $MISP_USER to groups www-data and staff${NC}"
+    echo -e "${RED}Adding $MISP_USER to groups www-data and staff${NC}"
     sudo adduser $MISP_USER staff
     sudo adduser $MISP_USER www-data
   fi
@@ -393,6 +394,7 @@ kaliOnRootR0ckz () {
 }
 
 setBaseURL () {
+  debug "Setting Base URL"
   if [[ $(checkManufacturer) != "innotek GmbH" ]]; then
     debug "We guess that this is a physical machine and cannot possibly guess what the MISP_BASEURL might be."
     if [[ "$UNATTENDED" != "1" ]]; then 
@@ -425,18 +427,18 @@ setBaseURL () {
 
 # Test and install software RNG
 installRNG () {
-  modprobe tpm-rng 2> /dev/null
+  sudo modprobe tpm-rng 2> /dev/null
   if [ "$?" -eq "0" ]; then 
-    echo tpm-rng >> /etc/modules
+    echo tpm-rng | sudo tee -a /etc/modules
   fi
   checkAptLock
-  apt install -qy rng-tools # This might fail on TPM grounds, enable the security chip in your BIOS
-  service rng-tools start
+  sudo apt install -qy rng-tools # This might fail on TPM grounds, enable the security chip in your BIOS
+  sudo service rng-tools start
 
   if [ "$?" -eq "1" ]; then 
-    apt purge -qy rng-tools
-    apt install -qy haveged
-    /etc/init.d/haveged start
+    sudo apt purge -qy rng-tools
+    sudo apt install -qy haveged
+    sudo /etc/init.d/haveged start
   fi
 }
 
@@ -450,7 +452,7 @@ kaliUpgrade () {
 
 # Disables sleep
 disableSleep () {
-  debug "Disabling sleep etc if run from a Laptop as the install might take some time…"
+  debug "Disabling sleep etc if run from a Laptop as the install might take some time…" > /dev/tty
   gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 0 2> /dev/null
   gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 0 2> /dev/null
   gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type nothing 2> /dev/null
@@ -474,7 +476,7 @@ checkAptLock () {
   SLEEP=3
   while [ "$DONE" != "0" ]; do
     sudo apt-get check 2> /dev/null > /dev/null && DONE=0
-    echo -e "${LBLUE}apt${NC} is maybe ${RED}locked${NC}, waiting ${RED}$SLEEP${NC} seconds."
+    echo -e "${LBLUE}apt${NC} is maybe ${RED}locked${NC}, waiting ${RED}$SLEEP${NC} seconds." > /dev/tty
     sleep $SLEEP
     SLEEP=$[$SLEEP+3]
   done
@@ -483,6 +485,7 @@ checkAptLock () {
 
 # Install Php 7.3 deps
 installDepsPhp73 () {
+  debug "Installing PHP 7.3 dependencies"
   PHP_ETC_BASE=/etc/php/7.3
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
   sudo apt update
@@ -739,6 +742,7 @@ theEnd () {
 ## End Function Section Nothing allowed in .md after this line ##
 
 aptUpgrade () {
+  debug "Upgrading system"
   checkAptLock
   sudo apt-get update
   sudo apt-get upgrade -y
@@ -746,6 +750,7 @@ aptUpgrade () {
 
 # check if sudo is installed
 checkSudoKeeper () {
+  echo "Checking for sudo and installing etckeeper"
   if [[ ! -f $(which sudo) ]]; then
     su -c "apt install etckeeper -y"
     su -c "apt install sudo -y"
@@ -757,6 +762,7 @@ checkSudoKeeper () {
 }
 
 installCoredDeps () {
+  debug "Installing core dependencies"
   # Install the dependencies: (some might already be installed)
   sudo apt-get install curl gcc git gpg-agent make python python3 openssl redis-server sudo vim zip virtualenv libfuzzy-dev -y
 
@@ -775,6 +781,7 @@ installCoredDeps () {
 
 # Install Php 7.3 deps
 installDepsPhp73 () {
+  debug "Installing PHP 7.3 dependencies"
   PHP_ETC_BASE=/etc/php/7.3
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
   sudo apt update
@@ -790,6 +797,7 @@ installDepsPhp73 () {
 
 # Install Php 7.2 dependencies
 installDepsPhp72 () {
+  debug "Installing PHP 7.2 dependencies"
   PHP_ETC_BASE=/etc/php/7.2
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
   sudo apt update
@@ -807,6 +815,7 @@ installDepsPhp72 () {
 }
 
 prepareDB () {
+  debug "Setting up database"
   # Add your credentials if needed, if sudo has NOPASS, comment out the relevant lines
   pw=$MISP_PASSWORD
 
@@ -845,6 +854,7 @@ EOF
 }
 
 apacheConfig () {
+  debug "Generating Apache config"
   sudo cp ${PATH_TO_MISP}/INSTALL/apache.24.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
 
   # If a valid SSL certificate is not already created for the server,
@@ -872,6 +882,7 @@ apacheConfig () {
 }
 
 installCore () {
+  debug "Installing ${LBLUE}MISP${NC} core"
   # Download MISP using git in the /var/www/ directory.
   sudo mkdir ${PATH_TO_MISP}
   sudo chown www-data:www-data ${PATH_TO_MISP}
@@ -928,6 +939,7 @@ installCore () {
 }
 
 installCake () {
+  debug "Installing CakePHP"
   # Once done, install CakeResque along with its dependencies 
   # if you intend to use the built in background jobs:
   cd ${PATH_TO_MISP}/app
@@ -951,6 +963,7 @@ installCake () {
 
 # Main function to fix permissions to something sane
 permissions () {
+  debug "Setting permissions"
   sudo chown -R ${WWW_USER}:${WWW_USER} ${PATH_TO_MISP}
   sudo chmod -R 750 ${PATH_TO_MISP}
   sudo chmod -R g+ws ${PATH_TO_MISP}/app/tmp
@@ -959,6 +972,7 @@ permissions () {
 }
 
 configMISP () {
+  debug "Generating ${LBLUE}MISP${NC} config files"
   # There are 4 sample configuration files in ${PATH_TO_MISP}/app/Config that need to be copied
   sudo -u www-data cp -a ${PATH_TO_MISP}/app/Config/bootstrap.default.php ${PATH_TO_MISP}/app/Config/bootstrap.php
   sudo -u www-data cp -a ${PATH_TO_MISP}/app/Config/database.default.php ${PATH_TO_MISP}/app/Config/database.php
@@ -995,6 +1009,7 @@ configMISP () {
 
 # Core cake commands
 coreCAKE () {
+  debug "Running core Cake commands to set sane defaults for ${LBLUE}MISP${NC}"
   $SUDO_WWW -E $CAKE userInit -q
 
   # This makes sure all Database upgrades are done, without logging in.
@@ -1107,6 +1122,7 @@ coreCAKE () {
 
 # This updates Galaxies, ObjectTemplates, Warninglists, Noticelists, Templates
 updateGOWNT () {
+  debug "Updating Galaxies, ObjectTemplates, Warninglists, Noticelists and Templates"
   AUTH_KEY=$(mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM users;" | tail -1)
 
   # Update the galaxies…
@@ -1160,6 +1176,7 @@ logRotation () {
 }
 
 backgroundWorkers () {
+  debug "Setting up background workers"
   # To make the background workers start on boot
   sudo chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
   if [ ! -e /etc/rc.local ]
@@ -1236,6 +1253,7 @@ mispmodules () {
 
 # Main MISP Dashboard install function
 mispDashboard () {
+  debug "Install misp-dashboard"
   # Install pyzmq to main MISP venv
   debug "Installing PyZMQ"
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install pyzmq
@@ -1324,6 +1342,7 @@ dashboardCAKE () {
 
 # Main mail2misp install function
 mail2misp () {
+  debug "Installing Mail2${LBLUE}MISP${NC}"
   cd /usr/local/src/
   sudo apt-get install cmake libcaca-dev -y
   $SUDO_USER git clone https://github.com/MISP/mail_to_misp.git
@@ -1349,6 +1368,7 @@ mail2misp () {
 }
 
 ssdeep () {
+  debug "Install ssdeep 2.14.1"
   cd /usr/local/src
   $SUDO_USER wget https://github.com/ssdeep-project/ssdeep/releases/download/release-2.14.1/ssdeep-2.14.1.tar.gz
   $SUDO_USER tar zxvf ssdeep-2.14.1.tar.gz
@@ -1368,38 +1388,38 @@ ssdeep () {
 
 # Main Viper install function
 viper () {
-  cd /usr/local/src/
   debug "Installing Viper dependencies"
+  cd /usr/local/src/
   sudo apt-get install \
     libssl-dev swig python3-ssdeep p7zip-full unrar-free sqlite python3-pyclamd exiftool radare2 \
     python3-magic python3-sqlalchemy python3-prettytable libffi-dev -y
-  debug "Cloning Viper"
+  echo "Cloning Viper"
   $SUDO_USER git clone https://github.com/viper-framework/viper.git
   sudo chown -R $MISP_USER:$MISP_USER viper
   cd viper
-  debug "Creating virtualenv"
+  echo "Creating virtualenv"
   $SUDO_USER virtualenv -p python3 venv
-  debug "Submodule update"
+  echo "Submodule update"
   # TODO: Check for current user install permissions
   $SUDO_USER git submodule update --init --recursive
   ##$SUDO git submodule update --init --recursive
-  debug "Pip install deps"
+  echo "Pip install deps"
   $SUDO_USER ./venv/bin/pip install SQLAlchemy PrettyTable python-magic
-  debug "pip install scrapy"
+  echo "pip install scrapy"
   $SUDO_USER ./venv/bin/pip install scrapy
-  debug "install lief"
+  echo "install lief"
   $SUDO_USER ./venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
-  debug "pip install reqs"
+  echo "pip install reqs"
   $SUDO_USER ./venv/bin/pip install -r requirements.txt
   $SUDO_USER sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-cli
   $SUDO_USER sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-web
-  debug "pip uninstall yara"
+  echo "pip uninstall yara"
   $SUDO_USER ./venv/bin/pip uninstall yara -y
-  debug "Launching viper-cli"
+  echo "Launching viper-cli"
   # TODO: Perms
   #$SUDO /usr/local/src/viper/viper-cli -h > /dev/null
   /usr/local/src/viper/viper-cli -h > /dev/null
-  debug "Launching viper-web"
+  echo "Launching viper-web"
   # TODO: Perms
   /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 &
   #$SUDO /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 &
@@ -1413,11 +1433,11 @@ viper () {
     VIPER_HOME="${HOME}/.viper"
   fi
 
-  debug "Setting misp_url/misp_key"
+  echo "Setting misp_url/misp_key"
   $SUDO_USER sed -i "s/^misp_url\ =/misp_url\ =\ http:\/\/localhost/g" ${VIPER_HOME}/viper.conf
   $SUDO_USER sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" ${VIPER_HOME}/viper.conf
   # Reset admin password to: admin/Password1234
-  debug "Fixing admin.db with default password"
+  echo "Fixing admin.db with default password"
   while [ "$(sqlite3 ${VIPER_HOME}/admin.db 'UPDATE auth_user SET password="pbkdf2_sha256$100000$iXgEJh8hz7Cf$vfdDAwLX8tko1t0M1TLTtGlxERkNnltUnMhbv56wK/U="'; echo $?)" -ne "0" ]; do
     # FIXME This might lead to a race condition, the while loop is sub-par
     sudo chown $MISP_USER:$MISP_USER ${VIPER_HOME}/admin.db
@@ -1536,19 +1556,15 @@ installMISPubuntuSupported () {
   echo "Proceeding with the installation of MISP core"
   space
 
-  spin &
-  SPIN_PID=$!
-  trap "kill -9 $SPIN_PID" `seq 0 15`
-
-  debug "Setting Base URL"
+  # Set Base URL - functionLocation('generic/supportFunctions.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && setBaseURL
   progress 4
 
-  # Upgrade system to make sure we install  the latest packages - functionLocation('')
+  # Upgrade system to make sure we install  the latest packages - functionLocation('INSTALL.ubuntu1804.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && aptUpgrade 2> /dev/null > /dev/null
   progress 4
 
-  # Check if sudo is installed and etckeeper - functionLocation('')
+  # Check if sudo is installed and etckeeper - functionLocation('generic/sudo_etckeeper.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && checkSudoKeeper 2> /dev/null > /dev/null
   progress 4
 
@@ -1559,92 +1575,106 @@ installMISPubuntuSupported () {
   # TODO: Double check how to properly handle postfix
   # <snippet-begin postfix.sh>
 
-  # Pull in all possible MISP Environment variables - functionLocation('')
+  # Pull in all possible MISP Environment variables - functionLocation('generic/globalVariables.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && MISPvars
   progress 4
 
-  echo "Checking if run as root and $MISP_USER is present"
+  # Check if MISP user is installed and we do not run as root - functionLocation('generic/supportFunctions.md')
   checkID
   progress 4
 
-  # Install Core Dependencies - functionLocation('')
+  # Starting friendly UI spinner
+  spin &
+  SPIN_PID=$!
+  disown
+  trap "kill -9 $SPIN_PID" `seq 0 15`
+
+  # Install Core Dependencies - functionLocation('INSTALL.ubuntu1804.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && installCoredDeps 2> /dev/null > /dev/null
   progress 4
 
-  # Install PHP 7.2 Dependencies - functionLocation('')
+  # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72 2> /dev/null > /dev/null
   progress 4
 
-  # Install Core MISP - functionLocation('')
+  # Install Core MISP - functionLocation('INSTALL.ubuntu1804.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && installCore
   progress 4
 
-  # Install PHP Cake - functionLocation('')
+  # Install PHP Cake - functionLocation('INSTALL.ubuntu1804.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && installCake
   progress 4
 
-  # Make sure permissions are sane - functionLocation('')
+  # Make sure permissions are sane - functionLocation('INSTALL.ubuntu1804.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && permissions 2> /dev/null > /dev/null
   progress 4
 
   # TODO: Mysql install functions, make it upgrade safe, double check
-  # Setup Databse - functionLocation('')
+  # Setup Databse - functionLocation('INSTALL.ubuntu1804.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && prepareDB 2> /dev/null > /dev/null
   progress 4
 
-  # Roll Apache Config - functionLocation('')
+  # Roll Apache Config - functionLocation('INSTALL.ubuntu1804.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && apacheConfig 2> /dev/null > /dev/null
   progress 4
 
-  # Setup log logrotate - functionLocation('')
+  # Setup log logrotate - functionLocation('INSTALL.ubuntu1804.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && logRotation 2> /dev/null > /dev/null
   progress 4
 
-  # Generate MISP Config files - functionLocation('')
+  # Generate MISP Config files - functionLocation('INSTALL.ubuntu1804.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && configMISP 2> /dev/null > /dev/null
   progress 4
 
-  # Generate GnuPG key - functionLocation('')
+  # Generate GnuPG key - functionLocation('generic/gnupg.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && setupGnuPG 2> /dev/null > /dev/null
   progress 4
 
-  # Setup and start background workers - functionLocation('')
+  # Setup and start background workers - functionLocation('INSTALL.ubuntu1804.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && backgroundWorkers 2> /dev/null > /dev/null
   progress 4
 
-  # Run cake CLI for the core installation - functionLocation('')
+  # Run cake CLI for the core installation - functionLocation('generic/MISP_CAKE_init.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && coreCAKE 2> /dev/null > /dev/null
   progress 4
 
-  # Update Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies - functionLocation('')
+  # Update Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies - functionLocation('generic/MISP_CAKE_init.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && updateGOWNT 2> /dev/null > /dev/null
   progress 4
 
-  # Check if /usr/local/src is writeable by target install user - functionLocation('')
+  # Disable spinner
+  (kill $SPIN_PID 2>&1) >/dev/null
+
+  # Check if /usr/local/src is writeable by target install user - functionLocation('generic/supportFunctions.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && checkUsrLocalSrc
   progress 4
 
-  # Install misp-modules - functionLocation('')
+  spin &
+  SPIN_PID=$!
+  disown
+  trap "kill -9 $SPIN_PID" `seq 0 15`
+
+  # Install misp-modules - functionLocation('generic/misp-modules-debian.md')
   [[ -n $MODULES ]]   || [[ -n $ALL ]] && mispmodules
   progress 4
 
-  # Install Viper - functionLocation('')
+  # Install Viper - functionLocation('generic/viper-debian.md')
   [[ -n $VIPER ]]     || [[ -n $ALL ]] && viper
   progress 4
 
-  # Install ssdeep - functionLocation('')
+  # Install ssdeep - functionLocation('generic/ssdeep-debian.md')
   [[ -n $SSDEEP ]]     || [[ -n $ALL ]] && ssdeep
   progress 4
 
-  # Install misp-dashboard - functionLocation('')
+  # Install misp-dashboard - functionLocation('generic/misp-dashboard-debian.md')
   [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && mispDashboard ; dashboardCAKE 2> /dev/null > /dev/null
   progress 4
 
-  # Install Mail2MISP - functionLocation('')
+  # Install Mail2MISP - functionLocation('generic/mail_to_misp-debian.md')
   [[ -n $MAIL2 ]]     || [[ -n $ALL ]] && mail2misp
   progress 100
 
-  # Run final script to inform the User what happened - functionLocation('')
+  # Run final script to inform the User what happened - functionLocation('generic/supportFunctions.md')
   theEnd
 }
 
