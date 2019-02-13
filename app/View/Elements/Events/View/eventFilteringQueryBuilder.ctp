@@ -119,6 +119,36 @@ function triggerEventFilteringTool(clicked) {
                 }
             },
             {
+                "input": "radio",
+                "type": "integer",
+                "operators": [
+                    "equal",
+                ],
+                "unique": true,
+                "id": "feed",
+                "label": "Feeds",
+                "values": {
+                    0: "Both",
+                    1: "Feed hits only",
+                    2: "Exclude feed hits"
+                }
+            },
+            {
+                "input": "radio",
+                "type": "integer",
+                "operators": [
+                    "equal",
+                ],
+                "unique": true,
+                "id": "server",
+                "label": "Servers",
+                "values": {
+                    0: "Both",
+                    1: "Server hits only",
+                    2: "Exclude server hits"
+                }
+            },
+            {
                 "input": "checkbox",
                 "type": "integer",
                 "operators": [
@@ -136,6 +166,7 @@ function triggerEventFilteringTool(clicked) {
                     5: "Inherit",
                 }
             },
+            <?php if (!empty($attributeTags)): ?>
             {
                 "input": "select",
                 "type": "string",
@@ -145,8 +176,10 @@ function triggerEventFilteringTool(clicked) {
                 "unique": true,
                 "id": "taggedAttributes",
                 "label": "Tags",
-                "values": <?php echo json_encode(array()); ?>
+                "values": <?php echo json_encode($attributeTags); ?>
             },
+            <?php endif; ?>
+            <?php if (!empty($attributeClusters)): ?>
             {
                 "input": "select",
                 "type": "string",
@@ -156,8 +189,9 @@ function triggerEventFilteringTool(clicked) {
                 "unique": true,
                 "id": "galaxyAttachedAttributes",
                 "label": "Galaxies",
-                "values": <?php echo json_encode(array()); ?>
+                "values": <?php echo json_encode($attributeClusters); ?>
             },
+            <?php endif; ?>
             // {
             //     "input": "select",
             //     "type": "string",
@@ -261,21 +295,35 @@ function triggerEventFilteringTool(clicked) {
                     value: <?php echo isset($filters['includeRelatedTags']) ? h($filters['includeRelatedTags']) : 0; ?>
                 },
                 {
+                    field: 'feed',
+                    id: 'feed',
+                    value: <?php echo isset($filters['feed']) ? h($filters['feed']) : 0; ?>
+                },
+                {
+                    field: 'server',
+                    id: 'server',
+                    value: <?php echo isset($filters['server']) ? h($filters['server']) : 0; ?>
+                },
+                {
                     field: 'distribution',
                     id: 'distribution',
                     operator: 'in',
                     value: <?php echo isset($filters['distribution']) ? json_encode($filters['distribution']) : json_encode(array(0, 1, 2, 3, 4, 5)); ?>
                 },
+                <?php if (!empty($attributeTags)): ?>
                 {
                     field: 'taggedAttributes',
                     id: 'taggedAttributes',
                     value: <?php echo isset($filters['taggedAttributes']) ? h($filters['taggedAttributes']) : 0; ?>
                 },
+                <?php endif; ?>
+                <?php if (!empty($attributeClusters)): ?>
                 {
                     field: 'galaxyAttachedAttributes',
                     id: 'galaxyAttachedAttributes',
                     value: <?php echo isset($filters['galaxyAttachedAttributes']) ? h($filters['galaxyAttachedAttributes']) : 0; ?>
                 },
+                <?php endif; ?>
                 // {
                 //     condition: 'OR',
                 //     not: false,

@@ -25,6 +25,10 @@ class EventsController extends AppController
             )
     );
 
+    private $acceptedFilteringNamedParams = array('sort', 'direction', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'attributeFilter', 'extended', 'page',
+        'searchFor', 'attributeFilter', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'distribution', 'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'feed', 'server',
+    );
+
     public $helpers = array('Js' => array('Jquery'));
 
     public $paginationFunctions = array('index', 'proposalEventIndex');
@@ -1001,10 +1005,9 @@ class EventsController extends AppController
 
     public function viewEventAttributes($id, $all = false)
     {
-        $paramArray = array('searchFor', 'attributeFilter', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'distribution', 'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite');
         $filterData = array(
             'request' => $this->request,
-            'paramArray' => $paramArray,
+            'paramArray' => $this->acceptedFilteringNamedParams,
             'named_params' => $this->params['named']
         );
         $exception = false;
@@ -1027,6 +1030,14 @@ class EventsController extends AppController
             $conditions['deleted'] = $filters['deleted'] == 2 ? 0 : 1;
         }
         $conditions['includeFeedCorrelations'] = true;
+        if (!isset($filters['includeServerCorrelations'])) {
+            $conditions['includeServerCorrelations'] = 1;
+            if ($this->_isRest()) {
+                $conditions['includeServerCorrelations'] = 0;
+            }
+        } else {
+            $conditions['includeServerCorrelations'] = $filters['includeServerCorrelations'];
+        }
         $conditions['includeAllTags'] = true;
         $conditions['includeGranularCorrelations'] = 1;
         if (!empty($filters['includeRelatedTags'])) {
@@ -1144,6 +1155,12 @@ class EventsController extends AppController
         $advancedFiltering = $this->__checkIfAdvancedFiltering($filters);
         $this->set('advancedFilteringActive', $advancedFiltering['active'] ? 1 : 0);
         $this->set('advancedFilteringActiveRules', $advancedFiltering['activeRules']);
+        $attributeTags = $this->Event->Attribute->AttributeTag->getAttributesTags($this->Auth->user(), $event['Event']['id']);
+        $attributeTags = array_column($attributeTags, 'name');
+        $this->set('attributeTags', $attributeTags);
+        $attributeClusters = $this->Event->Attribute->AttributeTag->getAttributesClusters($this->Auth->user(), $event['Event']['id']);
+        $attributeClusters = array_column($attributeClusters, 'value');
+        $this->set('attributeClusters', $attributeClusters);
         $this->disableCache();
         $this->layout = 'ajax';
         $this->loadModel('Sighting');
@@ -1165,10 +1182,9 @@ class EventsController extends AppController
 
     private function __viewUI($event, $continue, $fromEvent)
     {
-        $paramArray = array('searchFor', 'attributeFilter', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'distribution', 'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite');
         $filterData = array(
             'request' => $this->request,
-            'paramArray' => $paramArray,
+            'paramArray' => $this->acceptedFilteringNamedParams,
             'named_params' => $this->params['named']
         );
         $exception = false;
@@ -1407,6 +1423,12 @@ class EventsController extends AppController
         $advancedFiltering = $this->__checkIfAdvancedFiltering($filters);
         $this->set('advancedFilteringActive', $advancedFiltering['active'] ? 1 : 0);
         $this->set('advancedFilteringActiveRules', $advancedFiltering['activeRules']);
+        $attributeTags = $this->Event->Attribute->AttributeTag->getAttributesTags($this->Auth->user(), $event['Event']['id']);
+        $attributeTags = array_column($attributeTags, 'name');
+        $this->set('attributeTags', $attributeTags);
+        $attributeClusters = $this->Event->Attribute->AttributeTag->getAttributesClusters($this->Auth->user(), $event['Event']['id']);
+        $attributeClusters = array_column($attributeClusters, 'value');
+        $this->set('attributeClusters', $attributeClusters);
         $this->set('mitreAttackGalaxyId', $this->Event->GalaxyCluster->Galaxy->getMitreAttackGalaxyId());
         $this->set('modificationMapCSV', $modificationMapCSV);
     }
@@ -1629,8 +1651,8 @@ class EventsController extends AppController
 
     // look in the parameters if we are doing advanced filtering or not
     private function __checkIfAdvancedFiltering($filters) {
-        $advancedFilteringActive = array_diff_key($filters, array('sort'=>0, 'direction'=>0, 'focus'=>0, 'extended'=>0, 'overrideLimit'=>0, 'filterColumnsOverwrite'=>0, 'attributeFilter'=>0, 'extended' => 0));
-        debug($advancedFilteringActive);
+        $advancedFilteringActive = array_diff_key($filters, array('sort'=>0, 'direction'=>0, 'focus'=>0, 'extended'=>0, 'overrideLimit'=>0, 'filterColumnsOverwrite'=>0, 'attributeFilter'=>0, 'extended' => 0, 'page' => 0));
+
         if (count($advancedFilteringActive) > 0) {
             if (count(array_diff_key($advancedFilteringActive, array('deleted', 'includeRelatedTags'))) > 0) {
                 $res =  true;
@@ -1656,7 +1678,9 @@ class EventsController extends AppController
             'warning' => '0',
             'deleted' => '2',
             'includeRelatedTags' => '0',
-            'distribution' => array('0', '1', '2', '3', '4', '5')
+            'feed' => '0',
+            'server' => '0',
+            'distribution' => array('0', '1', '2', '3', '4', '5'),
         );
         $activeRules = 0;
         foreach ($filters as $k => $v) {
@@ -1664,7 +1688,7 @@ class EventsController extends AppController
                 $activeRules++;
             }
         }
-        return array('active' => $res, 'activeRules' => $activeRules);
+        return array('active' => $activeRules > 0 ? $res : false, 'activeRules' => $activeRules);
     }
 
     private function __removeChildren(&$pivot, $id)

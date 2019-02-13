@@ -4374,6 +4374,24 @@ class Event extends AppModel
                 $include = $include && ($filterType['deleted'] == 2);
             }
 
+            /* feed */
+            if ($filterType['feed'] == 0) { // `both`
+                // pass, do not consider as `both` is selected
+            } else if (!empty($attribute['Feed'])) { // `include only`
+                $include = $include && ($filterType['feed'] == 1);
+            } else { // `exclude`
+                $include = $include && ($filterType['feed'] == 2);
+            }
+
+            /* server */
+            if ($filterType['server'] == 0) { // `both`
+                // pass, do not consider as `both` is selected
+            } else if (!empty($attribute['Server'])) { // `include only`
+                $include = $include && ($filterType['server'] == 1);
+            } else { // `exclude`
+                $include = $include && ($filterType['server'] == 2);
+            }
+
             /* TypeGroupings */
             if (
                 $filterType['attributeFilter'] != 'all'
@@ -4437,6 +4455,24 @@ class Event extends AppModel
             $include = $include && ($filterType['correlation'] == 1);
         } else { // `exclude`
             $include = $include && ($filterType['correlation'] == 2);
+        }
+
+        /* feed */
+        if ($filterType['feed'] == 0) { // `both`
+            // pass, do not consider as `both` is selected
+        } else if (!empty($proposal['Feed'])) { // `include only`
+            $include = $include && ($filterType['feed'] == 1);
+        } else { // `exclude`
+            $include = $include && ($filterType['feed'] == 2);
+        }
+
+        /* server */
+        if ($filterType['server'] == 0) { // `both`
+            // pass, do not consider as `both` is selected
+        } else if (!empty($attribute['Server'])) { // `include only`
+            $include = $include && ($filterType['server'] == 1);
+        } else { // `exclude`
+            $include = $include && ($filterType['server'] == 2);
         }
 
         /* TypeGroupings */
@@ -4634,7 +4670,9 @@ class Event extends AppModel
             'proposal' => isset($passedArgs['proposal']) ? $passedArgs['proposal'] : 0,
             'correlation' => isset($passedArgs['correlation']) ? $passedArgs['correlation'] : 0,
             'warning' => isset($passedArgs['warning']) ? $passedArgs['warning'] : 0,
-            'deleted' => isset($passedArgs['deleted']) ? $passedArgs['deleted'] : 0
+            'deleted' => isset($passedArgs['deleted']) ? $passedArgs['deleted'] : 0,
+            'feed' => isset($passedArgs['feed']) ? $passedArgs['feed'] : 0,
+            'server' => isset($passedArgs['server']) ? $passedArgs['server'] : 0
         );
         // update proposal, correlation and warning accordingly
         if (in_array($filterType['attributeFilter'], array('proposal', 'correlation', 'warning'))) {
@@ -4704,7 +4742,7 @@ class Event extends AppModel
                             'meta-category' => $object['meta-category'],
                             'name' => $object['name'],
                             'uuid' => $object['uuid'],
-                            'id' => $object['id'],
+                            'id' => isset($object['id']) ? $object['id'] : 0,
                             'object_type' => $object['objectType']
                         );
                     }
