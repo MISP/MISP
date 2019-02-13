@@ -158,7 +158,7 @@
             <it class="fa fa-filter"></it>
             <?php echo __('Filtering tool'); ?>
             <?php if($advancedFilteringActive): ?>
-                <span class="badge badge-warning" title="<?php echo h($advancedFilteringActiveRules) . __(' active rule(s)')?>"><?php echo h($advancedFilteringActiveRules) ?></span>
+                <span class="badge badge-warning" title="<?php echo h(count($advancedFilteringActiveRules)) . __(' active rule(s)')?>"><?php echo h(count($advancedFilteringActiveRules)) ?></span>
             <?php endif; ?>
         </div>
 

@@ -29,6 +29,21 @@ class EventsController extends AppController
         'searchFor', 'attributeFilter', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'distribution', 'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'feed', 'server',
     );
 
+    public $defaultFilteringRules =  array(
+        'searchFor' => '',
+        'attributeFilter' => 'all',
+        'proposal' => 0,
+        'correlation' => 0,
+        'warning' => 0,
+        'deleted' => 2,
+        'includeRelatedTags' => 0,
+        'feed' => 0,
+        'server' => 0,
+        'distribution' => array(0, 1, 2, 3, 4, 5),
+        'taggedAttributes' => '',
+        'galaxyAttachedAttributes' => ''
+    );
+
     public $helpers = array('Js' => array('Jquery'));
 
     public $paginationFunctions = array('index', 'proposalEventIndex');
@@ -1068,6 +1083,12 @@ class EventsController extends AppController
             }
             $this->set('passedArgsArray', array('all' => $filters['searchFor']));
         }
+        if (isset($filters['taggedAttributes']) && $filters['taggedAttributes'] !== '') {
+            $this->__applyQueryString($event, $filters['taggedAttributes'], 'Tag.name');
+        }
+        if (isset($filters['galaxyAttachedAttributes']) && $filters['galaxyAttachedAttributes'] !== '') {
+            $this->__applyQueryString($event, $filters['galaxyAttachedAttributes'], 'Tag.name');
+        }
         $emptyEvent = (empty($event['Object']) && empty($event['Attribute']));
         $this->set('emptyEvent', $emptyEvent);
 
@@ -1155,6 +1176,7 @@ class EventsController extends AppController
         $advancedFiltering = $this->__checkIfAdvancedFiltering($filters);
         $this->set('advancedFilteringActive', $advancedFiltering['active'] ? 1 : 0);
         $this->set('advancedFilteringActiveRules', $advancedFiltering['activeRules']);
+        $this->set('defaultFilteringRules', $this->defaultFilteringRules);
         $attributeTags = $this->Event->Attribute->AttributeTag->getAttributesTags($this->Auth->user(), $event['Event']['id']);
         $attributeTags = array_column($attributeTags, 'name');
         $this->set('attributeTags', $attributeTags);
@@ -1423,6 +1445,7 @@ class EventsController extends AppController
         $advancedFiltering = $this->__checkIfAdvancedFiltering($filters);
         $this->set('advancedFilteringActive', $advancedFiltering['active'] ? 1 : 0);
         $this->set('advancedFilteringActiveRules', $advancedFiltering['activeRules']);
+        $this->set('defaultFilteringRules', $this->defaultFilteringRules);
         $attributeTags = $this->Event->Attribute->AttributeTag->getAttributesTags($this->Auth->user(), $event['Event']['id']);
         $attributeTags = array_column($attributeTags, 'name');
         $this->set('attributeTags', $attributeTags);
@@ -1504,6 +1527,12 @@ class EventsController extends AppController
         $event = $results[0];
         if (isset($this->params['named']['searchFor']) && $this->params['named']['searchFor'] !== '') {
             $this->__applyQueryString($event, $this->params['named']['searchFor']);
+        }
+        if (isset($this->params['named']['taggedAttributes']) && $this->params['named']['taggedAttributes'] !== '') {
+            $this->__applyQueryString($event, $this->params['named']['taggedAttributes'], 'Tag.name');
+        }
+        if (isset($this->params['named']['galaxyAttachedAttributes']) && $this->params['named']['galaxyAttachedAttributes'] !== '') {
+            $this->__applyQueryString($event, $this->params['named']['galaxyAttachedAttributes'], 'Tag.name');
         }
 
         if ($this->_isRest()) {
@@ -1670,22 +1699,10 @@ class EventsController extends AppController
 
         unset($filters['sort']);
         unset($filters['direction']);
-        $defaultRules =  array(
-            'searchFor' => '',
-            'attributeFilter' => 'all',
-            'proposal' => '0',
-            'correlation' => '0',
-            'warning' => '0',
-            'deleted' => '2',
-            'includeRelatedTags' => '0',
-            'feed' => '0',
-            'server' => '0',
-            'distribution' => array('0', '1', '2', '3', '4', '5'),
-        );
-        $activeRules = 0;
+        $activeRules = array();
         foreach ($filters as $k => $v) {
-            if (isset($defaultRules[$k]) && $defaultRules[$k] != $v) {
-                $activeRules++;
+            if (isset($this->defaultFilteringRules[$k]) && $this->defaultFilteringRules[$k] != $v) {
+                $activeRules[$k] = 1;
             }
         }
         return array('active' => $activeRules > 0 ? $res : false, 'activeRules' => $activeRules);
