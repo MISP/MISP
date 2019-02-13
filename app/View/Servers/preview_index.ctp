@@ -169,4 +169,4 @@
     </div>
 </div>
 <?php
-    if (!$ajax) echo $this->element('side_menu', array('menuList' => 'sync', 'menuItem' => 'previewIndex', 'id' => $id));
+    if (!$ajax) echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'sync', 'menuItem' => 'previewIndex', 'id' => $id));

@@ -110,7 +110,7 @@ echo $this->Form->end();
 </div>
 
 <?php
-    echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'import'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'import'));
 ?>
 <script type="text/javascript">
 $(document).ready(function() {

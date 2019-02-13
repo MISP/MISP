@@ -167,4 +167,4 @@ endforeach; ?>
     });
 </script>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'sync', 'menuItem' => 'index'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'sync', 'menuItem' => 'index'));

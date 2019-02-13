@@ -184,6 +184,12 @@ class AdminShell extends AppShell
 		}
 	}
 
+    public function updateDatabase() {
+        echo 'Executing all updates to bring the database up to date with the current version.' . PHP_EOL;
+        $this->Server->runUpdates(true);
+        echo 'All updates completed.' . PHP_EOL;
+    }
+
     public function getAuthkey() {
         if (empty($this->args[0])) {
             echo 'Invalid parameters. Usage: ' . APP . 'Console/cake Admin getAuthkey [user_email]' . PHP_EOL;

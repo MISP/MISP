@@ -98,7 +98,7 @@
     echo $this->Form->end();?>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'addUser'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'addUser'));
 ?>
 <script type="text/javascript">
 var syncRoles = <?php echo json_encode($syncRoles); ?>;

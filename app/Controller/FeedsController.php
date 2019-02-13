@@ -4,7 +4,7 @@ App::uses('Xml', 'Utility');
 
 class FeedsController extends AppController
 {
-    public $components = array('Security' ,'RequestHandler');	// XXX ACL component
+    public $components = array('Security' ,'RequestHandler');   // XXX ACL component
 
     public $paginate = array(
             'limit' => 60,
@@ -22,7 +22,7 @@ class FeedsController extends AppController
     public function beforeFilter()
     {
         parent::beforeFilter();
-        $this->Security->unlockedActions = array('previewIndex');
+        $this->Security->unlockedActions[] = 'previewIndex';
         if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != Configure::read('MISP.host_org_id')) {
             throw new MethodNotAllowedException(__('You don\'t have the required privileges to do that.'));
         }
@@ -159,6 +159,9 @@ class FeedsController extends AppController
                 $this->request->data['Feed']['sharing_group_id'] = 0;
             }
             $this->request->data['Feed']['default'] = 0;
+            if (!isset($this->request->data['Feed']['source_format'])) {
+                $this->request->data['Feed']['source_format'] = 'freetext';
+            }
             if ($this->request->data['Feed']['source_format'] == 'freetext') {
                 if ($this->request->data['Feed']['fixed_event'] == 1) {
                     if (!empty($this->request->data['Feed']['target_event']) && is_numeric($this->request->data['Feed']['target_event'])) {

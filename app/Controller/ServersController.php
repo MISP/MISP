@@ -4,7 +4,7 @@ App::uses('Xml', 'Utility');
 
 class ServersController extends AppController
 {
-    public $components = array('Security' ,'RequestHandler');	// XXX ACL component
+    public $components = array('Security' ,'RequestHandler');   // XXX ACL component
 
     public $paginate = array(
             'limit' => 60,
@@ -602,9 +602,9 @@ class ServersController extends AppController
     /**
      * Pull one or more events with attributes from a remote instance.
      * Set $technique to
-     *		full - download everything
-     *		incremental - only new events
-     *		<int>	- specific id of the event to pull
+     *      full - download everything
+     *      incremental - only new events
+     *      <int>   - specific id of the event to pull
      */
     public function pull($id = null, $technique='full')
     {
@@ -868,10 +868,11 @@ class ServersController extends AppController
             $zmqErrors = array(0 => 'OK', 1 => 'not enabled (so not tested)', 2 => 'Python ZeroMQ library not installed correctly.', 3 => 'ZeroMQ script not running.');
             $stixOperational = array(0 => 'Some of the libraries related to STIX are not installed. Make sure that all libraries listed below are correctly installed.', 1 => 'OK');
             $stixVersion = array(0 => 'Incorrect STIX version installed, found $current, expecting $expected', 1 => 'OK');
+            $stix2Version = array(0 => 'Incorrect STIX2 version installed, found $current, expecting $expected', 1 => 'OK');
             $cyboxVersion = array(0 => 'Incorrect CyBox version installed, found $current, expecting $expected', 1 => 'OK');
             $mixboxVersion = array(0 => 'Incorrect mixbox version installed, found $current, expecting $expected', 1 => 'OK');
             $maecVersion = array(0 => 'Incorrect maec version installed, found $current, expecting $expected', 1 => 'OK');
-            $pymispVersion = array(0 => 'Incorrect pymisp version installed, found $current, expecting $expected', 1 => 'OK');
+            $pymispVersion = array(0 => 'Incorrect PyMISP version installed, found $current, expecting $expected', 1 => 'OK');
             $sessionErrors = array(0 => 'OK', 1 => 'High', 2 => 'Alternative setting used', 3 => 'Test failed');
             $moduleErrors = array(0 => 'OK', 1 => 'System not enabled', 2 => 'No modules found');
 
@@ -991,7 +992,7 @@ class ServersController extends AppController
                 }
 
                 // check if the STIX and Cybox libraries are working and the correct version using the test script stixtest.py
-                $stix = $this->Server->stixDiagnostics($diagnostic_errors, $stixVersion, $cyboxVersion, $mixboxVersion, $maecVersion, $pymispVersion);
+                $stix = $this->Server->stixDiagnostics($diagnostic_errors, $stixVersion, $cyboxVersion, $mixboxVersion, $maecVersion, $stix2Version, $pymispVersion);
 
                 // if GnuPG is set up in the settings, try to encrypt a test message
                 $gpgStatus = $this->Server->gpgDiagnostics($diagnostic_errors);
@@ -1012,7 +1013,7 @@ class ServersController extends AppController
                 $sessionStatus = $this->Server->sessionDiagnostics($diagnostic_errors, $sessionCount);
                 $this->set('sessionCount', $sessionCount);
 
-                $additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'pymispVersion', 'moduleStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes');
+                $additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'mixboxVersion', 'maecVersion', 'stix2Version', 'pymispVersion', 'moduleStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes');
             }
             // check whether the files are writeable
             $writeableDirs = $this->Server->writeableDirsDiagnostics($diagnostic_errors);

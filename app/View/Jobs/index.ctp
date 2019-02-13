@@ -172,4 +172,4 @@
     </ul>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'jobs'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'jobs'));

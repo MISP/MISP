@@ -380,7 +380,7 @@ class Taxonomy extends AppModel
         return $taxonomies;
     }
 
-    public function getTaxonomyForTag($tagName)
+    public function getTaxonomyForTag($tagName, $metaOnly = false)
     {
         if (preg_match('/^[^:="]+:[^:="]+="[^:="]+"$/i', $tagName)) {
             $temp = explode(':', $tagName);
@@ -402,6 +402,9 @@ class Taxonomy extends AppModel
                     )
                 )
             ));
+            if ($metaOnly && !empty($taxonomy)) {
+                return array('Taxonomy' => $taxonomy['Taxonomy']);
+            }
             return $taxonomy;
         } elseif (preg_match('/^[^:="]+:[^:="]+$/i', $tagName)) {
             $pieces = explode(':', $tagName);
@@ -416,6 +419,9 @@ class Taxonomy extends AppModel
                     )
                 )
             ));
+            if ($metaOnly && !empty($taxonomy)) {
+                return array('Taxonomy' => $taxonomy['Taxonomy']);
+            }
             return $taxonomy;
         } else {
             return false;

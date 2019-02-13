@@ -76,5 +76,5 @@ endforeach;?>
 
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'template_populate_results'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'template_populate_results'));
 ?>

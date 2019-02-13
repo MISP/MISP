@@ -1,3 +1,8 @@
+**Important Note**
+
+It is **very strongly recommended** to upgrade MISP via the web interface. This documentation may not always be up-to-date and will require you to fix permissions if you want to use the web interface to run the updates in the future.
+
+
 # Point release updates
 !!! notice
     In general, updating MISP between point releases (for exampe 2.4.50 -> 2.4.53) happens with one of the following two options (both are to be executed as root).
