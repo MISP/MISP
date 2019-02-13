@@ -111,6 +111,37 @@ space () {
   echo ""
 }
 
+# Spinner so the user knows something is happening
+spin()
+{
+  spinner="/|\\-/|\\-"
+  while :
+  do
+    for i in `seq 0 7`
+    do
+      echo -n "${spinner:$i:1}"
+      echo -en "\010"
+      sleep 0.$i
+    done
+  done
+}
+
+# Progress bar
+progress () {
+  bar="#"
+  echo $progress
+  if [[ $progress -ge 100 ]]; then
+    echo -ne "#####################################################################################################  (100%)\r"
+    return
+  fi
+  progress=$[$progress+$1]
+  for p in $(seq 1 $progress); do
+    bar+="#"
+    echo -ne "$bar  ($p%)\r"
+  done
+  echo -ne '\n'
+}
+
 # Check locale
 checkLocale () {
   # If locale is missing, generate and install a common UTF-8
@@ -197,9 +228,9 @@ checkUsrLocalSrc () {
         space
         echo "/usr/local/src need to be writeable by $MISP_USER for misp-modules, viper etc."
         echo -n "Permission to fix? (y/n) "
-        space
         read ANSWER
         ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
+        space
       fi
       if [ "$ANSWER" == "y" ]; then
         sudo chmod 2775 /usr/local/src

@@ -190,14 +190,21 @@ installMISPubuntuSupported () {
   echo "Proceeding with the installation of MISP core"
   space
 
+  spin &
+  SPIN_PID=$!
+  trap "kill -9 $SPIN_PID" `seq 0 15`
+
   debug "Setting Base URL"
   [[ -n $CORE ]]   || [[ -n $ALL ]] && setBaseURL
+  progress 4
 
   # Upgrade system to make sure we install  the latest packages - functionLocation('')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && aptUpgrade 2> /dev/null > /dev/null
+  progress 4
 
   # Check if sudo is installed and etckeeper - functionLocation('')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && checkSudoKeeper 2> /dev/null > /dev/null
+  progress 4
 
   # TODO: Double check how the user is added and subsequently used during the install.
   # TODO: Work on possibility to install as user X and install MISP for user Y
@@ -208,67 +215,88 @@ installMISPubuntuSupported () {
 
   # Pull in all possible MISP Environment variables - functionLocation('')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && MISPvars
+  progress 4
 
   echo "Checking if run as root and $MISP_USER is present"
   checkID
+  progress 4
 
   # Install Core Dependencies - functionLocation('')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && installCoredDeps 2> /dev/null > /dev/null
+  progress 4
 
   # Install PHP 7.2 Dependencies - functionLocation('')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72 2> /dev/null > /dev/null
+  progress 4
 
   # Install Core MISP - functionLocation('')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && installCore
+  progress 4
 
   # Install PHP Cake - functionLocation('')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && installCake
+  progress 4
 
   # Make sure permissions are sane - functionLocation('')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && permissions 2> /dev/null > /dev/null
+  progress 4
 
   # TODO: Mysql install functions, make it upgrade safe, double check
   # Setup Databse - functionLocation('')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && prepareDB 2> /dev/null > /dev/null
+  progress 4
 
   # Roll Apache Config - functionLocation('')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && apacheConfig 2> /dev/null > /dev/null
+  progress 4
 
   # Setup log logrotate - functionLocation('')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && logRotation 2> /dev/null > /dev/null
+  progress 4
 
   # Generate MISP Config files - functionLocation('')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && configMISP 2> /dev/null > /dev/null
+  progress 4
 
   # Generate GnuPG key - functionLocation('')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && setupGnuPG 2> /dev/null > /dev/null
+  progress 4
 
   # Setup and start background workers - functionLocation('')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && backgroundWorkers 2> /dev/null > /dev/null
+  progress 4
 
   # Run cake CLI for the core installation - functionLocation('')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && coreCAKE 2> /dev/null > /dev/null
+  progress 4
 
   # Update Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies - functionLocation('')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && updateGOWNT 2> /dev/null > /dev/null
+  progress 4
 
   # Check if /usr/local/src is writeable by target install user - functionLocation('')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && checkUsrLocalSrc
+  progress 4
 
   # Install misp-modules - functionLocation('')
   [[ -n $MODULES ]]   || [[ -n $ALL ]] && mispmodules
+  progress 4
 
   # Install Viper - functionLocation('')
   [[ -n $VIPER ]]     || [[ -n $ALL ]] && viper
+  progress 4
 
   # Install ssdeep - functionLocation('')
   [[ -n $SSDEEP ]]     || [[ -n $ALL ]] && ssdeep
+  progress 4
 
   # Install misp-dashboard - functionLocation('')
   [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && mispDashboard ; dashboardCAKE 2> /dev/null > /dev/null
+  progress 4
 
   # Install Mail2MISP - functionLocation('')
   [[ -n $MAIL2 ]]     || [[ -n $ALL ]] && mail2misp
+  progress 100
 
   # Run final script to inform the User what happened - functionLocation('')
   theEnd
@@ -572,11 +600,11 @@ if [ "${FLAVOUR}" == "ubuntu" ]; then
   if [ "${RELEASE}" == "18.04" ]; then
     echo "Install on Ubuntu 18.04 LTS fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
-    installMISPubuntuSupported
+    installMISPubuntuSupported && exit || exit
   fi
   if [ "${RELEASE}" == "18.10" ]; then
     echo "Install on Ubuntu 18.10 partially supported, bye."
-    installMISPubuntuSupported
+    installMISPubuntuSupported && exit || exit
   fi
   if [ "${RELEASE}" == "19.04" ]; then
     echo "Install on Ubuntu 19.04 not supported, bye"
@@ -587,7 +615,7 @@ if [ "${FLAVOUR}" == "ubuntu" ]; then
     exit 1
   fi
   echo "Installation done!"
-  exit 0
+  exit
 fi
 
 # If Debian is detected, figure out which release it is and run the according scripts
