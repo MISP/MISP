@@ -815,6 +815,10 @@ a.proposal_link_red:hover {
 	padding-left:10px;
 }
 
+.popover.top {
+    margin-top: -15px !important;
+}
+
 .legend {
 	display: block;
 	width: 100%;
