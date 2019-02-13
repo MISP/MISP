@@ -81,9 +81,9 @@ $(document).ready(function() {
         url += '&recipientEmailList=' + $('#UserRecipientEmailList').val();
         url += '&orgNameList=' + $('#UserOrgNameList').val();
         $.get(url, function(data) {
-	    	$("#confirmation_box").html(data);
-	    	openPopup("#confirmation_box");
-	    });
+            $("#confirmation_box").html(data);
+            openPopup("#confirmation_box");
+        });
         return submitAllowed;
     });
 

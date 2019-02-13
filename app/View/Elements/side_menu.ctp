@@ -252,13 +252,13 @@
                     ));
                     if ($menuItem == 'searchAttributes2') {
                         echo $this->element('/side_menu_divider');
-						echo $this->element('/side_menu_link', array(
-							'onClick' => array(
-								'function' => 'getPopup',
-								'params' => array(0, 'attributes', 'exportSearch')
-							),
-							'text' => __('Download as...')
-						));
+                        echo $this->element('/side_menu_link', array(
+                            'onClick' => array(
+                                'function' => 'getPopup',
+                                'params' => array(0, 'attributes', 'exportSearch')
+                            ),
+                            'text' => __('Download as...')
+                        ));
                     }
                     echo $this->element('/side_menu_divider');
                     echo $this->element('/side_menu_link', array(

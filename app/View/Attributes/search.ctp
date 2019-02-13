@@ -17,8 +17,8 @@
                     'rows' => 2,
                     'class' => 'input-xxlarge'));
             echo $this->Form->input('type', array(
-            	'div' => 'input clear',
-				'required' => false
+                'div' => 'input clear',
+                'required' => false
             ));
             echo $this->Form->input('category', array('required' => false));
         ?>
@@ -35,8 +35,8 @@
         ?>
     </fieldset>
 <?php
-	echo $this->Form->button('Search', array('class' => 'btn btn-primary'));
-	echo $this->Form->end();
+    echo $this->Form->button('Search', array('class' => 'btn btn-primary'));
+    echo $this->Form->end();
 ?>
 </div>
 <script type="text/javascript">
@@ -201,5 +201,5 @@ $('.input-xxlarge').keydown(function (e) {
 </script>
 <?php
     echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'searchAttributes'));
-	echo $this->Js->writeBuffer();
+    echo $this->Js->writeBuffer();
 ?>

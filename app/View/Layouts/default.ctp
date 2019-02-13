@@ -50,7 +50,7 @@
         ?>
     </div>
     <div id="flashContainer" style="padding-top:<?php echo $topPadding; ?>px; !important;">
-    	<div id="main-view-container" class="container-fluid ">
+        <div id="main-view-container" class="container-fluid ">
             <?php
                 $flash = $this->Flash->render();
                 echo $flash;
@@ -59,8 +59,8 @@
     </div>
     <div>
         <?php
-			echo $this->fetch('content');
-		?>
+            echo $this->fetch('content');
+        ?>
     </div>
     <?php
     echo $this->element('footer');
@@ -111,11 +111,11 @@
         <?php
             endif;
         ?>
-		if ($('.alert').text().indexOf("$flashErrorMessage") >= 0) {
-			//$('#flashErrorMessage').html()
-			var flashMessageLink = '<span class="useCursorPointer underline bold" onClick="flashErrorPopover();">here</span>';
-			$('.alert').html(($('.alert').html().replace("$flashErrorMessage", flashMessageLink)));
-		}
+        if ($('.alert').text().indexOf("$flashErrorMessage") >= 0) {
+            //$('#flashErrorMessage').html()
+            var flashMessageLink = '<span class="useCursorPointer underline bold" onClick="flashErrorPopover();">here</span>';
+            $('.alert').html(($('.alert').html().replace("$flashErrorMessage", flashMessageLink)));
+        }
         });
     </script>
 </body>
