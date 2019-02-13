@@ -190,11 +190,7 @@ systemctl restart rh-php71-php-fpm.service
 ## 3.06/ Enable dependencies detection in the diagnostics page
 Add the following content to `/etc/opt/rh/rh-php71/php-fpm.d/www.conf` :
 ```
-env[PATH] = /usr/bin:/opt/rh/rh-php71/root/usr/bin:/opt/rh/rh-php71/root/usr/sbin:/opt/rh/rh-python36/root/usr/bin
-env[LD_LIBRARY_PATH] = /opt/rh/rh-php71/root/usr/lib64:/opt/rh/rh-python36/root/usr/lib64
-env[MANPATH] = /opt/rh/rh-php71/root/usr/share/man:/opt/rh/rh-python36/root/usr/share/man
-env[PKG_CONFIG_PATH] = /opt/rh/rh-python36/root/usr/lib64/pkgconfig
-env[XDG_DATA_DIRS] = /opt/rh/rh-python36/root/usr/share
+env[PATH] =/opt/rh/rh-redis32/root/usr/bin:/opt/rh/rh-python36/root/usr/bin:/opt/rh/rh-php71/root/usr/bin:/usr/local/bin:/usr/bin:/bin
 ```
 Then run `systemctl restart rh-php71-php-fpm.service`.
 This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
@@ -513,10 +509,7 @@ scl enable rh-python36 python3
 ```
 
 # 12/ Known Issues
-## 12.01/ PHP CLI cannot determine version
-PHP CLI Version cannot be determined. Possibly due to PHP being installed through SCL
-
-## 12.02/ Workers cannot be started or restarted from the web page
+## 12.01/ Workers cannot be started or restarted from the web page
 Possible also due to package being installed via SCL, attempting to start workers through the web page will result in
 error. Worker's can be restarted via the CLI using the following command.
 ```bash
