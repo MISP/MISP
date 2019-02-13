@@ -80,12 +80,18 @@ setOpt () {
 
 # Extract debian flavour
 checkFlavour () {
-  if [ ! -f $(which lsb_release) ]; then
+  if [ -z $(which lsb_release) ]; then
     checkAptLock
-    sudo apt install lsb-release -y
+    sudo apt install lsb-release dialog -y
   fi
 
   FLAVOUR=$(lsb_release -s -i |tr [A-Z] [a-z])
+  if [ FLAVOUR == "ubuntu" ]; then
+    RELEASE=$(lsb_release -s -r)
+    debug "We detected the following Linux flavour: ${YELLOW}$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOUR:0:1})${FLAVOUR:1} ${RELEASE}${NC}"
+  else
+    debug "We detected the following Linux flavour: ${YELLOW}$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOUR:0:1})${FLAVOUR:1}${NC}"
+  fi
 }
 
 # Extract manufacturer
@@ -114,6 +120,9 @@ space () {
 # Spinner so the user knows something is happening
 spin()
 {
+  if [[ "$NO_PROGRESS" == "1" ]]; then
+    return
+  fi
   spinner="/|\\-/|\\-"
   while :
   do
@@ -128,6 +137,9 @@ spin()
 
 # Progress bar
 progress () {
+  if [[ "$NO_PROGRESS" == "1" ]]; then
+    return
+  fi
   bar="#"
   if [[ $progress -ge 100 ]]; then
     echo -ne "#####################################################################################################  (100%)\r"
@@ -315,6 +327,7 @@ installRNG () {
 
 # Kali upgrade
 kaliUpgrade () {
+  debug "Running various Kali upgrade tasks"
   sudo apt update
   checkAptLock
   sudo DEBIAN_FRONTEND=noninteractive apt install --only-upgrade bash libc6 -y
@@ -374,6 +387,7 @@ installDepsPhp73 () {
 
 # Installing core dependencies
 installDeps () {
+  debug "Installing core dependencies"
   checkAptLock
   sudo apt update
   sudo apt install -qy etckeeper

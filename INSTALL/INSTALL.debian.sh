@@ -209,12 +209,18 @@ setOpt () {
 
 # Extract debian flavour
 checkFlavour () {
-  if [ ! -f $(which lsb_release) ]; then
+  if [ -z $(which lsb_release) ]; then
     checkAptLock
-    sudo apt install lsb-release -y
+    sudo apt install lsb-release dialog -y
   fi
 
   FLAVOUR=$(lsb_release -s -i |tr [A-Z] [a-z])
+  if [ FLAVOUR == "ubuntu" ]; then
+    RELEASE=$(lsb_release -s -r)
+    debug "We detected the following Linux flavour: ${YELLOW}$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOUR:0:1})${FLAVOUR:1} ${RELEASE}${NC}"
+  else
+    debug "We detected the following Linux flavour: ${YELLOW}$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOUR:0:1})${FLAVOUR:1}${NC}"
+  fi
 }
 
 # Extract manufacturer
@@ -243,6 +249,9 @@ space () {
 # Spinner so the user knows something is happening
 spin()
 {
+  if [[ "$NO_PROGRESS" == "1" ]]; then
+    return
+  fi
   spinner="/|\\-/|\\-"
   while :
   do
@@ -257,6 +266,9 @@ spin()
 
 # Progress bar
 progress () {
+  if [[ "$NO_PROGRESS" == "1" ]]; then
+    return
+  fi
   bar="#"
   if [[ $progress -ge 100 ]]; then
     echo -ne "#####################################################################################################  (100%)\r"
@@ -444,6 +456,7 @@ installRNG () {
 
 # Kali upgrade
 kaliUpgrade () {
+  debug "Running various Kali upgrade tasks"
   sudo apt update
   checkAptLock
   sudo DEBIAN_FRONTEND=noninteractive apt install --only-upgrade bash libc6 -y
@@ -501,6 +514,7 @@ installDepsPhp73 () {
 
 # Installing core dependencies
 installDeps () {
+  debug "Installing core dependencies"
   checkAptLock
   sudo apt update
   sudo apt install -qy etckeeper
@@ -1547,6 +1561,7 @@ if [[ $(type -t debug) == "alias" ]]; then unalias debug; fi
 debug () {
   echo -e "${RED}Next step:${NC} ${GREEN}$1${NC}"
   if [ ! -z $DEBUG ]; then
+    NO_PROGRESS=1
     echo -e "${RED}Debug Mode${NC}, press ${LBLUE}enter${NC} to continue..."
     exec 3>&1
     read
@@ -1687,9 +1702,9 @@ installMISPubuntuSupported () {
 
 # Main Kalin Install function
 installMISPonKali () {
-  # Kali might have a bug on installs where libc6 is not up to date, this forces bash and libc to update
+  # Kali might have a bug on installs where libc6 is not up to date, this forces bash and libc to update - functionLocation('')
   kaliUpgrade 2> /dev/null > /dev/null
-  # Kali uses php-7.3
+  # Install PHP 7.3 Dependencies - functionLocation('generic/supportFunctions.md')
   installDepsPhp73 2> /dev/null > /dev/null
   # Set custom Kali only variables and tweaks
   space

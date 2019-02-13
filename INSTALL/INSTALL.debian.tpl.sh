@@ -173,9 +173,10 @@ generateInstaller () {
 # Make sure no alias exists
 if [[ $(type -t debug) == "alias" ]]; then unalias debug; fi
 debug () {
-  echo -e "${RED}Next step:${NC} ${GREEN}$1${NC}"
+  echo -e "${RED}Next step:${NC} ${GREEN}$1${NC}" > /dev/tty
   if [ ! -z $DEBUG ]; then
-    echo -e "${RED}Debug Mode${NC}, press ${LBLUE}enter${NC} to continue..."
+    NO_PROGRESS=1
+    echo -e "${RED}Debug Mode${NC}, press ${LBLUE}enter${NC} to continue..." > /dev/tty
     exec 3>&1
     read
   else
@@ -189,6 +190,9 @@ installMISPubuntuSupported () {
   space
   echo "Proceeding with the installation of MISP core"
   space
+
+  debug "Checking Locale"
+  checkLocale
 
   # Set Base URL - functionLocation('generic/supportFunctions.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && setBaseURL
@@ -315,16 +319,20 @@ installMISPubuntuSupported () {
 
 # Main Kalin Install function
 installMISPonKali () {
-  # Kali might have a bug on installs where libc6 is not up to date, this forces bash and libc to update
+  # Kali might have a bug on installs where libc6 is not up to date, this forces bash and libc to update - functionLocation('')
   kaliUpgrade 2> /dev/null > /dev/null
-  # Kali uses php-7.3
+
+  debug "Checking Locale"
+  checkLocale
+  # Install PHP 7.3 Dependencies - functionLocation('generic/supportFunctions.md')
   installDepsPhp73 2> /dev/null > /dev/null
   # Set custom Kali only variables and tweaks
   space
   # The following disables sleep on kali/gnome
-  disableSleep 2> /dev/null > /dev/null
-  debug "Sleeping 3 seconds to make sure the disable sleep does not confuse the execution of the script."
-  sleep 3
+  ### FIXME: Disabling for now, maybe source of some issues.
+  ##disableSleep 2> /dev/null > /dev/null
+  ##debug "Sleeping 3 seconds to make sure the disable sleep does not confuse the execution of the script."
+  ##sleep 3
 
   debug "Installing dependencies"
   installDeps 2> /dev/null > /dev/null
