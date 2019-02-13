@@ -898,6 +898,17 @@ a.proposal_link_red:hover {
     padding-left:10px;
 }
 
+.hover_enrichment_text {
+    border:0px;
+    background-color:transparent;
+    display:inline;
+}
+
+.hover_enrichment_title {
+    font-weight: bold;
+    font-size: 125%;
+}
+
 a.pill-pre-picker {
     background-color: #fcfcfc;
     font-weight: bold;
@@ -1917,6 +1928,11 @@ table.table.table-striped tr.deleted_row td {
   background-color:black;
   box-shadow:0px 0px 5px 2px rgba(0,0,0,0.5);
   transition: all 0.3s ease;
+}
+
+.close-icon.popup-close-icon {
+	top:10px;
+	right: 25px;
 }
 
 .sparkline {
