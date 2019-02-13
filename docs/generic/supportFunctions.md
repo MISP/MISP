@@ -318,8 +318,6 @@ kaliUpgrade () {
   sudo apt update
   checkAptLock
   sudo DEBIAN_FRONTEND=noninteractive apt install --only-upgrade bash libc6 -y
-  # Evil hack to make sure redis-server is installed before we roll our own config.
-  sudo DEBIAN_FRONTEND=noninteractive apt install redis-server -y
   sudo DEBIAN_FRONTEND=noninteractive apt autoremove -y
 }
 

@@ -447,8 +447,6 @@ kaliUpgrade () {
   sudo apt update
   checkAptLock
   sudo DEBIAN_FRONTEND=noninteractive apt install --only-upgrade bash libc6 -y
-  # Evil hack to make sure redis-server is installed before we roll our own config.
-  sudo DEBIAN_FRONTEND=noninteractive apt install redis-server -y
   sudo DEBIAN_FRONTEND=noninteractive apt autoremove -y
 }
 
@@ -1697,6 +1695,8 @@ installMISPonKali () {
   space
   # The following disables sleep on kali/gnome
   disableSleep 2> /dev/null > /dev/null
+  debug "Sleeping 3 seconds to make sure the disable sleep does not confuse the execution of the script."
+  sleep 3
 
   debug "Installing dependencies"
   installDeps 2> /dev/null > /dev/null
