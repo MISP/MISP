@@ -147,6 +147,7 @@ usage () {
     SCRIPT_NAME=$0
   fi
 
+  exec &> /dev/tty
   space
   echo -e "Please specify what type of ${LBLUE}MISP${NC} setup you want to install."
   space
@@ -421,7 +422,10 @@ disableSleep () {
   debug "Disabling sleep etc if run from a Laptop as the install might take some time…"
   gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 0 2> /dev/null
   gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 0 2> /dev/null
-  gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'nothing' 2> /dev/null
+  gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type nothing 2> /dev/null
+  gsettings set org.gnome.desktop.screensaver lock-enabled false 2> /dev/null
+  gsettings set org.gnome.desktop.screensaver idle-activation-enabled false 2> /dev/null
+
   setterm -blank 0 -powersave off -powerdown 0
   xset s 0 0 2> /dev/null
   xset dpms 0 0 2> /dev/null
@@ -430,7 +434,6 @@ disableSleep () {
   service sleepd stop
   kill $(lsof | grep 'sleepd' | awk '{print $2}')
   checkAptLock
-  apt install gnome-shell-extension-caffeine
 }
 
 # Remove alias if present
@@ -1203,6 +1206,7 @@ mispmodules () {
 # Main MISP Dashboard install function
 mispDashboard () {
   # Install pyzmq to main MISP venv
+  debug "Installing PyZMQ"
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install pyzmq
   cd /var/www
   sudo mkdir misp-dashboard
@@ -1487,7 +1491,12 @@ debug () {
   echo -e "${RED}Next step:${NC} ${GREEN}$1${NC}"
   if [ ! -z $DEBUG ]; then
     echo -e "${RED}Debug Mode${NC}, press ${LBLUE}enter${NC} to continue..."
+    exec 3>&1
     read
+  else
+    # [Set up conditional redirection](https://stackoverflow.com/questions/8756535/conditional-redirection-in-bash)
+    #exec 3>&1 &>/dev/null
+    :
   fi
 }
 
@@ -1500,10 +1509,10 @@ installMISPubuntuSupported () {
   [[ -n $CORE ]]   || [[ -n $ALL ]] && setBaseURL
 
   # Upgrade system to make sure we install  the latest packages - functionLocation('')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && aptUpgrade
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && aptUpgrade 2> /dev/null > /dev/null
 
   # Check if sudo is installed and etckeeper - functionLocation('')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && checkSudoKeeper
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && checkSudoKeeper 2> /dev/null > /dev/null
 
   # TODO: Double check how the user is added and subsequently used during the install.
   # TODO: Work on possibility to install as user X and install MISP for user Y
@@ -1519,10 +1528,10 @@ installMISPubuntuSupported () {
   checkID
 
   # Install Core Dependencies - functionLocation('')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && installCoredDeps
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && installCoredDeps 2> /dev/null > /dev/null
 
   # Install PHP 7.2 Dependencies - functionLocation('')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72 2> /dev/null > /dev/null
 
   # Install Core MISP - functionLocation('')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && installCore
@@ -1531,32 +1540,32 @@ installMISPubuntuSupported () {
   [[ -n $CORE ]]   || [[ -n $ALL ]] && installCake
 
   # Make sure permissions are sane - functionLocation('')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && permissions
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && permissions 2> /dev/null > /dev/null
 
   # TODO: Mysql install functions, make it upgrade safe, double check
   # Setup Databse - functionLocation('')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && prepareDB
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && prepareDB 2> /dev/null > /dev/null
 
   # Roll Apache Config - functionLocation('')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && apacheConfig
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && apacheConfig 2> /dev/null > /dev/null
 
   # Setup log logrotate - functionLocation('')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && logRotation
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && logRotation 2> /dev/null > /dev/null
 
   # Generate MISP Config files - functionLocation('')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && configMISP
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && configMISP 2> /dev/null > /dev/null
 
   # Generate GnuPG key - functionLocation('')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && setupGnuPG
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && setupGnuPG 2> /dev/null > /dev/null
 
   # Setup and start background workers - functionLocation('')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && backgroundWorkers
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && backgroundWorkers 2> /dev/null > /dev/null
 
   # Run cake CLI for the core installation - functionLocation('')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && coreCAKE
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && coreCAKE 2> /dev/null > /dev/null
 
   # Update Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies - functionLocation('')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && updateGOWNT 
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && updateGOWNT 2> /dev/null > /dev/null
 
   # Check if /usr/local/src is writeable by target install user - functionLocation('')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && checkUsrLocalSrc
@@ -1571,7 +1580,7 @@ installMISPubuntuSupported () {
   [[ -n $SSDEEP ]]     || [[ -n $ALL ]] && ssdeep
 
   # Install misp-dashboard - functionLocation('')
-  [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && mispDashboard ; dashboardCAKE
+  [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && mispDashboard ; dashboardCAKE 2> /dev/null > /dev/null
 
   # Install Mail2MISP - functionLocation('')
   [[ -n $MAIL2 ]]     || [[ -n $ALL ]] && mail2misp
@@ -1583,33 +1592,33 @@ installMISPubuntuSupported () {
 # Main Kalin Install function
 installMISPonKali () {
   # Kali might have a bug on installs where libc6 is not up to date, this forces bash and libc to update
-  kaliUpgrade
+  kaliUpgrade 2> /dev/null > /dev/null
   # Kali uses php-7.3
-  installDepsPhp73
+  installDepsPhp73 2> /dev/null > /dev/null
   # Set custom Kali only variables and tweaks
   space
   # The following disables sleep on kali/gnome
-  disableSleep
+  disableSleep 2> /dev/null > /dev/null
 
   debug "Installing dependencies"
-  installDeps
+  installDeps 2> /dev/null > /dev/null
 
   debug "Enabling redis and gnupg modules"
   phpenmod -v 7.3 redis
   phpenmod -v 7.3 gnupg
 
   debug "Apache2 ops: dismod: status php7.2 - dissite: 000-default enmod: ssl rewrite headers php7.3 ensite: default-ssl"
-  a2dismod status
-  a2dismod php7.2
-  a2enmod ssl rewrite headers php7.3
-  a2dissite 000-default
-  a2ensite default-ssl
+  a2dismod status 2> /dev/null > /dev/null
+  a2dismod php7.2 2> /dev/null > /dev/null
+  a2enmod ssl rewrite headers php7.3 2> /dev/null > /dev/null
+  a2dissite 000-default 2> /dev/null > /dev/null
+  a2ensite default-ssl 2> /dev/null > /dev/null
 
   debug "Restarting mysql.service"
-  systemctl restart mysql.service
+  systemctl restart mysql.service 2> /dev/null > /dev/null
 
   debug "Fixing redis rc script on Kali"
-  fixRedis
+  fixRedis 2> /dev/null > /dev/null
 
   debug "git clone, submodule update everything"
   mkdir $PATH_TO_MISP
@@ -1620,15 +1629,15 @@ installMISPonKali () {
   $SUDO_WWW git config core.filemode false
 
   cd $PATH_TO_MISP
-  $SUDO_WWW git submodule update --init --recursive
+  $SUDO_WWW git submodule update --init --recursive 2> /dev/null > /dev/null
   # Make git ignore filesystem permission differences for submodules
   $SUDO_WWW git submodule foreach --recursive git config core.filemode false
 
   cd $PATH_TO_MISP/app/files/scripts
-  $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git
-  $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git
-  $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git
-  $SUDO_WWW git clone https://github.com/MAECProject/python-maec.git
+  $SUDO_WWW git clone https://github.com/CybOXProject/python-cybox.git 2> /dev/null > /dev/null
+  $SUDO_WWW git clone https://github.com/STIXProject/python-stix.git 2> /dev/null > /dev/null
+  $SUDO_WWW git clone https://github.com/CybOXProject/mixbox.git 2> /dev/null > /dev/null
+  $SUDO_WWW git clone https://github.com/MAECProject/python-maec.git 2> /dev/null > /dev/null
 
 
   mkdir /var/www/.cache/
@@ -1641,47 +1650,47 @@ installMISPonKali () {
   debug "Generating rc.local"
   genRCLOCAL
 
-  debug "Installing MISP dashboard"
-  mispDashboard
-
   debug "Setting up main MISP virtualenv"
   # Needs virtualenv
   sudo -u www-data virtualenv -p python3 ${PATH_TO_MISP}/venv
 
+  debug "Installing MISP dashboard"
+  mispDashboard
+
   debug "Installing python-cybox"
   cd $PATH_TO_MISP/app/files/scripts/python-cybox
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
 
   debug "Installing python-stix"
   cd $PATH_TO_MISP/app/files/scripts/python-stix
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
 
   debug "Install maec"
   cd $PATH_TO_MISP/app/files/scripts/python-maec
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
 
   # install STIX2.0 library to support STIX 2.0 export
   debug "Installing cti-python-stix2"
   cd ${PATH_TO_MISP}/cti-python-stix2
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install -I .
+  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install -I . 2> /dev/null > /dev/null
 
   debug "Installing mixbox"
   cd $PATH_TO_MISP/app/files/scripts/mixbox
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
 
   # install PyMISP
   debug "Installing PyMISP"
   cd $PATH_TO_MISP/PyMISP
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
+  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install . 2> /dev/null > /dev/null
 
   # install pydeep
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kbandla/pydeep.git 2> /dev/null > /dev/null
 
   # install lief
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install https://github.com/lief-project/packages/raw/lief-master-latest/pylief-0.9.0.dev.zip 2> /dev/null > /dev/null
 
   # install python-magic
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install python-magic 2> /dev/null > /dev/null
 
   # Install Crypt_GPG and Console_CommandLine
   debug "Installing pear Console_CommandLine"
@@ -1748,7 +1757,7 @@ installMISPonKali () {
                   'prefix' => '',
                   'encoding' => 'utf8',
           );
-  }" | $SUDO_WWW tee $PATH_TO_MISP/app/Config/database.php
+  }" | $SUDO_WWW tee $PATH_TO_MISP/app/Config/database.php 2> /dev/null > /dev/null
   else
     echo "There might be a database already existing here: /var/lib/mysql/misp/users.ibd"
     echo "Skipping any creations…"
@@ -1789,18 +1798,18 @@ installMISPonKali () {
   chmod -R 750 $PATH_TO_MISP/app/Config
 
   debug "Setting up GnuPG"
-  setupGnuPG
+  setupGnuPG 2> /dev/null > /dev/null
 
   debug "Starting workers"
   chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
   $SUDO_WWW $PATH_TO_MISP/app/Console/worker/start.sh
 
   debug "Running Core Cake commands"
-  coreCAKE
-  dashboardCAKE
+  coreCAKE 2> /dev/null > /dev/null
+  dashboardCAKE 2> /dev/null > /dev/null
 
   debug "Update: Galaxies, Template Objects, Warning Lists, Notice Lists, Taxonomies"
-  updateGOWNT
+  updateGOWNT 2> /dev/null > /dev/null
 
   gitPullAllRCLOCAL
 

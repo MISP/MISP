@@ -19,6 +19,7 @@ usage () {
     SCRIPT_NAME=$0
   fi
 
+  exec &> /dev/tty
   space
   echo -e "Please specify what type of ${LBLUE}MISP${NC} setup you want to install."
   space
@@ -293,7 +294,10 @@ disableSleep () {
   debug "Disabling sleep etc if run from a Laptop as the install might take some time…"
   gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 0 2> /dev/null
   gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 0 2> /dev/null
-  gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'nothing' 2> /dev/null
+  gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type nothing 2> /dev/null
+  gsettings set org.gnome.desktop.screensaver lock-enabled false 2> /dev/null
+  gsettings set org.gnome.desktop.screensaver idle-activation-enabled false 2> /dev/null
+
   setterm -blank 0 -powersave off -powerdown 0
   xset s 0 0 2> /dev/null
   xset dpms 0 0 2> /dev/null
@@ -302,7 +306,6 @@ disableSleep () {
   service sleepd stop
   kill $(lsof | grep 'sleepd' | awk '{print $2}')
   checkAptLock
-  apt install gnome-shell-extension-caffeine
 }
 
 # Remove alias if present

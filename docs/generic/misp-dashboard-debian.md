@@ -5,6 +5,7 @@
 # Main MISP Dashboard install function
 mispDashboard () {
   # Install pyzmq to main MISP venv
+  debug "Installing PyZMQ"
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install pyzmq
   cd /var/www
   sudo mkdir misp-dashboard
