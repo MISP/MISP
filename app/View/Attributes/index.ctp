@@ -144,7 +144,7 @@ if ($isSearch == 1){
 }
 ?>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => $class));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => $class));
 ?>
 <script type="text/javascript">
 // tooltips

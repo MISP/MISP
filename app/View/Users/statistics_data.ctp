@@ -132,5 +132,5 @@ if (preg_match('/(?i)msie [2-9]/',$_SERVER['HTTP_USER_AGENT']) && !strpos($_SERV
 ?>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'statistics'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'statistics'));
 ?>

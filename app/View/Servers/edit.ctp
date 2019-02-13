@@ -169,7 +169,7 @@
     <?php echo $this->element('serverRuleElements/pull'); ?>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'sync', 'menuItem' => 'edit'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'sync', 'menuItem' => 'edit'));
 ?>
 
 

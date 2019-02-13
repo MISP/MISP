@@ -141,7 +141,7 @@
 </div>
 
 <?php
-    echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'rest'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'rest'));
 
     echo $this->Html->script('doT');
     echo $this->Html->script('extendext');

@@ -58,7 +58,7 @@
     </fieldset>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'contact'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'contact'));
 ?>
 <script>
 $("#recipient").change(setAll);

@@ -50,7 +50,7 @@
     echo $this->Form->end();?>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'templates', 'menuItem' => 'add'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'templates', 'menuItem' => 'add'));
 ?>
 <script type="text/javascript">
 var selectedTags = [];

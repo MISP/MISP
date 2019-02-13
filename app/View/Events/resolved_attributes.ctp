@@ -290,5 +290,5 @@
         });
     </script>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'freetextResults'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'freetextResults'));
 ?>

@@ -36,7 +36,7 @@ echo $this->Form->end();
 ?>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'populateFromtemplate', 'event' => array('Event' => array('id' => $event_id)), 'template_id' => $template_id));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'populateFromtemplate', 'event' => array('Event' => array('id' => $event_id)), 'template_id' => $template_id));
 ?>
 <?php
     if (!empty($fileArray)) {

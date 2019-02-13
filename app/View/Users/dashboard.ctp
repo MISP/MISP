@@ -14,5 +14,5 @@
         </div>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'dashboard'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'dashboard'));
 ?>

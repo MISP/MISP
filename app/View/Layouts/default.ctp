@@ -10,6 +10,7 @@
     <?php
         echo $this->Html->meta('icon');
         echo $this->Html->css('bootstrap');
+        //echo $this->Html->css('bootstrap4');
         echo $this->Html->css('bootstrap-datepicker');
         echo $this->Html->css('bootstrap-timepicker');
         echo $this->Html->css('bootstrap-colorpicker');
@@ -66,6 +67,7 @@
     echo $this->element('footer');
     echo $this->element('sql_dump');
     echo $this->Html->script('bootstrap');
+    //echo $this->Html->script('bootstrap4');
     echo $this->Html->script('bootstrap-timepicker');
     echo $this->Html->script('bootstrap-datepicker');
     echo $this->Html->script('bootstrap-colorpicker');

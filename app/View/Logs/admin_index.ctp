@@ -121,5 +121,5 @@
     } else {
         $class = 'index';
     }
-    echo $this->element('side_menu', array('menuList' => 'logs', 'menuItem' => $class));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'logs', 'menuItem' => $class));
 ?>

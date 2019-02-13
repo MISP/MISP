@@ -35,5 +35,5 @@ endif;?>
 
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'sync', 'menuItem' => 'pull'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'sync', 'menuItem' => 'pull'));
 ?>

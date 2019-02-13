@@ -92,5 +92,5 @@
     });
 </script>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'feeds', 'menuItem' => 'compare'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'feeds', 'menuItem' => 'compare'));
 ?>

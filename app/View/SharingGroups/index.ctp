@@ -96,4 +96,4 @@ endforeach; ?>
     });
 </script>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'indexSG'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'indexSG'));
