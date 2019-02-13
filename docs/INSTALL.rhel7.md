@@ -10,7 +10,7 @@
     Thus we also have difficulties in supporting RHEL issues but will do a best effort on a similar yet slightly different setup.
 
 This document details the steps to install MISP on Red Hat Enterprise Linux 7.x (RHEL 7.x). At time of this writing it
-was tested on version 7.5.
+was tested on version 7.6.
 
 The following assumptions with regard to this installation have been made.
 
@@ -82,23 +82,23 @@ systemctl enable --now rh-mariadb102-mariadb.service
 ```
 
 !!! note
-    MISP 2.4 requires PHP 5.6 as a minimum, we need a higher version than base RHEL provides.<br />
-    This guide installs PHP 7.1 from SCL
+    MISP 2.4 requires PHP 5.6 as a minimum, so we need a higher version than base RHEL provides.<br />
+    This guide installs PHP 7.2 from SCL
 
 !!! warning
     [PHP 5.6 and 7.0 aren't supported since December 2018](https://secure.php.net/supported-versions.php). Please update accordingly. In the future only PHP7 will be supported.
 
-## 2.04/ Install PHP 7.1 from SCL
+## 2.04/ Install PHP 7.2 from SCL
 ```bash
-yum install rh-php71 rh-php71-php-fpm rh-php71-php-devel rh-php71-php-mysqlnd rh-php71-php-mbstring rh-php71-php-xml rh-php71-php-bcmath rh-php71-php-opcache
+yum install rh-php72 rh-php72-php-fpm rh-php72-php-devel rh-php72-php-mysqlnd rh-php72-php-mbstring rh-php72-php-xml rh-php72-php-bcmath rh-php72-php-opcache
 ```
 
 !!! note
-    If we want to use httpd from RHEL base we can use the rh-php71-php-fpm service instead
+    If we want to use httpd from RHEL base we can use the rh-php72-php-fpm service instead
 
 ## 2.05/ Start the PHP FPM service and enable to start on boot
 ```bash
-systemctl enable --now rh-php71-php-fpm.service
+systemctl enable --now rh-php72-php-fpm.service
 ```
 
 ## 2.06/ Install redis 3.2 from SCL
@@ -118,7 +118,7 @@ scl enable rh-mariadb102 'mysql_secure_installation'
 
 ## 2.10/ Update the PHP extension repository and install required package
 ```bash
-scl enable rh-php71 rh-redis32 bash
+scl enable rh-php72 rh-redis32 bash
 pear channel-update pear.php.net
 pear install Crypt_GPG
 ```
@@ -187,10 +187,18 @@ umask $UMASK
 
 ## 3.05/ Enable python3 for php-fpm
 ```bash
-echo 'source scl_source enable rh-python36' >> /etc/opt/rh/rh-php71/sysconfig/php-fpm
-sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php71/php-fpm.d/www.conf
-systemctl restart rh-php71-php-fpm.service
+echo 'source scl_source enable rh-python36' >> /etc/opt/rh/rh-php72/sysconfig/php-fpm
+sed -i.org -e 's/^;\(clear_env = no\)/\1/' /etc/opt/rh/rh-php72/php-fpm.d/www.conf
+systemctl restart rh-php72-php-fpm.service
 ```
+
+## 3.06/ Enable dependencies detection in the diagnostics page
+Add the following content to `/etc/opt/rh/rh-php71/php-fpm.d/www.conf` :
+```
+env[PATH] =/opt/rh/rh-redis32/root/usr/bin:/opt/rh/rh-python36/root/usr/bin:/opt/rh/rh-php71/root/usr/bin:/usr/local/bin:/usr/bin:/bin
+```
+Then run `systemctl restart rh-php71-php-fpm.service`.
+This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
 
 # 4/ CakePHP
 ## 4.01/ Install CakeResque along with its dependencies if you intend to use the built in background jobs
@@ -203,16 +211,16 @@ php composer.phar install
 
 ## 4.02/ Install and configure php redis connector through pecl
 ```bash
-scl enable rh-php71 'pecl install redis'
-echo "extension=redis.so" > /etc/opt/rh/rh-php71/php-fpm.d/redis.ini
-ln -s ../php-fpm.d/redis.ini /etc/opt/rh/rh-php71/php.d/99-redis.ini
-systemctl restart rh-php71-php-fpm.service
+scl enable rh-php72 'pecl install redis'
+echo "extension=redis.so" > /etc/opt/rh/rh-php72/php-fpm.d/redis.ini
+ln -s /etc/opt/rh/rh-php72/php-fpm.d/redis.ini /etc/opt/rh/rh-php72/php.d/99-redis.ini
+systemctl restart rh-php72-php-fpm.service
 ```
 
 ## 4.03/ Set a timezone in php.ini
 ```bash
-echo 'date.timezone = "Australia/Sydney"' > /etc/opt/rh/rh-php71/php-fpm.d/timezone.ini
-ln -s ../php-fpm.d/timezone.ini /etc/opt/rh/rh-php71/php.d/99-timezone.ini
+echo 'date.timezone = "Australia/Sydney"' > /etc/opt/rh/rh-php72/php-fpm.d/timezone.ini
+ln -s /etc/opt/rh/rh-php72/php-fpm.d/timezone.ini /etc/opt/rh/rh-php72/php.d/99-timezone.ini
 ```
 
 ## 4.04/ To use the scheduler worker for scheduled tasks, do the following:
@@ -229,16 +237,9 @@ sudo -H -u www-data pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/
 # 5/ Set file permissions
 ## 5.01/ Make sure the permissions are set correctly using the following commands as root:
 ```bash
-chown -R root:apache /var/www/MISP
+chown -R apache:apache /var/www/MISP
 find /var/www/MISP -type d -exec chmod g=rx {} \;
 chmod -R g+r,o= /var/www/MISP
-chown apache:apache /var/www/MISP/app/files
-chown apache:apache /var/www/MISP/app/files/terms
-chown apache:apache /var/www/MISP/app/files/scripts/tmp
-chown apache:apache /var/www/MISP/app/Plugin/CakeResque/tmp
-chown -R apache:apache /var/www/MISP/app/tmp
-chown -R apache:apache /var/www/MISP/app/webroot/img/orgs
-chown -R apache:apache /var/www/MISP/app/webroot/img/custom
 ```
 
 # 6/ Create database and user
@@ -399,13 +400,13 @@ Create the following file :
 ```
 [Unit]
 Description=MISP's background workers
-After=rh-mariadb102-mariadb.service rh-redis32-redis.service rh-php71-php-fpm.service
+After=rh-mariadb102-mariadb.service rh-redis32-redis.service rh-php72-php-fpm.service
 
 [Service]
 Type=forking
 User=apache
 Group=apache
-ExecStart=/usr/bin/scl enable rh-php71 rh-redis32 rh-mariadb102 /var/www/MISP/app/Console/worker/start.sh
+ExecStart=/usr/bin/scl enable rh-php72 rh-redis32 rh-mariadb102 /var/www/MISP/app/Console/worker/start.sh
 Restart=always
 RestartSec=10
 
@@ -440,16 +441,16 @@ chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/tmp/logs/
 
 ## 10.02/ Change php.ini settings to suggested limits from diagnostic page.
 ```bash
-# Edit /etc/opt/rh/rh-php71/php.ini and set the following settings
+# Edit /etc/opt/rh/rh-php72/php.ini and set the following settings
 max_execution_time = 300
 memory_limit = 512M
 upload_max_filesize = 50M
 post_max_size = 50M
 ```
 
-## 10.03/ Restart rh-php71 for settings to take effect
+## 10.03/ Restart rh-php72 for settings to take effect
 ```bash
-systemctl restart rh-php71-php-fpm
+systemctl restart rh-php72-php-fpm
 ```
 
 ## 10.04/ Install pydeep and pymisp
@@ -497,14 +498,11 @@ scl enable rh-python36 python3
 ```
 
 # 12/ Known Issues
-## 12.01/ PHP CLI cannot determine version
-PHP CLI Version cannot be determined. Possibly due to PHP being installed through SCL
-
-## 12.02/ Workers cannot be started or restarted from the web page
+## 12.01/ Workers cannot be started or restarted from the web page
 Possible also due to package being installed via SCL, attempting to start workers through the web page will result in
 error. Worker's can be restarted via the CLI using the following command.
 ```bash
-su -s /bin/bash apache -c 'scl enable rh-php71 rh-redis32 rh-mariadb102 /var/www/MISP/app/Console/worker/start.sh'
+systemctl restart misp-workers.service
 ```
 
 !!! note 
