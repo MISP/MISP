@@ -218,13 +218,13 @@ installMISPubuntuSupported () {
   progress 4
 
   # Starting friendly UI spinner
-  spin &
-  SPIN_PID=$!
-  disown
-  trap "kill -9 $SPIN_PID" `seq 0 15`
+  #spin &
+  #SPIN_PID=$!
+  #disown
+  #trap "kill -9 $SPIN_PID" `seq 0 15`
 
   # Install Core Dependencies - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && installCoredDeps 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && installCoreDeps 2> /dev/null > /dev/null
   progress 4
 
   # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
@@ -277,16 +277,17 @@ installMISPubuntuSupported () {
   progress 4
 
   # Disable spinner
-  (kill $SPIN_PID 2>&1) >/dev/null
+  #(kill $SPIN_PID 2>&1) >/dev/null
 
   # Check if /usr/local/src is writeable by target install user - functionLocation('generic/supportFunctions.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && checkUsrLocalSrc
   progress 4
 
-  spin &
-  SPIN_PID=$!
-  disown
-  trap "kill -9 $SPIN_PID" `seq 0 15`
+  ## Resume spinner
+  #spin &
+  #SPIN_PID=$!
+  #disown
+  #trap "kill -9 $SPIN_PID" `seq 0 15`
 
   # Install misp-modules - functionLocation('generic/misp-modules-debian.md')
   [[ -n $MODULES ]]   || [[ -n $ALL ]] && mispmodules

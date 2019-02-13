@@ -398,7 +398,7 @@ setBaseURL () {
   if [[ $(checkManufacturer) != "innotek GmbH" ]]; then
     debug "We guess that this is a physical machine and cannot possibly guess what the MISP_BASEURL might be."
     if [[ "$UNATTENDED" != "1" ]]; then 
-      echo "You can now enter your own BASE_URL, if you wish to NOT do that, the BASE_URL will be empty, which will work, but ideally you configure it afterwards."
+      echo "You can now enter your own MISP_BASEURL, if you wish to NOT do that, the MISP_BASEURL will be empty, which will work, but ideally you configure it afterwards."
       echo "Do you want to change it now? (y/n) "
       read ANSWER
       ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
@@ -703,14 +703,14 @@ theEnd () {
 
   clear
   space
-  echo -e "${LBLUE}MISP${NC} Installed, access here: ${BASE_URL}"
+  echo -e "${LBLUE}MISP${NC} Installed, access here: ${MISP_BASEURL}"
   echo
   echo "User: admin@admin.test"
   echo "Password: admin"
   space
-  [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && echo -e "${LBLUE}MISP${NC} Dashboard, access here: ${BASE_URL}:8001"
+  [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && echo -e "${LBLUE}MISP${NC} Dashboard, access here: ${MISP_BASEURL}:8001"
   [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && space
-  [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-web installed, access here: ${BASE_URL}:8888"
+  [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-web installed, access here: ${MISP_BASEURL}:8888"
   [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-cli configured with your ${LBLUE}MISP${NC} ${RED}Site Admin Auth Key${NC}"
   [[ -n $VIPER ]] || [[ -n $ALL ]] && echo
   [[ -n $VIPER ]] || [[ -n $ALL ]] && echo "User: admin"
@@ -734,6 +734,12 @@ theEnd () {
   echo "sudo postfix reload"
   space
   echo -e "Enjoy using ${LBLUE}MISP${NC}. For any issues see here: https://github.com/MISP/MISP/issues"
+  space
+  if [ $UNATTENDED == "1" ]; then
+    echo -e "${RED}Unattended install!${NC}"
+    echo -e "This means we guessed the Base URL, it might be wrong, please double check."
+    space
+  fi
 
   if [[ "$USER" != "$MISP_USER" ]]; then
     sudo su - ${MISP_USER}
@@ -761,7 +767,7 @@ checkSudoKeeper () {
   fi
 }
 
-installCoredDeps () {
+installCoreDeps () {
   debug "Installing core dependencies"
   # Install the dependencies: (some might already be installed)
   sudo apt-get install curl gcc git gpg-agent make python python3 openssl redis-server sudo vim zip virtualenv libfuzzy-dev -y
@@ -1584,13 +1590,13 @@ installMISPubuntuSupported () {
   progress 4
 
   # Starting friendly UI spinner
-  spin &
-  SPIN_PID=$!
-  disown
-  trap "kill -9 $SPIN_PID" `seq 0 15`
+  #spin &
+  #SPIN_PID=$!
+  #disown
+  #trap "kill -9 $SPIN_PID" `seq 0 15`
 
   # Install Core Dependencies - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && installCoredDeps 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && installCoreDeps 2> /dev/null > /dev/null
   progress 4
 
   # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
@@ -1643,16 +1649,17 @@ installMISPubuntuSupported () {
   progress 4
 
   # Disable spinner
-  (kill $SPIN_PID 2>&1) >/dev/null
+  #(kill $SPIN_PID 2>&1) >/dev/null
 
   # Check if /usr/local/src is writeable by target install user - functionLocation('generic/supportFunctions.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && checkUsrLocalSrc
   progress 4
 
-  spin &
-  SPIN_PID=$!
-  disown
-  trap "kill -9 $SPIN_PID" `seq 0 15`
+  ## Resume spinner
+  #spin &
+  #SPIN_PID=$!
+  #disown
+  #trap "kill -9 $SPIN_PID" `seq 0 15`
 
   # Install misp-modules - functionLocation('generic/misp-modules-debian.md')
   [[ -n $MODULES ]]   || [[ -n $ALL ]] && mispmodules

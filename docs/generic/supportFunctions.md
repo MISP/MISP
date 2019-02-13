@@ -269,7 +269,7 @@ setBaseURL () {
   if [[ $(checkManufacturer) != "innotek GmbH" ]]; then
     debug "We guess that this is a physical machine and cannot possibly guess what the MISP_BASEURL might be."
     if [[ "$UNATTENDED" != "1" ]]; then 
-      echo "You can now enter your own BASE_URL, if you wish to NOT do that, the BASE_URL will be empty, which will work, but ideally you configure it afterwards."
+      echo "You can now enter your own MISP_BASEURL, if you wish to NOT do that, the MISP_BASEURL will be empty, which will work, but ideally you configure it afterwards."
       echo "Do you want to change it now? (y/n) "
       read ANSWER
       ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
@@ -576,14 +576,14 @@ theEnd () {
 
   clear
   space
-  echo -e "${LBLUE}MISP${NC} Installed, access here: ${BASE_URL}"
+  echo -e "${LBLUE}MISP${NC} Installed, access here: ${MISP_BASEURL}"
   echo
   echo "User: admin@admin.test"
   echo "Password: admin"
   space
-  [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && echo -e "${LBLUE}MISP${NC} Dashboard, access here: ${BASE_URL}:8001"
+  [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && echo -e "${LBLUE}MISP${NC} Dashboard, access here: ${MISP_BASEURL}:8001"
   [[ -n $DASHBOARD ]] || [[ -n $ALL ]] && space
-  [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-web installed, access here: ${BASE_URL}:8888"
+  [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-web installed, access here: ${MISP_BASEURL}:8888"
   [[ -n $VIPER ]] || [[ -n $ALL ]] && echo -e "viper-cli configured with your ${LBLUE}MISP${NC} ${RED}Site Admin Auth Key${NC}"
   [[ -n $VIPER ]] || [[ -n $ALL ]] && echo
   [[ -n $VIPER ]] || [[ -n $ALL ]] && echo "User: admin"
@@ -607,6 +607,12 @@ theEnd () {
   echo "sudo postfix reload"
   space
   echo -e "Enjoy using ${LBLUE}MISP${NC}. For any issues see here: https://github.com/MISP/MISP/issues"
+  space
+  if [ $UNATTENDED == "1" ]; then
+    echo -e "${RED}Unattended install!${NC}"
+    echo -e "This means we guessed the Base URL, it might be wrong, please double check."
+    space
+  fi
 
   if [[ "$USER" != "$MISP_USER" ]]; then
     sudo su - ${MISP_USER}

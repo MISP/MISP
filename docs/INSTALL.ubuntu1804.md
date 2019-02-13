@@ -75,7 +75,7 @@ sudo apt-get install postfix dialog -y
 Once the system is installed you can perform the following steps.
 ```bash
 # <snippet-begin 0_installCoreDeps.sh>
-installCoredDeps () {
+installCoreDeps () {
   debug "Installing core dependencies"
   # Install the dependencies: (some might already be installed)
   sudo apt-get install curl gcc git gpg-agent make python python3 openssl redis-server sudo vim zip virtualenv libfuzzy-dev -y
