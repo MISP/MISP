@@ -241,12 +241,12 @@
                     }
                     echo $this->element('/side_menu_divider');
                     echo $this->element('/side_menu_link', array(
-                        'element_id' => 'index',
+                        'element_id' => 'listAttributes',
                         'url' => '/attributes/index',
                         'text' => __('List Attributes')
                     ));
                     echo $this->element('/side_menu_link', array(
-                        'element_id' => 'search',
+                        'element_id' => 'searchAttributes',
                         'url' => '/attributes/search',
                         'text' => __('Search Attributes')
                     ));
@@ -262,10 +262,12 @@
                     }
                     echo $this->element('/side_menu_divider');
                     echo $this->element('/side_menu_link', array(
+                        'element_id' => 'viewProposals',
                         'url' => '/shadow_attributes/index',
                         'text' => __('View Proposals')
                     ));
                     echo $this->element('/side_menu_link', array(
+                        'element_id' => 'viewProposalIndex',
                         'url' => '/events/proposalEventIndex',
                         'text' => __('Events with proposals')
                     ));
@@ -283,366 +285,673 @@
                     }
                 break;
 
-                case 'regexp': ?>
-                    <li id='liindex'><?php echo $this->Html->link(__('List Regexp'), array('admin' => $isSiteAdmin, 'action' => 'index'));?></li>
-                    <?php if ($isSiteAdmin): ?>
-                    <li id='liadd'><?php echo $this->Html->link(__('New Regexp'), array('admin' => true, 'action' => 'add'));?></li>
-                    <li><?php echo $this->Form->postLink(__('Perform on existing'), array('admin' => true, 'action' => 'clean'));?></li>
-                    <?php endif;
-                    if ($menuItem == 'edit'):?>
-                    <li class="divider"></li>
-                    <li class="active"><?php echo $this->Html->link(__('Edit Regexp'), array('admin' => true, 'action' => 'edit', h($id)));?></li>
-                    <li><?php echo $this->Form->postLink(__('Delete Regexp'), array('admin' => true, 'action' => 'delete', h($id)), null, __('Are you sure you want to delete # %s?', h($id)));?></li>
-                    <?php
-                    endif;
+                case 'regexp':
+                    echo $this->element('/side_menu_link', array(
+                        'url' => sprintf(
+                            '%/regexp/index',
+                            $isSiteAdmin ? '/admin' : ''
+                        ),
+                        'text' => __('List Regexp')
+                    ));
+                    if ($isSiteAdmin) {
+                        echo $this->element('/side_menu_link', array(
+                            'url' => '/admin/regexp/add',
+                            'text' => __('New Regexp')
+                        ));
+                        echo $this->Form->postLink(__('Perform on existing'), array('admin' => true, 'action' => 'clean'));
+                    }
+                    if ($menuItem === 'edit') {
+                        echo $this->element('/side_menu_divider');
+                        echo $this->element('/side_menu_link', array(
+                            'url' => '/admin/regexp/edit/' . h($id),
+                            'text' => __('Edit Regexp')
+                        ));
+                        echo $this->Form->postLink(__('Delete Regexp'), array('admin' => true, 'action' => 'delete', h($id)), null, __('Are you sure you want to delete # %s?', h($id)));
+                    }
                 break;
 
-                case 'warninglist':?>
-                    <?php if ($menuItem == 'view'): ?><li class="active"><a href="#"><?php echo __('View Warninglist');?></a></li><?php endif;?>
-                    <li id='liindex'><?php echo $this->Html->link(__('List Warninglists'), array('action' => 'index'));?></li>
-                    <?php if ($isSiteAdmin): ?>
-                    <li><?php echo $this->Form->postLink(__('Update Warninglists'), '/warninglists/update'); ?></li>
-                    <?php
-                        endif;
-                break;
+                case 'warninglist':
+                    if ($menuItem === 'view') {
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'view',
+                            'text' => __('View Warninglist')
+                        ));
+                    }
+                    echo $this->element('/side_menu_link', array(
+                        'url' => '/warninglists/index',
+                        'text' => __('List Warninglists')
+                    ));
+                    if ($isSiteAdmin) {
+                        $this->Form->postLink(__('Update Warninglists'), '/warninglists/update');
+                    }
+                    break;
 
-                case 'noticelist':?>
-                    <?php if ($menuItem == 'view'): ?><li class="active"><a href="#"><?php echo __('View Noticelist');?></a></li><?php endif;?>
-                    <li id='liindex'><?php echo $this->Html->link(__('List Noticelists'), array('action' => 'index'));?></li>
-                    <?php if ($isSiteAdmin): ?>
-                    <li><?php echo $this->Form->postLink(__('Update Noticelists'), '/noticelists/update'); ?></li>
-                    <?php
-                        endif;
-                break;
+                case 'noticelist':
+                    if ($menuItem === 'view') {
+                        echo $this->element('/side_menu_link', array(
+                            'text' => __('View Noticelist')
+                        ));
+                    }
+                    echo $this->element('/side_menu_link', array(
+                        'element_id' => 'index',
+                        'url' => '/noticelists/index',
+                        'text' => __('List Noticelist')
+                    ));
+                    echo $this->Form->postLink(__('Update Noticelists'), '/noticelists/update');
+                    break;
 
-                case 'whitelist':?>
-                    <li id='liindex'><?php echo $this->Html->link(__('List Whitelist'), array('admin' => $isSiteAdmin, 'action' => 'index'));?></li>
-                    <?php if ($isSiteAdmin): ?>
-                    <li id='liadd'><?php echo $this->Html->link(__('New Whitelist'), array('admin' => true, 'action' => 'add'));?></li>
-                    <?php endif;
-                    if ($menuItem == 'edit'):?>
-                    <li class="divider"></li>
-                    <li class="active"><?php echo $this->Html->link(__('Edit Whitelist'), array('admin' => true, 'action' => 'edit', h($id)));?></li>
-                    <li><?php echo $this->Form->postLink(__('Delete Whitelist'), array('admin' => true, 'action' => 'delete', h($id)), null, __('Are you sure you want to delete # %s?', h($id)));?></li>
-                    <?php
-                    endif;
-                break;
+                case 'whitelist':
+                    echo $this->element('/side_menu_link', array(
+                        'url' => sprintf(
+                            '%s/whitelists/index',
+                            $isSiteAdmin ? '/admin' : ''
+                        ),
+                        'text' => __('List Whitelist')
+                    ));
+                    if ($isSiteAdmin) {
+                        echo $this->element('/side_menu_link', array(
+                            'url' => '/admin/whitelists/add',
+                            'text' => __('New Whitelist')
+                        ));
+                    }
+                    if ($menuItem == 'edit') {
+                        echo $this->element('/side_menu_divider');
+                        echo $this->element('/side_menu_link', array(
+                            'url' => '/admin/whitelists/edit' . h($id),
+                            'text' => __('Edit Whitelist')
+                        ));
+                        $this->Form->postLink(__('Delete Whitelist'), array('admin' => true, 'action' => 'delete', h($id)), null, __('Are you sure you want to delete # %s?', h($id)));
+                    }
+                    break;
 
                 case 'globalActions':
-                    if (((Configure::read('MISP.disableUserSelfManagement') && $isAdmin) || !Configure::read('MISP.disableUserSelfManagement')) && ($menuItem === 'edit' || $menuItem === 'view')): ?>
-                    <li id='liedit'><?php echo $this->Html->link(__('Edit My Profile', true), array('action' => 'edit')); ?></li>
-                    <li id='liedit'><?php echo $this->Html->link(__('Change Password', true), array('action' => 'change_pw')); ?></li>
-                    <li class="divider"></li>
-                    <?php elseif (Configure::read('Plugin.CustomAuth_custom_password_reset')): ?>
-                    <li id='lipwreset'><a href="<?php echo h(Configure::read('Plugin.CustomAuth_custom_password_reset'));?>">Reset Password</a></li>
-                    <?php endif; ?>
-                    <li id='liview'><a href="<?php echo $baseurl;?>/users/view/me"><?php echo __('My Profile');?></a></li>
-                    <li id='lidashboard'><a href="<?php echo $baseurl;?>/users/dashboard"><?php echo __('Dashboard');?></a></li>
-                    <?php
-                        if ($isAclSharingGroup || empty(Configure::read('Security.hide_organisation_index_from_users'))):
-                    ?>
-                            <li id='liindexOrg'><a href="<?php echo $baseurl;?>/organisations/index"><?php echo __('List Organisations');?></a></li>
-                    <?php
-                        endif;
-                        if ($menuItem === 'viewOrg'):
-                    ?>
-                        <li class="active"><a href="<?php echo $baseurl;?>/organisations/view/<?php echo h($id);?>"><?php echo __('View Organisation');?></a></li>
-                    <?php
-                        endif;
-                    ?>
-                    <li id='liroles'><a href="<?php echo $baseurl;?>/roles/index"><?php echo __('Role Permissions');?></a></li>
-                    <li class="divider"></li>
-                    <?php if ($menuItem === 'editSG' || ($menuItem == 'viewSG' && $mayModify)): ?>
-                        <li id='lieditSG'><a href="<?php echo $baseurl;?>/sharing_groups/edit/<?php echo h($id); ?>"><?php echo __('Edit Sharing Group');?></a></li>
-                        <li id='liviewSG'><a href="<?php echo $baseurl;?>/sharing_groups/view/<?php echo h($id);?>"><?php echo __('View Sharing Group');?></a></li>
-                    <?php endif; ?>
-                    <li id='liindexSG'><a href="<?php echo $baseurl;?>/sharing_groups/index"><?php echo __('List Sharing Groups');?></a></li>
-                    <li id='liaddSG'><a href="<?php echo $baseurl;?>/sharing_groups/add"><?php echo __('Add Sharing Group');?></a></li>
-                    <li class="divider"></li>
-                    <li id='liuserGuide'><a href="<?php echo $baseurl;?>/pages/display/doc/general"><?php echo __('User Guide');?></a></li>
-                    <li id='literms'><a href="<?php echo $baseurl;?>/users/terms"><?php echo __('Terms &amp; Conditions');?></a></li>
-                    <li id='listatistics'><a href="<?php echo $baseurl;?>/users/statistics"><?php echo __('Statistics');?></a></li>
-                    <?php
-                break;
+                    if (((Configure::read('MISP.disableUserSelfManagement') && $isAdmin) || !Configure::read('MISP.disableUserSelfManagement')) && ($menuItem === 'edit' || $menuItem === 'view' || $menuItem === 'change_pw')) {
+                        echo $this->element('/side_menu_link', array(
+                            'url' => '/users/edit',
+                            'text' => __('Edit My Profile')
+                        ));
+                        echo $this->element('/side_menu_link', array(
+                            'url' => '/users/change_pw',
+                            'text' => __('Change Password')
+                        ));
+                        echo $this->element('/side_menu_divider');
+                    } else if((Configure::read('Plugin.CustomAuth_custom_password_reset'))) {
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'custom_pw_reset',
+                            'url' => h(Configure::read('Plugin.CustomAuth_custom_password_reset')),
+                            'text' => __('Reset Password')
+                        ));
+                    }
+                    echo $this->element('/side_menu_link', array(
+                        'element_id' => 'view',
+                        'url' => '/users/view/me',
+                        'text' => __('My Profile')
+                    ));
+                    echo $this->element('/side_menu_link', array(
+                        'url' => '/users/dashboard',
+                        'text' => __('Dashboard')
+                    ));
+                    if ($isAclSharingGroup || empty(Configure::read('Security.hide_organisation_index_from_users'))) {
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'indexOrg',
+                            'url' => '/organisations/index',
+                            'text' => __('List Organisations')
+                        ));
+                    }
+                    if ($menuItem === 'viewOrg') {
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'viewOrg',
+                            'url' => '/organisations/view/' . h($id),
+                            'text' => __('View Organisation')
+                        ));
+                    }
+                    echo $this->element('/side_menu_link', array(
+                        'element_id' => 'roles',
+                        'url' => '/roles/index',
+                        'text' => __('Role Permissions')
+                    ));
+                    break;
+                    if ($menuItem === 'editSG' || ($menuItem == 'viewSG' && $mayModify)) {
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'editSG',
+                            'url' => '/sharing_groups/edit/' . h($id),
+                            'text' => __('Edit Sharing Group')
+                        ));
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'viewSG',
+                            'url' => '/sharing_groups/view/' . h($id),
+                            'text' => __('View Sharing Group')
+                        ));
+                    }
+                    echo $this->element('/side_menu_link', array(
+                        'element_id' => 'indexSG',
+                        'url' => '/sharing_groups/index',
+                        'text' => __('List Sharing Groups')
+                    ));
+                    echo $this->element('/side_menu_link', array(
+                        'element_id' => 'addSG',
+                        'url' => '/sharing_groups/add',
+                        'text' => __('Add Sharing Group')
+                    ));
+                    echo $this->element('/side_menu_divider');
+                    echo $this->element('/side_menu_link', array(
+                        'element_id' => 'userGuide',
+                        'url' => '/pages/display/doc/general',
+                        'text' => __('User Guide')
+                    ));
+                    echo $this->element('/side_menu_link', array(
+                        'url' => '/users/terms',
+                        'text' => __('Terms &amp; Conditions')
+                    ));
+                    echo $this->element('/side_menu_link', array(
+                        'url' => '/users/statistics',
+                        'text' => __('Statistics')
+                    ));
+                    break;
 
                 case 'sync':
                     if ($menuItem === 'previewEvent' && ($isSiteAdmin || $hostOrg)) {
-                        echo sprintf(
-                            '<li>%s</li><li class="active">%s</li>',
-                            $this->Html->link(__('Explore Remote Server'), array('controller' => 'servers', 'action' => 'previewIndex', h($server['Server']['id']))),
-                            $this->Html->link(__('Explore Remote Event'), array('controller' => 'servers', 'action' => 'previewEvent', h($server['Server']['id']), h($event['Event']['id'])))
-                        );
+                        echo $this->element('/side_menu_link', array(
+                            'url' => sprintf(
+                                '/servers/previewIndex/%s',
+                                h($server['Server']['id'])
+                            ),
+                            'text' => __('Explore Remote Server')
+                        ));
+                        echo $this->element('/side_menu_link', array(
+                            'url' => sprintf(
+                                '/servers/previewEvent/%s/%s',
+                                h($server['Server']['id']),
+                                h($event['Event']['id'])
+                            ),
+                            'text' => __('Explore Remote Event')
+                        ));
                     }
                     if ($menuItem === 'previewEvent' && $isSiteAdmin) {
-                        echo sprintf(
-                            '<li>%s</li>',
-                            $this->Form->postLink(__('Fetch This Event'), '/servers/pull/' . $server['Server']['id'] . '/' . $event['Event']['id'], null, __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Server.id')))
-                        );
+                        echo $this->element('/side_menu_post_link', array(
+                            'event_id' => 'pull',
+                            'url' => sprintf(
+                                '/servers/pull/%s/%s',
+                                h($server['Server']['id']),
+                                h($server['Event']['id'])
+                            ),
+                            'text' => __('Fetch This Event'),
+                            'message' => __('Are you sure you want to fetch and save this event on your instance?')
+                        ));
                     }
                     if ($menuItem === 'previewIndex' && ($isSiteAdmin || $hostOrg)) {
-                        echo sprintf(
-                            '<li class="active">%s</li>',
-                            $this->Html->link(__('Explore Remote Server'), array('controller' => 'servers', 'action' => 'previewIndex', h($id)))
-                        );
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'previewIndex',
+                            'url' => sprintf(
+                                '/servers/previewIndex/%s',
+                                h($id)
+                            ),
+                            'text' => __('Explore Remote Server')
+                        ));
                     }
                     if ($menuItem === 'edit' && $isSiteAdmin) {
-                        echo sprintf(
-                            '<li class="active">%s</li><li>%s</li><li class="divider"></li>',
-                            $this->Html->link(__('Edit Server'), array('controller' => 'servers', 'action' => 'edit')),
-                            $this->Form->postLink(__('Delete'), array('action' => 'delete', $this->Form->value('Server.id')), null, __('Are you sure you want to delete # %s?', $this->Form->value('Server.id')))
-                        );
+                        echo $this->element('/side_menu_divider');
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'edit',
+                            'url' => '/servers/edit/' . h($id),
+                            'text' => __('Edit Server')
+                        ));
+                        echo $this->element('/side_menu_post_link', array(
+                            'event_id' => 'pull',
+                            'url' => sprintf(
+                                '/servers/delete/%s',
+                                $this->Form->value('Server.id')
+                            ),
+                            'text' => __('Delete'),
+                            'message' => __('Are you sure you want to delete # %s?', $this->Form->value('Server.id'))
+                        ));
                     }
-                    echo sprintf(
-                        '<li id="liindex">%s</li>',
-                        $this->Html->link(__('List Servers'), array('controller' => 'servers', 'action' => 'index'))
-                    );
+                    echo $this->element('/side_menu_link', array(
+                        'url' => '/servers/index',
+                        'text' => __('List Servers')
+                    ));
                     if ($isSiteAdmin) {
-                        echo sprintf(
-                            '<li id="liadd">%s</li>',
-                            $this->Html->link(__('New Server'), array('controller' => 'servers', 'action' => 'add'))
-                        );
+                        echo $this->element('/side_menu_link', array(
+                            'url' => '/servers/add',
+                            'text' => __('New Servers')
+                        ));
                     }
-                break;
+                    break;
 
                 case 'admin':
-                    if ($menuItem === 'editUser' || $menuItem === 'viewUser'): ?>
-                    <li id='liviewUser'><?php echo $this->Html->link(__('View User'), array('controller' => 'users', 'action' => 'view', 'admin' => true, h($id))); ?> </li>
-                    <li><a href="#/" onClick="initiatePasswordReset('<?php echo h($id); ?>');"><?php echo __('Reset Password');?></a></li>
-                    <li id='lieditUser'><?php echo $this->Html->link(__('Edit User'), array('controller' => 'users', 'action' => 'edit', 'admin' => true, h($id))); ?> </li>
-                    <li><?php echo $this->Form->postLink(__('Delete User'), array('admin' => true, 'action' => 'delete', h($id)), null, __('Are you sure you want to delete # %s? It is highly recommended to never delete users but to disable them instead.', h($id)));?></li>
-                    <li class="divider"></li>
-                    <?php endif;
-                    if ($isSiteAdmin && $menuItem === 'editRole'): ?>
-                    <li class="active"><?php echo $this->Html->link(__('Edit Role'), array('controller' => 'roles', 'action' => 'edit', 'admin' => true, h($id))); ?> </li>
-                    <li><?php echo $this->Form->postLink(__('Delete Role'), array('controller' => 'roles', 'admin' => true, 'action' => 'delete', h($id)), null, __('Are you sure you want to delete # %s?', h($id)));?></li>
-                    <li class="divider"></li>
-                    <?php endif;
-                    if ($isSiteAdmin): ?>
-                    <li id='liaddUser'><?php echo $this->Html->link(__('Add User'), array('controller' => 'users', 'action' => 'add', 'admin' => true)); ?> </li>
-                    <li id='liindexUser'><?php echo $this->Html->link(__('List Users'), array('controller' => 'users', 'action' => 'index', 'admin' => true)); ?> </li>
-                    <?php endif; ?>
-                    <?php if ($isAdmin): ?>
-                    <li id='licontact'><?php echo $this->Html->link(__('Contact Users'), array('controller' => 'users', 'action' => 'email', 'admin' => true)); ?> </li>
-                    <?php endif; ?>
-                    <li class="divider"></li>
-                    <?php if ($isSiteAdmin): ?>
-                    <li id='liaddOrg'><a href="<?php echo $baseurl;?>/admin/organisations/add"><?php echo __('Add Organisation');?></a></li>
-                    <?php if ($menuItem === 'editOrg' || $menuItem === 'viewOrg'): ?>
-                        <li id='lieditOrg'><a href="<?php echo $baseurl;?>/admin/organisations/edit/<?php echo h($id);?>"><?php echo __('Edit Organisation');?></a></li>
-                        <li id='limergeOrg'><a class="useCursorPointer" onClick="getPopup('<?php echo h($id); ?>', 'organisations', 'merge', 'admin');"><?php echo __('Merge Organisation');?></a></li>
-                    <?php endif;?>
-                    <?php if ($menuItem === 'editOrg' || $menuItem === 'viewOrg'): ?>
-                        <li id='liviewOrg'><a href="<?php echo $baseurl;?>/organisations/view/<?php echo h($id);?>"><?php echo __('View Organisation');?></a></li>
-                    <?php endif;?>
-                    <li id='liindexOrg'><a href="<?php echo $baseurl;?>/organisations/index"><?php echo __('List Organisations');?></a></li>
-                    <li class="divider"></li>
-                    <li id='liaddRole'><?php echo $this->Html->link(__('Add Role'), array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
-                    <?php endif; ?>
-                    <li id='liindexRole'><?php echo $this->Html->link(__('List Roles'), array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
-                    <?php if ($isSiteAdmin): ?>
-                        <li class="divider"></li>
-                        <li id='liserverSettings'><a href="<?php echo $baseurl;?>/servers/serverSettings"><?php echo __('Server Settings & Maintenance');?></a></li>
-                        <li class="divider"></li>
-                        <?php if (Configure::read('MISP.background_jobs')): ?>
-                            <li id='lijobs'><a href="<?php echo $baseurl;?>/jobs/index"><?php echo __('Jobs');?></a></li>
-                            <li class="divider"></li>
-                            <li id='litasks'><a href="<?php echo $baseurl;?>/tasks"><?php echo __('Scheduled Tasks');?></a></li>
-                        <?php endif;
-                        if (Configure::read('MISP.enableEventBlacklisting') !== false): ?>
-                            <li <?php if ($menuItem === 'eventBlacklistsAdd') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/eventBlacklists/add"><?php echo __('Blacklists Event');?></a></li>
-                            <li <?php if ($menuItem === 'eventBlacklists') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/eventBlacklists"><?php echo __('Manage Event Blacklists');?></a></li>
-                        <?php endif;
-                        if (!Configure::check('MISP.enableOrgBlacklisting') || Configure::read('MISP.enableOrgBlacklisting') !== false): ?>
-                            <li <?php if ($menuItem === 'orgBlacklistsAdd') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/orgBlacklists/add"><?php echo __('Blacklists Organisation');?></a></li>
-                            <li <?php if ($menuItem === 'orgBlacklists') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/orgBlacklists"><?php echo __('Manage Org Blacklists');?></a></li>
-                        <?php endif;
-                    endif;
-                break;
 
-                case 'logs': ?>
-                    <li id='liindex'><?php echo $this->Html->link(__('List Logs'), array('admin' => true, 'action' => 'index'));?></li>
-                    <li id='lisearch'><?php echo $this->Html->link(__('Search Logs'), array('admin' => true, 'action' => 'search'));?></li>
-                    <?php
-                break;
+
+                    if ($menuItem === 'editUser' || $menuItem === 'viewUser') {
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'viewUser',
+                            'url' => '/admin/users/view/' . h($id),
+                            'text' => __('View User')
+                        ));
+                        echo $this->element('/side_menu_link', array(
+                            'onClick' => array(
+                                'function' => 'initiatePasswordReset',
+                                'params' => array($id)
+                            ),
+                            'text' => __('Reset Password')
+                        ));
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'editUser',
+                            'url' => '/admin/users/edit/' . h($id),
+                            'text' => __('Edit User')
+                        ));
+                        echo $this->element('/side_menu_post_link', array(
+                            'event_id' => 'deleteUser',
+                            'url' => '/admin/delete/' . h($id),
+                            'text' => __('Delete User'),
+                            'message' => __('Are you sure you want to delete # %s? It is highly recommended to never delete users but to disable them instead.', h($id))
+                        ));
+                        echo $this->element('/side_menu_divider');
+                    }
+                    if ($isSiteAdmin && $menuItem === 'editRole') {
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'editRole',
+                            'url' => '/admin/roles/edit/' . h($id),
+                            'text' => __('Edit Role')
+                        ));
+                        echo $this->element('/side_menu_post_link', array(
+                            'event_id' => 'deleteRole',
+                            'url' => '/admin/roles/delete/' . h($id),
+                            'text' => __('Delete Role'),
+                            'message' => __('Are you sure you want to delete # %s?', h($id))
+                        ));
+                        echo $this->element('/side_menu_divider');
+                    }
+                    if ($isSiteAdmin) {
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'addUser',
+                            'url' => '/admin/users/add',
+                            'text' => __('Add User')
+                        ));
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'indexUser',
+                            'url' => '/admin/users/index',
+                            'text' => __('List Users')
+                        ));
+                    }
+                    if ($isAdmin) {
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'contact',
+                            'url' => '/admin/users/email',
+                            'text' => __('Contact Users')
+                        ));
+                    }
+                    echo $this->element('/side_menu_divider');
+                    if ($isSiteAdmin) {
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'addOrg',
+                            'url' => '/admin/organisations/add',
+                            'text' => __('Add Organisation')
+                        ));
+                        if ($menuItem === 'editOrg' || $menuItem === 'viewOrg') {
+                            echo $this->element('/side_menu_link', array(
+                                'element_id' => 'editOrg',
+                                'url' => '/admin/organisations/edit/' . h($id),
+                                'text' => __('Edit Organisation')
+                            ));
+                            echo $this->element('/side_menu_link', array(
+                                'element_id' => 'mergeOrg',
+                                'onClick' => array(
+                                    'function' => 'getPopup',
+                                    'params' => array(h($id), 'organisations', 'merge', 'admin')
+                                ),
+                                'text' => __('Merge Organisation')
+                            ));
+                        }
+                        if ($menuItem === 'editOrg' || $menuItem === 'viewOrg') {
+                            echo $this->element('/side_menu_link', array(
+                                'element_id' => 'editOrg',
+                                'url' => '/organisations/edit/' . h($id),
+                                'text' => __('Edit Organisation')
+                            ));
+                            echo $this->element('/side_menu_link', array(
+                                'element_id' => 'viewOrg',
+                                'url' => '/organisations/view/' . h($id),
+                                'text' => __('View Organisation')
+                            ));
+                        }
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'indexOrg',
+                            'url' => '/organisations/index',
+                            'text' => __('List Organisations')
+                        ));
+                        echo $this->element('/side_menu_divider');
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'addRole',
+                            'url' => '/admin/roles/add',
+                            'text' => __('Add Role')
+                        ));
+                    }
+                    echo $this->element('/side_menu_link', array(
+                        'element_id' => 'indexRole',
+                        'url' => '/admin/roles/index',
+                        'text' => __('List Roles')
+                    ));
+                    if ($isSiteAdmin) {
+                        echo $this->element('/side_menu_divider');
+                        echo $this->element('/side_menu_link', array(
+                            'url' => '/servers/serverSettings',
+                            'text' => __('Server Settings & Maintenance')
+                        ));
+                        echo $this->element('/side_menu_divider');
+                        if (Configure::read('MISP.background_jobs')) {
+                            echo $this->element('/side_menu_link', array(
+                                'element_id' => 'jobs',
+                                'url' => '/jobs/index',
+                                'text' => __('Jobs')
+                            ));
+                            echo $this->element('/side_menu_divider');
+                            echo $this->element('/side_menu_link', array(
+                                'element_id' => 'tasks',
+                                'url' => '/tasks',
+                                'text' => __('Scheduled Tasks')
+                            ));
+                        }
+                        if (Configure::read('MISP.enableEventBlacklisting') !== false) {
+                            echo $this->element('/side_menu_link', array(
+                                'element_id' => 'eventBlacklistsAdd',
+                                'url' => '/eventBlacklists/add',
+                                'text' => __('Blacklists Event')
+                            ));
+                            echo $this->element('/side_menu_link', array(
+                                'element_id' => 'eventBlacklists',
+                                'url' => '/eventBlacklists',
+                                'text' => __('Manage Event Blacklists')
+                            ));
+                        }
+                        if (!Configure::check('MISP.enableOrgBlacklisting') || Configure::read('MISP.enableOrgBlacklisting') !== false) {
+                            echo $this->element('/side_menu_link', array(
+                                'element_id' => 'orgBlacklistsAdd',
+                                'url' => '/orgBlacklists/add',
+                                'text' => __('Blacklists Organisation')
+                            ));
+                            echo $this->element('/side_menu_link', array(
+                                'element_id' => 'orgBlacklists',
+                                'url' => '/orgBlacklists',
+                                'text' => __('Manage Org Blacklists')
+                            ));
+                        }
+                    }
+                    break;
+
+                case 'logs':
+                    echo $this->element('/side_menu_link', array(
+                        'url' => '/admin/logs/index',
+                        'text' => __('List Logs')
+                    ));
+                    echo $this->element('/side_menu_link', array(
+                        'url' => '/admin/logs/search',
+                        'text' => __('Search Logs')
+                    ));
+                    break;
 
                 case 'threads':
-
                     if ($menuItem === 'add' || $menuItem === 'view') {
-                        if (!(empty($thread_id) && empty($target_type))) { ?>
-                    <li  id='view'><?php echo $this->Html->link(__('View Thread'), array('controller' => 'threads', 'action' => 'view', h($thread_id)));?></li>
-                    <li  id='add'><?php echo $this->Html->link(__('Add Post'), array('controller' => 'posts', 'action' => 'add', 'thread', h($thread_id)));?></li>
-                    <li class="divider"></li>
-                    <?php
+                        if (!(empty($thread_id) && empty($target_type))) {
+                            echo $this->element('/side_menu_link', array(
+                                'url' => '/threads/view/' . h($thread_id),
+                                'text' => __('View Thread')
+                            ));
+                            echo $this->element('/side_menu_link', array(
+                                'element_id' => 'add_post',
+                                'url' => '/posts/add/thread/' . h($thread_id),
+                                'text' => __('Add Post')
+                            ));
+                            echo $this->element('/side_menu_divider');
                         }
                     }
-                    if ($menuItem === 'edit') { ?>
-                        <li><?php echo $this->Html->link(__('View Thread'), array('controller' => 'threads', 'action' => 'view', h($thread_id)));?></li>
-                        <li class="active"><?php echo $this->Html->link(__('Edit Post'), array('controller' => 'threads', 'action' => 'view', h($id)));?></li>
-                        <li class="divider"></li>
-                    <?php
+                    if ($menuItem === 'edit') {
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'view',
+                            'url' => '/threads/view/' . h($thread_id),
+                            'text' => __('View Thread')
+                        ));
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'edit',
+                            'url' => '/threads/view/' . h($id),
+                            'text' => __('Edit Post')
+                        ));
+                        echo $this->element('/side_menu_divider');
                     }
-                    ?>
-                    <li id='liindex'><?php echo $this->Html->link(__('List Threads'), array('controller' => 'threads', 'action' => 'index'));?></li>
-                    <li id='liadd'><a href = "<?php echo Configure::read('MISP.baseurl');?>/posts/add"><?php echo __('New Thread');?></a></li>
-                    <?php
+                    echo $this->element('/side_menu_link', array(
+                        'url' => '/threads/index',
+                        'text' => __('List Threads')
+                    ));
+                    echo $this->element('/side_menu_link', array(
+                        'url' => '/threads/add',
+                        'text' => __('New Thread')
+                    ));
+                    break;
+
+                case 'tags':
+                    echo $this->element('/side_menu_link', array(
+                        'element_id' => 'indexfav',
+                        'url' => '/tags/index/1',
+                        'text' => __('List Favourite Tags')
+                    ));
+                    echo $this->element('/side_menu_link', array(
+                        'url' => '/tags/index',
+                        'text' => __('List Tags')
+                    ));
+                    if ($isAclTagEditor) {
+                        echo $this->element('/side_menu_link', array(
+                            'url' => '/tags/add',
+                            'text' => __('Add Tag')
+                        ));
+                    }
+                    if ($menuItem === 'edit') {
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'edit',
+                            'url' => '#',
+                            'text' => __('Edit Tag')
+                        ));
+                    }
+                    if ($menuItem === 'viewGraph') {
+                        if (!empty($taxonomy)) {
+                            echo $this->element('/side_menu_link', array(
+                                'element_id' => 'taxonomyview',
+                                'url' => '/taxonomies/view/' . h($taxonomy['Taxonomy']['id']),
+                                'text' => __('View Taxonomy')
+                            ));
+                        }
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'viewGraph',
+                            'url' => '/tags/viewGraph/' . h($id),
+                            'text' => __('View Correlation Graph')
+                        ));
+                    }
                 break;
 
-                case 'tags': ?>
-                    <li id='liindexfav'><?php echo $this->Html->link(__('List Favourite Tags'), array('action' => 'index', true));?></li>
-                    <li id='liindex'><?php echo $this->Html->link(__('List Tags'), array('action' => 'index'));?></li>
-                <?php
-                    if ($isAclTagEditor):
-                ?>
-                        <li id='liadd'><?php echo $this->Html->link(__('Add Tag'), array('action' => 'add'));?></li>
-                <?php
-                    endif;
-                    if ($menuItem === 'edit'):
-                ?>
-                        <li class="active"><?php echo $this->Html->link(__('Edit Tag'), array('action' => 'edit'));?></li>
-                <?php
-                    endif;
-                    if ($menuItem === 'viewGraph'):
-                        if (!empty($taxonomy)):
-                ?>
-                            <li><a href="<?php echo $baseurl; ?>/taxonomies/view/<?php echo h($taxonomy['Taxonomy']['id']); ?>"><?php echo __('View Taxonomy');?></a></li>
-                <?php
-                        endif;
-                ?>
-                    <li id='liviewGraph'><a href="<?php echo $baseurl;?>/tags/viewGraph/<?php echo h($id); ?>"><?php echo __('View Correlation Graph');?></a></li>
-                <?php
-                    endif;
-                break;
+                case 'taxonomies':
+                    echo $this->element('/side_menu_link', array(
+                        'url' => '/taxonomies/index',
+                        'text' => __('List Taxonomies')
+                    ));
+                    if ($menuItem === 'view') {
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'view',
+                            'text' => __('View Taxonomy')
+                        ));
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'delete',
+                            'onClick' => array(
+                                'function' => 'deleteObject',
+                                'params' => array('taxonomies', 'delete', h($id), h($id))
+                            ),
+                            'text' => __('Delete Taxonomy')
+                        ));
+                    }
+                    if ($isSiteAdmin) {
+                        echo $this->element('/side_menu_post_link', array(
+                            'event_id' => 'update',
+                            'url' => '/taxonomies/update',
+                            'text' => __('Update Taxonomies')
+                        ));
+                    }
+                    break;
 
-                case 'taxonomies': ?>
-                    <li id='liindex'><a href="<?php echo $baseurl;?>/taxonomies/index"><?php echo __('List Taxonomies');?></a></li>
-                    <?php if ($menuItem === 'view'): ?>
-                        <li id='liview'><a href=""><?php echo __('View Taxonomy');?></a></li>
-                        <li id='lidelete'><a class="useCursorPointer" onClick="deleteObject('taxonomies', 'delete', '<?php echo h($id); ?>', '<?php echo h($id); ?>');"><?php echo __('Delete Taxonomy');?></a></li>
-                    <?php
-                    endif;
-                    if ($isSiteAdmin):
-                    ?>
-                        <li id='liupdate'><?php echo $this->Form->postLink('Update Taxonomies', array('controller' => 'taxonomies', 'action' => 'update'));?></li>
-                    <?php
-                    endif;
-                break;
-
-                case 'templates': ?>
-                    <li id='liindex'><a href="<?php echo $baseurl;?>/templates/index"><?php echo __('List Templates');?></a></li>
-                    <?php if ($isSiteAdmin || $isAclTemplate): ?>
-                    <li id='liadd'><a href="<?php echo $baseurl;?>/templates/add"><?php echo __('Add Template');?></a></li>
-                    <?php
-                    endif;
-                    if (($menuItem === 'view' || $menuItem === 'edit')):
-                    ?>
-                    <li id='liview'><a href="<?php echo $baseurl;?>/templates/view/<?php echo h($id); ?>"><?php echo __('View Template');?></a></li>
-                    <?php if ($mayModify): ?>
-                    <li id='liedit'><a href="<?php echo $baseurl;?>/templates/edit/<?php echo h($id); ?>"><?php echo __('Edit Template');?></a></li>
-                    <?php
-                    endif;
-                    endif;
-                break;
+                case 'templates':
+                    echo $this->element('/side_menu_link', array(
+                        'url' => '/templates/index',
+                        'text' => __('List Templates')
+                    ));
+                    if ($isSiteAdmin || $isAclTemplate) {
+                        echo $this->element('/side_menu_link', array(
+                            'url' => '/templates/add',
+                            'text' => __('Add Template')
+                        ));
+                    }
+                    if (($menuItem === 'view' || $menuItem === 'edit')) {
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'view',
+                            'url' => '/templates/view/' . h($id),
+                            'text' => __('View Template')
+                        ));
+                        if ($mayModify) {
+                            echo $this->element('/side_menu_link', array(
+                                'element_id' => 'edit',
+                                'url' => '/templates/edit/' . h($id),
+                                'text' => __('Edit Template')
+                            ));
+                        }
+                    }
+                    break;
 
                 case 'feeds':
-                    echo sprintf(
-                        '<li id="liindex"><a href="%s/feeds/index">%s</a></li>',
-                        $baseurl,
-                        __('List Feeds')
-                    );
+                    echo $this->element('/side_menu_link', array(
+                        'url' => '/feeds/index',
+                        'text' => __('List Feeds')
+                    ));
                     if ($isSiteAdmin) {
-                        echo sprintf(
-                            '<li id="liadd"><a href="%s/feeds/add">%s</a></li>',
-                            $baseurl,
-                            __('Add Feed')
-                        );
-                        echo sprintf(
-                            '<li id="liimport"><a href="%s/feeds/importFeeds">%s</a></li>',
-                            $baseurl,
-                            __('Import Feeds from JSON')
-                        );
+                        echo $this->element('/side_menu_link', array(
+                            'url' => '/feeds/add',
+                            'text' => __('Add Feed')
+                        ));
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'import',
+                            'url' => '/feeds/importFeeds',
+                            'text' => __('Import Feeds from JSON')
+                        ));
                     }
-                    echo sprintf(
-                        '<li id="licompare"><a href="%s/feeds/compareFeeds">%s</a></li>',
-                        $baseurl,
-                        __('Feed overlap analysis matrix')
-                    );
-                    echo sprintf(
-                        '<li id="liexport"><a href="%s/feeds/index.json" download="feed_index.json">%s</a></li>',
-                        $baseurl,
-                        __('Export Feed settings')
-                    );
+                    echo $this->element('/side_menu_link', array(
+                        'element_id' => 'compare',
+                        'url' => '/feeds/compareFeeds',
+                        'text' => __('Feed overlap analysis matrix')
+                    ));
+                    echo $this->element('/side_menu_link', array(
+                        'element_id' => 'export',
+                        'url' => '/feeds/index.json',
+                        'text' => __('Export Feed settings'),
+                        'download' => 'feed_index.json'
+                    ));
                     if ($isSiteAdmin) {
                         if ($menuItem === 'edit') {
-                            echo '<li class="active"><a href="#">' . __('Edit Feed') . '</a></li>';
+                            echo $this->element('/side_menu_link', array(
+                                'element_id' => 'edit',
+                                'text' => __('Edit Feed')
+                            ));
                         } else if ($menuItem === 'previewIndex') {
-                            echo sprintf(
-                                '<li id="lipreviewIndex"><a href="%s/feeds/previewIndex/%s"></a></li>',
-                                $baseurl,
-                                h($feed['Feed']['id']),
-                                __('PreviewIndex')
-                            );
+                            echo $this->element('/side_menu_link', array(
+                                'element_id' => 'previewIndex',
+                                'url' => '/feeds/previewIndex/' . h($feed['Feed']['id']),
+                                'text' => __('PreviewIndex')
+                            ));
                         } else if ($menuItem === 'previewEvent') {
-                            echo sprintf(
-                                '<li id="lipreviewEvent"><a href="%s/feeds/previewEvent/%s/%s">%s</a></li>',
-                                $baseurl,
-                                h($feed['Feed']['id']),
-                                h($id),
-                                __('PreviewEvent')
-                            );
+                            echo $this->element('/side_menu_link', array(
+                                'element_id' => 'previewEvent',
+                                'url' => '/feeds/previewEvent/' . h($feed['Feed']['id']) . '/' . h($id),
+                                'text' => __('PreviewEvent')
+                            ));
                         }
                     }
                 break;
 
-                case 'news': ?>
-                    <li id='liindex'><a href="<?php echo $baseurl;?>/news/index"><?php echo __('View News');?></a></li>
-                <?php
-                    if ($isSiteAdmin):
-                ?>
-                        <li id='liadd'><a href="<?php echo $baseurl;?>/news/add"><?php echo __('Add News Item');?></a></li>
-                        <?php if ($menuItem === 'edit'): ?>
-                            <li class="active"><a href="#"><?php echo __('Edit News Item');?></a></li>
-                        <?php endif;
-                    endif;
-                break;
+                case 'news':
+                    echo $this->element('/side_menu_link', array(
+                        'url' => '/news/index',
+                        'text' => __('View News')
+                    ));
+                    if ($isSiteAdmin) {
+                        echo $this->element('/side_menu_link', array(
+                            'url' => '/news/add',
+                            'text' => __('Add News Item')
+                        ));
+                        if ($menuItem === 'edit') {
+                            echo $this->element('/side_menu_link', array(
+                                'element_id' => 'edit',
+                                'url' => '#',
+                                'text' => __('Edit News Item')
+                            ));
+                        }
+                    }
+                    break;
 
                 case 'galaxies':
-                ?>
-                    <li id='liindex'><a href="<?php echo $baseurl;?>/galaxies/index"><?php echo __('List Galaxies');?></a></li>
-                <?php
-                    if ($isSiteAdmin):
-                ?>
-                        <li><?php echo $this->Form->postLink(__('Update Galaxies'), array('controller' => 'galaxies', 'action' => 'update'), null, __('Are you sure you want to reimport all galaxies from the submodule?')); ?></li>
-                        <li><?php echo $this->Form->postLink(__('Force Update Galaxies'), array('controller' => 'galaxies', 'action' => 'update', 'force' => 1), null, __('Are you sure you want to drop and reimport all galaxies from the submodule?')); ?></li>
-                <?php
-                    endif;
-                    if ($menuItem === 'viewGraph' || $menuItem === 'view_cluster'): ?>
-                        <li><a href="<?php echo $baseurl;?>/galaxies/view/<?php echo h($galaxy_id); ?>"><?php echo __('View Galaxy');?></a></li>
-                        <li id='liview_cluster'><a href="<?php echo $baseurl;?>/galaxy_clusters/view/<?php echo h($id); ?>"><?php echo __('View Cluster');?></a></li>
-                        <li id='liviewGraph'><a href="<?php echo $baseurl;?>/galaxies/viewGraph/<?php echo h($id); ?>"><?php echo __('View Correlation Graph');?></a></li>
-                <?php
-                    endif;
+                    echo $this->element('/side_menu_link', array(
+                        'url' => '/galaxies/index',
+                        'text' => __('List Galaxies')
+                    ));
+                    if ($isSiteAdmin) {
+                        echo $this->element('/side_menu_post_link', array(
+                            'element_id' => 'update',
+                            'url' => '/galaxies/update',
+                            'text' => __('Update Galaxies'),
+                            'message' => __('Are you sure you want to reimport all galaxies from the submodule?')
+                        ));
+                        echo $this->element('/side_menu_post_link', array(
+                            'element_id' => 'forceupdate',
+                            'url' => '/galaxies/update/force:1',
+                            'text' => __('Force Update Galaxies'),
+                            'message' => __('Are you sure you want to drop and reimport all galaxies from the submodule?')
+                        ));
+                    }
+                    if ($menuItem === 'viewGraph' || $menuItem === 'view_cluster') {
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'view',
+                            'url' => '/galaxies/view/' . h($galaxy_id),
+                            'text' => __('View Galaxy')
+                        ));
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'view_cluster',
+                            'url' => '/galaxy_clusters/view/' . h($id),
+                            'text' => __('View Cluster')
+                        ));
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'viewGraph',
+                            'url' => '/galaxies/viewGraph/' . h($id),
+                            'text' => __('View Correlation Graph')
+                        ));
+                    }
+                    if ($menuItem === 'view') {
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'view',
+                            'text' => __('View Galaxy')
+                        ));
+                    }
+                    break;
 
-                    if ($menuItem === 'view'):
-                ?>
-                        <li class="active"><a href="#"><?php echo __('View Galaxy');?></a></li>
-                <?php
-                    endif;
-                break;
                 case 'objectTemplates':
-                ?>
-                    <li id='liindex'><a href="<?php echo $baseurl;?>/objectTemplates/index"><?php echo __('List Object Templates');?></a></li>
-                <?php
-                    if ($isSiteAdmin):
-                ?>
-                    <li><?php echo $this->Form->postLink(__('Update Objects'), '/objectTemplates/update'); ?></li>
-                <?php
-                    endif;
-                    if ($menuItem === 'view'):
-                ?>
-                        <li class="active"><a href="#"><?php echo __('View Object Template');?></a></li>
-                <?php
-                    endif;
-                break;
+                    echo $this->element('/side_menu_link', array(
+                        'url' => '/objectTemplates/index',
+                        'text' => __('List Object Templates')
+                    ));
+                    if ($isSiteAdmin) {
+                        echo $this->element('/side_menu_post_link', array(
+                            'url' => '/objectTemplates/update',
+                            'text' => __('Update Objects')
+                        ));
+                    }
+                    if ($menuItem === 'view') {
+                        echo $this->element('/side_menu_link', array(
+                            'element_id' => 'view',
+                            'text' => __('View Object Template')
+                        ));
+                    }
+                    break;
             }
         ?>
     </ul>
