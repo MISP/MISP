@@ -34,7 +34,7 @@
             $this->element('genericElements/viewMetaTable', array('table_data' => $table_data))
         ),
         '<div id="ajaxContent" style="width:100%;"></div>',
-        $this->element('side_menu', array('menuList' => 'objectTemplates', 'menuItem' => 'view'))
+        $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'objectTemplates', 'menuItem' => 'view'))
     );
 
 ?>

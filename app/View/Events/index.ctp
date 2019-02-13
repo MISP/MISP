@@ -95,4 +95,4 @@
 </div>
 <input type="hidden" class="keyboardShortcutsConfig" value="/shortcuts/event_index.json" />
 <?php
-    if (!$ajax) echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'index'));
+    if (!$ajax) echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'index'));

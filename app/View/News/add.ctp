@@ -35,5 +35,5 @@
     ?>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'news', 'menuItem' => 'add'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'news', 'menuItem' => 'add'));
 ?>

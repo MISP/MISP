@@ -44,7 +44,7 @@
 </div>
 <?php
     $user['User']['id'] = $id;
-    echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'edit', 'user' => $user));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'edit', 'user' => $user));
 ?>
 <script type="text/javascript">
     $(document).ready(function() {

@@ -4,83 +4,83 @@
     To to make this functionality available for automated tools an authentication key is used.');?>
     <br />You can use the <a href="<?php echo $baseurl;?>/servers/rest">ReST client</a> to test your API queries against your MISP and export the resulting tuned queries as curl or python scripts.
     <strong><?php echo __('Make sure you keep your API key secret as it gives access to the all of the data that you normally have access to in MISP.');?></strong>
-	To view the old MISP automation page, click <a href="<?php echo $baseurl; ?>/events/automation/1">here</a>.
-	</p>
+    To view the old MISP automation page, click <a href="<?php echo $baseurl; ?>/events/automation/1">here</a>.
+    </p>
     <p><?php echo __('Your current key is: <code>%s</code>.
     You can %s this key.', $me['authkey'], $this->Html->link(__('reset'), array('controller' => 'users', 'action' => 'resetauthkey', 'me')));?>
     </p>
-	<?php
-		$data = array(
-			'title' => __('Search'),
-			'description' => array(
-				__('It is possible to search the database for attributes based on a list of criteria.'),
-				__('To return an event or a list of events in a desired format, use the following syntax'),
-				__('Whilst a list of parameters is provided below, it isn\'t necessarily exhaustive, specific export formats could have additional parameters.')
-			),
-			'parameters' => array(
-				"returnFormat" => __('Set the return format of the search (Currently supported: json, xml, openioc, suricata, snort - more formats are being moved to restSearch with the goal being that all searches happen through this API). Can be passed as the first parameter after restSearch or via the JSON payload.'),
-				"limit" => __('Limit the number of results returned, depending on the scope (for example 10 attributes or 10 full events).'),
-				"page" => __('If a limit is set, sets the page to be returned. page 3, limit 100 will return records 201->300).'),
-				"value" => __('Search for the given value in the attributes\' value field.'),
-				"type" => __('The attribute type, any valid MISP attribute type is accepted.'),
-				"category" => __('The attribute category, any valid MISP attribute category is accepted.'),
-				"org" => __('Search by the creator organisation by supplying the organisation identifier.'),
-				"tags" => __('To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a \'!\'.'),
-				"quickfilter" => __('Enabling this (by passing "1" as the argument) will make the search ignore all of the other arguments, except for the auth key and value. MISP will return an xml / json (depending on the header sent) of all events that have a sub-string match on value in the event info, event orgc, or any of the attribute value1 / value2 fields, or in the attribute comment.'),
-				"from" => __('Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.'),
-				"to" => __('Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.'),
-				"eventid" => __('The events that should be included / excluded from the search'),
-				"withAttachments" => __('If set, encodes the attachments / zipped malware samples as base64 in the data field within each attribute'),
-				"metadata" => __('Only the metadata (event, tags, relations) is returned, attributes and proposals are omitted.'),
-				"uuid" => __('Restrict the results by uuid.'),
-				"publish_timestamp" => __('Restrict the results by the timestamp of the last publishing of the event. The input can be a timetamp or a short-hand time description (7d or 24h for example). You can also pass a list with two values to set a time range (for example ["14d", "7d"]).'),
+    <?php
+        $data = array(
+            'title' => __('Search'),
+            'description' => array(
+                __('It is possible to search the database for attributes based on a list of criteria.'),
+                __('To return an event or a list of events in a desired format, use the following syntax'),
+                __('Whilst a list of parameters is provided below, it isn\'t necessarily exhaustive, specific export formats could have additional parameters.')
+            ),
+            'parameters' => array(
+                "returnFormat" => __('Set the return format of the search (Currently supported: json, xml, openioc, suricata, snort - more formats are being moved to restSearch with the goal being that all searches happen through this API). Can be passed as the first parameter after restSearch or via the JSON payload.'),
+                "limit" => __('Limit the number of results returned, depending on the scope (for example 10 attributes or 10 full events).'),
+                "page" => __('If a limit is set, sets the page to be returned. page 3, limit 100 will return records 201->300).'),
+                "value" => __('Search for the given value in the attributes\' value field.'),
+                "type" => __('The attribute type, any valid MISP attribute type is accepted.'),
+                "category" => __('The attribute category, any valid MISP attribute category is accepted.'),
+                "org" => __('Search by the creator organisation by supplying the organisation identifier.'),
+                "tags" => __('To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a \'!\'.'),
+                "quickfilter" => __('Enabling this (by passing "1" as the argument) will make the search ignore all of the other arguments, except for the auth key and value. MISP will return an xml / json (depending on the header sent) of all events that have a sub-string match on value in the event info, event orgc, or any of the attribute value1 / value2 fields, or in the attribute comment.'),
+                "from" => __('Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.'),
+                "to" => __('Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.'),
+                "eventid" => __('The events that should be included / excluded from the search'),
+                "withAttachments" => __('If set, encodes the attachments / zipped malware samples as base64 in the data field within each attribute'),
+                "metadata" => __('Only the metadata (event, tags, relations) is returned, attributes and proposals are omitted.'),
+                "uuid" => __('Restrict the results by uuid.'),
+                "publish_timestamp" => __('Restrict the results by the timestamp of the last publishing of the event. The input can be a timetamp or a short-hand time description (7d or 24h for example). You can also pass a list with two values to set a time range (for example ["14d", "7d"]).'),
                 "last" => __('(Deprecated synonym for publish_timestamp) Restrict the results by the timestamp of the last publishing of the event. The input can be a timetamp or a short-hand time description (7d or 24h for example). You can also pass a list with two values to set a time range (for example ["14d", "7d"]).'),
-				"timestamp" => __('Restrict the results by the timestamp (last edit). Any event with a timestamp newer than the given timestamp will be returned. In case you are dealing with /attributes as scope, the attribute\'s timestamp will be used for the lookup. The input can be a timetamp or a short-hand time description (7d or 24h for example). You can also pass a list with two values to set a time range (for example ["14d", "7d"]).'),
-				"published" => __('Set whether published or unpublished events should be returned. Do not set the parameter if you want both.'),
-				"enforceWarninglist" => __('Remove any attributes from the result that would cause a hit on a warninglist entry.'),
-				"to_ids" => __('By default (0) all attributes are returned that match the other filter parameters, irregardless of their to_ids setting. To restrict the returned data set to to_ids only attributes set this parameter to 1. You can only use the special "exclude" setting to only return attributes that have the to_ids flag disabled.'),
-				"deleted" => __('If this parameter is set to 1, it will return soft-deleted attributes along with active ones. By using "only" as a parameter it will limit the returned data set to soft-deleted data only.'),
-				"includeEventUuid" => __('Instead of just including the event ID, also include the event UUID in each of the attributes.'),
-				"event_timestamp" => __('Only return attributes from events that have received a modification after the given timestamp. The input can be a timetamp or a short-hand time description (7d or 24h for example). You can also pass a list with two values to set a time range (for example ["14d", "7d"]).'),
-				"sgReferenceOnly" => __('If this flag is set, sharing group objects will not be included, instead only the sharing group ID is set.'),
-				"eventinfo" => __("Filter on the event's info field."),
-				"searchall" => __("Search for a full or a substring (delimited by % for substrings) in the event info, event tags, attribute tags, attribute values or attribute comment fields."),
-				"requested_attributes" => __("CSV only, select the fields that you wish to include in the CSV export. By setting event level fields additionally, includeContext is not required to get event metadata."),
-				"includeContext" => __("CSV only, add additional event level data to the export. The additional fields can be added via requested_attributes too with more granularity.")
-			),
-			'url' => array(
-				$baseurl . '/attributes/restSearch',
-				$baseurl . '/events/restSearch'
-			)
-		);
-		echo sprintf('<h3>%s</h3>', $data['title']);
-		echo sprintf('<p>%s</p>', implode(" ", $data['description']));
-		echo sprintf("<pre>%s</pre>", implode("\n", $data['url']));
-		foreach ($data['parameters'] as $k => $v) {
-			echo sprintf('<span class="bold">%s</span>: %s<br />', $k, $v);
-		}
-		$description = 'To export all attributes of types ip-src and ip-dst that have a TLP marking and are not marked TLP:red, use the syntax below. String searches are by default exact lookups, but you can use mysql style "%" wildcards to do substring searches.';
-		$url = $baseurl . '/attributes/restSearch';
-		$headers = array(
-			'Accept: application/json',
-			'Content-type: application/json',
-			'Authorization: ' . $me['authkey']
-		);
-		$headers = implode("\n", $headers);
-		$body = json_encode(
-			array(
-				'returnFormat' => 'json',
-				'type' => array('OR' => array('ip-src', 'ip-dst')),
-				'tags' => array('NOT' => array('tlp:red'), 'OR' => array('tlp:%')),
-			), JSON_PRETTY_PRINT);
-		echo sprintf('<p>%s</p>URL:<pre>%s</pre>Headers:<pre>%s</pre>Body:<pre class="red">%s</pre>', $description, $url, $headers, $body);
-	?>
+                "timestamp" => __('Restrict the results by the timestamp (last edit). Any event with a timestamp newer than the given timestamp will be returned. In case you are dealing with /attributes as scope, the attribute\'s timestamp will be used for the lookup. The input can be a timetamp or a short-hand time description (7d or 24h for example). You can also pass a list with two values to set a time range (for example ["14d", "7d"]).'),
+                "published" => __('Set whether published or unpublished events should be returned. Do not set the parameter if you want both.'),
+                "enforceWarninglist" => __('Remove any attributes from the result that would cause a hit on a warninglist entry.'),
+                "to_ids" => __('By default (0) all attributes are returned that match the other filter parameters, irregardless of their to_ids setting. To restrict the returned data set to to_ids only attributes set this parameter to 1. You can only use the special "exclude" setting to only return attributes that have the to_ids flag disabled.'),
+                "deleted" => __('If this parameter is set to 1, it will return soft-deleted attributes along with active ones. By using "only" as a parameter it will limit the returned data set to soft-deleted data only.'),
+                "includeEventUuid" => __('Instead of just including the event ID, also include the event UUID in each of the attributes.'),
+                "event_timestamp" => __('Only return attributes from events that have received a modification after the given timestamp. The input can be a timetamp or a short-hand time description (7d or 24h for example). You can also pass a list with two values to set a time range (for example ["14d", "7d"]).'),
+                "sgReferenceOnly" => __('If this flag is set, sharing group objects will not be included, instead only the sharing group ID is set.'),
+                "eventinfo" => __("Filter on the event's info field."),
+                "searchall" => __("Search for a full or a substring (delimited by % for substrings) in the event info, event tags, attribute tags, attribute values or attribute comment fields."),
+                "requested_attributes" => __("CSV only, select the fields that you wish to include in the CSV export. By setting event level fields additionally, includeContext is not required to get event metadata."),
+                "includeContext" => __("CSV only, add additional event level data to the export. The additional fields can be added via requested_attributes too with more granularity.")
+            ),
+            'url' => array(
+                $baseurl . '/attributes/restSearch',
+                $baseurl . '/events/restSearch'
+            )
+        );
+        echo sprintf('<h3>%s</h3>', $data['title']);
+        echo sprintf('<p>%s</p>', implode(" ", $data['description']));
+        echo sprintf("<pre>%s</pre>", implode("\n", $data['url']));
+        foreach ($data['parameters'] as $k => $v) {
+            echo sprintf('<span class="bold">%s</span>: %s<br />', $k, $v);
+        }
+        $description = 'To export all attributes of types ip-src and ip-dst that have a TLP marking and are not marked TLP:red, use the syntax below. String searches are by default exact lookups, but you can use mysql style "%" wildcards to do substring searches.';
+        $url = $baseurl . '/attributes/restSearch';
+        $headers = array(
+            'Accept: application/json',
+            'Content-type: application/json',
+            'Authorization: ' . $me['authkey']
+        );
+        $headers = implode("\n", $headers);
+        $body = json_encode(
+            array(
+                'returnFormat' => 'json',
+                'type' => array('OR' => array('ip-src', 'ip-dst')),
+                'tags' => array('NOT' => array('tlp:red'), 'OR' => array('tlp:%')),
+            ), JSON_PRETTY_PRINT);
+        echo sprintf('<p>%s</p>URL:<pre>%s</pre>Headers:<pre>%s</pre>Body:<pre class="red">%s</pre>', $description, $url, $headers, $body);
+    ?>
 
     <h3><?php echo __('CSV specific parameters for the restSearch APIs');?></h3>
-	<p>
-		<b>requested_attributes</b>: <?php echo __('Limit the list of fields to be returned in the CSV.');?><br />
-	    <b>includeContext</b>: <?php echo __('Include the event level meta-data with each attribute.');?><br />
-	    <b>headerless</b>: <?php echo __('The CSV created when this setting is set to true will not contain the header row.'); ?>
+    <p>
+        <b>requested_attributes</b>: <?php echo __('Limit the list of fields to be returned in the CSV.');?><br />
+        <b>includeContext</b>: <?php echo __('Include the event level meta-data with each attribute.');?><br />
+        <b>headerless</b>: <?php echo __('The CSV created when this setting is set to true will not contain the header row.'); ?>
     </p>
     <?php
         echo '<h3>' . __('URL parameters') . '</h3>';
@@ -315,21 +315,21 @@
     <b>searchDatefrom</b>: <?php echo __('Filters on the date, anything newer than the given date in YYYY-MM-DD format is taken - non-negatable');?><br />
     <b>searchDateuntil</b>: <?php echo __('Filters on the date, anything older than the given date in YYYY-MM-DD format is taken - non-negatable');?><br /></p>
     <?php
-		$data = array(
-			'title' => __('Freetext Import API'),
-			'description' => array(
-				__('The freetext import tool is also exposed to the API.'),
-				__('Simply POST the contents to be parsed and either directly create attributes out of them or simply return the parsing results.'),
-				__('Use the boolean (0/1) adhere_to_warninglists and return_meta_attributes url parameters to filter out values tripping over a warninglist and to decide whether to save the attributes parsed or simply return them as meta attributes.'),
-				__('The contents of the POST body should be the text to be parsed.')
-			),
-			'url' => array(
-				$baseurl . '/[event_id]/[adhere_to_warninglists]/[return_meta_attributes]'
-			)
-		);
-		echo sprintf('<h3>%s</h3>', $data['title']);
-		echo sprintf('<p>%s</p>', implode(" ", $data['description']));
-		echo sprintf("<pre>%s</pre>", implode("\n", $data['url']));
+        $data = array(
+            'title' => __('Freetext Import API'),
+            'description' => array(
+                __('The freetext import tool is also exposed to the API.'),
+                __('Simply POST the contents to be parsed and either directly create attributes out of them or simply return the parsing results.'),
+                __('Use the boolean (0/1) adhere_to_warninglists and return_meta_attributes url parameters to filter out values tripping over a warninglist and to decide whether to save the attributes parsed or simply return them as meta attributes.'),
+                __('The contents of the POST body should be the text to be parsed.')
+            ),
+            'url' => array(
+                $baseurl . '/[event_id]/[adhere_to_warninglists]/[return_meta_attributes]'
+            )
+        );
+        echo sprintf('<h3>%s</h3>', $data['title']);
+        echo sprintf('<p>%s</p>', implode(" ", $data['description']));
+        echo sprintf("<pre>%s</pre>", implode("\n", $data['url']));
         foreach ($command_line_functions as $clusterRef => $cluster) {
             echo sprintf('<a id="%s"></a><h3>%s</h3>', $clusterRef, $cluster['header']);
             echo sprintf('<p>%s:<br />', $cluster['description']);
@@ -341,5 +341,5 @@
 
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'automation'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'automation'));
 ?>

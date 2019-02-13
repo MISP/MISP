@@ -34,7 +34,7 @@
         ),
         __('Values'),
         implode('<br />', array_column($warninglist['WarninglistEntry'], 'value')),
-        $this->element('side_menu', array('menuList' => 'warninglist', 'menuItem' => 'view'))
+        $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'warninglist', 'menuItem' => 'view'))
     );
 
 ?>

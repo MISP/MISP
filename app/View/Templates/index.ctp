@@ -67,4 +67,4 @@ endforeach; ?>
 
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'templates', 'menuItem' => 'index'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'templates', 'menuItem' => 'index'));

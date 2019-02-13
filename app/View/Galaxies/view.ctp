@@ -1,5 +1,5 @@
 <?php
-    echo $this->element('side_menu', array('menuList' => 'galaxies', 'menuItem' => 'view'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'galaxies', 'menuItem' => 'view'));
 ?>
 <div class="galaxy view">
     <div class="row-fluid">

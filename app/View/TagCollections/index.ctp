@@ -17,7 +17,7 @@
         'row_path' => 'TagCollections/index_row'
     ));
 
-    echo $this->element('side_menu', array('menuList' => 'tag-collections', 'menuItem' => 'index'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'tag-collections', 'menuItem' => 'index'));
 ?>
 <script type="text/javascript">
     $(document).ready(function() {

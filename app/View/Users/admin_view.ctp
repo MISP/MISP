@@ -103,7 +103,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
             )
         ),
         '<div id="userEvents"></div>',
-        $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'viewUser'))
+        $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'viewUser'))
     );
 ?>
 <script type="text/javascript">

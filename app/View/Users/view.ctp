@@ -62,6 +62,6 @@
             '<br /><a href="%s" class="btn btn-inverse" download>Download user profile for data portability</a>',
             $baseurl . '/users/view/me.json'
         ),
-        $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'view'))
+        $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'view'))
     );
 ?>

@@ -153,7 +153,7 @@
             <div id="filter_deleted" title="<?php echo __('Include deleted attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Include deleted attributes');?>" class="attribute_filter_text<?php if ($deleted) echo '_active'; ?>" onClick="toggleBoolFilter('<?php echo $urlHere;?>', 'deleted');"><?php echo __('Deleted');?></div>
         <?php endif; ?>
         <div id="show_context" title="<?php echo __('Show attribute context fields');?>" role="button" tabindex="0" aria-label="<?php echo __('Show attribute context fields');?>" class="attribute_filter_text" onClick="toggleContextFields();"><?php echo __('Context');?></div>
-		<div id="show_correlating_tags" title="<?php echo __('Also display the tags derived from correlations');?>" role="button" tabindex="0" aria-label="<?php echo __('Also display the tags derived from correlations');?>" class="attribute_filter_text<?php if ($includeRelatedTags) echo '_active'; ?>" onClick="toggleBoolFilter('<?php echo $urlHere;?>', 'includeRelatedTags');"><?php echo __('Related Tags');?></div>
+        <div id="show_correlating_tags" title="<?php echo __('Also display the tags derived from correlations');?>" role="button" tabindex="0" aria-label="<?php echo __('Also display the tags derived from correlations');?>" class="attribute_filter_text<?php if ($includeRelatedTags) echo '_active'; ?>" onClick="toggleBoolFilter('<?php echo $urlHere;?>', 'includeRelatedTags');"><?php echo __('Related Tags');?></div>
         <div class="attribute_filter_text btn-<?php echo ($advancedFilteringActive ? 'success' : 'inverse'); ?> btn" style="padding: 0px 6px;font-size: 12px;margin: 0px 2px;font-weight: bold;" onclick="triggerEventFilteringTool(this)">
             <it class="fa fa-filter"></it>
             <?php echo __('Filtering tool'); ?>
@@ -198,12 +198,12 @@
             <th><?php echo $this->Paginator->sort('type');?></th>
             <th><?php echo $this->Paginator->sort('value');?></th>
             <th><?php echo __('Tags');?></th>
-			<?php
-				if ($includeRelatedTags) {
-					echo sprintf('<th>%s</th>', __('Related Tags'));
-				}
-				$fieldCount += 1;
-			?>
+            <?php
+                if ($includeRelatedTags) {
+                    echo sprintf('<th>%s</th>', __('Related Tags'));
+                }
+                $fieldCount += 1;
+            ?>
             <th><?php echo __('Galaxies');?></th>
             <th><?php echo $this->Paginator->sort('comment');?></th>
             <th><?php echo __('Correlate');?></th>
@@ -232,7 +232,7 @@
                     'mayChangeCorrelation' => $mayChangeCorrelation,
                     'page' => $page,
                     'fieldCount' => $fieldCount,
-					'includeRelatedTags' => !empty($includeRelatedTags) ? 1 : 0
+                    'includeRelatedTags' => !empty($includeRelatedTags) ? 1 : 0
                 ));
                 if (!empty($focus) && ($object['objectType'] == 'object' || $object['objectType'] == 'attribute') && $object['uuid'] == $focus) {
                     $focusedRow = $k;
@@ -297,7 +297,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
     var timer;
     var lastSelected = false;
     var deleted = <?php echo (!empty($deleted)) ? '1' : '0';?>;
-	var includeRelatedTags = <?php echo (!empty($includeRelatedTags)) ? '1' : '0';?>;
+    var includeRelatedTags = <?php echo (!empty($includeRelatedTags)) ? '1' : '0';?>;
     $(document).ready(function() {
         $('.addGalaxy').click(function() {
             addGalaxyListener(this);
@@ -395,27 +395,27 @@ attributes or the appropriate distribution level. If you think there is a mistak
         }
     });
     $(".eventViewAttributeHover").mouseenter(function() {
-    	$('.popover').remove();
-    	type = $(this).attr('data-object-type');
-    	id = $(this).attr('data-object-id');
-    	if (type + "_" + id in ajaxResults["hover"]) {
-    		$('#' + type + '_' + id + '_container').popover({
-    			title: 'Lookup results:',
-    			content: ajaxResults["hover"][type + "_" + id],
-    			placement: 'top',
-    			html: true,
-    			trigger: 'hover',
-    			container: 'body'
-    		}).popover('show');
-    	} else {
-    		timer = setTimeout(function() {
-    				runHoverLookup(type, id)
-    			},
-    			500
-    		);
-    	}
+        $('.popover').remove();
+        type = $(this).attr('data-object-type');
+        id = $(this).attr('data-object-id');
+        if (type + "_" + id in ajaxResults["hover"]) {
+            $('#' + type + '_' + id + '_container').popover({
+                title: 'Lookup results:',
+                content: ajaxResults["hover"][type + "_" + id],
+                placement: 'top',
+                html: true,
+                trigger: 'hover',
+                container: 'body'
+            }).popover('show');
+        } else {
+            timer = setTimeout(function() {
+                    runHoverLookup(type, id)
+                },
+                500
+            );
+        }
     }).mouseleave(function() {
-    	clearTimeout(timer);
+        clearTimeout(timer);
     });
 </script>
 <?php

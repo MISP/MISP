@@ -32,7 +32,7 @@
             }
         }
     }
-    echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
     echo $this->Html->script('doT');
     echo $this->Html->script('extendext');
     echo $this->Html->script('moment-with-locales');
