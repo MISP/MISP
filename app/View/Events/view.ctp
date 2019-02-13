@@ -202,7 +202,7 @@
                 'key' => __('Extended by'),
                 'value_class' => 'break-word',
                 'html' => sprintf(
-                    '%s %s %s %s',
+                    '%s %s %s',
                     $extended_by,
                     sprintf(
                         'Currently in %s view.',
@@ -212,7 +212,7 @@
                         '<a href="%s/events/view/%s%s"><span class="icon-refresh"></span></a>',
                         $baseurl,
                         $event['Event']['id'],
-                        $extended ? '' : '/extended:1'
+                        ($extended ? '' : '/extended:1')
                     )
                 )
             );
