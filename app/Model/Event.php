@@ -4534,6 +4534,8 @@ class Event extends AppModel
             || $filterType['correlation'] != 0
             || $filterType['proposal'] != 0
             || $filterType['warning'] != 0
+            || $filterType['feed'] != 0
+            || $filterType['server'] != 0
         ) {
             $include = $this->__checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes);
         }
@@ -4586,6 +4588,9 @@ class Event extends AppModel
                         }
                     }
                 }
+                if ($flagKeep) {
+                    break;
+                }
             }
             if (!$flagKeep) {
                 $include = false;
@@ -4612,6 +4617,9 @@ class Event extends AppModel
                         }
                     }
                 }
+                if ($flagKeep) {
+                    break;
+                }
             }
             if (!$flagKeep) {
                 $include = false;
@@ -4619,6 +4627,63 @@ class Event extends AppModel
             }
         }
 
+        /* feed */
+        if ($filterType['feed'] == 0) { // `both`
+            // pass, do not consider as `both` is selected
+        } else if ($filterType['feed'] == 1 || $filterType['feed'] == 2) {
+            $flagKeep = false;
+            foreach ($object['Attribute'] as $k => $attribute) { // check if object contains at least 1 warning
+                if (!empty($attribute['Feed'])) {
+                    $flagKeep = ($filterType['feed'] == 1); // keep if feed are included
+                } else {
+                    $flagKeep = ($filterType['feed'] == 2); // keep if feed are excluded
+                }
+                if (!$flagKeep && !empty($attribute['ShadowAttribute'])) {
+                    foreach ($attribute['ShadowAttribute'] as $shadowAttribute) {
+                        if (!empty($shadowAttribute['Feed'])) {
+                            $flagKeep = ($filterType['feed'] == 1); // do not keep if feed are excluded
+                            break;
+                        }
+                    }
+                }
+                if ($flagKeep) {
+                    break;
+                }
+            }
+            if (!$flagKeep) {
+                $include = false;
+                return $include;
+            }
+        }
+
+        /* server */
+        if ($filterType['server'] == 0) { // `both`
+            // pass, do not consider as `both` is selected
+        } else if ($filterType['server'] == 1 || $filterType['server'] == 2) {
+            $flagKeep = false;
+            foreach ($object['Attribute'] as $k => $attribute) { // check if object contains at least 1 warning
+                if (!empty($attribute['Server'])) {
+                    $flagKeep = ($filterType['server'] == 1); // keep if server are included
+                } else {
+                    $flagKeep = ($filterType['server'] == 2); // keep if server are excluded
+                }
+                if (!$flagKeep && !empty($attribute['ShadowAttribute'])) {
+                    foreach ($attribute['ShadowAttribute'] as $shadowAttribute) {
+                        if (!empty($shadowAttribute['Server'])) {
+                            $flagKeep = ($filterType['server'] == 1); // do not keep if server are excluded
+                            break;
+                        }
+                    }
+                }
+                if ($flagKeep) {
+                    break;
+                }
+            }
+            if (!$flagKeep) {
+                $include = false;
+                return $include;
+            }
+        }
         return $include;
     }
 

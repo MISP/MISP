@@ -3,7 +3,7 @@
     <div style="display: flex; justify-content: flex-end">
             <input id="eventFilteringQBLinkInput" class="form-control" style="width: 66%;"></input>
             <button id="eventFilteringQBLinkCopy" type="button" class="btn btn-inverse" style="margin-right: 5px; margin-left: 5px;" onclick="clickMessage(this);"> <i class="fa fa-clipboard"></i> <?php echo h('Copy to clipboard'); ?> </button>
-            <button id="eventFilteringQBSubmit" type="button" class="btn btn-inverse" style="margin-right: 5px;"> <i class="fa fa-filter"></i> <?php echo h('Filter'); ?> </button>
+            <button id="eventFilteringQBSubmit" type="button" class="btn btn-success" style="margin-right: 5px;"> <i class="fa fa-filter"></i> <?php echo h('Filter'); ?> </button>
             <button id="eventFilteringQBClear" type="button" class="btn btn-xs btn-danger" style="" title="<?php echo h('Clear filtering rules'); ?>"> <i class="fa fa-times"></i> <?php echo h('Clear'); ?> </button>
     </div>
 </div>
