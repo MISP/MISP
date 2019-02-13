@@ -337,6 +337,8 @@ installMISPonKali () {
   debug "Installing dependencies"
   installDeps 2> /dev/null > /dev/null
 
+  installCoreDeps 2> /dev/null > /dev/null
+
   debug "Enabling redis and gnupg modules"
   phpenmod -v 7.3 redis
   phpenmod -v 7.3 gnupg
