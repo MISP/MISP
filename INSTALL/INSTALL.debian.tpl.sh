@@ -342,6 +342,7 @@ installMISPonKali () {
   systemctl restart mysql.service 2> /dev/null > /dev/null
 
   debug "Fixing redis rc script on Kali"
+  apt install redis-server
   fixRedis 2> /dev/null > /dev/null
 
   debug "git clone, submodule update everything"
