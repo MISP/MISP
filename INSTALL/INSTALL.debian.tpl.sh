@@ -191,6 +191,7 @@ installMISPubuntuSupported () {
   echo "Proceeding with the installation of MISP core"
   space
 
+  # Set locale if not set - functionLocation('generic/supportFunctions.md')
   debug "Checking Locale"
   checkLocale
 
@@ -322,10 +323,15 @@ installMISPonKali () {
   # Kali might have a bug on installs where libc6 is not up to date, this forces bash and libc to update - functionLocation('')
   kaliUpgrade 2> /dev/null > /dev/null
 
-  debug "Checking Locale"
+  # Set locale if not set - functionLocation('generic/supportFunctions.md')
   checkLocale
+
+  # Set Base URL - functionLocation('generic/supportFunctions.md')
+  setBaseURL
+
   # Install PHP 7.3 Dependencies - functionLocation('generic/supportFunctions.md')
   installDepsPhp73 2> /dev/null > /dev/null
+
   # Set custom Kali only variables and tweaks
   space
   # The following disables sleep on kali/gnome
