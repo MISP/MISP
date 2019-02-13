@@ -207,7 +207,7 @@
                 'key' => __('Extended by'),
                 'value_class' => 'break-word',
                 'html' => sprintf(
-                    '%s %s %s %s',
+                    '%s %s %s',
                     $extended_by,
                     sprintf(
                         'Currently in %s view.',
