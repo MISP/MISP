@@ -145,6 +145,7 @@ installCore () {
   sudo -H -u www-data git clone https://github.com/CybOXProject/python-cybox.git
   sudo -H -u www-data git clone https://github.com/STIXProject/python-stix.git
   sudo -H -u www-data git clone https://github.com/MAECProject/python-maec.git
+
   # install mixbox to accommodate the new STIX dependencies:
   sudo -H -u www-data git clone https://github.com/CybOXProject/mixbox.git
   cd ${PATH_TO_MISP}/app/files/scripts/mixbox
