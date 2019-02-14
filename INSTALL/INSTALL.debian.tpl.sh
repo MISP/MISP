@@ -229,11 +229,11 @@ installMISPubuntuSupported () {
   #trap "kill -9 $SPIN_PID" `seq 0 15`
 
   # Install Core Dependencies - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && installCoreDeps 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && installCoreDeps
   progress 4
 
   # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
   progress 4
 
   # Install Core MISP - functionLocation('INSTALL.ubuntu1804.md')
@@ -340,10 +340,12 @@ installMISPonKali () {
   ##debug "Sleeping 3 seconds to make sure the disable sleep does not confuse the execution of the script."
   ##sleep 3
 
+  # Kali specific dependencies - functionLocation('generic/supportFunctions.md')
   debug "Installing dependencies"
-  installDeps 2> /dev/null > /dev/null
+  installDeps
 
-  installCoreDeps 2> /dev/null > /dev/null
+  # Install Core Dependencies - functionLocation('INSTALL.ubuntu1804.md')
+  installCoreDeps
 
   debug "Enabling redis and gnupg modules"
   phpenmod -v 7.3 redis
@@ -360,7 +362,6 @@ installMISPonKali () {
   systemctl restart mysql.service 2> /dev/null > /dev/null
 
   debug "Fixing redis rc script on Kali"
-  apt install redis-server
   fixRedis 2> /dev/null > /dev/null
 
   debug "git clone, submodule update everything"

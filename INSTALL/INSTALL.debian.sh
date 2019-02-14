@@ -766,7 +766,7 @@ aptUpgrade () {
   debug "Upgrading system"
   checkAptLock
   sudo apt-get update
-  sudo apt-get upgrade -y
+  sudo apt-get upgrade -qy
 }
 
 # check if sudo is installed
@@ -785,19 +785,19 @@ checkSudoKeeper () {
 installCoreDeps () {
   debug "Installing core dependencies"
   # Install the dependencies: (some might already be installed)
-  sudo apt-get install curl gcc git gpg-agent make python python3 openssl redis-server sudo vim zip virtualenv libfuzzy-dev -y
+  sudo apt-get install curl gcc git gpg-agent make python python3 openssl redis-server sudo vim zip virtualenv libfuzzy-dev -qy
 
   # Install MariaDB (a MySQL fork/alternative)
-  sudo apt-get install mariadb-client mariadb-server -y
+  sudo apt-get install mariadb-client mariadb-server -qy
 
   # Install Apache2
-  sudo apt-get install apache2 apache2-doc apache2-utils -y
+  sudo apt-get install apache2 apache2-doc apache2-utils -qy
 
   # install Mitre's STIX and its dependencies by running the following commands:
-  sudo apt-get install python3-dev python3-pip libxml2-dev libxslt1-dev zlib1g-dev python-setuptools -y
+  sudo apt-get install python3-dev python3-pip libxml2-dev libxslt1-dev zlib1g-dev python-setuptools -qy
 
-  sudo apt-get install python3-pip -y
-  sudo apt install expect -y
+  sudo apt-get install python3-pip -qy
+  sudo apt install expect -qy
 }
 
 # Install Php 7.3 deps
@@ -864,7 +864,7 @@ prepareDB () {
     send -- "y\r"
     expect eof
 EOF
-  sudo apt-get purge -y expect ; sudo apt autoremove -y
+  sudo apt-get purge -y expect ; sudo apt autoremove -qy
 
   sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "create database $DBNAME;"
   sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant usage on *.* to $DBNAME@localhost identified by '$DBPASSWORD_MISP';"
@@ -1616,11 +1616,11 @@ installMISPubuntuSupported () {
   #trap "kill -9 $SPIN_PID" `seq 0 15`
 
   # Install Core Dependencies - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && installCoreDeps 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && installCoreDeps
   progress 4
 
   # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
   progress 4
 
   # Install Core MISP - functionLocation('INSTALL.ubuntu1804.md')
@@ -1727,10 +1727,12 @@ installMISPonKali () {
   ##debug "Sleeping 3 seconds to make sure the disable sleep does not confuse the execution of the script."
   ##sleep 3
 
+  # Kali specific dependencies - functionLocation('generic/supportFunctions.md')
   debug "Installing dependencies"
-  installDeps 2> /dev/null > /dev/null
+  installDeps
 
-  installCoreDeps 2> /dev/null > /dev/null
+  # Install Core Dependencies - functionLocation('INSTALL.ubuntu1804.md')
+  installCoreDeps
 
   debug "Enabling redis and gnupg modules"
   phpenmod -v 7.3 redis
@@ -1747,7 +1749,6 @@ installMISPonKali () {
   systemctl restart mysql.service 2> /dev/null > /dev/null
 
   debug "Fixing redis rc script on Kali"
-  apt install redis-server
   fixRedis 2> /dev/null > /dev/null
 
   debug "git clone, submodule update everything"
