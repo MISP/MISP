@@ -927,6 +927,7 @@ installCore () {
   sudo -H -u www-data git clone https://github.com/CybOXProject/python-cybox.git
   sudo -H -u www-data git clone https://github.com/STIXProject/python-stix.git
   sudo -H -u www-data git clone https://github.com/MAECProject/python-maec.git
+
   # install mixbox to accommodate the new STIX dependencies:
   sudo -H -u www-data git clone https://github.com/CybOXProject/mixbox.git
   cd ${PATH_TO_MISP}/app/files/scripts/mixbox
@@ -1413,7 +1414,7 @@ viper () {
   cd /usr/local/src/
   sudo apt-get install \
     libssl-dev swig python3-ssdeep p7zip-full unrar-free sqlite python3-pyclamd exiftool radare2 \
-    python3-magic python3-sqlalchemy python3-prettytable libffi-dev -y
+    python3-magic python3-sqlalchemy python3-prettytable libffi-dev libfreetype6-dev libpng-dev -qy
   echo "Cloning Viper"
   $SUDO_USER git clone https://github.com/viper-framework/viper.git
   sudo chown -R $MISP_USER:$MISP_USER viper
