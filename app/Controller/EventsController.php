@@ -4663,45 +4663,6 @@ class EventsController extends AppController
         return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
     }
 
-    public function testMatrix() {
-        $eventId = 3;
-        $scope = 'event';
-        $colours['mapping'] =
-        $colours['interpolation'] =
-        $disable_picking = false;
-        $scope_id = 3;
-
-        $columnOrders = array();
-        $tabs = array();
-        $scores = array();
-        $maxScore = 0;
-
-        for ($tab=0; $tab < 5; $tab++) {
-            // $tabs[$tab] = array();
-            $tabName = 'tab-' . $tab;
-            for ($col=0; $col < 10; $col++) {
-                $colName = 'col-' . $col;
-                $columnOrders[$tabName][$col] = $colName;
-                for ($row=0; $row < rand(1, 20); $row++) {
-                    $tabs[$tabName][$colName][$row] = 'row-' . $row;
-                }
-            }
-        }
-
-
-        $this->set('eventId', $eventId);
-        $this->set('target_type', $scope);
-        $this->set('columnOrders', $columnOrders);
-        $this->set('tabs', $tabs);
-        $this->set('scores', $scores);
-        $this->set('maxScore', $maxScore);
-        $this->set('colours', $colours['mapping']);
-        $this->set('interpolation', $colours['interpolation']);
-        $this->set('pickingMode', !$disable_picking);
-        $this->set('target_id', $scope_id);
-        $this->render('/Elements/view_matrix');
-    }
-
     public function viewMitreAttackMatrix($scope_id, $scope='event', $disable_picking=false)
     {
         $this->loadModel('Galaxy');

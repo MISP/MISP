@@ -39,7 +39,6 @@
 ?>
 
 <?php
-    echo $this->Html->script('bootstrap-typeahead');
     echo $this->Html->script('attack_matrix');
     echo $this->Html->css('attack_matrix');
 ?>
@@ -84,7 +83,7 @@ foreach($tabs as $tabName => $column):
     </span>
     <div>
         <span>0</span>
-        <div id="matrix-heatmap-legend" style="background: linear-gradient(to right, white 0%, <?php echo $colorScale ?>);"></div>
+        <div id="matrix-heatmap-legend" style="background: linear-gradient(to right, white 0%, <?php echo h($colorScale); ?>);"></div>
         <span id="matrix-heatmap-maxval"><?php echo h($maxScore); ?></span>
     </div>
     <label style="display: inline-block; margin-left: 30px;"><input type="checkbox" id="checkbox_attackMatrix_showAll" checked><span class="fa fa-filter"><?php echo __('Show all');?></span></input></label>
