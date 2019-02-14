@@ -103,6 +103,21 @@ class AppController extends Controller
 
     public function beforeFilter()
     {
+        if (Configure::read('Security.allow_cors')) {
+            // Add CORS headers
+            $this->response->cors($this->request,
+                    explode(',', Configure::read('Security.cors_origins')),
+                    ['*'],
+                    ['Origin', 'Content-Type', 'Authorization', 'Accept']);
+
+            if ($this->request->is('options')) {
+                // Stop here!
+                // CORS only needs the headers
+                $this->response->send();    
+                $this->_stop();
+            }
+        }
+
         if (!empty($this->params['named']['sql'])) {
             $this->sql_dump = 1;
         }
