@@ -111,25 +111,25 @@ yum install rh-redis32
 systemctl enable --now rh-redis32-redis.service
 ```
 
-## 2.08/ Secure the MariaDB installation, run the following command and follow the prompts
+## 2.08/ Secure the MariaDB installation
 ```bash
 scl enable rh-mariadb102 'mysql_secure_installation'
 ```
 
-## 2.10/ Update the PHP extension repository and install required package
+## 2.09/ Update the PHP extension repository and install required package
 ```bash
 scl enable rh-php72 rh-redis32 bash
 pear channel-update pear.php.net
 pear install Crypt_GPG
 ```
 
-## 2.11/ Install haveged and enable to start on boot to provide entropy for GPG
+## 2.10/ Install haveged and enable to start on boot to provide entropy for GPG
 ```bash
 yum install haveged
 systemctl enable --now haveged
 ```
 
-## 2.12/ Install Python 3.6 from SCL
+## 2.11/ Install Python 3.6 from SCL
 ```bash
 yum install rh-python36
 ```
@@ -193,11 +193,11 @@ systemctl restart rh-php72-php-fpm.service
 ```
 
 ## 3.06/ Enable dependencies detection in the diagnostics page
-Add the following content to `/etc/opt/rh/rh-php71/php-fpm.d/www.conf` :
+Add the following content to `/etc/opt/rh/rh-php72/php-fpm.d/www.conf` :
 ```
-env[PATH] =/opt/rh/rh-redis32/root/usr/bin:/opt/rh/rh-python36/root/usr/bin:/opt/rh/rh-php71/root/usr/bin:/usr/local/bin:/usr/bin:/bin
+env[PATH] =/opt/rh/rh-redis32/root/usr/bin:/opt/rh/rh-python36/root/usr/bin:/opt/rh/rh-php72/root/usr/bin:/usr/local/bin:/usr/bin:/bin
 ```
-Then run `systemctl restart rh-php71-php-fpm.service`.
+Then run `systemctl restart rh-php72-php-fpm.service`.
 This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
 
 # 4/ CakePHP
@@ -230,17 +230,31 @@ cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResqu
 
 ## 4.05/ Install Crypt_GPG and Console_CommandLine
 ```bash
-sudo -H -u www-data pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
-sudo -H -u www-data pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
+sudo -H -u apache scl enable rh-php72 'pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml'
+sudo -H -u apache scl enable rh-php72 'pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml'
 ```
 
 # 5/ Set file permissions
-## 5.01/ Make sure the permissions are set correctly using the following commands as root:
 ```bash
 chown -R apache:apache /var/www/MISP
 find /var/www/MISP -type d -exec chmod g=rx {} \;
 chmod -R g+r,o= /var/www/MISP
 ```
+**Note :** For updates through the web interface to work, apache must own the /var/www/MISP folder and its subfolders as shown above, which can lead to security issues. If you do not require updates through the web interface to work, you can use the following more restrictive permissions :
+```bash
+chown -R root:apache /var/www/MISP
+find /var/www/MISP -type d -exec chmod g=rx {} \;
+chmod -R g+r,o= /var/www/MISP
+chown apache:apache /var/www/MISP/app/files
+chown apache:apache /var/www/MISP/app/files/terms
+chown apache:apache /var/www/MISP/app/files/scripts/tmp
+chown apache:apache /var/www/MISP/app/Plugin/CakeResque/tmp
+chown -R apache:apache /var/www/MISP/app/tmp
+chown -R apache:apache /var/www/MISP/app/webroot/img/orgs
+chown -R apache:apache /var/www/MISP/app/webroot/img/custom
+```
+
+
 
 # 6/ Create database and user
 ## 6.01/ Set database to listen on localhost only
@@ -285,17 +299,17 @@ chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/webroot/img/orgs
 chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/webroot/img/custom
 ```
 
-## 7.02/ Allow httpd to connect to the redis server and php-fpm over tcp/ip
+## 7.03/ Allow httpd to connect to the redis server and php-fpm over tcp/ip
 ```bash
 setsebool -P httpd_can_network_connect on
 ```
 
-## 7.03/ Enable and start the httpd service
+## 7.04/ Enable and start the httpd service
 ```bash
 systemctl enable --now httpd.service
 ```
 
-## 7.04/ Open a hole in the firewalld service
+## 7.05/ Open a hole in the firewalld service
 ```bash
 firewall-cmd --zone=public --add-port=80/tcp --permanent
 firewall-cmd --reload
@@ -429,7 +443,6 @@ systemctl enable --now misp-workers.service
 {!generic/recommended.actions.md!}
 
 # 10/ Post Install
-
 ## 10.01/ Allow apache to write to /var/www/MISP/app/tmp/logs
 If the result from the diagnostic page is that the directory is not writable, try the following.
 ```
