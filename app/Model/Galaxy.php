@@ -28,6 +28,18 @@ class Galaxy extends AppModel
         $this->GalaxyCluster->deleteAll(array('GalaxyCluster.galaxy_id' => $this->id));
     }
 
+    public function afterFind($results, $primary = false)
+    {
+        foreach ($results as $k => $v) {
+            if (isset($v['Galaxy']['kill_chain_order']) && $v['Galaxy']['kill_chain_order'] !== '') {
+                $results[$k]['Galaxy']['kill_chain_order'] = json_decode($v['Galaxy']['kill_chain_order'], true);
+            } else {
+                unset($results[$k]['Galaxy']['kill_chain_order']);
+            }
+        }
+        return $results;
+    }
+
     private function __load_galaxies($force = false)
     {
         $dir = new Folder(APP . 'files' . DS . 'misp-galaxy' . DS . 'galaxies');
@@ -39,8 +51,11 @@ class Galaxy extends AppModel
             $file->close();
         }
         $galaxyTypes = array();
-        foreach ($galaxies as $galaxy) {
+        foreach ($galaxies as $i => $galaxy) {
             $galaxyTypes[$galaxy['type']] = $galaxy['type'];
+            if (isset($galaxies[$i]['kill_chain_order'])) {
+                $galaxies[$i]['kill_chain_order'] = json_encode($galaxy['kill_chain_order']);
+            }
         }
         $temp = $this->find('all', array(
             'fields' => array('uuid', 'version', 'id', 'icon'),
@@ -415,6 +430,7 @@ class Galaxy extends AppModel
             'mitre-mobile-attack' => $killChainOrderMobile,
             'mitre-pre-attack' => $killChainOrderPre,
         );
+        $killChainOrders = array();
 
         $expectedDescription = 'ATT&CK Tactic';
         $expectedNamespace = 'mitre-attack';
@@ -431,18 +447,17 @@ class Galaxy extends AppModel
 
         $mispUUID = Configure::read('MISP')['uuid'];
 
-        $attackTactic = array(
-            'killChain' => $killChainOrders,
-            'attackTactic' => array(),
-            'attackTags' => array(),
-            'instance-uuid' => $mispUUID
-        );
-
         if (!empty($galaxies)) {
             $galaxy = $galaxies[0];
         } else {
             $galaxy = array();
         }
+        $attackTactic = array(
+            'killChain' => $galaxy['Galaxy']['kill_chain_order'],
+            'attackTactic' => array(),
+            'attackTags' => array(),
+            'instance-uuid' => $mispUUID
+        );
 
         $clusters = $galaxy['GalaxyCluster'];
         $attackClusters = array();
