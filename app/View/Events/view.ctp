@@ -32,12 +32,8 @@
             }
         }
     }
-<<<<<<< HEAD
-    echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
-    echo $this->Html->css('attack_matrix');
-=======
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
->>>>>>> 973444665c2f8e278c77d735fb920e82a812a5ab
+    echo $this->Html->css('attack_matrix');
 ?>
 <div class="events view">
     <?php
