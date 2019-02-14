@@ -423,14 +423,23 @@ class RestResponseComponent extends Component
             $type = 'json';
         }
         $cakeResponse = new CakeResponse(array('body'=> $response, 'status' => $code, 'type' => $type));
+
+        if (Configure::read('Security.allow_cors')) {
+            $headers["Access-Control-Allow-Headers"] =  "Origin, Content-Type, Authorization, Accept";
+            $headers["Access-Control-Allow-Methods"] = "*";
+            $headers["Access-Control-Allow-Origin"] = explode(',', Configure::read('Security.cors_origins'));
+        }
+
         if (!empty($headers)) {
             foreach ($headers as $key => $value) {
                 $cakeResponse->header($key, $value);
             }
         }
+
         if ($download) {
             $cakeResponse->download($download);
         }
+
         return $cakeResponse;
     }
 
