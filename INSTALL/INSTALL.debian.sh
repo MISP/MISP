@@ -225,9 +225,9 @@ checkFlavour () {
 
 # Extract manufacturer
 checkManufacturer () {
-  if [ ! -f $(which dmidecode) ]; then
+  if [ -z $(which dmidecode) ]; then
     checkAptLock
-    sudo apt install dmidecode -y
+    sudo apt install dmidecode -qy
   fi
   MANUFACTURER=$(sudo dmidecode -s system-manufacturer)
   echo $MANUFACTURER
