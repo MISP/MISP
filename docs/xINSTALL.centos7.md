@@ -332,7 +332,7 @@ echo $OPENSSL_CN
 sudo systemctl start httpd.service
 sudo openssl dhparam -out /etc/pki/tls/certs/dhparam.pem 4096
 sudo openssl genrsa -des3 -passout pass:x -out /tmp/misp.local.key 4096
-sudo openssl rsa -passin pass:x -in /tmp/misp.local.key -out /etc/pki/tls/certs/misp.local.key
+sudo openssl rsa -passin pass:x -in /tmp/misp.local.key -out /etc/pki/tls/private/misp.local.key
 sudo rm /tmp/misp.local.key
 sudo openssl req -new -subj "/C=${OPENSSL_C}/ST=${OPENSSL_ST}/L=${OPENSSL_L}/O=${OPENSSL_O}/OU=${OPENSSL_OU}/CN=${OPENSSL_CN}/emailAddress=${OPENSSL_EMAILADDRESS}" -key /etc/pki/tls/certs/misp.local.key -out /etc/pki/tls/certs/misp.local.csr
 sudo openssl x509 -req -days 365 -in /etc/pki/tls/certs/misp.local.csr -signkey /etc/pki/tls/private/misp.local.key -out /etc/pki/tls/certs/misp.local.crt
@@ -352,6 +352,7 @@ sudo chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files
 sudo chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files/terms
 sudo chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files/scripts/tmp
 sudo chcon -t httpd_sys_rw_content_t /var/www/MISP/app/Plugin/CakeResque/tmp
+sudo chcon -t httpd_sys_script_exec_t /var/www/MISP/app/Console/cake
 sudo chcon -R -t usr_t /var/www/MISP/venv
 sudo chcon -R -t httpd_sys_rw_content_t /var/www/MISP/.git
 sudo chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/tmp
@@ -534,6 +535,8 @@ sudo -u apache ${PATH_TO_MISP}/venv/bin/misp-modules -l 0.0.0.0 -s &
 
 sudo sed -i -e '$i \sudo -u apache /var/www/MISP/venv/bin/misp-modules -l 127.0.0.1 -s &\n' /etc/rc.local
 ```
+
+{!generic/misp-dashboard-centos.md!}
 
 {!generic/MISP_CAKE_init_centos.md!}
 
