@@ -20,5 +20,5 @@
     <div style="font-style: italic;"><?php echo __('To edit a setting, simply double click it.');?></div>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'serverSettings'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'serverSettings'));
 ?>

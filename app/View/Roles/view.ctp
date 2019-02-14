@@ -24,6 +24,6 @@
             __('Role'),
             $this->element('genericElements/viewMetaTable', array('table_data' => $table_data))
         ),
-        $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'roles'))
+        $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'roles'))
     );
 ?>

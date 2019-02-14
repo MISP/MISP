@@ -21,4 +21,4 @@
     ?>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'tag-collections', 'menuItem' => 'import'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'tag-collections', 'menuItem' => 'import'));

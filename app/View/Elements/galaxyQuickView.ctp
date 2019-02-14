@@ -1,4 +1,4 @@
-	<?php
+    <?php
     $fixed_fields = array('synonyms', 'description', 'meta', 'authors', 'source');
     foreach ($data as $galaxy):
 ?>
@@ -12,9 +12,9 @@
     ?>
             <div style="margin-left:8px;">
                 <span class="bold blue expandContainer">
-					<span class="collapse-status-container useCursorPointer">
-                    	<span class="collapse-status" style="font-size: 16px;">+</span>
-					</span>
+                    <span class="collapse-status-container useCursorPointer">
+                        <span class="collapse-status" style="font-size: 16px;">+</span>
+                    </span>
                     <span><?php echo h($cluster['value']); ?></span>
                     <a href="<?php echo $baseurl; ?>/galaxy_clusters/view/<?php echo h($cluster['id']); ?>" class="icon-search" title="<?php echo __('View details about this cluster');?>"></a>&nbsp;
                     <a href="<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($cluster['tag_id']); ?>" class="icon-th-list" title="<?php echo __('View all events containing this cluster.');?>"></a>

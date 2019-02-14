@@ -104,4 +104,4 @@ endforeach; ?>
 
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'threads', 'menuItem' => 'index'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'threads', 'menuItem' => 'index'));

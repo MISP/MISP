@@ -32,8 +32,12 @@
             }
         }
     }
+<<<<<<< HEAD
     echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
     echo $this->Html->css('attack_matrix');
+=======
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
+>>>>>>> 973444665c2f8e278c77d735fb920e82a812a5ab
 ?>
 <div class="events view">
     <?php
@@ -203,7 +207,7 @@
                 'key' => __('Extended by'),
                 'value_class' => 'break-word',
                 'html' => sprintf(
-                    '%s %s %s %s',
+                    '%s %s %s',
                     $extended_by,
                     sprintf(
                         'Currently in %s view.',
@@ -213,7 +217,7 @@
                         '<a href="%s/events/view/%s%s"><span class="icon-refresh"></span></a>',
                         $baseurl,
                         $event['Event']['id'],
-                        $extended ? '' : '/extended:1'
+                        ($extended ? '' : '/extended:1')
                     )
                 )
             );

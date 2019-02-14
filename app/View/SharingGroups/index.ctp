@@ -42,8 +42,10 @@ foreach ($sharingGroups as $k => $sharingGroup):
             $combined .= "Organisations:";
             if (count($sharingGroup['SharingGroupOrg']) == 0) $combined .= "<br />N/A";
             foreach ($sharingGroup['SharingGroupOrg'] as $k2 => $sge) {
-                $combined .= "<br /><a href='/Organisation/view/" . h($sge['Organisation']['id']) . "'>" . h($sge['Organisation']['name']) . "</a>";
-                if ($sge['extend']) $combined .= (' (can extend)');
+                if (!empty($sge['Organisation'])) {
+                    $combined .= "<br /><a href='/Organisation/view/" . h($sge['Organisation']['id']) . "'>" . h($sge['Organisation']['name']) . "</a>";
+                    if ($sge['extend']) $combined .= (' (can extend)');
+                }
             }
             $combined .= "<hr style='margin:5px 0;'><br />Instances:";
             if (count($sharingGroup['SharingGroupServer']) == 0) $combined .= "<br />N/A";
@@ -96,4 +98,4 @@ endforeach; ?>
     });
 </script>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'indexSG'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'indexSG'));

@@ -70,8 +70,8 @@
     <div id="ajaxContent" style="width:100%;"></div>
 </div>
 <?php
-    if ($isSiteAdmin) echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'viewOrg'));
-    else echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'viewOrg'));
+    if ($isSiteAdmin) echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'viewOrg'));
+    else echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'viewOrg'));
 ?>
 <script type="text/javascript">
     <?php
