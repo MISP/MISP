@@ -187,7 +187,7 @@
                         'url' => '/pages/display/doc/categories_and_types'
                     ),
                     array(
-                        'text' => __('Terms &amp; Conditions'),
+                        'text' => __('Terms & Conditions'),
                         'url' => '/users/terms'
                     ),
                     array(
@@ -360,17 +360,17 @@
             array(
                 'url' => h(Configure::read('Plugin.CustomAuth_custom_logout')),
                 'text' => __('Log out'),
-                'requirement' => !$externalAuthUser && !Configure::read('Plugin.CustomAuth_disable_logout')
+                'requirement' => (!$externalAuthUser && empty(Configure::read('Plugin.CustomAuth_disable_logout')))
             ),
             array(
                 'url' => '/users/logout',
-                'text' => __('Log out'),
-                'requirement' => (Configure::read('Plugin.CustomAuth_custom_logout'))
+                'text' => __('Log out2'),
+                'requirement' => (!empty(Configure::read('Plugin.CustomAuth_custom_logout')))
             )
         );
     }
 ?>
-<div id="topBar" class="navbar navbar-inverse <?php echo $debugMode;?>">
+<div id="topBar" class="navbar navbar-inverse <?php echo $debugMode;?>" style="z-index: 20;">
   <div class="navbar-inner">
     <ul class="nav">
         <?php
