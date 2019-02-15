@@ -108,6 +108,7 @@ class GalaxiesController extends AppController
                     'name' => $galaxy['Galaxy']['name'],
                     'functionName' => "getMatrixPopup('" . $target_type . "', '" . $target_id . "', " . $galaxy['Galaxy']['id'] . ")",
                     'isPill' => true,
+                    'isMatrix' => true
                 );
                 if ($galaxy['Galaxy']['id'] == $mitreAttackGalaxyId) {
                     $param['img'] = "/img/mitre-attack-icon.ico";
