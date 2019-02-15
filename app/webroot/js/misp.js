@@ -1412,14 +1412,15 @@ function openPopover(clicked, data, hover, placement) {
 
     if (!$clicked.data('popover')) {
         $clicked.addClass('have-a-popover');
-        $clicked.popover({
+        var popoverOptions = {
             html: true,
             placement: placement,
             trigger: 'manual',
             content: loadingHtml,
             container: 'body',
             template: '<div class="popover" role="tooltip" data-dismissid="' + randomId + '"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"><div class="data-content"></div></div></div>'
-        })
+        };
+        $clicked.popover(popoverOptions)
         .on('shown.bs.popover', function(event) {
             var $this = $(this);
             var title = $this.attr('title');
@@ -1473,6 +1474,7 @@ function openPopover(clicked, data, hover, placement) {
     } else if (popover.options.content !== data) {
         popover.options.content =  data;
         $clicked.popover('show');
+        return popover;
     }
 }
 
@@ -2963,7 +2965,6 @@ function filterAttributes(filter, id) {
 
 function pivotObjectReferences(url, uuid) {
     url += '/focus:' + uuid;
-    console.log(url);
     $.ajax({
         type:"get",
         url:url,

@@ -4350,17 +4350,62 @@ class Event extends AppModel
     ) {
         $attribute['objectType'] = 'attribute';
         $include = true;
-        if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) {
-            if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) {
+        if ($filterType) {
+            /* proposal */
+            if ($filterType['proposal'] == 0) { // `both`
+                // pass, do not consider as `both` is selected
+            } else if (!empty($attribute['ShadowAttribute'])) { // `include only`
+                $include = $include && ($filterType['proposal'] == 1);
+            } else { // `exclude`
+                $include = $include && ($filterType['proposal'] == 2);
+            }
+
+            /* correlation */
+            if ($filterType['correlation'] == 0) { // `both`
+                // pass, do not consider as `both` is selected
+            } else if (in_array($attribute['id'], $correlatedAttributes)) { // `include only`
+                $include = $include && ($filterType['correlation'] == 1);
+            } else { // `exclude`
+                $include = $include && ($filterType['correlation'] == 2);
+            }
+
+            /* deleted */
+            if ($filterType['deleted'] == 0) { // `both`
+                // pass, do not consider as `both` is selected
+            } else if ($attribute['deleted'] == 1) { // `include only`
+                $include = $include && ($filterType['deleted'] == 1);
+            } else { // `exclude`
+                $include = $include && ($filterType['deleted'] == 2);
+            }
+
+            /* feed */
+            if ($filterType['feed'] == 0) { // `both`
+                // pass, do not consider as `both` is selected
+            } else if (!empty($attribute['Feed'])) { // `include only`
+                $include = $include && ($filterType['feed'] == 1);
+            } else { // `exclude`
+                $include = $include && ($filterType['feed'] == 2);
+            }
+
+            /* server */
+            if ($filterType['server'] == 0) { // `both`
+                // pass, do not consider as `both` is selected
+            } else if (!empty($attribute['Server'])) { // `include only`
+                $include = $include && ($filterType['server'] == 1);
+            } else { // `exclude`
+                $include = $include && ($filterType['server'] == 2);
+            }
+
+            /* TypeGroupings */
+            if (
+                $filterType['attributeFilter'] != 'all'
+                && isset($this->Attribute->typeGroupings[$filterType['attributeFilter']])
+                && !in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType['attributeFilter']])
+            ) {
                 $include = false;
             }
         }
-        if ($filterType === 'proposal' && empty($attribute['ShadowAttribute'])) {
-            $include = false;
-        }
-        if ($filterType === 'correlation' && !in_array($attribute['id'], $correlatedAttributes)) {
-            $include = false;
-        }
+
         if (!empty($attribute['ShadowAttribute'])) {
             $temp = array();
             foreach ($attribute['ShadowAttribute'] as $k => $proposal) {
@@ -4378,9 +4423,15 @@ class Event extends AppModel
             $attribute['ShadowAttribute'] = $temp;
         }
         $attribute = $this->__prepareGenericForView($attribute, $eventWarnings, $warningLists);
-        if ($filterType === 'warning') {
-            if (empty($attribute['warnings']) && empty($attribute['validationIssue'])) {
-                $include = false;
+
+        /* warning */
+        if ($filterType) {
+            if ($filterType['warning'] == 0) { // `both`
+                // pass, do not consider as `both` is selected
+            } else if (!empty($attribute['warnings']) || !empty($attribute['validationIssue'])) { // `include only`
+                $include = $include && ($filterType['warning'] == 1);
+            } else { // `exclude`
+                $include = $include && ($filterType['warning'] == 2);
             }
         }
         return array('include' => $include, 'data' => $attribute);
@@ -4399,19 +4450,53 @@ class Event extends AppModel
             $proposal['objectType'] = 'proposal';
         }
 
-        $include = true;
-        if ($filterType === 'correlation' && !in_array($proposal['id'], $correlatedShadowAttributes)) {
+        $include = $filterType['proposal'] != 2;
+
+        /* correlation */
+        if ($filterType['correlation'] == 0) { // `both`
+            // pass, do not consider as `both` is selected
+        } else if (in_array($proposal['id'], $correlatedShadowAttributes)) { // `include only`
+            $include = $include && ($filterType['correlation'] == 1);
+        } else { // `exclude`
+            $include = $include && ($filterType['correlation'] == 2);
+        }
+
+        /* feed */
+        if ($filterType['feed'] == 0) { // `both`
+            // pass, do not consider as `both` is selected
+        } else if (!empty($proposal['Feed'])) { // `include only`
+            $include = $include && ($filterType['feed'] == 1);
+        } else { // `exclude`
+            $include = $include && ($filterType['feed'] == 2);
+        }
+
+        /* server */
+        if ($filterType['server'] == 0) { // `both`
+            // pass, do not consider as `both` is selected
+        } else if (!empty($attribute['Server'])) { // `include only`
+            $include = $include && ($filterType['server'] == 1);
+        } else { // `exclude`
+            $include = $include && ($filterType['server'] == 2);
+        }
+
+        /* TypeGroupings */
+        if (
+            $filterType['attributeFilter'] != 'all'
+            && isset($this->Attribute->typeGroupings[$filterType['attributeFilter']])
+            && !in_array($proposal['type'], $this->Attribute->typeGroupings[$filterType['attributeFilter']])
+        ) {
             $include = false;
         }
-        if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) {
-            if (!in_array($proposal['type'], $this->Attribute->typeGroupings[$filterType])) {
-                $include = false;
-            }
-        }
         $proposal = $this->__prepareGenericForView($proposal, $eventWarnings, $warningLists);
-        if ($filterType === 'warning') {
-            if (empty($proposal['warnings'])) {
-                $include = false;
+
+        /* warning */
+        if ($filterType) {
+            if ($filterType['warning'] == 0) { // `both`
+                // pass, do not consider as `both` is selected
+            } else if (!empty($proposal['warnings']) || !empty($proposal['validationIssue'])) { // `include only`
+                $include = $include && ($filterType['correlation'] == 1);
+            } else { // `exclude`
+                $include = $include && ($filterType['correlation'] == 2);
             }
         }
         return array('include' => $include, 'data' => $proposal);
@@ -4427,11 +4512,9 @@ class Event extends AppModel
     ) {
         $object['category'] = $object['meta-category'];
         $proposal['objectType'] = 'object';
-        // filters depend on child objects
-        $include = empty($filterType) || $filterType == 'object' || $object['meta-category'] === $filterType;
-        if ($filterType === 'correlation' || $filterType === 'proposal') {
-            $include = $this->__checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes);
-        }
+
+        $include = empty($filterType['attributeFilter']) || $filterType['attributeFilter'] == 'object' || $filterType['attributeFilter'] == 'all' || $object['meta-category'] === $filterType['attributeFilter'];
+
         if (!empty($object['Attribute'])) {
             $temp = array();
             foreach ($object['Attribute'] as $k => $proposal) {
@@ -4449,58 +4532,161 @@ class Event extends AppModel
             }
             $object['Attribute'] = $temp;
         }
-        if ($filterType === 'warning') {
+
+        // filters depend on child objects
+        if (in_array($filterType['attributeFilter'], array('correlation', 'proposal', 'warning'))
+            || $filterType['correlation'] != 0
+            || $filterType['proposal'] != 0
+            || $filterType['warning'] != 0
+            || $filterType['feed'] != 0
+            || $filterType['server'] != 0
+        ) {
             $include = $this->__checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes);
         }
+
         return array('include' => $include, 'data' => $object);
     }
 
     private function __checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes)
     {
-        $include = false;
-        switch ($filterType) {
-            case 'warning':
-                if (!empty($object['Attribute'])) {
-                    foreach ($object['Attribute'] as $k => $attribute) {
-                        if (!empty($attribute['warnings'])) {
-                            $include = true;
-                        }
-                        if (!empty($attribute['ShadowAttribute'])) {
-                            foreach ($attribute['ShadowAttribute'] as $shadowAttribute) {
-                                if (!empty($shadowAttribute['warnings'])) {
-                                    $include = true;
-                                }
-                            }
+        $include = true;
+
+        if (empty($object['Attribute'])) { // reject empty object
+            $include = false;
+            return $include;
+        }
+
+        /* proposal */
+        if ($filterType['proposal'] == 0) { // `both`
+            // pass, do not consider as `both` is selected
+        } else if ($filterType['proposal'] == 1 || $filterType['proposal'] == 2) {
+            $flagKeep = false;
+            foreach ($object['Attribute'] as $k => $attribute) { // check if object contains at least 1 proposal
+                if (!empty($attribute['ShadowAttribute'])) {
+                    $flagKeep = ($filterType['proposal'] == 1); // keep if proposal are included
+                    break;
+                }
+            }
+            if (!$flagKeep) {
+                $include = false;
+                return $include;
+            }
+        }
+
+        /* warning */
+        if ($filterType['warning'] == 0) { // `both`
+            // pass, do not consider as `both` is selected
+        } else if ($filterType['warning'] == 1 || $filterType['warning'] == 2) {
+            $flagKeep = false;
+            foreach ($object['Attribute'] as $k => $attribute) { // check if object contains at least 1 warning
+                if (!empty($attribute['warnings'])) {
+                    $flagKeep = ($filterType['warning'] == 1); // keep if warnings are included
+                } else {
+                    $flagKeep = ($filterType['warning'] == 2); // keep if warnings are excluded
+                }
+                if (!$flagKeep && !empty($attribute['ShadowAttribute'])) {
+                    foreach ($attribute['ShadowAttribute'] as $shadowAttribute) {
+                        if (!empty($shadowAttribute['warnings'])) {
+                            $flagKeep = ($filterType['warning'] == 1); // do not keep if warning are excluded
+                            break;
                         }
                     }
                 }
-                break;
-            case 'correlation':
-                if (!empty($object['Attribute'])) {
-                    foreach ($object['Attribute'] as $k => $attribute) {
-                        if (in_array($attribute['id'], $correlatedAttributes)) {
-                            $include = true;
-                        } else {
-                            if (!empty($attribute['ShadowAttribute'])) {
-                                foreach ($attribute['ShadowAttribute'] as $k => $shadowAttribute) {
-                                    if (in_array($shadowAttribute['id'], $correlatedShadowAttributes)) {
-                                        $include = true;
-                                    }
-                                }
-                            }
+                if ($flagKeep) {
+                    break;
+                }
+            }
+            if (!$flagKeep) {
+                $include = false;
+                return $include;
+            }
+        }
+
+        /* correlation */
+        if ($filterType['correlation'] == 0) { // `both`
+            // pass, do not consider as `both` is selected
+        } else if ($filterType['correlation'] == 1 || $filterType['correlation'] == 2) {
+            $flagKeep = false;
+            foreach ($object['Attribute'] as $k => $attribute) { // check if object contains at least 1 warning
+                if (in_array($attribute['id'], $correlatedAttributes)) {
+                    $flagKeep = ($filterType['correlation'] == 1); // keep if correlations are included
+                } else {
+                    $flagKeep = ($filterType['correlation'] == 2); // keep if correlations are excluded
+                }
+                if (!$flagKeep && !empty($attribute['ShadowAttribute'])) {
+                    foreach ($attribute['ShadowAttribute'] as $k => $shadowAttribute) {
+                        if (in_array($shadowAttribute['id'], $correlatedShadowAttributes)) {
+                            $flagKeep = ($filterType['correlation'] == 1); // keep if correlations are included
+                            break;
                         }
                     }
                 }
-                break;
-            case 'proposal':
-                if (!empty($object['Attribute'])) {
-                    foreach ($object['Attribute'] as $k => $attribute) {
-                        if (!empty($attribute['ShadowAttribute'])) {
-                            $include = true;
+                if ($flagKeep) {
+                    break;
+                }
+            }
+            if (!$flagKeep) {
+                $include = false;
+                return $include;
+            }
+        }
+
+        /* feed */
+        if ($filterType['feed'] == 0) { // `both`
+            // pass, do not consider as `both` is selected
+        } else if ($filterType['feed'] == 1 || $filterType['feed'] == 2) {
+            $flagKeep = false;
+            foreach ($object['Attribute'] as $k => $attribute) { // check if object contains at least 1 warning
+                if (!empty($attribute['Feed'])) {
+                    $flagKeep = ($filterType['feed'] == 1); // keep if feed are included
+                } else {
+                    $flagKeep = ($filterType['feed'] == 2); // keep if feed are excluded
+                }
+                if (!$flagKeep && !empty($attribute['ShadowAttribute'])) {
+                    foreach ($attribute['ShadowAttribute'] as $shadowAttribute) {
+                        if (!empty($shadowAttribute['Feed'])) {
+                            $flagKeep = ($filterType['feed'] == 1); // do not keep if feed are excluded
+                            break;
                         }
                     }
                 }
-                break;
+                if ($flagKeep) {
+                    break;
+                }
+            }
+            if (!$flagKeep) {
+                $include = false;
+                return $include;
+            }
+        }
+
+        /* server */
+        if ($filterType['server'] == 0) { // `both`
+            // pass, do not consider as `both` is selected
+        } else if ($filterType['server'] == 1 || $filterType['server'] == 2) {
+            $flagKeep = false;
+            foreach ($object['Attribute'] as $k => $attribute) { // check if object contains at least 1 warning
+                if (!empty($attribute['Server'])) {
+                    $flagKeep = ($filterType['server'] == 1); // keep if server are included
+                } else {
+                    $flagKeep = ($filterType['server'] == 2); // keep if server are excluded
+                }
+                if (!$flagKeep && !empty($attribute['ShadowAttribute'])) {
+                    foreach ($attribute['ShadowAttribute'] as $shadowAttribute) {
+                        if (!empty($shadowAttribute['Server'])) {
+                            $flagKeep = ($filterType['server'] == 1); // do not keep if server are excluded
+                            break;
+                        }
+                    }
+                }
+                if ($flagKeep) {
+                    break;
+                }
+            }
+            if (!$flagKeep) {
+                $include = false;
+                return $include;
+            }
         }
         return $include;
     }
@@ -4548,14 +4734,21 @@ class Event extends AppModel
                 unset($event['Event'][$k]);
             }
         }
-        $filterType = false;
-        if (isset($passedArgs['attributeFilter'])) {
-            if (in_array($passedArgs['attributeFilter'], array_keys($this->Attribute->typeGroupings)) || in_array($passedArgs['attributeFilter'], array('proposal', 'correlation', 'warning'))) {
-                $filterType = $passedArgs['attributeFilter'];
-            } else {
-                unset($passedArgs['attributeFilter']);
-            }
+        $filterType = array(
+            'attributeFilter' => isset($passedArgs['attributeFilter']) ? $passedArgs['attributeFilter'] : 'all',
+            'proposal' => isset($passedArgs['proposal']) ? $passedArgs['proposal'] : 0,
+            'correlation' => isset($passedArgs['correlation']) ? $passedArgs['correlation'] : 0,
+            'warning' => isset($passedArgs['warning']) ? $passedArgs['warning'] : 0,
+            'deleted' => isset($passedArgs['deleted']) ? $passedArgs['deleted'] : 0,
+            'toIDS' => isset($passedArgs['toIDS']) ? $passedArgs['toIDS'] : 0,
+            'feed' => isset($passedArgs['feed']) ? $passedArgs['feed'] : 0,
+            'server' => isset($passedArgs['server']) ? $passedArgs['server'] : 0
+        );
+        // update proposal, correlation and warning accordingly
+        if (in_array($filterType['attributeFilter'], array('proposal', 'correlation', 'warning'))) {
+            $filterType[$filterType['attributeFilter']] = 1;
         }
+
         $eventArray = array();
         $eventWarnings = array();
         $correlatedAttributes = isset($event['RelatedAttribute']) ? array_keys($event['RelatedAttribute']) : array();
@@ -4619,7 +4812,7 @@ class Event extends AppModel
                             'meta-category' => $object['meta-category'],
                             'name' => $object['name'],
                             'uuid' => $object['uuid'],
-                            'id' => $object['id'],
+                            'id' => isset($object['id']) ? $object['id'] : 0,
                             'object_type' => $object['objectType']
                         );
                     }
