@@ -20,6 +20,14 @@ class Galaxy extends AppModel
     public function beforeValidate($options = array())
     {
         parent::beforeValidate();
+        if (isset($this->data['Galaxy']['kill_chain_order'])) {
+            $json = json_encode($this->data['Galaxy']['kill_chain_order']);
+            if ($json !== null) {
+                $this->data['Galaxy']['kill_chain_order'] = $json;
+            } else {
+                unset($this->data['Galaxy']['kill_chain_order']);
+            }
+        }
         return true;
     }
 
@@ -53,9 +61,6 @@ class Galaxy extends AppModel
         $galaxyTypes = array();
         foreach ($galaxies as $i => $galaxy) {
             $galaxyTypes[$galaxy['type']] = $galaxy['type'];
-            if (isset($galaxies[$i]['kill_chain_order'])) {
-                $galaxies[$i]['kill_chain_order'] = json_encode($galaxy['kill_chain_order']);
-            }
         }
         $temp = $this->find('all', array(
             'fields' => array('uuid', 'version', 'id', 'icon'),
