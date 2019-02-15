@@ -902,6 +902,7 @@ a.pill-pre-picker {
     background-color: #fcfcfc;
     font-weight: bold;
     border: 1px #65737ec8 solid;
+	position: relative;
 }
 .nav-pills > .active > a.pill-pre-picker {
     background-color: #65737e32;
