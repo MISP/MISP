@@ -1389,7 +1389,7 @@ class Event extends AppModel
         return $tempConditions;
     }
 
-    public function filterEventIds($user, &$params = array())
+    public function filterEventIds($user, &$params = array(), &$result_count = 0)
     {
         $conditions = $this->createEventConditions($user);
         if (isset($params['wildcard'])) {
@@ -1471,6 +1471,10 @@ class Event extends AppModel
             'recursive' => -1,
             'fields' => $fields
         );
+
+        // Get the count (but not the actual data) of results for paginators
+        $result_count = $this->find('count', $find_params);
+
         if (isset($params['limit'])) {
             $find_params['limit'] = $params['limit'];
             if (isset($params['page'])) {
@@ -5612,7 +5616,7 @@ class Event extends AppModel
             }
         }
         $filters['include_attribute_count'] = 1;
-        $eventid = $this->filterEventIds($user, $filters);
+        $eventid = $this->filterEventIds($user, $filters, $elementCounter);
         $eventCount = count($eventid);
         $eventids_chunked = $this->__clusterEventIds($exportTool, $eventid);
         unset($eventid);
@@ -5653,7 +5657,6 @@ class Event extends AppModel
             );
             if (!empty($result)) {
                 foreach ($result as $event) {
-                    $elementCounter++;
                     if ($jobId && $i%10 == 0) {
                         $this->Job->saveField('progress', intval((100 * $i) / $eventCount));
                         $this->Job->saveField('message', 'Converting Event ' . $i . '/' . $eventCount . '.');

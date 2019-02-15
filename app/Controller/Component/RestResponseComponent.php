@@ -428,6 +428,7 @@ class RestResponseComponent extends Component
             $headers["Access-Control-Allow-Headers"] =  "Origin, Content-Type, Authorization, Accept";
             $headers["Access-Control-Allow-Methods"] = "*";
             $headers["Access-Control-Allow-Origin"] = explode(',', Configure::read('Security.cors_origins'));
+            $headers["Access-Control-Expose-Headers"] = ["X-Result-Count"];
         }
 
         if (!empty($headers)) {
