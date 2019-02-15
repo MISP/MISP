@@ -466,9 +466,10 @@ class Galaxy extends AppModel
                     $matrixData['matrixTags'][$value['tag_name']] = 1;
                 }
             }
-            $matrixData['matrixTags'] = array_keys($matrixData['matrixTags']);
         }
+        // end FIXME
 
+        $matrixData['matrixTags'] = array_keys($matrixData['matrixTags']);
         return $matrixData;
     }
 }
