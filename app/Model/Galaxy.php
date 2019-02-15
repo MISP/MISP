@@ -434,7 +434,7 @@ class Galaxy extends AppModel
                     $cluster['external_id'] = $element['value'];
                 }
                 if ($toBeAdded) {
-                    array_push($matrixData['matrixTags'], $cluster['tag_name']);
+                    $matrixData['matrixTags'][$cluster['tag_name']] = 1;
                 }
             }
         }
@@ -450,6 +450,23 @@ class Galaxy extends AppModel
                     }
                 );
             }
+        }
+
+        // #FIXME temporary fix: retreive tag name of deprecated mitre galaxies (for the stats)
+        if ($galaxy['Galaxy']['id'] == $this->getMitreAttackGalaxyId()) {
+            $names = array('Enterprise Attack - Attack Pattern', 'Pre Attack - Attack Pattern', 'Mobile Attack - Attack Pattern');
+            $tag_names = array();
+            $gals = $this->find('all', array(
+                    'recursive' => -1,
+                    'contain' => array('GalaxyCluster.tag_name'),
+                    'conditions' => array('Galaxy.name' => $names)
+            ));
+            foreach ($gals as $gal => $temp) {
+                foreach ($temp['GalaxyCluster'] as $value) {
+                    $matrixData['matrixTags'][$value['tag_name']] = 1;
+                }
+            }
+            $matrixData['matrixTags'] = array_keys($matrixData['matrixTags']);
         }
 
         return $matrixData;

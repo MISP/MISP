@@ -4704,6 +4704,51 @@ class EventsController extends AppController
         }
 
         $scores = $scoresData;
+        // FIXME: temporary fix: add the score of deprecated mitre galaxies to the new one (for the stats)
+        if ($matrixData['galaxy']['id'] == $mitreAttackGalaxyId) {
+            $mergedScore = array();
+            foreach ($scoresData as $tag => $v) {
+                $predicateValue = explode(':', $tag, 2)[1];
+                $predicateValue = explode('=', $predicateValue, 2);
+                $predicate = $predicateValue[0];
+                $clusterValue = $predicateValue[1];
+                $mappedTag = '';
+                $mappingWithoutExternalId = array();
+                if ($predicate == 'mitre-attack-pattern'
+                    || $predicate == 'mitre-mobile-attack-pattern'
+                    || $predicate == 'mitre-pre-attack-pattern'
+                ) {
+                    $mappedTag = $tag;
+                    $name = explode(" ", $tag);
+                    $name = join(" ", array_slice($name, 0, -2)); // remove " - external_id"
+                    $mappingWithoutExternalId[$name] = $tag;
+                } else {
+                    $name = explode(" ", $clusterValue);
+                    $name = join(" ", array_slice($name, 0, -2)); // remove " - external_id"
+                    if (isset($mappingWithoutExternalId[$name])) {
+                        $mappedTag = $mappingWithoutExternalId[$name];
+                    } else {
+                        $adjustedTagName = $this->Galaxy->GalaxyCluster->find('list', array(
+                            'group' => array('GalaxyCluster.id', 'GalaxyCluster.tag_name'),
+                            'conditions' => array('GalaxyCluster.tag_name LIKE' => 'misp-galaxy:mitre-attack-pattern=' . $name . '% T%'),
+                            'fields' => array('GalaxyCluster.tag_name')
+                        ));
+                        $adjustedTagName = array_values($adjustedTagName)[0];
+                        $mappingWithoutExternalId[$name] = $adjustedTagName;
+                        $mappedTag = $mappingWithoutExternalId[$name];
+                    }
+                }
+
+                if (isset($mergedScore[$mappedTag])) {
+                    $mergedScore[$mappedTag] += $v;
+                } else {
+                    $mergedScore[$mappedTag] = $v;
+                }
+            }
+            $scores = $mergedScore;
+            $maxScore = max(array_values($mergedScore));
+        }
+        // end FIXME
 
         if ($this->_isRest()) {
             $json = array('matrix' => $tabs, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
