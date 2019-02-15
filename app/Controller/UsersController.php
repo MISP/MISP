@@ -1886,10 +1886,7 @@ class UsersController extends AppController
                 $clusterValue = $predicateValue[1];
                 $mappedTag = '';
                 $mappingWithoutExternalId = array();
-                if ($predicate == 'mitre-attack-pattern'
-                    || $predicate == 'mitre-mobile-attack-pattern'
-                    || $predicate == 'mitre-pre-attack-pattern'
-                ) {
+                if ($predicate == 'mitre-attack-pattern') {
                     $mappedTag = $tag;
                     $name = explode(" ", $tag);
                     $name = join(" ", array_slice($name, 0, -2)); // remove " - external_id"
