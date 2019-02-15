@@ -1742,21 +1742,6 @@ a.discrete {
     border-left: 1px solid grey;
 }
 
-.notification-active {
-    float:left;
-    background-color:red;
-    color:white;
-    border-radius: 50%;
-    width:20px;
-    height:20px;
-}
-
-.notification-passive {
-    float:left;
-    width:20px;
-    height:20px;
-}
-
 .dashboard_element{
     background-color: white;
     border: 1px solid #0088cc;
