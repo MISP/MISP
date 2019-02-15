@@ -4736,6 +4736,7 @@ class Event extends AppModel
             'correlation' => isset($passedArgs['correlation']) ? $passedArgs['correlation'] : 0,
             'warning' => isset($passedArgs['warning']) ? $passedArgs['warning'] : 0,
             'deleted' => isset($passedArgs['deleted']) ? $passedArgs['deleted'] : 0,
+            'toIDS' => isset($passedArgs['toIDS']) ? $passedArgs['toIDS'] : 0,
             'feed' => isset($passedArgs['feed']) ? $passedArgs['feed'] : 0,
             'server' => isset($passedArgs['server']) ? $passedArgs['server'] : 0
         );

@@ -26,7 +26,7 @@ class EventsController extends AppController
     );
 
     private $acceptedFilteringNamedParams = array('sort', 'direction', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'attributeFilter', 'extended', 'page',
-        'searchFor', 'attributeFilter', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'distribution', 'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'feed', 'server',
+        'searchFor', 'attributeFilter', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'distribution', 'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'feed', 'server', 'toIDS'
     );
 
     public $defaultFilteringRules =  array(
@@ -37,6 +37,7 @@ class EventsController extends AppController
         'warning' => 0,
         'deleted' => 2,
         'includeRelatedTags' => 0,
+        'toIDS' => 0,
         'feed' => 0,
         'server' => 0,
         'distribution' => array(0, 1, 2, 3, 4, 5),
@@ -1044,6 +1045,9 @@ class EventsController extends AppController
         if (isset($filters['deleted'])) {
             $conditions['deleted'] = $filters['deleted'] == 2 ? 0 : 1;
         }
+        if (isset($filters['toIDS']) && $filters['toIDS'] != 0) {
+            $conditions['to_ids'] = $filters['toIDS'] == 2 ? 0 : 1;
+        }
         $conditions['includeFeedCorrelations'] = true;
         if (!isset($filters['includeServerCorrelations'])) {
             $conditions['includeServerCorrelations'] = 1;
@@ -1485,6 +1489,9 @@ class EventsController extends AppController
         }
         if (isset($this->params['named']['deleted'])) {
             $conditions['deleted'] = $this->params['named']['deleted'] == 2 ? 0 : 1;
+        }
+        if (isset($this->params['named']['toIDS']) && $this->params['named']['toIDS'] != 0) {
+            $conditions['to_ids'] = $this->params['named']['toIDS'] == 2 ? 0 : 1;
         }
         if (isset($this->params['named']['includeRelatedTags']) && $this->params['named']['includeRelatedTags']) {
             $conditions['includeRelatedTags'] = 1;

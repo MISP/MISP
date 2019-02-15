@@ -126,6 +126,21 @@ function triggerEventFilteringTool(clicked) {
                     "equal",
                 ],
                 "unique": true,
+                "id": "toIDS",
+                "label": "IDS Flag",
+                "values": {
+                    0: "Both",
+                    1: "Set only",
+                    2: "Exclude Unset"
+                }
+            },
+            {
+                "input": "radio",
+                "type": "integer",
+                "operators": [
+                    "equal",
+                ],
+                "unique": true,
                 "id": "feed",
                 "label": "Feeds",
                 "values": {
@@ -267,6 +282,13 @@ function triggerEventFilteringTool(clicked) {
                     field: 'includeRelatedTags',
                     id: 'includeRelatedTags',
                     value: <?php echo isset($filters['includeRelatedTags']) ? h($filters['includeRelatedTags']) : 0; ?>
+                },
+                <?php endif; ?>
+                <?php if (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['toIDS'])): ?>
+                {
+                    field: 'toIDS',
+                    id: 'toIDS',
+                    value: <?php echo isset($filters['toIDS']) ? h($filters['toIDS']) : 0; ?>
                 },
                 <?php endif; ?>
                 <?php if (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['feed'])): ?>
