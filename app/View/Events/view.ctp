@@ -496,7 +496,7 @@ function enable_correlation_graph() {
 }
 
 function enable_attack_matrix() {
-    $.get("/events/viewMatrix/<?php echo h($event['Event']['id']); ?>/<?php echo h($mitreAttackGalaxyId); ?>/event/1", function(data) {
+    $.get("/events/viewGalaxyMatrix/<?php echo h($event['Event']['id']); ?>/<?php echo h($mitreAttackGalaxyId); ?>/event/1", function(data) {
         $("#attackmatrix_div").html(data);
     });
 }

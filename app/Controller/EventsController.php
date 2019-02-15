@@ -4663,7 +4663,7 @@ class EventsController extends AppController
         return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
     }
 
-    public function viewMatrix($scope_id, $galaxy_id, $scope='event', $disable_picking=false)
+    public function viewGalaxyMatrix($scope_id, $galaxy_id, $scope='event', $disable_picking=false)
     {
         $this->loadModel('Galaxy');
         $mitreAttackGalaxyId = $this->Galaxy->getMitreAttackGalaxyId();
@@ -4735,7 +4735,7 @@ class EventsController extends AppController
                 $this->set('removeTrailling', 2);
             }
 
-            $this->render('/Elements/view_matrix');
+            $this->render('/Elements/view_galaxy_matrix');
         }
     }
 

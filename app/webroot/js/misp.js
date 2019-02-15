@@ -1478,7 +1478,7 @@ function openPopover(clicked, data, hover, placement) {
 
 function getMatrixPopup(scope, scope_id, galaxy_id) {
     cancelPopoverForm();
-    getPopup(scope_id + '/' + galaxy_id + '/' + scope, 'events', 'viewMatrix', '', '#popover_form_large');
+    getPopup(scope_id + '/' + galaxy_id + '/' + scope, 'events', 'viewGalaxyMatrix', '', '#popover_form_large');
 }
 
 function getPopup(id, context, target, admin, popupType) {
