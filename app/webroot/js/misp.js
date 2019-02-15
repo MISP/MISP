@@ -1478,9 +1478,9 @@ function openPopover(clicked, data, hover, placement) {
     }
 }
 
-function getMitreMatrixPopup(scope_id, scope) {
+function getMatrixPopup(scope, scope_id, galaxy_id) {
     cancelPopoverForm();
-    getPopup(scope + '/' + scope_id, 'events', 'viewMitreAttackMatrix', '', '#popover_form_large');
+    getPopup(scope_id + '/' + galaxy_id + '/' + scope, 'events', 'viewGalaxyMatrix', '', '#popover_form_large');
 }
 
 function getPopup(id, context, target, admin, popupType) {
@@ -3881,7 +3881,10 @@ function insertJSONRestResponse() {
     $('#json-response-container').html(parsedJson);
 }
 
-function syntaxHighlightJson(json) {
+function syntaxHighlightJson(json, indent) {
+    if (indent === undefined) {
+        indent = 2;
+    }
     if (typeof json == 'string') {
         json = JSON.parse(json);
     }

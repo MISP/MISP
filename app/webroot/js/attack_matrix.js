@@ -265,7 +265,7 @@
 
 	function makeTagging(tagIds) {
 		$('#GalaxyTargetIds').val(JSON.stringify(tagIds));
-		$('#GalaxyViewMitreAttackMatrixForm').submit();
+		$('#GalaxyViewGalaxyMatrixForm').submit();
 	}
 
 	function filterEvent(tagName, tagId) {

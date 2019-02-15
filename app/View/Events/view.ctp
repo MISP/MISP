@@ -38,6 +38,7 @@
     echo $this->Html->script('moment-with-locales');
     echo $this->Html->css('query-builder.default');
     echo $this->Html->script('query-builder');
+    echo $this->Html->css('attack_matrix');
 ?>
 <div class="events view">
     <?php
@@ -217,7 +218,7 @@
                         '<a href="%s/events/view/%s%s"><span class="icon-refresh"></span></a>',
                         $baseurl,
                         $event['Event']['id'],
-                        $extended ? '' : '/extended:1'
+                        ($extended ? '' : '/extended:1')
                     )
                 )
             );
@@ -500,7 +501,7 @@ function enable_correlation_graph() {
 }
 
 function enable_attack_matrix() {
-    $.get("/events/viewMitreAttackMatrix/<?php echo h($event['Event']['id']); ?>/event/1", function(data) {
+    $.get("/events/viewGalaxyMatrix/<?php echo h($event['Event']['id']); ?>/<?php echo h($mitreAttackGalaxyId); ?>/event/1", function(data) {
         $("#attackmatrix_div").html(data);
     });
 }
