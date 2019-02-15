@@ -79,33 +79,13 @@ class GalaxiesController extends AppController
 
     public function selectGalaxy($target_id, $target_type='event', $namespace='misp')
     {
-        $expectedDescription = 'ATT&CK Tactic';
+        $mitreAttackGalaxyId = $this->Galaxy->getMitreAttackGalaxyId();
         $conditions = $namespace == '0' ? array() : array('namespace' => $namespace);
-        if ($namespace == 'mitre-attack' || $namespace == '0') {
-            $conditions[] = array('description !=' => $expectedDescription);
-            $conditions2 = array('namespace' => 'mitre-attack');
-            $conditions2[] = array('description' => $expectedDescription);
-
-            $tacticGalaxies = $this->Galaxy->find('all', array(
-                'recursive' => -1,
-                'conditions' => $conditions2,
-            ));
-        }
         $galaxies = $this->Galaxy->find('all', array(
             'recursive' => -1,
             'conditions' => $conditions,
             'order' => array('name asc')
         ));
-        if (!empty($tacticGalaxies)) {
-            array_unshift($galaxies, array('Galaxy' => array(
-                'id' => '-1',
-                'uuid' => '-1',
-                'name' => $expectedDescription,
-                'type' => '-1',
-                'icon' => '/img/mitre-attack-icon.ico',
-                'namespace' => 'mitre-attack'
-            )));
-        }
 
         $items = array();
         $items[] = array(
@@ -113,7 +93,7 @@ class GalaxiesController extends AppController
             'value' => "/galaxies/selectCluster/" . h($target_id) . '/' . h($target_type) . '/0'
         );
         foreach ($galaxies as $galaxy) {
-            if ($galaxy['Galaxy']['id'] != -1) {
+            if (!isset($galaxy['Galaxy']['kill_chain_order'])) {
                 $items[] = array(
                     'name' => h($galaxy['Galaxy']['name']),
                     'value' => "/galaxies/selectCluster/" . $target_id . '/' . $target_type . '/' . $galaxy['Galaxy']['id'],
@@ -123,13 +103,16 @@ class GalaxiesController extends AppController
                         'infoExtra' => $galaxy['Galaxy']['description'],
                     )
                 );
-            } else { // attackMatrix
-                $items[] = array(
+            } else { // should use matrix instead
+                $param = array(
                     'name' => $galaxy['Galaxy']['name'],
-                    'functionName' => "getMitreMatrixPopup('" . $target_type . "', '" . $target_id . "')",
+                    'functionName' => "getMatrixPopup('" . $target_type . "', '" . $target_id . "', " . $galaxy['Galaxy']['id'] . ")",
                     'isPill' => true,
-                    'img' => "/img/mitre-attack-icon.ico",
                 );
+                if ($galaxy['Galaxy']['id'] == $mitreAttackGalaxyId) {
+                    $param['img'] = "/img/mitre-attack-icon.ico";
+                }
+                $items[] = $param;
             }
         }
 

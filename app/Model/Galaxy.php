@@ -368,78 +368,24 @@ class Galaxy extends AppModel
         }
     }
 
-    public function getMitreAttackGalaxyId($type="mitre-attack-pattern")
+    public function getMitreAttackGalaxyId($type="mitre-attack-pattern", $namespace="mitre-attack")
     {
         $galaxy = $this->find('first', array(
                 'recursive' => -1,
                 'fields' => 'id',
-                'conditions' => array('Galaxy.type' => $type),
+                'conditions' => array('Galaxy.type' => $type, 'Galaxy.namespace' => $namespace),
         ));
         return empty($galaxy) ? 0 : $galaxy['Galaxy']['id'];
     }
 
-    public function getMitreAttackMatrix()
+    public function getMatrix($galaxy_id)
     {
-        $killChainOrderEnterprise = array(
-            'initial-access',
-            'execution',
-            'persistence',
-            'privilege-escalation',
-            'defense-evasion',
-            'credential-access',
-            'discovery',
-            'lateral-movement',
-            'collection',
-            'exfiltration',
-            'command-and-control'
-        );
-        $killChainOrderMobile = array(
-            'initial-access',
-            'persistence',
-            'privilege-escalation',
-            'defense-evasion',
-            'credential-access',
-            'discovery',
-            'lateral-movement',
-            'effects',
-            'collection',
-            'exfiltration',
-            'network-effects',
-            'remote-service-effects'
-        );
-        $killChainOrderPre = array(
-            'priority-definition-planning',
-            'priority-definition-direction',
-            'target-selection',
-            'technical-information-gathering',
-            'people-information-gathering',
-            'organizational-information-gathering',
-            'technical-weakness-identification',
-            'people-weakness-identification',
-            'organizational-weakness-identification',
-            'adversary-opsec',
-            'establish-&-maintain-infrastructure',
-            'persona-development',
-            'build-capabilities',
-            'test-capabilities',
-            'stage-capabilities',
-        );
-
-        $killChainOrders = array(
-            'mitre-attack' => $killChainOrderEnterprise,
-            'mitre-mobile-attack' => $killChainOrderMobile,
-            'mitre-pre-attack' => $killChainOrderPre,
-        );
-        $killChainOrders = array();
-
-        $expectedDescription = 'ATT&CK Tactic';
-        $expectedNamespace = 'mitre-attack';
-        $conditions = array('Galaxy.description' => $expectedDescription, 'Galaxy.namespace' => $expectedNamespace);
+        $conditions = array('Galaxy.id' => $galaxy_id);
         $contains = array(
             'GalaxyCluster' => array('GalaxyElement'),
         );
 
-        $galaxies = $this->find('all', array(
+        $galaxy = $this->find('first', array(
                 'recursive' => -1,
                 'contain' => $contains,
                 'conditions' => $conditions,
@@ -447,25 +393,26 @@ class Galaxy extends AppModel
 
         $mispUUID = Configure::read('MISP')['uuid'];
 
-        if (!empty($galaxies)) {
-            $galaxy = $galaxies[0];
-        } else {
-            $galaxy = array();
+        if (!isset($galaxy['Galaxy']['kill_chain_order'])) {
+            throw new Exception(__("Galaxy cannot be represented as a matrix"));
+
         }
-        $attackTactic = array(
+        $matrixData = array(
             'killChain' => $galaxy['Galaxy']['kill_chain_order'],
-            'attackTactic' => array(),
-            'attackTags' => array(),
-            'instance-uuid' => $mispUUID
+            'tabs' => array(),
+            'matrixTags' => array(),
+            'instance-uuid' => $mispUUID,
+            'galaxy' => $galaxy['Galaxy']
         );
 
         $clusters = $galaxy['GalaxyCluster'];
-        $attackClusters = array();
+        $cols = array();
 
         foreach ($clusters as $cluster) {
             if (empty($cluster['GalaxyElement'])) {
                 continue;
             }
+
             $toBeAdded = false;
             $clusterType = $cluster['type'];
             $galaxyElements = $cluster['GalaxyElement'];
@@ -475,26 +422,24 @@ class Galaxy extends AppModel
                     $kc = explode(":", $element['value']);
                     $galaxyType = $kc[0];
                     $kc = $kc[1];
-                    $attackClusters[$galaxyType][$kc][] = $cluster;
+                    $cols[$galaxyType][$kc][] = $cluster;
                     $toBeAdded = true;
                 }
                 if ($element['key'] == 'external_id') {
                     $cluster['external_id'] = $element['value'];
                 }
                 if ($toBeAdded) {
-                    array_push($attackTactic['attackTags'], $cluster['tag_name']);
+                    array_push($matrixData['matrixTags'], $cluster['tag_name']);
                 }
             }
-
-            $attackTactic['attackTactic'] = $attackClusters;
-            $attackTactic['galaxy'] = $galaxy['Galaxy'];
         }
+        $matrixData['tabs'] = $cols;
 
-        foreach ($attackTactic['attackTactic'] as $k => $v) {
-            foreach ($attackTactic['attackTactic'][$k] as $kc => $v2) {
+        foreach ($matrixData['tabs'] as $k => $v) {
+            foreach ($matrixData['tabs'][$k] as $kc => $v2) {
                 // sort clusters in the kill chains
                 usort(
-                    $attackTactic['attackTactic'][$k][$kc],
+                    $matrixData['tabs'][$k][$kc],
                     function($a, $b) {
                         return strcmp($a['value'], $b['value']);
                     }
@@ -502,6 +447,6 @@ class Galaxy extends AppModel
             }
         }
 
-        return $attackTactic;
+        return $matrixData;
     }
 }

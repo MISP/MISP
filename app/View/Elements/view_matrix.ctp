@@ -77,6 +77,7 @@ foreach($tabs as $tabName => $column):
 </div>
 
 <div class="attack-matrix-options">
+    <?php if (isset($interpolation)): ?>
     <span id="matrix-heatmap-legend-caret">
     <span id="matrix-heatmap-legend-caret-value">0</span>
     <span class="fa fa-caret-down"></span>
@@ -86,6 +87,7 @@ foreach($tabs as $tabName => $column):
         <div id="matrix-heatmap-legend" style="background: linear-gradient(to right, white 0%, <?php echo h($colorScale); ?>);"></div>
         <span id="matrix-heatmap-maxval"><?php echo h($maxScore); ?></span>
     </div>
+    <?php endif; ?>
     <label style="display: inline-block; margin-left: 30px;"><input type="checkbox" id="checkbox_attackMatrix_showAll" checked><span class="fa fa-filter"><?php echo __('Show all');?></span></input></label>
 </div>
 

@@ -4663,15 +4663,16 @@ class EventsController extends AppController
         return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
     }
 
-    public function viewMitreAttackMatrix($scope_id, $scope='event', $disable_picking=false)
+    public function viewMatrix($scope_id, $galaxy_id, $scope='event', $disable_picking=false)
     {
         $this->loadModel('Galaxy');
+        $mitreAttackGalaxyId = $this->Galaxy->getMitreAttackGalaxyId();
+        $matrixData = $this->Galaxy->getMatrix($galaxy_id);
 
-        $attackTacticData = $this->Galaxy->getMitreAttackMatrix();
-        $attackTactic = $attackTacticData['attackTactic'];
-        $attackTags = $attackTacticData['attackTags'];
-        $killChainOrders = $attackTacticData['killChain'];
-        $instanceUUID = $attackTacticData['instance-uuid'];
+        $tabs = $matrixData['tabs'];
+        $matrixTags = $matrixData['matrixTags'];
+        $killChainOrders = $matrixData['killChain'];
+        $instanceUUID = $matrixData['instance-uuid'];
 
         if ($scope == 'event') {
             $eventId = $scope_id;
@@ -4692,8 +4693,8 @@ class EventsController extends AppController
             throw new Exception("Invalid options.");
         }
 
-        $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores($eventId, $attackTags);
-        $scoresDataEvent = $this->Event->EventTag->getTagScores($eventId, $attackTags);
+        $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores($eventId, $matrixTags);
+        $scoresDataEvent = $this->Event->EventTag->getTagScores($eventId, $matrixTags);
         $maxScore = 0;
         $scoresData = array();
         foreach (array_keys($scoresDataAttr['scores'] + $scoresDataEvent['scores']) as $key) {
@@ -4705,7 +4706,7 @@ class EventsController extends AppController
         $scores = $scoresData;
 
         if ($this->_isRest()) {
-            $json = array('matrix' => $attackTactic, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
+            $json = array('matrix' => $tabs, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
             $this->response->type('json');
             return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
         } else {
@@ -4720,15 +4721,19 @@ class EventsController extends AppController
             $this->set('eventId', $eventId);
             $this->set('target_type', $scope);
             $this->set('columnOrders', $killChainOrders);
-            $this->set('tabs', $attackTactic);
+            $this->set('tabs', $tabs);
             $this->set('scores', $scores);
             $this->set('maxScore', $maxScore);
-            $this->set('colours', $colours['mapping']);
-            $this->set('interpolation', $colours['interpolation']);
+            if (!empty($colours)) {
+                $this->set('colours', $colours['mapping']);
+                $this->set('interpolation', $colours['interpolation']);
+            }
             $this->set('pickingMode', !$disable_picking);
             $this->set('target_id', $scope_id);
-            $this->set('defaultTabName', "mitre-attack");
-            $this->set('removeTrailling', 2);
+            if ($matrixData['galaxy']['id'] == $mitreAttackGalaxyId) {
+                $this->set('defaultTabName', 'mitre-attack');
+                $this->set('removeTrailling', 2);
+            }
 
             $this->render('/Elements/view_matrix');
         }

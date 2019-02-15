@@ -148,7 +148,7 @@ class ACLComponent extends Component
                     'viewEventAttributes' => array('*'),
                     'viewEventGraph' => array('*'),
                     'viewGraph' => array('*'),
-                    'viewMitreAttackMatrix' => array('*'),
+                    'viewMatrix' => array('*'),
                     'xml' => array('*')
             ),
             'favouriteTags' => array(

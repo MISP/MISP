@@ -1859,14 +1859,17 @@ class UsersController extends AppController
     {
         $this->loadModel('Event');
         $this->loadModel('Galaxy');
-        $attackTacticData = $this->Galaxy->getMitreAttackMatrix();
-        $attackTactic = $attackTacticData['attackTactic'];
-        $attackTags = $attackTacticData['attackTags'];
-        $killChainOrders = $attackTacticData['killChain'];
-        $instanceUUID = $attackTacticData['instance-uuid'];
 
-        $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores(0, $attackTags);
-        $scoresDataEvent = $this->Event->EventTag->getTagScores(0, $attackTags);
+        $galaxy_id = $this->Galaxy->getMitreAttackGalaxyId();
+        $matrixData = $this->Galaxy->getMatrix($galaxy_id);
+
+        $tabs = $matrixData['tabs'];
+        $matrixTags = $matrixData['matrixTags'];
+        $killChainOrders = $matrixData['killChain'];
+        $instanceUUID = $matrixData['instance-uuid'];
+
+        $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores(0, $matrixTags);
+        $scoresDataEvent = $this->Event->EventTag->getTagScores(0, $matrixTags);
         $scoresData = array();
         foreach (array_keys($scoresDataAttr['scores'] + $scoresDataEvent['scores']) as $key) {
             $scoresData[$key] = (isset($scoresDataAttr['scores'][$key]) ? $scoresDataAttr['scores'][$key] : 0) + (isset($scoresDataEvent['scores'][$key]) ? $scoresDataEvent['scores'][$key] : 0);
@@ -1875,7 +1878,7 @@ class UsersController extends AppController
         $scores = $scoresData;
 
         if ($this->_isRest()) {
-            $json = array('matrix' => $attackTactic, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
+            $json = array('matrix' => $tabs, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
             return $this->RestResponse->viewData($json, $this->response->type());
         } else {
             App::uses('ColourGradientTool', 'Tools');
@@ -1884,11 +1887,13 @@ class UsersController extends AppController
 
             $this->set('target_type', 'attribute');
             $this->set('columnOrders', $killChainOrders);
-            $this->set('tabs', $attackTactic);
+            $this->set('tabs', $tabs);
             $this->set('scores', $scores);
             $this->set('maxScore', $maxScore);
-            $this->set('colours', $colours['mapping']);
-            $this->set('interpolation', $colours['interpolation']);
+            if (!empty($colours)) {
+                $this->set('colours', $colours['mapping']);
+                $this->set('interpolation', $colours['interpolation']);
+            }
             $this->set('pickingMode', false);
             $this->set('defaultTabName', "mitre-attack");
             $this->set('removeTrailling', 2);
