@@ -27,7 +27,7 @@ class RestResponseComponent extends Component
                 'description' => "POST a MISP Attribute JSON to this API to update an Attribute. If the timestamp is set, it has to be newer than the existing Attribute.",
                 'mandatory' => array(),
                 'optional' => array('value', 'type', 'category', 'to_ids', 'uuid', 'distribution', 'sharing_group_id', 'timestamp', 'comment'),
-                'params' => array('event_id')
+                'params' => array('attribute_id')
             ),
             'deleteSelected' => array(
                 'description' => "POST a list of attribute IDs in JSON format to this API
