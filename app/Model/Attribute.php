@@ -2812,7 +2812,7 @@ class Attribute extends AppModel
     //     conditions
     //     order
     //     group
-    public function fetchAttributes($user, $options = array(), &$continue = true)
+    public function fetchAttributes($user, $options = array(), &$continue = true, &$elementCounter = 0)
     {
         $params = array(
             'conditions' => $this->buildConditions($user),
@@ -2953,6 +2953,15 @@ class Attribute extends AppModel
         if (!empty($options['includeEventTags'])) {
             $eventTags = array();
         }
+
+        // Get pre-paginated count
+        $countParams = array(
+            "conditions" => $params["conditions"],
+            "recursive" => -1,
+        );
+
+        $elementCounter = $this->find('count', $countParams);
+
         while ($continue) {
             if ($loop) {
                 $params['page'] = $params['page'] + 1;
@@ -3917,14 +3926,13 @@ class Attribute extends AppModel
         $continue = true;
         while ($continue) {
             $this->Whitelist = ClassRegistry::init('Whitelist');
-            $results = $this->fetchAttributes($user, $params, $continue);
+            $results = $this->fetchAttributes($user, $params, $continue, $elementCounter);
             $params['page'] += 1;
             $results = $this->Whitelist->removeWhitelistedFromArray($results, true);
             $results = array_values($results);
             $i = 0;
             $temp = '';
             foreach ($results as $attribute) {
-                $elementCounter++;
                 $temp .= $exportTool->handler($attribute, $exportToolParams);
                 if ($temp !== '') {
                     if ($i != count($results) -1) {
