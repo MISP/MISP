@@ -3272,7 +3272,7 @@ class EventsController extends AppController
         $elementCounter = 0;
         $final = $this->Event->restSearch($user, $returnFormat, $filters, false, false, $elementCounter);
         $responseType = $this->Event->validFormats[$returnFormat][0];
-        return $this->RestResponse->viewData($final, $responseType, false, true, false, array('X-result-count' => $elementCounter));
+        return $this->RestResponse->viewData($final, $responseType, false, true, false, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
     }
 
     public function downloadOpenIOCEvent($key, $eventid, $enforceWarninglist = false)
