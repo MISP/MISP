@@ -215,6 +215,18 @@ checkID () {
 
 # pre-install check to make sure what we will be installing on, is ready and not a half installed system
 preInstall () {
+# preInstall needs to be able to be called before ANY action. Install/Upgrade/AddTool
+# Pre install wants to be the place too where the following is checked and set via ENV_VAR:
+# Check if composer is installed and functioning
+# Check if misp db is installed (API call would confirm that the DB indeed works)
+# Check apache config (Maybe try to talk to the server via api, this would confirm quite a lot)
+# Check if workers are running/installed, maybe kick them if they are not
+# /var/www/MISP exists
+# /var/www/MISP/.git exists
+# /var/www/MISP/app/Config/[bootstrap,databases,core,config].php exists
+# /var/www/MISP/.gnupg exists
+# /var/www/MISP perms are correct (for $SUDO_WWW useage)
+#
   echo -e "${RED}Place-holder, not implemented yet.${NC}"
   exit
 }
@@ -623,7 +635,7 @@ theEnd () {
   space
   echo -e "Enjoy using ${LBLUE}MISP${NC}. For any issues see here: https://github.com/MISP/MISP/issues"
   space
-  if [ $UNATTENDED == "1" ]; then
+  if [[ "$UNATTENDED" == "1" ]]; then
     echo -e "${RED}Unattended install!${NC}"
     echo -e "This means we guessed the Base URL, it might be wrong, please double check."
     space
