@@ -2955,10 +2955,8 @@ class Attribute extends AppModel
         }
 
         // Get pre-paginated count
-        $countParams = array(
-            "conditions" => $params["conditions"],
-            "recursive" => -1,
-        );
+        $countParams = $params;
+        unset($countParams["limit"]);
 
         $elementCounter = $this->find('count', $countParams);
 
