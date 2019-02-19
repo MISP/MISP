@@ -1102,7 +1102,11 @@ class Event extends AppModel
         if (isset($event['Event']['SharingGroup']) && isset($event['Event']['SharingGroup']['SharingGroupServer'])) {
             foreach ($event['Event']['SharingGroup']['SharingGroupServer'] as &$s) {
                 if ($s['server_id'] == 0) {
-                    $s['Server'] = array('id' => 0, 'url' => Configure::read('MISP.baseurl'));
+                    $s['Server'] = array(
+                        'id' => 0,
+                        'url' => $this->__getAnnounceBaseurl(),
+                        'name' => $this->__getAnnounceBaseurl()
+                    );
                 }
             }
         }
@@ -1134,12 +1138,27 @@ class Event extends AppModel
             if (isset($object['SharingGroup']['SharingGroupServer'])) {
                 foreach ($object['SharingGroup']['SharingGroupServer'] as &$s) {
                     if ($s['server_id'] == 0) {
-                        $s['Server'] = array('id' => 0, 'url' => Configure::read('MISP.baseurl'));
+                        $s['Server'] = array(
+                            'id' => 0,
+                            'url' => $this->__getAnnounceBaseurl(),
+                            'name' => $this->__getAnnounceBaseurl()
+                        );
                     }
                 }
             }
         }
         return $object;
+    }
+
+    private function __getAnnounceBaseurl()
+    {
+        $baseurl = '';
+        if (!empty(Configure::read('MISP.external_baseurl'))) {
+            $baseurl = Configure::read('MISP.external_baseurl');
+        } else if (!empty(Configure::read('MISP.baseurl'))) {
+            $baseurl = Configure::read('MISP.baseurl');
+        }
+        return $baseurl;
     }
 
     private function __updateAttributeForSync($attribute, $server)
@@ -1162,7 +1181,11 @@ class Event extends AppModel
             if (!empty($attribute['SharingGroup']['SharingGroupServer'])) {
                 foreach ($attribute['SharingGroup']['SharingGroupServer'] as &$s) {
                     if ($s['server_id'] == 0) {
-                        $s['Server'] = array('id' => 0, 'url' => Configure::read('MISP.baseurl'));
+                        $s['Server'] = array(
+                            'id' => 0,
+                            'url' => $this->__getAnnounceBaseurl(),
+                            'name' => $this->__getAnnounceBaseurl()
+                        );
                     }
                 }
             }
@@ -2669,7 +2692,7 @@ class Event extends AppModel
         $userCount = count($users);
         foreach ($users as $k => $user) {
             $body = $this->__buildAlertEmailBody($event[0], $user, $oldpublish, $sgModel);
-            $bodyNoEnc = "A new or modified event was just published on " . Configure::read('MISP.baseurl') . "/events/view/" . $event[0]['Event']['id'];
+            $bodyNoEnc = "A new or modified event was just published on " . $this->__getAnnounceBaseurl() . "/events/view/" . $event[0]['Event']['id'];
             $this->User->sendEmail(array('User' => $user), $body, $bodyNoEnc, $subject);
             if ($processId) {
                 $this->Job->id = $processId;
@@ -2762,7 +2785,7 @@ class Event extends AppModel
         $body = "";
         $body .= '==============================================' . "\n";
         $appendlen = 20;
-        $body .= 'URL         : ' . Configure::read('MISP.baseurl') . '/events/view/' . $event['Event']['id'] . "\n";
+        $body .= 'URL         : ' . $this->__getAnnounceBaseurl() . '/events/view/' . $event['Event']['id'] . "\n";
         $body .= 'Event ID    : ' . $event['Event']['id'] . "\n";
         $body .= 'Date        : ' . $event['Event']['date'] . "\n";
         if (Configure::read('MISP.showorg')) {
@@ -2789,7 +2812,7 @@ class Event extends AppModel
             $body .= '==============================================' . "\n";
             $body .= 'Related to: '. "\n";
             foreach ($relatedEvents as &$relatedEvent) {
-                $body .= Configure::read('MISP.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ') ' ."\n";
+                $body .= $this->__getAnnounceBaseurl() . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ') ' ."\n";
             }
             $body .= '==============================================' . "\n";
         }
@@ -2886,7 +2909,7 @@ class Event extends AppModel
         // print the event in mail-format
         // LATER place event-to-email-layout in a function
         $appendlen = 20;
-        $body .= 'URL         : ' . Configure::read('MISP.baseurl') . '/events/view/' . $event['Event']['id'] . "\n";
+        $body .= 'URL         : ' . $this->__getAnnounceBaseurl() . '/events/view/' . $event['Event']['id'] . "\n";
         $bodyevent = $body;
         $bodyevent .= 'Event ID    : ' . $event['Event']['id'] . "\n";
         $bodyevent .= 'Date        : ' . $event['Event']['date'] . "\n";
@@ -2904,7 +2927,7 @@ class Event extends AppModel
         $relatedEvents = $this->getRelatedEvents($targetUser, $id, $sgs);
         if (!empty($relatedEvents)) {
             foreach ($relatedEvents as &$relatedEvent) {
-                $bodyevent .= 'Related to  : ' . Configure::read('MISP.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ')' . "\n";
+                $bodyevent .= 'Related to  : ' . $this->__getAnnounceBaseurl() . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ')' . "\n";
             }
         }
         $bodyevent .= 'Info  : ' . "\n";
@@ -4187,7 +4210,7 @@ class Event extends AppModel
         }
         $randomFileName = $this->generateRandomFileName();
         $tmpDir = APP . "files" . DS . "scripts";
-        $stix_framing_cmd = $this->getPythonVersion() . ' ' . $tmpDir . DS . 'misp_framing.py stix ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' ' . escapeshellarg($returnType) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
+        $stix_framing_cmd = $this->getPythonVersion() . ' ' . $tmpDir . DS . 'misp_framing.py stix ' . $this->__getAnnounceBaseurl() . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' ' . escapeshellarg($returnType) . ' 2>' . APP . 'tmp/logs/exec-errors.log';
         $stix_framing = json_decode(shell_exec($stix_framing_cmd), true);
         if (empty($stix_framing)) {
             return array('success' => 0, 'message' => 'There was an issue generating the STIX export.');
@@ -4223,7 +4246,7 @@ class Event extends AppModel
                 $tempFile->write($event);
                 unset($event);
                 $scriptFile = APP . "files" . DS . "scripts" . DS . "misp2stix.py";
-                $result = shell_exec($this->getPythonVersion() . ' ' . $scriptFile . ' ' . $randomFileName . ' ' . escapeshellarg($returnType) . ' ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' 2>' . APP . 'tmp/logs/exec-errors.log');
+                $result = shell_exec($this->getPythonVersion() . ' ' . $scriptFile . ' ' . $randomFileName . ' ' . escapeshellarg($returnType) . ' ' . $this->__getAnnounceBaseurl() . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' 2>' . APP . 'tmp/logs/exec-errors.log');
                 // The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
                 // If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along
                 $decoded = json_decode($result, true);
@@ -5245,7 +5268,11 @@ class Event extends AppModel
                     $v['SharingGroup']['SharingGroupServer'] = $v['SharingGroupServer'];
                     foreach ($v['SharingGroup']['SharingGroupServer'] as &$sgs) {
                         if ($sgs['server_id'] == 0) {
-                            $sgs['Server'] = array('id' => '0', 'url' => Configure::read('MISP.baseurl'), 'name' => Configure::read('MISP.baseurl'));
+                            $sgs['Server'] = array(
+                                'id' => '0',
+                                'url' => $this->__getAnnounceBaseurl(),
+                                'name' => $this->__getAnnounceBaseurl()
+                            );
                         }
                     }
                 }
