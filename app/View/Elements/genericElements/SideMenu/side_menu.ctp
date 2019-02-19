@@ -410,7 +410,6 @@
                         'url' => '/roles/index',
                         'text' => __('Role Permissions')
                     ));
-                    break;
                     if ($menuItem === 'editSG' || ($menuItem == 'viewSG' && $mayModify)) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'editSG',
