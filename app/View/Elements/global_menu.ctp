@@ -47,7 +47,7 @@
                     ),
                     array(
                         'text' => __('List Tags'),
-                        'url' => 'tags/index'
+                        'url' => '/tags/index'
                     ),
                     array(
                         'text' => __('List Tag Collections'),
