@@ -143,6 +143,8 @@ class GalaxyClustersController extends AppController
                 $cluster['GalaxyCluster']['tag_count'] = count($tag['EventTag']);
                 $cluster['GalaxyCluster']['tag_id'] = $tag['Tag']['id'];
             }
+        } else {
+            throw new NotFoundException('Cluster not found.');
         }
         if ($this->_isRest()) {
             $cluster['GalaxyCluster']['Galaxy'] = $cluster['Galaxy'];

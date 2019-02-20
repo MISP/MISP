@@ -154,6 +154,14 @@
         <?php endif; ?>
         <div id="show_context" title="<?php echo __('Show attribute context fields');?>" role="button" tabindex="0" aria-label="<?php echo __('Show attribute context fields');?>" class="attribute_filter_text" onClick="toggleContextFields();"><?php echo __('Context');?></div>
         <div id="show_correlating_tags" title="<?php echo __('Also display the tags derived from correlations');?>" role="button" tabindex="0" aria-label="<?php echo __('Also display the tags derived from correlations');?>" class="attribute_filter_text<?php if ($includeRelatedTags) echo '_active'; ?>" onClick="toggleBoolFilter('<?php echo $urlHere;?>', 'includeRelatedTags');"><?php echo __('Related Tags');?></div>
+        <div class="attribute_filter_text btn-<?php echo ($advancedFilteringActive ? 'success' : 'inverse'); ?> btn" style="padding: 0px 6px;font-size: 12px;margin: 0px 2px;font-weight: bold;" onclick="triggerEventFilteringTool(this)">
+            <it class="fa fa-filter"></it>
+            <?php echo __('Filtering tool'); ?>
+            <?php if($advancedFilteringActive): ?>
+                <span class="badge badge-warning" title="<?php echo h(count($advancedFilteringActiveRules)) . __(' active rule(s)')?>"><?php echo h(count($advancedFilteringActiveRules)) ?></span>
+            <?php endif; ?>
+        </div>
+
         <div title="input filter" tabindex="0" aria-label="input filter" class="attribute_filter_text" style="padding-top:0px;">
             <input type="text" id="attributesFilterField" style="height:20px;padding:0px;margin:0px;" class="form-control" data-eventid="<?php echo h($event['Event']['id']); ?>" value="<?php if ($filtered) echo h($passedArgsArray['all']); ?>"></input>
                 <span id="attributesFilterButton" role="button" class="icon-search" tabindex="0" aria-label="<?php echo __('Filter on attributes value');?>" onClick="filterAttributes('value', '<?php echo h($event['Event']['id']); ?>');"></span>
@@ -162,6 +170,8 @@
                 <?php endif;?>
         </div>
     </div>
+
+    <?php echo $this->element('/Events/View/eventFilteringQueryBuilder'); ?>
 
     <table class="table table-striped table-condensed">
         <tr>

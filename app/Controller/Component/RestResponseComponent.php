@@ -27,7 +27,7 @@ class RestResponseComponent extends Component
                 'description' => "POST a MISP Attribute JSON to this API to update an Attribute. If the timestamp is set, it has to be newer than the existing Attribute.",
                 'mandatory' => array(),
                 'optional' => array('value', 'type', 'category', 'to_ids', 'uuid', 'distribution', 'sharing_group_id', 'timestamp', 'comment'),
-                'params' => array('event_id')
+                'params' => array('attribute_id')
             ),
             'deleteSelected' => array(
                 'description' => "POST a list of attribute IDs in JSON format to this API
@@ -423,14 +423,24 @@ class RestResponseComponent extends Component
             $type = 'json';
         }
         $cakeResponse = new CakeResponse(array('body'=> $response, 'status' => $code, 'type' => $type));
+
+        if (Configure::read('Security.allow_cors')) {
+            $headers["Access-Control-Allow-Headers"] =  "Origin, Content-Type, Authorization, Accept";
+            $headers["Access-Control-Allow-Methods"] = "*";
+            $headers["Access-Control-Allow-Origin"] = explode(',', Configure::read('Security.cors_origins'));
+            $headers["Access-Control-Expose-Headers"] = ["X-Result-Count"];
+        }
+
         if (!empty($headers)) {
             foreach ($headers as $key => $value) {
                 $cakeResponse->header($key, $value);
             }
         }
+
         if ($download) {
             $cakeResponse->download($download);
         }
+
         return $cakeResponse;
     }
 
