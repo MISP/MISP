@@ -1797,6 +1797,38 @@ function quickFilter(passedArgs, url) {
     window.location.href=url;
 }
 
+function runIndexFilter(element) {
+    var dataFields = $(element).data();
+    for (var k in $(element).data()) {
+        if (k in passedArgsArray) {
+            delete(passedArgsArray[k]);
+        } else {
+            passedArgsArray[k] = dataFields[k];
+        }
+    }
+    url = here;
+    for (var key in passedArgsArray) {
+        url += "/" + key + ":" + passedArgsArray[key];
+    }
+    window.location.href = url;
+}
+
+function runIndexQuickFilter() {
+    if (!passedArgsArray) {
+        var passedArgsArray = [];
+    }
+    if ( $('#quickFilterField').val().trim().length > 0){
+        passedArgsArray["searchall"] = $('#quickFilterField').val().trim();
+    }
+    url = here;
+    for (var key in passedArgsArray) {
+        if (key !== 'page') {
+            url += "/" + key + ":" + passedArgsArray[key];
+        }
+    }
+    window.location.href = url;
+}
+
 function executeFilter(passedArgs, url) {
     for (var key in passedArgs) url += "/" + key + ":" + passedArgs[key];
     window.location.href=url;
