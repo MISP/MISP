@@ -909,10 +909,16 @@ a.proposal_link_red:hover {
     font-size: 125%;
 }
 
+#eventFilteringQB .rules-group-container {
+	background-color: #00000077;
+	border-color: #222222;
+}
+
 a.pill-pre-picker {
     background-color: #fcfcfc;
     font-weight: bold;
     border: 1px #65737ec8 solid;
+	position: relative;
 }
 .nav-pills > .active > a.pill-pre-picker {
     background-color: #65737e32;
@@ -1751,21 +1757,6 @@ a.discrete {
 
 .verticalSeparator {
     border-left: 1px solid grey;
-}
-
-.notification-active {
-    float:left;
-    background-color:red;
-    color:white;
-    border-radius: 50%;
-    width:20px;
-    height:20px;
-}
-
-.notification-passive {
-    float:left;
-    width:20px;
-    height:20px;
 }
 
 .dashboard_element{

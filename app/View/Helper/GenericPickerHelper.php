@@ -86,6 +86,10 @@ class GenericPickerHelper extends AppHelper {
         if (isset($param['template']['infoExtra'])) {
             $pill_html .= $this->_View->element('genericPickerElements/info_extra', array('infoExtra' => $param['template']['infoExtra'], 'forceIcon' => true));
         }
+        if (isset($param['isMatrix']) && $param['isMatrix']) {
+            $span = '<span style="position: absolute; font-size: 8px; top: 2px;" class="fa fa-th" title="' . __('Start the galaxy matrix picker') . '"></span>';
+            $pill_html .= $span;
+        }
         $pill_html .= '</a>';
         $pill_html .= '</li>';
         return $pill_html;

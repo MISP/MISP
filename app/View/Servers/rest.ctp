@@ -92,7 +92,7 @@
     </fieldset>
 
     <?php
-        $formats = array('Raw', 'JSON', 'HTML');
+        $formats = array('Raw', 'JSON', 'HTML', 'Download');
         if (!empty($data['code']) && $data['code'] < 300) {
             $query_formats = array('curl' => 'cURL', 'python' => 'PyMISP');
             echo '<ul class="nav nav-tabs" style="margin-bottom:5px;">';
@@ -120,7 +120,7 @@
                 if (is_array($value)) {
                   $value = implode(',', $value);
                 }
-                echo sprintf('&nbsp;&nbsp;<span class="bold">%s</span>: %s<br />', h($header), h($value));
+                echo sprintf('&nbsp;&nbsp;<span class="bold">%s</span>: <span id="header-%s">%s</span><br />', h($header), h($header), h($value));
             }
             $format_toggles = '';
             foreach ($formats as $k => $format) {
@@ -148,6 +148,7 @@
     echo $this->Html->script('moment-with-locales');
     echo $this->Html->css('query-builder.default');
     echo $this->Html->script('query-builder');
+    echo $this->Html->script('FileSaver');
     echo $this->Html->script('restClient');
 ?>
 

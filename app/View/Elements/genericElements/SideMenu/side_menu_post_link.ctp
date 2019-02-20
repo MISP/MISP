@@ -11,11 +11,11 @@
         }
     }
     if (empty($url)) {
-        $a = 'href="#"';
+        $a = '';
     } else if (strpos($url, '://') !== null) {
-        $a = 'href="' . h($url) . '"';
+        $a = h($url);
     } else {
-        $a = 'href="' . $baseurl . h($url) . '"';
+        $a = $baseurl . h($url);
     }
     if (!empty($class)) {
         $class = 'class="' . h($class) . '"';
@@ -24,9 +24,9 @@
     }
     $post_link = $this->Form->postLink(
         __($text),
-        $a,
+        $url,
         null,
-        empty($message) ? $message : null
+        empty($message) ? null : $message
     );
     echo sprintf('<li %s %s>%s</li>', $element_id, $class, $post_link);
 ?>

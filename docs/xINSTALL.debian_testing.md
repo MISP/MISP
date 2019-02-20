@@ -424,7 +424,7 @@ sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install git+https://github.com/kba
 sudo -u www-data ${PATH_TO_MISP}/venv/bin/misp-modules -l 0.0.0.0 -s &
 ```
 
-{!generic/misp-modules.md!}
+{!generic/misp-modules-debian.md!}
 
 ```bash
 echo "Admin (root) DB Password: $DBPASSWORD_ADMIN"

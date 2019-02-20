@@ -144,6 +144,14 @@ class Server extends AppModel
                                 'test' => 'testBaseURL',
                                 'type' => 'string',
                         ),
+                        'external_baseurl' => array(
+                                'level' => 0,
+                                'description' => __('The base url of the application (in the format https://www.mymispinstance.com) as visible externally/by other MISPs. MISP will encode this URL in sharing groups when including itself. If this value is not set, the baseurl is used as a fallback.'),
+                                'value' => '',
+                                'errorMessage' => '',
+                                'test' => 'testURL',
+                                'type' => 'string',
+                        ),
                         'live' => array(
                                 'level' => 0,
                                 'description' => __('Unless set to true, the instance will only be accessible by site admins.'),
@@ -1104,6 +1112,24 @@ class Server extends AppModel
                             'errorMessage' => __('You have enabled the passing of API keys via URL parameters. This is highly recommended against, do you really want to reveal APIkeys in your logs?...'),
                             'test' => 'testBoolFalse',
                             'type' => 'boolean',
+                            'null' => true
+                        ),
+                        'allow_cors' => array(
+                            'level' => 1,
+                            'description' => __('Allow cross-origin requests to this instance, matching origins given in Security.cors_origins. Set to false to totally disable'),
+                            'value' => false,
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                            'null' => true
+                        ),
+                        'cors_origins' => array(
+                            'level' => 1,
+                            'description' => __('Set the origins from which MISP will allow cross-origin requests. Useful for external integration. Comma seperate if you need more than one.'),
+                            'value' => '',
+                            'errorMessage' => '',
+                            'test' => 'testForEmpty',
+                            'type' => 'string',
                             'null' => true
                         )
                 ),
@@ -2857,6 +2883,18 @@ class Server extends AppModel
         }
         if ($value != strtolower($this->getProto()) . '://' . $this->getHost()) {
             return 'Invalid baseurl, it has to be in the "https://FQDN" format.';
+        }
+        return true;
+    }
+
+    public function testURL($value)
+    {
+        // only run this check via the GUI, via the CLI it won't work
+        if (!empty($value) && !preg_match('/^http(s)?:\/\//i', $value)) {
+            return 'Invalid baseurl, please make sure that the protocol is set.';
+        }
+        if ($this->testForEmpty($value) !== true) {
+            return $this->testForEmpty($value);
         }
         return true;
     }
