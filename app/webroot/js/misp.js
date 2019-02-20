@@ -3172,20 +3172,18 @@ function attributeHoverPlacement(element) {
     viewportHeight = window.innerHeight,
     viewportWidth = window.innerWidth,
     horiz = 0.5 * viewportWidth - left,
-    horizPlacement = horiz > 0 ? 'right' : 'left';
+    horizPlacement = horiz > 0 ? 'right' : 'left',
+    popoverMaxHeight = .75 * viewportHeight;
 
-  var popoverMaxHeight = .75 * viewportHeight;
-  var placement = 'top';
+  // default to top placement
+  var placement = topOffset - popoverMaxHeight > 0 ? 'top' : horizPlacement;
 
   // more space on bottom
   if (topOffset < .5 * viewportHeight) {
     // will popup fit on bottom
     placement = popoverMaxHeight < topOffset ? 'bottom' : horizPlacement;
-	// more space on top
-  } else {
-    // will popup fit on top
-    placement = topOffset - popoverMaxHeight > 0 ? 'top' : horizPlacement;
   }
+
   return placement;
 }
 
