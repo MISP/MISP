@@ -99,6 +99,13 @@
     ?>
         var tabIsActive = true;
         var baseurl = '<?php echo $baseurl; ?>';
+        var here = '<?php
+                if (substr($this->params['action'], 0, 6) === 'admin_') {
+                    echo $baseurl . '/admin/' . $this->params['controller'] . '/' . substr($this->params['action'], 6);
+                } else {
+                    echo $baseurl . '/' . $this->params['controller'] . '/' . $this->params['action'];
+                }
+            ?>';
         $(document).ready(function(){
             $(window).blur(function() {
                 tabIsActive = false;
