@@ -172,7 +172,9 @@ class StixParser():
         for marking in marking_refs:
             marking_uuid = marking.split('--')[1]
             marking = self.marking_definition[marking_uuid]
-            attribute.add_tag(self.parse_marking(marking['object']))
+            tag = self.parse_marking(marking['object'])
+            if tag is not None:
+                attribute.add_tag(self.parse_marking(marking['object']))
             marking['used'] = True
         return attribute
 
