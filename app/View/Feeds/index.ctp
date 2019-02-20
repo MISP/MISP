@@ -23,15 +23,65 @@
         ?>
         </ul>
     </div>
-    <div class="tabMenuFixedContainer" style="display:inline-block;">
-            <span id="multi-delete-button" role="button" tabindex="0" aria-label="<?php echo __('Enable selected');?>" title="<?php echo __('Enable selected');?>" class=" hidden tabMenuFixed mass-select tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onClick="multiSelectToggleFeeds(1, 0);"><?php echo __('Enable Selected');?></span>
-            <span id="multi-delete-button" role="button" tabindex="0" aria-label="<?php echo __('Disable selected');?>" title="<?php echo __('Disable selected');?>" class=" hidden tabMenuFixed mass-select tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onClick="multiSelectToggleFeeds(0, 0);"><?php echo __('Disable Selected');?></span>
-            <span id="multi-delete-button" role="button" tabindex="0" aria-label="<?php echo __('Enable caching for selected');?>" title="<?php echo __('Enable caching for selected');?>" class=" hidden tabMenuFixed mass-select tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onClick="multiSelectToggleFeeds(1, 1);"><?php echo __('Enable Caching for Selected');?></span>
-            <span id="multi-delete-button" role="button" tabindex="0" aria-label="<?php echo __('Disable caching for selected');?>" title="<?php echo __('Disable caching for selected');?>" class=" hidden tabMenuFixed mass-select tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onClick="multiSelectToggleFeeds(0, 1);"><?php echo __('Disable Caching for  Selected');?></span>       <span role="button" tabindex="0" aria-label="<?php echo __('Default feeds filter');?>" title="<?php echo __('Default feeds');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onclick="window.location='/feeds/index/scope:default'"><?php echo __('Default feeds');?></span>
-        <span role="button" tabindex="0" aria-label="<?php echo __('Custom feeds filter');?>" title="<?php echo __('Custom feeds');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'custom' ? 'tabMenuActive' : ''; ?> " onclick="window.location='/feeds/index/scope:custom'"><?php echo __('Custom Feeds');?></span>
-        <span role="button" tabindex="0" aria-label="<?php echo __('All feeds');?>" title="<?php echo __('All feeds');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'all' ? 'tabMenuActive' : ''; ?> " onclick="window.location='/feeds/index/scope:all'"><?php echo __('All Feeds');?></span>
-            <span role="button" tabindex="0" aria-label="<?php echo __('Enabled feeds');?>" title="<?php echo __('Enabled feeds');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'enabled' ? 'tabMenuActive' : ''; ?> " onclick="window.location='/feeds/index/scope:enabled'"><?php echo __('Enabled Feeds');?></span>
-  </div>
+    <?php
+        $data = array(
+            'children' => array(
+                array(
+                    'children' => array(
+                        array(
+                            'class' => 'hidden mass-select',
+                            'text' => __('Enable selected'),
+                            'onClick' => "multiSelectToggleFeeds",
+                            'onClickParams' => array('1', '0')
+                        ),
+                        array(
+                            'class' => 'hidden mass-select',
+                            'text' => __('Disable selected'),
+                            'onClick' => "multiSelectToggleFeeds",
+                            'onClickParams' => array('0', '0')
+                        ),
+                        array(
+                            'class' => 'hidden mass-select',
+                            'text' => __('Enable caching for selected'),
+                            'onClick' => "multiSelectToggleFeeds",
+                            'onClickParams' => array('1', '1')
+                        ),
+                        array(
+                            'class' => 'hidden mass-select',
+                            'text' => __('Disable caching for selected'),
+                            'onClick' => "multiSelectToggleFeeds",
+                            'onClickParams' => array('0', '1')
+                        ),
+                    )
+                ),
+                array(
+                    'children' => array(
+                        array(
+                            'url' => '/feeds/index/scope:default',
+                            'text' => __('Default feeds'),
+                            'active' => $scope === 'default'
+                        ),
+                        array(
+                            'url' => '/feeds/index/scope:custom',
+                            'text' => __('Custom feeds'),
+                            'active' => $scope === 'custom'
+                        ),
+                        array(
+                            'url' => '/feeds/index/scope:all',
+                            'text' => __('All feeds'),
+                            'active' => $scope === 'all'
+                        ),
+                        array(
+                            'url' => '/feeds/index/scope:enabled',
+                            'text' => __('Enabled feeds'),
+                            'active' => $scope === 'enabled'
+                        )
+                    )
+                )
+            )
+        );
+        echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data));
+    ?>
     <table class="table table-striped table-hover table-condensed">
     <tr>
             <?php if ($isSiteAdmin): ?>

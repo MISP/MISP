@@ -16,10 +16,27 @@
 ?>
         </ul>
     </div>
-    <div class="tabMenuFixedContainer">
-        <span role="button" tabindex="0" aria-label="<?php echo __('View only active sharing groups');?>" title="<?php echo __('View only active sharing groups');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($passive !== true) echo 'tabMenuActive';?>" onClick="window.location='/sharing_groups/index'"><?php echo __('Active Sharing Groups');?></span>
-        <span role="button" tabindex="0" aria-label="<?php echo __('View only passive sharing groups');?>" title="<?php echo __('View only passive sharing groups');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($passive === true) echo 'tabMenuActive';?>" onClick="window.location='/sharing_groups/index/true'"><?php echo __('Passive Sharing Groups');?></span>
-    </div>
+    <?php
+        $data = array(
+            'children' => array(
+                array(
+                    'children' => array(
+                        array(
+                            'url' => '/sharing_groups/index',
+                            'text' => __('Active Sharing Groups'),
+                            'active' => !$passive
+                        ),
+                        array(
+                            'url' => '/sharing_groups/index/true',
+                            'text' => __('Passive Sharing Groups'),
+                            'active' => $passive
+                        )
+                    )
+                )
+            )
+        );
+        echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data));
+    ?>
     <table class="table table-striped table-hover table-condensed">
     <tr>
             <th><?php echo $this->Paginator->sort('id');?></th>

@@ -40,14 +40,30 @@
             ?>
         </ul>
     </div>
-    <?php if (!isset($filter)) $filter = false; ?>
-    <div class="tabMenuFixedContainer" style="display:inline-block;margin-left:50px;">
-        <?php foreach ($validFilters as $filterName => $filterData): ?>
-        <span class="tabMenuFixed tabMenuSides useCursorPointer <?php echo $filterName == $filter ? 'background-lightblue' : ''; ?>">
-            <span id="myOrgButton" title="<?php echo __('Modify filters');?>" role="button" tabindex="0" aria-label="<?php echo h($filterData['name']);?>" onClick="window.location.href='<?php echo $baseurl; ?>/admin/logs/index/filter:<?php echo h($filterName); ?>';"><?php echo h($filterData['name']);?></span>
-        </span>
-        <?php endforeach; ?>
-    </div>
+    <?php
+        $data = array(
+            'children' => array(
+                array(
+                    'children' => array()
+                )
+            )
+        );
+        foreach ($validFilters as $filterName => $filterData) {
+            $data['children'][0]['children'][] = array(
+                'text' => h($filterData['name']),
+                'title' => __('Modify filters'),
+                'active' => isset($filter) && $filterName === $filter,
+                'url' => '/admin/logs/index/filter:' . h($filterName)
+            );
+        }
+        $data['children'][0]['children'][] = array(
+            'requirement' => !empty($filter),
+            'url' => '/admin/logs/index',
+            'title' => __('Remove filters'),
+            'fa-icon' => 'times'
+        );
+        echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data));
+    ?>
     <table class="table table-striped table-hover table-condensed">
         <tr>
             <th><?php echo $this->Paginator->sort('id');?></th>
