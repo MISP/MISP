@@ -3175,6 +3175,7 @@ function attributeHoverPlacement(element) {
     horizPlacement = horiz > 0 ? 'right' : 'left';
 
   var popoverMaxHeight = .75 * viewportHeight;
+  var placement = 'top';
 
   // more space on bottom
   if (topOffset < .5 * viewportHeight) {
