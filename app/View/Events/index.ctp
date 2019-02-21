@@ -43,7 +43,7 @@
                         array(
                             'id' => 'multi-delete-button',
                             'title' => __('Delete selected Events'),
-                            'html' => '<i class="icon-trash"></i>',
+                            'fa-icon' => 'trash',
                             'class' => 'hidden mass-select',
                             'onClick' => 'multiSelectDeleteEvents'
                         )
