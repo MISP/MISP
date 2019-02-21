@@ -344,12 +344,53 @@ checkID () {
 
 # pre-install check to make sure what we will be installing on, is ready and not a half installed system
 preInstall () {
+# preInstall needs to be able to be called before ANY action. Install/Upgrade/AddTool
+# Pre install wants to be the place too where the following is checked and set via ENV_VAR:
+# Check if composer is installed and functioning
+# Check if misp db is installed (API call would confirm that the DB indeed works)
+# Check apache config (Maybe try to talk to the server via api, this would confirm quite a lot)
+# Check if workers are running/installed, maybe kick them if they are not
+# /var/www/MISP/app/Config/[bootstrap,databases,core,config].php exists
+# /var/www/MISP perms are correct (for $SUDO_WWW useage)
+#
+
+  # Check if $PATH_TO_MISP exists and is writable by $WWW_USER
+  [[ -d "$PATH_TO_MISP" ]] && PATH_TO_MISP_EXISTS=1 && echo "$PATH_TO_MISP exists"
+
+  # .git exists and git is working for $WWW_USER
+  [[ -d "$PATH_TO_MISP/.git" ]] && PATH_TO_GIT_EXISTS=1 && echo "$PATH_TO_MISP/.git exists" && cd $PATH_TO_MISP && $SUDO_WWW git status
+
+  # .gnupg exists and working correctly
+  [[ -d "$PATH_TO_MISP/.gnupg" ]] && PATH_TO_GNUPG_EXISTS=1 && echo "$PATH_TO_MISP/.gnupg exists"
+
+
+  # Extract username, password and dbname
+  ##cat database.php |grep -v // |grep -e database -e login -e password |tr -d \' |tr -d \ |tr -d , |tr -d \>
+  DBPASSWORD_MISP=$(cat database.php |grep -v // |grep -e password |tr -d \' |tr -d \ |tr -d , |tr -d \> |cut -f 2 -d=)
+  DBUSER_MISP=$(cat database.php |grep -v // |grep -e login |tr -d \' |tr -d \ |tr -d , |tr -d \> |cut -f 2 -d=)
+  DBNAME=$(cat database.php |grep -v // |grep -e database |tr -d \' |tr -d \ |tr -d , |tr -d \> |cut -f 2 -d=)
+  AUTH_KEY=$(mysql --disable-column-names -B  -u $DBUSER_MISP -p"$DBPASSWORD_MISP" $DBNAME -e 'SELECT authkey FROM users WHERE role_id=1 LIMIT 1')
+
+  # Check if db exists
+  [[ -d "/var/lib/mysql/$DBNAME" ]] && MISP_DB_DIR_EXISTS=1 && echo "/var/lib/mysql/$DBNAME exists"
+
   echo -e "${RED}Place-holder, not implemented yet.${NC}"
   exit
 }
 
 # Upgrade function
 upgrade () {
+  headerJSON="application/json"
+  Acc="Accept:"
+  Autho="Authorization:"
+  CT="Content-Type:"
+  MISP_BASEURL="https://127.0.0.1"
+  cd $PATH_TO_MISP/app ; $SUDO_WWW php composer.phar update $SUDO_WWW php composer.phar self-update
+
+  for URN in $(echo "galaxies warninglists noticelists objectTemplates taxonomies"); do
+    curl --header "$Autho $AUTH_KEY" --header "$Acc $headerJSON" --header "$CT $headerJSON" -k -X POST $MISP_BASEURL/$URN/update
+  done
+
   echo -e "${RED}Place-holder, not implemented yet.${NC}"
   exit
 }
@@ -750,7 +791,7 @@ theEnd () {
   space
   echo -e "Enjoy using ${LBLUE}MISP${NC}. For any issues see here: https://github.com/MISP/MISP/issues"
   space
-  if [ $UNATTENDED == "1" ]; then
+  if [[ "$UNATTENDED" == "1" ]]; then
     echo -e "${RED}Unattended install!${NC}"
     echo -e "This means we guessed the Base URL, it might be wrong, please double check."
     space
@@ -773,10 +814,14 @@ aptUpgrade () {
 checkSudoKeeper () {
   echo "Checking for sudo and installing etckeeper"
   if [[ ! -f $(which sudo) ]]; then
+    echo "Please enter your root password below to install etckeeper"
     su -c "apt install etckeeper -y"
+    echo "Please enter your root password below to install sudo"
     su -c "apt install sudo -y"
-    # TODO: Fix this, user misp might not exist
-    su -c "adduser misp sudo"
+    echo "Please enter your root password below to add $MISP_USER to sudo group"
+    su -c "adduser $MISP_USER sudo"
+    echo "We added $MISP_USER to group sudo and now we need to log out and in again."
+    exit
   else
     sudo apt install etckeeper -y
   fi
@@ -1510,7 +1555,7 @@ generateInstaller () {
   cp ../INSTALL.debian.tpl.sh .
 
   # Pull code snippets out of Main Install Documents
-  for f in `echo INSTALL.ubuntu1804.md INSTALL.debian9.md INSTALL.kali.md xINSTALL.debian_testing.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md`; do
+  for f in `echo INSTALL.ubuntu1804.md xINSTALL.debian9.md INSTALL.kali.md xINSTALL.debian_testing.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md`; do
     xsnippet . ../../docs/${f}
   done
 
@@ -1579,20 +1624,19 @@ installMISPubuntuSupported () {
   echo "Proceeding with the installation of MISP core"
   space
 
-  # Set locale if not set - functionLocation('generic/supportFunctions.md')
-  debug "Checking Locale"
-  checkLocale
-
   # Set Base URL - functionLocation('generic/supportFunctions.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && setBaseURL
   progress 4
 
-  # Upgrade system to make sure we install  the latest packages - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && aptUpgrade 2> /dev/null > /dev/null
-  progress 4
-
   # Check if sudo is installed and etckeeper - functionLocation('generic/sudo_etckeeper.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && checkSudoKeeper 2> /dev/null > /dev/null
+  progress 4
+
+  # Set locale if not set - functionLocation('generic/supportFunctions.md')
+  checkLocale
+
+  # Upgrade system to make sure we install  the latest packages - functionLocation('INSTALL.ubuntu1804.md')
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && aptUpgrade 2> /dev/null > /dev/null
   progress 4
 
   # TODO: Double check how the user is added and subsequently used during the install.

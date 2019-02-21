@@ -221,18 +221,47 @@ preInstall () {
 # Check if misp db is installed (API call would confirm that the DB indeed works)
 # Check apache config (Maybe try to talk to the server via api, this would confirm quite a lot)
 # Check if workers are running/installed, maybe kick them if they are not
-# /var/www/MISP exists
-# /var/www/MISP/.git exists
 # /var/www/MISP/app/Config/[bootstrap,databases,core,config].php exists
-# /var/www/MISP/.gnupg exists
 # /var/www/MISP perms are correct (for $SUDO_WWW useage)
 #
+
+  # Check if $PATH_TO_MISP exists and is writable by $WWW_USER
+  [[ -d "$PATH_TO_MISP" ]] && PATH_TO_MISP_EXISTS=1 && echo "$PATH_TO_MISP exists"
+
+  # .git exists and git is working for $WWW_USER
+  [[ -d "$PATH_TO_MISP/.git" ]] && PATH_TO_GIT_EXISTS=1 && echo "$PATH_TO_MISP/.git exists" && cd $PATH_TO_MISP && $SUDO_WWW git status
+
+  # .gnupg exists and working correctly
+  [[ -d "$PATH_TO_MISP/.gnupg" ]] && PATH_TO_GNUPG_EXISTS=1 && echo "$PATH_TO_MISP/.gnupg exists"
+
+
+  # Extract username, password and dbname
+  ##cat database.php |grep -v // |grep -e database -e login -e password |tr -d \' |tr -d \ |tr -d , |tr -d \>
+  DBPASSWORD_MISP=$(cat database.php |grep -v // |grep -e password |tr -d \' |tr -d \ |tr -d , |tr -d \> |cut -f 2 -d=)
+  DBUSER_MISP=$(cat database.php |grep -v // |grep -e login |tr -d \' |tr -d \ |tr -d , |tr -d \> |cut -f 2 -d=)
+  DBNAME=$(cat database.php |grep -v // |grep -e database |tr -d \' |tr -d \ |tr -d , |tr -d \> |cut -f 2 -d=)
+  AUTH_KEY=$(mysql --disable-column-names -B  -u $DBUSER_MISP -p"$DBPASSWORD_MISP" $DBNAME -e 'SELECT authkey FROM users WHERE role_id=1 LIMIT 1')
+
+  # Check if db exists
+  [[ -d "/var/lib/mysql/$DBNAME" ]] && MISP_DB_DIR_EXISTS=1 && echo "/var/lib/mysql/$DBNAME exists"
+
   echo -e "${RED}Place-holder, not implemented yet.${NC}"
   exit
 }
 
 # Upgrade function
 upgrade () {
+  headerJSON="application/json"
+  Acc="Accept:"
+  Autho="Authorization:"
+  CT="Content-Type:"
+  MISP_BASEURL="https://127.0.0.1"
+  cd $PATH_TO_MISP/app ; $SUDO_WWW php composer.phar update $SUDO_WWW php composer.phar self-update
+
+  for URN in $(echo "galaxies warninglists noticelists objectTemplates taxonomies"); do
+    curl --header "$Autho $AUTH_KEY" --header "$Acc $headerJSON" --header "$CT $headerJSON" -k -X POST $MISP_BASEURL/$URN/update
+  done
+
   echo -e "${RED}Place-holder, not implemented yet.${NC}"
   exit
 }

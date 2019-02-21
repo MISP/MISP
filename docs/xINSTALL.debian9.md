@@ -5,14 +5,10 @@
 --------------------------------------
 
 !!! notice
-    Maintained and tested by @SteveClement on 20181023
+    Maintained and tested by @SteveClement on 20190221
 
-{!generic/globalVariables.md!}
-
-```bash
-PHP_ETC_BASE=/etc/php/7.0
-PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
-```
+!!! warning
+    This install document is NOT working. There are Python issues
 
 ### 1/ Minimal Debian install
 -------------------------
@@ -22,6 +18,13 @@ PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
 - This guide assumes a user name of 'misp' with sudo working
 
 {!generic/sudo_etckeeper.md!}
+
+{!generic/globalVariables.md!}
+
+```bash
+PHP_ETC_BASE=/etc/php/7.0
+PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
+```
 
 {!generic/ethX.md!}
 
@@ -48,17 +51,39 @@ sudo postfix reload
 
 #### Install all the dependencies (some might already be installed)
 
+You need to update python3.5 to python3.7 for [PyMISP](https://github.com/MISP/PyMISP) to work properly.
+
+FIXME: The below breaks redis-server and mariadb-server
+
+```bash
+#echo "deb http://ftp.de.debian.org/debian testing main" | sudo tee -a /etc/apt/sources.list
+#echo 'APT::Default-Release "stable";' | sudo tee -a /etc/apt/apt.conf.d/00local
+#sudo apt update
+#sudo apt-get -t testing install python3
+#sudo apt-get -t testing install python3-setuptools python3-dev python3-pip python3-redis python3-zmq virtualenv
+```
+
 ```bash
 sudo apt install -y \
 curl gcc git gnupg-agent make openssl redis-server vim zip libyara-dev \
-python3-setuptools python3-dev python3-pip python3-redis python3-zmq virtualenv \
-mariadb-client \
-mariadb-server \
 apache2 apache2-doc apache2-utils \
-libapache2-mod-php7.0 php7.0 php7.0-cli php7.0-mbstring php7.0-dev php7.0-json php7.0-xml php7.0-mysql php7.0-opcache php7.0-readline php-redis php-gnupg \
 libpq5 libjpeg-dev libfuzzy-dev ruby asciidoctor \
-jq ntp ntpdate jupyter-notebook imagemagick tesseract-ocr \
+jq ntp ntpdate imagemagick tesseract-ocr \
 libxml2-dev libxslt1-dev zlib1g-dev
+
+#sudo systemctl disable redis-server
+
+#sudo apt -y -f install
+
+#sudo /etc/init.d/redis-server restart
+
+sudo apt install -y libapache2-mod-php7.0 php7.0 php7.0-cli php7.0-mbstring php7.0-dev php7.0-json php7.0-xml php7.0-mysql php7.0-opcache php7.0-readline php-redis php-gnupg
+
+sudo apt install -y \
+mariadb-client \
+mariadb-server
+
+sudo apt install -y jupyter-notebook
 
 # Start haveged to get more entropy (optional)
 sudo apt install haveged -y
@@ -117,6 +142,10 @@ sudo mkdir $PATH_TO_MISP
 sudo chown www-data:www-data $PATH_TO_MISP
 cd $PATH_TO_MISP
 sudo -u www-data git clone https://github.com/MISP/MISP.git $PATH_TO_MISP
+sudo -u www-data git submodule update --init --recursive
+
+# Make git ignore filesystem permission differences for submodules
+sudo -u www-data git submodule foreach --recursive git config core.filemode false
 
 # Make git ignore filesystem permission differences
 sudo -u www-data git config core.filemode false
@@ -146,18 +175,13 @@ sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 cd $PATH_TO_MISP/cti-python-stix2
 sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 
-cd $PATH_TO_MISP
-sudo -u www-data git submodule update --init --recursive
-# Make git ignore filesystem permission differences for submodules
-sudo -u www-data git submodule foreach --recursive git config core.filemode false
-
 # install PyMISP
 cd $PATH_TO_MISP/PyMISP
 sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install .
 
 # Install Crypt_GPG and Console_CommandLine
-sudo -H -u www-data pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
-sudo -H -u www-data pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
+sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Console_CommandLine/package.xml
+sudo pear install ${PATH_TO_MISP}/INSTALL/dependencies/Crypt_GPG/package.xml
 ```
 
 ### 4/ CakePHP

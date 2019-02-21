@@ -122,7 +122,7 @@ generateInstaller () {
   cp ../INSTALL.debian.tpl.sh .
 
   # Pull code snippets out of Main Install Documents
-  for f in `echo INSTALL.ubuntu1804.md INSTALL.debian9.md INSTALL.kali.md xINSTALL.debian_testing.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md`; do
+  for f in `echo INSTALL.ubuntu1804.md xINSTALL.debian9.md INSTALL.kali.md xINSTALL.debian_testing.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md`; do
     xsnippet . ../../docs/${f}
   done
 
@@ -191,20 +191,19 @@ installMISPubuntuSupported () {
   echo "Proceeding with the installation of MISP core"
   space
 
-  # Set locale if not set - functionLocation('generic/supportFunctions.md')
-  debug "Checking Locale"
-  checkLocale
-
   # Set Base URL - functionLocation('generic/supportFunctions.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && setBaseURL
   progress 4
 
-  # Upgrade system to make sure we install  the latest packages - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && aptUpgrade 2> /dev/null > /dev/null
-  progress 4
-
   # Check if sudo is installed and etckeeper - functionLocation('generic/sudo_etckeeper.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && checkSudoKeeper 2> /dev/null > /dev/null
+  progress 4
+
+  # Set locale if not set - functionLocation('generic/supportFunctions.md')
+  checkLocale
+
+  # Upgrade system to make sure we install  the latest packages - functionLocation('INSTALL.ubuntu1804.md')
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && aptUpgrade 2> /dev/null > /dev/null
   progress 4
 
   # TODO: Double check how the user is added and subsequently used during the install.
