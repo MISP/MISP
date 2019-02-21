@@ -442,7 +442,7 @@
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => '/users/terms',
-                        'text' => __('Terms &amp; Conditions')
+                        'text' => __('Terms & Conditions')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => '/users/statistics',
