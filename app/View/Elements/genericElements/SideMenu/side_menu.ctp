@@ -427,11 +427,13 @@
                         'url' => '/sharing_groups/index',
                         'text' => __('List Sharing Groups')
                     ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'element_id' => 'addSG',
-                        'url' => '/sharing_groups/add',
-                        'text' => __('Add Sharing Group')
-                    ));
+                    if ($isAclSharingGroup) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'addSG',
+                            'url' => '/sharing_groups/add',
+                            'text' => __('Add Sharing Group')
+                        ));
+                    }
                     echo $this->element('/genericElements/SideMenu/side_menu_divider');
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'userGuide',
