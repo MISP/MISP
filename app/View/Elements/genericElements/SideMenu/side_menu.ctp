@@ -723,7 +723,7 @@
                         'text' => __('List Threads')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/threads/add',
+                        'url' => '/posts/add',
                         'text' => __('New Thread')
                     ));
                     break;
