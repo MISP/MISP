@@ -96,10 +96,10 @@ class TagCollectionsController extends AppController
                 );
             }
             if ($this->_isRest()) {
-                return $this->RestResponse->saveSuccessResponse('TagCollection', 'import', false, $this->response->type(), $message);
+                return $this->RestResponse->saveSuccessResponse('TagCollections', 'import', false, $this->response->type(), $message);
             } else {
                 $this->Flash->{$flashType}($message);
-                $this->redirect(array('controller' => 'TagCollection', 'action' => 'index'));
+                $this->redirect(array('action' => 'index'));
             }
         }
     }
