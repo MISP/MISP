@@ -293,6 +293,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
     </div>
 <script type="text/javascript">
     var currentUri = "<?php echo isset($currentUri) ? h($currentUri) : '/events/viewEventAttributes/' . h($event['Event']['id']); ?>";
+    var currentPopover = "";
     var ajaxResults = {"hover": [], "persistent": []};
     var timer;
     var lastSelected = false;
@@ -393,29 +394,6 @@ attributes or the appropriate distribution level. If you think there is a mistak
             $(this).parent().children(':nth-child(2)').attr('data-original-title', 'Switch to binary representation');
             $(this).parent().children(':nth-child(2)').attr('aria-label', 'Switch to binary representation');
         }
-    });
-    $(".eventViewAttributeHover").mouseenter(function() {
-        $('.popover').remove();
-        type = $(this).attr('data-object-type');
-        id = $(this).attr('data-object-id');
-        if (type + "_" + id in ajaxResults["hover"]) {
-            $('#' + type + '_' + id + '_container').popover({
-                title: 'Lookup results:',
-                content: ajaxResults["hover"][type + "_" + id],
-                placement: 'top',
-                html: true,
-                trigger: 'hover',
-                container: 'body'
-            }).popover('show');
-        } else {
-            timer = setTimeout(function() {
-                    runHoverLookup(type, id)
-                },
-                500
-            );
-        }
-    }).mouseleave(function() {
-        clearTimeout(timer);
     });
 </script>
 <?php

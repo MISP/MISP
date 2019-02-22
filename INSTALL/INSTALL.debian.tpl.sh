@@ -122,7 +122,7 @@ generateInstaller () {
   cp ../INSTALL.debian.tpl.sh .
 
   # Pull code snippets out of Main Install Documents
-  for f in `echo INSTALL.ubuntu1804.md INSTALL.debian9.md INSTALL.kali.md xINSTALL.debian_testing.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md`; do
+  for f in `echo INSTALL.ubuntu1804.md xINSTALL.debian9.md INSTALL.kali.md xINSTALL.debian_testing.md xINSTALL.tsurugi.md xINSTALL.debian9-postgresql.md xINSTALL.ubuntu1804.with.webmin.md`; do
     xsnippet . ../../docs/${f}
   done
 
@@ -191,20 +191,19 @@ installMISPubuntuSupported () {
   echo "Proceeding with the installation of MISP core"
   space
 
-  # Set locale if not set - functionLocation('generic/supportFunctions.md')
-  debug "Checking Locale"
-  checkLocale
-
   # Set Base URL - functionLocation('generic/supportFunctions.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && setBaseURL
   progress 4
 
-  # Upgrade system to make sure we install  the latest packages - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && aptUpgrade 2> /dev/null > /dev/null
-  progress 4
-
   # Check if sudo is installed and etckeeper - functionLocation('generic/sudo_etckeeper.md')
   [[ -n $CORE ]]   || [[ -n $ALL ]] && checkSudoKeeper 2> /dev/null > /dev/null
+  progress 4
+
+  # Set locale if not set - functionLocation('generic/supportFunctions.md')
+  checkLocale
+
+  # Upgrade system to make sure we install  the latest packages - functionLocation('INSTALL.ubuntu1804.md')
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && aptUpgrade 2> /dev/null > /dev/null
   progress 4
 
   # TODO: Double check how the user is added and subsequently used during the install.
@@ -229,11 +228,11 @@ installMISPubuntuSupported () {
   #trap "kill -9 $SPIN_PID" `seq 0 15`
 
   # Install Core Dependencies - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && installCoreDeps 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && installCoreDeps
   progress 4
 
   # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72 2> /dev/null > /dev/null
+  [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
   progress 4
 
   # Install Core MISP - functionLocation('INSTALL.ubuntu1804.md')
@@ -340,10 +339,12 @@ installMISPonKali () {
   ##debug "Sleeping 3 seconds to make sure the disable sleep does not confuse the execution of the script."
   ##sleep 3
 
+  # Kali specific dependencies - functionLocation('generic/supportFunctions.md')
   debug "Installing dependencies"
-  installDeps 2> /dev/null > /dev/null
+  installDeps
 
-  installCoreDeps 2> /dev/null > /dev/null
+  # Install Core Dependencies - functionLocation('INSTALL.ubuntu1804.md')
+  installCoreDeps
 
   debug "Enabling redis and gnupg modules"
   phpenmod -v 7.3 redis
@@ -360,7 +361,6 @@ installMISPonKali () {
   systemctl restart mysql.service 2> /dev/null > /dev/null
 
   debug "Fixing redis rc script on Kali"
-  apt install redis-server
   fixRedis 2> /dev/null > /dev/null
 
   debug "git clone, submodule update everything"

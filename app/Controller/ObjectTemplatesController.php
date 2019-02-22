@@ -21,7 +21,7 @@ class ObjectTemplatesController extends AppController
         $metas = $this->ObjectTemplate->find('list', array(
             'recursive' => -1,
             'conditions' => array('ObjectTemplate.active' => 1),
-            'fields' => array('meta-category'),
+            'fields' => array('meta-category', 'meta-category'),
             'group' => array('ObjectTemplate.meta-category'),
             'order' => array('ObjectTemplate.meta-category asc')
         ));

@@ -288,7 +288,7 @@
                 case 'regexp':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => sprintf(
-                            '%/regexp/index',
+                            '%s/regexp/index',
                             $isSiteAdmin ? '/admin' : ''
                         ),
                         'text' => __('List Regexp')
@@ -427,11 +427,13 @@
                         'url' => '/sharing_groups/index',
                         'text' => __('List Sharing Groups')
                     ));
-                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'element_id' => 'addSG',
-                        'url' => '/sharing_groups/add',
-                        'text' => __('Add Sharing Group')
-                    ));
+                    if ($isAclSharingGroup) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'addSG',
+                            'url' => '/sharing_groups/add',
+                            'text' => __('Add Sharing Group')
+                        ));
+                    }
                     echo $this->element('/genericElements/SideMenu/side_menu_divider');
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'userGuide',
@@ -440,7 +442,7 @@
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => '/users/terms',
-                        'text' => __('Terms &amp; Conditions')
+                        'text' => __('Terms & Conditions')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => '/users/statistics',
@@ -721,7 +723,7 @@
                         'text' => __('List Threads')
                     ));
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                        'url' => '/threads/add',
+                        'url' => '/posts/add',
                         'text' => __('New Thread')
                     ));
                     break;

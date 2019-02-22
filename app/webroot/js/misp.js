@@ -1797,6 +1797,38 @@ function quickFilter(passedArgs, url) {
     window.location.href=url;
 }
 
+function runIndexFilter(element) {
+    var dataFields = $(element).data();
+    for (var k in $(element).data()) {
+        if (k in passedArgsArray) {
+            delete(passedArgsArray[k]);
+        } else {
+            passedArgsArray[k] = dataFields[k];
+        }
+    }
+    url = here;
+    for (var key in passedArgsArray) {
+        url += "/" + key + ":" + passedArgsArray[key];
+    }
+    window.location.href = url;
+}
+
+function runIndexQuickFilter() {
+    if (!passedArgsArray) {
+        var passedArgsArray = [];
+    }
+    if ( $('#quickFilterField').val().trim().length > 0){
+        passedArgsArray["searchall"] = $('#quickFilterField').val().trim();
+    }
+    url = here;
+    for (var key in passedArgsArray) {
+        if (key !== 'page') {
+            url += "/" + key + ":" + passedArgsArray[key];
+        }
+    }
+    window.location.href = url;
+}
+
 function executeFilter(passedArgs, url) {
     for (var key in passedArgs) url += "/" + key + ":" + passedArgs[key];
     window.location.href=url;
@@ -3063,15 +3095,17 @@ function runHoverLookup(type, id) {
     $.ajax({
         success:function (html) {
             ajaxResults["hover"][type + "_" + id] = html;
-            $('.popover').remove();
-            $('#' + type + '_' + id + '_container').popover({
-                title: 'Lookup results:',
+            var element = $('#' + type + '_' + id + '_container');
+            element.popover({
+                title: attributeHoverTitle(id, type),
                 content: html,
-                placement: 'top',
+                placement: attributeHoverPlacement(element),
                 html: true,
-                trigger: 'hover',
+                trigger: 'manual',
                 container: 'body'
             }).popover('show');
+            $('#' + currentPopover).popover('destroy');
+            currentPopover = type + '_' + id + '_container'
         },
         cache: false,
         url:"/attributes/hoverEnrichment/" + id,
@@ -3086,9 +3120,8 @@ $(".cortex-json").click(function() {
 
 });
 
-
 // add the same as below for click popup
-$(".eventViewAttributePopup").click(function() {
+$(document).on( "click", ".eventViewAttributePopup", function() {
     $('#screenshot_box').empty();
     type = $(this).attr('data-object-type');
     id = $(this).attr('data-object-id');
@@ -3104,7 +3137,7 @@ $(".eventViewAttributePopup").click(function() {
     }
     if (type + "_" + id in ajaxResults["persistent"]) {
         var enrichment_popover = ajaxResults["persistent"][type + "_" + id];
-        enrichment_popover += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
+        enrichment_popover += '<div class="close-icon useCursorPointer popup-close-icon" onClick="closeScreenshot();"></div>';
         $('#screenshot_box').html('<div class="screenshot_content">' + enrichment_popover + '</div>');
         $('#screenshot_box').show();
         $("#gray_out").fadeIn();
@@ -3116,6 +3149,7 @@ $(".eventViewAttributePopup").click(function() {
         var left = ($(window).width() / 2) - ($('#screenshot_box').width() / 2);
         $('#screenshot_box').css({'left': left + 'px'});
     }
+    $('#' + currentPopover).popover('destroy');
 });
 
 function flashErrorPopover() {
@@ -3126,74 +3160,72 @@ function flashErrorPopover() {
     $('#popover_form').css({'left': left + 'px'});
     $("#gray_out").fadeIn();
 }
-/*
-var hover_timeout;
-$(".eventViewAttributeHover").hover(
-    function() {
-        $('.popover').remove();
-        type = $(this).attr('data-object-type');
-        id = $(this).attr('data-object-id');
-        if (type + "_" + id in ajaxResults["hover"]) {
-            $('#' + type + '_' + id + '_container').popover({
-                title: 'Lookup results:',
-                content: ajaxResults["hover"][type + "_" + id],
-                placement: 'top',
-                html: true,
-                trigger: 'hover',
-                container: 'body'
-            }).popover('show');
-        } else {
-            hover_timeout = setTimeout(function(){
-                runHoverLookup(type, id)
-            }, 500);
-        }
-    },
-    function(){
-        clearTimeout(hover_timeout);
-        $('.popover').remove();
-    }
-);
-*/
 
 $(".eventViewAttributeHover").mouseenter(function() {
+    $('#' + currentPopover).popover('destroy');
     var type = $(this).attr('data-object-type');
     var id = $(this).attr('data-object-id');
-    var hover_target_id = $(this).attr('id');
+
     if (type + "_" + id in ajaxResults["hover"]) {
-        $('#' + type + '_' + id + '_container').popover({
-            title: 'Lookup results:',
+        var element = $('#' + type + '_' + id + '_container');
+        element.popover({
+            title: attributeHoverTitle(id, type),
             content: ajaxResults["hover"][type + "_" + id],
-            placement: 'top',
+            placement: attributeHoverPlacement(element),
             html: true,
-            trigger: 'hover',
+            trigger: 'manual',
             container: 'body'
         }).popover('show');
+        currentPopover = type + '_' + id + '_container';
     } else {
-        timer = setTimeout(function() {
-                $.ajax({
-                    success:function (html) {
-                        if ($('#' + hover_target_id+":hover").length > 0) {
-                            ajaxResults["hover"][type + "_" + id] = html;
-                            $('#' + type + '_' + id + '_container').popover({
-                                title: 'Lookup results:',
-                                content: html,
-                                placement: 'top',
-                                html: true,
-                                trigger: 'hover',
-                                container: 'body'
-                            }).popover('show');
-                        }
-                    },
-                    cache: false,
-                    url:"/attributes/hoverEnrichment/" + id,
-                });
-            },
-            500
-        );
+      timer = setTimeout(function () {
+          runHoverLookup(type, id)
+        },
+        500
+      );
     }
 }).mouseout(function() {
-    $('.popover').remove();
     clearTimeout(timer);
+});
+
+function attributeHoverTitle(id, type) {
+  return `<span>Lookup results:</span>
+		<i class="fa fa-search-plus useCursorPointer eventViewAttributePopup" 
+				style="float: right;" 
+				data-object-id="${id}" 
+				data-object-type="${type}">			
+	</i>`;
+}
+
+function attributeHoverPlacement(element) {
+  var offset = element.offset(),
+    topOffset = offset.top - $(window).scrollTop(),
+    left = offset.left - $(window).scrollLeft(),
+    viewportHeight = window.innerHeight,
+    viewportWidth = window.innerWidth,
+    horiz = 0.5 * viewportWidth - left,
+    horizPlacement = horiz > 0 ? 'right' : 'left',
+    popoverMaxHeight = .75 * viewportHeight;
+
+  // default to top placement
+  var placement = topOffset - popoverMaxHeight > 0 ? 'top' : horizPlacement;
+
+  // more space on bottom
+  if (topOffset < .5 * viewportHeight) {
+    // will popup fit on bottom
+    placement = popoverMaxHeight < topOffset ? 'bottom' : horizPlacement;
+  }
+
+  return placement;
+}
+
+$('body').on('click', function (e) {
+  $('[data-toggle=popover]').each(function () {
+    // hide any open popovers when the anywhere else in the body is clicked
+    if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
+      $('#' + currentPopover).popover('destroy');
+    }
+  });
 });
 
 $(".queryPopover").click(function() {

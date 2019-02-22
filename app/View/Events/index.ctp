@@ -16,6 +16,90 @@
         </ul>
     </div>
     <?php
+        $filterParamsString = array();
+        foreach ($passedArgsArray as $k => $v) {
+                $filterParamsString[] = sprintf(
+                    '%s: %s',
+                    h(ucfirst($k)),
+                    h($v)
+                );
+        }
+        $filterParamsString = implode(' & ', $filterParamsString);
+        $data = array(
+            'children' => array(
+                array(
+                    'children' => array(
+                        array(
+                            'id' => 'create-button',
+                            'title' => __('Modify filters'),
+                            'fa-icon' => 'search',
+                            'onClick' => 'getPopup',
+                            'onClickParams' => array($urlparams, 'events', 'filterEventIndex')
+                        )
+                    )
+                ),
+                array(
+                    'children' => array(
+                        array(
+                            'id' => 'multi-delete-button',
+                            'title' => __('Delete selected Events'),
+                            'fa-icon' => 'trash',
+                            'class' => 'hidden mass-select',
+                            'onClick' => 'multiSelectDeleteEvents'
+                        )
+                    )
+                ),
+                array(
+                    'children' => array(
+                        array(
+                            'requirement' => count($passedArgsArray) > 0,
+                            'html' => sprintf(
+                                '<span class="bold">%s</span>: %s',
+                                __('Filters'),
+                                $filterParamsString
+                            )
+                        ),
+                        array(
+                            'requirement' => count($passedArgsArray) > 0,
+                            'url' => '/events/index',
+                            'title' => __('Remove filters'),
+                            'fa-icon' => 'times'
+                        )
+                    )
+                ),
+                array(
+                    'children' => array(
+                        array(
+                            'title' => __('My events only'),
+                            'text' => __('My Events'),
+                            'data' => array(
+                                'searchemail' => h($me['email'])
+                            ),
+                            'class' => 'searchFilterButton',
+                            'active' => isset($passedArgsArray['email']) && $passedArgsArray['email'] === $me['email']
+                        ),
+                        array(
+                            'title' => __('My organisation\'s events only'),
+                            'text' => __('Org Events'),
+                            'data' => array(
+                                'searchorg' => h($me['org_id'])
+                            ),
+                            'class' => 'searchFilterButton',
+                            'active' => isset($passedArgsArray['org']) && $passedArgsArray['org'] === $me['org_id']
+                        )
+                    )
+                ),
+                array(
+                    'type' => 'search',
+                    'button' => 'Filter',
+                    'placeholder' => 'Enter value to search',
+                    'data' => '',
+                )
+            )
+        );
+        if (!$ajax) {
+            echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data));
+        }
         $tab = "Center";
         if (!isset($simple)) $simple = false;
         $filtered = false;
@@ -23,57 +107,6 @@
             $tab = "Left";
             $filtered = true;
         }
-        if (!$ajax && !$simple):
-    ?>
-    <div class="tabMenuFixedContainer" style="display:inline-block;">
-        <span class="tabMenuFixed tabMenuFixed<?php echo $tab; ?> tabMenuSides">
-            <span role="button" tabindex="0" aria-label="<?php echo __('Modify filters');?>" id="create-button" title="<?php echo __('Modify filters');?>" class="icon-search useCursorPointer" title="Filter events" role="button" tabindex="0" aria-label="<?php echo __('Filter events');?>" onClick="getPopup('<?php echo h($urlparams);?>', 'events', 'filterEventIndex');"></span>
-            <span id="multi-delete-button" title="<?php echo __('Delete selected Events');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete selected Events');?>" class="hidden icon-trash mass-select useCursorPointer" onClick="multiSelectDeleteEvents();"></span>
-        </span>
-        <?php
-            if ($filtered):
-                foreach ($passedArgsArray as $k => $v):?>
-                    <span class="tabMenuFixed tabMenuFixedElement">
-                        <?php echo h(ucfirst($k)) . " : " . h($v); ?>
-                    </span>
-                <?php endforeach; ?>
-            <span class="tabMenuFixed tabMenuFixedRight tabMenuSides">
-                <?php echo $this->Html->link('', array('controller' => 'events', 'action' => 'index'), array('class' => 'icon-remove', 'title' => __('Remove filters')));?>
-            </span>
-            <?php endif;?>
-            <span role="button" tabindex="0" aria-label="<?php echo __('Quickfilter');?>" title="<?php echo __('Quickfilter');?>" id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo h($passedArgs); ?>, '<?php echo $baseurl . '/events/index'; ?>');"><?php echo __('Filter');?></span>
-            <input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
-            <?php
-                $tempArgs = json_decode($passedArgs, true);
-                $tabBackground = "";
-                if (isset($tempArgs['searchemail']) && $tempArgs['searchemail'] === $me['email']) {
-                    unset($tempArgs['searchemail']);
-                    $tabBackground = 'background-lightblue';
-                } else {
-                    $tempArgs['searchemail'] = $me['email'];
-                }
-                $tempArgs = json_encode($tempArgs);
-            ?>
-            <span class="tabMenuFixed tabMenuFixedLeft tabMenuSides useCursorPointer <?php echo $tabBackground; ?>" style="margin-left:50px;">
-                <span role="button" tabindex="0" aria-label="<?php echo __('My events only');?>" title="<?php echo __('My events only');?>" id="myOrgButton" title="<?php echo __('Modify filters');?>" onClick="executeFilter(<?php echo h($tempArgs);?>, '<?php echo $baseurl;?>/events/index');"><?php echo __('My Events');?></span>
-            </span>
-            <?php
-                $tempArgs = json_decode($passedArgs, true);
-                $tabBackground = "";
-                if (isset($tempArgs['searchorg']) && $tempArgs['searchorg'] === $me['Organisation']['id']) {
-                    unset($tempArgs['searchorg']);
-                    $tabBackground = 'background-lightblue';
-                } else {
-                    $tempArgs['searchorg'] = $me['Organisation']['id'];
-                }
-                $tempArgs = json_encode($tempArgs);
-            ?>
-            <span class="tabMenuFixed tabMenuFixedRight tabMenuSides useCursorPointer <?php echo $tabBackground; ?>">
-                <span role="button" tabindex="0" aria-label="<?php echo __('My organisation\'s events only');?>" id="myOrgButton" title="<?php echo __('My organisation\'s events only');?>" onClick="executeFilter(<?php echo h($tempArgs);?>, '<?php echo $baseurl;?>/events/index');"><?php echo __('Org Events');?></span>
-            </span>
-        </div>
-    <?php
-        endif;
         echo $this->element('Events/eventIndexTable');
     ?>
     <p>
@@ -93,6 +126,24 @@
         </ul>
     </div>
 </div>
+<script type="text/javascript">
+    var passedArgsArray = <?php echo $passedArgs; ?>;
+    $(document).ready(function() {
+        $('.searchFilterButton').click(function() {
+            runIndexFilter(this);
+        });
+        $('#quickFilterButton').click(function() {
+            runIndexQuickFilter();
+        });
+        $('#quickFilterField').on('keypress', function (e) {
+            if(e.which === 13) {
+                runIndexQuickFilter();
+            }
+        });
+    });
+
+</script>
+
 <input type="hidden" class="keyboardShortcutsConfig" value="/shortcuts/event_index.json" />
 <?php
     if (!$ajax) echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'index'));

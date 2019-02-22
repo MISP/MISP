@@ -16,31 +16,61 @@
         </ul>
     </div>
     <?php
+        $filterParamsString = array();
+        foreach ($passedArgsArray as $k => $v) {
+                $filterParamsString[] = sprintf(
+                    '%s: %s',
+                    h(ucfirst($k)),
+                    h($v)
+                );
+        }
+        $filterParamsString = implode(' & ', $filterParamsString);
+        $data = array(
+            'children' => array(
+                array(
+                    'children' => array(
+                        array(
+                            'id' => 'create-button',
+                            'title' => __('Modify filters'),
+                            'fa-icon' => 'search',
+                            'onClick' => 'getPopup',
+                            'onClickParams' => array($urlparams, 'admin/users', 'filterUserIndex')
+                        )
+                    )
+                ),
+                array(
+                    'children' => array(
+                        array(
+                            'requirement' => count($passedArgsArray) > 0,
+                            'html' => sprintf(
+                                '<span class="bold">%s</span>: %s',
+                                __('Filters'),
+                                $filterParamsString
+                            )
+                        ),
+                        array(
+                            'requirement' => count($passedArgsArray) > 0,
+                            'url' => '/admin/users/index',
+                            'title' => __('Remove filters'),
+                            'fa-icon' => 'times'
+                        )
+                    )
+                ),
+                array(
+                    'type' => 'search',
+                    'button' => 'Filter',
+                    'placeholder' => 'Enter value to search',
+                    'data' => '',
+                )
+            )
+        );
+        echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data));
         $tab = "Center";
         $filtered = false;
         if (count($passedArgsArray) > 0) {
             $tab = "Left";
             $filtered = true;
         }
-    ?>
-    <div class="tabMenuFixedContainer" style="display:inline-block;">
-        <span class="tabMenuFixed tabMenuFixed<?php echo $tab; ?> tabMenuSides">
-            <span id="create-button" title="<?php echo __('Modify filters');?>" role="button" tabindex="0" aria-label="<?php echo __('Modify filters');?>" class="icon-search useCursorPointer" onClick="getPopup('<?php echo h($urlparams);?>', 'admin/users', 'filterUserIndex');"></span>
-        </span>
-        <?php if ($filtered):
-            foreach ($passedArgsArray as $k => $v):?>
-                <span class="tabMenuFixed tabMenuFixedElement">
-                    <?php echo h(ucfirst($k)) . " : " . h($v); ?>
-                </span>
-            <?php endforeach; ?>
-        <span class="tabMenuFixed tabMenuFixedRight tabMenuSides">
-            <?php echo $this->Html->link('', array('controller' => 'users', 'action' => 'index', 'admin' => true), array('class' => 'icon-remove', 'title' => __('Remove filters')));?>
-        </span>
-        <?php endif;?>
-        <span id="quickFilterButton" role="button" tabindex="0" aria-label="<?php echo __('Filter user index');?>" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo h($passedArgs); ?>, '<?php echo $baseurl . '/users/admin_index'; ?>');">Filter</span>
-        <input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
-    </div>
-    <?php
         echo $this->element('Users/userIndexTable');
     ?>
     <p>
@@ -60,5 +90,21 @@
         </ul>
     </div>
 </div>
+<script type="text/javascript">
+    var passedArgsArray = <?php echo $passedArgs; ?>;
+    $(document).ready(function() {
+        $('.searchFilterButton').click(function() {
+            runIndexFilter(this);
+        });
+        $('#quickFilterButton').click(function() {
+            runIndexQuickFilter();
+        });
+        $('#quickFilterField').on('keypress', function (e) {
+            if(e.which === 13) {
+                runIndexQuickFilter();
+            }
+        });
+    });
+</script>
 <?php
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'indexUser'));
