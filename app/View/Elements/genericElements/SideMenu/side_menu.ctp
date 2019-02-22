@@ -288,7 +288,7 @@
                 case 'regexp':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => sprintf(
-                            '%/regexp/index',
+                            '%s/regexp/index',
                             $isSiteAdmin ? '/admin' : ''
                         ),
                         'text' => __('List Regexp')
