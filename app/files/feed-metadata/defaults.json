@@ -331,7 +331,7 @@
       "event_id": "5655",
       "publish": false,
       "override_ids": false,
-      "settings": "\"{\\\"csv\\\":{\\\"value\\\":\\\"2\\\"}}\"",\"common\":{\"excluderegex\":\"\/^http:\\\/\\\/www.phishtank.com\/i\"}}",
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\"\"},\"common\":{\"excluderegex\":\"\\\/^http:\\\\\\\/\\\\\\\/www.phishtank.com\\\/i\"}}",
       "input_source": "network",
       "delete_local_file": false,
       "lookup_visible": false,
