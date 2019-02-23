@@ -1813,7 +1813,7 @@ function runIndexFilter(element) {
     window.location.href = url;
 }
 
-function runIndexQuickFilter() {
+function runIndexQuickFilter(preserveParams) {
     if (!passedArgsArray) {
         var passedArgsArray = [];
     }
@@ -1821,6 +1821,9 @@ function runIndexQuickFilter() {
         passedArgsArray["searchall"] = $('#quickFilterField').val().trim();
     }
     url = here;
+    if (typeof preserveParams !== "undefined") {
+        url += preserveParams;
+    }
     for (var key in passedArgsArray) {
         if (key !== 'page') {
             url += "/" + key + ":" + passedArgsArray[key];
@@ -3190,10 +3193,10 @@ $(".eventViewAttributeHover").mouseenter(function() {
 
 function attributeHoverTitle(id, type) {
   return `<span>Lookup results:</span>
-		<i class="fa fa-search-plus useCursorPointer eventViewAttributePopup" 
-				style="float: right;" 
-				data-object-id="${id}" 
-				data-object-type="${type}">			
+		<i class="fa fa-search-plus useCursorPointer eventViewAttributePopup"
+				style="float: right;"
+				data-object-id="${id}"
+				data-object-type="${type}">
 	</i>`;
 }
 
