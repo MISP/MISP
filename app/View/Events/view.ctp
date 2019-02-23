@@ -393,6 +393,9 @@
             <?php
                     if (!empty($event['Server'])):
                         foreach ($event['Server'] as $relatedServer):
+                            if (empty($relatedServer['id'])) {
+                                continue;
+                            }
                             $relatedData = array('Name' => $relatedServer['name'], 'URL' => $relatedServer['url']);
                             $popover = '';
                             foreach ($relatedData as $k => $v) {
