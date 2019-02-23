@@ -18,15 +18,6 @@
         </ul>
     </div>
     <?php
-        $filterParamsString = array();
-        foreach ($passedArgsArray as $k => $v) {
-                $filterParamsString[] = sprintf(
-                    '%s: %s',
-                    h(ucfirst($k)),
-                    h($v)
-                );
-        }
-        $filterParamsString = implode(' & ', $filterParamsString);
         $data = array(
             'children' => array(
                 array(
