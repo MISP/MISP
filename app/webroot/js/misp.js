@@ -2418,8 +2418,8 @@ function organisationViewButtonHighlight(context) {
 }
 
 function simpleTabPage(page) {
-    $(".tabMenuSides").removeClass("tabMenuActive");
-    $("#page" + page + "_tab").addClass("tabMenuActive");
+    $(".progress_tab").removeClass("btn-primary").addClass("btn-inverse");
+    $("#page" + page + "_tab").removeClass("btn-inverse").addClass("btn-primary");
     $(".tabContent").hide();
     $("#page" + page + "_content").show();
     if (page == lastPage) simpleTabPageLast();

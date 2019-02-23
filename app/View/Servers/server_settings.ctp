@@ -4,7 +4,7 @@
     <?php endif; ?>
     <h2><?php echo __('Server Settings & Maintenance');?></h2>
     <?php
-        echo $this->element('healthElements/tabs');
+        echo $this->element('healthElements/tabs', array('active_tab' => $tab));
         if (in_array($tab, array('MISP', 'Security', 'Encryption', 'Proxy', 'Plugin'))) {
             echo $this->element('healthElements/settings_tab');
         } else if ($tab == 'diagnostics') {
