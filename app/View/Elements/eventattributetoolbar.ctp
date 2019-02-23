@@ -163,7 +163,6 @@
                         'title' => __('Show attribute context fields'),
                         'fa-icon' => 'info-circle',
                         'text' => __('Context'),
-                        'active' => $deleted,
                         'onClick' => 'toggleContextFields'
                     ),
                     array(
