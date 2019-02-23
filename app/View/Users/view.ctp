@@ -52,14 +52,14 @@
         );
     }
     echo sprintf(
-        '<div class="users view row-fluid"><div class="span8" style="margin:0px;">%s</div>%s</div>%s',
+        '<div class="users view"><div class="row-fluid"><div class="span8" style="margin:0px;">%s</div></div>%s</div>%s',
         sprintf(
             '<h2>%s</h2>%s',
             __('User'),
             $this->element('genericElements/viewMetaTable', array('table_data' => $table_data))
         ),
         sprintf(
-            '<br /><a href="%s" class="btn btn-inverse" download>Download user profile for data portability</a>',
+            '<a href="%s" class="btn btn-inverse" download>Download user profile for data portability</a>',
             $baseurl . '/users/view/me.json'
         ),
         $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'view'))
