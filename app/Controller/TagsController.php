@@ -1052,9 +1052,9 @@ class TagsController extends AppController
             $tag[$k] = strtolower($t);
         }
         $this->loadModel('GalaxyCluster');
-        $conditions = array('GalaxyElement.key' => 'synonyms', 'OR' => array());
+        $conditions = array('OR' => array('LOWER(GalaxyCluster.value) LIKE' => $t, array('GalaxyElement.key' => 'synonyms', 'OR' => array())));
         foreach ($tag as $k => $t) {
-            $conditions['OR'][] = array('LOWER(GalaxyElement.value) LIKE' => $t);
+            $conditions['OR'][0]['OR'][] = array('LOWER(GalaxyElement.value) LIKE' => $t);
         }
         $elements = $this->GalaxyCluster->GalaxyElement->find('all', array(
             'recursive' => -1,
