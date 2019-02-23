@@ -3942,6 +3942,24 @@ function syntaxHighlightJson(json, indent) {
     });
 }
 
+function liveFilter() {
+    var lookupString = $('#liveFilterField').val();
+    if (lookupString == '') {
+        $('.live_filter_target').each(function() {
+            $(this).parent().show();
+        });
+    } else {
+        $('.live_filter_target').each(function() {
+            $(this).parent().hide();
+        });
+        $('.live_filter_target').each(function() {
+            if ($(this).text().indexOf(lookupString) >= 0) {
+                $(this).parent().show();
+            }
+        });
+    }
+}
+
 (function(){
     "use strict";
     $(".datepicker").datepicker({

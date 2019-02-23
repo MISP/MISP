@@ -17,15 +17,15 @@
         $column_data = array(
             'level' => array(
                 'html' => $priorities[$setting['level']],
-                'class' => 'short'
+                'class' => 'short live_filter_target'
             ),
             'setting' => array(
                 'html' => h($setting['setting']),
-                'class' => 'short',
+                'class' => 'short live_filter_target',
             ),
             'value_passive' => array(
                 'html' => nl2br(h($setting['value'])),
-                'class' => 'inline-field-solid',
+                'class' => 'inline-field-solid live_filter_target',
                 'requirement' => ((isset($setting['editable']) && !$setting['editable'])),
                 'style' => 'width:500px;',
                 'id' => sprintf(
@@ -36,7 +36,7 @@
             ),
             'value_solid' => array(
                 'html' => nl2br(h($setting['value'])),
-                'class' => 'inline-field-solid',
+                'class' => 'inline-field-solid live_filter_target',
                 'requirement' => ((!isset($setting['editable']) || $setting['editable'])),
                 'style' => 'width:500px;',
                 'id' => sprintf(
@@ -58,7 +58,8 @@
                 )
             ),
             'description' => array(
-                'html' => h($setting['description'])
+                'html' => h($setting['description']),
+                'class' => 'live_filter_target'
             ),
             'error' => array(
                 'html' => isset($setting['error']) ? h($setting['errorMessage']) : ''

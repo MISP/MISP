@@ -19,6 +19,15 @@
     ?>
     <div style="font-style: italic;"><?php echo __('To edit a setting, simply double click it.');?></div>
 </div>
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('#liveFilterField').focus();
+        $('#liveFilterField').keyup(function() {
+            liveFilter();
+        });
+    });
+
+</script>
 <?php
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'serverSettings'));
 ?>

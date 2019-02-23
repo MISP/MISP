@@ -1,7 +1,5 @@
 <?php
-
     if (!isset($data['requirement']) || $data['requirement']) {
-
         $button = empty($data['button']) ? '' : sprintf(
             '<button class=" btn btn-small btn-inverse" %s id="quickFilterButton">%s</button>',
             empty($data['data']) ? '' : h($data['data']),

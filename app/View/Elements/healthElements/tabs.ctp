@@ -50,6 +50,10 @@
         'title' => __('Download report'),
         'html' => '<i class="fa fa-download"></i>'
     );
+    $data['children'][] = array(
+            'type' => 'live_search',
+            'placeholder' => 'Filter the table(s) below'
+    );
     if (!$ajax) {
         echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data));
     }
