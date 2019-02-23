@@ -30,15 +30,15 @@
         }
         $dataFields = implode(' ', $dataFields);
         echo sprintf(
-            '<a class="btn btn-small %s %s" %s href="%s" %s %s %s>%s%s%s</a>',
+            '<li><a class="%s %s" id="%s" href="%s" %s %s %s>%s%s%s</a></li>',
             empty($data['class']) ? '' : h($data['class']),
-            empty($data['active']) ? 'btn-inverse' : 'btn-primary',   // Change the default class for highlighted/active toggles here
+            empty($data['active']) ? '' : 'background-blue',   // Change the default class for highlighted/active toggles here
             empty($data['id']) ? '' : 'id="' . h($data['id']) . '"',
             empty($data['url']) ? '#' : h($data['url']),    // prevent default is passed if the url is not set
             empty($onClick) ? '' : $onClick,    // pass $data['onClick'] for the function name to call and $data['onClickParams'] for the parameter list
             empty($dataFields) ? '' : $dataFields,
             empty($data['title']) ? '' : sprintf('title="%s"', h($data['title'])),
-            empty($data['fa-icon']) ? '' : sprintf('<i class="fa fa-%s"></i> ', $data['fa-icon']),  // this has to be sanitised beforehand!
+            empty($data['fa-icon']) ? '' : sprintf('<i class="fa fa-%s"></i>', $data['fa-icon']),  // this has to be sanitised beforehand!
             empty($data['html']) ? '' : $data['html'],  // this has to be sanitised beforehand!
             empty($data['text']) ? '' : h($data['text'])
         );

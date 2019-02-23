@@ -2974,11 +2974,11 @@ function syncUserSelected() {
 function filterAttributes(filter, id) {
     url = "/events/viewEventAttributes/" + id + "/attributeFilter:" + filter;
     if(filter === 'value'){
-        filter = $('#attributesFilterField').val().trim();
+        filter = $('#quickFilterField').val().trim();
         url += filter.length > 0 ? "/searchFor:" + filter : "";
     } else if(filter !== 'all') {
         url += "/filterColumnsOverwrite:" + filter;
-        filter = $('#attributesFilterField').val().trim();
+        filter = $('#quickFilterField').val().trim();
         url += filter.length > 0 ? "/searchFor:" + filter : "";
     }
     if (deleted) url += '/deleted:true';

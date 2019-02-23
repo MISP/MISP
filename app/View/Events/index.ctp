@@ -100,13 +100,6 @@
         if (!$ajax) {
             echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data));
         }
-        $tab = "Center";
-        if (!isset($simple)) $simple = false;
-        $filtered = false;
-        if (!$simple && count($passedArgsArray) > 0) {
-            $tab = "Left";
-            $filtered = true;
-        }
         echo $this->element('Events/eventIndexTable');
     ?>
     <p>
