@@ -1,4 +1,3 @@
-<div class="settingsTableContainerOutline">
 <?php
     if (count($finalSettings) > 1) {
         echo $this->element('healthElements/settings_table_composition', array('finalSettings' => $finalSettings));
@@ -6,7 +5,6 @@
         echo $this->element('healthElements/settings_table', array('settings' => $finalSettings['general'], 'subGroup' => 'general'));
     }
 ?>
-</div>
 <script type="text/javascript">
     $(document).ready(function() {
         $('.subGroup_general').show();
