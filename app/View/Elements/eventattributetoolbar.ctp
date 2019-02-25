@@ -105,10 +105,9 @@
                     array(
                         'id' => 'multi-sighting-button',
                         'title' => __('Sightings display for selected attributes'),
-                        'class' => 'mass-select hidden',
-                        'fa-icon' => 'wrench',
-                        'onClick' => 'multiSelectAction',
-                        'onClickParams' => array($event['Event']['id'], 'discardProposals')
+                        'class' => 'mass-select hidden sightings_advanced_add',
+                        'data' => array('object-id' => 'selected', 'object-context' => 'attribute'),
+                        'fa-icon' => 'wrench'
                     )
                 )
             ),
