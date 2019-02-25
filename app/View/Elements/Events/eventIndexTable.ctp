@@ -165,7 +165,7 @@
         <?php if (Configure::read('MISP.showCorrelationsOnIndex')):?>
             <td class = "bold" style="width:30px;">
                 <?php if (!empty($event['Event']['correlation_count'])): ?>
-                    <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] . '/correlation:1';?>" title="<?php echo h($event['Event']['correlation_count']) . __(' correlation(s). Show filtered event with correlation only');?>">
+                    <a href="<?php echo $baseurl."/events/view/" . h($event['Event']['id']) . '/correlation:1';?>" title="<?php echo h($event['Event']['correlation_count']) . __(' correlation(s). Show filtered event with correlation only.');?>">
                         <?php echo h($event['Event']['correlation_count']); ?>&nbsp;
                     </a>
                 <?php endif; ?>
