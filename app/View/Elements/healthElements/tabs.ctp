@@ -46,6 +46,20 @@
         'active' => $active_tab === 'files'
     );
     $data['children'][0]['children'][] = array(
+        'url' => '/servers/serverSettings/workers',
+        'title' => __('Download report'),
+        'active' => 'workers' == $active_tab,
+        'html' => sprintf(
+            '%s%s',
+            __('Workers'),
+            ($workerIssueCount == 0) ? '' : sprintf(
+                ' (<span>%s</span>)',
+                h($workerIssueCount)
+            )
+        ),
+        'requirement' => !empty($worker_array)
+    );
+    $data['children'][0]['children'][] = array(
         'url' => '/servers/serverSettings/diagnostics',
         'title' => __('Download report'),
         'html' => '<i class="fa fa-download"></i>'
