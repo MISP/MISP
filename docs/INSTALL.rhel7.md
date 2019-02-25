@@ -194,7 +194,7 @@ systemctl restart rh-php72-php-fpm.service
 ## 3.06/ Enable dependencies detection in the diagnostics page
 Add the following content to `/etc/opt/rh/rh-php72/php-fpm.d/www.conf` :
 ```
-env[PATH]=/opt/rh/rh-git218/root/usr/bin:/opt/rh/rh-redis32/root/usr/bin:/opt/rh/rh-python36/root/usr/bin:/opt/rh/rh-php71/root/usr/bin:/usr/local/bin:/usr/bin:/bin
+env[PATH]=/opt/rh/rh-git218/root/usr/bin:/opt/rh/rh-redis32/root/usr/bin:/opt/rh/rh-python36/root/usr/bin:/opt/rh/rh-php72/root/usr/bin:/usr/local/bin:/usr/bin:/bin
 ```
 Then run `systemctl restart rh-php72-php-fpm.service`.
 This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
