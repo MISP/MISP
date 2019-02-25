@@ -20,7 +20,7 @@
                 ($tab['errors'] == 0) ? '' : sprintf(
                     ' (<span>%s%s</span>)',
                     h($tab['errors']),
-                    ($tab['severity'] > 0) ? ' <i class="fa fa-exclamation-triangle" title="' . __('This tab reports some potential critical misconfigurations.') . '"></i>' : ''
+                    ($tab['severity'] == 0) ? ' <i class="fa fa-exclamation-triangle" title="' . __('This tab reports some potential critical misconfigurations.') . '"></i>' : ''
                 )
             ),
             'url' => '/servers/serverSettings/' . h($k),
