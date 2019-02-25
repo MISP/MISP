@@ -143,6 +143,7 @@
                     array(
                         'id' => 'simple_filter',
                         'type' => 'group',
+                        'active' => $attributeFilter !== 'all',
                         'title' => __('Use a list of simple scopes to filter the data'),
                         'text' => __('Scope toggle'),
                         'children' => $simple_filter_data
