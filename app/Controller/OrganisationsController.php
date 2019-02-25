@@ -15,10 +15,10 @@ class OrganisationsController extends AppController
 
     public $paginate = array(
             'limit' => 60,
-            'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
             'order' => 'LOWER(Organisation.name)'
             //'order' => array(
-            //		'Organisation.name' => 'ASC'
+            //      'Organisation.name' => 'ASC'
             //),
     );
 
@@ -171,8 +171,8 @@ class OrganisationsController extends AppController
                     } else {
                         $temp['Organisation'][$field] = $existingOrg['Organisation'][$field];
                     }
-                    $this->request->data = $temp;
                 }
+                $this->request->data = $temp;
             }
             $this->request->data['Organisation']['id'] = $id;
             if ($this->Organisation->save($this->request->data)) {

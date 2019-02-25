@@ -29,5 +29,5 @@ echo $this->Form->end();
 </div>
 <?php
     $event['Event']['id'] = $this->request->data['Event']['target_id'];
-    echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'merge', 'event' => $event));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'merge', 'event' => $event));
 ?>

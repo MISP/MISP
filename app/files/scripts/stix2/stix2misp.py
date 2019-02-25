@@ -22,16 +22,23 @@ import os
 import time
 import uuid
 import io
+import re
 import stix2
 from base64 import b64encode
-from pymisp import MISPEvent, MISPObject, __path__
 from stix2misp_mapping import *
 from collections import defaultdict
 
-special_parsing = ('relationship', 'report', 'galaxy')
+_MISP_dir = "/".join([p for p in os.path.dirname(os.path.realpath(__file__)).split('/')[:-4]])
+_PyMISP_dir = '{_MISP_dir}/PyMISP/pymisp'.format(_MISP_dir=_MISP_dir)
+_MISP_objects_path = '{_MISP_dir}/app/files/misp-objects/objects'.format(_MISP_dir=_MISP_dir)
+sys.path.append(_PyMISP_dir)
+from pymisp.mispevent import MISPEvent, MISPObject, MISPAttribute
+from pymisp.exceptions import PyMISPInvalidFormat
+TAG_REGEX = re.compile(r"\(.+\) .+ = .+")
+special_parsing = ('relationship', 'report', 'galaxy', 'marking-definition')
 galaxy_types = {'attack-pattern': 'Attack Pattern', 'intrusion-set': 'Intrusion Set',
                 'malware': 'Malware', 'threat-actor': 'Threat Actor', 'tool': 'Tool'}
-with open(os.path.join(__path__[0], 'data/describeTypes.json'), 'r') as f:
+with open('{_PyMISP_dir}/data/describeTypes.json'.format(_PyMISP_dir=_PyMISP_dir), 'r') as f:
     misp_types = json.loads(f.read())['result'].get('types')
 
 class StixParser():
@@ -44,22 +51,24 @@ class StixParser():
         self.filename = filename
         self.stix_version = version
         for object_type in special_parsing:
-            setattr(self, object_type, event.pop(object_type) if object_type in event else {})
+            setattr(self, object_type.replace('-', '_'), event.pop(object_type) if object_type in event else {})
         self.event = event
         try:
             event_distribution = args[0]
             if not isinstance(event_distribution, int):
-                event_distribution = int(event_distribution) if event_distribution.isdigit() else 5
+                event_distribution = int(event_distribution) if event_distribution.isdigit() else 0
         except IndexError:
-            event_distribution = 5
+            event_distribution = 0
         try:
             attribute_distribution = args[1]
-            if attribute_distribution != 'event' and not isinstance(attribute_distribution, int):
+            if attribute_distribution == 'event':
+                attribute_distribution = 5
+            if not isinstance(attribute_distribution, int):
                 attribute_distribution = int(attribute_distribution) if attribute_distribution.isdigit() else 5
         except IndexError:
             attribute_distribution = 5
         self.misp_event.distribution = event_distribution
-        self._attribute_distribution = event_distribution if attribute_distribution == 'event' else attribute_distribution
+        self._attribute_distribution = attribute_distribution
 
     def general_handler(self):
         self.outputname = '{}.stix2'.format(self.filename)
@@ -68,6 +77,12 @@ class StixParser():
         for galaxy in self.galaxy.values():
             if galaxy['used'] == False:
                 self.misp_event['Galaxy'].append(self.parse_galaxies(galaxy['object']))
+        for marking in self.marking_definition.values():
+            if marking['used'] == False:
+                try:
+                    self.misp_event.add_tag(self.parse_marking(marking['object']))
+                except PyMISPInvalidFormat:
+                    continue
 
     def build_from_STIX_with_report(self):
         report_attributes = defaultdict(set)
@@ -151,6 +166,17 @@ class StixParser():
     ################################################################################
     ##                 PARSING FUNCTIONS USED BY BOTH SUBCLASSES.                 ##
     ################################################################################
+
+    def add_tag_in_attribute(self, attribute, marking_refs):
+        attribute = self.pyMISPify(attribute)
+        for marking in marking_refs:
+            marking_uuid = marking.split('--')[1]
+            marking = self.marking_definition[marking_uuid]
+            tag = self.parse_marking(marking['object'])
+            if tag is not None:
+                attribute.add_tag(self.parse_marking(marking['object']))
+            marking['used'] = True
+        return attribute
 
     @staticmethod
     def append_email_attribute(_type, value, to_ids):
@@ -304,6 +330,20 @@ class StixParser():
             if target not in self.galaxy:
                 misp_object.add_reference(target, reference.relationship_type)
 
+    def handle_single_attribute(self, attribute, uuid=None):
+        if uuid is not None:
+            if uuid in self.relationship:
+                galaxies = []
+                for reference in self.relationship[uuid]:
+                    target = reference.target_ref.split('--')[1]
+                    if target in self.galaxy:
+                        galaxy = self.galaxy[target]
+                        galaxies.append(self.parse_external_galaxy(galaxy['object']))
+                        galaxy['used'] = True
+                if galaxies:
+                    attribute['Galaxy'] = galaxies
+        self.misp_event.add_attribute(**attribute)
+
     def parse_complex_fields_observable_email(self, objects, to_ids):
         attributes = []
         addresses, files, message = self.split_observable_email_parts(objects)
@@ -325,7 +365,7 @@ class StixParser():
         return attributes, message
 
     def parse_course_of_action(self, o):
-        misp_object = MISPObject('course-of-action')
+        misp_object = MISPObject('course-of-action', misp_objects_path_custom=_MISP_objects_path)
         if 'name' in o:
             attribute = {'type': 'text', 'object_relation': 'name', 'value': o.get('name')}
             misp_object.add_attribute(**attribute)
@@ -349,12 +389,12 @@ class StixParser():
         return attributes
 
     def parse_pe(self, extension):
-        pe = MISPObject('pe')
+        pe = MISPObject('pe', misp_objects_path_custom=_MISP_objects_path)
         pe_uuid = str(uuid.uuid4())
         pe.uuid = pe_uuid
         self.fill_object_attributes_observable(pe, pe_mapping, extension)
         for section in extension['sections']:
-            pe_section = MISPObject('pe-section')
+            pe_section = MISPObject('pe-section', misp_objects_path_custom=_MISP_objects_path)
             if 'hashes' in section:
                 for h_type, h_value in section['hashes'].items():
                     h_type = h_type.lower().replace('-', '')
@@ -376,6 +416,12 @@ class StixParser():
             attributes.append({'type': misp_type, 'object_relation': relation,
                                'to_ids': False, 'value': reference.value})
         return attributes
+
+    @staticmethod
+    def pyMISPify(attribute_dict):
+        attribute = MISPAttribute()
+        attribute.from_dict(**attribute_dict)
+        return attribute
 
     @staticmethod
     def split_observable_email_parts(observable):
@@ -435,7 +481,7 @@ class StixFromMISPParser(StixParser):
         _, uuid = o.get('id').split('--')
         galaxy = {'type': galaxy_type, 'name': name, 'description': galaxy_description,
                   'GalaxyCluster': [{'type': galaxy_type, 'value':value, 'tag_name': tag,
-                                     'description': cluster_description, 'uuid': uuid}]}
+                                     'description': cluster_description, 'collection_uuid': uuid}]}
         return galaxy
 
     def parse_MISP_course_of_action(self, o, _):
@@ -449,7 +495,7 @@ class StixFromMISPParser(StixParser):
 
     def parse_custom_object(self, o, labels):
         name = o['type'].split('x-misp-object-')[1]
-        misp_object = MISPObject(name)
+        misp_object = MISPObject(name, misp_objects_path_custom=_MISP_objects_path)
         misp_object.timestamp = self.getTimestampfromDate(o['x_misp_timestamp'])
         misp_object.uuid = o['id'].split('--')[1]
         try:
@@ -472,6 +518,8 @@ class StixFromMISPParser(StixParser):
                      'value': o['x_misp_value'],
                      'category': self.get_misp_category(labels),
                      'uuid': o['id'].split('--')[1]}
+        if o.get('object_marking_refs'):
+            attribute = self.add_tag_in_attribute(attribute, o['object_marking_refs'])
         self.misp_event.add_attribute(**attribute)
 
     def parse_object(self, o, labels):
@@ -479,7 +527,7 @@ class StixFromMISPParser(StixParser):
         name = 'file' if object_type == 'WindowsPEBinaryFile' else object_type
         object_category = self.get_misp_category(labels)
         stix_type = o._type
-        misp_object = MISPObject(name)
+        misp_object = MISPObject(name, misp_objects_path_custom=_MISP_objects_path)
         uuid = o.id.split('--')[1]
         misp_object.uuid = uuid
         misp_object['meta-category'] = object_category
@@ -529,24 +577,15 @@ class StixFromMISPParser(StixParser):
                 except Exception:
                     print('Error with attribute type {}:\n{}'.format(attribute_type, observable), file=sys.stderr)
                 attribute['to_ids'] = False
-        if 'description' in o:
-            attribute['comment'] = o.get('description')
+        if hasattr(o, 'description'):
+            attribute['comment'] = o.description
         if isinstance(value, tuple):
             value, data = value
             attribute['data'] = io.BytesIO(data.encode())
         attribute['value'] = value
-        if attribute_uuid in self.relationship:
-            galaxies = []
-            for reference in self.relationship[uuid]:
-                target = reference.target_ref
-                if target in self.galaxy:
-                    galaxy = self.galaxy[target]
-                    galaxy_object = galaxy['object']
-                    galaxies.append(self.parse_galaxy(galaxy_object, galaxy_object.get('labels')))
-                    galaxy['used'] = True
-            if galaxies:
-                attribute['Galaxy'] = galaxies
-        self.misp_event.add_attribute(**attribute)
+        if hasattr(o, 'object_marking_refs'):
+            attribute = self.add_tag_in_attribute(attribute, o.object_marking_refs)
+        self.handle_single_attribute(attribute, uuid=attribute_uuid)
 
     def parse_vulnerability(self, o, labels):
         if len(labels) > 2:
@@ -646,7 +685,7 @@ class StixFromMISPParser(StixParser):
     def pattern_pe(self, pattern):
         attributes = []
         sections = defaultdict(dict)
-        pe = MISPObject('pe')
+        pe = MISPObject('pe', misp_objects_path_custom=_MISP_objects_path)
         pe_uuid = str(uuid.uuid4())
         pe.uuid = pe_uuid
         for p in pattern:
@@ -684,7 +723,7 @@ class StixFromMISPParser(StixParser):
                             attributes.append({'type': attribute_type, 'object_relation': relation,
                                                'value': p_value, 'to_ids': True})
         for _, section in sections.items():
-            pe_section = MISPObject('pe-section')
+            pe_section = MISPObject('pe-section', misp_objects_path_custom=_MISP_objects_path)
             for stix_type, value in section.items():
                 if 'hashes.' in stix_type:
                     h_type = stix_type.split('.')[1]
@@ -875,6 +914,12 @@ class StixFromMISPParser(StixParser):
         return attribute_type, relation
 
     @staticmethod
+    def parse_marking(marking):
+        marking_type = marking.definition_type
+        tag = getattr(marking.definition, marking_type)
+        return "{}:{}".format(marking_type, tag)
+
+    @staticmethod
     def parse_pattern(pattern):
         if ' AND ' in pattern:
             pattern_parts = pattern.split(' AND ')
@@ -944,6 +989,7 @@ class ExternalStixParser(StixParser):
                                 ('ipv6-addr',): self.parse_ip_address_pattern,
                                 ('network-traffic',): self.parse_network_traffic_pattern,
                                 ('process',): self.parse_process_pattern,
+                                ('url',): self.parse_url_pattern,
                                 ('windows-registry-key',): self.parse_regkey_pattern}
         self.pattern_forbidden_relations = (' LIKE ', ' FOLLOWEDBY ', ' MATCHES ', ' ISSUBSET ', ' ISSUPERSET ', ' REPEATS ')
 
@@ -982,13 +1028,22 @@ class ExternalStixParser(StixParser):
         misp_object = {'name': 'stix2-pattern', 'meta-category': 'stix2-pattern',
                        'Attribute': [self.version_attribute, attribute]}
         self.misp_event.add_object(**misp_object)
-        self.parse_external_pattern(pattern, indicator['id'].split('--')[1])
+        indicator_id = indicator.id.split('--')[1]
+        if hasattr(indicator, 'object_marking_refs'):
+            self.parse_external_pattern(pattern, indicator_id, marking=indicator.object_marking_refs)
+        else:
+            self.parse_external_pattern(pattern, indicator_id)
 
     def parse_external_observable(self, observable):
         objects = observable.objects
         types = self.parse_external_observable_object(objects)
         try:
-            self.observable_mapping[types](objects, observable.id.split('--')[1])
+            to_call = self.observable_mapping[types]
+            observable_id = observable.id.split('--')[1]
+            if hasattr(observable, 'object_marking_refs'):
+                to_call(objects, observable_id, marking=observable.object_marking_refs)
+            else:
+                to_call(objects, observable_id)
         except KeyError:
             print('{} not parsed at the moment'.format(types), file=sys.stderr)
         # deeper analyse to come, as well as for indicators
@@ -1000,7 +1055,7 @@ class ExternalStixParser(StixParser):
             types.add(_object._type)
         return tuple(sorted(types))
 
-    def parse_external_pattern(self, pattern, uuid):
+    def parse_external_pattern(self, pattern, uuid, marking=None):
         if not any(relation in pattern for relation in self.pattern_forbidden_relations):
             pattern = pattern[1:-1]
             if ' OR ' in pattern and ' AND ' in pattern:
@@ -1010,14 +1065,14 @@ class ExternalStixParser(StixParser):
                 for p in pattern:
                     type_ = tuple([p.split(' = ')[0].split(':')[0]])
                     try:
-                        self.pattern_mapping[type_]([p.strip()])
+                        self.pattern_mapping[type_]([p.strip()], marking)
                     except KeyError:
                         print('{} not parsed at the moment'.format(type_), file=sys.stderr)
             else:
                 pattern = [p.strip() for p in pattern.split(' AND ')]
                 types = self.parse_external_pattern_types(pattern)
                 try:
-                    self.pattern_mapping[types](pattern, uuid=uuid)
+                    self.pattern_mapping[types](pattern, marking, uuid=uuid)
                 except KeyError:
                     print('{} not parsed at the moment'.format(types), file=sys.stderr)
 
@@ -1032,6 +1087,8 @@ class ExternalStixParser(StixParser):
         attribute = {'type': 'vulnerability', 'value': o.get('name')}
         if 'description' in o:
             attribute['comment'] = o.get('description')
+        if 'object_marking_refs' in o:
+            attribute = self.add_tag_in_attribute(attribute, o['object_marking_refs'])
         self.misp_event.add_attribute(**attribute)
 
     @staticmethod
@@ -1049,6 +1106,41 @@ class ExternalStixParser(StixParser):
     ################################################################################
     ##                             PARSING FUNCTIONS.                             ##
     ################################################################################
+
+    def add_attributes_from_observable(self, objects, attribute_type, identifier, marking, uuid):
+        attribute = {'to_ids': False}
+        if len(objects) == 1:
+            attribute['uuid'] = uuid
+        if marking:
+            attribute['type'] = attribute_type
+            for observable in objects.values():
+                attribute['value'] = getattr(observable, identifier)
+                attribute = self.add_tag_in_attribute(attribute, marking)
+                self.misp_event.add_attribute(**attribute)
+        else:
+            for observable in objects.values():
+                self.misp_event.add_attribute(attribute_type, getattr(observable, identifier), **attribute)
+
+    def add_attributes_from_pattern(self, attribute_type, pattern, marking, uuid):
+        _, pattern_values = self.get_types_and_values_from_pattern(pattern)
+        attribute = {'to_ids': True}
+        if len(pattern_values) == 1 and uuid is not None:
+            attribute['uuid'] = uuid
+            attribute['value'] = pattern_values[0]
+            attribute['type'] = attribute_type
+            if marking:
+                attribute = self.add_tag_in_attribute(attribute, marking)
+            self.handle_single_attribute(attribute, uuid=uuid)
+        else:
+            if marking:
+                attribute['type'] = attribute_type
+                for value in pattern_values:
+                    attribute['value'] = value
+                    attribute = self.add_tag_in_attribute(attribute, marking)
+                    self.misp_event.add_attribute(**attribute)
+            else:
+                for value in pattern_values:
+                    self.misp_event.add_attribute(attribute_type, value, **attribute)
 
     @staticmethod
     def  attributes_from_dict(values, mapping_dict, to_ids):
@@ -1068,67 +1160,58 @@ class ExternalStixParser(StixParser):
         file_object.add_reference(pe_uuid, 'included-in')
         self.misp_event.add_object(**file_object)
 
-    def parse_asn_observable(self, objects, uuid):
+    def parse_asn_observable(self, objects, marking, uuid):
         attributes = self.attributes_from_asn_observable(objects)
-        self.handle_import_case(attributes, 'asn', uuid)
+        self.handle_import_case(attributes, 'asn', marking, uuid)
 
-    def parse_domain_ip_observable(self, objects, uuid):
+    def parse_domain_ip_observable(self, objects, marking, uuid):
         attributes = self.attributes_from_domain_ip_observable(objects)
-        self.handle_import_case(attributes, 'domain-ip', uuid)
+        self.handle_import_case(attributes, 'domain-ip', marking, uuid)
 
-    def parse_domain_ip_port_pattern(self, pattern, uuid=None):
+    def parse_domain_ip_port_pattern(self, pattern, marking=None, uuid=None):
         values = {}
         for p in pattern:
             type_, value = p.split('=')
             values[type_.strip().split(':')[0]] = value.strip().strip('\'')
         attributes = self.attributes_from_dict(values, domain_ip_mapping, True)
-        self.handle_import_case(attributes, 'domain-ip', uuid)
+        self.handle_import_case(attributes, 'domain-ip', marking, uuid)
 
-    def parse_email_observable(self, objects, uuid):
+    def parse_email_observable(self, objects, marking, uuid):
         to_ids = False
         attributes, message = self.parse_complex_fields_observable_email(objects, to_ids)
         for m_key, m_value in message.items():
             if m_key in email_mapping:
                 attributes.append(self.append_email_attribute(m_key, m_value, to_ids))
-        self.handle_import_case(attributes, 'email', uuid)
+        self.handle_import_case(attributes, 'email', marking, uuid)
 
-    def parse_file_observable(self, objects, uuid):
+    def parse_file_observable(self, objects, marking, uuid):
         _object = objects['0']
         attributes = self.attributes_from_file_observable(_object)
         if hasattr(_object, 'extensions') and 'windows-pebinary-ext' in _object.extensions:
             self.handle_pe_case(_object.extensions['windows-pebinary-ext'], attributes, uuid)
         else:
-            self.handle_import_case(attributes, _object._type, uuid)
+            self.handle_import_case(attributes, _object._type, marking, uuid)
 
-    def parse_file_pattern(self, pattern, uuid=None):
+    def parse_file_pattern(self, pattern, marking=None, uuid=None):
         pattern_types, pattern_values = self.get_types_and_values_from_pattern(pattern)
         attributes = self.attributes_from_file_pattern(pattern_types, pattern_values)
-        self.handle_import_case(attributes, 'file', uuid)
+        self.handle_import_case(attributes, 'file', marking, uuid)
 
-    def parse_file_object_observable(self, objects, uuid):
+    def parse_file_object_observable(self, objects, marking, uuid):
         file, data = self.extract_data_from_file(objects)
         attributes = self.attributes_from_file_observable(file, data)
         if hasattr(file, 'extensions') and 'windows-pebinary-ext' in file.extensions:
             self.handle_pe_case(file.extensions['windows-pebinary-ext'], attributes, uuid)
         else:
-            self.handle_import_case(attributes, file._type, uuid)
+            self.handle_import_case(attributes, file._type, marking, uuid)
 
-    def parse_ip_address_observable(self, objects, uuid):
-        attribute = {'to_ids': False}
-        if len(objects) == 1:
-            attribute['uuid'] = uuid
-        for observable in objects.values():
-            self.misp_event.add_attribute('ip-dst', observable.value, **attribute)
+    def parse_ip_address_observable(self, objects, marking, uuid):
+        self.add_attributes_from_observable(objects, 'ip-dst', 'value', marking, uuid)
 
-    def parse_ip_address_pattern(self, pattern, uuid=None):
-        _, pattern_values = self.get_types_and_values_from_pattern(pattern)
-        attribute = {'to_ids': True}
-        if len(pattern_values) == 1:
-            attribute['uuid'] = uuid
-        for value in pattern_values:
-            self.misp_event.add_attribute('ip-dst', value, **attribute)
+    def parse_ip_address_pattern(self, pattern, marking=None, uuid=None):
+        self.add_attributes_from_pattern('ip-dst', pattern, marking, uuid)
 
-    def parse_ip_network_traffic_observable(self, objects, uuid):
+    def parse_ip_network_traffic_observable(self, objects, marking, uuid):
         network_traffic = self.fetch_network_traffic_objects(objects)
         attributes = self.fill_observable_attributes(network_traffic, network_traffic_mapping)
         if hasattr(network_traffic, 'extensions') and network_traffic.extensions:
@@ -1140,13 +1223,13 @@ class ExternalStixParser(StixParser):
             name = 'ip-port'
             mapping = network_traffic_references_mapping['without_extensions']
         attributes.extend(self.parse_network_traffic_references(objects, network_traffic, mapping))
-        self.handle_import_case(attributes, name, uuid)
+        self.handle_import_case(attributes, name, marking, uuid)
 
-    def parse_ip_port_observable(self, objects, uuid):
+    def parse_ip_port_observable(self, objects, marking, uuid):
         attributes = self.attributes_from_ip_port_observable(objects)
-        self.handle_import_case(attributes, 'ip-port', uuid)
+        self.handle_import_case(attributes, 'ip-port', marking, uuid)
 
-    def parse_ip_port_or_network_socket_observable(self, objects, uuid):
+    def parse_ip_port_or_network_socket_observable(self, objects, marking, uuid):
         network_traffic, references = self.fetch_network_traffic_objects_and_references(objects)
         attributes = self.fill_observable_attributes(network_traffic, network_traffic_mapping)
         if hasattr(network_traffic, 'extensions') and network_traffic.extensions:
@@ -1160,15 +1243,15 @@ class ExternalStixParser(StixParser):
         attributes.extend(self.parse_network_traffic_references(references, network_traffic, mapping, attr='pop'))
         if references:
             attributes.extend(self.parse_remaining_references(references, mapping))
-        self.handle_import_case(attributes, name, uuid)
+        self.handle_import_case(attributes, name, marking, uuid)
 
-    def parse_mac_address_observable(self, objects, uuid):
-        self.misp_event.add_attribute(**{'type': 'mac-address', 'value': objects['0'].value, 'uuid': uuid, 'to_ids': False})
+    def parse_mac_address_observable(self, objects, marking, uuid):
+        self.add_attributes_from_observable(objects, 'mac-address', 'value', marking, uuid)
 
-    def parse_mutex_observable(self, objects, uuid):
-        self.misp_event.add_attribute(**{'type': 'mutex', 'value': objects['0'].name, 'uuid': uuid, 'to_ids': False})
+    def parse_mutex_observable(self, objects, marking, uuid):
+        self.add_attributes_from_observable(objects, 'mutex', 'name', marking, uuid)
 
-    def parse_network_socket_observable(self, objects, uuid):
+    def parse_network_socket_observable(self, objects, marking, uuid):
         network_traffic, references = self.fetch_network_traffic_objects_and_references(objects)
         attributes = self.fill_observable_attributes(network_traffic, network_traffic_mapping)
         if  hasattr(network_traffic, 'extensions') and network_traffic.extensions:
@@ -1182,43 +1265,45 @@ class ExternalStixParser(StixParser):
         attributes.extend(self.parse_network_traffic_references(objects, network_traffic, mapping, attr='pop'))
         if references:
             attributes.extend(self.parse_remaining_references(references, mapping))
-        self.handle_import_case(attributes, name, uuid)
+        self.handle_import_case(attributes, name, marking, uuid)
 
-    def parse_network_traffic_pattern(self, pattern, uuid=None):
+    def parse_network_traffic_pattern(self, pattern, marking=None, uuid=None):
         pattern_types, pattern_values = self.get_types_and_values_from_pattern(pattern)
         attributes = self.fill_pattern_attributes(pattern_types, pattern_values, network_traffic_mapping)
-        self.handle_import_case(attributes, 'ip-port', uuid)
+        self.handle_import_case(attributes, 'ip-port', marking, uuid)
 
-    def parse_process_observable(self, objects, uuid):
+    def parse_process_observable(self, objects, marking, uuid):
         attributes = self.attributes_from_process_observable(objects)
-        self.handle_import_case(attributes, 'process', uuid)
+        self.handle_import_case(attributes, 'process', marking, uuid)
 
-    def parse_process_pattern(self, pattern, uuid=None):
+    def parse_process_pattern(self, pattern, marking=None, uuid=None):
         pattern_types, pattern_values = self.get_types_and_values_from_pattern(pattern)
         attributes = self.fill_pattern_attributes(pattern_types, pattern_values, process_mapping)
-        self.object_case_import(attributes, 'process', uuid)
+        self.object_case_import(attributes, 'process', marking, uuid)
 
-    def parse_regkey_observable(self, objects, uuid):
+    def parse_regkey_observable(self, objects, marking, uuid):
         _object = objects['0']
         attributes = self.attributes_from_regkey_observable(_object)
-        self.handle_import_case(attributes, 'registry-key', uuid)
+        self.handle_import_case(attributes, 'registry-key', marking, uuid)
 
-    def parse_regkey_pattern(self, pattern, uuid=None):
+    def parse_regkey_pattern(self, pattern, marking=None, uuid=None):
         pattern_types, pattern_values = self.get_types_and_values_from_pattern(pattern)
         attributes = self.fill_pattern_attributes(pattern_types, pattern_values, regkey_mapping)
-        self.handle_import_case(attributes, 'registry-key', uuid)
+        self.handle_import_case(attributes, 'registry-key', marking, uuid)
 
-    def parse_url_observable(self, objects, uuid):
-        _object = objects['0']
-        self.misp_event.add_attribute(**{'type': 'url', 'value': _object.value, 'uuid': uuid, 'to_ids': False})
+    def parse_url_observable(self, objects, marking, uuid):
+        self.add_attributes_from_observable(objects, 'url', 'value', marking, uuid)
 
-    def parse_url_object_observable(self, objects, uuid):
+    def parse_url_pattern(self, pattern, marking=None, uuid=None):
+        self.add_attributes_from_pattern('url', pattern, marking, uuid)
+
+    def parse_url_object_observable(self, objects, marking, uuid):
         attributes = self.attributes_from_url_observable(objects)
-        self.handle_import_case(attributes, 'url', uuid)
+        self.handle_import_case(attributes, 'url', marking, uuid)
 
-    def parse_x509_observable(self, objects, uuid):
+    def parse_x509_observable(self, objects, marking, uuid):
         attributes = self.attributes_from_x509_observable(objects)
-        self.handle_import_case(attributes, 'x509', uuid)
+        self.handle_import_case(attributes, 'x509', marking, uuid)
 
     ################################################################################
     ##                             UTILITY FUNCTIONS.                             ##
@@ -1226,7 +1311,7 @@ class ExternalStixParser(StixParser):
 
     @staticmethod
     def create_misp_object(attributes, name, uuid=None):
-        misp_object = MISPObject(name)
+        misp_object = MISPObject(name, misp_objects_path_custom=_MISP_objects_path)
         if uuid is not None:
             misp_object.uuid = uuid
         for attribute in attributes:
@@ -1272,22 +1357,13 @@ class ExternalStixParser(StixParser):
             values.append(value.strip().strip('\''))
         return types, values
 
-    def handle_import_case(self, attributes, name, uuid=None):
+    def handle_import_case(self, attributes, name, marking=None, uuid=None):
         if len(attributes) == 1:
             attribute = attributes[0]
-            if uuid is not None:
-                attribute['uuid'] = uuid
-                if uuid in self.relationship:
-                    galaxies = []
-                    for reference in self.relationship[uuid]:
-                        target = reference.target_ref
-                        if target in self.galaxy:
-                            galaxy = self.galaxy[target]
-                            galaxies.append(self.parse_external_galaxy(galaxy['object']))
-                            galaxy['used'] = True
-                    if galaxies:
-                        attribute['Galaxy'] = galaxies
-            self.misp_event.add_attribute(**attribute)
+            attribute['uuid'] = uuid
+            if marking:
+                attribute = self.add_tag_in_attribute(attribute, marking)
+            self.handle_single_attribute(attribute, uuid=uuid)
         else:
             self.object_case_import(attributes, name, uuid)
 
@@ -1299,6 +1375,13 @@ class ExternalStixParser(StixParser):
 
     def parse_galaxies(self, galaxy_object):
         return self.parse_external_galaxy(galaxy_object)
+
+    @staticmethod
+    def parse_marking(marking):
+        marking_type = marking.definition_type
+        if marking_type == 'tlp':
+            return "{}:{}".format(marking_type, getattr(marking.definition, marking_type))
+
 
 def from_misp(reports):
     for _, o in reports.items():
@@ -1326,6 +1409,9 @@ def main(args):
             if object_type in galaxy_types:
                 parsed_object = {'object': parsed_object, 'used': False}
                 object_type = 'galaxy'
+            elif object_type == 'marking-definition':
+                parsed_object = {'object': parsed_object, 'used': False}
+                object_type = object_type
             stix_event[object_type][uuid] = parsed_object
     if not stix_event:
         print(json.dumps({'success': 0, 'message': 'There is no valid STIX object to import'}))

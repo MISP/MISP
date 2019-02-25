@@ -44,7 +44,7 @@
 ?>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'editRole'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'editRole'));
 ?>
 
 <script type="text/javascript">

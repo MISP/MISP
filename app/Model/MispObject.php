@@ -13,7 +13,7 @@ class MispObject extends AppModel
 
     public $actsAs = array(
             'Containable',
-            'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+            'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
                 'userModel' => 'User',
                 'userKey' => 'user_id',
                 'change' => 'full'),

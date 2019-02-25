@@ -1467,12 +1467,11 @@ class AttributesController extends AppController
         }
     }
 
-    public function editSelected($id)
+    public function editSelected($id, $selectedAttributeIds = "[]")
     {
         if (!$this->request->is('ajax')) {
             throw new MethodNotAllowedException(__('This method can only be accessed via AJAX.'));
         }
-
         if ($this->request->is('post')) {
             $event = $this->Attribute->Event->find('first', array(
                 'conditions' => array('id' => $id),
@@ -1493,7 +1492,18 @@ class AttributesController extends AppController
                 'recursive' => -1,
             ));
 
-            if ($this->request->data['Attribute']['to_ids'] == 2 && $this->request->data['Attribute']['distribution'] == 6 && $this->request->data['Attribute']['comment'] == null) {
+            $tags_ids_remove = json_decode($this->request->data['Attribute']['tags_ids_remove']);
+            $tags_ids_add = json_decode($this->request->data['Attribute']['tags_ids_add']);
+            $clusters_ids_remove = json_decode($this->request->data['Attribute']['clusters_ids_remove']);
+            $clusters_ids_add = json_decode($this->request->data['Attribute']['clusters_ids_add']);
+            $changeInTagOrCluster = ($tags_ids_remove !== null && count($tags_ids_remove) > 0)
+                || ($tags_ids_add === null || count($tags_ids_add) > 0)
+                || ($clusters_ids_remove === null || count($clusters_ids_remove) > 0)
+                || ($clusters_ids_add === null || count($clusters_ids_add) > 0);
+
+            $changeInAttribute = ($this->request->data['Attribute']['to_ids'] != 2) || ($this->request->data['Attribute']['distribution'] != 6) || ($this->request->data['Attribute']['comment'] != null);
+
+            if (!$changeInAttribute && !$changeInTagOrCluster) {
                 $this->autoRender = false;
                 return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
             }
@@ -1531,29 +1541,158 @@ class AttributesController extends AppController
                 $attributes[$key]['Attribute']['timestamp'] = $timestamp;
             }
 
-            if ($this->Attribute->saveMany($attributes)) {
-                if (!$this->_isRest()) {
-                    $this->Attribute->Event->insertLock($this->Auth->user(), $id);
+            if ($changeInAttribute) {
+                if ($this->Attribute->saveMany($attributes)) {
+                    if (!$this->_isRest()) {
+                        $this->Attribute->Event->insertLock($this->Auth->user(), $id);
+                    }
+                    $event['Event']['timestamp'] = $date->getTimestamp();
+                    $event['Event']['published'] = 0;
+                    $this->Attribute->Event->save($event, array('fieldList' => array('published', 'timestamp', 'info', 'id')));
+                    $this->autoRender = false;
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
+                } else {
+                    $this->autoRender = false;
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'validationErrors' => $this->Attribute->validationErrors)), 'status' => 200, 'type' => 'json'));
                 }
-                $event['Event']['timestamp'] = $date->getTimestamp();
-                $event['Event']['published'] = 0;
-                $this->Attribute->Event->save($event, array('fieldList' => array('published', 'timestamp', 'info', 'id')));
-                $this->autoRender = false;
-                return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
-            } else {
-                $this->autoRender = false;
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'validationErrors' => $this->Attribute->validationErrors)), 'status' => 200, 'type' => 'json'));
             }
+
+            // apply changes in tag/cluster
+            foreach ($attributes as $key => $attribute) {
+                foreach ($tags_ids_remove as $t => $tag_id) {
+                    $this->removeTag($attributes[$key]['Attribute']['id'], $tag_id);
+                }
+                foreach ($tags_ids_add as $t => $tag_id) {
+                    $this->addTag($attributes[$key]['Attribute']['id'], $tag_id);
+                }
+                $this->Galaxy = ClassRegistry::init('Galaxy');
+                foreach ($clusters_ids_remove as $c => $cluster_id) {
+                    $this->Galaxy->detachCluster($this->Auth->user(), 'attribute', $attributes[$key]['Attribute']['id'], $cluster_id);
+                }
+                foreach ($clusters_ids_add as $c => $cluster_id) {
+                    $this->Galaxy->attachCluster($this->Auth->user(), 'attribute', $attributes[$key]['Attribute']['id'], $cluster_id);
+                }
+            }
+
+            return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
+
         } else {
             if (!isset($id)) {
                 throw new MethodNotAllowedException(__('No event ID provided.'));
             }
+            $selectedAttributeIds = json_decode($selectedAttributeIds);
+            if ($selectedAttributeIds === null) {
+                $selectedAttributeIds = array();
+            }
+
+            // tags to remove
+            $tags = $this->Attribute->AttributeTag->getAttributesTags($this->Auth->user(), $id, $selectedAttributeIds);
+            $tagItemsRemove = array();
+            foreach ($tags as $k => $tag) {
+                $tagName = $tag['name'];
+                $tagItemsRemove[] = array(
+                    'name' => $tagName,
+                    'value' => $tag['id'],
+                    'template' => array(
+                        'name' => array(
+                            'name' => $tagName,
+                            'label' => array(
+                                'background' => isset($tag['colour']) ? $tag['colour'] : '#ffffff'
+                            )
+                        ),
+                    )
+                );
+            }
+            unset($tags);
+
+            // clusters to remove
+            $clusters = $this->Attribute->AttributeTag->getAttributesClusters($this->Auth->user(), $id, $selectedAttributeIds);
+            $clusterItemsRemove = array();
+            foreach ($clusters as $k => $cluster) {
+                $name = $cluster['value'];
+                $optionName = $cluster['value'];
+                $synom = $cluster['synonyms_string'] !== '' ? ' (' . $cluster['synonyms_string'] . ')' : '';
+                $optionName .= $synom;
+
+                $temp = array(
+                    'name' => $optionName,
+                    'value' => $cluster['id'],
+                    'template' => array(
+                        'name' => $name,
+                        'infoExtra' => $cluster['description']
+                    )
+                );
+                if ($cluster['synonyms_string'] !== '') {
+                    $temp['infoContextual'] = __('Synonyms: ') . $cluster['synonyms_string'];
+                }
+                $clusterItemsRemove[] = $temp;
+            }
+            unset($clusters);
+            $conditions = array();
+            if (!$this->_isSiteAdmin()) {
+                $conditions = array('Tag.org_id' => array(0, $this->Auth->user('org_id')));
+                $conditions = array('Tag.user_id' => array(0, $this->Auth->user('id')));
+                $conditions = array('Tag.hide_tag' => 0);
+            }
+            $allTags = $this->Attribute->AttributeTag->Tag->find('all', array('conditions' => $conditions, 'recursive' => -1));
+            $tags = array();
+            foreach ($allTags as $i => $tag) {
+                $tags[$tag['Tag']['id']] = $tag['Tag'];
+            }
+            unset($allTags);
+            $tagItemsAdd = array();
+            foreach ($tags as $k => $tag) {
+                $tagName = $tag['name'];
+                $tagItemsAdd[] = array(
+                    'name' => $tagName,
+                    'value' => $tag['id'],
+                    'template' => array(
+                        'name' => array(
+                            'name' => $tagName,
+                            'label' => array(
+                                'background' => isset($tag['colour']) ? $tag['colour'] : '#ffffff'
+                            )
+                        ),
+                    )
+
+                );
+            }
+
+            // clusters to add
+            $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+            $clusters = $this->GalaxyCluster->find('all', array(
+                'fields' => array('value', 'id'),
+                'recursive' => -1
+            ));
+            $clusterItemsAdd = array();
+            foreach ($clusters as $k => $cluster) {
+                $clusterItemsAdd[] = array(
+                    'name' => $cluster['GalaxyCluster']['value'],
+                    'value' => $cluster['GalaxyCluster']['id']
+                );
+            }
+            unset($clusters);
+
             $this->layout = 'ajax';
             $this->set('id', $id);
             $this->set('sgs', $this->Attribute->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true));
             $this->set('distributionLevels', $this->Attribute->distributionLevels);
             $this->set('distributionDescriptions', $this->Attribute->distributionDescriptions);
             $this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
+            $this->set('tagItemsRemove', $tagItemsRemove);
+            $this->set('tagItemsAdd', $tagItemsAdd);
+            $this->set('clusterItemsAdd', $clusterItemsAdd);
+            $this->set('clusterItemsRemove', $clusterItemsRemove);
+            $this->set('options', array( // set chosen (select picker) options
+                'multiple' => -1,
+                'disabledSubmitButton' => true,
+                'flag_redraw_chosen' => true,
+                'select_options' => array(
+                    'additionalData' => array(
+                        'event_id' => $id,
+                    ),
+                ),
+            ));
             $this->render('ajax/attributeEditMassForm');
         }
     }
@@ -1583,7 +1722,7 @@ class AttributesController extends AppController
         $this->set('typeDefinitions', $this->Attribute->typeDefinitions);
         $this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
         $this->set('shortDist', $this->Attribute->shortDist);
-        if ($this->request->is('post')) {
+        if ($this->request->is('post') || !empty($this->request->params['named']['tags'])) {
             if (isset($this->request->data['Attribute'])) {
                 $this->request->data = $this->request->data['Attribute'];
             }
@@ -1663,6 +1802,25 @@ class AttributesController extends AppController
                 $this->set('sightingsData', $sightingsData);
             } else {
                 return $this->RestResponse->viewData($attributes, $this->response->type());
+            }
+            if (isset($filters['tags']) && !empty($filters['tags'])) {
+                // if the tag is passed by ID - show its name in the view
+                $this->loadModel('Tag');
+                if (!is_array($filters['tags'])) {
+                    $filters['tags'] = array($filters['tags']);
+                }
+                foreach ($filters['tags'] as $k => &$v) {
+                    if (!is_numeric($v))
+                        continue;
+                    $tag = $this->Tag->find('first', [
+                        'conditions' => ['Tag.id' => $v],
+                        'fields' => ['name'],
+                        'recursive' => -1
+                        ]);
+                    if (!empty($tag)) {
+                        $v = $tag['Tag']['name'];
+                    }
+                }
             }
             $this->set('filters', $filters);
             $this->set('attributes', $attributes);
@@ -1780,9 +1938,18 @@ class AttributesController extends AppController
         $this->set('fails', $this->Attribute->checkComposites());
     }
 
-    public function restSearch($returnFormat = 'json', $value = false, $type = false, $category = false, $org = false, $tags = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $uuid = false, $publish_timestamp = false, $published = false, $timestamp = false, $enforceWarninglist = false, $to_ids = false, $deleted = false, $includeEventUuid = false, $event_timestamp = false, $threat_level_id = false)
+    public function restSearch(
+        $returnFormat = false, $value = false, $type = false, $category = false, $org = false, $tags = false, $from = false,
+        $to = false, $last = false, $eventid = false, $withAttachments = false, $uuid = false, $publish_timestamp = false, $published = false,
+        $timestamp = false, $enforceWarninglist = false, $to_ids = false, $deleted = false, $includeEventUuid = false, $event_timestamp = false,
+        $threat_level_id = false
+    )
     {
-        $paramArray = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags', 'includeProposals', 'first_seen', 'last_seen');
+        $paramArray = array(
+            'value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachbocsi ments', 'uuid', 'publish_timestamp',
+            'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'event_timestamp', 'threat_level_id', 'includeEventTags',
+            'includeProposals', 'returnFormat', 'published', 'limit', 'page', 'requested_attributes', 'includeContext', 'headerless', 'first_seen', 'last_seen'
+        );
         $filterData = array(
             'request' => $this->request,
             'named_params' => $this->params['named'],
@@ -1803,6 +1970,8 @@ class AttributesController extends AppController
         }
         if (isset($filters['returnFormat'])) {
             $returnFormat = $filters['returnFormat'];
+        } else {
+            $returnFormat = 'json';
         }
         if ($returnFormat === 'download') {
             $returnFormat = 'json';
@@ -1810,7 +1979,7 @@ class AttributesController extends AppController
         $elementCounter = 0;
         $final = $this->Attribute->restSearch($user, $returnFormat, $filters, false, false, $elementCounter);
         $responseType = $validFormats[$returnFormat][0];
-        return $this->RestResponse->viewData($final, $responseType, false, true, false, array('X-result-count' => $elementCounter));
+        return $this->RestResponse->viewData($final, $responseType, false, true, false, array('X-Result-Count' => $elementCounter, 'X-Export-Module-Used' => $returnFormat, 'X-Response-Format' => $responseType));
     }
 
     // returns an XML with attributes that belong to an event. The type of attributes to be returned can be restricted by type using the 3rd parameter.
@@ -2743,11 +2912,11 @@ class AttributesController extends AppController
             $result = $this->Module->queryModuleServer('/query', $data, true);
             if ($result) {
                 if (!is_array($result)) {
-                    $resultArray[] = array($type => $result);
+                    $resultArray[$type][] = array($type => $result);
                 }
             } else {
                 // TODO: i18n?
-                $resultArray[] = array($type => 'Enrichment service not reachable.');
+                $resultArray[$type][] = array($type => 'Enrichment service not reachable.');
                 continue;
             }
             if (!empty($result['results'])) {
@@ -2760,11 +2929,11 @@ class AttributesController extends AppController
                             }
                             $tempArray[$k] = $v;
                         }
-                        $resultArray[] = array($type => $tempArray);
+                        $resultArray[$type][] = array($type => $tempArray);
                     } elseif ($r['values'] == null) {
-                        $resultArray[] = array($type => 'No result');
+                        $resultArray[$type][] = array($type => 'No result');
                     } else {
-                        $resultArray[] = array($type => $r['values']);
+                        $resultArray[$type][] = array($type => $r['values']);
                     }
                 }
             }
@@ -2843,14 +3012,51 @@ class AttributesController extends AppController
             $tag_id = $this->request->data['tag'];
         }
         if (!is_numeric($tag_id)) {
-            $tag = $this->Attribute->AttributeTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)))));
-            if (empty($tag)) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status' => 200, 'type' => 'json'));
+            if (preg_match('/^collection_[0-9]+$/i', $tag_id)) {
+                $tagChoice = explode('_', $tag_id)[1];
+                $this->loadModel('TagCollection');
+                $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $tagChoice)));
+                if (empty($tagCollection)) {
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
+                }
+                $tag_id_list = array();
+                foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
+                    $tag_id_list[] = $tagCollectionTag['tag_id'];
+                }
+            } else {
+                // try to parse json array
+                $tag_ids = json_decode($tag_id);
+                if ($tag_ids !== null) { // can decode json
+                    $tag_id_list = array();
+                    foreach ($tag_ids as $tag_id) {
+                        if (preg_match('/^collection_[0-9]+$/i', $tag_id)) {
+                            $tagChoice = explode('_', $tag_id)[1];
+                            $this->loadModel('TagCollection');
+                            $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $tagChoice)));
+                            if (empty($tagCollection)) {
+                                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
+                            }
+                            foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
+                                $tag_id_list[] = $tagCollectionTag['tag_id'];
+                            }
+                        } else {
+                            $tag_id_list[] = $tag_id;
+                        }
+                    }
+                } else {
+                    $tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
+                    if (empty($tag)) {
+                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
+                    }
+                    $tag_id = $tag['Tag']['id'];
+                }
             }
-            $tag_id = $tag['Tag']['id'];
         }
         if (!isset($idList)) {
             $idList = array($id);
+        }
+        if (empty($tag_id_list)) {
+            $tag_id_list = array($tag_id);
         }
         $success = 0;
         $fails = 0;
@@ -2879,40 +3085,44 @@ class AttributesController extends AppController
                 $this->Attribute->Event->insertLock($this->Auth->user(), $eventId);
             }
             $this->Attribute->recursive = -1;
-            $this->Attribute->AttributeTag->Tag->id = $tag_id;
-            if (!$this->Attribute->AttributeTag->Tag->exists()) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status' => 200, 'type' => 'json'));
-            }
-            $tag = $this->Attribute->AttributeTag->Tag->find('first', array(
-                'conditions' => array('Tag.id' => $tag_id),
-                'recursive' => -1,
-                'fields' => array('Tag.name')
-            ));
-            $found = $this->Attribute->AttributeTag->find('first', array(
-                'conditions' => array(
-                    'attribute_id' => $id,
-                    'tag_id' => $tag_id
-                ),
-                'recursive' => -1,
-            ));
-            $this->autoRender = false;
-            if (!empty($found)) {
-                $fails++;
-                continue;
-            }
-            $this->Attribute->AttributeTag->create();
-            if ($this->Attribute->AttributeTag->save(array('attribute_id' => $id, 'tag_id' => $tag_id, 'event_id' => $eventId))) {
-                $event['Event']['published'] = 0;
-                $date = new DateTime();
-                $event['Event']['timestamp'] = $date->getTimestamp();
-                $this->Attribute->Event->save($event);
-                $this->Attribute->data['Attribute']['timestamp'] = $date->getTimestamp();
-                $this->Attribute->save($this->Attribute->data);
-                $log = ClassRegistry::init('Log');
-                $log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to attribute (' . $id . ')', 'Attribute (' . $id . ') tagged as Tag (' . $tag_id . ')');
-                $success++;
-            } else {
-                $fails++;
+
+            foreach ($tag_id_list as $tag_id) {
+                $this->Attribute->AttributeTag->Tag->id = $tag_id;
+                if (!$this->Attribute->AttributeTag->Tag->exists()) {
+                    $fails++;
+                    continue;
+                }
+                $tag = $this->Attribute->AttributeTag->Tag->find('first', array(
+                    'conditions' => array('Tag.id' => $tag_id),
+                    'recursive' => -1,
+                    'fields' => array('Tag.name')
+                ));
+                $found = $this->Attribute->AttributeTag->find('first', array(
+                    'conditions' => array(
+                        'attribute_id' => $id,
+                        'tag_id' => $tag_id
+                    ),
+                    'recursive' => -1,
+                ));
+                $this->autoRender = false;
+                if (!empty($found)) {
+                    $fails++;
+                    continue;
+                }
+                $this->Attribute->AttributeTag->create();
+                if ($this->Attribute->AttributeTag->save(array('attribute_id' => $id, 'tag_id' => $tag_id, 'event_id' => $eventId))) {
+                    $event['Event']['published'] = 0;
+                    $date = new DateTime();
+                    $event['Event']['timestamp'] = $date->getTimestamp();
+                    $this->Attribute->Event->save($event);
+                    $this->Attribute->data['Attribute']['timestamp'] = $date->getTimestamp();
+                    $this->Attribute->save($this->Attribute->data);
+                    $log = ClassRegistry::init('Log');
+                    $log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to attribute (' . $id . ')', 'Attribute (' . $id . ') tagged as Tag (' . $tag_id . ')');
+                    $success++;
+                } else {
+                    $fails++;
+                }
             }
         }
         if ($fails == 0) {

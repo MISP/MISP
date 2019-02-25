@@ -193,6 +193,8 @@ class ObjectReference extends AppModel
         }
         if (isset($reference['source_uuid'])) {
             $conditions = array('Object.uuid' => $reference['source_uuid']);
+        } elseif (isset($reference['object_uuid'])) {
+            $conditions = array('Object.uuid' => $reference['object_uuid']);
         } elseif (isset($reference['object_id'])) {
             $conditions = array('Object.id' => $reference['object_id']);
         } else {

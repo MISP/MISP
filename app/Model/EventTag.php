@@ -56,6 +56,11 @@ class EventTag extends AppModel
         }
     }
 
+    public function softDelete($id)
+    {
+        $this->delete($id);
+    }
+
     // take an array of tag names to be included and an array with tagnames to be excluded and find all event IDs that fit the criteria
     public function getEventIDsFromTags($includedTags, $excludedTags)
     {

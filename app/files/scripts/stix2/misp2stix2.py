@@ -18,6 +18,8 @@
 
 import sys, json, os, datetime
 import pymisp
+import re
+import uuid
 from stix2 import *
 from misp2stix2_mapping import *
 from collections import defaultdict
@@ -36,6 +38,7 @@ malware_galaxies_list = ('android', 'banker', 'stealer', 'backdoor', 'ransomware
 threat_actor_galaxies_list = ('threat-actor', 'microsoft-activity-group')
 tool_galaxies_list = ('botnet', 'rat', 'exploit-kit', 'tds', 'tool', 'mitre-tool',
                       'mitre-enterprise-attack-tool', 'mitre-mobile-attack-tool')
+_MISP_event_tags = ['Threat-Report', 'misp:tool="misp2stix2"']
 
 class StixBuilder():
     def __init__(self):
@@ -62,30 +65,55 @@ class StixBuilder():
     def eventReport(self):
         if not self.object_refs and self.links:
             self.add_custom(self.links.pop(0))
-        for link in self.links:
-            url = link['value']
-            source = "url"
-            if link.get('comment'):
-                source += " - {}".format(attribute['comment'])
-            external_ref = {'source_name': source, 'url': url}
-            self.external_refs.append(external_ref)
+        external_refs = [self.__parse_link(link) for link in self.links]
         report_args = {'type': 'report', 'id': self.report_id, 'name': self.misp_event['info'],
                        'created_by_ref': self.identity_id, 'created': self.misp_event['date'],
-                       'published': self.get_datetime_from_timestamp(self.misp_event['publish_timestamp']),
-                       'object_refs': self.object_refs}
+                       'published': self.get_datetime_from_timestamp(self.misp_event['publish_timestamp'])}
+        labels = _MISP_event_tags
         if self.misp_event.get('Tag'):
-            labels = []
+            markings = []
             for tag in self.misp_event['Tag']:
-                labels.append(tag['name'])
-            report_args['labels'] = labels
-            if 'misp:tool="misp2stix2"' not in labels:
-                report_args['labels'].append('misp:tool="misp2stix2"')
-        else:
-            report_args['labels'] = ['Threat-Report']
-            report_args['labels'].append('misp:tool="misp2stix2"')
-        if self.external_refs:
-            report_args['external_references'] = self.external_refs
-        return Report(**report_args)
+                name = tag['name']
+                markings.append(name) if name.startswith('tlp:') else labels.append(name)
+            if markings:
+                report_args['object_marking_refs'] = self.handle_tags(markings)
+        report_args['labels'] = labels
+        if external_refs:
+            report_args['external_references'] = external_refs
+        self.add_all_markings()
+        self.add_all_relationships()
+        report_args['object_refs'] = self.object_refs
+        return Report(**report_args, interoperability=True)
+
+    @staticmethod
+    def __parse_link(link):
+        url = link['value']
+        source = "url"
+        if link.get('comment'):
+            source += " - {}".format(link['comment'])
+        return {'source_name': source, 'url': url}
+
+    def add_all_markings(self):
+        for marking_args in self.markings.values():
+            marking_id = marking_args['id']
+            marking = MarkingDefinition(**marking_args)
+            self.append_object(marking, marking_id)
+
+    def add_all_relationships(self):
+        for source, targets in self.relationships.items():
+            if source.startswith('report'):
+                continue
+            source_type,_ = source.split('--')
+            for target in targets:
+                target_type,_ = target.split('--')
+                try:
+                    relation = relationshipsSpecifications[source_type][target_type]
+                except KeyError:
+                    # custom relationship (suggested by iglocska)
+                    relation = "has"
+                relationship = Relationship(source_ref=source, target_ref=target,
+                                            relationship_type=relation, interoperability=True)
+                self.append_object(relationship, relationship.id)
 
     def __set_identity(self):
         org = self.misp_event['Orgc']
@@ -93,8 +121,8 @@ class StixBuilder():
         identity_id = 'identity--{}'.format(org_uuid)
         self.identity_id = identity_id
         if org_uuid not in self.orgs:
-            identity = Identity(type="identity", id=identity_id,
-                                name=org["name"], identity_class="organization")
+            identity = Identity(type="identity", id=identity_id, name=org["name"],
+                                identity_class="organization", interoperability=True)
             self.SDOs.append(identity)
             self.orgs.append(org_uuid)
             return 1
@@ -112,8 +140,8 @@ class StixBuilder():
         self.report_id = "report--{}".format(self.misp_event['uuid'])
         self.SDOs = []
         self.object_refs = []
-        self.external_refs = []
         self.links = []
+        self.markings = {}
         self.relationships = defaultdict(list)
         i = self.__set_identity()
         if self.misp_event.get('Attribute'):
@@ -126,7 +154,6 @@ class StixBuilder():
             self.load_objects_mapping()
             self.objects_to_parse = defaultdict(dict)
             misp_objects = self.misp_event['Object']
-            self.object_references = self.fetch_object_references(misp_objects)
             for misp_object in misp_objects:
                 name = misp_object['name']
                 if name == 'original-imported-file':
@@ -141,19 +168,6 @@ class StixBuilder():
         if self.misp_event.get('Galaxy'):
             for galaxy in self.misp_event['Galaxy']:
                 self.parse_galaxy(galaxy, self.report_id)
-        for source, targets in self.relationships.items():
-            if source.startswith('report'):
-                continue
-            source_type,_ = source.split('--')
-            for target in targets:
-                target_type,_ = target.split('--')
-                try:
-                    relation = relationshipsSpecifications[source_type][target_type]
-                except KeyError:
-                    # custom relationship (suggested by iglocska)
-                    relation = "has"
-                relationship = Relationship(source_ref=source, target_ref=target, relationship_type=relation)
-                self.append_object(relationship, relationship.id)
         report = self.eventReport()
         self.SDOs.insert(i, report)
         return self.SDOs
@@ -190,20 +204,7 @@ class StixBuilder():
         self.galaxies_mapping.update(dict.fromkeys(threat_actor_galaxies_list, ['threat-actor', self.add_threat_actor]))
         self.galaxies_mapping.update(dict.fromkeys(tool_galaxies_list, ['tool', self.add_tool]))
 
-    def fetch_object_references(self, misp_objects):
-        object_references = {}
-        for misp_object in misp_objects:
-            if misp_object.get('ObjectReference') and not self.fetch_ids_flag(misp_object['Attribute']):
-                for reference in misp_object['ObjectReference']:
-                    try:
-                        referenced_object = reference['Attribute']
-                    except KeyError:
-                        referenced_object = self.get_object_by_uuid(reference['referenced_uuid'])
-                    object_references[reference['referenced_uuid']] = referenced_object
-        return object_references
-
-    @staticmethod
-    def get_object_by_uuid(uuid):
+    def get_object_by_uuid(self, uuid):
         for _object in self.misp_event['Object']:
             if _object.get('uuid') and _object['uuid'] == uuid:
                 return _object
@@ -258,7 +259,7 @@ class StixBuilder():
             to_ids_list.append(to_ids_pe)
             sections = []
             for reference in pe_object['ObjectReference']:
-                if reference['Object']['name'] == "pe-section"and reference['referenced_uuid'] in self.objects_to_parse['pe_section'] :
+                if reference['Object']['name'] == "pe-section" and reference['referenced_uuid'] in self.objects_to_parse['pe-section']:
                     to_ids_section, section_object = self.objects_to_parse['pe-section'][reference['referenced_uuid']]
                     to_ids_list.append(to_ids_section)
                     sections.append(section_object)
@@ -267,20 +268,34 @@ class StixBuilder():
                 pattern += " AND {}".format(self.parse_pe_extensions_pattern(pe_object, sections))
                 self.add_object_indicator(file_object, pattern_arg="[{}]".format(pattern))
             else:
-                observable = self.resolve_file_observable(file_object['Attributes'], file_id)
-                observable['1']['extensions'] = self.parse_pe_extensions_observable(pe_object, sections)
+                observable = self.resolve_file_observable(file_object['Attribute'], file_id)
+                pe_type = self._get_pe_type_from_filename(observable['0'])
+                observable['0']['extensions'] = self.parse_pe_extensions_observable(pe_object, sections, pe_type)
                 self.add_object_observable(file_object, observable_arg=observable)
 
-    def parse_pe_extensions_observable(self, pe_object, sections):
+    @staticmethod
+    def _create_pe_type_test(observable, extension):
+        return [
+            ('name' in observable and observable['name'].endswith('.%s' % extension)),
+            ('mime_type' in observable and re.compile(".* .+{0}.+ .*|.* {0} .*".format(extension)).match(observable['mime_type'].lower()))]
+
+    def _get_pe_type_from_filename(self, observable):
+        for extension in ('exe', 'dll'):
+            if any(self._create_pe_type_test(observable, extension)):
+                return extension
+        return 'sys'
+
+    def parse_pe_extensions_observable(self, pe_object, sections, pe_type):
         extension = defaultdict(list)
-        for attribute in pe_object['Attributes']:
+        extension['pe_type'] = pe_type
+        for attribute in pe_object['Attribute']:
             try:
                 extension[peMapping[attribute['object_relation']]] = attribute['value']
             except KeyError:
                 extension["x_misp_{}_{}".format(attribute['type'], attribute['object_relation'].replace('-', '_'))] = attribute['value']
         for section in sections:
             d_section = defaultdict(dict)
-            for attribute in section['Attributes']:
+            for attribute in section['Attribute']:
                 relation = attribute['object_relation']
                 if relation in misp_hash_types:
                     d_section['hashes'][relation] = attribute['value']
@@ -289,7 +304,11 @@ class StixBuilder():
                         d_section[peSectionMapping[relation]] = attribute['value']
                     except KeyError:
                         continue
+            if 'name' not in d_section:
+                d_section['name'] = 'Section {}'.format(sections.index(section))
             extension['sections'].append(WindowsPESection(**d_section))
+        if len(sections) != int(extension['number_of_sections']):
+            extension['number_of_sections'] = str(len(sections))
         return {"windows-pebinary-ext": extension}
 
     def parse_pe_extensions_pattern(self, pe_object, sections):
@@ -305,7 +324,7 @@ class StixBuilder():
         n_section = 0
         for section in sections:
             section_mapping = "{}.sections[{}]".format(pe_mapping, str(n_section))
-            for attribute in section['Attributes']:
+            for attribute in section['Attribute']:
                 relation = attribute['object_relation']
                 if relation in misp_hash_types:
                     stix_type = "{}.hashes.'{}'".format(section_mapping, relation)
@@ -325,7 +344,7 @@ class StixBuilder():
 
     def parse_galaxy(self, galaxy, source_id):
         galaxy_type = galaxy.get('type')
-        galaxy_uuid = galaxy['GalaxyCluster'][0]['uuid']
+        galaxy_uuid = galaxy['GalaxyCluster'][0]['collection_uuid']
         try:
             stix_type, to_call = self.galaxies_mapping[galaxy_type]
         except Exception:
@@ -338,7 +357,11 @@ class StixBuilder():
     @staticmethod
     def generate_galaxy_args(galaxy, b_killchain, b_alias, sdo_type):
         cluster = galaxy['GalaxyCluster'][0]
-        sdo_id = "{}--{}".format(sdo_type, cluster.get('uuid'))
+        try:
+            cluster_uuid = cluster['collection_uuid']
+        except KeyError:
+            cluster_uuid = cluster['uuid']
+        sdo_id = "{}--{}".format(sdo_type, cluster_uuid)
         description = "{} | {}".format(galaxy['description'], cluster['description'])
         labels = ['misp:name=\"{}\"'.format(galaxy['name'])]
         sdo_args = {'id': sdo_id, 'type': sdo_type, 'name': cluster['value'], 'description': description}
@@ -360,7 +383,7 @@ class StixBuilder():
     def add_attack_pattern(self, galaxy):
         a_p_args, a_p_id = self.generate_galaxy_args(galaxy, True, False, 'attack-pattern')
         a_p_args['created_by_ref'] = self.identity_id
-        attack_pattern = AttackPattern(**a_p_args)
+        attack_pattern = AttackPattern(**a_p_args, interoperability=True)
         self.append_object(attack_pattern, a_p_id)
 
     def add_course_of_action(self, misp_object):
@@ -383,23 +406,27 @@ class StixBuilder():
 
     def add_coa_stix_object(self, coa_args, coa_id):
         coa_args['created_by_ref'] = self.identity_id
-        course_of_action = CourseOfAction(**coa_args)
+        course_of_action = CourseOfAction(**coa_args, interoperability=True)
         self.append_object(course_of_action, coa_id)
 
     def add_custom(self, attribute):
         custom_object_id = "x-misp-object--{}".format(attribute['uuid'])
         custom_object_type = "x-misp-object-{}".format(attribute['type'].replace('|', '-').lower())
-        labels = self.create_labels(attribute)
+        labels, markings = self.create_labels(attribute)
         custom_object_args = {'id': custom_object_id, 'x_misp_category': attribute['category'], 'labels': labels,
                               'x_misp_timestamp': self.get_datetime_from_timestamp(attribute['timestamp']),
                               'x_misp_value': attribute['value'], 'created_by_ref': self.identity_id}
         if attribute.get('comment'):
             custom_object_args['x_misp_comment'] = attribute['comment']
+        if markings:
+            markings = self.handle_tags(markings)
+            custom_object_args['object_marking_refs'] = markings
         @CustomObject(custom_object_type, [('id', properties.StringProperty(required=True)),
                                           ('x_misp_timestamp', properties.StringProperty(required=True)),
                                           ('labels', properties.ListProperty(labels, required=True)),
                                           ('x_misp_value', properties.StringProperty(required=True)),
                                           ('created_by_ref', properties.StringProperty(required=True)),
+                                          ('object_marking_refs', properties.ListProperty(markings)),
                                           ('x_misp_comment', properties.StringProperty()),
                                           ('x_misp_category', properties.StringProperty())
                                          ])
@@ -412,12 +439,14 @@ class StixBuilder():
     def add_identity(self, attribute):
         identity_id = "identity--{}".format(attribute['uuid'])
         name = attribute['value']
-        labels = self.create_labels(attribute)
+        labels, markings = self.create_labels(attribute)
         identity_args = {'id': identity_id,  'type': identity, 'name': name, 'labels': labels,
                           'identity_class': 'individual', 'created_by_ref': self.identity_id}
         if attribute.get('comment'):
             identity_args['description'] = attribute['comment']
-        identity = Identity(**identity_args)
+        if markings:
+            identity_args['object_marking_refs'] = self.handle_tags(markings)
+        identity = Identity(**identity_args, interoperability=True)
         self.append_object(identity, identity_id)
 
     def add_indicator(self, attribute):
@@ -426,7 +455,7 @@ class StixBuilder():
         self.parse_galaxies(attribute['Galaxy'], indicator_id)
         category = attribute['category']
         killchain = self.create_killchain(category)
-        labels = self.create_labels(attribute)
+        labels, markings = self.create_labels(attribute)
         attribute_value = attribute['value'] if attribute_type != "AS" else self.define_attribute_value(attribute['value'], attribute['comment'])
         pattern = mispTypesMapping[attribute_type]['pattern'](attribute_type, attribute_value, attribute['data']) if attribute.get('data') else self.define_pattern(attribute_type, attribute_value)
         indicator_args = {'id': indicator_id, 'type': 'indicator', 'labels': labels, 'kill_chain_phases': killchain,
@@ -438,19 +467,21 @@ class StixBuilder():
                     break
         if attribute.get('comment'):
             indicator_args['description'] = attribute['comment']
-        indicator = Indicator(**indicator_args)
+        if markings:
+            indicator_args['object_marking_refs'] = self.handle_tags(markings)
+        indicator = Indicator(**indicator_args, interoperability=True)
         self.append_object(indicator, indicator_id)
 
     def add_intrusion_set(self, galaxy):
         i_s_args, i_s_id = self.generate_galaxy_args(galaxy, False, True, 'intrusion-set')
         i_s_args['created_by_ref'] = self.identity_id
-        intrusion_set = IntrusionSet(**i_s_args)
+        intrusion_set = IntrusionSet(**i_s_args, interoperability=True)
         self.append_object(intrusion_set, i_s_id)
 
     def add_malware(self, galaxy):
         malware_args, malware_id = self.generate_galaxy_args(galaxy, True, False, 'malware')
         malware_args['created_by_ref'] = self.identity_id
-        malware = Malware(**malware_args)
+        malware = Malware(**malware_args, interoperability=True)
         self.append_object(malware, malware_id)
 
     def add_observed_data(self, attribute):
@@ -458,36 +489,40 @@ class StixBuilder():
         observed_data_id = "observed-data--{}".format(attribute['uuid'])
         self.parse_galaxies(attribute['Galaxy'], observed_data_id)
         timestamp = self.get_datetime_from_timestamp(attribute['timestamp'])
-        labels = self.create_labels(attribute)
+        labels, markings = self.create_labels(attribute)
         attribute_value = attribute['value'] if attribute_type != "AS" else self.define_attribute_value(attribute['value'], attribute['comment'])
         observable = mispTypesMapping[attribute_type]['observable'](attribute_type, attribute_value, attribute['data']) if attribute.get('data') else self.define_observable(attribute_type, attribute_value)
         observed_data_args = {'id': observed_data_id, 'type': 'observed-data', 'number_observed': 1,
                               'first_observed': timestamp, 'last_observed': timestamp, 'labels': labels,
                               'created_by_ref': self.identity_id, 'objects': observable}
-        observed_data = ObservedData(**observed_data_args)
+        if markings:
+            observed_data_args['object_marking_refs'] = self.handle_tags(markings)
+        observed_data = ObservedData(**observed_data_args, interoperability=True)
         self.append_object(observed_data, observed_data_id)
 
     def add_threat_actor(self, galaxy):
         t_a_args,  t_a_id = self.generate_galaxy_args(galaxy, False, True, 'threat-actor')
         t_a_args['created_by_ref'] = self.identity_id
-        threat_actor = ThreatActor(**t_a_args)
+        threat_actor = ThreatActor(**t_a_args, interoperability=True)
         self.append_object(threat_actor, t_a_id)
 
     def add_tool(self, galaxy):
         tool_args, tool_id = self.generate_galaxy_args(galaxy, True, False, 'tool')
         tool_args['created_by_ref'] = self.identity_id
-        tool = Tool(**tool_args)
+        tool = Tool(**tool_args, interoperability=True)
         self.append_object(tool, tool_id)
 
     def add_vulnerability(self, attribute):
         vulnerability_id = "vulnerability--{}".format(attribute['uuid'])
         name = attribute['value']
         vulnerability_data = [mispTypesMapping['vulnerability']['vulnerability_args'](name)]
-        labels = self.create_labels(attribute)
+        labels, markings = self.create_labels(attribute)
         vulnerability_args = {'id': vulnerability_id, 'type': 'vulnerability',
                               'name': name, 'external_references': vulnerability_data,
                               'created_by_ref': self.identity_id, 'labels': labels}
-        vulnerability = Vulnerability(**vulnerability_args)
+        if markings:
+            vulnerability_args['object_marking_refs'] = self.handle_tags(markings)
+        vulnerability = Vulnerability(**vulnerability_args, interoperability=True)
         self.append_object(vulnerability, vulnerability_id)
 
     def add_vulnerability_from_galaxy(self, attribute):
@@ -506,7 +541,7 @@ class StixBuilder():
                               'name': name, 'external_references': vulnerability_data,
                               'created_by_ref': self.identity_id, 'labels': labels,
                               'description': description}
-        vulnerability = Vulnerability(**vulnerability_args)
+        vulnerability = Vulnerability(**vulnerability_args, interoperability=True)
         self.append_object(vulnerability, vulnerability_id)
 
     def add_object_custom(self, misp_object, to_ids):
@@ -550,7 +585,7 @@ class StixBuilder():
                           'labels': labels, 'description': misp_object['description'],
                           'pattern': pattern, 'kill_chain_phases': killchain,
                           'created_by_ref': self.identity_id, 'allow_custom': True}
-        indicator = Indicator(**indicator_args)
+        indicator = Indicator(**indicator_args, interoperability=True)
         self.append_object(indicator, indicator_id)
 
     def add_object_observable(self, misp_object, observable_arg=None):
@@ -569,7 +604,7 @@ class StixBuilder():
                               'first_observed': timestamp, 'last_observed': timestamp,
                               'created_by_ref': self.identity_id, 'allow_custom': True}
         try:
-            observed_data = ObservedData(**observed_data_args)
+            observed_data = ObservedData(**observed_data_args, interoperability=True)
         except exceptions.InvalidValueError:
             observed_data = self.fix_enumeration_issues(name, observed_data_args)
         self.append_object(observed_data, observed_data_id)
@@ -590,8 +625,8 @@ class StixBuilder():
                     current_dict[field] = enumeration_fails[field]
             for field in enumeration_fails:
                 current_dict.pop(field)
-            return ObservedData(**ns_args)
-        return ObservedData(**args)
+            return ObservedData(**ns_args, interoperability=True)
+        return ObservedData(**args, interoperability=True)
 
     def add_object_vulnerability(self, misp_object, to_ids):
         vulnerability_id = 'vulnerability--{}'.format(misp_object['uuid'])
@@ -600,7 +635,7 @@ class StixBuilder():
         vulnerability_args = {'id': vulnerability_id, 'type': 'vulnerability',
                               'name': name, 'created_by_ref': self.identity_id,
                               'labels': labels}
-        vulnerability = Vulnerability(**vulnerability_args)
+        vulnerability = Vulnerability(**vulnerability_args, interoperability=True)
         self.append_object(vulnerability, vulnerability_id)
 
     def append_object(self, stix_object, stix_object_id):
@@ -616,9 +651,12 @@ class StixBuilder():
         labels = ['misp:type="{}"'.format(attribute['type']),
                   'misp:category="{}"'.format(attribute['category']),
                   'misp:to_ids="{}"'.format(attribute['to_ids'])]
+        markings = []
         if attribute.get('Tag'):
-            labels.extend([tag['name'] for tag in attribute['Tag']])
-        return labels
+            for tag in attribute['Tag']:
+                name = tag['name']
+                markings.append(name) if name.startswith('tlp:') else labels.append(name)
+        return labels, markings
 
     @staticmethod
     def create_object_labels(name, category, to_ids):
@@ -626,6 +664,20 @@ class StixBuilder():
                 'misp:category="{}"'.format(category),
                 'misp:to_ids="{}"'.format(to_ids),
                 'from_object']
+
+    def create_marking(self, tag):
+        id = 'marking-definition--%s' % uuid.uuid4()
+        definition_type, definition = tag.split(':')
+        self.markings[tag] = {'type': 'marking-definition', 'id': id, 'definition_type': definition_type,
+                              'definition': {definition_type: definition}}
+        return id
+
+    @staticmethod
+    def _parse_tag(namespace, predicate):
+        if '=' not in predicate:
+            return "{} = {}".format(namespace, predicate)
+        predicate, value = predicate.split('=')
+        return "({}) {} = {}".format(namespace, predicate, value.strip('"'))
 
     @staticmethod
     def define_observable(attribute_type, attribute_value):
@@ -664,6 +716,9 @@ class StixBuilder():
             if attribute['type'] == 'vulnerability':
                 return attribute['value']
         return "Undefined name"
+
+    def handle_tags(self, tags):
+        return [self.markings[tag]['id'] if tag in self.markings else self.create_marking(tag) for tag in tags]
 
     def resolve_asn_observable(self, attributes, object_id):
         asn = objectsMapping['asn']['observable']

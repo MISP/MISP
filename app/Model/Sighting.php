@@ -268,6 +268,9 @@ class Sighting extends AppModel
             if (!$values) {
                 return 'No valid attributes found.';
             }
+            if (!is_array($values)) {
+                $values = array($values);
+            }
             foreach ($values as $value) {
                 foreach (array('value1', 'value2') as $field) {
                     $conditions['OR'][] = array(
@@ -510,24 +513,26 @@ class Sighting extends AppModel
         $additional_event_added = false;
         foreach ($sightings as $sid) {
             $sight = $this->getSighting($sid, $user);
-            $sight['Sighting']['value'] = $sight['Sighting']['Attribute']['value'];
-            // by default, do not include event and attribute
-            if (!isset($filters['includeAttribute']) || !$filters['includeAttribute']) {
-                unset($sight["Sighting"]["Attribute"]);
-            } elseif (!$additional_attribute_added) {
-                $filters['requested_attributes'] = array_merge($filters['requested_attributes'], array('attribute_uuid', 'attribute_type', 'attribute_category', 'attribute_to_ids', 'attribute_value'));
-                $additional_attribute_added = true;
-            }
-
-            if (!isset($filters['includeEvent']) || !$filters['includeEvent']) {
-                unset($sight["Sighting"]["Event"]);
-            } elseif (!$additional_event_added) {
-                $filters['requested_attributes'] = array_merge($filters['requested_attributes'], array('event_uuid', 'event_orgc_id', 'event_org_id', 'event_info', 'event_Orgc_name'));
-                $additional_event_added = true;
-            }
-
             if (!empty($sight)) {
-                array_push($allowedSightings, $sight);
+                $sight['Sighting']['value'] = $sight['Sighting']['Attribute']['value'];
+                // by default, do not include event and attribute
+                if (!isset($filters['includeAttribute']) || !$filters['includeAttribute']) {
+                    unset($sight["Sighting"]["Attribute"]);
+                } else if (!$additional_attribute_added) {
+                    $filters['requested_attributes'] = array_merge($filters['requested_attributes'], array('attribute_uuid', 'attribute_type', 'attribute_category', 'attribute_to_ids', 'attribute_value'));
+                    $additional_attribute_added = true;
+                }
+
+                if (!isset($filters['includeEvent']) || !$filters['includeEvent']) {
+                    unset($sight["Sighting"]["Event"]);
+                } else if (!$additional_event_added) {
+                    $filters['requested_attributes'] = array_merge($filters['requested_attributes'], array('event_uuid', 'event_orgc_id', 'event_org_id', 'event_info', 'event_Orgc_name'));
+                    $additional_event_added = true;
+                }
+
+                if (!empty($sight)) {
+                    array_push($allowedSightings, $sight);
+                }
             }
         }
 

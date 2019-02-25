@@ -172,7 +172,7 @@
 </div>
 <?php
     if (!$ajax) {
-        echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'addObject', 'event' => $event));
+        echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'addObject', 'event' => $event));
     }
 ?>
 <script type="text/javascript">

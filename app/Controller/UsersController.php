@@ -1065,7 +1065,11 @@ class UsersController extends AppController
     public function routeafterlogin()
     {
         // Events list
-        $this->redirect(array('controller' => 'events', 'action' => 'index'));
+        $url = $this->Session->consume('pre_login_requested_url');
+        if (empty($url)) {
+            $url = array('controller' => 'events', 'action' => 'index');
+        }
+        $this->redirect($url);
     }
 
     public function logout()
@@ -1855,23 +1859,68 @@ class UsersController extends AppController
     {
         $this->loadModel('Event');
         $this->loadModel('Galaxy');
-        $attackTacticData = $this->Galaxy->getMitreAttackMatrix();
-        $attackTactic = $attackTacticData['attackTactic'];
-        $attackTags = $attackTacticData['attackTags'];
-        $killChainOrders = $attackTacticData['killChain'];
-        $instanceUUID = $attackTacticData['instance-uuid'];
 
-        $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores(0, $attackTags);
-        $scoresDataEvent = $this->Event->EventTag->getTagScores(0, $attackTags);
+        $galaxy_id = $this->Galaxy->getMitreAttackGalaxyId();
+        $matrixData = $this->Galaxy->getMatrix($galaxy_id);
+
+        $tabs = $matrixData['tabs'];
+        $matrixTags = $matrixData['matrixTags'];
+        $killChainOrders = $matrixData['killChain'];
+        $instanceUUID = $matrixData['instance-uuid'];
+
+        $scoresDataAttr = $this->Event->Attribute->AttributeTag->getTagScores(0, $matrixTags);
+        $scoresDataEvent = $this->Event->EventTag->getTagScores(0, $matrixTags);
         $scoresData = array();
         foreach (array_keys($scoresDataAttr['scores'] + $scoresDataEvent['scores']) as $key) {
             $scoresData[$key] = (isset($scoresDataAttr['scores'][$key]) ? $scoresDataAttr['scores'][$key] : 0) + (isset($scoresDataEvent['scores'][$key]) ? $scoresDataEvent['scores'][$key] : 0);
         }
         $maxScore = max($scoresDataAttr['maxScore'], $scoresDataEvent['maxScore']);
         $scores = $scoresData;
+        // FIXME: temporary fix: add the score of deprecated mitre galaxies to the new one (for the stats)
+        if ($matrixData['galaxy']['id'] == $galaxy_id) {
+            $mergedScore = array();
+            foreach ($scoresData as $tag => $v) {
+                $predicateValue = explode(':', $tag, 2)[1];
+                $predicateValue = explode('=', $predicateValue, 2);
+                $predicate = $predicateValue[0];
+                $clusterValue = $predicateValue[1];
+                $mappedTag = '';
+                $mappingWithoutExternalId = array();
+                if ($predicate == 'mitre-attack-pattern') {
+                    $mappedTag = $tag;
+                    $name = explode(" ", $tag);
+                    $name = join(" ", array_slice($name, 0, -2)); // remove " - external_id"
+                    $mappingWithoutExternalId[$name] = $tag;
+                } else {
+                    $name = explode(" ", $clusterValue);
+                    $name = join(" ", array_slice($name, 0, -2)); // remove " - external_id"
+                    if (isset($mappingWithoutExternalId[$name])) {
+                        $mappedTag = $mappingWithoutExternalId[$name];
+                    } else {
+                        $adjustedTagName = $this->Galaxy->GalaxyCluster->find('list', array(
+                            'group' => array('GalaxyCluster.id', 'GalaxyCluster.tag_name'),
+                            'conditions' => array('GalaxyCluster.tag_name LIKE' => 'misp-galaxy:mitre-attack-pattern=' . $name . '% T%'),
+                            'fields' => array('GalaxyCluster.tag_name')
+                        ));
+                        $adjustedTagName = array_values($adjustedTagName)[0];
+                        $mappingWithoutExternalId[$name] = $adjustedTagName;
+                        $mappedTag = $mappingWithoutExternalId[$name];
+                    }
+                }
+
+                if (isset($mergedScore[$mappedTag])) {
+                    $mergedScore[$mappedTag] += $v;
+                } else {
+                    $mergedScore[$mappedTag] = $v;
+                }
+            }
+            $scores = $mergedScore;
+            $maxScore = max(array_values($mergedScore));
+        }
+        // end FIXME
 
         if ($this->_isRest()) {
-            $json = array('matrix' => $attackTactic, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
+            $json = array('matrix' => $tabs, 'scores' => $scores, 'instance-uuid' => $instanceUUID);
             return $this->RestResponse->viewData($json, $this->response->type());
         } else {
             App::uses('ColourGradientTool', 'Tools');
@@ -1879,12 +1928,17 @@ class UsersController extends AppController
             $colours = $gradientTool->createGradientFromValues($scores);
 
             $this->set('target_type', 'attribute');
-            $this->set('killChainOrders', $killChainOrders);
-            $this->set('attackTactic', $attackTactic);
+            $this->set('columnOrders', $killChainOrders);
+            $this->set('tabs', $tabs);
             $this->set('scores', $scores);
             $this->set('maxScore', $maxScore);
-            $this->set('colours', $colours);
+            if (!empty($colours)) {
+                $this->set('colours', $colours['mapping']);
+                $this->set('interpolation', $colours['interpolation']);
+            }
             $this->set('pickingMode', false);
+            $this->set('defaultTabName', "mitre-attack");
+            $this->set('removeTrailling', 2);
 
             $this->render('statistics_attackmatrix');
         }

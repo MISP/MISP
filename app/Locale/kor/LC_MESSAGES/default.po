@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2018-10-15 23:37\n"
+"PO-Revision-Date: 2019-01-22 21:25\n"
 "Last-Translator: SteveClement <steve@localhost.lu>\n"
 "Language-Team: Korean\n"
 "MIME-Version: 1.0\n"
@@ -609,35 +609,35 @@ msgstr "다운로드에 실패했습니다."
 
 #: Controller/FeedsController.php:561
 msgid "Feed could not be fetched. The HTTP error code returned was: "
-msgstr ""
+msgstr "피드를 가져올 수 없습니다. 리턴된 HTTP 오류 코드는 다음과 같습니다: "
 
 #: Controller/FeedsController.php:600;651
 msgid "Invalid feed type."
-msgstr ""
+msgstr "잘못된 피드 유형입니다."
 
 #: Controller/FeedsController.php:714
 msgid "This event is blocked by the Feed filters."
-msgstr ""
+msgstr "이 이벤트는 피드 필터에 의해 차단되어 있습니다."
 
 #: Controller/FeedsController.php:716
 msgid "Could not download the selected Event"
-msgstr ""
+msgstr "선택한 이벤트를 다운로드 할 수 없습니다"
 
 #: Controller/FeedsController.php:752;756
 msgid "Invalid Feed."
-msgstr ""
+msgstr "잘못된 피드입니다."
 
 #: Controller/FeedsController.php:777
 msgid "Only POST requests are allowed."
-msgstr ""
+msgstr "POST 요청 만 허용되어 있습니다."
 
 #: Controller/FeedsController.php:781
 msgid "Feed not found."
-msgstr ""
+msgstr "피드가 없습니다."
 
 #: Controller/FeedsController.php:790
 msgid "Data pulled."
-msgstr ""
+msgstr "데이터를 가져왔습니다."
 
 #: Controller/FeedsController.php:792
 msgid "Could not pull the selected data. Reason: %s"
@@ -645,27 +645,27 @@ msgstr ""
 
 #: Controller/FeedsController.php:809
 msgid "Starting feed caching."
-msgstr ""
+msgstr "피드 캐싱 시작."
 
 #: Controller/FeedsController.php:824
 msgid "Caching the feeds has failed."
-msgstr ""
+msgstr "피드를 캐싱에 실패 했습니다."
 
 #: Controller/FeedsController.php:827
 msgid "Caching the feeds has successfully completed."
-msgstr ""
+msgstr "피드 캐싱을 성공적으로 완료 했습니다."
 
 #: Controller/FeedsController.php:858
 msgid "Invalid feed list received."
-msgstr ""
+msgstr "잘못 된 피드 리스트를 받았습니다."
 
 #: Controller/JobsController.php:156
 msgid "All completed jobs have been purged"
-msgstr ""
+msgstr "모든 완료 된 작업이 제거 되었습니다."
 
 #: Controller/JobsController.php:159
 msgid "All jobs have been purged"
-msgstr ""
+msgstr "모든 작업이 제거 되었습니다."
 
 #: Controller/ObjectReferencesController.php:37
 msgid "Invalid object"
@@ -677,19 +677,19 @@ msgstr "올바르지 않은 객체 참조"
 
 #: Controller/ObjectTemplatesController.php:88
 msgid "ObjectTemplate deleted"
-msgstr ""
+msgstr "오브젝트템플릿이 삭제 되었습니다."
 
 #: Controller/ObjectsController.php:29
 msgid "This action can only be reached via POST requests"
-msgstr ""
+msgstr "이 행위는 POST 요청을 통해 서만 이용할 수 있습니다."
 
 #: Controller/ObjectsController.php:69;82
 msgid "Invalid sharing group."
-msgstr ""
+msgstr "잘못 된 공유 그룹입니다."
 
 #: Controller/ObjectsController.php:103
 msgid "You don't have permissions to create objects."
-msgstr ""
+msgstr "오브젝트를 생성할 수있는 권한이 없습니다."
 
 #: Controller/ObjectsController.php:131
 #: Model/Template.php:25
@@ -698,7 +698,7 @@ msgstr "올바르지 않은 양식입니다."
 
 #: Controller/ObjectsController.php:303
 msgid "You don't have permissions to edit objects."
-msgstr ""
+msgstr "오브젝트를 수정할 수있는 권한이 없습니다."
 
 #: Controller/ObjectsController.php:317;328;427
 msgid "Invalid object."
@@ -6931,7 +6931,7 @@ msgid "This event has "
 msgstr ""
 
 #: View/Events/view.ctp:336
-msgid "correlations with data contained within the various feeds, however, due to the large number of attributes the actual feed correlations are not shown. Click <a href=\"%s\\/overrideLimit:1\">here</a> to refresh the page with the feed data loaded."
+msgid "correlations with data contained within the various feeds, however, due to the large number of attributes the actual feed correlations are not shown. Click (<a href=\"%s\\/overrideLimit:1\">here</a> to refresh the page with the feed data loaded."
 msgstr ""
 
 #: View/Events/view.ctp:344

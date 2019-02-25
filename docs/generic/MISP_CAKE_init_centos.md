@@ -57,6 +57,7 @@ sudo $RUN_PHP "$CAKE Admin setSetting "MISP.disable_emailing" true"
 sudo $RUN_PHP "$CAKE Admin setSetting "MISP.contact" "info@admin.test""
 sudo $RUN_PHP "$CAKE Admin setSetting "MISP.disablerestalert" true"
 sudo $RUN_PHP "$CAKE Admin setSetting "MISP.showCorrelationsOnIndex" true"
+sudo $RUN_PHP "$CAKE Admin setSetting "MISP.default_event_tag_collection" 0"
 
 # Provisional Cortex tunes
 sudo $RUN_PHP "$CAKE Admin setSetting "Plugin.Cortex_services_enable" false"
@@ -108,7 +109,7 @@ sudo $RUN_PHP "$CAKE Admin setSetting "MISP.ssdeep_correlation_threshold" 40"
 sudo $RUN_PHP "$CAKE Admin setSetting "MISP.extended_alert_subject" false"
 sudo $RUN_PHP "$CAKE Admin setSetting "MISP.default_event_threat_level" 4"
 
-##sudo $RUN_PHP "$CAKE Admin setSetting "MISP.newUserText" "Dear new MISP user,\\n\\nWe would hereby like to welcome you to the \$org MISP community.\\n\\n Use the credentials below to log into MISP at \$misp, where you will be prompted to manually change your password to something of your own choice.\\n\\nUsername: \$username\\nPassword: \$password\\n\\nIf you have any questions, don't hesitate to contact us at: \$contact.\\n\\nBest regards,\\nYour \$org MISP support team""
+##sudo $RUN_PHP '$CAKE Admin setSetting "MISP.newUserText" "Dear new MISP user,\\n\\nWe would hereby like to welcome you to the \$org MISP community.\\n\\n Use the credentials below to log into MISP at \$misp, where you will be prompted to manually change your password to something of your own choice.\\n\\nUsername: \$username\\nPassword: \$password\\n\\nIf you have any questions, don't hesitate to contact us at: \$contact.\\n\\nBest regards,\\nYour \$org MISP support team"'
 ##sudo $CAKE Admin setSetting "MISP.passwordResetText" "Dear MISP user,\\n\\nA password reset has been triggered for your account. Use the below provided temporary password to log into MISP at \$misp, where you will be prompted to manually change your password to something of your own choice.\\n\\nUsername: \$username\\nYour temporary password: \$password\\n\\nIf you have any questions, don't hesitate to contact us at: \$contact.\\n\\nBest regards,\\nYour \$org MISP support team""
 sudo $RUN_PHP "$CAKE Admin setSetting "MISP.enableEventBlacklisting" true"
 sudo $RUN_PHP "$CAKE Admin setSetting "MISP.enableOrgBlacklisting" true"
@@ -134,22 +135,23 @@ sudo $RUN_PHP "$CAKE Admin setSetting "Session.timeout" 600"
 sudo $RUN_PHP "$CAKE Admin setSetting "Session.cookie_timeout" 3600"
 
 # Update the galaxies…
-sudo $RUN_PHP "$CAKE Admin updateGalaxies"
+##sudo $RUN_PHP "$CAKE Admin updateGalaxies"
+curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/galaxies/update
 
 # Updating the taxonomies…
 sudo $RUN_PHP "$CAKE Admin updateTaxonomies"
 
 # Updating the warning lists…
 ##sudo $RUN_PHP "$CAKE Admin updateWarningLists"
-curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST http://127.0.0.1/warninglists/update
+curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/warninglists/update
 
 # Updating the notice lists…
 ## sudo $RUN_PHP "$CAKE Admin updateNoticeLists"
-curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST http://127.0.0.1/noticelists/update
+curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/noticelists/update
 
 # Updating the object templates…
 ##sudo $RUN_PHP "$CAKE Admin updateObjectTemplates"
-curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST http://127.0.0.1/objectTemplates/update
+curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/objectTemplates/update
 
 # Set MISP Live
 sudo $RUN_PHP "$CAKE Live $MISP_LIVE"

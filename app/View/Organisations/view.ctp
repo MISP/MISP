@@ -1,89 +1,58 @@
 <div class="organisations view">
-<div class="row-fluid">
-    <div class="span10"><h2><?php  echo __('Organisation ') . h($org['Organisation']['name']);?></h2></div>
-    <div class="span2"><div style="float:right;"><?php echo $this->OrgImg->getOrgImg(array('name' => $org['Organisation']['name'], 'id' => $org['Organisation']['id'], 'size' => 48)); ?></div></div>
+    <div class="row-fluid">
+    <?php
+        $table_data = array();
+        $table_data[] = array('key' => __('Id'), 'value' => $org['Organisation']['id']);
+        $table_data[] = array('key' => __('Organisation name'), 'value' => $org['Organisation']['name']);
+        $table_data[] = array(
+            'key' => __('Local or remote'),
+            'html' => sprintf(
+                '<dd><span class="%s bold">%s</span></dd>',
+                $org['Organisation']['local'] ? 'green' : 'red',
+                $org['Organisation']['local'] ? __('Local') : __('Remote')
+            )
+        );
+        $table_data[] = array('key' => __('Description'), 'value' => $org['Organisation']['description']);
+        if (!empty($org['Organisation']['restricted_to_domain'])) {
+            $domains = $org['Organisation']['restricted_to_domain'];
+            foreach ($domains as $k => $domain) {
+                $domains[$k] = h($domain);
+            }
+            $domains = implode("<br />", $domains);
+            $table_data[] = array('key' => __('Domain restrictions'), 'value' => $domains);
+        }
+        $table_data[] = array('key' => __('UUID'), 'value' => !empty(trim($org['Organisation']['uuid'])) ? $org['Organisation']['uuid'] : '');
+        if ($isSiteAdmin) {
+            $table_data[] = array('key' => __('Created by'), 'value' => isset($org['Organisation']['created_by_email']) ? $org['Organisation']['created_by_email'] : __("Unknown"));
+            $table_data[] = array('key' => __('Creation time'), 'value' => $org['Organisation']['date_created']);
+            $table_data[] = array('key' => __('Last modified'), 'value' => $org['Organisation']['date_modified']);
+        }
+        foreach (array('sector' => 'Sector', 'nationality' => 'Nationality', 'type' => 'Organisation type', 'contacts' => 'Contact information') as $k => $field) {
+            if (!empty(trim($org['Organisation'][$k]))) {
+                $table_data[] = array('key' => $field, 'value' => trim(h($org['Organisation'][$k])));
+            }
+        }
+        echo sprintf(
+            '<div class="span8" style="margin:0px;">%s</div><div class="span4" style="horizontal-align:right;">%s</div>',
+            sprintf(
+                '<h2>%s</h2>%s',
+                __('Organisation ') . h($org['Organisation']['name']),
+                $this->element('genericElements/viewMetaTable', array('table_data' => $table_data))
+            ),
+            sprintf(
+                '<div style="float:right;">%s</div>',
+                $this->OrgImg->getOrgImg(
+                    array(
+                        'name' => $org['Organisation']['name'],
+                        'id' => $org['Organisation']['id'],
+                        'size' => 48
+                    ),
+                    true
+                )
+            )
+        );
+    ?>
 </div>
-    <dl style="width:600px;">
-        <dt><?php echo __('Id'); ?></dt>
-        <dd>
-            <?php echo h($org['Organisation']['id']); ?>
-            &nbsp;
-        </dd>
-        <dt><?php echo 'Organisation name'; ?></dt>
-        <dd>
-            <?php echo h($org['Organisation']['name']); ?>
-            &nbsp;
-        </dd>
-        <dt><?php echo __('Local or remote'); ?></dt>
-        <dd>
-            <?php
-                if ($org['Organisation']['local']):
-            ?>
-                <span class="green bold"><?php echo __('Local');?></span>
-            <?php
-                else:
-            ?>
-                <span class="red bold"><?php echo __('Remote');?></span>
-            <?php
-                endif;
-            ?>
-            &nbsp;
-        </dd>
-        <dt><?php echo __('Description'); ?></dt>
-        <dd>
-            <?php echo h($org['Organisation']['description']); ?>
-            &nbsp;
-        </dd>
-        <?php
-            if (!empty($org['Organisation']['restricted_to_domain'])):
-        ?>
-                <dt><?php echo __('E-mail domain restrictions'); ?></dt>
-                <dd style="min-height:40px;">
-                    <?php
-                        $domains = $org['Organisation']['restricted_to_domain'];
-                        foreach ($domains as $k => $domain):
-                            $domains[$k] = h($domain);
-                        endforeach;
-                        $domains = implode("<br />", $domains);
-                        echo $domains;
-                    ?>
-                </dd>
-        <?php
-            endif;
-        ?>
-        <dt><?php echo __('Uuid'); ?></dt>
-        <dd>
-            <?php echo h($org['Organisation']['uuid']); ?>
-            &nbsp;
-        </dd>
-        <?php if ($isSiteAdmin): ?>
-            <dt><?php echo __('Created by'); ?></dt>
-            <dd>
-                <?php
-                if (isset($org['Organisation']['created_by_email'])) {
-                    echo h($org['Organisation']['created_by_email']);
-                } else {
-                    echo __("Unknown");
-                }
-                ?>
-                &nbsp;
-            </dd>
-        <?php endif;?>
-        <?php
-            $optionalFields = array('sector' => 'Sector', 'nationality' => 'Nationality', 'type' => 'Organisation type', 'contacts' => 'Contact information');
-            foreach ($optionalFields as $k => $field):
-                if (!empty($org['Organisation'][$k])):
-        ?>
-                    <dt><?php echo $field; ?></dt>
-                    <dd>
-                        <?php echo h($org['Organisation'][$k]); ?>
-                        &nbsp;
-                    </dd>
-        <?php
-                endif;
-            endforeach;
-        ?>
-    </dl>
     <br />
     <?php if ($local): ?>
         <button id="button_description" class="btn btn-inverse toggle-left qet orgViewButton" onClick="organisationViewContent('description', '<?php echo $id;?>');"><?php echo __('Description');?></button>
@@ -101,8 +70,8 @@
     <div id="ajaxContent" style="width:100%;"></div>
 </div>
 <?php
-    if ($isSiteAdmin) echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'viewOrg'));
-    else echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'viewOrg'));
+    if ($isSiteAdmin) echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'viewOrg'));
+    else echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'viewOrg'));
 ?>
 <script type="text/javascript">
     <?php

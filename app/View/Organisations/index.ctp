@@ -48,17 +48,38 @@
             </li>
         </ul>
     </div>
-    <div class="tabMenuFixedContainer" style="display:inline-block;">
     <?php
-        foreach (array('local', 'external', 'all') as $scopeChoice):
+        $data = array(
+            'children' => array(
+                array(
+                    'children' => array(
+                        array(
+                            'text' => __('Local organisations'),
+                            'active' => $scope === 'local',
+                            'url' => '/organisations/index/scope:local'
+                        ),
+                        array(
+                            'text' => __('Known remote organisations'),
+                            'active' => $scope === 'external',
+                            'url' => '/organisations/index/scope:external'
+                        ),
+                        array(
+                            'text' => __('All organisations'),
+                            'active' => $scope === 'all',
+                            'url' => '/organisations/index/scope:all'
+                        ),
+                    )
+                ),
+                array(
+                    'type' => 'search',
+                    'button' => 'Filter',
+                    'placeholder' => 'Enter value to search',
+                    'data' => '',
+                )
+            )
+        );
+        echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data));
     ?>
-        <span role="button" tabindex="0" aria-label="<?php echo h($scopeChoice); ?>" title="<?php echo h($scopeChoice); ?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($scope === $scopeChoice) echo 'tabMenuActive';?>" onClick="window.location='/organisations/index/scope:<?php echo h($scopeChoice);?>'"><?php echo $texts[$scopeChoice]['text'];?></span>
-    <?php
-        endforeach;
-    ?>
-        <span role="button" tabindex="0" aria-label="Filtr" title="Filter" id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo  h($passedArgs); ?>, '<?php echo $baseurl . '/organisations/index'; ?>');"><?php echo __('Filter');?></span>
-        <input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
-    </div>
     <table class="table table-striped table-hover table-condensed">
     <tr>
             <th><?php echo $this->Paginator->sort('id');?></th>
@@ -146,6 +167,22 @@ endforeach; ?>
     </div>
 
 </div>
+<script type="text/javascript">
+    var passedArgsArray = <?php echo $passedArgs; ?>;
+    $(document).ready(function() {
+        $('.searchFilterButton').click(function() {
+            runIndexFilter(this);
+        });
+        $('#quickFilterButton').click(function() {
+            runIndexQuickFilter();
+        });
+        $('#quickFilterField').on('keypress', function (e) {
+            if(e.which === 13) {
+                runIndexQuickFilter();
+            }
+        });
+    });
+</script>
 <?php
-    if ($isSiteAdmin) echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'indexOrg'));
-    else echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'indexOrg'));
+    if ($isSiteAdmin) echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'indexOrg'));
+    else echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'indexOrg'));

@@ -34,14 +34,14 @@ App::uses('UrlCacheAppHelper', 'UrlCache.View/Helper');
  */
 class AppHelper extends UrlCacheAppHelper {
 
-	public function afterLayout($layoutFile) {
-	}
+    public function afterLayout($layoutFile) {
+    }
 
-	public function url($url = null, $full = false) {
-		if (is_array($url) && !isset($url['admin'])) {
-			$url['admin'] = false;
-		}
-		return parent::url($url, $full);
+    public function url($url = null, $full = false) {
+        if (is_array($url) && !isset($url['admin'])) {
+            $url['admin'] = false;
+        }
+        return parent::url($url, $full);
 
-	}
+    }
 }

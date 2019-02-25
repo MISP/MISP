@@ -7,7 +7,7 @@ class WarninglistsController extends AppController
 
     public $paginate = array(
             'limit' => 60,
-            'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
             'contain' => array(
                 'WarninglistType'
             ),
@@ -269,6 +269,9 @@ class WarninglistsController extends AppController
             $data = $this->request->data;
             if (!is_array($data)) {
                 $data = array($data);
+            }
+            if (array_key_exists('[]', $data)) {
+                $data = $data['[]'];
             }
             $hits = array();
             foreach ($data as $dataPoint) {

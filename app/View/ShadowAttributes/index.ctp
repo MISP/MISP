@@ -15,17 +15,27 @@
         ?>
         </ul>
     </div>
-
-    <div class="tabMenuFixedContainer" style="display:<?php echo !$all ? 'none' : 'block';?>;">
-        <span class="tabMenuFixed tabMenuSides useCursorPointer " style="margin-left:50px;">
-            <span role="button" tabindex="0" aria-label="<?php echo __('Only list proposals of my organisation');?>" title="<?php echo __('Only list proposals of my organisation');?>" class="" onclick="window.location.href='<?php echo $baseurl; ?>/shadow_attributes/index'"><?php echo __('My Org\'s Events');?></span>
-        </span>
-    </div>
-    <div class="tabMenuFixedContainer" style="display:<?php echo $all ? 'none' : 'block';?>;">
-        <span class="tabMenuFixed tabMenuSides useCursorPointer " style="margin-left:50px;">
-            <span role="button" tabindex="0" aria-label="<?php echo __('List all proposals');?>" title="<?php echo __('List all proposals');?>" onclick="window.location.href='<?php echo $baseurl; ?>/shadow_attributes/index/all:1'"><?php echo __('All Events');?></span>
-        </span>
-    </div>
+    <?php
+        $data = array(
+            'children' => array(
+                array(
+                    'children' => array(
+                        array(
+                            'text' => __('My Org\'s Events'),
+                            'active' => !$all,
+                            'url' => '/shadow_attributes/index'
+                        ),
+                        array(
+                            'text' => __('All Events'),
+                            'active' => $all,
+                            'url' => '/shadow_attributes/index/all:1'
+                        )
+                    )
+                )
+            )
+        );
+        echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data));
+    ?>
     <table class="table table-striped table-hover table-condensed">
         <tr>
             <th><?php echo __('Event');?></th>
@@ -113,5 +123,5 @@
     </div>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'viewProposals'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'viewProposals'));
 ?>
