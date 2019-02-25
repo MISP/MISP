@@ -163,8 +163,12 @@
             <?php echo $event['Event']['attribute_count']; ?>&nbsp;
         </td>
         <?php if (Configure::read('MISP.showCorrelationsOnIndex')):?>
-            <td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['correlation_count']) ? h($event['Event']['correlation_count']) : '0') . __(' correlation(s)');?>">
-                <?php echo !empty($event['Event']['correlation_count']) ? h($event['Event']['correlation_count']) : ''; ?>&nbsp;
+            <td class = "bold" style="width:30px;">
+                <?php if (!empty($event['Event']['correlation_count'])): ?>
+                    <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] . '/correlation:1';?>" title="<?php echo h($event['Event']['correlation_count']) . __(' correlation(s). Show filtered event with correlation only');?>">
+                        <?php echo h($event['Event']['correlation_count']); ?>&nbsp;
+                    </a>
+                <?php endif; ?>
             </td>
         <?php endif; ?>
         <?php if (Configure::read('MISP.showSightingsCountOnIndex')):?>
