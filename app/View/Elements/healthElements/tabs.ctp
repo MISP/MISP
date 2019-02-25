@@ -50,7 +50,8 @@
         'title' => __('Download report'),
         'active' => 'workers' == $active_tab,
         'html' => sprintf(
-            '%s%s',
+            '%s %s%s',
+            '<i class="fa fa-android"></i>',
             __('Workers'),
             ($workerIssueCount == 0) ? '' : sprintf(
                 ' (<span>%s</span>)',
