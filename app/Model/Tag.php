@@ -370,15 +370,19 @@ class Tag extends AppModel
         return ($this->saveAll($tags));
     }
 
-    public function getTagsForNamespace($namespace)
+    public function getTagsForNamespace($namespace, $containTagConnectors = true)
     {
+
         $contain = array('EventTag');
         $contain[] = 'AttributeTag';
-        $tags_temp = $this->find('all', array(
+        $tag_params = array(
                 'recursive' => -1,
-                'contain' => $contain,
                 'conditions' => array('UPPER(name) LIKE' => strtoupper($namespace) . '%'),
-        ));
+        );
+        if ($containTagConnectors) {
+            $tag_params['contain'] = $contain;
+        }
+        $tags_temp = $this->find('all', $tag_params);
         $tags = array();
         foreach ($tags_temp as $temp) {
             $tags[strtoupper($temp['Tag']['name'])] = $temp;
@@ -423,8 +427,8 @@ class Tag extends AppModel
         // - the old version of the MITRE tag (without Txx, Pxx, ...)
         $mitre_categories = array('attack-pattern', 'course-of-action', 'intrusion-set', 'malware', 'mitre-tool');
         $mitre_stages = array('enterprise-attack', 'pre-attack', 'mobile-attack');
-        $cluster_names = $this->GalaxyCluster->find('list', 
-            array('fields' => array('GalaxyCluster.tag_name'), 
+        $cluster_names = $this->GalaxyCluster->find('list',
+            array('fields' => array('GalaxyCluster.tag_name'),
                   'group' => array('GalaxyCluster.id', 'GalaxyCluster.tag_name'),
                   'conditions' => array('GalaxyCluster.tag_name LIKE' => 'misp-galaxy:mitre-%')
               ));
@@ -432,7 +436,7 @@ class Tag extends AppModel
         // key = old_tag_id, value = new_tag_name
         $mappings = array();
         // First find all tags which are the old format, but who's string needs to be updated
-        // Example: mitre-malware="XAgentOSX" => mitre-malware="XAgentOSX - S0161" 
+        // Example: mitre-malware="XAgentOSX" => mitre-malware="XAgentOSX - S0161"
         // Once found we will add these to a mapping
         foreach ($mitre_categories as $category) {
             $tag_start = 'misp-galaxy:mitre-' . $category;
