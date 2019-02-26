@@ -2208,7 +2208,7 @@ table tr:hover .down-expand-button {
 .quick-edit-row-div {
     line-height: normal;
     display: inline-block;
-    position: relative;
+    position: absolute;
 }
 
 #attackmatrix_div {
