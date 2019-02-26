@@ -105,10 +105,9 @@
                     array(
                         'id' => 'multi-sighting-button',
                         'title' => __('Sightings display for selected attributes'),
-                        'class' => 'mass-select hidden',
-                        'fa-icon' => 'wrench',
-                        'onClick' => 'multiSelectAction',
-                        'onClickParams' => array($event['Event']['id'], 'discardProposals')
+                        'class' => 'mass-select hidden sightings_advanced_add',
+                        'data' => array('object-id' => 'selected', 'object-context' => 'attribute'),
+                        'fa-icon' => 'wrench'
                     )
                 )
             ),
@@ -144,6 +143,7 @@
                     array(
                         'id' => 'simple_filter',
                         'type' => 'group',
+                        'active' => $attributeFilter !== 'all',
                         'title' => __('Use a list of simple scopes to filter the data'),
                         'text' => __('Scope toggle'),
                         'children' => $simple_filter_data

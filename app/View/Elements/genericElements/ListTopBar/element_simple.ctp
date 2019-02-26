@@ -4,7 +4,11 @@
             $onClickParams = array();
             if (!empty($data['onClickParams'])) {
                 foreach ($data['onClickParams'] as $param) {
-                    $onClickParams[] = '\'' . h($param) . '\'';
+                    if ($param === 'this') {
+                        $onClickParams[] = h($param);
+                    } else {
+                        $onClickParams[] = '\'' . h($param) . '\'';
+                    }
                 }
             }
             $onClickParams = implode(',', $onClickParams);
