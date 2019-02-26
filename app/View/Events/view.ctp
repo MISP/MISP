@@ -167,9 +167,11 @@
             'class_value' => ($event['Event']['published'] == 0) ? '' : 'green',
             'html' => ($event['Event']['published'] == 0) ? 'No' : '<span class="green bold">Yes</span>' . ((empty($event['Event']['publish_timestamp'])) ? 'N/A' :  ' (' . date('Y-m-d H:i:s', ($event['Event']['publish_timestamp'])) . ')')
         );
+        $attribute_text = $attribute_count;
+        $attribute_text .= $object_count > 1 ? sprintf(' (%s Objects)', h($object_count)) : sprintf(' (%s Object)', h($object_count));
         $table_data[] = array(
             'key' => __('#Attributes'),
-            'value' => $attribute_count
+            'value' => $attribute_text
         );
         $table_data[] = array(
             'key' => __('First recorded change'),

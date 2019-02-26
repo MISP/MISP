@@ -1223,6 +1223,7 @@ class EventsController extends AppController
         $emptyEvent = (empty($event['Object']) && empty($event['Attribute']));
         $this->set('emptyEvent', $emptyEvent);
         $attributeCount = isset($event['Attribute']) ? count($event['Attribute']) : 0;
+        $objectCount = isset($event['Object']) ? count($event['Object']) : 0;
         if (!empty($event['Object'])) {
             foreach ($event['Object'] as $k => $object) {
                 if (!empty($object['Attribute'])) {
@@ -1231,6 +1232,7 @@ class EventsController extends AppController
             }
         }
         $this->set('attribute_count', $attributeCount);
+        $this->set('object_count', $objectCount);
         // set the data for the contributors / history field
         $org_ids = $this->Event->ShadowAttribute->getEventContributors($event['Event']['id']);
         $contributors = $this->Event->Org->find('list', array('fields' => array('Org.name'), 'conditions' => array('Org.id' => $org_ids)));

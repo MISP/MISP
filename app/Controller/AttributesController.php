@@ -3284,6 +3284,12 @@ class AttributesController extends AppController
         }
     }
 
+    public function toggleToIDS($id)
+    {
+        return $this->fetchEditForm($id, 'to_ids');
+    }
+
+
     public function checkAttachments()
     {
         $attributes = $this->Attribute->find(
