@@ -105,3 +105,12 @@
 	border-radius: 4px;
 	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#fff5f5f5', endColorstr='#fff9f9f9', GradientType=0);
 }
+
+.advancedSharingNetwork {
+	position: absolute;
+	background: white;
+	z-index: 1;
+	border: 1px solid #0088cc;
+	border-radius: 6px;
+	box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+}

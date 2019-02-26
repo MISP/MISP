@@ -4,6 +4,7 @@ var extended_text = $('#eventdistri_graph').data('extended') == 1 ? true : false
 var spanOffset_orig = 15; // due to padding
 var payload = {};
 var distribution_chart;
+var distributionData;
 
 function clickHandlerGraph(evt) {
     var firstPoint = distribution_chart.getElementAtEvent(evt)[0];
@@ -184,9 +185,58 @@ function add_level_to_pb(distribution, additionalInfo, maxLevel) {
     }
 
 }
+
+function showAdvancedSharing() {
+    var $popover = $('#eventdistri_graph').parent().parent();
+    var boundingRect = $popover[0].getBoundingClientRect()
+    var $div = $('<div id="advancedSharingNetwork" class="advancedSharingNetwork"><div id="advancedSharingNetworkContainer" style="width: 100%; height: 100%;"></div></div>');
+    $div.css({
+        left: boundingRect.left + boundingRect.width + 'px',
+        top: boundingRect.top + 'px',
+        'min-width': boundingRect.width,
+        'min-height': boundingRect.height
+    });
+    $('body').append($div);
+
+    var nodes = new vis.DataSet([
+        {id: 'root', label: 'Event'}
+    ]);
+    var edges = new vis.DataSet([]);
+
+    // Community
+    var nodesToAdd = [];
+    var edgesToAdd = [];
+    distributionData.additionalDistributionInfo[1].forEach(function(orgName) {
+        console.log(orgName);
+        nodesToAdd.push({ id: orgName, label: orgName });
+        edgesToAdd.push({ from: 'root', to: orgName});
+    });
+    // Connected Community
+    distributionData.additionalDistributionInfo[2].forEach(function(orgName) {
+        console.log(orgName);
+        nodesToAdd.push({ id: orgName, label: orgName });
+        edgesToAdd.push({ from: 'root', to: orgName});
+    });
+    // All Community
+    distributionData.additionalDistributionInfo[3].forEach(function(orgName) {
+        nodesToAdd.push({ id: orgName, label: orgName });
+        edgesToAdd.push({ from: 'root', to: orgName});
+    });
+    // Sharing Group
+    // distributionData.additionalDistributionInfo.4.foreach(function(orgName) {
+    //     `var temp = { id: orgName, label: orgName };
+    //     toAdd.push(temp);
+    // });`
+
+    var data = { nodes: nodes, edges: edges };
+    var network_options = {};
+    var advancedSharingNetwork = new vis.Network(document.getElementById('advancedSharingNetworkContainer'), data, network_options);
+}
+
 $(document).ready(function() {
+    var rightBtn = '<span type="button" class="fa fa-share-alt useCursorPointer" aria-hidden="true" style="float:right; margin-left: 5px;" onclick="showAdvancedSharing()"></span>';
     var pop = $('.distribution_graph').popover({
-        title: "<b>Distribution graph</b> [atomic event]",
+        title: "<b>Distribution graph</b> [atomic event]" + rightBtn,
         html: true,
         content: function() { return $('#distribution_graph_container').html(); },
         template : '<div class="popover" role="tooltip" style="z-index: 1;"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content" style="padding-left: '+spanOffset_orig+'px; padding-right: '+spanOffset_orig*2+'px;"></div></div>'
@@ -217,6 +267,8 @@ $(document).ready(function() {
                 $(".loadingPopover").show();
             },
             success: function( data, textStatus, jQxhr ){
+                console.log(data);
+                distributionData = data;
                 $(".loadingPopover").hide();
 
                 // DISTRIBUTION PROGRESSBAR
