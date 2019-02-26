@@ -4886,7 +4886,7 @@ class EventsController extends AppController
                 }
             }
             $scores = $mergedScore;
-            $maxScore = max(array_values($mergedScore));
+            $maxScore = !empty($mergedScore) ? max(array_values($mergedScore)) : 0;
         }
         // end FIXME
 
