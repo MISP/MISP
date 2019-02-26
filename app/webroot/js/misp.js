@@ -324,6 +324,30 @@ function toggleCorrelation(id, skip_reload) {
     });
 }
 
+function toggleToIDS(id, skip_reload) {
+    if (typeof skip_reload === "undefined") {
+        skip_reload = false;
+    }
+    $.ajax({
+        beforeSend: function (XMLHttpRequest) {
+            $(".loading").show();
+        },
+        data: $('#PromptForm').serialize(),
+        success:function (data, textStatus) {
+            handleGenericAjaxResponse(data, skip_reload);
+            $("#toids_toggle_" + id).prop('checked', !$("#toids_toggle_" + id).is(':checked'));
+        },
+        complete:function() {
+            $(".loading").hide();
+            $("#confirmation_box").fadeOut();
+            $("#gray_out").fadeOut();
+        },
+        type:"post",
+        cache: false,
+        url:'/attributes/editField/' + id ,
+    });
+}
+
 function eventUnpublish() {
     $('.publishButtons').show();
     $('.exportButtons').hide();
