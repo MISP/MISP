@@ -48,7 +48,7 @@ class ACLComponent extends Component
                     'edit' => array('perm_add'),
                     'editField' => array('perm_add'),
                     'editSelected' => array('perm_add'),
-					'exportSearch' => array('*'),
+                    'exportSearch' => array('*'),
                     'fetchEditForm' => array('perm_add'),
                     'fetchViewValue' => array('*'),
                     'generateCorrelation' => array(),
@@ -105,6 +105,7 @@ class ACLComponent extends Component
                     'enrichEvent' => array('perm_add'),
                     'export' => array('*'),
                     'exportChoice' => array('*'),
+                    'exportModule' => array('*'),
                     'filterEventIdsForPush' => array('perm_sync'),
                     'filterEventIndex' => array('*'),
                     'freeTextImport' => array('perm_add'),
@@ -117,10 +118,12 @@ class ACLComponent extends Component
                     'getReferenceData' => array('*'),
                     'getReferences' => array('*'),
                     'getObjectTemplate' => array('*'),
-                    'viewMitreAttackMatrix' => array('*'),
                     'hids' => array('*'),
                     'index' => array('*'),
+                    'importChoice' => array('*'),
+                    'importModule' => array('*'),
                     'massDelete' => array('perm_site_admin'),
+                    'merge' => array('perm_modify'),
                     'nids' => array('*'),
                     'proposalEventIndex' => array('*'),
                     'publish' => array('perm_publish'),
@@ -136,18 +139,17 @@ class ACLComponent extends Component
                     'stix2' => array('*'),
                     'strposarray' => array(),
                     'toggleCorrelation' => array('perm_add'),
+                    'unpublish' => array('perm_modify'),
                     'updateGraph' => array('*'),
+                    'upload_analysis_file' => array('perm_add'),
                     'upload_sample' => array('AND' => array('perm_auth', 'perm_add')),
                     'upload_stix' => array('perm_add'),
                     'view' => array('*'),
                     'viewEventAttributes' => array('*'),
                     'viewEventGraph' => array('*'),
                     'viewGraph' => array('*'),
-                    'xml' => array('*'),
-                    'merge' => array('perm_modify'),
-                    'importChoice' => array('*'),
-                    'importModule' => array('*'),
-                    'exportModule' => array('*')
+                    'viewGalaxyMatrix' => array('*'),
+                    'xml' => array('*')
             ),
             'favouriteTags' => array(
                 'index' => array('*'),
@@ -157,7 +159,7 @@ class ACLComponent extends Component
             'feeds' => array(
                     'add' => array(),
                     'cacheFeeds' => array(),
-                    'compareFeeds' => array(),
+                    'compareFeeds' => array('*'),
                     'delete' => array(),
                     'disable' => array(),
                     'edit' => array(),
@@ -167,11 +169,11 @@ class ACLComponent extends Component
                     'fetchSelectedFromFreetextIndex' => array(),
                     'getEvent' => array(),
                     'importFeeds' => array(),
-                    'index' => array(),
-                    'previewEvent' => array(),
-                    'previewIndex' => array(),
+                    'index' => array('*'),
+                    'previewEvent' => array('*'),
+                    'previewIndex' => array('*'),
                     'toggleSelected' => array('perm_site_admin'),
-                    'view' => array(),
+                    'view' => array('*'),
             ),
             'galaxies' => array(
                 'attachCluster' => array('perm_tagger'),
@@ -180,13 +182,14 @@ class ACLComponent extends Component
                 'selectGalaxy' => array('perm_tagger'),
                 'selectGalaxyNamespace' => array('perm_tagger'),
                 'selectCluster' => array('perm_tagger'),
+                'showGalaxies' => array('*'),
                 'update' => array(),
                 'view' => array('*'),
                 'viewGraph' => array('*')
             ),
             'galaxyClusters' => array(
                 'attachToEvent' => array('perm_tagger'),
-				'delete' => array('perm_site_admin'),
+                'delete' => array('perm_site_admin'),
                 'detach' => array('perm_tagger'),
                 'index' => array('*'),
                 'view' => array('*')
@@ -252,6 +255,7 @@ class ACLComponent extends Component
                 'delete' => array('perm_object_template'),
                 'getToggleField' => array(),
                 'objectChoice' => array('*'),
+                'objectMetaChoice' => array('perm_add'),
                 'view' => array('*'),
                 'viewElements' => array('*'),
                 'index' => array('*'),
@@ -308,13 +312,14 @@ class ACLComponent extends Component
             ),
             'servers' => array(
                     'add' => array(),
+                    'cache' => array('perm_site_admin'),
                     'checkout' => array(),
                     'delete' => array(),
                     'deleteFile' => array(),
                     'edit' => array(),
                     'fetchServersForSG' => array('*'),
                     'filterEventIndex' => array(),
-					'getApiInfo' => array('*'),
+                    'getApiInfo' => array('*'),
                     'getGit' => array(),
                     'getInstanceUUID' => array('perm_sync'),
                     'getPyMISPVersion' => array('*'),
@@ -372,12 +377,25 @@ class ACLComponent extends Component
             ),
             'sightings' => array(
                     'add' => array('perm_sighting'),
+                    'restSearch' => array('perm_sighting'),
                     'advanced' => array('perm_sighting'),
                     'delete' => array('perm_sighting'),
                     'index' => array('*'),
                     'listSightings' => array('perm_sighting'),
                     'quickDelete' => array('perm_sighting'),
-                    'viewSightings' => array('perm_sighting')
+                    'viewSightings' => array('perm_sighting'),
+                    'quickAdd' => array('perm_sighting')
+            ),
+            'tagCollections' => array(
+                    'add' => array('perm_tag_editor'),
+                    'addTag' => array('perm_tag_editor'),
+                    'delete' => array('perm_tag_editor'),
+                    'edit' => array('perm_tag_editor'),
+                    'getRow' => array('perm_tag_editor'),
+                    'import' => array('perm_tag_editor'),
+                    'index' => array('*'),
+                    'removeTag' => array('perm_tag_editor'),
+                    'view' => array('*')
             ),
             'tags' => array(
                     'add' => array('perm_tag_editor'),
@@ -387,10 +405,12 @@ class ACLComponent extends Component
                     'index' => array('*'),
                     'quickAdd' => array('perm_tag_editor'),
                     'removeTagFromObject' => array('perm_tagger'),
+                    'search' => array('*'),
                     'selectTag' => array('perm_tagger'),
                     'selectTaxonomy' => array('perm_tagger'),
                     'showEventTag' => array('*'),
                     'showAttributeTag' => array('*'),
+                    'showTagControllerTag' => array('*'),
                     'tagStatistics' => array('*'),
                     'view' => array('*'),
                     'viewGraph' => array('*'),
@@ -472,7 +492,7 @@ class ACLComponent extends Component
                     'view' => array('*'),
             ),
             'warninglists' => array(
-					'checkValue' => array('perm_auth'),
+                    'checkValue' => array('perm_auth'),
                     'delete' => array(),
                     'enableWarninglist' => array(),
                     'getToggleField' => array(),
@@ -547,9 +567,9 @@ class ACLComponent extends Component
 
     private function __error($code, $message, $soft = false)
     {
-		if ($soft) {
-			return $code;
-		}
+        if ($soft) {
+            return $code;
+        }
         switch ($code) {
             case 404:
                 throw new NotFoundException($message);

@@ -62,6 +62,11 @@ class AttributeTag extends AppModel
         }
     }
 
+    public function softDelete($id)
+    {
+        $this->delete($id);
+    }
+
     public function attachTagToAttribute($attribute_id, $event_id, $tag_id)
     {
         $existingAssociation = $this->find('first', array(
@@ -123,4 +128,92 @@ class AttributeTag extends AppModel
         }
         return array('scores' => $scores, 'maxScore' => $maxScore);
     }
+
+
+    // find all tags that belong to a list of attributes (contained in the same event)
+    public function getAttributesTags($user, $requestedEventId, $attributeIds=false) {
+        $conditions = array('Attribute.event_id' => $requestedEventId);
+        if (is_array($attributeIds) && $attributeIds !== false) {
+            $conditions['Attribute.id'] = $attributeIds;
+        }
+
+        $allTags = array();
+        $attributes = $this->Attribute->fetchAttributes($user, array(
+            'conditions' => $conditions,
+            'flatten' => 1,
+        ));
+
+        if (empty($attributes)) {
+            return array();
+        }
+        $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        $cluster_names = $this->GalaxyCluster->find('list', array(
+                'recursive' => -1,
+                'fields' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id'),
+        ));
+
+        $allTags = array();
+        foreach ($attributes as $attribute) {
+            $attributeTags = $attribute['AttributeTag'];
+            foreach ($attributeTags as $k => $attributeTag) {
+                if (!isset($cluster_names[$attributeTag['Tag']['name']])) {
+                    $allTags[$attributeTag['Tag']['id']] = $attributeTag['Tag'];
+                }
+            }
+        }
+        return $allTags;
+    }
+
+    // find all galaxies that belong to a list of attributes (contains in the same event)
+    public function getAttributesClusters($user, $requestedEventId, $attributeIds=false) {
+        $conditions = array('Attribute.event_id' => $requestedEventId);
+        if (is_array($attributeIds) && $attributeIds !== false) {
+            $conditions['Attribute.id'] = $attributeIds;
+        }
+
+        $attributes = $this->Attribute->fetchAttributes($user, array(
+            'conditions' => $conditions,
+            'flatten' => 1,
+        ));
+        if (empty($attributes)) {
+            return array();
+        }
+
+        $this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+        $cluster_names = $this->GalaxyCluster->find('list', array(
+                'recursive' => -1,
+                'fields' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id'),
+        ));
+
+        $allClusters = array();
+        foreach ($attributes as $attribute) {
+            $attributeTags = $attribute['AttributeTag'];
+
+            foreach ($attributeTags as $k => $attributeTag) {
+                if (isset($cluster_names[$attributeTag['Tag']['name']])) {
+                    $cluster = $this->GalaxyCluster->find('first', array(
+                            'conditions' => array('GalaxyCluster.tag_name' => $attributeTag['Tag']['name']),
+                            'fields' => array('value', 'description', 'type'),
+                            'contain' => array(
+                                'GalaxyElement' => array(
+                                    'conditions' => array('GalaxyElement.key' => 'synonyms')
+                                )
+                            ),
+                            'recursive' => -1
+                    ));
+
+                    // create synonym string
+                    $cluster['GalaxyCluster']['synonyms_string'] = array();
+                    foreach ($cluster['GalaxyElement'] as $element) {
+                        $cluster['GalaxyCluster']['synonyms_string'][] = $element['value'];
+                    }
+                    $cluster['GalaxyCluster']['synonyms_string'] = implode(', ', $cluster['GalaxyCluster']['synonyms_string']);
+                    unset($cluster['GalaxyElement']);
+                    $allClusters[$cluster['GalaxyCluster']['id']] = $cluster['GalaxyCluster'];
+                }
+            }
+        }
+        return $allClusters;
+    }
+
 }

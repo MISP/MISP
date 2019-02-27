@@ -229,7 +229,7 @@ class Feed extends AppModel
             if ($doFetch) {
                 $fetchIssue = false;
                 try {
-					$request = $this->__createFeedRequest($feed['Feed']['headers']);
+                    $request = $this->__createFeedRequest($feed['Feed']['headers']);
                     $response = $this->__getRecursive($feed['Feed']['url'], '', $request);
                     //$response = $HttpSocket->get($feed['Feed']['url'], '', array());
                 } catch (Exception $e) {
@@ -323,21 +323,34 @@ class Feed extends AppModel
         return $data;
     }
 
-    public function attachFeedCorrelations($objects, $user, &$event, $overrideLimit = false)
+    public function attachFeedCorrelations($objects, $user, &$event, $overrideLimit = false, $scope = 'Feed')
     {
         $redis = $this->setupRedis();
         if ($redis !== false) {
-            $params = array(
-                'recursive' => -1,
-                'fields' => array('id', 'name', 'url', 'provider', 'source_format')
-            );
-            if (!$user['Role']['perm_site_admin']) {
-                $params['conditions'] = array('Feed.lookup_visible' => 1);
+            if ($scope === 'Feed') {
+                $params = array(
+                    'recursive' => -1,
+                    'fields' => array('id', 'name', 'url', 'provider', 'source_format')
+                );
+                if (!$user['Role']['perm_site_admin']) {
+                    $params['conditions'] = array('Feed.lookup_visible' => 1);
+                }
+                $sources = $this->find('all', $params);
+            } else {
+                $params = array(
+                    'recursive' => -1,
+                    'fields' => array('id', 'name', 'url', 'caching_enabled')
+                );
+                if (!$user['Role']['perm_site_admin']) {
+                    $params['conditions'] = array('Server.caching_enabled' => 1);
+                }
+                $this->Server = ClassRegistry::init('Server');
+                $sources = $this->Server->find('all', $params);
             }
-            $feeds = $this->find('all', $params);
+
             $counter = 0;
             $hashTable = array();
-            $feedList = array();
+            $sourceList = array();
             $pipe = $redis->multi(Redis::PIPELINE);
             $objectsWithFeedHits = array();
             $hashTable = array();
@@ -352,14 +365,14 @@ class Feed extends AppModel
                 } else {
                     $hashTable[$k] = md5($object['value']);
                 }
-                $redis->sismember('misp:feed_cache:combined', $hashTable[$k]);
+                $redis->sismember('misp:' . strtolower($scope) . '_cache:combined', $hashTable[$k]);
                 $objectKeys[] = $k;
             }
             $results = array();
             $results = $pipe->exec();
             if (!$overrideLimit && count($objects) > 10000) {
                 foreach ($results as $k => $result) {
-                    if ($result) {
+                    if ($result && empty($objects[$k]['disable_correlation'])) {
                         if (isset($event['FeedCount'])) {
                             $event['FeedCount']++;
                         } else {
@@ -370,57 +383,57 @@ class Feed extends AppModel
                 }
             } else {
                 foreach ($results as $k => $result) {
-                    if ($result) {
+                    if ($result && empty($objects[$k]['disable_correlation'])) {
                         $hitIds[] = $k;
                     }
                 }
-                foreach ($feeds as $k3 => $feed) {
+                foreach ($sources as $k3 => $source) {
                     $pipe = $redis->multi(Redis::PIPELINE);
                     foreach ($hitIds as $k2 => $k) {
-                        $redis->sismember('misp:feed_cache:' . $feed['Feed']['id'], $hashTable[$k]);
+                        $redis->sismember('misp:' . strtolower($scope) . '_cache:' . $source[$scope]['id'], $hashTable[$k]);
                     }
-                    $feedHits = $pipe->exec();
-                    foreach ($feedHits as $k4 => $hit) {
+                    $sourceHits = $pipe->exec();
+                    foreach ($sourceHits as $k4 => $hit) {
                         if ($hit) {
-                            if (!isset($event['Feed'][$feeds[$k3]['Feed']['id']]['id'])) {
-                                if (!isset($event['Feed'][$feeds[$k3]['Feed']['id']])) {
-                                    $event['Feed'][$feeds[$k3]['Feed']['id']] = array();
+                            if (!isset($event[$scope][$sources[$k3][$scope]['id']]['id'])) {
+                                if (!isset($event[$scope][$sources[$k3][$scope]['id']])) {
+                                    $event[$scope][$sources[$k3][$scope]['id']] = array();
                                 }
-                                $event['Feed'][$feeds[$k3]['Feed']['id']] = array_merge($event['Feed'][$feeds[$k3]['Feed']['id']], $feed['Feed']);
+                                $event[$scope][$sources[$k3][$scope]['id']] = array_merge($event[$scope][$sources[$k3][$scope]['id']], $source[$scope]);
                             }
-                            $objects[$hitIds[$k4]]['Feed'][] = $feed['Feed'];
+                            $objects[$hitIds[$k4]][$scope][] = $source[$scope];
                         }
                     }
-                    if ($feed['Feed']['source_format'] == 'misp') {
+                    if ($scope === 'Server' || $source[$scope]['source_format'] == 'misp') {
                         $pipe = $redis->multi(Redis::PIPELINE);
                         $eventUuidHitPosition = array();
                         $i = 0;
                         foreach ($objects as $k => $object) {
-                            if (isset($object['Feed'])) {
-                                foreach ($object['Feed'] as $currentFeed) {
-                                    if ($feed['Feed']['id'] == $currentFeed['id']) {
+                            if (isset($object[$scope])) {
+                                foreach ($object[$scope] as $currentFeed) {
+                                    if ($source[$scope]['id'] == $currentFeed['id']) {
                                         $eventUuidHitPosition[$i] = $k;
                                         $i++;
                                         if (in_array($object['type'], $this->Event->Attribute->getCompositeTypes())) {
                                             $value = explode('|', $object['value']);
-                                            $redis->smembers('misp:feed_cache:event_uuid_lookup:' . md5($value[0]));
+                                            $redis->smembers('misp:' . strtolower($scope) . '_cache:event_uuid_lookup:' . md5($value[0]));
                                         } else {
-                                            $redis->smembers('misp:feed_cache:event_uuid_lookup:' . md5($object['value']));
+                                            $redis->smembers('misp:' . strtolower($scope) . '_cache:event_uuid_lookup:' . md5($object['value']));
                                         }
                                     }
                                 }
                             }
                         }
                         $mispFeedHits = $pipe->exec();
-                        foreach ($mispFeedHits as $feedhitPos => $f) {
+                        foreach ($mispFeedHits as $sourcehitPos => $f) {
                             foreach ($f as $url) {
                                 $urlParts = explode('/', $url);
-                                if (empty($event['Feed'][$urlParts[0]]['event_uuids']) || !in_array($urlParts[1], $event['Feed'][$urlParts[0]]['event_uuids'])) {
-                                    $event['Feed'][$urlParts[0]]['event_uuids'][] = $urlParts[1];
+                                if (empty($event[$scope][$urlParts[0]]['event_uuids']) || !in_array($urlParts[1], $event[$scope][$urlParts[0]]['event_uuids'])) {
+                                    $event[$scope][$urlParts[0]]['event_uuids'][] = $urlParts[1];
                                 }
-                                foreach ($objects[$eventUuidHitPosition[$feedhitPos]]['Feed'] as $tempKey => $tempFeed) {
+                                foreach ($objects[$eventUuidHitPosition[$sourcehitPos]][$scope] as $tempKey => $tempFeed) {
                                     if ($tempFeed['id'] == $urlParts[0]) {
-                                        $objects[$eventUuidHitPosition[$feedhitPos]]['Feed'][$tempKey]['event_uuids'][] = $urlParts[1];
+                                        $objects[$eventUuidHitPosition[$sourcehitPos]][$scope][$tempKey]['event_uuids'][] = $urlParts[1];
                                     }
                                 }
                             }
@@ -429,8 +442,8 @@ class Feed extends AppModel
                 }
             }
         }
-        if (!empty($event['Feed'])) {
-            $event['Feed'] = array_values($event['Feed']);
+        if (!empty($event[$scope])) {
+            $event[$scope] = array_values($event[$scope]);
         }
         return $objects;
     }
@@ -478,10 +491,10 @@ class Feed extends AppModel
         if (isset($actions['edit']) && !empty($actions['edit'])) {
             foreach ($actions['edit'] as $editTarget) {
                 $uuid = $editTarget['uuid'];
+                $result = $this->__updateEventFromFeed($HttpSocket, $feed, $editTarget['uuid'], $editTarget['id'], $user, $filterRules);
                 if ($result === 'blocked') {
                     continue;
                 }
-                $result = $this->__updateEventFromFeed($HttpSocket, $feed, $editTarget['uuid'], $editTarget['id'], $user, $filterRules);
                 $this->__cleanupFile($feed, '/' . $uuid . '.json');
                 if ($result === true) {
                     $results['edit']['success'] = $uuid;
@@ -865,16 +878,16 @@ class Feed extends AppModel
             }
             $temp = $this->getFreetextFeed($this->data, $HttpSocket, $this->data['Feed']['source_format'], 'all');
             $data = array();
-			if (!empty($temp)) {
-	            foreach ($temp as $key => $value) {
-	                $data[] = array(
-	                    'category' => $value['category'],
-	                    'type' => $value['default_type'],
-	                    'value' => $value['value'],
-	                    'to_ids' => $value['to_ids']
-	                );
-	            }
-			}
+            if (!empty($temp)) {
+                foreach ($temp as $key => $value) {
+                    $data[] = array(
+                        'category' => $value['category'],
+                        'type' => $value['default_type'],
+                        'value' => $value['value'],
+                        'to_ids' => $value['to_ids']
+                    );
+                }
+            }
             if ($jobId) {
                 $job->saveField('progress', 50);
                 $job->saveField('message', 'Saving data.');
@@ -1227,7 +1240,7 @@ class Feed extends AppModel
         $feeds = $this->find('all', array(
             'recursive' => -1,
             'fields' => $fields,
-			'conditions' => array('Feed.caching_enabled' => 1)
+            'conditions' => array('Feed.caching_enabled' => 1)
         ));
         // we'll use this later for the intersect
         $fields[] = 'values';
@@ -1241,6 +1254,25 @@ class Feed extends AppModel
             $feeds[$k]['Feed']['values'] = $redis->sCard('misp:feed_cache:' . $feed['Feed']['id']);
         }
         $feeds = array_values($feeds);
+        $this->Server = ClassRegistry::init('Server');
+        $servers = $this->Server->find('all', array(
+            'recursive' => -1,
+            'fields' => array('id', 'url', 'name'),
+            'contain' => array('RemoteOrg' => array('fields' => array('RemoteOrg.id', 'RemoteOrg.name'))),
+            'conditions' => array('Server.caching_enabled')
+        ));
+        foreach ($servers as $k => $server) {
+            if (!$redis->exists('misp:server_cache:' . $server['Server']['id'])) {
+                unset($servers[$k]);
+                continue;
+            }
+            $servers[$k]['Server']['input_source'] = 'network';
+            $servers[$k]['Server']['source_format'] = 'misp';
+            $servers[$k]['Server']['provider'] = $servers[$k]['RemoteOrg']['name'];
+            $servers[$k]['Server']['default'] = false;
+            $servers[$k]['Server']['is_misp_server'] = true;
+            $servers[$k]['Server']['values'] = $redis->sCard('misp:server_cache:' . $server['Server']['id']);
+        }
         foreach ($feeds as $k => $feed) {
             foreach ($feeds as $k2 => $feed2) {
                 if ($k == $k2) {
@@ -1252,6 +1284,37 @@ class Feed extends AppModel
                     'overlap_percentage' => round(100 * count($intersect) / $feeds[$k]['Feed']['values']),
                 ));
             }
+            foreach ($servers as $k2 => $server) {
+                $intersect = $redis->sInter('misp:feed_cache:' . $feed['Feed']['id'], 'misp:server_cache:' . $server['Server']['id']);
+                $feeds[$k]['Feed']['ComparedFeed'][] = array_merge(array_intersect_key($server['Server'], $fields), array(
+                    'overlap_count' => count($intersect),
+                    'overlap_percentage' => round(100 * count($intersect) / $feeds[$k]['Feed']['values']),
+                ));
+            }
+        }
+        foreach ($servers as $k => $server) {
+            foreach ($feeds as $k2 => $feed2) {
+                $intersect = $redis->sInter('misp:server_cache:' . $server['Server']['id'], 'misp:feed_cache:' . $feed2['Feed']['id']);
+                $servers[$k]['Server']['ComparedFeed'][] = array_merge(array_intersect_key($feed2['Feed'], $fields), array(
+                    'overlap_count' => count($intersect),
+                    'overlap_percentage' => round(100 * count($intersect) / $servers[$k]['Server']['values']),
+                ));
+            }
+            foreach ($servers as $k2 => $server2) {
+                if ($k == $k2) {
+                    continue;
+                }
+                $intersect = $redis->sInter('misp:server_cache:' . $server['Server']['id'], 'misp:server_cache:' . $server2['Server']['id']);
+                $servers[$k]['Server']['ComparedFeed'][] = array_merge(array_intersect_key($server2['Server'], $fields), array(
+                    'overlap_count' => count($intersect),
+                    'overlap_percentage' => round(100 * count($intersect) / $servers[$k]['Server']['values']),
+                ));
+            }
+        }
+        foreach ($servers as $k => $server) {
+            $server['Feed'] = $server['Server'];
+            unset($server['Server']);
+            $feeds[] = $server;
         }
         return $feeds;
     }

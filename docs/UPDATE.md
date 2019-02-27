@@ -1,3 +1,8 @@
+**Important Note**
+
+It is **very strongly recommended** to upgrade MISP via the web interface. This documentation may not always be up-to-date and will require you to fix permissions if you want to use the web interface to run the updates in the future.
+
+
 # Point release updates
 !!! notice
     In general, updating MISP between point releases (for exampe 2.4.50 -> 2.4.53) happens with one of the following two options (both are to be executed as root).
@@ -23,7 +28,7 @@ git submodule update --init --recursive
 
 # Upgrades from minor version to another
 !!! notice
-    If you would like to upgrade from a minor version to another, look at the Upgrade MISP guides instead (such as [2.3.xyz -> 2.4.xyz](old-2_3to2_4-UPGRADE.md))
+    If you would like to upgrade from a minor version to another, look at the Upgrade MISP guides instead (such as [2.3.xyz -> 2.4.xyz](archive/old-2_3to2_4-UPGRADE.md))
 
 !!! warning
     If for any reason something goes wrong with the above instructions, walk through the following manual upgrade

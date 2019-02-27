@@ -43,7 +43,6 @@ def observable_domain_ip(_, attribute_value):
     return domain
 
 def pattern_domain_ip(_, attribute_value):
-    address_type = define_address_type(attribute_value)
     domain_value, ip_value = attribute_value.split('|')
     domain = pattern_domain(_, domain_value)[1:-1]
     domain += " AND domain-name:resolves_to_refs[*].value = '{}'".format(ip_value)
@@ -242,6 +241,7 @@ mispTypesMapping = {
     'sha512/224': {'to_call': 'handle_usual_type', 'observable': observable_hash, 'pattern': pattern_hash},
     'sha512/256': {'to_call': 'handle_usual_type', 'observable': observable_hash, 'pattern': pattern_hash},
     'tlsh': {'to_call': 'handle_usual_type', 'observable': observable_hash, 'pattern': pattern_hash},
+    'cdhash': {'to_call': 'handle_usual_type', 'observable': observable_hash, 'pattern': pattern_hash},
     'filename|authentihash': {'to_call': 'handle_usual_type', 'observable': observable_file_hash, 'pattern': pattern_file_hash},
     'filename|ssdeep': {'to_call': 'handle_usual_type', 'observable': observable_file_hash, 'pattern': pattern_file_hash},
     'filename|imphash': {'to_call': 'handle_usual_type', 'observable': observable_file_hash, 'pattern': pattern_file_hash},

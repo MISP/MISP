@@ -127,14 +127,17 @@ class Taxonomy extends AppModel
         if ($options['full']) {
             $recursive = 2;
         }
+
         $filter = false;
         if (isset($options['filter'])) {
             $filter = $options['filter'];
         }
-        $taxonomy = $this->find('first', array(
-                'recursive' => $recursive,
+        $taxonomy_params = array(
+                'recursive' => -1,
+                'contain' => array('TaxonomyPredicate' => array('TaxonomyEntry')),
                 'conditions' => array('Taxonomy.id' => $id)
-        ));
+        );
+        $taxonomy = $this->find('first', $taxonomy_params);
         if (empty($taxonomy)) {
             return false;
         }
@@ -147,9 +150,9 @@ class Taxonomy extends AppModel
                     if (isset($entry['colour']) && !empty($entry['colour'])) {
                         $temp['colour'] = $entry['colour'];
                     }
-					if (isset($entry['numerical_value']) && $entry['numerical_value'] !== null) {
-						$temp['numerical_value'] = $entry['numerical_value'];
-					}
+                    if (isset($entry['numerical_value']) && $entry['numerical_value'] !== null) {
+                        $temp['numerical_value'] = $entry['numerical_value'];
+                    }
                     $entries[] = $temp;
                 }
             } else {
@@ -158,9 +161,9 @@ class Taxonomy extends AppModel
                 if (isset($predicate['colour']) && !empty($predicate['colour'])) {
                     $temp['colour'] = $predicate['colour'];
                 }
-				if (isset($predicate['numerical_value']) && $predicate['numerical_value'] !== null) {
-					$temp['numerical_value'] = $predicate['numerical_value'];
-				}
+                if (isset($predicate['numerical_value']) && $predicate['numerical_value'] !== null) {
+                    $temp['numerical_value'] = $predicate['numerical_value'];
+                }
                 $entries[] = $temp;
             }
         }
@@ -251,7 +254,7 @@ class Taxonomy extends AppModel
             if (empty($taxonomy)) {
                 return false;
             }
-            $tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace']);
+            $tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace'], false);
             if (isset($taxonomy['entries'])) {
                 foreach ($taxonomy['entries'] as $key => $temp) {
                     $taxonomy['entries'][$key]['existing_tag'] = isset($tags[strtoupper($temp['tag'])]) ? $tags[strtoupper($temp['tag'])] : false;
@@ -274,19 +277,19 @@ class Taxonomy extends AppModel
             if (isset($tags[strtoupper($entry['tag'])])) {
                 $temp = $tags[strtoupper($entry['tag'])];
                 if (
-					(!in_array('colour', $skipUpdateFields) && $temp['Tag']['colour'] != $colours[$k]) ||
-					(!in_array('name', $skipUpdateFields) && $temp['Tag']['name'] !== $entry['tag']) ||
-					(!in_array('numerical_value', $skipUpdateFields) && isset($entry['numerical_value']) && isset($temp['Tag']['numerical_value']) && $temp['Tag']['numerical_value'] !== $entry['numerical_value'])
-				) {
+                    (!in_array('colour', $skipUpdateFields) && $temp['Tag']['colour'] != $colours[$k]) ||
+                    (!in_array('name', $skipUpdateFields) && $temp['Tag']['name'] !== $entry['tag']) ||
+                    (!in_array('numerical_value', $skipUpdateFields) && isset($entry['numerical_value']) && isset($temp['Tag']['numerical_value']) && $temp['Tag']['numerical_value'] !== $entry['numerical_value'])
+                ) {
                     if (!in_array('colour', $skipUpdateFields)) {
                         $temp['Tag']['colour'] = (isset($entry['colour']) && !empty($entry['colour'])) ? $entry['colour'] : $colours[$k];
                     }
                     if (!in_array('name', $skipUpdateFields)) {
                         $temp['Tag']['name'] = $entry['tag'];
                     }
-					if (!in_array('numerical_value', $skipUpdateFields)) {
-						$temp['Tag']['numerical_value'] = $entry['numerical_value'];
-					}
+                    if (!in_array('numerical_value', $skipUpdateFields)) {
+                        $temp['Tag']['numerical_value'] = $entry['numerical_value'];
+                    }
                     $this->Tag->save($temp['Tag']);
                 }
             }
@@ -380,7 +383,7 @@ class Taxonomy extends AppModel
         return $taxonomies;
     }
 
-    public function getTaxonomyForTag($tagName)
+    public function getTaxonomyForTag($tagName, $metaOnly = false)
     {
         if (preg_match('/^[^:="]+:[^:="]+="[^:="]+"$/i', $tagName)) {
             $temp = explode(':', $tagName);
@@ -402,6 +405,9 @@ class Taxonomy extends AppModel
                     )
                 )
             ));
+            if ($metaOnly && !empty($taxonomy)) {
+                return array('Taxonomy' => $taxonomy['Taxonomy']);
+            }
             return $taxonomy;
         } elseif (preg_match('/^[^:="]+:[^:="]+$/i', $tagName)) {
             $pieces = explode(':', $tagName);
@@ -416,6 +422,9 @@ class Taxonomy extends AppModel
                     )
                 )
             ));
+            if ($metaOnly && !empty($taxonomy)) {
+                return array('Taxonomy' => $taxonomy['Taxonomy']);
+            }
             return $taxonomy;
         } else {
             return false;

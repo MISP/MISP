@@ -111,7 +111,7 @@ endforeach; ?>
     </div>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'tasks'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'tasks'));
 ?>
 <script type="text/javascript">
     function activate1(id, type){

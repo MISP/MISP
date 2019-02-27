@@ -7,7 +7,7 @@ class NewsController extends AppController
 
     public $paginate = array(
             'limit' => 5,
-            'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
             'order' => array(
                 'News.id' => 'DESC'
             ),
@@ -31,10 +31,10 @@ class NewsController extends AppController
             }
         }
         $this->User->id = $this->Auth->user('id');
-		//if ($this->User->exists()) {
-        	$this->User->saveField('newsread', time());
-        	$this->set('newsItems', $newsItems);
-		//}
+        //if ($this->User->exists()) {
+        $this->User->saveField('newsread', time());
+        $this->set('newsItems', $newsItems);
+        //}
     }
 
     public function add()

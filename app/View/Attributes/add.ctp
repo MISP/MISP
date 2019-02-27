@@ -78,6 +78,10 @@
             echo $this->Form->input('batch_import', array(
                     'type' => 'checkbox'
             ));
+            echo '<div class="input clear"></div>';
+            echo $this->Form->input('disable_correlation', array(
+                    'type' => 'checkbox'
+            ));
         ?>
         </div>
     </fieldset>
@@ -100,7 +104,7 @@
     if (!$ajax) {
         $event['Event']['id'] = $event_id;
         $event['Event']['published'] = $published;
-        echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'addAttribute', 'event' => $event));
+        echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => 'addAttribute', 'event' => $event));
     }
 ?>
 <script type="text/javascript">

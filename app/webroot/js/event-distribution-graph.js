@@ -17,8 +17,17 @@ function clickHandlerGraph(evt) {
 			distribution_id = distribution_chart.data.distribution[firstPoint._index].value;
 			var value_to_set = String(distribution_id);
 			value_to_set += distribution_id == event_distribution ? '|' + '5' : '';
-			document.getElementById('attributesFilterField').value = value_to_set;
-			filterAttributes('distribution', scope_id);
+			value_to_set = value_to_set.split('|');
+			var rules = {
+				condition: 'AND',
+				rules: [
+					{
+						field: 'distribution',
+						value: value_to_set
+					}
+				]
+			};
+			performQuery(rules);
 		}
 	}
 }
@@ -43,14 +52,31 @@ function generate_additional_info(info) {
 function clickHandlerPbText(evt) {
 	var distribution_id = evt.target.dataset.distribution;
 	var value_to_set = String(distribution_id);
-	document.getElementById('attributesFilterField').value = value_to_set;
-	filterAttributes('distribution', scope_id);
+	var rules = {
+		condition: 'AND',
+		rules: [
+			{
+				field: 'distribution',
+				value: [value_to_set]
+			}
+		]
+	};
+	performQuery(rules);
 }
 function clickHandlerPb(evt) {
 	var distribution_id = $(evt.target).data('distribution');
 	var value_to_set = String(distribution_id);
-	document.getElementById('attributesFilterField').value = value_to_set;
-	filterAttributes('distribution', scope_id);
+	value_to_set = value_to_set.split('|')
+	var rules = {
+		condition: 'AND',
+		rules: [
+			{
+				field: 'distribution',
+				value: value_to_set
+			}
+		]
+	};
+	performQuery(rules);
 }
 
 function fill_distri_for_search(start_distri, end_distri) {
@@ -156,7 +182,7 @@ function add_level_to_pb(distribution, additionalInfo, maxLevel) {
 		}
 		pb_container.appendChild(span);
 	}
-	
+
 }
 $(document).ready(function() {
 	var pop = $('.distribution_graph').popover({
@@ -207,7 +233,7 @@ $(document).ready(function() {
 				var event_dist, min_distri, max_distri;
 				if (event_distribution == 4) { // if distribution is sharing group, overwrite default behavior
 					var event_dist = 1;
-					var min_distri = 0; 
+					var min_distri = 0;
 					var max_distri = 0;
 				} else {
 					var event_dist = event_distribution+1; // +1 to reach the first level
@@ -278,7 +304,7 @@ $(document).ready(function() {
 						hidden: false,
 						backgroundColor: doughnutColors
 					},
-				
+
 				];
 				var ctx = document.getElementById("distribution_graph_canvas");
 				ctx.onclick = function(evt) { clickHandlerGraph(evt); };

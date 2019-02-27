@@ -220,7 +220,7 @@ class ComplexTypeTool
 
     private $__hexHashTypes = array(
         32 => array('single' => array('md5', 'imphash', 'x509-fingerprint-md5'), 'composite' => array('filename|md5', 'filename|imphash')),
-        40 => array('single' => array('sha1', 'pehash', 'x509-fingerprint-sha1'), 'composite' => array('filename|sha1', 'filename|pehash')),
+        40 => array('single' => array('sha1', 'pehash', 'x509-fingerprint-sha1', 'cdhash'), 'composite' => array('filename|sha1', 'filename|pehash')),
         56 => array('single' => array('sha224', 'sha512/224'), 'composite' => array('filename|sha224', 'filename|sha512/224')),
         64 => array('single' => array('sha256', 'authentihash', 'sha512/256', 'x509-fingerprint-sha256'), 'composite' => array('filename|sha256', 'filename|authentihash', 'filename|sha512/256')),
         96 => array('single' => array('sha384'), 'composite' => array('filename|sha384')),
@@ -228,7 +228,7 @@ class ComplexTypeTool
     );
 
     // algorithms to run through in order
-    private $__checks = array('Hashes', 'Email', 'IP', 'DomainOrFilename', 'SimpleRegex', 'AS');
+    private $__checks = array('Hashes', 'Email', 'IP', 'DomainOrFilename', 'SimpleRegex', 'AS', 'BTC');
 
     private function __resolveType($raw_input)
     {
@@ -246,6 +246,14 @@ class ComplexTypeTool
         }
         return false;
     }
+
+	private function __checkForBTC($input)
+	{
+		if (preg_match("#^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$#i", $input['raw'])) {
+			return array('types' => array('btc'), 'categories' => array('Financial fraud'), 'to_ids' => true, 'default_type' => 'btc', 'value' => $input['raw']);
+        }
+		return false;
+	}
 
     private function __checkForEmail($input)
     {
@@ -288,7 +296,11 @@ class ComplexTypeTool
         // check for hashes
         foreach ($this->__hexHashTypes as $k => $v) {
             if (strlen($input['raw']) == $k && preg_match("#[0-9a-f]{" . $k . "}$#i", $input['raw'])) {
-                return array('types' => $v['single'], 'to_ids' => true, 'default_type' => $v['single'][0], 'value' => $input['raw']);
+                $types = $v['single'];
+                if (!empty($this->__checkForBTC($input))) {
+                    $types[] = 'btc';
+                }
+                return array('types' => $types, 'to_ids' => true, 'default_type' => $v['single'][0], 'value' => $input['raw']);
             }
         }
         // ssdeep has a different pattern

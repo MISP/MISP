@@ -46,6 +46,7 @@ class BroExport
         'sha512/224' => array('brotype' => 'FILE_HASH'),
         'sha512/256' => array('brotype' => 'FILE_HASH'),
         'tlsh' => array('brotype' => 'FILE_HASH'),
+        'cdhash' => array('brotype' => 'FILE_HASH'),
         'filename|authentihash' => array('brotype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
         'filename|ssdeep' => array('brotype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
         'filename|imphash' => array('brotype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
@@ -133,7 +134,22 @@ class BroExport
 
     private $whitelist = null;
 
-    public function export($items, $orgs, $valueField, $whitelist, $instanceString)
+	public function handler($data, $options = array())
+	{
+
+	}
+
+	public function footer()
+	{
+		return "\n";
+	}
+
+	public function separator()
+	{
+		return "\n";
+	}
+
+    public function export($items, $orgs, $valueField, $whitelist = array(), $instanceString)
     {
         $intel = array();
         //For bro format organisation
@@ -155,10 +171,10 @@ class BroExport
         return $intel;
     }
 
-    private function __generateRule($attribute, $ruleFormat, $valueField, $whitelist)
+    private function __generateRule($attribute, $ruleFormat, $valueField, $whitelist = array())
     {
         if (isset($this->mapping[$attribute['type']])) {
-            if (! $this->checkWhitelist($attribute['value'], $whitelist)) {
+            if (empty($whitelist) || !$this->checkWhitelist($attribute['value'], $whitelist)) {
                 $brotype = $this->mapping[$attribute['type']]['brotype'];
                 if (isset($this->mapping[$attribute['type']]['alternate'])) {
                     if (preg_match($this->mapping[$attribute['type']]['alternate'][0], $attribute['value'])) {

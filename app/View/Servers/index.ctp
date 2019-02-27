@@ -24,6 +24,7 @@
             <th><?php echo $this->Paginator->sort('internal');?></th>
             <th><?php echo $this->Paginator->sort('push');?></th>
             <th><?php echo $this->Paginator->sort('pull');?></th>
+            <th><?php echo $this->Paginator->sort('caching_enabled', 'Cache');?></th>
             <th><?php echo $this->Paginator->sort('unpublish_event (push event)');?></th>
             <th><?php echo $this->Paginator->sort('publish_without_email (pull event)');?></th>
             <th><?php echo $this->Paginator->sort('url');?></th>
@@ -71,7 +72,42 @@ foreach ($servers as $server):
         <td id="connection_test_<?php echo $server['Server']['id'];?>"><span role="button" tabindex="0" aria-label="<?php echo __('Test the connection to the remote instance');?>" title="<?php echo __('Test the connection to the remote instance');?>" class="btn btn-primary" style="line-height:10px; padding: 4px 4px;" onClick="testConnection('<?php echo $server['Server']['id'];?>');"><?php echo __('Run');?></span></td>
         <td><span class="<?php echo ($server['Server']['internal']? 'icon-ok' : 'icon-remove'); ?>" title="<?php echo ($server['Server']['internal']? __('Internal instance that ignores distribution level degradation *WARNING: Only use this setting if you have several internal instances and the sync link is to an internal extension of the current MISP community*') : __('Normal sync link to an external MISP instance. Distribution degradation will follow the normal rules.')); ?>"></span></td>
         <td><span class="<?php echo ($server['Server']['push']? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$server['Server']['push'] || empty($ruleDescription['push'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?php echo $ruleDescription['push']; ?>"> (<?php echo __('Rules');?>)</span></td>
-        <td><span class="<?php echo ($server['Server']['pull']? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$server['Server']['pull'] || empty($ruleDescription['pull'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?php echo $ruleDescription['pull']; ?>"> (<?php echo __('Rules');?>)</span>
+        <td><span class="<?php echo ($server['Server']['pull']? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$server['Server']['pull'] || empty($ruleDescription['pull'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?php echo $ruleDescription['pull']; ?>"> (<?php echo __('Rules');?>)</span></td>
+        <td>
+            <?php
+                if ($server['Server']['caching_enabled']) {
+                    if (!empty($server['Server']['cache_timestamp'])) {
+                        $units = array('m', 'h', 'd');
+                        $intervals = array(60, 60, 24);
+                        $unit = 's';
+                        $last = time() - $server['Server']['cache_timestamp'];
+                        foreach ($units as $k => $v) {
+                            if ($last > $intervals[$k]) {
+                                $unit = $v;
+                                $last = floor($last / $intervals[$k]);
+                            } else {
+                                break;
+                            }
+                        }
+                        echo sprintf(
+                            '<span class="blue bold">%s%s%s</span> %s',
+                            __('Age: '),
+                            $last,
+                            $unit,
+                            '<span class="icon-ok"></span>'
+                        );
+                    } else {
+                        echo sprintf(
+                            '<span class="red bold">%s</span> %s',
+                            __('Not cached'),
+                            '<span class="icon-ok"></span>'
+                        );
+                    }
+                } else {
+                    echo '<span class="icon-remove"></span>';
+                }
+            ?>
+        </td>
         <td class="short"><span class="<?php echo ($server['Server']['unpublish_event'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
         <td class="short"><span class="<?php echo ($server['Server']['publish_without_email'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
         <td><?php echo h($server['Server']['url']); ?>&nbsp;</td>
@@ -90,6 +126,9 @@ foreach ($servers as $server):
             }
             if ($server['Server']['push']) {
                 echo $this->Html->link('', array('action' => 'push', $server['Server']['id'], 'full'), array('class' => 'icon-upload', 'title' => __('Push all')));
+            }
+            if ($server['Server']['caching_enabled']) {
+                echo $this->Html->link('', array('action' => 'cache', $server['Server']['id']), array('class' => 'icon-download-alt', 'title' => __('Cache instance')));
             }
             ?>
             &nbsp;
@@ -128,4 +167,4 @@ endforeach; ?>
     });
 </script>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'sync', 'menuItem' => 'index'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'sync', 'menuItem' => 'index'));

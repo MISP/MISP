@@ -1,5 +1,5 @@
 <?php
-    echo $this->element('side_menu', array('menuList' => 'galaxies', 'menuItem' => 'view'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'galaxies', 'menuItem' => 'view'));
 ?>
 <div class="galaxy view">
     <div class="row-fluid">
@@ -23,6 +23,14 @@
                 <dd><?php echo h($galaxy['Galaxy']['version']); ?></dd>
 
             </dl>
+            <?php
+            $kco = '';
+            if (isset($galaxy['Galaxy']['kill_chain_order'])) {
+                $kco = '<strong>' . __('Kill chain order') . '</strong> <span class="useCursorPointer fa fa-expand" onclick="$(\'#killChainOrder\').toggle(\'blind\')"></span>';
+                $kco .= '<div id="killChainOrder" class="hidden" style="border: 1px solid #000; border-radius: 5px; padding: 3px; background: #f4f4f4; margin-left: 20px;">' . json_encode($galaxy['Galaxy']['kill_chain_order']) . '</div>';
+            }
+            echo $kco;
+            ?>
         </div>
     </div>
     <div id="clusters_div"></div>
@@ -36,5 +44,9 @@ $(document).ready(function () {
     $.get("<?php echo $uri;?>", function(data) {
         $("#clusters_div").html(data);
     });
+
+    var $kco = $('#killChainOrder');
+    var j = syntaxHighlightJson($kco.text(), 8)
+    $kco.html(j);
 });
 </script>

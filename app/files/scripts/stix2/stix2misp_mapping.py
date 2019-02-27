@@ -95,6 +95,7 @@ misp_types_mapping = {
     'sha512/224': parse_hash,
     'sha512/256': parse_hash,
     'tlsh': parse_hash,
+    'cdhash': parse_hash,
     'filename|authentihash': parse_filename_hash,
     'filename|ssdeep': parse_filename_hash,
     'filename|imphash': parse_filename_hash,
@@ -144,6 +145,7 @@ number_sections_mapping = {'type': 'counter', 'relation': 'number-sections'}
 password_mapping = {'type': 'text', 'relation': 'password'}
 pe_type_mapping = {'type': 'text', 'relation': 'type'}
 pid_attribute_mapping = {'type': 'text', 'relation': 'pid'}
+process_command_line_mapping = {'type': 'text', 'relation': 'command-line'}
 process_creation_time_mapping = {'type': 'datetime', 'relation': 'creation-time'}
 process_name_mapping = {'type': 'text', 'relation': 'name'}
 regkey_name_attribute_mapping = {'type': 'text', 'relation': 'name'}
@@ -246,6 +248,8 @@ process_mapping = {'name': process_name_mapping,
                    'process:pid': pid_attribute_mapping,
                    'created': process_creation_time_mapping,
                    'process:created': process_creation_time_mapping,
+                   'command_line': process_command_line_mapping,
+                   'process:command_line': process_command_line_mapping,
                    'process:parent_ref': {'type': 'text', 'relation': 'parent-pid'},
                    'process:child_refs': {'type': 'text', 'relation': 'child-pid'}}
 
@@ -258,7 +262,8 @@ regkey_mapping = {'data': data_attribute_mapping,
                   'name': regkey_name_attribute_mapping,
                   'windows-registry-key:name': regkey_name_attribute_mapping,
                   'key': key_attribute_mapping,
-                  'windows-registry-key:key': key_attribute_mapping
+                  'windows-registry-key:key': key_attribute_mapping,
+                  'windows-registry-key:value': {'type': 'text', 'relation': 'hive'}
                   }
 
 url_mapping = {'url': url_attribute_mapping,

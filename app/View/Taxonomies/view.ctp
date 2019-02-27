@@ -72,7 +72,7 @@
                 <?php endif;?>
                     <th><?php echo $this->Paginator->sort('tag');?></th>
                     <th><?php echo $this->Paginator->sort('expanded');?></th>
-					<th><?php echo $this->Paginator->sort('numerical_value');?></th>
+                    <th><?php echo $this->Paginator->sort('numerical_value');?></th>
                     <th><?php echo $this->Paginator->sort('events');?></th>
                     <th><?php echo $this->Paginator->sort('attributes');?></th>
                     <th><?php echo $this->Paginator->sort('tag');?></th>
@@ -87,7 +87,7 @@
             <?php endif; ?>
                 <td id="tag_<?php echo h($k); ?>" class="short"><?php echo h($item['tag']); ?></td>
                 <td><?php echo h($item['expanded']); ?>&nbsp;</td>
-				<td class="short"><?php echo isset($item['numerical_value']) ? h($item['numerical_value']) : ''; ?>&nbsp;</td>
+                <td class="short"><?php echo isset($item['numerical_value']) ? h($item['numerical_value']) : ''; ?>&nbsp;</td>
                 <td class="short">
                 <?php
                     if ($item['existing_tag']) {
@@ -103,7 +103,7 @@
                 <?php
                     if ($item['existing_tag']):
                 ?>
-                        <a href='<?php echo $baseurl."/attributes/search/attributetag:". h($item['existing_tag']['Tag']['id']);?>'><?php echo count($item['existing_tag']['AttributeTag']);?></a>
+                        <a href='<?php echo $baseurl."/attributes/search/tags:". h($item['existing_tag']['Tag']['id']);?>'><?php echo count($item['existing_tag']['AttributeTag']);?></a>
                 <?php
                     else:
                         echo __('N/A');
@@ -186,5 +186,5 @@
     });
 </script>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'taxonomies', 'menuItem' => 'view'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'taxonomies', 'menuItem' => 'view'));
 ?>

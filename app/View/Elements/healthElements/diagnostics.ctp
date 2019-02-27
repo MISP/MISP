@@ -55,9 +55,7 @@
                 $branchColour = $branch == '2.4' ? 'green' : 'red bold';
             ?>
             <span class="<?php echo h($branchColour); ?>">
-                <?php
-                    echo h($branch);
-                ?>
+                <?=($branch == '2.4') ? h($branch) : "You are not on a branch, Update MISP will fail"; ?>
             </span>
         </span><br />
         <pre class="hidden green bold" id="gitResult"></pre>
@@ -205,6 +203,7 @@
     <b>CyBox</b>: <?php echo $stix['cybox']['expected'];?><br />
     <b>mixbox</b>: <?php echo $stix['mixbox']['expected'];?><br />
     <b>maec</b>: <?php echo $stix['maec']['expected'];?><br />
+    <b>STIX2</b>: <?php echo $stix['stix2']['expected'];?><br />
     <b>PyMISP</b>: <?php echo $stix['pymisp']['expected'];?><br />
     <?php echo __('Other versions might work but are not tested / recommended.');?></p>
     <div style="background-color:#f7f7f9;width:400px;">
@@ -223,7 +222,7 @@
             if (!$testReadError) {
                 $error_count = 0;
                 $libraries = '';
-                foreach (array('stix', 'cybox', 'mixbox', 'maec', 'pymisp') as $package) {
+                foreach (array('stix', 'cybox', 'mixbox', 'maec', 'stix2', 'pymisp') as $package) {
                     $lib_colour = 'green';
                     if ($stix[$package]['status'] == 0) {
                         $lib_colour = 'red';

@@ -21,7 +21,7 @@
                   ?>
                     <th>
                             <div data-toggle="popover" data-content="<?php echo $popover; ?>" data-trigger="hover">
-                            <?php echo h($item['Feed']['id']); ?>
+                            <?php echo (empty($item['Feed']['is_misp_server']) ? 'F' : 'S') . h($item['Feed']['id']); ?>
                             </div>
                     </th>
                   <?php
@@ -38,7 +38,15 @@
                 <tr>
                     <td class="short">
                             <div data-toggle="popover" data-content="<?php echo $popover;?>" data-trigger="hover">
-                                <?php echo h($item['Feed']['id']) . ' ' . h($item['Feed']['name']); ?>&nbsp;
+                                <?php
+                                    echo sprintf(
+                                        '%s%s %s%s',
+                                        empty($item['Feed']['is_misp_server']) ? 'Feed #' : 'Server #',
+                                        h($item['Feed']['id']),
+                                        empty($item['Feed']['is_misp_server']) ? '' : '(<span class="blue bold">MISP</span>) ',
+                                        h($item['Feed']['name'])
+                                    );
+                                ?>
                             </div>
                         </td>
                         <?php
@@ -84,5 +92,5 @@
     });
 </script>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'feeds', 'menuItem' => 'compare'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'feeds', 'menuItem' => 'compare'));
 ?>

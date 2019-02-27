@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2018-10-15 23:37\n"
+"PO-Revision-Date: 2019-01-22 21:22\n"
 "Last-Translator: SteveClement <steve@localhost.lu>\n"
 "Language-Team: Danish\n"
 "MIME-Version: 1.0\n"
@@ -5461,11 +5461,11 @@ msgstr "EventGraph Sletning"
 
 #: View/EventGraph/ajax/eventGraph_delete_form.ctp:8
 msgid "Are you sure you want to delete eventGraph #%s? The eventGraph will be permanently deleted and unrecoverable."
-msgstr ""
+msgstr "Er du sikker på du vil slette eventGraph #%s? EventGraph vil være permanent slettede og uoprettelig."
 
 #: View/Events/add.ctp:3
 msgid "The event created %s, but not synchronised to other MISP instances until it is published."
-msgstr ""
+msgstr "Begivenheden oprettet %s, men synkroniseret ikke til andre forekomster af MISP, indtil det er offentliggjort."
 
 #: View/Events/add.ctp:3
 msgid "will be restricted to your organisation"
@@ -5895,7 +5895,8 @@ msgstr "Inkluder events der ikke er publicerede."
 #: View/Events/automation.ctp:208;275
 msgid "You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.\n"
 "    Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use"
-msgstr ""
+msgstr "Du kan også sammenkæde flere tagkommandoer med &amp;&amp;-operatoren. Vær opmærksom på, at kolon (:) ikke kan benyttes i tag-søgning.\n"
+"    Benyt i stedet somikolon (søgningen vil automatisk søge efter koloner i stedet). For f.eks. at medtage tag1 og tag2, men udelukke tag3, skal du benytte"
 
 #: View/Events/automation.ctp:211
 msgid "Bro IDS export"
@@ -6951,7 +6952,7 @@ msgstr "Skift pivotgraf"
 
 #: View/Events/view.ctp:360
 msgid "Pivots"
-msgstr ""
+msgstr "Pivots"
 
 #: View/Events/view.ctp:363
 msgid "Toggle galaxies"

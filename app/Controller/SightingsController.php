@@ -12,7 +12,7 @@ class SightingsController extends AppController
 
     public $paginate = array(
             'limit' => 60,
-            'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
             'order' => array('Sighting.date_sighting' => 'DESC'),
     );
 
@@ -83,9 +83,22 @@ class SightingsController extends AppController
                 }
             } else {
                 if ($error) {
-                    return $this->RestResponse->saveFailResponse('Sighting', 'add', $id, $error);
+                    $error_message = __('Could not add the Sighting. Reason: ') . $error;
+                    if ($this->_isRest() || $this->response->type() === 'application/json') {
+                        $this->set('message', $error_message);
+                        $this->set('_serialize', array('message'));
+                    } else {
+                        $this->Flash->error($error_message);
+                        $this->redirect($this->referer());
+                    }
                 } else {
-                    return $this->RestResponse->saveSuccessResponse('Sighting', 'add', $id, false, $result . ' ' . $this->Sighting->type[$type] . (($result == 1) ? '' : 's') . ' successfuly added.');
+                    if ($this->_isRest() || $this->response->type() === 'application/json') {
+                        $this->set('message', __('Sighting added'));
+                        $this->set('_serialize', array('message'));
+                    } else {
+                        $this->Flash->success(__('Sighting added'));
+                        $this->redirect($this->referer());
+                    }
                 }
             }
         } else {
@@ -131,6 +144,50 @@ class SightingsController extends AppController
         $this->set('context', $context);
         $this->set('id', $input_id);
         $this->render('/Sightings/ajax/advanced');
+    }
+
+    public function quickAdd($id=false, $type=1, $onvalue=false)
+    {
+        if (!$this->userRole['perm_modify_org']) {
+            throw new MethodNotAllowedException(__('You are not authorised to remove sightings data as you don\'t have permission to modify your organisation\'s data.'));
+        }
+        if (!$this->request->is('post')) {
+            $this->loadModel('Attribute');
+            $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id, 'Attribute.deleted' => 0), 'flatten' => 1));
+            if (empty($attribute)) {
+                throw new MethodNotAllowedException(__('Attribute not found'));
+            } else {
+                $attribute = $attribute[0]['Attribute'];
+                if (!$onvalue) {
+                    $this->set('id', $attribute['id']);
+                    $this->set('tosight', $attribute['id']);
+                } else {
+                    $this->set('id', '');
+                    $this->set('tosight', $attribute['value']);
+                }
+                $this->set('value', $attribute['value']);
+                $this->set('event_id', $attribute['event_id']);
+                $this->set('sighting_type', $type);
+                $this->set('onvalue', $onvalue);
+                $this->render('ajax/quickAddConfirmationForm');
+            }
+        } else {
+            if (!isset($id)) {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => __('Invalid request.'))), 'status' => 200, 'type' => 'json'));
+            } else {
+                if ($onvalue) {
+                    $result = $this->Sighting->add();
+                } else {
+                    $result = $this->Sighting->add($id);
+                }
+
+                if ($result) {
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => __('Sighting added.'))), 'status' => 200, 'type' => 'json'));
+                } else {
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => __('Sighting could not be added'))), 'status' => 200, 'type' => 'json'));
+                }
+            }
+        }
     }
 
     public function quickDelete($id, $rawId, $context)
@@ -218,6 +275,42 @@ class SightingsController extends AppController
             }
         }
         return $this->RestResponse->viewData($sightings);
+    }
+
+    public function restSearch($context = false)
+    {
+        $allowedContext = array(false, 'event', 'attribute');
+        $paramArray = array('returnFormat', 'id', 'type', 'from', 'to', 'last', 'org_id', 'source', 'includeAttribute', 'includeEvent');
+        $filterData = array(
+            'request' => $this->request,
+            'named_params' => $this->params['named'],
+            'paramArray' => $paramArray,
+            'ordered_url_params' => compact($paramArray)
+        );
+        $filters = $this->_harvestParameters($filterData, $exception);
+
+        // validate context
+        if (!in_array($context, $allowedContext, true)) {
+            throw new MethodNotAllowedException(_('Invalid context.'));
+        }
+        // ensure that an id is provided if context is set
+        if ($context !== false && !isset($filters['id'])) {
+            throw new MethodNotAllowedException(_('An id must be provided if the context is set.'));
+        }
+        $filters['context'] = $context;
+
+        if (isset($filters['returnFormat'])) {
+            $returnFormat = $filters['returnFormat'];
+        }
+        if ($returnFormat === 'download') {
+            $returnFormat = 'json';
+        }
+
+        $sightings = $this->Sighting->restSearch($this->Auth->user(), $returnFormat, $filters);
+
+        $validFormats = $this->Sighting->validFormats;
+        $responseType = $validFormats[$returnFormat][0];
+        return $this->RestResponse->viewData($sightings, $responseType, false, true);
     }
 
     public function listSightings($id, $context = 'attribute', $org_id = false)
