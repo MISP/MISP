@@ -5,6 +5,10 @@ var spanOffset_orig = 15; // due to padding
 var payload = {};
 var distribution_chart;
 var distributionData;
+var cacheAddedOrgName = {};
+var nodes_distri;
+var edges_distri;
+var advancedSharingNetwork;
 
 function clickHandlerGraph(evt) {
     var firstPoint = distribution_chart.getElementAtEvent(evt)[0];
@@ -185,9 +189,7 @@ function add_level_to_pb(distribution, additionalInfo, maxLevel) {
     }
 
 }
-var a;
-var n;
-var cacheAddedOrgName = {};
+
 function showAdvancedSharing(clicked) {
     $clicked = $(clicked);
     var network_active = $clicked.data('networkactive');
@@ -214,7 +216,7 @@ function showAdvancedSharing(clicked) {
     $div.toggle('slide', {}, 300);
 
     var EDGE_LENGTH_HUB = 300;
-    var nodes = new vis.DataSet([
+    nodes_distri = new vis.DataSet([
         {id: 'root', group: 'root',  x: 0, y: 0, fixed: true},
         {id: distributionData.additionalDistributionInfo[0][0], label: distributionData.additionalDistributionInfo[0][0], group: 'org-only'},
         // {id: 'this-community', label: 'This community', group: 'root-this-community'},
@@ -222,7 +224,7 @@ function showAdvancedSharing(clicked) {
         // {id: 'all-community', label: 'All community', group: 'web'},
 
     ]);
-    var edges = new vis.DataSet([
+    edges_distri = new vis.DataSet([
         {from: 'root', to: distributionData.additionalDistributionInfo[0][0], length: 30, width: 3},
     ]);
     var toID;
@@ -247,7 +249,7 @@ function showAdvancedSharing(clicked) {
     }
 
     if (toID !== false) {
-        edges.add({from: 'root', to: toID, width: 3});
+        edges_distri.add({from: 'root', to: toID, width: 3});
     }
 
     var nodesToAdd = [];
@@ -319,9 +321,9 @@ function showAdvancedSharing(clicked) {
         });
     }
 
-    nodes.add(nodesToAdd);
-    edges.add(edgesToAdd);
-    var data = { nodes: nodes, edges: edges };
+    nodes_distri.add(nodesToAdd);
+    edges_distri.add(edgesToAdd);
+    var data = { nodes: nodes_distri, edges: edges_distri };
     var network_options = {
         width: '800px',
         height: '800px',
@@ -461,9 +463,18 @@ function showAdvancedSharing(clicked) {
             }
         }
     };
-    var advancedSharingNetwork = new vis.Network(document.getElementById('advancedSharingNetwork'), data, network_options);
-    a = nodes;
-    n = advancedSharingNetwork;
+    advancedSharingNetwork = new vis.Network(document.getElementById('advancedSharingNetwork'), data, network_options);
+
+    advancedSharingNetwork.on("dragStart", function (params) {
+        params.nodes.forEach(function(nodeId) {
+            nodes_distri.update({id: nodeId, fixed: {x: false, y: false}});
+        });
+    });
+    advancedSharingNetwork.on("dragEnd", function (params) {
+        params.nodes.forEach(function(nodeId) {
+            nodes_distri.update({id: nodeId, fixed: {x: true, y: true}});
+        });
+    });
 }
 
 function inject_this_community_org(nodesToAdd, edgesToAdd, orgs, group, root) {
