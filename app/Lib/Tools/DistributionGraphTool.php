@@ -16,8 +16,10 @@
 
             // construct distribution info
             $this->__json['distributionInfo'] = array();
-            $sgs = $this->__eventModel->SharingGroup->fetchAllAuthorised($this->__user, 'name', 1);
-            $this->__json['allSharingGroup'] = h(array_values($sgs));
+            // $sgs = $this->__eventModel->SharingGroup->fetchAllAuthorised($this->__user, 'name', 1);
+            // $this->__json['allSharingGroup'] = h(array_values($sgs));
+            $sgs = $this->__eventModel->SharingGroup->fetchAllAuthorised($this->__user, 'simplified', 1);
+            $this->__json['allSharingGroup'] = h($sgs);
             $distributionLevels = $this->__eventModel->distributionLevels;
             foreach ($distributionLevels as $key => $value) {
                 $this->__json['distributionInfo'][$key] = array('key' => h($value), 'desc' => h($this->__eventModel->distributionDescriptions[$key]['formdesc']), 'value' => h($key));

@@ -187,6 +187,7 @@ function add_level_to_pb(distribution, additionalInfo, maxLevel) {
 }
 var a;
 var n;
+var cacheAddedOrgName = {};
 function showAdvancedSharing(clicked) {
     $clicked = $(clicked);
     var network_active = $clicked.data('networkactive');
@@ -215,19 +216,19 @@ function showAdvancedSharing(clicked) {
     var EDGE_LENGTH_HUB = 300;
     var nodes = new vis.DataSet([
         {id: 'root', group: 'root',  x: 0, y: 0, fixed: true},
-        {id: 'org-only', label: distributionData.additionalDistributionInfo[0][0], group: 'org-only'},
-        {id: 'this-community', label: 'This community', group: 'root-this-community'},
-        {id: 'connected-community', label: 'Connected community', group: 'root-connected-community'},
-        {id: 'all-community', label: 'All community', group: 'web'},
+        {id: distributionData.additionalDistributionInfo[0][0], label: distributionData.additionalDistributionInfo[0][0], group: 'org-only'},
+        // {id: 'this-community', label: 'This community', group: 'root-this-community'},
+        // {id: 'connected-community', label: 'Connected community', group: 'root-connected-community'},
+        // {id: 'all-community', label: 'All community', group: 'web'},
 
     ]);
     var edges = new vis.DataSet([
-        {from: 'root', to: 'org-only', length: 30},
+        {from: 'root', to: distributionData.additionalDistributionInfo[0][0], length: 30, width: 3},
     ]);
     var toID;
     switch (event_distribution) {
         case 0:
-            toID = 'org-only';
+            toID = false;
             break;
         case 1:
             toID = 'this-community';
@@ -244,17 +245,23 @@ function showAdvancedSharing(clicked) {
         default:
             break;
     }
-    edges.add({from: 'root', to: toID});
+
+    if (toID !== false) {
+        edges.add({from: 'root', to: toID, width: 3});
+    }
 
     var nodesToAdd = [];
     var edgesToAdd = [];
+    cacheAddedOrgName[distributionData.additionalDistributionInfo[0][0]] = 1;
 
     // Community
     if (event_distribution >= 1) {
         inject_this_community_org(nodesToAdd, edgesToAdd, distributionData.additionalDistributionInfo[1], 'this-community', 'this-community');
+        nodesToAdd.push({id: 'this-community', label: 'This community', group: 'root-this-community'});
     }
     if (event_distribution >= 2) {
         // Connected Community
+        nodesToAdd.push({id: 'connected-community', label: 'Connected community', group: 'root-connected-community'});
         distributionData.additionalDistributionInfo[2].forEach(function(orgName) {
             if (orgName === 'This community') {
                 edgesToAdd.push({from: 'connected-community', to: 'this-community', length: EDGE_LENGTH_HUB});
@@ -271,26 +278,46 @@ function showAdvancedSharing(clicked) {
 
     // All Community
     if (event_distribution >= 3) {
+        nodesToAdd.push({id: 'all-community', label: 'All community', group: 'web'});
         distributionData.additionalDistributionInfo[3].forEach(function(orgName) {
             if (orgName === 'This community') {
                 edgesToAdd.push({from: 'all-community', to: 'this-community', length: EDGE_LENGTH_HUB});
             } else if (orgName === 'All other communities') {
                 edgesToAdd.push({from: 'all-community', to: 'connected-community', length: EDGE_LENGTH_HUB});
-            } else {
-                nodesToAdd.push({
-                    id: 'all-community_' + orgName,
-                    label: orgName,
-                    group: 'all-community'
-                });
-                edgesToAdd.push({from: 'root', to: 'all-community_' + orgName});
             }
         });
     }
     // Sharing Group
-    // distributionData.additionalDistributionInfo.4.foreach(function(orgName) {
-    //     `var temp = { id: orgName, label: orgName };
-    //     toAdd.push(temp);
-    // });`
+    if (distributionData.event[4] > 0) {
+        distributionData.allSharingGroup.forEach(function(sg) {
+            var sgName = sg.SharingGroup.name;
+            nodesToAdd.push({
+                id: 'sharing-group_' + sgName,
+                label: sgName,
+                group: 'root-sharing-group'
+            });
+            edgesToAdd.push({from: 'root', to: 'sharing-group_' + sgName, width: 3});
+            sg.SharingGroupOrg.forEach(function(org) {
+                var sgOrgName = org.Organisation.name;
+                if (cacheAddedOrgName[sgOrgName] === undefined) {
+                    nodesToAdd.push({
+                        id: sgOrgName,
+                        label: sgOrgName,
+                        group: 'sharing-group'
+                    });
+                    cacheAddedOrgName[sgOrgName] = 1;
+                }
+                edgesToAdd.push({
+                    from: 'sharing-group_' + sgName,
+                    to: sgOrgName,
+                    arrows: {
+                        to: { enabled: false }
+                    },
+                    color: { opacity: 0.4 }
+                });
+            });
+        });
+    }
 
     nodes.add(nodesToAdd);
     edges.add(edgesToAdd);
@@ -302,6 +329,12 @@ function showAdvancedSharing(clicked) {
         edges: {
             arrows: {
                 to: {enabled: true, scaleFactor:1, type:'arrow'},
+            },
+            shadow: {
+                enabled: true,
+                size: 7,
+                x: 3,
+                y: 3
             }
         },
         physics:{
@@ -323,6 +356,14 @@ function showAdvancedSharing(clicked) {
 
             solver: 'barnesHut'
         },
+        nodes: {
+            shadow: {
+                enabled: true,
+                size: 7,
+                x: 3,
+                y: 3
+            }
+        },
         groups: {
             'root': {
                 shape: 'icon',
@@ -330,7 +371,7 @@ function showAdvancedSharing(clicked) {
                     face: 'FontAwesome',
                     code: '\uf10c',
                     color: '#000000',
-                    size: 30
+                    size: 50
                 },
                 font: {size: 30},
                 color: '#000000',
@@ -408,7 +449,7 @@ function showAdvancedSharing(clicked) {
                 icon: {
                     face: 'FontAwesome',
                     code: '\uf0c0',
-                    color: '#9b6e1b',
+                    color: '#1369a0',
                     size: 70
                 },
                 font: {
@@ -427,12 +468,22 @@ function showAdvancedSharing(clicked) {
 
 function inject_this_community_org(nodesToAdd, edgesToAdd, orgs, group, root) {
     orgs.forEach(function(orgName) {
-        nodesToAdd.push({
-            id: group + '_' + orgName,
-            label: orgName,
-            group: group
+        if (cacheAddedOrgName[orgName] === undefined) {
+            nodesToAdd.push({
+                id: orgName,
+                label: orgName,
+                group: group
+            });
+            cacheAddedOrgName[orgName] = 1;
+        }
+        edgesToAdd.push({
+            from: root,
+            to: orgName,
+            arrows: {
+                to: { enabled: false }
+            },
+            color: { opacity: 0.4 }
         });
-        edgesToAdd.push({ from: root, to: group + '_' + orgName});
     });
 }
 
