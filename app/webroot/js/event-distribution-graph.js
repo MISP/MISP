@@ -185,56 +185,259 @@ function add_level_to_pb(distribution, additionalInfo, maxLevel) {
     }
 
 }
-
-function showAdvancedSharing() {
+var a;
+var n;
+function showAdvancedSharing(clicked) {
+    $clicked = $(clicked);
+    var network_active = $clicked.data('networkactive');
+    if (network_active !== undefined && network_active === true) {
+        $('#advancedSharingNetwork').hide('slide', {}, 300);
+        $clicked.data('networkactive', false);
+        return;
+    } else if (network_active !== undefined && network_active === false) {
+        $('#advancedSharingNetwork').show('slide', {}, 300);
+        $clicked.data('networkactive', true);
+        return;
+    }
+    $clicked.data('networkactive', true);
     var $popover = $('#eventdistri_graph').parent().parent();
     var boundingRect = $popover[0].getBoundingClientRect()
-    var $div = $('<div id="advancedSharingNetwork" class="advancedSharingNetwork"><div id="advancedSharingNetworkContainer" style="width: 100%; height: 100%;"></div></div>');
+    var $div = $('<div id="advancedSharingNetwork" class="advancedSharingNetwork hidden"></div>');
     $div.css({
         left: boundingRect.left + boundingRect.width + 'px',
         top: boundingRect.top + 'px',
-        'min-width': boundingRect.width,
-        'min-height': boundingRect.height
+        width: 800 + 'px',
+        height: 800 + 'px'
     });
     $('body').append($div);
+    $div.toggle('slide', {}, 300);
 
+    var EDGE_LENGTH_HUB = 300;
     var nodes = new vis.DataSet([
-        {id: 'root', label: 'Event'}
-    ]);
-    var edges = new vis.DataSet([]);
+        {id: 'root', group: 'root',  x: 0, y: 0, fixed: true},
+        {id: 'org-only', label: distributionData.additionalDistributionInfo[0][0], group: 'org-only'},
+        {id: 'this-community', label: 'This community', group: 'root-this-community'},
+        {id: 'connected-community', label: 'Connected community', group: 'root-connected-community'},
+        {id: 'all-community', label: 'All community', group: 'web'},
 
-    // Community
+    ]);
+    var edges = new vis.DataSet([
+        {from: 'root', to: 'org-only', length: 30},
+    ]);
+    var toID;
+    switch (event_distribution) {
+        case 0:
+            toID = 'org-only';
+            break;
+        case 1:
+            toID = 'this-community';
+            break;
+        case 2:
+            toID = 'connected-community';
+            break;
+        case 3:
+            toID = 'all-community';
+            break;
+        case 4:
+            toID = 'sharing-group';
+            break;
+        default:
+            break;
+    }
+    edges.add({from: 'root', to: toID});
+
     var nodesToAdd = [];
     var edgesToAdd = [];
-    distributionData.additionalDistributionInfo[1].forEach(function(orgName) {
-        console.log(orgName);
-        nodesToAdd.push({ id: orgName, label: orgName });
-        edgesToAdd.push({ from: 'root', to: orgName});
-    });
-    // Connected Community
-    distributionData.additionalDistributionInfo[2].forEach(function(orgName) {
-        console.log(orgName);
-        nodesToAdd.push({ id: orgName, label: orgName });
-        edgesToAdd.push({ from: 'root', to: orgName});
-    });
+
+    // Community
+    if (event_distribution >= 1) {
+        inject_this_community_org(nodesToAdd, edgesToAdd, distributionData.additionalDistributionInfo[1], 'this-community', 'this-community');
+    }
+    if (event_distribution >= 2) {
+        // Connected Community
+        distributionData.additionalDistributionInfo[2].forEach(function(orgName) {
+            if (orgName === 'This community') {
+                edgesToAdd.push({from: 'connected-community', to: 'this-community', length: EDGE_LENGTH_HUB});
+            } else {
+                nodesToAdd.push({
+                    id: 'connected-community_' + orgName,
+                    label: orgName,
+                    group: 'connected-community'
+                });
+                edgesToAdd.push({from: 'connected-community', to: 'connected-community_' + orgName});
+            }
+        });
+    }
+
     // All Community
-    distributionData.additionalDistributionInfo[3].forEach(function(orgName) {
-        nodesToAdd.push({ id: orgName, label: orgName });
-        edgesToAdd.push({ from: 'root', to: orgName});
-    });
+    if (event_distribution >= 3) {
+        distributionData.additionalDistributionInfo[3].forEach(function(orgName) {
+            if (orgName === 'This community') {
+                edgesToAdd.push({from: 'all-community', to: 'this-community', length: EDGE_LENGTH_HUB});
+            } else if (orgName === 'All other communities') {
+                edgesToAdd.push({from: 'all-community', to: 'connected-community', length: EDGE_LENGTH_HUB});
+            } else {
+                nodesToAdd.push({
+                    id: 'all-community_' + orgName,
+                    label: orgName,
+                    group: 'all-community'
+                });
+                edgesToAdd.push({from: 'root', to: 'all-community_' + orgName});
+            }
+        });
+    }
     // Sharing Group
     // distributionData.additionalDistributionInfo.4.foreach(function(orgName) {
     //     `var temp = { id: orgName, label: orgName };
     //     toAdd.push(temp);
     // });`
 
+    nodes.add(nodesToAdd);
+    edges.add(edgesToAdd);
     var data = { nodes: nodes, edges: edges };
-    var network_options = {};
-    var advancedSharingNetwork = new vis.Network(document.getElementById('advancedSharingNetworkContainer'), data, network_options);
+    var network_options = {
+        width: '800px',
+        height: '800px',
+        layout: {randomSeed: 0},
+        edges: {
+            arrows: {
+                to: {enabled: true, scaleFactor:1, type:'arrow'},
+            }
+        },
+        physics:{
+            barnesHut: {
+                gravitationalConstant: -2000,
+                centralGravity: 0.3,
+                springLength: 150,
+                springConstant: 0.02,
+                damping: 0.09,
+                avoidOverlap: 0
+            },
+            repulsion: {
+                centralGravity: 0.2,
+                springLength: 200,
+                springConstant: 0.02,
+                nodeDistance: 200,
+                damping: 0.15
+            },
+
+            solver: 'barnesHut'
+        },
+        groups: {
+            'root': {
+                shape: 'icon',
+                icon: {
+                    face: 'FontAwesome',
+                    code: '\uf10c',
+                    color: '#000000',
+                    size: 30
+                },
+                font: {size: 30},
+                color: '#000000',
+            },
+            'org-only': {
+                shape: 'icon',
+                icon: {
+                    face: 'FontAwesome',
+                    code: '\uf2c2',
+                    color: '#ff0000',
+                    size: 30
+                },
+                font: {
+                    size: 14, // px
+                    color: '#ff0000',
+                    background: 'rgba(255, 255, 255, 0.7)'
+                },
+                color: '#ff0000',
+            },
+            'root-this-community': {
+                shape: 'icon',
+                icon: {
+                    face: 'FontAwesome',
+                    code: '\uf1e1',
+                    color: '#ff9725',
+                    size: 70
+                },
+                font: {
+                    size: 18, // px
+                    color: '#ff9725',
+                    background: 'rgba(255, 255, 255, 0.7)'
+                },
+                color: '#ff9725',
+            },
+            'this-community': {
+                font: {color: 'white'},
+                color: '#ff9725'
+            },
+            'root-connected-community': {
+                shape: 'icon',
+                icon: {
+                    face: 'FontAwesome',
+                    code: '\uf0e8',
+                    color: '#9b6e1b',
+                    size: 70
+                },
+                font: {
+                    size: 18, // px
+                    color: '#9b6e1b',
+                    background: 'rgba(255, 255, 255, 0.7)'
+                },
+                color: '#9b6e1b',
+            },
+            'connected-community': {
+                shape: 'image',
+                image: '/img/orgs/MISP.png'
+            },
+            'web': {
+                shape: 'icon',
+                icon: {
+                    face: 'FontAwesome',
+                    code: '\uf0ac',
+                    color: '#007d20',
+                    size: 70
+                },
+                font: {
+                    size: 18, // px
+                    color: '#007d20',
+                    background: 'rgba(255, 255, 255, 0.7)'
+                },
+                color: '#007d20',
+            },
+            'root-sharing-group': {
+                shape: 'icon',
+                icon: {
+                    face: 'FontAwesome',
+                    code: '\uf0c0',
+                    color: '#9b6e1b',
+                    size: 70
+                },
+                font: {
+                    size: 18, // px
+                    color: '#1369a0',
+                    background: 'rgba(255, 255, 255, 0.7)'
+                },
+                color: '#1369a0',
+            }
+        }
+    };
+    var advancedSharingNetwork = new vis.Network(document.getElementById('advancedSharingNetwork'), data, network_options);
+    a = nodes;
+    n = advancedSharingNetwork;
+}
+
+function inject_this_community_org(nodesToAdd, edgesToAdd, orgs, group, root) {
+    orgs.forEach(function(orgName) {
+        nodesToAdd.push({
+            id: group + '_' + orgName,
+            label: orgName,
+            group: group
+        });
+        edgesToAdd.push({ from: root, to: group + '_' + orgName});
+    });
 }
 
 $(document).ready(function() {
-    var rightBtn = '<span type="button" class="fa fa-share-alt useCursorPointer" aria-hidden="true" style="float:right; margin-left: 5px;" onclick="showAdvancedSharing()"></span>';
+    var rightBtn = '<span type="button" id="showAdvancedSharingButton" class="fa fa-share-alt useCursorPointer" aria-hidden="true" style="float:right; margin-left: 5px;" onclick="showAdvancedSharing(this)"></span>';
     var pop = $('.distribution_graph').popover({
         title: "<b>Distribution graph</b> [atomic event]" + rightBtn,
         html: true,
@@ -252,6 +455,7 @@ $(document).ready(function() {
     $('.distribution_graph').click(function() {
         if ($(this).data('shown') == 'true') {
             $(this).data('shown', 'false');
+            $('#advancedSharingNetwork').hide('slide', {}, 200, function() { $('#advancedSharingNetwork').remove(); });
             return;
         } else {
             $(this).data('shown', 'true');
