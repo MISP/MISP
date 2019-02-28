@@ -189,7 +189,7 @@ checkOpt () {
 
 setOpt () {
   options=()
-  for o in $@; do 
+  for o in $@; do
     case "$o" in
       ("-c") echo "core"; CORE=1 ;;
       ("-V") echo "viper"; VIPER=1 ;;
@@ -310,7 +310,7 @@ checkID () {
     echo "This script cannot be run as a root"
     exit 1
   elif [[ $(id $MISP_USER >/dev/null; echo $?) -ne 0 ]]; then
-    if [[ "$UNATTENDED" != "1" ]]; then 
+    if [[ "$UNATTENDED" != "1" ]]; then
       echo "There is NO user called '$MISP_USER' create a user '$MISP_USER' or continue as $USER? (y/n) "
       read ANSWER
       ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
@@ -404,7 +404,7 @@ checkUsrLocalSrc () {
       echo "Good, /usr/local/src exists and is writeable as $MISP_USER"
     else
       # TODO: The below might be shorter, more elegant and more modern
-      #[[ -n $KALI ]] || [[ -n $UNATTENDED ]] && echo "Just do it" 
+      #[[ -n $KALI ]] || [[ -n $UNATTENDED ]] && echo "Just do it"
       if [ "$KALI" == "1" -o "$UNATTENDED" == "1" ]; then
         ANSWER="y"
       else
@@ -451,7 +451,7 @@ setBaseURL () {
   debug "Setting Base URL"
   if [[ $(checkManufacturer) != "innotek GmbH" ]]; then
     debug "We guess that this is a physical machine and cannot possibly guess what the MISP_BASEURL might be."
-    if [[ "$UNATTENDED" != "1" ]]; then 
+    if [[ "$UNATTENDED" != "1" ]]; then
       echo "You can now enter your own MISP_BASEURL, if you wish to NOT do that, the MISP_BASEURL will be empty, which will work, but ideally you configure it afterwards."
       echo "Do you want to change it now? (y/n) "
       read ANSWER
@@ -482,14 +482,14 @@ setBaseURL () {
 # Test and install software RNG
 installRNG () {
   sudo modprobe tpm-rng 2> /dev/null
-  if [ "$?" -eq "0" ]; then 
+  if [ "$?" -eq "0" ]; then
     echo tpm-rng | sudo tee -a /etc/modules
   fi
   checkAptLock
   sudo apt install -qy rng-tools # This might fail on TPM grounds, enable the security chip in your BIOS
   sudo service rng-tools start
 
-  if [ "$?" -eq "1" ]; then 
+  if [ "$?" -eq "1" ]; then
     sudo apt purge -qy rng-tools
     sudo apt install -qy haveged
     sudo /etc/init.d/haveged start
@@ -563,11 +563,11 @@ installDeps () {
   # Skip dist-upgrade for now, pulls in 500+ updated packages
   #sudo apt -y dist-upgrade
   gitMail=$(git config --global --get user.email ; echo $?)
-  if [ "$?" -eq "1" ]; then 
+  if [ "$?" -eq "1" ]; then
     git config --global user.email "root@kali.lan"
   fi
   gitUser=$(git config --global --get user.name ; echo $?)
-  if [ "$?" -eq "1" ]; then 
+  if [ "$?" -eq "1" ]; then
     git config --global user.name "Root User"
   fi
 
@@ -826,6 +826,20 @@ checkSudoKeeper () {
   fi
 }
 
+runTests () {
+  echo 'url = "https://misp.local"' >> $PATH_TO_MISP/PyMISP/tests/keys.py
+  echo 'key = "'${AUTH_KEY}'"' >> $PATH_TO_MISP/PyMISP/tests/keys.py
+  sudo chown www-data:www-data $PATH_TO_MISP/PyMISP/tests/keys.py
+
+  pushd $PATH_TO_MISP/PyMISP
+  pushd tests
+  sudo -H -u www-data git clone https://github.com/viper-framework/viper-test-files.git
+  popd
+  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .[fileobjects,neo,openioc,virustotal,pdfexport]
+  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/python tests/testlive_comprehensive.py
+  popd
+}
+
 installCoreDeps () {
   debug "Installing core dependencies"
   # Install the dependencies: (some might already be installed)
@@ -1006,7 +1020,7 @@ installCore () {
 
 installCake () {
   debug "Installing CakePHP"
-  # Once done, install CakeResque along with its dependencies 
+  # Once done, install CakeResque along with its dependencies
   # if you intend to use the built in background jobs:
   cd ${PATH_TO_MISP}/app
   # Make composer cache happy
@@ -1748,6 +1762,9 @@ installMISPubuntuSupported () {
   [[ -n $MAIL2 ]]     || [[ -n $ALL ]] && mail2misp
   progress 100
 
+  # Run tests
+  runTests
+
   # Run final script to inform the User what happened - functionLocation('generic/supportFunctions.md')
   theEnd
 }
@@ -2030,7 +2047,7 @@ checkFlavour
 debug "Checking for parameters or Unattended Kali Install"
 if [[ $# == 0 && $0 != "/tmp/misp-kali.sh" ]]; then
   usage
-  exit 
+  exit
 else
   debug "Setting install options with given parameters."
   # The setOpt/checkOpt function lives in generic/supportFunctions.md
