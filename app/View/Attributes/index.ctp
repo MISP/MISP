@@ -180,6 +180,11 @@ $(document).ready(function () {
         getPopup(attribute_id, 'attributes', 'toggleCorrelation', '', '#confirmation_box');
         return false;
     });
+    $('.toids-toggle').click(function() {
+        var attribute_id = $(this).data('attribute-id');
+        getPopup(attribute_id, 'attributes', 'toggleToIDS', '', '#confirmation_box');
+        return false;
+    });
     popoverStartup();
     $(document).on('click', function (e) {
         //did not click a popover toggle or popover

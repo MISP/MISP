@@ -988,10 +988,14 @@ class AttributesController extends AppController
                     $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
                 }
             } else {
-                if (!CakeSession::read('Message.flash')) {
-                    $this->Flash->error(__('The attribute could not be saved. Please, try again.'));
+                if ($this->_isRest()) {
+                    return $this->RestResponse->saveFailResponse('Attributes', 'edit', false, $this->Attribute->validationErrors);
                 } else {
-                    $this->request->data = $this->Attribute->read(null, $id);
+                    if (!CakeSession::read('Message.flash')) {
+                        $this->Flash->error(__('The attribute could not be saved. Please, try again.'));
+                    } else {
+                        $this->request->data = $this->Attribute->read(null, $id);
+                    }
                 }
             }
         } else {
@@ -3279,6 +3283,12 @@ class AttributesController extends AppController
             $this->render('ajax/toggle_correlation');
         }
     }
+
+    public function toggleToIDS($id)
+    {
+        return $this->fetchEditForm($id, 'to_ids');
+    }
+
 
     public function checkAttachments()
     {

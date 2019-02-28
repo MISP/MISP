@@ -543,9 +543,11 @@ installMISPonKali () {
   debug "Setting up GnuPG"
   setupGnuPG 2> /dev/null > /dev/null
 
-  debug "Starting workers"
+  debug "Adding workers to systemd"
   chmod +x $PATH_TO_MISP/app/Console/worker/start.sh
-  $SUDO_WWW $PATH_TO_MISP/app/Console/worker/start.sh
+  sudo cp $PATH_TO_MISP/INSTALL/misp-workers.service /etc/systemd/system/
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now misp-workers
 
   debug "Running Core Cake commands"
   coreCAKE 2> /dev/null > /dev/null

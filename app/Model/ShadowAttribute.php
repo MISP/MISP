@@ -497,8 +497,9 @@ class ShadowAttribute extends AppModel
     {
         $orgs = $this->find('all', array('fields' => array('DISTINCT(org_id)'), 'conditions' => array('event_id' => $id), 'order' => false));
         $org_ids = array();
+        $this->Organisation = ClassRegistry::init('Organisation');
         foreach ($orgs as $org) {
-            $org_ids[] = $org['ShadowAttribute']['org_id'];
+            $org_ids[] = $this->Organisation->find('first', array('recursive' => -1, 'fields' => array('id', 'name'), 'conditions' => array('Organisation.id' => $org['ShadowAttribute']['org_id'])));
         }
         return $org_ids;
     }

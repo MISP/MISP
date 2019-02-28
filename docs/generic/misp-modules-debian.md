@@ -5,7 +5,7 @@
 # Main MISP Modules install function
 mispmodules () {
   # FIXME:  this is broken, ${PATH_TO_MISP} is litteral
-  sudo sed -i -e '$i \sudo -u www-data /var/www/MISP/venv/bin/misp-modules -l 127.0.0.1 -s > /tmp/misp-modules_rc.local.log &\n' /etc/rc.local
+##sudo sed -i -e '$i \sudo -u www-data /var/www/MISP/venv/bin/misp-modules -l 127.0.0.1 -s > /tmp/misp-modules_rc.local.log &\n' /etc/rc.local
   cd /usr/local/src/
   ## TODO: checkUsrLocalSrc in main doc
   $SUDO_USER git clone https://github.com/MISP/misp-modules.git
@@ -23,7 +23,10 @@ mispmodules () {
 
   # install additional dependencies for extended object generation and extraction
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install wand yara pathlib
-  # Start misp-modules
+  # Start misp-modules as a service
+  sudo cp etc/systemd/system/misp-modules.service /etc/systemd/system/
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now misp-modules
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s &
 
   # Sleep 9 seconds to give misp-modules a chance to spawn

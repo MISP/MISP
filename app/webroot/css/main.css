@@ -966,6 +966,11 @@ a.pill-pre-picker {
     color: #fff;
     line-height: 13px;
 }
+li .generic-picker-item-element-check {
+    margin-top: -3px;
+    margin-left: 5px;
+}
+
 .generic-picker-item-element-check .fa:before {
     margin-right: 0px;
 }
@@ -2203,7 +2208,7 @@ table tr:hover .down-expand-button {
 .quick-edit-row-div {
     line-height: normal;
     display: inline-block;
-    position: relative;
+    position: absolute;
 }
 
 #attackmatrix_div {

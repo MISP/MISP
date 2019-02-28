@@ -63,7 +63,7 @@ class GenericPickerHelper extends AppHelper {
         foreach ($param as $paramName => $paramValue) {
             if ($paramName === 'value') {
                 $param_html .= sprintf('value="%s" ', h($paramValue));
-            } else if ($paramName === 'template') {
+            } else if ($paramName === 'template' || $paramName === 'additionalData') {
                 continue;
             } else {
                 $param_html .= sprintf('data-%s="%s" ', h($paramName), h($paramValue));

@@ -98,8 +98,8 @@
             foreach ($contributors as $k => $entry) {
                 $contributorsContent .= sprintf(
                     '<a href="%s" style="margin-right:2px;text-decoration: none;">%s</a>',
-                    $baseurl."/logs/event_index/".$event['Event']['id'].'/'.h($entry),
-                    $this->element('img', array('id' => $entry, 'imgSize' => 24, 'imgStyle' => true))
+                    $baseurl . "/logs/event_index/" . $event['Event']['id'] . '/' . h($entry['Organisation']['name']),
+                    $this->OrgImg->getOrgImg(array('name' => $entry['Organisation']['name'], 'id' => $entry['Organisation']['id'], 'size' => 24), true, true)
                 );
             }
             $table_data[] = array(
@@ -167,9 +167,11 @@
             'class_value' => ($event['Event']['published'] == 0) ? '' : 'green',
             'html' => ($event['Event']['published'] == 0) ? 'No' : '<span class="green bold">Yes</span>' . ((empty($event['Event']['publish_timestamp'])) ? 'N/A' :  ' (' . date('Y-m-d H:i:s', ($event['Event']['publish_timestamp'])) . ')')
         );
+        $attribute_text = $attribute_count;
+        $attribute_text .= $object_count > 1 ? sprintf(' (%s Objects)', h($object_count)) : sprintf(' (%s Object)', h($object_count));
         $table_data[] = array(
             'key' => __('#Attributes'),
-            'value' => $attribute_count
+            'value' => $attribute_text
         );
         $table_data[] = array(
             'key' => __('First recorded change'),

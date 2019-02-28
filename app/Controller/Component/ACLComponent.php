@@ -65,6 +65,7 @@ class ACLComponent extends Component
                     'searchAlternate' => array('*'),
                     'toggleCorrelation' => array('perm_add'),
                     'text' => array('*'),
+                    'toggleToIDS' => array('perm_add'),
                     'updateAttributeValues' => array('perm_add'),
                     'view' => array('*'),
             ),
