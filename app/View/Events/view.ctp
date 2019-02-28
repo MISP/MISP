@@ -98,8 +98,8 @@
             foreach ($contributors as $k => $entry) {
                 $contributorsContent .= sprintf(
                     '<a href="%s" style="margin-right:2px;text-decoration: none;">%s</a>',
-                    $baseurl."/logs/event_index/".$event['Event']['id'].'/'.h($entry),
-                    $this->element('img', array('id' => $entry, 'imgSize' => 24, 'imgStyle' => true))
+                    $baseurl . "/logs/event_index/" . $event['Event']['id'] . '/' . h($entry['Organisation']['name']),
+                    $this->OrgImg->getOrgImg(array('name' => $entry['Organisation']['name'], 'id' => $entry['Organisation']['id'], 'size' => 24), true, true)
                 );
             }
             $table_data[] = array(
