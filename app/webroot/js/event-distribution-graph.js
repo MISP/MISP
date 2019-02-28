@@ -614,7 +614,6 @@ $(document).ready(function() {
                 $(".loadingPopover").show();
             },
             success: function( data, textStatus, jQxhr ){
-                console.log(data);
                 distributionData = data;
                 $(".loadingPopover").hide();
 
@@ -707,31 +706,44 @@ $(document).ready(function() {
                 ];
                 var ctx = document.getElementById("distribution_graph_canvas");
                 ctx.onclick = function(evt) { clickHandlerGraph(evt); };
-                distribution_chart = new Chart(ctx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: data.distributionInfo.map(function(elem, index) { return [elem.key]; }),
-                        distribution: data.distributionInfo,
-                        datasets: doughnut_dataset,
-                    },
-                    options: {
-                        title: {
-                            display: false
+
+                var count = 0;
+                for (var i=0, n=data.event.length; i < n; i++) {
+                  count += data.event[i];
+                }
+                if (count > 0) {
+                    distribution_chart = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: data.distributionInfo.map(function(elem, index) { return [elem.key]; }),
+                            distribution: data.distributionInfo,
+                            datasets: doughnut_dataset,
                         },
-                        animation: {
-                            duration: 500
-                        },
-                        tooltips: {
-                            callbacks: {
-                                label: function(item, data) {
-                                    return data.datasets[item.datasetIndex].label
-                                        + " - " + data.labels[item.index]
-                                        + ": " + data.datasets[item.datasetIndex].data[item.index];
+                        options: {
+                            title: {
+                                display: false
+                            },
+                            animation: {
+                                duration: 500
+                            },
+                            tooltips: {
+                                callbacks: {
+                                    label: function(item, data) {
+                                        return data.datasets[item.datasetIndex].label
+                                            + " - " + data.labels[item.index]
+                                            + ": " + data.datasets[item.datasetIndex].data[item.index];
+                                    }
                                 }
                             }
-                        }
-                    },
-                });
+                        },
+                    });
+                } else {
+                    var canvas = ctx;
+                    ctx = canvas.getContext("2d");
+                    ctx.font = "30px Comic Sans MS";
+                    ctx.textAlign = "center";
+                    ctx.fillText("Event is empty", canvas.width/2, canvas.height/2);
+                }
 
                 // create checkboxes
                 var div = $('<div></div>');
