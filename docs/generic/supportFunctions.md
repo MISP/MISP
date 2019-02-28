@@ -410,6 +410,28 @@ checkAptLock () {
   unset DONE
 }
 
+# <snippet-begin 0_installDepsPhp70.sh>
+# Install Php 7.0 dependencies
+installDepsPhp70 () {
+  debug "Installing PHP 7.0 dependencies"
+  PHP_ETC_BASE=/etc/php/7.0
+  PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
+  sudo apt update
+  sudo apt install -qy \
+  libapache2-mod-php \
+  php php-cli \
+  php-dev \
+  php-json php-xml php-mysql php-opcache php-readline php-mbstring \
+  php-pear \
+  php-redis php-gnupg
+
+  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
+  do
+      sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
+  done
+}
+# <snippet-end 0_installDepsPhp70.sh>
+
 # <snippet-begin 0_installDepsPhp73.sh>
 # Install Php 7.3 deps
 installDepsPhp73 () {

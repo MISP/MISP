@@ -539,6 +539,26 @@ checkAptLock () {
   unset DONE
 }
 
+# Install Php 7.0 dependencies
+installDepsPhp70 () {
+  debug "Installing PHP 7.0 dependencies"
+  PHP_ETC_BASE=/etc/php/7.0
+  PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
+  sudo apt update
+  sudo apt install -qy \
+  libapache2-mod-php \
+  php php-cli \
+  php-dev \
+  php-json php-xml php-mysql php-opcache php-readline php-mbstring \
+  php-pear \
+  php-redis php-gnupg
+
+  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
+  do
+      sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
+  done
+}
+
 # Install Php 7.3 deps
 installDepsPhp73 () {
   debug "Installing PHP 7.3 dependencies"
@@ -868,6 +888,26 @@ installDepsPhp73 () {
 installDepsPhp72 () {
   debug "Installing PHP 7.2 dependencies"
   PHP_ETC_BASE=/etc/php/7.2
+  PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
+  sudo apt update
+  sudo apt install -qy \
+  libapache2-mod-php \
+  php php-cli \
+  php-dev \
+  php-json php-xml php-mysql php-opcache php-readline php-mbstring \
+  php-pear \
+  php-redis php-gnupg
+
+  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
+  do
+      sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
+  done
+}
+
+# Install Php 7.0 dependencies
+installDepsPhp70 () {
+  debug "Installing PHP 7.0 dependencies"
+  PHP_ETC_BASE=/etc/php/7.0
   PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
   sudo apt update
   sudo apt install -qy \
@@ -1577,6 +1617,7 @@ generateInstaller () {
   perl -pe 's/^## 0_installCoreDeps.sh ##/`cat 0_installCoreDeps.sh`/ge' -i INSTALL.debian.tpl.sh
   perl -pe 's/^## 0_installDepsPhp73.sh ##/`cat 0_installDepsPhp73.sh`/ge' -i INSTALL.debian.tpl.sh
   perl -pe 's/^## 0_installDepsPhp72.sh ##/`cat 0_installDepsPhp72.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 0_installDepsPhp70.sh ##/`cat 0_installDepsPhp70.sh`/ge' -i INSTALL.debian.tpl.sh
   perl -pe 's/^## 1_prepareDB.sh ##/`cat 1_prepareDB.sh`/ge' -i INSTALL.debian.tpl.sh
   perl -pe 's/^## 1_apacheConfig.sh ##/`cat 1_apacheConfig.sh`/ge' -i INSTALL.debian.tpl.sh
   perl -pe 's/^## 1_mispCoreInstall.sh ##/`cat 1_mispCoreInstall.sh`/ge' -i INSTALL.debian.tpl.sh
@@ -1620,7 +1661,7 @@ debug () {
   fi
 }
 
-installMISPubuntuSupported () {
+installSupported () {
   space
   echo "Proceeding with the installation of MISP core"
   space
@@ -1665,8 +1706,22 @@ installMISPubuntuSupported () {
   [[ -n $CORE ]]   || [[ -n $ALL ]] && installCoreDeps
   progress 4
 
-  # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
+  if [[ "$1" =~ ^PHP= ]]; then
+    PHP_VER=$(echo $1 |cut -f2 -d=)
+    if [[ "$PHP_VER" == "7.2" ]]; then
+      # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
+      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
+    elif [[ "$PHP_VER" == "7.3" ]]; then
+      # Install PHP 7.3 Dependencies - functionLocation('generic/supportFunctions.md')
+      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp73
+    elif [[ "$PHP_VER" == "7.0" ]]; then
+      # Install PHP 7.0 Dependencies - functionLocation('generic/supportFunctions.md')
+      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp70
+    fi
+  else
+      # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
+      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
+  fi
   progress 4
 
   # Install Core MISP - functionLocation('INSTALL.ubuntu1804.md')
@@ -2066,11 +2121,11 @@ if [ "${FLAVOUR}" == "ubuntu" ]; then
   if [ "${RELEASE}" == "18.04" ]; then
     echo "Install on Ubuntu 18.04 LTS fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
-    installMISPubuntuSupported && exit || exit
+    installSupported && exit || exit
   fi
   if [ "${RELEASE}" == "18.10" ]; then
     echo "Install on Ubuntu 18.10 partially supported, bye."
-    installMISPubuntuSupported && exit || exit
+    installSupported && exit || exit
   fi
   if [ "${RELEASE}" == "19.04" ]; then
     echo "Install on Ubuntu 19.04 not supported, bye"
@@ -2090,18 +2145,17 @@ if [ "${FLAVOUR}" == "debian" ]; then
   if [ "${CODE}" == "buster" ]; then
     echo "Install on Debian testing fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
-    installDepsPhp73
+    installSupported PHP=7.3 && exit || exit
   fi
   if [ "${CODE}" == "sid" ]; then
     echo "Install on Debian unstable not fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
-    installDepsPhp73
+    installSupported PHP=7.3 && exit || exit
   fi
   if [ "${CODE}" == "stretch" ]; then
     echo "Install on Debian stable fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
-    ## php7.0 used
-    installMISPubuntuSupported && exit || exit
+    installSupported PHP=7.0 && exit || exit
   fi
   echo "Installation done!"
   exit 0
