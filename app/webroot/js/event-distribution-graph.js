@@ -269,6 +269,7 @@ function construct_network(target_distribution, scope_text, overwriteSg) {
         // Event always restrict propagation (sharing group is a special case)
         if (target_distribution !== 4 && target_distribution > event_distribution) {
             edgeData.label = 'X';
+            edgeData.title = 'The distribution of the Event restricts the distribution level of this element';
             edgeData.font = {
                 size: 50,
                 color: '#ff0000',
