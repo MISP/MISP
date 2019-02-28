@@ -827,17 +827,14 @@ checkSudoKeeper () {
 }
 
 runTests () {
-  echo 'url = "https://misp.local"' >> $PATH_TO_MISP/PyMISP/tests/keys.py
-  echo 'key = "'${AUTH_KEY}'"' >> $PATH_TO_MISP/PyMISP/tests/keys.py
-  sudo chown www-data:www-data $PATH_TO_MISP/PyMISP/tests/keys.py
+  sudo sed -i -E "s/url\ =\ (.*)/url\ =\ 'https:\/\/misp.local'/g" $PATH_TO_MISP/PyMISP/tests/testlive_comprehensive.py
+  sudo sed -i -E "s/key\ =\ (.*)/key\ =\ '${AUTH_KEY}'/g" $PATH_TO_MISP/PyMISP/tests/testlive_comprehensive.py
+  sudo chown -R www-data:www-data $PATH_TO_MISP/PyMISP/
 
-  pushd $PATH_TO_MISP/PyMISP
-  pushd tests
-  sudo -H -u www-data git clone https://github.com/viper-framework/viper-test-files.git
-  popd
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install .[fileobjects,neo,openioc,virustotal,pdfexport]
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/python tests/testlive_comprehensive.py
-  popd
+  sudo -H -u www-data sh -c "cd $PATH_TO_MISP/PyMISP && git submodule foreach git pull origin master"
+  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install -e $PATH_TO_MISP/PyMISP/.[fileobjects,neo,openioc,virustotal,pdfexport]
+  sudo -H -u www-data git clone https://github.com/viper-framework/viper-test-files.git $PATH_TO_MISP/PyMISP/tests/viper-test-files
+  sudo -H -u www-data sh -c "cd $PATH_TO_MISP/PyMISP && ${PATH_TO_MISP}/venv/bin/python tests/testlive_comprehensive.py"
 }
 
 installCoreDeps () {
