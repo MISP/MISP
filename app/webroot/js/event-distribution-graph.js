@@ -5,6 +5,8 @@ var spanOffset_orig = 15; // due to padding
 var payload = {};
 var distribution_chart;
 var distributionData;
+
+var EDGE_LENGTH_HUB = 300;
 var cacheAddedOrgName = {};
 var nodes_distri;
 var edges_distri;
@@ -194,43 +196,55 @@ function showAdvancedSharing(clicked) {
     $clicked = $(clicked);
     var network_active = $clicked.data('networkactive');
     if (network_active !== undefined && network_active === true) {
-        $('#advancedSharingNetwork').hide('slide', {}, 300);
+        $('#advancedSharingNetworkWrapper').hide('slide', {direction: 'right'}, 300);
         $clicked.data('networkactive', false);
         return;
     } else if (network_active !== undefined && network_active === false) {
-        $('#advancedSharingNetwork').show('slide', {}, 300);
+        $('#advancedSharingNetworkWrapper').show('slide', {direction: 'right'}, 300);
         $clicked.data('networkactive', true);
         return;
     }
     $clicked.data('networkactive', true);
     var $popover = $('#eventdistri_graph').parent().parent();
     var boundingRect = $popover[0].getBoundingClientRect()
-    var $div = $('<div id="advancedSharingNetwork" class="advancedSharingNetwork hidden"></div>');
-    $div.css({
-        left: boundingRect.left + boundingRect.width + 'px',
-        top: boundingRect.top + 'px',
-        width: 800 + 'px',
-        height: 800 + 'px'
-    });
-    $('body').append($div);
-    $div.toggle('slide', {}, 300);
+    var $div = $('<div id="advancedSharingNetworkWrapper" class="advancedSharingNetwork hidden">'
+        + '<div class="eventgraph_header" style="border-radius: 5px; display: flex;">'
+        + '<it class="fa fa-circle-o" style="margin: auto 10px; font-size: x-large"></it>'
+        + '<input type="text" id="sharingNetworkTargetId" class="center-in-network-header network-typeahead" style="width: 300px;" disabled></input>'
+        + '<div class="form-group" style="margin-left: auto; margin-right: 10px; margin-bottom: auto; margin-top: auto;"><div class="checkbox">'
+            + '<label style="user-select: none;"><input id="interactive_picking_mode" type="checkbox" title="Click on a element to see how it is distributed" style="margin-top: 4px;">Enable interactive picking mode</label>'
+        + '</div></div>'
+        + '</div><div id="advancedSharingNetwork"></div></div>');
 
-    var EDGE_LENGTH_HUB = 300;
+    $('body').append($div);
+    $div.toggle('slide', {direction: 'right'}, 300);
+
+    construct_network();
+}
+
+function construct_network(target_distribution, scope_text, overwriteSg) {
+    if (advancedSharingNetwork !== undefined) {
+        advancedSharingNetwork.destroy();
+    }
+    if (scope_text == undefined) {
+        scope_text = 'Event ' + scope_id;
+    }
+    $('#sharingNetworkTargetId').val(scope_text);
+
     nodes_distri = new vis.DataSet([
-        {id: 'root', group: 'root',  x: 0, y: 0, fixed: true},
+        {id: 'root', group: 'root', label: scope_text, x: 0, y: 0, fixed: true},
         {id: distributionData.additionalDistributionInfo[0][0], label: distributionData.additionalDistributionInfo[0][0], group: 'org-only'},
-        // {id: 'this-community', label: 'This community', group: 'root-this-community'},
-        // {id: 'connected-community', label: 'Connected community', group: 'root-connected-community'},
-        // {id: 'all-community', label: 'All community', group: 'web'},
 
     ]);
     edges_distri = new vis.DataSet([
         {from: 'root', to: distributionData.additionalDistributionInfo[0][0], length: 30, width: 3},
     ]);
-    var toID;
-    switch (event_distribution) {
+    var toID = false;;
+    if (target_distribution === undefined || target_distribution == 5) {
+        target_distribution = event_distribution;
+    }
+    switch (target_distribution) {
         case 0:
-            toID = false;
             break;
         case 1:
             toID = 'this-community';
@@ -249,7 +263,18 @@ function showAdvancedSharing(clicked) {
     }
 
     if (toID !== false) {
-        edges_distri.add({from: 'root', to: toID, width: 3});
+        var edgeData = {from: 'root', to: toID, width: 3};
+        // Event always restrict propagation (sharing group is a special case)
+        if (target_distribution !== 4 && target_distribution > event_distribution) {
+            edgeData.label = 'X';
+            edgeData.font = {
+                size: 50,
+                color: '#ff0000',
+                strokeWidth: 6,
+                strokeColor: '#ff0000'
+            };
+        }
+        edges_distri.add(edgeData);
     }
 
     var nodesToAdd = [];
@@ -257,11 +282,11 @@ function showAdvancedSharing(clicked) {
     cacheAddedOrgName[distributionData.additionalDistributionInfo[0][0]] = 1;
 
     // Community
-    if (event_distribution >= 1) {
-        inject_this_community_org(nodesToAdd, edgesToAdd, distributionData.additionalDistributionInfo[1], 'this-community', 'this-community');
+    if (target_distribution >= 1 && target_distribution != 4) {
         nodesToAdd.push({id: 'this-community', label: 'This community', group: 'root-this-community'});
+        inject_this_community_org(nodesToAdd, edgesToAdd, distributionData.additionalDistributionInfo[1], 'this-community', 'this-community');
     }
-    if (event_distribution >= 2) {
+    if (target_distribution >= 2 && target_distribution != 4) {
         // Connected Community
         nodesToAdd.push({id: 'connected-community', label: 'Connected community', group: 'root-connected-community'});
         distributionData.additionalDistributionInfo[2].forEach(function(orgName) {
@@ -279,7 +304,7 @@ function showAdvancedSharing(clicked) {
     }
 
     // All Community
-    if (event_distribution >= 3) {
+    if (target_distribution >= 3 && target_distribution != 4) {
         nodesToAdd.push({id: 'all-community', label: 'All community', group: 'web'});
         distributionData.additionalDistributionInfo[3].forEach(function(orgName) {
             if (orgName === 'This community') {
@@ -293,6 +318,10 @@ function showAdvancedSharing(clicked) {
     if (distributionData.event[4] > 0) {
         distributionData.allSharingGroup.forEach(function(sg) {
             var sgName = sg.SharingGroup.name;
+            if (overwriteSg !== undefined && overwriteSg.indexOf(sgName) == -1) {
+                return true;
+            }
+
             nodesToAdd.push({
                 id: 'sharing-group_' + sgName,
                 label: sgName,
@@ -475,7 +504,59 @@ function showAdvancedSharing(clicked) {
             nodes_distri.update({id: nodeId, fixed: {x: true, y: true}});
         });
     });
+
+    $('#interactive_picking_mode').off('change').on('change', function(e) {
+        var target_id = $(this).val();
+        if (this.checked) {
+            toggleRowListener(true);
+        } else {
+            toggleRowListener(false);
+            construct_network(event_distribution)
+        }
+    });
 }
+
+function toggleRowListener(toAdd) {
+    if (toAdd) {
+        $('#attributes_div table tr').off('click.advancedSharing').on('click.advancedSharing', function() {
+            var $row = $(this);
+            var clicked_type = $row.attr('id').split('_')[0];
+            var clicked_id = $row.attr('id').split('_')[1];
+            // var $dist_cell = $row.find('#'+clicked_type+'_'+clicked_id+'_distribution_solid');
+            var $dist_cell = $row.find('div').filter(function() {
+                return $(this).attr('id') !== undefined && $(this).attr('id').includes(clicked_id+'_distribution');
+            });
+
+            var distribution_value;
+            var overwriteSg;
+            switch ($dist_cell.text().trim()) {
+                case 'Organisation':
+                    distribution_value = 0;
+                    break;
+                case 'Community':
+                    distribution_value = 1;
+                    break;
+                case 'Connected':
+                    distribution_value = 2;
+                    break;
+                case 'All':
+                    distribution_value = 3;
+                    break;
+                case 'Inherit':
+                    distribution_value = 5;
+                    break;
+                default:
+                    distribution_value = 4;
+                    overwriteSg = $dist_cell.text().trim();
+                    break
+            }
+            construct_network(distribution_value, clicked_type+' '+clicked_id, [overwriteSg]);
+        });
+    } else {
+        $('#attributes_div table tr').off('click.advancedSharing');
+    }
+}
+
 
 function inject_this_community_org(nodesToAdd, edgesToAdd, orgs, group, root) {
     orgs.forEach(function(orgName) {
@@ -517,7 +598,7 @@ $(document).ready(function() {
     $('.distribution_graph').click(function() {
         if ($(this).data('shown') == 'true') {
             $(this).data('shown', 'false');
-            $('#advancedSharingNetwork').hide('slide', {}, 200, function() { $('#advancedSharingNetwork').remove(); });
+            $('#advancedSharingNetworkWrapper').hide('slide', {direction: 'right'}, 200, function() { $('#advancedSharingNetworkWrapper').remove(); });
             return;
         } else {
             $(this).data('shown', 'true');
