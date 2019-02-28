@@ -286,9 +286,10 @@ progress () {
 checkLocale () {
   debug "Checking Locale"
   # If locale is missing, generate and install a common UTF-8
-  if [ ! -f /etc/default/locale ]; then
+  if [[ ! -f /etc/default/locale || $(wc -l /etc/default/locale| cut -f 1 -d\ ) == "1" ]]; then
     checkAptLock
-    sudo apt install locales -y
+    sudo DEBIAN_FRONTEND=noninteractive apt install locales -qy
+    sudo sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' /etc/locale.gen
     sudo locale-gen en_US.UTF-8
     sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
   fi
@@ -311,7 +312,7 @@ checkID () {
     exit 1
   elif [[ $(id $MISP_USER >/dev/null; echo $?) -ne 0 ]]; then
     if [[ "$UNATTENDED" != "1" ]]; then 
-      echo "There is NO user called '$MISP_USER' create a user '$MISP_USER' or continue as $USER? (y/n) "
+      echo "There is NO user called '$MISP_USER' create a user '$MISP_USER' (y) or continue as $USER (n)? (y/n) "
       read ANSWER
       ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
     else
@@ -574,7 +575,7 @@ installDeps () {
   [[ -n $KALI ]] || [[ -n $UNATTENDED ]] && sudo DEBIAN_FRONTEND=noninteractive apt install -qy postfix || sudo apt install -qy postfix
 
   sudo apt install -qy \
-  curl gcc git gnupg-agent make openssl redis-server neovim zip libyara-dev python3-yara python3-redis python3-zmq \
+  curl gcc git gnupg-agent make openssl redis-server neovim unzip zip libyara-dev python3-yara python3-redis python3-zmq sqlite3 \
   mariadb-client \
   mariadb-server \
   apache2 apache2-doc apache2-utils \
@@ -701,6 +702,9 @@ gitPullAllRCLOCAL () {
   sed -i -e '$i \    cd $d && sudo git pull &\n' /etc/rc.local
   sed -i -e '$i \done\n' /etc/rc.local
 }
+
+# Composer on php 7.0 does not need any special treatment the provided phar works well
+alias composer70='composer72'
 
 # Composer on php 7.2 does not need any special treatment the provided phar works well
 composer72 () {
@@ -829,7 +833,7 @@ checkSudoKeeper () {
 installCoreDeps () {
   debug "Installing core dependencies"
   # Install the dependencies: (some might already be installed)
-  sudo apt-get install curl gcc git gpg-agent make python python3 openssl redis-server sudo vim zip virtualenv libfuzzy-dev -qy
+  sudo apt-get install curl gcc git gpg-agent make python python3 openssl redis-server sudo vim zip unzip virtualenv libfuzzy-dev sqlite3 -qy
 
   # Install MariaDB (a MySQL fork/alternative)
   sudo apt-get install mariadb-client mariadb-server -qy
@@ -871,6 +875,7 @@ installDepsPhp72 () {
   php php-cli \
   php-dev \
   php-json php-xml php-mysql php-opcache php-readline php-mbstring \
+  php-pear \
   php-redis php-gnupg
 
   for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
@@ -1275,6 +1280,7 @@ mispmodules () {
   # If you build an egg, the user you build it as need write permissions in the CWD
   sudo chgrp $WWW_USER .
   sudo chmod g+w .
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install ReportLab
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
   sudo chgrp staff .
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I .
@@ -1287,7 +1293,6 @@ mispmodules () {
   sudo cp etc/systemd/system/misp-modules.service /etc/systemd/system/
   sudo systemctl daemon-reload
   sudo systemctl enable --now misp-modules
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s &
 
   # Sleep 9 seconds to give misp-modules a chance to spawn
   sleep 9
@@ -1482,16 +1487,10 @@ viper () {
   $SUDO_USER ./venv/bin/pip install -r requirements.txt
   $SUDO_USER sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-cli
   $SUDO_USER sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-web
-  echo "pip uninstall yara"
-  $SUDO_USER ./venv/bin/pip uninstall yara -y
   echo "Launching viper-cli"
-  # TODO: Perms
-  #$SUDO /usr/local/src/viper/viper-cli -h > /dev/null
-  /usr/local/src/viper/viper-cli -h > /dev/null
+  $SUDO_USER /usr/local/src/viper/viper-cli -h > /dev/null
   echo "Launching viper-web"
-  # TODO: Perms
-  /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 &
-  #$SUDO /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 &
+  $SUDO_USER /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 &
   echo 'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/src/viper:/var/www/MISP/app/Console"' |sudo tee /etc/environment
   echo ". /etc/environment" >> /home/${MISP_USER}/.profile
 
@@ -1507,7 +1506,7 @@ viper () {
   $SUDO_USER sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" ${VIPER_HOME}/viper.conf
   # Reset admin password to: admin/Password1234
   echo "Fixing admin.db with default password"
-  while [ "$(sqlite3 ${VIPER_HOME}/admin.db 'UPDATE auth_user SET password="pbkdf2_sha256$100000$iXgEJh8hz7Cf$vfdDAwLX8tko1t0M1TLTtGlxERkNnltUnMhbv56wK/U="'; echo $?)" -ne "0" ]; do
+  while [ "$(sudo sqlite3 ${VIPER_HOME}/admin.db 'UPDATE auth_user SET password="pbkdf2_sha256$100000$iXgEJh8hz7Cf$vfdDAwLX8tko1t0M1TLTtGlxERkNnltUnMhbv56wK/U="'; echo $?)" -ne "0" ]; do
     # FIXME This might lead to a race condition, the while loop is sub-par
     sudo chown $MISP_USER:$MISP_USER ${VIPER_HOME}/admin.db
     echo "Updating viper-web admin password, giving process time to start-up, sleeping 5, 4, 3,…"
@@ -1911,10 +1910,10 @@ installMISPonKali () {
       send -- \"y\r\"
       expect eof" | expect -f -
 
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "create database $DBNAME;"
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant usage on *.* to $DBNAME@localhost identified by '$DBPASSWORD_MISP';"
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant all privileges on $DBNAME.* to '$DBUSER_MISP'@'localhost';"
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "flush privileges;"
+    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE DATABASE $DBNAME;"
+    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE ON *.* TO $DBNAME@localhost IDENTIFIED BY '$DBPASSWORD_MISP';"
+    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT ALL PRIVILEGES ON $DBNAME.* TO '$DBUSER_MISP'@'localhost';"
+    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "FLUSH PRIVILEGES;"
 
     enableServices
 
@@ -2101,7 +2100,8 @@ if [ "${FLAVOUR}" == "debian" ]; then
   if [ "${CODE}" == "stretch" ]; then
     echo "Install on Debian stable fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
-    installDepsPhp72
+    ## php7.0 used
+    installMISPubuntuSupported && exit || exit
   fi
   echo "Installation done!"
   exit 0

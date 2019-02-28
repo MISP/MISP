@@ -157,9 +157,10 @@ progress () {
 checkLocale () {
   debug "Checking Locale"
   # If locale is missing, generate and install a common UTF-8
-  if [ ! -f /etc/default/locale ]; then
+  if [[ ! -f /etc/default/locale || $(wc -l /etc/default/locale| cut -f 1 -d\ ) == "1" ]]; then
     checkAptLock
-    sudo apt install locales -y
+    sudo DEBIAN_FRONTEND=noninteractive apt install locales -qy
+    sudo sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' /etc/locale.gen
     sudo locale-gen en_US.UTF-8
     sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
   fi
@@ -182,7 +183,7 @@ checkID () {
     exit 1
   elif [[ $(id $MISP_USER >/dev/null; echo $?) -ne 0 ]]; then
     if [[ "$UNATTENDED" != "1" ]]; then 
-      echo "There is NO user called '$MISP_USER' create a user '$MISP_USER' or continue as $USER? (y/n) "
+      echo "There is NO user called '$MISP_USER' create a user '$MISP_USER' (y) or continue as $USER (n)? (y/n) "
       read ANSWER
       ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
     else
@@ -447,7 +448,7 @@ installDeps () {
   [[ -n $KALI ]] || [[ -n $UNATTENDED ]] && sudo DEBIAN_FRONTEND=noninteractive apt install -qy postfix || sudo apt install -qy postfix
 
   sudo apt install -qy \
-  curl gcc git gnupg-agent make openssl redis-server neovim zip libyara-dev python3-yara python3-redis python3-zmq \
+  curl gcc git gnupg-agent make openssl redis-server neovim unzip zip libyara-dev python3-yara python3-redis python3-zmq sqlite3 \
   mariadb-client \
   mariadb-server \
   apache2 apache2-doc apache2-utils \
@@ -574,6 +575,9 @@ gitPullAllRCLOCAL () {
   sed -i -e '$i \    cd $d && sudo git pull &\n' /etc/rc.local
   sed -i -e '$i \done\n' /etc/rc.local
 }
+
+# Composer on php 7.0 does not need any special treatment the provided phar works well
+alias composer70='composer72'
 
 # Composer on php 7.2 does not need any special treatment the provided phar works well
 composer72 () {
