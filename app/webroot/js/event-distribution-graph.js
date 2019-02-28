@@ -214,7 +214,8 @@ function showAdvancedSharing(clicked) {
         + '<div class="form-group" style="margin: auto 10px;"><div class="checkbox">'
             + '<label style="user-select: none;"><input id="interactive_picking_mode" type="checkbox" title="Click on a element to see how it is distributed" style="margin-top: 4px;">Enable interactive picking mode</label>'
         + '</div></div>'
-        + '<select type="text" id="sharingNetworkOrgFinder" class="center-in-network-header network-typeahead positionAbsolute" style="width: 200px;"></select>'
+        + '<select type="text" id="sharingNetworkOrgFinder" class="center-in-network-header network-typeahead sharingNetworkOrgFinder" style="width: 200px;"></select>'
+        + '<button type="button" class="close" style="margin: 1px 5px; right: 0px; position: absolute;" onclick="$(\'#showAdvancedSharingButton\').click();">×</button>'
         + '</div><div id="advancedSharingNetwork"></div></div>');
 
     $('body').append($div);
@@ -606,7 +607,7 @@ function inject_this_community_org(nodesToAdd, edgesToAdd, orgs, group, root) {
 }
 
 $(document).ready(function() {
-    var rightBtn = '<span type="button" id="showAdvancedSharingButton" class="fa fa-share-alt useCursorPointer" aria-hidden="true" style="float:right; margin-left: 5px;" onclick="showAdvancedSharing(this)"></span>';
+    var rightBtn = '<span type="button" id="showAdvancedSharingButton" title="Toggle advanced sharing network viewer" class="fa fa-share-alt useCursorPointer" aria-hidden="true" style="float:right; margin-left: 5px;" onclick="showAdvancedSharing(this)"></span>';
     var pop = $('.distribution_graph').popover({
         title: "<b>Distribution graph</b> [atomic event]" + rightBtn,
         html: true,

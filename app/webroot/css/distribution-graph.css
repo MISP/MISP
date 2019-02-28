@@ -119,6 +119,7 @@
 	box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
 }
 
-.positionAbsolute {
+.sharingNetworkOrgFinder {
 	position: absolute !important;
+	right: 30px !important;
 }
