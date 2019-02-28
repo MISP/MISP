@@ -357,7 +357,7 @@ function construct_network(target_distribution, scope_text, overwriteSg) {
     var options = '<option></option>';
     $('#sharingNetworkOrgFinder').empty();
     Object.keys(cacheAddedOrgName).forEach(function(org) {
-        options += '<option value='+org+'>'+org+'</option>';
+        options += '<option value="'+org+'">'+org+'</option>';
     });
     $('#sharingNetworkOrgFinder').append(options)
     .trigger('chosen:updated')
