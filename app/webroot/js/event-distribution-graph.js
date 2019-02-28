@@ -322,7 +322,10 @@ function construct_network(target_distribution, scope_text, overwriteSg) {
     if (distributionData.event[4] > 0) {
         distributionData.allSharingGroup.forEach(function(sg) {
             var sgName = sg.SharingGroup.name;
-            if (overwriteSg !== undefined && overwriteSg.indexOf(sgName) == -1) {
+            if (overwriteSg === undefined) { // if overwriteSg not set, use the one from the event
+                overwriteSg = distributionData.additionalDistributionInfo[4];
+            }
+            if (overwriteSg.indexOf(sgName) == -1) {
                 return true;
             }
 
@@ -385,6 +388,7 @@ function construct_network(target_distribution, scope_text, overwriteSg) {
         height: '800px',
         layout: {randomSeed: 0},
         edges: {
+            arrowStrikethrough: false,
             arrows: {
                 to: {enabled: true, scaleFactor:1, type:'arrow'},
             },
@@ -466,7 +470,9 @@ function construct_network(target_distribution, scope_text, overwriteSg) {
             },
             'this-community': {
                 font: {color: 'white'},
-                color: '#ff9725'
+                color: '#ff9725',
+                shape: 'box',
+                margin: 3
             },
             'root-connected-community': {
                 shape: 'icon',
