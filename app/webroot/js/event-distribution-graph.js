@@ -210,10 +210,11 @@ function showAdvancedSharing(clicked) {
     var $div = $('<div id="advancedSharingNetworkWrapper" class="advancedSharingNetwork hidden">'
         + '<div class="eventgraph_header" style="border-radius: 5px; display: flex;">'
         + '<it class="fa fa-circle-o" style="margin: auto 10px; font-size: x-large"></it>'
-        + '<input type="text" id="sharingNetworkTargetId" class="center-in-network-header network-typeahead" style="width: 300px;" disabled></input>'
-        + '<div class="form-group" style="margin-left: auto; margin-right: 10px; margin-bottom: auto; margin-top: auto;"><div class="checkbox">'
+        + '<input type="text" id="sharingNetworkTargetId" class="center-in-network-header network-typeahead" style="width: 200px;" disabled></input>'
+        + '<div class="form-group" style="margin: auto 10px;"><div class="checkbox">'
             + '<label style="user-select: none;"><input id="interactive_picking_mode" type="checkbox" title="Click on a element to see how it is distributed" style="margin-top: 4px;">Enable interactive picking mode</label>'
         + '</div></div>'
+        + '<select type="text" id="sharingNetworkOrgFinder" class="center-in-network-header network-typeahead positionAbsolute" style="width: 200px;"></select>'
         + '</div><div id="advancedSharingNetwork"></div></div>');
 
     $('body').append($div);
@@ -223,6 +224,7 @@ function showAdvancedSharing(clicked) {
 }
 
 function construct_network(target_distribution, scope_text, overwriteSg) {
+    cacheAddedOrgName = {};
     if (advancedSharingNetwork !== undefined) {
         advancedSharingNetwork.destroy();
     }
@@ -349,6 +351,29 @@ function construct_network(target_distribution, scope_text, overwriteSg) {
             });
         });
     }
+
+    var options = '<option></option>';
+    $('#sharingNetworkOrgFinder').empty();
+    Object.keys(cacheAddedOrgName).forEach(function(org) {
+        options += '<option value='+org+'>'+org+'</option>';
+    });
+    $('#sharingNetworkOrgFinder').append(options)
+    .trigger('chosen:updated')
+    .chosen({
+        inherit_select_classes: true,
+        no_results_text: "Focus to an organisation",
+        placeholder_text_single: "Focus to an organisation",
+        allow_single_deselect: true
+    })
+    .off('change')
+    .on('change', function(evt, params) {
+        if (this.value !== '') {
+            advancedSharingNetwork.focus(this.value, {animation: true});
+            advancedSharingNetwork.selectNodes([this.value]);
+        } else {
+            advancedSharingNetwork.fit({animation: true})
+        }
+    });
 
     nodes_distri.add(nodesToAdd);
     edges_distri.add(edgesToAdd);
