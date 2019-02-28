@@ -35,8 +35,7 @@ usage () {
   space
   echo -e "                -u | Do an unattanded Install, no questions asked"      # UNATTENDED
   echo -e "${HIDDEN}       -U | Attempt and upgrade of selected item${NC}"         # UPGRADE
-  space
-  echo -e "${HIDDEN}Some parameters want to be hidden: ${NC}"
+  echo -e "${HIDDEN}       -N | Nuke this MISP Instance${NC}"                      # NUKE
   echo -e "${HIDDEN}       -f | Force test install on current Ubuntu LTS schim, add -B for 18.04 -> 18.10, or -BB 18.10 -> 19.10)${NC}" # FORCE
   echo -e "Options can be combined: ${SCRIPT_NAME} -c -V -D # Will install Core+Viper+Dashboard"
   space
@@ -71,6 +70,7 @@ setOpt () {
       ("-A") echo "all"; ALL=1 ;;
       ("-C") echo "pre"; PRE=1 ;;
       ("-U") echo "upgrade"; UPGRADE=1 ;;
+      ("-N") echo "nuke"; NUKE=1 ;;
       ("-u") echo "unattended"; UNATTENDED=1 ;;
       ("-f") echo "force"; FORCE=1 ;;
       (*) echo "$o is not a valid argument"; exit 1 ;;
@@ -321,6 +321,9 @@ kaliOnRootR0ckz () {
 
 setBaseURL () {
   debug "Setting Base URL"
+  CONN=$(ip -br -o -4 a |grep UP |head -1 |tr -d "UP")
+  IFACE=`echo $CONN |awk {'print $1'}`
+  IP=`echo $CONN |awk {'print $2'}| cut -f1 -d/`
   if [[ $(checkManufacturer) != "innotek GmbH" ]]; then
     debug "We guess that this is a physical machine and cannot possibly guess what the MISP_BASEURL might be."
     if [[ "$UNATTENDED" != "1" ]]; then 
@@ -328,8 +331,13 @@ setBaseURL () {
       echo "Do you want to change it now? (y/n) "
       read ANSWER
       ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
-      if [[ $ANSWER == "y" ]]; then
+      if [[ "$ANSWER" == "y" ]]; then
+        if [[ ! -z $IP ]]; then
+          echo "It seems you have an interface called $IFACE UP with the following IP: $IP - FYI"
+          echo "Thus your Base URL could be: https://$IP"
+        fi
         echo "Please enter the Base URL, e.g: 'https://example.org'"
+        echo ""
         echo -n "Enter Base URL: "
         read MISP_BASEURL
       else
@@ -646,6 +654,16 @@ genRCLOCAL () {
   sed -i -e '$i \echo never > /sys/kernel/mm/transparent_hugepage/enabled\n' /etc/rc.local
   sed -i -e '$i \echo 1024 > /proc/sys/net/core/somaxconn\n' /etc/rc.local
   sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
+}
+
+# Nuke the install, meaning remove all MISP data but no packages, this makes testing the installer faster
+nuke () {
+  echo -e "${RED}YOU ARE ABOUT TO DELETE ALL MISP DATA! Sleeping 10, 9, 8...${NC}"
+  sleep 10
+  sudo rm -rvf /usr/local/src/{misp-modules,viper,mail_to_misp,LIEF,faup}
+  sudo rm -rvf /var/www/MISP
+  sudo mysqladmin drop misp
+  sudo mysql -e "DROP USER misp@localhost"
 }
 
 # Final function to let the user know what happened

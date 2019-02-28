@@ -236,35 +236,37 @@ permissions () {
 ```bash
 # <snippet-begin 1_prepareDB.sh>
 prepareDB () {
-  debug "Setting up database"
-  # Add your credentials if needed, if sudo has NOPASS, comment out the relevant lines
-  pw=$MISP_PASSWORD
+  if [[ ! -e /var/lib/mysql/misp/users.ibd ]]; then
+    debug "Setting up database"
+    # Add your credentials if needed, if sudo has NOPASS, comment out the relevant lines
+    pw=$MISP_PASSWORD
 
-  expect -f - <<-EOF
-    set timeout 10
+    expect -f - <<-EOF
+      set timeout 10
 
-    spawn sudo -k mysql_secure_installation
-    expect "*?assword*"
-    send -- "$pw\r"
-    expect "Enter current password for root (enter for none):"
-    send -- "\r"
-    expect "Set root password?"
-    send -- "y\r"
-    expect "New password:"
-    send -- "${DBPASSWORD_ADMIN}\r"
-    expect "Re-enter new password:"
-    send -- "${DBPASSWORD_ADMIN}\r"
-    expect "Remove anonymous users?"
-    send -- "y\r"
-    expect "Disallow root login remotely?"
-    send -- "y\r"
-    expect "Remove test database and access to it?"
-    send -- "y\r"
-    expect "Reload privilege tables now?"
-    send -- "y\r"
-    expect eof
+      spawn sudo -k mysql_secure_installation
+      expect "*?assword*"
+      send -- "$pw\r"
+      expect "Enter current password for root (enter for none):"
+      send -- "\r"
+      expect "Set root password?"
+      send -- "y\r"
+      expect "New password:"
+      send -- "${DBPASSWORD_ADMIN}\r"
+      expect "Re-enter new password:"
+      send -- "${DBPASSWORD_ADMIN}\r"
+      expect "Remove anonymous users?"
+      send -- "y\r"
+      expect "Disallow root login remotely?"
+      send -- "y\r"
+      expect "Remove test database and access to it?"
+      send -- "y\r"
+      expect "Reload privilege tables now?"
+      send -- "y\r"
+      expect eof
 EOF
-  sudo apt-get purge -y expect ; sudo apt autoremove -qy
+    sudo apt-get purge -y expect ; sudo apt autoremove -qy
+  fi 
 
   sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "create database $DBNAME;"
   sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant usage on *.* to $DBNAME@localhost identified by '$DBPASSWORD_MISP';"

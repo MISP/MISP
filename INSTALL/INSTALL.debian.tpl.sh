@@ -470,7 +470,7 @@ installMISPonKali () {
   chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
 
   debug "Setting up database"
-  if [ ! -e /var/lib/mysql/misp/users.ibd ]; then
+  if [[ ! -e /var/lib/mysql/misp/users.ibd ]]; then
     echo "
       set timeout 10
       spawn mysql_secure_installation
@@ -641,6 +641,8 @@ fi
 [[ -n $PRE ]] && preInstall
 
 [[ -n $UPGRADE ]] && upgrade
+
+[[ -n $NUKE ]] && nuke ; exit
 
 # If Ubuntu is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "ubuntu" ]; then
