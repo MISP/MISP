@@ -15,6 +15,7 @@ mispmodules () {
   # If you build an egg, the user you build it as need write permissions in the CWD
   sudo chgrp $WWW_USER .
   sudo chmod g+w .
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install ReportLab
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
   sudo chgrp staff .
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I .
@@ -27,7 +28,6 @@ mispmodules () {
   sudo cp etc/systemd/system/misp-modules.service /etc/systemd/system/
   sudo systemctl daemon-reload
   sudo systemctl enable --now misp-modules
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s &
 
   # Sleep 9 seconds to give misp-modules a chance to spawn
   sleep 9

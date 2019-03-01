@@ -21,6 +21,35 @@ Nevertheless here is a very rough **food for thoughts** bulletpoint list for you
 - Do we care about physical access to the servers? (Disabling USB ports etc...)
 - Is any fancy management engine à la [IME](https://en.wikipedia.org/wiki/Intel_Management_Engine) in use?
 
+## Apache
+
+To make Apache less verbose in terms of sending banners, the belo might help.
+
+```
+diff --git a/apache2/conf-available/security.conf b/apache2/conf-available/security.conf
+index f9f69d4..2e8fd78 100644
+--- a/apache2/conf-available/security.conf
++++ b/apache2/conf-available/security.conf
+@@ -22,7 +22,7 @@
+ # Set to one of:  Full | OS | Minimal | Minor | Major | Prod
+ # where Full conveys the most information, and Prod the least.
+ #ServerTokens Minimal
+-ServerTokens OS
++ServerTokens Prod
+ #ServerTokens Full
+ 
+ #
+@@ -33,7 +33,7 @@ ServerTokens OS
+ # Set to "EMail" to also include a mailto: link to the ServerAdmin.
+ # Set to one of:  On | Off | EMail
+ #ServerSignature Off
+-ServerSignature On
++ServerSignature Off
+ 
+ #
+ # Allow TRACE method
+```
+
 ## Resources
 
 [Debian Wiki Hardening](https://wiki.debian.org/Hardening)

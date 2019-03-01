@@ -35,8 +35,7 @@ usage () {
   space
   echo -e "                -u | Do an unattanded Install, no questions asked"      # UNATTENDED
   echo -e "${HIDDEN}       -U | Attempt and upgrade of selected item${NC}"         # UPGRADE
-  space
-  echo -e "${HIDDEN}Some parameters want to be hidden: ${NC}"
+  echo -e "${HIDDEN}       -N | Nuke this MISP Instance${NC}"                      # NUKE
   echo -e "${HIDDEN}       -f | Force test install on current Ubuntu LTS schim, add -B for 18.04 -> 18.10, or -BB 18.10 -> 19.10)${NC}" # FORCE
   echo -e "Options can be combined: ${SCRIPT_NAME} -c -V -D # Will install Core+Viper+Dashboard"
   space
@@ -71,6 +70,7 @@ setOpt () {
       ("-A") echo "all"; ALL=1 ;;
       ("-C") echo "pre"; PRE=1 ;;
       ("-U") echo "upgrade"; UPGRADE=1 ;;
+      ("-N") echo "nuke"; NUKE=1 ;;
       ("-u") echo "unattended"; UNATTENDED=1 ;;
       ("-f") echo "force"; FORCE=1 ;;
       (*) echo "$o is not a valid argument"; exit 1 ;;
@@ -157,9 +157,10 @@ progress () {
 checkLocale () {
   debug "Checking Locale"
   # If locale is missing, generate and install a common UTF-8
-  if [ ! -f /etc/default/locale ]; then
+  if [[ ! -f /etc/default/locale || $(wc -l /etc/default/locale| cut -f 1 -d\ ) == "1" ]]; then
     checkAptLock
-    sudo apt install locales -y
+    sudo DEBIAN_FRONTEND=noninteractive apt install locales -qy
+    sudo sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' /etc/locale.gen
     sudo locale-gen en_US.UTF-8
     sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
   fi
@@ -182,7 +183,7 @@ checkID () {
     exit 1
   elif [[ $(id $MISP_USER >/dev/null; echo $?) -ne 0 ]]; then
     if [[ "$UNATTENDED" != "1" ]]; then 
-      echo "There is NO user called '$MISP_USER' create a user '$MISP_USER' or continue as $USER? (y/n) "
+      echo "There is NO user called '$MISP_USER' create a user '$MISP_USER' (y) or continue as $USER (n)? (y/n) "
       read ANSWER
       ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
     else
@@ -320,6 +321,9 @@ kaliOnRootR0ckz () {
 
 setBaseURL () {
   debug "Setting Base URL"
+  CONN=$(ip -br -o -4 a |grep UP |head -1 |tr -d "UP")
+  IFACE=`echo $CONN |awk {'print $1'}`
+  IP=`echo $CONN |awk {'print $2'}| cut -f1 -d/`
   if [[ $(checkManufacturer) != "innotek GmbH" ]]; then
     debug "We guess that this is a physical machine and cannot possibly guess what the MISP_BASEURL might be."
     if [[ "$UNATTENDED" != "1" ]]; then 
@@ -327,8 +331,13 @@ setBaseURL () {
       echo "Do you want to change it now? (y/n) "
       read ANSWER
       ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
-      if [[ $ANSWER == "y" ]]; then
+      if [[ "$ANSWER" == "y" ]]; then
+        if [[ ! -z $IP ]]; then
+          echo "It seems you have an interface called $IFACE UP with the following IP: $IP - FYI"
+          echo "Thus your Base URL could be: https://$IP"
+        fi
         echo "Please enter the Base URL, e.g: 'https://example.org'"
+        echo ""
         echo -n "Enter Base URL: "
         read MISP_BASEURL
       else
@@ -409,6 +418,28 @@ checkAptLock () {
   unset DONE
 }
 
+# <snippet-begin 0_installDepsPhp70.sh>
+# Install Php 7.0 dependencies
+installDepsPhp70 () {
+  debug "Installing PHP 7.0 dependencies"
+  PHP_ETC_BASE=/etc/php/7.0
+  PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
+  sudo apt update
+  sudo apt install -qy \
+  libapache2-mod-php \
+  php php-cli \
+  php-dev \
+  php-json php-xml php-mysql php-opcache php-readline php-mbstring \
+  php-pear \
+  php-redis php-gnupg
+
+  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
+  do
+      sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
+  done
+}
+# <snippet-end 0_installDepsPhp70.sh>
+
 # <snippet-begin 0_installDepsPhp73.sh>
 # Install Php 7.3 deps
 installDepsPhp73 () {
@@ -447,7 +478,7 @@ installDeps () {
   [[ -n $KALI ]] || [[ -n $UNATTENDED ]] && sudo DEBIAN_FRONTEND=noninteractive apt install -qy postfix || sudo apt install -qy postfix
 
   sudo apt install -qy \
-  curl gcc git gnupg-agent make openssl redis-server neovim zip libyara-dev python3-yara python3-redis python3-zmq \
+  curl gcc git gnupg-agent make openssl redis-server neovim unzip zip libyara-dev python3-yara python3-redis python3-zmq sqlite3 \
   mariadb-client \
   mariadb-server \
   apache2 apache2-doc apache2-utils \
@@ -575,6 +606,9 @@ gitPullAllRCLOCAL () {
   sed -i -e '$i \done\n' /etc/rc.local
 }
 
+# Composer on php 7.0 does not need any special treatment the provided phar works well
+alias composer70='composer72'
+
 # Composer on php 7.2 does not need any special treatment the provided phar works well
 composer72 () {
   cd $PATH_TO_MISP/app
@@ -622,12 +656,22 @@ genRCLOCAL () {
   sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
 }
 
+# Nuke the install, meaning remove all MISP data but no packages, this makes testing the installer faster
+nuke () {
+  echo -e "${RED}YOU ARE ABOUT TO DELETE ALL MISP DATA! Sleeping 10, 9, 8...${NC}"
+  sleep 10
+  sudo rm -rvf /usr/local/src/{misp-modules,viper,mail_to_misp,LIEF,faup}
+  sudo rm -rvf /var/www/MISP
+  sudo mysqladmin drop misp
+  sudo mysql -e "DROP USER misp@localhost"
+}
+
 # Final function to let the user know what happened
 theEnd () {
   space
-  echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" > /home/${MISP_USER}/mysql.txt
-  echo "User  (misp) DB Password: $DBPASSWORD_MISP" >> /home/${MISP_USER}/mysql.txt
-  echo "Authkey: $AUTH_KEY" > /home/${MISP_USER}/MISP-authkey.txt
+  echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" |$SUDO_USER tee /home/${MISP_USER}/mysql.txt
+  echo "User  (misp) DB Password: $DBPASSWORD_MISP"  |$SUDO_USER tee -a /home/${MISP_USER}/mysql.txt
+  echo "Authkey: $AUTH_KEY" |$SUDO_USER tee -a /home/${MISP_USER}/MISP-authkey.txt
 
   clear
   space

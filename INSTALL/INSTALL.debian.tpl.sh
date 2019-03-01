@@ -67,6 +67,7 @@
 ## 0_installCoreDeps.sh ##
 ## 0_installDepsPhp73.sh ##
 ## 0_installDepsPhp72.sh ##
+## 0_installDepsPhp70.sh ##
 ## 1_prepareDB.sh ##
 ## 1_apacheConfig.sh ##
 ## 1_mispCoreInstall.sh ##
@@ -143,6 +144,7 @@ generateInstaller () {
   perl -pe 's/^## 0_installCoreDeps.sh ##/`cat 0_installCoreDeps.sh`/ge' -i INSTALL.debian.tpl.sh
   perl -pe 's/^## 0_installDepsPhp73.sh ##/`cat 0_installDepsPhp73.sh`/ge' -i INSTALL.debian.tpl.sh
   perl -pe 's/^## 0_installDepsPhp72.sh ##/`cat 0_installDepsPhp72.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 0_installDepsPhp70.sh ##/`cat 0_installDepsPhp70.sh`/ge' -i INSTALL.debian.tpl.sh
   perl -pe 's/^## 1_prepareDB.sh ##/`cat 1_prepareDB.sh`/ge' -i INSTALL.debian.tpl.sh
   perl -pe 's/^## 1_apacheConfig.sh ##/`cat 1_apacheConfig.sh`/ge' -i INSTALL.debian.tpl.sh
   perl -pe 's/^## 1_mispCoreInstall.sh ##/`cat 1_mispCoreInstall.sh`/ge' -i INSTALL.debian.tpl.sh
@@ -186,7 +188,7 @@ debug () {
   fi
 }
 
-installMISPubuntuSupported () {
+installSupported () {
   space
   echo "Proceeding with the installation of MISP core"
   space
@@ -231,8 +233,22 @@ installMISPubuntuSupported () {
   [[ -n $CORE ]]   || [[ -n $ALL ]] && installCoreDeps
   progress 4
 
-  # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
+  if [[ "$1" =~ ^PHP= ]]; then
+    PHP_VER=$(echo $1 |cut -f2 -d=)
+    if [[ "$PHP_VER" == "7.2" ]]; then
+      # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
+      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
+    elif [[ "$PHP_VER" == "7.3" ]]; then
+      # Install PHP 7.3 Dependencies - functionLocation('generic/supportFunctions.md')
+      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp73
+    elif [[ "$PHP_VER" == "7.0" ]]; then
+      # Install PHP 7.0 Dependencies - functionLocation('generic/supportFunctions.md')
+      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp70
+    fi
+  else
+      # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
+      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
+  fi
   progress 4
 
   # Install Core MISP - functionLocation('INSTALL.ubuntu1804.md')
@@ -454,7 +470,7 @@ installMISPonKali () {
   chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
 
   debug "Setting up database"
-  if [ ! -e /var/lib/mysql/misp/users.ibd ]; then
+  if [[ ! -e /var/lib/mysql/misp/users.ibd ]]; then
     echo "
       set timeout 10
       spawn mysql_secure_installation
@@ -476,10 +492,10 @@ installMISPonKali () {
       send -- \"y\r\"
       expect eof" | expect -f -
 
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "create database $DBNAME;"
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant usage on *.* to $DBNAME@localhost identified by '$DBPASSWORD_MISP';"
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant all privileges on $DBNAME.* to '$DBUSER_MISP'@'localhost';"
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "flush privileges;"
+    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE DATABASE $DBNAME;"
+    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE ON *.* TO $DBNAME@localhost IDENTIFIED BY '$DBPASSWORD_MISP';"
+    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT ALL PRIVILEGES ON $DBNAME.* TO '$DBUSER_MISP'@'localhost';"
+    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "FLUSH PRIVILEGES;"
 
     enableServices
 
@@ -626,17 +642,19 @@ fi
 
 [[ -n $UPGRADE ]] && upgrade
 
+[[ -n $NUKE ]] && nuke ; exit
+
 # If Ubuntu is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "ubuntu" ]; then
   RELEASE=$(lsb_release -s -r| tr [A-Z] [a-z])
   if [ "${RELEASE}" == "18.04" ]; then
     echo "Install on Ubuntu 18.04 LTS fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
-    installMISPubuntuSupported && exit || exit
+    installSupported && exit || exit
   fi
   if [ "${RELEASE}" == "18.10" ]; then
     echo "Install on Ubuntu 18.10 partially supported, bye."
-    installMISPubuntuSupported && exit || exit
+    installSupported && exit || exit
   fi
   if [ "${RELEASE}" == "19.04" ]; then
     echo "Install on Ubuntu 19.04 not supported, bye"
@@ -656,17 +674,17 @@ if [ "${FLAVOUR}" == "debian" ]; then
   if [ "${CODE}" == "buster" ]; then
     echo "Install on Debian testing fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
-    installDepsPhp73
+    installSupported PHP=7.3 && exit || exit
   fi
   if [ "${CODE}" == "sid" ]; then
     echo "Install on Debian unstable not fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
-    installDepsPhp73
+    installSupported PHP=7.3 && exit || exit
   fi
   if [ "${CODE}" == "stretch" ]; then
     echo "Install on Debian stable fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
-    installDepsPhp72
+    installSupported PHP=7.0 && exit || exit
   fi
   echo "Installation done!"
   exit 0
