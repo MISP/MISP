@@ -1549,5 +1549,57 @@
       "headers": "",
       "caching_enabled": true
     }
-  }
+  },
+  {
+    "Feed": {
+        "id": "77",
+        "name": "malsilo.url",
+        "provider": "MalSilo",
+        "url": "https:\/\/malsilo.gitlab.io\/feeds\/dumps\/url_list.txt",
+        "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+        "enabled": false,
+        "distribution": "3",
+        "sharing_group_id": "0",
+        "tag_id": "0",
+        "default": false,
+        "source_format": "csv",
+        "fixed_event": true,
+        "delta_merge": false,
+        "event_id": "0",
+        "publish": false,
+        "override_ids": false,
+        "settings": "{\"csv\":{\"value\":\"3\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+        "input_source": "network",
+        "delete_local_file": false,
+        "lookup_visible": true,
+        "headers": "",
+        "caching_enabled": true
+    }
+  },
+  {
+    "Feed": {
+        "id": "78",
+        "name": "malsilo.ipv4",
+        "provider": "MalSilo",
+        "url": "https:\/\/malsilo.gitlab.io\/feeds\/dumps\/ip_list.txt",
+        "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+        "enabled": false,
+        "distribution": "3",
+        "sharing_group_id": "0",
+        "tag_id": "0",
+        "default": false,
+        "source_format": "csv",
+        "fixed_event": true,
+        "delta_merge": false,
+        "event_id": "0",
+        "publish": false,
+        "override_ids": false,
+        "settings": "{\"csv\":{\"value\":\"3\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+        "input_source": "network",
+        "delete_local_file": false,
+        "lookup_visible": true,
+        "headers": "",
+        "caching_enabled": true
+    }
+}
 ]
