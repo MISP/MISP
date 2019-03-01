@@ -56,6 +56,39 @@ function generate_additional_info(info) {
     }
 }
 
+function generate_pie_chart(data, placeholder) {
+    var labels = Object.keys(data);
+    var dough_data = labels.map(function(l) {
+        return data[l];
+    });
+
+    if (labels.length == 0) {
+        return
+    } else {
+        var sgDistributionChart = new Chart(placeholder, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: dough_data,
+                    backgroundColor: labels.map(function(l) { return '#7a86e0'; })
+                }],
+            },
+            options: {
+                title: {
+                    display: false
+                },
+                animation: {
+                    duration: 500
+                },
+                legend: {
+                    display: false
+                }
+            },
+        });
+    }
+}
+
 function clickHandlerPbText(evt) {
     var distribution_id = evt.target.dataset.distribution;
     var value_to_set = String(distribution_id);
@@ -708,10 +741,13 @@ $(document).ready(function() {
                     placement: 'bottom',
                     trigger: 'click',
                     title: 'Sharing group',
-                    content: '<b>Distribution description:</b> ' + data.distributionInfo[4].desc + generate_additional_info(data.additionalDistributionInfo[4]),
+                    content: '<b>Distribution description:</b> ' + data.distributionInfo[4].desc + generate_additional_info(data.additionalDistributionInfo[4]) + '<div class="distributionInfo" style="height: 150px; width: 300px; position: relative; left: 25%;"><canvas class="distributionInfo" id="sg_distribution_graph_canvas" height="150px" width="300px"></canvas></div>',
                     container: 'body',
                     html: true,
                     template: '<div class="popover" role="tooltip"><div class="arrow"></div><h3 class="popover-title distributionInfo"></h3><div class="popover-content distributionInfo" style="white-space: pre-wrap"></div></div>'
+                })
+                .click(function() {
+                    generate_pie_chart(data.sharingGroupRepartition, document.getElementById('sg_distribution_graph_canvas'));
                 });
 
                 // doughtnut

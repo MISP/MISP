@@ -61,6 +61,12 @@
                 $this->__json['additionalDistributionInfo'][$distributionLevel] = array();
             }
             $this->__json['additionalDistributionInfo'][$distributionLevel][h($data)] = 0; // set-alike
+            if ($distributionLevel == 4) {
+                if (!isset($this->__json['sharingGroupRepartition'][h($data)])) {
+                    $this->__json['sharingGroupRepartition'][h($data)] = 0;
+                }
+                $this->__json['sharingGroupRepartition'][h($data)]++;
+            }
         }
 
         private function __addOtherDistributionInfo()
@@ -136,6 +142,7 @@
             $this->__json['object'] = $this->init_array_distri();
             $this->__json['obj_attr'] = $this->init_array_distri();
             $this->__json['additionalDistributionInfo'] = $this->init_array_distri(array());
+            $this->__json['sharingGroupRepartition'] = array();
 
 
             if (empty($event)) {
