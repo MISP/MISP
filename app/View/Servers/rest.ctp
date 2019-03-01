@@ -20,7 +20,7 @@
         <legend><?php echo __('REST client');?></legend>
         <?php
             echo $this->Form->input('method', array(
-                'label' => __('Relative path to query'),
+                'label' => __('HTTP method to use'),
                 'options' => array(
                     'GET' => 'GET',
                     'POST' => 'POST'
