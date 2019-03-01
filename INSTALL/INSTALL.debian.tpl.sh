@@ -329,6 +329,9 @@ installSupported () {
   [[ -n $MAIL2 ]]     || [[ -n $ALL ]] && mail2misp
   progress 100
 
+  # Run tests
+  runTests
+
   # Run final script to inform the User what happened - functionLocation('generic/supportFunctions.md')
   theEnd
 }

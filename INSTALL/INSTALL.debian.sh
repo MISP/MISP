@@ -781,6 +781,18 @@ genRCLOCAL () {
   sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
 }
 
+# Run PyMISP tests
+runTests () {
+  sudo sed -i -E "s/url\ =\ (.*)/url\ =\ 'https:\/\/misp.local'/g" $PATH_TO_MISP/PyMISP/tests/testlive_comprehensive.py
+  sudo sed -i -E "s/key\ =\ (.*)/key\ =\ '${AUTH_KEY}'/g" $PATH_TO_MISP/PyMISP/tests/testlive_comprehensive.py
+  sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/PyMISP/
+
+  sudo -H -u $WWW_USER sh -c "cd $PATH_TO_MISP/PyMISP && git submodule foreach git pull origin master"
+  sudo -H -u $WWW_USER ${PATH_TO_MISP}/venv/bin/pip install -e $PATH_TO_MISP/PyMISP/.[fileobjects,neo,openioc,virustotal,pdfexport]
+  sudo -H -u $WWW_USER git clone https://github.com/viper-framework/viper-test-files.git $PATH_TO_MISP/PyMISP/tests/viper-test-files
+  sudo -H -u $WWW_USER sh -c "cd $PATH_TO_MISP/PyMISP && ${PATH_TO_MISP}/venv/bin/python tests/testlive_comprehensive.py"
+}
+
 # Nuke the install, meaning remove all MISP data but no packages, this makes testing the installer faster
 nuke () {
   echo -e "${RED}YOU ARE ABOUT TO DELETE ALL MISP DATA! Sleeping 10, 9, 8...${NC}"
@@ -1821,6 +1833,9 @@ installSupported () {
   # Install Mail2MISP - functionLocation('generic/mail_to_misp-debian.md')
   [[ -n $MAIL2 ]]     || [[ -n $ALL ]] && mail2misp
   progress 100
+
+  # Run tests
+  runTests
 
   # Run final script to inform the User what happened - functionLocation('generic/supportFunctions.md')
   theEnd
