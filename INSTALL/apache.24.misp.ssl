@@ -9,6 +9,8 @@
     </Directory>
 
     SSLEngine On
+# The line below disable unsecure Ciphers, might be enabled by default
+#	  SSLCipherSuite HIGH:!aNULL:!MD5
     SSLCertificateFile /etc/ssl/private/misp.local.crt
     SSLCertificateKeyFile /etc/ssl/private/misp.local.key
 #    SSLCertificateChainFile /etc/ssl/private/misp-chain.crt
@@ -16,7 +18,18 @@
     LogLevel warn
     ErrorLog /var/log/apache2/misp.local_error.log
     CustomLog /var/log/apache2/misp.local_access.log combined
+
     ServerSignature Off
-    Header set X-Content-Type-Options nosniff
-    Header set X-Frame-Options DENY
+
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubdomains;"
+    Header always set X-Content-Type-Options nosniff
+    Header always set X-Frame-Options DENY
+    Header always unset "X-Powered-By"
+
+    # TODO: Think about X-XSS-Protection, Content-Security-Policy, Referrer-Policy & Feature-Policy
+    ## Example:
+    # Header always set X-XSS-Protection "1; mode=block"
+    # Header always set Content-Security-Policy "default-src 'none'; style-src 'self' ... script-src/font-src/img-src/connect-src
+    # Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    # Header always set Feature-Policy "geolocation 'self'; midi 'none'; notifications 'self'; push 'self'; sync-xhr 'self'; microphone 'none'; camera 'self'; magnometer 'self'; gyroscope 'self'; speake 'none'; vibrate 'self'; fullscreen 'none'"
 </VirtualHost>

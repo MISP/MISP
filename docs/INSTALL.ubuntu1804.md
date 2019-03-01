@@ -78,7 +78,7 @@ Once the system is installed you can perform the following steps.
 installCoreDeps () {
   debug "Installing core dependencies"
   # Install the dependencies: (some might already be installed)
-  sudo apt-get install curl gcc git gpg-agent make python python3 openssl redis-server sudo vim zip virtualenv libfuzzy-dev -qy
+  sudo apt-get install curl gcc git gpg-agent make python python3 openssl redis-server sudo vim zip unzip virtualenv libfuzzy-dev sqlite3 -qy
 
   # Install MariaDB (a MySQL fork/alternative)
   sudo apt-get install mariadb-client mariadb-server -qy
@@ -106,6 +106,7 @@ installDepsPhp72 () {
   php php-cli \
   php-dev \
   php-json php-xml php-mysql php-opcache php-readline php-mbstring \
+  php-pear \
   php-redis php-gnupg
 
   for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
@@ -235,35 +236,37 @@ permissions () {
 ```bash
 # <snippet-begin 1_prepareDB.sh>
 prepareDB () {
-  debug "Setting up database"
-  # Add your credentials if needed, if sudo has NOPASS, comment out the relevant lines
-  pw=$MISP_PASSWORD
+  if [[ ! -e /var/lib/mysql/misp/users.ibd ]]; then
+    debug "Setting up database"
+    # Add your credentials if needed, if sudo has NOPASS, comment out the relevant lines
+    pw=$MISP_PASSWORD
 
-  expect -f - <<-EOF
-    set timeout 10
+    expect -f - <<-EOF
+      set timeout 10
 
-    spawn sudo -k mysql_secure_installation
-    expect "*?assword*"
-    send -- "$pw\r"
-    expect "Enter current password for root (enter for none):"
-    send -- "\r"
-    expect "Set root password?"
-    send -- "y\r"
-    expect "New password:"
-    send -- "${DBPASSWORD_ADMIN}\r"
-    expect "Re-enter new password:"
-    send -- "${DBPASSWORD_ADMIN}\r"
-    expect "Remove anonymous users?"
-    send -- "y\r"
-    expect "Disallow root login remotely?"
-    send -- "y\r"
-    expect "Remove test database and access to it?"
-    send -- "y\r"
-    expect "Reload privilege tables now?"
-    send -- "y\r"
-    expect eof
+      spawn sudo -k mysql_secure_installation
+      expect "*?assword*"
+      send -- "$pw\r"
+      expect "Enter current password for root (enter for none):"
+      send -- "\r"
+      expect "Set root password?"
+      send -- "y\r"
+      expect "New password:"
+      send -- "${DBPASSWORD_ADMIN}\r"
+      expect "Re-enter new password:"
+      send -- "${DBPASSWORD_ADMIN}\r"
+      expect "Remove anonymous users?"
+      send -- "y\r"
+      expect "Disallow root login remotely?"
+      send -- "y\r"
+      expect "Remove test database and access to it?"
+      send -- "y\r"
+      expect "Reload privilege tables now?"
+      send -- "y\r"
+      expect eof
 EOF
-  sudo apt-get purge -y expect ; sudo apt autoremove -qy
+    sudo apt-get purge -y expect ; sudo apt autoremove -qy
+  fi 
 
   sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "create database $DBNAME;"
   sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant usage on *.* to $DBNAME@localhost identified by '$DBPASSWORD_MISP';"

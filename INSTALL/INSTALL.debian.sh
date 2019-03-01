@@ -164,8 +164,7 @@ usage () {
   space
   echo -e "                -u | Do an unattanded Install, no questions asked"      # UNATTENDED
   echo -e "${HIDDEN}       -U | Attempt and upgrade of selected item${NC}"         # UPGRADE
-  space
-  echo -e "${HIDDEN}Some parameters want to be hidden: ${NC}"
+  echo -e "${HIDDEN}       -N | Nuke this MISP Instance${NC}"                      # NUKE
   echo -e "${HIDDEN}       -f | Force test install on current Ubuntu LTS schim, add -B for 18.04 -> 18.10, or -BB 18.10 -> 19.10)${NC}" # FORCE
   echo -e "Options can be combined: ${SCRIPT_NAME} -c -V -D # Will install Core+Viper+Dashboard"
   space
@@ -189,7 +188,7 @@ checkOpt () {
 
 setOpt () {
   options=()
-  for o in $@; do
+  for o in $@; do 
     case "$o" in
       ("-c") echo "core"; CORE=1 ;;
       ("-V") echo "viper"; VIPER=1 ;;
@@ -200,6 +199,7 @@ setOpt () {
       ("-A") echo "all"; ALL=1 ;;
       ("-C") echo "pre"; PRE=1 ;;
       ("-U") echo "upgrade"; UPGRADE=1 ;;
+      ("-N") echo "nuke"; NUKE=1 ;;
       ("-u") echo "unattended"; UNATTENDED=1 ;;
       ("-f") echo "force"; FORCE=1 ;;
       (*) echo "$o is not a valid argument"; exit 1 ;;
@@ -286,9 +286,10 @@ progress () {
 checkLocale () {
   debug "Checking Locale"
   # If locale is missing, generate and install a common UTF-8
-  if [ ! -f /etc/default/locale ]; then
+  if [[ ! -f /etc/default/locale || $(wc -l /etc/default/locale| cut -f 1 -d\ ) == "1" ]]; then
     checkAptLock
-    sudo apt install locales -y
+    sudo DEBIAN_FRONTEND=noninteractive apt install locales -qy
+    sudo sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' /etc/locale.gen
     sudo locale-gen en_US.UTF-8
     sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
   fi
@@ -310,8 +311,8 @@ checkID () {
     echo "This script cannot be run as a root"
     exit 1
   elif [[ $(id $MISP_USER >/dev/null; echo $?) -ne 0 ]]; then
-    if [[ "$UNATTENDED" != "1" ]]; then
-      echo "There is NO user called '$MISP_USER' create a user '$MISP_USER' or continue as $USER? (y/n) "
+    if [[ "$UNATTENDED" != "1" ]]; then 
+      echo "There is NO user called '$MISP_USER' create a user '$MISP_USER' (y) or continue as $USER (n)? (y/n) "
       read ANSWER
       ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
     else
@@ -404,7 +405,7 @@ checkUsrLocalSrc () {
       echo "Good, /usr/local/src exists and is writeable as $MISP_USER"
     else
       # TODO: The below might be shorter, more elegant and more modern
-      #[[ -n $KALI ]] || [[ -n $UNATTENDED ]] && echo "Just do it"
+      #[[ -n $KALI ]] || [[ -n $UNATTENDED ]] && echo "Just do it" 
       if [ "$KALI" == "1" -o "$UNATTENDED" == "1" ]; then
         ANSWER="y"
       else
@@ -449,15 +450,23 @@ kaliOnRootR0ckz () {
 
 setBaseURL () {
   debug "Setting Base URL"
+  CONN=$(ip -br -o -4 a |grep UP |head -1 |tr -d "UP")
+  IFACE=`echo $CONN |awk {'print $1'}`
+  IP=`echo $CONN |awk {'print $2'}| cut -f1 -d/`
   if [[ $(checkManufacturer) != "innotek GmbH" ]]; then
     debug "We guess that this is a physical machine and cannot possibly guess what the MISP_BASEURL might be."
-    if [[ "$UNATTENDED" != "1" ]]; then
+    if [[ "$UNATTENDED" != "1" ]]; then 
       echo "You can now enter your own MISP_BASEURL, if you wish to NOT do that, the MISP_BASEURL will be empty, which will work, but ideally you configure it afterwards."
       echo "Do you want to change it now? (y/n) "
       read ANSWER
       ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
-      if [[ $ANSWER == "y" ]]; then
+      if [[ "$ANSWER" == "y" ]]; then
+        if [[ ! -z $IP ]]; then
+          echo "It seems you have an interface called $IFACE UP with the following IP: $IP - FYI"
+          echo "Thus your Base URL could be: https://$IP"
+        fi
         echo "Please enter the Base URL, e.g: 'https://example.org'"
+        echo ""
         echo -n "Enter Base URL: "
         read MISP_BASEURL
       else
@@ -482,14 +491,14 @@ setBaseURL () {
 # Test and install software RNG
 installRNG () {
   sudo modprobe tpm-rng 2> /dev/null
-  if [ "$?" -eq "0" ]; then
+  if [ "$?" -eq "0" ]; then 
     echo tpm-rng | sudo tee -a /etc/modules
   fi
   checkAptLock
   sudo apt install -qy rng-tools # This might fail on TPM grounds, enable the security chip in your BIOS
   sudo service rng-tools start
 
-  if [ "$?" -eq "1" ]; then
+  if [ "$?" -eq "1" ]; then 
     sudo apt purge -qy rng-tools
     sudo apt install -qy haveged
     sudo /etc/init.d/haveged start
@@ -538,6 +547,26 @@ checkAptLock () {
   unset DONE
 }
 
+# Install Php 7.0 dependencies
+installDepsPhp70 () {
+  debug "Installing PHP 7.0 dependencies"
+  PHP_ETC_BASE=/etc/php/7.0
+  PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
+  sudo apt update
+  sudo apt install -qy \
+  libapache2-mod-php \
+  php php-cli \
+  php-dev \
+  php-json php-xml php-mysql php-opcache php-readline php-mbstring \
+  php-pear \
+  php-redis php-gnupg
+
+  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
+  do
+      sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
+  done
+}
+
 # Install Php 7.3 deps
 installDepsPhp73 () {
   debug "Installing PHP 7.3 dependencies"
@@ -563,18 +592,18 @@ installDeps () {
   # Skip dist-upgrade for now, pulls in 500+ updated packages
   #sudo apt -y dist-upgrade
   gitMail=$(git config --global --get user.email ; echo $?)
-  if [ "$?" -eq "1" ]; then
+  if [ "$?" -eq "1" ]; then 
     git config --global user.email "root@kali.lan"
   fi
   gitUser=$(git config --global --get user.name ; echo $?)
-  if [ "$?" -eq "1" ]; then
+  if [ "$?" -eq "1" ]; then 
     git config --global user.name "Root User"
   fi
 
   [[ -n $KALI ]] || [[ -n $UNATTENDED ]] && sudo DEBIAN_FRONTEND=noninteractive apt install -qy postfix || sudo apt install -qy postfix
 
   sudo apt install -qy \
-  curl gcc git gnupg-agent make openssl redis-server neovim zip libyara-dev python3-yara python3-redis python3-zmq \
+  curl gcc git gnupg-agent make openssl redis-server neovim unzip zip libyara-dev python3-yara python3-redis python3-zmq sqlite3 \
   mariadb-client \
   mariadb-server \
   apache2 apache2-doc apache2-utils \
@@ -702,6 +731,9 @@ gitPullAllRCLOCAL () {
   sed -i -e '$i \done\n' /etc/rc.local
 }
 
+# Composer on php 7.0 does not need any special treatment the provided phar works well
+alias composer70='composer72'
+
 # Composer on php 7.2 does not need any special treatment the provided phar works well
 composer72 () {
   cd $PATH_TO_MISP/app
@@ -749,12 +781,34 @@ genRCLOCAL () {
   sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
 }
 
+# Run PyMISP tests
+runTests () {
+  sudo sed -i -E "s/url\ =\ (.*)/url\ =\ 'https:\/\/misp.local'/g" $PATH_TO_MISP/PyMISP/tests/testlive_comprehensive.py
+  sudo sed -i -E "s/key\ =\ (.*)/key\ =\ '${AUTH_KEY}'/g" $PATH_TO_MISP/PyMISP/tests/testlive_comprehensive.py
+  sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/PyMISP/
+
+  sudo -H -u $WWW_USER sh -c "cd $PATH_TO_MISP/PyMISP && git submodule foreach git pull origin master"
+  sudo -H -u $WWW_USER ${PATH_TO_MISP}/venv/bin/pip install -e $PATH_TO_MISP/PyMISP/.[fileobjects,neo,openioc,virustotal,pdfexport]
+  sudo -H -u $WWW_USER git clone https://github.com/viper-framework/viper-test-files.git $PATH_TO_MISP/PyMISP/tests/viper-test-files
+  sudo -H -u $WWW_USER sh -c "cd $PATH_TO_MISP/PyMISP && ${PATH_TO_MISP}/venv/bin/python tests/testlive_comprehensive.py"
+}
+
+# Nuke the install, meaning remove all MISP data but no packages, this makes testing the installer faster
+nuke () {
+  echo -e "${RED}YOU ARE ABOUT TO DELETE ALL MISP DATA! Sleeping 10, 9, 8...${NC}"
+  sleep 10
+  sudo rm -rvf /usr/local/src/{misp-modules,viper,mail_to_misp,LIEF,faup}
+  sudo rm -rvf /var/www/MISP
+  sudo mysqladmin drop misp
+  sudo mysql -e "DROP USER misp@localhost"
+}
+
 # Final function to let the user know what happened
 theEnd () {
   space
-  echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" > /home/${MISP_USER}/mysql.txt
-  echo "User  (misp) DB Password: $DBPASSWORD_MISP" >> /home/${MISP_USER}/mysql.txt
-  echo "Authkey: $AUTH_KEY" > /home/${MISP_USER}/MISP-authkey.txt
+  echo "Admin (root) DB Password: $DBPASSWORD_ADMIN" |$SUDO_USER tee /home/${MISP_USER}/mysql.txt
+  echo "User  (misp) DB Password: $DBPASSWORD_MISP"  |$SUDO_USER tee -a /home/${MISP_USER}/mysql.txt
+  echo "Authkey: $AUTH_KEY" |$SUDO_USER tee -a /home/${MISP_USER}/MISP-authkey.txt
 
   clear
   space
@@ -826,21 +880,10 @@ checkSudoKeeper () {
   fi
 }
 
-runTests () {
-  sudo sed -i -E "s/url\ =\ (.*)/url\ =\ 'https:\/\/misp.local'/g" $PATH_TO_MISP/PyMISP/tests/testlive_comprehensive.py
-  sudo sed -i -E "s/key\ =\ (.*)/key\ =\ '${AUTH_KEY}'/g" $PATH_TO_MISP/PyMISP/tests/testlive_comprehensive.py
-  sudo chown -R www-data:www-data $PATH_TO_MISP/PyMISP/
-
-  sudo -H -u www-data sh -c "cd $PATH_TO_MISP/PyMISP && git submodule foreach git pull origin master"
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install -e $PATH_TO_MISP/PyMISP/.[fileobjects,neo,openioc,virustotal,pdfexport]
-  sudo -H -u www-data git clone https://github.com/viper-framework/viper-test-files.git $PATH_TO_MISP/PyMISP/tests/viper-test-files
-  sudo -H -u www-data sh -c "cd $PATH_TO_MISP/PyMISP && ${PATH_TO_MISP}/venv/bin/python tests/testlive_comprehensive.py"
-}
-
 installCoreDeps () {
   debug "Installing core dependencies"
   # Install the dependencies: (some might already be installed)
-  sudo apt-get install curl gcc git gpg-agent make python python3 openssl redis-server sudo vim zip virtualenv libfuzzy-dev -qy
+  sudo apt-get install curl gcc git gpg-agent make python python3 openssl redis-server sudo vim zip unzip virtualenv libfuzzy-dev sqlite3 -qy
 
   # Install MariaDB (a MySQL fork/alternative)
   sudo apt-get install mariadb-client mariadb-server -qy
@@ -882,6 +925,27 @@ installDepsPhp72 () {
   php php-cli \
   php-dev \
   php-json php-xml php-mysql php-opcache php-readline php-mbstring \
+  php-pear \
+  php-redis php-gnupg
+
+  for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
+  do
+      sudo sed -i "s/^\($key\).*/\1 = $(eval echo \${$key})/" $PHP_INI
+  done
+}
+
+# Install Php 7.0 dependencies
+installDepsPhp70 () {
+  debug "Installing PHP 7.0 dependencies"
+  PHP_ETC_BASE=/etc/php/7.0
+  PHP_INI=${PHP_ETC_BASE}/apache2/php.ini
+  sudo apt update
+  sudo apt install -qy \
+  libapache2-mod-php \
+  php php-cli \
+  php-dev \
+  php-json php-xml php-mysql php-opcache php-readline php-mbstring \
+  php-pear \
   php-redis php-gnupg
 
   for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
@@ -891,35 +955,37 @@ installDepsPhp72 () {
 }
 
 prepareDB () {
-  debug "Setting up database"
-  # Add your credentials if needed, if sudo has NOPASS, comment out the relevant lines
-  pw=$MISP_PASSWORD
+  if [[ ! -e /var/lib/mysql/misp/users.ibd ]]; then
+    debug "Setting up database"
+    # Add your credentials if needed, if sudo has NOPASS, comment out the relevant lines
+    pw=$MISP_PASSWORD
 
-  expect -f - <<-EOF
-    set timeout 10
+    expect -f - <<-EOF
+      set timeout 10
 
-    spawn sudo -k mysql_secure_installation
-    expect "*?assword*"
-    send -- "$pw\r"
-    expect "Enter current password for root (enter for none):"
-    send -- "\r"
-    expect "Set root password?"
-    send -- "y\r"
-    expect "New password:"
-    send -- "${DBPASSWORD_ADMIN}\r"
-    expect "Re-enter new password:"
-    send -- "${DBPASSWORD_ADMIN}\r"
-    expect "Remove anonymous users?"
-    send -- "y\r"
-    expect "Disallow root login remotely?"
-    send -- "y\r"
-    expect "Remove test database and access to it?"
-    send -- "y\r"
-    expect "Reload privilege tables now?"
-    send -- "y\r"
-    expect eof
+      spawn sudo -k mysql_secure_installation
+      expect "*?assword*"
+      send -- "$pw\r"
+      expect "Enter current password for root (enter for none):"
+      send -- "\r"
+      expect "Set root password?"
+      send -- "y\r"
+      expect "New password:"
+      send -- "${DBPASSWORD_ADMIN}\r"
+      expect "Re-enter new password:"
+      send -- "${DBPASSWORD_ADMIN}\r"
+      expect "Remove anonymous users?"
+      send -- "y\r"
+      expect "Disallow root login remotely?"
+      send -- "y\r"
+      expect "Remove test database and access to it?"
+      send -- "y\r"
+      expect "Reload privilege tables now?"
+      send -- "y\r"
+      expect eof
 EOF
-  sudo apt-get purge -y expect ; sudo apt autoremove -qy
+    sudo apt-get purge -y expect ; sudo apt autoremove -qy
+  fi 
 
   sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "create database $DBNAME;"
   sudo mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant usage on *.* to $DBNAME@localhost identified by '$DBPASSWORD_MISP';"
@@ -1017,7 +1083,7 @@ installCore () {
 
 installCake () {
   debug "Installing CakePHP"
-  # Once done, install CakeResque along with its dependencies
+  # Once done, install CakeResque along with its dependencies 
   # if you intend to use the built in background jobs:
   cd ${PATH_TO_MISP}/app
   # Make composer cache happy
@@ -1286,6 +1352,7 @@ mispmodules () {
   # If you build an egg, the user you build it as need write permissions in the CWD
   sudo chgrp $WWW_USER .
   sudo chmod g+w .
+  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install ReportLab
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I -r REQUIREMENTS
   sudo chgrp staff .
   $SUDO_WWW ${PATH_TO_MISP}/venv/bin/pip install -I .
@@ -1298,7 +1365,6 @@ mispmodules () {
   sudo cp etc/systemd/system/misp-modules.service /etc/systemd/system/
   sudo systemctl daemon-reload
   sudo systemctl enable --now misp-modules
-  $SUDO_WWW ${PATH_TO_MISP}/venv/bin/misp-modules -l 127.0.0.1 -s &
 
   # Sleep 9 seconds to give misp-modules a chance to spawn
   sleep 9
@@ -1493,16 +1559,10 @@ viper () {
   $SUDO_USER ./venv/bin/pip install -r requirements.txt
   $SUDO_USER sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-cli
   $SUDO_USER sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-web
-  echo "pip uninstall yara"
-  $SUDO_USER ./venv/bin/pip uninstall yara -y
   echo "Launching viper-cli"
-  # TODO: Perms
-  #$SUDO /usr/local/src/viper/viper-cli -h > /dev/null
-  /usr/local/src/viper/viper-cli -h > /dev/null
+  $SUDO_USER /usr/local/src/viper/viper-cli -h > /dev/null
   echo "Launching viper-web"
-  # TODO: Perms
-  /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 &
-  #$SUDO /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 &
+  $SUDO_USER /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 &
   echo 'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/src/viper:/var/www/MISP/app/Console"' |sudo tee /etc/environment
   echo ". /etc/environment" >> /home/${MISP_USER}/.profile
 
@@ -1518,7 +1578,7 @@ viper () {
   $SUDO_USER sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" ${VIPER_HOME}/viper.conf
   # Reset admin password to: admin/Password1234
   echo "Fixing admin.db with default password"
-  while [ "$(sqlite3 ${VIPER_HOME}/admin.db 'UPDATE auth_user SET password="pbkdf2_sha256$100000$iXgEJh8hz7Cf$vfdDAwLX8tko1t0M1TLTtGlxERkNnltUnMhbv56wK/U="'; echo $?)" -ne "0" ]; do
+  while [ "$(sudo sqlite3 ${VIPER_HOME}/admin.db 'UPDATE auth_user SET password="pbkdf2_sha256$100000$iXgEJh8hz7Cf$vfdDAwLX8tko1t0M1TLTtGlxERkNnltUnMhbv56wK/U="'; echo $?)" -ne "0" ]; do
     # FIXME This might lead to a race condition, the while loop is sub-par
     sudo chown $MISP_USER:$MISP_USER ${VIPER_HOME}/admin.db
     echo "Updating viper-web admin password, giving process time to start-up, sleeping 5, 4, 3,…"
@@ -1589,6 +1649,7 @@ generateInstaller () {
   perl -pe 's/^## 0_installCoreDeps.sh ##/`cat 0_installCoreDeps.sh`/ge' -i INSTALL.debian.tpl.sh
   perl -pe 's/^## 0_installDepsPhp73.sh ##/`cat 0_installDepsPhp73.sh`/ge' -i INSTALL.debian.tpl.sh
   perl -pe 's/^## 0_installDepsPhp72.sh ##/`cat 0_installDepsPhp72.sh`/ge' -i INSTALL.debian.tpl.sh
+  perl -pe 's/^## 0_installDepsPhp70.sh ##/`cat 0_installDepsPhp70.sh`/ge' -i INSTALL.debian.tpl.sh
   perl -pe 's/^## 1_prepareDB.sh ##/`cat 1_prepareDB.sh`/ge' -i INSTALL.debian.tpl.sh
   perl -pe 's/^## 1_apacheConfig.sh ##/`cat 1_apacheConfig.sh`/ge' -i INSTALL.debian.tpl.sh
   perl -pe 's/^## 1_mispCoreInstall.sh ##/`cat 1_mispCoreInstall.sh`/ge' -i INSTALL.debian.tpl.sh
@@ -1632,7 +1693,7 @@ debug () {
   fi
 }
 
-installMISPubuntuSupported () {
+installSupported () {
   space
   echo "Proceeding with the installation of MISP core"
   space
@@ -1677,8 +1738,22 @@ installMISPubuntuSupported () {
   [[ -n $CORE ]]   || [[ -n $ALL ]] && installCoreDeps
   progress 4
 
-  # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
-  [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
+  if [[ "$1" =~ ^PHP= ]]; then
+    PHP_VER=$(echo $1 |cut -f2 -d=)
+    if [[ "$PHP_VER" == "7.2" ]]; then
+      # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
+      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
+    elif [[ "$PHP_VER" == "7.3" ]]; then
+      # Install PHP 7.3 Dependencies - functionLocation('generic/supportFunctions.md')
+      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp73
+    elif [[ "$PHP_VER" == "7.0" ]]; then
+      # Install PHP 7.0 Dependencies - functionLocation('generic/supportFunctions.md')
+      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp70
+    fi
+  else
+      # Install PHP 7.2 Dependencies - functionLocation('INSTALL.ubuntu1804.md')
+      [[ -n $CORE ]]   || [[ -n $ALL ]] && installDepsPhp72
+  fi
   progress 4
 
   # Install Core MISP - functionLocation('INSTALL.ubuntu1804.md')
@@ -1757,10 +1832,11 @@ installMISPubuntuSupported () {
 
   # Install Mail2MISP - functionLocation('generic/mail_to_misp-debian.md')
   [[ -n $MAIL2 ]]     || [[ -n $ALL ]] && mail2misp
-  progress 100
+  progress 2
 
   # Run tests
   runTests
+  progress 2
 
   # Run final script to inform the User what happened - functionLocation('generic/supportFunctions.md')
   theEnd
@@ -1903,7 +1979,7 @@ installMISPonKali () {
   chmod -R g+ws $PATH_TO_MISP/app/files/scripts/tmp
 
   debug "Setting up database"
-  if [ ! -e /var/lib/mysql/misp/users.ibd ]; then
+  if [[ ! -e /var/lib/mysql/misp/users.ibd ]]; then
     echo "
       set timeout 10
       spawn mysql_secure_installation
@@ -1925,10 +2001,10 @@ installMISPonKali () {
       send -- \"y\r\"
       expect eof" | expect -f -
 
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "create database $DBNAME;"
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant usage on *.* to $DBNAME@localhost identified by '$DBPASSWORD_MISP';"
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "grant all privileges on $DBNAME.* to '$DBUSER_MISP'@'localhost';"
-    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "flush privileges;"
+    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "CREATE DATABASE $DBNAME;"
+    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT USAGE ON *.* TO $DBNAME@localhost IDENTIFIED BY '$DBPASSWORD_MISP';"
+    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "GRANT ALL PRIVILEGES ON $DBNAME.* TO '$DBUSER_MISP'@'localhost';"
+    mysql -u $DBUSER_ADMIN -p$DBPASSWORD_ADMIN -e "FLUSH PRIVILEGES;"
 
     enableServices
 
@@ -2044,7 +2120,7 @@ checkFlavour
 debug "Checking for parameters or Unattended Kali Install"
 if [[ $# == 0 && $0 != "/tmp/misp-kali.sh" ]]; then
   usage
-  exit
+  exit 
 else
   debug "Setting install options with given parameters."
   # The setOpt/checkOpt function lives in generic/supportFunctions.md
@@ -2075,17 +2151,19 @@ fi
 
 [[ -n $UPGRADE ]] && upgrade
 
+[[ -n $NUKE ]] && nuke && exit
+
 # If Ubuntu is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "ubuntu" ]; then
   RELEASE=$(lsb_release -s -r| tr [A-Z] [a-z])
   if [ "${RELEASE}" == "18.04" ]; then
     echo "Install on Ubuntu 18.04 LTS fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
-    installMISPubuntuSupported && exit || exit
+    installSupported && exit || exit
   fi
   if [ "${RELEASE}" == "18.10" ]; then
     echo "Install on Ubuntu 18.10 partially supported, bye."
-    installMISPubuntuSupported && exit || exit
+    installSupported && exit || exit
   fi
   if [ "${RELEASE}" == "19.04" ]; then
     echo "Install on Ubuntu 19.04 not supported, bye"
@@ -2105,17 +2183,17 @@ if [ "${FLAVOUR}" == "debian" ]; then
   if [ "${CODE}" == "buster" ]; then
     echo "Install on Debian testing fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
-    installDepsPhp73
+    installSupported PHP=7.3 && exit || exit
   fi
   if [ "${CODE}" == "sid" ]; then
     echo "Install on Debian unstable not fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
-    installDepsPhp73
+    installSupported PHP=7.3 && exit || exit
   fi
   if [ "${CODE}" == "stretch" ]; then
     echo "Install on Debian stable fully supported."
     echo "Please report bugs/issues here: https://github.com/MISP/MISP/issues"
-    installDepsPhp72
+    installSupported PHP=7.0 && exit || exit
   fi
   echo "Installation done!"
   exit 0
