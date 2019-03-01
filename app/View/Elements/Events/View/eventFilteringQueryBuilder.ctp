@@ -182,6 +182,21 @@ function triggerEventFilteringTool(clicked) {
                     5: "Inherit",
                 }
             },
+            {
+                "input": "radio",
+                "type": "integer",
+                "operators": [
+                    "equal",
+                ],
+                "unique": true,
+                "id": "sighting",
+                "label": "Sightings",
+                "values": {
+                    0: "Both",
+                    1: "Have sighting(s) only",
+                    2: "Doesn\'t have sighting(s)"
+                }
+            },
             <?php if (!empty($attributeTags)): ?>
             {
                 "input": "select",
@@ -303,6 +318,13 @@ function triggerEventFilteringTool(clicked) {
                     field: 'server',
                     id: 'server',
                     value: <?php echo isset($filters['server']) ? h($filters['server']) : 0; ?>
+                },
+                <?php endif; ?>
+                <?php if (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['sighting'])): ?>
+                {
+                    field: 'sighting',
+                    id: 'sighting',
+                    value: <?php echo isset($filters['sighting']) ? h($filters['sighting']) : 0; ?>
                 },
                 <?php endif; ?>
                 <?php if (count($advancedFilteringActiveRules) == 0 || isset($advancedFilteringActiveRules['distribution'])): ?>
