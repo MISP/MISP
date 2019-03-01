@@ -188,7 +188,7 @@ checkOpt () {
 
 setOpt () {
   options=()
-  for o in $@; do
+  for o in $@; do 
     case "$o" in
       ("-c") echo "core"; CORE=1 ;;
       ("-V") echo "viper"; VIPER=1 ;;
@@ -405,7 +405,7 @@ checkUsrLocalSrc () {
       echo "Good, /usr/local/src exists and is writeable as $MISP_USER"
     else
       # TODO: The below might be shorter, more elegant and more modern
-      #[[ -n $KALI ]] || [[ -n $UNATTENDED ]] && echo "Just do it"
+      #[[ -n $KALI ]] || [[ -n $UNATTENDED ]] && echo "Just do it" 
       if [ "$KALI" == "1" -o "$UNATTENDED" == "1" ]; then
         ANSWER="y"
       else
@@ -455,7 +455,7 @@ setBaseURL () {
   IP=`echo $CONN |awk {'print $2'}| cut -f1 -d/`
   if [[ $(checkManufacturer) != "innotek GmbH" ]]; then
     debug "We guess that this is a physical machine and cannot possibly guess what the MISP_BASEURL might be."
-    if [[ "$UNATTENDED" != "1" ]]; then
+    if [[ "$UNATTENDED" != "1" ]]; then 
       echo "You can now enter your own MISP_BASEURL, if you wish to NOT do that, the MISP_BASEURL will be empty, which will work, but ideally you configure it afterwards."
       echo "Do you want to change it now? (y/n) "
       read ANSWER
@@ -491,14 +491,14 @@ setBaseURL () {
 # Test and install software RNG
 installRNG () {
   sudo modprobe tpm-rng 2> /dev/null
-  if [ "$?" -eq "0" ]; then
+  if [ "$?" -eq "0" ]; then 
     echo tpm-rng | sudo tee -a /etc/modules
   fi
   checkAptLock
   sudo apt install -qy rng-tools # This might fail on TPM grounds, enable the security chip in your BIOS
   sudo service rng-tools start
 
-  if [ "$?" -eq "1" ]; then
+  if [ "$?" -eq "1" ]; then 
     sudo apt purge -qy rng-tools
     sudo apt install -qy haveged
     sudo /etc/init.d/haveged start
@@ -592,11 +592,11 @@ installDeps () {
   # Skip dist-upgrade for now, pulls in 500+ updated packages
   #sudo apt -y dist-upgrade
   gitMail=$(git config --global --get user.email ; echo $?)
-  if [ "$?" -eq "1" ]; then
+  if [ "$?" -eq "1" ]; then 
     git config --global user.email "root@kali.lan"
   fi
   gitUser=$(git config --global --get user.name ; echo $?)
-  if [ "$?" -eq "1" ]; then
+  if [ "$?" -eq "1" ]; then 
     git config --global user.name "Root User"
   fi
 
@@ -781,6 +781,18 @@ genRCLOCAL () {
   sed -i -e '$i \sysctl vm.overcommit_memory=1\n' /etc/rc.local
 }
 
+# Run PyMISP tests
+runTests () {
+  sudo sed -i -E "s/url\ =\ (.*)/url\ =\ 'https:\/\/misp.local'/g" $PATH_TO_MISP/PyMISP/tests/testlive_comprehensive.py
+  sudo sed -i -E "s/key\ =\ (.*)/key\ =\ '${AUTH_KEY}'/g" $PATH_TO_MISP/PyMISP/tests/testlive_comprehensive.py
+  sudo chown -R $WWW_USER:$WWW_USER $PATH_TO_MISP/PyMISP/
+
+  sudo -H -u $WWW_USER sh -c "cd $PATH_TO_MISP/PyMISP && git submodule foreach git pull origin master"
+  sudo -H -u $WWW_USER ${PATH_TO_MISP}/venv/bin/pip install -e $PATH_TO_MISP/PyMISP/.[fileobjects,neo,openioc,virustotal,pdfexport]
+  sudo -H -u $WWW_USER git clone https://github.com/viper-framework/viper-test-files.git $PATH_TO_MISP/PyMISP/tests/viper-test-files
+  sudo -H -u $WWW_USER sh -c "cd $PATH_TO_MISP/PyMISP && ${PATH_TO_MISP}/venv/bin/python tests/testlive_comprehensive.py"
+}
+
 # Nuke the install, meaning remove all MISP data but no packages, this makes testing the installer faster
 nuke () {
   echo -e "${RED}YOU ARE ABOUT TO DELETE ALL MISP DATA! Sleeping 10, 9, 8...${NC}"
@@ -866,17 +878,6 @@ checkSudoKeeper () {
   else
     sudo apt install etckeeper -y
   fi
-}
-
-runTests () {
-  sudo sed -i -E "s/url\ =\ (.*)/url\ =\ 'https:\/\/misp.local'/g" $PATH_TO_MISP/PyMISP/tests/testlive_comprehensive.py
-  sudo sed -i -E "s/key\ =\ (.*)/key\ =\ '${AUTH_KEY}'/g" $PATH_TO_MISP/PyMISP/tests/testlive_comprehensive.py
-  sudo chown -R www-data:www-data $PATH_TO_MISP/PyMISP/
-
-  sudo -H -u www-data sh -c "cd $PATH_TO_MISP/PyMISP && git submodule foreach git pull origin master"
-  sudo -H -u www-data ${PATH_TO_MISP}/venv/bin/pip install -e $PATH_TO_MISP/PyMISP/.[fileobjects,neo,openioc,virustotal,pdfexport]
-  sudo -H -u www-data git clone https://github.com/viper-framework/viper-test-files.git $PATH_TO_MISP/PyMISP/tests/viper-test-files
-  sudo -H -u www-data sh -c "cd $PATH_TO_MISP/PyMISP && ${PATH_TO_MISP}/venv/bin/python tests/testlive_comprehensive.py"
 }
 
 installCoreDeps () {
@@ -1082,7 +1083,7 @@ installCore () {
 
 installCake () {
   debug "Installing CakePHP"
-  # Once done, install CakeResque along with its dependencies
+  # Once done, install CakeResque along with its dependencies 
   # if you intend to use the built in background jobs:
   cd ${PATH_TO_MISP}/app
   # Make composer cache happy
@@ -1831,10 +1832,11 @@ installSupported () {
 
   # Install Mail2MISP - functionLocation('generic/mail_to_misp-debian.md')
   [[ -n $MAIL2 ]]     || [[ -n $ALL ]] && mail2misp
-  progress 100
+  progress 2
 
   # Run tests
   runTests
+  progress 2
 
   # Run final script to inform the User what happened - functionLocation('generic/supportFunctions.md')
   theEnd
@@ -2118,7 +2120,7 @@ checkFlavour
 debug "Checking for parameters or Unattended Kali Install"
 if [[ $# == 0 && $0 != "/tmp/misp-kali.sh" ]]; then
   usage
-  exit
+  exit 
 else
   debug "Setting install options with given parameters."
   # The setOpt/checkOpt function lives in generic/supportFunctions.md
@@ -2149,7 +2151,7 @@ fi
 
 [[ -n $UPGRADE ]] && upgrade
 
-[[ -n $NUKE ]] && nuke ; exit
+[[ -n $NUKE ]] && nuke && exit
 
 # If Ubuntu is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "ubuntu" ]; then
