@@ -72,7 +72,7 @@ foreach($tabs as $tabName => $column):
 </ul>
 </div>
 
-<div class="attack-matrix-options matrix-div-submit">
+<div class="attack-matrix-options matrix-div-submit submit-container">
     <span class="btn btn-inverse btn-matrix-submit" role="button" style="padding: 1px 5px !important;font-size: 12px !important;font-weight: bold;"><?php echo __('Submit'); ?></span>
 </div>
 
@@ -196,5 +196,6 @@ foreach($tabs as $tabName => $column):
         ?>
     </select>
 </div>
+<div class="templateChoiceButton btn-matrix-submit submit-container hide"><?php echo __('Submit'); ?></div>
 <div role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm('#popover_form_large');"><?php echo __('Cancel'); ?></div>
 <?php endif; ?>
