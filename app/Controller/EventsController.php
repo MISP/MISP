@@ -1234,8 +1234,7 @@ class EventsController extends AppController
         $this->set('attribute_count', $attributeCount);
         $this->set('object_count', $objectCount);
         // set the data for the contributors / history field
-        $org_ids = $this->Event->ShadowAttribute->getEventContributors($event['Event']['id']);
-        $contributors = $this->Event->Org->find('list', array('fields' => array('Org.name'), 'conditions' => array('Org.id' => $org_ids)));
+        $contributors = $this->Event->ShadowAttribute->getEventContributors($event['Event']['id']);
         if ($this->userRole['perm_publish'] && $event['Event']['orgc_id'] == $this->Auth->user('org_id')) {
             $proposalStatus = false;
             if (isset($event['ShadowAttribute']) && !empty($event['ShadowAttribute'])) {

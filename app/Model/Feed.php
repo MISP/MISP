@@ -1024,6 +1024,10 @@ class Feed extends AppModel
                 $job->saveField('progress', 50 + round((50 * ((($k + 1) * 100) / count($data)))));
             }
         }
+        if (!empty($data)) {
+            unset($event['Event']['timestamp']);
+            $this->Event->save($event);
+        }
         if ($feed['Feed']['publish']) {
             $this->Event->publishRouter($event['Event']['id'], null, $user);
         }
