@@ -47,15 +47,24 @@
                             'url' => '/events/edit/' .  $event['Event']['id'],
                             'text' => __('Edit Event')
                         ));
-                        echo '<li>' . $this->Form->postLink(__('Delete Event'), array('controller' => 'events', 'action' => 'delete', h($event['Event']['id'])), null, __('Are you sure you want to delete # %s?', h($event['Event']['id']))) . '</li>';
+                        echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                            'url' => '/events/delete/' . h($event['Event']['id']),
+                            'text' => __('Delete Event'),
+                            'message' => __('Are you sure you want to delete # %s?', h($event['Event']['id']))
+                        ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'addAttribute',
                             'url' => '/attributes/add/' .  $event['Event']['id'],
                             'text' => __('Add Attribute')
                         ));
-                        echo '<li>';
-                            echo '<a href="#" onclick="popoverPopup(this, ' . h($event['Event']['id']) . ', \'objectTemplates\', \'objectMetaChoice\')"> ' . __('Add Object') . '</a>';
-                        echo '</li>';
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'addObject',
+                            'text' => __('Add Object'),
+                            'onClick' => array(
+                                'function' => 'popoverPopup',
+                                'params' => array('this', h($event['Event']['id']), 'objectTemplates', 'objectMetaChoice')
+                            ),
+                        ));
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'addAttachment',
                             'url' => '/attributes/add_attachment/' .  $event['Event']['id'],
@@ -158,7 +167,11 @@
                         }
                     }
                     if (Configure::read('Plugin.ZeroMQ_enable') && $isAclZmq) {
-                        echo '<li>' . $this->Form->postLink(__('Publish event to ZMQ'), array('action' => 'pushEventToZMQ', $event['Event']['id'])) . '</li>';
+                        echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                            'url' => '/events/pushEventToZMQ/' . h($event['Event']['id']),
+                            'text' => __('Publish event to ZMQ'),
+                            'message' => __('Are you sure you wish to republish the current event to the ZMQ channel?')
+                        ));
                     }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'contact',
@@ -288,7 +301,7 @@
                 case 'regexp':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => sprintf(
-                            '%/regexp/index',
+                            '%s/regexp/index',
                             $isSiteAdmin ? '/admin' : ''
                         ),
                         'text' => __('List Regexp')
@@ -298,7 +311,11 @@
                             'url' => '/admin/regexp/add',
                             'text' => __('New Regexp')
                         ));
-                        echo $this->Form->postLink(__('Perform on existing'), array('admin' => true, 'action' => 'clean'));
+                        echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                            'url' => '/admin/regexp/clean',
+                            'text' => __('Perform on existing'),
+                            'message' => __('Are you sure you want to rerun all of the regex rules on every attribute in the database? This task will take a long while and will modify data indiscriminately based on the rules configured.')
+                        ));
                     }
                     if ($menuItem === 'edit') {
                         echo $this->element('/genericElements/SideMenu/side_menu_divider');
@@ -306,7 +323,11 @@
                             'url' => '/admin/regexp/edit/' . h($id),
                             'text' => __('Edit Regexp')
                         ));
-                        echo $this->Form->postLink(__('Delete Regexp'), array('admin' => true, 'action' => 'delete', h($id)), null, __('Are you sure you want to delete # %s?', h($id)));
+                        echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                            'url' => '/admin/regexp/delete/' . h($id),
+                            'text' => __('Delete Regexp'),
+                            'message' => __('Are you sure you want to delete # %s?', h($id))
+                        ));
                     }
                 break;
 
@@ -321,8 +342,13 @@
                         'url' => '/warninglists/index',
                         'text' => __('List Warninglists')
                     ));
+
                     if ($isSiteAdmin) {
-                        $this->Form->postLink(__('Update Warninglists'), '/warninglists/update');
+                        echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                            'url' => '/warninglists/update',
+                            'text' => __('Update Warninglists'),
+                            'message' => __('Are you sure you want to update all warninglists?')
+                        ));
                     }
                     break;
 
@@ -337,7 +363,11 @@
                         'url' => '/noticelists/index',
                         'text' => __('List Noticelist')
                     ));
-                    echo $this->Form->postLink(__('Update Noticelists'), '/noticelists/update');
+                    echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                        'url' => '/noticelists/update',
+                        'text' => __('Update Noticelists'),
+                        'message' => __('Do you wish to continue and update all noticelists?')
+                    ));
                     break;
 
                 case 'whitelist':
@@ -360,7 +390,11 @@
                             'url' => '/admin/whitelists/edit' . h($id),
                             'text' => __('Edit Whitelist')
                         ));
-                        $this->Form->postLink(__('Delete Whitelist'), array('admin' => true, 'action' => 'delete', h($id)), null, __('Are you sure you want to delete # %s?', h($id)));
+                        echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                            'url' => '/admin/whitelists/delete/' . h($id),
+                            'text' => __('Delete Whitelist'),
+                            'message' => __('Are you sure you want to delete # %s?', h($id))
+                        ));
                     }
                     break;
 

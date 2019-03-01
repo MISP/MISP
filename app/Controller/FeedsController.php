@@ -550,6 +550,27 @@ class FeedsController extends AppController
             $this->Flash->info($events);
             $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
         }
+        if (!empty($this->params['named']['searchall'])) {
+            foreach ($events as $uuid => $event) {
+                $found = false;
+                if (strpos(strtolower($event['info']), strtolower($this->params['named']['searchall'])) !== false) {
+                    $found = true;
+                }
+                if (strpos(strtolower($event['Orgc']['name']), strtolower($this->params['named']['searchall'])) !== false) {
+                    $found = true;
+                }
+                if (!empty($event['Tag'])) {
+                    foreach ($event['Tag'] as $tag) {
+                        if (strpos(strtolower($tag['name']), strtolower($this->params['named']['searchall'])) !== false) {
+                            $found = true;
+                        }
+                    }
+                }
+                if (!$found) {
+                    unset($events[$uuid]);
+                }
+            }
+        }
         foreach ($filterParams as $k => $filter) {
             if (!empty($filter)) {
                 $filterParams[$k] = json_decode($filter);

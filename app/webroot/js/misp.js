@@ -324,6 +324,30 @@ function toggleCorrelation(id, skip_reload) {
     });
 }
 
+function toggleToIDS(id, skip_reload) {
+    if (typeof skip_reload === "undefined") {
+        skip_reload = false;
+    }
+    $.ajax({
+        beforeSend: function (XMLHttpRequest) {
+            $(".loading").show();
+        },
+        data: $('#PromptForm').serialize(),
+        success:function (data, textStatus) {
+            handleGenericAjaxResponse(data, skip_reload);
+            $("#toids_toggle_" + id).prop('checked', !$("#toids_toggle_" + id).is(':checked'));
+        },
+        complete:function() {
+            $(".loading").hide();
+            $("#confirmation_box").fadeOut();
+            $("#gray_out").fadeOut();
+        },
+        type:"post",
+        cache: false,
+        url:'/attributes/editField/' + id ,
+    });
+}
+
 function eventUnpublish() {
     $('.publishButtons').show();
     $('.exportButtons').hide();
@@ -1813,7 +1837,7 @@ function runIndexFilter(element) {
     window.location.href = url;
 }
 
-function runIndexQuickFilter() {
+function runIndexQuickFilter(preserveParams) {
     if (!passedArgsArray) {
         var passedArgsArray = [];
     }
@@ -1821,6 +1845,9 @@ function runIndexQuickFilter() {
         passedArgsArray["searchall"] = $('#quickFilterField').val().trim();
     }
     url = here;
+    if (typeof preserveParams !== "undefined") {
+        url += preserveParams;
+    }
     for (var key in passedArgsArray) {
         if (key !== 'page') {
             url += "/" + key + ":" + passedArgsArray[key];
@@ -2415,8 +2442,8 @@ function organisationViewButtonHighlight(context) {
 }
 
 function simpleTabPage(page) {
-    $(".tabMenuSides").removeClass("tabMenuActive");
-    $("#page" + page + "_tab").addClass("tabMenuActive");
+    $(".progress_tab").removeClass("btn-primary").addClass("btn-inverse");
+    $("#page" + page + "_tab").removeClass("btn-inverse").addClass("btn-primary");
     $(".tabContent").hide();
     $("#page" + page + "_content").show();
     if (page == lastPage) simpleTabPageLast();
@@ -2971,11 +2998,11 @@ function syncUserSelected() {
 function filterAttributes(filter, id) {
     url = "/events/viewEventAttributes/" + id + "/attributeFilter:" + filter;
     if(filter === 'value'){
-        filter = $('#attributesFilterField').val().trim();
+        filter = $('#quickFilterField').val().trim();
         url += filter.length > 0 ? "/searchFor:" + filter : "";
     } else if(filter !== 'all') {
         url += "/filterColumnsOverwrite:" + filter;
-        filter = $('#attributesFilterField').val().trim();
+        filter = $('#quickFilterField').val().trim();
         url += filter.length > 0 ? "/searchFor:" + filter : "";
     }
     if (deleted) url += '/deleted:true';
@@ -3190,10 +3217,10 @@ $(".eventViewAttributeHover").mouseenter(function() {
 
 function attributeHoverTitle(id, type) {
   return `<span>Lookup results:</span>
-		<i class="fa fa-search-plus useCursorPointer eventViewAttributePopup" 
-				style="float: right;" 
-				data-object-id="${id}" 
-				data-object-type="${type}">			
+		<i class="fa fa-search-plus useCursorPointer eventViewAttributePopup"
+				style="float: right;"
+				data-object-id="${id}"
+				data-object-type="${type}">
 	</i>`;
 }
 
@@ -3937,6 +3964,24 @@ function syntaxHighlightJson(json, indent) {
             }
             return '<span class="' + cls + '">' + match + '</span>';
     });
+}
+
+function liveFilter() {
+    var lookupString = $('#liveFilterField').val();
+    if (lookupString == '') {
+        $('.live_filter_target').each(function() {
+            $(this).parent().show();
+        });
+    } else {
+        $('.live_filter_target').each(function() {
+            $(this).parent().hide();
+        });
+        $('.live_filter_target').each(function() {
+            if ($(this).text().indexOf(lookupString) >= 0) {
+                $(this).parent().show();
+            }
+        });
+    }
 }
 
 (function(){

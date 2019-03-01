@@ -149,6 +149,8 @@ foreach($tabs as $tabName => $column):
                             $score = empty($scores[$tagName]) ? 0 : $scores[$tagName];
                             $clusterId = isset($cell['id']) ? $cell['id'] : $name;
                             $externalId = isset($cell['external_id']) ? $cell['external_id'] : '';
+                            $shortDescription = isset($cell['description']) ? $cell['description'] : '';
+                            $shortDescription = strlen($shortDescription) > 1000 ? substr($shortDescription, 0, 1000) . '[...]' : $shortDescription;
                             $clusetersNamesMapping[$clusterId] = $name . ($externalId !== '' ? ' (' . $externalId. ')' : '');
 
                             $td .= ' class="heatCell matrix-interaction ' . ($pickingMode ? 'cell-picking"' : '"');
@@ -160,7 +162,7 @@ foreach($tabs as $tabName => $column):
                                 $td .= ' data-target-type="attribute"';
                                 $td .= ' data-target-id="'.h($target_id).'"';
                             }
-                            $td .= ' title="'.h($externalId).'"';
+                            $td .= ' title="' . h($externalId) . (strlen($shortDescription) > 0 ? ': &#10;' . h($shortDescription) : '') . '"';
                             $td .= '>' . h($name);
 
                         } else { // empty cell

@@ -50,7 +50,7 @@
     $use_select = count($items) > $select_threshold;
     $countThresholdReached = count($items) > 1000;
     $option_templates = array();
-    $option_additionalData = array();
+    $options_additionalData = array();
 ?>
 
 <script>
@@ -224,7 +224,7 @@ function submitFunction(clicked, callback) {
                             $option_templates[h($param['value'])] = $template;
                         }
                         if (isset($param['additionalData'])) {
-                            $additionalData = json_encode($param['additionalData']);
+                            $additionalData = $param['additionalData'];
                             $options_additionalData[h($param['value'])] = $additionalData;
                         }
                     }
@@ -242,7 +242,7 @@ function submitFunction(clicked, callback) {
                     if (isset($param['isPill']) && $param['isPill']) {
                         echo $this->GenericPicker->add_pill($param, $defaults);
                         if (isset($param['additionalData'])) {
-                            $additionalData = json_encode($param['additionalData']);
+                            $additionalData = $param['additionalData'];
                             $options_additionalData[h($param['value'])] = $additionalData;
                         }
                     }
@@ -264,7 +264,7 @@ function submitFunction(clicked, callback) {
             foreach ($items as $k => $param) {
                 echo $this->GenericPicker->add_pill($param, $defaults);
                 if (isset($param['additionalData'])) {
-                    $additionalData = json_encode($param['additionalData']);
+                    $additionalData = $param['additionalData'];
                     $options_additionalData[h($param['value'])] = $additionalData;
                 }
             }
@@ -282,7 +282,7 @@ function submitFunction(clicked, callback) {
             var options_additionalData = {}
         }
         options_templates['<?php echo $select_id; ?>'] = <?php echo json_encode($option_templates); ?>;
-        options_additionalData['<?php echo $select_id; ?>'] = <?php echo json_encode($option_additionalData); ?>;
+        options_additionalData['<?php echo $select_id; ?>'] = <?php echo json_encode($options_additionalData); ?>;
     </script>
 
 </div>

@@ -127,14 +127,17 @@ class Taxonomy extends AppModel
         if ($options['full']) {
             $recursive = 2;
         }
+
         $filter = false;
         if (isset($options['filter'])) {
             $filter = $options['filter'];
         }
-        $taxonomy = $this->find('first', array(
-                'recursive' => $recursive,
+        $taxonomy_params = array(
+                'recursive' => -1,
+                'contain' => array('TaxonomyPredicate' => array('TaxonomyEntry')),
                 'conditions' => array('Taxonomy.id' => $id)
-        ));
+        );
+        $taxonomy = $this->find('first', $taxonomy_params);
         if (empty($taxonomy)) {
             return false;
         }
@@ -251,7 +254,7 @@ class Taxonomy extends AppModel
             if (empty($taxonomy)) {
                 return false;
             }
-            $tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace']);
+            $tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace'], false);
             if (isset($taxonomy['entries'])) {
                 foreach ($taxonomy['entries'] as $key => $temp) {
                     $taxonomy['entries'][$key]['existing_tag'] = isset($tags[strtoupper($temp['tag'])]) ? $tags[strtoupper($temp['tag'])] : false;

@@ -23,12 +23,18 @@
         $class = '';
     }
     if (!empty($onClick)) {
-        $params = array();
+        $params = '';
         foreach ($onClick['params'] as $param) {
-            $params[] = h($param);
+            if (!empty($params)) {
+                $params .= ', ';
+            }
+            if ($param === 'this') {
+                $params .= $param;
+            } else {
+                $params .= "'" . h($param) . "'";
+            }
         }
-        $params = implode('\', \'', $params);
-        $a .= sprintf(' onClick="%s(\'%s\')"', $onClick['function'], $params);
+        $a .= sprintf(' onClick="%s(%s)"', $onClick['function'], $params);
     }
     if (!empty($download)) {
         $download = 'download="' . h($download) . '"';
