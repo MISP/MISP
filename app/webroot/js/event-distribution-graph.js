@@ -275,43 +275,74 @@ function construct_network(target_distribution, scope_text, overwriteSg) {
     edges_distri = new vis.DataSet([
         {from: 'root', to: distributionData.additionalDistributionInfo[0][0], length: 30, width: 3},
     ]);
-    var toID = false;;
     if (target_distribution === undefined || target_distribution == 5) {
         target_distribution = event_distribution;
     }
-    switch (target_distribution) {
-        case 0:
-            break;
-        case 1:
-            toID = 'this-community';
-            break;
-        case 2:
-            toID = 'connected-community';
-            break;
-        case 3:
-            toID = 'all-community';
-            break;
-        case 4:
-            toID = 'sharing-group';
-            break;
-        default:
-            break;
-    }
 
-    if (toID !== false) {
-        var edgeData = {from: 'root', to: toID, width: 3};
+    if (target_distribution !== 0) {
         // Event always restrict propagation (sharing group is a special case)
-        if (target_distribution !== 4 && target_distribution > event_distribution) {
-            edgeData.label = 'X';
-            edgeData.title = 'The distribution of the Event restricts the distribution level of this element';
-            edgeData.font = {
-                size: 50,
-                color: '#ff0000',
-                strokeWidth: 6,
-                strokeColor: '#ff0000'
-            };
+        var temp_target_disti = target_distribution;
+        if (target_distribution !== 4 && temp_target_disti >= event_distribution) {
+            while (temp_target_disti >= event_distribution) {
+                var toID = false;
+                switch (temp_target_disti) {
+                    case 0:
+                        break;
+                    case 1:
+                        toID = 'this-community';
+                        break;
+                    case 2:
+                        toID = 'connected-community';
+                        break;
+                    case 3:
+                        toID = 'all-community';
+                        break;
+                    case 4:
+                        toID = 'sharing-group';
+                        break;
+                    default:
+                        break;
+                }
+                var edgeData = {from: 'root', to: toID, width: 3};
+                if (temp_target_disti != event_distribution) {
+                    edgeData.label = 'X';
+                    edgeData.title = 'The distribution of the Event restricts the distribution level of this element';
+                    edgeData.font = {
+                        size: 50,
+                        color: '#ff0000',
+                        strokeWidth: 6,
+                        strokeColor: '#ff0000'
+                    };
+                }
+                if (toID !== false) {
+                    edges_distri.add(edgeData);
+                }
+                temp_target_disti--;
+            }
+        } else {
+            switch (temp_target_disti) {
+                case 0:
+                    break;
+                case 1:
+                    toID = 'this-community';
+                    break;
+                case 2:
+                    toID = 'connected-community';
+                    break;
+                case 3:
+                    toID = 'all-community';
+                    break;
+                case 4:
+                    toID = 'sharing-group';
+                    break;
+                default:
+                    break;
+            }
+            var edgeData = {from: 'root', to: toID, width: 3};
+            if (toID !== false) {
+                edges_distri.add(edgeData);
+            }
         }
-        edges_distri.add(edgeData);
     }
 
     var nodesToAdd = [];
@@ -319,12 +350,16 @@ function construct_network(target_distribution, scope_text, overwriteSg) {
     cacheAddedOrgName[distributionData.additionalDistributionInfo[0][0]] = 1;
 
     // Community
-    if (target_distribution >= 1 && target_distribution != 4) {
+    if (target_distribution >= 1 && target_distribution != 4
+        && (distributionData.event[1] > 0 || distributionData.event[2] > 0 || distributionData.event[3] > 0)
+    ) {
         nodesToAdd.push({id: 'this-community', label: 'This community', group: 'root-this-community'});
         inject_this_community_org(nodesToAdd, edgesToAdd, distributionData.additionalDistributionInfo[1], 'this-community', 'this-community');
     }
-    if (target_distribution >= 2 && target_distribution != 4) {
-        // Connected Community
+    // Connected Community
+    if (target_distribution >= 2 && target_distribution != 4
+        && (distributionData.event[2] > 0 || distributionData.event[3] > 0)
+    ) {
         nodesToAdd.push({id: 'connected-community', label: 'Connected community', group: 'root-connected-community'});
         distributionData.additionalDistributionInfo[2].forEach(function(orgName) {
             if (orgName === 'This community') {
@@ -341,7 +376,7 @@ function construct_network(target_distribution, scope_text, overwriteSg) {
     }
 
     // All Community
-    if (target_distribution >= 3 && target_distribution != 4) {
+    if (target_distribution >= 3 && target_distribution != 4 && distributionData.event[3] > 0) {
         nodesToAdd.push({id: 'all-community', label: 'All community', group: 'web'});
         distributionData.additionalDistributionInfo[3].forEach(function(orgName) {
             if (orgName === 'This community') {
@@ -418,7 +453,7 @@ function construct_network(target_distribution, scope_text, overwriteSg) {
     var data = { nodes: nodes_distri, edges: edges_distri };
     var network_options = {
         width: '800px',
-        height: '800px',
+        height: '759px',
         layout: {randomSeed: 0},
         edges: {
             arrowStrikethrough: false,
