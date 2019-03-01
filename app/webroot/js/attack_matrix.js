@@ -295,9 +295,9 @@
 		}
 
 		if (pickedGalaxies.length > 0) {
-			$('.matrix-div-submit').show();
+			$('.submit-container').show();
 		} else {
-			$('.matrix-div-submit').hide();
+			$('.submit-container').hide();
 		}
 	}
 }());
