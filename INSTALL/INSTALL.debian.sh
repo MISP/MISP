@@ -1832,10 +1832,11 @@ installSupported () {
 
   # Install Mail2MISP - functionLocation('generic/mail_to_misp-debian.md')
   [[ -n $MAIL2 ]]     || [[ -n $ALL ]] && mail2misp
-  progress 100
+  progress 2
 
   # Run tests
   runTests
+  progress 2
 
   # Run final script to inform the User what happened - functionLocation('generic/supportFunctions.md')
   theEnd
@@ -2150,7 +2151,7 @@ fi
 
 [[ -n $UPGRADE ]] && upgrade
 
-[[ -n $NUKE ]] && nuke ; exit
+[[ -n $NUKE ]] && nuke && exit
 
 # If Ubuntu is detected, figure out which release it is and run the according scripts
 if [ "${FLAVOUR}" == "ubuntu" ]; then
