@@ -268,7 +268,7 @@ function construct_network(target_distribution, scope_text, overwriteSg) {
     $('#sharingNetworkTargetId').val(scope_text);
 
     nodes_distri = new vis.DataSet([
-        {id: 'root', group: 'root', label: scope_text, x: 0, y: 0, fixed: true},
+        {id: 'root', group: 'root', label: scope_text, x: 0, y: 0, fixed: true, mass: 20},
         {id: distributionData.additionalDistributionInfo[0][0], label: distributionData.additionalDistributionInfo[0][0], group: 'org-only'},
 
     ]);
@@ -434,7 +434,7 @@ function construct_network(target_distribution, scope_text, overwriteSg) {
         },
         physics:{
             barnesHut: {
-                gravitationalConstant: -2000,
+                gravitationalConstant: -10000,
                 centralGravity: 0.3,
                 springLength: 150,
                 springConstant: 0.02,
