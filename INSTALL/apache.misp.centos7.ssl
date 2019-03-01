@@ -33,6 +33,8 @@
     </IfModule>
 
     SSLEngine On
+# The line below disable unsecure Ciphers, might be enabled by default
+#	  SSLCipherSuite HIGH:!aNULL:!MD5
     SSLCertificateFile /etc/pki/tls/certs/misp.local.crt
     SSLCertificateKeyFile /etc/pki/tls/private/misp.local.key
     SSLCertificateChainFile /etc/pki/tls/certs/misp-chain.crt

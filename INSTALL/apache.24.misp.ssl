@@ -9,6 +9,8 @@
     </Directory>
 
     SSLEngine On
+# The line below disable unsecure Ciphers, might be enabled by default
+#	  SSLCipherSuite HIGH:!aNULL:!MD5
     SSLCertificateFile /etc/ssl/private/misp.local.crt
     SSLCertificateKeyFile /etc/ssl/private/misp.local.key
 #    SSLCertificateChainFile /etc/ssl/private/misp-chain.crt
