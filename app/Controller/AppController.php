@@ -48,8 +48,8 @@ class AppController extends Controller
 
     private $__queryVersion = '60';
     public $pyMispVersion = '2.4.102';
-    public $phpmin = '7.0.16';
-    public $phprec = '7.0.16';
+    public $phpmin = '7.0';
+    public $phprec = '7.2';
 
     public $baseurl = '';
     public $sql_dump = false;
@@ -113,7 +113,7 @@ class AppController extends Controller
             if ($this->request->is('options')) {
                 // Stop here!
                 // CORS only needs the headers
-                $this->response->send();    
+                $this->response->send();
                 $this->_stop();
             }
         }

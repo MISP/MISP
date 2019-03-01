@@ -30,16 +30,10 @@ viper () {
   $SUDO_USER ./venv/bin/pip install -r requirements.txt
   $SUDO_USER sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-cli
   $SUDO_USER sed -i '1 s/^.*$/\#!\/usr\/local\/src\/viper\/venv\/bin\/python/' viper-web
-  echo "pip uninstall yara"
-  $SUDO_USER ./venv/bin/pip uninstall yara -y
   echo "Launching viper-cli"
-  # TODO: Perms
-  #$SUDO /usr/local/src/viper/viper-cli -h > /dev/null
-  /usr/local/src/viper/viper-cli -h > /dev/null
+  $SUDO_USER /usr/local/src/viper/viper-cli -h > /dev/null
   echo "Launching viper-web"
-  # TODO: Perms
-  /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 &
-  #$SUDO /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 &
+  $SUDO_USER /usr/local/src/viper/viper-web -p 8888 -H 0.0.0.0 &
   echo 'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/local/src/viper:/var/www/MISP/app/Console"' |sudo tee /etc/environment
   echo ". /etc/environment" >> /home/${MISP_USER}/.profile
 
@@ -55,7 +49,7 @@ viper () {
   $SUDO_USER sed -i "s/^misp_key\ =/misp_key\ =\ $AUTH_KEY/g" ${VIPER_HOME}/viper.conf
   # Reset admin password to: admin/Password1234
   echo "Fixing admin.db with default password"
-  while [ "$(sqlite3 ${VIPER_HOME}/admin.db 'UPDATE auth_user SET password="pbkdf2_sha256$100000$iXgEJh8hz7Cf$vfdDAwLX8tko1t0M1TLTtGlxERkNnltUnMhbv56wK/U="'; echo $?)" -ne "0" ]; do
+  while [ "$(sudo sqlite3 ${VIPER_HOME}/admin.db 'UPDATE auth_user SET password="pbkdf2_sha256$100000$iXgEJh8hz7Cf$vfdDAwLX8tko1t0M1TLTtGlxERkNnltUnMhbv56wK/U="'; echo $?)" -ne "0" ]; do
     # FIXME This might lead to a race condition, the while loop is sub-par
     sudo chown $MISP_USER:$MISP_USER ${VIPER_HOME}/admin.db
     echo "Updating viper-web admin password, giving process time to start-up, sleeping 5, 4, 3,…"

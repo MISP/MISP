@@ -129,6 +129,11 @@ class AdminShell extends AppShell
 		$this->Job->saveField('status', 4);
 	}
 
+	public function getWorkers() {
+		$result = $this->Server->workerDiagnostics($workerIssueCount);
+		echo json_encode($result, JSON_PRETTY_PRINT) . PHP_EOL;
+  }
+
 	public function getSetting() {
 		$param = empty($this->args[0]) ? 'all' : $this->args[0];
 		$settings = $this->Server->serverSettingsRead();
@@ -143,7 +148,7 @@ class AdminShell extends AppShell
 			}
 		}
 		echo json_encode($result, JSON_PRETTY_PRINT) . PHP_EOL;
-	}
+  }
 
 	public function setSetting() {
 		$setting_name = !isset($this->args[0]) ? null : $this->args[0];

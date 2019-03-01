@@ -147,6 +147,7 @@ class ObjectsController extends AppController
         if (!$this->_isRest()) {
             $this->MispObject->Event->insertLock($this->Auth->user(), $eventId);
         }
+        $error = false;
         if (!empty($templateId) || !$this->_isRest()) {
             $templates = $this->MispObject->ObjectTemplate->find('all', array(
                 'conditions' => array('ObjectTemplate.id' => $templateId),
@@ -166,10 +167,9 @@ class ObjectsController extends AppController
                     $template = $temp;
                 }
             }
-        }
-        $error = false;
-        if (empty($template)) {
-            $error = 'No valid template found to edit the object.';
+            if (empty($template)) {
+                $error = 'No valid template found to edit the object.';
+            }
         }
         // If we have received a POST request
         if ($this->request->is('post')) {
@@ -218,9 +218,12 @@ class ObjectsController extends AppController
                     }
                 }
                 if (!empty($template)) {
-                    $error = $this->MispObject->ObjectTemplate->checkTemplateConformity($template, $object);
+                    $conformity = $this->MispObject->ObjectTemplate->checkTemplateConformity($template, $object);
+                    if ($conformity !== true) {
+                        $error = $conformity;
+                    }
                 }
-                if ($error === true) {
+                if (empty($error)) {
                     unset($object['Object']['id']);
                     $result = $this->MispObject->saveObject($object, $eventId, $template, $this->Auth->user(), $errorBehaviour = 'halt');
                     if (is_numeric($result)) {
@@ -252,7 +255,6 @@ class ObjectsController extends AppController
                 }
             }
         }
-
         // In the case of a GET request or if the object could not be validated, show the form / the requirement
         if ($this->_isRest()) {
             if ($error) {
