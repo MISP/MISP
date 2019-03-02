@@ -16,24 +16,29 @@
 # 0/ Quick MISP Instance on Debian Based Linux - Status |
 #-------------------------------------------------------|
 #
-#    20190208: Kali Linux tested and working.
+#    20190302: Ubuntu 18.04.2 tested and working. -- sCl
+#    20190208: Kali Linux tested and working. -- sCl
+#
+#
+#-------------------------------------------------------------------------------------------------|
+# 1/ For other Debian based Linux distributions, download script and run as **unprivileged** user |
+#-------------------------------------------------------------------------------------------------|
+#
+# The following installs only MISP-core:
+# $ curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s -- -c
+#
+# This will install MISP Core and misp-modules (recommended)
+# $ curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s -- -c -M
 #
 #
 #-------------------------------------------------------|
-# 1/ For Kali, download and run Installer Script        |
+# 2/ For Kali, download and run Installer Script        |
 #-------------------------------------------------------|
 #
 # To install MISP on Kali copy paste the following to your r00t shell:
 # # wget -O /tmp/misp-kali.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh && bash /tmp/misp-kali.sh
 # /!\ Please read the installer script before randomly doing the above.
 # The script is tested on a plain vanilla Kali Linux Boot CD and installs quite a few dependencies.
-#
-#
-#---------------------------------------------------------------------------------------------|
-# 2/ For other Debian based Linux distributions, download script and run as unprivileged user |
-#---------------------------------------------------------------------------------------------|
-#
-# $ wget -O ~/INSTALL.debian.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh && bash ~/INSTALL.debian.sh -C
 #
 #
 #----------------------------------------------------------|
@@ -406,25 +411,14 @@ checkUsrLocalSrc () {
     else
       # TODO: The below might be shorter, more elegant and more modern
       #[[ -n $KALI ]] || [[ -n $UNATTENDED ]] && echo "Just do it" 
-      if [ "$KALI" == "1" -o "$UNATTENDED" == "1" ]; then
-        ANSWER="y"
-      else
-        space
-        echo "/usr/local/src need to be writeable by $MISP_USER for misp-modules, viper etc."
-        echo -n "Permission to fix? (y/n) "
-        read ANSWER
-        ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
-        space
-      fi
-      if [ "$ANSWER" == "y" ]; then
-        sudo chmod 2775 /usr/local/src
-        sudo chown root:staff /usr/local/src
-      fi
+      sudo chmod 2775 /usr/local/src
+      sudo chown root:staff /usr/local/src
     fi
   else
     echo "/usr/local/src does not exist, creating."
-    mkdir /usr/local/src
+    mkdir -p /usr/local/src
     sudo chmod 2775 /usr/local/src
+    # FIXME: This might fail on distros with no staff user
     sudo chown root:staff /usr/local/src
   fi
 }
@@ -1345,6 +1339,7 @@ mispmodules () {
 ##sudo sed -i -e '$i \sudo -u www-data /var/www/MISP/venv/bin/misp-modules -l 127.0.0.1 -s > /tmp/misp-modules_rc.local.log &\n' /etc/rc.local
   cd /usr/local/src/
   ## TODO: checkUsrLocalSrc in main doc
+  debug "Cloning misp-modules"
   $SUDO_USER git clone https://github.com/MISP/misp-modules.git
   cd misp-modules
   # some misp-modules dependencies

@@ -277,25 +277,14 @@ checkUsrLocalSrc () {
     else
       # TODO: The below might be shorter, more elegant and more modern
       #[[ -n $KALI ]] || [[ -n $UNATTENDED ]] && echo "Just do it" 
-      if [ "$KALI" == "1" -o "$UNATTENDED" == "1" ]; then
-        ANSWER="y"
-      else
-        space
-        echo "/usr/local/src need to be writeable by $MISP_USER for misp-modules, viper etc."
-        echo -n "Permission to fix? (y/n) "
-        read ANSWER
-        ANSWER=$(echo $ANSWER |tr [A-Z] [a-z])
-        space
-      fi
-      if [ "$ANSWER" == "y" ]; then
-        sudo chmod 2775 /usr/local/src
-        sudo chown root:staff /usr/local/src
-      fi
+      sudo chmod 2775 /usr/local/src
+      sudo chown root:staff /usr/local/src
     fi
   else
     echo "/usr/local/src does not exist, creating."
-    mkdir /usr/local/src
+    mkdir -p /usr/local/src
     sudo chmod 2775 /usr/local/src
+    # FIXME: This might fail on distros with no staff user
     sudo chown root:staff /usr/local/src
   fi
 }
