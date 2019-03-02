@@ -7,17 +7,20 @@
 mail2misp () {
   debug "Installing Mail2${LBLUE}MISP${NC}"
   cd /usr/local/src/
-  sudo apt-get install cmake libcaca-dev -y
+  sudo apt-get install cmake libcaca-dev liblua5.3-dev -y
   $SUDO_USER git clone https://github.com/MISP/mail_to_misp.git
   $SUDO_USER git clone git://github.com/stricaud/faup.git faup
-  sudo chown -R ${MISP_USER}:${MISP_USER} faup mail_to_misp
-  cd faup
-  # TODO Check permissions
-  ##$SUDO mkdir -p build
+  $SUDO_USER git clone git://github.com/stricaud/gtcaca.git gtcaca
+  sudo chown -R ${MISP_USER}:${MISP_USER} faup mail_to_misp gtcaca
+  cd gtcaca
   $SUDO_USER mkdir -p build
   cd build
   $SUDO_USER cmake .. && $SUDO_USER make
-  ##$SUDO cmake .. && $SUDO make
+  sudo make install
+  cd ../../faup
+  $SUDO_USER mkdir -p build
+  cd build
+  $SUDO_USER cmake .. && $SUDO_USER make
   sudo make install
   sudo ldconfig
   cd ../../mail_to_misp
