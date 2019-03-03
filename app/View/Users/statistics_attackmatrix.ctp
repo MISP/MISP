@@ -7,12 +7,12 @@
 
 <div id="attackmatrix_div" style="position: relative; border: solid 1px;" class="statistics_attack_matrix">
     <?php
-        echo $this->element('view_mitre_attack_matrix');
+        echo $this->element('view_galaxy_matrix');
     ?>
 </div>
-    
+
 </div>
 
 <?php
-    echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'statistics'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'statistics'));
 ?>

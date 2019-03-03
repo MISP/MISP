@@ -8,6 +8,84 @@ class NidsExport
 
     public $format = "";   // suricata (default), snort
 
+	public $checkWhitelist = true;
+
+	public $additional_params = array(
+		'contain' => array(
+			'Event' => array(
+				'fields' => array('threat_level_id')
+			)
+		),
+		'flatten' => 1
+	);
+
+	public function handler($data, $options = array())
+	{
+		$continue = empty($format);
+		$this->checkWhitelist = false;
+		if ($options['scope'] === 'Attribute') {
+			$this->export(
+				array($data),
+				$options['user']['nids_sid'],
+				$options['returnFormat'],
+				$continue
+			);
+		} else if ($options['scope'] === 'Event') {
+			if (!empty($data['EventTag'])) {
+				$data['Event']['EventTag'] = $data['EventTag'];
+			}
+			if (!empty($data['Attribute'])) {
+				$this->__convertFromEventFormat($data['Attribute'], $data, $options, $continue);
+			}
+			if (!empty($data['Object'])) {
+				foreach ($data['Object'] as $object) {
+					$this->__convertFromEventFormat($object['Attribute'], $data, $options, $continue);
+				}
+			}
+		}
+		return '';
+	}
+
+	private function __convertFromEventFormat($attributes, $event, $options = array(), $continue = false) {
+		$rearranged = array();
+		foreach ($attributes as $attribute) {
+			$attributeTag = array();
+			if (!empty($attribute['AttributeTag'])) {
+				$attributeTag = $attribute['AttributeTag'];
+				unset($attribute['AttributeTag']);
+			}
+			$rearranged[] = array(
+				'Attribute' => $attribute,
+				'AttributeTag' => $attributeTag,
+				'Event' => $event['Event']
+			);
+		}
+		$this->export(
+			$rearranged,
+			$options['user']['nids_sid'],
+			$options['returnFormat'],
+			$continue
+		);
+		return true;
+
+	}
+
+	public function header($options = array())
+	{
+		$this->explain();
+		return '';
+	}
+
+	public function footer()
+	{
+		return implode ("\n", $this->rules);
+	}
+
+	public function separator()
+	{
+		return '';
+	}
+
     public function explain()
     {
         $this->rules[] = '# MISP export of IDS rules - optimized for '.$this->format;
@@ -28,8 +106,10 @@ class NidsExport
     public function export($items, $startSid, $format="suricata", $continue = false)
     {
         $this->format = $format;
-        $this->Whitelist = ClassRegistry::init('Whitelist');
-        $this->whitelist = $this->Whitelist->getBlockedValues();
+		if ($this->checkWhitelist && !isset($this->Whitelist)) {
+        	$this->Whitelist = ClassRegistry::init('Whitelist');
+        	$this->whitelist = $this->Whitelist->getBlockedValues();
+		}
 
         // output a short explanation
         if (!$continue) {
@@ -39,11 +119,20 @@ class NidsExport
         foreach ($items as $item) {
             // retrieve all tags for this item to add them to the msg
             $tagsArray = [];
-            foreach ($item['AttributeTag'] as $tag_attr) {
-                if (array_key_exists('name', $tag_attr['Tag'])) {
-                    array_push($tagsArray, $tag_attr['Tag']['name']);
-                }
-            }
+			if (!empty($item['AttributeTag'])) {
+	            foreach ($item['AttributeTag'] as $tag_attr) {
+	                if (array_key_exists('name', $tag_attr['Tag'])) {
+	                    array_push($tagsArray, $tag_attr['Tag']['name']);
+	                }
+	            }
+			}
+			if (!empty($item['Event']['EventTag'])) {
+				foreach ($item['Event']['EventTag'] as $tag_event) {
+	                if (array_key_exists('name', $tag_event['Tag'])) {
+	                    array_push($tagsArray, $tag_event['Tag']['name']);
+	                }
+	            }
+			}
             $ruleFormatMsgTags = implode(",", $tagsArray);
 
             # proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev
@@ -105,7 +194,7 @@ class NidsExport
         }
         return $this->rules;
     }
-    
+
     public function domainIpRule($ruleFormat, $attribute, &$sid)
     {
         $values = explode('|', $attribute['value']);
@@ -558,11 +647,13 @@ class NidsExport
 
     public function checkWhitelist($value)
     {
-        foreach ($this->whitelist as $wlitem) {
-            if (preg_match($wlitem, $value)) {
-                return true;
-            }
-        }
+		if ($this->checkWhitelist) {
+	        foreach ($this->whitelist as $wlitem) {
+	            if (preg_match($wlitem, $value)) {
+	                return true;
+	            }
+	        }
+		}
         return false;
     }
 

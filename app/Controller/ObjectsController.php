@@ -42,7 +42,7 @@ class ObjectsController extends AppController
             )
         ));
         $event = $this->MispObject->Event->find('first', $eventFindParams);
-        if (empty($event) || (!$this->_isSiteAdmin() &&	$event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
+        if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
             throw new NotFoundException(__('Invalid event.'));
         }
         $sharing_groups = array();
@@ -105,7 +105,7 @@ class ObjectsController extends AppController
         $eventFindParams = array(
             'recursive' => -1,
             'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id'),
-            'conditions' => array('Event.id' => $eventId)
+            'conditions' => array()
         );
 
         if (!empty($templateId) && Validation::uuid($templateId)) {
@@ -140,13 +140,14 @@ class ObjectsController extends AppController
             throw new NotFoundException(__('Invalid event.'));
         }
         $event = $this->MispObject->Event->find('first', $eventFindParams);
-        if (empty($event) || (!$this->_isSiteAdmin() &&	$event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
+        if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
             throw new NotFoundException(__('Invalid event.'));
         }
         $eventId = $event['Event']['id'];
         if (!$this->_isRest()) {
             $this->MispObject->Event->insertLock($this->Auth->user(), $eventId);
         }
+        $error = false;
         if (!empty($templateId) || !$this->_isRest()) {
             $templates = $this->MispObject->ObjectTemplate->find('all', array(
                 'conditions' => array('ObjectTemplate.id' => $templateId),
@@ -166,10 +167,9 @@ class ObjectsController extends AppController
                     $template = $temp;
                 }
             }
-        }
-        $error = false;
-        if (empty($template)) {
-            $error = 'No valid template found to edit the object.';
+            if (empty($template)) {
+                $error = 'No valid template found to edit the object.';
+            }
         }
         // If we have received a POST request
         if ($this->request->is('post')) {
@@ -194,6 +194,7 @@ class ObjectsController extends AppController
                 $error = 'Could not save the object as no attributes were set.';
             } else {
                 foreach ($object['Attribute'] as $k => $attribute) {
+                    unset($object['Attribute'][$k]['id']);
                     $object['Attribute'][$k]['event_id'] = $eventId;
                     $this->MispObject->Event->Attribute->set($attribute);
                     if (!$this->MispObject->Event->Attribute->validates()) {
@@ -217,11 +218,15 @@ class ObjectsController extends AppController
                     }
                 }
                 if (!empty($template)) {
-                    $error = $this->MispObject->ObjectTemplate->checkTemplateConformity($template, $object);
+                    $conformity = $this->MispObject->ObjectTemplate->checkTemplateConformity($template, $object);
+                    if ($conformity !== true) {
+                        $error = $conformity;
+                    }
                 }
-                if ($error === true) {
+                if (empty($error)) {
+                    unset($object['Object']['id']);
                     $result = $this->MispObject->saveObject($object, $eventId, $template, $this->Auth->user(), $errorBehaviour = 'halt');
-                    if ($result === true) {
+                    if (is_numeric($result)) {
                         $this->MispObject->Event->unpublishEvent($eventId);
                     }
                 } else {
@@ -234,6 +239,10 @@ class ObjectsController extends AppController
                             'conditions' => array('Object.id' => $result),
                             'contain' => array('Attribute')
                         ));
+                        if (!empty($object)) {
+                            $object['Object']['Attribute'] = $object['Attribute'];
+                            unset($object['Attribute']);
+                        }
                         return $this->RestResponse->viewData($object, $this->response->type());
                     } else {
                         return $this->RestResponse->saveFailResponse('Objects', 'add', false, $error, $this->response->type());
@@ -246,7 +255,6 @@ class ObjectsController extends AppController
                 }
             }
         }
-
         // In the case of a GET request or if the object could not be validated, show the form / the requirement
         if ($this->_isRest()) {
             if ($error) {
@@ -324,7 +332,7 @@ class ObjectsController extends AppController
         );
 
         $event = $this->MispObject->Event->find('first', $eventFindParams);
-        if (empty($event) || (!$this->_isSiteAdmin() &&	$event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
+        if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
             throw new NotFoundException(__('Invalid object.'));
         }
         if (!$this->_isRest()) {
@@ -370,6 +378,10 @@ class ObjectsController extends AppController
                             'conditions' => array('Object.id' => $id),
                             'contain' => array('Attribute')
                         ));
+                        if (!empty($objectToSave)) {
+                            $objectToSave['Object']['Attribute'] = $objectToSave['Attribute'];
+                            unset($objectToSave['Attribute']);
+                        }
                         $this->MispObject->Event->unpublishEvent($object['Object']['event_id']);
                         return $this->RestResponse->viewData($objectToSave, $this->response->type());
                     } else {

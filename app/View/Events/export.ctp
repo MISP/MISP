@@ -37,7 +37,7 @@
                 <td>
                     <?php
                         echo $type['description'];
-                        if ($type['canHaveAttachments']):
+                        if (!empty($type['params']['includeAttachments'])):
                             if (Configure::read('MISP.cached_attachments')):
                     ?>
                         <span class="green"> (<?php echo __('Attachments are enabled on this instance');?>)</span>
@@ -122,7 +122,7 @@
     </ul>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'export'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'export'));
 ?>
 <script type="text/javascript">
     function generate(i, type, id, progress, modified) {

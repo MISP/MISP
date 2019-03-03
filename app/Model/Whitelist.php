@@ -10,12 +10,14 @@ class Whitelist extends AppModel
 
     public $actsAs = array(
             'Trim',
-            'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+            'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
                     'roleModel' => 'Role',
                     'roleKey' => 'role_id',
                     'change' => 'full'
             ),
     );
+
+    public $whitelistedItems = false;
 
     public $validate = array(
         'name' => array(
@@ -24,7 +26,7 @@ class Whitelist extends AppModel
             ),
             'userdefined' => array(
                 'rule' => array('validateValue'),
-                'message' => 'Name not in the right format. Whitelist entries have to be enclosed by a valid php delimiter (which can be most non-alphanumeric / non-whitespace character). Format: "/8.8.8.8/" Please double check the name.',				//'allowEmpty' => false,
+                'message' => 'Name not in the right format. Whitelist entries have to be enclosed by a valid php delimiter (which can be most non-alphanumeric / non-whitespace character). Format: "/8.8.8.8/" Please double check the name.',             //'allowEmpty' => false,
                 //'allowEmpty' => false,
                 //'required' => true,
                 //'last' => false, // Stop validation after this rule
@@ -66,12 +68,14 @@ class Whitelist extends AppModel
 
     public function getBlockedValues()
     {
-        $Whitelists = $this->find('all', array('fields' => array('name')));
-        $toReturn = array();
-        foreach ($Whitelists as $item) {
-            $toReturn[] = $item['Whitelist']['name'];
+        if ($this->whitelistedItems !== false) {
+            $Whitelists = $this->find('all', array('fields' => array('name')));
+            $this->whitelistedItems = array();
+            foreach ($Whitelists as $item) {
+                $this->whitelistedItems[] = $item['Whitelist']['name'];
+            }
         }
-        return $toReturn;
+        return $this->whitelistedItems;
     }
 
     public function removeWhitelistedFromArray($data, $isAttributeArray)

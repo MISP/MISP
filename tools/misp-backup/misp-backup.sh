@@ -2,13 +2,16 @@
 #!/bin/sh
 ## $Id: misp-backup.sh 07.04.2016 $
 ##
-## script to backup MISP on debian/ubuntu 14.04.1
+## script to backup MISP on debian/ubuntu 18.04.1
 ##
 ## Authored by daverstephens@gmail.com
 ## https://github.com/daverstephens/The-SOC-Shop
 ##
 ## added some more studd by @alexanderjaeger
 ## https://github.com/deralexxx/misp-backup
+##
+## more amendments by @SteveClement
+##
 
 ##
 ## This script can be used to backup a complete MISP
@@ -16,7 +19,7 @@
 ## built system. This is not intended as an upgrade script
 ## to move between MISP versions - But it might work ;).
 ##
-## Tested against MISP 2.4.33
+## Tested against MISP 2.4.101
 ##
 ## Run the script as the standard user with the command below
 ##
@@ -24,9 +27,37 @@
 ## vi misp-backup.conf # adjust values
 ## sudo sh -x misp-backup.sh 2>&1 | tee misp-backup.log
 ##
-## Time to set some variables
+## TODO: Target directory, rudimentary free space check: stat -f --format="%a" OutputDirName
+## TODO: Make sure no directories are blank
 ##
 
+## Functions
+
+# Dynamic horizontal spacer
+space () {
+  if [[ "$NO_PROGRESS" == "1" ]]; then
+    return
+  fi
+  # Check terminal width
+  num=`tput cols`
+  for i in `seq 1 $num`; do
+    echo -n "-"
+  done
+  echo ""
+}
+
+# Make sure the target has enough free space
+checkDiskFree () {
+  threshhold=90
+  free=$(df -l --sync --output=pcent $1 |tail -1|cut -f 1 -d% | tr -d \ )
+  if [ $free > $threshhold ]; then
+    echo "Your destination folder is $threshhold% full."
+    exit 1
+  fi
+}
+
+## Time to set some variables
+##
 
 FILE=./misp-backup.conf
 
@@ -58,6 +89,7 @@ MISPPath=${MISPPath:-$(locate MISP/app/webroot/index.php|sed 's/\/app\/webroot\/
 # Output
 OutputFileName=${OutputFileName:-MISP-Backup}
 OutputDirName=${OutputDirName:-/tmp}
+OutputFull="${OutputDirName}/${OutputFileName}-$(date '+%Y%m%d_%H%M%S').tar.gz"
 # database.php
 MySQLUUser=$(grep -o -P "(?<='login' => ').*(?=')" $MISPPath/app/Config/database.php)
 MySQLUPass=$(grep -o -P "(?<='password' => ').*(?=')" $MISPPath/app/Config/database.php)
@@ -73,13 +105,18 @@ AdminEmail=$(grep -o -P "(?<='contact' => ').*(?=')" $MISPPath/app/Config/config
 GnuPGEmail=$(sed -n -e '/GnuPG/,$p' $MISPPath/app/Config/config.php|grep -o -P "(?<='email' => ').*(?=')")
 GnuPGHomeDir=$(grep -o -P "(?<='homedir' => ').*(?=')" $MISPPath/app/Config/config.php)
 GnuPGPass=$(grep -o -P "(?<='password' => ').*(?=')" $MISPPath/app/Config/config.php)
+
+## Folders to be checked for useable space: OutputDirName
+## To be checked for emptiness: all?
+
 # Create backup files
 TmpDir="$(mktemp --tmpdir=$OutputDirName -d)"
-cp $GnuPGHomeDir/* $TmpDir/
+cp -r $GnuPGHomeDir/* $TmpDir/
 echo "copy of org images and other custom images"
 cp -r $MISPPath/app/webroot/img/orgs $TmpDir/
 cp -r $MISPPath/app/webroot/img/custom $TmpDir/
 cp -r $MISPPath/app/files $TmpDir
+
 #  MISP Config files
 mkdir -p $TmpDir/Config
 cp $MISPPath/app/Config/bootstrap.php $TmpDir/Config
@@ -93,7 +130,9 @@ MySQLRPass=${MySQLRPass:-$MySQLUPass}
 mysqldump --opt -u $MySQLRUser -p$MySQLRPass $MISPDB > $TmpDir/MISPbackupfile.sql
 # Create compressed archive
 cd $TmpDir
-tar -zcf $OutputDirName/$OutputFileName-$(date "+%Y%m%d_%H%M%S").tar.gz *
+tar -zcf $OutputFull ./*
 cd -
 rm -rf $TmpDir
-echo 'MISP Backup Complete!!!'
+echo "MISP Backup Completed, OutputDir: ${OutputDirName}"
+echo "FileName: ${OutputFileName}-$(date '+%Y%m%d_%H%M%S').tar.gz"
+echo "FullName: ${OutputFull}"

@@ -5,7 +5,7 @@ class SharingGroup extends AppModel
 {
     public $actsAs = array(
             'Containable',
-            'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+            'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
                     'roleModel' => 'SharingGroup',
                     'roleKey' => 'sharing_group_id',
                     'change' => 'full'
@@ -34,12 +34,12 @@ class SharingGroup extends AppModel
         'SharingGroupOrg' => array(
             'className' => 'SharingGroupOrg',
             'foreignKey' => 'sharing_group_id',
-            'dependent' => true,	// cascade deletes
+            'dependent' => true,    // cascade deletes
         ),
         'SharingGroupServer' => array(
             'className' => 'SharingGroupServer',
             'foreignKey' => 'sharing_group_id',
-            'dependent' => true,	// cascade deletes
+            'dependent' => true,    // cascade deletes
         ),
         'Event',
         'Attribute',
@@ -52,6 +52,8 @@ class SharingGroup extends AppModel
             'foreignKey' => 'org_id',
         )
     );
+
+    private $__sgoCache = array();
 
 
     public function beforeValidate($options = array())
@@ -154,19 +156,19 @@ class SharingGroup extends AppModel
                 array(
                     'fields' => array(
                         'SharingGroup.id',
+                        'SharingGroup.uuid',
+                        'SharingGroup.modified',
                         'SharingGroup.name',
                         'SharingGroup.releasability',
-                        'SharingGroup.description'
+                        'SharingGroup.description',
+                        'SharingGroup.org_id'
                     ),
                     'contain' => array()
                 ),
                 array(
                     'fields' => array('SharingGroup.*'),
                     'contain' => array(
-                        'Organisation' => array('fields' => $fieldsOrg),
-                        'SharingGroupOrg' => array(
-                            'Organisation' => array('fields' => $fieldsOrg),
-                        ),
+                        'SharingGroupOrg',
                         'SharingGroupServer' => array(
                             'Server' => array('fields' => $fieldsServer),
                         )
@@ -179,6 +181,30 @@ class SharingGroup extends AppModel
                 'fields' => $fieldsSharingGroup[$permissionTree]['fields'],
                 'order' => 'SharingGroup.name ASC'
             ));
+            foreach ($sgs as &$sg) {
+                if (!isset($this->__sgoCache[$sg['SharingGroup']['org_id']])) {
+                    $this->__sgoCache[$sg['SharingGroup']['org_id']] = $this->Organisation->find('first', array(
+                        'recursive' => -1,
+                        'fields' => $fieldsOrg,
+                        'conditions' => array('id' => $sg['SharingGroup']['org_id'])
+                    ));
+                }
+                $sg['Organisation'] = $this->__sgoCache[$sg['SharingGroup']['org_id']]['Organisation'];
+                if (!empty($sg['SharingGroupOrg'])) {
+                    foreach ($sg['SharingGroupOrg'] as &$sgo) {
+                        if (!isset($this->__sgoCache[$sgo['org_id']])) {
+                            $this->__sgoCache[$sgo['org_id']] = $this->Organisation->find('first', array(
+                                'recursive' => -1,
+                                'fields' => $fieldsOrg,
+                                'conditions' => array('id' => $sgo['org_id'])
+                            ));
+                        }
+                        if (!empty($this->__sgoCache[$sgo['org_id']]['Organisation'])) {
+                            $sgo['Organisation'] = $this->__sgoCache[$sgo['org_id']]['Organisation'];
+                        }
+                    }
+                }
+            }
             return $sgs;
         } elseif ($scope == 'name') {
             $sgs = $this->find('list', array(
@@ -551,7 +577,7 @@ class SharingGroup extends AppModel
                 if ($force) {
                     $sgids = $existingSG['SharingGroup']['id'];
                     $editedSG = $existingSG['SharingGroup'];
-                    $attributes = array('name',	'releasability', 'description', 'created', 'modified', 'active');
+                    $attributes = array('name', 'releasability', 'description', 'created', 'modified', 'active');
                     foreach ($attributes as $a) {
                         if (isset($sg[$a])) {
                             $editedSG[$a] = $sg[$a];

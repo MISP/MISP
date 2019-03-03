@@ -19,7 +19,7 @@ class EventBlacklistsController extends AppController
 
     public $paginate = array(
             'limit' => 60,
-            'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
             'order' => array(
                     'EventBlacklist.created' => 'DESC'
             ),
@@ -27,7 +27,14 @@ class EventBlacklistsController extends AppController
 
     public function index()
     {
-        $this->BlackList->index($this->_isRest());
+        $params = array();
+        $validParams = array('event_uuid', 'comment');
+        foreach ($validParams as $validParam) {
+            if (!empty($this->params['named'][$validParam])) {
+                $params[$validParam] = $this->params['named'][$validParam];
+            }
+        }
+        $this->BlackList->index($this->_isRest(), $params);
     }
 
     public function add()

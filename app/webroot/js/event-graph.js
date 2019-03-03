@@ -10,7 +10,7 @@ var edges = new vis.DataSet();
 var typeaheadDataSearch;
 var event_last_change = $('#eventgraph_network').data('event-timestamp');
 var scope_id = $('#eventgraph_network').data('event-id');
-var user_email = $('#eventgraph_network').data('user-email'); 
+var user_email = $('#eventgraph_network').data('user-email');
 var container = document.getElementById('eventgraph_network');
 var user_manipulation = $('#eventgraph_network').data('user-manipulation');
 var is_siteadmin = $('#eventgraph_network').data('is-site-admin');
@@ -37,7 +37,7 @@ class EventGraph {
 		// Should be replaced later on.
 		this.mapping_meta_fa = new Map();
 		this.mapping_meta_fa.set('file', {"meta-category": "file","fa_text": "file","fa-hex": "f15b"});
-		this.mapping_meta_fa.set('financial', {"meta-category": "financial","fa_text": "money-bil-alt","fa-hex": "f3d1"});
+		this.mapping_meta_fa.set('financial', {"meta-category": "financial","fa_text": "money-bil-alt","fa-hex": "f09d"});
 		this.mapping_meta_fa.set('network', {"meta-category": "network","fa_text": "server","fa-hex": "f233"});
 		this.mapping_meta_fa.set('misc', {"meta-category": "misc","fa_text": "cube","fa-hex": "f1b2"}); // Also considered as default
 		// FIXME
@@ -111,7 +111,7 @@ class EventGraph {
 
 			for (var event_id in that.extended_event_points) {
 				if (that.extended_event_color_mapping[event_id] === undefined) {
-					eventGraph.extended_event_color_mapping[event_id] = getRandomColor(event_id);   
+					eventGraph.extended_event_color_mapping[event_id] = getRandomColor(event_id);
 				}
 				var chosen_color = eventGraph.extended_event_color_mapping[event_id];
 
@@ -1266,7 +1266,7 @@ class EventGraph {
 		eventGraph.nodes.get().forEach(function(nodeD) {
 			var nodeP = nodePositions[nodeD.id];
 			if (nodeP !== undefined && nodeD.group != 'obj_relation') {
-				var temp = { 
+				var temp = {
 					id: nodeD.id,
 					x: nodeP.x,
 					y: nodeP.y,
@@ -1284,8 +1284,8 @@ class EventGraph {
 		eventGraph.hiddenNode.forEach(function(node) {
 			hiddenNodeData.push(node.id);
 		});
-		
-		var data = { 
+
+		var data = {
 			eventId: scope_id,
 			eventLastChange: event_last_change,
 			nodes: nodeData,
@@ -1294,7 +1294,7 @@ class EventGraph {
 				scope: eventGraph.scope_name,
 				keyType: eventGraph.scope_keyType
 			},
-			physics: { 
+			physics: {
 				solver: eventGraph.solver,
 				repulsion: parseInt($('#slider_physic_node_repulsion').val()),
 				enabled: $('#checkbox_physics_enable').prop("checked")
@@ -1434,7 +1434,17 @@ class DataHandler {
 		return $.getJSON( "/events/getObjectTemplate/templates.json", function( data ) {
 			for (var i in data) {
 				var template = data[i].ObjectTemplate;
-				dataHandler.mapping_uuid_to_template.set(template.uuid, template.requirements.requiredOneOf);
+                                var requiredFields;
+                                // add both requiredOneOf and required field
+                                if (template.requirements.requiredOneOf !== undefined) {
+                                    requiredFields = template.requirements.requiredOneOf;
+                                } else {
+                                    requiredFields = [];
+                                }
+                                if (template.requirements.required !== undefined) {
+                                    requiredFields = requiredFields.concat(template.requirements.required);
+                                }
+				dataHandler.mapping_uuid_to_template.set(template.uuid, requiredFields);
 			}
 		});
 	}
@@ -1535,8 +1545,8 @@ class MispInteraction {
 			return;
 		}
 		genericPopup('/objectReferences/add/'+edgeData.from, '#popover_form', function() {
-			$('#targetSelect').val(uuid);
-			$('option[value='+uuid+']').click()
+			$('#ObjectReferenceReferencedUuid').val(uuid);
+			objectReferenceInput();
 		});
 	}
 
@@ -1712,7 +1722,7 @@ class MispInteraction {
 function drawExtendedEventHull(ctx, nodes, color, text) {
 	ctx.fillStyle = color+'88';
 	var hull = getHullFromPoints(nodes);
-	
+
 	var start = hull[0];
 	var end = hull[hull.length-1];
 	var prev = start;
@@ -1728,7 +1738,7 @@ function drawExtendedEventHull(ctx, nodes, color, text) {
 	var centerY = (end.y+start.y)/2;
 	ctx.quadraticCurveTo(centerX,centerY,start.x,start.y);
 	ctx.fill();
-	
+
 	var centroid = getCentroid(hull);
 	ctx.beginPath();
 	ctx.font="30px Verdana";
@@ -1758,7 +1768,7 @@ function getHullFromPoints(points) {
     	var q;
     	do {
 		hull.push(points[p]);
-		
+
 		q = (p+1) % n;
 		for (var i=0; i<n; i++) {
 			if (orientation(points[p], points[i], points[q]) == 2) {

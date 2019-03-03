@@ -1,4 +1,5 @@
 <?php
+
 class XMLConverterTool
 {
     private $__toEscape = array("&", "<", ">", "\"", "'");

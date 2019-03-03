@@ -149,11 +149,11 @@ class Log extends AppModel
                 $condOrg = '';
             }
             $sql = 'SELECT DISTINCT EXTRACT(EPOCH FROM CAST(created AS DATE)) AS "Date",
-									COUNT(id) AS count
-					FROM logs
-					WHERE action NOT IN (' . $condnotinaction . ')
-					' . $condOrg . '
-					GROUP BY "Date" ORDER BY "Date"';
+                                    COUNT(id) AS count
+                    FROM logs
+                    WHERE action NOT IN (' . $condnotinaction . ')
+                    ' . $condOrg . '
+                    GROUP BY "Date" ORDER BY "Date"';
             $validDates = $this->query($sql);
         }
         $data = array();

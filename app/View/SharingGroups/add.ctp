@@ -1,12 +1,52 @@
 <div class="users form">
     <fieldset>
         <legend><?php echo __('New Sharing Group'); ?></legend>
-        <div class="tabMenuFixedContainer">
-            <span id="page1_tab" role="button" tabindex="0" aria-label="<?php echo __('General tab');?>" title="<?php echo __('General tab');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer tabMenuActive" onClick="simpleTabPage(1);"><?php echo __('General');?></span>
-            <span id="page2_tab" role="button" tabindex="0" aria-label="<?php echo __('Organisations tab');?>" title="<?php echo __('Organisations tab');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" onClick="simpleTabPage(2);"><?php echo __('Organisations');?></span>
-            <span id="page3_tab" role="button" tabindex="0" aria-label="<?php echo __('MISP instances tab');?>" title="<?php echo __('MISP instances tab');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" onClick="simpleTabPage(3);"><?php echo __('MISP Instances');?></span>
-            <span id="page4_tab" role="button" tabindex="0" aria-label="<?php echo __('Sharing group summary');?>" title="<?php echo __('Sharing group summary');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" onClick="simpleTabPage(4);"><?php echo __('Summary and Save');?></span>
-        </div>
+        <?php
+            $data = array(
+                'children' => array(
+                    array(
+                        'children' => array(
+                            array(
+                                'text' => __('General'),
+                                'title' => __('General tab'),
+                                'class' => 'progress_tab',
+                                'id' => 'page1_tab',
+                                'active' => true,
+                                'onClick' => 'simpleTabPage',
+                                'onClickParams' => array(1)
+                            ),
+                            array(
+                                'text' => __('Organisations'),
+                                'title' => __('Organisations tab'),
+                                'class' => 'progress_tab',
+                                'id' => 'page2_tab',
+                                'onClick' => 'simpleTabPage',
+                                'onClickParams' => array(2)
+                            ),
+                            array(
+                                'text' => __('MISP Instances'),
+                                'title' => __('MISP instances tab'),
+                                'class' => 'progress_tab',
+                                'id' => 'page3_tab',
+                                'onClick' => 'simpleTabPage',
+                                'onClickParams' => array(3)
+                            ),
+                            array(
+                                'text' => __('Summary and Save'),
+                                'title' => __('Sharing group summary'),
+                                'class' => 'progress_tab',
+                                'id' => 'page4_tab',
+                                'onClick' => 'simpleTabPage',
+                                'onClickParams' => array(4)
+                            )
+                        )
+                    )
+                )
+            );
+            if (!$ajax) {
+                echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data));
+            }
+        ?>
         <div id="page1_content" class="multi-page-form-div tabContent" style="width:544px;">
             <label for="SharingGroupName"><?php echo __('Name');?></label>
             <input type="text" class="input-xxlarge" placeholder="<?php echo __('Example: Multinational sharing group');?>" id="SharingGroupName"></input>
@@ -76,7 +116,7 @@
     </div>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'addSG'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'addSG'));
 ?>
 <script type="text/javascript">
     var lastPage = 4;

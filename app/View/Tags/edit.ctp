@@ -28,6 +28,7 @@
     <?php
         echo $this->Form->input('hide_tag', array(
             'type' => 'checkbox',
+            'label' => __('Unselectable Tag')
         ));
     ?>
     </fieldset>
@@ -37,7 +38,7 @@
 ?>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'tags', 'menuItem' => 'edit'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'tags', 'menuItem' => 'edit'));
 ?>
 <script>
     $(function(){

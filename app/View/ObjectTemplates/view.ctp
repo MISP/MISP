@@ -1,47 +1,43 @@
 <?php
-    echo $this->element('side_menu', array('menuList' => 'objectTemplates', 'menuItem' => 'view'));
+    $table_data = array();
+    $table_data[] = array('key' => __('Id'), 'value' => $template['ObjectTemplate']['id']);
+    $table_data[] = array('key' => __('Name'), 'value' => $template['ObjectTemplate']['name'] ? $template['ObjectTemplate']['name'] : $template['ObjectTemplate']['type']);
+    $table_data[] = array('key' => __('Organisation'), 'value' => $template['Organisation']['name']);
+    $table_data[] = array('key' => __('UUID'), 'value' => $template['ObjectTemplate']['uuid']);
+    $table_data[] = array('key' => __('Version'), 'value' => $template['ObjectTemplate']['version']);
+    $table_data[] = array('key' => __('Meta-category'), 'value' => $template['ObjectTemplate']['meta-category']);
+    $table_data[] = array('key' => __('Description'), 'value' => $template['ObjectTemplate']['description']);
+    if (!empty($template['ObjectTemplate']['requirements'])) {
+        $requirements_contents = array();
+        foreach ($template['ObjectTemplate']['requirements'] as $group => $requirements) {
+            $requirements_contents[] = sprintf(
+                '<span class="bold">%s</span>',
+                h($group)
+            );
+            foreach ($requirements as $requirement) {
+                sprintf(
+                    $requirements_contents[] = sprintf(
+                        '<span>&nbsp;&nbsp;%s</span>',
+                        h($requirement)
+                    )
+                );
+            }
+        }
+        $table_data[] = array('key' => __('Requirements'), 'html' => implode('<br />', $requirements_contents));
+    }
+    echo sprintf(
+        '<div class="roles view"><div class="row-fluid"><div class="span8" style="margin:0px;">%s</div></div>%s</div>%s',
+        sprintf(
+            '<h2>%s %s</h2>%s',
+            h(ucfirst($template['ObjectTemplate']['name'])),
+            __(' Object Template'),
+            $this->element('genericElements/viewMetaTable', array('table_data' => $table_data))
+        ),
+        '<div id="ajaxContent" style="width:100%;"></div>',
+        $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'objectTemplates', 'menuItem' => 'view'))
+    );
+
 ?>
-<div class="object_template view">
-    <div class="row-fluid">
-        <div class="span8">
-            <h2><?php echo h(ucfirst($template['ObjectTemplate']['name'])); ?><?php echo __(' Object Template');?></h2>
-            <dl>
-                <dt><?php echo __('Object Template ID');?></dt>
-                <dd><?php echo h($template['ObjectTemplate']['id']); ?></dd>
-                <dt><?php echo __('Name');?></dt>
-                <dd><?php echo $template['ObjectTemplate']['name'] ? h($template['ObjectTemplate']['name']) : h($template['ObjectTemplate']['type']); ?></dd>
-                <dt><?php echo __('Organisation');?></dt>
-                <dd><?php echo h($template['Organisation']['name']); ?></dd>
-                <dt><?php echo __('Uuid');?></dt>
-                <dd><?php echo h($template['ObjectTemplate']['uuid']); ?></dd>
-                <dt><?php echo __('Version');?></dt>
-                <dd><?php echo h($template['ObjectTemplate']['version']); ?></dd>
-                <dt><?php echo __('Meta-category');?></dt>
-                <dd><?php echo h($template['ObjectTemplate']['meta-category']); ?></dd>
-                <dt><?php echo __('Description');?></dt>
-                <dd><?php echo h($template['ObjectTemplate']['description']); ?></dd>
-                <dt><?php echo __('Requirements');?></dt>
-                <dd>
-                    <?php
-                        if (!empty($template['ObjectTemplate']['requirements'])):
-                            foreach ($template['ObjectTemplate']['requirements'] as $group => $requirements):
-                    ?>
-                                <span class="bold"><?php echo h($group); ?></span><br />
-                    <?php
-                                    foreach ($requirements as $requirement):
-                    ?>
-                                        <span>&nbsp;&nbsp;<?php echo h($requirement); ?></span><br />
-                    <?php
-                                    endforeach;
-                            endforeach;
-                        endif;
-                    ?>
-                </dd>
-            </dl>
-        </div>
-    </div>
-    <div id="ajaxContent" style="width:100%;"></div>
-</div>
 <script type="text/javascript">
 <?php
     $startingTab = 'all';

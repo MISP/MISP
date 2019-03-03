@@ -29,31 +29,120 @@ class LogsController extends AppController
         }
     }
 
+    private function __resolveSpecial($data, $type, $fields)
+    {
+        if (!is_array($data)) {
+            $data = array($data);
+        }
+        foreach ($data as $k => $element) {
+            if (!is_numeric($data)) {
+                $this->loadModel($type);
+                $params = array(
+                    'conditions' => array(),
+                    'recursive' => -1,
+                    'fields' => array($type . '.id')
+                );
+                foreach ($fields as $field) {
+                    $params['conditions']['OR'][$type . '.' . $field] = $element;
+                }
+                $records = $this->$type->find('all', $params);
+                if (empty($records)) {
+                    $data[$k] = -1;
+                } else {
+                    $temp = array();
+                    foreach ($records as $record) {
+                        $temp[] = $record[$type]['id'];
+                    }
+                    $data = array_merge($data, $temp);
+                }
+            }
+        }
+        return $data;
+    }
+
     public function admin_index()
     {
-        if (!$this->userRole['perm_audit']) {
-            $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
-        }
-        $this->set('isSearch', 0);
-        $this->recursive = 0;
-        $validFilters = $this->Log->logMeta;
-        if (!$this->_isSiteAdmin()) {
-            $orgRestriction = $this->Auth->user('Organisation')['name'];
-            $conditions['Log.org'] = $orgRestriction;
-            $this->paginate = array(
-                    'limit' => 60,
-                    'conditions' => $conditions,
-                    'order' => array('Log.id' => 'DESC')
+        if ($this->_isRest()) {
+            $paramArray = array('id', 'title', 'created', 'model', 'model_id', 'action', 'user_id', 'change', 'email', 'org', 'description', 'ip');
+            $filterData = array(
+                'request' => $this->request,
+                'named_params' => $this->params['named'],
+                'paramArray' => $paramArray,
+                'ordered_url_params' => compact($paramArray)
             );
+            $exception = false;
+            $filters = $this->_harvestParameters($filterData, $exception);
+            unset($filterData);
+            if ($filters === false) {
+                return $exception;
+            }
+            $conditions = array();
+            foreach ($filters as $filter => $data) {
+                if ($filter === 'created') {
+                    $tempData = $data;
+                    if (!is_array($data)) {
+                        $tempData = array($data);
+                    }
+                    foreach ($tempData as $k => $v) {
+                        $tempData[$k] = $this->Log->resolveTimeDelta($v);
+                    }
+                    if (count($tempData) == 1) {
+                        $conditions['AND']['created >='] = date("Y-m-d H:i:s", $tempData[0]);
+                    } else {
+                        if ($tempData[0] < $tempData[1]) {
+                            $temp = $tempData[1];
+                            $tempData[1] = $tempData[0];
+                            $tempData[0] = $temp;
+                        }
+                        $conditions['AND'][] = array('created <= ' => date("Y-m-d H:i:s", $tempData[0]));
+                        $conditions['AND'][] = array('created >= ' => date("Y-m-d H:i:s", $tempData[1]));
+                    }
+                } else {
+                    $data = array('OR' => $data);
+                    $conditions = $this->Log->generic_add_filter($conditions, $data, 'Log.' . $filter);
+                }
+            }
+            if (!$this->_isSiteAdmin()) {
+                $orgRestriction = $this->Auth->user('Organisation')['name'];
+                $conditions['AND']['Log.org'] = $orgRestriction;
+            }
+            $params = array(
+                'conditions' => $conditions,
+                'recursive' => -1
+            );
+            if (isset($filters['limit'])) {
+                $params['limit'] = $filters['limit'];
+            }
+            if (isset($filters['page'])) {
+                $params['page'] = $filters['page'];
+            }
+            $log_entries = $this->Log->find('all', $params);
+            return $this->RestResponse->viewData($log_entries, 'json');
         } else {
-            $validFilters = array_merge_recursive($validFilters, $this->Log->logMetaAdmin);
+            if (!$this->userRole['perm_audit']) {
+                $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
+            }
+            $this->set('isSearch', 0);
+            $this->recursive = 0;
+            $validFilters = $this->Log->logMeta;
+            if (!$this->_isSiteAdmin()) {
+                $orgRestriction = $this->Auth->user('Organisation')['name'];
+                $conditions['Log.org'] = $orgRestriction;
+                $this->paginate = array(
+                        'limit' => 60,
+                        'conditions' => $conditions,
+                        'order' => array('Log.id' => 'DESC')
+                );
+            } else {
+                $validFilters = array_merge_recursive($validFilters, $this->Log->logMetaAdmin);
+            }
+            if (isset($this->params['named']['filter']) && in_array($this->params['named']['filter'], array_keys($validFilters))) {
+                $this->paginate['conditions']['Log.action'] = $validFilters[$this->params['named']['filter']]['values'];
+            }
+            $this->set('validFilters', $validFilters);
+            $this->set('filter', isset($this->params['named']['filter']) ? $this->params['named']['filter'] : false);
+            $this->set('list', $this->paginate());
         }
-        if (isset($this->params['named']['filter']) && in_array($this->params['named']['filter'], array_keys($validFilters))) {
-            $this->paginate['conditions']['Log.action'] = $validFilters[$this->params['named']['filter']]['values'];
-        }
-        $this->set('validFilters', $validFilters);
-        $this->set('filter', isset($this->params['named']['filter']) ? $this->params['named']['filter'] : false);
-        $this->set('list', $this->paginate());
     }
 
     // Shows a minimalistic history for the currently selected event

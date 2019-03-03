@@ -55,9 +55,7 @@
                 $branchColour = $branch == '2.4' ? 'green' : 'red bold';
             ?>
             <span class="<?php echo h($branchColour); ?>">
-                <?php
-                    echo h($branch);
-                ?>
+                <?=($branch == '2.4') ? h($branch) : "You are not on a branch, Update MISP will fail"; ?>
             </span>
         </span><br />
         <pre class="hidden green bold" id="gitResult"></pre>
@@ -146,6 +144,7 @@
     <p><span class="bold"><?php echo __('PHP ini path');?></span>:… <span class="green"><?php echo h($php_ini); ?></span><br />
     <span class="bold"><?php echo __('PHP Version');?> (><?php echo $phprec; ?> <?php echo __('recommended');?>): </span><span class="<?php echo $phpversions['web']['phpcolour']; ?>"><?php echo h($phpversions['web']['phpversion']) . ' (' . $phpversions['web']['phptext'] . ')';?></span><br />
     <span class="bold"><?php echo __('PHP CLI Version');?> (><?php echo $phprec; ?> <?php echo __('recommended');?>): </span><span class="<?php echo $phpversions['cli']['phpcolour']; ?>"><?php echo h($phpversions['cli']['phpversion']) . ' (' . $phpversions['cli']['phptext'] . ')';?></span></p>
+    <p class="red bold"><?php echo __('Please note that the we will be dropping support for Python 2.7 and PHP 7.1 as of 2020-01-01 and are henceforth considered deprecated (but supported until the end of 2019). Both of these versions will by then reached End of Life and will become a liability. Furthermore, by dropping support for these outdated versions of the languages, we\'ll be able to phase out support for legacy code that exists solely to support them. Make sure that you plan ahead accordingly. More info: ');?><a href="https://secure.php.net/supported-versions.php">PHP</a>, <a href="https://www.python.org/dev/peps/pep-0373">Python</a>.</p>
     <p><?php echo __('The following settings might have a negative impact on certain functionalities of MISP with their current and recommended minimum settings. You can adjust these in your php.ini. Keep in mind that the recommendations are not requirements, just recommendations. Depending on usage you might want to go beyond the recommended values.');?></p>
     <?php
         foreach ($phpSettings as $settingName => &$phpSetting):
@@ -205,6 +204,7 @@
     <b>CyBox</b>: <?php echo $stix['cybox']['expected'];?><br />
     <b>mixbox</b>: <?php echo $stix['mixbox']['expected'];?><br />
     <b>maec</b>: <?php echo $stix['maec']['expected'];?><br />
+    <b>STIX2</b>: <?php echo $stix['stix2']['expected'];?><br />
     <b>PyMISP</b>: <?php echo $stix['pymisp']['expected'];?><br />
     <?php echo __('Other versions might work but are not tested / recommended.');?></p>
     <div style="background-color:#f7f7f9;width:400px;">
@@ -223,7 +223,7 @@
             if (!$testReadError) {
                 $error_count = 0;
                 $libraries = '';
-                foreach (array('stix', 'cybox', 'mixbox', 'maec', 'pymisp') as $package) {
+                foreach (array('stix', 'cybox', 'mixbox', 'maec', 'stix2', 'pymisp') as $package) {
                     $lib_colour = 'green';
                     if ($stix[$package]['status'] == 0) {
                         $lib_colour = 'red';

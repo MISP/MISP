@@ -1,18 +1,28 @@
 <VirtualHost *:80>
-	ServerAdmin me@me.local
-	ServerName misp.local
-	DocumentRoot /var/www/MISP/app/webroot
-	<Directory /var/www/MISP/app/webroot>
-		Options -Indexes
-		AllowOverride all
-		Order allow,deny
-		allow from all
-	</Directory>
+    ServerAdmin me@me.local
+    ServerName misp.local
+    DocumentRoot /var/www/MISP/app/webroot
+    <Directory /var/www/MISP/app/webroot>
+        Options -Indexes
+        AllowOverride all
+        Order allow,deny
+        Allow from all
+    </Directory>
 
-	LogLevel warn
-	ErrorLog /var/log/apache2/misp.local_error.log
-	CustomLog /var/log/apache2/misp.local_access.log combined
-	ServerSignature Off
-        Header set X-Content-Type-Options nosniff
-        Header set X-Frame-Options DENY
+    LogLevel warn
+    ErrorLog /var/log/apache2/misp.local_error.log
+    CustomLog /var/log/apache2/misp.local_access.log combined
+
+    ServerSignature Off
+
+    Header always set X-Content-Type-Options nosniff
+    Header always set X-Frame-Options DENY
+    Header always unset "X-Powered-By"
+
+    # TODO: Think about X-XSS-Protection, Content-Security-Policy, Referrer-Policy & Feature-Policy
+    ## Example:
+    # Header always set X-XSS-Protection "1; mode=block"
+    # Header always set Content-Security-Policy "default-src 'none'; style-src 'self' ... script-src/font-src/img-src/connect-src
+    # Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    # Header always set Feature-Policy "geolocation 'self'; midi 'none'; notifications 'self'; push 'self'; sync-xhr 'self'; microphone 'none'; camera 'self'; magnometer 'self'; gyroscope 'self'; speake 'none'; vibrate 'self'; fullscreen 'none'"
 </VirtualHost>

@@ -16,7 +16,7 @@
         <?php
         // This choice will determine
         $actionOptions=array(__('Custom message'), __('Welcome message'), __('Reset password'));
-        $recipientOptions=array(__('A single user'), __('All users'));
+        $recipientOptions=array(__('A single user'),  __('All users'), __('All users of the same organisation'));
         ?>
         <div class="row-fluid">
             <?php echo $this->Form->input('action', array('type' => 'select', 'options' => $actionOptions, 'id' => 'action')); ?>
@@ -28,6 +28,9 @@
             <?php echo $this->Form->input('recipient', array('type' => 'select', 'options' => $recipientOptions, 'id' => 'recipient')); ?>
             <div id="recipientEmailList" class="hideAble">
                 <?php echo $this->Form->input('recipientEmailList', array('type' => 'select', 'options' => $recipientEmail, 'label' => 'Recipient Email')); ?>
+            </div>
+            <div id="orgNameList" class="hideAble">
+                <?php echo $this->Form->input('orgNameList', array('type' => 'select', 'options' => $orgName, 'label' => 'Recipient Organisation Name')); ?>
             </div>
         </div>
         <div id="customMessage" class="row-fluid hideAble">
@@ -55,7 +58,7 @@
     </fieldset>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'contact'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'contact'));
 ?>
 <script>
 $("#recipient").change(setAll);
@@ -64,12 +67,32 @@ $("#customMessage").change(setAll);
 $("#action").change(populateSubject);
 var subjects = [];
 var standardTexts = [];
+var submitAllowed = false;
 $(document).ready(function() {
     var org = "<?php echo $org;?>";
     subjects = ["", "[" + org + " MISP] " + "<?php echo __('New user registration');?>" , "[" + org + " MISP] " + "<?php echo __('Password reset');?>"];
     standardTexts = ['', '<?php echo h($newUserText); ?>', '<?php echo h($passwordResetText); ?>'];
-    //setAll();
+    setAll();
+
+    // Confirm before submit
+    $('#UserAdminEmailForm').submit(function(e) {
+        var url = '<?php echo $baseurl; ?>/admin/users/email/true?';
+        url += 'recipient=' + $('#recipient').val();
+        url += '&recipientEmailList=' + $('#UserRecipientEmailList').val();
+        url += '&orgNameList=' + $('#UserOrgNameList').val();
+        $.get(url, function(data) {
+            $("#confirmation_box").html(data);
+            openPopup("#confirmation_box");
+        });
+        return submitAllowed;
+    });
+
 });
+
+function submitMailsForm() {
+    submitAllowed = true;
+    $('#UserAdminEmailForm').submit();
+}
 
 function populateSubject() {
     $("#UserSubject").val(subjects[$("#action").val()]);
@@ -82,6 +105,7 @@ function setAll() {
     if ($("#action option:selected").val() == 0) $("#subject").show();
     else $("#customMessage").show();
     if ($("#recipient option:selected").val() == 0) $("#recipientEmailList").show();
+    if ($("#recipient option:selected").val() == 2) $("#orgNameList").show();
 }
 
 

@@ -1,50 +1,77 @@
-<div class="tabMenuFixedContainer">
-    <span class="tabMenuFixed tabMenuFixedLeft tabMenuSides">
-    <a href="<?php echo $baseurl;?>/servers/serverSettings/" id="create-button" title="<?php echo __('Modify filters');?>" class="discrete"><?php echo __('Overview'); ?></a>
-    </span>
 <?php
-    $i = 0;
-    foreach ($tabs as $k => $tab):
-        $extra = '';
-        if ($i == (count($tabs) -1)) $extra = "tabMenuFixedRight";
-        $label = ucfirst($k) . ' settings';
-        $severity = '';
-        if ($tab['severity'] == 0) $severity = 'style="color:red;"';
+    $data = array(
+        'children' => array(
+            array(
+                'children' => array(
+                    array(
+                        'text' => __('Overview'),
+                        'url' => '/servers/serverSettings/',
+                        'active' => $active_tab === false
+                    )
+                )
+            )
+        )
+    );
+    foreach ($tabs as $k => $tab) {
+        $data['children'][0]['children'][] = array(
+            'html' => sprintf(
+                '%s settings%s',
+                ucfirst(h($k)),
+                ($tab['errors'] == 0) ? '' : sprintf(
+                    ' (<span>%s%s</span>)',
+                    h($tab['errors']),
+                    ($tab['severity'] == 0) ? ' <i class="fa fa-exclamation-triangle" title="' . __('This tab reports some potential critical misconfigurations.') . '"></i>' : ''
+                )
+            ),
+            'url' => '/servers/serverSettings/' . h($k),
+            'active' => $k == $active_tab
+        );
+    }
+    $data['children'][0]['children'][] = array(
+        'url' => '/servers/serverSettings/diagnostics',
+        'html' => sprintf(
+            '%s%s',
+            __('Diagnostics'),
+            ($diagnostic_errors == 0) ? '' : sprintf(
+                ' (<span>%s</span>)',
+                h($diagnostic_errors)
+            )
+        ),
+        'active' => $active_tab === 'diagnostics'
+    );
+
+    $data['children'][0]['children'][] = array(
+        'url' => '/servers/serverSettings/files',
+        'text' => __('Manage files'),
+        'active' => $active_tab === 'files'
+    );
+    $data['children'][0]['children'][] = array(
+        'url' => '/servers/serverSettings/workers',
+        'title' => __('Download report'),
+        'active' => 'workers' == $active_tab,
+        'html' => sprintf(
+            '%s %s%s',
+            '<i class="fa fa-android"></i>',
+            __('Workers'),
+            ($workerIssueCount == 0) ? '' : sprintf(
+                ' (<span>%s</span>)',
+                h($workerIssueCount)
+            )
+        ),
+        'requirement' => !empty($worker_array)
+    );
+    $data['children'][0]['children'][] = array(
+        'url' => '/servers/serverSettings/diagnostics',
+        'title' => __('Download report'),
+        'html' => '<i class="fa fa-download"></i>'
+    );
+    if ($active_tab && $active_tab !== 'diagnostics' && $active_tab !== 'files') {
+        $data['children'][] = array(
+                'type' => 'live_search',
+                'placeholder' => 'Filter the table(s) below'
+        );
+    }
+    if (!$ajax) {
+        echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data));
+    }
 ?>
-    <span class="tabMenuFixed tabMenuFixedLeft <?php echo h($extra); ?> tabMenuSides">
-    <a href="<?php echo $baseurl."/servers/serverSettings/".h($k); ?>" id="create-button" title="<?php echo __('Modify filters');?>" class="discrete">
-            <?php
-                echo h($label);
-                if ($tab['errors'] > 0) echo '<span ' . $severity . '> (' . $tab['errors'] . ')</span>';
-            ?>
-        </a>
-    </span>
-<?php
-        $i++;
-    endforeach;
-?>
-    <span class="tabMenuFixed tabMenuFixedCenter tabMenuSides" style="margin-left:50px;">
-        <a href="<?php echo $baseurl;?>/servers/serverSettings/diagnostics" id="create-button" title="<?php echo __('Modify filters'); ?>" class="discrete">
-        <?php echo __('Diagnostics'); ?>
-        <?php
-            if ($diagnostic_errors > 0) echo '<span style="color:red;"> (' . $diagnostic_errors . ')</span>';
-        ?>
-    </a>
-    </span>
-    <?php if (!empty($worker_array)): ?>
-    <span class="tabMenuFixed tabMenuFixedCenter tabMenuSides" style="margin-left:10px;">
-        <a href="<?php echo $baseurl;?>/servers/serverSettings/workers" id="create-button" title="<?php echo __('Modify filters'); ?>" class="discrete">
-            <?php echo __('Workers'); ?>
-            <?php
-                if ($workerIssueCount > 0) echo '<span style="color:red;"> (' . $workerIssueCount . ')</span>';
-            ?>
-        </a>
-    </span>
-    <?php endif; ?>
-    <span class="tabMenuFixed tabMenuFixedCenter tabMenuSides" style="margin-left:10px;">
-        <a href="<?php echo $baseurl;?>/servers/serverSettings/files" id="download-button" title="<?php echo __('Manage files'); ?>" class="discrete"><?php echo __('Manage files'); ?></a>
-    </span>
-    <span class="tabMenuFixed tabMenuFixedCenter tabMenuSides" style="margin-left:10px;">
-        <a href="<?php echo $baseurl;?>/servers/serverSettings/download" id="download-button" title="<?php echo __('Download report'); ?>" role="button" tabindex="0" aria-label="Download report" class="useCursorPointer discrete icon-download-alt"></a>
-    </span>
-</div>
