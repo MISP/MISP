@@ -46,13 +46,13 @@ class AppController extends Controller
 
     public $helpers = array('Utility', 'OrgImg');
 
-    private $__queryVersion = '44';
-    public $pyMispVersion = '2.4.95';
-    public $phpmin = '5.6.5';
-    public $phprec = '7.0.16';
+    private $__queryVersion = '60';
+    public $pyMispVersion = '2.4.103';
+    public $phpmin = '7.0';
+    public $phprec = '7.2';
 
     public $baseurl = '';
-	public $sql_dump = false;
+    public $sql_dump = false;
 
     // Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
     // This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
@@ -90,6 +90,7 @@ class AppController extends Controller
             'ACL',
             'RestResponse',
             'Flash'
+            //,'DebugKit.Toolbar'
     );
 
     private function __isApiFunction($controller, $action)
@@ -102,9 +103,24 @@ class AppController extends Controller
 
     public function beforeFilter()
     {
-		if (!empty($this->params['named']['sql'])) {
-			$this->sql_dump = 1;
-		}
+        if (Configure::read('Security.allow_cors')) {
+            // Add CORS headers
+            $this->response->cors($this->request,
+                    explode(',', Configure::read('Security.cors_origins')),
+                    ['*'],
+                    ['Origin', 'Content-Type', 'Authorization', 'Accept']);
+
+            if ($this->request->is('options')) {
+                // Stop here!
+                // CORS only needs the headers
+                $this->response->send();
+                $this->_stop();
+            }
+        }
+
+        if (!empty($this->params['named']['sql'])) {
+            $this->sql_dump = 1;
+        }
         // check for a supported datasource configuration
         $dataSourceConfig = ConnectionManager::getDataSource('default')->config;
         if (!isset($dataSourceConfig['encoding'])) {
@@ -332,6 +348,9 @@ class AppController extends Controller
             }
         } else {
             if (!($this->params['controller'] === 'users' && $this->params['action'] === 'login')) {
+                if (!$this->request->is('ajax')) {
+                    $this->Session->write('pre_login_requested_url', $this->here);
+                }
                 $this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
             }
         }
@@ -359,6 +378,20 @@ class AppController extends Controller
 
         if ($this->Session->check(AuthComponent::$sessionKey)) {
             if ($this->action !== 'checkIfLoggedIn' || $this->request->params['controller'] !== 'users') {
+                $this->User->id = $this->Auth->user('id');
+                if (!$this->User->exists()) {
+                    $message = __('Something went wrong. Your user account that you are authenticated with doesn\'t exist anymore.');
+                    if ($this->_isRest) {
+                        $this->RestResponse->throwException(
+                            401,
+                            $message
+                        );
+                    } else {
+                        $this->Flash->info($message);
+                    }
+                    $this->Auth->logout();
+                    $this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
+                }
                 if (!empty(Configure::read('MISP.terms_file')) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/logout', $base_dir.'/users/login', $base_dir.'/users/downloadTerms')))) {
                     //if ($this->_isRest()) throw new MethodNotAllowedException('You have not accepted the terms of use yet, please log in via the web interface and accept them.');
                     if (!$this->_isRest()) {
@@ -392,6 +425,7 @@ class AppController extends Controller
             $this->set('me', $this->Auth->user());
             $this->set('isAdmin', $role['perm_admin']);
             $this->set('isSiteAdmin', $role['perm_site_admin']);
+            $this->set('hostOrgUser', $this->Auth->user('org_id') == Configure::read('MISP.host_org_id'));
             $this->set('isAclAdd', $role['perm_add']);
             $this->set('isAclModify', $role['perm_modify']);
             $this->set('isAclModifyOrg', $role['perm_modify_org']);
@@ -439,13 +473,13 @@ class AppController extends Controller
         $this->ACL->checkAccess($this->Auth->user(), Inflector::variable($this->request->params['controller']), $this->action);
     }
 
-	public function afterFilter()
-	{
-		if (Configure::read('debug') > 1 && !empty($this->sql_dump) && $this->_isRest()) {
-			$this->Log = ClassRegistry::init('Log');
-			echo json_encode($this->Log->getDataSource()->getLog(false, false), JSON_PRETTY_PRINT);
-		}
-	}
+    public function afterFilter()
+    {
+        if (Configure::read('debug') > 1 && !empty($this->sql_dump) && $this->_isRest()) {
+            $this->Log = ClassRegistry::init('Log');
+            echo json_encode($this->Log->getDataSource()->getLog(false, false), JSON_PRETTY_PRINT);
+        }
+    }
 
     public function queryACL($debugType='findMissingFunctionNames', $content = false)
     {
@@ -490,10 +524,19 @@ class AppController extends Controller
         return $this->request->header('Accept') === 'application/json' || $this->RequestHandler->prefers() === 'json';
     }
 
+    protected function _isCsv($data=false)
+    {
+        if ($this->params['ext'] === 'csv' || $this->request->header('Accept') === 'application/csv' || $this->RequestHandler->prefers() === 'csv') {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     protected function _isRest()
     {
         $api = $this->__isApiFunction($this->request->params['controller'], $this->request->params['action']);
-        if (isset($this->RequestHandler) && ($api || $this->RequestHandler->isXml() || $this->_isJson())) {
+        if (isset($this->RequestHandler) && ($api || $this->RequestHandler->isXml() || $this->_isJson() || $this->_isCsv())) {
             if ($this->_isJson()) {
                 if (!empty($this->request->input()) && empty($this->request->input('json_decode'))) {
                     throw new MethodNotAllowedException('Invalid JSON input. Make sure that the JSON input is a correctly formatted JSON string. This request has been blocked to avoid an unfiltered request.');
@@ -559,7 +602,7 @@ class AppController extends Controller
                 );
                 return false;
             }
-			$key = 'json';
+            $key = 'json';
         } else {
             if (!$this->Auth->user('id')) {
                 $exception = $this->RestResponse->throwException(
@@ -603,7 +646,34 @@ class AppController extends Controller
                     $data[$p] = str_replace(';', ':', $data[$p]);
                 }
                 if (isset($options['named_params'][$p])) {
-                    $data[$p] = $options['named_params'][$p];
+                    $data[$p] = str_replace(';', ':', $options['named_params'][$p]);
+                }
+            }
+        }
+        foreach ($data as $k => $v) {
+            if (!is_array($data[$k])) {
+                $data[$k] = trim($data[$k]);
+                if (strpos($data[$k], '||')) {
+                    $data[$k] = explode('||', $data[$k]);
+                }
+            }
+        }
+        if (!empty($options['additional_delimiters'])) {
+            if (!is_array($options['additional_delimiters'])) {
+                $options['additional_delimiters'] = array($options['additional_delimiters']);
+            }
+            foreach ($data as $k => $v) {
+                $found = false;
+                foreach ($options['additional_delimiters'] as $delim) {
+                    if (strpos($v, $delim) !== false) {
+                        $found = true;
+                    }
+                }
+                if ($found) {
+                    $data[$k] = explode($options['additional_delimiters'][0], str_replace($options['additional_delimiters'], $options['additional_delimiters'][0], $v));
+                    foreach ($data[$k] as $k2 => $value) {
+                        $data[$k][$k2] = trim($data[$k][$k2]);
+                    }
                 }
             }
         }
@@ -815,7 +885,6 @@ class AppController extends Controller
         $result = false;
         if (Configure::read('Plugin.CustomAuth_enable')) {
             $header = Configure::read('Plugin.CustomAuth_header') ? Configure::read('Plugin.CustomAuth_header') : 'Authorization';
-            $header = strtoupper($header);
             $authName = Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : 'External authentication';
             $headerNamespace = Configure::read('Plugin.CustomAuth_use_header_namespace') ? (Configure::read('Plugin.CustomAuth_header_namespace') ? Configure::read('Plugin.CustomAuth_header_namespace') : 'HTTP_') : '';
             if (isset($server[$headerNamespace . $header]) && !empty($server[$headerNamespace . $header])) {

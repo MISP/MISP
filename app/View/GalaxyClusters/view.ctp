@@ -1,5 +1,5 @@
 <?php
-    echo $this->element('side_menu', array('menuList' => 'galaxies', 'menuItem' => 'view_cluster'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'galaxies', 'menuItem' => 'view_cluster'));
 ?>
 <div class="galaxy view">
     <div class="row-fluid">
@@ -16,6 +16,10 @@
                 <dd><?php echo $cluster['Galaxy']['name'] ? h($cluster['Galaxy']['name']) : h($cluster['Galaxy']['type']); ?></dd>
                 <dt>Description</dt>
                 <dd><?php echo h($cluster['GalaxyCluster']['description']); ?>&nbsp;</dd>
+                <dt>UUID</dt>
+                <dd><?php echo h($cluster['GalaxyCluster']['uuid']); ?>&nbsp;</dd>
+                <dt>Collection UUID</dt>
+                <dd><?php echo h($cluster['GalaxyCluster']['collection_uuid']); ?>&nbsp;</dd>
                 <dt>Source</dt>
                 <dd><?php echo h($cluster['GalaxyCluster']['source']); ?>&nbsp;</dd>
                 <dt>Authors</dt>

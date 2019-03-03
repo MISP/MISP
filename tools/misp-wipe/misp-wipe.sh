@@ -1,5 +1,4 @@
-#@IgnoreInspection BashAddShebang
-#/!bin/sh
+#!/bin/bash
 ##
 ## script to wipe MISP on debian/ubuntu
 ##
@@ -11,21 +10,24 @@
 ##
 ## This script can be used to reset a MISP instance
 ## by clearing all events, orgs and users.
-## It is highy recommended ## to run misp-backup.sh first!
+## It is highy recommended to run misp-backup.sh first!
 ##
-## Tested against MISP 2.4.55
+## Tested against MISP 2.4.96
 ##
 ## Run the script as the standard user with the command below
 ##
 ## cp misp-wipe.conf.sample misp-wipe.conf
 ## vi misp-wipe.conf # adjust values
-## sudo sh -x misp-wipe.sh 2>&1 | tee misp-wipe.log
+## sudo bash -x misp-wipe.sh 2>&1 | tee misp-wipe.log
+##
+## /!\ This might fail or create a random '0' file if using ZSH... (Oh-My...Berk)
 ##
 ## Time to set some variables
 ##
 
-if (( $EUID > 0 ))
-  then 
+LUSER_ID="$(id -u)"
+
+if [[ "${LUSER_ID}" > "0" ]]; then
   echo "Please run this as a privileged user"
   echo "(usually 'sudo !!' will cover you)"
   exit

@@ -9,8 +9,10 @@ class XmlExport
     {
 		if ($options['scope'] === 'Attribute') {
 			return $this->__attributeHandler($data, $options);
-		} else {
+		} else if($options['scope'] === 'Event') {
 			return $this->__eventHandler($data, $options);
+		} else if($options['scope'] === 'Sighting') {
+			return $this->__sightingsHandler($data, $options);
 		}
     }
 
@@ -49,6 +51,12 @@ class XmlExport
 		$xmlString = $xmlObject->asXML();
 		return substr($xmlString, strpos($xmlString, "\n") + 1);
 	}
+
+        private function __sightingsHandler($sighting, $options = array()) {
+            $xmlObject = Xml::fromArray(array('Sighting' => $sighting['Sighting']), array('format' => 'tags'));
+            $xmlString = $xmlObject->asXML();
+            return substr($xmlString, strpos($xmlString, "\n") + 1);
+        }
 
     public function header($options = array())
     {

@@ -57,6 +57,6 @@
     }
 
     if (!$ajax) {
-        echo $this->element('side_menu', $params);
+        echo $this->element('/genericElements/SideMenu/side_menu', $params);
     }
 ?>

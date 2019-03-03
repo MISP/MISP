@@ -48,5 +48,5 @@
     $sigDisplay = str_replace("\r", '', $sigDisplay);
     echo h($sigDisplay);
   }
-  if (isset($object['validationIssue'])) echo ' <span class="icon-warning-sign" title="' . __('Warning, this doesn\'t seem to be a legitimate ') . strtoupper(h($object['type'])) . __(' value') . '">&nbsp;</span>';
+  if (isset($object['validationIssue'])) echo ' <span class="fa fa-exclamation-triangle" title="' . __('Warning, this doesn\'t seem to be a legitimate ') . strtoupper(h($object['type'])) . __(' value') . '">&nbsp;</span>';
 ?>

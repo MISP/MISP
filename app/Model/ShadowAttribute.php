@@ -8,10 +8,10 @@ class ShadowAttribute extends AppModel
 {
     public $combinedKeys = array('event_id', 'category', 'type');
 
-    public $name = 'ShadowAttribute';				// TODO general
+    public $name = 'ShadowAttribute';               // TODO general
 
     public $actsAs = array(
-        'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+        'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
             'userModel' => 'User',
             'userKey' => 'user_id',
             'change' => 'full'),
@@ -368,7 +368,7 @@ class ShadowAttribute extends AppModel
     {
         // build the list of composite Attribute.type dynamically by checking if type contains a |
         // default composite types
-        $compositeTypes = array('malware-sample');	// TODO hardcoded composite
+        $compositeTypes = array('malware-sample');  // TODO hardcoded composite
         // dynamically generated list
         foreach (array_keys($this->typeDefinitions) as $type) {
             $pieces = explode('|', $type);
@@ -433,11 +433,11 @@ class ShadowAttribute extends AppModel
             return true;
         } else {
             $rootDir = $attachments_dir . DS . 'shadow' . DS . $attribute['event_id'];
-            $dir = new Folder($rootDir, true);						// create directory structure
+            $dir = new Folder($rootDir, true);                      // create directory structure
             $destpath = $rootDir . DS . $attribute['id'];
-            $file = new File($destpath, true);						// create the file
-            $decodedData = base64_decode($attribute['data']);		// decode
-            if ($file->write($decodedData)) {						// save the data
+            $file = new File($destpath, true);                      // create the file
+            $decodedData = base64_decode($attribute['data']);       // decode
+            if ($file->write($decodedData)) {                       // save the data
                 return true;
             } else {
                 // error
@@ -497,8 +497,9 @@ class ShadowAttribute extends AppModel
     {
         $orgs = $this->find('all', array('fields' => array('DISTINCT(org_id)'), 'conditions' => array('event_id' => $id), 'order' => false));
         $org_ids = array();
+        $this->Organisation = ClassRegistry::init('Organisation');
         foreach ($orgs as $org) {
-            $org_ids[] = $org['ShadowAttribute']['org_id'];
+            $org_ids[] = $this->Organisation->find('first', array('recursive' => -1, 'fields' => array('id', 'name'), 'conditions' => array('Organisation.id' => $org['ShadowAttribute']['org_id'])));
         }
         return $org_ids;
     }

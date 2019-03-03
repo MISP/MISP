@@ -7,16 +7,14 @@ import datetime
 import re
 import ntpath
 import socket
-from pymisp import MISPEvent
 from copy import deepcopy
-from dateutil.tz import tzutc
 from stix.indicator import Indicator
 from stix.indicator.valid_time import ValidTime
 from stix.ttp import TTP, Behavior
 from stix.ttp.malware_instance import MalwareInstance
-from stix.incident import Incident, Time, ImpactAssessment, ExternalID, AffectedAsset, AttributedThreatActors
+from stix.incident import Incident, Time, ExternalID, AffectedAsset, AttributedThreatActors
 from stix.exploit_target import ExploitTarget, Vulnerability
-from stix.incident.history import JournalEntry, History, HistoryItem
+from stix.incident.history import History, HistoryItem
 from stix.threat_actor import ThreatActor
 from stix.core import STIXPackage, STIXHeader
 from stix.common import InformationSource, Identity
@@ -35,7 +33,6 @@ from cybox.objects.uri_object import URI
 from cybox.objects.pipe_object import Pipe
 from cybox.objects.mutex_object import Mutex
 from cybox.objects.artifact_object import Artifact, RawArtifact
-from cybox.objects.memory_object import Memory
 from cybox.objects.email_message_object import EmailMessage, EmailHeader, EmailRecipients, Attachments
 from cybox.objects.domain_name_object import DomainName
 from cybox.objects.win_registry_key_object import RegistryValue, RegistryValues, WinRegistryKey
@@ -75,15 +72,17 @@ TLP_mapping = {'0' : 'AMBER', '1' : 'GREEN', '2' : 'GREEN', '3' : 'GREEN', '4' :
 TLP_order = {'RED' : 4, 'AMBER' : 3, 'GREEN' : 2, 'WHITE' : 1}
 confidence_mapping = {False : 'None', True : 'High'}
 
-not_implemented_attributes = ['yara', 'snort', 'pattern-in-traffic', 'pattern-in-memory']
+not_implemented_attributes = ('yara', 'snort', 'pattern-in-traffic', 'pattern-in-memory')
 
-non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', 'target-email', 'target-machine', 'target-org', 'target-location', 'target-external', 'vulnerability']
+non_indicator_attributes = ('text', 'comment', 'other', 'link', 'target-user', 'target-email', 'target-machine',
+                            'target-org', 'target-location', 'target-external', 'vulnerability')
 
-hash_type_attributes = {"single": ["md5", "sha1", "sha224", "sha256", "sha384", "sha512", "sha512/224", "sha512/256", "ssdeep",
-                                   "imphash", "authentihash", "pehash", "tlsh", "x509-fingerprint-sha1"],
-                        "composite": ["filename|md5", "filename|sha1", "filename|sha224", "filename|sha256", "filename|sha384",
-                                      "filename|sha512", "filename|sha512/224", "filename|sha512/256", "filename|authentihash",
-                                      "filename|ssdeep", "filename|tlsh", "filename|imphash", "filename|pehash"]}
+hash_type_attributes = {"single": ("md5", "sha1", "sha224", "sha256", "sha384", "sha512", "sha512/224", "sha512/256",
+                                   "ssdeep", "imphash", "authentihash", "pehash", "tlsh", "cdhash", "x509-fingerprint-sha1"),
+                        "composite": ("filename|md5", "filename|sha1", "filename|sha224", "filename|sha256",
+                                      "filename|sha384", "filename|sha512", "filename|sha512/224", "filename|sha512/256",
+                                      "filename|authentihash", "filename|ssdeep", "filename|tlsh", "filename|imphash",
+                                      "filename|pehash")}
 
 # mapping for the attributes that can go through the simpleobservable script
 misp_cybox_name = {"domain" : "DomainName", "hostname" : "Hostname", "url" : "URI", "AS" : "AutonomousSystem", "mutex" : "Mutex",
@@ -92,7 +91,7 @@ cybox_name_attribute = {"DomainName" : "value", "Hostname" : "hostname_value", "
                         "Pipe" : "name", "Mutex" : "name", "WinService": "name"}
 misp_indicator_type = {"AS" : "", "mutex" : "Host Characteristics", "named pipe" : "Host Characteristics",
                        "email-attachment": "Malicious E-mail", "url" : "URL Watchlist"}
-misp_indicator_type.update(dict.fromkeys(hash_type_attributes["single"] + hash_type_attributes["composite"] + ["filename"] + ["attachment"], "File Hash Watchlist"))
+misp_indicator_type.update(dict.fromkeys(list(hash_type_attributes["single"]) + list(hash_type_attributes["composite"]) + ["filename"] + ["attachment"], "File Hash Watchlist"))
 misp_indicator_type.update(dict.fromkeys(["email-src", "email-dst", "email-subject", "email-reply-to",  "email-attachment"], "Malicious E-mail"))
 misp_indicator_type.update(dict.fromkeys(["ip-src", "ip-dst", "ip-src|port", "ip-dst|port"], "IP Watchlist"))
 misp_indicator_type.update(dict.fromkeys(["domain", "domain|ip", "hostname"], "Domain Watchlist"))
@@ -125,27 +124,21 @@ misp_reghive = {
 
 class StixBuilder(object):
     def __init__(self, args):
-        self.misp_event = MISPEvent()
         self.args = args
-        if len(args) > 3:
-            namespace[0] = args[3]
-        if len(args) > 4:
-            ns = args[4].replace(" ", "_")
-            namespace[1] = re.sub('[\W]+', '', ns)
-        if not namespace[0]:
-            namespace[0] = 'https://www.misp-project.org'
+        self.return_type = args[2]
+        self.baseurl = args[3] if (len(args) > 3 and args[3]) else namespace[0]
+        self.orgname = re.sub('[\W]+', '', args[4].replace(" ", "_")) if (len(args) > 4 and args[4]) else namespace[1]
         try:
-            idgen.set_id_namespace({namespace[0]: namespace[1]})
+            idgen.set_id_namespace({self.baseurl: self.orgname})
         except ValueError:
             try:
-                idgen.set_id_namespace(Namespace(namespace[0], namespace[1]))
+                idgen.set_id_namespace(Namespace(self.baseurl, self.orgname))
             except TypeError:
-                idgen.set_id_namespace(Namespace(namespace[0], namespace[1], "MISP"))
+                idgen.set_id_namespace(Namespace(self.baseurl, self.orgname, "MISP"))
         self.namespace_prefix = idgen.get_id_namespace_alias()
-        self.objects_to_parse = defaultdict(dict)
         ## MAPPING FOR ATTRIBUTES
         self.simple_type_to_method = {"port": self.generate_port_observable, "domain|ip": self.generate_domain_ip_observable}
-        self.simple_type_to_method.update(dict.fromkeys(hash_type_attributes["single"] + hash_type_attributes["composite"] + ["filename"], self.resolve_file_observable))
+        self.simple_type_to_method.update(dict.fromkeys(list(hash_type_attributes["single"]) + list(hash_type_attributes["composite"]) + ["filename"], self.resolve_file_observable))
         self.simple_type_to_method.update(dict.fromkeys(["ip-src", "ip-dst"], self.generate_ip_observable))
         self.simple_type_to_method.update(dict.fromkeys(["ip-src|port", "ip-dst|port", "hostname|port"], self.generate_socket_address_observable))
         self.simple_type_to_method.update(dict.fromkeys(["regkey", "regkey|value"], self.generate_regkey_observable))
@@ -177,49 +170,67 @@ class StixBuilder(object):
 
     def loadEvent(self):
         pathname = os.path.dirname(self.args[0])
-        filename = "{}/tmp/{}".format(pathname, self.args[1])
-        self.misp_event.load_file(filename)
-        self.filename = filename
+        self.filename = "{}/tmp/{}".format(pathname, self.args[1])
+        with open(self.filename, 'rt', encoding='utf-8') as f:
+            self.json_event = json.loads(f.read())
 
-    def generateEventPackage(self):
-        package_name = "{}:STIXPackage-{}".format(namespace[1], self.misp_event.uuid)
-        timestamp = self.misp_event.timestamp
-        stix_package = STIXPackage(id_=package_name, timestamp=timestamp)
+    def generateEventPackages(self):
+        return_type_to_package = {'json': ('to_json', {}),
+                                  'xml': ('to_xml', {'include_namespaces': False, 'include_schemalocs': False, 'encoding': 'utf8'})}
+        to_call, args = return_type_to_package[self.return_type]
+        separator = None
+        if self.json_event.get('response'):
+            from misp_framing import stix_framing
+            _, separator, _ = stix_framing(self.baseurl, self.orgname, self.return_type)
+            stix_packages = [getattr(self.generate_package(event['Event']), to_call)(**args) for event in self.json_event['response']]
+        else:
+            stix_packages = [getattr(self.generate_package(self.json_event['Event']), to_call)(**args)]
+        if self.return_type == 'xml':
+            stix_packages = [s.decode() for s in stix_packages]
+            stix_packages = ['\n            '.join(s.split('\n')[:-1]).replace('stix:STIX_Package', 'stix:Package') for s in stix_packages]
+            stix_packages = ['            {}\n'.format(s) for s in stix_packages]
+        else:
+            stix_packages = ['{"package": %s}' % s for s in stix_packages]
+        self.stix_package = separator.join(stix_packages) if len(stix_packages) > 1 else stix_packages[0]
+
+    def generate_package(self, event):
+        self.objects_to_parse = defaultdict(dict)
+        self.misp_event = event
+        self.header_comment = []
+        package_name = "{}:STIXPackage-{}".format(self.orgname, self.misp_event['uuid'])
+        stix_package = STIXPackage(id_=package_name, timestamp=self.get_datetime_from_timestamp(self.misp_event['timestamp']))
         stix_package.version = "1.1.1"
         stix_header = STIXHeader()
         stix_header.title = "Export from {} MISP".format(self.namespace_prefix)
         stix_header.package_intents = "Threat Report"
-        stix_package.stix_header = stix_header
-        incident = self.generate_stix_objects()
-        stix_package.add_incident(incident)
+        self.create_incident(self.orgname)
+        self.generate_stix_objects()
+        stix_package.add_incident(self.incident)
         for ttp in self.ttps:
             stix_package.add_ttp(ttp)
-        self.stix_package = stix_package
+        if self.header_comment and len(self.header_comment) == 1:
+            stix_header.description = self.header_comment[0]
+        stix_package.stix_header = stix_header
+        return stix_package
 
     def saveFile(self):
         outputfile = "{}.out".format(self.filename)
-        if self.args[2] == 'json':
-            with open(outputfile, 'w') as f:
-                f.write('{"package": %s}' % self.stix_package.to_json())
-        else:
-            with open(outputfile, 'wb') as f:
-                f.write(self.stix_package.to_xml(include_namespaces=False, include_schemalocs=False,
-                                                 encoding='utf8'))
+        with open(outputfile, 'wt', encoding='utf-8') as f:
+            f.write(self.stix_package)
 
     def generate_stix_objects(self):
-        incident = self.create_incident(namespace[1])
         self.history = History()
-        threat_level_name = threat_level_mapping.get(str(self.misp_event.threat_level_id), None)
+        threat_level_name = threat_level_mapping.get(str(self.misp_event['threat_level_id']), None)
         if threat_level_name:
             threat_level_s = "Event Threat Level: {}".format(threat_level_name)
             self.add_journal_entry(threat_level_s)
         Tags = {}
-        if self.misp_event.Tag:
-            event_tags = self.misp_event.Tag
+        if 'Tag' in self.misp_event:
+            event_tags = self.misp_event['Tag']
             Tags['event'] = event_tags
             labels = []
             for tag in event_tags:
-                labels.append(tag.name)
+                labels.append(tag['name'])
             if 'misp:tool="misp2stix"' not in labels:
                 self.add_journal_entry('MISP Tag: misp:tool="misp2stix"')
             for label in labels:
@@ -227,90 +238,87 @@ class StixBuilder(object):
                 self.add_journal_entry(tag_name)
         else:
             self.add_journal_entry('MISP Tag: misp:tool="misp2stix"')
-        external_id = ExternalID(value=str(self.misp_event.id), source="MISP Event")
-        incident.add_external_id(external_id)
-        incident_status_name = status_mapping.get(str(self.misp_event.analysis), None)
+        external_id = ExternalID(value=str(self.misp_event['id']), source="MISP Event")
+        self.incident.add_external_id(external_id)
+        incident_status_name = status_mapping.get(str(self.misp_event['analysis']), None)
         if incident_status_name is not None:
-            incident.status = IncidentStatus(incident_status_name)
+            self.incident.status = IncidentStatus(incident_status_name)
         try:
-            incident.handling = self.set_tlp(self.misp_event.distribution, event_tags)
+            self.incident.handling = self.set_tlp(self.misp_event['distribution'], event_tags)
         except Exception:
             pass
-        incident.information_source = self.set_src()
-        self.orgc_name = self.misp_event.Orgc.get('name')
-        incident.reporter = self.set_rep()
+        self.incident.information_source = self.set_src()
+        self.orgc_name = self.misp_event['Orgc'].get('name')
+        self.incident.reporter = self.set_rep()
         self.ttps = []
-        self.resolve_attributes(incident, Tags)
-        self.resolve_objects(incident, Tags)
-        self.add_related_indicators(incident)
+        self.resolve_attributes(Tags)
+        self.resolve_objects(Tags)
+        self.add_related_indicators()
         if self.history.history_items:
-            incident.history = self.history
-        return incident
-
-    def convert_to_stix_date(self, date):
-        # converts a date (YYYY-mm-dd) to the format used by stix
-        return datetime.datetime(date.year, date.month, date.day)
+            self.incident.history = self.history
 
     def create_incident(self, org):
-        incident_id = "{}:incident-{}".format(org, self.misp_event.uuid)
-        incident = Incident(id_=incident_id, title=self.misp_event.info)
-        timestamp = self.misp_event.publish_timestamp
+        incident_id = "{}:incident-{}".format(org, self.misp_event['uuid'])
+        incident = Incident(id_=incident_id, title=self.misp_event['info'])
+        timestamp = self.get_datetime_from_timestamp(self.misp_event['publish_timestamp'])
         incident.timestamp = timestamp
         incident_time = Time()
-        incident_time.incident_discovery = self.convert_to_stix_date(self.misp_event.date)
+        incident_time.incident_discovery = self.misp_event['date']
         incident_time.incident_reported = timestamp
         incident.time = incident_time
-        return incident
+        self.incident = incident
 
-    def resolve_attributes(self, incident, tags):
-        for attribute in self.misp_event.attributes:
-            attribute_type = attribute.type
+    def resolve_attributes(self, tags):
+        for attribute in self.misp_event['Attribute']:
+            attribute_type = attribute['type']
             if attribute_type in not_implemented_attributes:
                 if attribute_type == "snort":
-                    self.generate_TM(incident, attribute, tags)
+                    self.generate_TM(attribute, tags)
                 else:
-                    journal_entry = "!Not implemented attribute category/type combination caught! attribute[{}][{}]: {}".format(attribute.category,
-                    attribute_type, attribute.value)
+                    journal_entry = "!Not implemented attribute category/type combination caught! attribute[{}][{}]: {}".format(attribute['category'],
+                    attribute_type, attribute['value'])
                     self.add_journal_entry(journal_entry)
             elif attribute_type in non_indicator_attributes:
-                self.handle_non_indicator_attribute(incident, attribute, tags)
+                self.handle_non_indicator_attribute(attribute, tags)
             else:
-                self.handle_attribute(incident, attribute, tags)
+                self.handle_attribute(attribute, tags)
 
-    def resolve_objects(self, incident, tags):
-        for misp_object in self.misp_event.objects:
+    def resolve_objects(self, tags):
+        for misp_object in self.misp_event['Object']:
+            name = misp_object['name']
+            if name == 'original-imported-file':
+                continue
             category = misp_object.get('meta-category')
-            name = misp_object.name
             try:
                 to_ids, observable = self.objects_mapping[name](misp_object)
             except KeyError:
-                to_ids, observable = self.create_custom_observable(name, misp_object.attributes, misp_object.uuid)
+                to_ids, observable = self.create_custom_observable(name, misp_object['Attribute'], misp_object['uuid'])
             except TypeError:
                 continue
             if to_ids:
                 indicator = self.create_indicator(misp_object, observable, tags)
                 related_indicator = RelatedIndicator(indicator, relationship=category)
-                incident.related_indicators.append(related_indicator)
+                self.incident.related_indicators.append(related_indicator)
             else:
                 related_observable = RelatedObservable(observable, relationship=category)
-                incident.related_observables.append(related_observable)
+                self.incident.related_observables.append(related_observable)
         if self.objects_to_parse:
-            self.resolve_objects2parse(incident, tags)
+            self.resolve_objects2parse(tags)
 
 
-    def resolve_objects2parse(self, incident, tags):
+    def resolve_objects2parse(self, tags):
         for uuid, file_object in self.objects_to_parse['file'].items():
             category = file_object.get('meta-category')
-            to_ids_file, file_dict = self.create_attributes_dict(file_object.attributes)
+            to_ids_file, file_dict = self.create_attributes_dict(file_object['Attribute'])
             to_ids_list = [to_ids_file]
             win_exec_file = WinExecutableFile()
             self.fill_file_object(win_exec_file, file_dict)
-            for reference in file_object.references:
-                if reference.relationship_type == "included-in" and reference.Object['name'] == "pe":
-                    pe_uuid = reference.referenced_uuid
+            for reference in file_object['ObjectReference']:
+                if reference['relationship_type'] == "included-in" and reference['Object']['name'] == "pe":
+                    pe_uuid = reference['referenced_uuid']
                     break
             pe_object = self.objects_to_parse['pe'][pe_uuid]
-            to_ids_pe, pe_dict = self.create_attributes_dict(pe_object.attributes)
+            to_ids_pe, pe_dict = self.create_attributes_dict(pe_object['Attribute'])
             to_ids_list.append(to_ids_pe)
             pe_headers, pe_sections = self.parse_pe_references(pe_object, to_ids_list)
             win_exec_file.sections = pe_sections
@@ -329,23 +337,23 @@ class StixBuilder(object):
             if to_ids:
                 indicator = self.create_indicator(file_object, observable, tags)
                 related_indicator = RelatedIndicator(indicator, relationship=category)
-                incident.related_indicators.append(related_indicator)
+                self.incident.related_indicators.append(related_indicator)
             else:
                 related_observable = RelatedObservable(observable, relationship=category)
-                incident.related_observables.append(related_observable)
+                self.incident.related_observables.append(related_observable)
 
     def parse_pe_references(self, pe_object, to_ids_list):
         pe_headers = PEHeaders()
         pe_file_header = PEFileHeader()
         pe_sections = PESectionList()
-        for reference in pe_object.references:
-            if reference.Object['name'] == "pe-section":
-                pe_section_object = self.objects_to_parse['pe-section'][reference.referenced_uuid]
-                to_ids_section, section_dict = self.create_attributes_dict(pe_section_object.attributes)
+        for reference in pe_object['ObjectReference']:
+            if reference['Object']['name'] == "pe-section" and reference['referenced_uuid'] in self.objects_to_parse['pe_section']:
+                pe_section_object = self.objects_to_parse['pe-section'][reference['referenced_uuid']]
+                to_ids_section, section_dict = self.create_attributes_dict(pe_section_object['Attribute'])
                 to_ids_list.append(to_ids_section)
-                if reference.relationship_type == "included-in":
+                if reference['relationship_type'] == "included-in":
                     pe_sections.append(self.create_pe_section_object(section_dict))
-                elif reference.relationship_type == "header-of":
+                elif reference['relationship_type'] == "header-of":
                     entropy = self.create_pe_file_header(section_dict, pe_file_header)
                     if entropy:
                         pe_headers.entropy = Entropy()
@@ -355,109 +363,116 @@ class StixBuilder(object):
 
     def create_indicator(self, misp_object, observable, tags):
         tlp_tags = deepcopy(tags)
-        indicator = Indicator(timestamp=misp_object.timestamp)
-        indicator.id_ = "{}:MISPObject-{}".format(namespace[1], misp_object.uuid)
+        indicator = Indicator(timestamp=self.get_datetime_from_timestamp(misp_object['timestamp']))
+        indicator.id_ = "{}:MISPObject-{}".format(self.orgname, misp_object['uuid'])
         indicator.producer = self.set_prod(self.orgc_name)
-        for attribute in misp_object.attributes:
+        for attribute in misp_object['Attribute']:
             tlp_tags = self.merge_tags(tlp_tags, attribute)
         try:
-            indicator.handling = self.set_tlp(misp_object.distribution, tlp_tags)
+            indicator.handling = self.set_tlp(misp_object['distribution'], tlp_tags)
         except Exception:
             pass
-        title = "{} (MISP Object #{})".format(misp_object.name, misp_object.id)
+        title = "{} (MISP Object #{})".format(misp_object['name'], misp_object['id'])
         indicator.title = title
-        indicator.description = misp_object.comment if misp_object.comment else title
+        indicator.description = misp_object['comment'] if misp_object.get('comment') else title
         indicator.add_indicator_type("Malware Artifacts")
         indicator.add_valid_time_position(ValidTime())
         indicator.add_observable(observable)
         return indicator
 
-    def add_related_indicators(self, incident):
-        for rindicator in incident.related_indicators:
+    def add_related_indicators(self):
+        for rindicator in self.incident.related_indicators:
             for ttp in self.ttps:
                 ittp = TTP(idref=ttp.id_, timestamp=ttp.timestamp)
                 rindicator.item.add_indicated_ttp(ittp)
 
-    def handle_attribute(self, incident, attribute, tags):
+    def handle_attribute(self, attribute, tags):
         observable = self.generate_observable(attribute)
         if observable:
-            if attribute.to_ids:
+            if attribute['to_ids']:
                 indicator = self.generate_indicator(attribute, tags)
                 indicator.add_indicator_type("Malware Artifacts")
                 try:
-                    indicator.add_indicator_type(misp_indicator_type[attribute.type])
+                    indicator.add_indicator_type(misp_indicator_type[attribute['type']])
                 except Exception:
                     pass
                 indicator.add_valid_time_position(ValidTime())
                 indicator.add_observable(observable)
-                related_indicator = RelatedIndicator(indicator, relationship=attribute.category)
-                incident.related_indicators.append(related_indicator)
+                related_indicator = RelatedIndicator(indicator, relationship=attribute['category'])
+                self.incident.related_indicators.append(related_indicator)
             else:
-                related_observable = RelatedObservable(observable, relationship=attribute.category)
-                incident.related_observables.append(related_observable)
+                related_observable = RelatedObservable(observable, relationship=attribute['category'])
+                self.incident.related_observables.append(related_observable)
 
-    def handle_non_indicator_attribute(self, incident, attribute, tags):
-        attribute_type = attribute.type
-        attribute_category = attribute.category
+    def handle_non_indicator_attribute(self, attribute, tags):
+        attribute_type = attribute['type']
         if attribute_type == "vulnerability":
             ttp = self.generate_vulnerability(attribute, tags)
-            incident.leveraged_ttps.append(self.append_ttp(attribute_category, ttp))
+            self.incident.leveraged_ttps.append(self.append_ttp(attribute['category'], ttp))
         elif attribute_type == "link":
-            self.add_reference(incident, attribute.value)
+            self.add_reference(attribute['value'])
         elif attribute_type in ('comment', 'text', 'other'):
-            if attribute_category == "Payload type":
-                ttp = self.generate_ttp(attribute, tags)
-                incident.leveraged_ttps.append(self.append_ttp(attribute_category, ttp))
-            elif attribute_category == "Attribution":
-                ta = self.generate_threat_actor(attribute)
-                rta = RelatedThreatActor(ta, relationship="Attribution")
-                if incident.attributed_threat_actors:
-                    incident.attributed_threat_actors.append(rta)
-                else:
-                    ata = AttributedThreatActors()
-                    ata.append(rta)
-                    incident.attributed_threat_actors = ata
-            else:
-                entry_line = "attribute[{}][{}]: {}".format(attribute_category, attribute_type, attribute.value)
-                self.add_journal_entry(entry_line)
+            self.handle_undefined_attribute(attribute, tags)
         elif attribute_type == "target-machine":
             aa = AffectedAsset()
-            description = attribute.value
-            if attribute.comment:
-                description += " ({})".format(attribute.comment)
+            description = attribute['value']
+            if attribute.get('comment'):
+                description += " ({})".format(attribute['comment'])
             aa.description = description
-            incident.affected_assets.append(aa)
+            self.incident.affected_assets.append(aa)
         elif attribute_type.startswith('target-'):
-            incident.add_victim(self.resolve_identity_attribute(attribute))
+            self.incident.add_victim(self.resolve_identity_attribute(attribute))
 
-    def create_artifact_object(self, data, artifact=None):
+    # "Undefifned" because of the type of value we can not know in advance for this type of attribute
+    def handle_undefined_attribute(self, attribute, tags):
+        attribute_category = attribute['category']
+        if 'comment' in attribute and attribute['comment'] == 'Imported from STIX header description':
+            self.header_comment.append(attribute['value'])
+        elif attribute_category == "Payload type":
+            ttp = self.generate_ttp(attribute, tags)
+            self.incident.leveraged_ttps.append(self.append_ttp(attribute_category, ttp))
+        elif attribute_category == "Attribution":
+            ta = self.generate_threat_actor(attribute)
+            rta = RelatedThreatActor(ta, relationship="Attribution")
+            if self.incident.attributed_threat_actors:
+                self.incident.attributed_threat_actors.append(rta)
+            else:
+                ata = AttributedThreatActors()
+                ata.append(rta)
+                self.incident.attributed_threat_actors = ata
+        else:
+            entry_line = "attribute[{}][{}]: {}".format(attribute_category, attribute['type'], attribute['value'])
+            self.add_journal_entry(entry_line)
+
+    def create_artifact_object(self, data):
         raw_artifact = RawArtifact(data)
         artifact = Artifact()
         artifact.raw_artifact = raw_artifact
         return artifact
 
     def generate_domain_ip_observable(self, attribute):
-        domain, ip = attribute.value.split('|')
-        address_object = self.create_ip_object(attribute.type, ip)
-        address_object.parent.id_ = "{}:AddressObject-{}".format(self.namespace_prefix, attribute.uuid)
+        domain, ip = attribute['value'].split('|')
+        attribute_uuid = attribute['uuid']
+        address_object = self.create_ip_object(attribute['type'], ip)
+        address_object.parent.id_ = "{}:AddressObject-{}".format(self.namespace_prefix, attribute_uuid)
         address_observable = Observable(address_object)
-        address_observable.id_ = "{}:Address-{}".format(self.namespace_prefix, attribute.uuid)
+        address_observable.id_ = "{}:Address-{}".format(self.namespace_prefix, attribute_uuid)
         domain_object = DomainName()
         domain_object.value = domain
         domain_object.value.condition = "Equals"
-        domain_object.parent.id_ = "{}:DomainNameObject-{}".format(self.namespace_prefix, attribute.uuid)
+        domain_object.parent.id_ = "{}:DomainNameObject-{}".format(self.namespace_prefix, attribute_uuid)
         domain_observable = Observable(domain_object)
-        domain_observable.id_ = "{}:DomainName-{}".format(self.namespace_prefix, attribute.uuid)
+        domain_observable.id_ = "{}:DomainName-{}".format(self.namespace_prefix, attribute_uuid)
         composite_object = ObservableComposition(observables=[address_observable, domain_observable])
         composite_object.operator = "AND"
-        observable = Observable(id_="{}:ObservableComposition-{}".format(self.namespace_prefix, attribute.uuid))
+        observable = Observable(id_="{}:ObservableComposition-{}".format(self.namespace_prefix, attribute_uuid))
         observable.observable_composition = composite_object
         return observable
 
     def generate_email_attachment_observable(self, attribute):
-        attribute_uuid = attribute.uuid
+        attribute_uuid = attribute['uuid']
         file_object = File()
-        file_object.file_name = attribute.value
+        file_object.file_name = attribute['value']
         file_object.file_name.condition = "Equals"
         file_object.parent.id_ = "{}:FileObject-{}".format(self.namespace_prefix, attribute_uuid)
         email = EmailMessage()
@@ -497,30 +512,32 @@ class StixBuilder(object):
         file_object._fields[field_type]._inner[0].type_.condition = "Equals"
 
     def generate_indicator(self, attribute, tags):
-        indicator = Indicator(timestamp=attribute.timestamp)
-        indicator.id_ = "{}:indicator-{}".format(namespace[1], attribute.uuid)
+        indicator = Indicator(timestamp=self.get_datetime_from_timestamp(attribute['timestamp']))
+        indicator.id_ = "{}:indicator-{}".format(self.orgname, attribute['uuid'])
         indicator.producer = self.set_prod(self.orgc_name)
-        if attribute.comment:
-            indicator.description = attribute.comment
-        indicator.handling = self.set_tlp(attribute.distribution, self.merge_tags(tags, attribute))
-        indicator.title = "{}: {} (MISP Attribute #{})".format(attribute.category, attribute.value, attribute.id)
+        if attribute.get('comment'):
+            indicator.description = attribute['comment']
+        indicator.handling = self.set_tlp(attribute['distribution'], self.merge_tags(tags, attribute))
+        indicator.title = "{}: {} (MISP Attribute #{})".format(attribute['category'], attribute['value'], attribute['id'])
         indicator.description = indicator.title
         confidence_description = "Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none"
-        confidence_value = confidence_mapping.get(attribute.to_ids, None)
+        confidence_value = confidence_mapping.get(attribute['to_ids'], None)
         if confidence_value is None:
             return indicator
-        indicator.confidence = Confidence(value=confidence_value, description=confidence_description, timestamp=attribute.timestamp)
+        indicator.confidence = Confidence(value=confidence_value, description=confidence_description, timestamp=self.get_datetime_from_timestamp(attribute['timestamp']))
         return indicator
 
     def generate_ip_observable(self, attribute):
-        address_object = self.create_ip_object(attribute.type, attribute.value)
-        address_object.parent.id_ = "{}:AddressObject-{}".format(self.namespace_prefix, attribute.uuid)
+        attribute_uuid = attribute['uuid']
+        address_object = self.create_ip_object(attribute['type'], attribute['value'])
+        address_object.parent.id_ = "{}:AddressObject-{}".format(self.namespace_prefix, attribute_uuid)
         address_observable = Observable(address_object)
-        address_observable.id_ = "{}:Address-{}".format(self.namespace_prefix, attribute.uuid)
+        address_observable.id_ = "{}:Address-{}".format(self.namespace_prefix, attribute_uuid)
         return address_observable
 
     def generate_observable(self, attribute):
-        attribute_type = attribute.type
+        attribute_type = attribute['type']
+        attribute_uuid = attribute['uuid']
         try:
             observable_property = self.simple_type_to_method[attribute_type](attribute)
         except KeyError:
@@ -529,49 +546,52 @@ class StixBuilder(object):
             return observable_property
         observable_property.condition = "Equals"
         observable_object = Object(observable_property)
-        observable_object.id_ = "{}:{}-{}".format(self.namespace_prefix, observable_property.__class__.__name__, attribute.uuid)
+        observable_object.id_ = "{}:{}-{}".format(self.namespace_prefix, observable_property.__class__.__name__, attribute_uuid)
         observable = Observable(observable_object)
-        observable.id_ = "{}:observable-{}".format(self.namespace_prefix, attribute.uuid)
+        observable.id_ = "{}:observable-{}".format(self.namespace_prefix, attribute_uuid)
         return observable
 
     def generate_port_observable(self, attribute):
-        port_object = self.create_port_object(attribute.value)
-        port_object.parent.id_ = "{}:PortObject-{}".format(self.namespace_prefix, attribute.uuid)
+        attribute_uuid = attribute['uuid']
+        port_object = self.create_port_object(attribute['value'])
+        port_object.parent.id_ = "{}:PortObject-{}".format(self.namespace_prefix, attribute_uuid)
         observable = Observable(port_object)
-        observable.id_ = "{}:Port-{}".format(self.namespace_prefix, attribute.uuid)
+        observable.id_ = "{}:Port-{}".format(self.namespace_prefix, attribute_uuid)
         return observable
 
     def generate_regkey_observable(self, attribute, value=None):
-        if attribute.type == "regkey|value":
-            regkey, value = attribute.value.split('|')
+        attribute_uuid = attribute['uuid']
+        if attribute['type'] == "regkey|value":
+            regkey, value = attribute['value'].split('|')
         else:
-            regkey = attribute.value
+            regkey = attribute['value']
         reg_object = self.create_regkey_object(regkey)
         if value:
             reg_value_object = RegistryValue()
             reg_value_object.data = value.strip()
             reg_value_object.data.condition = "Equals"
             reg_object.values = RegistryValues(reg_value_object)
-        reg_object.parent.id_ = "{}:WinRegistryKeyObject-{}".format(self.namespace_prefix, attribute.uuid)
+        reg_object.parent.id_ = "{}:WinRegistryKeyObject-{}".format(self.namespace_prefix, attribute_uuid)
         observable = Observable(reg_object)
-        observable.id_ = "{}:WinRegistryKey-{}".format(self.namespace_prefix, attribute.uuid)
+        observable.id_ = "{}:WinRegistryKey-{}".format(self.namespace_prefix, attribute_uuid)
         return observable
 
     def generate_simple_observable(self, attribute):
-        cybox_name = misp_cybox_name[attribute.type]
+        attribute_uuid = attribute['uuid']
+        cybox_name = misp_cybox_name[attribute['type']]
         if cybox_name == "AutonomousSystem":
-            attribute_value = self.define_attribute_value(attribute.value, attribute.comment)
+            attribute_value = self.define_attribute_value(attribute['value'], attribute['comment'])
             stix_field = cybox_name_attribute[cybox_name] if not attribute_value.startswith('AS') else 'handle'
         else:
-            attribute_value = attribute.value
+            attribute_value = attribute['value']
             stix_field = cybox_name_attribute[cybox_name]
         constructor = getattr(this_module, cybox_name, None)
         new_object = constructor()
         setattr(new_object, stix_field, attribute_value)
         setattr(getattr(new_object, stix_field), "condition", "Equals")
-        new_object.parent.id_ = "{}:{}Object-{}".format(self.namespace_prefix, cybox_name, attribute.uuid)
+        new_object.parent.id_ = "{}:{}Object-{}".format(self.namespace_prefix, cybox_name, attribute_uuid)
         observable = Observable(new_object)
-        observable.id_ = "{}:{}-{}".format(self.namespace_prefix, cybox_name, attribute.uuid)
+        observable.id_ = "{}:{}-{}".format(self.namespace_prefix, cybox_name, attribute_uuid)
         return observable
 
     @staticmethod
@@ -581,68 +601,69 @@ class StixBuilder(object):
         return value
 
     def generate_socket_address_observable(self, attribute):
-        value1, port = attribute.value.split('|')
-        type1, _ = attribute.type.split('|')
+        attribute_uuid = attribute['uuid']
+        value1, port = attribute['value'].split('|')
+        type1, _ = attribute['type'].split('|')
         socket_address_object = SocketAddress()
         if 'ip-' in type1:
             socket_address_object.ip_address = self.create_ip_object(type1, value1)
         else:
             socket_address_object.hostname = self.create_hostname_object(value1)
         socket_address_object.port = self.create_port_object(port)
-        socket_address_object.parent.id_ = "{}:SocketAddressObject-{}".format(self.namespace_prefix, attribute.uuid)
+        socket_address_object.parent.id_ = "{}:SocketAddressObject-{}".format(self.namespace_prefix, attribute_uuid)
         observable = Observable(socket_address_object)
-        observable.id_ = "{}:SocketAddress-{}".format(self.namespace_prefix, attribute.uuid)
+        observable.id_ = "{}:SocketAddress-{}".format(self.namespace_prefix, attribute_uuid)
         return observable
 
-    @staticmethod
-    def generate_threat_actor(attribute):
-        ta = ThreatActor(timestamp=attribute.timestamp)
-        ta.id_ = "{}:threatactor-{}".format(namespace[1], attribute.uuid)
-        ta.title = "{}: {} (MISP Attribute #{})".format(attribute.category, attribute.value, attribute.id)
-        description = attribute.value
-        if attribute.comment:
-            description += " ({})".format(attribute.comment)
+    def generate_threat_actor(self, attribute):
+        attribute_value = attribute['value']
+        ta = ThreatActor(timestamp=self.get_datetime_from_timestamp(attribute['timestamp']))
+        ta.id_ = "{}:threatactor-{}".format(self.orgname, attribute['uuid'])
+        ta.title = "{}: {} (MISP Attribute #{})".format(attribute['category'], attribute_value, attribute['id'])
+        description = attribute_value
+        if attribute.get('comment'):
+            description += " ({})".format(attribute['comment'])
         ta.description = description
         return ta
 
-    def generate_TM(self, incident, attribute, tags):
-        if attribute.to_ids:
+    def generate_TM(self, attribute, tags):
+        if attribute['to_ids']:
             tm = SnortTestMechanism()
-            value = attribute.value.encode('utf-8')
+            value = attribute['value'].encode('utf-8')
             tm.rule = value
             indicator = self.generate_indicator(attribute, tags)
             indicator.add_indicator_type("Malware Artifacts")
             indicator.add_valid_time_position(ValidTime())
             indicator.add_test_mechanism(tm)
-            related_indicator = RelatedIndicator(indicator, relationship=attribute.category)
-            incident.related_indicators.append(related_indicator)
+            related_indicator = RelatedIndicator(indicator, relationship=attribute['category'])
+            self.incident.related_indicators.append(related_indicator)
 
     def generate_ttp(self, attribute, tags):
         ttp = self.create_ttp(attribute, tags)
         malware = MalwareInstance()
-        malware.add_name(attribute.value)
+        malware.add_name(attribute['value'])
         ttp.behavior = Behavior()
         ttp.behavior.add_malware_instance(malware)
-        if attribute.comment:
-            ttp.description = attribute.comment
+        if attribute.get('comment'):
+            ttp.description = attribute['comment']
         return ttp
 
     def generate_vulnerability(self, attribute, tags):
         ttp = self.create_ttp(attribute, tags)
         vulnerability = Vulnerability()
-        vulnerability.cve_id = attribute.value
-        ET = ExploitTarget(timestamp=attribute.timestamp)
-        ET.id_ = "{}:et-{}".format(namespace[1], attribute.uuid)
-        if attribute.comment and attribute.comment != "Imported via the freetext import.":
-            ET.title = attribute.comment
+        vulnerability.cve_id = attribute['value']
+        ET = ExploitTarget(timestamp=self.get_datetime_from_timestamp(attribute['timestamp']))
+        ET.id_ = "{}:et-{}".format(self.orgname, attribute['uuid'])
+        if attribute.get('comment') and attribute['comment'] != "Imported via the freetext import.":
+            ET.title = attribute['comment']
         else:
-            ET.title = "Vulnerability {}".format(attribute.value)
+            ET.title = "Vulnerability {}".format(attribute['value'])
         ET.add_vulnerability(vulnerability)
         ttp.exploit_targets.append(ET)
         return ttp
 
     def parse_asn_object(self, misp_object):
-        to_ids, attributes_dict = self.create_attributes_dict(misp_object.attributes)
+        to_ids, attributes_dict = self.create_attributes_dict(misp_object['Attribute'])
         auto_sys = AutonomousSystem()
         if 'asn' in attributes_dict:
             asn = attributes_dict['asn']
@@ -652,14 +673,14 @@ class StixBuilder(object):
                 auto_sys.number = asn
         if 'description' in attributes_dict:
             auto_sys.name = attributes_dict['description']
-        uuid = misp_object.uuid
+        uuid = misp_object['uuid']
         auto_sys.parent.id_ = "{}:AutonomousSystemObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(auto_sys)
         observable.id_ = "{}:AutonomousSystem-{}".format(self.namespace_prefix, uuid)
         return to_ids, observable
 
     def parse_credential_object(self, misp_object):
-        to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object.attributes)
+        to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object['Attribute'])
         account = Account()
         if 'text' in attributes_dict:
             account.description = attributes_dict.pop('text')[0]
@@ -674,7 +695,7 @@ class StixBuilder(object):
                 struct_auth_meca.description = attributes_dict['format'][0]
                 authentication.structured_authentication_mechanism = struct_auth_meca
             account.authentication = self.parse_credential_authentication(authentication, attributes_dict)
-        uuid = misp_object.uuid
+        uuid = misp_object['uuid']
         account.parent.id_ = "{}:AccountObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(account)
         observable.id_ = "{}:Account-{}".format(self.namespace_prefix, uuid)
@@ -689,7 +710,7 @@ class StixBuilder(object):
 
     def parse_credential_authentication(self, authentication, attributes_dict):
         if len(attributes_dict['type']) == len(attributes_dict['password']):
-            return self.parse_authentication_simple_case(authentication)
+            return self.parse_authentication_simple_case(authentication, attributes_dict)
         authentication_list = []
         if 'type' in attributes_dict:
             credential_types = attributes_dict['type']
@@ -727,7 +748,7 @@ class StixBuilder(object):
         return credential_types.pop(0)
 
     def parse_domain_ip_object(self, misp_object):
-        to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object.attributes, with_uuid=True)
+        to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object['Attribute'], with_uuid=True)
         composition = []
         if 'domain' in attributes_dict:
             domain = attributes_dict['domain'][0]
@@ -737,10 +758,10 @@ class StixBuilder(object):
                 composition.append(self.create_ip_observable(ip['value'], ip['uuid']))
         if len(composition) == 1:
             return to_ids, composition[0]
-        return to_ids, self.create_observable_composition(composition, misp_object.uuid, "domain-ip")
+        return to_ids, self.create_observable_composition(composition, misp_object['uuid'], "domain-ip")
 
     def parse_email_object(self, misp_object):
-        to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object.attributes, with_uuid=True)
+        to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object['Attribute'], with_uuid=True)
         email_object = EmailMessage()
         email_header = EmailHeader()
         if 'from' in attributes_dict:
@@ -777,7 +798,7 @@ class StixBuilder(object):
                 attachment_file = self.create_file_attachment(attachment['value'], attachment['uuid'])
                 email_object.add_related(attachment_file, "Contains", inline=True)
                 email_object.attachments.append(attachment_file.parent.id_)
-        uuid = misp_object.uuid
+        uuid = misp_object['uuid']
         email_object.header = email_header
         email_object.parent.id_ = "{}:EmailMessageObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(email_object)
@@ -785,26 +806,32 @@ class StixBuilder(object):
         return to_ids, observable
 
     def parse_file_object(self, misp_object):
-        uuid = misp_object.uuid
-        if misp_object.references:
+        uuid = misp_object['uuid']
+        if misp_object.get('ObjectReference'):
             to_parse = False
-            for reference in misp_object.references:
-                if reference.relationship_type == 'included-in' and reference.Object['name'] == "pe":
-                    self.objects_to_parse[misp_object.name][uuid] = misp_object
+            for reference in misp_object['ObjectReference']:
+                if reference['relationship_type'] == 'included-in' and reference['Object']['name'] == "pe":
+                    self.objects_to_parse[misp_object['name']][uuid] = misp_object
                     to_parse = True
                     break
             if to_parse:
                 return
-        to_ids, attributes_dict = self.create_attributes_dict(misp_object.attributes)
-        file_object = File()
-        self.fill_file_object(file_object, attributes_dict)
-        file_object.parent.id_ = "{}:FileObject-{}".format(self.namespace_prefix, uuid)
-        file_observable = Observable(file_object)
-        file_observable.id_ = "{}:File-{}".format(self.namespace_prefix, uuid)
-        return to_ids, file_observable
+        to_ids, attributes_dict = self.create_file_attributes_dict(misp_object['Attribute'])
+        if 'malware-sample' in attributes_dict and isinstance(attributes_dict['malware-sample'], dict):
+            malware_sample = attributes_dict.pop('malware-sample')
+            filename, md5 = malware_sample['value'].split('|')
+            artifact_object = self.create_artifact_object(malware_sample['data'])
+            artifact_object.hashes = HashList(Hash(hash_value=md5, exact=True))
+            artifact_object.parent.id_ = "{}:ArtifactObject-{}".format(self.namespace_prefix, malware_sample['uuid'])
+            artifact_observable = Observable(artifact_object)
+            artifact_observable.id_ = "{}:Artifact-{}".format(self.namespace_prefix, malware_sample['uuid'])
+            artifact_observable.title = filename
+            file_observable = self.create_file_observable(attributes_dict, uuid)
+            return to_ids, self.create_observable_composition([artifact_observable, file_observable], uuid, 'file')
+        return to_ids, self.create_file_observable(attributes_dict, uuid)
 
     def parse_ip_port_object(self, misp_object):
-        to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object.attributes, with_uuid=True)
+        to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object['Attribute'], with_uuid=True)
         composition = []
         if 'domain' in attributes_dict:
             for domain in attributes_dict['domain']:
@@ -823,10 +850,10 @@ class StixBuilder(object):
                 composition.append(self.create_ip_observable(ip['value'], ip['uuid']))
         if len(composition) == 1:
             return to_ids, composition[0]
-        return to_ids, self.create_observable_composition(composition, misp_object.uuid, "ip-port")
+        return to_ids, self.create_observable_composition(composition, misp_object['uuid'], "ip-port")
 
     def parse_network_connection_object(self, misp_object):
-        to_ids, attributes_dict = self.create_attributes_dict(misp_object.attributes)
+        to_ids, attributes_dict = self.create_attributes_dict(misp_object['Attribute'])
         network_connection_object = NetworkConnection()
         src_args, dst_args = self.parse_src_dst_args(attributes_dict)
         if src_args:
@@ -839,7 +866,7 @@ class StixBuilder(object):
             network_connection_object.layer4_protocol = attributes_dict['layer4-protocol']
         if 'layer7-protocol' in attributes_dict:
             network_connection_object.layer7_protocol = attributes_dict['layer7-protocol']
-        uuid = misp_object.uuid
+        uuid = misp_object['uuid']
         network_connection_object.parent.id_ = "{}:NetworkConnectionObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(network_connection_object)
         observable.id_ = "{}:NetworkConnection-{}".format(self.namespace_prefix, uuid)
@@ -847,12 +874,13 @@ class StixBuilder(object):
 
     def parse_network_socket_object(self, misp_object):
         listening, blocking = [False] * 2
-        attributes = misp_object.attributes
+        attributes = misp_object['Attribute']
         for attribute in attributes:
-            if attribute.object_relation == "state":
-                if attribute.value == "listening":
+            attribute_value = attribute['value']
+            if attribute['object_relation'] == "state":
+                if attribute_value == "listening":
                     listening = True
-                if attribute.value == "blocking":
+                if attribute_value == "blocking":
                     blocking = True
         to_ids, attributes_dict = self.create_attributes_dict(attributes)
         network_socket_object = NetworkSocket()
@@ -869,14 +897,14 @@ class StixBuilder(object):
             network_socket_object.address_family = attributes_dict['address-family']
         if 'domain-family' in attributes_dict:
             network_socket_object.domain = attributes_dict['domain-family']
-        uuid = misp_object.uuid
+        uuid = misp_object['uuid']
         network_socket_object.parent.id_ = "{}:NetworkSocketObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(network_socket_object)
         observable.id_ = "{}:NetworkSocket-{}".format(self.namespace_prefix, uuid)
         return to_ids, observable
 
     def parse_process_object(self, misp_object):
-        attributes = misp_object.attributes
+        attributes = misp_object['Attribute']
         to_ids, attributes_dict = self.create_attributes_dict_multiple(attributes)
         process_object = Process()
         if 'creation-time' in attributes_dict:
@@ -896,25 +924,25 @@ class StixBuilder(object):
         # if 'port' in attributes_dict:
         #     for port in attributes['port']:
         #         process_object.port_list.append(self.create_port_object(port['value']))
-        uuid = misp_object.uuid
+        uuid = misp_object['uuid']
         process_object.parent.id_ = "{}:ProcessObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(process_object)
         observable.id_ = "{}:Process-{}".format(self.namespace_prefix, uuid)
-        if misp_object.references:
-            for reference in misp_object.references:
-                if reference.relationship_type == "connected-to":
+        if misp_object.get('ObjectReference'):
+            for reference in misp_object['ObjectReference']:
+                if reference['relationship_type'] == "connected-to":
                     related_object = RelatedObject()
                     try:
-                        referenced_attribute_type = reference.Object['name']
-                    except AttributeError:
-                        references_attribute_type = reference.Attribute['type']
-                    related_object.idref = "{}:{}-{}".format(self.namespace_prefix, referenced_attribute_type, reference.referenced_uuid)
+                        referenced_attribute_type = reference['Object']['name']
+                    except KeyError:
+                        referenced_attribute_type = reference['Attribute']['type']
+                    related_object.idref = "{}:{}-{}".format(self.namespace_prefix, referenced_attribute_type, reference['referenced_uuid'])
                     related_object.relationship = "Connected_To"
                     observable.object_.related_objects.append(related_object)
         return to_ids, observable
 
     def parse_regkey_object(self, misp_object):
-        to_ids, attributes_dict = self.create_attributes_dict(misp_object.attributes)
+        to_ids, attributes_dict = self.create_attributes_dict(misp_object['Attribute'])
         registry_values = False
         reg_value_object = RegistryValue()
         reg_object = self.create_regkey_object(attributes_dict['key']) if 'key' in attributes_dict else WinRegistryKey()
@@ -935,7 +963,7 @@ class StixBuilder(object):
             registry_values = True
         if registry_values:
             reg_object.values = RegistryValues(reg_value_object)
-        uuid = misp_object.uuid
+        uuid = misp_object['uuid']
         reg_object.parent.id_ = "{}:WinRegistryKeyObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(reg_object)
         observable.id_ = "{}:WinRegistryKey-{}".format(self.namespace_prefix, uuid)
@@ -943,7 +971,7 @@ class StixBuilder(object):
 
     def parse_url_object(self, misp_object):
         observables = []
-        to_ids, attributes_dict = self.create_attributes_dict(misp_object.attributes, with_uuid=True)
+        to_ids, attributes_dict = self.create_attributes_dict(misp_object['Attribute'], with_uuid=True)
         if 'url' in attributes_dict:
             url = attributes_dict['url']
             observables.append(self.create_url_observable(url['value'], url['uuid']))
@@ -954,12 +982,11 @@ class StixBuilder(object):
             hostname = attributes_dict['host']
             observables.append(self.create_hostname_observable(hostname['value'], hostname['uuid']))
         if len(observables) == 1:
-            return observables[0]
-        return to_ids, self.create_observable_composition(observables, misp_object.uuid, "url")
+            return to_ids, observables[0]
+        return to_ids, self.create_observable_composition(observables, misp_object['uuid'], "url")
 
     def parse_whois(self, misp_object):
-        to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object.attributes)
-        n_attribute = len(attributes_dict)
+        to_ids, attributes_dict = self.create_attributes_dict_multiple(misp_object['Attribute'])
         whois_object = WhoisEntry()
         for attribute in attributes_dict:
             if attribute and "registrant-" in attribute:
@@ -988,14 +1015,14 @@ class StixBuilder(object):
             whois_object.remarks = attributes_dict['comment']
         elif 'text' in attributes_dict:
             whois_object.remarks = attributes_dict['text']
-        uuid = misp_object.uuid
+        uuid = misp_object['uuid']
         whois_object.parent.id_ = "{}:WhoisObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(whois_object)
         observable.id_ = "{}:Whois-{}".format(self.namespace_prefix, uuid)
         return to_ids, observable
 
     def store_pe(self, misp_object):
-        self.objects_to_parse[misp_object.name][misp_object.uuid] = misp_object
+        self.objects_to_parse[misp_object['name']][misp_object['uuid']] = misp_object
 
     @staticmethod
     def fill_whois_registrants(attributes):
@@ -1013,7 +1040,7 @@ class StixBuilder(object):
         return registrants
 
     def parse_x509_object(self, misp_object):
-        to_ids, attributes_dict = self.create_x509_attributes_dict(misp_object.attributes)
+        to_ids, attributes_dict = self.create_x509_attributes_dict(misp_object['Attribute'])
         x509_object = X509Certificate()
         if 'raw_certificate' in attributes_dict:
             raw_certificate = attributes_dict.pop('raw_certificate')
@@ -1036,7 +1063,7 @@ class StixBuilder(object):
             if attributes_dict:
                 x509_cert.subject_public_key = self.fill_x509_pubkey(**attributes_dict)
             x509_object.certificate = x509_cert
-        uuid = misp_object.uuid
+        uuid = misp_object['uuid']
         x509_object.parent.id_ = "{}:x509CertificateObject-{}".format(self.namespace_prefix, uuid)
         observable = Observable(x509_object)
         observable.id_ = "{}:x509Certificate-{}".format(self.namespace_prefix, uuid)
@@ -1092,115 +1119,119 @@ class StixBuilder(object):
         return x509_validity
 
     def resolve_attachment(self, attribute):
-        attribute_uuid = attribute.uuid
-        if 'data' in attribute and attribute.data:
-            artifact_object = self.create_artifact_object(attribute.to_dict()['data'])
+        attribute_uuid = attribute['uuid']
+        if attribute.get('data'):
+            artifact_object = self.create_artifact_object(attribute['data'])
             artifact_object.parent.id_ = "{}:ArtifactObject-{}".format(self.namespace_prefix, attribute_uuid)
             observable = Observable(artifact_object)
             observable.id_ = "{}:Artifact-{}".format(self.namespace_prefix, attribute_uuid)
-            observable.title = attribute.value
+            observable.title = attribute['value']
         else:
             file_object = File()
-            file_object.file_name = attribute.value
+            file_object.file_name = attribute['value']
             file_object.parent.id_ = "{}:FileObject-{}".format(self.namespace_prefix, attribute_uuid)
             observable = Observable(file_object)
             observable.id_ = "{}:File-{}".format(self.namespace_prefix, attribute_uuid)
         return observable
 
     def resolve_email_observable(self, attribute):
-        attribute_type = attribute.type
+        attribute_uuid = attribute['uuid']
+        attribute_type = attribute['type']
         email_object = EmailMessage()
         email_header = EmailHeader()
         if attribute_type == 'email-src':
-            email_header.from_ = attribute.value
+            email_header.from_ = attribute['value']
             email_header.from_.condition = "Equals"
         elif attribute_type == 'email-dst':
-            email_header.to = attribute.value
+            email_header.to = attribute['value']
             email_header.to.condition = "Equals"
         elif attribute_type == 'email-reply-to':
-            email_header.reply_to = attribute.value
+            email_header.reply_to = attribute['value']
             email_header.reply_to.condition = "Equals"
         else:
-            email_header.subject = attribute.value
+            email_header.subject = attribute['value']
             email_header.subject.condition = "Equals"
         email_object.header = email_header
-        email_object.parent.id_ = "{}:EmailMessageObject-{}".format(self.namespace_prefix, attribute.uuid)
+        email_object.parent.id_ = "{}:EmailMessageObject-{}".format(self.namespace_prefix, attribute_uuid)
         observable = Observable(email_object)
-        observable.id_ = "{}:EmailMessage-{}".format(self.namespace_prefix, attribute.uuid)
+        observable.id_ = "{}:EmailMessage-{}".format(self.namespace_prefix, attribute_uuid)
         return observable
 
     def resolve_file_observable(self, attribute):
+        attribute_uuid = attribute['uuid']
+        attribute_value = attribute['value']
         fuzzy = False
         f, h = [""] * 2
-        attribute_type = attribute.type
+        attribute_type = attribute['type']
         if attribute_type in hash_type_attributes['composite'] or attribute_type == "malware-sample":
-            f, h = attribute.value.split('|')
+            f, h = attribute_value.split('|')
             composite = attribute_type.split('|')
             if len(composite) > 1 and composite[1] == "ssdeep":
                 fuzzy = True
         else:
             if attribute_type in ('filename', 'attachment'):
-                f = attribute.value
+                f = attribute_value
             else:
-                h = attribute.value
+                h = attribute_value
             if attribute_type == "ssdeep":
                   fuzzy = True
         file_object = self.generate_file_observable(f, h, fuzzy)
-        file_object.parent.id_ = "{}:FileObject-{}".format(self.namespace_prefix, attribute.uuid)
+        file_object.parent.id_ = "{}:FileObject-{}".format(self.namespace_prefix, attribute_uuid)
         observable = Observable(file_object)
-        observable.id_ = "{}:File-{}".format(self.namespace_prefix, attribute.uuid)
+        observable.id_ = "{}:File-{}".format(self.namespace_prefix, attribute_uuid)
         return observable
 
     def resolve_http_observable(self, attribute):
+        attribute_uuid = attribute['uuid']
         request_response = HTTPRequestResponse()
         client_request = HTTPClientRequest()
-        if attribute.type == 'user-agent':
+        if attribute['type'] == 'user-agent':
             header = HTTPRequestHeader()
             header_fields = HTTPRequestHeaderFields()
-            header_fields.user_agent = attribute.value
+            header_fields.user_agent = attribute['value']
             header.parsed_header = header_fields
             client_request.http_request_header = header
         else:
             line = HTTPRequestLine()
-            line.http_method = attribute.value
+            line.http_method = attribute['value']
             line.http_method.condition = "Equals"
             client_request.http_request_line = line
         request_response.http_client_request = client_request
         http_object = HTTPSession()
         request_response.to_xml()
         http_object.http_request_response = [request_response]
-        http_object.parent.id_ = "{}:HTTPSessionObject-{}".format(self.namespace_prefix, attribute.uuid)
+        http_object.parent.id_ = "{}:HTTPSessionObject-{}".format(self.namespace_prefix, attribute_uuid)
         observable = Observable(http_object)
-        observable.id_ = "{}:HTTPSession-{}".format(self.namespace_prefix, attribute.uuid)
+        observable.id_ = "{}:HTTPSession-{}".format(self.namespace_prefix, attribute_uuid)
         return observable
 
-    @staticmethod
-    def resolve_identity_attribute(attribute):
-        attribute_type = attribute.type
+    def resolve_identity_attribute(self, attribute):
+        attribute_type = attribute['type']
+        attribute_value = attribute['value']
         ciq_identity = CIQIdentity3_0Instance()
         identity_spec = STIXCIQIdentity3_0()
         if attribute_type == "target-user":
-            identity_spec.party_name = PartyName(person_names=[attribute.value])
+            identity_spec.party_name = PartyName(person_names=[attribute_value])
         if attribute_type == "target-external":
             # we don't know if target-external is a person or an organisation, so as described at http://docs.oasis-open.org/ciq/v3.0/prd03/specs/ciq-specs-v3-prd3.html#_Toc207716018, use NameLine
-            identity_spec.party_name = PartyName(name_lines=["External target: {}".format(attribute.value)])
+            identity_spec.party_name = PartyName(name_lines=["External target: {}".format(attribute_value)])
         elif attribute_type == 'target-org':
-            identity_spec.party_name = PartyName(organisation_names=[attribute.value])
+            identity_spec.party_name = PartyName(organisation_names=[attribute_value])
         elif attribute_type == 'target-location':
-            identity_spec.add_address(ciq_Address(FreeTextAddress(address_lines=[attribute.value])))
+            identity_spec.add_address(ciq_Address(FreeTextAddress(address_lines=[attribute_value])))
         elif attribute_type == 'target-email':
-            identity_spec.add_electronic_address_identifier(ElectronicAddressIdentifier(value=attribute.value))
+            identity_spec.add_electronic_address_identifier(ElectronicAddressIdentifier(value=attribute_value))
         ciq_identity.specification = identity_spec
-        ciq_identity.id_ = "{}:Identity-{}".format(namespace[1], attribute.uuid)
+        ciq_identity.id_ = "{}:Identity-{}".format(self.orgname, attribute['uuid'])
         # is this a good idea?
-        ciq_identity.name = "{}: {} (MISP Attribute #{})".format(attribute_type, attribute.value, attribute.id)
+        ciq_identity.name = "{}: {} (MISP Attribute #{})".format(attribute_type, attribute_value, attribute['id'])
         return ciq_identity
 
     def resolve_malware_sample(self, attribute):
-        if 'data' in attribute and attribute.data:
-            attribute_uuid = attribute.uuid
-            filename, h_value = attribute.value.split('|')
-            artifact_object = self.create_artifact_object(attribute.to_dict()['data'])
+        if attribute.get('data'):
+            attribute_uuid = attribute['uuid']
+            filename, h_value = attribute['value'].split('|')
+            artifact_object = self.create_artifact_object(attribute['data'])
             artifact_object.hashes = HashList(Hash(hash_value=h_value, exact=True))
             artifact_object.parent.id_ = "{}:ArtifactObject-{}".format(self.namespace_prefix, attribute_uuid)
             observable = Observable(artifact_object)
@@ -1210,27 +1241,29 @@ class StixBuilder(object):
         return self.resolve_file_observable(attribute)
 
     def resolve_pattern_observable(self, attribute):
-        if attribute.type == "pattern-in-file":
+        attribute_uuid = attribute['uuid']
+        if attribute['type'] == "pattern-in-file":
             byte_run = ByteRun()
-            byte_run.byte_run_data = attribute.value
+            byte_run.byte_run_data = attribute['value']
             file_object = File()
             file_object.byte_runs = ByteRuns(byte_run)
-            file_object.parent.id_ = "{}:FileObject-{}".format(self.namespace_prefix, attribute.uuid)
+            file_object.parent.id_ = "{}:FileObject-{}".format(self.namespace_prefix, attribute_uuid)
             observable = Observable(file_object)
-            observable.id_ = "{}:File-{}".format(self.namespace_prefix, attribute.uuid)
+            observable.id_ = "{}:File-{}".format(self.namespace_prefix, attribute_uuid)
             return observable
         return None
 
     def resolve_system_observable(self, attribute):
+        attribute_uuid = attribute['uuid']
         system_object = System()
         network_interface = NetworkInterface()
-        network_interface.mac = attribute.value
+        network_interface.mac = attribute['value']
         network_interface_list = NetworkInterfaceList()
         network_interface_list.append(network_interface)
         system_object.network_interface_list = network_interface_list
-        system_object.parent.id_ = "{}:SystemObject-{}".format(self.namespace_prefix, attribute.uuid)
+        system_object.parent.id_ = "{}:SystemObject-{}".format(self.namespace_prefix, attribute_uuid)
         observable = Observable(system_object)
-        observable.id_ = "{}:System-{}".format(self.namespace_prefix, attribute.uuid)
+        observable.id_ = "{}:System-{}".format(self.namespace_prefix, attribute_uuid)
         return observable
 
     def set_rep(self):
@@ -1264,13 +1297,12 @@ class StixBuilder(object):
         hi.journal_entry = entry_line
         self.history.append(hi)
 
-    @staticmethod
-    def add_reference(target, reference):
-        if hasattr(target.information_source, 'references'):
+    def add_reference(self, reference):
+        if hasattr(self.incident.information_source, 'references'):
             try:
-                target.information_source.add_reference(reference)
+                self.incident.information_source.add_reference(reference)
             except AttributeError:
-                target.information_source.references = [reference]
+                self.incident.information_source.references = [reference]
 
     def append_ttp(self, category, ttp):
         self.ttps.append(ttp)
@@ -1279,55 +1311,55 @@ class StixBuilder(object):
         return related_ttp
 
     def create_ttp(self, attribute, tags):
-        ttp = TTP(timestamp=attribute.timestamp)
-        ttp.id_ = "{}:ttp-{}".format(namespace[1], attribute.uuid)
+        ttp = TTP(timestamp=self.get_datetime_from_timestamp(attribute['timestamp']))
+        ttp.id_ = "{}:ttp-{}".format(self.orgname, attribute['uuid'])
         try:
-            ttp.handling = self.set_tlp(attribute.distribution, self.merge_tags(tags, attribute))
+            ttp.handling = self.set_tlp(attribute['distribution'], self.merge_tags(tags, attribute))
         except Exception:
             pass
-        ttp.title = "{}: {} (MISP Attribute #{})".format(attribute.category, attribute.value, attribute.id)
+        ttp.title = "{}: {} (MISP Attribute #{})".format(attribute['category'], attribute['value'], attribute['id'])
         return ttp
 
     def create_attributes_dict(self, attributes, with_uuid=False):
         to_ids = self.fetch_ids_flags(attributes)
-        attributes_dict = {}
         if with_uuid:
-            for attribute in attributes:
-                attributes_dict[attribute.object_relation] = {'value': attribute.value, 'uuid': attribute.uuid}
-        else:
-            for attribute in attributes:
-                attributes_dict[attribute.object_relation] = attribute.value
-        return to_ids, attributes_dict
+            return to_ids, {attribute['object_relation']: {'value': attribute['value'], 'uuid': attribute['uuid']} for attribute in attributes}
+        return to_ids, {attribute['object_relation']: attribute['value'] for attribute in attributes}
 
     def create_attributes_dict_multiple(self, attributes, with_uuid=False):
         to_ids = self.fetch_ids_flags(attributes)
         attributes_dict = defaultdict(list)
         if with_uuid:
             for attribute in attributes:
-                attribute_dict = {'value': attribute.value, 'uuid': attribute.uuid}
-                attributes_dict[attribute.object_relation].append(attribute_dict)
+                attribute_dict = {'value': attribute['value'], 'uuid': attribute['uuid']}
+                attributes_dict[attribute['object_relation']].append(attribute_dict)
         else:
             for attribute in attributes:
-                attributes_dict[attribute.object_relation].append(attribute.value)
+                attributes_dict[attribute['object_relation']].append(attribute['value'])
+        return to_ids, attributes_dict
+
+    def create_file_attributes_dict(self, attributes):
+        to_ids = self.fetch_ids_flags(attributes)
+        attributes_dict = {attribute['object_relation']: {field: attribute[field] for field in ('value', 'uuid', 'data')} if 'data' in attribute and attribute['data'] else attribute['value'] for attribute in attributes}
         return to_ids, attributes_dict
 
     def create_x509_attributes_dict(self, attributes):
         to_ids = self.fetch_ids_flags(attributes)
         attributes_dict = defaultdict(dict)
         for attribute in attributes:
-            relation = attribute.object_relation
+            relation = attribute['object_relation']
             if relation in ('version', 'serial-number', 'issuer', 'subject'):
-                attributes_dict['contents'][relation] = attribute.value
+                attributes_dict['contents'][relation] = attribute['value']
             elif relation in ('validity-not-before', 'validity-not-after'):
-                attributes_dict['validity'][relation] = attribute.value
+                attributes_dict['validity'][relation] = attribute['value']
             elif relation in ('pubkey-info-exponent', 'pubkey-info-modulus'):
-                attributes_dict['rsa_pubkey'][relation] = attribute.value
+                attributes_dict['rsa_pubkey'][relation] = attribute['value']
             elif relation in ('x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256'):
-                attributes_dict['signature'][relation] = attribute.value
+                attributes_dict['signature'][relation] = attribute['value']
             elif relation in ('raw-base64', 'pem'):
-                attributes_dict['raw_certificate'][relation] = attribute.value
+                attributes_dict['raw_certificate'][relation] = attribute['value']
             elif relation == 'pubkey-info-algorithm':
-                attributes_dict['subject_pubkey'][relation] = attribute.value
+                attributes_dict['subject_pubkey'][relation] = attribute['value']
         return to_ids, attributes_dict
 
     def create_custom_observable(self, name, attributes, uuid):
@@ -1351,6 +1383,14 @@ class StixBuilder(object):
         file_object.file_name.condition = "Equals"
         file_object.parent.id_ = "{}:FileObject-{}".format(self.namespace_prefix, uuid)
         return file_object
+
+    def create_file_observable(self, attributes_dict, uuid):
+        file_object = File()
+        self.fill_file_object(file_object, attributes_dict)
+        file_object.parent.id_ = "{}:FileObject-{}".format(self.namespace_prefix, uuid)
+        file_observable = Observable(file_object)
+        file_observable.id_ = "{}:File-{}".format(self.namespace_prefix, uuid)
+        return file_observable
 
     def create_hostname_observable(self, value, uuid):
         hostname_object = self.create_hostname_object(value)
@@ -1416,10 +1456,10 @@ class StixBuilder(object):
         custom_object.custom_properties = CustomProperties()
         for attribute in attributes:
             prop = Property()
-            prop.name = "{} {}: {}".format(name, attribute.type, attribute.object_relation)
-            prop.value = attribute.value
+            prop.name = "{} {}: {}".format(name, attribute['type'], attribute['object_relation'])
+            prop.value = attribute['value']
             custom_object.custom_properties.append(prop)
-            if attribute.to_ids:
+            if attribute['to_ids']:
                 to_ids = True
         return to_ids, custom_object
 
@@ -1436,7 +1476,6 @@ class StixBuilder(object):
         if '|' in attribute_value:
             attribute_value = attribute_value.split('|')[0]
         if '/' in attribute_value:
-            attribute_value = attribute_value.split('/')[0]
             address_object.category = "cidr"
             condition = "Contains"
         else:
@@ -1532,19 +1571,23 @@ class StixBuilder(object):
     @staticmethod
     def fetch_ids_flags(attributes):
         for attribute in attributes:
-            if attribute.to_ids:
+            if attribute['to_ids']:
                 return True
         return False
 
     @staticmethod
+    def get_datetime_from_timestamp(timestamp):
+        return datetime.datetime.utcfromtimestamp(int(timestamp))
+
+    @staticmethod
     def merge_tags(tags, attribute):
         result = deepcopy(tags)
-        if attribute.Tag:
+        if attribute.get('Tag'):
             if 'attributes' in tags:
-                for tag in attribute.Tag:
+                for tag in attribute['Tag']:
                     result['attributes'].append(tag)
             else:
-                result['attributes'] = attribute.Tag
+                result['attributes'] = attribute['Tag']
         return result
 
     @staticmethod
@@ -1582,7 +1625,6 @@ class StixBuilder(object):
     @staticmethod
     def set_color(colors):
         tlp_color = 0
-        color = None
         for color in colors:
             color_num = TLP_order[color]
             if color_num > tlp_color:
@@ -1597,14 +1639,14 @@ class StixBuilder(object):
         return information_source
 
     def set_src(self):
-        identity = Identity(name=self.misp_event.Org.get('name'))
+        identity = Identity(name=self.misp_event['Org'].get('name'))
         information_source = InformationSource(identity=identity)
         return information_source
 
 def main(args):
     stix_builder = StixBuilder(args)
     stix_builder.loadEvent()
-    stix_builder.generateEventPackage()
+    stix_builder.generateEventPackages()
     stix_builder.saveFile()
     print(json.dumps({'success': 1, 'message': ''}))
 

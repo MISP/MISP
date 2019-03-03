@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: misp\n"
-"PO-Revision-Date: 2018-09-06 12:46\n"
+"PO-Revision-Date: 2019-01-22 21:27\n"
 "Last-Translator: SteveClement <steve@localhost.lu>\n"
 "Language-Team: Spanish\n"
 "MIME-Version: 1.0\n"
@@ -415,7 +415,7 @@ msgstr ""
 #: Controller/EventsController.php:2641
 #: Model/Attribute.php:1927
 msgid "Invalid hash type."
-msgstr ""
+msgstr "Hash invalido."
 
 #: Controller/EventsController.php:2871
 msgid "Filename not allowed."
@@ -427,7 +427,7 @@ msgstr "Hubo un problem al escribir el archivo iov. Por favor informe al adminis
 
 #: Controller/EventsController.php:2986
 msgid "This is not a valid MISP XML file."
-msgstr ""
+msgstr "Este no es un archivo MISP XML válido."
 
 #: Controller/EventsController.php:3101
 msgid "Either specify the search terms in the url, or POST a json array / xml (with the root element being \"request\" and specify the correct headers based on content type)."
@@ -435,7 +435,7 @@ msgstr ""
 
 #: Controller/EventsController.php:3294
 msgid "Not yet implemented"
-msgstr ""
+msgstr "Aún no implementado"
 
 #: Controller/EventsController.php:3312;3316
 msgid "Invalid event or not authorised."
@@ -443,11 +443,11 @@ msgstr "El evento es no válido o no autorizado."
 
 #: Controller/EventsController.php:3336;3406
 msgid "You don't have the privileges to access this."
-msgstr ""
+msgstr "No tiene suficientes privilegios para acceder."
 
 #: Controller/EventsController.php:3920
 msgid "Could not add tags."
-msgstr ""
+msgstr "No es posible agregar etiquetas."
 
 #: Controller/EventsController.php:3971;5055
 #: Controller/ObjectsController.php:46;140;144;438
@@ -456,15 +456,15 @@ msgstr "Evento invalido."
 
 #: Controller/EventsController.php:4085;4115;4131
 msgid "You do not have the permission to do that."
-msgstr ""
+msgstr "No tienes permisos para realizar esta acción."
 
 #: Controller/EventsController.php:4196;4334
 msgid "Invalid ID"
-msgstr ""
+msgstr "ID inválido"
 
 #: Controller/EventsController.php:4200;4338
 msgid "Event not found or you are not authorised to view it."
-msgstr ""
+msgstr "Evento no encontrado o no estás autorizado para visualizarlo."
 
 #: Controller/EventsController.php:4434;4441
 msgid "Please POST the samples as described on the automation page."
@@ -492,11 +492,11 @@ msgstr ""
 
 #: Controller/EventsController.php:4671;4693;4722;4747;4772;4802;4823
 msgid "Invalid type."
-msgstr ""
+msgstr "Tipo inválido."
 
 #: Controller/EventsController.php:4866
 msgid "Invalid method."
-msgstr ""
+msgstr "Método inválido."
 
 #: Controller/EventsController.php:4946
 msgid "%s services are not enabled."
@@ -524,7 +524,7 @@ msgstr ""
 
 #: Controller/EventsController.php:5136
 msgid "Import service not reachable."
-msgstr ""
+msgstr "Servicio de importación no alcanzable."
 
 #: Controller/EventsController.php:5303
 msgid "Invalid ID."
@@ -533,7 +533,7 @@ msgstr ""
 #: Controller/EventsController.php:5351
 #: Controller/ShadowAttributesController.php:312;317;534
 msgid "Invalid Event"
-msgstr ""
+msgstr "Evento inválido"
 
 #: Controller/EventsController.php:5369
 msgid "Enrichment task queued for background processing. Check back later to see the results."
@@ -589,15 +589,15 @@ msgstr ""
 
 #: Controller/FeedsController.php:481
 msgid "Event added."
-msgstr ""
+msgstr "Evento agregado."
 
 #: Controller/FeedsController.php:484
 msgid "Event already up to date."
-msgstr ""
+msgstr "Evento ya acualizado."
 
 #: Controller/FeedsController.php:486
 msgid "Event updated."
-msgstr ""
+msgstr "Evento Actualizado."
 
 #: Controller/FeedsController.php:490
 msgid "Could not %s event."
@@ -605,7 +605,7 @@ msgstr ""
 
 #: Controller/FeedsController.php:493
 msgid "Download failed."
-msgstr ""
+msgstr "Descarga fallida."
 
 #: Controller/FeedsController.php:561
 msgid "Feed could not be fetched. The HTTP error code returned was: "
@@ -625,7 +625,7 @@ msgstr ""
 
 #: Controller/FeedsController.php:752;756
 msgid "Invalid Feed."
-msgstr ""
+msgstr "Feed inválido."
 
 #: Controller/FeedsController.php:777
 msgid "Only POST requests are allowed."
@@ -633,7 +633,7 @@ msgstr ""
 
 #: Controller/FeedsController.php:781
 msgid "Feed not found."
-msgstr ""
+msgstr "Feed no encontrado."
 
 #: Controller/FeedsController.php:790
 msgid "Data pulled."
@@ -702,7 +702,7 @@ msgstr ""
 
 #: Controller/ObjectsController.php:317;328;427
 msgid "Invalid object."
-msgstr ""
+msgstr "Objeto no válido."
 
 #: Controller/ObjectsController.php:421
 msgid "You don't have permissions to delete objects."

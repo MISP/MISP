@@ -222,6 +222,9 @@ class Module extends AppModel
             if ($post) {
                 $response = $httpSocket->post($url . $uri, $post, $request);
             } else {
+                if ($moduleFamily == 'Cortex') {
+                    unset($request['header']['Content-Type']);
+                }
                 $response = $httpSocket->get($url . $uri, false, $request);
             }
             return json_decode($response->body, true);

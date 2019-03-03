@@ -1,17 +1,25 @@
-<?php
-    foreach ($results as &$r):
-        foreach ($r as $k => &$v):
-			echo sprintf('<span class="bold blue">%s</span>: <br />', Inflector::humanize(h($k)));
-			if (is_array($v)) {
-				foreach ($v as $key => $value) {
-					if (!is_numeric($key)) {
-						echo '<div class="blue" style="margin-left:10px;">' . h($key) . ':</div>';
-					}
-					echo '<div class="red" style="margin-left:20px;">' . h($value) . '</div>';
-				}
-			} else {
-				echo '<div class="red" style="margin-left:20px;">' . h($v) . '</div>';
-			}
+<div style="overflow-y:auto;max-height:75vh">
+    <?php
+        foreach ($results as $enrichment_type => $enrichment_values):
+            echo sprintf('<span class="hover_enrichment_title blue">%s</span>: <br />', Inflector::humanize(h($enrichment_type)));
+
+            foreach ($enrichment_values as $attributes):
+                foreach ($attributes as $attribute):
+                    echo '<div style="padding: 2px;">';
+                    if (is_array($attribute)) {
+                        foreach ($attribute as $attribute_name => $attribute_value) {
+                            if (!is_numeric($attribute_name)) {
+                                echo '<span class="hover_enrichment_text blue">' . h($attribute_name) . ':</span>';
+                            }
+                            echo '<span><pre class="hover_enrichment_text red">' . h($attribute_value) . '</pre></span>';
+                          }
+                    } else {
+                      echo '<span><pre class="hover_enrichment_text red ">' . h($attribute) . '</pre></span>';
+                    }
+                    echo '</div>';
+                endforeach;
+            endforeach;
+            echo "<br/>";
         endforeach;
-    endforeach;
-?>
+    ?>
+</div>

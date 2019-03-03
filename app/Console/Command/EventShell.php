@@ -34,6 +34,55 @@ class EventShell extends AppShell
 		$this->Job->saveField('message', 'Job done.');
 	}
 
+	public function cache() {
+		$timeStart = time();
+		$userId = $this->args[0];
+		$id = $this->args[1];
+		$user = $this->User->getAuthUser($userId);
+		$this->Job->id = $id;
+		$export_type = $this->args[2];
+		file_put_contents('/tmp/test', $export_type);
+		$typeData = $this->Event->export_types[$export_type];
+		if (!in_array($export_type, array_keys($this->Event->export_types))) {
+			$this->Job->saveField('progress', 100);
+			$timeDelta = (time()-$timeStart);
+			$this->Job->saveField('message', 'Job Failed due to invalid export format. (in '.$timeDelta.'s)');
+			$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
+			return false;
+		}
+		if ($export_type == 'text') {
+			$types = array_keys($this->Attribute->typeDefinitions);
+			$typeCount = count($types);
+			foreach ($types as $k => $type) {
+				$typeData['params']['type'] = $type;
+				$this->__runCaching($user, $typeData, false, $export_type, '_' . $type);
+				$this->Job->saveField('message', 'Processing all attributes of type '. $type . '.');
+				$this->Job->saveField('progress', intval($k / $typeCount));
+			}
+		} else {
+			$this->__runCaching($user, $typeData, $id, $export_type);
+		}
+		$this->Job->saveField('progress', 100);
+		$timeDelta = (time()-$timeStart);
+		$this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
+		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
+	}
+
+	private function __runCaching($user, $typeData, $id, $export_type, $subType = '') {
+		$export_type = strtolower($typeData['type']);
+		$final = $this->{$typeData['scope']}->restSearch($user, $typeData['params']['returnFormat'], $typeData['params'], false, $id);
+		$dir = new Folder(APP . 'tmp/cached_exports/' . $export_type, true, 0750);
+		//echo PHP_EOL . $dir->pwd() . DS . 'misp.' . $export_type . $subType . '.ADMIN' . $typeData['extension'] . PHP_EOL;
+		if ($user['Role']['perm_site_admin']) {
+			$file = new File($dir->pwd() . DS . 'misp.' . $export_type . $subType . '.ADMIN' . $typeData['extension']);
+		} else {
+			$file = new File($dir->pwd() . DS . 'misp.' . $export_type . $subType . '.' . $user['Organisation']['name'] .  $typeData['extension']);
+		}
+		$file->write($final);
+		$file->close();
+		return true;
+	}
+
 	public function cachexml() {
 		$timeStart = time();
 		$userId = $this->args[0];
@@ -509,11 +558,42 @@ class EventShell extends AppShell
 			$this->Job->save($data);
 			$jobId = $this->Job->id;
 		}
+		$job = $this->Job->read(null, $jobId);
 		$options = array(
 			'user' => $user,
 			'event_id' => $eventId,
 			'modules' => $modules
 		);
 		$result = $this->Event->enrichment($options);
+		$job['Job']['progress'] = 100;
+		$job['Job']['date_modified'] = date("y-m-d H:i:s");
+		if ($result) {
+			$job['Job']['message'] = 'Added ' . $result . ' attribute' . ($result > 1 ? 's.' : '.');
+		} else {
+			$job['Job']['message'] = 'Enrichment finished, but no attributes added.';
+		}
+		$this->Job->save($job);
+		$log = ClassRegistry::init('Log');
+		$log->create();
+		$log->createLogEntry($user, 'enrichment', 'Event', $eventId, 'Event (' . $eventId . '): enriched.', 'enriched () => (1)');
+	}
+
+	public function processfreetext() {
+		$inputFile = $this->args[0];
+		$tempdir = new Folder(APP . 'tmp/cache/ingest', true, 0750);
+		$tempFile = new File(APP . 'tmp/cache/ingest' . DS . $inputFile);
+		$inputData = $tempFile->read();
+		$inputData = json_decode($inputData, true);
+		$tempFile->delete();
+		$this->Event->processFreeTextData(
+			$inputData['user'],
+			$inputData['attributes'],
+			$inputData['id'],
+			$inputData['default_comment'],
+			$inputData['force'],
+			$inputData['adhereToWarninglists'],
+			$inputData['jobId']
+		);
+		return true;
 	}
 }

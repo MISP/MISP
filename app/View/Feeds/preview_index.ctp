@@ -18,11 +18,18 @@
         </ul>
     </div>
     <?php
-        $tab = "Center";
-        $filtered = false;
-        if (count($passedArgsArray) > 0) {
-            $tab = "Left";
-            $filtered = true;
+        $data = array(
+            'children' => array(
+                array(
+                    'type' => 'search',
+                    'button' => 'Filter',
+                    'placeholder' => 'Enter value to search',
+                    'data' => '',
+                )
+            )
+        );
+        if (!$ajax) {
+            echo $this->element('/genericElements/ListTopBar/scaffold', array('data' => $data));
         }
     ?>
 
@@ -62,7 +69,7 @@
             </td>
             <td ondblclick="document.location.href ='<?php echo $eventViewURL . h($uuid);?>'" class="short"><?php echo h($event['timestamp']); ?></td>
             <td class="short action-links">
-                <?php if ($feed['Feed']['enabled']) echo $this->Form->postLink('', '/feeds/getEvent/' . $id . '/' . $uuid, array('class' => 'icon-download', 'title' => 'Fetch the event'), __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Feed.id'))); ?>
+                <?php if ($feed['Feed']['enabled'] && $isSiteAdmin) echo $this->Form->postLink('', '/feeds/getEvent/' . $id . '/' . $uuid, array('class' => 'icon-download', 'title' => 'Fetch the event'), __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Feed.id'))); ?>
                 <a href='<?php echo $eventViewURL . h($uuid);?>' class = "icon-list-alt" title = "<?php echo __('View');?>"></a>
             </td>
         </tr>
@@ -86,5 +93,18 @@
         </ul>
     </div>
 </div>
+<script type="text/javascript">
+    var passedArgsArray = <?php echo $passedArgs; ?>;
+    $(document).ready(function() {
+        $('#quickFilterButton').click(function() {
+            runIndexQuickFilter('<?php echo '/' . h($feed['Feed']['id']);?>');
+        });
+        $('#quickFilterField').on('keypress', function (e) {
+            if(e.which === 13) {
+                runIndexQuickFilter('<?php echo '/' . h($feed['Feed']['id']);?>');
+            }
+        });
+    });
+</script>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'feeds', 'menuItem' => 'previewIndex', 'id' => $id));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'feeds', 'menuItem' => 'previewIndex', 'id' => $id));

@@ -12,5 +12,5 @@
 <?php echo $this->Form->end(__('Submit'));?>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'whitelist', 'menuItem' => 'edit', 'id' => $this->Form->value('Whitelist.id')));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'whitelist', 'menuItem' => 'edit', 'id' => $this->Form->value('Whitelist.id')));
 ?>

@@ -1,0 +1,1 @@
+../docs/CONFIG.elasticsearch-logging.md

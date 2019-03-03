@@ -3,6 +3,7 @@
     <fieldset>
         <legend><?php echo __('Add Server');?></legend>
     <?php
+        echo '<h4 class="input clear">' . __('Instance identification') . '</h4>';
         echo $this->Form->input('url', array(
             'label' => __('Base URL'),
         ));
@@ -25,8 +26,9 @@
         endif;
     ?>
         <div class="input clear" style="width:100%;">
-        <hr />
-        <p class="red"><?php echo __('Information about the organisation that will receive the events, typically the remote instance\'s host organisation.');?></p>
+            <hr />
+            <h4><?php echo __('Instance ownership and credentials'); ?></h4>
+            <p class="red"><?php echo __('Information about the organisation that will receive the events, typically the remote instance\'s host organisation.');?></p>
         </div>
         <div class = "input clear"></div>
     <?php
@@ -43,7 +45,7 @@
             </select>
         </div>
         <div id="ServerLocalContainer" class="input select hiddenField" style="display:none;">
-            <label for="ServerLocal"><?php echo __('Local Organisation');?></label>
+            <label for="ServerLocal"><?php echo __('Owner of remote instance');?></label>
             <select id="ServerLocal">
                 <?php foreach ($localOrganisations as $k => $v) echo '<option value="' . $k . '">' . h($v) . '</option>'; ?>
             </select>
@@ -61,38 +63,25 @@
         endif;
         echo $this->Form->input('authkey', array(
         ));
-    ?>
-        <div class = "input clear" style="width:100%;"><hr /></div>
-        <div class = "input clear"></div>
-    <?php
-        echo $this->Form->input('push', array(
-        ));
-
-        echo $this->Form->input('pull', array(
-        ));
-    ?>
-        <div class = "input clear"></div>
-    <?php
+        echo '<div class = "input clear" style="width:100%;"><hr /></div>';
+        echo '<h4 class="input clear">' . __('Enabled synchronisation methods') . '</h4>';
+        echo $this->Form->input('push', array());
+        echo $this->Form->input('pull', array());
+        echo $this->Form->input('caching_enabled', array());
+        echo '<div class = "input clear" style="width:100%;"><hr /></div>';
         echo $this->Form->input('unpublish_event', array(
             'type' => 'checkbox',
         ));
-    ?>
-        <div class = "input clear"></div>
-    <?php
+        echo '<div class="input clear"></div>';
         echo $this->Form->input('publish_without_email', array(
             'type' => 'checkbox',
         ));
-    ?>
-        <div class = "input clear"></div>
-    <?php
+        echo '<div class="input clear"></div>';
         echo $this->Form->input('self_signed', array(
             'type' => 'checkbox',
         ));
-        ?>
-            <div class = "input clear"></div>
-        <?php
+        echo '<div class="input clear"></div>';
         echo $this->Form->input('skip_proxy', array('type' => 'checkbox', 'label' => 'Skip proxy (if applicable)'));
-
         echo $this->Form->input('Server.submitted_cert', array(
             'label' => '<b>' . __('Server certificate file') . '</b>',
             'type' => 'file',
@@ -133,7 +122,7 @@ echo $this->Form->end();
     <?php echo $this->element('serverRuleElements/pull'); ?>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'sync', 'menuItem' => 'add'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'sync', 'menuItem' => 'add'));
 ?>
 
 <script type="text/javascript">

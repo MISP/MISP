@@ -120,7 +120,7 @@ foreach ($list as $k => $item): ?>
         &nbsp;
         </td>
         <td class="shortish"><?php echo h($item['Tag']['count']); ?>&nbsp;</td>
-        <td class="shortish"><a href="<?php echo $baseurl . "/attributes/search/attributetag:" . $item['Tag']['id']; ?>"><?php echo h($item['Tag']['attribute_count']); ?></a> </td>
+        <td class="shortish"><a href="<?php echo $baseurl . "/attributes/search/tags:" . $item['Tag']['id']; ?>"><?php echo h($item['Tag']['attribute_count']); ?></a> </td>
         <td class="shortish">
             <?php echo $this->element('sparkline', array('id' => $item['Tag']['id'], 'csv' => isset($csv[$k]) ? $csv[$k] : $emptyDate)); ?>
         </td>
@@ -166,4 +166,4 @@ endforeach; ?>
 </script>
 <?php
     $menuItem = $favouritesOnly ? 'indexfav' : 'index';
-    echo $this->element('side_menu', array('menuList' => 'tags', 'menuItem' => $menuItem));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'tags', 'menuItem' => $menuItem));

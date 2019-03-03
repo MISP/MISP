@@ -39,35 +39,29 @@ class Job extends AppModel
                 'org_id' => $user['Role']['perm_site_admin'] ? 0 : $user['org_id'],
                 'message' => 'Fetching events.',
         );
-        if ($type === 'md5' || $type === 'sha1' || $type === 'sha256') {
-            $extra = $type;
-            $type = 'hids';
-        }
-        if ($type === 'csv_all' || $type === 'csv_sig') {
-            $extra = $type;
-            $type = 'csv';
-        }
-        if ($type === 'suricata' || $type === 'snort') {
-            $extra = $type;
-            $type = 'nids';
-            $extra2 = isset($user['nids_sid']) ? $user['nids_sid'] : 0;
-        }
-        if ($type === 'bro') {
+        $this->save($data);
+        $id = $this->id;
+        $this->Event = ClassRegistry::init('Event');
+        if (in_array($type, array_keys($this->Event->export_types))) {
+            $process_id = CakeResque::enqueue(
+                    'cache',
+                    $shell . 'Shell',
+                    array('cache', $user['id'], $id, $type),
+                    true
+            );
+        } elseif ($type === 'bro') {
             $extra = $type;
             $type = 'bro';
             $extra2 = isset($user['nids_sid']) ? $user['nids_sid'] : 0;
+            $process_id = CakeResque::enqueue(
+                    'cache',
+                    $shell . 'Shell',
+                    array('cache' . $type, $user['id'], $id, $extra, $extra2),
+                    true
+            );
+        } else {
+            throw new MethodNotAllowedException('Invalid export type.');
         }
-        if ($type === 'rpz') {
-            $extra = $type;
-        }
-        $this->save($data);
-        $id = $this->id;
-        $process_id = CakeResque::enqueue(
-                'cache',
-                $shell . 'Shell',
-                array('cache' . $type, $user['id'], $id, $extra, $extra2),
-                true
-        );
         $this->saveField('process_id', $process_id);
         return $id;
     }

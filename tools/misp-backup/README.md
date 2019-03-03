@@ -18,7 +18,7 @@ Running
 
 run the script:
 ````
-sh misp-backup.sh
+sudo sh misp-backup.sh
 ````
 
 Open
@@ -65,6 +65,8 @@ Description
 Run the script
 ==============
 
+/!\ This has not been tested on the latest MISP version (2.4.96) - Thread carefully and pack your Banana picker(tm).
+
 ```
-run ./misp-restore.sh  PATH_TO_ARCHIVE.tar.gz
+sudo sh ./misp-restore.sh  PATH_TO_ARCHIVE.tar.gz
 ```

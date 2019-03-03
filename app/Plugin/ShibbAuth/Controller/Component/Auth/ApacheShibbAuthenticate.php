@@ -100,7 +100,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 		//Get user role from its list of groups
 		list($roleChanged, $roleId) = $this->getUserRoleFromGroup($groupTag, $groupRoleMatching, $roleId);
 		if($roleId < 0) {
-			CakeLog::write('error', 'No role was assigned, no egorup matched the configuration.');
+			CakeLog::write('error', 'No role was assigned, no egroup matched the configuration.');
 			return false; //Deny if the user is not in any egroup
 		}
 
@@ -137,7 +137,8 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 			'nids_sid' => ((int)$nidsMax[0][0]['nidsMax'])+1,
 			'newsread' => time(),
 			'role_id' => $roleId,
-			'change_pw' => 0
+			'change_pw' => 0,
+			'date_created' => time()
 		));
 
 		// save user
