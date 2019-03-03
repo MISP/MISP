@@ -5702,14 +5702,20 @@ class Event extends AppModel
                 }
             }
         }
+        if ($saved == 1) {
+            $messageScopeSaved = Inflector::singularize($messageScope);
+        } else {
+            $messageScopeSaved = Inflector::pluralize($messageScope);
+        }
         if ($failed > 0) {
             if ($failed == 1) {
-                $message = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. Reason for the failure: ' . json_encode($lastError);
+                $messageScopeFailed = Inflector::singularize($messageScope);
+                $message = $saved . ' ' . $messageScopeSaved . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScopeFailed . ' could not be saved. Reason for the failure: ' . json_encode($lastError);
             } else {
-                $message = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. This may be due to attributes with similar values already existing.';
+                $message = $saved . ' ' . $messageScopeSaved . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. This may be due to attributes with similar values already existing.';
             }
         } else {
-            $message = $saved . ' ' . $messageScope . ' created' . $emailResult . '.';
+            $message = $saved . ' ' . $messageScopeSaved . ' created' . $emailResult . '.';
         }
         if ($jobId) {
             if ($i % 20 == 0) {
