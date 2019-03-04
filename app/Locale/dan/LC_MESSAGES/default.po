@@ -6632,6 +6632,10 @@ msgstr "Slet valgte Events"
 msgid "Quickfilter"
 msgstr "Quickfilter"
 
+#: View/Events/index.ctp:95
+msgid "Enter value to search"
+msgstr ""
+
 #: View/Events/index.ctp:44
 #: View/Organisations/index.ctp:59
 #: View/Servers/preview_index.ctp:45
