@@ -1,5 +1,6 @@
 var scope_id = $('#eventdistri_graph').data('event-id');
 var event_distribution = $('#eventdistri_graph').data('event-distribution');
+var event_distribution_text = $('#eventdistri_graph').data('event-distribution-text');
 var extended_text = $('#eventdistri_graph').data('extended') == 1 ? true : false;
 var spanOffset_orig = 15; // due to padding
 var payload = {};
@@ -645,6 +646,9 @@ function toggleRowListener(toAdd) {
                     break;
                 case 'Inherit':
                     distribution_value = 5;
+                    if (event_distribution == 4) {
+                        overwriteSg = event_distribution_text.trim();
+                    }
                     break;
                 default:
                     distribution_value = 4;
