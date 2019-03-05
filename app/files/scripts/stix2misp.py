@@ -28,7 +28,7 @@ from stix.core import STIXPackage
 from collections import defaultdict
 
 _MISP_dir = "/".join([p for p in os.path.dirname(os.path.realpath(__file__)).split('/')[:-3]])
-_PyMISP_dir = '{_MISP_dir}/PyMISP/pymisp'.format(_MISP_dir=_MISP_dir)
+_PyMISP_dir = '{_MISP_dir}/PyMISP'.format(_MISP_dir=_MISP_dir)
 _MISP_objects_path = '{_MISP_dir}/app/files/misp-objects/objects'.format(_MISP_dir=_MISP_dir)
 sys.path.append(_PyMISP_dir)
 from pymisp.mispevent import MISPEvent, MISPObject, MISPAttribute
@@ -40,7 +40,7 @@ cybox_to_misp_object = {"Account": "credential", "AutonomousSystem": "asn",
 
 threat_level_mapping = {'High': '1', 'Medium': '2', 'Low': '3', 'Undefined': '4'}
 
-with open("{_PyMISP_dir}/data/describeTypes.json".format(_PyMISP_dir=_PyMISP_dir), 'r') as f:
+with open("{_PyMISP_dir}/pymisp/data/describeTypes.json".format(_PyMISP_dir=_PyMISP_dir), 'r') as f:
     categories = json.loads(f.read())['result'].get('categories')
 
 class StixParser():
