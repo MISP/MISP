@@ -1978,6 +1978,7 @@ class UsersController extends AppController
         );
         $this->set('parameters', $parameters);
         $this->set('types', $this->User->Event->Attribute->typeDefinitions);
+        $this->set('savedModels', array());
     }
 
     public function verifyGPG($full = false)
