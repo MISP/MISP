@@ -645,8 +645,10 @@ class Attribute extends AppModel
         if (isset($this->data['Attribute']['type']) && $this->typeIsAttachment($this->data['Attribute']['type']) && !empty($this->data['Attribute']['data'])) {
             $result = $result && $this->saveBase64EncodedAttachment($this->data['Attribute']); // TODO : is this correct?
         }
-        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable')) {
-            $pubSubTool = $this->getPubSubTool();
+        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable');
+        $kafkaTopic = Configure::read('Plugin.Kafka_attribute_notifications_topic');
+        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_attribute_notifications_enable') && !empty($kafkaTopic);
+        if ($pubToZmq || $pubToKafka) {
             $attribute = $this->fetchAttribute($this->id);
             if (!empty($attribute)) {
                 $user = array(
@@ -663,10 +665,21 @@ class Attribute extends AppModel
                 if (!empty($this->data['Attribute']['deleted'])) {
                     $action = 'soft-delete';
                 }
-                if (Configure::read('Plugin.ZeroMQ_include_attachments') && $this->typeIsAttachment($attribute['Attribute']['type'])) {
-                    $attribute['Attribute']['data'] = $this->base64EncodeAttachment($attribute['Attribute']);
+                if ($pubToZmq) {
+                    if (Configure::read('Plugin.ZeroMQ_include_attachments') && $this->typeIsAttachment($attribute['Attribute']['type'])) {
+                        $attribute['Attribute']['data'] = $this->base64EncodeAttachment($attribute['Attribute']);
+                    }
+                    $pubSubTool = $this->getPubSubTool();
+                    $pubSubTool->attribute_save($attribute, $action);
+                    unset($attribute['Attribute']['data']);
                 }
-                $pubSubTool->attribute_save($attribute, $action);
+                if ($pubToKafka) {
+                    if (Configure::read('Plugin.Kafka_include_attachments') && $this->typeIsAttachment($attribute['Attribute']['type'])) {
+                        $attribute['Attribute']['data'] = $this->base64EncodeAttachment($attribute['Attribute']);
+                    }
+                    $kafkaPubTool = $this->getKafkaPubTool();
+                    $kafkaPubTool->publishJson($kafkaTopic, $attribute, $action);
+                }
             }
         }
         if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], array('ip-src', 'ip-dst', 'domain-ip')) && strpos($this->data['Attribute']['value'], '/')) {
@@ -711,6 +724,11 @@ class Attribute extends AppModel
             if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable')) {
                 $pubSubTool = $this->getPubSubTool();
                 $pubSubTool->attribute_save($this->data, 'delete');
+            }
+            $kafkaTopic = Configure::read('Plugin.Kafka_attribute_notifications_topic');
+            if (Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_attribute_notifications_enable') && !empty($kafkaTopic)) {
+                $kafkaPubTool = $this->getKafkaPubTool();
+                $kafkaPubTool->publishJson($kafkaTopic, $this->data, 'delete');
             }
         }
     }

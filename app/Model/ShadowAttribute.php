@@ -277,6 +277,10 @@ class ShadowAttribute extends AppModel
         } else {
             $this->__afterSaveCorrelation($this->data['ShadowAttribute']);
         }
+        if (empty($this->data['ShadowAttribute']['deleted'])) {
+            $action = $created ? 'add' : 'edit';
+            $this->publishKafkaNotification('shadow_attribute', $this->data, $action);
+        }
         return $result;
     }
 
@@ -555,6 +559,7 @@ class ShadowAttribute extends AppModel
         }
         $fieldList = array('proposal_email_lock', 'id', 'info');
         $event['Event']['skip_zmq'] = 1;
+        $event['Event']['skip_kafka'] = 1;
         $this->Event->save($event, array('fieldList' => $fieldList));
     }
 

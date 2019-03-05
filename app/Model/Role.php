@@ -140,6 +140,12 @@ class Role extends AppModel
             'text' => 'ZMQ publisher',
             'readonlyenabled' => false,
             'title' => 'Allow users to publish data to the ZMQ pubsub channel via the publish event to ZMQ button.'
+        ),
+        'perm_publish_kafka' => array(
+            'id' => 'RolePermPublishKafka',
+            'text' => 'Kafka publisher',
+            'readonlyenabled' => false,
+            'title' => 'Allow users to publish data to Kafka via the publish event to Kafka button.'
         )
     );
 

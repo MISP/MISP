@@ -442,6 +442,7 @@ class AppController extends Controller
             $this->set('isAclSharingGroup', $role['perm_sharing_group']);
             $this->set('isAclSighting', isset($role['perm_sighting']) ? $role['perm_sighting'] : false);
             $this->set('isAclZmq', isset($role['perm_publish_zmq']) ? $role['perm_publish_zmq'] : false);
+            $this->set('isAclKafka', isset($role['perm_publish_kafka']) ? $role['perm_publish_kafka'] : false);
             $this->userRole = $role;
         } else {
             $this->set('me', false);

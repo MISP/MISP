@@ -270,6 +270,11 @@ sudo pip install pyzmq
 # ZeroMQ depends on the Python client for Redis
 sudo pip install redis
 
+# MISP has a feature for publishing events to Kafka. To enable it, simply run the following commands
+apt-get install librdkafka-dev php-dev
+pecl install rdkafka
+find /etc -name php.ini | while read f; do echo 'extension=rdkafka.so' | tee -a "$f"; done
+
 # For the experimental ssdeep correlations, run the following installation:
 # installing ssdeep
 wget http://downloads.sourceforge.net/project/ssdeep/ssdeep-2.13/ssdeep-2.13.tar.gz

@@ -261,6 +261,8 @@ class Log extends AppModel
             $pubSubTool->publish($data, 'audit', 'log');
         }
 
+        $this->publishKafkaNotification('audit', $data, 'log');
+
         if (Configure::read('Plugin.ElasticSearch_logging_enable')) {
             // send off our logs to distributed /dev/null
             $logIndex = Configure::read("Plugin.ElasticSearch_log_index");
