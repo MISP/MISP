@@ -267,6 +267,13 @@
                     ),
                     array(
                         'type' => 'separator',
+                    ),
+                    array(
+                        'text' => __('Decaying Rules'),
+                        'url' => '/users/decayingTool',
+                    ),
+                    array(
+                        'type' => 'separator',
                         'requirement' => $isSiteAdmin
                     ),
                     array(

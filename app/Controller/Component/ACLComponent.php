@@ -476,6 +476,7 @@ class ACLComponent extends Component
                     'checkAndCorrectPgps' => array(),
                     'checkIfLoggedIn' => array('*'),
                     'dashboard' => array('*'),
+                    'decayingTool' => array('perm_admin'),
                     'delete' => array('perm_admin'),
                     'downloadTerms' => array('*'),
                     'edit' => array('*'),

@@ -1970,6 +1970,16 @@ class UsersController extends AppController
         }
     }
 
+    public function decayingTool() {
+        $parameters = array(
+            'Tau' => array('value' => 30, 'step' => 1, 'max' => 365, 'greek' => 'τ', 'unit' => 'days'),
+            'Delta' => array('value' => 0.3, 'step' => 0.1, 'max' => 10, 'greek' => 'δ'),
+            'Threshold' => array('value' => 30, 'step' => 1)
+        );
+        $this->set('parameters', $parameters);
+        $this->set('types', $this->User->Event->Attribute->typeDefinitions);
+    }
+
     public function verifyGPG($full = false)
     {
         if (!self::_isSiteAdmin()) {
