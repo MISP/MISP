@@ -1977,8 +1977,19 @@ class UsersController extends AppController
             'Threshold' => array('value' => 30, 'step' => 1, 'info' => 'Cut-off value to expire')
         );
         $this->set('parameters', $parameters);
-        $this->set('types', $this->User->Event->Attribute->typeDefinitions);
-        $this->set('savedModels', array());
+        $types = $this->User->Event->Attribute->typeDefinitions;
+        $types = array_filter($types, function($v, $k) {
+            return $v['to_ids'] == 1;
+        }, ARRAY_FILTER_USE_BOTH);
+        ksort($types);
+        $this->set('types', $types);
+        $savedDecayingModels = array(
+            array(
+                'name' => 'Model 1',
+                'parameters' => array('delta' => 0.10, 'tau' => 7, 'threshold' => 20),
+            )
+        );
+        $this->set('savedModels', $savedDecayingModels);
     }
 
     public function verifyGPG($full = false)

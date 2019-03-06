@@ -3,34 +3,34 @@
 <h2>Decaying Of Indicator Fine Tuning Tool</h2>
 
 <div class="row">
-    <div class="span5">
+    <div class="span7" style="border: 1px solid #ddd; border-radius: 4px;">
         <div style="height: calc(100vh - 180px); overflow-y: scroll;">
             <table class="table table-striped table-bordered">
                 <thead>
                     <tr>
                         <th></th>
                         <th>Attribute Type</th>
+                        <th>Category</th>
                         <th>Model Name</th>
-                        <th>Action</th>
+                        <!-- <th>Action</th> -->
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($types as $type => $value): ?>
-                        <tr>
-                            <td><input type="checkbox"></input></td>
-                            <td class="useCursorPointer" onclick="toggleCB(this);"><?php echo h($type); ?></td>
-                            <td></td>
-                            <td>
-                                <span class="fa fa-check-circle"></span>
-                                <button class="btn btn-primary btn-mini"><span class="fa fa-arrow-up"></span></button>
-                            </td>
-                        </tr>
+                    <?php foreach ($types as $type => $info): ?>
+                        <?php if ($info['to_ids'] == 1): ?>
+                            <tr>
+                                <td><input type="checkbox"></input></td>
+                                <td class="useCursorPointer" onclick="toggleCB(this);"><?php echo h($type); ?></td>
+                                <td class="useCursorPointer" onclick="toggleCB(this);"><?php echo h($info['default_category']); ?></td>
+                                <td></td>
+                            </tr>
+                        <?php endif; ?>
                     <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
     </div>
-    <div class="span12">
+    <div class="span10">
         <div style="border: 1px solid #ddd; border-radius: 4px; margin-bottom: 20px;">
             <canvas id="decayGraph" style="width: 100%;"></canvas>
         </div>
@@ -50,7 +50,7 @@
                     </div>
                 <?php endforeach; ?>
             </div>
-            <div class="span6">
+            <div class="span4">
                 <table class="table table-striped table-bordered">
                     <tbody>
                         <tr>
@@ -67,21 +67,37 @@
         </div>
 
         <div class="row">
-            <div class="span12">
+            <div class="span10">
+                <form class="form-inline">
+                    <input type="text" class="input" placeholder="Model name">
+                    <span class="btn btn-success">Save</span>
+                </form>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="span10">
                 <table class="table table-striped table-bordered">
                     <thead>
                         <tr>
-                            <th>Model Name</th>
-                            <th>Parameters</th>
-                            <th>Action</th>
+                            <th rowspan="2">Model Name</th>
+                            <th colspan="3">Parameters</th>
+                            <th rowspan="2">Action</th>
+                        </tr>
+                        <tr>
+                            <th>Tau</th>
+                            <th>Delta</th>
+                            <th>Threshold</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($savedModels as $model => $values): ?>
+                        <?php foreach ($savedModels as $k => $model): ?>
                             <tr>
-                                <td></td>
-                                <td></td>
-                                <td></td>
+                                <td><?php echo h($model['name']); ?></td>
+                                <td><?php echo h($model['parameters']['tau']); ?></td>
+                                <td><?php echo h($model['parameters']['delta']); ?></td>
+                                <td><?php echo h($model['parameters']['threshold']); ?></td>
+                                <td><button class="btn btn-primary btn-small" onclick="loadModel(this);" data-parameters="<?php echo json_encode($model['parameters'])?>" ><span class="fa fa-arrow-up"><?php echo __(' Load model') ?></span></button></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -198,6 +214,25 @@ function refreshInfoCells(threshold) {
     }
     $('#infoCellHalved').text(hoursToText(getReverseScore((100-threshold)/2 + threshold)));
     $('#infoCellExpired').text(hoursToText(getReverseScore(threshold)));
+}
+
+function loadModel(clicked) {
+    var $clicked = $(clicked);
+    var parameters = $clicked.closest('tr').find('td');
+    parameters = {
+        tau: parseFloat(parameters[1].innerHTML),
+        delta: parseFloat(parameters[2].innerHTML),
+        threshold: parseInt(parameters[3].innerHTML)
+    };
+
+    $('#input_Tau').val(parameters.tau);
+    $('#input_Delta').val(parameters.delta);
+    $('#input_Threshold').val(parameters.threshold);
+    chart.data.labels = genAxis();
+    chart.data.datasets[0].data = genDecay();
+    chart.data.datasets[1].data = genLine();
+    refreshInfoCells(parameters.threshold);
+    chart.update();
 }
 
 var chart;
