@@ -265,7 +265,7 @@
 
 	function makeTagging(tagIds) {
 		$('#GalaxyTargetIds').val(JSON.stringify(tagIds));
-		$('#GalaxyViewMitreAttackMatrixForm').submit();
+		$('#GalaxyViewGalaxyMatrixForm').submit();
 	}
 
 	function filterEvent(tagName, tagId) {
@@ -295,9 +295,9 @@
 		}
 
 		if (pickedGalaxies.length > 0) {
-			$('.matrix-div-submit').show();
+			$('.submit-container').show();
 		} else {
-			$('.matrix-div-submit').hide();
+			$('.submit-container').hide();
 		}
 	}
 }());

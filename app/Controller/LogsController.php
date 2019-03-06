@@ -78,8 +78,29 @@ class LogsController extends AppController
             }
             $conditions = array();
             foreach ($filters as $filter => $data) {
-                $data = array('OR' => $data);
-                $conditions = $this->Log->generic_add_filter($conditions, $data, 'Log.' . $filter);
+                if ($filter === 'created') {
+                    $tempData = $data;
+                    if (!is_array($data)) {
+                        $tempData = array($data);
+                    }
+                    foreach ($tempData as $k => $v) {
+                        $tempData[$k] = $this->Log->resolveTimeDelta($v);
+                    }
+                    if (count($tempData) == 1) {
+                        $conditions['AND']['created >='] = date("Y-m-d H:i:s", $tempData[0]);
+                    } else {
+                        if ($tempData[0] < $tempData[1]) {
+                            $temp = $tempData[1];
+                            $tempData[1] = $tempData[0];
+                            $tempData[0] = $temp;
+                        }
+                        $conditions['AND'][] = array('created <= ' => date("Y-m-d H:i:s", $tempData[0]));
+                        $conditions['AND'][] = array('created >= ' => date("Y-m-d H:i:s", $tempData[1]));
+                    }
+                } else {
+                    $data = array('OR' => $data);
+                    $conditions = $this->Log->generic_add_filter($conditions, $data, 'Log.' . $filter);
+                }
             }
             if (!$this->_isSiteAdmin()) {
                 $orgRestriction = $this->Auth->user('Organisation')['name'];

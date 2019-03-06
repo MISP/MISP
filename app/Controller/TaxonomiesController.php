@@ -7,7 +7,7 @@ class TaxonomiesController extends AppController
 
     public $paginate = array(
             'limit' => 60,
-            'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
             'contain' => array(
                 'TaxonomyPredicate' => array(
                     'fields' => array('TaxonomyPredicate.id'),
@@ -254,6 +254,66 @@ class TaxonomiesController extends AppController
         $this->redirect($this->referer());
     }
 
+    public function hideTag($taxonomy_id = false)
+    {
+        if ((!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) || !$this->request->is('post')) {
+            throw new NotFoundException('You don\'t have permission to do that.');
+        }
+        if ($taxonomy_id) {
+            $result = $this->Taxonomy->hideTags($taxonomy_id);
+        } else {
+            if (isset($this->request->data['Taxonomy'])) {
+                $this->request->data['Tag'] = $this->request->data['Taxonomy'];
+                unset($this->request->data['Taxonomy']);
+            }
+            if (isset($this->request->data['Tag']['request'])) {
+                $this->request->data['Tag'] = $this->request->data['Tag']['request'];
+            }
+            if (!isset($this->request->data['Tag']['nameList'])) {
+                $this->request->data['Tag']['nameList'] = array($this->request->data['Tag']['name']);
+            } else {
+                $this->request->data['Tag']['nameList'] = json_decode($this->request->data['Tag']['nameList'], true);
+            }
+            $result = $this->Taxonomy->hideTags($this->request->data['Tag']['taxonomy_id'], $this->request->data['Tag']['nameList']);
+        }
+        if ($result) {
+            $this->Flash->success('The tag(s) has been saved.');
+        } else {
+            $this->Flash->error('The tag(s) could not be saved. Please, try again.');
+        }
+        $this->redirect($this->referer());
+    }
+
+    public function unhideTag($taxonomy_id = false)
+    {
+        if ((!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) || !$this->request->is('post')) {
+            throw new NotFoundException('You don\'t have permission to do that.');
+        }
+        if ($taxonomy_id) {
+            $result = $this->Taxonomy->unhideTags($taxonomy_id);
+        } else {
+            if (isset($this->request->data['Taxonomy'])) {
+                $this->request->data['Tag'] = $this->request->data['Taxonomy'];
+                unset($this->request->data['Taxonomy']);
+            }
+            if (isset($this->request->data['Tag']['request'])) {
+                $this->request->data['Tag'] = $this->request->data['Tag']['request'];
+            }
+            if (!isset($this->request->data['Tag']['nameList'])) {
+                $this->request->data['Tag']['nameList'] = array($this->request->data['Tag']['name']);
+            } else {
+                $this->request->data['Tag']['nameList'] = json_decode($this->request->data['Tag']['nameList'], true);
+            }
+            $result = $this->Taxonomy->unhideTags($this->request->data['Tag']['taxonomy_id'], $this->request->data['Tag']['nameList']);
+        }
+        if ($result) {
+            $this->Flash->success('The tag(s) has been saved.');
+        } else {
+            $this->Flash->error('The tag(s) could not be saved. Please, try again.');
+        }
+        $this->redirect($this->referer());
+    }
+
     public function disableTag($taxonomy_id = false)
     {
         if ((!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) || !$this->request->is('post')) {
@@ -291,6 +351,24 @@ class TaxonomiesController extends AppController
         }
         $this->set('id', $id);
         $this->render('ajax/taxonomy_mass_confirmation');
+    }
+
+    public function taxonomyMassHide($id)
+    {
+        if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) {
+            throw new NotFoundException('You don\'t have permission to do that.');
+        }
+        $this->set('id', $id);
+        $this->render('ajax/taxonomy_mass_hide');
+    }
+
+    public function taxonomyMassUnhide($id)
+    {
+        if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) {
+            throw new NotFoundException('You don\'t have permission to do that.');
+        }
+        $this->set('id', $id);
+        $this->render('ajax/taxonomy_mass_unhide');
     }
 
     public function delete($id)

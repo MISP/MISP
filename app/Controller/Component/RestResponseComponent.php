@@ -27,25 +27,25 @@ class RestResponseComponent extends Component
                 'description' => "POST a MISP Attribute JSON to this API to update an Attribute. If the timestamp is set, it has to be newer than the existing Attribute.",
                 'mandatory' => array(),
                 'optional' => array('value', 'type', 'category', 'to_ids', 'uuid', 'distribution', 'sharing_group_id', 'timestamp', 'comment'),
-                'params' => array('event_id')
+                'params' => array('attribute_id')
             ),
             'deleteSelected' => array(
                 'description' => "POST a list of attribute IDs in JSON format to this API
-					to delete the given attributes. This API also expects an event ID passed via
-					the URL or via the event_id key. The id key also takes 'all' as a parameter
-					for a wildcard search to mass delete attributes. If you want the function to
-					also hard-delete already soft-deleted attributes, pass the allow_hard_delete
-					key.",
+                    to delete the given attributes. This API also expects an event ID passed via
+                    the URL or via the event_id key. The id key also takes 'all' as a parameter
+                    for a wildcard search to mass delete attributes. If you want the function to
+                    also hard-delete already soft-deleted attributes, pass the allow_hard_delete
+                    key.",
                 'mandatory' => array('id'),
                 'optional' => array('event_id', 'allow_hard_delete'),
                 'params' => array('event_id')
             ),
             'restSearch' => array(
                 'description' => "Search MISP using a list of filter parameters and return the data
-					in the selected format. The search is available on an event and an attribute level,
-					just select the scope via the URL (/events/restSearch vs /attributes/restSearch).
-					Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export).
-					This API allows pagination via the page and limit parameters.",
+                    in the selected format. The search is available on an event and an attribute level,
+                    just select the scope via the URL (/events/restSearch vs /attributes/restSearch).
+                    Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export).
+                    This API allows pagination via the page and limit parameters.",
                 'mandatory' => array('returnFormat'),
                 'optional' => array('page', 'limit', 'value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'to_ids', 'deleted', 'includeEventUuid', 'includeEventTags', 'event_timestamp', 'threat_level_id', 'eventinfo', 'includeProposals'),
                 'params' => array()
@@ -70,10 +70,10 @@ class RestResponseComponent extends Component
             ),
             'restSearch' => array(
                 'description' => "Search MISP using a list of filter parameters and return the data
-					in the selected format. The search is available on an event and an attribute level,
-					just select the scope via the URL (/events/restSearch vs /attributes/restSearch).
-					Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export).
-					This API allows pagination via the page and limit parameters.",
+                    in the selected format. The search is available on an event and an attribute level,
+                    just select the scope via the URL (/events/restSearch vs /attributes/restSearch).
+                    Besides the parameters listed, other, format specific ones can be passed along (for example: requested_attributes and includeContext for the CSV export).
+                    This API allows pagination via the page and limit parameters.",
                 'mandatory' => array('returnFormat'),
                 'optional' => array('page', 'limit', 'value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly', 'eventinfo'),
                 'params' => array()
@@ -243,11 +243,15 @@ class RestResponseComponent extends Component
                 'description' => "POST a body and a subject in a JSON to send an e-mail through MISP to the user ID given in the URL",
                 'mandatory' => array('subject', 'body')
             ),
-			'statistics' => array(
-				'description' => 'Simply GET the url endpoint to view the API output of the statistics API. Additional statistics are available via the following tab-options similar to the UI: data, orgs, users, tags, attributehistogram, sightings, attackMatrix',
-				'params' => array('tab'),
-				'http_method' => 'GET'
-			)
+            'change_pw' => array(
+                'description' => "POST a password via a JSON object containing the password key to reset the given user\'s password.",
+                'mandatory' => array('password')
+            ),
+            'statistics' => array(
+                'description' => 'Simply GET the url endpoint to view the API output of the statistics API. Additional statistics are available via the following tab-options similar to the UI: data, orgs, users, tags, attributehistogram, sightings, attackMatrix',
+                'params' => array('tab'),
+                'http_method' => 'GET'
+            )
         ),
         'Warninglist' => array(
             'checkValue' => array(
@@ -423,14 +427,24 @@ class RestResponseComponent extends Component
             $type = 'json';
         }
         $cakeResponse = new CakeResponse(array('body'=> $response, 'status' => $code, 'type' => $type));
+
+        if (Configure::read('Security.allow_cors')) {
+            $headers["Access-Control-Allow-Headers"] =  "Origin, Content-Type, Authorization, Accept";
+            $headers["Access-Control-Allow-Methods"] = "*";
+            $headers["Access-Control-Allow-Origin"] = explode(',', Configure::read('Security.cors_origins'));
+            $headers["Access-Control-Expose-Headers"] = ["X-Result-Count"];
+        }
+
         if (!empty($headers)) {
             foreach ($headers as $key => $value) {
                 $cakeResponse->header($key, $value);
             }
         }
+
         if ($download) {
             $cakeResponse->download($download);
         }
+
         return $cakeResponse;
     }
 
@@ -1338,7 +1352,8 @@ class RestResponseComponent extends Component
             'input' => 'text',
             'type' => 'string',
             'operators' => array('equal'),
-            'help' => 'An array containing values to sight. i.e. `[v1, v2]`',
+            'unique' => false,
+            'help' => 'Placeholder containing values to sight',
         ),
         'withAttachments' => array(
             'input' => 'radio',

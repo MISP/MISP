@@ -122,7 +122,7 @@
     </ul>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'export'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'export'));
 ?>
 <script type="text/javascript">
     function generate(i, type, id, progress, modified) {

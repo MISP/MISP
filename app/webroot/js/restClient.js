@@ -43,18 +43,41 @@ function setApiInfoBox(isTyping) {
     $(document).ready(function () {
         insertRawRestResponse();
         $('.format-toggle-button').bind('click', function() {
-            $('#rest-response-container').empty();
             if ($(this).data('toggle-type') == 'Raw') {
+                $('#rest-response-container').empty();
                 insertRawRestResponse();
             } else if ($(this).data('toggle-type') == 'HTML') {
+                $('#rest-response-container').empty();
                 insertHTMLRestResponse();
             } else if ($(this).data('toggle-type') == 'JSON') {
+                $('#rest-response-container').empty();
                 insertJSONRestResponse();
+            } else if ($(this).data('toggle-type') == 'Download') {
+                var download_content = $('#rest-response-hidden-container').text();
+                var extension = 'json';
+                var export_type = 'json';
+                var mime = 'application/json';
+                if ($('#header-X-Response-Format').length != 0) {
+                    extension = $('#header-X-Response-Format').text();
+                }
+                if ($('#header-Content-Type').length != 0) {
+                    mime = $('#header-Content-Type').text();
+                }
+                if ($('#header-X-Export-Module-Used').length != 0) {
+                    export_type = $('#header-X-Export-Module-Used').text();
+                }
+                var filename = export_type + '.result.' + extension;
+                var blob = new Blob([download_content], {
+                    type: mime
+                });
+                saveAs(blob, filename);
             }
         });
+
         $('#ServerUrl').keyup(function() {
             $('#TemplateSelect').val($(this).val()).trigger("chosen:updated").trigger("change");
         });
+
         $('#TemplateSelect').change(function() {
             var selected_template = $('#TemplateSelect').val();
             if (selected_template !== '' && allValidApis[selected_template] !== undefined) {
@@ -110,10 +133,10 @@ function setApiInfoBox(isTyping) {
             }
         });
         querybuilderTool = querybuilderTool[0].queryBuilder;
-        
+
         $('#btn-apply').on('click', function() {
             var result = querybuilderTool.getRules();
-            
+
             if (!$.isEmptyObject(result)) {
                 alert(JSON.stringify(result, null, 2));
             }

@@ -41,6 +41,8 @@ export AUTOCONF_VERSION=2.69
 ```bash
 echo https://cdn.openbsd.org/pub/OpenBSD/ > /etc/installurl
 echo "permit keepenv setenv { PKG_PATH ENV PS1 SSH_AUTH_SOCK } :wheel" > /etc/doas.conf
+## FIXME: this does NOT set the HOME env correctly, please fix to make pip happier
+echo "permit nopass setenv { ENV PS1 HOME=/var/www } www" >> /etc/doas.conf
 ```
 
 ##### In case you forgot to fetch ports (optional)
@@ -75,7 +77,7 @@ doas pkg_add -v mariadb-server
     automake wants to be version 1.16, option 7
 
 ```bash
-doas pkg_add -v curl git python redis libmagic autoconf automake libtool
+doas pkg_add -v curl git python redis libmagic autoconf automake libtool unzip
 ```
 
 !!! notice
@@ -234,11 +236,13 @@ doas virtualenv -ppython3 /usr/local/virtualenvs/MISP
 doas mkdir /usr/local/src
 doas chown misp:misp /usr/local/src
 cd /usr/local/src
-git clone https://github.com/ssdeep-project/ssdeep.git
+doas -u misp git clone https://github.com/ssdeep-project/ssdeep.git
 cd ssdeep
-./bootstrap
-./configure --prefix=/usr
-make
+export AUTOMAKE_VERSION=1.16
+export AUTOCONF_VERSION=2.69
+doas -u misp ./bootstrap
+doas -u misp ./configure --prefix=/usr
+doas -u misp make
 doas make install
 ```
 
@@ -255,29 +259,30 @@ doas pkg_add -v fcgi-cgi fcgi
     If on OpenBSD 6.3, upgrade to 6.4 to make your life much easier.
 
 ```
-doas pkg_add -v php-mysqli php-pcntl php-pdo_mysql php-apache pecl70-redis
+doas pkg_add -v php-mysqli php-pcntl php-pdo_mysql php-apache pecl72-redis
 ```
 
-#### /etc/php-7.0.ini 
+#### /etc/php-7.2.ini 
 ```
+## TODO: sed foo as .ini exists
 allow_url_fopen = On
 ```
 
 ```bash
-cd /etc/php-7.0
-doas cp ../php-7.0.sample/* .
+cd /etc/php-7.2
+doas cp ../php-7.2.sample/* .
 ```
 
 #### php symlinks
 ```bash
-doas ln -s /usr/local/bin/php-7.0 /usr/local/bin/php
-doas ln -s /usr/local/bin/phpize-7.0 /usr/local/bin/phpize
-doas ln -s /usr/local/bin/php-config-7.0 /usr/local/bin/php-config
+doas ln -s /usr/local/bin/php-7.2 /usr/local/bin/php
+doas ln -s /usr/local/bin/phpize-7.2 /usr/local/bin/phpize
+doas ln -s /usr/local/bin/php-config-7.2 /usr/local/bin/php-config
 ```
 
 #### Enable php fpm 
 ```bash
-doas rcctl enable php70_fpm
+doas rcctl enable php72_fpm
 ```
 
 #### Configure fpm
@@ -286,9 +291,28 @@ doas vi /etc/php-fpm.conf
 
 # pid = /var/www/run/php-fpm.pid
 # error_log = /var/www/logs/php-fpm.log
-# listen = /var/www/run/php-fpm.sock
 
-doas /etc/rc.d/php70_fpm start 
+doas mkdir /etc/php-fpm.d
+doas vi /etc/php-fpm.d/default.conf
+echo ";;;;;;;;;;;;;;;;;;;;
+; Pool Definitions ;
+;;;;;;;;;;;;;;;;;;;;
+
+[www]
+user = www
+group = www
+listen = /var/www/run/php-fpm.sock
+listen.owner = www
+listen.group = www
+listen.mode = 0660
+pm = dynamic
+pm.max_children = 5
+pm.start_servers = 2
+pm.min_spare_servers = 1
+pm.max_spare_servers = 3
+chroot = /var/www" | doas tee /etc/php-fpm.d/default.conf
+
+doas /etc/rc.d/php72_fpm start 
 ```
 
 !!! notice
@@ -329,16 +353,21 @@ doas pkg_add py-pip py3-pip libxml libxslt py3-jsonschema
 doas /usr/local/virtualenvs/MISP/bin/pip install -U pip
 
 cd /var/www/htdocs/MISP/app/files/scripts
+doas -u www git clone https://github.com/CybOXProject/mixbox.git
 doas -u www git clone https://github.com/CybOXProject/python-cybox.git
 doas -u www git clone https://github.com/STIXProject/python-stix.git
+doas -u www git clone https://github.com/MAECProject/python-maec.git
+
 cd /var/www/htdocs/MISP/app/files/scripts/python-cybox
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
+
 cd /var/www/htdocs/MISP/app/files/scripts/python-stix
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
+cd /var/www/htdocs/MISP/app/files/scripts/python-maec
+doas /usr/local/virtualenvs/MISP/bin/python setup.py install
+
 # install mixbox to accommodate the new STIX dependencies:
-cd /var/www/htdocs/MISP/app/files/scripts/
-doas -u www git clone https://github.com/CybOXProject/mixbox.git
 cd /var/www/htdocs/MISP/app/files/scripts/mixbox
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
@@ -350,10 +379,9 @@ doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 cd /var/www/htdocs/MISP/cti-python-stix2
 doas /usr/local/virtualenvs/MISP/bin/python setup.py install
 
-# install python-magic, pydeep and maec
+# install python-magic and pydeep
 doas /usr/local/virtualenvs/MISP/bin/pip install python-magic
 doas /usr/local/virtualenvs/MISP/bin/pip install git+https://github.com/kbandla/pydeep.git
-doas /usr/local/virtualenvs/MISP/bin/pip install maec
 ```
 
 ### 3/ CakePHP
@@ -362,7 +390,7 @@ doas /usr/local/virtualenvs/MISP/bin/pip install maec
 # CakePHP is included as a submodule of MISP and has been fetched earlier.
 # Install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd /var/www/htdocs/MISP/app
-mkdir /var/www/.composer ; chown www:www /var/www/.composer
+doas mkdir /var/www/.composer ; doas chown www:www /var/www/.composer
 doas -u www php composer.phar require kamisama/cake-resque:4.1.2
 doas -u www php composer.phar config vendor-dir Vendor
 doas -u www php composer.phar install
@@ -486,7 +514,7 @@ DirectoryIndex index.php
 ```
 
 ```bash
-doas ln -sf /var/www/conf/modules.sample/php-7.0.conf /var/www/conf/modules/php.conf
+doas ln -sf /var/www/conf/modules.sample/php-7.2.conf /var/www/conf/modules/php.conf
 # Restart apache
 doas /etc/rc.d/apache2 restart
 ``` 
@@ -585,7 +613,7 @@ doas -u www bash /var/www/htdocs/MISP/app/Console/worker/start.sh
 ```
 doas pkg_add -v jpeg yara
 cd /usr/local/src/
-git clone https://github.com/MISP/misp-modules.git
+doas -u misp git clone https://github.com/MISP/misp-modules.git
 cd misp-modules
 # pip3 install
 doas /usr/local/virtualenvs/MISP/bin/pip install -I -r REQUIREMENTS

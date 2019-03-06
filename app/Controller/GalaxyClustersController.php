@@ -7,7 +7,7 @@ class GalaxyClustersController extends AppController
 
     public $paginate = array(
             'limit' => 60,
-            'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
+            'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
             'recursive' => -1,
             'order' => array(
                 'GalaxyCluster.value' => 'ASC'
@@ -143,6 +143,8 @@ class GalaxyClustersController extends AppController
                 $cluster['GalaxyCluster']['tag_count'] = count($tag['EventTag']);
                 $cluster['GalaxyCluster']['tag_id'] = $tag['Tag']['id'];
             }
+        } else {
+            throw new NotFoundException('Cluster not found.');
         }
         if ($this->_isRest()) {
             $cluster['GalaxyCluster']['Galaxy'] = $cluster['Galaxy'];

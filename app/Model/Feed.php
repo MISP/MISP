@@ -372,7 +372,7 @@ class Feed extends AppModel
             $results = $pipe->exec();
             if (!$overrideLimit && count($objects) > 10000) {
                 foreach ($results as $k => $result) {
-                    if ($result) {
+                    if ($result && empty($objects[$k]['disable_correlation'])) {
                         if (isset($event['FeedCount'])) {
                             $event['FeedCount']++;
                         } else {
@@ -383,7 +383,7 @@ class Feed extends AppModel
                 }
             } else {
                 foreach ($results as $k => $result) {
-                    if ($result) {
+                    if ($result && empty($objects[$k]['disable_correlation'])) {
                         $hitIds[] = $k;
                     }
                 }
@@ -1023,6 +1023,10 @@ class Feed extends AppModel
             if ($jobId && $k % 100 == 0) {
                 $job->saveField('progress', 50 + round((50 * ((($k + 1) * 100) / count($data)))));
             }
+        }
+        if (!empty($data)) {
+            unset($event['Event']['timestamp']);
+            $this->Event->save($event);
         }
         if ($feed['Feed']['publish']) {
             $this->Event->publishRouter($event['Event']['id'], null, $user);

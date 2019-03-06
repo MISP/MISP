@@ -61,7 +61,7 @@
     echo $this->Form->end();?>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'editOrg', 'orgId' => $orgId));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'editOrg', 'orgId' => $orgId));
 ?>
 <script type="text/javascript">
     $(document).ready(function() {

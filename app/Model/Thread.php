@@ -6,7 +6,7 @@ class Thread extends AppModel
 {
     public $actsAs = array(
             'Containable',
-            'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+            'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
                     'roleModel' => 'Thread',
                     'roleKey' => 'thread_id',
                     'change' => 'full'

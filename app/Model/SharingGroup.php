@@ -5,7 +5,7 @@ class SharingGroup extends AppModel
 {
     public $actsAs = array(
             'Containable',
-            'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+            'SysLogLogable.SysLogLogable' => array( // TODO Audit, logable
                     'roleModel' => 'SharingGroup',
                     'roleKey' => 'sharing_group_id',
                     'change' => 'full'
@@ -34,12 +34,12 @@ class SharingGroup extends AppModel
         'SharingGroupOrg' => array(
             'className' => 'SharingGroupOrg',
             'foreignKey' => 'sharing_group_id',
-            'dependent' => true,	// cascade deletes
+            'dependent' => true,    // cascade deletes
         ),
         'SharingGroupServer' => array(
             'className' => 'SharingGroupServer',
             'foreignKey' => 'sharing_group_id',
-            'dependent' => true,	// cascade deletes
+            'dependent' => true,    // cascade deletes
         ),
         'Event',
         'Attribute',
@@ -577,7 +577,7 @@ class SharingGroup extends AppModel
                 if ($force) {
                     $sgids = $existingSG['SharingGroup']['id'];
                     $editedSG = $existingSG['SharingGroup'];
-                    $attributes = array('name',	'releasability', 'description', 'created', 'modified', 'active');
+                    $attributes = array('name', 'releasability', 'description', 'created', 'modified', 'active');
                     foreach ($attributes as $a) {
                         if (isset($sg[$a])) {
                             $editedSG[$a] = $sg[$a];

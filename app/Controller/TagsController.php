@@ -293,7 +293,7 @@ class TagsController extends AppController
             if ($this->Tag->save($this->request->data)) {
                 if ($this->_isRest()) {
                     $tag = $this->Tag->find('first', array(
-                        'contidions' => array(
+                        'conditions' => array(
                             'Tag.id' => $id
                         ),
                         'recursive' => -1
@@ -722,55 +722,38 @@ class TagsController extends AppController
 
         $this->set('scope', $scope);
         $this->set('object_id', $id);
-        App::uses('TextColourHelper', 'View/Helper');
-        $textColourHelper = new TextColourHelper(new View());
+
+        if ($scope === 'attribute') {
+            $onClickForm = 'quickSubmitAttributeTagForm';
+        } elseif ($scope === 'tag_collection') {
+            $onClickForm = 'quickSubmitTagCollectionTagForm';
+        } else {
+            $onClickForm = 'quickSubmitTagForm';
+        }
 
         $items = array();
         foreach ($tags as $k => $tag) {
-            $tagTemplate = '<span href="#" class="tagComplete" style="background-color:{{=it.background}}; color:{{=it.color}}">{{=it.name}}</span>';
-
             $tagName = $tag['name'];
             $choice_id = $k;
             if ($taxonomy_id === 'collections') {
                 $choice_id = 'collection_' . $choice_id;
             }
 
-            $onClickForm = 'quickSubmitTagForm';
-            if ($scope === 'attribute') {
-                $onClickForm = 'quickSubmitAttributeTagForm';
-            }
-            if ($scope === 'tag_collection') {
-                $onClickForm = 'quickSubmitTagCollectionTagForm';
-            }
-
-            if (is_numeric($taxonomy_id) && $taxonomy_id > 0 && isset($expanded[$tag['id']])) {
-                if (strlen($expanded[$tag['id']]) < 50) {
-                    $tagTemplate .= '<i style="float:right; font-size: smaller;">{{=it.expanded}}</i>';
-                } else {
-                    $tagTemplate .= '<it class="fa fa-info-circle" style="float:right;" title="{{=it.expanded}}"></it>';
-                }
-            }
-            if ($taxonomy_id === 'collections') {
-                $tagTemplate .= '<div class="apply_css_arrow" style="padding-left: 5px; margin-top: 5px; font-size: smaller;"><i>{{=it.includes}}</i></div>';
-            }
-
             $itemParam = array(
-                'name' => h($tagName),
-                'value' => h($choice_id),
-                'additionalData' => array(
-                    'id' => h($id)
-                ),
-                'template' => $tagTemplate,
-                'templateData' => array(
-                    'name' => h($tagName),
-                    'background' => h(isset($tag['colour']) ? $tag['colour'] : '#ffffff'),
-                    'color' => h(isset($tag['colour']) ? $textColourHelper->getTextColour($tag['colour']) : '#0088cc'),
-                    'expanded' => h($expanded[$tag['id']])
+                'name' => $tagName,
+                'value' => $choice_id,
+                'template' => array(
+                    'name' => array(
+                        'name' => $tagName,
+                        'label' => array(
+                            'background' => isset($tag['colour']) ? $tag['colour'] : '#ffffff'
+                        )
+                    ),
+                    'infoExtra' => $expanded[$tag['id']]
                 )
             );
             if ($taxonomy_id === 'collections') {
-                $TagCollectionTag = __('Includes: ') . h($inludedTagListString[$tag['id']]);
-                $itemParam['templateData']['includes'] = $TagCollectionTag;
+                $itemParam['template']['infoContextual'] = __('Includes: ') . $inludedTagListString[$tag['id']];
             }
             $items[] = $itemParam;
         }
@@ -778,6 +761,11 @@ class TagsController extends AppController
         $this->set('options', array( // set chosen (select picker) options
             'functionName' => $onClickForm,
             'multiple' => -1,
+            'select_options' => array(
+                'additionalData' => array(
+                    'id' => $id
+                ),
+            ),
         ));
         $this->render('ajax/select_tag');
     }
@@ -953,6 +941,13 @@ class TagsController extends AppController
         }
         $result = $this->$objectType->$connectorObject->save($data);
         if ($result) {
+            $tempObject = $this->$objectType->find('first', array(
+                'recursive' => -1,
+                'conditions' => array($objectType . '.id' => $object[$objectType]['id'])
+            ));
+            $date = new DateTime();
+            $tempObject[$objectType]['timestamp'] = $date->getTimestamp();
+            $this->$objectType->save($tempObject);
             if ($objectType === 'Attribute') {
                 $this->$objectType->Event->unpublishEvent($object['Event']['id']);
             } else if ($objectType === 'Event') {
@@ -1038,5 +1033,56 @@ class TagsController extends AppController
         $this->set('scope', 'tag');
         $this->set('id', $id);
         $this->render('/Events/view_graph');
+    }
+
+    public function search($tag = false)
+    {
+        if (isset($this->request->data['Tag'])) {
+            $this->request->data = $this->request->data['Tag'];
+        }
+        if (!empty($this->request->data['tag'])) {
+            $tag = $this->request->data['tag'];
+        } else if (!empty($this->request->data)) {
+            $tag = $this->request->data;
+        }
+        if (!is_array($tag)) {
+            $tag = array($tag);
+        }
+        foreach ($tag as $k => $t) {
+            $tag[$k] = strtolower($t);
+        }
+        $this->loadModel('GalaxyCluster');
+        $conditions = array('OR' => array('LOWER(GalaxyCluster.value) LIKE' => $t, array('GalaxyElement.key' => 'synonyms', 'OR' => array())));
+        foreach ($tag as $k => $t) {
+            $conditions['OR'][0]['OR'][] = array('LOWER(GalaxyElement.value) LIKE' => $t);
+        }
+        $elements = $this->GalaxyCluster->GalaxyElement->find('all', array(
+            'recursive' => -1,
+            'conditions' => $conditions,
+            'contain' => array('GalaxyCluster.tag_name')
+        ));
+        foreach ($elements as $element) {
+            $tag[] = strtolower($element['GalaxyCluster']['tag_name']);
+        }
+        $conditions = array();
+        foreach ($tag as $k => $t) {
+            $conditions['OR'][] = array('LOWER(Tag.name) LIKE' => $t);
+        }
+        $tags = $this->Tag->find('all', array(
+            'conditions' => $conditions,
+            'recursive' => -1
+        ));
+        $this->loadModel('Taxonomy');
+        foreach ($tags as $k => $t) {
+            $taxonomy = $this->Taxonomy->getTaxonomyForTag($t['Tag']['name'], true);
+            if (!empty($taxonomy)) {
+                $tags[$k]['Taxonomy'] = $taxonomy['Taxonomy'];
+            }
+            $cluster = $this->GalaxyCluster->getCluster($t['Tag']['name']);
+            if (!empty($cluster)) {
+                $tags[$k]['GalaxyCluster'] = $cluster['GalaxyCluster'];
+            }
+        }
+        return $this->RestResponse->viewData($tags, $this->response->type());
     }
 }

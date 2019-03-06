@@ -122,7 +122,7 @@ echo $this->Form->end();
     <?php echo $this->element('serverRuleElements/pull'); ?>
 </div>
 <?php
-    echo $this->element('side_menu', array('menuList' => 'sync', 'menuItem' => 'add'));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'sync', 'menuItem' => 'add'));
 ?>
 
 <script type="text/javascript">

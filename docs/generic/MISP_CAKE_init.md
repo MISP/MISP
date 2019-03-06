@@ -1,156 +1,140 @@
 #### Initialize MISP configuration and set some defaults
 ```bash
-# Default Cake path
-export CAKE="$PATH_TO_MISP/app/Console/cake"
-# Initialize user and fetch Auth Key
-sudo -H -u www-data -E $CAKE userInit -q
-AUTH_KEY=$(mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM users;" | tail -1)
+# <snippet-begin 2_core-cake.sh>
+# Core cake commands
+coreCAKE () {
+  debug "Running core Cake commands to set sane defaults for ${LBLUE}MISP${NC}"
+  $SUDO_WWW -E $CAKE userInit -q
 
-# Setup some more MISP default via cake CLI
+  # This makes sure all Database upgrades are done, without logging in.
+  $SUDO_WWW $CAKE Admin updateDatabase
 
-# Change base url, either with this CLI command or in the UI
-sudo -H -u www-data $CAKE Baseurl $MISP_BASEURL
-# example: 'baseurl' => 'https://<your.FQDN.here>',
-# alternatively, you can leave this field empty if you would like to use relative pathing in MISP
-# 'baseurl' => '',
+  # Setup some more MISP default via cake CLI
 
-# Tune global time outs
-sudo -H -u www-data $CAKE Admin setSetting "Session.autoRegenerate" 0
-sudo -H -u www-data $CAKE Admin setSetting "Session.timeout" 600
-sudo -H -u www-data $CAKE Admin setSetting "Session.cookie_timeout" 3600
+  # The default install is Python in a virtualenv, setting accordingly
+  $SUDO_WWW $CAKE Admin setSetting "MISP.python_bin" "${PATH_TO_MISP}/venv/bin/python"
 
-# Enable GnuPG
-sudo -H -u www-data $CAKE Admin setSetting "GnuPG.email" "admin@admin.test"
-sudo -H -u www-data $CAKE Admin setSetting "GnuPG.homedir" "$PATH_TO_MISP/.gnupg"
-sudo -H -u www-data $CAKE Admin setSetting "GnuPG.password" "Password1234"
+  # Tune global time outs
+  $SUDO_WWW $CAKE Admin setSetting "Session.autoRegenerate" 0
+  $SUDO_WWW $CAKE Admin setSetting "Session.timeout" 600
+  $SUDO_WWW $CAKE Admin setSetting "Session.cookieTimeout" 3600
 
-# Enable Enrichment set better timeouts
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Enrichment_services_enable" true
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Enrichment_hover_enable" true
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Enrichment_timeout" 300
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Enrichment_hover_timeout" 150
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Enrichment_cve_enabled" true
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Enrichment_dns_enabled" true
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Enrichment_services_url" "http://127.0.0.1"
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Enrichment_services_port" 6666
+  # Change base url, either with this CLI command or in the UI
+  $SUDO_WWW $CAKE Baseurl $MISP_BASEURL
+  # example: 'baseurl' => 'https://<your.FQDN.here>',
+  # alternatively, you can leave this field empty if you would like to use relative pathing in MISP
+  # 'baseurl' => '',
 
-# Enable Import modules set better timout
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Import_services_enable" true
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Import_services_url" "http://127.0.0.1"
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Import_services_port" 6666
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Import_timeout" 300
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Import_ocr_enabled" true
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Import_csvimport_enabled" true
+  # Enable GnuPG
+  $SUDO_WWW $CAKE Admin setSetting "GnuPG.email" "$GPG_EMAIL_ADDRESS"
+  $SUDO_WWW $CAKE Admin setSetting "GnuPG.homedir" "$PATH_TO_MISP/.gnupg"
+  $SUDO_WWW $CAKE Admin setSetting "GnuPG.password" "$GPG_PASSPHRASE"
 
-# Enable Export modules set better timout
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Export_services_enable" true
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Export_services_url" "http://127.0.0.1"
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Export_services_port" 6666
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Export_timeout" 300
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Export_pdfexport_enabled" true
+  # Enable installer org and tune some configurables
+  $SUDO_WWW $CAKE Admin setSetting "MISP.host_org_id" 1
+  $SUDO_WWW $CAKE Admin setSetting "MISP.email" "info@admin.test"
+  $SUDO_WWW $CAKE Admin setSetting "MISP.disable_emailing" true
+  $SUDO_WWW $CAKE Admin setSetting "MISP.contact" "info@admin.test"
+  $SUDO_WWW $CAKE Admin setSetting "MISP.disablerestalert" true
+  $SUDO_WWW $CAKE Admin setSetting "MISP.showCorrelationsOnIndex" true
+  $SUDO_WWW $CAKE Admin setSetting "MISP.default_event_tag_collection" 0
 
-# Enable installer org and tune some configurables
-sudo -H -u www-data $CAKE Admin setSetting "MISP.host_org_id" 1
-sudo -H -u www-data $CAKE Admin setSetting "MISP.email" "info@admin.test"
-sudo -H -u www-data $CAKE Admin setSetting "MISP.disable_emailing" true
-sudo -H -u www-data $CAKE Admin setSetting "MISP.contact" "info@admin.test"
-sudo -H -u www-data $CAKE Admin setSetting "MISP.disablerestalert" true
-sudo -H -u www-data $CAKE Admin setSetting "MISP.showCorrelationsOnIndex" true
-sudo -H -u www-data $CAKE Admin setSetting "MISP.default_event_tag_collection" 0
+  # Provisional Cortex tunes
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_services_enable" false
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_services_url" "http://127.0.0.1"
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_services_port" 9000
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_timeout" 120
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_authkey" ""
+  # Mysteriously removed?
+  #$SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_services_timeout" 120
+  # Mysteriously removed?
+  #$SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_services_authkey" ""
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_ssl_verify_peer" false
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_ssl_verify_host" false
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.Cortex_ssl_allow_self_signed" true
 
-# Provisional Cortex tunes
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Cortex_services_enable" false
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Cortex_services_url" "http://127.0.0.1"
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Cortex_services_port" 9000
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Cortex_timeout" 120
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Cortex_services_url" "http://127.0.0.1"
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Cortex_services_port" 9000
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Cortex_services_timeout" 120
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Cortex_services_authkey" ""
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Cortex_ssl_verify_peer" false
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Cortex_ssl_verify_host" false
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Cortex_ssl_allow_self_signed" true
+  # Various plugin sightings settings
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.Sightings_policy" 0
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.Sightings_anonymise" false
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.Sightings_range" 365
 
-# Various plugin sightings settings
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Sightings_policy" 0
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Sightings_anonymise" false
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.Sightings_range" 365
+  # Plugin CustomAuth tuneable
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.CustomAuth_disable_logout" false
 
-# Plugin CustomAuth tuneable
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.CustomAuth_disable_logout" false
+  # RPZ Plugin settings
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.RPZ_policy" "DROP"
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.RPZ_walled_garden" "127.0.0.1"
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.RPZ_serial" "\$date00"
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.RPZ_refresh" "2h"
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.RPZ_retry" "30m"
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.RPZ_expiry" "30d"
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.RPZ_minimum_ttl" "1h"
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.RPZ_ttl" "1w"
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.RPZ_ns" "localhost."
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.RPZ_ns_alt" ""
+  $SUDO_WWW $CAKE Admin setSetting "Plugin.RPZ_email" "root.localhost"
 
-# RPZ Plugin settings
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.RPZ_policy" "DROP"
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.RPZ_walled_garden" "127.0.0.1"
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.RPZ_serial" "\$date00"
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.RPZ_refresh" "2h"
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.RPZ_retry" "30m"
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.RPZ_expiry" "30d"
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.RPZ_minimum_ttl" "1h"
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.RPZ_ttl" "1w"
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.RPZ_ns" "localhost."
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.RPZ_ns_alt" ""
-sudo -H -u www-data $CAKE Admin setSetting "Plugin.RPZ_email" "root.localhost"
+  # Force defaults to make MISP Server Settings less RED
+  $SUDO_WWW $CAKE Admin setSetting "MISP.language" "eng"
+  $SUDO_WWW $CAKE Admin setSetting "MISP.proposals_block_attributes" false
 
-# Force defaults to make MISP Server Settings less RED
-sudo -H -u www-data $CAKE Admin setSetting "MISP.language" "eng"
-sudo -H -u www-data $CAKE Admin setSetting "MISP.proposals_block_attributes" false
+  # Redis block
+  $SUDO_WWW $CAKE Admin setSetting "MISP.redis_host" "127.0.0.1"
+  $SUDO_WWW $CAKE Admin setSetting "MISP.redis_port" 6379
+  $SUDO_WWW $CAKE Admin setSetting "MISP.redis_database" 13
+  $SUDO_WWW $CAKE Admin setSetting "MISP.redis_password" ""
 
-## Redis block
-sudo -H -u www-data $CAKE Admin setSetting "MISP.redis_host" "127.0.0.1"
-sudo -H -u www-data $CAKE Admin setSetting "MISP.redis_port" 6379
-sudo -H -u www-data $CAKE Admin setSetting "MISP.redis_database" 13
-sudo -H -u www-data $CAKE Admin setSetting "MISP.redis_password" ""
+  # Force defaults to make MISP Server Settings less YELLOW
+  $SUDO_WWW $CAKE Admin setSetting "MISP.ssdeep_correlation_threshold" 40
+  $SUDO_WWW $CAKE Admin setSetting "MISP.extended_alert_subject" false
+  $SUDO_WWW $CAKE Admin setSetting "MISP.default_event_threat_level" 4
+  $SUDO_WWW $CAKE Admin setSetting "MISP.newUserText" "Dear new MISP user,\\n\\nWe would hereby like to welcome you to the \$org MISP community.\\n\\n Use the credentials below to log into MISP at \$misp, where you will be prompted to manually change your password to something of your own choice.\\n\\nUsername: \$username\\nPassword: \$password\\n\\nIf you have any questions, don't hesitate to contact us at: \$contact.\\n\\nBest regards,\\nYour \$org MISP support team"
+  $SUDO_WWW $CAKE Admin setSetting "MISP.passwordResetText" "Dear MISP user,\\n\\nA password reset has been triggered for your account. Use the below provided temporary password to log into MISP at \$misp, where you will be prompted to manually change your password to something of your own choice.\\n\\nUsername: \$username\\nYour temporary password: \$password\\n\\nIf you have any questions, don't hesitate to contact us at: \$contact.\\n\\nBest regards,\\nYour \$org MISP support team"
+  $SUDO_WWW $CAKE Admin setSetting "MISP.enableEventBlacklisting" true
+  $SUDO_WWW $CAKE Admin setSetting "MISP.enableOrgBlacklisting" true
+  $SUDO_WWW $CAKE Admin setSetting "MISP.log_client_ip" false
+  $SUDO_WWW $CAKE Admin setSetting "MISP.log_auth" false
+  $SUDO_WWW $CAKE Admin setSetting "MISP.disableUserSelfManagement" false
+  $SUDO_WWW $CAKE Admin setSetting "MISP.block_event_alert" false
+  $SUDO_WWW $CAKE Admin setSetting "MISP.block_event_alert_tag" "no-alerts=\"true\""
+  $SUDO_WWW $CAKE Admin setSetting "MISP.block_old_event_alert" false
+  $SUDO_WWW $CAKE Admin setSetting "MISP.block_old_event_alert_age" ""
+  $SUDO_WWW $CAKE Admin setSetting "MISP.incoming_tags_disabled_by_default" false
+  $SUDO_WWW $CAKE Admin setSetting "MISP.footermidleft" "This is an initial install"
+  $SUDO_WWW $CAKE Admin setSetting "MISP.footermidright" "Please configure and harden accordingly"
+  $SUDO_WWW $CAKE Admin setSetting "MISP.welcome_text_top" "Initial Install, please configure"
+  # TODO: Make sure $FLAVOUR is correct
+  $SUDO_WWW $CAKE Admin setSetting "MISP.welcome_text_bottom" "Welcome to MISP on $FLAVOUR, change this message in MISP Settings"
 
-# Force defaults to make MISP Server Settings less YELLOW
-sudo -H -u www-data $CAKE Admin setSetting "MISP.ssdeep_correlation_threshold" 40
-sudo -H -u www-data $CAKE Admin setSetting "MISP.extended_alert_subject" false
-sudo -H -u www-data $CAKE Admin setSetting "MISP.default_event_threat_level" 4
-sudo -H -u www-data $CAKE Admin setSetting "MISP.newUserText" "Dear new MISP user,\\n\\nWe would hereby like to welcome you to the \$org MISP community.\\n\\n Use the credentials below to log into MISP at \$misp, where you will be prompted to manually change your password to something of your own choice.\\n\\nUsername: \$username\\nPassword: \$password\\n\\nIf you have any questions, don't hesitate to contact us at: \$contact.\\n\\nBest regards,\\nYour \$org MISP support team"
-sudo -H -u www-data $CAKE Admin setSetting "MISP.passwordResetText" "Dear MISP user,\\n\\nA password reset has been triggered for your account. Use the below provided temporary password to log into MISP at \$misp, where you will be prompted to manually change your password to something of your own choice.\\n\\nUsername: \$username\\nYour temporary password: \$password\\n\\nIf you have any questions, don't hesitate to contact us at: \$contact.\\n\\nBest regards,\\nYour \$org MISP support team"
-sudo -H -u www-data $CAKE Admin setSetting "MISP.enableEventBlacklisting" true
-sudo -H -u www-data $CAKE Admin setSetting "MISP.enableOrgBlacklisting" true
-sudo -H -u www-data $CAKE Admin setSetting "MISP.log_client_ip" false
-sudo -H -u www-data $CAKE Admin setSetting "MISP.log_auth" false
-sudo -H -u www-data $CAKE Admin setSetting "MISP.disableUserSelfManagement" false
-sudo -H -u www-data $CAKE Admin setSetting "MISP.block_event_alert" false
-sudo -H -u www-data $CAKE Admin setSetting "MISP.block_event_alert_tag" "no-alerts=\"true\""
-sudo -H -u www-data $CAKE Admin setSetting "MISP.block_old_event_alert" false
-sudo -H -u www-data $CAKE Admin setSetting "MISP.block_old_event_alert_age" ""
-sudo -H -u www-data $CAKE Admin setSetting "MISP.incoming_tags_disabled_by_default" false
-sudo -H -u www-data $CAKE Admin setSetting "MISP.footermidleft" "This is an initial install"
-sudo -H -u www-data $CAKE Admin setSetting "MISP.footermidright" "Please configure and harden accordingly"
-sudo -H -u www-data $CAKE Admin setSetting "MISP.welcome_text_top" "Initial Install, please configure"
-sudo -H -u www-data $CAKE Admin setSetting "MISP.welcome_text_bottom" "Welcome to MISP, change this message in MISP Settings"
+  # Force defaults to make MISP Server Settings less GREEN
+  $SUDO_WWW $CAKE Admin setSetting "Security.password_policy_length" 12
+  $SUDO_WWW $CAKE Admin setSetting "Security.password_policy_complexity" '/^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/'
 
-# Force defaults to make MISP Server Settings less GREEN
-sudo -H -u www-data $CAKE Admin setSetting "Security.password_policy_length" 12
-sudo -H -u www-data $CAKE Admin setSetting "Security.password_policy_complexity" '/^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/'
+  # Set MISP Live
+  $SUDO_WWW $CAKE Live $MISP_LIVE
+}
 
-# Tune global time outs
-sudo -H -u www-data $CAKE Admin setSetting "Session.autoRegenerate" 0
-sudo -H -u www-data $CAKE Admin setSetting "Session.timeout" 600
-sudo -H -u www-data $CAKE Admin setSetting "Session.cookie_timeout" 3600
+# This updates Galaxies, ObjectTemplates, Warninglists, Noticelists, Templates
+updateGOWNT () {
+  debug "Updating Galaxies, ObjectTemplates, Warninglists, Noticelists and Templates"
+  AUTH_KEY=$(mysql -u $DBUSER_MISP -p$DBPASSWORD_MISP misp -e "SELECT authkey FROM users;" | tail -1)
 
-# Update the galaxies…
-##sudo -H -u www-data $CAKE Admin updateGalaxies
-curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/galaxies/update
-
-# Updating the taxonomies…
-sudo -H -u www-data $CAKE Admin updateTaxonomies
-
-# Updating the warning lists…
-##sudo -H -u www-data $CAKE Admin updateWarningLists
-curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/warninglists/update
-
-# Updating the notice lists…
-## sudo -H -u www-data $CAKE Admin updateNoticeLists
-curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/noticelists/update
-
-# Updating the object templates…
-##sudo -H -u www-data $CAKE Admin updateObjectTemplates
-curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/objectTemplates/update
-
-# Set MISP Live
-sudo -H -u www-data $CAKE Live $MISP_LIVE
+  # Update the galaxies…
+  # TODO: Fix updateGalaxies
+  ##$SUDO_WWW $CAKE Admin updateGalaxies
+  curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/galaxies/update
+  # Updating the taxonomies…
+  $SUDO_WWW $CAKE Admin updateTaxonomies
+  # Updating the warning lists…
+  # TODO: Fix updateWarningLists
+  ##$SUDO_WWW $CAKE Admin updateWarningLists
+  curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/warninglists/update
+  # Updating the notice lists…
+  ## $SUDO_WWW $CAKE Admin updateNoticeLists
+  curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/noticelists/update
+  # Updating the object templates…
+  ##$SUDO_WWW $CAKE Admin updateObjectTemplates
+  curl --header "Authorization: $AUTH_KEY" --header "Accept: application/json" --header "Content-Type: application/json" -k -X POST https://127.0.0.1/objectTemplates/update
+}
+# <snippet-end 2_core-cake.sh>
 ```

@@ -4,7 +4,7 @@ App::uses('Xml', 'Utility');
 
 class FeedsController extends AppController
 {
-    public $components = array('Security' ,'RequestHandler');	// XXX ACL component
+    public $components = array('Security' ,'RequestHandler');   // XXX ACL component
 
     public $paginate = array(
             'limit' => 60,
@@ -22,7 +22,7 @@ class FeedsController extends AppController
     public function beforeFilter()
     {
         parent::beforeFilter();
-        $this->Security->unlockedActions = array('previewIndex');
+        $this->Security->unlockedActions[] = 'previewIndex';
         if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != Configure::read('MISP.host_org_id')) {
             throw new MethodNotAllowedException(__('You don\'t have the required privileges to do that.'));
         }
@@ -159,6 +159,9 @@ class FeedsController extends AppController
                 $this->request->data['Feed']['sharing_group_id'] = 0;
             }
             $this->request->data['Feed']['default'] = 0;
+            if (!isset($this->request->data['Feed']['source_format'])) {
+                $this->request->data['Feed']['source_format'] = 'freetext';
+            }
             if ($this->request->data['Feed']['source_format'] == 'freetext') {
                 if ($this->request->data['Feed']['fixed_event'] == 1) {
                     if (!empty($this->request->data['Feed']['target_event']) && is_numeric($this->request->data['Feed']['target_event'])) {
@@ -546,6 +549,27 @@ class FeedsController extends AppController
         if (!is_array($events)) {
             $this->Flash->info($events);
             $this->redirect(array('controller' => 'feeds', 'action' => 'index'));
+        }
+        if (!empty($this->params['named']['searchall'])) {
+            foreach ($events as $uuid => $event) {
+                $found = false;
+                if (strpos(strtolower($event['info']), strtolower($this->params['named']['searchall'])) !== false) {
+                    $found = true;
+                }
+                if (strpos(strtolower($event['Orgc']['name']), strtolower($this->params['named']['searchall'])) !== false) {
+                    $found = true;
+                }
+                if (!empty($event['Tag'])) {
+                    foreach ($event['Tag'] as $tag) {
+                        if (strpos(strtolower($tag['name']), strtolower($this->params['named']['searchall'])) !== false) {
+                            $found = true;
+                        }
+                    }
+                }
+                if (!$found) {
+                    unset($events[$uuid]);
+                }
+            }
         }
         foreach ($filterParams as $k => $filter) {
             if (!empty($filter)) {

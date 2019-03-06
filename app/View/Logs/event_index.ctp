@@ -68,5 +68,5 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 <?php
     // We mimic the $event from some other views to pass the ID back to the sidemenu
     $event['Event']['id'] = $eventId;
-    echo $this->element('side_menu', array('menuList' => 'event', 'event' => $event, 'menuItem' => 'eventLog', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
+    echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'event' => $event, 'menuItem' => 'eventLog', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
 ?>

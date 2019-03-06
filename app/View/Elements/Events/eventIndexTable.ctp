@@ -79,11 +79,11 @@
             <?php
             if ($event['Event']['published'] == 1) {
             ?>
-                <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-ok" title = "<?php echo __('View');?>"></a>
+                <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" title = "<?php echo __('View');?>"><i class="black fa fa-check"></i></a>
             <?php
             } else {
             ?>
-                <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-remove" title = "<?php echo __('View');?>"></a>
+                <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" title = "<?php echo __('View');?>"><i class="black fa fa-times"></i></a>
             <?php
             }?>&nbsp;
         </td>
@@ -135,7 +135,7 @@
                         <span class="blue">
                             &nbsp;
                             <a href="<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($cluster['tag_id']); ?>"><?php echo h($cluster['value']); ?></a>
-                            <a href="<?php echo $baseurl; ?>/galaxy_clusters/view/<?php echo h($cluster['id']); ?>" class="icon-search"></a>
+                            <a href="<?php echo $baseurl; ?>/galaxy_clusters/view/<?php echo h($cluster['id']); ?>"><i class="black fa fa-search"></i></a>
                         </span>
                     <?php
                     endforeach;
@@ -155,7 +155,7 @@
                         else $tagText = h($tag['Tag']['name']);
                     }
                 ?>
-                    <span class="tag useCursorPointer" style="margin-bottom:3px;background-color:<?php echo h($tag['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>;" title="<?php echo h($tag['Tag']['name']); ?>" onClick="document.location.href='<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($tag['Tag']['id']);?>';"><?php echo $tagText; ?></span>
+                    <a class="tag useCursorPointer" style="margin-bottom:3px;background-color:<?php echo h($tag['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>;" title="<?php echo h($tag['Tag']['name']); ?>" onClick="document.location.href='<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($tag['Tag']['id']);?>';"><?php echo $tagText; ?></a>
                 <?php endforeach; ?>
             </td>
         <?php endif; ?>
@@ -163,8 +163,12 @@
             <?php echo $event['Event']['attribute_count']; ?>&nbsp;
         </td>
         <?php if (Configure::read('MISP.showCorrelationsOnIndex')):?>
-            <td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['correlation_count']) ? h($event['Event']['correlation_count']) : '0') . __(' correlation(s)');?>">
-                <?php echo !empty($event['Event']['correlation_count']) ? h($event['Event']['correlation_count']) : ''; ?>&nbsp;
+            <td class = "bold" style="width:30px;">
+                <?php if (!empty($event['Event']['correlation_count'])): ?>
+                    <a href="<?php echo $baseurl."/events/view/" . h($event['Event']['id']) . '/correlation:1';?>" title="<?php echo h($event['Event']['correlation_count']) . __(' correlation(s). Show filtered event with correlation only.');?>">
+                        <?php echo h($event['Event']['correlation_count']); ?>&nbsp;
+                    </a>
+                <?php endif; ?>
             </td>
         <?php endif; ?>
         <?php if (Configure::read('MISP.showSightingsCountOnIndex')):?>
@@ -214,18 +218,18 @@
         <td class="short action-links">
             <?php
                 if (0 == $event['Event']['published'] && ($isSiteAdmin || ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id'])))
-                    echo $this->Form->postLink('', array('action' => 'alert', $event['Event']['id']), array('class' => 'icon-download-alt', 'title' => __('Publish Event'), __('Are you sure this event is complete and everyone should be informed?')));
+                    echo $this->Form->postLink('', array('action' => 'alert', $event['Event']['id']), array('class' => 'black fa fa-upload', 'title' => __('Publish Event'), __('Are you sure this event is complete and everyone should be informed?')));
                 else if (0 == $event['Event']['published']) echo __('Not published');
 
                 if ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['orgc_id'] == $me['org_id'])):
             ?>
-                    <a href='<?php echo $baseurl."/events/edit/".$event['Event']['id'];?>' class = "icon-edit" title = "<?php echo __('Edit');?>"></a>
+                    <a href='<?php echo $baseurl."/events/edit/".$event['Event']['id'];?>' title = "<?php echo __('Edit');?>"><i class="black fa fa-edit"></i></a>
             <?php
 
-                    echo $this->Form->postLink('', array('action' => 'delete', $event['Event']['id']), array('class' => 'icon-trash', 'title' => __('Delete')), __('Are you sure you want to delete # %s?', $event['Event']['id']));
+                    echo $this->Form->postLink('', array('action' => 'delete', $event['Event']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete')), __('Are you sure you want to delete # %s?', $event['Event']['id']));
                 endif;
             ?>
-            <a href='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>' class = "icon-list-alt" title = "<?php echo __('View');?>"></a>
+            <a href='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>' title = "<?php echo __('View');?>"><i class="fa black fa-eye"></i></a>
         </td>
     </tr>
     <?php endforeach; ?>
