@@ -1972,9 +1972,9 @@ class UsersController extends AppController
 
     public function decayingTool() {
         $parameters = array(
-            'Tau' => array('value' => 30, 'step' => 1, 'max' => 365, 'greek' => 'τ', 'unit' => 'days'),
-            'Delta' => array('value' => 0.3, 'step' => 0.1, 'max' => 10, 'greek' => 'δ'),
-            'Threshold' => array('value' => 30, 'step' => 1)
+            'Tau' => array('value' => 30, 'step' => 1, 'max' => 365, 'greek' => 'τ', 'unit' => 'days', 'info' => 'Lifetime withouth threshold'),
+            'Delta' => array('value' => 0.3, 'step' => 0.1, 'max' => 10, 'greek' => 'δ', 'info' => 'Decay speed'),
+            'Threshold' => array('value' => 30, 'step' => 1, 'info' => 'Cut-off value to expire')
         );
         $this->set('parameters', $parameters);
         $this->set('types', $this->User->Event->Attribute->typeDefinitions);

@@ -34,11 +34,13 @@
         <div style="border: 1px solid #ddd; border-radius: 4px; margin-bottom: 20px;">
             <canvas id="decayGraph" style="width: 100%;"></canvas>
         </div>
-        <div>
+        <div class="row">
             <div class="span6" style="margin-bottom: 20px;">
                 <?php foreach ($parameters as $param => $config): ?>
                     <div class="input-prepend input-append">
-                        <span class="add-on" style="min-width: 70px;"><?php echo h($param) . (isset($config['greek']) ? ' <strong>'.h($config['greek']).'</strong>' : ''); ?></span>
+                        <span class="add-on" data-toggle="tooltip" data-placement="left" style="min-width: 70px;" title="<?php echo isset($config['info']) ? h($config['info']) : ''?>">
+                            <?php echo h($param) . (isset($config['greek']) ? ' <strong>'.h($config['greek']).'</strong>' : ''); ?>
+                        </span>
                         <input id="input_<?php echo h($param); ?>" class="input-mini" type="number" min=0 step=<?php echo h($config['step']); ?> value=<?php echo h($config['value']); ?> oninput="refreshGraph(this);" ></input>
                         <span class="add-on"><input id="input_<?php echo h($param); ?>_range" type="range" min=0 <?php echo isset($config['max']) ? 'max=' . $config['max'] : '' ?> step=<?php echo h($config['step']); ?> value=<?php echo h($config['value']); ?> oninput="$('#input_<?php echo h($param); ?>').val(this.value).trigger('input');"></input></span>
                         <?php if (isset($config['unit'])): ?>
@@ -47,6 +49,20 @@
 
                     </div>
                 <?php endforeach; ?>
+            </div>
+            <div class="span6">
+                <table class="table table-striped table-bordered">
+                    <tbody>
+                        <tr>
+                            <td>Expire after (lifetime)</td>
+                            <td id="infoCellExpired"></td>
+                        </tr>
+                        <tr>
+                            <td>Score halved after (Half-life)</td>
+                            <td id="infoCellHalved"></td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -82,6 +98,19 @@
 <?php echo $this->Html->script('Chart.min'); ?>
 
 <script>
+function hoursToText(hours) {
+    hours = parseInt(hours);
+    var days = parseInt(hours / 24);
+    var rem_hours = parseInt(hours % 24);
+    var text = ""
+        + days
+        + (days>1 ? " days" : " day");
+    if (rem_hours > 0) {
+        text += " and " + rem_hours + (rem_hours>1 ? " hours" : " hour");
+    }
+    return text;
+}
+
 function toggleCB(clicked) {
     $clicked = $(clicked);
     var cb = $clicked.parent().first().find('input');
@@ -135,13 +164,13 @@ function refreshGraph(updated) {
     var $this = $(updated);
     var id = $this.attr('id');
     var val = parseInt($this.val());
+    var threshold = parseInt($('#input_Threshold').val());
     var datasetDecay = chart.data.datasets[0];
     var updateOption = {};
     switch(id) {
         case 'input_Threshold':
-            var val = parseInt($('#input_Threshold').val());
             for(var i=0; i<chart.data.datasets[1].data.length; i++) {
-                chart.data.datasets[1].data[i] = val;
+                chart.data.datasets[1].data[i] = threshold;
             }
             chart.data.datasets[0].data = genDecay();
             break;
@@ -152,20 +181,28 @@ function refreshGraph(updated) {
             updateOption['duration'] = 0;
             break;
         case 'input_Delta':
-            // chart.data.labels.forEach(function (x, i) {
-            //     chart.data.datasets[0].data[i] = getScore(x);
-            // });
             chart.data.datasets[0].data = genDecay();
             break;
         default:
             break;
     }
     $('#'+id+'_range').val($this.val());
+
+    refreshInfoCells(threshold);
     chart.update(updateOption);
+}
+
+function refreshInfoCells(threshold) {
+    if (threshold === undefined) {
+        threshold = parseInt($('#input_Threshold').val());
+    }
+    $('#infoCellHalved').text(hoursToText(getReverseScore((100-threshold)/2 + threshold)));
+    $('#infoCellExpired').text(hoursToText(getReverseScore(threshold)));
 }
 
 var chart;
 $(document).ready(function() {
+    $('[data-toggle="tooltip"]').tooltip();
     var ctx = $('#decayGraph');
     chart = new Chart(ctx, {
         type: 'line',
@@ -225,15 +262,7 @@ $(document).ready(function() {
                 intersect: false,
                 callbacks: {
                     title: function(tooltipItem, data)  {
-                        var days = parseInt(tooltipItem[0].index / 24);
-                        var hours = parseInt(tooltipItem[0].index % 24);
-                        var text = "After "
-                            + days
-                            + (days>1 ? " days" : " day");
-                        if (hours > 0) {
-                            text += " and " + hours + (hours>1 ? " hours" : " hour");
-                        }
-                        return text;
+                        return hoursToText(tooltipItem[0].index);
                     },
                     label: function(tooltipItem, data)  {
                         var label = data.datasets[tooltipItem.datasetIndex].label;
@@ -247,5 +276,6 @@ $(document).ready(function() {
             },
         }
     });
+    refreshInfoCells();
 });
 </script>
