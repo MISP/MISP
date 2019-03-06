@@ -51,39 +51,6 @@
   },
   {
     "Feed": {
-      "id": "3",
-      "name": "inThreat OSINT Feed",
-      "provider": "inThreat",
-      "url": "https://feeds.inthreat.com/osint/misp/",
-      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
-      "enabled": true,
-      "distribution": "0",
-      "sharing_group_id": "0",
-      "tag_id": "615",
-      "default": false,
-      "source_format": "misp",
-      "fixed_event": false,
-      "delta_merge": false,
-      "event_id": "0",
-      "publish": false,
-      "override_ids": false,
-      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
-      "input_source": "network",
-      "delete_local_file": false,
-      "lookup_visible": false,
-      "cache_timestamp": "1495872675"
-    },
-    "Tag": {
-      "id": "615",
-      "name": "osint:source-type=\"block-or-filter-list\"",
-      "colour": "#004f89",
-      "exportable": true,
-      "org_id": "0",
-      "hide_tag": false
-    }
-  },
-  {
-    "Feed": {
       "id": "28",
       "name": "ZeuS IP blocklist (Standard)",
       "provider": "zeustracker.abuse.ch",
