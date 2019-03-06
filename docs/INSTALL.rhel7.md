@@ -195,9 +195,10 @@ systemctl restart rh-php72-php-fpm.service
 Add the following content to `/etc/opt/rh/rh-php72/php-fpm.d/www.conf` :
 ```
 env[PATH]=/opt/rh/rh-git218/root/usr/bin:/opt/rh/rh-redis32/root/usr/bin:/opt/rh/rh-python36/root/usr/bin:/opt/rh/rh-php72/root/usr/bin:/usr/local/bin:/usr/bin:/bin
+env[LD_LIBRARY_PATH]=/opt/rh/httpd24/root/usr/lib64/
 ```
 Then run `systemctl restart rh-php72-php-fpm.service`.
-This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings.
+This allows MISP to detect GnuPG, the Python modules' versions and to read the PHP settings. The LD_LIBRARY_PATH setting is needed for rh-git218 to work, one might think to install httpd24 and not just httpd ...
 
 # 4/ CakePHP
 ## 4.01/ Install CakeResque along with its dependencies if you intend to use the built in background jobs
