@@ -7364,9 +7364,23 @@ msgstr "Pour ne retourner qu'une liste d'attributs, utiliser la syntaxe suivante
 msgid "Events with the date set to a date after the one specified in the from field (format: 2015-02-15)"
 msgstr "Événements avec une date définie à une date supérieure à celle spécifiée dans le champ \"from\" (format : 2015-02-15)"
 
+<<<<<<< HEAD
 #: View/Events/legacy_automation.ctp:305
 msgid "Events with the date set to a date before the one specified in the to field (format: 2015-02-15)"
 msgstr "Événements avec une date définie à une date antérieure à celle spécifiée dans le champ \"to\" (format : 2015-02-15)"
+=======
+#: View/Events/index.ctp:95
+msgid "Enter value to search"
+msgstr ""
+
+#: View/Events/index.ctp:44
+#: View/Organisations/index.ctp:59
+#: View/Servers/preview_index.ctp:45
+#: View/Tags/index.ctp:56
+#: View/Taxonomies/view.ctp:65
+msgid "Filter"
+msgstr "Filtre"
+>>>>>>> 2.4
 
 #: View/Events/legacy_automation.ctp:312
 msgid "Restrict the results by the timestamp (of the attribute). Any attributes with a timestamp newer than the given timestamp will be returned."

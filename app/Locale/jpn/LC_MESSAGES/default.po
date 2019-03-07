@@ -7358,9 +7358,23 @@ msgstr "アトリビュートのリストを返すには、次のシンタック
 msgid "Events with the date set to a date after the one specified in the from field (format: 2015-02-15)"
 msgstr "from 項目で指定された日付より後の日付のイベント (フォーマット: 2015-02-15)"
 
+<<<<<<< HEAD
 #: View/Events/legacy_automation.ctp:305
 msgid "Events with the date set to a date before the one specified in the to field (format: 2015-02-15)"
 msgstr "to 項目に指定された日付より前の日付のイベント (フォーマット: 2015-02-15)"
+=======
+#: View/Events/index.ctp:95
+msgid "Enter value to search"
+msgstr ""
+
+#: View/Events/index.ctp:44
+#: View/Organisations/index.ctp:59
+#: View/Servers/preview_index.ctp:45
+#: View/Tags/index.ctp:56
+#: View/Taxonomies/view.ctp:65
+msgid "Filter"
+msgstr "フィルター"
+>>>>>>> 2.4
 
 #: View/Events/legacy_automation.ctp:312
 msgid "Restrict the results by the timestamp (of the attribute). Any attributes with a timestamp newer than the given timestamp will be returned."

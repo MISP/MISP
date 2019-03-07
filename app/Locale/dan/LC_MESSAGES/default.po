@@ -7357,9 +7357,23 @@ msgstr "Events med datoen sat til en dato efter den der blev specificeret i fra 
 msgid "Events with the date set to a date before the one specified in the to field (format: 2015-02-15)"
 msgstr "Events med datoen sat til en dato før den angivne i feltet til (format: 2015-02-15)"
 
+<<<<<<< HEAD
 #: View/Events/legacy_automation.ctp:312
 msgid "Restrict the results by the timestamp (of the attribute). Any attributes with a timestamp newer than the given timestamp will be returned."
 msgstr "Begræns resultaterne ved hjælp af tidsstempel (på attributten). Eventuelle attributter med et tidsstempel nyere end den angivne tidsstempel returneres."
+=======
+#: View/Events/index.ctp:95
+msgid "Enter value to search"
+msgstr ""
+
+#: View/Events/index.ctp:44
+#: View/Organisations/index.ctp:59
+#: View/Servers/preview_index.ctp:45
+#: View/Tags/index.ctp:56
+#: View/Taxonomies/view.ctp:65
+msgid "Filter"
+msgstr "Filter"
+>>>>>>> 2.4
 
 #: View/Events/legacy_automation.ctp:317
 msgid "Only return attributes from events that have received a modification after the given timestamp."
