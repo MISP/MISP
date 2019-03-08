@@ -296,17 +296,29 @@ class EventsController extends AppController
         $passedArgsArray = array();
         $urlparams = "";
         $overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal');
+        $paginationParams = array('limit', 'page', 'sort', 'direction', 'order');
         $passedArgs = $this->passedArgs;
         if (isset($this->request->data)) {
             if (isset($this->request->data['request'])) {
                 $this->request->data = $this->request->data['request'];
             }
-            foreach ($overrideAbleParams as $oap) {
-                if (isset($this->request->data['search' . $oap])) {
-                    $this->request->data[$oap] = $this->request->data['search' . $oap];
+            foreach ($this->request->data as $k => $v) {
+                if (substr($k, 0, 6) === 'search' && in_array(strtolower(substr($k, 6)), $overrideAbleParams)) {
+                    unset($this->request->data[$k]);
+                    $this->request->data[strtolower(substr($k, 6))] = $v;
+                } else if (in_array(strtolower($k), $overrideAbleParams)) {
+                    unset($this->request->data[$k]);
+                    $this->request->data[strtolower($k)] = $v;
                 }
+            }
+            foreach ($overrideAbleParams as $oap) {
                 if (isset($this->request->data[$oap])) {
                     $passedArgs['search' . $oap] = $this->request->data[$oap];
+                }
+            }
+            foreach ($paginationParams as $paginationParam) {
+                if (isset($this->request->data[$paginationParam])) {
+                    $passedArgs[$paginationParam] = $this->request->data[$paginationParam];
                 }
             }
         }
@@ -699,12 +711,6 @@ class EventsController extends AppController
             } else {
                 $rules['order'] = array('Event.id' => 'DESC');
             }
-            if (isset($passedArgs['limit'])) {
-                $rules['limit'] = intval($passedArgs['limit']);
-            }
-            if (isset($passedArgs['page'])) {
-                $rules['page'] = intval($passedArgs['page']);
-            }
             $rules['contain'] = $this->paginate['contain'];
             if (isset($this->paginate['conditions'])) {
                 $rules['conditions'] = $this->paginate['conditions'];
@@ -713,6 +719,12 @@ class EventsController extends AppController
                 unset($rules['contain']);
                 $rules['recursive'] = -1;
                 $rules['fields'] = array('id', 'timestamp', 'published', 'uuid');
+            }
+            $paginationRules = array('page', 'limit', 'sort', 'direction', 'order');
+            foreach ($paginationRules as $paginationRule) {
+                if (isset($passedArgs[$paginationRule])) {
+                    $rules[$paginationRule] = $passedArgs[$paginationRule];
+                }
             }
             if (empty($rules['limit'])) {
                 $events = array();
