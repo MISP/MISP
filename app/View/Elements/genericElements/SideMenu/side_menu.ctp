@@ -861,10 +861,14 @@
                         'url' => '/decayingModel/index',
                         'text' => __('List Decaying Models')
                     ));
-                    if ($isSiteAdmin || $isAclTemplate) {
+                    if ($isSiteAdmin || $isAclDecayingModel) {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'url' => '/decayingModel/add',
                             'text' => __('Add Decaying Model')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/decayingModel/decayingTool',
+                            'text' => __('Decaying Tool')
                         ));
                     }
                     if (($menuItem === 'view' || $menuItem === 'edit')) {
@@ -873,7 +877,7 @@
                             'url' => '/decayingModel/view/' . h($id),
                             'text' => __('View Decaying Model')
                         ));
-                        if ($mayModify) {
+                        if ($isAclDecayingModel) {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'edit',
                                 'url' => '/decayingModel/edit/' . h($id),

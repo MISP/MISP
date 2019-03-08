@@ -271,6 +271,7 @@
                     array(
                         'text' => __('Decaying Rules'),
                         'url' => '/decayingModel/decayingTool',
+                        'requirement' => ($isSiteAdmin || $hostOrgUser)
                     ),
                     array(
                         'type' => 'separator',

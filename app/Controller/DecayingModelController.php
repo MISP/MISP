@@ -52,8 +52,14 @@ class DecayingModelController extends AppController
             }
 
             if ($this->DecayingModel->save($this->request->data)) {
-                $this->Flash->success('The model has been saved.');
-                $this->redirect(array('action' => 'index'));
+                if ($this->request->is('ajax')) {
+                    $saved = $this->DecayingModel->checkAuthorisation($this->Auth->user(), $this->DecayingModel->id);
+                    $response = array('data' => $saved, 'action' => 'add');
+                    return $this->RestResponse->viewData($response, $this->response->type());
+                } else {
+                    $this->Flash->success('The model has been saved.');
+                    $this->redirect(array('action' => 'index'));
+                }
             }
         }
     }
@@ -61,19 +67,22 @@ class DecayingModelController extends AppController
     public function edit($id) {
         $decayingModel = $this->DecayingModel->checkAuthorisation($this->Auth->user(), $id);
         if (!$this->_isSiteAdmin() && !$decModel) {
-            throw new MethodNotAllowedException('No Decaying Model with the provided ID exists, or you are not authorised to edit it.');
+            throw new NotFoundException('No Decaying Model with the provided ID exists, or you are not authorised to edit it.');
         }
         $this->set('mayModify', true);
 
-        if ($this->request->is('post')) {
-            if (!isset($this->request->data['DecayingModel']['org_id'])) {
-                $this->request->data['DecayingModel']['org_id'] = $this->Auth->user()['org_id'];
-            }
+        if ($this->request->is('post') || $this->request->is('put')) {
             $this->request->data['DecayingModel']['id'] = $id;
-
-            if ($this->DecayingModel->save($this->request->data)) {
-                $this->Flash->success('The model has been saved.');
-                $this->redirect(array('action' => 'index'));
+            $fieldList = array('name', 'description', 'parameters');
+            if ($this->DecayingModel->save($this->request->data, true, $fieldList)) {
+                if ($this->request->is('ajax')) {
+                    $saved = $this->DecayingModel->checkAuthorisation($this->Auth->user(), $this->DecayingModel->id);
+                    $response = array('data' => $saved, 'action' => 'edit');
+                    return $this->RestResponse->viewData($response, $this->response->type());
+                } else {
+                    $this->Flash->success('The model has been saved.');
+                    $this->redirect(array('action' => 'index'));
+                }
             }
         }
         $this->request->data = $decayingModel;

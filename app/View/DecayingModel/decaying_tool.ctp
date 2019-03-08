@@ -15,13 +15,13 @@
                         <!-- <th>Action</th> -->
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="attributeTypeTableBody">
                     <?php foreach ($types as $type => $info): ?>
                         <?php if ($info['to_ids'] == 1): ?>
                             <tr>
                                 <td><input type="checkbox"></input></td>
-                                <td class="useCursorPointer" onclick="toggleCB(this);"><?php echo h($type); ?></td>
-                                <td class="useCursorPointer" onclick="toggleCB(this);"><?php echo h($info['default_category']); ?></td>
+                                <td class="useCursorPointer"><?php echo h($type); ?></td>
+                                <td class="useCursorPointer"><?php echo h($info['default_category']); ?></td>
                                 <td></td>
                             </tr>
                         <?php endif; ?>
@@ -69,7 +69,7 @@
         <div class="row">
             <div class="span10">
                 <form id="saveForm" class="form-inline">
-                    <input type="text" name="name" class="input" placeholder="Model name">
+                    <input type="text" name="name" class="input" placeholder="Model name" required>
                     <textarea  rows="1" name="description" class="input" placeholder="Description"></textarea>
                     <span class="btn btn-success" data-save-type="add" onclick="saveModel(this)"><i class="fa fa-save"> Save</i></span>
                 </form>
@@ -92,17 +92,17 @@
                             <th>Threshold</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="modelTableBody">
                         <?php foreach ($savedModels as $k => $model): ?>
-                            <tr>
-                                <td><?php echo h($model['DecayingModel']['name']); ?></td>
-                                <td><?php echo h($model['DecayingModel']['description']); ?></td>
-                                <td><?php echo h($model['DecayingModel']['parameters']['tau']); ?></td>
-                                <td><?php echo h($model['DecayingModel']['parameters']['delta']); ?></td>
-                                <td><?php echo h($model['DecayingModel']['parameters']['threshold']); ?></td>
+                            <tr id="modelId_<?php echo h($model['DecayingModel']['id']); ?>">
+                                <td class="DMName"><?php echo h($model['DecayingModel']['name']); ?></td>
+                                <td class="DMDescription"><?php echo h($model['DecayingModel']['description']); ?></td>
+                                <td class="DMParameterTau"><?php echo h($model['DecayingModel']['parameters']['tau']); ?></td>
+                                <td class="DMParameterDelta"><?php echo h($model['DecayingModel']['parameters']['delta']); ?></td>
+                                <td class="DMParameterThreshold"><?php echo h($model['DecayingModel']['parameters']['threshold']); ?></td>
                                 <td>
                                     <button class="btn btn-primary btn-small" onclick="loadModel(this);"><span class="fa fa-arrow-up"><?php echo __(' Load model') ?></span></button>
-                                    <button class="btn btn-danger btn-small" data-save-type="edit" data-model-id="<?php echo h($model['DecayingModel']['id']); ?>" onclick="loadModel(this);"><span class="fa fa-paste"><?php echo __(' Overwrite model') ?></span></button>
+                                    <button class="btn btn-danger btn-small" data-save-type="edit" data-model-id="<?php echo h($model['DecayingModel']['id']); ?>" onclick="saveModel(this);"><span class="fa fa-paste"><?php echo __(' Overwrite model') ?></span></button>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -116,7 +116,7 @@
 
 </div>
 
-<?php echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'globalActions', 'menuItem' => 'view')); ?>
+<?php echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'decayingModel', 'menuItem' => 'decayingTool')); ?>
 <?php echo $this->Html->script('Chart.min'); ?>
 
 <script>
@@ -133,10 +133,14 @@ function hoursToText(hours) {
     return text;
 }
 
-function toggleCB(clicked) {
+function toggleCB(clicked, force) {
     $clicked = $(clicked);
-    var cb = $clicked.parent().first().find('input');
-    cb.prop('checked', !cb.is(':checked'));
+    var cb = $clicked.first().find('input');
+    if (force === undefined) {
+        cb.prop('checked', !cb.is(':checked'));
+    } else {
+        cb.prop('checked', force);
+    }
 }
 
 function getScore(x, base_score) {
@@ -220,20 +224,26 @@ function refreshInfoCells(threshold) {
     }
     $('#infoCellHalved').text(hoursToText(getReverseScore((100-threshold)/2 + threshold)));
     $('#infoCellExpired').text(hoursToText(getReverseScore(threshold)));
+    highlightMatchingRow();
 }
 
 function loadModel(clicked) {
     var $clicked = $(clicked);
-    var parameters = $clicked.closest('tr').find('td');
+    var tds = $clicked.closest('tr').find('td');
     parameters = {
-        tau: parseFloat(parameters[2].innerHTML),
-        delta: parseFloat(parameters[3].innerHTML),
-        threshold: parseInt(parameters[4].innerHTML)
+        tau: parseFloat(tds[2].innerHTML),
+        delta: parseFloat(tds[3].innerHTML),
+        threshold: parseInt(tds[4].innerHTML)
     };
+    var name = tds[0].innerHTML;
+    var desc = tds[1].innerHTML;
 
     $('#input_Tau').val(parameters.tau);
     $('#input_Delta').val(parameters.delta);
     $('#input_Threshold').val(parameters.threshold);
+    var $form = $('#saveForm');
+    $form.find('[name="name"]').val(name);
+    $form.find('[name="description"]').val(desc);
     chart.data.labels = genAxis();
     chart.data.datasets[0].data = genDecay();
     chart.data.datasets[1].data = genLine();
@@ -241,22 +251,30 @@ function loadModel(clicked) {
     chart.update();
 }
 
+function retreiveData() {
+    var data = {};
+    var $form = $('#saveForm')
+    data.name = $form.find('[name="name"]').val();
+    data.description = $form.find('[name="description"]').val();
+    var params = {};
+    params.tau = parseInt($('#input_Tau').val());
+    params.delta = parseFloat($('#input_Delta').val());
+    params.threshold = parseInt($('#input_Threshold').val());
+    data.parameters = params;
+    return data;
+}
+
 function saveModel(clicked) {
     var $clicked = $(clicked);
     var type = $clicked.data('save-type');
     var model_id = false;
-    var data = {};
-    if (type == 'add') {
-        var $form = $('#saveForm')
-        data.name = $form.find('[name="name"]').val();
-        data.description = $form.find('[name="description"]').val();
-        var params = {};
-        params.tau = $('#input_Tau').val();
-        params.delta = $('#input_Delta').val();
-        params.threshold = $('#input_Threshold').val();
-        data.parameters = JSON.stringify(params);
-    } else {
+    var data = retreiveData();
+    data.parameters = JSON.stringify(data.parameters);
+    if (type == 'edit') {
         model_id = $clicked.data('model-id');
+        if (!confirm('Confirm overwrite?')) {
+            return;
+        }
     }
     fetchFormAndSubmit($clicked, type, model_id, data);
 }
@@ -267,6 +285,80 @@ function injectData($form, data) {
         var field = k.charAt(0).toUpperCase() + k.slice(1);
         $('#DecayingModel'+field).val(v);
     });
+}
+
+function highlightMatchingRow() {
+    var data = retreiveData();
+    delete data['name'];
+    delete data['description'];
+    var $rows = $('#modelTableBody').find('tr');
+    $rows.removeClass('success');
+    $rows.each(function(i) {
+        var rowData = getDataFromRow($(this));
+        delete rowData['name'];
+        delete rowData['description'];
+        if (simpleCompareObject(data, rowData)) {
+            $(this).addClass('success');
+        }
+    });
+}
+
+function getDataFromRow($row) {
+    var data = {};
+    data.name = $row.find('td.DMName').text();
+    data.description = $row.find('td.DMDescription').text();
+    data.parameters = {};
+    data.parameters.tau = parseInt($row.find('td.DMParameterTau').text());
+    data.parameters.delta = parseFloat($row.find('td.DMParameterDelta').text());
+    data.parameters.threshold = parseInt($row.find('td.DMParameterThreshold').text());
+    return data;
+}
+
+function refreshRow(data) {
+    var decayingModel = data.data.DecayingModel;
+    var row = '<tr id="modelId_' + decayingModel.id + '">'
+        + '<td class="DMName">' + decayingModel.name + '</td>'
+        + '<td class="DMDescription">' + decayingModel.description + '</td>'
+        + '<td class="DMParameterTau">' + decayingModel.parameters.tau + '</td>'
+        + '<td class="DMParameterDelta">' + decayingModel.parameters.delta + '</td>'
+        + '<td class="DMParameterThreshold">' + decayingModel.parameters.threshold + '</td>'
+        + '<td data->'
+        + '<button class="btn btn-primary btn-small" onclick="loadModel(this);"><span class="fa fa-arrow-up"> Load model</span></button>'
+        + '<button class="btn btn-danger btn-small" style="margin-left: 3px;" data-save-type="edit" data-model-id="' + decayingModel.id + '" onclick="saveModel(this);"><span class="fa fa-paste"> Overwrite model</span></button>'
+        + '</td>'
+        + '</tr>';
+
+    if (data.action == 'add') {
+        var $row = $(row);
+        $('#modelTableBody').append($row);
+    } else {
+        var $row = $('#modelId_'+decayingModel.id);
+        $row[0].outerHTML = row;
+    }
+    highlightMatchingRow();
+}
+
+function simpleCompareObject(obj1, obj2) {
+    var flag_same = true;
+    var objectKeys = Object.keys(obj1);
+    for (var i = 0; i < objectKeys.length; i++) {
+        var k = objectKeys[i];
+        var v1 = obj1[k];
+        var v2 = obj2[k];
+
+        if (v1 instanceof Object && v2 instanceof Object) {
+            flag_same = simpleCompareObject(v1, v2);
+        } else if ( (v1 instanceof Object) && !(v2 instanceof Object) || (!(v1 instanceof Object) && (v2 instanceof Object))) {
+            return false;
+        } else if (v1 !== v2) {
+            return false;
+        }
+
+        if (!flag_same) {
+            return false;
+        }
+    }
+    return flag_same;
 }
 
 function fetchFormAndSubmit($clicked, type, model_id, formData) {
@@ -282,8 +374,6 @@ function fetchFormAndSubmit($clicked, type, model_id, formData) {
         var $confbox = $("#confirmation_box");
         $confbox.html(data);
         var $form = $confbox.find('form');
-        console.log($form);
-        throw 'dwqd';
         injectData($form, formData);
         $.ajax({
             data: $form.serialize(),
@@ -293,6 +383,7 @@ function fetchFormAndSubmit($clicked, type, model_id, formData) {
             },
             success: function(data, textStatus) {
                 showMessage('success', 'Network has been saved');
+                refreshRow(data);
             },
             error: function( jqXhr, textStatus, errorThrown ){
                 showMessage('fail', 'Could not save network');
@@ -385,5 +476,16 @@ $(document).ready(function() {
         }
     });
     refreshInfoCells();
+    $("#attributeTypeTableBody").selectable({
+        filter: "tr",
+        selected: function( event, ui ) {
+            $(ui.selected).addClass("info");
+            toggleCB($(ui.selected), true);
+        },
+        unselected: function( event, ui ) {
+            $(ui.unselected).removeClass("info");
+            toggleCB($(ui.unselected), false);
+        }
+    });
 });
 </script>
