@@ -856,6 +856,33 @@
                     }
                     break;
 
+                case 'decayingModel':
+                    echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                        'url' => '/decayingModel/index',
+                        'text' => __('List Decaying Models')
+                    ));
+                    if ($isSiteAdmin || $isAclTemplate) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'url' => '/decayingModel/add',
+                            'text' => __('Add Decaying Model')
+                        ));
+                    }
+                    if (($menuItem === 'view' || $menuItem === 'edit')) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'view',
+                            'url' => '/decayingModel/view/' . h($id),
+                            'text' => __('View Decaying Model')
+                        ));
+                        if ($mayModify) {
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'edit',
+                                'url' => '/decayingModel/edit/' . h($id),
+                                'text' => __('Edit Decaying Model')
+                            ));
+                        }
+                    }
+                    break;
+
                 case 'feeds':
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'url' => '/feeds/index',

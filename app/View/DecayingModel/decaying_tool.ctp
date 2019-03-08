@@ -68,9 +68,10 @@
 
         <div class="row">
             <div class="span10">
-                <form class="form-inline">
-                    <input type="text" class="input" placeholder="Model name">
-                    <span class="btn btn-success">Save</span>
+                <form id="saveForm" class="form-inline">
+                    <input type="text" name="name" class="input" placeholder="Model name">
+                    <textarea  rows="1" name="description" class="input" placeholder="Description"></textarea>
+                    <span class="btn btn-success" data-save-type="add" onclick="saveModel(this)"><i class="fa fa-save"> Save</i></span>
                 </form>
             </div>
         </div>
@@ -81,6 +82,7 @@
                     <thead>
                         <tr>
                             <th rowspan="2">Model Name</th>
+                            <th rowspan="2">Description</th>
                             <th colspan="3">Parameters</th>
                             <th rowspan="2">Action</th>
                         </tr>
@@ -93,11 +95,15 @@
                     <tbody>
                         <?php foreach ($savedModels as $k => $model): ?>
                             <tr>
-                                <td><?php echo h($model['name']); ?></td>
-                                <td><?php echo h($model['parameters']['tau']); ?></td>
-                                <td><?php echo h($model['parameters']['delta']); ?></td>
-                                <td><?php echo h($model['parameters']['threshold']); ?></td>
-                                <td><button class="btn btn-primary btn-small" onclick="loadModel(this);" data-parameters="<?php echo json_encode($model['parameters'])?>" ><span class="fa fa-arrow-up"><?php echo __(' Load model') ?></span></button></td>
+                                <td><?php echo h($model['DecayingModel']['name']); ?></td>
+                                <td><?php echo h($model['DecayingModel']['description']); ?></td>
+                                <td><?php echo h($model['DecayingModel']['parameters']['tau']); ?></td>
+                                <td><?php echo h($model['DecayingModel']['parameters']['delta']); ?></td>
+                                <td><?php echo h($model['DecayingModel']['parameters']['threshold']); ?></td>
+                                <td>
+                                    <button class="btn btn-primary btn-small" onclick="loadModel(this);"><span class="fa fa-arrow-up"><?php echo __(' Load model') ?></span></button>
+                                    <button class="btn btn-danger btn-small" data-save-type="edit" data-model-id="<?php echo h($model['DecayingModel']['id']); ?>" onclick="loadModel(this);"><span class="fa fa-paste"><?php echo __(' Overwrite model') ?></span></button>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -220,9 +226,9 @@ function loadModel(clicked) {
     var $clicked = $(clicked);
     var parameters = $clicked.closest('tr').find('td');
     parameters = {
-        tau: parseFloat(parameters[1].innerHTML),
-        delta: parseFloat(parameters[2].innerHTML),
-        threshold: parseInt(parameters[3].innerHTML)
+        tau: parseFloat(parameters[2].innerHTML),
+        delta: parseFloat(parameters[3].innerHTML),
+        threshold: parseInt(parameters[4].innerHTML)
     };
 
     $('#input_Tau').val(parameters.tau);
@@ -233,6 +239,73 @@ function loadModel(clicked) {
     chart.data.datasets[1].data = genLine();
     refreshInfoCells(parameters.threshold);
     chart.update();
+}
+
+function saveModel(clicked) {
+    var $clicked = $(clicked);
+    var type = $clicked.data('save-type');
+    var model_id = false;
+    var data = {};
+    if (type == 'add') {
+        var $form = $('#saveForm')
+        data.name = $form.find('[name="name"]').val();
+        data.description = $form.find('[name="description"]').val();
+        var params = {};
+        params.tau = $('#input_Tau').val();
+        params.delta = $('#input_Delta').val();
+        params.threshold = $('#input_Threshold').val();
+        data.parameters = JSON.stringify(params);
+    } else {
+        model_id = $clicked.data('model-id');
+    }
+    fetchFormAndSubmit($clicked, type, model_id, data);
+}
+
+function injectData($form, data) {
+    Object.keys(data).forEach(function(k) {
+        var v = data[k];
+        var field = k.charAt(0).toUpperCase() + k.slice(1);
+        $('#DecayingModel'+field).val(v);
+    });
+}
+
+function fetchFormAndSubmit($clicked, type, model_id, formData) {
+    var url = "/decayingModel/";
+    if (type == "add") {
+        url += type;
+    } else {
+        url += type + "/" + model_id;
+    }
+    var loadingSpan = '<span id="loadingSpan" class="fa fa-spin fa-spinner" style="margin-left: 5px;"></span>';
+
+    $.get(url, function(data) {
+        var $confbox = $("#confirmation_box");
+        $confbox.html(data);
+        var $form = $confbox.find('form');
+        console.log($form);
+        throw 'dwqd';
+        injectData($form, formData);
+        $.ajax({
+            data: $form.serialize(),
+            cache: false,
+            beforeSend: function(XMLHttpRequest) {
+                $clicked.append(loadingSpan);
+            },
+            success: function(data, textStatus) {
+                showMessage('success', 'Network has been saved');
+            },
+            error: function( jqXhr, textStatus, errorThrown ){
+                showMessage('fail', 'Could not save network');
+                console.log( errorThrown );
+            },
+            complete: function() {
+                $clicked.find('#loadingSpan').remove();
+                $form.remove();
+            },
+            type: 'post',
+            url: url
+        });
+    });
 }
 
 var chart;

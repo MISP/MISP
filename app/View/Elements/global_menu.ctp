@@ -270,7 +270,7 @@
                     ),
                     array(
                         'text' => __('Decaying Rules'),
-                        'url' => '/users/decayingTool',
+                        'url' => '/decayingModel/decayingTool',
                     ),
                     array(
                         'type' => 'separator',
