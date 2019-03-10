@@ -1453,13 +1453,22 @@ class Feed extends AppModel
         return $coverage;
     }
 
-    public function getAllCachingEnabledFeeds($feedId) {
+    public function getCachedElements($feedId)
+    {
+        $redis = $this->setupRedis();
+        $cardinality = $redis->sCard('misp:feed_cache:' . $feedId);
+        return $cardinality;
+    }
+
+    public function getAllCachingEnabledFeeds($feedId, $intersectingOnly = false) {
+        if ($intersectingOnly) {
+            $redis = $this->setupRedis();
+        }
         $result['Feed'] = $this->find('all', array(
             'conditions' => array(
                 'Feed.id !=' => $feedId,
                 'caching_enabled' => 1
             ),
-            'fields' => array('Feed.id', 'Feed.name'),
             'recursive' => -1,
             'fields' => array('Feed.id', 'Feed.name', 'Feed.url')
         ));
@@ -1471,6 +1480,26 @@ class Feed extends AppModel
             'recursive' => -1,
             'fields' => array('Server.id', 'Server.name', 'Server.url')
         ));
+        $scopes = array('Feed', 'Server');
+        foreach ($scopes as $scope) {
+            foreach ($result[$scope] as $k => $v) {
+                $result[$scope][$k] = $v[$scope];
+            }
+        }
+        if ($intersectingOnly) {
+            foreach ($scopes as $scope) {
+                if (!empty($result[$scope])) {
+                    foreach ($result[$scope] as $k => $feed) {
+                        $intersect = $redis->sInter('misp:feed_cache:' . $feedId, 'misp:' . lcfirst($scope) . '_cache:' . $feed['id']);
+                        if (empty($intersect)) {
+                            unset($result[$scope][$k]);
+                        } else {
+                            $result[$scope][$k]['matching_values'] = count($intersect);
+                        }
+                    }
+                }
+            }
+        }
         return $result;
     }
 }
