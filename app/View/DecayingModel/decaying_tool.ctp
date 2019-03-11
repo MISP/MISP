@@ -488,8 +488,13 @@ $(document).ready(function() {
     $("#attributeTypeTableBody").selectable({
         filter: "tr",
         selected: function( event, ui ) {
-            $(ui.selected).addClass("info");
-            toggleCB($(ui.selected), true);
+            if (event.ctrlKey) {
+                $(ui.selected).toggleClass("info");
+                toggleCB($(ui.selected));
+            } else {
+                $(ui.selected).addClass("info");
+                toggleCB($(ui.selected), true);
+            }
         },
         unselected: function( event, ui ) {
             $(ui.unselected).removeClass("info");
