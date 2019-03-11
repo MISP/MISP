@@ -3998,6 +3998,49 @@ function liveFilter() {
     }
 }
 
+function generic_picker_move(scope, direction) {
+    if (direction === 'right') {
+        $('#' + scope + 'Left option:selected').remove().appendTo('#' + scope + 'Right');
+    } else {
+        $('#' + scope + 'Right option:selected').remove().appendTo('#' + scope + 'Left');
+    }
+}
+
+
+function submit_feed_overlap_tool(feedId) {
+    var result = {"Feed": [], "Server": []};
+    $('#FeedLeft').children().each(function() {
+        result.Feed.push($(this).val());
+    });
+    $('#ServerLeft').children().each(function() {
+        result.Server.push($(this).val());
+    });
+    $.ajax({
+        beforeSend: function (XMLHttpRequest) {
+            $(".loading").show();
+        },
+        data: result,
+        success:function (data, textStatus) {
+            if (!isNaN(data)) {
+                $('#feed_coverage_bar').text(data + '%');
+                $('#feed_coverage_bar').css('width', data + '%');
+            } else {
+                handleGenericAjaxResponse({'saved':false, 'errors':['Something went wrong. Received response not in the expected format.']});
+            }
+        },
+        error:function() {
+            handleGenericAjaxResponse({'saved':false, 'errors':['Could not complete the requested action.']});
+        },
+        complete:function() {
+            $(".loading").hide();
+        },
+        type:"post",
+        cache: false,
+        url:"/feeds/feedCoverage/" + feedId,
+    });
+}
+
+
 (function(){
     "use strict";
     $(".datepicker").datepicker({

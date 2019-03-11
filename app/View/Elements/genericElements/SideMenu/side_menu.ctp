@@ -884,10 +884,16 @@
                         'download' => 'feed_index.json'
                     ));
                     if ($isSiteAdmin) {
-                        if ($menuItem === 'edit') {
+                        if ($menuItem === 'edit' || $menuItem === 'view') {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'edit',
+                                'url' => '/feeds/edit/' . h($feed['Feed']['id']),
                                 'text' => __('Edit Feed')
+                            ));
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'view',
+                                'url' => '/feeds/view/' . h($feed['Feed']['id']),
+                                'text' => __('View Feed')
                             ));
                         } else if ($menuItem === 'previewIndex') {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(

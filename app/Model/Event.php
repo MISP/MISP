@@ -4836,7 +4836,8 @@ class Event extends AppModel
                             'name' => $object['name'],
                             'uuid' => $object['uuid'],
                             'id' => isset($object['id']) ? $object['id'] : 0,
-                            'object_type' => $object['objectType']
+                            'object_type' => $object['objectType'],
+                            'relationship_type' => $reference['relationship_type']
                         );
                     }
                 }
