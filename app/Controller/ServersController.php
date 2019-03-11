@@ -1678,7 +1678,7 @@ misp.direct_call(relative_path, body)
             $request['header']['Authorization'],
             $verifyCert,
             $relative,
-            (empty($request['body']) ? 'Null' : '\'' . $request['body'] . '\'')
+            (empty($request['body']) ? 'Null' : $request['body'])
         );
         return $python_script;
     }
