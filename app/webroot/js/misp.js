@@ -3998,6 +3998,45 @@ function liveFilter() {
     }
 }
 
+function sparklineBar(elemId, data, lineCount) {
+    data = d3.csv.parse(data);
+    var y_max = 0;
+    data.forEach(function(e) {
+        e = parseInt(e.val);
+        y_max = e > y_max ? e : y_max;
+    });
+    // y_max = Math.log(y_max)
+    var WIDTH      = 50;
+    var HEIGHT     = 25;
+    var DATA_COUNT = lineCount;
+    var BAR_WIDTH  = (WIDTH - DATA_COUNT) / DATA_COUNT;
+    var x    = d3.scale.linear().domain([0, DATA_COUNT]).range([0, WIDTH]);
+    var y    = d3.scale.linear().domain([0, y_max]).range([0, HEIGHT]);
+
+    var distributionGraphBarTooltip = d3.select("body").append("div")
+        .attr("class", "distributionGraphBarTooltip")
+        .style("opacity", 0);
+
+    var svg = d3.select(elemId).append('svg')
+      .attr('width', WIDTH)
+      .attr('height', HEIGHT)
+      .append('g');
+    svg.selectAll('.bar').data(data)
+      .enter()
+      .append('g')
+        .attr('title', function(d, i) { return d.scope + ': ' + d.val })
+        .attr('class', 'DGbar')
+      .append('rect')
+        .attr('class', 'bar')
+        .attr('x', function(d, i) { return x(i); })
+        .attr('y', function(d, i) { return HEIGHT - y(d.val); })
+        .attr('width', BAR_WIDTH)
+        .attr('height', function(d, i) { return y(d.val); })
+        .attr('fill', '#3465a4');
+
+        $('.DGbar').tooltip({container: 'body'});
+}
+
 (function(){
     "use strict";
     $(".datepicker").datepicker({

@@ -145,15 +145,25 @@
             'key' => __('Distribution'),
             'value_class' => ($event['Event']['distribution'] == 0) ? 'privateRedText' : '',
             'html' => sprintf(
-                '%s %s',
+                '%s %s %s %s',
                 ($event['Event']['distribution'] == 4) ?
                     sprintf('<a href="%s%s">%s</a>', $baseurl . '/sharing_groups/view/', h($event['SharingGroup']['id']), h($event['SharingGroup']['name'])) :
                     h($distributionLevels[$event['Event']['distribution']]),
                 sprintf(
-                    '<span class="%s" data-object-id="%s" data-object-context="event" data-shown="false"></span><div style="display: none">%s</div>',
+                    '<span id="distribution_graph_bar" style="margin-left: 5px;" data-object-id="%s" data-object-context="event"></span>',
+                    h($event['Event']['id'])
+                ),
+                sprintf(
+                    '<it class="%s" data-object-id="%s" data-object-context="event" data-shown="false"></it><div style="display: none">%s</div>',
                     'useCursorPointer fa fa-info-circle distribution_graph',
                     h($event['Event']['id']),
                     $this->element('view_event_distribution_graph')
+                ),
+                sprintf(
+                    '<it type="button" id="showAdvancedSharingButton" title="%s" class="%s" aria-hidden="true" style="margin-left: 5px;" onclick="%s"></it>',
+                    'Toggle advanced sharing network viewer',
+                    'fa fa-share-alt useCursorPointer',
+                    'showAdvancedSharing(this)'
                 )
             )
         );
