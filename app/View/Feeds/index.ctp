@@ -24,6 +24,7 @@
         </ul>
     </div>
     <?php
+        $canViewFeedData = $isSiteAdmin || intval(Configure::read('MISP.host_org_id')) === $me['org_id'];
         $data = array(
             'children' => array(
                 array(
@@ -146,7 +147,24 @@ foreach ($feeds as $item):
         <?php
             endif;
         ?>
-        <td class="short"><?php echo h($item['Feed']['id']); ?>&nbsp;</td>
+        <td class="short">
+            <?php
+                if ($canViewFeedData) {
+                    echo sprintf(
+                        '<a href="%s/feeds/view/%s" title="%s">%s</a>',
+                        $baseurl,
+                        h($item['Feed']['id']),
+                        sprintf(
+                            __('View feed #%s', h($item['Feed']['id']))
+                        ),
+                        h($item['Feed']['id'])
+                    );
+                } else {
+                    echo h($item['Feed']['id']);
+                }
+
+            ?>
+        </td>
         <td class="short">
             <span class="<?php echo ($item['Feed']['enabled'] ? 'icon-ok' : 'icon-remove'); ?>"></span>
             <span

@@ -23,6 +23,10 @@
 # sudo sh ./misp-restore.sh  PATH_TO_ARCHIVE.tar.gz
 # 
 
+# TODO: Make script UNATTENDEDable
+# TODO: Move DB, check DB?
+# TODO: Check db user exists.
+
 # Leave empty for NO debug messages, if run with set -x or bash -x it will enable DEBUG by default
 DEBUG=
 
@@ -67,6 +71,23 @@ checkVar () {
   [[ -z $1 ]] && echo "$1 is empty, please investigate." && exit 1
 }
 
+# Small function to import SQL export
+mysqlImport () {
+  myDB=$(mysqlshow |grep -o $MISPDB)
+  if [[ "$myDB" == "$MISPDB" ]]; then
+    echo -n "$myDB detected, I can remove this if wanted. (y/n) "
+    read REMOVE
+    REMOVE=$(echo $REMOVE |tr [A-Z] [a-z])
+    [[ "$REMOVE" == "y" ]] && mysqladmin drop $myDB
+  fi
+
+  mysql -h $MISPDBHost -u $MySQLRUser -p -Bse "CREATE DATABASE IF NOT EXISTS $MISPDB ;\
+      GRANT USAGE ON *.* TO '$MySQLUUser'@'localhost' IDENTIFIED BY '$MySQLUPass';\
+      GRANT ALL PRIVILEGES ON $MISPDB.* TO '$MySQLUUser'@'localhost' ; \
+      FLUSH PRIVILEGES;"
+
+  mysql -s -h $MISPDBHost -u $MySQLUUser -p$MySQLUPass $MISPDB < $BackupDir/MISPbackupfile.sql
+}
 echo '-- Starting MISP restore process'
 
 FILE=./misp-backup.conf
@@ -76,6 +97,8 @@ cd "${0%/*}"
 
 # Set to the current webroot owner
 WWW_USER=$(ls -l $0 |awk {'print $3'}|tail -1)
+
+MySQLRUser="root"
 
 # In most cases the owner of the cake script is also the user as which it should be executed.
 if [[ "$USER" != "$WWW_USER" ]]; then
@@ -101,8 +124,7 @@ if [ -f $FILE ]; then
   . $FILE
 else
   echo "--- Config File $FILE does not exist. Please enter values manually"
-  echo '--- Where would you like to decompress backup files?'
-  echo 'Eg. /tmp'
+  echo -n '--- Where would you like to decompress backup files (Eg. /tmp)? '
   read OutputDirName
 fi
 
@@ -116,19 +138,26 @@ tar zxpf $BackupFile -C $BackupDir
 
 # Fill in any missing values with defaults
 # MISP path detector
-if [[ -z $PATH_TO_MISP ]]; then
-  if [[ "$(locate > /dev/null 2> /dev/null ; echo $?)" != "127" ]]; then
-    if [[ "$(locate MISP/app/webroot/index.php |wc -l)" > 1 ]]; then
-      echo "We located more then 1 MISP/app/webroot, reverting to manual"
-      PATH_TO_MISP=${PATH_TO_MISP:-$(locate MISP/app/webroot/index.php|sed 's/\/app\/webroot\/index\.php//')}
-      echo -n 'Please enter the base path of your MISP install (e.g /var/www/MISP): '
-      read PATH_TO_MISP
+if [[ -z $UNATTENDED ]]; then
+  if [[ -z $PATH_TO_MISP ]]; then
+    if [[ "$(locate > /dev/null 2> /dev/null ; echo $?)" != "127" ]]; then
+      if [[ "$(locate MISP/app/webroot/index.php |wc -l)" > 1 ]]; then
+        echo "We located more then 1 MISP/app/webroot, reverting to manual"
+        PATH_TO_MISP=${PATH_TO_MISP:-$(locate MISP/app/webroot/index.php|sed 's/\/app\/webroot\/index\.php//')}
+        echo -n 'Please enter the base path of your MISP install (e.g /var/www/MISP): '
+        read PATH_TO_MISP
+      fi
     fi
   fi
-fi
 
-if [[ -d $PATH_TO_MISP ]]; then
-  :
+  if [[ -d $PATH_TO_MISP ]] && [[ -f $PATH_TO_MISP/VERSION.json ]]; then
+    echo "$PATH_TO_MISP exists and seems to include an existing install."
+    echo "We can move it out of the way, or leave as is."
+    echo -n "Move $PATH_TO_MISP to $OutputDirName/MISP-$(date +%Y%m%d)?"
+    read MOVE
+    MOVE=$(echo $MOVE |tr [A-Z] [a-z])
+    [[ "$MOVE" == "y" ]] && mv $PATH_TO_MISP $OutputDirName/MISP-$(date +%Y%m%d) && mkdir $PATH_TO_MISP
+  fi
 fi
 
 # database.php
@@ -148,6 +177,12 @@ GnuPGEmail=$(sed -n -e '/GnuPG/,$p' $BackupDir/Config/config.php|grep -o -P "(?<
 GnuPGHomeDir=$(grep -o -P "(?<='homedir' => ').*(?=')" $BackupDir/Config/config.php) ; checkVar GnuPGHomeDir
 GnuPGPass=$(grep -o -P "(?<='password' => ').*(?=')" $BackupDir/Config/config.php) ; checkVar GnuPGPass
 
+if [[ -f /tmp/MISPbackupfile.sql ]]; then
+  mysqlImport
+  rm /tmp/MISPbackupfile.sql
+  exit
+fi
+
 # Restore backup files
 echo "--- Copy of GnuPG files"
 mkdir -p $GnuPGHomeDir
@@ -156,17 +191,17 @@ cp $BackupDir/random_seed $GnuPGHomeDir/
 
 
 echo "--- Copy of org and images and files"
-cp -pr $BackupDir/orgs $MISPPath/app/webroot/img/
-cp -pr $BackupDir/custom $MISPPath/app/webroot/img/
-cp -pr $BackupDir/files $MISPPath/app/
+cp -pr $BackupDir/orgs $PATH_TO_MISP/app/webroot/img/
+cp -pr $BackupDir/custom $PATH_TO_MISP/app/webroot/img/
+cp -pr $BackupDir/files $PATH_TO_MISP/app/
 
 
 #  Restore MISP Config files
 echo "--- Copy of app/Config files"
-cp -p $BackupDir/Config/bootstrap.php $MISPPath/app/Config
-cp -p $BackupDir/Config/config.php $MISPPath/app/Config
-cp -p $BackupDir/Config/core.php $MISPPath/app/Config
-cp -p $BackupDir/Config/database.php $MISPPath/app/Config
+cp -p $BackupDir/Config/bootstrap.php $PATH_TO_MISP/app/Config
+cp -p $BackupDir/Config/config.php $PATH_TO_MISP/app/Config
+cp -p $BackupDir/Config/core.php $PATH_TO_MISP/app/Config
+cp -p $BackupDir/Config/database.php $PATH_TO_MISP/app/Config
 
 # Permissions
 echo "--- Setting persmissions"
@@ -180,17 +215,26 @@ chmod -R g+ws /var/www/MISP/app/files/scripts/tmp
 
 # Restore DB
 echo "--- Starting MySQL database Restore"
-echo '---- Please enter your MySQL root account username'
+echo -n '---- Please enter your MySQL root account username: '
 read MySQLRUser
 
 echo "---- Creating database and user if not exists with data found in MISP configuration files"
-mysql -h $MISPDBHost -u $MySQLRUser -p -Bse "CREATE DATABASE IF NOT EXISTS $MISPDB ;\
-    GRANT USAGE ON *.* TO '$MySQLUUser'@'localhost' IDENTIFIED BY '$MySQLUPass';\
-    GRANT ALL PRIVILEGES ON $MISPDB.* TO '$MySQLUUser'@'localhost' ; \
-    FLUSH PRIVILEGES;"
+mysqlImport
 
-mysql -s -h $MISPDBHost -u $MySQLUUser -p$MySQLUPass $MISPDB < $BackupDir/MISPbackupfile.sql
+##if [[ "$returnCode" != "0" ]]; then
+##  echo "Something went wrong, MySQL returned: $returnCode"
+##  echo "The MISPbackupfile.sql will be copied to: /tmp for you to handle this situation manually."
+##  echo "You can also run this script again and we will retry to import the SQL."
+##  cp $BackupDir/MISPbackupfile.sql /tmp > /dev/null 2> /dev/null
+##  rm -rf $BackupDir
+##  exit $returnCode
+##fi
+
     
 rm -rf $BackupDir
 
-echo "-- MISP Restore Complete!!! URL:  $BaseURL"
+if [[ ! -z $BaseURL ]]; then
+  echo "-- MISP Restore Complete! URL: $BaseURL"
+else
+  echo "-- MISP Restore Complete!"
+fi
