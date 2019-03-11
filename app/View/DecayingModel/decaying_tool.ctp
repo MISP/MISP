@@ -82,6 +82,7 @@
                     <thead>
                         <tr>
                             <th rowspan="2">Model Name</th>
+                            <th rowspan="2">Org id</th>
                             <th rowspan="2">Description</th>
                             <th colspan="3">Parameters</th>
                             <th rowspan="2">Action</th>
@@ -96,13 +97,15 @@
                         <?php foreach ($savedModels as $k => $model): ?>
                             <tr id="modelId_<?php echo h($model['DecayingModel']['id']); ?>">
                                 <td class="DMName"><?php echo h($model['DecayingModel']['name']); ?></td>
+                                <td class="DMOrg"><?php echo $this->OrgImg->getOrgImg(array('name' => $model['DecayingModel']['org_id'], 'size' => 24)); ?> </td>
                                 <td class="DMDescription"><?php echo h($model['DecayingModel']['description']); ?></td>
                                 <td class="DMParameterTau"><?php echo h($model['DecayingModel']['parameters']['tau']); ?></td>
                                 <td class="DMParameterDelta"><?php echo h($model['DecayingModel']['parameters']['delta']); ?></td>
                                 <td class="DMParameterThreshold"><?php echo h($model['DecayingModel']['parameters']['threshold']); ?></td>
                                 <td>
-                                    <button class="btn btn-primary btn-small" onclick="loadModel(this);"><span class="fa fa-arrow-up"><?php echo __(' Load model') ?></span></button>
+                                    <button class="btn btn-success btn-small" onclick="loadModel(this);"><span class="fa fa-line-chart"><?php echo __(' Load model') ?></span></button>
                                     <button class="btn btn-danger btn-small" data-save-type="edit" data-model-id="<?php echo h($model['DecayingModel']['id']); ?>" onclick="saveModel(this);"><span class="fa fa-paste"><?php echo __(' Overwrite model') ?></span></button>
+                                    <button class="btn btn-info btn-small" onclick="applyModel(this);" title="<?php echo __(' Apply model to selected attribute type') ?>"><span class="fa fa-upload"><?php echo __(' Apply model') ?></span></button>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -229,14 +232,14 @@ function refreshInfoCells(threshold) {
 
 function loadModel(clicked) {
     var $clicked = $(clicked);
-    var tds = $clicked.closest('tr').find('td');
+    var tr = $clicked.closest('tr');
     parameters = {
-        tau: parseFloat(tds[2].innerHTML),
-        delta: parseFloat(tds[3].innerHTML),
-        threshold: parseInt(tds[4].innerHTML)
+        tau: parseFloat(tr.find('td.DMParameterTau')[0].innerHTML),
+        delta: parseFloat(tr.find('td.DMParameterDelta')[0].innerHTML),
+        threshold: parseInt(tr.find('td.DMParameterThreshold')[0].innerHTML)
     };
-    var name = tds[0].innerHTML;
-    var desc = tds[1].innerHTML;
+    var name = tr.find('td.DMName')[0].innerHTML;
+    var desc = tr.find('td.DMDescription')[0].innerHTML;
 
     $('#input_Tau').val(parameters.tau);
     $('#input_Delta').val(parameters.delta);
@@ -397,6 +400,12 @@ function fetchFormAndSubmit($clicked, type, model_id, formData) {
             url: url
         });
     });
+}
+
+function applyModel(clicked) {
+    var $row = $(clicked).parent().parent();
+    var rowData = getDataFromRow($row);
+
 }
 
 var chart;

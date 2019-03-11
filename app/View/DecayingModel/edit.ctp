@@ -7,8 +7,32 @@
         ));
         echo $this->Form->input('description', array(
         ));
-        echo $this->Form->input('parameters', array(
-            "value" => isset($this->request->data['DecayingModel']['parameters']) ? json_encode($this->request->data['DecayingModel']['parameters'],  JSON_PRETTY_PRINT) : ''
+        echo $this->Form->input('DecayingModel.parameters.tau', array(
+            'label' => __('Tau parameter'),
+            'title' => _('The end of life of the indicator'),
+            'type' => 'number',
+            'min' => 0,
+            'class' => 'form-control span6',
+            'div' => 'input clear',
+            'value' => $this->request->data['DecayingModel']['parameters']['tau']
+        ));
+        echo $this->Form->input('DecayingModel.parameters.delta', array(
+            'label' => __('Delta parameter'),
+            'title' => _('The decay speed of the indicator'),
+            'type' => 'number',
+            'min' => 0,
+            'class' => 'form-control span6',
+            'div' => 'input clear',
+            'value' => $this->request->data['DecayingModel']['parameters']['delta']
+        ));
+        echo $this->Form->input('DecayingModel.parameters.threshold', array(
+            'label' => __('Threshold parameter'),
+            'title' => _('The model threshold of the indicator'),
+            'type' => 'number',
+            'min' => 0,
+            'class' => 'form-control span6',
+            'div' => 'input clear',
+            'value' => $this->request->data['DecayingModel']['parameters']['threshold']
         ));
     ?>
         <div class="clear"></div>

@@ -7,7 +7,29 @@
         ));
         echo $this->Form->input('description', array(
         ));
-        echo $this->Form->input('parameters', array(
+        echo $this->Form->input('DecayingModel.parameters.tau', array(
+            'label' => __('Tau parameter'),
+            'type' => 'number',
+            'min' => 0,
+            'title' => _('The end of life of the indicator'),
+            'class' => 'form-control span6',
+            'div' => 'input clear',
+        ));
+        echo $this->Form->input('DecayingModel.parameters.delta', array(
+            'label' => __('Delta parameter'),
+            'type' => 'number',
+            'min' => 0,
+            'title' => _('The decay speed of the indicator'),
+            'class' => 'form-control span6',
+            'div' => 'input clear',
+        ));
+        echo $this->Form->input('DecayingModel.parameters.threshold', array(
+            'label' => __('Threshold parameter'),
+            'type' => 'number',
+            'min' => 0,
+            'title' => _('The model threshold of the indicator'),
+            'class' => 'form-control span6',
+            'div' => 'input clear',
         ));
     ?>
         <div class="clear"></div>

@@ -73,6 +73,25 @@ class DecayingModelController extends AppController
 
         if ($this->request->is('post') || $this->request->is('put')) {
             $this->request->data['DecayingModel']['id'] = $id;
+
+            if (!isset($this->request->data['DecayingModel']['parameters'])) {
+                $this->request->data['DecayingModel']['parameters'] = array();
+            } else {
+                if (!isset($this->request->data['DecayingModel']['parameters']['tau'])) {
+                    $this->Flash->error('Invalid parameter `tau`.');
+                    return true;
+                }
+                if (!isset($this->request->data['DecayingModel']['parameters']['delta'])) {
+                    $this->Flash->error('Invalid parameter `delta`.');
+                    return true;
+                }
+                if (!isset($this->request->data['DecayingModel']['parameters']['threshold'])) {
+                    $this->Flash->error('Invalid parameter `threshold`.');
+                    return true;
+                }
+            }
+            $this->request->data['DecayingModel']['parameters'] = json_encode($this->request->data['DecayingModel']['parameters']);
+
             $fieldList = array('name', 'description', 'parameters');
             if ($this->DecayingModel->save($this->request->data, true, $fieldList)) {
                 if ($this->request->is('ajax')) {
