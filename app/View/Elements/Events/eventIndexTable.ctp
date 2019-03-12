@@ -214,6 +214,15 @@
                 echo h($shortDist[$event['Event']['distribution']]);
             endif;
             ?>
+            <?php
+            echo sprintf(
+                '<it type="button" title="%s" class="%s" aria-hidden="true" style="font-size: x-small;" data-event-distribution="%s" data-scope-id="%s"></it>',
+                'Toggle advanced sharing network viewer',
+                'fa fa-share-alt useCursorPointer distributionNetworkToggle',
+                h($event['Event']['distribution']),
+                h($event['Event']['id'])
+            )
+            ?>
         </td>
         <td class="short action-links">
             <?php
@@ -238,6 +247,12 @@
     $(document).ready(function() {
         $('.select').on('change', function() {
             listCheckboxesChecked();
+        });
+
+        $('.distributionNetworkToggle').each(function() {
+            $(this).distributionNetwork({
+                distributionData: <?php echo json_encode($distributionData); ?>,
+            });
         });
     });
 </script>

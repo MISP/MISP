@@ -39,6 +39,7 @@
     echo $this->Html->css('query-builder.default');
     echo $this->Html->script('query-builder');
     echo $this->Html->css('attack_matrix');
+    echo $this->Html->script('network-distribution-graph');
 ?>
 <div class="events view">
     <?php
@@ -160,10 +161,9 @@
                     $this->element('view_event_distribution_graph')
                 ),
                 sprintf(
-                    '<it type="button" id="showAdvancedSharingButton" title="%s" class="%s" aria-hidden="true" style="margin-left: 5px;" onclick="%s"></it>',
+                    '<it type="button" id="showAdvancedSharingButton" title="%s" class="%s" aria-hidden="true" style="margin-left: 5px;"></it>',
                     'Toggle advanced sharing network viewer',
-                    'fa fa-share-alt useCursorPointer',
-                    'showAdvancedSharing(this)'
+                    'fa fa-share-alt useCursorPointer'
                 )
             )
         );
@@ -507,6 +507,7 @@ $(document).ready(function () {
     $.get("/threads/view/<?php echo h($event['Event']['id']); ?>/true", function(data) {
         $("#discussions_div").html(data);
     });
+
 });
 
 function enable_correlation_graph() {
