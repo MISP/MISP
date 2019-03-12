@@ -51,8 +51,8 @@
                     'label' => __('Organisation'),
             ));
         }
-        echo $this->Form->input('role_id', array('label' => 'Role'));   // TODO ACL, User edit role_id.
-        echo $this->Form->input('authkey', array('disabled' => 'disabled', 'label' => 'Authentication key', 'div' => 'input clear'));
+        echo $this->Form->input('role_id', array('label' => __('Role')));   // TODO ACL, User edit role_id.
+        echo $this->Form->input('authkey', array('disabled' => 'disabled', 'div' => 'input clear'));
         echo $this->Form->input('nids_sid');
     ?>
         <div id = "syncServers" class="hidden">
