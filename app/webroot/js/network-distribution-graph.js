@@ -166,10 +166,10 @@
 
             this.network_wrapper = false;
             this.options = $.extend({}, this._default_options, options);
+
             this.event_distribution = this.options.event_distribution;
             this.scope_id = this.options.scope_id;
             this.distributionData = this.options.distributionData;
-            this.active = false;
             this.network;
             this.nodes_distri;
             this.edges_distri;
@@ -186,12 +186,16 @@
                 if (options.event_distribution === undefined) {
                     // try to fetch is from the container
                     var event_distribution = this.container.data('event-distribution');
-                    if (event_distribution !== undefined) {
+                    var event_distribution_name = this.container.data('event-distribution-name');
+                    if (event_distribution !== undefined && event_distribution_name !== undefined) {
                         options.event_distribution = event_distribution;
+                        options.event_distribution_name = event_distribution_name;
+                        this._adjust_sharing_numbers(options)
                     } else {
-                        throw "Event distribution not set";
+                        throw "Event distribution or Org not set";
                     }
                 }
+
                 if (options.distributionData === undefined) {
                     throw "Distribution data not set";
                 }
@@ -206,11 +210,28 @@
                 }
             },
 
+            _adjust_sharing_numbers: function (options) {
+                var sum = options.distributionData.event.reduce(function(pv, cv) { return pv + cv; }, 0);
+                if (sum == 0) { // if event does not contain anything (or we don't know about its content)
+                    options.distributionData.event[options.event_distribution] = 1;
+                }
+                if (options.event_distribution == 4) {
+                    options.distributionData.additionalDistributionInfo[4].push(options.event_distribution_name);
+                }
+            },
+
             _registerListener: function() {
                 var that = this;
                 this.container.click(function() {
                     $('#sharingNetworkWrapper').toggle('slide', {direction: 'right'}, 300);
                     that._construct_network();
+
+                    $('body').off('keyup.distributionNetwork').on('keyup.distributionNetwork', function(e) {
+                        if (e.keyCode == 27) { // ESC
+                            $('body').off('keyup.distributionNetwork');
+                            that.dismissNetwork();
+                        }
+                    });
                 });
 
             },
@@ -263,7 +284,6 @@
                     target_distribution = this.event_distribution;
                 }
 
-                console.log(this.distributionData);
                 if (target_distribution !== 0) {
                     // Event always restrict propagation (sharing group is a special case)
                     var temp_target_disti = target_distribution;
@@ -361,7 +381,9 @@
                 }
 
                 // All Community
-                if (target_distribution >= 3 && target_distribution != 4 && this.distributionData.event[3] > 0) {
+                if (target_distribution >= 3 && target_distribution != 4
+                    && this.distributionData.event[3] > 0
+                ) {
                     nodesToAdd.push({id: 'all-community', label: 'All community', group: 'web'});
                     this.distributionData.additionalDistributionInfo[3].forEach(function(orgName) {
                         if (orgName === 'This community') {

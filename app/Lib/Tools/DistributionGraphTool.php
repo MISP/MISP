@@ -130,11 +130,6 @@
 
         public function get_distributions_graph($id)
         {
-            $event = $this->__get_event($id);
-            $eventDist = $event['distribution'];
-            $eventSGName = $event['SharingGroupName'];
-            $this->__eventDistribution = $eventDist;
-            $this->__eventSharingGroupName = $eventSGName;
             $this->__json['event'] = $this->init_array_distri();
             $this->__json['attribute'] = $this->init_array_distri();
             $this->__json['object'] = $this->init_array_distri();
@@ -142,6 +137,21 @@
             $this->__json['additionalDistributionInfo'] = $this->init_array_distri(array());
             $this->__json['sharingGroupRepartition'] = array();
 
+            $this->__addOtherDistributionInfo();
+
+            // transform set into array
+            foreach (array_keys($this->__json['additionalDistributionInfo']) as $d) {
+                $this->__json['additionalDistributionInfo'][$d] = array_keys($this->__json['additionalDistributionInfo'][$d]);
+            }
+
+            if ($id === -1) {
+                return $this->__json;
+            }
+            $event = $this->__get_event($id);
+            $eventDist = $event['distribution'];
+            $eventSGName = $event['SharingGroupName'];
+            $this->__eventDistribution = $eventDist;
+            $this->__eventSharingGroupName = $eventSGName;
 
             if (empty($event)) {
                 return $this->__json;
@@ -194,14 +204,6 @@
             unset($this->__json['obj_attr'][5]);
 
             unset($this->__json['distributionInfo'][5]); // inherit event.
-
-
-            $this->__addOtherDistributionInfo();
-
-            // transform set into array
-            foreach (array_keys($this->__json['additionalDistributionInfo']) as $d) {
-                $this->__json['additionalDistributionInfo'][$d] = array_keys($this->__json['additionalDistributionInfo'][$d]);
-            }
 
             return $this->__json;
         }

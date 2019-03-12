@@ -4005,7 +4005,6 @@ function sparklineBar(elemId, data, lineCount) {
         e = parseInt(e.val);
         y_max = e > y_max ? e : y_max;
     });
-    // y_max = Math.log(y_max)
     var WIDTH      = 50;
     var HEIGHT     = 25;
     var DATA_COUNT = lineCount;

@@ -862,7 +862,7 @@ class EventsController extends AppController
         $this->set('analysisLevels', $this->Event->analysisLevels);
         $this->set('distributionLevels', $this->Event->distributionLevels);
         $this->set('shortDist', $this->Event->shortDist);
-        $this->set('distributionData', $this->genDistributionGraph(0));
+        $this->set('distributionData', $this->genDistributionGraph(-1));
         if ($this->params['ext'] === 'csv') {
             App::uses('CsvExport', 'Export');
             $export = new CsvExport();

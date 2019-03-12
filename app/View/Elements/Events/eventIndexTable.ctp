@@ -216,10 +216,11 @@
             ?>
             <?php
             echo sprintf(
-                '<it type="button" title="%s" class="%s" aria-hidden="true" style="font-size: x-small;" data-event-distribution="%s" data-scope-id="%s"></it>',
+                '<it type="button" title="%s" class="%s" aria-hidden="true" style="font-size: x-small;" data-event-distribution="%s" data-event-distribution-name="%s" data-scope-id="%s"></it>',
                 'Toggle advanced sharing network viewer',
                 'fa fa-share-alt useCursorPointer distributionNetworkToggle',
                 h($event['Event']['distribution']),
+                $event['Event']['distribution'] == 4 ? h($event['SharingGroup']['name']) : h($shortDist[$event['Event']['distribution']]),
                 h($event['Event']['id'])
             )
             ?>
