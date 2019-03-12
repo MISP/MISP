@@ -245,16 +245,22 @@
                 if ($('#sharingNetworkWrapper').length > 0) {
                     return; // Wrapper already exists
                 }
-                var $div = $('<div id="sharingNetworkWrapper" class="advancedSharingNetwork hidden">'
+
+                var allow_interactive_picking = $('#attributes_div table tr').length > 0;
+
+                var $div = '<div id="sharingNetworkWrapper" class="advancedSharingNetwork hidden">'
                     + '<div class="eventgraph_header" style="border-radius: 5px; display: flex;">'
                     + '<it class="fa fa-circle-o" style="margin: auto 10px; font-size: x-large"></it>'
-                    + '<input type="text" id="sharingNetworkTargetId" class="center-in-network-header network-typeahead" style="width: 200px;" disabled></input>'
-                    + '<div class="form-group" style="margin: auto 10px;"><div class="checkbox">'
+                    + '<input type="text" id="sharingNetworkTargetId" class="center-in-network-header network-typeahead" style="width: 200px;" disabled></input>';
+                if (allow_interactive_picking) {
+                    $div += '<div class="form-group" style="margin: auto 10px;"><div class="checkbox">'
                         + '<label style="user-select: none;"><input id="interactive_picking_mode" type="checkbox" title="Click on a element to see how it is distributed" style="margin-top: 4px;">Enable interactive picking mode</label>'
-                    + '</div></div>'
-                    + '<select type="text" id="sharingNetworkOrgFinder" class="center-in-network-header network-typeahead sharingNetworkOrgFinder" style="width: 200px;"></select>'
+                        + '</div></div>'
+                }
+                $div += '<select type="text" id="sharingNetworkOrgFinder" class="center-in-network-header network-typeahead sharingNetworkOrgFinder" style="width: 200px;"></select>'
                     + '<button id="closeButton" type="button" class="close" style="margin: 1px 5px; right: 0px; position: absolute;">×</button>'
-                    + '</div><div id="advancedSharingNetwork"></div></div>');
+                    + '</div><div id="advancedSharingNetwork"></div></div>';
+                $div = $($div);
                 this.network_wrapper = $div;
                 $div.find('#closeButton').click(function() {
                     that.dismissNetwork();
@@ -488,11 +494,14 @@
             _toggleRowListener: function(toAdd) {
                 var that = this;
                 if (toAdd) {
-                    $('#attributes_div table tr').off('click.advancedSharing').on('click.advancedSharing', function() {
+                    var $table = $('#attributes_div table tr');
+                    if ($table.length == 0) {
+                        return;
+                    }
+                    $table.off('click.advancedSharing').on('click.advancedSharing', function() {
                         var $row = $(this);
                         var clicked_type = $row.attr('id').split('_')[0];
                         var clicked_id = $row.attr('id').split('_')[1];
-                        // var $dist_cell = $row.find('#'+clicked_type+'_'+clicked_id+'_distribution_solid');
                         var $dist_cell = $row.find('div').filter(function() {
                             return $(this).attr('id') !== undefined && $(this).attr('id').includes(clicked_id+'_distribution');
                         });
