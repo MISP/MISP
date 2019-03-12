@@ -266,6 +266,7 @@
                 var that = this;
                 if (this.network !== undefined) {
                     this.network.destroy();
+                    this.cacheAddedOrgName = {};
                 }
                 if (scope_text == undefined) {
                     scope_text = 'Event ' + this.options.scope_id;
