@@ -91,7 +91,8 @@ class TrainingShell extends AppShell {
             'authkey' => $sync_user['User']['authkey'],
             'remote_org_id' => $hub_org_id_on_remote,
             'push' => 1,
-            'pull' => 1
+            'pull' => 1,
+            'self_signed' => 1
         );
         $options = array(
             'url' => $this->__currentUrl . '/servers/add',
