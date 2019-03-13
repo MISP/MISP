@@ -1193,13 +1193,13 @@ class AttributesController extends AppController
         }
     }
 
-    public function viewPicture($id, $thumbnail=false, $width =200, $height =200)
+    public function viewPicture($id, $thumbnail=false, $width=200, $height=200)
     {
         if (Validation::uuid($id)) {
             $temp = $this->Attribute->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('Attribute.uuid' => $id),
-                'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.event_id')
+                'fields' => array('Attribute.id', 'Attribute.uuid')
             ));
             if (empty($temp)) {
                 throw new NotFoundException(__('Invalid attribute'));
@@ -1236,20 +1236,19 @@ class AttributesController extends AppController
                     case 'gif':
                         imagegif($image);
                         break;
-                        case 'jpg':
+                    case 'jpg':
                         imagejpeg($image);
-                        break; // best quality
-                        case 'png':
+                        break;
+                    case 'png':
                         imagepng($image);
-                        break; // no compression
-                        default:
-                        $resp = '';
+                        break;
+                    default:
                         break;
                 }
                 $image_data = ob_get_contents();
                 ob_end_clean ();
                 imagedestroy($image);
-            } else {
+            } else { // thumbnail requested, resample picture with desired dimension
                 $width = isset($this->request->params['named']['width']) ? $this->request->params['named']['width'] : 150;
                 $height = isset($this->request->params['named']['height']) ? $this->request->params['named']['height'] : 150;
                 $extension = 'jpg';
