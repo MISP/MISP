@@ -100,14 +100,7 @@ class TrainingShell extends AppShell {
         );
         $response = $this->__queryRemoteMISP($options, true);
         if ($response->code != 200) {
-            echo sprintf(
-                "Received a non-200 response (%s). Aborting.\nQueried URL: %s\n Query type: %s\n Request payload: %s\n\n",
-                $response->code,
-                $options['url'],
-                $options['method'],
-                empty($options['body']) ? '' : json_encode($options['body'], JSON_PRETTY_PRINT)
-            );
-            die();
+            $this->__responseError($response, $options);
         } else {
             $response_data = json_decode($response->body, true);
             return array(
@@ -143,6 +136,18 @@ class TrainingShell extends AppShell {
         return $user;
     }
 
+    private function __responseError($response, $options)
+    {
+        echo sprintf(
+            "Received a non-200 response (%s). Aborting.\nQueried URL: %s\n Query type: %s\n Request payload: %s\n\n",
+            $response->code,
+            $options['url'],
+            $options['method'],
+            empty($options['body']) ? '' : json_encode($options['body'], JSON_PRETTY_PRINT)
+        );
+        die();
+    }
+
     private function __createUsers($remote_org_id, $role_id, $org, $i)
     {
         $summary = array();
@@ -151,33 +156,36 @@ class TrainingShell extends AppShell {
             $email = str_replace('$ID', $i, $email);
             $email = str_replace('$ORGNAME', $org, $email);
             $email = str_replace('$USER_ITERATOR', $j, $email);
-            $user = array(
-                'email' => $email,
-                'password' => $newKey = $this->User->generateRandomPassword(32),
-                'role_id' => $role_id,
-                'org_id' => $remote_org_id
-            );
             $options = array(
-                'url' => $this->__currentUrl . '/admin/users/add',
-                'method' => 'POST',
-                'body' => $user
+                'url' => $this->__currentUrl . '/admin/users/index/searchall:' . $email,
+                'method' => 'GET'
             );
             $response = $this->__queryRemoteMISP($options, true);
             if ($response->code != 200) {
-                echo sprintf(
-                    "Received a non-200 response (%s). Aborting.\nQueried URL: %s\n Query type: %s\n Request payload: %s\n\n",
-                    $response->code,
-                    $options['url'],
-                    $options['method'],
-                    empty($options['body']) ? '' : json_encode($options['body'], JSON_PRETTY_PRINT)
+                $this->__responseError($response, $options);
+            }
+            if (!empty($response->body)) {
+                $user = array(
+                    'email' => $email,
+                    'password' => $newKey = $this->User->generateRandomPassword(32),
+                    'role_id' => $role_id,
+                    'org_id' => $remote_org_id
                 );
-                die();
-            } else {
-                $response_data = json_decode($response->body, true);
-                if ($this->__simulate) {
-                    $summary[] = $user;
+                $options = array(
+                    'url' => $this->__currentUrl . '/admin/users/add',
+                    'method' => 'POST',
+                    'body' => $user
+                );
+                $response = $this->__queryRemoteMISP($options, true);
+                if ($response->code != 200) {
+                    $this->__responseError($response, $options);
                 } else {
-                    $summary[] = $response_data['User'];
+                    $response_data = json_decode($response->body, true);
+                    if ($this->__simulate) {
+                        $summary[] = $user;
+                    } else {
+                        $summary[] = $response_data['User'];
+                    }
                 }
             }
         }
@@ -188,23 +196,32 @@ class TrainingShell extends AppShell {
     {
         $blueprint = array('Role' => $blueprint);
         $options = array(
-            'url' => $this->__currentUrl . '/admin/roles/add',
-            'method' => 'POST',
-            'body' => $blueprint
+            'url' => $this->__currentUrl . '/roles/index',
+            'method' => 'GET'
         );
         $response = $this->__queryRemoteMISP($options, true);
-        if ($response->code != 200) {
-            echo sprintf(
-                "Received a non-200 response (%s). Aborting.\nQueried URL: %s\n Query type: %s\n Request payload: %s\n\n",
-                $response->code,
-                $options['url'],
-                $options['method'],
-                empty($options['body']) ? '' : json_encode($options['body'], JSON_PRETTY_PRINT)
+        if ($response->code == 200) {
+            $roles = json_decode($response->body, true);
+            $found = false;
+            foreach ($roles as $role) {
+                if ($role['Role']['name'] == $blueprint['name']) {
+                    return $role['Role']['id'];
+                }
+            }
+            $options = array(
+                'url' => $this->__currentUrl . '/admin/roles/add',
+                'method' => 'POST',
+                'body' => $blueprint
             );
-            die();
+            $response = $this->__queryRemoteMISP($options, true);
+            if ($response->code != 200) {
+                $this->__responseError($response, $options);
+            } else {
+                $response_data = json_decode($response->body, true);
+                return $response_data['Role']['id'];
+            }
         } else {
-            $response_data = json_decode($response->body, true);
-            return $response_data['Role']['id'];
+            $this->__responseError($response, $options);
         }
     }
 
@@ -248,14 +265,7 @@ class TrainingShell extends AppShell {
         }
 
         if ($response->code != 200) {
-            echo sprintf(
-                "Received a non-200 response (%s). Aborting.\nQueried URL: %s\n Query type: %s\n Request payload: %s\n\n",
-                $response->code,
-                $options['url'],
-                $options['method'],
-                empty($options['body']) ? '' : json_encode($options['body'], JSON_PRETTY_PRINT)
-            );
-            die();
+            $this->__responseError($response, $options);
         } else {
             $response_data = json_decode($response->body, true);
             return $response_data['Organisation']['id'];
@@ -274,14 +284,7 @@ class TrainingShell extends AppShell {
         );
         $response = $this->__queryRemoteMISP($options, true);
         if ($response->code != 200) {
-            echo sprintf(
-                "Received a non-200 response (%s). Aborting.\nQueried URL: %s\n Query type: %s\n Request payload: %s\n\n",
-                $response->code,
-                $options['url'],
-                $options['method'],
-                empty($options['body']) ? '' : json_encode($options['body'], JSON_PRETTY_PRINT)
-            );
-            die();
+            $this->__responseError($response, $options);
         } else {
             return true;
         }
@@ -324,14 +327,7 @@ class TrainingShell extends AppShell {
                 return $response;
             }
             if ($response->code != 200) {
-                echo sprintf(
-                    "Received a non-200 response (%s). Aborting.\nQueried URL: %s\n Query type: %s\n Request payload: %s\n\n",
-                    $response->code,
-                    $options['url'],
-                    $options['method'],
-                    json_encode($options['body'], JSON_PRETTY_PRINT)
-                );
-                die();
+                $this->__responseError($response, $options);
             } else {
                 return json_decode($response->body, true);
             }
