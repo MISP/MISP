@@ -53,10 +53,10 @@ class TrainingShell extends AppShell {
             ));
             $remote_org_id = $this->__createOrg($org_data);
             $this->__setSetting('MISP.host_org_id', $remote_org_id, $id, $org);
-            $this->__report['servers'][$url]['host_org_id'] = $remote_org_id;
+            $this->__report['servers'][$this->__currentUrl]['host_org_id'] = $remote_org_id;
             $this->__report['remote_orgs'][] = array('id' => $remote_org_id, 'name' => $org);
             $role_id = $this->__createRole($this->__config['role_blueprint']);
-            $this->__report['servers'][$url]['training_role_id'] = $role_id;
+            $this->__report['servers'][$this->__currentUrl]['training_role_id'] = $role_id;
             $sync_user = $this->__createSyncUserLocally($remote_org_id, $org);
             $local_host_org = $this->Organisation->find('first', array(
                 'recursive' => -1,
@@ -69,14 +69,14 @@ class TrainingShell extends AppShell {
             ));
             $hub_org_id_on_remote = $this->__createOrg($local_host_org);
             $external_baseurl = empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl');
-            $this->__report['servers'][$url]['sync_connections'][] = $this->__addSyncConnection($external_baseurl, 'Exercise hub', $local_host_org, $hub_org_id_on_remote, $sync_user);
-            $this->__report['servers'][$url]['users'] = $this->__createUsers($remote_org_id, $role_id, $org, $id);
+            $this->__report['servers'][$this->__currentUrl]['sync_connections'][] = $this->__addSyncConnection($external_baseurl, 'Exercise hub', $local_host_org, $hub_org_id_on_remote, $sync_user);
+            $this->__report['servers'][$this->__currentUrl]['users'] = $this->__createUsers($remote_org_id, $role_id, $org, $id);
             if (!empty($this->__config['settings'])) {
-                foreach ($this->__config['setting'] as $key => $value)
+                foreach ($this->__config['settings'] as $key => $value)
                 $this->__setSetting($key, $value, $id, $org);
             }
             if ($this->__config['reset_admin_credentials']) {
-                $this->__report['servers'][$url]['management_account'] = $this->__reset_admin_credentials($this->__report);
+                $this->__report['servers'][$this->__currentUrl]['management_account'] = $this->__reset_admin_credentials($this->__report);
             }
         }
         echo 'Setup complete. Please find the modifications below:' . PHP_EOL . PHP_EOL;
@@ -213,7 +213,8 @@ class TrainingShell extends AppShell {
         $credentials = array();
         $credentials['authkey'] = $this->__queryRemoteMISP(array(
             'url' => $this->__currentUrl . '/users/resetauthkey',
-            'method' => 'POST'
+            'method' => 'POST',
+            'body' => ''
         ));
         if ($this->__simulate) {
             $credentials['authkey'] = '1111111111111111111111111111111111111111';
