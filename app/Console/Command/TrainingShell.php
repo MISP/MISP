@@ -62,7 +62,7 @@ class TrainingShell extends AppShell {
             $hub_org_id_on_remote = $this->__createOrg($local_host_org);
             $external_baseurl = empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl');
             $this->__report['servers'][$url]['sync_connections'][] = $this->__addSyncConnection($external_baseurl, 'Exercise hub', $local_host_org, $hub_org_id_on_remote, $sync_user);
-            $this->__report['servers'][$url]['users'] = $this->__createUsers($remote_org_id, $role_id, $org);
+            $this->__report['servers'][$url]['users'] = $this->__createUsers($remote_org_id, $role_id, $org, $i);
             if (!empty($this->__config['settings'])) {
                 foreach ($this->__config['setting'] as $key => $value)
                 $this->__setSetting($key, $value, $i, $org);
@@ -135,11 +135,12 @@ class TrainingShell extends AppShell {
         return $user;
     }
 
-    private function __createUsers($remote_org_id, $role_id, $org)
+    private function __createUsers($remote_org_id, $role_id, $org, $i)
     {
         $summary = array();
         for ($j = 1; $j < (1+$this->__config['user_count']); $j++) {
             $email = $this->__config['user_blueprint'];
+            $email = str_replace('$ID', $i, $email);
             $email = str_replace('$ORGNAME', $org, $email);
             $email = str_replace('$USER_ITERATOR', $j, $email);
             $user = array(
