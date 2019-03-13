@@ -215,7 +215,6 @@ class ServersController extends AppController
                     throw new MethodNotAllowedException('No remote org ID set. Please pass it as remote_org_id');
                 }
             }
-
             $fail = false;
             if (empty(Configure::read('MISP.host_org_id'))) {
                 $this->request->data['Server']['internal'] = 0;
@@ -240,7 +239,6 @@ class ServersController extends AppController
                     $this->Flash->error($error_msg);
                 }
             }
-
             if (!$fail) {
                 if ($this->_isRest()) {
                     $defaults = array(
@@ -334,7 +332,7 @@ class ServersController extends AppController
                         }
                     } else {
                         if ($this->_isRest()) {
-                            return $this->RestResponse->saveFailResponse('Servers', 'add', false, $this->Server->validationError, $this->response->type());
+                            return $this->RestResponse->saveFailResponse('Servers', 'add', false, $this->Server->validationErrors, $this->response->type());
                         } else {
                             $this->Flash->error(__('The server could not be saved. Please, try again.'));
                         }
@@ -1142,10 +1140,16 @@ class ServersController extends AppController
         if (!$this->_isSiteAdmin()) {
             throw new MethodNotAllowedException();
         }
-        if (!isset($setting_name) || !isset($id)) {
+        if (!isset($setting_name)) {
             throw new MethodNotAllowedException();
         }
-        $this->set('id', $id);
+        if (!$this->_isRest()) {
+            if (!isset($id)) {
+                throw new MethodNotAllowedException();
+            }
+            $this->set('id', $id);
+        }
+
         $setting = $this->Server->getSettingData($setting_name);
         if ($this->request->is('get')) {
             if ($setting != null) {
