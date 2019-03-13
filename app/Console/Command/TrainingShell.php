@@ -227,24 +227,18 @@ class TrainingShell extends AppShell {
 
     private function __reset_admin_credentials()
     {
-        $credentials = array();
-        $credentials['authkey'] = $this->__queryRemoteMISP(array(
-            'url' => $this->__currentUrl . '/users/resetauthkey/me',
-            'method' => 'POST',
-            'body' => ''
-        ));
-        if ($this->__simulate) {
-            $credentials['authkey'] = '1111111111111111111111111111111111111111';
-        } else {
-            $credentials['authkey'] = trim(explode(':', $this->__report['management_authkey'])[1]);
-        }
-        $newKey = $this->User->generateRandomPassword(32);
+        $credentials = array(
+            'authkey' => $this->User->generateAuthKey(),
+            'password' => $this->User->generateRandomPassword(32)
+        );
         $this->__queryRemoteMISP(array(
             'url' => $this->__currentUrl . '/admin/users/edit/1',
-            'body' => array('User' => array('password' => $newKey)),
+            'body' => array('User' => array(
+                'password' => $credentials['password'],
+                'authkey' => $credentials['authkey']
+            )),
             'method' => 'POST'
         ));
-        $credentials['password'] = $newKey;
         return $credentials;
     }
 
