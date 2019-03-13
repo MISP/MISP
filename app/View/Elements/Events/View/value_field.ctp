@@ -5,7 +5,22 @@
       $extension = explode('.', $object['value']);
       $extension = end($extension);
       $uri = 'data:image/' . strtolower(h($extension)) . ';base64,' . h($object['image']);
-      echo '<img class="screenshot screenshot-collapsed useCursorPointer" src="' . $uri . '" title="' . h($object['value']) . '" />';
+
+      $width = 150;
+      $height = 150;
+      $image = ImageCreateFromString(base64_decode($object['image']));
+      $output = ImageCreateTrueColor($width, $height);
+      ImageCopyResampled($output, $image, 0, 0, 0, 0, $width, $height, ImageSX($image), ImageSY($image));
+      ob_start ();
+        imagejpeg ($output);
+        $image_data = ob_get_contents();
+      ob_end_clean ();
+      imagedestroy($image);
+      imagedestroy($output);
+      echo '<img class="screenshot screenshot-collapsed useCursorPointer" src="' . 'data:image/' . strtolower('jpeg') . ';base64,' . h(base64_encode($image_data)) . '" title="' . h($object['value']) . '" />';
+
+
+      // echo '<img class="screenshot screenshot-collapsed useCursorPointer" src="' . $uri . '" title="' . h($object['value']) . '" />';
     } else {
       $filenameHash = explode('|', h($object['value']));
       if (strrpos($filenameHash[0], '\\')) {

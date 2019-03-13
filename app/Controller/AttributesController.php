@@ -1157,7 +1157,7 @@ class AttributesController extends AppController
             $temp = $this->Attribute->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('Attribute.uuid' => $id),
-                'fields' => array('Attribute.id', 'Attribute.uuid')
+                'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.event_id')
             ));
             if (empty($temp)) {
                 throw new NotFoundException(__('Invalid attribute'));
@@ -1170,15 +1170,15 @@ class AttributesController extends AppController
         if (!$this->Attribute->exists()) {
             throw new NotFoundException('Invalid attribute');
         }
+        $conditions = array('conditions' => array('Attribute.id' => $id), 'withAttachments' => true, 'flatten' => true);
+        $conditions['includeAllTags'] = false;
+        $conditions['includeAttributeUuid'] = true;
+        $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $conditions);
+        if (empty($attribute)) {
+            throw new MethodNotAllowedException('Invalid attribute');
+        }
+        $attribute = $attribute[0];
         if ($this->_isRest()) {
-            $conditions = array('conditions' => array('Attribute.id' => $id), 'withAttachments' => true, 'flatten' => true);
-            $conditions['includeAllTags'] = false;
-            $conditions['includeAttributeUuid'] = true;
-            $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $conditions);
-            if (empty($attribute)) {
-                throw new MethodNotAllowedException('Invalid attribute');
-            }
-            $attribute = $attribute[0];
             if (isset($attribute['AttributeTag'])) {
                 foreach ($attribute['AttributeTag'] as $k => $tag) {
                     $attribute['Attribute']['Tag'][$k] = $tag['Tag'];
@@ -1189,7 +1189,70 @@ class AttributesController extends AppController
             $this->set('Attribute', $attribute['Attribute']);
             $this->set('_serialize', array('Attribute'));
         } else {
-            $this->redirect('/events/view/' . $this->Attribute->data['Attribute']['event_id']);
+            $this->redirect('/events/view/' . $attribute['Attribute']['event_id']);
+        }
+    }
+
+    public function viewPicture($id)
+    {
+        if (Validation::uuid($id)) {
+            $temp = $this->Attribute->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('Attribute.uuid' => $id),
+                'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.event_id')
+            ));
+            if (empty($temp)) {
+                throw new NotFoundException(__('Invalid attribute'));
+            }
+            $id = $temp['Attribute']['id'];
+        } elseif (!is_numeric($id)) {
+            throw new NotFoundException(__('Invalid attribute id.'));
+        }
+        $this->Attribute->id = $id;
+        if (!$this->Attribute->exists()) {
+            throw new NotFoundException('Invalid attribute');
+        }
+        $conditions = array('conditions' => array('Attribute.id' => $id), 'withAttachments' => true, 'flatten' => true);
+        $conditions['includeAllTags'] = false;
+        $conditions['includeAttributeUuid'] = true;
+        $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $conditions);
+        if (empty($attribute)) {
+            throw new MethodNotAllowedException('Invalid attribute');
+        }
+        $attribute = $attribute[0];
+        if ('attachment' != $attribute['Attribute']['type'] && 'malware-sample' != $attribute['Attribute']['type'] ) {
+            throw new NotFoundException(__('Invalid attribute'));
+        }
+
+        if ($this->_isRest()) {
+            return $this->RestResponse->viewData($attribute['Attribute']['data'], $this->response->type());
+        } else {
+            $extension = explode('.', $attribute['Attribute']['value']);
+            $extension = end($extension);
+            $image = ImageCreateFromString(base64_decode($attribute['Attribute']['data']));
+
+            // Set the content type header - in this case image/jpeg
+            ob_start ();
+            switch ($extension) {
+                case 'gif':
+                    imagegif($image);
+                    break;
+                case 'jpeg':
+                    imagejpeg($image);
+                    break; // best quality
+                case 'png':
+                    imagepng($image);
+                    break; // no compression
+                default:
+                    $resp = '';
+                    break;
+            }
+            $image_data = ob_get_contents();
+            ob_end_clean ();
+            imagedestroy($image);
+            $this->response->type(strtolower(h($extension)));
+            $this->response->body($image_data);
+            $this->autoRender = false;
         }
     }
 
