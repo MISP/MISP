@@ -172,8 +172,6 @@ class TrainingShell extends AppShell {
                 $user = array(
                     'email' => $email,
                     'password' => $newKey,
-                    'confirm_password' => $newKey,
-                    'enable_password' => 1,
                     'role_id' => $role_id,
                     'org_id' => $remote_org_id
                 );
