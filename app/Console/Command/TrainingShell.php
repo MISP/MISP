@@ -303,6 +303,9 @@ class TrainingShell extends AppShell {
             $response->body = '{"id": 666, "Organisation": {"id": 666}, "User": {"id": 666, "email": "foo"}, "Role": {"id": 666}, "Server": {"url": "https://foo.bar", "authkey": "bla"}}';
             return $response;
         } else {
+            if ($this->__verbose) {
+                echo 'EXEC - query to be executed:' . PHP_EOL . json_encode($options) . PHP_EOL . ' using request object:' . PHP_EOL . json_encode($request) . PHP_EOL . PHP_EOL;
+            }
             if ($options['method'] === 'POST') {
                 $response = $HttpSocket->post($options['url'], json_encode($options['body']), $request);
             } else {
