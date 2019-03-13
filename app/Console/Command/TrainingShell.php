@@ -204,7 +204,7 @@ class TrainingShell extends AppShell {
             $roles = json_decode($response->body, true);
             $found = false;
             foreach ($roles as $role) {
-                if ($role['Role']['name'] == $blueprint['name']) {
+                if ($role['Role']['name'] == $blueprint['Role']['name']) {
                     return $role['Role']['id'];
                 }
             }
@@ -229,7 +229,7 @@ class TrainingShell extends AppShell {
     {
         $credentials = array();
         $credentials['authkey'] = $this->__queryRemoteMISP(array(
-            'url' => $this->__currentUrl . '/users/resetauthkey',
+            'url' => $this->__currentUrl . '/users/resetauthkey/me',
             'method' => 'POST',
             'body' => ''
         ));
