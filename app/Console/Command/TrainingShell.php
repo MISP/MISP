@@ -34,8 +34,10 @@ class TrainingShell extends AppShell {
         $this->__config = json_decode($this->__config, true);
         $this->__report = array();
         for ($i = $this->__config['ID_start']; $i < ($this->__config['ID_start'] + $this->__config['number_of_misps_to_configure']); $i++) {
-            $url = str_replace('$ID', $i, $this->__config['server_blueprint']);
-            $this->__currentUrl = $url;
+            $this->__currentUrl = str_replace('$ID', $i, $this->__config['server_blueprint']);
+            if ($this->__verbose) {
+                echo 'INFO - Instance to configure' . $this->__currentUrl . PHP_EOL;
+            }
             $org = str_replace('$ID', $i, $this->__config['org_blueprint']);
             $org_id = $this->Organisation->createOrgFromName($org, 1, true);
             $org_data = $this->Organisation->find('first', array(
