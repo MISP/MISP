@@ -146,6 +146,8 @@ class TrainingShell extends AppShell {
             $options['method'],
             empty($options['body']) ? '' : json_encode($options['body'], JSON_PRETTY_PRINT)
         );
+        echo 'Setup failed. Output of what has been created:' . PHP_EOL . PHP_EOL;
+        echo json_encode($this->__report, JSON_PRETTY_PRINT);
         die();
     }
 
@@ -165,10 +167,13 @@ class TrainingShell extends AppShell {
             if ($response->code != 200) {
                 $this->__responseError($response, $options);
             }
+            $newKey = $this->User->generateRandomPassword(32);
             if (!empty($response->body)) {
                 $user = array(
                     'email' => $email,
-                    'password' => $newKey = $this->User->generateRandomPassword(32),
+                    'password' => $newKey,
+                    'confirm_password' => $newKey,
+                    'enable_password' => 1,
                     'role_id' => $role_id,
                     'org_id' => $remote_org_id
                 );
