@@ -44,7 +44,7 @@ class TrainingShell extends AppShell {
                 'conditions' => array('Organisation.id' => $org_id)
             ));
             $remote_org_id = $this->__createOrg($org_data);
-            $this->__setSetting('MISP.host_org_id', $remote_org_id);
+            $this->__setSetting('MISP.host_org_id', $remote_org_id, $i, $org);
             $this->__report['servers'][$url]['host_org_id'] = $remote_org_id;
             $this->__report['remote_orgs'][] = array('id' => $remote_org_id, 'name' => $org);
             $role_id = $this->__createRole($this->__config['role_blueprint']);
@@ -63,6 +63,10 @@ class TrainingShell extends AppShell {
             $external_baseurl = empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl');
             $this->__report['servers'][$url]['sync_connections'][] = $this->__addSyncConnection($external_baseurl, 'Exercise hub', $local_host_org, $hub_org_id_on_remote, $sync_user);
             $this->__report['servers'][$url]['users'] = $this->__createUsers($remote_org_id, $role_id, $org);
+            if (!empty($this->__config['settings'])) {
+                foreach ($this->__config['setting'] as $key => $value)
+                $this->__setSetting($key, $value, $i, $org);
+            }
             if ($this->__config['reset_admin_credentials']) {
                 $this->__report['servers'][$url]['management_account'] = $this->__reset_admin_credentials($this->__report);
             }
@@ -249,8 +253,10 @@ class TrainingShell extends AppShell {
     }
 
 
-    private function __setSetting($key, $value)
+    private function __setSetting($key, $value, $i, $org)
     {
+        $value = str_replace('$ID', $i, $value);
+        $value = str_replace('$ORGNAME', $org, $value);
         $options = array(
             'url' => $this->__currentUrl . '/servers/serverSettingsEdit/' . $key,
             'method' => 'POST',
