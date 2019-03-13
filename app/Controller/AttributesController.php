@@ -1157,7 +1157,7 @@ class AttributesController extends AppController
             $temp = $this->Attribute->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('Attribute.uuid' => $id),
-                'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.event_id')
+                'fields' => array('Attribute.id', 'Attribute.uuid')
             ));
             if (empty($temp)) {
                 throw new NotFoundException(__('Invalid attribute'));
