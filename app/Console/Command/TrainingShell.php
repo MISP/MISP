@@ -188,7 +188,8 @@ class TrainingShell extends AppShell {
                     if ($this->__simulate) {
                         $summary[] = $user;
                     } else {
-                        $summary[] = $response_data['User'];
+                        $user['authkey'] = $response_data['User']['authkey'];
+                        $summary[] = $user;
                     }
                 }
             }
