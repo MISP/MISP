@@ -34,11 +34,17 @@ class TrainingShell extends AppShell {
         $this->__config = json_decode($this->__config, true);
         $this->__report = array();
         for ($i = $this->__config['ID_start']; $i < ($this->__config['ID_start'] + $this->__config['number_of_misps_to_configure']); $i++) {
-            $this->__currentUrl = str_replace('$ID', $i, $this->__config['server_blueprint']);
+            $id = $i;
+            if ($this->__config['ID_zero_out']) {
+                if ($id < 10) {
+                    $id = '0' . $id;
+                }
+            }
+            $this->__currentUrl = str_replace('$ID', $id, $this->__config['server_blueprint']);
             if ($this->__verbose) {
                 echo 'INFO - Instance to configure' . $this->__currentUrl . PHP_EOL;
             }
-            $org = str_replace('$ID', $i, $this->__config['org_blueprint']);
+            $org = str_replace('$ID', $id, $this->__config['org_blueprint']);
             $org_id = $this->Organisation->createOrgFromName($org, 1, true);
             $org_data = $this->Organisation->find('first', array(
                 'recursive' => -1,
@@ -46,7 +52,7 @@ class TrainingShell extends AppShell {
                 'conditions' => array('Organisation.id' => $org_id)
             ));
             $remote_org_id = $this->__createOrg($org_data);
-            $this->__setSetting('MISP.host_org_id', $remote_org_id, $i, $org);
+            $this->__setSetting('MISP.host_org_id', $remote_org_id, $id, $org);
             $this->__report['servers'][$url]['host_org_id'] = $remote_org_id;
             $this->__report['remote_orgs'][] = array('id' => $remote_org_id, 'name' => $org);
             $role_id = $this->__createRole($this->__config['role_blueprint']);
@@ -64,10 +70,10 @@ class TrainingShell extends AppShell {
             $hub_org_id_on_remote = $this->__createOrg($local_host_org);
             $external_baseurl = empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl');
             $this->__report['servers'][$url]['sync_connections'][] = $this->__addSyncConnection($external_baseurl, 'Exercise hub', $local_host_org, $hub_org_id_on_remote, $sync_user);
-            $this->__report['servers'][$url]['users'] = $this->__createUsers($remote_org_id, $role_id, $org, $i);
+            $this->__report['servers'][$url]['users'] = $this->__createUsers($remote_org_id, $role_id, $org, $id);
             if (!empty($this->__config['settings'])) {
                 foreach ($this->__config['setting'] as $key => $value)
-                $this->__setSetting($key, $value, $i, $org);
+                $this->__setSetting($key, $value, $id, $org);
             }
             if ($this->__config['reset_admin_credentials']) {
                 $this->__report['servers'][$url]['management_account'] = $this->__reset_admin_credentials($this->__report);
