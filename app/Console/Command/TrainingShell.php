@@ -99,7 +99,7 @@ class TrainingShell extends AppShell {
             'body' => $server
         );
         $response = $this->__queryRemoteMISP($options, true);
-        if ($response->code !== 200) {
+        if ($response->code != 200) {
             echo sprintf(
                 "Received a non-200 response (%s). Aborting.\nQueried URL: %s\n Query type: %s\n Request payload: %s\n\n",
                 $response->code,
@@ -163,7 +163,7 @@ class TrainingShell extends AppShell {
                 'body' => $user
             );
             $response = $this->__queryRemoteMISP($options, true);
-            if ($response->code !== 200) {
+            if ($response->code != 200) {
                 echo sprintf(
                     "Received a non-200 response (%s). Aborting.\nQueried URL: %s\n Query type: %s\n Request payload: %s\n\n",
                     $response->code,
@@ -193,7 +193,7 @@ class TrainingShell extends AppShell {
             'body' => $blueprint
         );
         $response = $this->__queryRemoteMISP($options, true);
-        if ($response->code !== 200) {
+        if ($response->code != 200) {
             echo sprintf(
                 "Received a non-200 response (%s). Aborting.\nQueried URL: %s\n Query type: %s\n Request payload: %s\n\n",
                 $response->code,
@@ -237,7 +237,7 @@ class TrainingShell extends AppShell {
             'method' => 'GET'
         );
         $response = $this->__queryRemoteMISP($options, true);
-        if ($response->code === 404){
+        if ($response->code == 404){
             $options = array(
                 'body' => $org_data,
                 'url' => $this->__currentUrl . '/admin/organisations/add',
@@ -246,7 +246,7 @@ class TrainingShell extends AppShell {
             $response = $this->__queryRemoteMISP($options, true);
         }
 
-        if ($response->code !== 200) {
+        if ($response->code != 200) {
             echo sprintf(
                 "Received a non-200 response (%s). Aborting.\nQueried URL: %s\n Query type: %s\n Request payload: %s\n\n",
                 $response->code,
@@ -272,7 +272,7 @@ class TrainingShell extends AppShell {
             'body' => array('value' => $value)
         );
         $response = $this->__queryRemoteMISP($options, true);
-        if ($response->code !== 200) {
+        if ($response->code != 200) {
             echo sprintf(
                 "Received a non-200 response (%s). Aborting.\nQueried URL: %s\n Query type: %s\n Request payload: %s\n\n",
                 $response->code,
@@ -322,7 +322,7 @@ class TrainingShell extends AppShell {
             if ($returnFullResponse) {
                 return $response;
             }
-            if ($response->code !== 200) {
+            if ($response->code != 200) {
                 echo sprintf(
                     "Received a non-200 response (%s). Aborting.\nQueried URL: %s\n Query type: %s\n Request payload: %s\n\n",
                     $response->code,
