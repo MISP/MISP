@@ -1193,7 +1193,7 @@ class AttributesController extends AppController
         }
     }
 
-    public function viewPicture($id)
+    public function viewPicture($id, $thumbnail=false, $width =200, $height =200)
     {
         if (Validation::uuid($id)) {
             $temp = $this->Attribute->find('first', array(
@@ -1230,26 +1230,38 @@ class AttributesController extends AppController
             $extension = explode('.', $attribute['Attribute']['value']);
             $extension = end($extension);
             $image = ImageCreateFromString(base64_decode($attribute['Attribute']['data']));
-
-            // Set the content type header - in this case image/jpeg
-            ob_start ();
-            switch ($extension) {
-                case 'gif':
-                    imagegif($image);
-                    break;
-                case 'jpeg':
-                    imagejpeg($image);
-                    break; // best quality
-                case 'png':
-                    imagepng($image);
-                    break; // no compression
-                default:
-                    $resp = '';
-                    break;
+            if (!$thumbnail) {
+                ob_start ();
+                switch ($extension) {
+                    case 'gif':
+                        imagegif($image);
+                        break;
+                        case 'jpg':
+                        imagejpeg($image);
+                        break; // best quality
+                        case 'png':
+                        imagepng($image);
+                        break; // no compression
+                        default:
+                        $resp = '';
+                        break;
+                }
+                $image_data = ob_get_contents();
+                ob_end_clean ();
+                imagedestroy($image);
+            } else {
+                $width = isset($this->request->params['named']['width']) ? $this->request->params['named']['width'] : 150;
+                $height = isset($this->request->params['named']['height']) ? $this->request->params['named']['height'] : 150;
+                $extension = 'jpg';
+                $imageTC = ImageCreateTrueColor($width, $height);
+                ImageCopyResampled($imageTC, $image, 0, 0, 0, 0, $width, $height, ImageSX($image), ImageSY($image));
+                ob_start ();
+                  imagejpeg ($imageTC);
+                  $image_data = ob_get_contents();
+                ob_end_clean ();
+                imagedestroy($image);
+                imagedestroy($imageTC);
             }
-            $image_data = ob_get_contents();
-            ob_end_clean ();
-            imagedestroy($image);
             $this->response->type(strtolower(h($extension)));
             $this->response->body($image_data);
             $this->autoRender = false;

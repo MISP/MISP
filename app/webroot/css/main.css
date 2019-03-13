@@ -848,12 +848,18 @@ a.proposal_link_red:hover {
 
 .screenshot_box {
     display:none;
-    position: fixed;
-    top:150px;
-    background-color:#f4f4f4;
-    border-radius: 11px 11px 10px 10px;
-    box-shadow: 4px 4px 4px #333;
+    position: absolute;
+    top: 100px;
+    left: 20px;
+    right: 20px;
     z-index:5;
+    text-align: center;
+}
+.screenshot_box-content {
+  margin: auto;
+  display: block;
+  background-color:#f4f4f4;
+  box-shadow: 4px 4px 4px #333;
 }
 
 .ajax_popover_form legend, .ajax_popover_form .legend {
