@@ -411,22 +411,23 @@ class TrainingShell extends AppShell {
         $response = $this->__queryRemoteMISP($options, true);
         if ($response->code != 200) {
             $this->__responseError($response, $options);
-        }
-        $response_data = json_decode($response->body, true);
-
-        if ($response->code == 404){
+        } else {
+            $response_data = json_decode($response->body, true);
+            $found = false;
+            foreach ($response_data as $existingOrg) {
+                if ($existingOrg['Organisation']['name'] == $org_data['name']) {
+                    return $existingOrg['Organisation']['id'];
+                }
+            }
             $options = array(
                 'body' => $org_data,
                 'url' => $this->__currentUrl . '/admin/organisations/add',
                 'method' => 'POST'
             );
             $response = $this->__queryRemoteMISP($options, true);
-        }
-
-        if ($response->code != 200) {
-            $this->__responseError($response, $options);
-        } else {
-            $response_data = json_decode($response->body, true);
+            if ($response->code != 200) {
+                $this->__responseError($response, $options);
+            }
             return $response_data['Organisation']['id'];
         }
     }
