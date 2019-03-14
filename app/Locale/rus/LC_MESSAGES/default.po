@@ -2423,7 +2423,7 @@ msgstr ""
 #: View/Users/edit.ctp:41
 #: View/Whitelists/admin_edit.ctp:12
 msgid "Submit"
-msgstr ""
+msgstr "Подтвердить"
 
 #: View/Attributes/add.ctp:92
 #: View/Attributes/attribute_replace.ctp:44
@@ -2525,7 +2525,7 @@ msgstr ""
 #: View/Pages/doc/administration.ctp:90;119;182;196;227
 #: View/Pages/doc/using_the_system.ctp:161;205;268;280
 msgid "Org"
-msgstr ""
+msgstr "Организация"
 
 #: View/Attributes/alternate_search_result.ctp:8
 #: View/EventBlacklists/edit.ctp:17
@@ -2699,7 +2699,7 @@ msgstr ""
 #: View/Whitelists/admin_index.ctp:14;47
 #: View/Whitelists/index.ctp:14;42
 msgid "previous"
-msgstr ""
+msgstr "пред"
 
 #: View/Attributes/index.ctp:41;134
 #: View/Elements/eventattribute.ctp:62;231
@@ -2747,7 +2747,7 @@ msgstr ""
 #: View/Whitelists/admin_index.ctp:16;49
 #: View/Whitelists/index.ctp:16;44
 msgid "next"
-msgstr ""
+msgstr "след"
 
 #: View/Attributes/index.ctp:53
 #: View/Elements/eventattribute.ctp:152
@@ -2892,7 +2892,7 @@ msgstr "Действия"
 #: View/Whitelists/admin_index.ctp:40
 #: View/Whitelists/index.ctp:35
 msgid "Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}"
-msgstr ""
+msgstr "Страница {:page} из {:pages}, показано {:current} записей из {:count}, начиная с {:start}, заканчивая {:end}"
 
 #: View/Attributes/report_validation_issues_attributes.ctp:2
 msgid "Listing invalid attribute validations"
@@ -3404,7 +3404,7 @@ msgstr ""
 #: View/Tags/index.ctp:52
 #: View/Users/admin_index.ctp:54
 msgid "Remove filters"
-msgstr ""
+msgstr "Очистить фильтры"
 
 #: View/Elements/eventdiscussion.ctp:34
 msgid "Date: "
@@ -3745,13 +3745,13 @@ msgstr "Новости"
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:422
 #: View/Pages/doc/general.ctp:57
 msgid "My Profile"
-msgstr ""
+msgstr "Мой профиль"
 
 #: View/Elements/global_menu.ctp:147
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:426
 #: View/Users/dashboard.ctp:2
 msgid "Dashboard"
-msgstr ""
+msgstr "Дашборд"
 
 #: View/Elements/global_menu.ctp:151
 #: View/SharingGroups/add.ctp:19
@@ -3760,13 +3760,13 @@ msgstr ""
 #: View/Users/statistics.ctp:27
 #: View/Users/statistics_data.ctp:34
 msgid "Organisations"
-msgstr ""
+msgstr "Организации"
 
 #: View/Elements/global_menu.ctp:156
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:445
 #: View/Pages/doc/general.ctp:59
 msgid "Role Permissions"
-msgstr ""
+msgstr "Настройка ролей"
 
 #: View/Elements/global_menu.ctp:163
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:975
@@ -3776,12 +3776,12 @@ msgstr ""
 #: View/Elements/global_menu.ctp:170
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:462
 msgid "List Sharing Groups"
-msgstr ""
+msgstr "Группы распространения"
 
 #: View/Elements/global_menu.ctp:174
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:468
 msgid "Add Sharing Group"
-msgstr ""
+msgstr "Добавить группу распространения"
 
 #: View/Elements/global_menu.ctp:182
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:475
@@ -3789,16 +3789,16 @@ msgstr ""
 #: View/Pages/doc/general.ctp:60
 #: View/Pages/doc/user_management.ctp:53
 msgid "User Guide"
-msgstr ""
+msgstr "Руководство пользователя"
 
 #: View/Elements/global_menu.ctp:186
 msgid "Categories & Types"
-msgstr ""
+msgstr "Категории и типы"
 
 #: View/Elements/global_menu.ctp:190
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:479
 msgid "Terms & Conditions"
-msgstr ""
+msgstr "Условия и положения"
 
 #: View/Elements/global_menu.ctp:194
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:483
@@ -3812,7 +3812,7 @@ msgstr ""
 #: View/Users/statistics_tags.ctp:7
 #: View/Users/statistics_users.ctp:2
 msgid "Statistics"
-msgstr ""
+msgstr "Статистика"
 
 #: View/Elements/global_menu.ctp:201
 #: View/Pages/doc/general.ctp:92
@@ -3848,7 +3848,7 @@ msgstr ""
 #: View/Pages/doc/user_management.ctp:14
 #: View/Pages/doc/using_the_system.ctp:21
 msgid "Administration"
-msgstr ""
+msgstr "Администрирование"
 
 #: View/Elements/global_menu.ctp:234
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:608
@@ -3870,11 +3870,11 @@ msgstr "Связаться с пользователями"
 #: View/Elements/global_menu.ctp:249
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:432;655
 msgid "List Organisations"
-msgstr ""
+msgstr "Список организаций"
 
 #: View/Elements/global_menu.ctp:253
 msgid "Add Organisations"
-msgstr ""
+msgstr "Добавить организацию"
 
 #: View/Elements/global_menu.ctp:260
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:667
@@ -3934,14 +3934,14 @@ msgstr "Аудит"
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:719
 #: View/Pages/doc/general.ctp:86
 msgid "List Logs"
-msgstr ""
+msgstr "Показать журналы"
 
 #: View/Elements/global_menu.ctp:335
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:723
 #: View/Logs/admin_search.ctp:4
 #: View/Pages/doc/general.ctp:87
 msgid "Search Logs"
-msgstr ""
+msgstr "Поиск в журналах"
 
 #: View/Elements/global_menu.ctp:362;367
 #: View/Pages/doc/general.ctp:28;63
@@ -4006,7 +4006,7 @@ msgstr ""
 #: View/Servers/preview_index.ctp:50
 #: View/Users/admin_index.ctp:47
 msgid "Filters"
-msgstr ""
+msgstr "Фильтры"
 
 #: View/Elements/view_event_graph.ctp:16
 msgid "History"
@@ -4426,7 +4426,7 @@ msgstr ""
 #: View/Tags/index.ctp:125
 #: View/Whitelists/admin_index.ctp:32
 msgid "Are you sure you want to delete \"%s\"?"
-msgstr ""
+msgstr "Вы уверены что хотите удалить \"%s\"?"
 
 #: View/Elements/Users/userIndexTable.ctp:5
 #: View/Roles/view.ctp:24
@@ -4438,14 +4438,14 @@ msgstr "Роль"
 
 #: View/Elements/Users/userIndexTable.ctp:16
 msgid "Last login"
-msgstr ""
+msgstr "Последний вход"
 
 #: View/Elements/Users/userIndexTable.ctp:17
 #: View/Pages/doc/administration.ctp:183
 #: View/Pages/doc/using_the_system.ctp:272
 #: View/ShadowAttributes/index.ctp:64
 msgid "Created"
-msgstr ""
+msgstr "Время создания"
 
 #: View/Elements/Users/userIndexTable.ctp:88
 msgid "Initiate password refresh"
@@ -6083,7 +6083,7 @@ msgstr ""
 #: View/Events/automation.ctp:14
 #: View/Logs/admin_index.ctp:20;21
 msgid "Search"
-msgstr ""
+msgstr "Поиск"
 
 #: View/Events/automation.ctp:16
 #: View/Events/legacy_automation.ctp:264
@@ -7036,7 +7036,7 @@ msgstr ""
 #: View/Tags/index.ctp:56
 #: View/Taxonomies/view.ctp:65
 msgid "Filter"
-msgstr ""
+msgstr "Фильтр"
 
 #: View/Events/index.ctp:95
 #: View/Organisations/index.ctp:76
@@ -7349,21 +7349,8 @@ msgstr ""
 msgid "Events with the date set to a date before the one specified in the to field (format: 2015-02-15)"
 msgstr ""
 
-<<<<<<< HEAD
 #: View/Events/legacy_automation.ctp:312
 msgid "Restrict the results by the timestamp (of the attribute). Any attributes with a timestamp newer than the given timestamp will be returned."
-=======
-#: View/Events/index.ctp:95
-msgid "Enter value to search"
-msgstr ""
-
-#: View/Events/index.ctp:44
-#: View/Organisations/index.ctp:59
-#: View/Servers/preview_index.ctp:45
-#: View/Tags/index.ctp:56
-#: View/Taxonomies/view.ctp:65
-msgid "Filter"
->>>>>>> 2.4
 msgstr ""
 
 #: View/Events/legacy_automation.ctp:317
@@ -8368,7 +8355,7 @@ msgstr ""
 #: View/Logs/admin_index.ctp:75
 #: View/Logs/admin_search.ctp:14
 msgid "Model ID"
-msgstr ""
+msgstr "ID модели"
 
 #: View/Logs/admin_search.ctp:8
 #: View/ObjectTemplates/index.ctp:61
@@ -8380,19 +8367,19 @@ msgstr ""
 #: View/Users/admin_view.ctp:17
 #: View/Users/view.ctp:5
 msgid "Organisation"
-msgstr ""
+msgstr "Организация"
 
 #: View/Logs/admin_search.ctp:19
 #: View/Pages/doc/administration.ctp:185;198
 #: View/Pages/doc/using_the_system.ctp:271
 #: View/Threads/index.ctp:22
 msgid "Title"
-msgstr ""
+msgstr "Название"
 
 #: View/Logs/admin_search.ctp:21
 #: View/Pages/doc/administration.ctp:186;199
 msgid "Change"
-msgstr ""
+msgstr "Изменение"
 
 #: View/Logs/test_for_stolen_attributes.ctp:2
 msgid "Stolen attribute validation"
@@ -9400,7 +9387,7 @@ msgstr ""
 #: View/Users/admin_view.ctp:41
 #: View/Users/view.ctp:25
 msgid "Authkey"
-msgstr ""
+msgstr "Ключ аутентификации"
 
 #: View/Pages/doc/administration.ctp:94
 msgid "This is assigned automatically and is the unique authentication key of the user (he/she will be able to reset this and receive a new key). It is used for exports and for connecting one server to another, but it requires the user to be assigned to a role that has auth permission enabled."
@@ -9416,7 +9403,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:96;127
 msgid "GnuPGkey"
-msgstr ""
+msgstr "Ключ GnuPG"
 
 #: View/Pages/doc/administration.ctp:96;127
 msgid "The key used for encrypting e-mails sent through the system."
@@ -12509,12 +12496,12 @@ msgstr ""
 
 #: View/SharingGroups/add.ctp:3
 msgid "New Sharing Group"
-msgstr ""
+msgstr "Новая группа распространения"
 
 #: View/SharingGroups/add.ctp:10
 #: View/SharingGroups/edit.ctp:10
 msgid "General"
-msgstr ""
+msgstr "Главная"
 
 #: View/SharingGroups/add.ctp:11
 #: View/SharingGroups/edit.ctp:11
@@ -12529,7 +12516,7 @@ msgstr ""
 #: View/SharingGroups/add.ctp:27
 #: View/SharingGroups/edit.ctp:27
 msgid "MISP Instances"
-msgstr "MISP инстансы"
+msgstr "Экземпляры MISP"
 
 #: View/SharingGroups/add.ctp:28
 #: View/SharingGroups/edit.ctp:28
@@ -12539,33 +12526,33 @@ msgstr ""
 #: View/SharingGroups/add.ctp:35
 #: View/SharingGroups/edit.ctp:35
 msgid "Summary and Save"
-msgstr ""
+msgstr "Сводка и сохранение"
 
 #: View/SharingGroups/add.ctp:36
 #: View/SharingGroups/edit.ctp:36
 msgid "Sharing group summary"
-msgstr ""
+msgstr "Сводка"
 
 #: View/SharingGroups/add.ctp:52
 #: View/SharingGroups/edit.ctp:52
 msgid "Example: Multinational sharing group"
-msgstr ""
+msgstr "Пример: Международная Группа Распространения"
 
 #: View/SharingGroups/add.ctp:53
 #: View/SharingGroups/edit.ctp:53
 #: View/SharingGroups/index.ctp:46
 msgid "Releasable to"
-msgstr ""
+msgstr "Адресаты"
 
 #: View/SharingGroups/add.ctp:54
 #: View/SharingGroups/edit.ctp:54
 msgid "Example: Community1, Organisation1, Organisation2"
-msgstr ""
+msgstr "Пример: Сообщество1, Организация1, Организация2"
 
 #: View/SharingGroups/add.ctp:56
 #: View/SharingGroups/edit.ctp:56
 msgid "A description of the sharing group."
-msgstr ""
+msgstr "Описание группы распространения"
 
 #: View/SharingGroups/add.ctp:58
 #: View/SharingGroups/edit.ctp:58
@@ -12575,7 +12562,7 @@ msgstr ""
 #: View/SharingGroups/add.ctp:59
 #: View/SharingGroups/edit.ctp:59
 msgid "Make the sharing group selectable (active)"
-msgstr ""
+msgstr "Сделать группы распространения активной"
 
 #: View/SharingGroups/add.ctp:61;78;99
 #: View/SharingGroups/edit.ctp:61;78;107
@@ -12585,84 +12572,84 @@ msgstr "Следующая страница"
 #: View/SharingGroups/add.ctp:65
 #: View/SharingGroups/edit.ctp:65
 msgid "Add local organisation(s) to the sharing group"
-msgstr ""
+msgstr "Добавить локальную организацию в группу распространения"
 
 #: View/SharingGroups/add.ctp:65
 #: View/SharingGroups/edit.ctp:65
 msgid "Add local organisation"
-msgstr ""
+msgstr "Добавить локальную организацию"
 
 #: View/SharingGroups/add.ctp:66
 #: View/SharingGroups/edit.ctp:66
 msgid "Add remote organisations to the sharing group"
-msgstr ""
+msgstr "Добавить стороннюю организацию в группу распространения"
 
 #: View/SharingGroups/add.ctp:66
 #: View/SharingGroups/edit.ctp:66
 msgid "Add remote organisation"
-msgstr ""
+msgstr "Добавить стороннюю организацию"
 
 #: View/SharingGroups/add.ctp:73
 #: View/SharingGroups/edit.ctp:73
 #: View/SharingGroups/view.ctp:44
 msgid "Extend"
-msgstr ""
+msgstr "Расширяемая"
 
 #: View/SharingGroups/add.ctp:77;98;114
 #: View/SharingGroups/edit.ctp:77;106;122
 msgid "Previous page"
-msgstr ""
+msgstr "Предыдущая страница"
 
 #: View/SharingGroups/add.ctp:82
 #: View/SharingGroups/edit.ctp:90
 msgid "Enable roaming mode for this sharing group. Roaming mode will allow the sharing group to be passed to any instance where the remote recipient is contained in the organisation list. It is preferred to list the recipient instances instead."
-msgstr ""
+msgstr "Включить режим передачи для группы распространения. Режим передачи позволяет передавать события всем экземплярам MISP при условии наличия организации в списке организаций группы распространения."
 
 #: View/SharingGroups/add.ctp:83
 #: View/SharingGroups/edit.ctp:91
 msgid "<b>Enable roaming mode</b> for this sharing group (pass the event to any connected instance where the sync connection is tied to an organisation contained in the SG organisation list)."
-msgstr ""
+msgstr "<b>Включить режим передачи</b> для группы распространения (передача событий всем соединенным экземплярам MISP при условии наличия организации в списке организаций группы распространения)"
 
 #: View/SharingGroups/add.ctp:87
 #: View/SharingGroups/edit.ctp:95
 msgid "Add instance"
-msgstr "Добавить инстанс"
+msgstr "Добавить экземпляр"
 
 #: View/SharingGroups/add.ctp:93
 #: View/SharingGroups/edit.ctp:101
 #: View/SharingGroups/view.ctp:69
 msgid "All orgs"
-msgstr ""
+msgstr "Все организации"
 
 #: View/SharingGroups/add.ctp:103
 msgid "<span class=\"bold\">General: </span>You are about to create the <span id=\"summarytitle\" class=\"red bold\"></span> sharing group, which is intended to be releasable to <span id=\"summaryreleasable\" class=\"red bold\"></span>."
-msgstr ""
+msgstr "<span class=\"bold\">Главное: </span>Вы собираетесь создать <span id=\"summarytitle\" class=\"red bold\"></span> группу распространения для следующих адресатов <span id=\"summaryreleasable\" class=\"red bold\"></span>."
 
 #: View/SharingGroups/add.ctp:104
 msgid "Local organisations: </span>It will be visible to <span id=\"summarylocal\" class=\"red bold\"></span>, from which <span id=\"summarylocalextend\" class=\"red bold\"></span> can extend the sharing group."
-msgstr ""
+msgstr "Локальные организации: </span>Будет доступна для <span id=\"summarylocal\" class=\"red bold\"></span>, из которых <span id=\"summarylocalextend\" class=\"red bold\"></span> имеют право расширять группу распространения."
 
 #: View/SharingGroups/add.ctp:105
 msgid "External organisations: </span>It will also be visible to <span id=\"summaryexternal\" class=\"red bold\"></span>, out of which <span id=\"summaryexternalextend\" class=\"red bold\"></span> can extend the sharing group."
-msgstr ""
+msgstr "Сторонние организации: </span>Также будет доступна для <span id=\"summaryexternal\" class=\"red bold\"></span>, из которых <span id=\"summaryexternalextend\" class=\"red bold\"></span> имеют право расширять группу распространения."
 
 #: View/SharingGroups/add.ctp:106
 msgid "<span class=\"bold\">Synchronisation: </span>Furthermore, events are automatically pushed to: <span id=\"summaryservers\" class=\"red bold\"></span>"
-msgstr ""
+msgstr "<span class=\"bold\">Синхронизация: </span>События автоматически передаются в: <span id=\"summaryservers\" class=\"red bold\"></span>"
 
 #: View/SharingGroups/add.ctp:107
 #: View/SharingGroups/edit.ctp:115
 msgid "You can edit this information by going back to one of the previous pages, or if you agree with the above mentioned information, click Submit to create the Sharing group."
-msgstr ""
+msgstr "Чтобы создать группу распространения нажмите кнопку Подтвердить. Чтобы изменить данную информацию перейдите на предыдущие страницы."
 
 #: View/SharingGroups/add.ctp:115
 #: View/SharingGroups/edit.ctp:123
 msgid "Submit and create sharing group"
-msgstr ""
+msgstr "Подтвердить и создать группу распространения"
 
 #: View/SharingGroups/add.ctp:135
 msgid "Local instance"
-msgstr "Локальный инстанс"
+msgstr "Локальный экземпляр"
 
 #: View/SharingGroups/edit.ctp:111
 msgid "<span class=\"bold\">General: </span>You are about to create the <span id=\"summarytitle\" class=\"red bold\"></span> sharing group, which is intended to be releasable to <span id=\"summaryreleasable\" class=\"red bold\"></span>. </p>\n"
@@ -12676,15 +12663,15 @@ msgstr ""
 
 #: View/SharingGroups/index.ctp:2
 msgid "Sharing Groups"
-msgstr ""
+msgstr "Группы распространения"
 
 #: View/SharingGroups/index.ctp:26
 msgid "Active Sharing Groups"
-msgstr ""
+msgstr "Активные группы распространения"
 
 #: View/SharingGroups/index.ctp:31
 msgid "Passive Sharing Groups"
-msgstr ""
+msgstr "Пассивные группы распространения"
 
 #: View/SharingGroups/index.ctp:80
 msgid "Distribution List"
@@ -13320,11 +13307,11 @@ msgstr ""
 
 #: View/Users/admin_quick_email.ctp:4
 msgid "WARNING: This user does not have an encryption key set. The security posture of this instance allows for the sending of clear-text e-mails, so this is what will happen if you proceed."
-msgstr ""
+msgstr "ВНИМАНИЕ: У данного пользователя отсутствует ключ шифрования. "
 
 #: View/Users/admin_quick_email.ctp:7
 msgid "%s key found for user, the e-mail will be sent encrypted using this key."
-msgstr ""
+msgstr "Обнаружен %s ключ, письма будут зашифрованы на данном ключе."
 
 #: View/Users/admin_view.ctp:27
 #: View/Users/view.ctp:8
