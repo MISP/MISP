@@ -11,7 +11,6 @@ class TrainingShell extends AppShell {
 
     private $__currentUrl = false;
     private $__currentAuthKey = false;
-
     private $__simulate = false;
     private $__config = false;
     private $__report = array();
@@ -71,6 +70,14 @@ class TrainingShell extends AppShell {
             $external_baseurl = empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl');
             $this->__report['servers'][$this->__currentUrl]['sync_connections'][] = $this->__addSyncConnection($external_baseurl, 'Exercise hub', $local_host_org, $hub_org_id_on_remote, $sync_user);
             $this->__report['servers'][$this->__currentUrl]['users'] = $this->__createUsers($remote_org_id, $role_id, $org, $id);
+            if (!empty($this->__config['create_sync_both_ways'])) {
+                $sync_user = $this->__addSyncUserRemotely();
+                $this->report['servers'][$this->__currentUrl['users']][] = $sync_user;
+                $this->report['sync'][] = $this->__addSyncConnectionLocally($this->__currentUrl, $org . '_misp', $remote_org_id, $sync_user);
+            }
+            if (!empty($this->__config['create_admin_user'])) {
+                $this->report['servers'][$this->__currentUrl['users']][] = $this->__addAdminUserRemotely($i, $org, $remote_org_id);
+            }
             if (!empty($this->__config['settings'])) {
                 foreach ($this->__config['settings'] as $key => $value)
                 $this->__setSetting($key, $value, $id, $org);
@@ -81,6 +88,154 @@ class TrainingShell extends AppShell {
         }
         echo 'Setup complete. Please find the modifications below:' . PHP_EOL . PHP_EOL;
         echo json_encode($this->__report, JSON_PRETTY_PRINT);
+    }
+
+    private function __findRemoteRoleId($role_name)
+    {
+        $options = array(
+            'url' => $this->__currentUrl . '/roles/index',
+            'method' => 'GET'
+        );
+        $response = $this->__queryRemoteMISP($options, true);
+        if ($response->code == 200) {
+            $roles = json_decode($response->body, true);
+            foreach ($roles as $role) {
+                if ($role['Role']['name'] == $role_name) {
+                    return $role['Role']['id'];
+                }
+            }
+        } else {
+            $this->__responseError($response, $options);
+        }
+        return false;
+    }
+
+    private function __getRemoteAdminUser()
+    {
+        $options = array(
+            'url' => $this->__currentUrl . '/users/view/me',
+            'method' => 'GET'
+        );
+        $response = $this->__queryRemoteMISP($options, true);
+        if ($response->code == 200) {
+            return json_decode($response->body, true);
+        } else {
+            $this->__responseError($response, $options);
+        }
+        return false;
+    }
+
+    private function __addAdminUserRemotely($i, $org, $remote_org_id)
+    {
+        $email = $this->__config['user_blueprint'];
+        $email = str_replace('$ORGNAME', $org, $email);
+        $email = str_replace('$ID', $i, $email);
+        $email = 'admin' . substr($email, strpos($email, '@'));
+        $admin_role_id = $this->__findRemoteRoleId('Admin');
+        if (!$admin_role_id) {
+            echo 'Remote instance lacks the required role (Admin).' . PHP_EOL ;
+            die();
+        }
+        $options = array(
+            'url' => $this->__currentUrl . '/admin/users/index/searchall:' . $email,
+            'method' => 'GET'
+        );
+        $response = $this->__queryRemoteMISP($options, true);
+        if ($response->code != 200) {
+            $this->__responseError($response, $options);
+        }
+        $newKey = $this->User->generateRandomPassword(32);
+        if (empty(json_decode($response->body, true))) {
+            $user = array(
+                'email' => $email,
+                'password' => $newKey,
+                'role_id' => $admin_role_id,
+                'org_id' => $remote_org_id
+            );
+            $options = array(
+                'url' => $this->__currentUrl . '/admin/users/add',
+                'method' => 'POST',
+                'body' => $user
+            );
+            $response = $this->__queryRemoteMISP($options, true);
+            if ($response->code != 200) {
+                $this->__responseError($response, $options);
+            } else {
+                $response_data = json_decode($response->body, true);
+                if (!$this->__simulate) {
+                    $user['authkey'] = $response_data['User']['authkey'];
+                }
+            }
+        } else {
+            $user = json_decode($response->body, true)[0]['User'];
+        }
+        return $user;
+    }
+
+    private function __addSyncUserRemotely()
+    {
+        $sync_user_role_id = $this->__findRemoteRoleId('Sync user');
+        if (!$sync_user_role_id) {
+            echo 'Remote instance lacks the required role (Sync user).' . PHP_EOL ;
+            die();
+        }
+        $remote_admin = $this->__getRemoteAdminUser();
+        if (!$remote_admin) {
+            echo 'Remote instance did not return the admin user\'s information.' . PHP_EOL ;
+            die();
+        }
+        $email = $remote_admin['User']['email'];
+        $email = 'sync' . substr($email, strpos($email, '@'));
+        $options = array(
+            'url' => $this->__currentUrl . '/admin/users/index/searchall:' . $email,
+            'method' => 'GET'
+        );
+        $response = $this->__queryRemoteMISP($options, true);
+        if ($response->code != 200) {
+            $this->__responseError($response, $options);
+        }
+        $newKey = $this->User->generateRandomPassword(32);
+        if (empty(json_decode($response->body, true))) {
+            $user = array(
+                'email' => $email,
+                'password' => $newKey,
+                'role_id' => $sync_user_role_id,
+                'org_id' => $remote_admin['User']['role_id']
+            );
+            $options = array(
+                'url' => $this->__currentUrl . '/admin/users/add',
+                'method' => 'POST',
+                'body' => $user
+            );
+            $response = $this->__queryRemoteMISP($options, true);
+            if ($response->code != 200) {
+                $this->__responseError($response, $options);
+            } else {
+                $response_data = json_decode($response->body, true);
+                if (!$this->__simulate) {
+                    $user['authkey'] = $response_data['User']['authkey'];
+                }
+            }
+        } else {
+            $user = json_decode($response->body, true)[0]['User'];
+        }
+        return $user;
+    }
+
+    private function __addSyncConnectionLocally($baseurl, $name, $host_org, $sync_user)
+    {
+        $this->Server->create();
+        $server = array(
+            "name" => $name,
+            "url" => $baseurl,
+            "authkey" => $sync_user['authkey'],
+            "push" => 1,
+            "pull" => 1,
+            "remote_org_id" => $sync_user['org_id'],
+            "self_signed" => 1
+        );
+        $this->Server->save($server);
+        return $server;
     }
 
     private function __addSyncConnection($baseurl, $name, $local_host_org, $hub_org_id_on_remote, $sync_user)
@@ -154,7 +309,7 @@ class TrainingShell extends AppShell {
     private function __createUsers($remote_org_id, $role_id, $org, $i)
     {
         $summary = array();
-        for ($j = 1; $j < (1+$this->__config['user_count']); $j++) {
+        for ($j = 1; $j < (1 + $this->__config['user_count']); $j++) {
             $email = $this->__config['user_blueprint'];
             $email = str_replace('$ID', $i, $email);
             $email = str_replace('$ORGNAME', $org, $email);
@@ -250,10 +405,15 @@ class TrainingShell extends AppShell {
     private function __createOrg($org_data)
     {
         $options = array(
-            'url' => $this->__currentUrl . '/organisations/' . $org_data['Organisation']['uuid'],
+            'url' => $this->__currentUrl . '/organisations/index.json',
             'method' => 'GET'
         );
         $response = $this->__queryRemoteMISP($options, true);
+        if ($response->code != 200) {
+            $this->__responseError($response, $options);
+        }
+        $response_data = json_decode($response->body, true);
+
         if ($response->code == 404){
             $options = array(
                 'body' => $org_data,
@@ -340,7 +500,7 @@ class TrainingShell extends AppShell {
             'short' => 'v',
             'help' => __('verbose mode'),
             'boolean' => 1
-        ))->description(__('Lookup doc block comments for classes in CakePHP'));
+        ));
         return $parser;
     }
 }
