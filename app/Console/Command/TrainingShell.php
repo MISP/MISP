@@ -334,7 +334,7 @@ class TrainingShell extends AppShell {
                 $this->__responseError($response, $options);
             }
             $newKey = $this->User->generateRandomPassword(32);
-            if (!empty($response->body)) {
+            if (!empty(json_decode($response->body, true))) {
                 $user = array(
                     'email' => $email,
                     'password' => $newKey,
