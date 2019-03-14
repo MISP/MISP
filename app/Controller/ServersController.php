@@ -1585,6 +1585,8 @@ class ServersController extends AppController
         }
         if (!empty($request['skip_ssl_validation'])) {
             $params['ssl_verify_peer'] = false;
+            $params['ssl_verify_host'] = false;
+            $params['ssl_allow_self_signed'] = true;
         }
         $params['timeout'] = 300;
         App::uses('HttpSocket', 'Network/Http');
