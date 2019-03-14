@@ -73,7 +73,10 @@ class TrainingShell extends AppShell {
             if (!empty($this->__config['create_sync_both_ways'])) {
                 $sync_user = $this->__addSyncUserRemotely();
                 $this->report['servers'][$this->__currentUrl['users']][] = $sync_user;
-                $this->report['sync'][] = $this->__addSyncConnectionLocally($this->__currentUrl, $org . '_misp', $remote_org_id, $sync_user);
+                 $sync_server = $this->__addSyncConnectionLocally($this->__currentUrl, $org . '_misp', $remote_org_id, $sync_user);
+                 if ($sync_server) {
+                     $this->report['sync'][] = $sync_server;
+                 }
             }
             if (!empty($this->__config['create_admin_user'])) {
                 $this->report['servers'][$this->__currentUrl['users']][] = $this->__addAdminUserRemotely($i, $org, $remote_org_id);
@@ -234,7 +237,15 @@ class TrainingShell extends AppShell {
             "remote_org_id" => $sync_user['org_id'],
             "self_signed" => 1
         );
-        $this->Server->save($server);
+        $result = $this->Server->save($server);
+        if (!$result) {
+            echo sprintf(
+                'Could not add connection to %s. Reason: %s.' . PHP_EOL,
+                $baseurl,
+                json_encode($this->Server->validationErrors)
+            );
+            return false;
+        }
         return $server;
     }
 
