@@ -415,7 +415,7 @@ class TrainingShell extends AppShell {
             $response_data = json_decode($response->body, true);
             $found = false;
             foreach ($response_data as $existingOrg) {
-                if ($existingOrg['Organisation']['name'] == $org_data['name']) {
+                if ($existingOrg['Organisation']['name'] == $org_data['Organisation']['name']) {
                     return $existingOrg['Organisation']['id'];
                 }
             }
