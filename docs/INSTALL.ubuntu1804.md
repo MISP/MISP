@@ -107,7 +107,8 @@ installDepsPhp72 () {
   php-dev \
   php-json php-xml php-mysql php-opcache php-readline php-mbstring \
   php-pear \
-  php-redis php-gnupg
+  php-redis php-gnupg \
+  php-gd
 
   for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
   do

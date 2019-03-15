@@ -141,7 +141,7 @@ Also make sure the variable ${VIRT_USER} is set to the user you created when you
 
 #### Install PHP and dependencies
 ```bash
-sudo apt-get install libapache2-mod-php php php-cli php-gnupg php-dev php-json php-mysql php-opcache php-readline php-redis php-xml php-mbstring -y
+sudo apt-get install libapache2-mod-php php php-cli php-gnupg php-dev php-json php-mysql php-opcache php-readline php-redis php-xml php-mbstring php-gd -y
 ```
 
 # Apply all changes

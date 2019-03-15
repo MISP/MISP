@@ -77,7 +77,7 @@ libxml2-dev libxslt1-dev zlib1g-dev
 
 #sudo /etc/init.d/redis-server restart
 
-sudo apt install -y libapache2-mod-php7.0 php7.0 php7.0-cli php7.0-mbstring php7.0-dev php7.0-json php7.0-xml php7.0-mysql php7.0-opcache php7.0-readline php-redis php-gnupg
+sudo apt install -y libapache2-mod-php7.0 php7.0 php7.0-cli php7.0-mbstring php7.0-dev php7.0-json php7.0-xml php7.0-mysql php7.0-opcache php7.0-readline php-redis php-gnupg php-gd
 
 sudo apt install -y \
 mariadb-client \
