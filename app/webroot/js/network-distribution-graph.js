@@ -107,6 +107,12 @@
                             shape: 'box',
                             margin: 3
                         },
+                        'otherOrg': {
+                            shape: 'ellipse',
+                            font: {color: 'white', size: 24},
+                            color: '#ff9725',
+                            margin: 3
+                        },
                         'root-connected-community': {
                             shape: 'icon',
                             icon: {
@@ -159,6 +165,7 @@
                     }
                 },
                 EDGE_LENGTH_HUB: 300,
+                THRESHOLD_ORG_NUM: 30
             };
 
             this.container = $(container);
@@ -541,24 +548,44 @@
 
             _inject_this_community_org: function(nodesToAdd, edgesToAdd, orgs, group, root) {
                 var that = this;
-                orgs.forEach(function(orgName) {
-                    if (that.cacheAddedOrgName[orgName] === undefined) {
+                for (var i=0; i<orgs.length; i++) {
+                    if (i > this.options.THRESHOLD_ORG_NUM) {
                         nodesToAdd.push({
-                            id: orgName,
-                            label: orgName,
-                            group: group
+                            id: 'OthersOrgRemaining',
+                            label: (orgs.length - i) + " Organisations remaining",
+                            group: 'otherOrg',
+                            size: 50,
                         });
                         that.cacheAddedOrgName[orgName] = 1;
+                        edgesToAdd.push({
+                            from: root,
+                            to: 'OthersOrgRemaining',
+                            arrows: {
+                                to: { enabled: false }
+                            },
+                            color: { opacity: 0.4 }
+                        });
+                        break;
+                    } else {
+                        var orgName = orgs[i];
+                        if (that.cacheAddedOrgName[orgName] === undefined) {
+                            nodesToAdd.push({
+                                id: orgName,
+                                label: orgName,
+                                group: group
+                            });
+                            that.cacheAddedOrgName[orgName] = 1;
+                        }
+                        edgesToAdd.push({
+                            from: root,
+                            to: orgName,
+                            arrows: {
+                                to: { enabled: false }
+                            },
+                            color: { opacity: 0.4 }
+                        });
                     }
-                    edgesToAdd.push({
-                        from: root,
-                        to: orgName,
-                        arrows: {
-                            to: { enabled: false }
-                        },
-                        color: { opacity: 0.4 }
-                    });
-                });
+                }
             },
 
         };
