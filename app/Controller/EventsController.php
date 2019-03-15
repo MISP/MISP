@@ -868,6 +868,7 @@ class EventsController extends AppController
         $this->set('analysisLevels', $this->Event->analysisLevels);
         $this->set('distributionLevels', $this->Event->distributionLevels);
         $this->set('shortDist', $this->Event->shortDist);
+        $this->set('distributionData', $this->genDistributionGraph(-1));
         if ($this->params['ext'] === 'csv') {
             App::uses('CsvExport', 'Export');
             $export = new CsvExport();
@@ -4667,8 +4668,7 @@ class EventsController extends AppController
         return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
     }
 
-    public function getDistributionGraph($id, $type = 'event')
-    {
+    private function genDistributionGraph($id, $type = 'event', $extended = 0) {
         $validTools = array('event');
         if (!in_array($type, $validTools)) {
             throw new MethodNotAllowedException(__('Invalid type.'));
@@ -4677,9 +4677,6 @@ class EventsController extends AppController
         $this->loadModel('Organisation');
         App::uses('DistributionGraphTool', 'Tools');
         $grapher = new DistributionGraphTool();
-        $data = $this->request->is('post') ? $this->request->data : array();
-
-        $extended = isset($this->params['named']['extended']) ? 1 : 0;
 
         $servers = $this->Server->find('list', array(
             'fields' => array('name'),
@@ -4692,6 +4689,13 @@ class EventsController extends AppController
                 $item = utf8_encode($item);
             }
         });
+        return $json;
+    }
+
+    public function getDistributionGraph($id, $type = 'event')
+    {
+        $extended = isset($this->params['named']['extended']) ? 1 : 0;
+        $json = $this->genDistributionGraph($id, $type, $extended);
         $this->response->type('json');
         return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
     }

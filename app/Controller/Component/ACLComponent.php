@@ -115,6 +115,7 @@ class ACLComponent extends Component
                     'getEventGraphReferences' => array('*'),
                     'getEventGraphTags' => array('*'),
                     'getEventGraphGeneric' => array('*'),
+                    'genDistributionGraph' => array('*'),
                     'getDistributionGraph' => array('*'),
                     'getReferenceData' => array('*'),
                     'getReferences' => array('*'),
