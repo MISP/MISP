@@ -354,7 +354,7 @@ class Event extends AppModel
             $orgc = $this->Orgc->find('first', array('conditions' => array('Orgc.id' => $this->data['Event']['orgc_id']), 'recursive' => -1, 'fields' => array('Orgc.name')));
             $this->EventBlacklist->save(array('event_uuid' => $this->data['Event']['uuid'], 'event_info' => $this->data['Event']['info'], 'event_orgc' => $orgc['Orgc']['name']));
             if (!empty($this->data['Event']['id'])) {
-                if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable')) {
+                if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
                     $pubSubTool = $this->getPubSubTool();
                     $pubSubTool->event_save(array('Event' => $this->data['Event']), 'delete');
                 }
@@ -4836,7 +4836,8 @@ class Event extends AppModel
                             'name' => $object['name'],
                             'uuid' => $object['uuid'],
                             'id' => isset($object['id']) ? $object['id'] : 0,
-                            'object_type' => $object['objectType']
+                            'object_type' => $object['objectType'],
+                            'relationship_type' => $reference['relationship_type']
                         );
                     }
                 }

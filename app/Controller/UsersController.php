@@ -1148,7 +1148,7 @@ class UsersController extends AppController
             $this->_refreshAuth();
             $this->redirect($this->referer());
         } else {
-            return $this->RestResponse->saveSuccessResponse('User', 'resetauthkey', $id, $this->response->type(), 'User\'s authkey has been reset.');
+            return $this->RestResponse->saveSuccessResponse('User', 'resetauthkey', $id, $this->response->type(), 'Authkey updated: ' . $newkey);
         }
     }
 

@@ -26,7 +26,7 @@ class EventsController extends AppController
     );
 
     private $acceptedFilteringNamedParams = array('sort', 'direction', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'attributeFilter', 'extended', 'page',
-        'searchFor', 'attributeFilter', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'distribution', 'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'feed', 'server', 'toIDS'
+        'searchFor', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'distribution', 'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'feed', 'server', 'toIDS'
     );
 
     public $defaultFilteringRules =  array(
@@ -296,6 +296,7 @@ class EventsController extends AppController
         $passedArgsArray = array();
         $urlparams = "";
         $overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'datefrom', 'dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal');
+        $paginationParams = array('limit', 'page', 'sort', 'direction', 'order');
         $passedArgs = $this->passedArgs;
         if (isset($this->request->data)) {
             if (isset($this->request->data['request'])) {
@@ -313,6 +314,11 @@ class EventsController extends AppController
             foreach ($overrideAbleParams as $oap) {
                 if (isset($this->request->data[$oap])) {
                     $passedArgs['search' . $oap] = $this->request->data[$oap];
+                }
+            }
+            foreach ($paginationParams as $paginationParam) {
+                if (isset($this->request->data[$paginationParam])) {
+                    $passedArgs[$paginationParam] = $this->request->data[$paginationParam];
                 }
             }
         }
@@ -705,12 +711,6 @@ class EventsController extends AppController
             } else {
                 $rules['order'] = array('Event.id' => 'DESC');
             }
-            if (isset($passedArgs['limit'])) {
-                $rules['limit'] = intval($passedArgs['limit']);
-            }
-            if (isset($passedArgs['page'])) {
-                $rules['page'] = intval($passedArgs['page']);
-            }
             $rules['contain'] = $this->paginate['contain'];
             if (isset($this->paginate['conditions'])) {
                 $rules['conditions'] = $this->paginate['conditions'];
@@ -719,6 +719,12 @@ class EventsController extends AppController
                 unset($rules['contain']);
                 $rules['recursive'] = -1;
                 $rules['fields'] = array('id', 'timestamp', 'published', 'uuid');
+            }
+            $paginationRules = array('page', 'limit', 'sort', 'direction', 'order');
+            foreach ($paginationRules as $paginationRule) {
+                if (isset($passedArgs[$paginationRule])) {
+                    $rules[$paginationRule] = $passedArgs[$paginationRule];
+                }
             }
             if (empty($rules['limit'])) {
                 $events = array();
@@ -5017,12 +5023,12 @@ class EventsController extends AppController
         if (empty($attribute)) {
             throw new MethodNotAllowedException(__('Attribute not found or you are not authorised to see it.'));
         }
+        $this->loadModel('Module');
+        $enabledModules = $this->Module->getEnabledModules($this->Auth->user(), false, $type);
+        if (!is_array($enabledModules) || empty($enabledModules)) {
+            throw new MethodNotAllowedException(__('No valid %s options found for this attribute.', $type));
+        }
         if ($this->request->is('ajax')) {
-            $this->loadModel('Module');
-            $enabledModules = $this->Module->getEnabledModules($this->Auth->user(), false, $type);
-            if (!is_array($enabledModules) || empty($enabledModules)) {
-                throw new MethodNotAllowedException(__('No valid %s options found for this attribute.', $type));
-            }
             $modules = array();
             foreach ($enabledModules['modules'] as $module) {
                 if (in_array($attribute[0]['Attribute']['type'], $module['mispattributes']['input'])) {
@@ -5035,84 +5041,110 @@ class EventsController extends AppController
             $this->set('type', $type);
             $this->render('ajax/enrichmentChoice');
         } else {
-            $this->loadModel('Module');
-            $enabledModules = $this->Module->getEnabledModules($this->Auth->user(), false, $type);
-            if (!is_array($enabledModules) || empty($enabledModules)) {
-                throw new MethodNotAllowedException(__('no valid %s options found for this attribute.', $type));
-            }
             $options = array();
             foreach ($enabledModules['modules'] as $temp) {
                 if ($temp['name'] == $module) {
+                    $format = (isset($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified');
                     if (isset($temp['meta']['config'])) {
                         foreach ($temp['meta']['config'] as $conf) {
                             $options[$conf] = Configure::read('Plugin.' . $type . '_' . $module . '_' . $conf);
                         }
                     }
+                    break;
                 }
             }
-            $data = array('module' => $module, $attribute[0]['Attribute']['type'] => $attribute[0]['Attribute']['value'], 'event_id' => $attribute[0]['Attribute']['event_id'], 'attribute_uuid' => $attribute[0]['Attribute']['uuid']);
-            if ($this->Event->Attribute->typeIsAttachment($attribute[0]['Attribute']['type'])) {
-                $data['data'] = $this->Event->Attribute->base64EncodeAttachment($attribute[0]['Attribute']);
-            }
-            if (!empty($options)) {
-                $data['config'] = $options;
-            }
-            $data = json_encode($data);
-            $result = $this->Module->queryModuleServer('/query', $data, false, $type);
-            if (!$result) {
-                throw new MethodNotAllowedException(__('%s service not reachable.', $type));
-            }
-            if (isset($result['error'])) {
-                $this->Flash->error($result['error']);
-            }
-            if (!is_array($result)) {
-                throw new Exception($result);
-            }
-            $resultArray = $this->Event->handleModuleResult($result, $attribute[0]['Attribute']['event_id']);
-            if (isset($result['comment']) && $result['comment'] != "") {
-                $importComment = $result['comment'];
+            if ($format == 'misp_standard') {
+                $this->__queryEnrichment($attribute, $module, $options, $type);
             } else {
-                $importComment = $attribute[0]['Attribute']['value'] . __(': Enriched via the %s', $module) . ($type != 'Enrichment' ? ' ' . $type : '')  . ' module';
+                $this->__queryOldEnrichment($attribute, $module, $options, $type);
             }
-            $typeCategoryMapping = array();
-            foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
-                foreach ($cat['types'] as $type) {
-                    $typeCategoryMapping[$type][$k] = $k;
-                }
-            }
-            foreach ($resultArray as $key => $result) {
-                $options = array(
-                        'conditions' => array('OR' => array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value'])),
-                        'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
-                        'order' => false
-                );
-                $resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
-                if (isset($result['data'])) {
-                    App::uses('FileAccessTool', 'Tools');
-                    $fileAccessTool = new FileAccessTool();
-                    $tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : '/tmp';
-                    $tempFile = $fileAccessTool->createTempFile($tmpdir, $prefix = 'MISP');
-                    $fileAccessTool->writeToFile($tempFile, $result['data']);
-                    $resultArray[$key]['data'] = basename($tempFile) . '|' . filesize($tempFile);
-                }
-            }
-            $distributions = $this->Event->Attribute->distributionLevels;
-            $sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
-            if (empty($sgs)) {
-                unset($distributions[4]);
-            }
-            $this->set('distributions', $distributions);
-            $this->set('sgs', $sgs);
-            $this->set('type', $type);
-            $this->set('event', array('Event' => $attribute[0]['Event']));
-            $this->set('resultArray', $resultArray);
-            $this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
-            $this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
-            $this->set('typeCategoryMapping', $typeCategoryMapping);
-            $this->set('title', 'Enrichment Results');
-            $this->set('importComment', $importComment);
-            $this->render('resolved_attributes');
         }
+    }
+
+    private function __queryEnrichment($attribute, $module, $options, $type)
+    {
+        $data = array('module' => $module, 'attribute' => $attribute[0]['Attribute'], 'event_id' => $attribute[0]['Event']['id']);
+        if (!empty($options)) {
+            $data['config'] = $options;
+        }
+        $data = json_encode($data);
+        $result = $this->Module->queryModuleServer('/query', $data, false, $type);
+        if (!result) {
+            throw new MethodNotAllowedException(__('%s service not reachable.', $type));
+        }
+        if (isset($result['error'])) {
+            $this->Flash->error($result['error']);
+        }
+        if (!is_array($result)) {
+            throw new Exception($result);
+        }
+        // MORE MAGIC TO COME
+    }
+
+    private function __queryOldEnrichment($attribute, $module, $options, $type)
+    {
+        $data = array('module' => $module, $attribute[0]['Attribute']['type'] => $attribute[0]['Attribute']['value'], 'event_id' => $attribute[0]['Attribute']['event_id'], 'attribute_uuid' => $attribute[0]['Attribute']['uuid']);
+        if ($this->Event->Attribute->typeIsAttachment($attribute[0]['Attribute']['type'])) {
+            $data['data'] = $this->Event->Attribute->base64EncodeAttachment($attribute[0]['Attribute']);
+        }
+        if (!empty($options)) {
+            $data['config'] = $options;
+        }
+        $data = json_encode($data);
+        $result = $this->Module->queryModuleServer('/query', $data, false, $type);
+        if (!$result) {
+            throw new MethodNotAllowedException(__('%s service not reachable.', $type));
+        }
+        if (isset($result['error'])) {
+            $this->Flash->error($result['error']);
+        }
+        if (!is_array($result)) {
+            throw new Exception($result);
+        }
+        $resultArray = $this->Event->handleModuleResult($result, $attribute[0]['Attribute']['event_id']);
+        if (isset($result['comment']) && $result['comment'] != "") {
+            $importComment = $result['comment'];
+        } else {
+            $importComment = $attribute[0]['Attribute']['value'] . __(': Enriched via the %s', $module) . ($type != 'Enrichment' ? ' ' . $type : '')  . ' module';
+        }
+        $typeCategoryMapping = array();
+        foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
+            foreach ($cat['types'] as $type) {
+                $typeCategoryMapping[$type][$k] = $k;
+            }
+        }
+        foreach ($resultArray as $key => $result) {
+            $options = array(
+                    'conditions' => array('OR' => array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value'])),
+                    'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
+                    'order' => false
+            );
+            $resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
+            if (isset($result['data'])) {
+                App::uses('FileAccessTool', 'Tools');
+                $fileAccessTool = new FileAccessTool();
+                $tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : '/tmp';
+                $tempFile = $fileAccessTool->createTempFile($tmpdir, $prefix = 'MISP');
+                $fileAccessTool->writeToFile($tempFile, $result['data']);
+                $resultArray[$key]['data'] = basename($tempFile) . '|' . filesize($tempFile);
+            }
+        }
+        $distributions = $this->Event->Attribute->distributionLevels;
+        $sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
+        if (empty($sgs)) {
+            unset($distributions[4]);
+        }
+        $this->set('distributions', $distributions);
+        $this->set('sgs', $sgs);
+        $this->set('type', $type);
+        $this->set('event', array('Event' => $attribute[0]['Event']));
+        $this->set('resultArray', $resultArray);
+        $this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
+        $this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
+        $this->set('typeCategoryMapping', $typeCategoryMapping);
+        $this->set('title', 'Enrichment Results');
+        $this->set('importComment', $importComment);
+        $this->render('resolved_attributes');
     }
 
     public function importModule($module, $eventId)

@@ -23,6 +23,7 @@ class FeedsController extends AppController
     {
         parent::beforeFilter();
         $this->Security->unlockedActions[] = 'previewIndex';
+        $this->Security->unlockedActions[] = 'feedCoverage';
         if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != Configure::read('MISP.host_org_id')) {
             throw new MethodNotAllowedException(__('You don\'t have the required privileges to do that.'));
         }
@@ -88,12 +89,32 @@ class FeedsController extends AppController
             'recursive' => -1,
             'contain' => array('Tag')
         ));
+        $feed['Feed']['cached_elements'] = $this->Feed->getCachedElements($feed['Feed']['id']);
+        $feed['Feed']['coverage_by_other_feeds'] = $this->Feed->getFeedCoverage($feed['Feed']['id'], 'feed', 'all') . '%';
         if ($this->_isRest()) {
             if (empty($feed['Tag']['id'])) {
                 unset($feed['Tag']);
             }
             return $this->RestResponse->viewData($feed, $this->response->type());
         }
+        $feeds = $this->Feed->getAllCachingEnabledFeeds($feed['Feed']['id'], true);
+        $this->set('other_feeds', $feeds);
+        $this->set('feed', $feed);
+    }
+    
+    public function feedCoverage($feedId)
+    {
+        if (!$this->_isSiteAdmin() && !$this->Auth->user('org_id') == Configure::read('MISP.host_org_id')) {
+            throw NotAllowedException('You don\'t have access to this feature.');
+        }
+        $feed = $this->Feed->find('first', array(
+            'conditions' => array('Feed.id' => $feedId),
+            'recursive' => -1,
+            'contain' => array('Tag')
+        ));
+        $result = $this->Feed->getFeedCoverage($feed['Feed']['id'], 'feed', $this->request->data);
+        return $this->RestResponse->viewData($result, $this->response->type());
+
     }
 
     public function importFeeds()
@@ -238,6 +259,7 @@ class FeedsController extends AppController
             throw new NotFoundException(__('Invalid feed.'));
         }
         $this->Feed->read();
+        $this->set('feed', $this->Feed->data);
         $this->loadModel('Event');
         $sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
         $distributionLevels = $this->Event->distributionLevels;

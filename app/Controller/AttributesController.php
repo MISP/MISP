@@ -2890,22 +2890,29 @@ class AttributesController extends AppController
             foreach ($modules['modules'] as $temp) {
                 if ($temp['name'] == $type) {
                     $found = true;
+                    $format = (isset($temp['mispattributes']['format']) ? $temp['mispattributes']['format'] : 'simplified');
                     if (isset($temp['meta']['config'])) {
                         foreach ($temp['meta']['config'] as $conf) {
                             $options[$conf] = Configure::read('Plugin.Enrichment_' . $type . '_' . $conf);
                         }
                     }
+                    break;
                 }
             }
             if (!$found) {
                 throw new MethodNotAllowedException(__('No valid enrichment options found for this attribute.'));
             }
-            $data = array('module' => $type, $attribute[0]['Attribute']['type'] => $attribute[0]['Attribute']['value']);
+            $data = array('module' => $type);
             if ($persistent) {
                 $data['persistent'] = 1;
             }
             if (!empty($options)) {
                 $data['config'] = $options;
+            }
+            if ($format == 'misp_standard') {
+                $data['attribute'] = $attribute[0]['Attribute'];
+            } else {
+                $data[$attribute[0]['Attribute']['type']] = $attribute[0]['Attribute']['value'];
             }
             $data = json_encode($data);
             $result = $this->Module->queryModuleServer('/query', $data, true);

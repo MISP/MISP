@@ -22,7 +22,7 @@
     ?>
     </fieldset>
 <?php
-echo $this->Form->button('Search', array('class' => 'btn btn-primary'));
+echo $this->Form->button(__('Search'), array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>

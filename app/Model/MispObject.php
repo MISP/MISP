@@ -92,7 +92,7 @@ class MispObject extends AppModel
 
     public function afterSave($created, $options = array())
     {
-        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable')) {
+        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_object_notifications_enable')) {
             if (empty($this->data['Object']['skip_zmq'])) {
                 $pubSubTool = $this->getPubSubTool();
                 $object = $this->find('first', array(

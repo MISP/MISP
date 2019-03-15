@@ -91,8 +91,8 @@
                 ),
                 array(
                     'type' => 'search',
-                    'button' => 'Filter',
-                    'placeholder' => 'Enter value to search',
+                    'button' => __('Filter'),
+                    'placeholder' => __('Enter value to search'),
                     'data' => '',
                 )
             )
