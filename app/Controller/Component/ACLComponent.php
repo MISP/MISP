@@ -180,6 +180,7 @@ class ACLComponent extends Component
             'galaxies' => array(
                 'attachCluster' => array('perm_tagger'),
                 'attachMultipleClusters' => array('perm_tagger'),
+                'delete' => array(),
                 'index' => array('*'),
                 'selectGalaxy' => array('perm_tagger'),
                 'selectGalaxyNamespace' => array('perm_tagger'),
