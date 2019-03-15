@@ -205,7 +205,7 @@
 
             unset($this->__json['distributionInfo'][5]); // inherit event.
 
-            // transform set into array for SG (other are already done)
+            // transform set into array for SG (others are already done)
             $this->__json['additionalDistributionInfo'][4] = array_keys($this->__json['additionalDistributionInfo'][4]);
 
             return $this->__json;
