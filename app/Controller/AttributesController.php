@@ -1229,37 +1229,41 @@ class AttributesController extends AppController
         } else {
             $extension = explode('.', $attribute['Attribute']['value']);
             $extension = end($extension);
-            $image = ImageCreateFromString(base64_decode($attribute['Attribute']['data']));
-            if (!$thumbnail) {
-                ob_start ();
-                switch ($extension) {
-                    case 'gif':
-                        imagegif($image);
-                        break;
-                    case 'jpg':
-                        imagejpeg($image);
-                        break;
-                    case 'png':
-                        imagepng($image);
-                        break;
-                    default:
-                        break;
+            if (extension_loaded('gd')) {
+                $image = ImageCreateFromString(base64_decode($attribute['Attribute']['data']));
+                if (!$thumbnail) {
+                    ob_start ();
+                    switch ($extension) {
+                        case 'gif':
+                            imagegif($image);
+                            break;
+                            case 'jpg':
+                            imagejpeg($image);
+                            break;
+                            case 'png':
+                            imagepng($image);
+                            break;
+                            default:
+                            break;
+                        }
+                        $image_data = ob_get_contents();
+                        ob_end_clean ();
+                        imagedestroy($image);
+                } else { // thumbnail requested, resample picture with desired dimension
+                    $width = isset($this->request->params['named']['width']) ? $this->request->params['named']['width'] : 150;
+                    $height = isset($this->request->params['named']['height']) ? $this->request->params['named']['height'] : 150;
+                    $extension = 'jpg';
+                    $imageTC = ImageCreateTrueColor($width, $height);
+                    ImageCopyResampled($imageTC, $image, 0, 0, 0, 0, $width, $height, ImageSX($image), ImageSY($image));
+                    ob_start ();
+                    imagejpeg ($imageTC);
+                    $image_data = ob_get_contents();
+                    ob_end_clean ();
+                    imagedestroy($image);
+                    imagedestroy($imageTC);
                 }
-                $image_data = ob_get_contents();
-                ob_end_clean ();
-                imagedestroy($image);
-            } else { // thumbnail requested, resample picture with desired dimension
-                $width = isset($this->request->params['named']['width']) ? $this->request->params['named']['width'] : 150;
-                $height = isset($this->request->params['named']['height']) ? $this->request->params['named']['height'] : 150;
-                $extension = 'jpg';
-                $imageTC = ImageCreateTrueColor($width, $height);
-                ImageCopyResampled($imageTC, $image, 0, 0, 0, 0, $width, $height, ImageSX($image), ImageSY($image));
-                ob_start ();
-                  imagejpeg ($imageTC);
-                  $image_data = ob_get_contents();
-                ob_end_clean ();
-                imagedestroy($image);
-                imagedestroy($imageTC);
+            } else {
+                $image_data = base64_decode($attribute['Attribute']['data']);
             }
             $this->response->type(strtolower(h($extension)));
             $this->response->body($image_data);
