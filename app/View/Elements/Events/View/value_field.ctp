@@ -2,7 +2,7 @@
   $sigDisplay = $object['value'];
   if ('attachment' == $object['type'] || 'malware-sample' == $object['type'] ) {
     if ($object['type'] == 'attachment' && isset($object['image'])) {
-        if (!extension_loaded('gd')) {
+        if (extension_loaded('gd')) {
             $img = '<it class="fa fa-spin fa-spinner" style="font-size: large; left: 50%; top: 50%;"></it>';
             $img .= '<img class="screenshot screenshot-collapsed useCursorPointer img-rounded" src="' . $baseurl . '/attributes/viewPicture/' . h($object['id']) . '/1' . '" title="' . h($object['value']) . '" onload="$(this).parent().find(\'.fa-spinner\').remove();"/>';
             echo $img;
