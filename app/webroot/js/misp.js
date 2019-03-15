@@ -3010,12 +3010,12 @@ function syncUserSelected() {
 }
 
 function filterAttributes(filter, id) {
-    url = "/events/viewEventAttributes/" + id + "/attributeFilter:" + filter;
+    url = "/events/viewEventAttributes/" + id;
     if(filter === 'value'){
         filter = $('#quickFilterField').val().trim();
         url += filter.length > 0 ? "/searchFor:" + filter : "";
     } else if(filter !== 'all') {
-        url += "/filterColumnsOverwrite:" + filter;
+        url += "/attributeFilter:" + filter
         filter = $('#quickFilterField').val().trim();
         url += filter.length > 0 ? "/searchFor:" + filter : "";
     }
