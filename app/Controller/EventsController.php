@@ -5041,7 +5041,8 @@ class EventsController extends AppController
         if ($this->Event->Attribute->typeIsAttachment($attribute[0]['Attribute']['type'])) {
             $attribute[0]['Attribute']['data'] = $this->Event->Attribute->base64EncodeAttachment($attribute[0]['Attribute']);
         }
-        $data = array('module' => $module, 'attribute' => $attribute[0]['Attribute'], 'event_id' => $attribute[0]['Event']['id']);
+        $event_id = $attribute[0]['Event']['id'];
+        $data = array('module' => $module, 'attribute' => $attribute[0]['Attribute'], 'event_id' => $event_id);
         if (!empty($options)) {
             $data['config'] = $options;
         }
@@ -5055,6 +5056,21 @@ class EventsController extends AppController
         }
         if (!is_array($result)) {
             throw new Exception($result);
+        }
+        $attributes = array();
+        $objects = array();
+        if (isset($result['results']['Attribute']) && !empty($result['results']['Attribute'])) {
+            foreach ($result['results']['Attribute'] as $tmp_attribute) {
+                array_push($attributes, $this->Event->Attribute->captureAttribute($tmp_attribute, $event_id, $this->Auth->user()));
+            }
+            unset($result['results']['Attribute']);
+        }
+        if (isset($result['results']['Object']) && !empty($result['results']['Object'])) {
+            foreach ($result['results']['Object'] as $tmp_object) {
+                $this->Event->Object->captureObject($tmp_object, $event_id, $this->Auth->user());
+                array_push($objects, $tmp_object);
+            }
+            unset($result['results']['Object']);
         }
         // MORE MAGIC TO COME
     }
