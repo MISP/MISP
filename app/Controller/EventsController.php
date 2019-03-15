@@ -5038,6 +5038,9 @@ class EventsController extends AppController
 
     private function __queryEnrichment($attribute, $module, $options, $type)
     {
+        if ($this->Event->Attribute->typeIsAttachment($attribute[0]['Attribute']['type'])) {
+            $attribute[0]['Attribute']['data'] = $this->Event->Attribute->base64EncodeAttachment($attribute[0]['Attribute']);
+        }
         $data = array('module' => $module, 'attribute' => $attribute[0]['Attribute'], 'event_id' => $attribute[0]['Event']['id']);
         if (!empty($options)) {
             $data['config'] = $options;
