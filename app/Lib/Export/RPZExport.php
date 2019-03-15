@@ -169,6 +169,7 @@ class RPZExport
     public function buildHeader($rpzSettings)
     {
         $rpzSettings['serial'] = str_replace('$date', date('Ymd'), $rpzSettings['serial']);
+        $rpzSettings['serial'] = str_replace('$time', time(), $rpzSettings['serial']);
         $header = '';
         $header .= '$TTL ' . $rpzSettings['ttl'] . ';' . PHP_EOL;
         $header .= '@               SOA ' . $rpzSettings['ns'] . ' ' . $rpzSettings['email'] . ' ('  . $rpzSettings['serial'] . ' ' . $rpzSettings['refresh'] . ' ' . $rpzSettings['retry'] . ' ' . $rpzSettings['expiry'] . ' ' . $rpzSettings['minimum_ttl'] . ')' . PHP_EOL;
