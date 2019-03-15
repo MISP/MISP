@@ -58,6 +58,11 @@
                 <?=($branch == '2.4') ? h($branch) : "You are not on a branch, Update MISP will fail"; ?>
             </span>
         </span><br />
+        <?php foreach ($submodules as $submodule): ?>
+            <span>
+            </span><br />
+        <?php endforeach; ?>
+
         <pre class="hidden green bold" id="gitResult"></pre>
         <button title="<?php echo __('Pull the latest MISP version from github');?>" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "updateMISP();"><?php echo __('Update MISP');?></button>
     </div>

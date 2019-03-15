@@ -4337,6 +4337,7 @@ class Server extends AppModel
         $status['commit'] = exec('git rev-parse HEAD');
         $status['branch'] = $this->getCurrentBranch();
         $status['latestCommit'] = $this->getLatestGitremote();
+        $status['submodules'] = $this->getSubmodulesGitStatus();
         return $status;
     }
 
@@ -4349,6 +4350,11 @@ class Server extends AppModel
     {
         $mainBranch = '2.4';
         return exec('git checkout ' . $mainBranch);
+    }
+
+    public function getSubmodulesGitStatus()
+    {
+
     }
 
     public function update($status)
