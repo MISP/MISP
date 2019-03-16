@@ -57,6 +57,7 @@ class TrainingShell extends AppShell {
             $role_id = $this->__createRole($this->__config['role_blueprint']);
             $this->__report['servers'][$this->__currentUrl]['training_role_id'] = $role_id;
             $sync_user = $this->__createSyncUserLocally($remote_org_id, $org);
+            $this->__report['users'][] = $sync_user;
             $local_host_org = $this->Organisation->find('first', array(
                 'recursive' => -1,
                 'conditions' => array(
