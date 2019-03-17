@@ -15,16 +15,18 @@ class TrainingShell extends AppShell {
     private $__config = false;
     private $__report = array();
     private $__verbose = false;
+    private $__interactive = false;
 
     public function simulate()
     {
-        $this->__verbose = $this->params['verbose'];
         $this->__simulate = true;
         $this->setup();
     }
 
     public function setup()
     {
+        $this->__verbose = !empty($this->params['verbose']);
+        $this->__interactive = !empty($this->params['interactive']);
         $this->__config = file_get_contents(APP . 'Console/Command/training.json');
         if (empty($this->__config)) {
             echo 'No config file found. Make sure that training.json exists and is configured.';
@@ -40,58 +42,93 @@ class TrainingShell extends AppShell {
                 }
             }
             $this->__currentUrl = str_replace('$ID', $id, $this->__config['server_blueprint']);
+            if ($this->__interactive) {
+                $question = 'Configure instance at ' . $this->__currentUrl . '?';
+                $input = $this->__user_input($question, array('y', 'n'));
+                if ($input === 'n') {
+                    $this->__printReport('Stopping execution. Data created so far:' . PHP_EOL . PHP_EOL);
+                    die();
+                }
+            }
             if ($this->__verbose) {
                 echo 'INFO - Instance to configure' . $this->__currentUrl . PHP_EOL;
             }
-            $org = str_replace('$ID', $id, $this->__config['org_blueprint']);
-            $org_id = $this->Organisation->createOrgFromName($org, 1, true);
-            $org_data = $this->Organisation->find('first', array(
-                'recursive' => -1,
-                'fields' => array('name', 'uuid', 'local'),
-                'conditions' => array('Organisation.id' => $org_id)
-            ));
-            $remote_org_id = $this->__createOrg($org_data);
-            $this->__setSetting('MISP.host_org_id', $remote_org_id, $id, $org);
-            $this->__report['servers'][$this->__currentUrl]['host_org_id'] = $remote_org_id;
-            $this->__report['remote_orgs'][] = array('id' => $remote_org_id, 'name' => $org);
+            $org = $this->__createOrgFromBlueprint($id);
+            $this->__setSetting('MISP.host_org_id', $org['Organisation']['remote_org_id'], $id, $org['Organisation']['name']);
+            $this->__report['servers'][$this->__currentUrl]['host_org_id'] = $org['Organisation']['remote_org_id'];
+            $this->__report['remote_orgs'][] = array('id' => $org['Organisation']['remote_org_id'], 'name' => $org['Organisation']['name']);
             $role_id = $this->__createRole($this->__config['role_blueprint']);
             $this->__report['servers'][$this->__currentUrl]['training_role_id'] = $role_id;
-            $sync_user = $this->__createSyncUserLocally($remote_org_id, $org);
+            $sync_user = $this->__createSyncUserLocally($org['Organisation']['remote_org_id'], $org['Organisation']['name']);
             $this->__report['users'][] = $sync_user;
-            $local_host_org = $this->Organisation->find('first', array(
-                'recursive' => -1,
-                'conditions' => array(
-                    'Organisation.id' => Configure::read('MISP.host_org_id')
-                ),
-                'fields' => array(
-                    'name', 'id', 'uuid'
-                )
-            ));
+            $local_host_org = $this->__getLocalHostOrgId();
             $hub_org_id_on_remote = $this->__createOrg($local_host_org);
             $external_baseurl = empty(Configure::read('MISP.external_baseurl')) ? Configure::read('MISP.baseurl') : Configure::read('MISP.external_baseurl');
             $this->__report['servers'][$this->__currentUrl]['sync_connections'][] = $this->__addSyncConnection($external_baseurl, 'Exercise hub', $local_host_org, $hub_org_id_on_remote, $sync_user);
-            $this->__report['servers'][$this->__currentUrl]['users'] = $this->__createUsers($remote_org_id, $role_id, $org, $id);
+            $this->__report['servers'][$this->__currentUrl]['users'] = $this->__createUsers($org['Organisation']['remote_org_id'], $role_id, $org['Organisation']['name'], $id);
             if (!empty($this->__config['create_sync_both_ways'])) {
-                $sync_user = $this->__addSyncUserRemotely();
-                $this->__report['servers'][$this->__currentUrl]['users'][] = $sync_user;
-                 $sync_server = $this->__addSyncConnectionLocally($this->__currentUrl, $org . '_misp', $remote_org_id, $sync_user);
-                 if ($sync_server) {
-                     $this->__report['sync'][] = $sync_server;
-                 }
+                $this->__createReverseSyncConnection($org['Organisation']['remote_org_id'], $org['Organisation']['name']);
             }
             if (!empty($this->__config['create_admin_user'])) {
-                $this->__report['servers'][$this->__currentUrl['users']][] = $this->__addAdminUserRemotely($i, $org, $remote_org_id);
+                $this->__report['servers'][$this->__currentUrl['users']][] = $this->__addAdminUserRemotely($i, $org['Organisation']['name'], $org['Organisation']['remote_org_id']);
             }
             if (!empty($this->__config['settings'])) {
                 foreach ($this->__config['settings'] as $key => $value)
-                $this->__setSetting($key, $value, $id, $org);
+                $this->__setSetting($key, $value, $id, $org['Organisation']['name']);
             }
             if ($this->__config['reset_admin_credentials']) {
                 $this->__report['servers'][$this->__currentUrl]['management_account'] = $this->__reset_admin_credentials($this->__report);
             }
         }
-        echo 'Setup complete. Please find the modifications below:' . PHP_EOL . PHP_EOL;
+        $this->__printReport('Setup complete. Please find the modifications below:' . PHP_EOL . PHP_EOL);
+    }
+
+    private function __createOrgFromBlueprint($id)
+    {
+        $org = str_replace('$ID', $id, $this->__config['org_blueprint']);
+        $org_id = $this->Organisation->createOrgFromName($org, 1, true);
+        $org_data = $this->Organisation->find('first', array(
+            'recursive' => -1,
+            'fields' => array('name', 'uuid', 'local'),
+            'conditions' => array('Organisation.id' => $org_id)
+        ));
+        $org_data['Organisation']['remote_org_id'] = $this->__createOrg($org);
+        return $org_data;
+    }
+
+    private function __getLocalHostOrgId()
+    {
+        $org = $this->Organisation->find('first', array(
+            'recursive' => -1,
+            'conditions' => array(
+                'Organisation.id' => empty(Configure::read('MISP.host_org_id')) ? -1 : Configure::read('MISP.host_org_id')
+            ),
+            'fields' => array(
+                'name', 'id', 'uuid'
+            )
+        ));
+        if (empty($org)) {
+            $this->__printReport('Stopping execution, no host_org_id set on the current instance, or the setting points to a non-existing org. Data created so far:' . PHP_EOL . PHP_EOL);
+            die();
+        }
+        return $org;
+    }
+
+    private function __createReverseSyncConnection($remote_org_id, $org)
+    {
+        $sync_user = $this->__addSyncUserRemotely();
+        $this->__report['servers'][$this->__currentUrl]['users'][] = $sync_user;
+        $sync_server = $this->__addSyncConnectionLocally($this->__currentUrl, $org . '_misp', $remote_org_id, $sync_user);
+        if ($sync_server) {
+            $this->__report['sync'][] = $sync_server;
+        }
+    }
+
+    private function __printReport($message)
+    {
         echo json_encode($this->__report, JSON_PRETTY_PRINT);
+        $this->__report = '';
+        return true;
     }
 
     private function __findRemoteRoleId($role_name)
@@ -313,8 +350,14 @@ class TrainingShell extends AppShell {
             $options['method'],
             empty($options['body']) ? '' : json_encode($options['body'], JSON_PRETTY_PRINT)
         );
-        echo 'Setup failed. Output of what has been created:' . PHP_EOL . PHP_EOL;
-        echo json_encode($this->__report, JSON_PRETTY_PRINT);
+        if ($this->__interactive) {
+            $question = 'The above error can cause the issues to compound if you continue. For example, not creating an organisation that subsequently created users should belong to will fail. Would you like to continue? (y/n)' . PHP_EOL;
+            $input = $this->__user_input($question, array('y', 'n'));
+            if ($input === 'y') {
+                return true;
+            }
+        }
+        $this->__printReport('Setup failed. Output of what has been created:' . PHP_EOL . PHP_EOL);
         die();
     }
 
@@ -444,6 +487,18 @@ class TrainingShell extends AppShell {
         }
     }
 
+    private function __user_input($question, $valid_input_options)
+    {
+        $valid_input = false;
+        while (!$valid_input) {
+            $input = trim(strtolower(fgets(STDIN)));
+            if (in_array($input, $valid_input_options)) {
+                $valid_input = true;
+            }
+        }
+        return $input;
+    }
+
 
     private function __setSetting($key, $value, $i, $org)
     {
@@ -512,6 +567,10 @@ class TrainingShell extends AppShell {
         $parser->addOption('verbose', array(
             'short' => 'v',
             'help' => __('verbose mode'),
+            'boolean' => 1
+        ))->addOption('interactive', array(
+            'short' => 'i',
+            'help' => __('interactive mode'),
             'boolean' => 1
         ));
         return $parser;
