@@ -43,7 +43,7 @@ class TrainingShell extends AppShell {
             }
             $this->__currentUrl = str_replace('$ID', $id, $this->__config['server_blueprint']);
             if ($this->__interactive) {
-                $question = 'Configure instance at ' . $this->__currentUrl . '?';
+                $question = sprintf('Configure instance at %s?', $this->__currentUrl);
                 $input = $this->__user_input($question, array('y', 'n'));
                 if ($input === 'n') {
                     $this->__printReport('Stopping execution. Data created so far:' . PHP_EOL . PHP_EOL);
@@ -351,7 +351,7 @@ class TrainingShell extends AppShell {
             empty($options['body']) ? '' : json_encode($options['body'], JSON_PRETTY_PRINT)
         );
         if ($this->__interactive) {
-            $question = 'The above error can cause the issues to compound if you continue. For example, not creating an organisation that subsequently created users should belong to will fail. Would you like to continue? (y/n)' . PHP_EOL;
+            $question = 'The above error can cause the issues to compound if you continue. For example, not creating an organisation that subsequently created users should belong to will fail. Would you like to continue?';
             $input = $this->__user_input($question, array('y', 'n'));
             if ($input === 'y') {
                 return true;
@@ -491,7 +491,13 @@ class TrainingShell extends AppShell {
     {
         $valid_input = false;
         while (!$valid_input) {
-            $input = trim(strtolower(fgets(STDIN)));
+            echo sprintf(
+                '%s (%s)' . PHP_EOL,
+                $question,
+                implode('/', $valid_input_options)
+            );
+            $handle = fopen ("php://stdin","r");
+            $input = trim(strtolower(fgets($handle)));
             if (in_array($input, $valid_input_options)) {
                 $valid_input = true;
             }
