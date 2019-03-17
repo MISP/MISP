@@ -92,7 +92,7 @@ class TrainingShell extends AppShell {
             'fields' => array('name', 'uuid', 'local'),
             'conditions' => array('Organisation.id' => $org_id)
         ));
-        $org_data['Organisation']['remote_org_id'] = $this->__createOrg($org);
+        $org_data['Organisation']['remote_org_id'] = $this->__createOrg($org_data);
         return $org_data;
     }
 
