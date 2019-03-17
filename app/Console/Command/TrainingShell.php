@@ -67,7 +67,7 @@ class TrainingShell extends AppShell {
             $this->__report['servers'][$this->__currentUrl]['sync_connections'][] = $this->__addSyncConnection($external_baseurl, 'Exercise hub', $local_host_org, $hub_org_id_on_remote, $sync_user);
             $this->__report['servers'][$this->__currentUrl]['users'] = $this->__createUsers($org['Organisation']['remote_org_id'], $role_id, $org['Organisation']['name'], $id);
             if (!empty($this->__config['create_sync_both_ways'])) {
-                $this->__createReverseSyncConnection($org['Organisation']['remote_org_id'], $org['Organisation']['name']);
+                $this->__createReverseSyncConnection($org['Organisation']['id'], $org['Organisation']['name'], $local_host_org);
             }
             if (!empty($this->__config['create_admin_user'])) {
                 $this->__report['servers'][$this->__currentUrl['users']][] = $this->__addAdminUserRemotely($i, $org['Organisation']['name'], $org['Organisation']['remote_org_id']);
@@ -114,11 +114,11 @@ class TrainingShell extends AppShell {
         return $org;
     }
 
-    private function __createReverseSyncConnection($remote_org_id, $org)
+    private function __createReverseSyncConnection($remote_org_id_on_local, $org_name, $host_org_id_on_local)
     {
         $sync_user = $this->__addSyncUserRemotely();
         $this->__report['servers'][$this->__currentUrl]['users'][] = $sync_user;
-        $sync_server = $this->__addSyncConnectionLocally($this->__currentUrl, $org . '_misp', $remote_org_id, $sync_user);
+        $sync_server = $this->__addSyncConnectionLocally($this->__currentUrl, $org_name . '_misp', $remote_org_id_on_local, $sync_user, $host_org_id_on_local);
         if ($sync_server) {
             $this->__report['sync'][] = $sync_server;
         }
@@ -263,17 +263,18 @@ class TrainingShell extends AppShell {
         return $user;
     }
 
-    private function __addSyncConnectionLocally($baseurl, $name, $host_org, $sync_user)
+    private function __addSyncConnectionLocally($baseurl, $org_name, $remote_org_id_on_local, $sync_user)
     {
         $this->Server->create();
         $server = array(
-            "name" => $name,
+            "name" => $org_name,
             "url" => $baseurl,
             "authkey" => $sync_user['authkey'],
             "push" => 1,
             "pull" => 1,
             "remote_org_id" => $sync_user['org_id'],
-            "self_signed" => 1
+            "self_signed" => 1,
+            "org_id" => $host_org_id_on_local
         );
         $result = $this->Server->save($server);
         if (!$result) {
