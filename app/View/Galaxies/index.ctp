@@ -35,6 +35,7 @@ foreach ($list as $item):?>
         <td class="short"><?php echo h($item['Galaxy']['namespace']);?>&nbsp;</td>
         <td><?php echo h($item['Galaxy']['description']);?>&nbsp;</td>
         <td class="short action-links">
+            <?php echo $this->Form->postLink('', array('action' => 'delete', $item['Galaxy']['id']), array('class' => 'icon-trash', 'title' => __('Delete')), __('Are you sure you want to delete the Galaxy (%s)?', $item['Galaxy']['name'])); ?>
             <?php echo $this->Html->link('', array('action' => 'view', $item['Galaxy']['id']), array('class' => 'icon-list-alt', 'title' => 'View'));?>
         </td>
     </tr><?php

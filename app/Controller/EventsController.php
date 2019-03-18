@@ -26,7 +26,7 @@ class EventsController extends AppController
     );
 
     private $acceptedFilteringNamedParams = array('sort', 'direction', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'attributeFilter', 'extended', 'page',
-        'searchFor', 'attributeFilter', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'distribution', 'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'feed', 'server', 'toIDS'
+        'searchFor', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'distribution', 'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'feed', 'server', 'toIDS'
     );
 
     public $defaultFilteringRules =  array(
@@ -868,6 +868,7 @@ class EventsController extends AppController
         $this->set('analysisLevels', $this->Event->analysisLevels);
         $this->set('distributionLevels', $this->Event->distributionLevels);
         $this->set('shortDist', $this->Event->shortDist);
+        $this->set('distributionData', $this->genDistributionGraph(-1));
         if ($this->params['ext'] === 'csv') {
             App::uses('CsvExport', 'Export');
             $export = new CsvExport();
@@ -4667,8 +4668,7 @@ class EventsController extends AppController
         return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
     }
 
-    public function getDistributionGraph($id, $type = 'event')
-    {
+    private function genDistributionGraph($id, $type = 'event', $extended = 0) {
         $validTools = array('event');
         if (!in_array($type, $validTools)) {
             throw new MethodNotAllowedException(__('Invalid type.'));
@@ -4677,9 +4677,6 @@ class EventsController extends AppController
         $this->loadModel('Organisation');
         App::uses('DistributionGraphTool', 'Tools');
         $grapher = new DistributionGraphTool();
-        $data = $this->request->is('post') ? $this->request->data : array();
-
-        $extended = isset($this->params['named']['extended']) ? 1 : 0;
 
         $servers = $this->Server->find('list', array(
             'fields' => array('name'),
@@ -4692,6 +4689,13 @@ class EventsController extends AppController
                 $item = utf8_encode($item);
             }
         });
+        return $json;
+    }
+
+    public function getDistributionGraph($id, $type = 'event')
+    {
+        $extended = isset($this->params['named']['extended']) ? 1 : 0;
+        $json = $this->genDistributionGraph($id, $type, $extended);
         $this->response->type('json');
         return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
     }
@@ -5038,7 +5042,11 @@ class EventsController extends AppController
 
     private function __queryEnrichment($attribute, $module, $options, $type)
     {
-        $data = array('module' => $module, 'attribute' => $attribute[0]['Attribute'], 'event_id' => $attribute[0]['Event']['id']);
+        if ($this->Event->Attribute->typeIsAttachment($attribute[0]['Attribute']['type'])) {
+            $attribute[0]['Attribute']['data'] = $this->Event->Attribute->base64EncodeAttachment($attribute[0]['Attribute']);
+        }
+        $event_id = $attribute[0]['Event']['id'];
+        $data = array('module' => $module, 'attribute' => $attribute[0]['Attribute'], 'event_id' => $event_id);
         if (!empty($options)) {
             $data['config'] = $options;
         }
@@ -5052,6 +5060,21 @@ class EventsController extends AppController
         }
         if (!is_array($result)) {
             throw new Exception($result);
+        }
+        $attributes = array();
+        $objects = array();
+        if (isset($result['results']['Attribute']) && !empty($result['results']['Attribute'])) {
+            foreach ($result['results']['Attribute'] as $tmp_attribute) {
+                array_push($attributes, $this->Event->Attribute->captureAttribute($tmp_attribute, $event_id, $this->Auth->user()));
+            }
+            unset($result['results']['Attribute']);
+        }
+        if (isset($result['results']['Object']) && !empty($result['results']['Object'])) {
+            foreach ($result['results']['Object'] as $tmp_object) {
+                $this->Event->Object->captureObject($tmp_object, $event_id, $this->Auth->user());
+                array_push($objects, $tmp_object);
+            }
+            unset($result['results']['Object']);
         }
         // MORE MAGIC TO COME
     }
