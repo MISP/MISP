@@ -4726,10 +4726,15 @@ class Event extends AppModel
             if (!empty($object['data'])) {
                 $object['image'] = $object['data'];
             } else {
-                if ($object['objectType'] === 'proposal') {
-                    $object['image'] = $this->ShadowAttribute->base64EncodeAttachment($object);
+                if (extension_loaded('gd')) {
+                    // if extention is loaded, the data is not passed to the view because it is asynchronously fetched
+                    $object['image'] = true; // tell the view that it is an image despite not having the actual data
                 } else {
-                    $object['image'] = $this->Attribute->base64EncodeAttachment($object);
+                    if ($object['objectType'] === 'proposal') {
+                        $object['image'] = $this->ShadowAttribute->base64EncodeAttachment($object);
+                    } else {
+                        $object['image'] = $this->Attribute->base64EncodeAttachment($object);
+                    }
                 }
             }
         }

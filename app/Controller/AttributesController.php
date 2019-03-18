@@ -1212,17 +1212,21 @@ class AttributesController extends AppController
         if (!$this->Attribute->exists()) {
             throw new NotFoundException('Invalid attribute');
         }
-        $conditions = array('conditions' => array('Attribute.id' => $id), 'withAttachments' => true, 'flatten' => true);
-        $conditions['includeAllTags'] = false;
-        $conditions['includeAttributeUuid'] = true;
+        $conditions = array(
+            'conditions' => array(
+                'Attribute.id' => $id,
+                'Attribute.type' => 'attachment'
+            ),
+            'withAttachments' => true,
+            'includeAllTags' => false,
+            'includeAttributeUuid' => true,
+            'flatten' => true
+        );
         $attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $conditions);
         if (empty($attribute)) {
             throw new MethodNotAllowedException('Invalid attribute');
         }
         $attribute = $attribute[0];
-        if ('attachment' != $attribute['Attribute']['type'] && 'malware-sample' != $attribute['Attribute']['type'] ) {
-            throw new NotFoundException(__('Invalid attribute'));
-        }
 
         if ($this->_isRest()) {
             return $this->RestResponse->viewData($attribute['Attribute']['data'], $this->response->type());
@@ -1237,13 +1241,17 @@ class AttributesController extends AppController
                         case 'gif':
                             imagegif($image);
                             break;
-                            case 'jpg':
+                        case 'jpg':
+                        case 'jpeg':
                             imagejpeg($image);
                             break;
-                            case 'png':
+                        case 'png':
                             imagepng($image);
                             break;
-                            default:
+                        case 'gif':
+                            imagegif($image);
+                            break;
+                        default:
                             break;
                         }
                         $image_data = ob_get_contents();
