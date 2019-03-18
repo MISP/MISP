@@ -82,7 +82,7 @@ function genericPopup(url, popupTarget, callback) {
 function screenshotPopup(url, title) {
     url = url.slice(0, -1);
     popupHtml = '<it class="fa fa-spin fa-spinner" style="font-size: xx-large; color: white; position: fixed; left: 50%; top: 50%;"></it>'
-    popupHtml += '<img class="screenshot_box-content" src="' + url + '" id="screenshot-image" title="' + title + '" onload="$(this).parent().find(\'.fa-spinner\').remove();"/>';
+    popupHtml += '<img class="screenshot_box-content hidden" src="' + url + '" id="screenshot-image" title="' + title + '" alt="' + title + '" onload="$(this).show(); $(this).parent().find(\'.fa-spinner\').remove();"/>';
     popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
     popupHtml += '<a class="close-icon useCursorPointer fa fa-expand" style="right: 20px; background: black; color: white; text-decoration: none;" target="_blank" href="' + url + '" ></a>';
     popupHtml += '<div style="height: 20px;"></div>'; // see bottom of image for large one
