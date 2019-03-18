@@ -2,7 +2,7 @@
     <thead>
         <tr>
             <th><?php echo __('Submodule'); ?></th>
-            <th><?php echo __('Version'); ?></th>
+            <th><?php echo __('Current Version'); ?></th>
             <th><?php echo __('Status'); ?></th>
         </tr>
     </thead>
