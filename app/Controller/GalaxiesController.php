@@ -77,6 +77,38 @@ class GalaxiesController extends AppController
         }
     }
 
+    public function delete($id)
+    {
+        if (!is_numeric($id)) {
+            throw new NotFoundException('Invalid galaxy.');
+        }
+        $galaxy = $this->Galaxy->find('first', array(
+                'recursive' => -1,
+                'conditions' => array('Galaxy.id' => $id)
+        ));
+        if (empty($galaxy)) {
+            throw new NotFoundException('Invalid galaxy.');
+        }
+        $result = $this->Galaxy->delete($id);
+        if ($result) {
+            $message = 'Galaxy deleted';
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveSuccessResponse('Galaxy', 'delete', false, $this->response->type(), $message);
+            } else {
+                $this->Flash->success($message);
+                $this->redirect(array('controller' => 'galaxies', 'action' => 'index'));
+            }
+        } else {
+            $message = 'Could not delete Galaxy.';
+            if ($this->_isRest()) {
+                return $this->RestResponse->saveFailResponse('Galaxy', 'delete', false, $message);
+            } else {
+                $this->Flash->success($message);
+                $this->redirect($this->referer());
+            }
+        }
+    }
+
     public function selectGalaxy($target_id, $target_type='event', $namespace='misp')
     {
         $mitreAttackGalaxyId = $this->Galaxy->getMitreAttackGalaxyId();

@@ -79,11 +79,11 @@
             <?php
             if ($event['Event']['published'] == 1) {
             ?>
-                <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" title = "<?php echo __('View');?>"><i class="black fa fa-check"></i></a>
+                <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"><i class="black fa fa-check"></i></a>
             <?php
             } else {
             ?>
-                <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" title = "<?php echo __('View');?>"><i class="black fa fa-times"></i></a>
+                <a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"><i class="black fa fa-times"></i></a>
             <?php
             }?>&nbsp;
         </td>
@@ -135,7 +135,7 @@
                         <span class="blue">
                             &nbsp;
                             <a href="<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($cluster['tag_id']); ?>"><?php echo h($cluster['value']); ?></a>
-                            <a href="<?php echo $baseurl; ?>/galaxy_clusters/view/<?php echo h($cluster['id']); ?>"><i class="black fa fa-search"></i></a>
+                            <a aria-label="<?php echo __('View cluster');?>" href="<?php echo $baseurl; ?>/galaxy_clusters/view/<?php echo h($cluster['id']); ?>"><i class="black fa fa-search"></i></a>
                         </span>
                     <?php
                     endforeach;
@@ -220,22 +220,32 @@
                 echo h($shortDist[$event['Event']['distribution']]);
             endif;
             ?>
+            <?php
+            echo sprintf(
+                '<it type="button" title="%s" class="%s" aria-hidden="true" style="font-size: x-small;" data-event-distribution="%s" data-event-distribution-name="%s" data-scope-id="%s"></it>',
+                'Toggle advanced sharing network viewer',
+                'fa fa-share-alt useCursorPointer distributionNetworkToggle',
+                h($event['Event']['distribution']),
+                $event['Event']['distribution'] == 4 ? h($event['SharingGroup']['name']) : h($shortDist[$event['Event']['distribution']]),
+                h($event['Event']['id'])
+            )
+            ?>
         </td>
         <td class="short action-links">
             <?php
                 if (0 == $event['Event']['published'] && ($isSiteAdmin || ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id'])))
-                    echo $this->Form->postLink('', array('action' => 'alert', $event['Event']['id']), array('class' => 'black fa fa-upload', 'title' => __('Publish Event'), __('Are you sure this event is complete and everyone should be informed?')));
+                    echo $this->Form->postLink('', array('action' => 'alert', $event['Event']['id']), array('class' => 'black fa fa-upload', 'title' => __('Publish Event'), 'aria-label' => __('Publish Event')), __('Are you sure this event is complete and everyone should be informed?'));
                 else if (0 == $event['Event']['published']) echo __('Not published');
 
                 if ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['orgc_id'] == $me['org_id'])):
             ?>
-                    <a href='<?php echo $baseurl."/events/edit/".$event['Event']['id'];?>' title = "<?php echo __('Edit');?>"><i class="black fa fa-edit"></i></a>
+                    <a href='<?php echo $baseurl."/events/edit/".$event['Event']['id'];?>' title = "<?php echo __('Edit');?>" aria-label = "<?php echo __('Edit');?>"><i class="black fa fa-edit"></i></a>
             <?php
 
-                    echo $this->Form->postLink('', array('action' => 'delete', $event['Event']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete')), __('Are you sure you want to delete # %s?', $event['Event']['id']));
+                    echo $this->Form->postLink('', array('action' => 'delete', $event['Event']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete'), 'aria-label' => __('Delete')), __('Are you sure you want to delete # %s?', $event['Event']['id']));
                 endif;
             ?>
-            <a href='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>' title = "<?php echo __('View');?>"><i class="fa black fa-eye"></i></a>
+            <a href='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>' title = "<?php echo __('View');?>" aria-label = "<?php echo __('View');?>"><i class="fa black fa-eye"></i></a>
         </td>
     </tr>
     <?php endforeach; ?>
@@ -244,6 +254,12 @@
     $(document).ready(function() {
         $('.select').on('change', function() {
             listCheckboxesChecked();
+        });
+
+        $('.distributionNetworkToggle').each(function() {
+            $(this).distributionNetwork({
+                distributionData: <?php echo json_encode($distributionData); ?>,
+            });
         });
     });
 </script>

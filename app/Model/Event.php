@@ -354,7 +354,7 @@ class Event extends AppModel
             $orgc = $this->Orgc->find('first', array('conditions' => array('Orgc.id' => $this->data['Event']['orgc_id']), 'recursive' => -1, 'fields' => array('Orgc.name')));
             $this->EventBlacklist->save(array('event_uuid' => $this->data['Event']['uuid'], 'event_info' => $this->data['Event']['info'], 'event_orgc' => $orgc['Orgc']['name']));
             if (!empty($this->data['Event']['id'])) {
-                if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable')) {
+                if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
                     $pubSubTool = $this->getPubSubTool();
                     $pubSubTool->event_save(array('Event' => $this->data['Event']), 'delete');
                 }
@@ -4881,7 +4881,8 @@ class Event extends AppModel
                             'name' => $object['name'],
                             'uuid' => $object['uuid'],
                             'id' => isset($object['id']) ? $object['id'] : 0,
-                            'object_type' => $object['objectType']
+                            'object_type' => $object['objectType'],
+                            'relationship_type' => $reference['relationship_type']
                         );
                     }
                 }
@@ -5747,14 +5748,20 @@ class Event extends AppModel
                 }
             }
         }
+        if ($saved == 1) {
+            $messageScopeSaved = Inflector::singularize($messageScope);
+        } else {
+            $messageScopeSaved = Inflector::pluralize($messageScope);
+        }
         if ($failed > 0) {
             if ($failed == 1) {
-                $message = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. Reason for the failure: ' . json_encode($lastError);
+                $messageScopeFailed = Inflector::singularize($messageScope);
+                $message = $saved . ' ' . $messageScopeSaved . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScopeFailed . ' could not be saved. Reason for the failure: ' . json_encode($lastError);
             } else {
-                $message = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. This may be due to attributes with similar values already existing.';
+                $message = $saved . ' ' . $messageScopeSaved . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. This may be due to attributes with similar values already existing.';
             }
         } else {
-            $message = $saved . ' ' . $messageScope . ' created' . $emailResult . '.';
+            $message = $saved . ' ' . $messageScopeSaved . ' created' . $emailResult . '.';
         }
         if ($jobId) {
             if ($i % 20 == 0) {

@@ -21,7 +21,7 @@
                             ?>
                                     <br /><a href="<?php echo $baseurl; ?>/news/edit/<?php echo h($newsItem['News']['id']);?>" class="icon-edit" title="<?php echo __('Edit news message');?>"></a>
                             <?php
-                                    echo $this->Form->postLink('', array('action' => 'delete', $newsItem['News']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete news item # %s?', $newsItem['News']['id']));
+                                    echo $this->Form->postLink('', array('action' => 'delete', $newsItem['News']['id']), array('class' => 'icon-trash', 'title' => __('Delete')), __('Are you sure you want to delete news item # %s?', $newsItem['News']['id']));
                                 endif;
                             ?>
                         </div>

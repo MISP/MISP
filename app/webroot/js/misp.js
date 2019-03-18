@@ -877,6 +877,20 @@ function addSelectedTaxonomies(taxonomy) {
     });
 }
 
+function hideSelectedTags(taxonomy) {
+	$.get("/taxonomies/taxonomyMassHide/"+taxonomy, function(data) {
+		$("#confirmation_box").html(data);
+		openPopup("#confirmation_box");
+	});
+}
+
+function unhideSelectedTags(taxonomy) {
+	$.get("/taxonomies/taxonomyMassUnhide/"+taxonomy, function(data) {
+		$("#confirmation_box").html(data);
+		openPopup("#confirmation_box");
+	});
+}
+
 function submitMassTaxonomyTag() {
     $('#PromptForm').submit();
 }
@@ -2996,12 +3010,12 @@ function syncUserSelected() {
 }
 
 function filterAttributes(filter, id) {
-    url = "/events/viewEventAttributes/" + id + "/attributeFilter:" + filter;
+    url = "/events/viewEventAttributes/" + id;
     if(filter === 'value'){
         filter = $('#quickFilterField').val().trim();
         url += filter.length > 0 ? "/searchFor:" + filter : "";
     } else if(filter !== 'all') {
-        url += "/filterColumnsOverwrite:" + filter;
+        url += "/attributeFilter:" + filter
         filter = $('#quickFilterField').val().trim();
         url += filter.length > 0 ? "/searchFor:" + filter : "";
     }
@@ -3983,6 +3997,87 @@ function liveFilter() {
         });
     }
 }
+
+function sparklineBar(elemId, data, lineCount) {
+    data = d3.csv.parse(data);
+    var y_max = 0;
+    data.forEach(function(e) {
+        e = parseInt(e.val);
+        y_max = e > y_max ? e : y_max;
+    });
+    var WIDTH      = 50;
+    var HEIGHT     = 25;
+    var DATA_COUNT = lineCount;
+    var BAR_WIDTH  = (WIDTH - DATA_COUNT) / DATA_COUNT;
+    var x    = d3.scale.linear().domain([0, DATA_COUNT]).range([0, WIDTH]);
+    var y    = d3.scale.linear().domain([0, y_max]).range([0, HEIGHT]);
+
+    var distributionGraphBarTooltip = d3.select("body").append("div")
+        .attr("class", "distributionGraphBarTooltip")
+        .style("opacity", 0);
+
+    var svg = d3.select(elemId).append('svg')
+      .attr('width', WIDTH)
+      .attr('height', HEIGHT)
+      .append('g');
+    svg.selectAll('.bar').data(data)
+      .enter()
+      .append('g')
+        .attr('title', function(d, i) { return d.scope + ': ' + d.val })
+        .attr('class', 'DGbar')
+      .append('rect')
+        .attr('class', 'bar')
+        .attr('x', function(d, i) { return x(i); })
+        .attr('y', function(d, i) { return HEIGHT - y(d.val); })
+        .attr('width', BAR_WIDTH)
+        .attr('height', function(d, i) { return y(d.val); })
+        .attr('fill', '#3465a4');
+
+        $('.DGbar').tooltip({container: 'body'});
+}
+
+function generic_picker_move(scope, direction) {
+    if (direction === 'right') {
+        $('#' + scope + 'Left option:selected').remove().appendTo('#' + scope + 'Right');
+    } else {
+        $('#' + scope + 'Right option:selected').remove().appendTo('#' + scope + 'Left');
+    }
+}
+
+
+function submit_feed_overlap_tool(feedId) {
+    var result = {"Feed": [], "Server": []};
+    $('#FeedLeft').children().each(function() {
+        result.Feed.push($(this).val());
+    });
+    $('#ServerLeft').children().each(function() {
+        result.Server.push($(this).val());
+    });
+    $.ajax({
+        beforeSend: function (XMLHttpRequest) {
+            $(".loading").show();
+        },
+        data: result,
+        success:function (data, textStatus) {
+            if (!isNaN(data)) {
+                $('#feed_coverage_bar').text(data + '%');
+                $('#feed_coverage_bar').css('width', data + '%');
+            } else {
+                handleGenericAjaxResponse({'saved':false, 'errors':['Something went wrong. Received response not in the expected format.']});
+            }
+        },
+        error:function() {
+            handleGenericAjaxResponse({'saved':false, 'errors':['Could not complete the requested action.']});
+        },
+        complete:function() {
+            $(".loading").hide();
+        },
+        type:"post",
+        cache: false,
+        url:"/feeds/feedCoverage/" + feedId,
+    });
+}
+
 
 (function(){
     "use strict";

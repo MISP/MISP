@@ -8,7 +8,8 @@
         <div class="spinner"></div>
         <div class="loadingText"><?php echo __('Loading');?></div>
     </div>
-    <div id="eventdistri_graph" data-event-id="<?php echo h($event['Event']['id']); ?>" data-event-distribution="<?php echo h($event['Event']['distribution']); ?>" data-user-manipulation="<?php echo $mayModify || $isSiteAdmin ? 'true' : 'false'; ?>" data-extended="<?php echo $extended; ?>">
+
+    <div id="eventdistri_graph" data-event-id="<?php echo h($event['Event']['id']); ?>" data-event-distribution="<?php echo h($event['Event']['distribution']); ?>" data-event-distribution-text="<?php echo $event['Event']['distribution'] == 4 ? h($event['SharingGroup']['name']) : h($distributionLevels[$event['Event']['distribution']]); ?>" data-user-manipulation="<?php echo $mayModify || $isSiteAdmin ? 'true' : 'false'; ?>" data-extended="<?php echo $extended; ?>">
         <canvas id="distribution_graph_canvas"  height="290px"width="400px"></canvas>
     </div>
     <div class="popupDistriSeparator"></div>

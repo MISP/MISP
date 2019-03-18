@@ -173,36 +173,62 @@ class UsersController extends AppController
             'recursive' => -1
         ));
         if ($this->request->is('post') || $this->request->is('put')) {
+            if (!isset($this->request->data['User'])) {
+                $this->request->data = array('User' => $this->request->data);
+            }
             $abortPost = false;
             if (Configure::read('Security.require_password_confirmation')) {
                 if (!empty($this->request->data['User']['current_password'])) {
                     $hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['current_password']);
                     if (!$hashed) {
+                        $message = __('Invalid password. Please enter your current password to continue.');
+                        if ($this->_isRest()) {
+                            return $this->RestResponse->saveFailResponse('Users', 'change_pw', false, $message, $this->response->type());
+                        }
                         $abortPost = true;
-                        $this->Flash->error('Invalid password. Please enter your current password to continue.');
+                        $this->Flash->error($message);
                     }
                     unset($this->request->data['User']['current_password']);
-                } else {
+                } else if (!$this->_isRest()) {
+                    $message = __('Please enter your current password to continue.');
+                    if ($this->_isRest()) {
+                        return $this->RestResponse->saveFailResponse('Users', 'change_pw', false, $message, $this->response->type());
+                    }
                     $abortPost = true;
-                    $this->Flash->info('Please enter your current password to continue.');
+                    $this->Flash->info($message);
                 }
             }
             if (!$abortPost) {
                 // What fields should be saved (allowed to be saved)
                 $user['User']['change_pw'] = 0;
                 $user['User']['password'] = $this->request->data['User']['password'];
-                $user['User']['confirm_password'] = $this->request->data['User']['confirm_password'];
+                if ($this->_isRest()) {
+                    $user['User']['confirm_password'] = $this->request->data['User']['password'];
+                } else {
+                    $user['User']['confirm_password'] = $this->request->data['User']['confirm_password'];
+                }
                 $temp = $user['User']['password'];
                 // Save the data
                 if ($this->User->save($user)) {
-                    $this->Flash->success(__('Password Changed.'));
-                    $this->_refreshAuth();
+                    $message = __('Password Changed.');
                     $this->__extralog("change_pw");
+                    if ($this->_isRest()) {
+                        return $this->RestResponse->saveSuccessResponse('User', 'change_pw', false, $this->response->type(), $message);
+                    }
+                    $this->Flash->success($message);
+                    $this->_refreshAuth();
                     $this->redirect(array('action' => 'view', $id));
                 } else {
-                    $this->Flash->error(__('The password could not be updated. Make sure you meet the minimum password length / complexity requirements.'));
+                    $message = __('The password could not be updated. Make sure you meet the minimum password length / complexity requirements.');
+                    if ($this->_isRest()) {
+                        return $this->RestResponse->saveFailResponse('Users', 'change_pw', false, $message, $this->response->type());
+                    }
+                    $this->Flash->error($message);
                 }
             }
+        }
+        if ($this->_isRest()) {
+            return $this->RestResponse->describe('Users', 'change_pw', false, $this->response->type());
         }
         $this->loadModel('Server');
         $this->set('complexity', !empty(Configure::read('Security.password_policy_complexity')) ? Configure::read('Security.password_policy_complexity') : $this->Server->serverSettings['Security']['password_policy_complexity']['value']);
@@ -1122,7 +1148,7 @@ class UsersController extends AppController
             $this->_refreshAuth();
             $this->redirect($this->referer());
         } else {
-            return $this->RestResponse->saveSuccessResponse('User', 'resetauthkey', $id, $this->response->type(), 'User\'s authkey has been reset.');
+            return $this->RestResponse->saveSuccessResponse('User', 'resetauthkey', $id, $this->response->type(), 'Authkey updated: ' . $newkey);
         }
     }
 
@@ -1256,7 +1282,7 @@ class UsersController extends AppController
         } elseif ($action == 'edit') {
             $description = "User (" . $this->User->id . "): " . $this->data['User']['email'];
         } elseif ($action == 'change_pw') {
-            $description = "User (" . $this->User->id . "): " . $this->data['User']['email'];
+            $description = "User (" . $this->User->id . "): " . $this->Auth->user('email');
             $fieldsResult = "Password changed.";
         }
 

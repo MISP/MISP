@@ -16,24 +16,29 @@
 # 0/ Quick MISP Instance on Debian Based Linux - Status |
 #-------------------------------------------------------|
 #
-#    20190208: Kali Linux tested and working.
+#    20190302: Ubuntu 18.04.2 tested and working. -- sCl
+#    20190208: Kali Linux tested and working. -- sCl
+#
+#
+#-------------------------------------------------------------------------------------------------|
+# 1/ For other Debian based Linux distributions, download script and run as **unprivileged** user |
+#-------------------------------------------------------------------------------------------------|
+#
+# The following installs only MISP-core:
+# $ curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s -- -c
+#
+# This will install MISP Core and misp-modules (recommended)
+# $ curl -fsSL https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh | bash -s -- -c -M
 #
 #
 #-------------------------------------------------------|
-# 1/ For Kali, download and run Installer Script        |
+# 2/ For Kali, download and run Installer Script        |
 #-------------------------------------------------------|
 #
 # To install MISP on Kali copy paste the following to your r00t shell:
 # # wget -O /tmp/misp-kali.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh && bash /tmp/misp-kali.sh
 # /!\ Please read the installer script before randomly doing the above.
 # The script is tested on a plain vanilla Kali Linux Boot CD and installs quite a few dependencies.
-#
-#
-#---------------------------------------------------------------------------------------------|
-# 2/ For other Debian based Linux distributions, download script and run as unprivileged user |
-#---------------------------------------------------------------------------------------------|
-#
-# $ wget -O ~/INSTALL.debian.sh https://raw.githubusercontent.com/MISP/MISP/2.4/INSTALL/INSTALL.debian.sh && bash ~/INSTALL.debian.sh -C
 #
 #
 #----------------------------------------------------------|

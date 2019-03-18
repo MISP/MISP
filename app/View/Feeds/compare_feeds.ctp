@@ -1,4 +1,5 @@
 <?php
+    $canViewFeedData = $isSiteAdmin || intval(Configure::read('MISP.host_org_id')) === $me['org_id'];
     $feedTemplate = array(
         'id', 'name', 'provider', 'url'
     );
@@ -44,7 +45,13 @@
                                         empty($item['Feed']['is_misp_server']) ? 'Feed #' : 'Server #',
                                         h($item['Feed']['id']),
                                         empty($item['Feed']['is_misp_server']) ? '' : '(<span class="blue bold">MISP</span>) ',
-                                        h($item['Feed']['name'])
+                                        (!$canViewFeedData || !empty($item['Feed']['is_misp_server'])) ? h($item['Feed']['name']) : sprintf(
+                                            '<a href="%s/feeds/view/%s" title="View feed #%s">%s</a>',
+                                            $baseurl,
+                                            h($item['Feed']['id']),
+                                            h($item['Feed']['id']),
+                                            h($item['Feed']['name'])
+                                        )
                                     );
                                 ?>
                             </div>

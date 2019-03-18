@@ -1,34 +1,57 @@
 #!/usr/bin/env bash
 
-# TODO: Improve script to bring workers up that are not.
+# TODO: Put some logic inside if many worker PIDs are detected
 
 # Extract base directory where this script is and cd into it
 cd "${0%/*}"
 
+# Set to the current webroot owner
+WWW_USER=$(ls -l ../cake |awk {'print $3'}|tail -1)
+
+# In most cases the owner of the cake script is also the user as which it should be executed.
+if [[ "$USER" != "$WWW_USER" ]]; then
+  echo "You run this script as $USER and the owner of the cake command is $WWW_USER. This might be an issue."
+fi
+
 # Check if run as root
-if [ "$EUID" -eq 0 ]; then
+if [[ "$EUID" -eq "0" ]]; then
     echo "Please DO NOT run the worker script as root"
     exit 1
 fi
 
-##[[ $(../cake CakeResque.CakeResque stop --all |grep "not permitted" ; echo $?) != 1 ]] && echo "Either you have no permissions or CakeResque is not installed/configured" && exit 1
-
-## FIXME: PIDs seem off by 1
-# Check which workers are currently running
-WORKERS_PID=$(ps a |grep CakeResque |grep -v grep |cut -f 1 -d\ )
-
-if [[ ! -z $WORKERS_PID ]]; then
-  for p in $WORKERS_PID; do
-    WORKER_RUNNING=$(ps $p |grep CakeRes|grep -v grep |grep -o -e "QUEUE=.[a-z]*" |cut -f2 -d\')
-    #echo "Worker $WORKER_RUNNING with PID $p"
-  done
+# Check if jq is present and enable advanced checks
+if [[ "$(jq -V > /dev/null 2> /dev/null; echo $?)" != 0 ]]; then
+  echo "jq is not installed, disabling advanced checks."
+  ADVANCED="0"
+else
+  ADVANCED="1"
 fi
 
-../cake CakeResque.CakeResque stop --all
-../cake CakeResque.CakeResque start --interval 5 --queue default
-../cake CakeResque.CakeResque start --interval 5 --queue prio
-../cake CakeResque.CakeResque start --interval 5 --queue cache
-../cake CakeResque.CakeResque start --interval 5 --queue email
-../cake CakeResque.CakeResque startscheduler --interval 5
+if [[ "$ADVANCED" == "1" ]]; then
+  for worker in `echo cache default email prio scheduler`; do
+    workerStatus=$(../cake Admin getWorkers |tail -n +7 |jq  -r ".$worker" |jq -r '.ok')
+    PIDcount=$(../cake admin getWorkers |tail -n +7 |jq -r ".$worker.workers" |grep pid | wc -l)
+    echo -n "$worker has $PIDcount PID(s)"
+    if [[ "$workerStatus" != "true" ]]; then
+      echo ", trying to restart."
+      if [[ "$worker" != "scheduler" ]]; then
+        ../cake CakeResque.CakeResque start --interval 5 --queue $worker
+      else
+        ../cake CakeResque.CakeResque startscheduler --interval 5
+      fi
+    else
+      echo ", up and running."
+    fi
+  done
+  exit 0
+else
 
-exit 0
+  ../cake CakeResque.CakeResque stop --all
+  ../cake CakeResque.CakeResque start --interval 5 --queue default
+  ../cake CakeResque.CakeResque start --interval 5 --queue prio
+  ../cake CakeResque.CakeResque start --interval 5 --queue cache
+  ../cake CakeResque.CakeResque start --interval 5 --queue email
+  ../cake CakeResque.CakeResque startscheduler --interval 5
+
+  exit 0
+fi
