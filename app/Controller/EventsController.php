@@ -5084,7 +5084,7 @@ class EventsController extends AppController
             $event['Object'] = $objects;
             $this->set('event', $event);
             if (!empty($result['results'])) {
-                $this->__handleSimplifiedFormat($attribute, $module, $options, $result, $type, $render_name = 'resolved_misp_format');
+                $this->__handleSimplifiedFormat($attribute, $module, $options, $result, $type, $event = true, $render_name = 'resolved_misp_format');
             } else {
                 $this->set('menuItem', 'enrichmentResults');
                 $this->set('title', 'Enrichment Results');
@@ -5113,10 +5113,10 @@ class EventsController extends AppController
         if (!is_array($result)) {
             throw new Exception($result);
         }
-        $this->__handleSimplifedFormat($attribute, $module, $options, $result, $type);
+        $this->__handleSimplifiedFormat($attribute, $module, $options, $result, $type);
     }
 
-    private function __handleSimplififedFormat($attribute, $module, $options, $result, $type, $renderName = 'resolved_attributes')
+    private function __handleSimplifiedFormat($attribute, $module, $options, $result, $type, $event = false, $renderName = 'resolved_attributes')
     {
         $resultArray = $this->Event->handleModuleResult($result, $attribute[0]['Attribute']['event_id']);
         if (isset($result['comment']) && $result['comment'] != "") {
@@ -5154,7 +5154,9 @@ class EventsController extends AppController
         $this->set('distributions', $distributions);
         $this->set('sgs', $sgs);
         $this->set('type', $type);
-        $this->set('event', array('Event' => $attribute[0]['Event']));
+        if (!$event){
+            $this->set('event', array('Event' => $attribute[0]['Event']));
+        }
         $this->set('resultArray', $resultArray);
         $this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
         $this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
