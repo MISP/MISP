@@ -361,7 +361,7 @@ $(document).ready(function() {
     });
     refreshInfoCells();
     $("#attributeTypeTableBody").selectable({
-        filter: "tr",
+        filter: "tr:not(.hidden)",
         selected: function( event, ui ) {
             if (event.ctrlKey) {
                 $(ui.selected).toggleClass("info");
@@ -390,10 +390,10 @@ $(document).ready(function() {
     });
 
     $('#table_toggle_all_type').change(function() {
-        $('#attributeTypeTableBody').find('tr.isNotToIDS').toggle(this.checked);
+        $('#attributeTypeTableBody').find('tr.isNotToIDS').toggleClass('hidden', !this.checked);
     });
 
     $('#table_toggle_objects').change(function() {
-        $('#attributeTypeTableBody').find('tr.isObject').toggle(this.checked);
+        $('#attributeTypeTableBody').find('tr.isObject').toggleClass('hidden', !this.checked);
     });
 });
