@@ -74,7 +74,7 @@ class AppModel extends Model
         7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
         13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false,
         21 => false, 22 => false, 23 => false, 24 => false, 25 => false, 26 => false,
-        27 => false, 28 => false, 29 => false, 30 => false, 31 => false
+        27 => false, 28 => false, 29 => false, 30 => false, 33 => false
     );
 
     public function afterSave($created, $options = array())
@@ -1098,7 +1098,7 @@ class AppModel extends Model
                 $sqlArray[] = "ALTER TABLE `galaxies` MODIFY COLUMN `kill_chain_order` text";
                 $sqlArray[] = "ALTER TABLE `feeds` ADD `force_to_ids` tinyint(1) NOT NULL DEFAULT 0;";
                 break;
-            case 31:
+            case 33:
                 $sqlArray[] = "ALTER TABLE `roles` ADD `perm_publish_kafka` tinyint(1) NOT NULL DEFAULT 0;";
                 break;
             case 'fixNonEmptySharingGroupID':
