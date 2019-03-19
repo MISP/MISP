@@ -2885,7 +2885,7 @@ class Attribute extends AppModel
                                             )
                                     )
                             ),
-                            'fields' => array('ShadowAttribute.id')
+                            'fields' => array('ShadowAttribute.id', 'ShadowAttribute.value', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.to_ids')
                     )
             );
             $params['contain'] = array_merge($params['contain'], $proposalRestriction);
@@ -2999,7 +2999,7 @@ class Attribute extends AppModel
                     $results[$key]['Attribute']['event_uuid'] = $results[$key]['Event']['uuid'];
                 }
                 if ($proposals_block_attributes) {
-                    $results = $this->__blockAttributeViaProposal($results, $key);
+                    $this->__blockAttributeViaProposal($results, $key);
                 }
                 if ($options['withAttachments']) {
                     if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
@@ -3007,7 +3007,9 @@ class Attribute extends AppModel
                         $results[$key]['Attribute']['data'] = $encodedFile;
                     }
                 }
-                $attributes[] = $results[$key];
+                if (!empty($results[$key])) {
+                    $attributes[] = $results[$key];
+                }
             }
             if (!empty($break)) {
                 break;
@@ -3047,8 +3049,8 @@ class Attribute extends AppModel
                 if ($sa['value'] === $attributes[$k]['Attribute']['value'] &&
                     $sa['type'] === $attributes[$k]['Attribute']['type'] &&
                     $sa['category'] === $attributes[$k]['Attribute']['category'] &&
-                    $sa['to_ids'] == 0 &&
-                    $attribute['to_ids'] == 1
+                    ($sa['to_ids'] == 0 || $sa['to_ids'] == '') &&
+                    $attributes[$k]['Attribute']['to_ids'] == 1
                 ) {
                     unset($attributes[$k]);
                 }
@@ -3056,7 +3058,6 @@ class Attribute extends AppModel
         } else {
             unset($attributes[$k]['ShadowAttribute']);
         }
-        return $attributes;
     }
 
     // Method gets and converts the contents of a file passed along as a base64 encoded string with the original filename into a zip archive
