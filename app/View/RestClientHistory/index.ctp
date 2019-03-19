@@ -11,7 +11,12 @@
         $name .= sprintf(
             '%s - %s',
             h($item['RestClientHistory']['http_method']),
-            h($item['RestClientHistory']['url'])
+            sprintf(
+                '<a href="#" onClick="loadRestClientHistory(%s, %s);">%s</a>',
+                $k,
+                $data_container,
+                h($item['RestClientHistory']['url'])
+            )
         );
         $colour = 'green';
         if (intval($item['RestClientHistory']['outcome']) >= 300) {
@@ -33,12 +38,7 @@
                 $colour,
                 h($item['RestClientHistory']['outcome'])
             ),
-            sprintf(
-                '<span onClick="loadRestClientHistory(%s, %s);">%s</span>',
-                $k,
-                $data_container,
-                $name
-            ),
+            $name,
             sprintf(
                 '<a href="#" class="fa fa-trash black" title="Delete" aria-label="Delete" onclick="removeRestClientHistoryItem(\'%s\');"></a>',
                 h($item['RestClientHistory']['id'])
