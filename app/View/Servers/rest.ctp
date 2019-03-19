@@ -14,10 +14,38 @@
         ?>
         <div id="apiInfo" style="margin-top: 15px;"></div>
     </div>
-
-    <?php echo $this->Form->create('Server');?>
+    <legend><?php echo __('REST client');?></legend>
+    <?php
+        echo sprintf(
+            '<div style="width:542px">%s%s</div>',
+            sprintf(
+                '<div class="accordion-group"><div class="accordion-heading">%s</div><div id=collapse_%s class="accordion-body collapse">%s</div></div>',
+                sprintf(
+                    '<a class="accordion-toggle" data-toggle="collapse" data-parent="accordion" href="#collapse_%s">%s</a>',
+                    'bookmark',
+                    'Bookmarked queries'
+                ),
+                'bookmark',
+                sprintf(
+                    '<div class="accordion-inner bookmarked_queries"></div>'
+                )
+            ),
+            sprintf(
+                '<div class="accordion-group"><div class="accordion-heading">%s</div><div id=collapse_%s class="accordion-body collapse">%s</div></div>',
+                sprintf(
+                    '<a class="accordion-toggle" data-toggle="collapse" data-parent="accordion" href="#collapse_%s">%s</a>',
+                    'history',
+                    'Query History'
+                ),
+                'history',
+                sprintf(
+                    '<div class="accordion-inner history_queries"></div>'
+                )
+            )
+        );
+        echo $this->Form->create('Server');
+    ?>
     <fieldset>
-        <legend><?php echo __('REST client');?></legend>
         <?php
             echo $this->Form->input('method', array(
                 'label' => __('HTTP method to use'),
@@ -27,21 +55,35 @@
                 )
             ));
         ?>
-        <div class="input clear" style="width:100%;">
+        <div class="input clear" style="width:100%;" /draggable="">
         <?php
             echo $this->Form->input('url', array(
                 'label' => __('Relative path to query'),
                 'class' => 'input-xxlarge'
             ));
         ?>
-        <div class="input clear" style="width:100%;">
+        <div class="input clear" style="width:100%;" />
         <?php
             echo $this->Form->input('use_full_path', array(
-              'label' => 'Use full path - disclose my apikey',
-                    'type' => 'checkbox'
-                ));
+                'label' => 'Use full path - disclose my apikey',
+                'type' => 'checkbox'
+            ));
+            echo $this->Form->input('bookmark', array(
+                'label' => 'Bookmark query',
+                'type' => 'checkbox',
+                'onChange' => 'toggleRestClientBookmark();'
+            ));
         ?>
-        <div class="input clear" style="width:100%;">
+        <div class="input clear" style="width:100%;" />
+            <div id="bookmark-name" style="display:none;">
+                <?php
+                    echo $this->Form->input('name', array(
+                        'label' => 'Bookmark name',
+                        'class' => 'input-xxlarge',
+                    ));
+                ?>
+            </div>
+        <div class="input clear" style="width:100%;" />
         <?php
             echo $this->Form->input('show_result', array(
                 'type' => 'checkbox'
@@ -142,7 +184,6 @@
 
 <?php
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event-collection', 'menuItem' => 'rest'));
-
     echo $this->Html->script('doT');
     echo $this->Html->script('extendext');
     echo $this->Html->script('moment-with-locales');
@@ -152,7 +193,12 @@
     echo $this->Html->script('restClient');
 ?>
 
-<script>
-    allValidApis = <?php echo json_encode($allValidApis); ?>;
-    fieldsConstraint = <?php echo json_encode($allValidApisFieldsContraint); ?>;
+<script type="text/javascript">
+    var allValidApis = <?php echo json_encode($allValidApis); ?>;
+    var fieldsConstraint = <?php echo json_encode($allValidApisFieldsContraint); ?>;
+    $(document).ready(function() {
+        populate_rest_history('history');
+        populate_rest_history('bookmark');
+        toggleRestClientBookmark();
+    });
 </script>

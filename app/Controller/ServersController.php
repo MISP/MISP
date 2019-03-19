@@ -1572,6 +1572,23 @@ class ServersController extends AppController
     {
         App::uses('SyncTool', 'Tools');
         $params = array();
+        $this->loadModel('RestClientHistory');
+        $this->RestClientHistory->create();
+        $date = new DateTime();
+        $rest_history_item = array(
+            'org_id' => $this->Auth->user('org_id'),
+            'user_id' => $this->Auth->user('id'),
+            'headers' => $request['header'],
+            'body' => empty($request['body']) ? '' : $request['body'],
+            'url' => $request['url'],
+            'http_method' => $request['method'],
+            'use_full_path' => $request['use_full_path'],
+            'show_result' => $request['show_result'],
+            'skip_ssl' => $request['skip_ssl_validation'],
+            'bookmark' => $request['bookmark'],
+            'bookmark_name' => $request['name'],
+            'timestamp' => $date->getTimestamp()
+        );
         if (!empty($request['url'])) {
             if (empty($request['use_full_path'])) {
                 $path = preg_replace('#^(://|[^/?])+#', '', $request['url']);
@@ -1644,6 +1661,9 @@ class ServersController extends AppController
                 $view_data['data'] = 'Something went wrong.';
             }
         }
+        $rest_history_item['outcome'] = $response->code;
+        $this->RestClientHistory->save($rest_history_item);
+        $this->RestClientHistory->cleanup($this->Auth->user('id'));
         return $view_data;
     }
 

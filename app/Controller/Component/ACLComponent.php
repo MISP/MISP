@@ -305,6 +305,10 @@ class ACLComponent extends Component
                     'cleanRegexModifiers' => array('perm_regexp_access'),
                     'index' => array('*'),
             ),
+            'rest_client_history' => array(
+                    'delete' => array('*'),
+                    'index' => array('*')
+            ),
             'roles' => array(
                     'admin_add' => array(),
                     'admin_delete' => array(),
