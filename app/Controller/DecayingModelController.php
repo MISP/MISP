@@ -135,6 +135,13 @@ class DecayingModelController extends AppController
         // $types = array_filter($types, function($v, $k) {
         //     return $v['to_ids'] == 1;
         // }, ARRAY_FILTER_USE_BOTH);
+        $this->loadModel('ObjectTemplateElement');
+        $objectTypes = $this->ObjectTemplateElement->getAllAvailableTypes();
+        array_walk($objectTypes, function(&$key) {
+            $key["isObject"] = true;
+            $key["default_category"] = $key["category"];
+        });
+        $types = array_merge($types, $objectTypes);
         ksort($types);
         $savedDecayingModels = $this->DecayingModel->fetchAllowedModels($this->Auth->user());
 

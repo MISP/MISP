@@ -28,7 +28,7 @@
                         $class = 'hidden ';
                         if (isset($info['isObject']) && $info['isObject']) {
                             $class .= 'isObject';
-                        } else if ($info['to_ids'] != 1) {
+                        } else if (isset($info['to_ids']) && $info['to_ids'] != 1) {
                             $class .= 'isNotToIDS';
                         } else {
                             $class = "";
@@ -36,7 +36,15 @@
                         ?>
                         <tr class="<?php echo $class; ?>">
                             <td><input type="checkbox"></input></td>
-                            <td class="useCursorPointer"><?php echo h($type); ?></td>
+                            <td class="useCursorPointer">
+                                <?php if(isset($info['isObject']) && $info['isObject']): ?>
+                                    <it class="fa fa-cube" title="<?php echo __('Belong to a MISP Object'); ?>"></it>
+                                <?php endif; ?>
+                                <span title="<?php echo isset($info['desc']) ? $info['desc'] : ''; ?>"><?php echo h($type); ?></span>
+                                <?php if(isset($info['to_ids']) && $info['to_ids'] == 1): ?>
+                                    <it class="fa fa-flag fa-pull-right" title="<?php echo __('To IDS flag set'); ?>"></it>
+                                <?php endif; ?>
+                            </td>
                             <td class="useCursorPointer"><?php echo h($info['default_category']); ?></td>
                             <td></td>
                         </tr>
@@ -53,7 +61,7 @@
             <div class="span6" style="margin-bottom: 20px;">
                 <?php foreach ($parameters as $param => $config): ?>
                     <div class="input-prepend input-append">
-                        <span class="add-on" data-toggle="tooltip" data-placement="left" style="min-width: 70px;" title="<?php echo isset($config['info']) ? h($config['info']) : ''?>">
+                        <span class="add-on" data-toggle="tooltip" data-placement="left" style="min-width: 100px;" title="<?php echo isset($config['info']) ? h($config['info']) : ''?>">
                             <?php echo h($config['name']) . (isset($config['greek']) ? ' <strong>'.h($config['greek']).'</strong>' : ''); ?>
                         </span>
                         <input id="input_<?php echo h($param); ?>" class="input-mini" type="number" min=0 step=<?php echo h($config['step']); ?> value=<?php echo h($config['value']); ?> oninput="refreshGraph(this);" ></input>
