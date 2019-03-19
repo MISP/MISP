@@ -367,11 +367,11 @@ msgstr "Вы можете загружать только файлы MISP XML и
 
 #: Controller/EventsController.php:1960
 msgid "File upload failed or file does not have the expected extension (.xml / .json)."
-msgstr ""
+msgstr "Произошла ошибка при загрузке файла или у файла указано неправильное расширение (.xml / .json)"
 
 #: Controller/EventsController.php:2009
 msgid "STIX document imported, event's created: "
-msgstr ""
+msgstr "Документ STIX импортирован, созданы события: "
 
 #: Controller/EventsController.php:2012
 msgid "STIX document imported."
@@ -2490,7 +2490,7 @@ msgstr "Подтвердить"
 #: View/Users/ajax/passwordResetConfirmationForm.ctp:32
 #: View/Warninglists/ajax/delete_confirmation.ctp:25
 msgid "Cancel"
-msgstr ""
+msgstr "Отмена"
 
 #: View/Attributes/add_attachment.ctp:4
 msgid "Add Attachment(s)"
@@ -2531,11 +2531,11 @@ msgstr "Организация"
 #: View/EventBlacklists/edit.ctp:17
 #: View/Events/add_misp_export_result.ctp:5
 msgid "Event info"
-msgstr ""
+msgstr "Информация о событии"
 
 #: View/Attributes/alternate_search_result.ctp:9
 msgid "Event date"
-msgstr ""
+msgstr "Дата события"
 
 #: View/Attributes/alternate_search_result.ctp:10
 #: View/Events/view.ctp:446
@@ -2918,39 +2918,39 @@ msgstr ""
 
 #: View/Attributes/search.ctp:4
 msgid "Search Attribute"
-msgstr ""
+msgstr "Поиск атрибутов"
 
 #: View/Attributes/search.ctp:5
 msgid "You can search for attributes based on contained expression within the value, event ID, submitting organisation, category and type. <br />For the value, event ID and organisation, you can enter several search terms by entering each term as a new line. To exclude things from a result, use the NOT operator (!) in front of the term."
-msgstr ""
+msgstr "Вы можете искать атрибуты с помощью выражения, содержащего значение, ID события, организации, категории и тип. <br/>Для значения, ID события и организации, вы можете ввести несколько термов, по одной на новой строке. Для исключения из результата поиска необходимо добавить оператор NOT (!) в начало терма."
 
 #: View/Attributes/search.ctp:7
 msgid "For string searches (such as searching for an expression, tags, etc) - lookups are simple string matches. If you want a substring match encapsulate the lookup string between \"%\" characters."
-msgstr ""
+msgstr "Строковый поиск (такой как поиск выражения, тэга и т.д.) осуществляется простым поиском подстроки. Если вы хотите искать по шаблону - необходимо пометить искомую подстроку между символами \"%\"."
 
 #: View/Attributes/search.ctp:10
 msgid "Containing the following expressions"
-msgstr ""
+msgstr "Содержащие следующие выражения"
 
 #: View/Attributes/search.ctp:11
 msgid "Having tag or being an attribute of an event having the tag"
-msgstr ""
+msgstr "Имеющие тэг или принадлежащие событию с тэгом"
 
 #: View/Attributes/search.ctp:12
 msgid "Being attributes of the following event IDs, event UUIDs or attribute UUIDs"
-msgstr ""
+msgstr "Принадлежащие событиям, определенным по IDs, UUIDs, или атрибутам, определенным по UUIDs"
 
 #: View/Attributes/search.ctp:15
 msgid "From the following organisation(s)"
-msgstr ""
+msgstr "От следующей(их) организации(ий)"
 
 #: View/Attributes/search.ctp:29
 msgid "Only find IOCs flagged as to_ids"
-msgstr ""
+msgstr "Только IOCи, помеченные как to_ids"
 
 #: View/Attributes/search.ctp:33
 msgid "Alternate Search Result (Events)"
-msgstr ""
+msgstr "Альтернативный поиск (по событиям)"
 
 #: View/Attributes/ajax/attributeConfirmationForm.ctp:6
 msgid "Attribute Deletion"
@@ -2981,7 +2981,7 @@ msgstr ""
 #: View/Servers/index.ctp:138
 #: View/Tags/index.ctp:125
 msgid "Delete"
-msgstr ""
+msgstr "Удалить"
 
 #: View/Attributes/ajax/attributeConfirmationForm.ctp:16
 #: View/Attributes/ajax/attributeEditMassForm.ctp:31
@@ -3024,7 +3024,7 @@ msgstr ""
 #: View/Templates/view.ctp:41
 #: View/Users/ajax/passwordResetConfirmationForm.ctp:27
 msgid "Yes"
-msgstr ""
+msgstr "Да"
 
 #: View/Attributes/ajax/attributeConfirmationForm.ctp:21
 #: View/Attributes/ajax/attributeEditMassForm.ctp:31
@@ -3069,7 +3069,7 @@ msgstr ""
 #: View/Users/ajax/passwordResetConfirmationForm.ctp:32
 #: View/Warninglists/ajax/delete_confirmation.ctp:25
 msgid "No"
-msgstr ""
+msgstr "Нет"
 
 #: View/Attributes/ajax/attributeEditCategoryForm.ctp:5
 #: View/Attributes/ajax/attributeEditCommentForm.ctp:5
@@ -3408,7 +3408,7 @@ msgstr "Очистить фильтры"
 
 #: View/Elements/eventdiscussion.ctp:34
 msgid "Date: "
-msgstr ""
+msgstr "Дата: "
 
 #: View/Elements/eventdiscussion.ctp:52
 msgid "Deactivated user"
@@ -3425,15 +3425,15 @@ msgstr ""
 #: View/Tags/edit.ctp:36
 #: View/Templates/edit.ctp:49
 msgid "Edit"
-msgstr ""
+msgstr "Редактировать"
 
 #: View/Elements/eventdiscussion.ctp:90;98
 msgid "Are you sure you want to delete this post?"
-msgstr ""
+msgstr "Вы уверены что хотите удалить пост?"
 
 #: View/Elements/eventdiscussion.ctp:93;100
 msgid "Reply"
-msgstr ""
+msgstr "Ответить"
 
 #: View/Elements/eventdiscussion.ctp:141
 #: View/Posts/add.ctp:32
@@ -3617,13 +3617,13 @@ msgstr "Список атрибутов"
 #: View/Events/export_alternate.ctp:93
 #: View/Pages/doc/general.ctp:37
 msgid "Search Attributes"
-msgstr ""
+msgstr "Поиск атрибутов"
 
 #: View/Elements/global_menu.ctp:31
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:252
 #: View/Servers/rest.ctp:20
 msgid "REST client"
-msgstr ""
+msgstr "REST клиент"
 
 #: View/Elements/global_menu.ctp:38
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:280
@@ -3635,7 +3635,7 @@ msgstr "Показать предложения"
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:285
 #: View/Pages/doc/general.ctp:39
 msgid "Events with proposals"
-msgstr ""
+msgstr "События с предложениями"
 
 #: View/Elements/global_menu.ctp:49
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:773
@@ -3646,7 +3646,7 @@ msgstr "Список тэгов"
 #: View/Elements/global_menu.ctp:53
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:204
 msgid "List Tag Collections"
-msgstr ""
+msgstr "Список тэгов"
 
 #: View/Elements/global_menu.ctp:57
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:778
@@ -3654,24 +3654,24 @@ msgstr ""
 #: View/Tags/add.ctp:4
 #: View/Tags/edit.ctp:4
 msgid "Add Tag"
-msgstr ""
+msgstr "Добавить тэг"
 
 #: View/Elements/global_menu.ctp:62
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:807
 msgid "List Taxonomies"
-msgstr ""
+msgstr "Таксономии"
 
 #: View/Elements/global_menu.ctp:66
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:835
 #: View/Pages/doc/general.ctp:42
 msgid "List Templates"
-msgstr ""
+msgstr "Шаблоны"
 
 #: View/Elements/global_menu.ctp:70
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:840
 #: View/Pages/doc/general.ctp:43
 msgid "Add Template"
-msgstr ""
+msgstr "Добавить шаблон"
 
 #: View/Elements/global_menu.ctp:78
 #: View/Elements/view_event_graph.ctp:15
@@ -3827,18 +3827,18 @@ msgstr ""
 #: View/Elements/global_menu.ctp:212
 #: View/Pages/doc/general.ctp:23;66
 msgid "Sync Actions"
-msgstr ""
+msgstr "Синхронизация"
 
 #: View/Elements/global_menu.ctp:216
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:546
 #: View/Pages/doc/general.ctp:68
 msgid "List Servers"
-msgstr ""
+msgstr "Серверы"
 
 #: View/Elements/global_menu.ctp:221
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:862
 msgid "List Feeds"
-msgstr ""
+msgstr "Фиды"
 
 #: View/Elements/global_menu.ctp:229
 #: View/Pages/doc/administration.ctp:8
@@ -3884,7 +3884,7 @@ msgstr "Список ролей"
 
 #: View/Elements/global_menu.ctp:264
 msgid "Add Roles"
-msgstr ""
+msgstr "Добавить роли"
 
 #: View/Elements/global_menu.ctp:273
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:673
@@ -4112,7 +4112,7 @@ msgstr ""
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:53;329;396;541;595
 #: View/Servers/index.ctp:138
 msgid "Are you sure you want to delete # %s?"
-msgstr ""
+msgstr "Вы уверены что хотите удалить # %s?"
 
 #: View/Elements/Events/View/attribute_correlations.ctp:7
 msgid "Show "
@@ -4222,7 +4222,7 @@ msgstr ""
 #: View/Elements/Events/View/row_object.ctp:71
 #: View/Elements/Feeds/View/row_object.ctp:21
 msgid "Description: "
-msgstr ""
+msgstr "Описание: "
 
 #: View/Elements/Events/View/row_object.ctp:72
 #: View/Elements/Feeds/View/row_object.ctp:22
@@ -4322,7 +4322,7 @@ msgstr ""
 
 #: View/Elements/Servers/eventattribute.ctp:31;97
 msgid "all"
-msgstr ""
+msgstr "все"
 
 #: View/Elements/Servers/eventattribute.ctp:41
 #: View/Events/view.ctp:131
@@ -4330,7 +4330,7 @@ msgstr ""
 #: View/Servers/preview_event.ctp:36
 #: View/Sightings/ajax/list_sightings.ctp:5
 msgid "Date"
-msgstr ""
+msgstr "Дата"
 
 #: View/Elements/Servers/eventattribute.ctp:49
 #: View/Elements/templateElements/templateRowAttribute.ctp:82
@@ -4449,7 +4449,7 @@ msgstr "Время создания"
 
 #: View/Elements/Users/userIndexTable.ctp:88
 msgid "Initiate password refresh"
-msgstr ""
+msgstr "Сбросить пароль"
 
 #: View/Elements/Users/userIndexTable.ctp:88
 msgid "Create new credentials and inform user"
@@ -4474,15 +4474,15 @@ msgstr ""
 
 #: View/Elements/dashboard/dashboard_notifications.ctp:2
 msgid "Notifications"
-msgstr ""
+msgstr "Уведомления"
 
 #: View/Elements/dashboard/dashboard_notifications.ctp:4
 msgid "Proposals: "
-msgstr ""
+msgstr "Предложения: "
 
 #: View/Elements/dashboard/dashboard_notifications.ctp:5
 msgid "Events with proposals: "
-msgstr ""
+msgstr "Событий с предложениями: "
 
 #: View/Elements/dashboard/dashboard_notifications.ctp:9
 msgid "Delegation requests: "
@@ -4582,7 +4582,7 @@ msgstr ""
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:186;273
 msgid "Download as..."
-msgstr ""
+msgstr "Сохранить как..."
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:209;214
 #: View/TagCollections/add.ctp:6
@@ -4599,7 +4599,7 @@ msgstr ""
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:247
 msgid "Import from…"
-msgstr ""
+msgstr "Импорт"
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:307
 msgid "List Regexp"
@@ -4672,7 +4672,7 @@ msgstr ""
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:405
 #: View/Users/edit.ctp:4
 msgid "Edit My Profile"
-msgstr ""
+msgstr "Редактировать профиль"
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:409
 #: View/Pages/doc/administration.ctp:126
@@ -4687,7 +4687,7 @@ msgstr "Сбросить пароль"
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:439;649
 msgid "View Organisation"
-msgstr ""
+msgstr "Просмотр организации"
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:451
 #: View/SharingGroups/edit.ctp:3
@@ -4723,7 +4723,7 @@ msgstr "Редактировать сервер"
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:551
 msgid "New Servers"
-msgstr ""
+msgstr "Добавить сервер"
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:563
 msgid "View User"
@@ -4748,17 +4748,17 @@ msgstr "Удалить роль"
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:623
 msgid "Add Organisation"
-msgstr ""
+msgstr "Добавить организацию"
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:629;644
 #: View/Organisations/admin_edit.ctp:4
 msgid "Edit Organisation"
-msgstr ""
+msgstr "Редактировать организацию"
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:637
 #: View/Organisations/ajax/merge.ctp:5
 msgid "Merge Organisation"
-msgstr ""
+msgstr "Объединить организацию"
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:661
 #: View/Roles/admin_add.ctp:4
@@ -4855,17 +4855,17 @@ msgstr ""
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:911
 msgid "View News"
-msgstr ""
+msgstr "Просмотр новостей"
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:916
 #: View/News/add.ctp:6
 msgid "Add News Item"
-msgstr ""
+msgstr "Добавить новость"
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:922
 #: View/News/edit.ctp:6
 msgid "Edit News Item"
-msgstr ""
+msgstr "Редактировать новость"
 
 #: View/Elements/genericElements/SideMenu/side_menu.ctp:937
 msgid "Update Galaxies"
@@ -5308,7 +5308,7 @@ msgstr "Размер"
 #: View/Elements/healthElements/files.ctp:32
 #: View/Roles/admin_edit.ctp:15
 msgid "Permissions"
-msgstr ""
+msgstr "Разрешения"
 
 #: View/Elements/healthElements/files.ctp:73
 #: View/Organisations/index.ctp:140
@@ -5316,7 +5316,7 @@ msgstr ""
 #: View/Roles/admin_index.ctp:67
 #: View/SharingGroups/index.ctp:87
 msgid "Are you sure you want to delete %s?"
-msgstr ""
+msgstr "Вы уверены что хотите удалить %s?"
 
 #: View/Elements/healthElements/overview.ctp:3
 msgid "Critical, your MISP instance requires immediate attention."
@@ -5418,7 +5418,7 @@ msgstr ""
 #: View/Elements/healthElements/tabs.ctp:50;65
 #: View/Pages/doc/administration.ctp:40
 msgid "Download report"
-msgstr ""
+msgstr "Сохранить отчет"
 
 #: View/Elements/healthElements/tabs.ctp:55
 #: View/Pages/doc/administration.ctp:39
@@ -5695,7 +5695,7 @@ msgstr ""
 #: View/Organisations/view.ctp:26
 #: View/SharingGroups/view.ctp:23
 msgid "Created by"
-msgstr ""
+msgstr "Кем создан"
 
 #: View/Elements/templateElements/populateTemplateDescription.ctp:14
 msgid "Tags automatically assigned"
@@ -5981,7 +5981,7 @@ msgstr ""
 #: View/Events/edit.ctp:43
 #: View/ShadowAttributes/index.ctp:52
 msgid "Event Info"
-msgstr ""
+msgstr "Информация о событии"
 
 #: View/Events/add.ctp:56
 #: View/Events/edit.ctp:47
@@ -6007,28 +6007,28 @@ msgstr ""
 #: View/Events/upload_analysis_file.ctp:22
 #: View/Events/upload_stix.ctp:29
 msgid "Upload"
-msgstr ""
+msgstr "Загрузка"
 
 #: View/Events/add_misp_export.ctp:4
 msgid "Import from MISP Export File"
-msgstr ""
+msgstr "Импорт из файла MISP"
 
 #: View/Events/add_misp_export.ctp:7
 msgid "MISP XML or JSON file"
-msgstr ""
+msgstr "MISP (.xml / .json) файл"
 
 #: View/Events/add_misp_export.ctp:16
 msgid "Take ownership of the event"
-msgstr ""
+msgstr "Стать владельцем события"
 
 #: View/Events/add_misp_export.ctp:17
 msgid "Warning: This will change the creator organisation of the event, tampering with the event's ownership and releasability and can lead to unexpected behaviour when synchronising the event with instances that have another creator for the same event.)"
-msgstr ""
+msgstr "Внимание: это действие поменяет организацию-создателя события, что может привести к непредсказуемому поведению при синхронизации с другими организациями."
 
 #: View/Events/add_misp_export.ctp:22
 #: View/Events/upload_stix.ctp:17
 msgid "Publish imported events"
-msgstr ""
+msgstr "Опубликовать импортированные события"
 
 #: View/Events/add_misp_export_result.ctp:2
 msgid "Add From MISP Export Result"
@@ -6078,7 +6078,7 @@ msgstr ""
 #: View/Events/automation.ctp:10
 #: View/Events/legacy_automation.ctp:8
 msgid "reset"
-msgstr ""
+msgstr "сбросить"
 
 #: View/Events/automation.ctp:14
 #: View/Logs/admin_index.ctp:20;21
@@ -6604,7 +6604,7 @@ msgstr ""
 #: View/Pages/doc/administration.ctp:226;242
 #: View/Pages/doc/using_the_system.ctp:254
 msgid "Message"
-msgstr ""
+msgstr "Сообщение"
 
 #: View/Events/automation.ctp:275
 #: View/Events/legacy_automation.ctp:444
@@ -6760,7 +6760,7 @@ msgstr "Последнее обновление"
 #: View/Events/export.ctp:28
 #: View/Pages/doc/using_the_system.ctp:380
 msgid "Outdated"
-msgstr ""
+msgstr "Устаревший"
 
 #: View/Events/export.ctp:29
 msgid "Filesize"
@@ -7001,7 +7001,7 @@ msgstr ""
 #: View/Users/statistics_data.ctp:14
 #: View/Users/statistics_orgs.ctp:33
 msgid "Events"
-msgstr ""
+msgstr "События"
 
 #: View/Events/index.ctp:34
 #: View/Logs/admin_index.ctp:54
@@ -7042,7 +7042,7 @@ msgstr "Фильтр"
 #: View/Organisations/index.ctp:76
 #: View/Servers/preview_index.ctp:65
 msgid "Enter value to search"
-msgstr ""
+msgstr "Введите текст для поиска"
 
 #: View/Events/legacy_automation.ctp:3
 msgid "Automation functionality is designed to automatically generate signatures for intrusion detection systems. To enable signature generation for a given attribute, Signature field of this attribute must be set to Yes.\n"
@@ -7384,13 +7384,13 @@ msgstr ""
 
 #: View/Events/proposal_event_index.ctp:2
 msgid "Event with proposals"
-msgstr ""
+msgstr "События с предложениями"
 
 #: View/Events/proposal_event_index.ctp:24
 #: View/Pages/doc/concepts.ctp:28
 #: View/ShadowAttributes/index.ctp:2
 msgid "Proposals"
-msgstr ""
+msgstr "Предложения"
 
 #: View/Events/proposal_event_index.ctp:25
 #: View/Events/view.ctp:106
@@ -7517,15 +7517,15 @@ msgstr "Создать объекты"
 
 #: View/Events/upload_stix.ctp:6
 msgid "Import %s file"
-msgstr ""
+msgstr "Импорт %s файл"
 
 #: View/Events/upload_stix.ctp:9
 msgid "%s file"
-msgstr ""
+msgstr "%s файл"
 
 #: View/Events/upload_stix.ctp:24
 msgid "Include the original imported file as attachment"
-msgstr ""
+msgstr "Включить импортируемый файл как вложение"
 
 #: View/Events/view.ctp:53
 #: View/Servers/preview_event.ctp:12
@@ -7767,11 +7767,11 @@ msgstr ""
 
 #: View/Events/ajax/importChoice.ctp:2
 msgid "Choose the format that you would like to use for the import"
-msgstr ""
+msgstr "Выберите формат импорта"
 
 #: View/Events/ajax/importChoice.ctp:7
 msgid "Import %s"
-msgstr ""
+msgstr "Импорт %s"
 
 #: View/Events/ajax/toggle_correlation.ctp:6
 msgid "Toggle Correlation %s"
@@ -8396,19 +8396,19 @@ msgstr ""
 #: View/News/add.ctp:28
 #: View/News/edit.ctp:29
 msgid "Create anonymously"
-msgstr ""
+msgstr "Создать анонимно"
 
 #: View/News/index.ctp:22
 msgid "Edit news message"
-msgstr ""
+msgstr "Редактировать новость"
 
 #: View/News/index.ctp:24
 msgid "Are you sure you want to delete news item # %s?"
-msgstr ""
+msgstr "Вы уверены что хотите удалить новость # %s?"
 
 #: View/News/index.ctp:47
 msgid "There are currently no news messages."
-msgstr ""
+msgstr "На данный момент нет новостей"
 
 #: View/Noticelists/index.ctp:2
 msgid "Noticelists"
@@ -8626,7 +8626,7 @@ msgstr ""
 #: View/OrgBlacklists/add.ctp:16
 #: View/Organisations/view.ctp:6
 msgid "Organisation name"
-msgstr ""
+msgstr "Название организации"
 
 #: View/OrgBlacklists/add.ctp:17
 msgid "(Optional) The organisation name that the organisation is associated with"
@@ -8642,75 +8642,75 @@ msgstr ""
 
 #: View/Organisations/admin_add.ctp:4
 msgid "New Organisation"
-msgstr ""
+msgstr "Новая организация"
 
 #: View/Organisations/admin_add.ctp:5
 #: View/Organisations/admin_edit.ctp:5
 msgid "If the organisation should have access to this instance, make sure that the Local organisation setting is checked. <br />If you would only like to add a known external organisation for inclusion in sharing groups, uncheck the Local organisation setting."
-msgstr ""
+msgstr "Галочка должна быть проставлена, если Вы хотите чтобы организация имела доступ к данному экземпляру установки.<br />Если вы хотите просто создать внешнюю организацию для включения в группы распространения, уберите галочку."
 
 #: View/Organisations/admin_add.ctp:7
 msgid "Local organisation"
-msgstr ""
+msgstr "Локальная организация"
 
 #: View/Organisations/admin_add.ctp:11
 msgid "Mandatory fields."
-msgstr ""
+msgstr "Обязательные поля."
 
 #: View/Organisations/admin_add.ctp:15
 #: View/Organisations/admin_edit.ctp:14
 msgid "Organisation Identifier"
-msgstr ""
+msgstr "Идентификатор организации"
 
 #: View/Organisations/admin_add.ctp:15
 #: View/Organisations/admin_edit.ctp:14
 msgid "Brief organisation identifier"
-msgstr ""
+msgstr "Идентификатор организации"
 
 #: View/Organisations/admin_add.ctp:18
 #: View/Organisations/admin_edit.ctp:17
 msgid "No image uploaded for this identifier"
-msgstr ""
+msgstr "Логотип организации не загружен"
 
 #: View/Organisations/admin_add.ctp:22
 #: View/Organisations/admin_edit.ctp:21
 msgid "Paste UUID or click generate"
-msgstr ""
+msgstr "Вставьте UUID организации или нажмите кнопку Сгенерировать UUID"
 
 #: View/Organisations/admin_add.ctp:25
 #: View/Organisations/admin_edit.ctp:24
 msgid "Generate UUID"
-msgstr ""
+msgstr "Сгенерировать UUID"
 
 #: View/Organisations/admin_add.ctp:25
 #: View/Organisations/admin_edit.ctp:24
 msgid "Generate a new UUID for the organisation"
-msgstr ""
+msgstr "Сгенерировать UUID для организации"
 
 #: View/Organisations/admin_add.ctp:27
 #: View/Organisations/admin_edit.ctp:38
 msgid "A brief description of the organisation"
-msgstr ""
+msgstr "Описание организации"
 
 #: View/Organisations/admin_add.ctp:27
 #: View/Organisations/admin_edit.ctp:38
 msgid "A description of the organisation that is purely informational."
-msgstr ""
+msgstr "Информативное описание организации"
 
 #: View/Organisations/admin_add.ctp:30
 #: View/Organisations/admin_edit.ctp:41
 msgid "Bind user accounts to domains (line separated)"
-msgstr ""
+msgstr "Связанные доменные имена (по одному на строке)"
 
 #: View/Organisations/admin_add.ctp:30
 #: View/Organisations/admin_edit.ctp:41
 msgid "Enter a (list of) domain name(s) to enforce when creating users."
-msgstr ""
+msgstr "Введите имена доменов, которые будут указываться при создании пользователей"
 
 #: View/Organisations/admin_add.ctp:33
 #: View/Organisations/admin_edit.ctp:44
 msgid "The following fields are all optional."
-msgstr ""
+msgstr "Необязательные поля."
 
 #: View/Organisations/admin_add.ctp:38
 #: View/Organisations/admin_edit.ctp:49
@@ -8720,30 +8720,30 @@ msgstr "Логотип (48x48 png)"
 #: View/Organisations/admin_add.ctp:44
 #: View/Organisations/admin_edit.ctp:55
 msgid "For example \"financial\"."
-msgstr ""
+msgstr "К примеру \"финансы\"."
 
 #: View/Organisations/admin_add.ctp:45
 #: View/Organisations/admin_edit.ctp:56
 msgid "Type of organisation"
-msgstr ""
+msgstr "Тип организации"
 
 #: View/Organisations/admin_add.ctp:45
 #: View/Organisations/admin_edit.ctp:56
 msgid "Freetext description of the org."
-msgstr ""
+msgstr "Свободное описание организации"
 
 #: View/Organisations/admin_add.ctp:46
 #: View/Organisations/admin_edit.ctp:57
 msgid "You can add some contact details for the organisation here, if applicable."
-msgstr ""
+msgstr "Вы можете добавить контакты организации"
 
 #: View/Organisations/admin_edit.ctp:11
 msgid "Mandatory fields. Leave the UUID field empty if the organisation doesn't have a UUID from another instance."
-msgstr ""
+msgstr "Обязательные поля. Оставьте поле UUID пустым если организация не имеет UUID от другого экземпляра."
 
 #: View/Organisations/admin_edit.ctp:30
 msgid "An organisation with the above uuid already exists. Would you like to merge this organisation into the existing one?"
-msgstr ""
+msgstr "Организация с таким UUID уже существует. Вы хотите объединить эту организацию с уже существующей?"
 
 #: View/Organisations/admin_edit.ctp:32
 msgid "Click here"
@@ -8754,37 +8754,37 @@ msgstr "Нажмите здесь"
 #: View/Users/statistics_data.ctp:57
 #: View/Users/statistics_orgs.ctp:13
 msgid "All organisations"
-msgstr ""
+msgstr "Все организации"
 
 #: View/Organisations/index.ctp:6
 msgid ", both local and remote"
-msgstr ""
+msgstr ", локальные и сторонние"
 
 #: View/Organisations/index.ctp:9;62
 #: View/Users/statistics_orgs.ctp:12
 msgid "Known remote organisations"
-msgstr ""
+msgstr "Сторонние организации"
 
 #: View/Organisations/index.ctp:10
 msgid " on other instances"
-msgstr ""
+msgstr " на других экземплярах MISP"
 
 #: View/Organisations/index.ctp:13;57
 #: View/Users/statistics_orgs.ctp:11
 msgid "Local organisations"
-msgstr ""
+msgstr "Локальные организации"
 
 #: View/Organisations/index.ctp:14
 msgid " having a presence on this instance"
-msgstr ""
+msgstr " на данном экземпляре MISP"
 
 #: View/Organisations/index.ctp:25
 msgid "Paginate"
-msgstr ""
+msgstr "Постранично"
 
 #: View/Organisations/index.ctp:27
 msgid "View all"
-msgstr ""
+msgstr "Показать все"
 
 #: View/Organisations/index.ctp:86
 #: View/Users/login.ctp:8
@@ -8794,7 +8794,7 @@ msgstr "Логотип"
 
 #: View/Organisations/index.ctp:97
 msgid "Added by"
-msgstr ""
+msgstr "Кем добавлен"
 
 #: View/Organisations/index.ctp:138
 #: View/Posts/add.ctp:33
@@ -8804,28 +8804,28 @@ msgstr ""
 
 #: View/Organisations/view.ctp:8
 msgid "Local or remote"
-msgstr ""
+msgstr "Локальная или сторонняя"
 
 #: View/Organisations/view.ctp:12
 #: View/SharingGroups/view.ctp:43
 msgid "Local"
-msgstr ""
+msgstr "Локальная"
 
 #: View/Organisations/view.ctp:12
 msgid "Remote"
-msgstr ""
+msgstr "Сторонняя"
 
 #: View/Organisations/view.ctp:22
 msgid "Domain restrictions"
-msgstr ""
+msgstr "Доменные ограничения"
 
 #: View/Organisations/view.ctp:27
 msgid "Creation time"
-msgstr ""
+msgstr "Дата создания"
 
 #: View/Organisations/view.ctp:28
 msgid "Last modified"
-msgstr ""
+msgstr "Дата последнего изменения"
 
 #: View/Organisations/view.ctp:39
 msgid "Organisation "
@@ -8853,15 +8853,15 @@ msgstr ""
 
 #: View/Organisations/ajax/landingpage.ctp:2
 msgid "Landing page for %s"
-msgstr ""
+msgstr "Сводная страница %s"
 
 #: View/Organisations/ajax/merge.ctp:3
 msgid "This will remove the selected organisation and hand over all objects belonging to it to the target organisation. This process is irreversible. Are you sure you want to proceed?"
-msgstr ""
+msgstr "Это действие приведет к удаление выбранной организации и переносу всех объектов в другую организацию. Данное действие необратимо, Вы уверены что хотите продолжить?"
 
 #: View/Organisations/ajax/merge.ctp:6
 msgid "Warning: Merging an organisation into another will be transfer all users and data belonging to the organisation to another."
-msgstr ""
+msgstr "Внимание: объединение организаций приведет к переносу всех пользователей и данных в другую организацию."
 
 #: View/Organisations/ajax/merge.ctp:19
 msgid "Organisation type"
@@ -8869,15 +8869,15 @@ msgstr "Тип организации"
 
 #: View/Organisations/ajax/merge.ctp:33
 msgid "Target Local Organisation"
-msgstr ""
+msgstr "Целевая локальная организация"
 
 #: View/Organisations/ajax/merge.ctp:45
 msgid "Target External Organisation"
-msgstr ""
+msgstr "Целевая сторонняя организация"
 
 #: View/Organisations/ajax/merge.ctp:55
 msgid "Organisation to be merged"
-msgstr ""
+msgstr "Организация, планируемая к объединению"
 
 #: View/Organisations/ajax/merge.ctp:56;63
 #: View/Pages/doc/using_the_system.ctp:163;203
@@ -8886,11 +8886,11 @@ msgstr "ID"
 
 #: View/Organisations/ajax/merge.ctp:62
 msgid "Organisation to be merged into"
-msgstr ""
+msgstr "Организация, куда планируется объединять"
 
 #: View/Organisations/ajax/merge.ctp:70
 msgid "Merge"
-msgstr ""
+msgstr "Объединить"
 
 #: View/Organisations/ajax/sg_org_row_empty.ctp:10
 msgid "Mark organisation as sharing group extender"
@@ -9365,7 +9365,7 @@ msgstr ""
 #: View/Users/admin_edit.ctp:71
 #: View/Users/edit.ctp:28
 msgid "Receive alerts when events are published"
-msgstr ""
+msgstr "Получать уведомления когда публикует события"
 
 #: View/Pages/doc/administration.ctp:92
 msgid "This option will subscribe the new user to automatically generated e-mails whenever an event is published."
@@ -9461,7 +9461,7 @@ msgstr ""
 
 #: View/Pages/doc/administration.ctp:109;125
 msgid "Termsaccepted"
-msgstr ""
+msgstr "Положения приняты"
 
 #: View/Pages/doc/administration.ctp:109
 msgid "This flag indicates whether the user has accepted the terms of use or not."
@@ -9470,7 +9470,7 @@ msgstr ""
 #: View/Pages/doc/administration.ctp:110
 #: View/Users/admin_view.ctp:84
 msgid "Newsread"
-msgstr ""
+msgstr "Дата чтения новостей"
 
 #: View/Pages/doc/administration.ctp:110
 msgid "The last point in time when the user has looked at the news section of the system."
@@ -10083,7 +10083,7 @@ msgstr ""
 #: View/Pages/doc/concepts.ctp:32
 #: View/Pages/doc/using_the_system.ctp:401
 msgid "Pull"
-msgstr ""
+msgstr "Pull"
 
 #: View/Pages/doc/concepts.ctp:33
 msgid "Pulling is the process of using the configured sync user on a remote instance to REST GET all of the accessible data (based on the distribution rights) to your instance and store it."
@@ -11817,11 +11817,11 @@ msgstr ""
 #: View/Servers/add.ctp:8
 #: View/Servers/edit.ctp:8
 msgid "Base URL"
-msgstr ""
+msgstr "URL"
 
 #: View/Pages/doc/using_the_system.ctp:397
 msgid "The URL of the remote server."
-msgstr ""
+msgstr "URL сервера"
 
 #: View/Pages/doc/using_the_system.ctp:398
 msgid "Organization"
@@ -12059,12 +12059,12 @@ msgstr ""
 #: View/Roles/admin_add.ctp:9
 #: View/Roles/admin_edit.ctp:9
 msgid "Restrict to site admins"
-msgstr ""
+msgstr "Только для администраторов сайта"
 
 #: View/Roles/admin_add.ctp:19
 #: View/Roles/admin_edit.ctp:18
 msgid "Memory limit"
-msgstr ""
+msgstr "Лимит памяти"
 
 #: View/Roles/admin_add.ctp:20
 #: View/Roles/admin_edit.ctp:19
@@ -12104,12 +12104,12 @@ msgstr ""
 #: View/Servers/add.ctp:20
 #: View/Servers/edit.ctp:20
 msgid "Internal instance"
-msgstr ""
+msgstr "Внутренний инстанс"
 
 #: View/Servers/add.ctp:30
 #: View/Servers/edit.ctp:31
 msgid "Instance ownership and credentials"
-msgstr ""
+msgstr "Учетная запись инстанса"
 
 #: View/Servers/add.ctp:31
 #: View/Servers/edit.ctp:32
@@ -12118,7 +12118,7 @@ msgstr ""
 
 #: View/Servers/add.ctp:37
 msgid "Remote Sync Organisation Type"
-msgstr ""
+msgstr "Тип синхронизации"
 
 #: View/Servers/add.ctp:42
 #: View/Servers/edit.ctp:43
@@ -12127,22 +12127,22 @@ msgstr "Внешняя организация"
 
 #: View/Servers/add.ctp:48
 msgid "Owner of remote instance"
-msgstr ""
+msgstr "Владелец стороннего инстанса"
 
 #: View/Servers/add.ctp:54
 #: View/Servers/edit.ctp:65
 msgid "Remote Organisation's Name"
-msgstr ""
+msgstr "Наименование внешней организации"
 
 #: View/Servers/add.ctp:58
 #: View/Servers/edit.ctp:69
 msgid "Remote Organisation's Uuid"
-msgstr ""
+msgstr "UUID внешней организации"
 
 #: View/Servers/add.ctp:67
 #: View/Servers/edit.ctp:78
 msgid "Enabled synchronisation methods"
-msgstr ""
+msgstr "Разрешенные методы синхронизации"
 
 #: View/Servers/add.ctp:86
 msgid "Server certificate file"
@@ -12361,19 +12361,19 @@ msgstr ""
 
 #: View/Servers/rest.ctp:23
 msgid "HTTP method to use"
-msgstr ""
+msgstr "HTTP метод"
 
 #: View/Servers/rest.ctp:33
 msgid "Relative path to query"
-msgstr ""
+msgstr "Относительный путь запроса"
 
 #: View/Servers/rest.ctp:116
 msgid "Response code"
-msgstr ""
+msgstr "Код ответа"
 
 #: View/Servers/rest.ctp:117
 msgid "Request duration"
-msgstr ""
+msgstr "Продолжительность запроса"
 
 #: View/Servers/rest.ctp:118
 msgid "Headers"
@@ -12434,7 +12434,7 @@ msgstr ""
 #: View/ShadowAttributes/add.ctp:4
 #: View/ShadowAttributes/edit.ctp:4
 msgid "Add Proposal"
-msgstr ""
+msgstr "Добавить предложение"
 
 #: View/ShadowAttributes/add.ctp:52;65
 #: View/ShadowAttributes/add_attachment.ctp:35
@@ -12448,7 +12448,7 @@ msgstr ""
 
 #: View/ShadowAttributes/index.ctp:24
 msgid "My Org's Events"
-msgstr ""
+msgstr "События организации"
 
 #: View/ShadowAttributes/index.ctp:29
 msgid "All Events"
@@ -12456,15 +12456,15 @@ msgstr "Все события"
 
 #: View/ShadowAttributes/index.ctp:43
 msgid "Proposal by"
-msgstr ""
+msgstr "Кем предложено"
 
 #: View/ShadowAttributes/index.ctp:49
 msgid "Event creator"
-msgstr ""
+msgstr "Автор события"
 
 #: View/ShadowAttributes/index.ctp:55
 msgid "Proposed value"
-msgstr ""
+msgstr "Предложение"
 
 #: View/ShadowAttributes/index.ctp:81
 msgid "Attribute edit"
@@ -12476,7 +12476,7 @@ msgstr "Добавить новый атрибут"
 
 #: View/ShadowAttributes/ajax/deletionProposalConfirmationForm.ctp:7
 msgid "Are you sure you want to propose to delete Attribute #%s?"
-msgstr ""
+msgstr "Вы уверены что хотите удалить атрибут #%s?"
 
 #: View/ShadowAttributes/ajax/deletionProposalConfirmationForm.ctp:11
 msgid "Propose to delete attribute"
@@ -12959,7 +12959,7 @@ msgstr ""
 
 #: View/TemplateElements/ajax/templateElementConfirmationForm.ctp:7
 msgid "Are you sure you want to delete Template Element #%s?"
-msgstr ""
+msgstr "Вы уверены что хотите удалить элемент шаблона #%s?"
 
 #: View/TemplateElements/ajax/template_element_add_attribute.ctp:5
 msgid "Add Attribute Element To Template"
@@ -13089,7 +13089,7 @@ msgstr "Шаблоны"
 
 #: View/Templates/index.ctp:45
 msgid "Are you sure you want to delete Template #"
-msgstr ""
+msgstr "Вы уверены что хотите удалить шаблон #"
 
 #: View/Templates/populate_event_from_template_attributes.ctp:2
 msgid "Populate From Template Results"
@@ -13133,7 +13133,7 @@ msgstr ""
 
 #: View/Users/admin_add.ctp:4
 msgid "Admin Add User"
-msgstr ""
+msgstr "Добавление пользователя"
 
 #: View/Users/admin_add.ctp:32
 #: View/Users/admin_edit.ctp:32
@@ -13155,28 +13155,28 @@ msgstr ""
 #: View/Users/admin_add.ctp:66
 #: View/Users/admin_edit.ctp:60
 msgid "Sync user for"
-msgstr ""
+msgstr "Синхронизировать пользователя"
 
 #: View/Users/admin_add.ctp:70
 #: View/Users/admin_edit.ctp:64
 msgid "Paste the user's GnuPG key here or try to retrieve it from the MIT key server by clicking on \"Fetch GnuPG key\" below."
-msgstr ""
+msgstr "Вставьте GnuPG ключ пользователя сюда или нажмите кнопку \"Получить GnuPG ключ\" для получения ключа с сервера MIT."
 
 #: View/Users/admin_add.ctp:72
 #: View/Users/admin_edit.ctp:66
 msgid "Fetch the user's GnuPG key"
-msgstr ""
+msgstr "Получить GnuPG ключ пользователя"
 
 #: View/Users/admin_add.ctp:72
 #: View/Users/admin_edit.ctp:66
 #: View/Users/edit.ctp:25
 msgid "Fetch GnuPG key"
-msgstr ""
+msgstr "Получить GnuPG ключ"
 
 #: View/Users/admin_add.ctp:74
 #: View/Users/admin_edit.ctp:68
 msgid "SMIME key"
-msgstr ""
+msgstr "SMIME ключ"
 
 #: View/Users/admin_add.ctp:74
 #: View/Users/admin_edit.ctp:68
@@ -13186,7 +13186,7 @@ msgstr ""
 #: View/Users/admin_add.ctp:88
 #: View/Users/admin_edit.ctp:78
 msgid "Disable this user account"
-msgstr ""
+msgstr "Отключить аккаунт пользователя"
 
 #: View/Users/admin_add.ctp:90
 msgid "Send credentials automatically"
@@ -13194,17 +13194,17 @@ msgstr ""
 
 #: View/Users/admin_edit.ctp:4
 msgid "Admin Edit User"
-msgstr ""
+msgstr "Редактирование пользователя"
 
 #: View/Users/admin_edit.ctp:69
 #: View/Users/admin_view.ctp:58
 #: View/Users/view.ctp:29
 msgid "Terms accepted"
-msgstr ""
+msgstr "Положения приняты"
 
 #: View/Users/admin_edit.ctp:74
 msgid "Reset Auth Key"
-msgstr ""
+msgstr "Сбросить ключ аутентификации"
 
 #: View/Users/admin_edit.ctp:86
 #: View/Users/change_pw.ctp:18
@@ -13325,7 +13325,7 @@ msgstr "Запрос API доступа"
 
 #: View/Users/admin_view.ctp:44
 msgid "Invited By"
-msgstr ""
+msgstr "Кем приглашен"
 
 #: View/Users/admin_view.ctp:56
 msgid "Org_admin"
@@ -13334,7 +13334,7 @@ msgstr ""
 #: View/Users/admin_view.ctp:57
 #: View/Users/view.ctp:28
 msgid "NIDS Start SID"
-msgstr ""
+msgstr "Стартовый SID для IDS"
 
 #: View/Users/admin_view.ctp:59
 msgid "Password change"
@@ -13343,7 +13343,7 @@ msgstr "Смена пароля"
 #: View/Users/admin_view.ctp:67
 #: View/Users/view.ctp:37
 msgid "GnuPG fingerprint"
-msgstr ""
+msgstr "Отпечаток GnuPG"
 
 #: View/Users/admin_view.ctp:72
 #: View/Users/view.ctp:42
@@ -13447,7 +13447,7 @@ msgstr ""
 
 #: View/Users/statistics_orgs.ctp:34
 msgid "Nationality"
-msgstr ""
+msgstr "Национальность"
 
 #: View/Users/statistics_orgs.ctp:36
 msgid "Sector"
@@ -13543,7 +13543,7 @@ msgstr ""
 
 #: View/Users/ajax/passwordResetConfirmationForm.ctp:8
 msgid "Initiate password reset for user"
-msgstr ""
+msgstr "Сбросить пользовательский пароль"
 
 #: View/Users/ajax/passwordResetConfirmationForm.ctp:9
 msgid "Are you sure you want to reset the password of %s and send him/her a welcome message with the credentials?"
@@ -13807,7 +13807,7 @@ msgstr "Пожалуйста, введите описание"
 
 #: Model/TemplateElementText.php:validation for field text
 msgid "Please fill out the text field"
-msgstr ""
+msgstr "Пожалуйста заполните это поле"
 
 #: Model/User.php:validation for field password
 msgid "Password length requirement not met."
