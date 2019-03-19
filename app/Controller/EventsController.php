@@ -2364,6 +2364,18 @@ class EventsController extends AppController
             $result = $this->Event->save($event, array('fieldList' => $fieldList));
             if ($result) {
                 $message = __('Event unpublished.');
+                $kafkaTopic = Configure::read('Plugin.Kafka_event_publish_notifications_topic');
+                if (Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_event_publish_notifications_enable') && !empty($kafkaTopic)) {
+                    $kafkaPubTool = $this->Event->getKafkaPubTool();
+                    $params = array('eventid' => $id);
+                    if (Configure::read('Plugin.Kafka_include_attachments')) {
+                        $params['includeAttachments'] = 1;
+                    }
+                    $pubEvent = $this->Event->fetchEvent($this->Auth->user(), $params);
+                    if (!empty($pubEvent)) {
+                        $kafkaPubTool->publishJson($kafkaTopic, $pubEvent[0], 'unpublish');
+                    }
+                }
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveSuccessResponse('events', 'unpublish', $id, false, $message);
                 } else {
@@ -5419,6 +5431,59 @@ class EventsController extends AppController
         }
         if ($this->_isRest()) {
             return $this->RestResponse->saveSuccessResponse('Events', 'pushEventToZMQ', $id, $this->response->type(), $message);
+        } else {
+            if (!empty($success)) {
+                $this->Flash->success($message);
+            } else {
+                $this->Flash->error($message);
+            }
+            $this->redirect($this->referer());
+        }
+    }
+
+    public function pushEventToKafka($id)
+    {
+        if ($this->request->is('Post')) {
+            $message = 'Kafka event publishing not enabled.';
+            if (Configure::read('Plugin.Kafka_enable')) {
+                $kafkaEventTopic = Configure::read('Plugin.Kafka_event_notifications_topic');
+                $event = $this->Event->quickFetchEvent(array('eventid' => $id));
+                if (Configure::read('Plugin.Kafka_event_notifications_enable') && !empty($kafkaEventTopic)) {
+                    $kafkaPubTool = $this->Event->getKafkaPubTool();
+                    if (!empty($event)) {
+                        $kafkaPubTool->publishJson($kafkaEventTopic, $event, 'manual_publish');
+                        $success = 1;
+                        $message = 'Event published to Kafka';
+                    } else {
+                        $success = 0;
+                        $message = 'Invalid event.';
+                    }
+                }
+                $kafkaPubTopic = Configure::read('Plugin.Kafka_event_publish_notifications_topic');
+                if (!empty($event['Event']['published']) && Configure::read('Plugin.Kafka_event_publish_notifications_enable') && !empty($kafkaPubTopic)) {
+                    $kafkaPubTool = $this->Event->getKafkaPubTool();
+                    $params = array('eventid' => $id);
+                    if (Configure::read('Plugin.Kafka_include_attachments')) {
+                        $params['includeAttachments'] = 1;
+                    }
+                    $event = $this->Event->fetchEvent($this->Auth->user(), $params);
+                    if (!empty($event)) {
+                        $kafkaPubTool->publishJson($kafkaPubTopic, $event[0], 'manual_publish');
+                        if (!isset($success)) {
+                            $success = 1;
+                            $message = 'Event published to Kafka';
+                        }
+                    } else {
+                        $success = 0;
+                        $message = 'Invalid event.';
+                    }
+                }
+            }
+        } else {
+            $message = 'This functionality is only available via POST requests';
+        }
+        if ($this->_isRest()) {
+            return $this->RestResponse->saveSuccessResponse('Events', 'pushEventToKafka', $id, $this->response->type(), $message);
         } else {
             if (!empty($success)) {
                 $this->Flash->success($message);

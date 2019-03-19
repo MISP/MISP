@@ -130,6 +130,7 @@ class ACLComponent extends Component
                     'proposalEventIndex' => array('*'),
                     'publish' => array('perm_publish'),
                     'pushEventToZMQ' => array('perm_publish_zmq'),
+                    'pushEventToKafka' => array('perm_publish_kafka'),
                     'pushProposals' => array('perm_sync'),
                     'queryEnrichment' => array('perm_add'),
                     'removePivot' => array('*'),

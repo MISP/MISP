@@ -92,18 +92,30 @@ class MispObject extends AppModel
 
     public function afterSave($created, $options = array())
     {
-        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_object_notifications_enable')) {
-            if (empty($this->data['Object']['skip_zmq'])) {
+        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') &&
+            Configure::read('Plugin.ZeroMQ_object_notifications_enable') &&
+            empty($this->data['Object']['skip_zmq']);
+        $kafkaTopic = Configure::read('Plugin.Kafka_object_notifications_topic');
+        $pubToKafka = Configure::read('Plugin.Kafka_enable') &&
+            Configure::read('Plugin.Kafka_object_notifications_enable') &&
+            !empty($kafkaTopic) &&
+            empty($this->data['Object']['skip_kafka']);
+        if ($pubToZmq || $pubToKafka) {
+            $object = $this->find('first', array(
+                'conditions' => array('Object.id' => $this->id),
+                'recursive' => -1
+            ));
+            $action = $created ? 'add' : 'edit';
+            if (!empty($this->data['Object']['deleted'])) {
+                $action = 'soft-delete';
+            }
+            if ($pubToZmq) {
                 $pubSubTool = $this->getPubSubTool();
-                $object = $this->find('first', array(
-                    'conditions' => array('Object.id' => $this->id),
-                    'recursive' => -1
-                ));
-                $action = $created ? 'add' : 'edit';
-                if (!empty($this->data['Object']['deleted'])) {
-                    $action = 'soft-delete';
-                }
                 $pubSubTool->object_save($object, $action);
+            }
+            if ($pubToKafka) {
+                $kafkaPubTool = $this->getKafkaPubTool();
+                $kafkaPubTool->publishJson($kafkaTopic, $object, $action);
             }
         }
         return true;
@@ -112,13 +124,22 @@ class MispObject extends AppModel
     public function beforeDelete($cascade = true)
     {
         if (!empty($this->data['Object']['id'])) {
-            if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_object_notifications_enable')) {
-                $pubSubTool = $this->getPubSubTool();
+            $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_object_notifications_enable');
+            $kafkaTopic = Configure::read('Plugin.Kafka_object_notifications_topic');
+            $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_object_notifications_enable') && !empty($kafkaTopic);
+            if ($pubToZmq || $pubToKafka) {
                 $object = $this->find('first', array(
                     'recursive' => -1,
                     'conditions' => array('Object.id' => $this->data['Object']['id'])
                 ));
-                $pubSubTool->object_save($object, 'delete');
+                if ($pubToZmq) {
+                    $pubSubTool = $this->getPubSubTool();
+                    $pubSubTool->object_save($object, 'delete');
+                }
+                if ($pubToKafka) {
+                    $kafkaPubTool = $this->getKafkaPubTool();
+                    $kafkaPubTool->publishJson($kafkaTopic, $object, 'delete');
+                }
             }
         }
     }
@@ -686,6 +707,7 @@ class MispObject extends AppModel
         ));
         $object['Object']['timestamp'] = $date->getTimestamp();
         $object['Object']['skip_zmq'] = 1;
+        $object['Object']['skip_kafka'] = 1;
         $result = $this->save($object);
         return $result;
     }
