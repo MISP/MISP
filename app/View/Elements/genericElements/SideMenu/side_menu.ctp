@@ -17,6 +17,14 @@
                             'text' => __('Populate From Template')
                         ));
                     }
+                    if ($menuItem === 'enrichmentResults') {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'enrichmentResults',
+                            'url' => '#',
+                            'text' => __('Enrichment Module Result')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_divider');
+                    }
                     if ($menuItem === 'freetextResults') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'freetextResults',
