@@ -102,7 +102,7 @@
                 <?php
                     if ($item['existing_tag']) {
                 ?>
-                    <a href='<?php echo $baseurl."/events/index/searchtag:". h($item['existing_tag']['Tag']['id']);?>'><?php echo count($item['existing_tag']['EventTag']);?></a>
+                    <a href='<?php echo $baseurl."/events/index/searchtag:". h($item['existing_tag']['Tag']['id']);?>'><?php echo h($item['events']);?></a>
                 <?php
                     } else {
                         echo __('N/A');
@@ -113,7 +113,7 @@
                 <?php
                     if ($item['existing_tag']):
                 ?>
-                        <a href='<?php echo $baseurl."/attributes/search/tags:". h($item['existing_tag']['Tag']['id']);?>'><?php echo count($item['existing_tag']['AttributeTag']);?></a>
+                        <a href='<?php echo $baseurl."/attributes/search/tags:". h($item['existing_tag']['Tag']['id']);?>'><?php echo h($item['attributes']);?></a>
                 <?php
                     else:
                         echo __('N/A');

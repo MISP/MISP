@@ -56,8 +56,22 @@ class TaxonomiesController extends AppController
         if (empty($taxonomy)) {
             throw new NotFoundException('Taxonomy not found.');
         }
+        $this->loadModel('EventTag');
+        $this->loadModel('AttributeTag');
         foreach ($taxonomy['entries'] as $key => $value) {
-            $taxonomy['entries'][$key]['events'] = empty($value['existing_tag']) ? 0 : count($value['existing_tag']['EventTag']);
+            $count = 0;
+            if (!empty($value['existing_tag'])) {
+                foreach ($value['existing_tag'] as $et) {
+                    $count = $this->EventTag->find('count', array(
+                        'conditions' => array('EventTag.tag_id' => $et['id'])
+                    ));
+                    $count_a = $this->AttributeTag->find('count', array(
+                        'conditions' => array('AttributeTag.tag_id' => $et['id'])
+                    ));
+                }
+            }
+            $taxonomy['entries'][$key]['events'] = $count;
+            $taxonomy['entries'][$key]['attributes'] = $count_a;
         }
         $this->set('filter', $filter);
         $customPagination = new CustomPaginationTool();
