@@ -177,14 +177,14 @@ class Galaxy extends AppModel
                                 $elements[] = array(
                                     $galaxyClusterId,
                                     $key,
-                                    $v
+                                    strval($v)
                                 );
                             }
                         } else {
                             $elements[] = array(
                                 $this->GalaxyCluster->id,
                                 $key,
-                                $value
+                                strval($value)
                             );
                         }
                     }
