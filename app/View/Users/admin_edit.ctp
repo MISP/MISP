@@ -34,8 +34,8 @@
         <div id="PasswordDiv">
             <div class="clear"></div>
             <?php
-                $passwordPopover = '<span class=\"blue bold\">Length</span>: ' . h($length) . '<br />';
-                $passwordPopover .= '<span class=\"blue bold\">Complexity</span>: ' . h($complexity);
+                $passwordPopover = '<span class=\"blue bold\">' . __('Length') .'</span>: ' . h($length) . '<br />';
+                $passwordPopover .= '<span class=\"blue bold\">' . __('Complexity') .'</span>: ' . h($complexity);
                 echo $this->Form->input('password', array(
                     'label' => __('Password') . ' <span id = "PasswordPopover" class="icon-info-sign" ></span>'
                 ));
@@ -51,8 +51,8 @@
                     'label' => __('Organisation'),
             ));
         }
-        echo $this->Form->input('role_id', array('label' => __('Role')));   // TODO ACL, User edit role_id.
-        echo $this->Form->input('authkey', array('disabled' => 'disabled', 'div' => 'input clear'));
+        echo $this->Form->input('role_id', array('label' => 'Role'));   // TODO ACL, User edit role_id.
+        echo $this->Form->input('authkey', array('disabled' => 'disabled', 'label' => 'Authentication key', 'div' => 'input clear'));
         echo $this->Form->input('nids_sid');
     ?>
         <div id = "syncServers" class="hidden">

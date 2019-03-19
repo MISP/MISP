@@ -37,24 +37,26 @@
         <div class="input clear" style="width:100%;">
         <?php
             echo $this->Form->input('use_full_path', array(
-              'label' => 'Use full path - disclose my apikey',
+                    'label' => __('Use full path - disclose my apikey'),
                     'type' => 'checkbox'
                 ));
         ?>
         <div class="input clear" style="width:100%;">
         <?php
             echo $this->Form->input('show_result', array(
+                'label' => __('Show result'),
                 'type' => 'checkbox'
             ));
             echo $this->Form->input('skip_ssl_validation', array(
               'type' => 'checkbox',
-              'label' => 'Skip SSL validation'
+              'label' => __('Skip SSL validation')
             ));
         ?>
         <div class="input clear" style="width:100%;">
         <?php
             echo $this->Form->input('header', array(
                     'type' => 'textarea',
+                    'label' => __('HTTP headers'),
                     'div' => 'input clear',
                     'class' => 'input-xxlarge',
                     'default' => !empty($this->request->data['Server']['header']) ? $this->request->data['Server']['header'] : $header
@@ -67,8 +69,8 @@
                     <h3 id="selected-path" >---</h3>
                 </div>
                 <div id="querybuilder"></div>
-                    <button id="btn-inject" type="button" class="btn btn-success"><i class="fa fa-mail-forward" style="transform: scaleX(-1);"></i> Inject </button>
-                    <button id="btn-apply" type="button" class="btn btn-default"><i class="fa fa-list-alt"></i> Show rules </button>
+                    <button id="btn-inject" type="button" class="btn btn-success"><i class="fa fa-mail-forward" style="transform: scaleX(-1);"></i><?php echo __(' Inject')?></button>
+                    <button id="btn-apply" type="button" class="btn btn-default"><i class="fa fa-list-alt"></i><?php echo __(' Show rules')?> </button>
             </div>
         </div>
 
@@ -77,6 +79,7 @@
         <?php
             echo $this->Form->input('body', array(
                     'type' => 'textarea',
+                    'label' => __('HTTP body'),
                     'div' => 'input clear',
                     'class' => 'input-xxlarge'
             ));
@@ -84,7 +87,7 @@
         <div class="input clear" style="width:100%;">
             <div id="template_description" style="display:none;width:700px;" class="alert alert-error">Fill out the JSON template above, make sure to replace all placeholder values. Fields with the value "optional" can be removed.</div>
                 <?php
-                    echo $this->Form->submit('Run query', array('class' => 'btn btn-primary'));
+                    echo $this->Form->submit(__('Run query'), array('class' => 'btn btn-primary'));
                     echo $this->Form->end();
                 ?>
                 <hr />
