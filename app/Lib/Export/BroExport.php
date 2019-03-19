@@ -162,8 +162,8 @@ class BroExport
                 $orgName = $instanceString . ' (' . $item['Event']['uuid'] . ')' . ' - ' . $orgs[$item['Event']['orgc_id']];
             }
             $ruleFormatReference = Configure::read('MISP.baseurl') . '/events/view/' . $item['Event']['id'];
-            $ruleFormat = "%s\t%s\t" . $orgName . "\t" . $this->replaceIllegalChars($item['Event']['info']) . ". %s" . "\t" . $ruleFormatReference . "\t%s\t%s";
-            $rule = $this->__generateRule($item['Attribute'], $ruleFormat, $valueField, $whitelist);
+            $ruleFormat = "%s\t%s\t" . $orgName . "\t%s. %s\t" . $ruleFormatReference . "\t%s\t%s";
+            $rule = $this->__generateRule($item, $ruleFormat, $valueField, $whitelist);
             if (!empty($rule)) {
                 $intel[] = $rule;
             }
@@ -171,32 +171,33 @@ class BroExport
         return $intel;
     }
 
-    private function __generateRule($attribute, $ruleFormat, $valueField, $whitelist = array())
+    private function __generateRule($item, $ruleFormat, $valueField, $whitelist = array())
     {
-        if (isset($this->mapping[$attribute['type']])) {
-            if (empty($whitelist) || !$this->checkWhitelist($attribute['value'], $whitelist)) {
-                $brotype = $this->mapping[$attribute['type']]['brotype'];
-                if (isset($this->mapping[$attribute['type']]['alternate'])) {
-                    if (preg_match($this->mapping[$attribute['type']]['alternate'][0], $attribute['value'])) {
-                        $brotype = $this->mapping[$attribute['type']]['alternate'][1];
+        if (isset($this->mapping[$item['Attribute']['type']])) {
+            if (empty($whitelist) || !$this->checkWhitelist($item['Attribute']['value' . $valueField], $whitelist)) {
+                $brotype = $this->mapping[$item['Attribute']['type']]['brotype'];
+                if (isset($this->mapping[$item['Attribute']['type']]['alternate'])) {
+                    if (preg_match($this->mapping[$item['Attribute']['type']]['alternate'][0], $item['Attribute']['value' . $valueField])) {
+                        $brotype = $this->mapping[$item['Attribute']['type']]['alternate'][1];
                     }
                 }
-                if ($valueField == 2 && isset($this->mapping[$attribute['type']]['composite'])) {
-                    $brotype = $this->mapping[$attribute['type']]['composite'];
+                if ($valueField == 2 && isset($this->mapping[$item['Attribute']['type']]['composite'])) {
+                    $brotype = $this->mapping[$item['Attribute']['type']]['composite'];
                 }
-                $attribute['value'] = $this->replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
-                if (isset($this->mapping[$attribute['type']]['replace'])) {
-                    $attribute['value'] = preg_replace(
-                        $this->mapping[$attribute['type']]['replace'][0],
-                        $this->mapping[$attribute['type']]['replace'][1],
-                        $attribute['value']
+                $item['Attribute']['value' . $valueField] = $this->replaceIllegalChars($item['Attribute']['value' . $valueField]);  // substitute chars not allowed in rule
+                if (isset($this->mapping[$item['Attribute']['type']]['replace'])) {
+                    $item['Attribute']['value' . $valueField] = preg_replace(
+                        $this->mapping[$item['Attribute']['type']]['replace'][0],
+                        $this->mapping[$item['Attribute']['type']]['replace'][1],
+                        $item['Attribute']['value' . $valueField]
                     );
                 }
                 return sprintf(
                     $ruleFormat,
-                                $this->replaceIllegalChars($attribute['value']),    // value - for composite values only the relevant element is taken
+                                $this->replaceIllegalChars($item['Attribute']['value' . $valueField]),    // value - for composite values only the relevant element is taken
                                 'Intel::' . $brotype,   // type
-                                $this->replaceIllegalChars($attribute['comment']),
+                                $this->replaceIllegalChars($item['Event']['info'])
+                                $this->replaceIllegalChars($item['Attribute']['comment']),
                                 'T',    // meta.do_notice
                                 '-'  // meta.if_in
                                 );
