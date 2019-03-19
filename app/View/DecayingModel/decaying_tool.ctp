@@ -4,7 +4,15 @@
 
 <div class="row">
     <div class="span7" style="border: 1px solid #ddd; border-radius: 4px;">
-        <div style="height: calc(100vh - 180px); overflow-y: scroll;">
+        <label class="checkbox inline">
+            <input id="table_toggle_all_type" type="checkbox"></input>
+            <?php echo __('Show All Attribute Types'); ?>
+        </label>
+        <label class="checkbox inline">
+            <input id="table_toggle_objects" type="checkbox"></input>
+            <?php echo __('Show MISP Objects'); ?>
+        </label>
+        <div style="height: calc(100vh - 175px - 25px); overflow-y: scroll;">
             <table class="table table-striped table-bordered">
                 <thead>
                     <tr>
@@ -12,19 +20,26 @@
                         <th>Attribute Type</th>
                         <th>Category</th>
                         <th>Model Name</th>
-                        <!-- <th>Action</th> -->
                     </tr>
                 </thead>
                 <tbody id="attributeTypeTableBody">
                     <?php foreach ($types as $type => $info): ?>
-                        <?php if ($info['to_ids'] == 1): ?>
-                            <tr>
-                                <td><input type="checkbox"></input></td>
-                                <td class="useCursorPointer"><?php echo h($type); ?></td>
-                                <td class="useCursorPointer"><?php echo h($info['default_category']); ?></td>
-                                <td></td>
-                            </tr>
-                        <?php endif; ?>
+                        <?php
+                        $class = 'hidden ';
+                        if (isset($info['isObject']) && $info['isObject']) {
+                            $class .= 'isObject';
+                        } else if ($info['to_ids'] != 1) {
+                            $class .= 'isNotToIDS';
+                        } else {
+                            $class = "";
+                        }
+                        ?>
+                        <tr class="<?php echo $class; ?>">
+                            <td><input type="checkbox"></input></td>
+                            <td class="useCursorPointer"><?php echo h($type); ?></td>
+                            <td class="useCursorPointer"><?php echo h($info['default_category']); ?></td>
+                            <td></td>
+                        </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
@@ -39,7 +54,7 @@
                 <?php foreach ($parameters as $param => $config): ?>
                     <div class="input-prepend input-append">
                         <span class="add-on" data-toggle="tooltip" data-placement="left" style="min-width: 70px;" title="<?php echo isset($config['info']) ? h($config['info']) : ''?>">
-                            <?php echo h($param) . (isset($config['greek']) ? ' <strong>'.h($config['greek']).'</strong>' : ''); ?>
+                            <?php echo h($config['name']) . (isset($config['greek']) ? ' <strong>'.h($config['greek']).'</strong>' : ''); ?>
                         </span>
                         <input id="input_<?php echo h($param); ?>" class="input-mini" type="number" min=0 step=<?php echo h($config['step']); ?> value=<?php echo h($config['value']); ?> oninput="refreshGraph(this);" ></input>
                         <span class="add-on"><input id="input_<?php echo h($param); ?>_range" type="range" min=0 <?php echo isset($config['max']) ? 'max=' . $config['max'] : '' ?> step=<?php echo h($config['step']); ?> value=<?php echo h($config['value']); ?> oninput="$('#input_<?php echo h($param); ?>').val(this.value).trigger('input');"></input></span>

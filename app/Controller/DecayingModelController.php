@@ -48,7 +48,6 @@ class DecayingModelController extends AppController
 
             if (empty($this->request->data['DecayingModel']['name'])) {
                 throw new MethodNotAllowedException("The model must have a name");
-
             }
 
             if ($this->DecayingModel->save($this->request->data)) {
@@ -128,14 +127,14 @@ class DecayingModelController extends AppController
 
     public function decayingTool() {
         $parameters = array(
-            'Tau' => array('value' => 30, 'step' => 1, 'max' => 365, 'greek' => 'τ', 'unit' => 'days', 'info' => 'Lifetime withouth threshold'),
-            'Delta' => array('value' => 0.3, 'step' => 0.1, 'max' => 10, 'greek' => 'δ', 'info' => 'Decay speed'),
-            'Threshold' => array('value' => 30, 'step' => 1, 'info' => 'Cut-off value to expire')
+            'Tau' => array('value' => 30, 'step' => 1, 'max' => 365, 'greek' => 'τ', 'unit' => 'days', 'name' => 'Lifetime', 'info' => 'Lifetime of the attribute, or time after which the score will be 0'),
+            'Delta' => array('value' => 0.3, 'step' => 0.1, 'max' => 10, 'greek' => 'δ', 'name' => 'Decay speed', 'info' => 'Decay speed at which an indicator will loose score'),
+            'Threshold' => array('value' => 30, 'step' => 1, 'name' =>'Cutoff threshold', 'info' => 'Cutoff value at which an indicator will be marked as decayed instead of 0')
         );
         $types = $this->User->Event->Attribute->typeDefinitions;
-        $types = array_filter($types, function($v, $k) {
-            return $v['to_ids'] == 1;
-        }, ARRAY_FILTER_USE_BOTH);
+        // $types = array_filter($types, function($v, $k) {
+        //     return $v['to_ids'] == 1;
+        // }, ARRAY_FILTER_USE_BOTH);
         ksort($types);
         $savedDecayingModels = $this->DecayingModel->fetchAllowedModels($this->Auth->user());
 

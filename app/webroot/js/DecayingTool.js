@@ -388,4 +388,12 @@ $(document).ready(function() {
         $row = $($checkboxes).closest('tr');
         $row.toggleClass('info', this.checked);
     });
+
+    $('#table_toggle_all_type').change(function() {
+        $('#attributeTypeTableBody').find('tr.isNotToIDS').toggle(this.checked);
+    });
+
+    $('#table_toggle_objects').change(function() {
+        $('#attributeTypeTableBody').find('tr.isObject').toggle(this.checked);
+    });
 });
