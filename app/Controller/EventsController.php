@@ -5076,7 +5076,21 @@ class EventsController extends AppController
             }
             unset($result['results']['Object']);
         }
-        // MORE MAGIC TO COME
+        if (empty($attributes) && empty($objects)) {
+            $this->__handleSimplifiedFormat($attribute, $module, $options, $result, $type);
+        } else {
+            $event = array('Event' => $attribute[0]['Event']);
+            $event['Attribute'] = $attributes;
+            $event['Object'] = $objects;
+            $this->set('event', $event);
+            if (!empty($result['results'])) {
+                $this->__handleSimplifiedFormat($attribute, $module, $options, $result, $type, $event = true, $render_name = 'resolved_misp_format');
+            } else {
+                $this->set('menuItem', 'enrichmentResults');
+                $this->set('title', 'Enrichment Results');
+                $this->render('resolved_misp_format');
+            }
+        }
     }
 
     private function __queryOldEnrichment($attribute, $module, $options, $type)
@@ -5099,6 +5113,11 @@ class EventsController extends AppController
         if (!is_array($result)) {
             throw new Exception($result);
         }
+        $this->__handleSimplifiedFormat($attribute, $module, $options, $result, $type);
+    }
+
+    private function __handleSimplifiedFormat($attribute, $module, $options, $result, $type, $event = false, $renderName = 'resolved_attributes')
+    {
         $resultArray = $this->Event->handleModuleResult($result, $attribute[0]['Attribute']['event_id']);
         if (isset($result['comment']) && $result['comment'] != "") {
             $importComment = $result['comment'];
@@ -5135,14 +5154,16 @@ class EventsController extends AppController
         $this->set('distributions', $distributions);
         $this->set('sgs', $sgs);
         $this->set('type', $type);
-        $this->set('event', array('Event' => $attribute[0]['Event']));
+        if (!$event){
+            $this->set('event', array('Event' => $attribute[0]['Event']));
+        }
         $this->set('resultArray', $resultArray);
         $this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
         $this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
         $this->set('typeCategoryMapping', $typeCategoryMapping);
         $this->set('title', 'Enrichment Results');
         $this->set('importComment', $importComment);
-        $this->render('resolved_attributes');
+        $this->render($renderName);
     }
 
     public function importModule($module, $eventId)
