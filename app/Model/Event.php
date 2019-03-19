@@ -5997,4 +5997,47 @@ class Event extends AppModel
         }
         return true;
     }
+
+    public function getRequiredTaxonomies()
+    {
+        $this->Taxonomy = ClassRegistry::init('Taxonomy');
+        $required_taxonomies = $this->Taxonomy->find('list', array(
+            'recursive' => -1,
+            'conditions' => array('Taxonomy.required' => 1, 'Taxonomy.enabled' => 1),
+            'fields' => array('Taxonomy.namespace')
+        ));
+        return $required_taxonomies;
+    }
+
+    public function checkIfPublishable($id)
+    {
+        $required_taxonomies = $this->getRequiredTaxonomies();
+        if (!empty($required_taxonomies)) {
+            $tags = $this->EventTag->find('all', array(
+                'conditions' => array('EventTag.event_id' => $id),
+                'recursive' => -1,
+                'contain' => array('Tag')
+            ));
+            $missing = array();
+            foreach ($required_taxonomies as $required_taxonomy) {
+                $found = false;
+                foreach ($tags as $tag) {
+                    $name = explode(':', $tag['Tag']['name']);
+                    if (count($name) > 1) {
+                        if ($name[0] == $required_taxonomy) {
+                            $found = true;
+                            break;
+                        }
+                    }
+                }
+                if (!$found) {
+                    $missing[] = $required_taxonomy;
+                }
+            }
+            if (!empty($missing)) {
+                return $missing;
+            }
+        }
+        return true;
+    }
 }

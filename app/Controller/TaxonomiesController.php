@@ -391,4 +391,30 @@ class TaxonomiesController extends AppController
             }
         }
     }
+
+    public function toggleRequired($id)
+    {
+        $taxonomy = $this->Taxonomy->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Taxonomy.id' => $id)
+        ));
+        if (empty($taxonomy)) {
+            return $this->RestResponse->saveFailResponse('Taxonomy', 'toggleRequired', $id, 'Invalid Taxonomy', $this->response->type());
+        }
+        if ($this->request->is('post')) {
+            $taxonomy['Taxonomy']['required'] = $this->request->data['Taxonomy']['required'];
+            $result = $this->Taxonomy->save($taxonomy);
+            if ($result) {
+                return $this->RestResponse->saveSuccessResponse('Taxonomy', 'toggleRequired', $id, $this->response->type());
+            } else {
+                return $this->RestResponse->saveFailResponse('Taxonomy', 'toggleRequired', $id, $this->validationError, $this->response->type());
+            }
+        } else {
+            $this->set('required', !$taxonomy['Taxonomy']['required']);
+            $this->set('id', $id);
+            $this->autoRender = false;
+            $this->layout = 'ajax';
+            $this->render('ajax/toggle_required');
+        }
+    }
 }

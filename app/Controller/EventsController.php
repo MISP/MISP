@@ -1457,6 +1457,7 @@ class EventsController extends AppController
         $orgTable = $this->Event->Orgc->find('list', array(
             'fields' => array('Orgc.id', 'Orgc.name')
         ));
+        $this->set('required_taxonomies', $this->Event->getRequiredTaxonomies());
         $this->set('orgTable', $orgTable);
         $this->set('currentUri', $attributeUri);
         $this->set('filters', $filters);
@@ -2400,6 +2401,13 @@ class EventsController extends AppController
         $errors = array();
         // only allow form submit CSRF protection.
         if ($this->request->is('post') || $this->request->is('put')) {
+            if (!$this->_isRest()) {
+                $publishable = $this->Event->checkIfPublishable($id);
+                if ($publishable !== true) {
+                    $this->Flash->error(__('Could not publish event - no tag for required taxonomies missing: %s', implode(', ', $publishable)));
+                    $this->redirect(array('action' => 'view', $id));
+                }
+            }
             // Performs all the actions required to publish an event
             $result = $this->Event->publishRouter($id, null, $this->Auth->user());
             if (!Configure::read('MISP.background_jobs')) {

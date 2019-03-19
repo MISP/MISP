@@ -4126,6 +4126,40 @@ function removeRestClientHistoryItem(id) {
     });
 }
 
+function changeTaxonomyRequiredState(checkbox) {
+    var checkbox_state = $(checkbox).is(":checked");
+    var taxonomy_id = $(checkbox).data('taxonomy-id');
+    var formData = false;
+    $.ajax({
+        data: '[]',
+        success:function (data, textStatus) {
+            formData = $(data).serialize();
+        },
+        error:function() {
+            handleGenericAjaxResponse({'saved':false, 'errors':['Request failed due to an unexpected error.']});
+        },
+        async: false,
+        type:"get",
+        cache: false,
+        url: '/taxonomies/toggleRequired/' + taxonomy_id,
+    });
+    $.ajax({
+        data: formData,
+        success:function (data, textStatus) {
+            handleGenericAjaxResponse({'saved':true, 'success':['Taxonomy\'s required state toggled.']});
+        },
+        error:function() {
+            $(checkbox).prop('checked', !$(checkbox).prop('checked'));
+            handleGenericAjaxResponse({'saved':false, 'errors':['Could not toggle the required state of the taxonomy.']});
+        },
+        async:"false",
+        type:"post",
+        cache: false,
+        url: '/taxonomies/toggleRequired/' + taxonomy_id,
+    });
+    formData = false;
+}
+
 (function(){
     "use strict";
     $(".datepicker").datepicker({
