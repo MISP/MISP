@@ -5072,7 +5072,7 @@ class EventsController extends AppController
         }
         $data = json_encode($data);
         $result = $this->Module->queryModuleServer('/query', $data, false, $type);
-        if (!result) {
+        if (!$result) {
             throw new MethodNotAllowedException(__('%s service not reachable.', $type));
         }
         if (isset($result['error'])) {
