@@ -645,8 +645,10 @@ class Attribute extends AppModel
         if (isset($this->data['Attribute']['type']) && $this->typeIsAttachment($this->data['Attribute']['type']) && !empty($this->data['Attribute']['data'])) {
             $result = $result && $this->saveBase64EncodedAttachment($this->data['Attribute']); // TODO : is this correct?
         }
-        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable')) {
-            $pubSubTool = $this->getPubSubTool();
+        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable');
+        $kafkaTopic = Configure::read('Plugin.Kafka_attribute_notifications_topic');
+        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_attribute_notifications_enable') && !empty($kafkaTopic);
+        if ($pubToZmq || $pubToKafka) {
             $attribute = $this->fetchAttribute($this->id);
             if (!empty($attribute)) {
                 $user = array(
@@ -663,10 +665,21 @@ class Attribute extends AppModel
                 if (!empty($this->data['Attribute']['deleted'])) {
                     $action = 'soft-delete';
                 }
-                if (Configure::read('Plugin.ZeroMQ_include_attachments') && $this->typeIsAttachment($attribute['Attribute']['type'])) {
-                    $attribute['Attribute']['data'] = $this->base64EncodeAttachment($attribute['Attribute']);
+                if ($pubToZmq) {
+                    if (Configure::read('Plugin.ZeroMQ_include_attachments') && $this->typeIsAttachment($attribute['Attribute']['type'])) {
+                        $attribute['Attribute']['data'] = $this->base64EncodeAttachment($attribute['Attribute']);
+                    }
+                    $pubSubTool = $this->getPubSubTool();
+                    $pubSubTool->attribute_save($attribute, $action);
+                    unset($attribute['Attribute']['data']);
                 }
-                $pubSubTool->attribute_save($attribute, $action);
+                if ($pubToKafka) {
+                    if (Configure::read('Plugin.Kafka_include_attachments') && $this->typeIsAttachment($attribute['Attribute']['type'])) {
+                        $attribute['Attribute']['data'] = $this->base64EncodeAttachment($attribute['Attribute']);
+                    }
+                    $kafkaPubTool = $this->getKafkaPubTool();
+                    $kafkaPubTool->publishJson($kafkaTopic, $attribute, $action);
+                }
             }
         }
         if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], array('ip-src', 'ip-dst', 'domain-ip')) && strpos($this->data['Attribute']['value'], '/')) {
@@ -711,6 +724,11 @@ class Attribute extends AppModel
             if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable')) {
                 $pubSubTool = $this->getPubSubTool();
                 $pubSubTool->attribute_save($this->data, 'delete');
+            }
+            $kafkaTopic = Configure::read('Plugin.Kafka_attribute_notifications_topic');
+            if (Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_attribute_notifications_enable') && !empty($kafkaTopic)) {
+                $kafkaPubTool = $this->getKafkaPubTool();
+                $kafkaPubTool->publishJson($kafkaTopic, $this->data, 'delete');
             }
         }
     }
@@ -2390,7 +2408,7 @@ class Attribute extends AppModel
                 'conditions' => $conditions, // array of conditions
                 'order' => 'Attribute.value' . $valueField . ' ASC',
                 'recursive' => -1, // int
-                'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.comment', 'Attribute.value' . $valueField . " as value"),
+                'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.category', 'Attribute.comment', 'Attribute.to_ids', 'Attribute.value', 'Attribute.value' . $valueField),
                 'contain' => array('Event' => array('fields' => array('Event.id', 'Event.threat_level_id', 'Event.orgc_id', 'Event.uuid'))),
                 'group' => array('Attribute.type', 'Attribute.value' . $valueField), // fields to GROUP BY
                 'enforceWarninglist' => $enforceWarninglist
@@ -2885,7 +2903,7 @@ class Attribute extends AppModel
                                             )
                                     )
                             ),
-                            'fields' => array('ShadowAttribute.id')
+                            'fields' => array('ShadowAttribute.id', 'ShadowAttribute.value', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.to_ids')
                     )
             );
             $params['contain'] = array_merge($params['contain'], $proposalRestriction);
@@ -2999,7 +3017,7 @@ class Attribute extends AppModel
                     $results[$key]['Attribute']['event_uuid'] = $results[$key]['Event']['uuid'];
                 }
                 if ($proposals_block_attributes) {
-                    $results = $this->__blockAttributeViaProposal($results, $key);
+                    $this->__blockAttributeViaProposal($results, $key);
                 }
                 if ($options['withAttachments']) {
                     if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
@@ -3007,7 +3025,9 @@ class Attribute extends AppModel
                         $results[$key]['Attribute']['data'] = $encodedFile;
                     }
                 }
-                $attributes[] = $results[$key];
+                if (!empty($results[$key])) {
+                    $attributes[] = $results[$key];
+                }
             }
             if (!empty($break)) {
                 break;
@@ -3047,8 +3067,8 @@ class Attribute extends AppModel
                 if ($sa['value'] === $attributes[$k]['Attribute']['value'] &&
                     $sa['type'] === $attributes[$k]['Attribute']['type'] &&
                     $sa['category'] === $attributes[$k]['Attribute']['category'] &&
-                    $sa['to_ids'] == 0 &&
-                    $attribute['to_ids'] == 1
+                    ($sa['to_ids'] == 0 || $sa['to_ids'] == '') &&
+                    $attributes[$k]['Attribute']['to_ids'] == 1
                 ) {
                     unset($attributes[$k]);
                 }
@@ -3056,7 +3076,6 @@ class Attribute extends AppModel
         } else {
             unset($attributes[$k]['ShadowAttribute']);
         }
-        return $attributes;
     }
 
     // Method gets and converts the contents of a file passed along as a base64 encoded string with the original filename into a zip archive

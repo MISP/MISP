@@ -283,5 +283,4 @@ function submitFunction(clicked, callback) {
         options_templates['<?php echo $select_id; ?>'] = <?php echo json_encode($option_templates); ?>;
         options_additionalData['<?php echo $select_id; ?>'] = <?php echo json_encode($options_additionalData); ?>;
     </script>
-
 </div>

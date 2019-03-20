@@ -90,27 +90,45 @@ class Tag extends AppModel
     public function afterSave($created, $options = array())
     {
         parent::afterSave($created, $options);
-        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable')) {
-            $pubSubTool = $this->getPubSubTool();
+        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable');
+        $kafkaTopic = Configure::read('Plugin.Kafka_tag_notifications_topic');
+        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_tag_notifications_enable') && !empty($kafkaTopic);
+        if ($pubToZmq || $pubToKafka) {
             $tag = $this->find('first', array(
                 'recursive' => -1,
                 'conditions' => array('Tag.id' => $this->id)
             ));
             $action = $created ? 'add' : 'edit';
-            $pubSubTool->tag_save($tag, $action);
+            if ($pubToZmq) {
+                $pubSubTool = $this->getPubSubTool();
+                $pubSubTool->tag_save($tag, $action);
+            }
+            if ($pubToKafka) {
+                $kafkaPubTool = $this->getKafkaPubTool();
+                $kafkaPubTool->publishJson($kafkaTopic, $tag, $action);
+            }
         }
     }
 
     public function beforeDelete($cascade = true)
     {
-        if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable')) {
+        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable');
+        $kafkaTopic = Configure::read('Plugin.Kafka_tag_notifications_topic');
+        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_tag_notifications_enable') && !empty($kafkaTopic);
+        if ($pubToZmq || $pubToKafka) {
             if (!empty($this->id)) {
-                $pubSubTool = $this->getPubSubTool();
                 $tag = $this->find('first', array(
                     'recursive' => -1,
                     'conditions' => array('Tag.id' => $this->id)
                 ));
-                $pubSubTool->tag_save($tag, 'delete');
+                if ($pubToZmq) {
+                    $pubSubTool = $this->getPubSubTool();
+                    $pubSubTool->tag_save($tag, 'delete');
+                }
+                if ($pubToKafka) {
+                    $kafkaPubTool = $this->getKafkaPubTool();
+                    $kafkaPubTool->publishJson($kafkaTopic, $tag, 'delete');
+                }
             }
         }
     }

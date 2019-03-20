@@ -56,8 +56,22 @@ class TaxonomiesController extends AppController
         if (empty($taxonomy)) {
             throw new NotFoundException('Taxonomy not found.');
         }
+        $this->loadModel('EventTag');
+        $this->loadModel('AttributeTag');
         foreach ($taxonomy['entries'] as $key => $value) {
-            $taxonomy['entries'][$key]['events'] = empty($value['existing_tag']) ? 0 : count($value['existing_tag']['EventTag']);
+            $count = 0;
+            if (!empty($value['existing_tag'])) {
+                foreach ($value['existing_tag'] as $et) {
+                    $count = $this->EventTag->find('count', array(
+                        'conditions' => array('EventTag.tag_id' => $et['id'])
+                    ));
+                    $count_a = $this->AttributeTag->find('count', array(
+                        'conditions' => array('AttributeTag.tag_id' => $et['id'])
+                    ));
+                }
+            }
+            $taxonomy['entries'][$key]['events'] = $count;
+            $taxonomy['entries'][$key]['attributes'] = $count_a;
         }
         $this->set('filter', $filter);
         $customPagination = new CustomPaginationTool();
@@ -389,6 +403,32 @@ class TaxonomiesController extends AppController
             } else {
                 throw new MethodNotAllowedException('This function can only be reached via AJAX.');
             }
+        }
+    }
+
+    public function toggleRequired($id)
+    {
+        $taxonomy = $this->Taxonomy->find('first', array(
+            'recursive' => -1,
+            'conditions' => array('Taxonomy.id' => $id)
+        ));
+        if (empty($taxonomy)) {
+            return $this->RestResponse->saveFailResponse('Taxonomy', 'toggleRequired', $id, 'Invalid Taxonomy', $this->response->type());
+        }
+        if ($this->request->is('post')) {
+            $taxonomy['Taxonomy']['required'] = $this->request->data['Taxonomy']['required'];
+            $result = $this->Taxonomy->save($taxonomy);
+            if ($result) {
+                return $this->RestResponse->saveSuccessResponse('Taxonomy', 'toggleRequired', $id, $this->response->type());
+            } else {
+                return $this->RestResponse->saveFailResponse('Taxonomy', 'toggleRequired', $id, $this->validationError, $this->response->type());
+            }
+        } else {
+            $this->set('required', !$taxonomy['Taxonomy']['required']);
+            $this->set('id', $id);
+            $this->autoRender = false;
+            $this->layout = 'ajax';
+            $this->render('ajax/toggle_required');
         }
     }
 }

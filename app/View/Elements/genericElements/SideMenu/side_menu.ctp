@@ -181,6 +181,16 @@
                             'message' => __('Are you sure you wish to republish the current event to the ZMQ channel?')
                         ));
                     }
+                    if (Configure::read('Plugin.Kafka_enable') &&
+                        Configure::read('Plugin.Kafka_event_notifications_enable') &&
+                        Configure::read('Plugin.Kafka_event_notifications_topic') &&
+                        $isAclKafka) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                            'url' => '/events/pushEventToKafka/' . h($event['Event']['id']),
+                            'text' => __('Publish event to Kafka'),
+                            'message' => __('Are you sure you wish to republish the current event to the Kafka topic?')
+                        ));
+                    }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                         'element_id' => 'contact',
                         'url' => '/events/contact/' . $event['Event']['id'],

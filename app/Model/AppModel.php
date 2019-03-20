@@ -30,6 +30,8 @@ class AppModel extends Model
 
     public $loadedPubSubTool = false;
 
+    public $loadedKafkaPubTool = false;
+
     public $start = 0;
 
     public $inserted_ids = array();
@@ -72,7 +74,8 @@ class AppModel extends Model
         7 => false, 8 => false, 9 => false, 10 => false, 11 => false, 12 => false,
         13 => false, 14 => false, 15 => false, 18 => false, 19 => false, 20 => false,
         21 => false, 22 => false, 23 => false, 24 => false, 25 => false, 26 => false,
-        27 => false, 28 => false, 29 => false, 30 => false, 31 => false
+        27 => false, 28 => false, 29 => false, 30 => false, 31 => false, 32 => false,
+        33 => false
     );
 
     public function afterSave($created, $options = array())
@@ -1118,6 +1121,12 @@ class AppModel extends Model
                     KEY `timestamp` (`timestamp`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
                 break;
+            case 32:
+                $sqlArray[] = "ALTER TABLE `taxonomies` ADD `required` tinyint(1) NOT NULL DEFAULT 0;";
+                break;
+            case 33:
+                $sqlArray[] = "ALTER TABLE `roles` ADD `perm_publish_kafka` tinyint(1) NOT NULL DEFAULT 0;";
+                break;
             case 'fixNonEmptySharingGroupID':
                 $sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
                 $sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1526,6 +1535,36 @@ class AppModel extends Model
         $redis->select($database);
         $this->__redisConnection = $redis;
         return $redis;
+    }
+
+    public function getKafkaPubTool()
+    {
+        if (!$this->loadedKafkaPubTool) {
+            $this->loadKafkaPubTool();
+        }
+        return $this->loadedKafkaPubTool;
+    }
+
+    public function loadKafkaPubTool()
+    {
+        App::uses('KafkaPubTool', 'Tools');
+        $kafkaPubTool = new KafkaPubTool();
+        $rdkafkaIni = Configure::read('Plugin.Kafka_rdkafka_config');
+        $kafkaConf = array();
+        if (!empty($rdkafkaIni)) {
+            $kafkaConf = parse_ini_file($rdkafkaIni);
+        }
+        $brokers = Configure::read('Plugin.Kafka_brokers');
+        $kafkaPubTool->initTool($brokers, $kafkaConf);
+        $this->loadedKafkaPubTool = $kafkaPubTool;
+        return true;
+    }
+
+    public function publishKafkaNotification($topicName, $data, $action = false) {
+        $kafkaTopic = Configure::read('Plugin.Kafka_' . $topicName . '_notifications_topic');
+        if (Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_' . $topicName . '_notifications_enable') && !empty($kafkaTopic)) {
+            $this->getKafkaPubTool()->publishJson($kafkaTopic, $data, $action);
+        }
     }
 
     public function getPubSubTool()

@@ -490,6 +490,13 @@ In case you are using a virtualenv make sure pyzmq is installed therein.
 sudo -u www-data ${PATH_TO_MISP}/venv/bin/pip install pyzmq
 ```
 
+#### MISP has a feature for publishing events to Kafka. To enable it, simply run the following commands
+```bash
+apt-get install librdkafka-dev php-dev
+pecl install rdkafka
+find /etc -name php.ini | while read f; do echo 'extension=rdkafka.so' | tee -a "$f"; done
+```
+
 {!generic/misp-dashboard-debian.md!}
 
 {!generic/viper-debian.md!}

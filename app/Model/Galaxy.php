@@ -383,6 +383,20 @@ class Galaxy extends AppModel
         return empty($galaxy) ? 0 : $galaxy['Galaxy']['id'];
     }
 
+    public function getAllowedMatrixGalaxies()
+    {
+        $conditions = array(
+            'NOT' => array(
+                'kill_chain_order' => ''
+            )
+        );
+        $galaxies = $this->find('all', array(
+            'recursive' => -1,
+            'conditions' => $conditions,
+        ));
+        return $galaxies;
+    }
+
     public function getMatrix($galaxy_id)
     {
         $conditions = array('Galaxy.id' => $galaxy_id);

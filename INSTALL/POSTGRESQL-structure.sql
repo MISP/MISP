@@ -1134,7 +1134,8 @@ CREATE TABLE public.roles (
     memory_limit character varying(255) DEFAULT ''::character varying,
     max_execution_time character varying(255) DEFAULT ''::character varying,
     restricted_to_site_admin boolean DEFAULT false NOT NULL,
-    perm_publish_zmq boolean DEFAULT false NOT NULL
+    perm_publish_zmq boolean DEFAULT false NOT NULL,
+    perm_publish_kafka boolean DEFAULT false NOT NULL
 );
 
 

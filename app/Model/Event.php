@@ -358,6 +358,29 @@ class Event extends AppModel
                     $pubSubTool = $this->getPubSubTool();
                     $pubSubTool->event_save(array('Event' => $this->data['Event']), 'delete');
                 }
+                if (Configure::read('Plugin.Kafka_enable')) {
+                    $kafkaEventTopic = Configure::read('Plugin.Kafka_event_notifications_topic');
+                    if(Configure::read('Plugin.Kafka_event_notifications_enable') && !empty($kafkaEventTopic)) {
+                        $kafkaPubTool = $this->getKafkaPubTool();
+                        $kafkaPubTool->publishJson($kafkaEventTopic, array('Event' => $this->data['Event']), 'delete');
+                    }
+                    $kafkaPubTopic = Configure::read('Plugin.Kafka_event_publish_notifications_topic');
+                    if (!empty($this->data['Event']['published']) && Configure::read('Plugin.Kafka_event_publish_notifications_enable') && !empty($kafkaPubTopic)) {
+                        $hostOrg = $this->Org->find('first', array('conditions' => array('name' => Configure::read('MISP.org')), 'fields' => array('id')));
+                        if (!empty($hostOrg)) {
+                            $user = array('org_id' => $hostOrg['Org']['id'], 'Role' => array('perm_sync' => 0, 'perm_audit' => 0, 'perm_site_admin' => 0), 'Organisation' => $hostOrg['Org']);
+                            $params = array('eventid' => $this->data['Event']['id']);
+                            if (Configure::read('Plugin.Kafka_include_attachments')) {
+                                $params['includeAttachments'] = 1;
+                            }
+                            $fullEvent = $this->fetchEvent($user, $params);
+                            if (!empty($fullEvent)) {
+                                $kafkaPubTool = $this->getKafkaPubTool();
+                                $kafkaPubTool->publishJson($kafkaPubTopic, $fullEvent[0], 'delete');
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -482,6 +505,9 @@ class Event extends AppModel
             if (!empty($event)) {
                 $pubSubTool->event_save($event, $created ? 'add' : 'edit');
             }
+        }
+        if (empty($this->data['Event']['unpublishAction']) && empty($this->data['Event']['skip_kafka'])) {
+            $this->publishKafkaNotification('event', $this->quickFetchEvent($this->data['Event']['id']), $created ? 'add' : 'edit');
         }
     }
 
@@ -3874,20 +3900,37 @@ class Event extends AppModel
             $event['Event']['published'] = 1;
             $event['Event']['publish_timestamp'] = time();
             $event['Event']['skip_zmq'] = 1;
+            $event['Event']['skip_kafka'] = 1;
             $this->save($event, array('fieldList' => $fieldList));
         }
-        if (Configure::read('Plugin.ZeroMQ_enable')) {
-            $pubSubTool = $this->getPubSubTool();
+        $pubToZmq = Configure::read('Plugin.ZeroMQ_enable');
+        $kafkaTopic = Configure::read('Plugin.Kafka_event_publish_notifications_topic');
+        $pubToKafka = Configure::read('Plugin.Kafka_enable') && Configure::read('Plugin.Kafka_event_publish_notifications_enable') && !empty($kafkaTopic);
+        if ($pubToZmq || $pubToKafka) {
             $hostOrg = $this->Org->find('first', array('conditions' => array('name' => Configure::read('MISP.org')), 'fields' => array('id')));
             if (!empty($hostOrg)) {
                 $user = array('org_id' => $hostOrg['Org']['id'], 'Role' => array('perm_sync' => 0, 'perm_audit' => 0, 'perm_site_admin' => 0), 'Organisation' => $hostOrg['Org']);
-                $params = array('eventid' => $id);
-                if (Configure::read('Plugin.ZeroMQ_include_attachments')) {
-                    $params['includeAttachments'] = 1;
+                if ($pubToZmq) {
+                    $params = array('eventid' => $id);
+                    if (Configure::read('Plugin.ZeroMQ_include_attachments')) {
+                        $params['includeAttachments'] = 1;
+                    }
+                    $fullEvent = $this->fetchEvent($user, $params);
+                    if (!empty($fullEvent)) {
+                        $pubSubTool = $this->getPubSubTool();
+                        $pubSubTool->publishEvent($fullEvent[0], 'publish');
+                    }
                 }
-                $fullEvent = $this->fetchEvent($user, $params);
-                if (!empty($fullEvent)) {
-                    $pubSubTool->publishEvent($fullEvent[0], 'publish');
+                if ($pubToKafka) {
+                    $params = array('eventid' => $id);
+                    if (Configure::read('Plugin.Kafka_include_attachments')) {
+                        $params['includeAttachments'] = 1;
+                    }
+                    $fullEvent = $this->fetchEvent($user, $params);
+                    if (!empty($fullEvent)) {
+                        $kafkaPubTool = $this->getKafkaPubTool();
+                        $kafkaPubTool->publishJson($kafkaTopic, $fullEvent[0], 'publish');
+                    }
                 }
             }
         }
@@ -5994,6 +6037,49 @@ class Event extends AppModel
         foreach ($attributes as $attribute) {
             $this->Attribute->create();
             $this->Attribute->save($attribute);
+        }
+        return true;
+    }
+
+    public function getRequiredTaxonomies()
+    {
+        $this->Taxonomy = ClassRegistry::init('Taxonomy');
+        $required_taxonomies = $this->Taxonomy->find('list', array(
+            'recursive' => -1,
+            'conditions' => array('Taxonomy.required' => 1, 'Taxonomy.enabled' => 1),
+            'fields' => array('Taxonomy.namespace')
+        ));
+        return $required_taxonomies;
+    }
+
+    public function checkIfPublishable($id)
+    {
+        $required_taxonomies = $this->getRequiredTaxonomies();
+        if (!empty($required_taxonomies)) {
+            $tags = $this->EventTag->find('all', array(
+                'conditions' => array('EventTag.event_id' => $id),
+                'recursive' => -1,
+                'contain' => array('Tag')
+            ));
+            $missing = array();
+            foreach ($required_taxonomies as $required_taxonomy) {
+                $found = false;
+                foreach ($tags as $tag) {
+                    $name = explode(':', $tag['Tag']['name']);
+                    if (count($name) > 1) {
+                        if ($name[0] == $required_taxonomy) {
+                            $found = true;
+                            break;
+                        }
+                    }
+                }
+                if (!$found) {
+                    $missing[] = $required_taxonomy;
+                }
+            }
+            if (!empty($missing)) {
+                return $missing;
+            }
         }
         return true;
     }
