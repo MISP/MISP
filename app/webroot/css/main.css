@@ -2257,8 +2257,24 @@ table tr:hover .down-expand-button {
     stroke-width: 2px;
 }
 
+.decayingGraphLineThres {
+    fill: none;
+    stroke: firebrick;
+    stroke-width: 2px;
+}
+
 .decayingGraphArea {
     fill: lightsteelblue;
+}
+
+.decayingGraphAreaThres {
+    fill: firebrick;
+}
+
+.decayingGraphDot{
+    stroke: #ffffff;
+    fill: steelblue;
+    stroke-width: 2px;
 }
 
 .decayingGraphAxis path {

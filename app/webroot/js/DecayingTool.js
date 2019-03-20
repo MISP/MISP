@@ -49,7 +49,7 @@ function genDecay() {
 
 function genLine() {
     return genAxis().map(function(e) {
-        return $('#input_Threshold').val();
+        return parseInt($('#input_Threshold').val());
     });
 }
 
@@ -297,18 +297,30 @@ $(document).ready(function() {
     var xAxis = d3.svg.axis().scale(x).orient('bottom');
     var yAxis = d3.svg.axis().scale(y).orient("left");
 
+    var drag = d3.behavior.drag()
+        .on("drag", dragmove);
+
     // define the area
     var area = d3.svg.area()
         .interpolate("monotone")
         .x(function(d) { return x(d.x); })
         .y0(height)
         .y1(function(d) { return y(d.y); });
+    var areaThres = d3.svg.area()
+        .interpolate("monotone")
+        .x(function(d) { return x(d.x); })
+        .y0(height)
+        .y1(function(d) { return y(d.yThres); });
 
     // define the line
     var valueline = d3.svg.line()
         .interpolate("monotone")
         .x(function(d) { return x(d.x); })
         .y(function(d) { return y(d.y); });
+    var valuelineThres = d3.svg.line()
+        .interpolate("monotone")
+        .x(function(d) { return x(d.x); })
+        .y(function(d) { return y(d.yThres); });
 
     var svg = d3.select(container)
         .append("svg")
@@ -319,25 +331,45 @@ $(document).ready(function() {
 
     var decay = genDecay();
     var axe = genAxis();
+    var thres = genLine();
     for (var i=0; i<decay.length; i++) {
-        data.push({x: axe[i], y: decay[i]});
+        data.push({x: axe[i], y: decay[i], yThres: thres[i]});
     }
 
     // scale the range of the data
     x.domain(d3.extent(data, function(d) { return d.x; }));
     y.domain([0, d3.max(data, function(d) { return d.y; })]);
 
-    // add the area
-    svg.append("path")
-        .data([data])
-        .attr("class", "decayingGraphArea")
-        .attr("d", area);
-
     // add the valueline path.
     svg.append("path")
         .data([data])
         .attr("class", "decayingGraphLine")
         .attr("d", valueline);
+    svg.append("path")
+        .data([data])
+        .attr("class", "decayingGraphLineThres")
+        .attr("d", valuelineThres);
+
+    svg.append("path")
+    .data([data])
+    .attr("class", "decayingGraphAreaThres")
+    .attr("d", areaThres);
+
+    svg.selectAll('.decayingGraphDot')
+        .data([data])
+        .enter()
+        .append('g')
+        .attr('class', 'yolo')
+        .append('circle')
+        .attr('class', 'decayingGraphDot')
+        .attr("cx", function(d) { return x(getReverseScore(parseInt($('#input_Threshold').val()))); })
+        .attr("cy", function(d, i) { return y(parseInt($('#input_Threshold').val())); })
+        .attr("r", 5)
+        .call(drag);
+        // .on("mouseover", function(datum, b, c) {
+        //
+        // })
+        // .on("mouseout", function() {  })
 
     // add the X Axis
     svg.append("g")
@@ -349,6 +381,13 @@ $(document).ready(function() {
     svg.append("g")
         .attr("class", "decayingGraphAxis")
         .call(yAxis);
+
+
+    function dragmove(d) {
+        d3.select(this)
+            .attr("cx", function() { return d3.event.x; })
+            .attr("cy", function() { return d3.event.y; });
+    }
 
 
     // var ctx = $('#decayGraph');
