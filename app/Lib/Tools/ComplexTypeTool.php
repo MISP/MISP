@@ -352,7 +352,7 @@ class ComplexTypeTool
 	        // Phone numbers - for automatic recognition, needs to start with + or include dashes
 		if (!empty($input['raw'])) {
 	        if ($input['raw'][0] === '+' || strpos($input['raw'], '-')) {
-	            if (preg_match("#^(\+)?([0-9]{1,3}(\(0\))?)?[0-9\/\-]{5,}[0-9]$#i", $input['raw'])) {
+	            if (!preg_match('#^[0-9]{4}-[0-9]{2}-[0-9]{2}$#i', $input['raw']) && preg_match("#^(\+)?([0-9]{1,3}(\(0\))?)?[0-9\/\-]{5,}[0-9]$#i", $input['raw'])) {
 	                return array('types' => array('phone-number', 'prtn', 'whois-registrant-phone'), 'categories' => array('Other'), 'to_ids' => false, 'default_type' => 'phone-number', 'value' => $input['raw']);
 	            }
 	        }
