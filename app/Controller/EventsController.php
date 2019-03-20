@@ -5057,6 +5057,13 @@ class EventsController extends AppController
                     break;
                 }
             }
+            $distributions = $this->Event->Attribute->distributionLevels;
+            $sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
+            if (empty($sgs)) {
+                unset($distributions[4]);
+            }
+            $this->set('distributions', $distributions);
+            $this->set('sgs', $sgs);
             if ($format == 'misp_standard') {
                 $this->__queryEnrichment($attribute, $module, $options, $type);
             } else {
@@ -5077,7 +5084,7 @@ class EventsController extends AppController
         }
         $data = json_encode($data);
         $result = $this->Module->queryModuleServer('/query', $data, false, $type);
-        if (!result) {
+        if (!$result) {
             throw new MethodNotAllowedException(__('%s service not reachable.', $type));
         }
         if (isset($result['error'])) {
@@ -5171,13 +5178,6 @@ class EventsController extends AppController
                 $resultArray[$key]['data'] = basename($tempFile) . '|' . filesize($tempFile);
             }
         }
-        $distributions = $this->Event->Attribute->distributionLevels;
-        $sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
-        if (empty($sgs)) {
-            unset($distributions[4]);
-        }
-        $this->set('distributions', $distributions);
-        $this->set('sgs', $sgs);
         $this->set('type', $type);
         if (!$event){
             $this->set('event', array('Event' => $attribute[0]['Event']));
