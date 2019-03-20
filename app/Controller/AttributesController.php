@@ -2995,10 +2995,6 @@ class AttributesController extends AppController
 
     public function addTag($id = false, $tag_id = false)
     {
-        if (!$this->request->is('post')) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that. Only POST requests are accepted.')), 'status' => 200, 'type' => 'json'));
-        }
-
         $rearrangeRules = array(
             'request' => false,
             'Attribute' => false,
@@ -3014,140 +3010,148 @@ class AttributesController extends AppController
         if ($id === 'selected') {
             $idList = json_decode($this->request->data['attribute_ids'], true);
         }
-        if ($tag_id === false) {
-            $tag_id = $this->request->data['tag'];
-        }
-        if (!is_numeric($tag_id)) {
-            if (preg_match('/^collection_[0-9]+$/i', $tag_id)) {
-                $tagChoice = explode('_', $tag_id)[1];
-                $this->loadModel('TagCollection');
-                $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $tagChoice)));
-                if (empty($tagCollection)) {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
-                }
-                $tag_id_list = array();
-                foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
-                    $tag_id_list[] = $tagCollectionTag['tag_id'];
-                }
-            } else {
-                // try to parse json array
-                $tag_ids = json_decode($tag_id);
-                if ($tag_ids !== null) { // can decode json
-                    $tag_id_list = array();
-                    foreach ($tag_ids as $tag_id) {
-                        if (preg_match('/^collection_[0-9]+$/i', $tag_id)) {
-                            $tagChoice = explode('_', $tag_id)[1];
-                            $this->loadModel('TagCollection');
-                            $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $tagChoice)));
-                            if (empty($tagCollection)) {
-                                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
-                            }
-                            foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
-                                $tag_id_list[] = $tagCollectionTag['tag_id'];
-                            }
-                        } else {
-                            $tag_id_list[] = $tag_id;
-                        }
-                    }
-                } else {
-                    $tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
-                    if (empty($tag)) {
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
-                    }
-                    $tag_id = $tag['Tag']['id'];
-                }
-            }
-        }
-        if (!isset($idList)) {
-            $idList = array($id);
-        }
-        if (empty($tag_id_list)) {
-            $tag_id_list = array($tag_id);
-        }
-        $success = 0;
-        $fails = 0;
-        foreach ($idList as $id) {
-            $this->Attribute->id = $id;
-            if (!$this->Attribute->exists()) {
-                throw new NotFoundException(__('Invalid attribute'));
-            }
-            $this->Attribute->read();
-            if (!$this->_isSiteAdmin() && $this->Attribute->data['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
-                $fails++;
-                continue;
-            }
-            if ($this->Attribute->data['Attribute']['deleted']) {
-                throw new NotFoundException(__('Invalid attribute'));
-            }
-            $eventId = $this->Attribute->data['Attribute']['event_id'];
-            $this->Attribute->Event->recursive = -1;
-            $event = $this->Attribute->Event->read(array(), $eventId);
-            if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
-                if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status' => 200, 'type' => 'json'));
-                }
-            }
-            if (!$this->_isRest()) {
-                $this->Attribute->Event->insertLock($this->Auth->user(), $eventId);
-            }
-            $this->Attribute->recursive = -1;
-
-            foreach ($tag_id_list as $tag_id) {
-                $this->Attribute->AttributeTag->Tag->id = $tag_id;
-                if (!$this->Attribute->AttributeTag->Tag->exists()) {
-                    $fails++;
-                    continue;
-                }
-                $tag = $this->Attribute->AttributeTag->Tag->find('first', array(
-                    'conditions' => array('Tag.id' => $tag_id),
-                    'recursive' => -1,
-                    'fields' => array('Tag.name')
-                ));
-                $found = $this->Attribute->AttributeTag->find('first', array(
-                    'conditions' => array(
-                        'attribute_id' => $id,
-                        'tag_id' => $tag_id
-                    ),
-                    'recursive' => -1,
-                ));
-                $this->autoRender = false;
-                if (!empty($found)) {
-                    $fails++;
-                    continue;
-                }
-                $this->Attribute->AttributeTag->create();
-                if ($this->Attribute->AttributeTag->save(array('attribute_id' => $id, 'tag_id' => $tag_id, 'event_id' => $eventId))) {
-                    $event['Event']['published'] = 0;
-                    $date = new DateTime();
-                    $event['Event']['timestamp'] = $date->getTimestamp();
-                    $this->Attribute->Event->save($event);
-                    $this->Attribute->data['Attribute']['timestamp'] = $date->getTimestamp();
-                    $this->Attribute->save($this->Attribute->data);
-                    $log = ClassRegistry::init('Log');
-                    $log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to attribute (' . $id . ')', 'Attribute (' . $id . ') tagged as Tag (' . $tag_id . ')');
-                    $success++;
-                } else {
-                    $fails++;
-                }
-            }
-        }
-        if ($fails == 0) {
-            if ($success == 1) {
-                $message = 'Tag added.';
-            } else {
-                $message = $success . ' tags added.';
-            }
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message, 'check_publish' => true)), 'status' => 200, 'type' => 'json'));
+        if (!$this->request->is('post')) {
+            $this->set('object_id', $id);
+            $this->set('scope', 'Attribute');
+            $this->layout = false;
+            $this->autoRender = false;
+            $this->render('/Events/add_tag');
         } else {
-            if ($fails == 1) {
-                $message = 'Tag could not be added.';
+            if ($tag_id === false) {
+                $tag_id = $this->request->data['tag'];
+            }
+            if (!is_numeric($tag_id)) {
+                if (preg_match('/^collection_[0-9]+$/i', $tag_id)) {
+                    $tagChoice = explode('_', $tag_id)[1];
+                    $this->loadModel('TagCollection');
+                    $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $tagChoice)));
+                    if (empty($tagCollection)) {
+                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
+                    }
+                    $tag_id_list = array();
+                    foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
+                        $tag_id_list[] = $tagCollectionTag['tag_id'];
+                    }
+                } else {
+                    // try to parse json array
+                    $tag_ids = json_decode($tag_id);
+                    if ($tag_ids !== null) { // can decode json
+                        $tag_id_list = array();
+                        foreach ($tag_ids as $tag_id) {
+                            if (preg_match('/^collection_[0-9]+$/i', $tag_id)) {
+                                $tagChoice = explode('_', $tag_id)[1];
+                                $this->loadModel('TagCollection');
+                                $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $tagChoice)));
+                                if (empty($tagCollection)) {
+                                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
+                                }
+                                foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
+                                    $tag_id_list[] = $tagCollectionTag['tag_id'];
+                                }
+                            } else {
+                                $tag_id_list[] = $tag_id;
+                            }
+                        }
+                    } else {
+                        $tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
+                        if (empty($tag)) {
+                            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
+                        }
+                        $tag_id = $tag['Tag']['id'];
+                    }
+                }
+            }
+            if (!isset($idList)) {
+                $idList = array($id);
+            }
+            if (empty($tag_id_list)) {
+                $tag_id_list = array($tag_id);
+            }
+            $success = 0;
+            $fails = 0;
+            foreach ($idList as $id) {
+                $this->Attribute->id = $id;
+                if (!$this->Attribute->exists()) {
+                    throw new NotFoundException(__('Invalid attribute'));
+                }
+                $this->Attribute->read();
+                if (!$this->_isSiteAdmin() && $this->Attribute->data['Event']['orgc_id'] !== $this->Auth->user('org_id')) {
+                    $fails++;
+                    continue;
+                }
+                if ($this->Attribute->data['Attribute']['deleted']) {
+                    throw new NotFoundException(__('Invalid attribute'));
+                }
+                $eventId = $this->Attribute->data['Attribute']['event_id'];
+                $this->Attribute->Event->recursive = -1;
+                $event = $this->Attribute->Event->read(array(), $eventId);
+                if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
+                    if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
+                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status' => 200, 'type' => 'json'));
+                    }
+                }
+                if (!$this->_isRest()) {
+                    $this->Attribute->Event->insertLock($this->Auth->user(), $eventId);
+                }
+                $this->Attribute->recursive = -1;
+
+                foreach ($tag_id_list as $tag_id) {
+                    $this->Attribute->AttributeTag->Tag->id = $tag_id;
+                    if (!$this->Attribute->AttributeTag->Tag->exists()) {
+                        $fails++;
+                        continue;
+                    }
+                    $tag = $this->Attribute->AttributeTag->Tag->find('first', array(
+                        'conditions' => array('Tag.id' => $tag_id),
+                        'recursive' => -1,
+                        'fields' => array('Tag.name')
+                    ));
+                    $found = $this->Attribute->AttributeTag->find('first', array(
+                        'conditions' => array(
+                            'attribute_id' => $id,
+                            'tag_id' => $tag_id
+                        ),
+                        'recursive' => -1,
+                    ));
+                    $this->autoRender = false;
+                    if (!empty($found)) {
+                        $fails++;
+                        continue;
+                    }
+                    $this->Attribute->AttributeTag->create();
+                    if ($this->Attribute->AttributeTag->save(array('attribute_id' => $id, 'tag_id' => $tag_id, 'event_id' => $eventId))) {
+                        $event['Event']['published'] = 0;
+                        $date = new DateTime();
+                        $event['Event']['timestamp'] = $date->getTimestamp();
+                        $this->Attribute->Event->save($event);
+                        $this->Attribute->data['Attribute']['timestamp'] = $date->getTimestamp();
+                        $this->Attribute->save($this->Attribute->data);
+                        $log = ClassRegistry::init('Log');
+                        $log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to attribute (' . $id . ')', 'Attribute (' . $id . ') tagged as Tag (' . $tag_id . ')');
+                        $success++;
+                    } else {
+                        $fails++;
+                    }
+                }
+            }
+            if ($fails == 0) {
+                if ($success == 1) {
+                    $message = 'Tag added.';
+                } else {
+                    $message = $success . ' tags added.';
+                }
+                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message, 'check_publish' => true)), 'status' => 200, 'type' => 'json'));
             } else {
-                $message = $fails . ' tags could not be added.';
+                if ($fails == 1) {
+                    $message = 'Tag could not be added.';
+                } else {
+                    $message = $fails . ' tags could not be added.';
+                }
+                if ($success > 0) {
+                    $message .= ' However, ' . $success . ' tag(s) were added.';
+                }
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $message)), 'status' => 200, 'type' => 'json'));
             }
-            if ($success > 0) {
-                $message .= ' However, ' . $success . ' tag(s) were added.';
-            }
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $message)), 'status' => 200, 'type' => 'json'));
         }
     }
 

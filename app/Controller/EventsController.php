@@ -3551,9 +3551,6 @@ class EventsController extends AppController
 
     public function addTag($id = false, $tag_id = false)
     {
-        if (!$this->request->is('post')) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
-        }
         $rearrangeRules = array(
                 'request' => false,
                 'Event' => false,
@@ -3566,112 +3563,120 @@ class EventsController extends AppController
         if ($id === false) {
             $id = $this->request->data['event'];
         }
-        if ($tag_id === false) {
-            $tag_id = $this->request->data['tag'];
-        }
-        $conditions = array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)));
-        if (!$this->_isSiteAdmin()) {
-            $conditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
-            $conditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
-        }
-        if (!is_numeric($tag_id)) {
-            if (preg_match('/^collection_[0-9]+$/i', $tag_id)) {
-                $tagChoice = explode('_', $tag_id)[1];
-                $this->loadModel('TagCollection');
-                $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $tagChoice)));
-                if (empty($tagCollection)) {
-                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
-                }
-                $tag_id_list = array();
-                foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
-                    $tag_id_list[] = $tagCollectionTag['tag_id'];
-                }
-            } else {
-                $tag_ids = json_decode($tag_id);
-                if ($tag_ids !== null) { // can decode json
-                    $tag_id_list = array();
-                    foreach ($tag_ids as $tag_id) {
-                        if (preg_match('/^collection_[0-9]+$/i', $tag_id)) {
-                            $tagChoice = explode('_', $tag_id)[1];
-                            $this->loadModel('TagCollection');
-                            $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $tagChoice)));
-                            if (empty($tagCollection)) {
-                                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
-                            }
-                            $tag_id_list = array();
-                            foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
-                                $tag_id_list[] = $tagCollectionTag['tag_id'];
-                            }
-                        } else {
-                            $tag_id_list[] = $tag_id;
-                        }
-                    }
-                } else {
-                    $tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
-                    if (empty($tag)) {
-                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
-                    }
-                    $tag_id = $tag['Tag']['id'];
-                }
-            }
-        }
         $this->Event->recursive = -1;
         $event = $this->Event->read(array(), $id);
         if (empty($event)) {
             return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event.')), 'status'=>200, 'type' => 'json'));
         }
-        if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
-            if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
-            }
-        }
-        $this->autoRender = false;
-        $error = false;
-        $success = false;
-        if (empty($tag_id_list)) {
-            $tag_id_list = array($tag_id);
-        }
-        foreach ($tag_id_list as $tag_id) {
-            $this->Event->EventTag->Tag->id = $tag_id;
-            if (!$this->Event->EventTag->Tag->exists()) {
-                $error = __('Invalid Tag.');
-                continue;
-            }
-            $tag = $this->Event->EventTag->Tag->find('first', array(
-                'conditions' => array('Tag.id' => $tag_id),
-                'recursive' => -1,
-                'fields' => array('Tag.name')
-            ));
-            $found = $this->Event->EventTag->find('first', array(
-                'conditions' => array(
-                    'event_id' => $id,
-                    'tag_id' => $tag_id
-                ),
-                'recursive' => -1,
-            ));
-            if (!empty($found)) {
-                $error = __('Tag is already attached to this event.');
-                continue;
-            }
-            $this->Event->EventTag->create();
-            if ($this->Event->EventTag->save(array('event_id' => $id, 'tag_id' => $tag_id))) {
-                $event['Event']['published'] = 0;
-                $date = new DateTime();
-                $event['Event']['timestamp'] = $date->getTimestamp();
-                $this->Event->save($event);
-                $log = ClassRegistry::init('Log');
-                $log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to event (' . $id . ')', 'Event (' . $id . ') tagged as Tag (' . $tag_id . ')');
-                $success = __('Tag(s) added.');
-            } else {
-                $fail = __('Tag could not be added.');
-            }
-        }
-        if ($success) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => __('Tag(s) added.'), 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
-        } elseif (empty($fail)) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => __('All tags are already present, nothing to add.'), 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+        if (!$this->request->is('post')) {
+            $this->set('object_id', $id);
+            $this->set('scope', 'Event');
+            $this->layout = false;
+            $this->autoRender = false;
+            $this->render('/Events/add_tag');
         } else {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $fail)), 'status'=>200, 'type' => 'json'));
+            if ($tag_id === false) {
+                $tag_id = $this->request->data['tag'];
+            }
+            if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
+                if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
+                }
+            }
+            $conditions = array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)));
+            if (!$this->_isSiteAdmin()) {
+                $conditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
+                $conditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
+            }
+            if (!is_numeric($tag_id)) {
+                if (preg_match('/^collection_[0-9]+$/i', $tag_id)) {
+                    $tagChoice = explode('_', $tag_id)[1];
+                    $this->loadModel('TagCollection');
+                    $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $tagChoice)));
+                    if (empty($tagCollection)) {
+                        return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
+                    }
+                    $tag_id_list = array();
+                    foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
+                        $tag_id_list[] = $tagCollectionTag['tag_id'];
+                    }
+                } else {
+                    $tag_ids = json_decode($tag_id);
+                    if ($tag_ids !== null) { // can decode json
+                        $tag_id_list = array();
+                        foreach ($tag_ids as $tag_id) {
+                            if (preg_match('/^collection_[0-9]+$/i', $tag_id)) {
+                                $tagChoice = explode('_', $tag_id)[1];
+                                $this->loadModel('TagCollection');
+                                $tagCollection = $this->TagCollection->fetchTagCollection($this->Auth->user(), array('conditions' => array('TagCollection.id' => $tagChoice)));
+                                if (empty($tagCollection)) {
+                                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag Collection.')), 'status'=>200, 'type' => 'json'));
+                                }
+                                $tag_id_list = array();
+                                foreach ($tagCollection[0]['TagCollectionTag'] as $tagCollectionTag) {
+                                    $tag_id_list[] = $tagCollectionTag['tag_id'];
+                                }
+                            } else {
+                                $tag_id_list[] = $tag_id;
+                            }
+                        }
+                    } else {
+                        $tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
+                        if (empty($tag)) {
+                            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
+                        }
+                        $tag_id = $tag['Tag']['id'];
+                    }
+                }
+            }
+            $this->autoRender = false;
+            $error = false;
+            $success = false;
+            if (empty($tag_id_list)) {
+                $tag_id_list = array($tag_id);
+            }
+            foreach ($tag_id_list as $tag_id) {
+                $this->Event->EventTag->Tag->id = $tag_id;
+                if (!$this->Event->EventTag->Tag->exists()) {
+                    $error = __('Invalid Tag.');
+                    continue;
+                }
+                $tag = $this->Event->EventTag->Tag->find('first', array(
+                    'conditions' => array('Tag.id' => $tag_id),
+                    'recursive' => -1,
+                    'fields' => array('Tag.name')
+                ));
+                $found = $this->Event->EventTag->find('first', array(
+                    'conditions' => array(
+                        'event_id' => $id,
+                        'tag_id' => $tag_id
+                    ),
+                    'recursive' => -1,
+                ));
+                if (!empty($found)) {
+                    $error = __('Tag is already attached to this event.');
+                    continue;
+                }
+                $this->Event->EventTag->create();
+                if ($this->Event->EventTag->save(array('event_id' => $id, 'tag_id' => $tag_id))) {
+                    $event['Event']['published'] = 0;
+                    $date = new DateTime();
+                    $event['Event']['timestamp'] = $date->getTimestamp();
+                    $this->Event->save($event);
+                    $log = ClassRegistry::init('Log');
+                    $log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to event (' . $id . ')', 'Event (' . $id . ') tagged as Tag (' . $tag_id . ')');
+                    $success = __('Tag(s) added.');
+                } else {
+                    $fail = __('Tag could not be added.');
+                }
+            }
+            if ($success) {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => __('Tag(s) added.'), 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+            } elseif (empty($fail)) {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => __('All tags are already present, nothing to add.'), 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+            } else {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $fail)), 'status'=>200, 'type' => 'json'));
+            }
         }
     }
 
