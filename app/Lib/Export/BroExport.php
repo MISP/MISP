@@ -196,7 +196,7 @@ class BroExport
                     $ruleFormat,
                                 $this->replaceIllegalChars($item['Attribute']['value' . $valueField]),    // value - for composite values only the relevant element is taken
                                 'Intel::' . $brotype,   // type
-                                $this->replaceIllegalChars($item['Event']['info'])
+                                $this->replaceIllegalChars($item['Event']['info']),
                                 $this->replaceIllegalChars($item['Attribute']['comment']),
                                 'T',    // meta.do_notice
                                 '-'  // meta.if_in
