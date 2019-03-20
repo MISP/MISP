@@ -78,7 +78,7 @@ class ObjectTemplate extends AppModel
             if (!empty($current)) {
                 $current['ObjectTemplate']['version'] = $current[0]['version'];
             }
-            if ($force || empty($current) || $template['version'] > $current['ObjectTemplate']['version']) {
+          if ($force || empty($current) || $template['version'] > $current['ObjectTemplate']['version']) {
                 $result = $this->__updateObjectTemplate($template, $current, $user);
                 if ($result === true) {
                     $temp = array('name' => $template['name'], 'new' => $template['version']);
@@ -93,6 +93,35 @@ class ObjectTemplate extends AppModel
         }
         return $updated;
     }
+
+  public function addNewObjects($user, $newObjects)
+  {
+    $updated = array();
+    foreach ($newObjects as $template) {
+      $current = $this->find('first', array(
+        'fields' => array('MAX(version) AS version', 'uuid'),
+          'conditions' => array('uuid' => $template['uuid']),
+          'recursive' => -1,
+          'group' => array('uuid')
+      ));
+      if (!empty($current)) {
+        $current['ObjectTemplate']['version'] = $current[0]['version'];
+      }
+      if ($force || empty($current) || $template['version'] > $current['ObjectTemplate']['version']) {
+        $result = $this->__updateObjectTemplate($template, $current, $user);
+        if ($result === true) {
+          $temp = array('name' => $template['name'], 'new' => $template['version']);
+          if (!empty($current)) {
+            $temp['old'] = $current['ObjectTemplate']['version'];
+          }
+          $updated['success'][] = $temp;
+        } else {
+          $updated['fails'][] = array('name' => $template['name'], 'fail' => json_encode($result));
+        }
+      }
+    }
+    return $updated;
+  }
 
     private function __updateObjectTemplate($template, $current, $user)
     {

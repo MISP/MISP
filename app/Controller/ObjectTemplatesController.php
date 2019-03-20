@@ -182,6 +182,20 @@ class ObjectTemplatesController extends AppController
         }
     }
 
+    public function create()
+    {
+      if (!$this->request->is('post')) {
+        throw new MethodNotAllowedException();
+      }
+
+      if ($this->_isRest() && $this->request->is('post')) {
+        $result = $this->ObjectTemplate->addNewObjects($this->Auth->user(), json_decode($this->request->data));
+        return $this->RestResponse->viewData(array(
+          'result' => $result
+        ));
+      }
+    }
+
     public function update($type = false, $force = false)
     {
         if (!empty($this->params['named']['type'])) {
