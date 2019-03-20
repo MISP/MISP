@@ -579,9 +579,11 @@ function submitForm(type, id, field, context) {
 
 function quickSubmitTagForm(selected_tag_ids, addData) {
     var event_id = addData.id;
+    var formData = fetchFormDataAjax("/events/addTag/" + event_id);
+    $('#temp').html(formData);
     $('#EventTag').val(JSON.stringify(selected_tag_ids));
     $.ajax({
-        data: $('#EventSelectTagForm').closest("form").serialize(),
+        data: $('#EventAddTagForm').serialize(),
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },
@@ -596,6 +598,7 @@ function quickSubmitTagForm(selected_tag_ids, addData) {
             loadGalaxies(event_id, 'event');
         },
         complete:function() {
+            $('#temp').empty();
             $("#popover_form").fadeOut();
             $("#gray_out").fadeOut();
             $(".loading").hide();
@@ -603,17 +606,20 @@ function quickSubmitTagForm(selected_tag_ids, addData) {
         type:"post",
         url:"/events/addTag/" + event_id
     });
+    $('#temp').remove();
     return false;
 }
 
 function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
     var attribute_id = addData.id;
+    var formData = fetchFormDataAjax("/attributes/addTag/" + attribute_id);
+    $('#temp').html(formData);
     $('#AttributeTag').val(JSON.stringify(selected_tag_ids));
     if (attribute_id == 'selected') {
         $('#AttributeAttributeIds').val(getSelected());
     }
     $.ajax({
-        data: $('#AttributeSelectTagForm').closest("form").serialize(),
+        data: $('#AttributeAddTagForm').serialize(),
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },
@@ -639,14 +645,17 @@ function quickSubmitAttributeTagForm(selected_tag_ids, addData) {
         type:"post",
         url:"/attributes/addTag/" + attribute_id
     });
+    $('#temp').remove();
     return false;
 }
 
 function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
     var tag_collection_id = addData.id;
+    var formData = fetchFormDataAjax("/tag_collections/addTag/" + tag_collection_id);
+    $('#temp').html(formData);
     $('#TagCollectionTag').val(JSON.stringify(selected_tag_ids));
     $.ajax({
-        data: $('#TagCollectionSelectTagForm').closest("form").serialize(),
+        data: $('#TagCollectionAddTagForm').serialize(),
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },
@@ -666,6 +675,7 @@ function quickSubmitTagCollectionTagForm(selected_tag_ids, addData) {
         type:"post",
         url:"/tag_collections/addTag/" + tag_collection_id
     });
+    $('#temp').remove();
     return false;
 }
 
@@ -3563,12 +3573,15 @@ function addGalaxyListener(id) {
 function quickSubmitGalaxyForm(cluster_ids, additionalData) {
     var target_id = additionalData['target_id'];
     var scope = additionalData['target_type'];
+    var formData = fetchFormDataAjax("/galaxies/attachMultipleClusters/" + target_id + "/" + scope);
+    console.log(formData);
+    $('#temp').html(formData);
     $('#GalaxyTargetIds').val(JSON.stringify(cluster_ids));
     if (target_id == 'selected') {
         $('#AttributeAttributeIds').val(getSelected());
     }
     $.ajax({
-        data: $('#GalaxySelectClusterForm').closest("form").serialize(),
+        data: $('#GalaxyAttachMultipleClustersForm').serialize(),
         beforeSend: function (XMLHttpRequest) {
             $(".loading").show();
         },
@@ -3596,6 +3609,7 @@ function quickSubmitGalaxyForm(cluster_ids, additionalData) {
         type:"post",
         url: "/galaxies/attachMultipleClusters/" + target_id + "/" + scope
     });
+    $('#temp').remove();
     return false;
 }
 
@@ -4129,22 +4143,9 @@ function removeRestClientHistoryItem(id) {
 function changeTaxonomyRequiredState(checkbox) {
     var checkbox_state = $(checkbox).is(":checked");
     var taxonomy_id = $(checkbox).data('taxonomy-id');
-    var formData = false;
+    var formData = fetchFormDataAjax('/taxonomies/toggleRequired/' + taxonomy_id);
     $.ajax({
-        data: '[]',
-        success:function (data, textStatus) {
-            formData = $(data).serialize();
-        },
-        error:function() {
-            handleGenericAjaxResponse({'saved':false, 'errors':['Request failed due to an unexpected error.']});
-        },
-        async: false,
-        type:"get",
-        cache: false,
-        url: '/taxonomies/toggleRequired/' + taxonomy_id,
-    });
-    $.ajax({
-        data: formData,
+        data: $(formData).serialize(),
         success:function (data, textStatus) {
             handleGenericAjaxResponse({'saved':true, 'success':['Taxonomy\'s required state toggled.']});
         },
@@ -4158,6 +4159,24 @@ function changeTaxonomyRequiredState(checkbox) {
         url: '/taxonomies/toggleRequired/' + taxonomy_id,
     });
     formData = false;
+}
+
+function fetchFormDataAjax(url) {
+    var formData = false;
+    $.ajax({
+        data: '[]',
+        success:function (data, textStatus) {
+            formData = data;
+        },
+        error:function() {
+            handleGenericAjaxResponse({'saved':false, 'errors':['Request failed due to an unexpected error.']});
+        },
+        async: false,
+        type:"get",
+        cache: false,
+        url: url
+    });
+    return formData;
 }
 
 (function(){

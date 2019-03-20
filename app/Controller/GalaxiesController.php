@@ -270,34 +270,42 @@ class GalaxiesController extends AppController
 
     public function attachMultipleClusters($target_id, $target_type = 'event')
     {
-        if ($target_id === 'selected') {
-            $target_id_list = json_decode($this->request->data['Galaxy']['attribute_ids']);
-        } else {
-            $target_id_list = array($target_id);
-        }
-        $cluster_ids = $this->request->data['Galaxy']['target_ids'];
-        if (!empty($cluster_ids)) {
-            $cluster_ids = json_decode($cluster_ids, true);
-            if ($cluster_ids === null) {
-                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'error' => __('Failed to parse request.'))), 'status'=>200, 'type' => 'json'));
+        if ($this->request->is('post')) {
+            if ($target_id === 'selected') {
+                $target_id_list = json_decode($this->request->data['Galaxy']['attribute_ids']);
+            } else {
+                $target_id_list = array($target_id);
+            }
+            $cluster_ids = $this->request->data['Galaxy']['target_ids'];
+            if (!empty($cluster_ids)) {
+                $cluster_ids = json_decode($cluster_ids, true);
+                if ($cluster_ids === null) {
+                    return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'error' => __('Failed to parse request.'))), 'status'=>200, 'type' => 'json'));
+                }
+            } else {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'error' => __('No clusters picked.'))), 'status'=>200, 'type' => 'json'));
+            }
+            $result = "";
+            if (!is_array($cluster_ids)) { // in case we only want to attach 1
+                $cluster_ids = array($cluster_ids);
+            }
+            foreach ($cluster_ids as $cluster_id) {
+                foreach ($target_id_list as $target_id) {
+                    $result = $this->Galaxy->attachCluster($this->Auth->user(), $target_type, $target_id, $cluster_id);
+                }
+            }
+            if ($this->request->is('ajax')) {
+                return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $result, 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
+            } else {
+                $this->Flash->info($result);
+                $this->redirect($this->referer());
             }
         } else {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'error' => __('No clusters picked.'))), 'status'=>200, 'type' => 'json'));
-        }
-        $result = "";
-        if (!is_array($cluster_ids)) { // in case we only want to attach 1
-            $cluster_ids = array($cluster_ids);
-        }
-        foreach ($cluster_ids as $cluster_id) {
-            foreach ($target_id_list as $target_id) {
-                $result = $this->Galaxy->attachCluster($this->Auth->user(), $target_type, $target_id, $cluster_id);
-            }
-        }
-        if ($this->request->is('ajax')) {
-            return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $result, 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
-        } else {
-            $this->Flash->info($result);
-            $this->redirect($this->referer());
+            $this->set('target_id', $target_id);
+            $this->set('target_type', $target_type);
+            $this->layout = false;
+            $this->autoRender = false;
+            $this->render('/Galaxies/ajax/attach_multiple_clusters');
         }
     }
 
