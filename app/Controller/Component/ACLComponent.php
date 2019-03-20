@@ -197,7 +197,8 @@ class ACLComponent extends Component
                 'delete' => array('perm_site_admin'),
                 'detach' => array('perm_tagger'),
                 'index' => array('*'),
-                'view' => array('*')
+                'view' => array('*'),
+                'viewGalaxyMatrix' => array('*')
             ),
             'galaxyElements' => array(
                     'index' => array('*')
