@@ -4939,7 +4939,6 @@ class EventsController extends AppController
             App::uses('ColourGradientTool', 'Tools');
             $gradientTool = new ColourGradientTool();
             $colours = $gradientTool->createGradientFromValues($scores);
-
             $this->set('eventId', $eventId);
             $this->set('target_type', $scope);
             $this->set('columnOrders', $killChainOrders);
