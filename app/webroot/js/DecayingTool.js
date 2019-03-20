@@ -27,7 +27,7 @@ function getScore(x, base_score) {
     }
     var delta = parseFloat($('#input_Delta').val());
     var tau = parseInt($('#input_Tau').val() * 24);
-    return (base_score * (1 - Math.pow(x / tau, 1/delta))).toFixed(2);
+    return parseFloat((base_score * (1 - Math.pow(x / tau, 1/delta))).toFixed(2));
 }
 
 function getReverseScore(y, base_score) {
@@ -43,7 +43,7 @@ function genDecay() {
     var threshold = parseInt($('#input_Threshold').val());
     return genAxis().map(function(e, x) {
         var y = getScore(x);
-        return y >= threshold ? y : NaN;
+        return y >= threshold ? y : 0;
     });
 }
 
@@ -65,35 +65,35 @@ function genAxis(textLabel) {
 }
 
 function refreshGraph(updated) {
-    var $this = $(updated);
-    var id = $this.attr('id');
-    var val = parseInt($this.val());
-    var threshold = parseInt($('#input_Threshold').val());
-    var datasetDecay = chart.data.datasets[0];
-    var updateOption = {};
-    switch(id) {
-        case 'input_Threshold':
-            for(var i=0; i<chart.data.datasets[1].data.length; i++) {
-                chart.data.datasets[1].data[i] = threshold;
-            }
-            chart.data.datasets[0].data = genDecay();
-            break;
-        case 'input_Tau':
-            chart.data.labels = genAxis();
-            chart.data.datasets[0].data = genDecay();
-            chart.data.datasets[1].data = genLine();
-            updateOption['duration'] = 0;
-            break;
-        case 'input_Delta':
-            chart.data.datasets[0].data = genDecay();
-            break;
-        default:
-            break;
-    }
-    $('#'+id+'_range').val($this.val());
-
-    refreshInfoCells(threshold);
-    chart.update(updateOption);
+    // var $this = $(updated);
+    // var id = $this.attr('id');
+    // var val = parseInt($this.val());
+    // var threshold = parseInt($('#input_Threshold').val());
+    // var datasetDecay = chart.data.datasets[0];
+    // var updateOption = {};
+    // switch(id) {
+    //     case 'input_Threshold':
+    //         for(var i=0; i<chart.data.datasets[1].data.length; i++) {
+    //             chart.data.datasets[1].data[i] = threshold;
+    //         }
+    //         chart.data.datasets[0].data = genDecay();
+    //         break;
+    //     case 'input_Tau':
+    //         chart.data.labels = genAxis();
+    //         chart.data.datasets[0].data = genDecay();
+    //         chart.data.datasets[1].data = genLine();
+    //         updateOption['duration'] = 0;
+    //         break;
+    //     case 'input_Delta':
+    //         chart.data.datasets[0].data = genDecay();
+    //         break;
+    //     default:
+    //         break;
+    // }
+    // $('#'+id+'_range').val($this.val());
+    //
+    // refreshInfoCells(threshold);
+    // chart.update(updateOption);
 }
 
 function refreshInfoCells(threshold) {
@@ -284,81 +284,146 @@ function applyModel(clicked) {
 }
 
 var chart;
+var data = [];
 $(document).ready(function() {
     $('[data-toggle="tooltip"]').tooltip();
-    var ctx = $('#decayGraph');
-    chart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: genAxis(),
-            datasets: [
-                {
-                    label: 'Decay over time',
-                    data: genDecay(),
-                    borderColor: 'rgba(91, 183, 91, 0.7)',
-                    backgroundColor: 'rgba(91, 183, 91, 0.3)',
-                    cubicInterpolationMode: 'monotone',
-                    fill: 1,
-                    pointRadius: 0
-                },
-                {
-                    label: 'Threshold',
-                    data: genLine(),
-                    borderColor: 'rgba(255, 99, 132, 0.7)',
-                    backgroundColor: 'rgba(255, 99, 132, 0.3)',
-                    pointRadius: 0
-                },
-            ]
-        },
-        options: {
-            responsive: true,
-            title: {
-                display: false
-            },
-            scales: {
-                xAxes: [{
-                    scaleLabel: {
-                        display: true,
-                        labelString: 'Days',
-                    },
-                    ticks: {
-                        callback: function(hour, index, values) {
-                            var d = parseInt(hour / 24);
-                            return hour % 24 == 0 ? d : null;
-                        }
-                    }
-                }],
-                yAxes: [{
-                    scaleLabel: {
-                        display: true,
-                        labelString: 'Decay Score',
-                    },
-                    ticks: {
-                        suggestedMin: 0,
-                        suggestedMax: 100
-                    }
-                }]
-            },
-            tooltips: {
-                position: 'nearest',
-                mode: 'index',
-                intersect: false,
-                callbacks: {
-                    title: function(tooltipItem, data)  {
-                        return hoursToText(tooltipItem[0].index);
-                    },
-                    label: function(tooltipItem, data)  {
-                        var label = data.datasets[tooltipItem.datasetIndex].label;
-                        if (label != 'Threshold') {
-                            label = "Score";
-                        }
-                        label += ": " + data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
-                        return label;
-                    }
-                }
-            },
-        }
-    });
+    var container = '#decayGraph';
+    var $container = $(container);
+    var margin = {top: 10, right: 10, bottom: 20, left: 30};
+    var width = $container.width() - margin.left - margin.right;
+    var height = 380 - margin.top - margin.bottom;
+    var x = d3.scale.linear().range([0, width]);
+    var y = d3.scale.linear().range([height, 0]);
+    var xAxis = d3.svg.axis().scale(x).orient('bottom');
+    var yAxis = d3.svg.axis().scale(y).orient("left");
+
+    // define the area
+    var area = d3.svg.area()
+        .interpolate("monotone")
+        .x(function(d) { return x(d.x); })
+        .y0(height)
+        .y1(function(d) { return y(d.y); });
+
+    // define the line
+    var valueline = d3.svg.line()
+        .interpolate("monotone")
+        .x(function(d) { return x(d.x); })
+        .y(function(d) { return y(d.y); });
+
+    var svg = d3.select(container)
+        .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    var decay = genDecay();
+    var axe = genAxis();
+    for (var i=0; i<decay.length; i++) {
+        data.push({x: axe[i], y: decay[i]});
+    }
+
+    // scale the range of the data
+    x.domain(d3.extent(data, function(d) { return d.x; }));
+    y.domain([0, d3.max(data, function(d) { return d.y; })]);
+
+    // add the area
+    svg.append("path")
+        .data([data])
+        .attr("class", "decayingGraphArea")
+        .attr("d", area);
+
+    // add the valueline path.
+    svg.append("path")
+        .data([data])
+        .attr("class", "decayingGraphLine")
+        .attr("d", valueline);
+
+    // add the X Axis
+    svg.append("g")
+        .attr("class", "decayingGraphAxis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xAxis);
+
+    // add the Y Axis
+    svg.append("g")
+        .attr("class", "decayingGraphAxis")
+        .call(yAxis);
+
+
+    // var ctx = $('#decayGraph');
+    // chart = new Chart(ctx, {
+    //     type: 'line',
+    //     data: {
+    //         labels: genAxis(),
+    //         datasets: [
+    //             {
+    //                 label: 'Decay over time',
+    //                 data: genDecay(),
+    //                 borderColor: 'rgba(91, 183, 91, 0.7)',
+    //                 backgroundColor: 'rgba(91, 183, 91, 0.3)',
+    //                 cubicInterpolationMode: 'monotone',
+    //                 fill: 1,
+    //                 pointRadius: 0
+    //             },
+    //             {
+    //                 label: 'Threshold',
+    //                 data: genLine(),
+    //                 borderColor: 'rgba(255, 99, 132, 0.7)',
+    //                 backgroundColor: 'rgba(255, 99, 132, 0.3)',
+    //                 pointRadius: 0
+    //             },
+    //         ]
+    //     },
+    //     options: {
+    //         responsive: true,
+    //         title: {
+    //             display: false
+    //         },
+    //         scales: {
+    //             xAxes: [{
+    //                 scaleLabel: {
+    //                     display: true,
+    //                     labelString: 'Days',
+    //                 },
+    //                 ticks: {
+    //                     callback: function(hour, index, values) {
+    //                         var d = parseInt(hour / 24);
+    //                         return hour % 24 == 0 ? d : null;
+    //                     }
+    //                 }
+    //             }],
+    //             yAxes: [{
+    //                 scaleLabel: {
+    //                     display: true,
+    //                     labelString: 'Decay Score',
+    //                 },
+    //                 ticks: {
+    //                     suggestedMin: 0,
+    //                     suggestedMax: 100
+    //                 }
+    //             }]
+    //         },
+    //         tooltips: {
+    //             position: 'nearest',
+    //             mode: 'index',
+    //             intersect: false,
+    //             callbacks: {
+    //                 title: function(tooltipItem, data)  {
+    //                     return hoursToText(tooltipItem[0].index);
+    //                 },
+    //                 label: function(tooltipItem, data)  {
+    //                     var label = data.datasets[tooltipItem.datasetIndex].label;
+    //                     if (label != 'Threshold') {
+    //                         label = "Score";
+    //                     }
+    //                     label += ": " + data.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
+    //                     return label;
+    //                 }
+    //             }
+    //         },
+    //     }
+    // });
     refreshInfoCells();
     $("#attributeTypeTableBody").selectable({
         filter: "tr:not(.hidden)",

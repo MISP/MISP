@@ -2250,3 +2250,23 @@ table tr:hover .down-expand-button {
 .break-word {
     word-wrap: break-word;
 }
+
+.decayingGraphLine {
+    fill: none;
+    stroke: steelblue;
+    stroke-width: 2px;
+}
+
+.decayingGraphArea {
+    fill: lightsteelblue;
+}
+
+.decayingGraphAxis path {
+    stroke-width: 2px;
+    stroke: #000;
+    fill: none;
+}
+
+.decayingGraphAxis line {
+  stroke: #000;
+}

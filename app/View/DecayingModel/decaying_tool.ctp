@@ -55,7 +55,7 @@
     </div>
     <div class="span10">
         <div style="border: 1px solid #ddd; border-radius: 4px; margin-bottom: 20px;">
-            <canvas id="decayGraph" style="width: 100%;"></canvas>
+            <div id="decayGraph" style="width: 100%;"></div>
         </div>
         <div class="row">
             <div class="span6" style="margin-bottom: 20px;">
@@ -144,6 +144,7 @@
 
 <?php echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'decayingModel', 'menuItem' => 'decayingTool')); ?>
 <?php echo $this->Html->script('Chart.min'); ?>
+<?php echo $this->Html->script('d3'); ?>
 <?php echo $this->Html->script('DecayingTool'); ?>
 
 <script>
