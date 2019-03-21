@@ -15,7 +15,7 @@
     <label id="network-import" class="btn center-in-network-header network-control-btn"><span class="useCursorPointer fa fa-exchange" style="margin-right: 3px;"></span><?php echo __('Export')?></label>
     <label id="network-history" class="btn center-in-network-header network-control-btn"><span class="useCursorPointer fa fa-history" style="margin-right: 3px;"></span><?php echo __('History')?></label>
             
-    <input type="text" id="network-typeahead" class="center-in-network-header network-typeahead flushright" data-provide="typeahead" size="20" placeholder="Search for an item">
+    <input type="text" id="network-typeahead" class="center-in-network-header network-typeahead flushright" data-provide="typeahead" size="20" placeholder="<?php echo __('Search for an item');?>">
 </div>
 
 <span class="shortcut-help btn btn-xs btn-info">?</span>

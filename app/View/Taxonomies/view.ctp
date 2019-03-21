@@ -26,9 +26,9 @@
             <?php echo $taxonomy['enabled'] ? '<span class="green">'. __('Yes') . '</span>&nbsp;&nbsp;' : '<span class="red">' . __('No') . '</span>&nbsp;&nbsp;';
                 if ($isSiteAdmin) {
                     if ($taxonomy['enabled']) {
-                        echo $this->Form->postLink('(disable)', array('action' => 'disable', h($taxonomy['id'])), array('title' => __('Disable')), (__('Are you sure you want to disable this taxonomy library?')));
+                        echo $this->Form->postLink(__('(disable)'), array('action' => 'disable', h($taxonomy['id'])), array('title' => __('Disable')), (__('Are you sure you want to disable this taxonomy library?')));
                     } else {
-                        echo $this->Form->postLink('(enable)', array('action' => 'enable', h($taxonomy['id'])), array('title' => __('Enable')), (__('Are you sure you want to enable this taxonomy library?')));
+                        echo $this->Form->postLink(__('(enable)'), array('action' => 'enable', h($taxonomy['id'])), array('title' => __('Enable')), (__('Are you sure you want to enable this taxonomy library?')));
                     }
                 }
             ?>
@@ -80,12 +80,12 @@
                 <?php if ($isAclTagger && !empty($entries)): ?>
                     <th><input class="select_all" type="checkbox" onClick="toggleAllTaxonomyCheckboxes();" /></th>
                 <?php endif;?>
-                    <th><?php echo $this->Paginator->sort('tag');?></th>
-                    <th><?php echo $this->Paginator->sort('expanded');?></th>
-                    <th><?php echo $this->Paginator->sort('numerical_value');?></th>
+                    <th><?php echo $this->Paginator->sort('tag', __('Tag'));?></th>
+                    <th><?php echo $this->Paginator->sort('expanded', __('Expanded'));?></th>
+                    <th><?php echo $this->Paginator->sort('numerical_value', __('Numerical value'));?></th>
                     <th><?php echo $this->Paginator->sort('events');?></th>
                     <th><?php echo $this->Paginator->sort('attributes');?></th>
-                    <th><?php echo $this->Paginator->sort('tag');?></th>
+                    <th><?php echo $this->Paginator->sort('tag', __('Tags'));?></th>
                     <th><?php echo __('Action');?></th>
             </tr><?php
             foreach ($entries as $k => $item): ?>
