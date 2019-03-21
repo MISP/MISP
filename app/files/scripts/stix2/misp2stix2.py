@@ -606,7 +606,7 @@ class StixBuilder():
         labels = self.create_object_labels(name, category, False)
         timestamp = self.get_datetime_from_timestamp(misp_object['timestamp'])
         observed_data_args = {'id': observed_data_id, 'type': 'observed-data', 'labels': labels,
-                              'number_observed': 1, 'objects': observable_objects, 'allow_custom': True
+                              'number_observed': 1, 'objects': observable_objects, 'allow_custom': True,
                               'first_observed': timestamp, 'last_observed': timestamp,
                               'created_by_ref': self.identity_id, 'interoperability': True}
         try:
