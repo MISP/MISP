@@ -72,7 +72,8 @@ checkDiskFree () {
 
 # Check if variable is empty
 checkVar () {
-  [[ -z $1 ]] && echo "$1 is empty, please investigate." && exit 1
+  [[ $# < 1 ]] && echo "checkVar function needs at least 1 argument. Please fix." && exit 1
+  [[ -z "$2" ]] && echo "The variable '$1' is empty, please investigate." && exit 1
 }
 
 ## Time to set some variables
@@ -89,11 +90,14 @@ WWW_USER=$(ls -l $0 |awk {'print $3'}|tail -1)
 # In most cases the owner of the cake script is also the user as which it should be executed.
 if [[ "$USER" != "$WWW_USER" ]]; then
   echo "You run this script as $USER and the owner of the backup script is $WWW_USER. FYI."
+  space
 fi
 
 # Check if run as root
 if [[ "$EUID" != "0" ]]; then
+    space
     echo "Please run the backup script as root"
+    space
     exit 1
 fi
 
@@ -101,6 +105,7 @@ fi
 if [ -f $FILE ];
 then
   echo "File $(pwd)$FILE exists."
+  space
    . $FILE
 else
         echo "Config File $FILE does not exist. Please enter values manually"
@@ -125,6 +130,7 @@ if [[ -z $PATH_TO_MISP ]]; then
       PATH_TO_MISP=${PATH_TO_MISP:-$(locate MISP/app/webroot/index.php|sed 's/\/app\/webroot\/index\.php//')}
       echo -n 'Please enter the base path of your MISP install (e.g /var/www/MISP): '
       read PATH_TO_MISP
+      space
     fi
   fi
 fi
@@ -135,21 +141,43 @@ OutputDirName=${OutputDirName:-/tmp}
 OutputFull="${OutputDirName}/${OutputFileName}-$(date '+%Y%m%d_%H%M%S').tar.gz"
 
 # database.php
-MySQLUUser=$(grep -o -P "(?<='login' => ').*(?=')" $PATH_TO_MISP/app/Config/database.php) ; checkVar MySQLUUser
-MySQLUPass=$(grep -o -P "(?<='password' => ').*(?=')" $PATH_TO_MISP/app/Config/database.php) ; checkVar MySQLUPass
-MISPDB=$(grep -o -P "(?<='database' => ').*(?=')" $PATH_TO_MISP/app/Config/database.php) ; checkVar MISPDB
-DB_Port=$(grep -o -P "(?<='port' => ).*(?=,)" $PATH_TO_MISP/app/Config/database.php) ; checkVar DB_Port
-MISPDBHost=$(grep -o -P "(?<='host' => ').*(?=')" $PATH_TO_MISP/app/Config/database.php) ; checkVar MISPDBHost
+MySQLUUser=$(grep -o -P "(?<='login' => ').*(?=')" $PATH_TO_MISP/app/Config/database.php) ; \
+  checkVar MySQLUUser $(echo $MySQLUUser)
+
+MySQLUPass=$(grep -o -P "(?<='password' => ').*(?=')" $PATH_TO_MISP/app/Config/database.php) ; \
+  checkVar MySQLUPass $(echo $MySQLUPass)
+
+MISPDB=$(grep -o -P "(?<='database' => ').*(?=')" $PATH_TO_MISP/app/Config/database.php) ; \
+  checkVar MISPDB $(echo $MISPDB)
+
+DB_Port=$(grep -o -P "(?<='port' => ).*(?=,)" $PATH_TO_MISP/app/Config/database.php |head -1) ; \
+  checkVar DB_Port $(echo $DB_Port)
+
+MISPDBHost=$(grep -o -P "(?<='host' => ').*(?=')" $PATH_TO_MISP/app/Config/database.php) ; \
+  checkVar MISPDBHost $(echo $MISPDBHost)
 
 # config.php
-Salt=$(grep -o -P "(?<='salt' => ').*(?=')" $PATH_TO_MISP/app/Config/config.php) ; checkVar Salt
 BaseURL=$(grep -o -P "(?<='baseurl' => ').*(?=')" $PATH_TO_MISP/app/Config/config.php) # BaseURL can be empty
-OrgName=$(grep -o -P "(?<='org' => ').*(?=')" $PATH_TO_MISP/app/Config/config.php) ; checkVar OrgName
-LogEmail=$(grep -o -P "(?<='email' => ').*(?=')" $PATH_TO_MISP/app/Config/config.php|head -1) ; checkVar LogEmail
-AdminEmail=$(grep -o -P "(?<='contact' => ').*(?=')" $PATH_TO_MISP/app/Config/config.php) ; checkVar AdminEmail
-GnuPGEmail=$(sed -n -e '/GnuPG/,$p' $PATH_TO_MISP/app/Config/config.php|grep -o -P "(?<='email' => ').*(?=')") ; checkVar GnuPGEmail
-GnuPGHomeDir=$(grep -o -P "(?<='homedir' => ').*(?=')" $PATH_TO_MISP/app/Config/config.php) ; checkVar GnuPGHomeDir
-GnuPGPass=$(grep -o -P "(?<='password' => ').*(?=')" $PATH_TO_MISP/app/Config/config.php) ; checkVar GnuPGPass
+GnuPGPass=$(grep -o -P "(?<='password' => ').*(?=')" $PATH_TO_MISP/app/Config/config.php) # GnuPGPass can be empty
+
+Salt=$(grep -o -P "(?<='salt' => ').*(?=')" $PATH_TO_MISP/app/Config/config.php) ; \
+  checkVar Salt $(echo $Salt)
+
+OrgName=$(grep -o -P "(?<='org' => ').*(?=')" $PATH_TO_MISP/app/Config/config.php) ; \
+  checkVar OrgName $(echo $OrgName)
+
+LogEmail=$(grep -o -P "(?<='email' => ').*(?=')" $PATH_TO_MISP/app/Config/config.php|head -1) ; \
+  checkVar LogEmail $(echo $LogEmail)
+
+AdminEmail=$(grep -o -P "(?<='contact' => ').*(?=')" $PATH_TO_MISP/app/Config/config.php) ; \
+  checkVar AdminEmail $(echo $AdminEmail)
+
+GnuPGEmail=$(sed -n -e '/GnuPG/,$p' $PATH_TO_MISP/app/Config/config.php|grep -o -P "(?<='email' => ').*(?=')") ; \
+  checkVar GnuPGEmail $(echo $GnuPGEmail)
+
+GnuPGHomeDir=$(grep -o -P "(?<='homedir' => ').*(?=')" $PATH_TO_MISP/app/Config/config.php) ; \
+  checkVar GnuPGHomeDir $(echo $GnuPGHomeDir)
+
 
 checkDiskFree $OutputDirName
 
@@ -180,6 +208,9 @@ cd $TmpDir
 tar -pzcf $OutputFull ./*
 cd -
 rm -rf $TmpDir
+space
 echo "MISP Backup Completed, OutputDir: ${OutputDirName}"
+space
 echo "FileName: ${OutputFileName}-$(date '+%Y%m%d_%H%M%S').tar.gz"
 echo "FullName: ${OutputFull}"
+space
