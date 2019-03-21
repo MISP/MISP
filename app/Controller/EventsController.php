@@ -5110,6 +5110,8 @@ class EventsController extends AppController
         if (empty($attributes) && empty($objects)) {
             $this->__handleSimplifiedFormat($attribute, $module, $options, $result, $type);
         } else {
+            $this->set('attributeValue', $attribute[0]['Attribute']['value']);
+            $this->set('module', $module);
             $event = array('Event' => $attribute[0]['Event']);
             $event['Attribute'] = $attributes;
             $event['Object'] = $objects;
