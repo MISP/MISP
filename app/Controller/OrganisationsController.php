@@ -25,7 +25,7 @@ class OrganisationsController extends AppController
     public function index()
     {
         if (!$this->Auth->user('Role')['perm_sharing_group'] && Configure::read('Security.hide_organisation_index_from_users')) {
-            throw new MethodNotAllowedException('This feature is disabled on this instance for normal users.');
+            throw new MethodNotAllowedException(__('This feature is disabled on this instance for normal users.'));
         }
         $conditions = array();
         // We can either index all of the organisations existing on this instance (default)
@@ -130,14 +130,14 @@ class OrganisationsController extends AppController
                     ));
                     return $this->RestResponse->viewData($org, $this->response->type());
                 } else {
-                    $this->Flash->success('The organisation has been successfully added.');
+                    $this->Flash->success(__('The organisation has been successfully added.'));
                     $this->redirect(array('admin' => false, 'action' => 'index'));
                 }
             } else {
                 if ($this->_isRest()) {
                     return $this->RestResponse->saveFailResponse('Organisations', 'admin_add', false, $this->Organisation->validationErrors, $this->response->type());
                 } else {
-                    $this->Flash->error('The organisation could not be added.');
+                    $this->Flash->error(__('The organisation could not be added.'));
                 }
             }
         } else {
@@ -152,7 +152,7 @@ class OrganisationsController extends AppController
     {
         $this->Organisation->id = $id;
         if (!$this->Organisation->exists()) {
-            throw new NotFoundException('Invalid organisation');
+            throw new NotFoundException(__('Invalid organisation'));
         }
         if ($this->request->is('post') || $this->request->is('put')) {
             if ($this->_isRest()) {
@@ -191,7 +191,7 @@ class OrganisationsController extends AppController
                     ));
                     return $this->RestResponse->viewData($org, $this->response->type());
                 } else {
-                    $this->Flash->success('Organisation updated.');
+                    $this->Flash->success(__('Organisation updated.'));
                     $this->redirect(array('admin' => false, 'action' => 'view', $this->Organisation->id));
                 }
             } else {
@@ -206,7 +206,7 @@ class OrganisationsController extends AppController
                         ));
                         $this->set('duplicate_org', $duplicate_org['Organisation']['id']);
                     }
-                    $this->Flash->error('The organisation could not be updated.');
+                    $this->Flash->error(__('The organisation could not be updated.'));
                 }
             }
         } else {
@@ -227,11 +227,11 @@ class OrganisationsController extends AppController
     public function admin_delete($id)
     {
         if (!$this->request->is('post')) {
-            throw new MethodNotAllowedException('Action not allowed, post request expected.');
+            throw new MethodNotAllowedException(__('Action not allowed, post request expected.'));
         }
         $this->Organisation->id = $id;
         if (!$this->Organisation->exists()) {
-            throw new NotFoundException('Invalid organisation');
+            throw new NotFoundException(__('Invalid organisation'));
         }
 
         $org = $this->Organisation->find('first', array(
@@ -272,19 +272,19 @@ class OrganisationsController extends AppController
         if (Validation::uuid($id)) {
             $temp = $this->Organisation->find('first', array('recursive' => -1, 'fields' => array('Organisation.id'), 'conditions' => array('Organisation.uuid' => $id)));
             if (empty($temp)) {
-                throw new NotFoundException('Invalid organisation.');
+                throw new NotFoundException(__('Invalid organisation.'));
             }
             $id = $temp['Organisation']['id'];
         } elseif (!is_numeric($id)) {
             $temp = $this->Organisation->find('first', array('recursive' => -1, 'fields' => array('Organisation.id'), 'conditions' => array('Organisation.name' => urldecode($id))));
             if (empty($temp)) {
-                throw new NotFoundException('Invalid organisation.');
+                throw new NotFoundException(__('Invalid organisation.'));
             }
             $id = $temp['Organisation']['id'];
         }
         $this->Organisation->id = $id;
         if (!$this->Organisation->exists()) {
-            throw new NotFoundException('Invalid organisation');
+            throw new NotFoundException(__('Invalid organisation'));
         }
         $fullAccess = false;
         $fields = array('id', 'name', 'date_created', 'date_modified', 'type', 'nationality', 'sector', 'contacts', 'description', 'local', 'uuid', 'restricted_to_domain');
@@ -311,7 +311,7 @@ class OrganisationsController extends AppController
                     'conditions' => array('ShadowAttribute.org_id' => $org['Organisation']['id'])
                 ));
                 if (empty($proposal)) {
-                    throw new NotFoundException('Invalid organisation');
+                    throw new NotFoundException(__('Invalid organisation'));
                 }
             }
         }
@@ -344,12 +344,12 @@ class OrganisationsController extends AppController
     {
         $this->Organisation->id = $id;
         if (!$this->Organisation->exists()) {
-            throw new NotFoundException('Invalid organisation');
+            throw new NotFoundException(__('Invalid organisation'));
         }
         $org = $this->Organisation->find('first', array('conditions' => array('id' => $id), 'fields' => array('landingpage', 'name')));
         $landingpage = $org['Organisation']['landingpage'];
         if (empty($landingpage)) {
-            $landingpage = "No landing page has been created for this organisation.";
+            $landingpage = __('No landing page has been created for this organisation.');
         }
         $this->set('landingPage', $landingpage);
         $this->set('org', $org['Organisation']['name']);
@@ -398,7 +398,7 @@ class OrganisationsController extends AppController
     public function getUUIDs()
     {
         if (!$this->Auth->user('Role')['perm_sync']) {
-            throw new MethodNotAllowedException('This action is restricted to sync users');
+            throw new MethodNotAllowedException(__('This action is restricted to sync users'));
         }
         $temp = $this->Organisation->find('all', array(
                 'recursive' => -1,
@@ -415,15 +415,15 @@ class OrganisationsController extends AppController
     public function admin_merge($id, $target_id = false)
     {
         if (!$this->_isSiteAdmin()) {
-            throw new MethodNotAllowedException('You are not authorised to do that.');
+            throw new MethodNotAllowedException(__('You are not authorised to do that.'));
         }
         if ($this->request->is('Post')) {
             $result = $this->Organisation->orgMerge($id, $this->request->data, $this->Auth->user());
             if ($result) {
-                $this->Flash->success('The organisation has been successfully merged.');
+                $this->Flash->success(__('The organisation has been successfully merged.'));
                 $this->redirect(array('admin' => false, 'action' => 'view', $result));
             } else {
-                $this->Flash->error('There was an error while merging the organisations. To find out more about what went wrong, refer to the audit logs. If you would like to revert the changes, you can find a .sql file ');
+                $this->Flash->error(__('There was an error while merging the organisations. To find out more about what went wrong, refer to the audit logs. If you would like to revert the changes, you can find a .sql file'));
             }
             $this->redirect(array('admin' => false, 'action' => 'index'));
         } else {
