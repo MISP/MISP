@@ -46,7 +46,7 @@ class Job extends AppModel
             $process_id = CakeResque::enqueue(
                     'cache',
                     $shell . 'Shell',
-                    array('cachebro', $user['id'], $id, $type),
+                    array('cache', $user['id'], $id, $type),
                     true
             );
         } elseif ($type === 'bro') {
