@@ -24,7 +24,7 @@
                 endif;
                 if ($isSiteAdmin):
         ?>
-            <th class="filter"><?php echo $this->Paginator->sort('owner org');?></th>
+            <th class="filter"><?php echo $this->Paginator->sort('owner org', __('Owner org'));?></th>
         <?php
                 endif;
             endif;
@@ -36,7 +36,7 @@
         <?php if (Configure::read('MISP.tagging')): ?>
             <th class="filter"><?php echo __('Tags');?></th>
         <?php endif; ?>
-        <th title="<?php echo __('Attribute Count');?>"><?php echo $this->Paginator->sort('attribute_count', '#Attr.');?></th>
+        <th title="<?php echo __('Attribute Count');?>"><?php echo $this->Paginator->sort('attribute_count', __('#Attr.'));?></th>
         <?php if (Configure::read('MISP.showCorrelationsOnIndex')):?>
             <th title="<?php echo __('Correlation Count');?>"><?php echo __('#Corr.');?></th>
         <?php endif; ?>
@@ -50,14 +50,14 @@
             <th title="<?php echo __('Post Count');?>"><?php echo __('#Posts');?></th>
         <?php endif; ?>
         <?php if ($isSiteAdmin): ?>
-        <th><?php echo $this->Paginator->sort('user_id', 'Email');?></th>
+        <th><?php echo $this->Paginator->sort('user_id', __('Email'));?></th>
         <?php endif; ?>
         <th class="filter"><?php echo $this->Paginator->sort('date', null, array('direction' => 'desc'));?></th>
         <th class="filter"><?php echo $this->Paginator->sort('info');?></th>
         <th title="<?php echo $eventDescriptions['distribution']['desc'];?>">
             <?php echo $this->Paginator->sort('distribution');?>
         </th>
-        <th class="actions">Actions</th>
+        <th class="actions"><?php echo __('Actions');?></th>
 
     </tr>
     <?php foreach ($events as $event): ?>

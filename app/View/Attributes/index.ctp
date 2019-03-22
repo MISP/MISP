@@ -46,7 +46,7 @@
         $headers = array(
             $this->Paginator->sort('date'),
             $this->Paginator->sort('event_id'),
-            $this->Paginator->sort('Event.orgc_id', 'Org'),
+            $this->Paginator->sort('Event.orgc_id', __('Org')),
             $this->Paginator->sort('category'),
             $this->Paginator->sort('type'),
             $this->Paginator->sort('value'),

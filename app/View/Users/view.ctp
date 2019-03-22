@@ -17,7 +17,7 @@
             (Configure::read('MISP.disableUserSelfManagement') && !$isAdmin) ? '' :
                 sprintf(
                     ' (%s)',
-                    $this->Html->link('reset', array('controller' => 'users', 'action' => 'resetauthkey', $user['User']['id']))
+                    $this->Html->link(__('reset'), array('controller' => 'users', 'action' => 'resetauthkey', $user['User']['id']))
                 )
         );
     }
