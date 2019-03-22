@@ -1,6 +1,13 @@
 <div class="index">
     <h2><?php echo h($title); ?></h2>
     <?php
+        $url = '/events/handle_module_results/' . $event['Event']['id'];
+        echo $this->Form->create('Event', array('url' => array('controller' => 'events', 'action' => 'handle_module_results', $event['Event']['id'])));
+        $formSettings = array(
+            'type' => 'hidden',
+            'value' => json_encode($event, true)
+        );
+        echo $this->form->input('data', $formSettings);
         $scope = !empty($proposals) ? 'proposals of' : '';
         $objects_array = array();
         if (isset($event['Attribute'])) {
@@ -158,6 +165,10 @@
           </tbody>
         </table>
     </div>
+    <?php
+            echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
+            echo $this->Form->end();
+    ?>
 </div>
 <?php
     if (!isset($menuItem)) {

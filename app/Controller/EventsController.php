@@ -5192,6 +5192,12 @@ class EventsController extends AppController
         $this->render($renderName);
     }
 
+    public function handleModuleResults($eventId)
+    {
+        debug($eventId);
+        debug($this->request->event);
+    }
+
     public function importModule($module, $eventId)
     {
         $this->loadModel('Module');
