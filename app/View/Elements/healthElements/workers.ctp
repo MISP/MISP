@@ -38,7 +38,7 @@
             <?php
                 echo h($data['jobCount']);
                 if ($data['jobCount'] > 0 && $worker_array['controls']) {
-                    echo $this->Form->postLink('<span class="icon-trash useCursorPointer"></span>', $baseurl . '/servers/clearWorkerQueue/' . h($type), array('escape' => false, 'inline' => true, 'style' => 'margin-left:2px;'));
+                    echo $this->Form->postLink('<span class="fa fa-trash useCursorPointer"></span>', $baseurl . '/servers/clearWorkerQueue/' . h($type), array('escape' => false, 'inline' => true, 'style' => 'margin-left:2px;'));
                 }
             ?>
         </span>
@@ -103,7 +103,7 @@
             <td class="actions short" style="<?php echo $style; ?>">
 <?php
         if ($worker_array['controls']) {
-            echo $this->Form->postLink('', '/servers/stopWorker/' . h($worker['pid']), array('class' => 'icon-trash' . $icon_modifier, 'title' => __('Stop (if still running) and remove this worker. This will immediately terminate any jobs that are being executed by it.')));
+            echo $this->Form->postLink('', '/servers/stopWorker/' . h($worker['pid']), array('class' => 'fa fa-trash' . $icon_modifier, 'title' => __('Stop (if still running) and remove this worker. This will immediately terminate any jobs that are being executed by it.')));
         }
             ?>
             </td>

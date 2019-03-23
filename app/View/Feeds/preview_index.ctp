@@ -69,8 +69,8 @@
             </td>
             <td ondblclick="document.location.href ='<?php echo $eventViewURL . h($uuid);?>'" class="short"><?php echo h($event['timestamp']); ?></td>
             <td class="short action-links">
-                <?php if ($feed['Feed']['enabled'] && $isSiteAdmin) echo $this->Form->postLink('', '/feeds/getEvent/' . $id . '/' . $uuid, array('class' => 'icon-download', 'title' => 'Fetch the event'), __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Feed.id'))); ?>
-                <a href='<?php echo $eventViewURL . h($uuid);?>' class = "icon-list-alt" title = "<?php echo __('View');?>"></a>
+                <?php if ($feed['Feed']['enabled'] && $isSiteAdmin) echo $this->Form->postLink('', '/feeds/getEvent/' . $id . '/' . $uuid, array('class' => 'fa fa-arrow-circle-down', 'title' => 'Fetch the event'), __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Feed.id'))); ?>
+                <a href='<?php echo $eventViewURL . h($uuid);?>' class = "fa fa-eye" title = "<?php echo __('View');?>"></a>
             </td>
         </tr>
         <?php endforeach; ?>

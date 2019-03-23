@@ -121,8 +121,8 @@ foreach ($list as $k => $item): ?>
         <?php if ($isSiteAdmin): ?>
         <td class="short action-links">
             <?php echo $this->Html->link('', array('controller' => 'tags', 'action' => 'viewGraph', $item['Tag']['id']), array('class' => 'fa fa-share-alt', 'title' => 'View graph'));?>
-            <?php echo $this->Html->link('', array('action' => 'edit', $item['Tag']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));?>
-            <?php echo $this->Form->postLink('', array('action' => 'delete', $item['Tag']['id']), array('class' => 'icon-trash', 'title' => __('Delete')), __('Are you sure you want to delete "%s"?', $item['Tag']['name']));?>
+            <?php echo $this->Html->link('', array('action' => 'edit', $item['Tag']['id']), array('class' => 'fa fa-edit', 'title' => 'Edit'));?>
+            <?php echo $this->Form->postLink('', array('action' => 'delete', $item['Tag']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete')), __('Are you sure you want to delete "%s"?', $item['Tag']['name']));?>
         </td>
         <?php endif; ?>
     </tr><?php

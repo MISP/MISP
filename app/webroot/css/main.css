@@ -2250,3 +2250,7 @@ table tr:hover .down-expand-button {
 .break-word {
     word-wrap: break-word;
 }
+.action-links > .fas, .action-links > .fab, .action-links > .fa {
+    margin-left:2px;
+    color: black;
+}

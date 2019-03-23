@@ -75,6 +75,7 @@
                         'title' => __('Add new cluster to selected Attributes'),
                         'class' => 'mass-select hidden',
                         'fa-icon' => 'rebel',
+                        'fa-source' => 'fab',
                         'onClick' => 'popoverPopup',
                         'onClickParams' => array('this', 'selected/attribute', 'galaxies', 'selectGalaxyNamespace')
                     ),

@@ -28,11 +28,11 @@
         <td class="short"><?php echo h($item['Sighting']['source']);?></td>
         <td class="short"><?php echo h($item['Sighting']['event_id']);?></td>
         <td class="short"><?php echo h($item['Sighting']['attribute_id']);?></td>
-            <td class="short action-links">
+            <td class="short action-links"> 
           <?php
             if ($isSiteAdmin || ($item['Sighting']['org_id'] == $me['org_id'] && $isAclAdd)):
           ?>
-            <span class="icon-trash useCursorPointer" title="Delete sighting" role="button" tabindex="0" aria-label="<?php echo __('Delete sighting');?>" onClick="quickDeleteSighting('<?php echo h($item['Sighting']['id']); ?>', '<?php echo h($rawId); ?>', '<?php echo h($context); ?>');"></span>
+            <span class="fa fa-trash useCursorPointer" title="Delete sighting" role="button" tabindex="0" aria-label="<?php echo __('Delete sighting');?>" onClick="quickDeleteSighting('<?php echo h($item['Sighting']['id']); ?>', '<?php echo h($rawId); ?>', '<?php echo h($context); ?>');"></span>
           <?php
             endif;
                 ?>

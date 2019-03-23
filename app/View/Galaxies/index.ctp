@@ -35,7 +35,7 @@ foreach ($list as $item):?>
         <td class="short"><?php echo h($item['Galaxy']['namespace']);?>&nbsp;</td>
         <td><?php echo h($item['Galaxy']['description']);?>&nbsp;</td>
         <td class="short action-links">
-            <?php echo $this->Html->link('', array('action' => 'view', $item['Galaxy']['id']), array('class' => 'icon-list-alt', 'title' => 'View'));?>
+            <?php echo $this->Html->link('', array('action' => 'view', $item['Galaxy']['id']), array('class' => 'fa fa-eye', 'title' => 'View'));?>
         </td>
     </tr><?php
 endforeach;?>

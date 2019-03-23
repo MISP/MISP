@@ -40,8 +40,8 @@
         <td class="short action-links">
             <?php
                 if ($isSiteAdmin || $me['org_id'] == $item['TagCollection']['org_id']) {
-                    echo $this->Html->link('', array('action' => 'edit', $item['TagCollection']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));
-                    echo $this->Form->postLink('', array('action' => 'delete', $item['TagCollection']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete "%s"?', $item['TagCollection']['name']));
+                    echo $this->Html->link('', array('action' => 'edit', $item['TagCollection']['id']), array('class' => 'fa fa-edit', 'title' => 'Edit'));
+                    echo $this->Form->postLink('', array('action' => 'delete', $item['TagCollection']['id']), array('class' => 'fa fa-trash', 'title' => 'Delete'), __('Are you sure you want to delete "%s"?', $item['TagCollection']['name']));
                 }
                 echo sprintf(
                     '<a href="%s/tag_collections/view/%s.json" class="fa fa-cloud-download black" title="Download configuration" download="tag_collection_%s.json"></a>',

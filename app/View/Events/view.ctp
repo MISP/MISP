@@ -217,7 +217,7 @@
                         $extended ? __('extended') : __('atomic')
                     ),
                     sprintf(
-                        '<a href="%s/events/view/%s%s"><span class="icon-refresh"></span></a>',
+                        '<a href="%s/events/view/%s%s"><span class="fa fa-sync"></span></a>',
                         $baseurl,
                         $event['Event']['id'],
                         ($extended ? '' : '/extended:1')
