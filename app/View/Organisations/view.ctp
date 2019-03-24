@@ -27,7 +27,7 @@
             $table_data[] = array('key' => __('Creation time'), 'value' => $org['Organisation']['date_created']);
             $table_data[] = array('key' => __('Last modified'), 'value' => $org['Organisation']['date_modified']);
         }
-        foreach (array('sector' => 'Sector', 'nationality' => 'Nationality', 'type' => 'Organisation type', 'contacts' => 'Contact information') as $k => $field) {
+        foreach (array('sector' => __('Sector'), 'nationality' => __('Nationality'), 'type' => __('Organisation type'), 'contacts' => __('Contact information')) as $k => $field) {
             if (!empty(trim($org['Organisation'][$k]))) {
                 $table_data[] = array('key' => $field, 'value' => trim(h($org['Organisation'][$k])));
             }

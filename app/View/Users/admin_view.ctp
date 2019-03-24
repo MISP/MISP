@@ -34,7 +34,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
         h($user['User']['authkey']),
         sprintf(
             ' (%s)',
-            $this->Html->link('reset', array('controller' => 'users', 'action' => 'resetauthkey', $user['User']['id']))
+            $this->Html->link(__('reset'), array('controller' => 'users', 'action' => 'resetauthkey', $user['User']['id']))
         )
     );
     $table_data[] = array(

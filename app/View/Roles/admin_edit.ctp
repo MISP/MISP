@@ -39,7 +39,7 @@
         ?>
     </fieldset>
 <?php
-    echo $this->Form->button('Edit', array('class' => 'btn btn-primary'));
+    echo $this->Form->button(__('Edit'), array('class' => 'btn btn-primary'));
     echo $this->Form->end();
 ?>
 </div>

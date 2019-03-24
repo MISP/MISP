@@ -56,7 +56,7 @@ class RolesController extends AppController
                     ));
                     return $this->RestResponse->viewData($role, $this->response->type());
                 } else {
-                    $this->Flash->success('The Role has been saved');
+                    $this->Flash->success(__('The Role has been saved'));
                     $this->redirect(array('action' => 'index'));
                 }
             } else {
@@ -82,7 +82,7 @@ class RolesController extends AppController
         }
         $this->Role->id = $id;
         if (!$this->Role->exists() && !$this->request->is('get')) {
-            throw new NotFoundException('Invalid Role');
+            throw new NotFoundException(__('Invalid Role'));
         }
         if ($this->request->is('post') || $this->request->is('put')) {
             if (!isset($this->request->data['Role'])) {
@@ -97,7 +97,7 @@ class RolesController extends AppController
                     ));
                     return $this->RestResponse->viewData($role, $this->response->type());
                 } else {
-                    $this->Flash->success('The Role has been saved');
+                    $this->Flash->success(__('The Role has been saved'));
                     $this->redirect(array('action' => 'index'));
                 }
             } else {
@@ -148,7 +148,7 @@ class RolesController extends AppController
         }
         $this->Role->id = $id;
         if (!$this->Role->exists()) {
-            throw new NotFoundException('Invalid Role');
+            throw new NotFoundException(__('Invalid Role'));
         }
         if ($this->Role->delete()) {
             if ($this->_isRest()) {
@@ -161,7 +161,7 @@ class RolesController extends AppController
         if ($this->_isRest()) {
             return $this->RestResponse->saveFailResponse('Roles', 'admin_delete', $id, $this->Role->validationErrors, $this->response->type());
         } else {
-            $this->Flash->error('Role could not be deleted');
+            $this->Flash->error(__('Role could not be deleted'));
             $this->redirect(array('action' => 'index'));
         }
     }
@@ -197,7 +197,7 @@ class RolesController extends AppController
         $this->loadModel('AdminSetting');
         $result = $this->AdminSetting->changeSetting('default_role', $role_id);
         if ($result === true) {
-            $message = $role_id ? 'Default role set.' : 'Default role unset.';
+            $message = $role_id ? __('Default role set.') : __('Default role unset.');
             if ($this->_isRest()) {
                 return $this->RestResponse->saveSuccessResponse('Roles', 'admin_set_default', $role_id, $this->response->type(), $message);
             } else {

@@ -4,7 +4,7 @@
         <legend><?php echo __('Edit Organisation'); ?></legend>
         <p style="font-weight:bold;"><?php echo __('If the organisation should have access to this instance, make sure that the Local organisation setting is checked. <br />If you would only like to add a known external organisation for inclusion in sharing groups, uncheck the Local organisation setting.');?></p>
         <div style="float:left;width:345px;">
-            <?php echo $this->Form->input('local', array('label' => 'Local organisation'));?>
+            <?php echo $this->Form->input('local', array('label' => __('Local organisation')));?>
         </div>
         <div class="clear"></div>
         <hr />
@@ -54,7 +54,7 @@
         echo $this->Form->input('nationality', array('options' => $countries));
         echo $this->Form->input('sector', array('placeholder' => __('For example "financial".'), 'style' => 'width:300px;'));
         echo $this->Form->input('type', array('class' => 'input-xxlarge', 'label' => __('Type of organisation'), 'div' => 'clear', 'placeholder' => __('Freetext description of the org.')));
-        echo $this->Form->input('contacts', array('class' => 'input-xxlarge', 'type' => 'textarea', 'div' => 'clear', 'placeholder' => __('You can add some contact details for the organisation here, if applicable.')));
+        echo $this->Form->input('contacts', array('class' => 'input-xxlarge', 'label' => __('Contacts'), 'type' => 'textarea', 'div' => 'clear', 'placeholder' => __('You can add some contact details for the organisation here, if applicable.')));
     ?>
     </fieldset>
 <?php echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));

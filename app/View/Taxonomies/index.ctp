@@ -23,7 +23,7 @@
             <th><?php echo $this->Paginator->sort('description');?></th>
             <th><?php echo $this->Paginator->sort('version');?></th>
             <th><?php echo $this->Paginator->sort('enabled');?></th>
-            <th><?php echo $this->Paginator->sort('required');?></th>
+            <th><?php echo $this->Paginator->sort('required', __('Required'));?></th>
             <th><?php echo __('Active Tags');?></th>
             <th class="actions"><?php echo __('Actions');?></th>
     </tr><?php
