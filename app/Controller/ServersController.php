@@ -313,6 +313,12 @@ class ServersController extends AppController
                         $this->request->data['Server']['internal'] = 0;
                     }
                     $this->request->data['Server']['org_id'] = $this->Auth->user('org_id');
+                    if (empty($this->request->data['Server']['push_rules'])) {
+                        $this->request->data['Server']['push_rules'] = '[]';
+                    }
+                    if (empty($this->request->data['Server']['pull_rules'])) {
+                        $this->request->data['Server']['pull_rules'] = '[]';
+                    }
                     if ($this->Server->save($this->request->data)) {
                         if (isset($this->request->data['Server']['submitted_cert'])) {
                             $this->__saveCert($this->request->data, $this->Server->id, false);
@@ -382,7 +388,7 @@ class ServersController extends AppController
             $this->set('host_org_id', Configure::read('MISP.host_org_id'));
         }
     }
-
+    
     public function edit($id = null)
     {
         $this->Server->id = $id;
