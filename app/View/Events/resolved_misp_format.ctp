@@ -98,6 +98,15 @@
                           }
                       ?>
                     </select>
+                    <div style="display:none;">
+                      <select id="<?php echo 'Object' . $o . 'Attribute' . $a . 'SHaringGroupId'; ?>" class='sgToggle' style='padding:0px;height:20px;margin-top:3px;margin-bottom:0px;'>
+                        <?php
+                            foreach ($sgs as $sgKey => $sgValue) {
+                                echo '<option value="' . h($sgKey) . '">' . h($sgValue) . '</option>';
+                            }
+                        ?>
+                      </select>
+                    </div>
                   </td>
                   <?php
                             echo '</tr>';
@@ -156,6 +165,15 @@
                     }
             ?>
             </select>
+            <div style="display:non;">
+              <select id="<?php echo 'Attribute' . $a . 'SharingGroupId'; ?>" class='sgToggle' style='padding:0px;height:20px;margin-top:3px;margin-bottom:0px;'>
+                <?php
+                    foreach ($sgs as $sgKey => $sgValue) {
+                        echo '<option value="' . h($sgKey) . '">' . h($sgValue) . '</option>';
+                    }
+                ?>
+              </select>
+            </div>
           </td>
           <?php
                     echo '</tr>';
@@ -176,3 +194,12 @@
     }
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'event', 'menuItem' => $menuItem));
 ?>
+<script type="text/javascript">
+    $('.distributionToggle').change(function() {
+        if ($(this).val() == 4) {
+            $(this).next().show();
+        } else {
+            $(this).next().hide();
+        }
+    });
+</script>
