@@ -379,7 +379,7 @@
                 if (target_distribution >= 2 && target_distribution != 4
                     && (this.distributionData.event[2] > 0 || this.distributionData.event[3] > 0)
                 ) {
-                    nodesToAdd.push({id: 'connected-community', label: 'Connected community', group: 'root-connected-community'});
+                    nodesToAdd.push({id: 'connected-community', label: 'Connected communities', group: 'root-connected-community'});
                     this.distributionData.additionalDistributionInfo[2].forEach(function(orgName) {
                         if (orgName === 'This community') {
                             edgesToAdd.push({from: 'connected-community', to: 'this-community', length: that.options.EDGE_LENGTH_HUB});
@@ -398,7 +398,7 @@
                 if (target_distribution >= 3 && target_distribution != 4
                     && this.distributionData.event[3] > 0
                 ) {
-                    nodesToAdd.push({id: 'all-community', label: 'All community', group: 'web'});
+                    nodesToAdd.push({id: 'all-community', label: 'All communities', group: 'web'});
                     this.distributionData.additionalDistributionInfo[3].forEach(function(orgName) {
                         if (orgName === 'This community') {
                             edgesToAdd.push({from: 'all-community', to: 'this-community', length: that.options.EDGE_LENGTH_HUB});

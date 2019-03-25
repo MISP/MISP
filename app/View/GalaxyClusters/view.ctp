@@ -8,34 +8,34 @@
                 <?php echo isset($cluster['Galax']['name']) ? h($cluster['Galaxy']['name']) : h($cluster['GalaxyCluster']['type']) . ': ' . $cluster['GalaxyCluster']['value']; ?>
             </h2>
             <dl>
-                <dt>Cluster ID</dt>
+                <dt><?php echo __('Cluster ID');?></dt>
                 <dd><?php echo h($cluster['GalaxyCluster']['id']); ?></dd>
-                <dt>Name</dt>
+                <dt><?php echo __('Name');?></dt>
                 <dd><?php echo h($cluster['GalaxyCluster']['value']); ?></dd>
-                <dt>Parent Galaxy</dt>
+                <dt><?php echo __('Parent Galaxy');?></dt>
                 <dd><?php echo $cluster['Galaxy']['name'] ? h($cluster['Galaxy']['name']) : h($cluster['Galaxy']['type']); ?></dd>
-                <dt>Description</dt>
+                <dt><?php echo __('Description');?></dt>
                 <dd><?php echo h($cluster['GalaxyCluster']['description']); ?>&nbsp;</dd>
-                <dt>UUID</dt>
+                <dt><?php echo __('UUID');?></dt>
                 <dd><?php echo h($cluster['GalaxyCluster']['uuid']); ?>&nbsp;</dd>
-                <dt>Collection UUID</dt>
+                <dt><?php echo __('Collection UUID');?></dt>
                 <dd><?php echo h($cluster['GalaxyCluster']['collection_uuid']); ?>&nbsp;</dd>
-                <dt>Source</dt>
+                <dt><?php echo __('Source');?></dt>
                 <dd><?php echo h($cluster['GalaxyCluster']['source']); ?>&nbsp;</dd>
-                <dt>Authors</dt>
+                <dt><?php echo __('Authors');?></dt>
                 <dd>
                     <?php
                         $authors = $cluster['GalaxyCluster']['authors'];
                         if (!empty($authors)) {
                             echo implode(', ', $authors);
                         } else {
-                            echo 'N/A';
+                            echo __('N/A');
                         }
                     ?>
                 </dd>
-                <dt>Connector tag</dt>
+                <dt><?php echo __('Connector tag');?></dt>
                 <dd><?php echo h($cluster['GalaxyCluster']['tag_name']); ?></dd>
-                <dt>Events</dt>
+                <dt><?php echo __('Events');?></dt>
                 <dd>
                     <?php
                         if (isset($cluster['GalaxyCluster']['tag_count'])):

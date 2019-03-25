@@ -250,6 +250,15 @@ class Server extends AppModel
                                 'type' => 'boolean',
                                 'afterHook' => 'disableCacheAfterHook',
                         ),
+                        'disable_threat_level' => array(
+                                'level' => 1,
+                                'description' => __('Disable displaying / modifications to the threat level altogether on the instance (deprecated field).'),
+                                'value' => false,
+                                'null' => true,
+                                'errorMessage' => '',
+                                'test' => 'testBool',
+                                'type' => 'boolean'
+                        ),
                         'header' => array(
                                 'level' => 3,
                                 'description' => __('This setting is deprecated and can be safely removed.'),

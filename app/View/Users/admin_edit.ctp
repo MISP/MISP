@@ -34,8 +34,8 @@
         <div id="PasswordDiv">
             <div class="clear"></div>
             <?php
-                $passwordPopover = '<span class=\"blue bold\">Length</span>: ' . h($length) . '<br />';
-                $passwordPopover .= '<span class=\"blue bold\">Complexity</span>: ' . h($complexity);
+                $passwordPopover = '<span class=\"blue bold\">' . __('Length') .'</span>: ' . h($length) . '<br />';
+                $passwordPopover .= '<span class=\"blue bold\">' . __('Complexity') .'</span>: ' . h($complexity);
                 echo $this->Form->input('password', array(
                     'label' => __('Password') . ' <span id = "PasswordPopover" class="icon-info-sign" ></span>'
                 ));

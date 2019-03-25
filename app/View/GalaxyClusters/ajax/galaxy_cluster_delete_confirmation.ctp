@@ -8,7 +8,7 @@
 ?>
 <legend><?php echo __('Galaxy Cluster Deletion');?></legend>
 <div style="padding-left:5px;padding-right:5px;padding-bottom:5px;">
-<p><?php echo __('Are you sure you want to delete Galaxy Cluster #<?php echo h($id); ?>?<br /> Associated tags will not be removed. You can reload the Galaxy Cluster at any time by force updating your galaxies.');?></p>
+<p><?php echo sprintf(__('Are you sure you want to delete Galaxy Cluster %s?<br /> Associated tags will not be removed. You can reload the Galaxy Cluster at any time by force updating your galaxies.'), h($id));?></p>
     <table>
         <tr>
             <td style="vertical-align:top">
