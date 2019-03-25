@@ -19,12 +19,12 @@
     <table class="table table-striped table-hover table-condensed">
     <tr>
             <th><?php echo $this->Paginator->sort('id');?></th>
-            <th><?php echo $this->Paginator->sort('icon');?></th>
+            <th><?php echo $this->Paginator->sort('icon', __('Icon'));?></th>
             <th><?php echo $this->Paginator->sort('name');?></th>
             <th><?php echo $this->Paginator->sort('version');?></th>
-            <th><?php echo $this->Paginator->sort('namespace');?></th>
-            <th><?php echo $this->Paginator->sort('description');?></th>
-            <th class="actions"><?php echo $this->Paginator->sort('description');?></th>
+            <th><?php echo $this->Paginator->sort('namespace', __('Namespace'));?></th>
+            <th class="description"><?php echo $this->Paginator->sort('description');?></th>
+            <th><?php echo __('Actions');?></th>
     </tr><?php
 foreach ($list as $item):?>
     <tr>
@@ -35,8 +35,8 @@ foreach ($list as $item):?>
         <td class="short"><?php echo h($item['Galaxy']['namespace']);?>&nbsp;</td>
         <td><?php echo h($item['Galaxy']['description']);?>&nbsp;</td>
         <td class="short action-links">
-            <?php echo $this->Form->postLink('', array('action' => 'delete', $item['Galaxy']['id']), array('class' => 'icon-trash', 'title' => __('Delete')), __('Are you sure you want to delete the Galaxy (%s)?', $item['Galaxy']['name'])); ?>
-            <?php echo $this->Html->link('', array('action' => 'view', $item['Galaxy']['id']), array('class' => 'icon-list-alt', 'title' => 'View'));?>
+            <?php echo $this->Form->postLink('', array('action' => 'delete', $item['Galaxy']['id']), array('class' => 'icon-trash', 'title' => __('Delete')), sprintf(__('Are you sure you want to delete the Galaxy (%s)?'), $item['Galaxy']['name'])); ?>
+            <?php echo $this->Html->link('', array('action' => 'view', $item['Galaxy']['id']), array('class' => 'icon-list-alt', 'title' => __('View')));?>
         </td>
     </tr><?php
 endforeach;?>

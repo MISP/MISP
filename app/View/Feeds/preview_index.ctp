@@ -22,8 +22,8 @@
             'children' => array(
                 array(
                     'type' => 'search',
-                    'button' => 'Filter',
-                    'placeholder' => 'Enter value to search',
+                    'button' => __('Filter'),
+                    'placeholder' => __('Enter value to search'),
                     'data' => '',
                 )
             )
@@ -35,13 +35,13 @@
 
     <table class="table table-striped table-hover table-condensed">
         <tr>
-            <th class="filter"><?php echo $this->Paginator->sort('Org', 'org'); ?></th>
-            <th class="filter">Tags</th>
+            <th class="filter"><?php echo $this->Paginator->sort('Org', __('Org')); ?></th>
+            <th class="filter"><?php echo __('Tags');?></th>
             <th class="filter"><?php echo $this->Paginator->sort('date', null, array('direction' => 'desc'));?></th>
             <th class="filter" title="<?php echo $eventDescriptions['threat_level_id']['desc'];?>"><?php echo $this->Paginator->sort('threat_level_id');?></th>
             <th class="filter" title="<?php echo $eventDescriptions['analysis']['desc']; ?>"><?php echo $this->Paginator->sort('analysis');?></th>
             <th class="filter"><?php echo $this->Paginator->sort('info');?></th>
-            <th class="filter"><?php echo $this->Paginator->sort('timestamp', null, array('direction' => 'desc'));?></th>
+            <th class="filter"><?php echo $this->Paginator->sort('timestamp', __('Timestamp'), array('direction' => 'desc'));?></th>
             <th class="actions"><?php echo __('Actions');?></th>
 
         </tr>
@@ -69,7 +69,7 @@
             </td>
             <td ondblclick="document.location.href ='<?php echo $eventViewURL . h($uuid);?>'" class="short"><?php echo h($event['timestamp']); ?></td>
             <td class="short action-links">
-                <?php if ($feed['Feed']['enabled'] && $isSiteAdmin) echo $this->Form->postLink('', '/feeds/getEvent/' . $id . '/' . $uuid, array('class' => 'icon-download', 'title' => 'Fetch the event'), __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Feed.id'))); ?>
+                <?php if ($feed['Feed']['enabled'] && $isSiteAdmin) echo $this->Form->postLink('', '/feeds/getEvent/' . $id . '/' . $uuid, array('class' => 'icon-download', 'title' => __('Fetch the event')), __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Feed.id'))); ?>
                 <a href='<?php echo $eventViewURL . h($uuid);?>' class = "icon-list-alt" title = "<?php echo __('View');?>"></a>
             </td>
         </tr>
