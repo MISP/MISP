@@ -1,8 +1,8 @@
 <div class="index">
     <h2><?php echo h($title); ?></h2>
     <?php
-        $url = '/events/handle_module_results/' . $event['Event']['id'];
-        echo $this->Form->create('Event', array('url' => array('controller' => 'events', 'action' => 'handle_module_results', $event['Event']['id'])));
+        $url = '/events/handleModuleResults/' . $event['Event']['id'];
+        echo $this->Form->create('Event', array('url' => array('controller' => 'events', 'action' => 'handleModuleResults', $event['Event']['id'])));
         $formSettings = array(
             'type' => 'hidden',
             'value' => json_encode($event, true)
