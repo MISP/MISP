@@ -254,7 +254,9 @@ class AttributesController extends AppController
             }
             foreach ($attributes as $k => $attribute) {
                 if (empty($attribute['blocked'])) {
-                    $attribute = $this->Attribute->onDemandEncrypt($attribute);
+                    if (!empty($attribute['encrypt'])) {
+                        $attribute = $this->Attribute->onDemandEncrypt($attribute);
+                    }
                     $attributes[$k] = $attribute;
                     $this->Attribute->set($attribute);
                     $result = $this->Attribute->validates();
