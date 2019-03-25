@@ -30,10 +30,12 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
         ?>
     </div>
 <?php
-    echo $this->Form->input('threat_level_id', array(
-            'div' => 'input clear',
+    echo '<div class="input clear"></div>';
+    if (empty(Configure::read('MISP.disable_threat_level'))) {
+        echo $this->Form->input('threat_level_id', array(
             'label' => __('Threat Level ') . $this->element('formInfo', array('type' => 'threat_level'))
-    ));
+        ));
+    }
     echo $this->Form->input('analysis', array(
             'label' => __('Analysis ') . $this->element('formInfo', array('type' => 'analysis')),
             'options' => array($analysisLevels)

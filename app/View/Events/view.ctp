@@ -133,11 +133,13 @@
             'key' => __('Date'),
             'value' => $event['Event']['date']
         );
-        $table_data[] = array(
-            'key' => __('Threat Level'),
-            'key_title' => $eventDescriptions['threat_level_id']['desc'],
-            'value' => $event['ThreatLevel']['name']
-        );
+        if (empty(Configure::read('MISP.disable_threat_level'))) {
+            $table_data[] = array(
+                'key' => __('Threat Level'),
+                'key_title' => $eventDescriptions['threat_level_id']['desc'],
+                'value' => $event['ThreatLevel']['name']
+            );
+        }
         $table_data[] = array(
             'key' => __('Analysis'),
             'key_title' => $eventDescriptions['analysis']['desc'],
