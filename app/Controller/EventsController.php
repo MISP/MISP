@@ -5104,6 +5104,8 @@ class EventsController extends AppController
         if (empty($attributes) && empty($objects)) {
             $this->__handleSimplifiedFormat($attribute, $module, $options, $result, $type);
         } else {
+            $this->set('attributeValue', $attribute[0]['Attribute']['value']);
+            $this->set('module', $module);
             $event = array('Event' => $attribute[0]['Event']);
             $event['Attribute'] = $attributes;
             $event['Object'] = $objects;
@@ -5182,6 +5184,12 @@ class EventsController extends AppController
         $this->set('title', 'Enrichment Results');
         $this->set('importComment', $importComment);
         $this->render($renderName);
+    }
+
+    public function handleModuleResults($eventId)
+    {
+        debug($eventId);
+        debug($this->request->event);
     }
 
     public function importModule($module, $eventId)
