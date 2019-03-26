@@ -184,8 +184,10 @@ $(document).ready( function() {
   	.append("xhtml:div")
   	.html(function (d) {
   		var result = 'fa-' + d.imgClass;
+        var namespace = getFontAwesomeNamespace(d.imgClass);
   		if (d.type == 'galaxy' || d.type == 'tag') result = 'fa-2x ' + result;
-  		return '<i class="fa ' + result + '"></i>';
+
+  		return '<i class="' + namespace + ' ' + result + '"></i>';
   	});
 
   	nodeEnter.append("text")

@@ -7,6 +7,7 @@
     echo $this->Html->css('correlation-graph');
     echo $this->Html->script('d3');
     echo $this->Html->script('correlation-graph');
+    echo $this->Html->script('font-awesome-helper');
 ?>
 <?php
     if (!$ajax):
