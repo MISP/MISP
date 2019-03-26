@@ -21,104 +21,152 @@
         }
     </script>
     <table class="table table-striped table-hover table-condensed">
-        <tr>
-            <th style="text-align:center;"><?php echo __('Type');?></th>
-            <th style="text-align:center;"><?php echo __('Last Update');?></th>
-            <th style="text-align:center;"><?php echo __('Description');?></th>
-            <th style="text-align:center;"><?php echo __('Outdated');?></th>
-            <th style="text-align:center;"><?php echo __('Filesize');?></th>
-            <th style="text-align:center;"><?php echo __('Progress');?></th>
-            <th style="text-align:center;"><?php echo __('Actions');?></th>
-        </tr>
-        <?php foreach ($export_types as $k => $type): ?>
-            <tr>
-                <td class="short"><?php echo $type['type']; ?></td>
-                <td id="update<?php echo $i; ?>" class="short" style="color:red;"><?php echo $type['lastModified']; ?></td>
-                <td>
-                    <?php
-                        echo $type['description'];
-                        if (!empty($type['params']['includeAttachments'])):
-                            if (Configure::read('MISP.cached_attachments')):
-                    ?>
-                        <span class="green"> (<?php echo __('Attachments are enabled on this instance');?>)</span>
-                    <?php
-                            else:
-                    ?>
-                        <span class="red"> (<?php echo __('Attachments are disabled on this instance');?>)</span>
-                    <?php
-                            endif;
-                        endif;
-                    ?>
-                </td>
-                <td id="outdated<?php echo $i; ?>">
-                    <?php
-                        if ($type['recommendation']) {
-                            echo '<span style="color:red;">' . __('Yes') . '</span>';
+        <?php
+            $background = (!empty(Configure::read('MISP.background_jobs')) && empty(Configure::read('MISP.disable_cached_exports')));
+            $fields = array(__('Type'), __('Last Update'), __('Description'), __('Outdated'), __('Filesize'), __('Progress'), __('Actions'));
+            if (!$background) {
+                unset($fields[1]);
+                unset($fields[3]);
+                unset($fields[4]);
+                unset($fields[5]);
+            }
+            $headers = array();
+            foreach ($fields as $field) {
+                $headers[] = sprintf(
+                    '<th style="text-align:center;">%s</th>',
+                    $field
+                );
+            }
+            echo sprintf(
+                '<tr>%s</tr>',
+                implode('', $headers)
+            );
+            foreach ($export_types as $k => $type) {
+                $cells = array();
+                $cells[] = sprintf(
+                    '<td class="short">%s</td>',
+                    h($type['type'])
+                );
+                if ($background) {
+                    $cells[] = sprintf(
+                        '<td id="update%s" class="short red">%s</td>',
+                        h($i),
+                        h($type['lastModified'])
+                    );
+                }
+                $cells[] = sprintf(
+                    '<td>%s%s</td>',
+                    h($type['description']),
+                    empty($type['params']['includeAttachments']) ? '' : sprintf(
+                        '<span class="%s">%s</span>',
+                        Configure::read('MISP.cached_attachments') ? 'green' : 'red',
+                        Configure::read('MISP.cached_attachments') ? __('Attachments are enabled on this instance') : __('Attachments are disabled on this instance')
+                    )
+                );
+                if ($background) {
+                    $cells[] = sprintf(
+                        '<td id="outdated%s">%s</td>',
+                        h($i),
+                        $type['recommendation'] ? '<span style="color:red;">' . __('Yes') . '</span>' : __('No')
+                    );
+                    $cells[] = sprintf(
+                        '<td class="short" style="text-align:right;">%s</td>',
+                        isset($type['filesize']) ? h($type['filesize']) : sprintf('<span class="red">%s</span>', __('N/A'))
+                    );
+                    $status = __('Loading…');
+                    if ($type['progress'] == 0 && $type['lastModified'] != "N/A") {
+                        $status = __('Queued');
+                    } else if ($type['progress'] == 0 && $type['lastModified'] == "N/A") {
+                        $status = '<span style="color:red;">' . __('N/A') . '</span>';
+                    } else if ($type['progress'] == 100) {
+                        if (isset($type['filesize'])) {
+                            $status = __('Completed');
                         } else {
-                            echo __('No');
+                            $status = '<span style="color:red;">' . __('N/A') . '</span>';
                         }
-                    ?>
-                </td>
-                <td class="short" style="text-align:right;">
-                    <?php
-                        if (isset($type['filesize'])):
-                            echo h($type['filesize']);
-                        else:
-                    ?>
-                            <span class="red"><?php echo __('N/A');?></span>
-                    <?php
-                        endif;
-                    ?>
-                </td>
-                <td style="width:150px;">
-                    <div id="barFrame<?php echo $i; ?>" class="progress progress-striped active" style="margin-bottom: 0px;display:none;">
-                      <div id="bar<?php echo $i; ?>" class="bar" style="width: <?php echo $type['progress']; ?>%;">
-                        <?php
-                            if ($type['progress'] > 0 && $type['progress'] < 100) echo $type['progress'] . '%';
-                        ?>
-                      </div>
-                    </div>
-                    <div id="message<?php echo $i; ?>" style="text-align:center;display:block;"><?php echo __('Loading…');?></div>
-                    <?php $temp = $i . "','" . $k . "','" . $type['job_id'] . "','" .  $type['progress'] . "','" . $type['lastModified']; ?>
-                    <script type="text/javascript">
-                        if ("<?php echo $type['progress']; ?>"  == 0) {
-                            if ("<?php echo $type['lastModified']; ?>" != "N/A") {
-                                editMessage(<?php echo $i; ?>, "Queued.");
+                    } else {
+                        $status = h($type['progress']) . '%';
+                    }
+                    $cells[] = sprintf(
+                        '<td style="width:150px;"><div id="barFrame%s" %s>%s</div><div id="message%s" style="text-align:center;display:block;">%s</div><script type="text/javascript">%s</script></td>',
+                        h($i),
+                        'class="progress progress-striped active" style="margin-bottom: 0px;display:none;"',
+                        sprintf(
+                            '<div id="bar%s" class="bar" style="width: %s%%;">%s</div>',
+                            h($i),
+                            h($type['progress']),
+                            $status
+                        ),
+                        h($i),
+                        $status,
+                        sprintf(
+                            '<script type="text/javascript">queueInterval("%s", "%s", "%s", "%s", "%s");</script>',
+                            h($i),
+                            h($k),
+                            h($type['job_id']),
+                            h($type['progress']),
+                            h($type['lastModified'])
+                        )
+                    );
+                }
+                if ($background) {
+                    $cells[] = sprintf(
+                        '<td><span class="btn-group">%s%s</span></td>',
+                        ($k === 'text') ? '' : $this->Html->link(__('Download'), array('action' => 'downloadExport', $k), array('class' => 'btn btn-inverse btn-small')),
+                        sprintf(
+                            '<button class="btn btn-inverse btn-small" id=button%s onClick="generate(\'%s\', \'%s\', \'%s\', \'%s\', \'%s\')" %s>%s</button>',
+                            $i,
+                            h($i),
+                            h($k),
+                            h($type['job_id']),
+                            h($type['progress']),
+                            h($type['lastModified']),
+                            (!$type['recommendation']) ? 'disabled' : '',
+                            __('Generate')
+                        )
+                    );
+                } else {
+                    $params = array();
+                    foreach ($type['params'] as $param => $param_value) {
+                        if ($param == 'includeAttachments') {
+                            if ($param_value == 1 && Configure::read('MISP.cached_attachments')) {
+                                $param_value = '1';
                             } else {
-                                editMessage(<?php echo $i; ?>, '<span style="color:red;"><?php echo __('N/A'); ?></span>');
+                                $param_value = '0';
                             }
                         }
-                        if ("<?php echo $type['progress']; ?>" == 100) editMessage(<?php echo $i; ?>, '<?php echo "Completed."; ?>');
-                        queueInterval('<?php echo $temp;?>');
-                    </script>
-                </td>
-                <td style="width:150px;">
-                    <?php
-                        if ($k !== 'text') {
-                            echo $this->Html->link(__('Download'), array('action' => 'downloadExport', $k), array('class' => 'btn btn-inverse toggle-left btn.active qet'));
-                        ?>
-                            <button class = "btn btn-inverse toggle-right btn.active qet" id=button<?php echo $i;?> onClick = "generate('<?php echo $temp; ?>')" <?php if (!$type['recommendation']) echo 'disabled';?>><?php echo __('Generate');?></button>
-                        <?php
-                        } else {
-                        ?>
-                            <button class = "btn btn-inverse btn.active qet" id=button<?php echo $i;?> onClick = "generate('<?php echo $temp; ?>')" <?php if (!$type['recommendation']) echo 'disabled';?>><?php echo __('Generate');?></button>
-                        <?php
-                        }
-                        ?>
-
-                </td>
-            </tr>
-        <?php
-            $i++;
-        endforeach; ?>
+                        $params[] = h($param) . ':' . strval(h($param_value));
+                    }
+                    $download_url = $baseurl . '/' . strtolower($type['scope']) . 's/restSearch/' . implode('/', $params) . '.json';
+                    $cells[] = sprintf(
+                        '<td><a href="%s" class="btn btn-inverse btn-small">%s</a></td>',
+                        $download_url,
+                        __('Download')
+                    );
+                }
+                echo sprintf(
+                    '<tr>%s</tr>',
+                    implode('', $cells)
+                );
+                $i++;
+            }
+        ?>
     </table>
     <ul class="inline">
-    <?php
-    foreach ($sigTypes as $sigType): ?>
-        <li class="actions" style="text-align:center; width: auto; padding: 7px 2px;">
-            <?php echo $this->Html->link($sigType, array('action' => 'downloadExport', $k, $sigType), array('class' => 'btn btn-inverse btn.active qet')); ?>
-        </li>
-    <?php endforeach; ?>
+        <?php
+            foreach ($sigTypes as $sigType) {
+                echo sprintf(
+                    '<li class="actions" style="text-align:center; width: auto; padding: 7px 2px;">%s</li>',
+                    $background ?
+                    $this->Html->link($sigType, array('action' => 'downloadExport', $k, $sigType), array('class' => 'btn btn-inverse btn-small btn.active qet')) :
+                    sprintf(
+                        '<a href="%s" class="btn btn-inverse btn-small">%s</a>',
+                        $baseurl . '/attributes/restSearch/returnFormat:text/type:' . $sigType . '.json',
+                        h($sigType)
+                    )
+                );
+            }
+        ?>
     </ul>
 </div>
 <?php
