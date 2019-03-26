@@ -32,8 +32,8 @@
             <th><?php echo $this->Paginator->sort('version');?></th>
             <th><?php echo $this->Paginator->sort('description');?></th>
             <th><?php echo $this->Paginator->sort('type');?></th>
-            <th>Valid attributes</th>
-            <th><?php echo $this->Paginator->sort('warninglist_entry_count', 'Entries');?></th>
+            <th><?php echo __('Valid attributes');?></th>
+            <th><?php echo $this->Paginator->sort('warninglist_entry_count', __('Entries'));?></th>
             <th><?php echo $this->Paginator->sort('enabled');?></th>
             <th class="actions"><?php echo __('Actions');?></th>
     </tr><?php

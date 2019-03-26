@@ -9,7 +9,10 @@
         ));
     ?>
     </fieldset>
-<?php echo $this->Form->end(__('Submit'));?>
+<?php
+    echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
+    echo $this->Form->end();
+?>
 </div>
 <?php
     echo $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'whitelist', 'menuItem' => 'edit', 'id' => $this->Form->value('Whitelist.id')));

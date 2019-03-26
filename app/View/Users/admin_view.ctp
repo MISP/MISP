@@ -34,7 +34,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
         h($user['User']['authkey']),
         sprintf(
             ' (%s)',
-            $this->Html->link('reset', array('controller' => 'users', 'action' => 'resetauthkey', $user['User']['id']))
+            $this->Html->link(__('reset'), array('controller' => 'users', 'action' => 'resetauthkey', $user['User']['id']))
         )
     );
     $table_data[] = array(
@@ -95,12 +95,13 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
             $this->element('genericElements/viewMetaTable', array('table_data' => $table_data))
         ),
         sprintf(
-            '<br /><a href="%s" class="btn btn-inverse" download>Download user profile for data portability</a>',
+            '<br /><a href="%s" class="btn btn-inverse" download>%s</a>',
             sprintf(
                 '%s/users/view/%s.json',
                 $baseurl,
                 h($user['User']['id'])
-            )
+            ),
+            __('Download user profile for data portability')
         ),
         '<div id="userEvents"></div>',
         $this->element('/genericElements/SideMenu/side_menu', array('menuList' => 'admin', 'menuItem' => 'viewUser'))

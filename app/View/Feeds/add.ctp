@@ -5,11 +5,11 @@
         <p><?php echo __('Add a new MISP feed source.');?></p>
     <?php
         echo $this->Form->input('enabled', array());
-        echo $this->Form->input('caching_enabled', array());
+        echo $this->Form->input('caching_enabled', array('label' => __('Caching enabled')));
     ?>
         <div class="input clear"></div>
     <?php
-        echo $this->Form->input('lookup_visible', array());
+        echo $this->Form->input('lookup_visible', array('label' => __('Lookup visible')));
         echo $this->Form->input('name', array(
                 'div' => 'input clear',
                 'placeholder' => __('Feed name'),
@@ -17,6 +17,7 @@
         ));
         echo $this->Form->input('provider', array(
                 'div' => 'input clear',
+                'label' => __('Provider'),
                 'placeholder' => __('Name of the content provider'),
                 'class' => 'form-control span6'
         ));
@@ -39,6 +40,7 @@
         <?php
         echo $this->Form->input('url', array(
                 'div' => 'input clear',
+                'label' => __('URL'),
                 'placeholder' => __('URL of the feed'),
                 'class' => 'form-control span6'
         ));

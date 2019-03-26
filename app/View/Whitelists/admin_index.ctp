@@ -28,8 +28,8 @@ foreach ($list as $item):?>
         <td class="short"><?php echo h($item['Whitelist']['id']);?>&nbsp;</td>
         <td><?php echo h($item['Whitelist']['name']);?>&nbsp;</td>
         <td class="short action-links">
-            <?php echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $item['Whitelist']['id']), array('class' => 'fa fa-edit', 'title' => 'Edit'));?>
-            <?php echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $item['Whitelist']['id']), array('class' => 'fa fa-trash', 'title' => 'Delete'), __('Are you sure you want to delete "%s"?', $item['Whitelist']['name']));?>
+            <?php echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $item['Whitelist']['id']), array('class' => 'fa fa-edit', 'title' => __('Edit')));?>
+            <?php echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $item['Whitelist']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete')), __('Are you sure you want to delete "%s"?', $item['Whitelist']['name']));?>
         </td>
     </tr><?php
 endforeach;?>

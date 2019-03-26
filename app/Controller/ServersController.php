@@ -215,7 +215,6 @@ class ServersController extends AppController
                     throw new MethodNotAllowedException('No remote org ID set. Please pass it as remote_org_id');
                 }
             }
-
             $fail = false;
             if (empty(Configure::read('MISP.host_org_id'))) {
                 $this->request->data['Server']['internal'] = 0;
@@ -240,7 +239,6 @@ class ServersController extends AppController
                     $this->Flash->error($error_msg);
                 }
             }
-
             if (!$fail) {
                 if ($this->_isRest()) {
                     $defaults = array(
@@ -334,7 +332,7 @@ class ServersController extends AppController
                         }
                     } else {
                         if ($this->_isRest()) {
-                            return $this->RestResponse->saveFailResponse('Servers', 'add', false, $this->Server->validationError, $this->response->type());
+                            return $this->RestResponse->saveFailResponse('Servers', 'add', false, $this->Server->validationErrors, $this->response->type());
                         } else {
                             $this->Flash->error(__('The server could not be saved. Please, try again.'));
                         }
@@ -1142,10 +1140,16 @@ class ServersController extends AppController
         if (!$this->_isSiteAdmin()) {
             throw new MethodNotAllowedException();
         }
-        if (!isset($setting_name) || !isset($id)) {
+        if (!isset($setting_name)) {
             throw new MethodNotAllowedException();
         }
-        $this->set('id', $id);
+        if (!$this->_isRest()) {
+            if (!isset($id)) {
+                throw new MethodNotAllowedException();
+            }
+            $this->set('id', $id);
+        }
+
         $setting = $this->Server->getSettingData($setting_name);
         if ($this->request->is('get')) {
             if ($setting != null) {
@@ -1568,6 +1572,23 @@ class ServersController extends AppController
     {
         App::uses('SyncTool', 'Tools');
         $params = array();
+        $this->loadModel('RestClientHistory');
+        $this->RestClientHistory->create();
+        $date = new DateTime();
+        $rest_history_item = array(
+            'org_id' => $this->Auth->user('org_id'),
+            'user_id' => $this->Auth->user('id'),
+            'headers' => $request['header'],
+            'body' => empty($request['body']) ? '' : $request['body'],
+            'url' => $request['url'],
+            'http_method' => $request['method'],
+            'use_full_path' => $request['use_full_path'],
+            'show_result' => $request['show_result'],
+            'skip_ssl' => $request['skip_ssl_validation'],
+            'bookmark' => $request['bookmark'],
+            'bookmark_name' => $request['name'],
+            'timestamp' => $date->getTimestamp()
+        );
         if (!empty($request['url'])) {
             if (empty($request['use_full_path'])) {
                 $path = preg_replace('#^(://|[^/?])+#', '', $request['url']);
@@ -1581,6 +1602,8 @@ class ServersController extends AppController
         }
         if (!empty($request['skip_ssl_validation'])) {
             $params['ssl_verify_peer'] = false;
+            $params['ssl_verify_host'] = false;
+            $params['ssl_allow_self_signed'] = true;
         }
         $params['timeout'] = 300;
         App::uses('HttpSocket', 'Network/Http');
@@ -1638,6 +1661,9 @@ class ServersController extends AppController
                 $view_data['data'] = 'Something went wrong.';
             }
         }
+        $rest_history_item['outcome'] = $response->code;
+        $this->RestClientHistory->save($rest_history_item);
+        $this->RestClientHistory->cleanup($this->Auth->user('id'));
         return $view_data;
     }
 
@@ -1678,7 +1704,7 @@ misp.direct_call(relative_path, body)
             $request['header']['Authorization'],
             $verifyCert,
             $relative,
-            (empty($request['body']) ? 'Null' : '\'' . $request['body'] . '\'')
+            (empty($request['body']) ? 'Null' : $request['body'])
         );
         return $python_script;
     }

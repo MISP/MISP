@@ -84,7 +84,7 @@ if ($object['value'] == 'MERGE') debug($object);
     </td>
     <td class="short">
       <div id = "Attribute_<?php echo $object['uuid']; ?>_to_ids_solid" class="inline-field-solid");">
-        <?php echo $object['to_ids'] ? 'Yes' : 'No'; ?>
+        <?php echo $object['to_ids'] ? __('Yes') : __('No'); ?>
       </div>
     </td>
   </td>

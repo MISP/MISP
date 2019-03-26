@@ -65,7 +65,7 @@
         'title' => __('Download report'),
         'html' => '<i class="fa fa-download"></i>'
     );
-    if ($active_tab && $active_tab !== 'diagnostics' && $active_tab !== 'files') {
+    if ($active_tab && !in_array($active_tab, array('diagnostics', 'files', 'workers'))) {
         $data['children'][] = array(
                 'type' => 'live_search',
                 'placeholder' => 'Filter the table(s) below'

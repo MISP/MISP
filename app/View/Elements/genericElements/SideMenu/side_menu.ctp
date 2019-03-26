@@ -17,6 +17,14 @@
                             'text' => __('Populate From Template')
                         ));
                     }
+                    if ($menuItem === 'enrichmentResults') {
+                        echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                            'element_id' => 'enrichmentResults',
+                            'url' => '#',
+                            'text' => __('Enrichment Module Result')
+                        ));
+                        echo $this->element('/genericElements/SideMenu/side_menu_divider');
+                    }
                     if ($menuItem === 'freetextResults') {
                         echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                             'element_id' => 'freetextResults',
@@ -171,6 +179,16 @@
                             'url' => '/events/pushEventToZMQ/' . h($event['Event']['id']),
                             'text' => __('Publish event to ZMQ'),
                             'message' => __('Are you sure you wish to republish the current event to the ZMQ channel?')
+                        ));
+                    }
+                    if (Configure::read('Plugin.Kafka_enable') &&
+                        Configure::read('Plugin.Kafka_event_notifications_enable') &&
+                        Configure::read('Plugin.Kafka_event_notifications_topic') &&
+                        $isAclKafka) {
+                        echo $this->element('/genericElements/SideMenu/side_menu_post_link', array(
+                            'url' => '/events/pushEventToKafka/' . h($event['Event']['id']),
+                            'text' => __('Publish event to Kafka'),
+                            'message' => __('Are you sure you wish to republish the current event to the Kafka topic?')
                         ));
                     }
                     echo $this->element('/genericElements/SideMenu/side_menu_link', array(
@@ -639,11 +657,6 @@
                         }
                         if ($menuItem === 'editOrg' || $menuItem === 'viewOrg') {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                                'element_id' => 'editOrg',
-                                'url' => '/organisations/edit/' . h($id),
-                                'text' => __('Edit Organisation')
-                            ));
-                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'viewOrg',
                                 'url' => '/organisations/view/' . h($id),
                                 'text' => __('View Organisation')
@@ -884,10 +897,16 @@
                         'download' => 'feed_index.json'
                     ));
                     if ($isSiteAdmin) {
-                        if ($menuItem === 'edit') {
+                        if ($menuItem === 'edit' || $menuItem === 'view') {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'edit',
+                                'url' => '/feeds/edit/' . h($feed['Feed']['id']),
                                 'text' => __('Edit Feed')
+                            ));
+                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
+                                'element_id' => 'view',
+                                'url' => '/feeds/view/' . h($feed['Feed']['id']),
+                                'text' => __('View Feed')
                             ));
                         } else if ($menuItem === 'previewIndex') {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(

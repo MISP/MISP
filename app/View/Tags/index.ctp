@@ -60,8 +60,8 @@
     <table class="table table-striped table-hover table-condensed">
     <tr>
             <th><?php echo $this->Paginator->sort('id');?></th>
-            <th><?php echo $this->Paginator->sort('exportable');?></th>
-            <th><?php echo $this->Paginator->sort('hide_tag', 'Hidden');?></th>
+            <th><?php echo $this->Paginator->sort('exportable', __('Exportable'));?></th>
+            <th><?php echo $this->Paginator->sort('hide_tag', __('Hidden'));?></th>
             <th><?php echo $this->Paginator->sort('name');?></th>
             <th><?php echo __('Restricted to org');?></th>
             <?php if ($isSiteAdmin): ?>
@@ -120,8 +120,8 @@ foreach ($list as $k => $item): ?>
         </td>
         <?php if ($isSiteAdmin): ?>
         <td class="short action-links">
-            <?php echo $this->Html->link('', array('controller' => 'tags', 'action' => 'viewGraph', $item['Tag']['id']), array('class' => 'fa fa-share-alt', 'title' => 'View graph'));?>
-            <?php echo $this->Html->link('', array('action' => 'edit', $item['Tag']['id']), array('class' => 'fa fa-edit', 'title' => 'Edit'));?>
+            <?php echo $this->Html->link('', array('controller' => 'tags', 'action' => 'viewGraph', $item['Tag']['id']), array('class' => 'fa fa-share-alt', 'title' => __('View graph')));?>
+            <?php echo $this->Html->link('', array('action' => 'edit', $item['Tag']['id']), array('class' => 'fa fa-edit', 'title' => __('Edit')));?>
             <?php echo $this->Form->postLink('', array('action' => 'delete', $item['Tag']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete')), __('Are you sure you want to delete "%s"?', $item['Tag']['name']));?>
         </td>
         <?php endif; ?>

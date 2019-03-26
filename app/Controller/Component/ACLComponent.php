@@ -115,6 +115,7 @@ class ACLComponent extends Component
                     'getEventGraphReferences' => array('*'),
                     'getEventGraphTags' => array('*'),
                     'getEventGraphGeneric' => array('*'),
+                    'genDistributionGraph' => array('*'),
                     'getDistributionGraph' => array('*'),
                     'getReferenceData' => array('*'),
                     'getReferences' => array('*'),
@@ -129,6 +130,7 @@ class ACLComponent extends Component
                     'proposalEventIndex' => array('*'),
                     'publish' => array('perm_publish'),
                     'pushEventToZMQ' => array('perm_publish_zmq'),
+                    'pushEventToKafka' => array('perm_publish_kafka'),
                     'pushProposals' => array('perm_sync'),
                     'queryEnrichment' => array('perm_add'),
                     'removePivot' => array('*'),
@@ -165,6 +167,7 @@ class ACLComponent extends Component
                     'disable' => array(),
                     'edit' => array(),
                     'enable' => array(),
+                    'feedCoverage' => array('*'),
                     'fetchFromAllFeeds' => array(),
                     'fetchFromFeed' => array(),
                     'fetchSelectedFromFreetextIndex' => array(),
@@ -179,6 +182,7 @@ class ACLComponent extends Component
             'galaxies' => array(
                 'attachCluster' => array('perm_tagger'),
                 'attachMultipleClusters' => array('perm_tagger'),
+                'delete' => array(),
                 'index' => array('*'),
                 'selectGalaxy' => array('perm_tagger'),
                 'selectGalaxyNamespace' => array('perm_tagger'),
@@ -193,7 +197,8 @@ class ACLComponent extends Component
                 'delete' => array('perm_site_admin'),
                 'detach' => array('perm_tagger'),
                 'index' => array('*'),
-                'view' => array('*')
+                'view' => array('*'),
+                'viewGalaxyMatrix' => array('*')
             ),
             'galaxyElements' => array(
                     'index' => array('*')
@@ -301,6 +306,10 @@ class ACLComponent extends Component
                     'admin_index' => array('perm_regexp_access'),
                     'cleanRegexModifiers' => array('perm_regexp_access'),
                     'index' => array('*'),
+            ),
+            'restClientHistory' => array(
+                    'delete' => array('*'),
+                    'index' => array('*')
             ),
             'roles' => array(
                     'admin_add' => array(),
@@ -429,8 +438,13 @@ class ACLComponent extends Component
                     'enable' => array(),
                     'index' => array('*'),
                     'taxonomyMassConfirmation' => array('perm_tagger'),
+                    'taxonomyMassHide' => array('perm_tagger'),
+                    'taxonomyMassUnhide' => array('perm_tagger'),
+                    'toggleRequired' => array('perm_site_admin'),
                     'update' => array(),
                     'view' => array('*'),
+                    'unhideTag' => array('perm_tagger'),
+                    'hideTag' => array('perm_tagger'),
             ),
             'templateElements' => array(
                     'add' => array('perm_template'),

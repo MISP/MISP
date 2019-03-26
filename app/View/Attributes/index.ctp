@@ -46,7 +46,7 @@
         $headers = array(
             $this->Paginator->sort('date'),
             $this->Paginator->sort('event_id'),
-            $this->Paginator->sort('Event.orgc_id', 'Org'),
+            $this->Paginator->sort('Event.orgc_id', __('Org')),
             $this->Paginator->sort('category'),
             $this->Paginator->sort('type'),
             $this->Paginator->sort('value'),
@@ -56,18 +56,14 @@
             __('Correlate'),
             __('Related Events'),
             __('Feed hits'),
-            sprintf('<span title="%s">%s</th>', $attrDescriptions['signature']['desc'], $this->Paginator->sort('IDS')),
-            $this->Paginator->sort('distribution'),
+            sprintf('<span title="%s">%s', $attrDescriptions['signature']['desc'], $this->Paginator->sort('IDS')),
+            sprintf('<span title="%s">%s', $attrDescriptions['distribution']['desc'], $this->Paginator->sort('distribution')),
             __('Sightings'),
             __('Activity'),
             __('Actions')
         );
         foreach ($headers as $k => &$header) {
-            if ($k == (count($headers)-1)) {
-                $header = sprintf('<th title="%s">%s</th>', $attrDescriptions['signature']['desc'], $header);
-            } else {
-                $header = sprintf('<th>%s</th>', $header);
-            }
+            $header = sprintf('<th>%s</th>', $header);
         }
         $rows = array(
             sprintf('<tr>%s</tr>', implode('', $headers))

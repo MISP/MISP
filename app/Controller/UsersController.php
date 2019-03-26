@@ -173,36 +173,62 @@ class UsersController extends AppController
             'recursive' => -1
         ));
         if ($this->request->is('post') || $this->request->is('put')) {
+            if (!isset($this->request->data['User'])) {
+                $this->request->data = array('User' => $this->request->data);
+            }
             $abortPost = false;
             if (Configure::read('Security.require_password_confirmation')) {
                 if (!empty($this->request->data['User']['current_password'])) {
                     $hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['current_password']);
                     if (!$hashed) {
+                        $message = __('Invalid password. Please enter your current password to continue.');
+                        if ($this->_isRest()) {
+                            return $this->RestResponse->saveFailResponse('Users', 'change_pw', false, $message, $this->response->type());
+                        }
                         $abortPost = true;
-                        $this->Flash->error('Invalid password. Please enter your current password to continue.');
+                        $this->Flash->error($message);
                     }
                     unset($this->request->data['User']['current_password']);
-                } else {
+                } else if (!$this->_isRest()) {
+                    $message = __('Please enter your current password to continue.');
+                    if ($this->_isRest()) {
+                        return $this->RestResponse->saveFailResponse('Users', 'change_pw', false, $message, $this->response->type());
+                    }
                     $abortPost = true;
-                    $this->Flash->info('Please enter your current password to continue.');
+                    $this->Flash->info($message);
                 }
             }
             if (!$abortPost) {
                 // What fields should be saved (allowed to be saved)
                 $user['User']['change_pw'] = 0;
                 $user['User']['password'] = $this->request->data['User']['password'];
-                $user['User']['confirm_password'] = $this->request->data['User']['confirm_password'];
+                if ($this->_isRest()) {
+                    $user['User']['confirm_password'] = $this->request->data['User']['password'];
+                } else {
+                    $user['User']['confirm_password'] = $this->request->data['User']['confirm_password'];
+                }
                 $temp = $user['User']['password'];
                 // Save the data
                 if ($this->User->save($user)) {
-                    $this->Flash->success(__('Password Changed.'));
-                    $this->_refreshAuth();
+                    $message = __('Password Changed.');
                     $this->__extralog("change_pw");
+                    if ($this->_isRest()) {
+                        return $this->RestResponse->saveSuccessResponse('User', 'change_pw', false, $this->response->type(), $message);
+                    }
+                    $this->Flash->success($message);
+                    $this->_refreshAuth();
                     $this->redirect(array('action' => 'view', $id));
                 } else {
-                    $this->Flash->error(__('The password could not be updated. Make sure you meet the minimum password length / complexity requirements.'));
+                    $message = __('The password could not be updated. Make sure you meet the minimum password length / complexity requirements.');
+                    if ($this->_isRest()) {
+                        return $this->RestResponse->saveFailResponse('Users', 'change_pw', false, $message, $this->response->type());
+                    }
+                    $this->Flash->error($message);
                 }
             }
+        }
+        if ($this->_isRest()) {
+            return $this->RestResponse->describe('Users', 'change_pw', false, $this->response->type());
         }
         $this->loadModel('Server');
         $this->set('complexity', !empty(Configure::read('Security.password_policy_complexity')) ? Configure::read('Security.password_policy_complexity') : $this->Server->serverSettings['Security']['password_policy_complexity']['value']);
@@ -1122,7 +1148,7 @@ class UsersController extends AppController
             $this->_refreshAuth();
             $this->redirect($this->referer());
         } else {
-            return $this->RestResponse->saveSuccessResponse('User', 'resetauthkey', $id, $this->response->type(), 'User\'s authkey has been reset.');
+            return $this->RestResponse->saveSuccessResponse('User', 'resetauthkey', $id, $this->response->type(), 'Authkey updated: ' . $newkey);
         }
     }
 
@@ -1256,7 +1282,7 @@ class UsersController extends AppController
         } elseif ($action == 'edit') {
             $description = "User (" . $this->User->id . "): " . $this->data['User']['email'];
         } elseif ($action == 'change_pw') {
-            $description = "User (" . $this->User->id . "): " . $this->data['User']['email'];
+            $description = "User (" . $this->User->id . "): " . $this->Auth->user('email');
             $fieldsResult = "Password changed.";
         }
 
@@ -1527,7 +1553,7 @@ class UsersController extends AppController
     public function statistics($page = 'data')
     {
         $this->set('page', $page);
-        $pages = array('data' => 'Usage data', 'orgs' => 'Organisations', 'users' => 'User and Organisation statistics', 'tags' => 'Tags', 'attributehistogram' => 'Attribute histogram', 'sightings' => 'Sightings toplists', 'attackMatrix' => 'ATT&CK Matrix');
+        $pages = array('data' => 'Usage data', 'orgs' => 'Organisations', 'users' => 'User and Organisation statistics', 'tags' => 'Tags', 'attributehistogram' => 'Attribute histogram', 'sightings' => 'Sightings toplists', 'galaxyMatrix' => 'Galaxy Matrix');
         if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
             unset($pages['orgs']);
         }
@@ -1552,8 +1578,8 @@ class UsersController extends AppController
             }
         } elseif ($page == 'sightings') {
             $result = $this->__statisticsSightings($this->params['named']);
-        } elseif ($page == 'attackMatrix') {
-            $result = $this->__statisticsAttackMatrix($this->params['named']);
+        } elseif ($page == 'galaxyMatrix') {
+            $result = $this->__statisticsGalaxyMatrix($this->params['named']);
         }
         if ($this->_isRest()) {
             return $result;
@@ -1855,12 +1881,16 @@ class UsersController extends AppController
         }
     }
 
-    private function __statisticsAttackMatrix($params = array())
+    private function __statisticsGalaxyMatrix($params = array())
     {
         $this->loadModel('Event');
         $this->loadModel('Galaxy');
-
-        $galaxy_id = $this->Galaxy->getMitreAttackGalaxyId();
+        $mitre_galaxy_id = $this->Galaxy->getMitreAttackGalaxyId();
+        if (isset($params['galaxy_id'])) {
+            $galaxy_id = $params['galaxy_id'];
+        } else {
+            $galaxy_id = $mitre_galaxy_id;
+        }
         $matrixData = $this->Galaxy->getMatrix($galaxy_id);
 
         $tabs = $matrixData['tabs'];
@@ -1877,7 +1907,7 @@ class UsersController extends AppController
         $maxScore = max($scoresDataAttr['maxScore'], $scoresDataEvent['maxScore']);
         $scores = $scoresData;
         // FIXME: temporary fix: add the score of deprecated mitre galaxies to the new one (for the stats)
-        if ($matrixData['galaxy']['id'] == $galaxy_id) {
+        if ($matrixData['galaxy']['id'] == $mitre_galaxy_id) {
             $mergedScore = array();
             foreach ($scoresData as $tag => $v) {
                 $predicateValue = explode(':', $tag, 2)[1];
@@ -1937,10 +1967,17 @@ class UsersController extends AppController
                 $this->set('interpolation', $colours['interpolation']);
             }
             $this->set('pickingMode', false);
-            $this->set('defaultTabName', "mitre-attack");
+            if ($matrixData['galaxy']['id'] == $mitre_galaxy_id) {
+                $this->set('defaultTabName', "mitre-attack");
+            }
             $this->set('removeTrailling', 2);
 
-            $this->render('statistics_attackmatrix');
+            $this->set('galaxyName', $matrixData['galaxy']['name']);
+            $this->set('galaxyId', $matrixData['galaxy']['id']);
+            $matrixGalaxies = $this->Galaxy->getAllowedMatrixGalaxies();
+            $this->set('matrixGalaxies', $matrixGalaxies);
+
+            $this->render('statistics_galaxymatrix');
         }
     }
 

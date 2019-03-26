@@ -4,7 +4,7 @@
             array(
                 'type' => 'root',
                 'url' => $baseurl . '/',
-                'html' => (Configure::read('MISP.home_logo') ?  $logo = '<img src="' . $baseurl . '/img/custom/' . Configure::read('MISP.home_logo') . '" style="height:24px;">' : 'Home')
+                'html' => (Configure::read('MISP.home_logo') ?  $logo = '<img src="' . $baseurl . '/img/custom/' . Configure::read('MISP.home_logo') . '" style="height:24px;">' : __('Home'))
             ),
             array(
                 'type' => 'root',

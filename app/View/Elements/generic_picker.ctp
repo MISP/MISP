@@ -105,7 +105,6 @@ function redrawChosenWithTemplate($select, $chosenContainer, eventType) {
     if (optionLength > 1000) {
         $chosenContainer.parent().find('.generic-picker-wrapper-warning-text').show(0)
     } else {
-        console.log(eventType);
         $chosenContainer.find('.generic-picker-wrapper-warning-text').hide(0)
         var $matches;
         if (eventType == 'chosen:picked' || eventType == 'change') {
@@ -284,5 +283,4 @@ function submitFunction(clicked, callback) {
         options_templates['<?php echo $select_id; ?>'] = <?php echo json_encode($option_templates); ?>;
         options_additionalData['<?php echo $select_id; ?>'] = <?php echo json_encode($options_additionalData); ?>;
     </script>
-
 </div>
