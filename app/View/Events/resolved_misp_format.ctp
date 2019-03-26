@@ -165,7 +165,7 @@
                     }
             ?>
             </select>
-            <div style="display:non;">
+            <div style="display:none;">
               <select id="<?php echo 'Attribute' . $a . 'SharingGroupId'; ?>" class='sgToggle' style='padding:0px;height:20px;margin-top:3px;margin-bottom:0px;'>
                 <?php
                     foreach ($sgs as $sgKey => $sgValue) {
