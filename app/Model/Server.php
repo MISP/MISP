@@ -1275,7 +1275,7 @@ class Server extends AppModel
                         ),
                         'RPZ_ns' => array(
                                 'level' => 2,
-                                'description' => '',
+                                'description' => __('Nameserver'),
                                 'value' => 'localhost.',
                                 'errorMessage' => '',
                                 'test' => 'testForEmpty',
@@ -1939,7 +1939,7 @@ class Server extends AppModel
                         ),
                         'Cortex_services_enable' => array(
                                 'level' => 0,
-                                'description' => __('Enable/disable the import services'),
+                                'description' => __('Enable/disable the Cortex services'),
                                 'value' => false,
                                 'errorMessage' => '',
                                 'test' => 'testBool',
@@ -1956,7 +1956,7 @@ class Server extends AppModel
                         ),
                         'Cortex_timeout' => array(
                                 'level' => 1,
-                                'description' => __('Set a timeout for the import services'),
+                                'description' => __('Set a timeout for the Cortex services'),
                                 'value' => 120,
                                 'errorMessage' => '',
                                 'test' => 'testForEmpty',
@@ -2157,7 +2157,7 @@ class Server extends AppModel
             if ($result) {
                 $successes[] = $eventId;
             } else {
-                $fails[$eventId] = 'Failed (partially?) because of validation errors: '. json_encode($eventModel->validationErrors, true);
+                $fails[$eventId] = __('Failed (partially?) because of validation errors: ') . json_encode($eventModel->validationErrors, true);
             }
         } else {
             if (!$existingEvent['Event']['locked'] && !$server['Server']['internal']) {
@@ -2190,7 +2190,7 @@ class Server extends AppModel
             $this->__checkIfPulledEventExistsAndAddOrUpdate($event, $eventId, $successes, $fails, $eventModel, $server, $user, $jobId);
         } else {
             // error
-            $fails[$eventId] = 'failed downloading the event';
+            $fails[$eventId] = __('failed downloading the event');
         }
         return true;
     }
