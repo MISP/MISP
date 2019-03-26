@@ -35,7 +35,7 @@
                     $defaultDistribution = 5;
                 }
             }
-            if (isset($event['Object'])) {
+            if (isset($event['Object']) && !empty($event['Object'])) {
         ?>
         <table class="table table-condensed table-stripped">
         <h3><?php echo __('Objects'); ?></h3>
@@ -121,7 +121,7 @@
         <?php
                 }
             }
-            if (isset($event['Attribute'])) {
+            if (isset($event['Attribute']) && !empty($event['Attribute'])) {
         ?>
         <table class="table table-condensed table-stripped">
         <h3><?php echo __('Attributes'); ?></h3>
