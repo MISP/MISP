@@ -20,7 +20,7 @@
     <tr>
             <th><?php echo $this->Paginator->sort('id');?></th>
             <th><?php echo $this->Paginator->sort('org');?></th>
-            <th><?php echo $this->Paginator->sort('event_uuid');?></th>
+            <th><?php echo $this->Paginator->sort('event_uuid', __('Event UUID'));?></th>
             <th><?php echo $this->Paginator->sort('created');?></th>
             <th><?php echo $this->Paginator->sort('event_info');?></th>
             <th><?php echo $this->Paginator->sort('comment');?></th>
@@ -35,8 +35,8 @@ foreach ($response as $item): ?>
         <td class="short"><?php echo (isset($item['EventBlacklist']['event_info']) ? h($item['EventBlacklist']['event_info']) : '&nbsp;'); ?></td>
         <td class="short"><?php echo (isset($item['EventBlacklist']['comment']) ? h($item['EventBlacklist']['comment']) : '&nbsp;'); ?></td>
         <td class="short action-links">
-            <a href="<?php echo $baseurl;?>/eventBlacklists/edit/<?php echo h($item['EventBlacklist']['id']); ?>"><span class="fa fa-edit" title="edit" role="button" tabindex="0" aria-label="Edit blacklist entry">&nbsp;</span></a>
-            <?php echo $this->Form->postLink('', array('action' => 'delete', h($item['EventBlacklist']['id'])), array('class' => 'fa fa-trash', 'title' => 'Delete'), __('Are you sure you want to delete the blacklist entry for the event UUID %s?', h($item['EventBlacklist']['event_uuid']))); ?>
+            <a href="<?php echo $baseurl;?>/eventBlacklists/edit/<?php echo h($item['EventBlacklist']['id']); ?>"><span class="fa fa-edit" title=<?php echo __('Edit')?> role="button" tabindex="0" aria-label="Edit blacklist entry">&nbsp;</span></a>
+            <?php echo $this->Form->postLink('', array('action' => 'delete', h($item['EventBlacklist']['id'])), array('class' => 'fa fa-trash', 'title' => __('Delete')), __('Are you sure you want to delete the blacklist entry for the event UUID %s?', h($item['EventBlacklist']['event_uuid']))); ?>
         </td>
     </tr><?php
 endforeach; ?>
