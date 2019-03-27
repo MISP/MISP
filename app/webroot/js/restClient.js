@@ -31,6 +31,60 @@ function setApiInfoBox(isTyping) {
     }
 }
 
+function loadRestClientHistory(k, data_container) {
+    $('#ServerMethod').val(data_container[k]['RestClientHistory']['http_method']);
+    $('#ServerUseFullPath').prop("checked", data_container[k]['RestClientHistory']['use_full_path']);
+    $('#ServerShowResult').prop("checked", data_container[k]['RestClientHistory']['show_result']);
+    $('#ServerSkipSslValidation').prop("checked", data_container[k]['RestClientHistory']['skip_ssl_validation']);
+    $('#ServerUrl').val(data_container[k]['RestClientHistory']['url']);
+    $('#ServerHeader').val(data_container[k]['RestClientHistory']['headers']);
+    toggleRestClientBookmark();
+    $('#TemplateSelect').val(data_container[k]['RestClientHistory']['url']).trigger("chosen:updated").trigger("change");
+    updateQueryTool(data_container[k]['RestClientHistory']['url'], data_container[k]['RestClientHistory']['body']);
+    $('#ServerBody').val(data_container[k]['RestClientHistory']['body']);
+    $('#querybuilder').find('.rule-filter-container > select').trigger('chosen:updated');
+}
+
+function populate_rest_history(scope) {
+    if (scope === 'history') {
+        scope = '';
+        var container_class = 'history_queries';
+    } else {
+        scope = '1';
+        var container_class = 'bookmarked_queries';
+    }
+    $.get("/rest_client_history/index/" + scope, function(data) {
+        $('.' + container_class).html(data);
+    });
+}
+
+function toggleRestClientBookmark() {
+    if ($('#ServerBookmark').prop("checked") == true) {
+        $('#bookmark-name').css('display', 'block');
+    } else {
+        $('#bookmark-name').css('display', 'none');
+    }
+}
+
+function removeRestClientHistoryItem(id) {
+    $.ajax({
+        data: '[]',
+        success:function (data, textStatus) {
+            populate_rest_history('bookmark');
+            populate_rest_history('history');
+        },
+        error:function() {
+            handleGenericAjaxResponse({'saved':false, 'errors':['Request failed due to an unexpected error.']});
+        },
+        type:"post",
+        cache: false,
+        url: '/rest_client_history/delete/' + id,
+    });
+}
+
+
+
+
     var allValidApis;
     var fieldsConstraint;
     var querybuilderTool;
@@ -150,9 +204,18 @@ function setApiInfoBox(isTyping) {
     });
 
 
-function updateQueryTool(url) {
+function updateQueryTool(url, body) {
     var apiJson = allValidApis[url];
     var filtersJson = fieldsConstraint[url];
+
+    if (body !== undefined && body.length > 0) {
+        body = JSON.parse(body);
+    } else {
+        body = {};
+    }
+    var controller = apiJson.controller;
+    controller = controller.charAt(0).toUpperCase() + controller.slice(1) + 's';
+
     var filters = [];
     for (var k in filtersJson) {
         if (filtersJson.hasOwnProperty(k)) {
@@ -196,6 +259,11 @@ function updateQueryTool(url) {
         };
         mandatoryFields.forEach(function(mandatory) {
             var r = filtersJson[mandatory];
+            var action = r.id.split('.')[1];
+            if (body[action] !== undefined) {
+                r.value = body[action];
+                delete body[action];
+            }
             r.flags = {
                 no_delete: true,
                 filter_readonly: true
@@ -210,6 +278,22 @@ function updateQueryTool(url) {
             "valid": true
         };
     }
+
+    Object.keys(body).forEach(function(k) {
+        var values = body[k];
+        if (Array.isArray(values)) {
+            values.forEach(function(value) {
+                var r = filtersJson[k];
+                r.value = value;
+                console.log(value);
+                rules.rules[0].rules.push(r);
+            });
+        } else {
+            var r = filtersJson[k];
+            r.value = values;
+            rules.rules[0].rules.push(r);
+        }
+    });
 
     // add Params input field
     var paramFields = apiJson.params;

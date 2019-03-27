@@ -4092,54 +4092,6 @@ function submit_feed_overlap_tool(feedId) {
     });
 }
 
-function populate_rest_history(scope) {
-    if (scope === 'history') {
-        scope = '';
-        var container_class = 'history_queries';
-    } else {
-        scope = '1';
-        var container_class = 'bookmarked_queries';
-    }
-    $.get("/rest_client_history/index/" + scope, function(data) {
-        $('.' + container_class).html(data);
-    });
-}
-
-function loadRestClientHistory(k, data_container) {
-    $('#ServerMethod').val(data_container[k]['RestClientHistory']['http_method']);
-    $('#ServerUseFullPath').prop("checked", data_container[k]['RestClientHistory']['use_full_path']);
-    $('#ServerShowResult').prop("checked", data_container[k]['RestClientHistory']['show_result']);
-    $('#ServerSkipSslValidation').prop("checked", data_container[k]['RestClientHistory']['skip_ssl_validation']);
-    $('#ServerUrl').val(data_container[k]['RestClientHistory']['url']);
-    $('#ServerHeader').val(data_container[k]['RestClientHistory']['headers']);
-    $('#ServerBody').val(data_container[k]['RestClientHistory']['body']);
-    toggleRestClientBookmark();
-}
-
-function toggleRestClientBookmark() {
-    if ($('#ServerBookmark').prop("checked") == true) {
-        $('#bookmark-name').css('display', 'block');
-    } else {
-        $('#bookmark-name').css('display', 'none');
-    }
-}
-
-function removeRestClientHistoryItem(id) {
-    $.ajax({
-        data: '[]',
-        success:function (data, textStatus) {
-            populate_rest_history('bookmark');
-            populate_rest_history('history');
-        },
-        error:function() {
-            handleGenericAjaxResponse({'saved':false, 'errors':['Request failed due to an unexpected error.']});
-        },
-        type:"post",
-        cache: false,
-        url: '/rest_client_history/delete/' + id,
-    });
-}
-
 function changeTaxonomyRequiredState(checkbox) {
     var checkbox_state = $(checkbox).is(":checked");
     var taxonomy_id = $(checkbox).data('taxonomy-id');
