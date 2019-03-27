@@ -39,10 +39,11 @@ function loadRestClientHistory(k, data_container) {
     $('#ServerUrl').val(data_container[k]['RestClientHistory']['url']);
     $('#ServerHeader').val(data_container[k]['RestClientHistory']['headers']);
     toggleRestClientBookmark();
-    $('#TemplateSelect').val(data_container[k]['RestClientHistory']['url']).trigger("chosen:updated").trigger("change");
-    updateQueryTool(data_container[k]['RestClientHistory']['url'], data_container[k]['RestClientHistory']['body']);
     $('#ServerBody').val(data_container[k]['RestClientHistory']['body']);
-    $('#querybuilder').find('.rule-filter-container > select').trigger('chosen:updated');
+    $('#TemplateSelect').val(data_container[k]['RestClientHistory']['url']).trigger("chosen:updated");
+    updateQueryTool(data_container[k]['RestClientHistory']['url'], false);
+    $('#querybuilder').find('select').trigger('chosen:updated');
+    setApiInfoBox(false);
 }
 
 function populate_rest_history(scope) {
@@ -132,7 +133,7 @@ function removeRestClientHistoryItem(id) {
             $('#TemplateSelect').val($(this).val()).trigger("chosen:updated").trigger("change");
         });
 
-        $('#TemplateSelect').change(function() {
+        $('#TemplateSelect').change(function(e) {
             var selected_template = $('#TemplateSelect').val();
             if (selected_template !== '' && allValidApis[selected_template] !== undefined) {
                 $('#template_description').show();
@@ -141,7 +142,7 @@ function removeRestClientHistoryItem(id) {
                 $('#ServerUrl').data('urlWithoutParam', selected_template);
                 $('#ServerBody').val(allValidApis[selected_template].body);
                 setApiInfoBox(false);
-                updateQueryTool(selected_template);
+                updateQueryTool(selected_template, true);
             }
         });
 
@@ -204,11 +205,13 @@ function removeRestClientHistoryItem(id) {
     });
 
 
-function updateQueryTool(url, body) {
+function updateQueryTool(url, isEmpty) {
     var apiJson = allValidApis[url];
     var filtersJson = fieldsConstraint[url];
 
-    if (body !== undefined && body.length > 0) {
+    isEmpty = isEmpty === undefined ? false : isEmpty;
+    var body = $('#ServerBody').val();
+    if (!isEmpty && body !== undefined && body.length > 0) {
         body = JSON.parse(body);
     } else {
         body = {};
@@ -283,9 +286,8 @@ function updateQueryTool(url, body) {
         var values = body[k];
         if (Array.isArray(values)) {
             values.forEach(function(value) {
-                var r = filtersJson[k];
+                var r = $.extend({}, filtersJson[k], true);
                 r.value = value;
-                console.log(value);
                 rules.rules[0].rules.push(r);
             });
         } else {
