@@ -191,7 +191,7 @@
             array(
                 'type' => 'search',
                 'fa-icon' => 'search',
-                'placeholder' => 'Enter value to search',
+                'placeholder' => __('Enter value to search'),
                 'data' => '',
                 'cancel' => array(
                     'fa-icon' => 'times',
