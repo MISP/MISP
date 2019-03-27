@@ -266,21 +266,21 @@ foreach ($feeds as $item):
                 endif;
                 if ($item['Feed']['caching_enabled'] && $isSiteAdmin):
             ?>
-                    <a href="<?php echo $baseurl;?>/feeds/cacheFeeds/<?php echo h($item['Feed']['id']); ?>" title="Cache feed"><span class="icon-download-alt"></span></a>
+                    <a href="<?php echo $baseurl;?>/feeds/cacheFeeds/<?php echo h($item['Feed']['id']); ?>" title="Cache feed"><span class="fa fa-memory"></span></a>
             <?php
                 endif;
             ?>
         </td>
         <td class="short action-links">
             <?php
-                echo $this->Html->link('', array('action' => 'previewIndex', $item['Feed']['id']), array('class' => 'icon-search', 'title' => __('Explore the events remotely')));
+                echo $this->Html->link('', array('action' => 'previewIndex', $item['Feed']['id']), array('class' => 'fa fa-search', 'title' => __('Explore the events remotely')));
                 if (!isset($item['Feed']['event_error']) && $isSiteAdmin) {
-                    if ($item['Feed']['enabled']) echo $this->Html->link('', array('action' => 'fetchFromFeed', $item['Feed']['id']), array('class' => 'icon-download', 'title' => __('Fetch all events')));
+                    if ($item['Feed']['enabled']) echo $this->Html->link('', array('action' => 'fetchFromFeed', $item['Feed']['id']), array('class' => 'fa fa-arrow-circle-down', 'title' => __('Fetch all events')));
                 }
                 if ($isSiteAdmin):
             ?>
-                <a href="<?php echo $baseurl;?>/feeds/edit/<?php echo h($item['Feed']['id']); ?>"><span class="icon-edit" title="<?php echo __('Edit');?>">&nbsp;</span></a>
-                <?php echo $this->Form->postLink('', array('action' => 'delete', h($item['Feed']['id'])), array('class' => 'icon-trash', 'title' => __('Delete')), __('Are you sure you want to permanently remove the feed (%s)?', h($item['Feed']['name']))); ?>
+                <a href="<?php echo $baseurl;?>/feeds/edit/<?php echo h($item['Feed']['id']); ?>"><span class="fa fa-edit" title="<?php echo __('Edit');?>">&nbsp;</span></a>
+                <?php echo $this->Form->postLink('', array('action' => 'delete', h($item['Feed']['id'])), array('class' => 'fa fa-trash', 'title' => __('Delete')), __('Are you sure you want to permanently remove the feed (%s)?', h($item['Feed']['name']))); ?>
             <?php endif; ?>
             <a href="<?php echo $baseurl;?>/feeds/view/<?php echo h($item['Feed']['id']); ?>.json" title="<?php echo __('Download feed metadata as JSON');?>" download><span class="fa fa-cloud-download black"></span></a>
         </td>

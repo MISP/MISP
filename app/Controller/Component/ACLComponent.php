@@ -120,6 +120,7 @@ class ACLComponent extends Component
                     'getReferenceData' => array('*'),
                     'getReferences' => array('*'),
                     'getObjectTemplate' => array('*'),
+                    'handleModuleResults' => array('*'),
                     'hids' => array('*'),
                     'index' => array('*'),
                     'importChoice' => array('*'),

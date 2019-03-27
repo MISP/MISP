@@ -3,7 +3,7 @@
     <?php
         echo $this->element('Users/statisticsMenu');
     ?>
-    <p style="margin-bottom: 40px;"><?php echo __(sprintf('A heatmap showing the usage of %s.', $galaxyName));?></p>
+    <p style="margin-bottom: 40px;"><?php echo sprintf(__('A heatmap showing the usage of %s.'), $galaxyName);?></p>
 
     <select id="galaxyMatrixPicker" onchange="this.options[this.selectedIndex].value && (window.location = window.location.pathname.replace(/\/*galaxy_id:\d+/, '') + '/' + 'galaxy_id:' + this.options[this.selectedIndex].value);" >
         <?php foreach ($matrixGalaxies as $k => $galaxy): ?>

@@ -3213,13 +3213,7 @@ class Attribute extends AppModel
         }
         foreach ($attributes as $k => $attribute) {
             if (!empty($attribute['encrypt']) && $attribute['encrypt']) {
-                if (strpos($attribute['value'], '|') !== false) {
-                    $temp = explode('|', $attribute['value']);
-                    $attribute['value'] = $temp[0];
-                }
-                $result = $this->handleMaliciousBase64($attribute['event_id'], $attribute['value'], $attribute['data'], array('md5'));
-                $attribute['data'] = $result['data'];
-                $attribute['value'] = $attribute['value'] . '|' . $result['md5'];
+                $attribute = $this->onDemandEncrypt($attribute);
             }
             if (!isset($attribute['distribution'])) {
                 $attribute['distribution'] = $defaultDistribution;
@@ -3229,6 +3223,18 @@ class Attribute extends AppModel
             $this->save($attribute);
         }
         return true;
+    }
+
+    public function onDemandEncrypt($attribute)
+    {
+        if (strpos($attribute['value'], '|') !== false) {
+            $temp = explode('|', $attribute['value']);
+            $attribute['value'] = $temp[0];
+        }
+        $result = $this->handleMaliciousBase64($attribute['event_id'], $attribute['value'], $attribute['data'], array('md5'));
+        $attribute['data'] = $result['data'];
+        $attribute['value'] = $attribute['value'] . '|' . $result['md5'];
+        return $attribute;
     }
 
     public function saveAndEncryptAttribute($attribute, $user = false)
@@ -3598,6 +3604,9 @@ class Attribute extends AppModel
                     $this->Sighting->captureSighting($sighting, $this->id, $eventId, $user);
                 }
             }
+        }
+        if (!empty($this->validationErrors)) {
+            $validationErrors = $this->validationErrors;
         }
         return $attribute;
     }

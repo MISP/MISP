@@ -5,7 +5,7 @@
         <div style="margin-left:10px;">
             <span title="<?php echo isset($galaxy['description']) ? h($galaxy['description']) : h($galaxy['name']);?>" class="bold blue" style="font-size:14px;">
                 <?php echo h($galaxy['name']); ?>&nbsp;
-                <a href="<?php echo $baseurl; ?>/galaxies/view/<?php echo h($galaxy['id']); ?>" class="icon-search" title="<?php echo __('View details about this galaxy');?>"></a>
+                <a href="<?php echo $baseurl; ?>/galaxies/view/<?php echo h($galaxy['id']); ?>" class="fa fa-search" title="<?php echo __('View details about this galaxy');?>"></a>
             </span>
     <?php
         foreach ($galaxy['GalaxyCluster'] as $cluster):
@@ -16,12 +16,12 @@
                         <span class="collapse-status" style="font-size: 16px;">+</span>
                     </span>
                     <span><?php echo h($cluster['value']); ?></span>
-                    <a href="<?php echo $baseurl; ?>/galaxy_clusters/view/<?php echo h($cluster['id']); ?>" class="icon-search" title="<?php echo __('View details about this cluster');?>"></a>&nbsp;
-                    <a href="<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($cluster['tag_id']); ?>" class="icon-th-list" title="<?php echo __('View all events containing this cluster.');?>"></a>
+                    <a href="<?php echo $baseurl; ?>/galaxy_clusters/view/<?php echo h($cluster['id']); ?>" class="fa fa-search" title="<?php echo __('View details about this cluster');?>"></a>&nbsp;
+                    <a href="<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($cluster['tag_id']); ?>" class="fa fa-list" title="<?php echo __('View all events containing this cluster.');?>"></a>
                     <?php
                         if ($isSiteAdmin || ($mayModify && $isAclTagger)) {
                             echo $this->Form->create(false, array('url' => $baseurl . '/galaxy_clusters/detach/' . ucfirst(h($target_id)) . '/' . h($target_type) . '/' . $cluster['tag_id'], 'style' => 'display: inline-block; margin: 0px;'));
-                            echo '<it href="#" class="icon-trash useCursorPointer" role="button" tabindex="0" aria-label="' . __('detach') . '" title="' . __('Are you sure you want to detach %s from this event?', h($cluster['value'])) . '" onclick="popoverConfirm(this)"></it>';
+                            echo '<it href="#" class="fa fa-trash useCursorPointer" role="button" tabindex="0" aria-label="' . __('detach') . '" title="' . __('Are you sure you want to detach %s from this event?', h($cluster['value'])) . '" onclick="popoverConfirm(this)"></it>';
                             echo $this->Form->end();
                         }
                     ?>

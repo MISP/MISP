@@ -657,11 +657,6 @@
                         }
                         if ($menuItem === 'editOrg' || $menuItem === 'viewOrg') {
                             echo $this->element('/genericElements/SideMenu/side_menu_link', array(
-                                'element_id' => 'editOrg',
-                                'url' => '/organisations/edit/' . h($id),
-                                'text' => __('Edit Organisation')
-                            ));
-                            echo $this->element('/genericElements/SideMenu/side_menu_link', array(
                                 'element_id' => 'viewOrg',
                                 'url' => '/organisations/view/' . h($id),
                                 'text' => __('View Organisation')

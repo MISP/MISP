@@ -42,7 +42,11 @@
             empty($onClick) ? '' : $onClick,    // pass $data['onClick'] for the function name to call and $data['onClickParams'] for the parameter list
             empty($dataFields) ? '' : $dataFields,
             empty($data['title']) ? '' : sprintf('title="%s"', h($data['title'])),
-            empty($data['fa-icon']) ? '' : sprintf('<i class="fa fa-%s"></i> ', $data['fa-icon']),  // this has to be sanitised beforehand!
+            empty($data['fa-icon']) ? '' : sprintf(
+                '<i class="%s fa-%s"></i> ',
+                empty($data['fa-source']) ? 'fas' : h($data['fa-source']),
+                $data['fa-icon']
+            ),  // this has to be sanitised beforehand!
             empty($data['html']) ? '' : $data['html'],  // this has to be sanitised beforehand!
             empty($data['text']) ? '' : h($data['text'])
         );

@@ -83,10 +83,10 @@ foreach ($sharingGroups as $k => $sharingGroup):
         </td>
         <td class="action">
         <?php if ($isSiteAdmin || $sharingGroup['editable']): ?>
-            <?php echo $this->Html->link('', '/SharingGroups/edit/' . $sharingGroup['SharingGroup']['id'], array('class' => 'icon-edit', 'title' => 'Edit')); ?>
-            <?php echo $this->Form->postLink('', '/SharingGroups/delete/' . $sharingGroup['SharingGroup']['id'], array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete %s?', h($sharingGroup['SharingGroup']['name']))); ?>
+            <?php echo $this->Html->link('', '/SharingGroups/edit/' . $sharingGroup['SharingGroup']['id'], array('class' => 'black fa fa-edit', 'title' => 'Edit')); ?>
+            <?php echo $this->Form->postLink('', '/SharingGroups/delete/' . $sharingGroup['SharingGroup']['id'], array('class' => 'black fa fa-trash', 'title' => 'Delete'), __('Are you sure you want to delete %s?', h($sharingGroup['SharingGroup']['name']))); ?>
         <?php endif; ?>
-            <a href="/sharing_groups/view/<?php echo $sharingGroup['SharingGroup']['id']; ?>" class="icon-list-alt"></a>
+            <a href="/sharing_groups/view/<?php echo $sharingGroup['SharingGroup']['id']; ?>" class="black fa fa-eye"></a>
         </td>
     </tr>
     <?php

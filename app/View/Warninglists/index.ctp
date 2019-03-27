@@ -57,8 +57,8 @@ foreach ($warninglists as $k => $item): ?>
             <input id="checkBox_<?php echo h($item['Warninglist']['id']); ?>" type="checkbox" <?php echo $onClick; ?> <?php echo $item['Warninglist']['enabled'] ? 'checked' : ''; ?>/>
         </td>
         <td class="short action-links">
-            <a href='<?php echo $baseurl."/warninglists/view/". h($item['Warninglist']['id']);?>' class = "icon-list-alt" title = "<?php echo __('View');?>"></a>
-            <span class="icon-trash useCursorPointer" title="<?php echo __('Delete Warninglist');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete warninglist');?>" onClick="deleteObject('warninglists', 'delete', '<?php echo h($item['Warninglist']['id']); ?>', '<?php echo h($item['Warninglist']['id']); ?>');"></span>
+            <a href='<?php echo $baseurl."/warninglists/view/". h($item['Warninglist']['id']);?>' class = "fa fa-eye" title = "<?php echo __('View');?>"></a>
+            <span class="fa fa-trash useCursorPointer" title="<?php echo __('Delete Warninglist');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete warninglist');?>" onClick="deleteObject('warninglists', 'delete', '<?php echo h($item['Warninglist']['id']); ?>', '<?php echo h($item['Warninglist']['id']); ?>');"></span>
         </td>
     </tr><?php
 endforeach; ?>
