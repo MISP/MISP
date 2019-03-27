@@ -61,6 +61,10 @@
         <pre class="hidden green bold" id="gitResult"></pre>
         <button title="<?php echo __('Pull the latest MISP version from github');?>" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "updateMISP();"><?php echo __('Update MISP');?></button>
     </div>
+    <h3><?php echo __('Submodules version');?><it id="refreshSubmoduleStatus" class="fa fa-refresh useCursorPointer" style="font-size: small; margin-left: 5px;"></it></h3>
+    <div id="divSubmoduleVersions" style="background-color:#f7f7f9;">
+    </div>
+
     <h3><?php echo __('Writeable Directories and files');?></h3>
     <p><?php echo __('The following directories and files have to be writeable for MISP to function properly. Make sure that the apache user has write privileges for the directories below.');?></p>
     <p><b><?php echo __('Directories');?></b></p>
@@ -357,3 +361,17 @@
     <span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Check bad link on attachments');?>" title="<?php echo __('Check bad link on attachments');?>" style="padding-top:1px;padding-bottom:1px;" onClick="checkAttachments();"><?php echo __('Check bad link on attachments');?></span>
 
 </div>
+
+<script>
+    $(document).ready(function() {
+        updateSubModulesStatus();
+    });
+
+    $('#refreshSubmoduleStatus').click(function() { updateSubModulesStatus(); });
+    function updateSubModulesStatus() {
+        $('#divSubmoduleVersions').empty().append('<it class="fa fa-spin fa-spinner" style="font-size: large; left: 50%; top: 50%;"></it>');
+        $.get('<?php echo $baseurl . '/servers/getSubmodulesStatus/'; ?>', function(html){
+            $('#divSubmoduleVersions').html(html);
+        });
+    }
+</script>

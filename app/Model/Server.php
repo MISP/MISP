@@ -4568,6 +4568,57 @@ class Server extends AppModel
         return exec('git checkout ' . $mainBranch);
     }
 
+    public function getSubmodulesGitStatus()
+    {
+        $submodulesNames = array('misp-galaxy', 'misp-taxonomies', 'misp-objects', 'misp-noticelist', 'misp-warninglists');
+        $status = array();
+        foreach ($submodulesNames as $submoduleName) {
+            $status[$submoduleName] = $this->getSubmoduleGitStatus($submoduleName);
+        }
+        return $status;
+    }
+
+    public function getSubmoduleGitStatus($submoduleName) {
+        $acceptedSubmodulesNames = array('misp-galaxy', 'misp-taxonomies', 'misp-objects', 'misp-noticelist', 'misp-warninglists');
+        $status = array();
+        if (in_array($submoduleName, $acceptedSubmodulesNames)) {
+            $path = $this->__getSubmodulePath($submoduleName);
+            $status = array(
+                'moduleName' => $submoduleName,
+                'current' => exec(sprintf('cd %s; git rev-parse HEAD', $path)),
+                'currentTimestamp' => exec(sprintf('cd %s; git log -1 --pretty=format:%%ct', $path)),
+                'remoteTimestamp' => exec('timeout 3 git log origin/2.4 -1 --pretty=format:%ct'),
+                'remote' => exec(sprintf('timeout 3 git ls-remote https://github.com/MISP/%s | head -1 | sed "s/HEAD//"', $submoduleName)),
+                'upToDate' => ''
+            );
+            if (!empty($status['remote'])) {
+                if ($status['remote'] == $status['current']) {
+                    $status['upToDate'] = 'same';
+                } else {
+                    $status['upToDate'] = 'older';
+                }
+            } else {
+                $status['upToDate'] = 'error';
+            }
+            $status['timeDiff'] = (new DateTime('@' . $status['remoteTimestamp']))->diff(new DateTime('@' . $status['currentTimestamp']));
+        }
+        return $status;
+    }
+
+    private function __getSubmodulePath($submoduleName) {
+        $base = APP . 'files' . DS;
+        switch ($submoduleName) {
+            case 'misp-taxonomies':
+                return $base . 'taxonomies';
+            case 'misp-noticelist':
+                return $base . 'noticelists';
+            case 'misp-warninglists':
+                return $base . 'warninglists';
+            default:
+                return $base . $submoduleName;
+        }
+    }
+
     public function update($status)
     {
         $final = '';

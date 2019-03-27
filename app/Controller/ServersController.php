@@ -1141,6 +1141,14 @@ class ServersController extends AppController
         }
     }
 
+    public function getSubmodulesStatus() {
+        if (!$this->_isSiteAdmin()) {
+            throw new MethodNotAllowedException();
+        }
+        $this->set('submodules', $this->Server->getSubmodulesGitStatus());
+        $this->render('ajax/submoduleStatus');
+    }
+
     public function serverSettingsEdit($setting_name, $id = false, $forceSave = false)
     {
         if (!$this->_isSiteAdmin()) {
