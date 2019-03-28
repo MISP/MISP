@@ -26,7 +26,7 @@ class EventsController extends AppController
     );
 
     private $acceptedFilteringNamedParams = array('sort', 'direction', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'attributeFilter', 'extended', 'page',
-        'searchFor', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'distribution', 'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'feed', 'server', 'toIDS'
+        'searchFor', 'proposal', 'correlation', 'warning', 'deleted', 'includeRelatedTags', 'distribution', 'taggedAttributes', 'galaxyAttachedAttributes', 'objectType', 'attributeType', 'focus', 'extended', 'overrideLimit', 'filterColumnsOverwrite', 'feed', 'server', 'toIDS', 'sighting'
     );
 
     public $defaultFilteringRules =  array(
@@ -41,6 +41,7 @@ class EventsController extends AppController
         'feed' => 0,
         'server' => 0,
         'distribution' => array(0, 1, 2, 3, 4, 5),
+        'sighting' => 0,
         'taggedAttributes' => '',
         'galaxyAttachedAttributes' => ''
     );
@@ -1134,7 +1135,9 @@ class EventsController extends AppController
             $filters['sort'] = 'timestamp';
             $filters['direction'] = 'desc';
         }
-        $params = $this->Event->rearrangeEventForView($event, $filters, $all);
+        $sightingsData = $this->Event->getSightingData($event);
+        $this->set('sightingsData', $sightingsData);
+        $params = $this->Event->rearrangeEventForView($event, $filters, $all, $sightingsData);
         $this->params->params['paging'] = array($this->modelClass => $params);
         // workaround to get the event dates in to the attribute relations
         $relatedDates = array();
@@ -1165,8 +1168,6 @@ class EventsController extends AppController
                 $this->set($variable, $currentModel->{$variable});
             }
         }
-        $sightingsData = $this->Event->getSightingData($event);
-        $this->set('sightingsData', $sightingsData);
         if (Configure::read('Plugin.Enrichment_services_enable')) {
             $this->loadModel('Module');
             $modules = $this->Module->getEnabledModules($this->Auth->user());
@@ -1380,7 +1381,9 @@ class EventsController extends AppController
             }
         }
         unset($modificationMap);
-        $params = $this->Event->rearrangeEventForView($event, $filters);
+        $sightingsData = $this->Event->getSightingData($event);
+        $this->set('sightingsData', $sightingsData);
+        $params = $this->Event->rearrangeEventForView($event, $filters, false, $sightingsData);
 
         $this->params->params['paging'] = array($this->modelClass => $params);
         $this->set('event', $event);
@@ -1423,8 +1426,6 @@ class EventsController extends AppController
                                                                                         'recursive' => -1,
                                                                                         'contain' => array('Org', 'RequesterOrg'))));
         }
-        $sightingsData = $this->Event->getSightingData($event);
-        $this->set('sightingsData', $sightingsData);
         if (Configure::read('Plugin.Enrichment_services_enable')) {
             $this->loadModel('Module');
             $modules = $this->Module->getEnabledModules($this->Auth->user());

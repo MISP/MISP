@@ -101,9 +101,9 @@
         var baseurl = '<?php echo $baseurl; ?>';
         var here = '<?php
                 if (substr($this->params['action'], 0, 6) === 'admin_') {
-                    echo $baseurl . '/admin/' . $this->params['controller'] . '/' . substr($this->params['action'], 6);
+                    echo $baseurl . '/admin/' . h($this->params['controller']) . '/' . h(substr($this->params['action'], 6));
                 } else {
-                    echo $baseurl . '/' . $this->params['controller'] . '/' . $this->params['action'];
+                    echo $baseurl . '/' . h($this->params['controller']) . '/' . h($this->params['action']);
                 }
             ?>';
         $(document).ready(function(){
