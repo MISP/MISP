@@ -553,8 +553,7 @@ installDepsPhp70 () {
   php-dev \
   php-json php-xml php-mysql php-opcache php-readline php-mbstring \
   php-pear \
-  php-redis php-gnupg \
-  php-gd
+  php-redis php-gnupg
 
   for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
   do
@@ -575,8 +574,7 @@ installDepsPhp73 () {
   php7.3-dev \
   php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
   php-pear \
-  php-redis php-gnupg \
-  php-gd
+  php-redis php-gnupg
 }
 
 # Installing core dependencies
@@ -907,8 +905,7 @@ installDepsPhp73 () {
   php7.3-dev \
   php7.3-json php7.3-xml php7.3-mysql php7.3-opcache php7.3-readline php7.3-mbstring \
   php-pear \
-  php-redis php-gnupg \
-  php-gd
+  php-redis php-gnupg
 }
 
 # Install Php 7.2 dependencies
@@ -923,8 +920,7 @@ installDepsPhp72 () {
   php-dev \
   php-json php-xml php-mysql php-opcache php-readline php-mbstring \
   php-pear \
-  php-redis php-gnupg \
-  php-gd
+  php-redis php-gnupg
 
   for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
   do
@@ -944,8 +940,7 @@ installDepsPhp70 () {
   php-dev \
   php-json php-xml php-mysql php-opcache php-readline php-mbstring \
   php-pear \
-  php-redis php-gnupg \
-  php-gd
+  php-redis php-gnupg
 
   for key in upload_max_filesize post_max_size max_execution_time max_input_time memory_limit
   do
