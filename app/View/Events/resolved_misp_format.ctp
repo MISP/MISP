@@ -7,7 +7,7 @@
             'type' => 'hidden',
             'value' => json_encode($event, true)
         );
-        echo $this->form->input('data', $formSettings);
+        echo $this->Form->input('data', $formSettings);
         $scope = !empty($proposals) ? 'proposals of' : '';
         $objects_array = array();
         if (isset($event['Attribute'])) {
