@@ -133,7 +133,7 @@ function removeRestClientHistoryItem(id) {
             $('#TemplateSelect').val($(this).val()).trigger("chosen:updated").trigger("change");
         });
 
-        $('#TemplateSelect').change(function(e) {
+        $('#TemplateSelect').change(function() {
             var selected_template = $('#TemplateSelect').val();
             if (selected_template !== '' && allValidApis[selected_template] !== undefined) {
                 $('#template_description').show();
@@ -216,8 +216,6 @@ function updateQueryTool(url, isEmpty) {
     } else {
         body = {};
     }
-    var controller = apiJson.controller;
-    controller = controller.charAt(0).toUpperCase() + controller.slice(1) + 's';
 
     var filters = [];
     for (var k in filtersJson) {
